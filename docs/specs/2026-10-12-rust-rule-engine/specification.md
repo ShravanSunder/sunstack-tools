@@ -4,15 +4,9 @@ This document realizes the authorized needs in [Requirements](requirements.md). 
 
 ## What callers see
 
-```mermaid
-flowchart TB
-  A["Skill creator or updater"] <-->|"rules and sources / findings and diagnostics"| E["Rust rule engine<br/>opaque library or program"]
-  R["Rust application"] <-->|"prepared requests / typed judgments and usage"| E
-  T["Optional TypeScript caller"] <-->|"program requests / structured results"| E
-  E <-->|"state and typed questions / response"| J["Jev via OpenRouter"]
-  S["Sunstack rule author"] -.->|"rule meaning and expected results"| A
-  F["Future Decisions provider"] -.->|"requires an admitted adapter"| E
-```
+![External consumers and the Rust engine boundary](assets/specification-context.png)
+
+[Diagram source](assets/specification-context.mmd)
 
 The engine has no authority to approve tools, accept a skill, merge changes or declare software verified. Production plugin/router integrations and alternative providers are outside initial implementation.
 
@@ -39,20 +33,9 @@ IDs E1–E8 retain the decision-domain meanings. E9–E16 make the evidence/lint
 | E15 Selection record | One E9 occurrence in one E16 invocation | Exactly one of selected, not applicable, outside requested change scope or selection failed, with reason | U16 |
 | E16 Lint invocation | One caller-requested rule pack, source scope and configured backend run | Contains one selection record per admitted rule occurrence and selected-rule outcomes. Complete for requested scope, incomplete or cancelled | U1, U15, U16 |
 
-```mermaid
-flowchart TB
-  P["E10 Pack<br/>content identity"] -->|"1..n unique IDs"| D["E9 Rule definition"]
-  L["E16 Lint invocation<br/>one call and requested scope"] -->|"exactly 1"| P
-  L -->|"exactly 1"| S["E11 Snapshot<br/>revisions and captured bytes"]
-  S -->|"0..n"| T["E12 Target<br/>document and paragraph ID"]
-  D -->|"references 1"| T
-  L -->|"1 per admitted rule occurrence"| X["E15 Selection<br/>selected / skipped / failed"]
-  X -->|"selected: 1 ready bundle"| B["E13 Evidence<br/>provenance and completeness"]
-  B -->|"supplies"| Q["E2 State / E4 Request<br/>E1 named questions"]
-  Q -->|"executes as E5 with E3 backend"| A["E6 Answers / E7 Receipt"]
-  A -->|"consumer policy"| F["E8 Findings"]
-  L -->|"0..n boundary issues"| I["E14 Diagnostics"]
-```
+![Rule pack, source snapshot, targets, evidence and outcomes](assets/specification-entities.png)
+
+[Diagram source](assets/specification-entities.mmd)
 
 Target identity never implies symbol/type identity. A syntax match, a relationship hypothesis and a model judgment are different kinds of evidence.
 
@@ -62,7 +45,7 @@ Each P/O cell names a concrete problem and desired observation, rather than addi
 
 | R | Observable obligation, including negative case | U / E | Problem → outcome | Contract / proof |
 | --- | --- | --- | --- | --- |
-| R1 | Rust callers MUST use the reusable library without a JS runtime; program callers MUST reach the same behavior and structured outcomes | U1,U8,U18 / E5,E16 | P1 duplicated runtime → O1 one reusable engine | C1 / V1,V2 |
+| R1 | Rust callers MUST compose the evidence, decision and rule libraries without a JS runtime. Evidence preparation MUST be usable without a decision-provider dependency, and decision execution without repository/AST dependencies. Program callers MUST reach the same behavior and structured outcomes | U1,U8,U18,U19 / E5,E13,E16 | P1 duplicated or entangled runtime → O1 independently reusable responsibilities | C1 / V1,V2 |
 | R2 | Invalid JSONL, duplicate rule IDs, invalid questions or inconsistent policy MUST refuse the rule pack before any inference, with line-linked diagnostics | U3,U14,U15 / E9,E10,E14 | P2 bad data can infer → O2 preflight refusal | C2 / V3 |
 | R3 | Paragraph IDs MUST resolve to exactly one eligible paragraph in the specified document; missing, duplicate or deleted targets MUST not become passes | U14,U15 / E11,E12,E14 | P3 wrong paragraph judged → O3 source-linked target resolution | C2 / V4 |
 | R4 | Requested Git comparison and source evidence MUST refer to resolved/captured content; staged, unstaged, untracked, rename and deletion behavior MUST be explicit | U16 / E11,E13,E16 | P4 mutable/diff ambiguity → O4 traceable comparison | C3 / V5 |
@@ -81,11 +64,11 @@ Each P/O cell names a concrete problem and desired observation, rather than addi
 | R17 | Structural facts, heuristic relationship/relevance labels and provider probabilities MUST retain distinct attribution; a heuristic score MUST not masquerade as calibrated probability | U4,U17 / E6,E13 | P17 approximate retrieval mistaken for truth → O17 readable uncertainty | C3,C4 / V6,V12 |
 | R18 | The engine MUST expose local-work and provider-work measurements sufficient to evaluate filtering efficiency without claiming an unmeasured speed target | U6,U16 / E11,E16 | P18 “fast” unverifiable → O18 declared workload measurements | C7 / V14 |
 | R19 | Credential material MUST be kept at the transport boundary; rule packs, source feedback, default logs and serialized outcomes MUST not contain it or raw provider bodies | U2,U10,U14 / E3,E11,E14 | P19 diagnostic data exposure → O19 bounded privacy | C5 / V10 |
-| R20 | Initial delivery MUST remain in sunstack-tools and meet language-appropriate checks/proof; other repositories, real alternate providers, native addons and publication require separate scope | U9,U10,U11,U13,U18 / none: delivery/platform constraint | P20 integration overreach → O20 bounded delivery | C1,C7 / V1,V2,V15 |
+| R20 | Initial delivery MUST remain in sunstack-tools and meet language-appropriate checks/proof, including independent crate consumption and acyclic responsibility boundaries; other repositories, real alternate providers, native addons and publication require separate scope | U9,U10,U11,U13,U18,U19 / none: delivery/platform constraint | P20 integration overreach → O20 bounded composable delivery | C1,C7 / V1,V2,V15 |
 
 ## C1 — Two entry surfaces, one implementation
 
-The Rust library exposes prepared-judgment execution and the rule/evidence/lint journey. A thin program accepts bounded structured invocations and returns the same data contracts. Neither initializes hidden model inference or requires a JS runtime. The program is an invocation process, not a required daemon. TS/native-addon/WASM packaging is optional later work.
+The Rust libraries expose independently reusable evidence preparation, prepared-judgment execution and rule orchestration. Their contracts are defined by the domain that owns them; orchestration imports those types rather than recreating their schemas. A thin program accepts bounded structured invocations and returns the same data contracts. Neither initializes hidden model inference or requires a JS runtime. The program is an invocation process, not a required daemon. TS/native-addon/WASM packaging is optional later work.
 
 Dynamic JSONL names/labels are validated against each actual request at runtime. Native callers get typed primitive/result variants; they do not receive a false claim of compile-time knowledge of file-loaded keys. If a TS convenience library is later admitted, literal name/choice inference needs proof through that wrapper's real declarations, not merely generated wire types.
 
@@ -149,7 +132,7 @@ Proof is appropriate to the boundary:
 
 | V | Required observation | Limit |
 | --- | --- | --- |
-| V1 | Real native crate consumer uses the execution/evidence API without a JS runtime or hidden startup inference | Static source inspection is not execution |
+| V1 | Independent native consumers use evidence without provider dependencies, decisions without Git/AST dependencies, and rules through composition; no JS runtime or hidden startup inference | Static source inspection is not execution |
 | V2 | Real executable consumes structured input and emits typed outcomes; a process caller observes stdout/stderr/exit and cancellation behavior | Does not prove a native JS addon or production integration |
 | V3 | Pack preflight: valid/malformed lines, duplicate IDs, policy/question mismatch, no inference on refused pack | Does not prove skill semantics |
 | V4 | Real Markdown parsing: wrapped paragraph, list paragraph, example/fence exclusion, missing/duplicate/deleted IDs and source ranges | AST parsing is not semantic correctness |
@@ -163,6 +146,6 @@ Proof is appropriate to the boundary:
 | V12 | Same rule definitions/policies through lint and eval fixtures against independent expected findings; all failure-to-pass controls | Not production skill-plugin integration or semantic accuracy |
 | V13 | Controlled scheduling/cancellation joins owned tasks and original requests; no new attempt after cancellation | Cannot undo remote inference/billing |
 | V14 | Declared workload measurements of cold/warm local runs and request reduction, with selection correctness held fixed | No improvement percentage/SLA without data |
-| V15 | Applicable Rust formatting/lint/type/test gates, library/executable artifact integrity on selected platforms | Release/publication proof only if separately requested |
+| V15 | Applicable Rust formatting/lint/type/test gates, independent crate consumption, acyclic package dependency checks and library/executable artifact integrity on selected platforms | Release/publication proof only if separately requested |
 
 No V row has been executed by authoring this Specification.

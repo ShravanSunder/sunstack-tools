@@ -1,27 +1,35 @@
 # Rust rule engine: one core, evidence to decisions
 
-The [Specification](specification.md) fixes behavior; [Requirements](requirements.md) supplies its authority and boundaries. The target is one Rust library with a thin executable. A native Rust consumer calls the core directly; a skill tool or optional TS caller invokes the executable. There is no mandatory Bun runtime, JS addon, daemon or language server.
+The [Specification](specification.md) fixes behavior; [Requirements](requirements.md) supplies its authority and boundaries. The target is one implementation composed from three cohesive Rust library crates and one thin executable crate. Native consumers choose evidence, decisions or rule orchestration directly; a skill tool or optional TS caller invokes the executable. There is no mandatory Bun runtime, JS addon, daemon or language server.
 
 ## The integrated model
 
-```mermaid
-flowchart TB
-  N["Native Rust caller"] -->|"typed call"| O["Invocation owner<br/>limits, scheduling, report and cleanup"]
-  P["Skill tool or optional TS caller"] -->|"versioned request"| C["Program boundary<br/>framing and serialization"]
-  C --> O
-  O --> R["Rule admission owner<br/>JSONL, question and policy checks"]
-  O --> E["Evidence owner<br/>capture, diff, target and search"]
-  R --> F["Selection owner<br/>applicability and declared dependencies"]
-  E --> F
-  F --> J["Judgment owner<br/>request correlation and outcomes"]
-  J --> B["Jev adapter<br/>HTTP attempts, credentials and body admission"]
-  B <-->|"native JSON / response"| X["OpenRouter System One"]
-  J --> V["Policy owner<br/>interpret Sunstack-authored bands or labels"]
-  V --> O
-  J -.-> A["Future backend adapter<br/>not implemented in v1"]
-```
+![Evidence, decisions, rules and executable owners](assets/program-components.png)
 
-All core components are modules of one proposed `rule-engine` crate. The program is a thin separate `rule-engine-cli` crate. These are responsibility homes, not an implementation file list. Rule questions, applicability, thresholds, feedback and eval expectations remain Sunstack content; Tools interprets the bounded declarations.
+[Diagram source](assets/program-components.mmd)
+
+The owners above are modules grouped by responsibility into the crates below. Rule questions, applicability, thresholds, feedback and eval expectations remain Sunstack content; Tools interprets the bounded declarations. Crate boundaries are reusable domains, not one crate for each helper or provider.
+
+## Composable crate boundaries
+
+| Crate | Owns and reason to change | Public contract and actual consumer | Excludes |
+| --- | --- | --- | --- |
+| `sunstack-evidence` | Source capture, Git comparison, paragraph resolution, text/AST-grep queries, source spans and completeness; changes when source formats or selector behavior change | Validated snapshots, target/evidence requests, immutable bundles and evidence diagnostics; rules and direct repository tools consume it | Decision HTTP, credentials, model questions, thresholds, lint findings |
+| `sunstack-decisions` | Native primitive schemas, request-relative answer validation, backend trait, Jev HTTP adapter, usage and attempt/cancellation semantics; changes when decision contracts or provider protocols change | Structured requests, typed decision outcomes, prepared backend and decision diagnostics; rules and direct decision callers consume it | Git, AST-grep, Markdown paragraph IDs, rule-pack loading, pass/fail policy |
+| `sunstack-rules` | JSONL admission, applicability/dependency selection, policy validation/composition, per-rule scheduling and reports; changes when data-rule or finding semantics change | Admitted rule packs, preparation/evaluation operations, findings, selection records and reports; skill tooling/native rule callers consume it | Provider wire decoding, source parsing algorithms, signal handlers and process framing |
+| `sunstack-rule-cli` | Invocation JSON framing, environment/configuration wiring, process signals, exit codes and serialization; changes when process UX/protocol changes | The program contract for agents and optional TS callers; delegates to the three libraries | Duplicate selection, response validation, retry or policy implementations |
+
+![Four cohesive crates and their allowed dependency direction](assets/crate-dependencies.png)
+
+[Diagram source](assets/crate-dependencies.mmd)
+
+Arrows show compile-time dependency direction. Evidence and decisions are independent siblings; neither depends on rules or the executable. Rules depends on both, and the executable composes them. No library imports the executable, and no circular dependency or global service locator is permitted.
+
+Git capture, Markdown targets, regex/text matching and AST-grep stay modules inside evidence because they share captured source bytes, spans, limits and query lifecycle. Canonical primitive types, validation and current provider adapter stay modules inside decisions because they implement one decision contract. Future providers start as adapter modules there; a separate provider crate needs an actual independent consumer/distribution reason. No generic `common`, `utils` or all-domain contract crate is introduced.
+
+Each crate owns its domain types and diagnostics. Rules imports evidence's `SourceSpan`, `TargetId`, selectors, bundles and `EvidenceDiagnostic`, and decisions' question/answer/receipt types and `DecisionDiagnostic`; it does not recreate them or pass provider objects into evidence. Converting an evidence bundle into `SharedEvidenceState` is a rule-composition operation, not a model dependency in evidence. Rules' report diagnostic is a tagged union wrapping those typed diagnostics plus its own rule/invocation diagnostics. The executable adds a protocol-error variant at its outer envelope without moving domain validation into the CLI. No lower crate depends on an upper report schema to describe an error.
+
+The cost is three public library surfaces and a workspace dependency graph. The gain is concrete: local evidence tools do not pull in HTTP/provider dependencies, and decision-only consumers do not pull in Git/AST parsers. V1 proves independent consumers; V15 inspects the actual dependency graph. No smaller one-crate-per-module split is needed for these outcomes.
 
 ## Foundation and tradeoffs
 
@@ -29,7 +37,7 @@ At repository baseline `c3220fc`, tracked content is LICENSE, .gitignore and ear
 
 | Structural choice | Gain | Cost, payer and revisit signal |
 | --- | --- | --- |
-| Selected: Rust core plus program | One evidence/decision implementation; Rust hosts avoid process overhead; other hosts use a portable request boundary | Tools maintains a native shipping matrix and protocol. Add bindings only when a measured caller need justifies them |
+| Selected: cohesive Rust evidence, decisions and rules crates plus program | One implementation with independent library use; Rust hosts avoid process overhead; other hosts use a portable request boundary | Tools maintains three public library surfaces, a native shipping matrix and protocol. Add bindings only when a measured caller need justifies them |
 | Rust evidence with TS decision service | Easy JS SDK/Zod/Effect use and arbitrary TS policies | Two runtimes, shared semantics and service lifecycle; credible only if executing arbitrary TS rule code is an authorized requirement |
 | Rust core plus native JS bindings immediately | Direct calls for existing JS hosts | Addon packaging, async/cancellation and runtime ABI proof before the first customer needs it; defer |
 | Mandatory service or persistent index | Warm cross-process state and possible reuse | Adds lifetime, versioning and invalidation machinery without a measured requirement; defer |
@@ -42,22 +50,22 @@ Rust domain conventions come from the supplied AGENTS and full Rust rules: valid
 
 | E | Semantic owner | Package/module and schema/type home | Boundary shape | Lifetime / convention |
 | --- | --- | --- | --- | --- |
-| E1 Named question | Judgment admission | `rule-engine/decision_contracts` (new) | `NamedQuestionMap<QuestionName, JudgmentQuestion>`; noul/choice/score enum with `StructuredJson` instructions/descriptions | Derived immutable; enum and validated names |
-| E2 Shared state | Caller supplies, judgment owner preserves | `rule-engine/decision_contracts` (new) | `SharedEvidenceState`: text, JSON object/array or null | Invocation-owned snapshot; recursive JSON enum |
-| E3 Backend | Adapter prepares, judgment owner selects | `rule-engine/decision_backends` (new); public trait in `decision_contracts` | `DecisionBackend` capability set, async request operation; `BackendPreparation` ready/refused | Configured in-process; secret private |
-| E4 Request | Judgment admission | `rule-engine/decision_contracts` (new) | `StructuredJudgmentRequest { questions, state }`; connection and cancellation passed separately | Derived immutable; fallible constructors |
-| E5 Decision run | Judgment owner | `rule-engine/judgment_execution` (new); outcome in `decision_contracts` | `DecisionRunOutcome`: completed/invalid_request/provider_failure/invalid_response/cancelled | Invocation-local; tagged enum |
-| E6 Answer | Response admission | `rule-engine/judgment_validation` (new); answer shapes in `decision_contracts` | `JudgmentAnswer`: native noul, choice or score fields; map keyed by requested name | Admitted output; runtime correlation |
-| E7 Receipt | Adapter reports, response admission validates | `rule-engine/judgment_validation` (new) | `ExecutionReceipt { resolved_model, usage: { input_tokens, output_tokens, cost_usd? } }` | Derived; finite counts/cost; absence explicit |
-| E8 Finding | Policy owner executes Sunstack meaning | `rule-engine/rule_policy` (new); shape in `rule_contracts` | `RuleFinding { rule_id, target_id, source_span, policy_result, judgment, feedback }` | Derived per rule/target; tagged policy enum |
-| E9 Rule definition | Rule admission | `rule-engine/rule_contracts` (new) | `RuleDefinition { rule_id, target, applicability, context_selectors, question, policy, feedback }` | Supplied JSONL then validated immutable data |
-| E10 Rule pack | Rule admission | `rule-engine/rule_pack_loading` (new); shape in `rule_contracts` | `ValidatedRulePack { content_identity, rules, definition_locations }` | Invocation-local; atomic admission |
-| E11 Snapshot | Evidence owner | `rule-engine/source_evidence` (new); shape in `evidence_contracts` | `SourceSnapshot { resolved_comparison, captured_sources, index_identity? }`; source bytes keyed by repository-relative path/content identity | Frozen within invocation; no persistent cache |
-| E12 Target | Target resolver | `rule-engine/markdown_targets` (new); shape in `evidence_contracts` | `TargetResolution`: resolved paragraph/span, missing, ambiguous or deleted | Derived from captured bytes; distinct `TargetId` |
-| E13 Evidence | Evidence owner | `rule-engine/source_evidence` (new); shape in `evidence_contracts` | `EvidenceBundle { snapshot_identity, target, context, facts, uncertainties, completeness }` | Derived; source-linked facts/closed completeness |
-| E14 Diagnostic | Boundary that detects issue | `rule-engine/diagnostic_contracts` (new) | `SafeDiagnostic { source, code, path, source_span?, message, expectation?, retry_advice }` | Derived; closed enums, bounded safe fields |
-| E15 Selection | Selection owner | `rule-engine/rule_selection` (new); shape in `rule_contracts` | `RuleSelection`: selected/prepared, not_applicable, outside_change_scope, selection_failed | Derived once per rule occurrence |
-| E16 Lint invocation | Invocation owner | `rule-engine/rule_execution` (new); program envelope in `rule-engine-cli/protocol_boundary` | `LintInvocationOutcome`: invalid_invocation, completed_report, incomplete_report or cancelled_report | Ephemeral report; per-rule results preserved |
+| E1 Named question | Judgment admission | `sunstack-decisions/decision_contracts` (new) | `NamedQuestionMap<QuestionName, JudgmentQuestion>`; noul/choice/score enum with `StructuredJson` instructions/descriptions | Derived immutable; enum and validated names |
+| E2 Shared state | Caller supplies, judgment owner preserves | `sunstack-decisions/decision_contracts` (new) | `SharedEvidenceState`: text, JSON object/array or null | Invocation-owned snapshot; recursive JSON enum |
+| E3 Backend | Adapter prepares, judgment owner selects | `sunstack-decisions/decision_backends` (new); public trait in `decision_contracts` | `DecisionBackend` capability set, async request operation; `BackendPreparation` ready/refused | Configured in-process; secret private |
+| E4 Request | Judgment admission | `sunstack-decisions/decision_contracts` (new) | `StructuredJudgmentRequest { questions, state }`; connection and cancellation passed separately | Derived immutable; fallible constructors |
+| E5 Decision run | Judgment owner | `sunstack-decisions/judgment_execution` (new); outcome in `decision_contracts` | `DecisionRunOutcome`: completed/invalid_request/provider_failure/invalid_response/cancelled | Invocation-local; tagged enum |
+| E6 Answer | Response admission | `sunstack-decisions/judgment_validation` (new); answer shapes in `decision_contracts` | `JudgmentAnswer`: native noul, choice or score fields; map keyed by requested name | Admitted output; runtime correlation |
+| E7 Receipt | Adapter reports, response admission validates | `sunstack-decisions/judgment_validation` (new) | `ExecutionReceipt { resolved_model, usage: { input_tokens, output_tokens, cost_usd? } }` | Derived; finite counts/cost; absence explicit |
+| E8 Finding | Policy owner executes Sunstack meaning | `sunstack-rules/rule_policy` (new); shape in `rule_contracts` | `RuleFinding { rule_id, target_id, source_span, policy_result, judgment, feedback }` | Derived per rule/target; tagged policy enum |
+| E9 Rule definition | Rule admission | `sunstack-rules/rule_contracts` (new) | `RuleDefinition { rule_id, target, applicability, context_selectors, question, policy, feedback }` | Supplied JSONL then validated immutable data |
+| E10 Rule pack | Rule admission | `sunstack-rules/rule_pack_loading` (new); shape in `rule_contracts` | `ValidatedRulePack { content_identity, rules, definition_locations }` | Invocation-local; atomic admission |
+| E11 Snapshot | Evidence owner | `sunstack-evidence/source_evidence` (new); shape in `evidence_contracts` | `SourceSnapshot { resolved_comparison, captured_sources, index_identity? }`; source bytes keyed by repository-relative path/content identity | Frozen within invocation; no persistent cache |
+| E12 Target | Target resolver | `sunstack-evidence/markdown_targets` (new); shape in `evidence_contracts` | `TargetResolution`: resolved paragraph/span, missing, ambiguous or deleted | Derived from captured bytes; distinct `TargetId` |
+| E13 Evidence | Evidence owner | `sunstack-evidence/source_evidence` (new); shape in `evidence_contracts` | `EvidenceBundle { snapshot_identity, target, context, facts, uncertainties, completeness }` | Derived; source-linked facts/closed completeness |
+| E14 Diagnostic | Boundary that detects issue; rule report wraps without revalidating | Domain diagnostic modules in `sunstack-evidence`, `sunstack-decisions` and `sunstack-rules` (new); aggregate in rules' `report_contracts` | Typed `EvidenceDiagnostic`, `DecisionDiagnostic`, `RuleDiagnostic` and `InvocationDiagnostic`; rules' `ReportDiagnostic` wraps them with their origin. CLI framing diagnostics belong to the executable only | Derived; each payload has one type owner, closed codes and bounded safe fields |
+| E15 Selection | Selection owner | `sunstack-rules/rule_selection` (new); shape in `rule_contracts` | `RuleSelection`: selected/prepared, not_applicable, outside_change_scope, selection_failed | Derived once per rule occurrence |
+| E16 Lint invocation | Invocation owner | `sunstack-rules/rule_execution` (new); program envelope in `sunstack-rule-cli/protocol_boundary` | `LintInvocationOutcome`: invalid_invocation, completed_report, incomplete_report or cancelled_report | Ephemeral report; per-rule results preserved |
 
 No owner writes a run database, modifies source or changes Git state. Rule preparation and decision execution can also be used separately; the orchestration module does not make every consumer adopt the skill-lint report.
 
@@ -72,7 +80,7 @@ No owner writes a run database, modifies source or changes Git state. Rule prepa
 
 The program envelope uses `protocol_version: 1` and `operation: prepare_evidence | run_judgments | evaluate_rules`. Unknown version/operation or malformed framing is an invalid invocation. One invocation per process accepts one bounded JSON request from stdin and emits one JSON result to stdout; stderr is bounded operational text, never machine results or input/provider dumps. EOF is a framing boundary. Usage exit codes are 0 for completed execution/report (including policy failures), 2 for invalid invocation, 3 for incomplete execution and 4 for cancellation. Policy pass/fail is in JSON, not inferred from process success.
 
-The serialized payloads have one type home in core contracts, with a thin program envelope:
+The serialized payloads use their owning crate's public types, with a thin program envelope. The CLI serializes those types directly rather than maintaining parallel copies:
 
 | Shape | Required fields / variants and optionality |
 | --- | --- |
@@ -159,7 +167,7 @@ The public decision outcome variants and their fields are:
 | `invalid_response` | Required nonempty safe diagnostics; no partial answer map |
 | `cancelled` | Required caller-aborted reason and safe cancellation diagnostic; no completed answers |
 
-`SafeDiagnostic` is a validated tagged-source struct. Source is rule_pack/source/selection/request/response/provider/execution. Code is one of malformed_json, duplicate_rule_id, invalid_policy, missing_target, duplicate_target, deleted_target, unsupported_language, invalid_selector, source_changed, evidence_limit, missing_context, invalid_question, unsupported_primitive, missing_answer, unexpected_answer, wrong_answer_kind, invalid_choice, invalid_number, invalid_rubric, invalid_receipt, authentication, rate_limit, timeout, connection, http_error, unexpected_provider_error or caller_aborted. Paths have at most 32 safe segments; messages have at most 512 characters; issue lists have at most 100 entries and explicitly report omitted count. These are proposed v1 bounds, not measured latency limits.
+Each domain diagnostic is validated where its issue is detected. Origin is rule_pack/source/selection/request/response/provider/execution. The closed code vocabulary across those domain enums is malformed_json, duplicate_rule_id, invalid_policy, missing_target, duplicate_target, deleted_target, unsupported_language, invalid_selector, source_changed, evidence_limit, missing_context, invalid_question, unsupported_primitive, missing_answer, unexpected_answer, wrong_answer_kind, invalid_choice, invalid_number, invalid_rubric, invalid_receipt, authentication, rate_limit, timeout, connection, http_error, unexpected_provider_error or caller_aborted. A crate owns only the codes relevant to its boundary: evidence owns source/target/query issues; decisions owns request/response/provider issues; rules owns pack/policy/selection/scheduling issues. Rules' `ReportDiagnostic` is a tagged union retaining the already admitted domain payloads, not a second universal parser or schema. Paths have at most 32 safe segments; messages have at most 512 characters; issue lists have at most 100 entries and explicitly report omitted count. These are proposed v1 bounds, not measured latency limits.
 
 Expected shape/range/allowed-label details are constructed from validated declarations, not received provider values. Credential locations use fixed field names; secret values never enter diagnostics. Provider diagnostic paths are empty or validated canonical answer paths; arbitrary unknown provider keys/errors are not echoed. Source spans are permitted caller-scoped repository locations. Retry advice is a tagged enum: retry_after with bounded milliseconds, repair_request, repair_source, do_not_retry or unknown. It reports advice, never starts a new caller retry automatically.
 
@@ -169,41 +177,9 @@ Receipt admission preserves nonempty resolved model, nonnegative integer native 
 
 This is a proposed-only path; no predecessor exists. Every local call/return is added. Library callers enter the same invocation owner after the program framing edge.
 
-```mermaid
-sequenceDiagram
-  participant Host as Caller
-  participant CLI as Program boundary
-  participant Run as Invocation owner
-  participant Rules as Rule admission
-  participant Src as Evidence and selection
-  participant Judge as Judgment owner
-  participant HTTP as Jev adapter
-  participant Policy as Policy interpreter
-  Host->>CLI: added bounded versioned JSON invocation
-  CLI->>Run: added typed invocation and cancellation
-  Run->>Rules: added pack/config preflight, no inference
-  alt invalid pack or configuration
-    Rules-->>Run: safe diagnostics
-    Run-->>Host: invalid invocation, no calls
-  else admitted
-    Run->>Src: added capture, diff, resolve and select
-    Src-->>Run: selection records, frozen bundles or per-rule failure
-    Run->>Judge: added explicit admitted question group and bundle
-    Judge->>HTTP: added async canonical request, finite settings, cancellation
-    Note over HTTP: External inference is the only remote effect
-    HTTP-->>Judge: body or bounded failure, original attempt settled
-    alt response admitted and not aborted
-      Judge-->>Run: completed answers and receipt
-      Run->>Policy: added apply admitted rule data
-      Policy-->>Run: source-linked finding
-    else failure or abort
-      Judge-->>Run: safe execution outcome, no finding
-    end
-    Note over Run: Stop scheduling on cancel and join owned work
-    Run-->>CLI: report, coverage and measurements
-    CLI-->>Host: terminal JSON and exit code
-  end
-```
+![Entry-to-effect sequence with invalid input, execution failure and cancellation paths](assets/execution-sequence.png)
+
+[Diagram source](assets/execution-sequence.mmd)
 
 Shapes on the new boundaries are the binding table's invocation, validated pack, frozen evidence, structured request, closed decision outcome and lint report. HTTP sends only the admitted native model/questions/state; model-request body logs are disabled. Source capture is read-only; policy/report generation writes only the returned value.
 
@@ -226,15 +202,9 @@ Concurrency capacity is explicit invocation configuration; order in the returned
 
 ## Proof paths and real dependencies
 
-```mermaid
-flowchart LR
-  R["Native or program test driver"] --> E["Real pack / Git / Markdown / text / AST-grep owners"]
-  E --> J["Real judgment validation and policy"]
-  J --> C["Real Rust HTTP adapter"]
-  C --> F["Controlled local HTTP service<br/>payload, failure, retry, abort observations"]
-  C -.-> P["Real Jev/OpenRouter<br/>separate hosted proof"]
-  J --> O["Independent expected findings<br/>plus negative controls"]
-```
+![Real local components, controlled HTTP proof and separate hosted provider proof](assets/proof-boundaries.png)
+
+[Diagram source](assets/proof-boundaries.mmd)
 
 Local library/selector dependencies are real in evidence integration. An HTTP fixture substitutes only the hosted boundary in V9/V13; it must observe actual request bodies/attempts, not mock the adapter being proved. V11 closes the hosted gap through the public Rust API. V12 uses one fixture rule definition in lint and eval drivers with independently written expectations; it does not migrate or certify the production plugin. V14 profiles cold/warm runs and counts scans/parses/requests before adopting a persistent cache or native addon.
 
@@ -244,7 +214,7 @@ Invalid ID states are rejected by constructors; primitive/result kinds are enum-
 
 | U | R and scenario | E | Owner | Interface | Shape and home | State | Failure | Proof seam |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| U1,U8,U18 | R1 native and program reuse | E5,E16 | Invocation owner | Library entry/program facade | Outcomes in rule_engine; envelope in protocol_boundary | Enter → terminal | No JS dependency | V1 native consumer; V2 real process |
+| U1,U8,U18,U19 | R1 independent libraries and program reuse | E5,E13,E16 | Domain owners and invocation owner | Evidence/decision/rule entries; program facade | Owned public types in sunstack-evidence/decisions/rules; envelope in sunstack-rule-cli | Independent entry → terminal | No reverse dependencies or required JS | V1 independent native consumers; V2 real process |
 | U3,U14,U15 | R2 pack preflight | E9,E10,E14 | Rule admission | Pack loading | ValidatedRulePack, rule_contracts | Supplied → admitted/refused | Atomic no-inference refusal | V3 real JSONL and call counter |
 | U14,U15 | R3 target identity | E11,E12,E14 | Target resolver | Resolve paragraph | TargetResolution, evidence_contracts | Captured → resolved/refused | Missing/duplicate/deleted diagnostic | V4 real Markdown spans |
 | U16 | R4 Git/content consistency | E11,E13,E16 | Evidence owner | Capture comparison | SourceSnapshot, evidence_contracts | Read → freeze | Source changed/ref unavailable | V5 repository content mutations |
@@ -253,7 +223,7 @@ Invalid ID states are rejected by constructors; primitive/result kinds are enum-
 | U5,U14,U16 | R7 required evidence | E11,E13,E14 | Evidence owner | Prepare bundle | EvidenceBundle, evidence_contracts | Selected → ready/refused | Limit/missing context diagnostic | V7 no inference on incomplete bundle |
 | U3,U4,U5 | R8 structured mixed batch | E1,E2,E4,E5 | Judgment owner | Request admission/execution | JudgmentQuestion and StructuredJson, decision_contracts | Request → execute | No flatten/drop/regroup | V8 domain cases; V9 actual HTTP body |
 | U3,U4 | R9 correlated completion | E1,E5,E6,E7 | Response admission | Validate body/request | JudgmentAnswer and Receipt, judgment_validation | Untrusted → complete/refuse | No partial success | V8 mismatch controls; V9 adapter |
-| U2,U3,U14 | R10 useful safe diagnostics | E14 | Detecting boundary and diagnostic admission | Map issue/failure | SafeDiagnostic, diagnostic_contracts | Fault → admitted diagnostic | Drop raw values; bounded omission count | V10 useful/context/exposure controls |
+| U2,U3,U14 | R10 useful safe diagnostics | E14 | Detecting boundary owner; rules report wraps | Map issue/failure once | Domain diagnostics in evidence/decisions/rules; ReportDiagnostic in sunstack-rules/report_contracts | Fault → typed diagnostic → report | No duplicate schema/raw values; bounded omission count | V10 useful/context/exposure controls |
 | U4,U12 | R11 backend substitution | E1,E3,E5 | Judgment owner and Jev adapter | Backend trait/capabilities | DecisionBackend, decision_contracts | Prepare → select/refuse | Unsupported primitive | V9 conformance; V11 Jev only |
 | U6 | R12 native usage/model/cost | E5,E7 | Response admission | Receipt admission | ExecutionReceipt, judgment_validation | Complete | Missing/malformed known fields | V9 supplied/absent cost; V11 hosted |
 | U7,U14 | R13 failure vs finding | E5,E8,E14,E16 | Invocation and policy owners | Compose/report | Distinct result variants, rule_contracts | Judgment → finding or failure | No failure-to-pass aggregation | V8/V12 independent negative controls |
@@ -262,8 +232,8 @@ Invalid ID states are rejected by constructors; primitive/result kinds are enum-
 | U5,U7,U9,U15 | R16 source-linked policy | E6,E8,E9,E16 | Policy owner | Apply declared policy | RulePolicy/RuleFinding, rule_policy | Valid answer → finding | Refused policy cannot compose | V12 shared rules/independent expectation |
 | U4,U17 | R17 facts vs inference | E6,E13 | Evidence and judgment owners | Evidence attribution | Fact/uncertainty/judgment variants | Discover → present | No calibrated heuristic claim | V6/V12 contradiction cases |
 | U6,U16 | R18 measured filtering | E11,E16 | Invocation owner | Report measurements | InvocationMeasurements, rule_execution | Run → measured report | No predicted SLA/savings | V14 declared workload profile |
-| U2,U10,U14 | R19 credential/body isolation | E3,E11,E14 | Adapter and diagnostic owners | Secret config/safe mapping | Private secret and SafeDiagnostic | Memory-only config | No raw/default body logs | V10 sentinel output capture |
-| U9,U10,U11,U13,U18 | R20 bounded delivery/quality | none: platform constraint | Repository and program owners | Build/check/public surfaces | Rust crate and program contracts | Development → verified artifact | Other repos/publication excluded | V1/V2/V15 real gates/artifacts |
+| U2,U10,U14 | R19 credential/body isolation | E3,E11,E14 | Adapter and diagnostic owners | Secret config/safe mapping | Private secret in sunstack-decisions; owned domain diagnostic payloads | Memory-only config | No raw/default body logs | V10 sentinel output capture |
+| U9,U10,U11,U13,U18,U19 | R20 bounded composable delivery/quality | none: platform constraint | Repository and program owners | Build/check/public surfaces | Four-crate workspace dependency graph and owned contracts | Development → verified artifacts | Cycles/reverse dependencies and other-repo edits excluded | V1/V2 independent consumers; V15 real gates/dependency graph |
 
 All E1–E16 are bound in the entity table. C1–C7 correspond to the interfaces, source/selection, judgments, diagnostic/lifecycle, policy and performance sections above. V1–V15 name future observations, not completed tests. No visual or static design check substitutes for their execution.
 

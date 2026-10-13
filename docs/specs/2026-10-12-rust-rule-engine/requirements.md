@@ -39,6 +39,7 @@ IDs U1–U14 retain the prior needs where applicable. Their revised language/pla
 | U16 | Robust, fast filtering and input preparation using Git diffs, text search and AST-grep; supply useful evidence to decision engines | Authorized: owner explicitly moves these capabilities into the core and asks for stronger/faster filtering |
 | U17 | Structural facts, relationship hypotheses and model judgments must remain distinguishable; uncertain candidates can still inform an agent | Authorized: owner-supplied AST-grep/evidence-tag research and the request to make those inputs useful; heuristic/calibration details remain proposals |
 | U18 | TS can consume Rust through a thin boundary; direct Rust consumers should not pay a mandatory process or JS cost | Authorized: owner asks whether TS can just use Rust and accepts the one-core proposal |
+| U19 | Use composable Rust crates with clear responsibility and dependency boundaries; keep cohesive jobs together rather than creating tiny crates | Authorized: owner: “Rust should be composable crates ... with clear boundaries” and “not too tiny but clear separation of responsibilities” |
 
 ## What the Rust reset supersedes
 
@@ -54,7 +55,7 @@ No shipped behavior or data needs migration. Earlier review receipts do not esta
 
 ## Scope and protected systems
 
-This design covers the reusable Rust core, a thin executable boundary and a local skill-lint example/proof fixture. Sunstack supplies rule questions, applicability declarations, evidence requirements, rubrics, thresholds and feedback. Tools implements the reusable mechanisms that interpret those declarations, gather evidence and execute decisions. A native caller may supply prepared evidence and compose answers directly.
+This design covers composable Rust libraries, a thin executable boundary and a local skill-lint example/proof fixture. Sunstack supplies rule questions, applicability declarations, evidence requirements, rubrics, thresholds and feedback. Tools implements the reusable mechanisms that interpret those declarations, gather evidence and execute decisions. A native caller may use evidence preparation or decision execution independently and compose their outputs directly.
 
 Permitted repository: sunstack-tools. Existing skill packages, production hooks, codex-router, infrastructure and eval datasets are read-only consumers/reference sources in this job. Shipping their integration, publishing packages or installing a service is outside the first delivery.
 

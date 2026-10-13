@@ -1,0 +1,7 @@
+flowchart TB
+  A["Skill creator or updater"] <-->|"rules and sources / findings and diagnostics"| E["Rust rule engine<br/>opaque library or program"]
+  R["Rust application"] <-->|"prepared requests / typed judgments and usage"| E
+  T["Optional TypeScript caller"] <-->|"program requests / structured results"| E
+  E <-->|"state and typed questions / response"| J["Jev via OpenRouter"]
+  S["Sunstack rule author"] -.->|"rule meaning and expected results"| A
+  F["Future Decisions provider"] -.->|"requires an admitted adapter"| E
