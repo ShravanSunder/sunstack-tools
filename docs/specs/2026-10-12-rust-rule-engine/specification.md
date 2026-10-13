@@ -17,21 +17,21 @@ IDs E1–E8 retain the decision-domain meanings. E9–E16 make the evidence/lint
 | Entity | Same-instance rule and relationships | Invariants and observable states | Basis |
 | --- | --- | --- | --- |
 | E1 Named question | Its name within one E4 request; request has 1..n questions | One noul/choice/score, with structured instructions/criteria. Supplied → admitted or refused | U3–U5 |
-| E2 Shared state | One evidence value associated with an E4 request; every question reads that value | JSON-compatible text/object/array/null; no silent truncation. Supplied → admitted or refused | U4, U5 |
+| E2 Shared state | One evidence value associated with an E4 request; every question reads that value | Text or structured JSON object/array, including nested null values; no silent truncation. Supplied → admitted or refused | U4, U5 |
 | E3 Decision backend | One prepared provider/model connection; runs select exactly one connection | Only declared supported semantics can execute. Prepared or preparation refused; actual model is observed separately | U2, U12 |
 | E4 Structured request | One nonempty named-question set and shared state; repeated contents do not make two E5 runs the same | Independent questions only; consumer schedules answer-dependent follow-up. Supplied → admitted or refused | U3–U5 |
 | E5 Decision run | One invocation selecting E3 and proposing E4; retries remain within it | One terminal outcome: completed, invalid request, provider failure, invalid response or cancelled | U1, U3, U14 |
 | E6 Answer | E5 run plus E1 name; a completed run has exactly one per question | Requested kind/names/labels/rubric match; probabilities and fractional scores retained. Untrusted → admitted or refused | U3, U4 |
 | E7 Receipt | One completed E5 run's execution metadata | Resolved model and native usage; reported cost if available, absence is not zero. Untrusted → admitted or refused | U6 |
 | E8 Finding | Consumer policy evaluation for one rule/target occurrence; belongs to one E16 invocation | pass/fail/review, category or rubric feedback is policy-owned; execution failure is never a finding | U7, U9 |
-| E9 Rule definition | Nonempty rule ID within E10 content; changing the definition changes its effective version | A separate target ID locates E12. One named primary question and bounded policy in the initial JSONL contract. Supplied → admitted or refused | U15 |
-| E10 Rule pack | Ordered JSONL content and its content identity; contains 1..n E9 with unique rule IDs | Malformed lines, duplicate IDs or policy/question mismatch refuse the pack before inference | U15, U3 |
+| E9 Rule definition | Nonempty rule ID within E10 content; changing the definition changes its effective version | A separate target ID locates E12 in its pack's skill document. One primary question and bounded policy. Supplied → admitted or refused | U15 |
+| E10 Rule pack | One skill-document binding plus its ordered JSONL source paths and captured contents; contains 1..n E9 | Rule IDs are unique across constituent files. Invalid lines, duplicate IDs or policy/question mismatch refuse admission before inference | U15, U3 |
 | E11 Source snapshot | Selected repository/file content, revision identities and captured content identities for one invocation | Diff and source spans refer to these bytes, never later live reads. Captured or unavailable/changed-during-capture | U16 |
 | E12 Target paragraph | Snapshot plus source document plus target ID; multiple rules may reference it | Exactly one matching Markdown paragraph; duplicate/missing ID refuses that target. Resolved, missing, ambiguous or deleted | U15 |
 | E13 Evidence bundle | Selected target/context occurrences from one snapshot, with their provenance and completeness | Includes source ranges, facts and explicit uncertainty; no invented context. Ready or incomplete/refused | U16, U17 |
 | E14 Diagnostic | One safely described issue at a rule/source/request/response/provider boundary | Origin, closed code, safe path/location and repair guidance; never input/body/credential passthrough | U14 |
 | E15 Selection record | One E9 occurrence in one E16 invocation | Exactly one of selected, not applicable, outside requested change scope or selection failed, with reason | U16 |
-| E16 Lint invocation | One caller-requested rule pack, source scope and configured backend run | Contains one selection record per admitted rule occurrence and selected-rule outcomes. Complete for requested scope, incomplete or cancelled | U1, U15, U16 |
+| E16 Lint invocation | One caller-requested ordered collection of skill-to-pack bindings, input-path scope and backend configuration | One binding per skill document; each admitted pack/rule occurrence has one selection record. Complete for requested scope, incomplete or cancelled | U1, U15, U16 |
 
 ![Rule pack, source snapshot, targets, evidence and outcomes](assets/specification-entities.png)
 
@@ -74,7 +74,9 @@ Dynamic JSONL names/labels are validated against each actual request at runtime.
 
 ## C2 — JSONL rules and Markdown targets
 
-Each nonblank JSONL line describes one uniquely identified rule: target document and paragraph ID, applicability/evidence declarations, one native primary question, explicit policy and feedback. Pack-level preflight validates the entire file; blank lines are ignored, comments are not JSON, and malformed/duplicate entries refuse the pack atomically before inference. Line/column diagnostics identify the rule-definition repair point.
+The caller supplies ordered per-skill bindings. Each identifies one skill document and a nonempty ordered collection of JSONL paths. Those files collectively form the pack; no manifest file or inheritance mechanism is required. Shared JSONL files may be explicitly included in multiple packs. Duplicate bindings to the same skill document or duplicate source paths within a pack are refused. Rule IDs may recur in different packs because their occurrences remain separate.
+
+Each nonblank JSONL line describes one rule: rule ID, paragraph ID, applicability/evidence declarations, one native primary question, explicit policy and feedback. The skill document belongs to the binding, rather than being repeated in every line. Admission validates every file in every supplied pack before inference; blank lines are ignored and comments are not JSON. Invalid lines, duplicate IDs across constituent files, unknown contract fields and policy/question mismatch refuse admission. Diagnostics identify the JSONL source path, line and column. Arbitrary keys inside structured question data remain ordinary JSON data, rather than contract fields.
 
 Rule IDs identify checks; paragraph IDs identify source targets. One paragraph can have several rules. The initial target convention is `U001: paragraph text` at the start of a Markdown paragraph, with an ID consisting of an ASCII letter followed by at least three decimal digits; lowercase such as `u001` is also valid. IDs are scoped to a document, matched case-sensitively, and do not include the colon. Paragraph text includes wrapped continuation lines until the Markdown paragraph ends. A list item's paragraph may qualify; code fences, headings, inline code and quoted examples do not create target declarations. No implicit “first match wins” is allowed.
 
@@ -84,11 +86,11 @@ This convention is the proposed narrow first format, rather than a promise to pa
 
 ## C3 — Scope, filtering and model-ready evidence
 
-The caller selects full declared scope or change-scoped evaluation and supplies a concrete comparison. Full scope evaluates every applicable rule in that scope. Change scope considers rules whose targets or declared context dependencies changed, including rule-definition changes. Merely changing line numbers is not changing paragraph identity/content. If dependency or applicability analysis is incomplete, the engine conservatively selects the rule or returns selection failure; it never asserts irrelevance from missing evidence.
+The caller declares input paths and selects full or change-scoped evaluation. Full scope needs no Git repository or comparison and evaluates applicable rules in that scope. Change scope requires a concrete comparison and considers target, context, applicability and rule-definition changes on both sides. Merely changing line numbers is not changing paragraph identity/content. Missing baseline or incomplete dependency analysis conservatively selects; unresolved current applicability produces selection failure. Missing evidence never proves irrelevance.
 
 Repository comparison covers two resolved commits or a resolved base against captured working-tree content. Working-tree scope includes staged and unstaged content, and explicitly requested untracked sources; ignored-file inclusion follows caller scope. Added, modified, deleted and renamed paths are reported. Rename handling may be delete/add; no heuristic rename identity is required to preserve paragraph/content tracking.
 
-Evidence includes target text, declared context, source/content identities, ranges and selector provenance. Text search finds text occurrences; structural search identifies syntax nodes/captures; neither proves type/symbol identity. Target IDs, source existence and mechanically checkable structure are established locally. Models receive contextual evidence rather than being asked to locate IDs that the engine can resolve.
+Evidence includes target text, declared context, source/content identities, ranges and selector provenance. The model-facing state has a defined target, attributed context entries and explicit optional-context omissions; rule instructions can rely on those fields. Text search finds text occurrences; structural search identifies syntax nodes/captures; neither proves type/symbol identity. Target IDs, source existence and mechanically checkable structure are established locally. Models receive contextual evidence rather than being asked to locate IDs that the engine can resolve.
 
 Limits on files, bytes, candidates and model input are explicit invocation settings. Exceeding a limit yields incomplete evidence/selection diagnostics, not silent truncation, dropping rules or a fabricated zero result. Required evidence must be complete for each model call. No persistent index, automatic graph traversal, learned ranker or mandatory model reranking is introduced. A caller can add explicit dependency/context selectors; transitive compiler resolution is outside v1.
 
@@ -98,7 +100,7 @@ Each rule occurrence has a selection record: selected, not applicable, outside r
 
 Noul returns a finite yes probability in `[0,1]`. Choice returns a supplied label, concentration confidence and probabilities for exactly the supplied label set. Score returns a finite probability-weighted position from zero to the final rubric index, confidence and the actual index/legend/probability set. Fractions remain fractions; no automatic conversion to a quality percentage or boolean is applied by transport validation.
 
-Instructions and descriptions accept strings, nested JSON objects/arrays or null. Noul true/false descriptions are optional; choice labels form a nonempty map; score has at least two ordered levels. Numbers nested in JSON are finite. Functions, cycles and unsupported native values are refused.
+Shared state, instructions, noul descriptions and score levels accept strings or nested JSON objects/arrays, with null permitted inside those containers. Choice descriptions additionally accept a top-level null. Noul criteria may be omitted; when supplied both true and false descriptions are required. Choice labels form a nonempty map. The proposed local rubric requires at least two ordered score levels for meaningful bands; OpenRouter's schema accepts one, so this is a local restriction rather than a provider requirement. Numbers nested in JSON are finite. Unsupported roots and native values are refused before inference; adapters never flatten or manufacture meaning to gain acceptance.
 
 A request has multiple named independent questions over one shared state. Explicitly requested groups may share a call only with identical evidence and declared independence. Answer-dependent follow-up remains a caller's next invocation. No undocumented exact floating-point probability-sum or legend-text equality constraint is invented.
 
@@ -108,11 +110,11 @@ Validate all untrusted provider data against the actual request before completio
 
 ## C5 — Diagnostics, attempts and cancellation
 
-Diagnostics identify source (`rule-pack`, `source`, `selection`, `request`, `response`, `provider` or `execution`), a closed code, safe path/location and actionable guidance. Expected kind/range/allowed labels may be described using admitted declaration data; received values and raw bodies are excluded. Messages are constructed by the boundary owner, never copied from SDK/HTTP error text. Retryability is known yes/no or unknown, not an instruction to run another attempt automatically.
+Diagnostics identify source (`rule_pack`, `source`, `selection`, `request`, `response`, `provider`, `execution`, `invocation` or `protocol`), a closed code, safe path/location and actionable guidance. Expected kind/range/allowed labels may be described using admitted declaration data; received values and raw bodies are excluded. Messages are constructed by the boundary owner, never copied from SDK/HTTP error text. Retryability is known yes/no or unknown, not an instruction to run another attempt automatically.
 
 Decision execution ends as completed, invalid request, provider failure, invalid response or cancelled. Preparation failures and evidence failures have their own boundary diagnostics; neither creates a fake decision run. Request validation happens before inference. Valid pre-aborted requests cancel without inference; invalid requests report their validation errors. Abort observed before completed admission wins over successful response admission; later abort cannot mutate a returned result.
 
-Attempt timeout and retry count are finite configuration values. The provider adapter owns one controller. Attempts stop on cancellation; failures retain class/status and safe retry guidance. Requests already accepted remotely may have cost or side effects even when their response is lost. There is no inference idempotency or refund promise.
+Attempt timeout and retry count are finite configuration values. The provider adapter owns one controller. Attempts stop on cancellation; failures retain class/status and safe retry guidance. Each attempt records whether it was not dispatched, produced an admitted completion or ended with an unknown remote outcome. A failed, malformed or cancelled local result cannot assert that inference never happened. Requests already accepted remotely may have cost even when their response is lost. There is no inference idempotency or refund promise.
 
 Per-rule execution failures remain visible while independent rules may finish. Invalid pack/configuration stops the invocation before calls. Invocation cancellation stops further scheduling, waits for owned work, and reports completed versus cancelled/not-started rule occurrences distinctly.
 
@@ -122,7 +124,7 @@ The first JSONL policy evaluates one primary answer: noul probability bands, cho
 
 Tools provides the reusable interpreter; Sunstack authors its meaning. Native consumers can compose several answers in code through the lower-level judgment API. No arbitrary expression evaluator, TS rule loader or workflow language is implied by JSONL support.
 
-Findings include rule ID, target ID, source location, declared policy disposition/category, raw judgment reference and rule-authored feedback. Applicability skips and failed evaluations are separate. Reports expose incomplete coverage and cannot aggregate failure, cancellation or missing target into a lint pass. A clean changed-scope report does not certify unselected full-scope rules.
+Findings include skill path, rule ID, target ID, source location, declared policy disposition/category, raw judgment reference and rule-authored feedback. Applicability skips and failed evaluations are separate. Reports expose incomplete coverage and cannot aggregate failure, cancellation or missing target into a lint pass. A clean changed-scope report does not certify unselected full-scope rules.
 
 ## C7 — Efficiency, delivery and proof
 
@@ -134,14 +136,14 @@ Proof is appropriate to the boundary:
 | --- | --- | --- |
 | V1 | Independent native consumers use evidence without provider dependencies, decisions without Git/AST dependencies, and rules through composition; no JS runtime or hidden startup inference | Static source inspection is not execution |
 | V2 | Real executable consumes structured input and emits typed outcomes; a process caller observes stdout/stderr/exit and cancellation behavior | Does not prove a native JS addon or production integration |
-| V3 | Pack preflight: valid/malformed lines, duplicate IDs, policy/question mismatch, no inference on refused pack | Does not prove skill semantics |
+| V3 | Multi-file/multi-skill preflight: unknown or malformed fields, duplicate bindings/paths/IDs, same rule ID in separate packs, policy mismatch; zero inference on refusal | Does not prove skill semantics |
 | V4 | Real Markdown parsing: wrapped paragraph, list paragraph, example/fence exclusion, missing/duplicate/deleted IDs and source ranges | AST parsing is not semantic correctness |
 | V5 | Real repository fixtures: commits, staged/unstaged/untracked inputs, additions/deletions/renames and content mutation during capture | Not every Git layout/platform is thereby supported |
 | V6 | Actual text/AST-grep matches, range/capture integrity and false semantic-inference controls | Syntax discovery is not compiler-backed reference resolution |
-| V7 | Selection/evidence controls: changed target, changed dependency/rule, unaffected rule, unknown applicability, missing context and explicit limit refusal | Coverage is relative to requested scope |
-| V8 | Primitive and request-relative tests plus native static contract checks: names/kinds/labels/rubrics, nested JSON, malformed numbers and diagnostics | Does not establish model accuracy or future TS literal inference |
+| V7 | Selection/evidence controls: both-side context/applicability changes, changed target/rule, absent or external baseline, unaffected rule, required/optional context and limit refusal | Coverage is relative to requested scope |
+| V8 | Primitive and request-relative tests plus native static contract checks: names/kinds/labels/rubrics, nested JSON, top-level null refusals, partial noul criteria, malformed numbers and diagnostics | Does not establish model accuracy or future TS literal inference |
 | V9 | Real Rust HTTP adapter under controlled transport: payload, bounded errors, retry, abort and receipt preservation | Controlled server is a hosted-service stand-in |
-| V10 | Useful diagnostics retained; sentinel credentials, values, arbitrary paths/error text and bodies excluded | Does not authenticate source contents |
+| V10 | Useful status-specific diagnostics, unknown-field locations and remote uncertainty retained; sentinel credentials, values, arbitrary provider paths/error text and bodies excluded | Does not authenticate source contents |
 | V11 | Genuine Rust public API → Jev/OpenRouter mixed-primitives request, validated structured answers, model and usage | Credential-gated; skipped means unverified; alternate providers remain unproved |
 | V12 | Same rule definitions/policies through lint and eval fixtures against independent expected findings; all failure-to-pass controls | Not production skill-plugin integration or semantic accuracy |
 | V13 | Controlled scheduling/cancellation joins owned tasks and original requests; no new attempt after cancellation | Cannot undo remote inference/billing |

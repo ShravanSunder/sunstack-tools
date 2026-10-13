@@ -1,12 +1,12 @@
 flowchart TB
-  P["E10 Pack<br/>content identity"] -->|"1..n unique IDs"| D["E9 Rule definition"]
-  L["E16 Lint invocation<br/>one call and requested scope"] -->|"exactly 1"| P
-  L -->|"exactly 1"| S["E11 Snapshot<br/>revisions and captured bytes"]
+  P["E10 Per-skill pack<br/>skill path and ordered JSONL sources"] -->|"1..n unique IDs across files"| D["E9 Rule definition<br/>paragraph ID within bound skill"]
+  L["E16 Lint invocation<br/>one call and declared input paths"] -->|"1..n distinct skill bindings"| P
+  L -->|"exactly 1 admitted capture"| S["E11 Snapshot<br/>optional comparison and frozen bytes"]
   S -->|"0..n"| T["E12 Target<br/>document and paragraph ID"]
   D -->|"references 1"| T
-  L -->|"1 per admitted rule occurrence"| X["E15 Selection<br/>selected / skipped / failed"]
-  X -->|"selected: 1 ready bundle"| B["E13 Evidence<br/>provenance and completeness"]
-  B -->|"supplies"| Q["E2 State / E4 Request<br/>E1 named questions"]
-  Q -->|"executes as E5 with E3 backend"| A["E6 Answers / E7 Receipt"]
+  L -->|"1 per admitted pack/rule occurrence"| X["E15 Selection<br/>selected / skipped / failed"]
+  X -->|"selected: ready or refused"| B["E13 Evidence<br/>provenance and completeness"]
+  B -->|"ready only"| Q["E2 State / E4 Request<br/>E1 named questions"]
+  Q -->|"admitted completion of E5 with E3"| A["E6 Answers / E7 Receipt"]
   A -->|"consumer policy"| F["E8 Findings"]
   L -->|"0..n boundary issues"| I["E14 Diagnostics"]

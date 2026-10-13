@@ -1,33 +1,40 @@
 sequenceDiagram
-  participant Host as Caller
-  participant CLI as Program boundary
+  participant Host as Native or program caller
   participant Run as Invocation owner
+  participant Src as Evidence owner
   participant Rules as Rule admission
-  participant Src as Evidence and selection
+  participant Sel as Selection owner
   participant Judge as Judgment owner
   participant HTTP as Jev adapter
   participant Policy as Policy interpreter
-  Host->>CLI: added bounded versioned JSON invocation
-  CLI->>Run: added typed invocation and cancellation
-  Run->>Rules: added pack/config preflight, no inference
-  alt invalid pack or configuration
-    Rules-->>Run: safe diagnostics
-    Run-->>Host: invalid invocation, no calls
-  else admitted
-    Run->>Src: added capture, diff, resolve and select
-    Src-->>Run: selection records, frozen bundles or per-rule failure
-    Run->>Judge: added explicit admitted question group and bundle
-    Judge->>HTTP: added async canonical request, finite settings, cancellation
-    Note over HTTP: External inference is the only remote effect
-    HTTP-->>Judge: body or bounded failure, original attempt settled
-    alt response admitted and not aborted
-      Judge-->>Run: completed answers and receipt
-      Run->>Policy: added apply admitted rule data
-      Policy-->>Run: source-linked finding
-    else failure or abort
-      Judge-->>Run: safe execution outcome, no finding
+  Note over Host,Run: Proposed-only with no predecessor. Program facade owns framing
+  Host->>Run: added typed skill-pack bindings, input paths, settings and cancellation
+  Run->>Src: added capture rule/input bytes and optional comparison
+  Src-->>Run: frozen snapshot or capture failure
+  alt capture refused or aborted
+    Run-->>Host: safe preparation failure or settled cancellation
+  else capture admitted
+    Run->>Rules: added preflight all captured JSONL/configuration
+    Rules-->>Run: admitted packs or linked diagnostics
+    alt invalid pack or configuration
+      Run-->>Host: invalid invocation, no inference
+    else admitted
+      Run->>Sel: added before/current applicability, targets, context and definitions
+      Sel->>Src: added query frozen sources
+      Src-->>Sel: bundles, match sets or source diagnostics
+      Sel-->>Run: every occurrence selected, skipped or failed
+      Run->>Judge: added explicit named group and SkillRuleState
+      Judge->>HTTP: added async request, finite settings and cancellation
+      Note over HTTP: External inference may occur. Cancellation does not undo it
+      HTTP-->>Judge: body or safe failure plus attempt observations
+      alt response admitted and not aborted
+        Judge-->>Run: completed answers, receipt and attempts
+        Run->>Policy: added apply admitted rule data
+        Policy-->>Run: source-linked finding
+      else failure or abort
+        Judge-->>Run: execution outcome and remote uncertainty, no finding
+      end
+      Note over Run: Stop new work on cancellation and join owned work before terminal result
+      Run-->>Host: ordered report, coverage and measurements
     end
-    Note over Run: Stop scheduling on cancel and join owned work
-    Run-->>CLI: report, coverage and measurements
-    CLI-->>Host: terminal JSON and exit code
   end

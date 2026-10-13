@@ -1,6 +1,5 @@
 flowchart TB
-  C["Executable crate<br/>framing, signals and wiring"] --> R["Rules crate<br/>pack, selection, policy and reports"]
-  C -.->|"direct evidence operation"| E["Evidence crate<br/>Git, Markdown, text and AST-grep"]
-  C -.->|"direct judgment operation"| D["Decisions crate<br/>typed primitives, validation and Jev"]
-  R -->|"uses typed snapshots and bundles"| E
-  R -->|"builds requests and consumes outcomes"| D
+  C["Executable crate<br/>framing, signals and wiring"] --> R["Rules crate<br/>packs, selection, policy and reports"]
+  C -->|"direct judgments"| D["Decisions crate<br/>typed primitives, validation and Jev"]
+  R -->|"typed snapshots and bundles"| E["Evidence crate<br/>capture, optional Git, Markdown and queries"]
+  R -->|"requests and outcomes"| D
