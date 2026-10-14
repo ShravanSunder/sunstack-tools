@@ -1,11 +1,21 @@
 # Agent-written explainers
 
-Written by a Haiku-class subagent that read only `packages/demistify/skill/SKILL.md` and one fact brief from `apps/demistify-poc/briefs/`. Kept verbatim (excluded from formatting) as evidence of what the guide produces; they are not hand-edited.
+Each page was written by a fresh Haiku-class subagent that read only one guide and one fact brief from `apps/demistify-poc/briefs/`, with identical prompts. Pages are kept verbatim (excluded from formatting). After `pnpm build`, open `/experiments/agent-written/<round>/<page>.html` on the lab preview.
 
-| Page | Brief | Tokens (o200k) |
+| Round | Guide | Pages |
 | --- | --- | --- |
-| `planning.html` | `briefs/planning.md` | 4,434 |
-| `page-loading.html` | `briefs/page-loading.md` | 2,353 |
-| `code-review.html` | `briefs/code-review.md` | 1,669 |
+| `round-3` | `skill/SKILL.md` at `1911a3f` (1,459 tokens; vertical example) | planning, page-loading, code-review |
+| `round-4-control` | same guide as round 3 | domain-map, component-deep-dive |
+| `round-4-treatment` | `skill/SKILL.md` at `8b9e987` (1,405 tokens; Markdown first, layout patterns, stats, routes, board) | all five briefs |
 
-After `pnpm build`, open `/experiments/agent-written/<page>` on the lab preview.
+Round 4 results (desktop 1400 px; "mixed" = share of islands beside a different kind of island):
+
+| Brief | Tokens control → treatment | Mixed rows | Desktop height |
+| --- | --- | --- | --- |
+| planning | 4,434 → 4,035 | 0% → 29% | 3,336 → 2,512 px |
+| page-loading | 2,353 → 2,312 | 0% → 60% | 4,805 → 4,465 px |
+| code-review | 1,669 → 2,058 (adds stats, chart, routes) | 0% → 50% | 3,608 → 3,513 px |
+| domain-map | 2,704 → 2,304 | 0% → 78% | 4,715 → 2,607 px |
+| component-deep-dive | 2,338 → 2,328 | 0% → 29% | 5,645 → 5,620 px |
+
+Every treatment page used routes and stat tiles; two used the board; none needed a Markdown wrapper (control: 7–14 per page). One treatment page had one authoring issue (a route step to a missing id), reported by the issues panel. No console errors in any page.

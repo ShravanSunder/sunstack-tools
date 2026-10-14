@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design, planning and proof</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+# Design, planning and proof
+
+Audience: a developer who must understand how an accepted design reaches implementation, who owns each step, and what is already built versus only proposed. Source snapshot dated 2026-10-14; it is not live PR status.
+
+<ex-grid cols="4">
+<ex-callout tone="tldr" span="2" title="The short version">The design sets what must work and how we will know. Planning carries that meaning into executable work. The Lead owns the picture and acceptance; the Implementer and Verifier supply different evidence.</ex-callout>
+<ex-stat value="2" label="Changes with implemented source" note="both draft PRs" tone="done"></ex-stat>
+<ex-stat value="6" label="Proposed additions" note="added to this plan, not built" tone="added"></ex-stat>
+</ex-grid>
+
+## Built today versus proposed
+
+<ex-grid cols="2">
+<ex-callout tone="done" title="Implemented source today">Only Roles + practices and Five-document family, with one relationship between them: Roles + practices → Five-document family.</ex-callout>
+<ex-callout tone="added" title="Proposed additions">Main planner, Improvement planner, Structural proof, Lead assessment, Independent review and PR readiness. "Added" means added to this plan, not implemented software.</ex-callout>
+</ex-grid>
+
+<ex-callout tone="risk" title="Owed, not yet shown">Planned checks have not run. A planned red is owed evidence, not an executed failing test. Planned observations remain owed.</ex-callout>
+
+## Three perspectives
+
+The same work, read three ways. Readers usually want one perspective at a time, so pick a tab. Click a node in a picture to open its card.
+
+<ex-tabs>
+<section label="Changes and dependencies">
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+flowchart LR
+  roles["Roles + practices"] --> family["Five-document family"]
+  family --> run1["Main planner"]
+  run1 --> run2["Improvement planner"]
+  run2 --> proof["Structural proof"]
+  proof --> assessment["Lead assessment"]
+  assessment --> review["Independent review"]
+  review --> wrap["PR readiness"]
+</script></ex-mermaid>
+<div sticky>
+<ex-callout tone="note" title="How to read the arrows">Solid arrows mean "depends on". The two PRs contain implemented source; the F6 nodes are accepted design awaiting implementation.</ex-callout>
+<ex-callout tone="risk" title="Still on the older basis">The family is stacked above #127. Its new design return exists, but current planners still consume the older three-document basis.</ex-callout>
+</div>
+</ex-grid>
+
+### Implemented source
+
+<ex-grid cols="2">
+<ex-card id="roles" title="Roles + practices" tone="done" tag="PR #127 · draft">
+**Implemented source · reviewed.** Seven responsibilities, Worker/Sidekick execution forms, progressive job packets, and one Verifier paired with each Implementer.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: This is source-reviewed work. Draft PR status does not establish installed behavior or earned trust.
+
+Source: PR #127 · head 0bad422c
+
+</details>
+</ex-card>
+<ex-card id="family" title="Five-document family" tone="done" tag="PR #128 · draft">
+**Implemented source · reviewed.** Requirements, Specification, Program Design, Test Design and Verification Design each own a different decision. Each has a local review, followed by integrated reading.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: The family is stacked above #127. Its new design return exists, but current planners still consume the older three-document basis.
+
+Source: PR #128 · head ffe30964
+
+</details>
+</ex-card>
+</ex-grid>
+
+### F6 design: accepted, awaiting implementation
+
+<ex-grid cols="2">
+<ex-card id="run1" title="Main planner" tone="added" tag="F6 · run 1">
+**Spec accepted · not started.** Plan Implementation reads all five documents and current closures, then schedules adopted test and verification strategy into slices, commands and prerequisites. It updates the canonical plan and actual consumers.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: It does not choose a replacement oracle or test layer for an adopted design. Missing strategy returns to the design owner.
+
+Source: F6 spec · Run 1
+
+</details>
+</ex-card>
+<ex-card id="run2" title="Improvement planner" tone="added" tag="F6 · run 2">
+**Spec accepted · not started.** Plan Improve Repo adopts the same five-document basis for design-bearing findings and preserves positively source-proven mechanics-only work.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Audit-only exits, direct plan-only results, validation receipts and triage stay distinct. An incomplete design is never a mechanics-only fallback.
+
+Source: F6 spec · Run 2
+
+</details>
+</ex-card>
+<ex-card id="proof" title="Structural proof" tone="added" tag="Later · after implementation">
+**Planned checks · not run.** Permanent source-contract checks, existing schema tests, and a real source walk through producer → planner → handoff → executor/review. The paired Verifier reports finite observations.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: String checks and schema parsing establish their structural claims; they do not show that a model follows the workflow.
+
+Source: F6 spec · Proof and independent review
+
+</details>
+</ex-card>
+<ex-card id="assessment" title="Lead assessment" tone="added" tag="Later · after scoped proof">
+**Own reading and interpretation.** The Lead opens the actual diff and decisive proof, checks them against the accepted need and design, and resolves every material gap before independent implementation review.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: A helper report or a green count cannot replace the Lead's understanding of what was required and observed.
+
+Source: F6 spec · Proof, step 4
+
+</details>
+</ex-card>
+<ex-card id="review" title="Independent review" tone="added" tag="Later · same relationships">
+**Findings and correction closure.** Independent reviewers inspect the implemented skills, their teaching, calls, claims and consumer consistency. The same review relationship checks bounded corrections.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Today's accepted SPEC is not a review of an F6 implementation; none exists yet.
+
+Source: F6 spec · Review and coordination
+
+</details>
+</ex-card>
+<ex-card id="wrap" title="PR readiness" tone="added" tag="Later · separate delivery">
+**Owner retains merge authority.** Current PR head, checks, comments, review threads and mergeability are examined at the authorized delivery boundary.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: This diagram starts no work, grants no merge, and claims no client refresh or runtime behavior.
+
+Source: F6 spec · Coordination and non-goals
+
+</details>
+</ex-card>
+</ex-grid>
+
+</section>
+<section label="Design to planning">
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+flowchart LR
+  requirements["Requirements"] --> specification["Specification"]
+  specification --> program["Program Design"]
+  program --> tests["Test Design"]
+  tests --> verification["Verification Design"]
+  verification --> integrated["Integrated review"]
+  integrated --> payload["Ready design data"]
+  payload --> planning["Planning"]
+  planning --> canonical["Canonical plan"]
+</script></ex-mermaid>
+<div sticky>
+<ex-callout tone="note" title="The normal path">This is the normal dependency path for an adopted substantial design unit. Every document has its own local review; the whole set has an integrated review. Early feasibility research can look ahead without changing who owns a decision.</ex-callout>
+</div>
+</ex-grid>
+
+### Five design documents, each reviewed locally
+
+<ex-grid cols="2">
+<ex-card id="requirements" title="Requirements" tone="decision" tag="WHY · for whom">
+**Authorized outcome and boundary.** The Lead clarifies the consumer, adopted outcome, constraints and scope with the owner. Requirements receives its local review and owner confirmation or explicit waiver.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: No inferred preference becomes an authorized requirement.
+
+Source: Five-document family · Requirements
+
+</details>
+</ex-card>
+<ex-card id="specification" title="Specification" tone="decision" tag="WHAT · observable">
+**Entities, invariants and obligations.** It defines what correct means through observable permitted and forbidden behavior, traced to Requirements, including domain identity and states.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: It does not choose internal modules, persistence shapes, test layers or mechanisms.
+
+Source: Five-document family · Specification
+
+</details>
+</ex-card>
+<ex-card id="program" title="Program Design" tone="decision" tag="HOW · structure">
+**Owners, interfaces and proof seams.** It chooses responsibilities, interfaces, state, failure and concurrency realization. It names sufficient observation seams and what must stay real, with structural confirmation or waiver.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Test Design chooses scenarios and layers within these structural constraints.
+
+Source: Five-document family · Program Design
+
+</details>
+</ex-card>
+<ex-card id="tests" title="Test Design" tone="decision" tag="WHICH wrong behavior">
+**Scenario → real interaction → oracle.** It selects scenarios, independent oracles, the cheapest honest layers, substitutions, deterministic completion, and keep/repair/remove decisions.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: A planned red is owed evidence. It is not an executed failing test. The Implementer writes product tests.
+
+Source: Five-document family · Test Design
+
+</details>
+</ex-card>
+<ex-card id="verification" title="Verification Design" tone="decision" tag="HOW the real system shows it">
+**Reference → route → observation.** It names the independent correctness reference, real build/configuration/client, outcome observations, passing conditions, reuse and limits.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: An acknowledgement, another target or a mocked path cannot prove the adopted outcome. Planned observations remain owed.
+
+Source: Five-document family · Verification Design
+
+</details>
+</ex-card>
+</ex-grid>
+
+### Whole set, then planning
+
+<ex-grid cols="2">
+<ex-card id="integrated" title="Integrated review" tone="note" tag="ALL FIVE · one coherent picture">
+**Whole-set reading + final confirmation.** After five current local review closures, an independent reader reconstructs the whole set. The owner confirms or waives the final set.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Five local verdicts cannot be relayed as the integrated reader's judgment.
+
+Source: Five-document family · orchestrator-design
+
+</details>
+</ex-card>
+<ex-card id="payload" title="Ready design data" tone="note" tag="PRODUCER owns validation">
+**Five documents + closures + owed proof.** The cycle producer validates its own result. Planning receives its ready fields as data and opens the actual documents, confirmations and review evidence. Direct source-based planning verifies equivalent readiness.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: The phase never imports an orchestrator-owned validator. Shared document/closure schemas constrain shape, not semantic correctness.
+
+Source: F6 spec · D15 and Run 1
+
+</details>
+</ex-card>
+<ex-card id="planning" title="Planning" tone="added" tag="F6 · adopted strategy">
+**Schedule it, preserve its meaning.** Choose slices, concrete commands, dependencies, write scopes and earliest useful integration gates for the adopted strategy. Every owed test or observation is scheduled or returned as an exact gap.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: No silent fallback to three documents; no replacing real proof with a cheaper check that cannot observe the claim.
+
+Source: F6 spec · D3 and Run 1
+
+</details>
+</ex-card>
+<ex-card id="canonical" title="Canonical plan" tone="added" tag="ONE execution authority">
+**Durable path + basis + delivery intent.** One immutable Markdown plan links its current basis, proof obligations and intended delivery boundary. Handoff, implementation and review preserve the record.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: A plan-only result stays non-executable. Tickets, handoff and validation do not upgrade authority or create another plan.
+
+Source: F6 spec · D5, D14 and D16
+
+</details>
+</ex-card>
+</ex-grid>
+
+</section>
+<section label="Owners and judgment">
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+flowchart TD
+  owner["You"] --> lead["Lead"]
+  advisor["Advisor"] --> lead
+  support["Researcher / Operator"] --> lead
+  lead --> implementer["Implementer"]
+  lead --> verifier["Verifier"]
+  implementer -. facts .-> verifier
+  implementer --> accept["Lead assessment"]
+  verifier --> accept
+  accept --> reviewer["Reviewer"]
+</script></ex-mermaid>
+<div sticky>
+<ex-callout tone="note" title="Topology, not a DAG">This view is role topology, not a dependency DAG. The dotted Implementer–Verifier link means shared facts and reproductions. Advice, observation, findings and acceptance are separate results.</ex-callout>
+</div>
+</ex-grid>
+
+### Owners, helpers and reviewers
+
+<ex-grid cols="2">
+<ex-card id="owner" title="You" tone="decision" tag="OWNER">
+**Meaning, tradeoffs and merge.** You build the governing mental model with the Lead, settle owner-controlled choices, confirm adopted design decisions and retain merge authority.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: You do not need to ferry routine logs or errors between helpers.
+
+Source: Roles · Lead charter
+
+</details>
+</ex-card>
+<ex-card id="advisor" title="Advisor" tone="question" tag="CHALLENGE">
+**Competing model and tradeoffs.** Challenge the Lead's assumptions and the inference from observation to claim. Bring a credible competing picture with source evidence, gains, costs and who pays.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Advice is not approval or independent review. It does not author governing design.
+
+Source: Roles · Advisor charter
+
+</details>
+</ex-card>
+<ex-card id="lead" title="Lead" tone="note" tag="GOVERNING AUTHOR">
+**Design, plan, integration and acceptance.** The owner's main conversation. Writes the design and plan, cuts bounded assignments, reads decisive evidence, integrates results and accepts only claims it understands.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: It cannot become a delegator who forwards "done." A Verifier may run the observation; interpretation stays here.
+
+Source: Roles · Lead charter
+
+</details>
+</ex-card>
+<ex-card id="support" title="Researcher / Operator" tone="note" tag="BOUNDED HELP">
+**Checked answers / prescribed observations.** The Researcher answers a supplied question from inspected evidence. The Operator scrapes, extracts, monitors or runs scripts under supplied criteria.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Neither owns architecture or acceptance. Cheap models do not acquire implementation authority. Worker/Sidekick describe how these roles run.
+
+Source: Roles · practices-manage-agents
+
+</details>
+</ex-card>
+<ex-card id="implementer" title="Implementer" tone="note" tag="SIDEKICK">
+**Code + product tests + associated proof.** Execute the Lead's bounded plan, write feature code and product regression tests, run associated proof, and correct accepted implementation defects. Every Implementer has a paired Verifier.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Material design/plan meaning returns to the Lead. It does not author governing replacements.
+
+Source: Roles · Implementer
+
+</details>
+</ex-card>
+<ex-card id="verifier" title="Verifier" tone="note" tag="PAIRED SIDEKICK">
+**Outcome observation + test adequacy.** Challenge proof feasibility early, check pyramid/TDD/sensitivity, inspect applicable real-path evidence and observe the adopted outcome. Own only assigned verification drivers/scripts.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: No feature repairs or product-suite edits. Missing cases return to the Implementer; wrong expected meaning returns to the Lead. It does not accept delivery.
+
+Source: Roles · Verifier charter
+
+</details>
+</ex-card>
+<ex-card id="accept" title="Lead assessment" tone="decision" tag="BEFORE independent review">
+**Required outcome ↔ actual observation.** Read the diff, the expected outcome and the actual target-bound observations. Determine whether the evidence establishes the claimed result and what remains open.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: Verifier judgment is evidence to inspect. A receipt can be real yet test the wrong requirement.
+
+Source: Roles · Lead acceptance
+
+</details>
+</ex-card>
+<ex-card id="reviewer" title="Reviewer" tone="note" tag="INDEPENDENT · later">
+**Code, contracts, tests and corrections.** Inspect ownership, types, state transitions, assertions and scope against governing sources. Detect tautological tests and assertions that invent restrictions. Verify corrected findings.
+
+<details><summary>Boundary and source</summary>
+
+Boundary: No editing or delivery acceptance. Review does not replace the Verifier's real-system observation.
+
+Source: Roles · Reviewer charter
+
+</details>
+</ex-card>
+</ex-grid>
+
+</section>
+</ex-tabs>
+
+## Reading paths
+
+<ex-route label="60-second tour">
+<ex-step to="family" open="sidebar">Built today: the five-document family. Current planners still consume the older three-document basis.</ex-step>
+<ex-step to="run1">The main planner is accepted and not started. It schedules the adopted strategy into slices and commands.</ex-step>
+<ex-step to="integrated">Integrated review reads the five documents as one picture, after their local reviews close.</ex-step>
+<ex-step to="canonical" open="sidebar">One canonical plan is the single execution authority.</ex-step>
+<ex-step to="accept">The Lead reads the diff and the actual observations before independent review.</ex-step>
+</ex-route>
+<ex-route label="Reviewer pass" steps="proof tests verification reviewer"></ex-route>
+
+</ex-document>
+</body>
+</html>

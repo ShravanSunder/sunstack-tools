@@ -35,13 +35,13 @@ Transitions: active → detached (socket drop); detached → active (resume with
 
 ```ts
 export async function resume(id: string, socket: Socket): Promise<Session | undefined> {
-  const session = await store.read(id);
-  if (!session || session.state !== 'detached') return undefined;
-  const attached = await store.compareAndSet(id, session.version, { state: 'active' });
-  if (!attached) return undefined;
-  binder.attach(id, socket);
-  events.publish('session.resumed', { id });
-  return attached;
+	const session = await store.read(id);
+	if (!session || session.state !== 'detached') return undefined;
+	const attached = await store.compareAndSet(id, session.version, { state: 'active' });
+	if (!attached) return undefined;
+	binder.attach(id, socket);
+	events.publish('session.resumed', { id });
+	return attached;
 }
 ```
 
@@ -49,12 +49,12 @@ Notes on that code: line 2 is a network round trip to Redis; line 4 uses the ver
 
 ## Configuration
 
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| `SESSION_GRACE_SECONDS` | 300 | How long a detached session can resume |
-| `SWEEP_INTERVAL_SECONDS` | 30 | Expiry sweeper period |
-| `REDIS_URL` | — | Session store location |
-| `MAX_SESSIONS_PER_CLIENT` | 5 | Oldest session ends when exceeded |
+| Setting                   | Default | Meaning                                |
+| ------------------------- | ------- | -------------------------------------- |
+| `SESSION_GRACE_SECONDS`   | 300     | How long a detached session can resume |
+| `SWEEP_INTERVAL_SECONDS`  | 30      | Expiry sweeper period                  |
+| `REDIS_URL`               | —       | Session store location                 |
+| `MAX_SESSIONS_PER_CLIENT` | 5       | Oldest session ends when exceeded      |
 
 ## Metrics (last 7 days, production)
 

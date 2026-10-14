@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Commerce domain map</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Commerce domain map
+
+Five areas own twenty entities. This is the one place to see every entity, where it lives and how entities connect. Illustrative domain, dated 2026-10-14.
+
+<ex-grid cols="4">
+<ex-callout tone="tldr" span="2" title="The spine">An order is the spine: identity places it, catalog prices it, billing pays for it, fulfilment delivers it.</ex-callout>
+<ex-stat value="5" label="Areas"></ex-stat>
+<ex-stat value="20" label="Entities" note="6 aggregates, 10 entities, 4 values"></ex-stat>
+</ex-grid>
+
+<ex-route label="60-second tour">
+<ex-step to="map">Start with the map: five areas around one spine.</ex-step>
+<ex-step to="order" open="sidebar">The order is the spine. Its lines copy prices at purchase, and payment and shipment hang off it.</ex-step>
+<ex-step to="ordering">Ordering: carts become orders.</ex-step>
+<ex-step to="billing">Billing: money in and out.</ex-step>
+<ex-step to="fulfilment">Fulfilment: getting it to the customer.</ex-step>
+</ex-route>
+<ex-route label="Money trail" steps="price orderline payment invoice returns refund"></ex-route>
+
+## The map
+
+<ex-grid cols="3">
+<ex-mermaid id="map" span="2"><script type="text/plain">
+flowchart LR
+  subgraph identityArea["Identity"]
+    customer[Customer]
+    account[Account]
+    address[Address]
+    consent[Consent record]
+  end
+  subgraph catalogArea["Catalog"]
+    product[Product]
+    sku[Variant / SKU]
+    price[Price]
+    inventory[Inventory level]
+  end
+  subgraph orderingArea["Ordering"]
+    cart[Cart]
+    order[Order]
+    orderline[Order line]
+    discount[Discount]
+  end
+  subgraph billingArea["Billing"]
+    payment[Payment]
+    invoice[Invoice]
+    refund[Refund]
+    taxrate[Tax rate]
+  end
+  subgraph fulfilmentArea["Fulfilment"]
+    warehouse[Warehouse]
+    shipment[Shipment]
+    parcel[Parcel]
+    returns[Return]
+  end
+  customer -- has one --> account
+  customer -- has many --> address
+  customer -- places --> order
+  cart -- checks out to --> order
+  order -- contains --> orderline
+  orderline -- refers to --> sku
+  sku -- belongs to --> product
+  sku -- priced by --> price
+  sku -- stocked as --> inventory
+  order -- paid by --> payment
+  payment -- issues --> invoice
+  payment -- reversed by --> refund
+  order -- fulfilled by --> shipment
+  shipment -- leaves from --> warehouse
+  shipment -- contains --> parcel
+  returns -- triggers --> refund
+</script></ex-mermaid>
+<div sticky>
+<ex-callout tone="risk" title="Things people get wrong">
+
+- Order line prices are copied at purchase; changing a Price never changes an existing order.
+- Inventory is reserved at checkout and released if payment fails within 15 minutes.
+- A cancelled order that was already paid needs a Refund; cancelling does not refund by itself.
+
+</ex-callout>
+</div>
+</ex-grid>
+
+## Areas and entities
+
+<ex-board cols="2">
+<ex-region id="identity" title="Identity — who the customer is">
+<ex-card id="customer" title="Customer" tag="aggregate">
+Person or company that places orders.
+
+<details><summary>Fields and rules</summary>
+
+Fields: id, name, email, type (person | company), created at.
+
+**Rule:** email is unique.
+
+</details>
+</ex-card>
+<ex-card id="account" title="Account" tag="entity">
+Sign-in credentials for a customer.
+
+<details><summary>Fields and rules</summary>
+
+Fields: customer id, password hash, MFA enabled, last sign-in.
+
+**Rule:** one account per customer.
+
+</details>
+</ex-card>
+<ex-card id="address" title="Address" tag="value">
+Postal address, used for shipping and invoices.
+
+<details><summary>Fields and rules</summary>
+
+Fields: lines, city, postcode, country.
+
+</details>
+</ex-card>
+<ex-card id="consent" title="Consent record" tag="entity">
+Marketing and data-processing consents.
+
+<details><summary>Fields and rules</summary>
+
+Fields: customer id, purpose, granted at, version.
+
+**Rule:** append-only; latest version wins.
+
+</details>
+</ex-card>
+</ex-region>
+
+<ex-region id="catalog" title="Catalog — what can be sold">
+<ex-card id="product" title="Product" tag="aggregate">
+A sellable item family.
+
+<details><summary>Fields and rules</summary>
+
+Fields: id, name, description, status (draft | live | retired).
+
+</details>
+</ex-card>
+<ex-card id="sku" title="Variant / SKU" tag="entity">
+A specific size or colour.
+
+<details><summary>Fields and rules</summary>
+
+Fields: sku, product id, attributes, weight.
+
+</details>
+</ex-card>
+<ex-card id="price" title="Price" tag="value">
+Price of a SKU in a currency.
+
+<details><summary>Fields and rules</summary>
+
+Fields: sku, currency, amount, valid from.
+
+**Rule:** one active price per SKU and currency.
+
+</details>
+</ex-card>
+<ex-card id="inventory" title="Inventory level" tag="entity">
+Stock per SKU per warehouse.
+
+<details><summary>Fields and rules</summary>
+
+Fields: sku, warehouse id, on hand, reserved.
+
+</details>
+</ex-card>
+</ex-region>
+
+<ex-region id="ordering" title="Ordering — carts become orders">
+<ex-card id="cart" title="Cart" tag="aggregate">
+Items before checkout.
+
+<details><summary>Fields and rules</summary>
+
+Fields: id, customer id (optional), lines, expires at.
+
+**Rule:** expires after 7 days idle.
+
+</details>
+</ex-card>
+<ex-card id="order" title="Order" tag="aggregate">
+The committed purchase.
+
+<details><summary>Fields and rules</summary>
+
+Fields: id, customer id, status, totals, placed at.
+
+**States:** placed → paid → fulfilled → closed; cancelled from placed or paid.
+
+</details>
+</ex-card>
+<ex-card id="orderline" title="Order line" tag="entity">
+One SKU in an order.
+
+<details><summary>Fields and rules</summary>
+
+Fields: sku, quantity, unit price at purchase.
+
+**Rule:** price is copied, never re-read.
+
+</details>
+</ex-card>
+<ex-card id="discount" title="Discount" tag="value">
+A promotion applied to an order.
+
+<details><summary>Fields and rules</summary>
+
+Fields: code, amount or percent.
+
+**Rule:** at most one per order.
+
+</details>
+</ex-card>
+</ex-region>
+
+<ex-region id="billing" title="Billing — money in and out">
+<ex-card id="payment" title="Payment" tag="aggregate">
+An attempt to collect money.
+
+<details><summary>Fields and rules</summary>
+
+Fields: id, order id, method, amount, status (authorised | captured | failed | refunded).
+
+</details>
+</ex-card>
+<ex-card id="invoice" title="Invoice" tag="entity">
+Legal document issued when an order is paid.
+
+<details><summary>Fields and rules</summary>
+
+Fields: number, order id, billing address, tax lines.
+
+**Rule:** numbers are sequential per country.
+
+</details>
+</ex-card>
+<ex-card id="refund" title="Refund" tag="entity">
+Money returned.
+
+<details><summary>Fields and rules</summary>
+
+Fields: payment id, amount, reason.
+
+**Rule:** total refunds ≤ captured amount.
+
+</details>
+</ex-card>
+<ex-card id="taxrate" title="Tax rate" tag="value">
+Rate by country and product class.
+
+<details><summary>Fields and rules</summary>
+
+Fields: country, class, percent.
+
+</details>
+</ex-card>
+</ex-region>
+
+<ex-region id="fulfilment" title="Fulfilment — getting it to the customer">
+<ex-card id="warehouse" title="Warehouse" tag="entity">
+A stocking location.
+
+<details><summary>Fields and rules</summary>
+
+Fields: id, address, cut-off time.
+
+</details>
+</ex-card>
+<ex-card id="shipment" title="Shipment" tag="aggregate">
+Goods leaving one warehouse for one order.
+
+<details><summary>Fields and rules</summary>
+
+Fields: id, order id, warehouse id, status (pending | packed | shipped | delivered).
+
+</details>
+</ex-card>
+<ex-card id="parcel" title="Parcel" tag="entity">
+A physical box in a shipment.
+
+<details><summary>Fields and rules</summary>
+
+Fields: tracking number, carrier, weight.
+
+</details>
+</ex-card>
+<ex-card id="returns" title="Return" tag="entity">
+Goods coming back.
+
+<details><summary>Fields and rules</summary>
+
+Fields: order line, reason, received at.
+
+**Triggers:** a refund.
+
+</details>
+</ex-card>
+</ex-region>
+</ex-board>
+
+## Relationships
+
+- Customer → Account (has one)
+- Customer → Address (has many)
+- Customer → Order (places)
+- Cart → Order (checks out to)
+- Order → Order line (contains)
+- Order line → Variant / SKU (refers to)
+- Variant / SKU → Product (belongs to)
+- Variant / SKU → Price (priced by)
+- Variant / SKU → Inventory level (stocked as)
+- Order → Payment (paid by)
+- Payment → Invoice (issues)
+- Payment → Refund (reversed by)
+- Order → Shipment (fulfilled by)
+- Shipment → Warehouse (leaves from)
+- Shipment → Parcel (contains)
+- Return → Refund (triggers)
+
+## Open questions
+
+<ex-grid cols="2">
+<ex-card id="q-address" tone="question" title="Address as an entity?">Address is a value today. Should it become an entity with an id so invoices can reference it after edits?</ex-card>
+<ex-card id="q-company" tone="question" title="Several accounts for companies?">Do company customers need multiple accounts? Today the rule is one account per customer.</ex-card>
+</ex-grid>
+</ex-document>
+</body>
+</html>

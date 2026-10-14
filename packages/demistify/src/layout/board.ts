@@ -14,6 +14,7 @@ const regionWidth = 440;
 const minimumScale = 0.2;
 const maximumScale = 1.6;
 const focusScale = 1.1;
+const readableScale = 0.6;
 
 /**
  * A titled group of islands on a board. It routes its own arrows like a flow; children marked
@@ -178,11 +179,17 @@ export class BoardIsland extends HTMLElement {
 		const width = canvas.offsetWidth;
 		const height = canvas.offsetHeight;
 		if (width === 0 || height === 0) return;
-		const scale = Math.min(1, (view.width * 0.97) / width, (view.height * 0.95) / height);
+		// Fit the whole board when it stays readable; otherwise fit the width at a readable
+		// floor and start at the top, leaving the rest to pan or drill into.
+		const whole = Math.min(1, (view.width * 0.97) / width, (view.height * 0.92) / height);
+		const scale =
+			whole >= readableScale
+				? whole
+				: Math.min(1, Math.max(readableScale, (view.width * 0.97) / width));
 		this.setCamera({
 			scale,
-			x: (view.width - width * scale) / 2,
-			y: Math.max(48, (view.height - height * scale) / 2),
+			x: Math.max(12, (view.width - width * scale) / 2),
+			y: whole >= readableScale ? Math.max(48, (view.height - height * scale) / 2) : 48,
 		});
 	}
 

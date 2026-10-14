@@ -165,13 +165,17 @@ await writeFile(
 	),
 );
 
-// Explainers written by a small model from the skill guide and a fact brief, kept verbatim.
-await mkdir(`${outputDirectory}/agent-written`, { recursive: true });
-await cp(libraryDirectory, `${outputDirectory}/agent-written/demistify`, { recursive: true });
+// Explainers written by a small model from the skill guide and a fact brief, kept verbatim and
+// grouped by experiment round; each round folder gets its own copy of the library.
+await cp('experiments/agent-written', `${outputDirectory}/agent-written`, { recursive: true });
 await Promise.all(
-	(await readdir('experiments/agent-written')).map(async (name): Promise<void> =>
-		cp(`experiments/agent-written/${name}`, `${outputDirectory}/agent-written/${name}`),
-	),
+	(await readdir('experiments/agent-written', { withFileTypes: true }))
+		.filter((entry) => entry.isDirectory())
+		.map(async (entry): Promise<void> =>
+			cp(libraryDirectory, `${outputDirectory}/agent-written/${entry.name}/demistify`, {
+				recursive: true,
+			}),
+		),
 );
 
 if (process.argv.includes('--islands-only')) {

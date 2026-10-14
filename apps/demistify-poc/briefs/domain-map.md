@@ -7,30 +7,35 @@ Opening summary: Five areas own twenty entities. An order is the spine: identity
 ## Areas and their entities
 
 ### Identity — who the customer is
+
 - **Customer** (aggregate) — person or company that places orders. Fields: id, name, email, type (person | company), created at. Rule: email is unique.
 - **Account** (entity) — sign-in credentials for a customer. Fields: customer id, password hash, MFA enabled, last sign-in. Rule: one account per customer.
 - **Address** (value) — postal address. Fields: lines, city, postcode, country. Used for shipping and invoices.
 - **Consent record** (entity) — marketing and data-processing consents. Fields: customer id, purpose, granted at, version. Rule: append-only; latest version wins.
 
 ### Catalog — what can be sold
+
 - **Product** (aggregate) — a sellable item family. Fields: id, name, description, status (draft | live | retired).
 - **Variant / SKU** (entity) — a specific size or colour. Fields: sku, product id, attributes, weight.
 - **Price** (value) — price of a SKU in a currency. Fields: sku, currency, amount, valid from. Rule: one active price per SKU and currency.
 - **Inventory level** (entity) — stock per SKU per warehouse. Fields: sku, warehouse id, on hand, reserved.
 
 ### Ordering — carts become orders
+
 - **Cart** (aggregate) — items before checkout. Fields: id, customer id (optional), lines, expires at. Rule: expires after 7 days idle.
 - **Order** (aggregate) — the committed purchase. Fields: id, customer id, status, totals, placed at. States: placed → paid → fulfilled → closed; cancelled from placed or paid.
 - **Order line** (entity) — one SKU in an order. Fields: sku, quantity, unit price at purchase. Rule: price is copied, never re-read.
 - **Discount** (value) — a promotion applied to an order. Fields: code, amount or percent. Rule: at most one per order.
 
 ### Billing — money in and out
+
 - **Payment** (aggregate) — an attempt to collect money. Fields: id, order id, method, amount, status (authorised | captured | failed | refunded).
 - **Invoice** (entity) — legal document issued when an order is paid. Fields: number, order id, billing address, tax lines. Rule: numbers are sequential per country.
 - **Refund** (entity) — money returned. Fields: payment id, amount, reason. Rule: total refunds ≤ captured amount.
 - **Tax rate** (value) — rate by country and product class. Fields: country, class, percent.
 
 ### Fulfilment — getting it to the customer
+
 - **Warehouse** (entity) — a stocking location. Fields: id, address, cut-off time.
 - **Shipment** (aggregate) — goods leaving one warehouse for one order. Fields: id, order id, warehouse id, status (pending | packed | shipped | delivered).
 - **Parcel** (entity) — a physical box in a shipment. Fields: tracking number, carrier, weight.

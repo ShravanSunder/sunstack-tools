@@ -657,3 +657,12 @@ ex-board[data-mode='read'] .ex-region-more {
 ex-board[data-mode='map'] ex-region[data-open] {
 	box-shadow: 0 0 0 2px var(--accent);
 }
+
+ex-mermaid.ex-diagram-wide {
+	overflow-x: auto;
+	justify-items: start;
+}
+ex-mermaid.ex-diagram-wide > svg {
+	max-width: none;
+	margin-inline: 0;
+}

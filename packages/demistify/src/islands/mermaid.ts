@@ -3,12 +3,21 @@ import { normalizeIslandText, readIslandSource } from '../core/source-text.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
-/** Renders diagram text closer to body size; the SVG still never exceeds its island. */
-function enlargeDiagram(owner: HTMLElement): void {
+/**
+ * Renders diagram text closer to body size, and never shrinks it below a readable size: a diagram
+ * that would have to shrink further (a long chain in a narrow column) scrolls sideways instead.
+ */
+function sizeDiagram(owner: HTMLElement): void {
 	const svg = owner.querySelector(':scope > svg');
 	const width = Number.parseFloat(svg?.getAttribute('width') ?? '');
-	if (svg instanceof SVGSVGElement && width > 0 && width < 720)
-		svg.style.width = `${Math.round(Math.min(width * 1.25, 720))}px`;
+	if (!(svg instanceof SVGSVGElement) || !(width > 0)) return;
+	if (width < 720) svg.style.width = `${Math.round(Math.min(width * 1.25, 720))}px`;
+	const available = owner.clientWidth;
+	const readableWidth = width * 0.8;
+	if (available > 0 && available < readableWidth) {
+		svg.style.width = `${Math.round(readableWidth)}px`;
+		owner.classList.add('ex-diagram-wide');
+	}
 }
 
 function openLinkedElement(target: HTMLElement): void {
@@ -73,7 +82,7 @@ export class MermaidIsland extends HTMLElement {
 			const { renderMermaidSVG } = await import('beautiful-mermaid');
 			this.innerHTML = renderThemedDiagram(renderMermaidSVG, normalizeIslandText(sourceText));
 			this.setAttribute('prepared', '');
-			enlargeDiagram(this);
+			sizeDiagram(this);
 			linkDiagramNodes(this);
 			installIslandInspector(this);
 			this.dispatchEvent(new Event('island-ready', { bubbles: true }));

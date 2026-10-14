@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demistify page loading</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Demistify page loading
+
+How a Demistify explainer loads and renders, for an engineer deciding whether to adopt Demistify for agent-written explainers. Measured 2026-10-14 in Chromium over local HTTP with a simulated 10 Mbps / 40 ms link.
+
+<ex-grid cols="4">
+<ex-callout tone="tldr" span="all" title="Small file, lazy weight">An explainer is a small HTML file. It loads one shared stylesheet and one small runtime; everything heavy loads later, only when the page uses it. Text paints before fonts arrive.</ex-callout>
+<ex-stat value="143 KiB" label="Main lab page, no diagrams, transferred" note="was 443 KiB" tone="done"></ex-stat>
+<ex-stat value="152 ms" label="Main lab page, first contentful paint" note="was 324 ms" tone="done"></ex-stat>
+<ex-stat value="650 KiB" label="Page with a diagram, transferred" note="was 949 KiB" tone="done"></ex-stat>
+<ex-stat value="241 KiB" label="Single-file offline bundle" note="was 570 KiB" tone="done"></ex-stat>
+</ex-grid>
+
+<ex-route label="60-second tour">
+<ex-step to="theme">Start here: theme.css is render-blocking, 27 KB raw and 6 KB gzip.</ex-step>
+<ex-step to="runtime">runtime.js is a small module that registers elements, adds outline navigation and the theme toggle, and reports authoring issues.</ex-step>
+<ex-step to="diagram" open="sidebar">The diagram engine is the heavy part, and it loads only when a diagram scrolls into view.</ex-step>
+</ex-route>
+<ex-route label="Adoption check" steps="fonts diagram arrows-layout"></ex-route>
+
+## How the pieces fit
+
+Click a node to open its card under Parts.
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+flowchart LR
+  html[Explainer HTML] --> theme[theme.css]
+  html --> runtime[runtime.js]
+  theme -. after paint .-> fonts[Text fonts]
+  theme --> icons[Icon font]
+  runtime -. lazy .-> markdown[Markdown chunk]
+  runtime -. when visible .-> diagram[Diagram engine]
+  runtime --> inspector[Inspector]
+  runtime --> nav[Outline nav]
+  runtime --> issues[Issues panel]
+</script></ex-mermaid>
+<div sticky>
+<ex-callout tone="note" title="Loads first">Explainer HTML, theme.css and runtime.js. Text paints once theme.css arrives, with fallback fonts.</ex-callout>
+<ex-callout tone="note" title="Loads later">Text fonts after first paint, the Markdown chunk when the page has a Markdown island, and the diagram engine when a diagram scrolls into view.</ex-callout>
+</div>
+</ex-grid>
+
+## Parts
+
+Click a region to see its detail cards.
+
+<ex-board cols="2">
+<ex-region id="shared" title="Shared, loaded first">
+<ex-card id="html" title="Explainer HTML" tag="agent-authored, 5–25 KB">Holds content and layout only. Loads theme.css and runtime.js.</ex-card>
+<ex-card id="theme" title="theme.css" tone="changed" tag="shared, render-blocking">27 KB raw, 6 KB gzip. Colours, typography, components, and light and dark themes.</ex-card>
+<ex-card id="runtime" title="runtime.js" tag="shared module, deferred">24 KB raw, 7 KB gzip. Registers the elements, adds outline navigation and the theme toggle, and reports authoring issues.</ex-card>
+<ex-card id="theme-history" title="Why theme.css shrank" tone="changed" detail>Previously 302 KB, because eight fonts were embedded in it as base64. Text fonts are now six separate WOFF2 files.</ex-card>
+</ex-region>
+<ex-region id="type" title="Text and icons">
+<ex-card id="fonts" title="Text fonts" tone="changed" tag="after first paint">Six separate WOFF2 files, 15–22 KB each. Only the faces a page actually uses download, after first paint (`font-display: swap`).</ex-card>
+<ex-card id="icons" title="Icon font" tone="changed" tag="Phosphor regular">Subset to 24 icons, 2 KB.</ex-card>
+<ex-card id="icon-history" title="Why the icon font shrank" tone="changed" detail>Previously 147 KB for 1,530 icons.</ex-card>
+</ex-region>
+<ex-region id="lazy" title="Lazy, on demand">
+<ex-card id="markdown" title="Markdown chunk" tag="lazy">57 KB raw, 15 KB gzip. Loads when the page has a Markdown island.</ex-card>
+<ex-card id="diagram" title="Diagram engine chunk" tone="risk" tag="lazy, on view">2.2 MB raw, 500 KB gzip. beautiful-mermaid with the elkjs layout engine. Loads only when a diagram scrolls into view.</ex-card>
+<ex-card id="diagram-shared" title="One engine per page" detail>Every diagram on the page shares one import of the engine. A page with one small diagram still pays all of it.</ex-card>
+</ex-region>
+<ex-region id="inside" title="Inside the runtime">
+<ex-card id="inspector" title="Inspector" tag="part of runtime">Opens any island in a modal or sidebar using the native dialog element. It moves the real content in and restores it on close.</ex-card>
+<ex-card id="nav" title="Outline navigation" tag="part of runtime">Built from the page's real headings, including headings rendered from Markdown.</ex-card>
+<ex-card id="issues" title="Authoring issues panel" tag="part of runtime">Lists unknown elements or tones, broken or too-short arrows, duplicate ids and failed diagrams.</ex-card>
+</ex-region>
+</ex-board>
+
+## First paint
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+sequenceDiagram
+  participant B as Browser
+  participant T as theme.css
+  participant R as runtime.js
+  participant F as Text fonts
+  B->>B: Parse explainer HTML
+  B->>T: Fetch (blocking)
+  B->>R: Fetch (module, deferred)
+  T-->>B: Arrives
+  B->>B: First paint with fallback fonts
+  B->>F: Download text fonts
+  F-->>B: Swap in
+  R->>R: Register elements and render islands
+</script></ex-mermaid>
+<div sticky>
+<ex-card id="first-paint" title="First paint, step by step" tag="flow 1">
+
+1. Browser parses the explainer HTML.
+2. It fetches theme.css (blocking) and runtime.js (module, deferred) in parallel.
+3. First paint happens with fallback fonts once theme.css arrives.
+4. Text fonts download and swap in.
+5. The runtime registers elements and renders islands.
+
+</ex-card>
+</div>
+</ex-grid>
+
+## One diagram
+
+<ex-grid cols="3">
+<ex-card id="flow-diagram" title="Rendering one diagram island" tag="flow 2" span="2">
+
+1. The diagram island waits until it is near the viewport.
+2. It imports the diagram engine chunk once, shared by every diagram on the page.
+3. It renders an SVG themed with the page's colour tokens.
+4. Nodes whose id matches a card on the page take that card's tone colour and open the card when clicked.
+5. The island becomes inspectable (expand button).
+
+</ex-card>
+<div sticky>
+<ex-stat value="500 KB" label="Diagram engine, gzip" note="2.2 MB raw" tone="risk"></ex-stat>
+</div>
+</ex-grid>
+
+## Measurements
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+xychart-beta
+  title "Transferred KiB, before and after"
+  x-axis ["Main page, no diagrams", "Page with a diagram", "Single-file bundle"]
+  bar "Before" [443, 949, 570]
+  bar "After" [143, 650, 241]
+</script></ex-mermaid>
+<div sticky>
+<ex-callout tone="done" title="Every measured page got smaller">Transferred size fell on all three pages. The main page's first contentful paint went from 324 ms to 152 ms. The diagram page went from 949 KiB to 650 KiB.</ex-callout>
+</div>
+</ex-grid>
+
+## Arrows between islands
+
+Three options were considered. The chosen one keeps connected islands in rows or columns.
+
+<ex-grid cols="3" swipe>
+<ex-card id="arrows-layout" title="No crossings by layout" tone="decision" tag="light and predictable" pick>A flow container keeps connected islands in rows or columns and routes arrows through the gaps. Free-form whiteboard arrows stay simple, and the issues panel flags crossings.</ex-card>
+<ex-card id="arrows-routed" title="Routed anywhere" tag="most flexible">Any arrow finds a path around boxes in any layout. Needs a lazy routing engine of a few hundred KB, and gives less predictable results.</ex-card>
+<ex-card id="arrows-diagrams" title="Diagrams only" tag="lightest">Connected structure belongs in Mermaid. Arrows between islands may cross boxes.</ex-card>
+</ex-grid>
+
+## Risks and open questions
+
+<ex-grid cols="2">
+<ex-callout tone="risk" title="Diagram engine is 500 KB gzip">A page with one small diagram pays all of it.</ex-callout>
+<ex-callout tone="question" title="Lighter layout for simple flowcharts">Open question: can a lighter layout path serve simple flowcharts?</ex-callout>
+<ex-callout tone="risk" title="Not verified: file:// and WebViews">Browser file:// opening and embedded WebViews are not verified.</ex-callout>
+<ex-callout tone="risk" title="Single-file bundle carries unused fonts">The single-file bundle embeds every font face, including ones the page never uses.</ex-callout>
+</ex-grid>
+</ex-document>
+</body>
+</html>

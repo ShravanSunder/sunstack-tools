@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session registry deep dive</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+<ex-markdown><script type="text/markdown">
+# Session registry deep dive
+For the engineer about to change the session registry. Illustrative component, dated 2026-10-14.
+</script></ex-markdown>
+
+<ex-callout tone="tldr">The session registry keeps a client's session alive across dropped connections. It maps a session id to live state for a grace window, so a reconnecting client resumes instead of starting over. It runs in every gateway instance and stores sessions in Redis.</ex-callout>
+
+<ex-markdown><script type="text/markdown">
+## Architecture
+The registry API is the only entry point. Click a box in the diagram to open its card.
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+flowchart LR
+  gateway[Gateway] -->|resume| registryApi[Registry API]
+  registryApi -->|reads, writes| sessionStore[Session store<br/>Redis]
+  registryApi -->|attach, detach| socketBinder[Socket binder]
+  registryApi -->|started, resumed| eventPublisher[Event publisher]
+  expirySweeper[Expiry sweeper] -->|scans| sessionStore
+  expirySweeper -->|ended| eventPublisher
+  eventPublisher --> eventBus[Event bus]
+</script></ex-mermaid>
+
+<ex-grid>
+<ex-card id="registryApi" title="Registry API" tag="only entry point">
+<p>The only entry point into the registry. It has four methods:</p>
+<ul>
+<li><code>create(clientId)</code></li>
+<li><code>resume(sessionId, socket)</code></li>
+<li><code>touch(sessionId)</code></li>
+<li><code>expire(sessionId)</code></li>
+</ul>
+</ex-card>
+<ex-card id="sessionStore" title="Session store" tag="Redis hash">
+<p>One Redis hash per session, under the key <code>sess:{id}</code>.</p>
+<ul>
+<li>Fields: client id, state, last seen, version.</li>
+<li>TTL equals the grace window.</li>
+</ul>
+</ex-card>
+<ex-card id="socketBinder" title="Socket binder" tag="one socket at most">
+<p>Attaches and detaches the live socket for a session. At most one socket per session.</p>
+</ex-card>
+<ex-card id="expirySweeper" title="Expiry sweeper" tag="every 30 s">
+<p>A background task. It ends sessions whose grace window has passed and emits <code>session.ended</code>.</p>
+</ex-card>
+<ex-card id="eventPublisher" title="Event publisher" tag="to the event bus">
+<p>Publishes <code>session.started</code>, <code>session.resumed</code> and <code>session.ended</code> to the event bus.</p>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+**Relationships**
+
+- Registry API reads and writes the session store.
+- Registry API attaches and detaches sockets through the socket binder.
+- Registry API publishes started and resumed events.
+- Expiry sweeper scans the session store.
+- Expiry sweeper publishes ended events.
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+## Session states
+Three states. A session moves between them as follows.
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+stateDiagram-v2
+  active --> detached: socket drop
+  detached --> active: resume within grace window
+  detached --> ended: grace window passed
+  active --> ended: logout
+  ended --> [*]
+</script></ex-mermaid>
+
+<ex-grid>
+<ex-card id="active" title="Active" tag="socket attached">
+<p>A socket is attached.</p>
+</ex-card>
+<ex-card id="detached" title="Detached" tag="grace window running">
+<p>The socket dropped. The grace window is running.</p>
+</ex-card>
+<ex-card id="ended" title="Ended" tag="final">
+<p>The grace window passed or the client logged out. Final.</p>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## Resume flow
+A reconnecting client sends its session id. The registry either re-attaches the socket or the client starts over.
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+sequenceDiagram
+  participant C as Client
+  participant G as Gateway
+  participant R as Registry
+  participant S as Session store
+  participant B as Socket binder
+  participant E as Event publisher
+  C->>G: reconnect, send session id
+  G->>R: resume(sessionId, socket)
+  R->>S: read sess:{id}
+  S-->>R: session record
+  alt detached and version matches
+    R->>S: compare-and-set state to active and bump version
+    R->>B: attach socket
+    R->>E: session.resumed
+    R-->>G: session
+  else otherwise, or another tab won
+    R-->>G: undefined
+    G-->>C: start a new session
+  end
+</script></ex-mermaid>
+
+<details>
+<summary>Steps as written</summary>
+<ol>
+<li>Client reconnects and sends its session id.</li>
+<li>Gateway calls <code>resume(sessionId, socket)</code>.</li>
+<li>Registry reads <code>sess:{id}</code> from Redis.</li>
+<li>If the state is detached and the version matches, the binder attaches the socket, the state becomes active, and the version increments.</li>
+<li>Registry publishes <code>session.resumed</code> and returns the session.</li>
+<li>Otherwise the gateway tells the client to start a new session.</li>
+</ol>
+</details>
+
+<ex-markdown><script type="text/markdown">
+## Key code
+Read `resume` top to bottom. The notes mark the three lines that matter.
+</script></ex-markdown>
+
+<ex-code title="resume(id, socket)" lang="ts" start="1">
+<script type="text/plain">
+export async function resume(id: string, socket: Socket): Promise<Session | undefined> {
+  const session = await store.read(id);
+  if (!session || session.state !== 'detached') return undefined;
+  const attached = await store.compareAndSet(id, session.version, { state: 'active' });
+  if (!attached) return undefined;
+  binder.attach(id, socket);
+  events.publish('session.resumed', { id });
+  return attached;
+}
+</script>
+<ex-note line="2" tone="note">A network round trip to Redis.</ex-note>
+<ex-note line="4" tone="decision">The version stops two tabs resuming the same session.</ex-note>
+<ex-note line="5" tone="risk">Returns undefined when another tab won. The caller sees a miss, the same as an expired session.</ex-note>
+</ex-code>
+
+<ex-markdown><script type="text/markdown">
+## Configuration
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `SESSION_GRACE_SECONDS` | 300 | How long a detached session can resume |
+| `SWEEP_INTERVAL_SECONDS` | 30 | Expiry sweeper period |
+| `REDIS_URL` | — | Session store location |
+| `MAX_SESSIONS_PER_CLIENT` | 5 | Oldest session ends when exceeded |
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+## Metrics (last 7 days, production)
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+| Metric | Value |
+| --- | --- |
+| Resume success rate | 97.8% |
+| p95 resume latency | 4.1 ms |
+| Sessions ended by sweeper per hour | 1,240 |
+| Two-tab conflicts per day | 37 |
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+xychart-beta
+  title "Resume success by cause of disconnect (%)"
+  x-axis ["Network blip", "Deploy", "Instance crash", "Client sleep over 5 min"]
+  y-axis "Success" 0 --> 100
+  bar "Resume success" [98, 96, 94, 0]
+</script></ex-mermaid>
+
+<ex-callout tone="note" title="Where resumes fail">Only a client asleep for more than 5 minutes never resumes (0%). Every other cause resumes at 94% or better.</ex-callout>
+
+<ex-markdown><script type="text/markdown">
+## Failure behaviour
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+| If | Then |
+| --- | --- |
+| Redis is unavailable | `create` fails closed: the client gets an error. `resume` returns undefined, so clients start new sessions. |
+| The sweeper is lagging | Sessions live longer than the grace window. Harmless except for memory. |
+| Two tabs resume at once | One wins by version. The other starts a new session. |
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+## Decisions already made
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="decisionRedis" title="Redis over in-memory" tone="decision" tag="costs about 2 ms per resume">
+<p>Survives deploys and is shared across gateway instances.</p>
+</ex-card>
+<ex-card id="decisionCas" title="Compare-and-set on version, not a lock" tone="decision" tag="loser sees a miss">
+<p>No lock service needed. The loser of a race sees a miss.</p>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## Known issues
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="issueTwoTab" title="Two-tab conflicts look like expiry" tone="risk" tag="logs">
+<p>In logs, a two-tab conflict looks identical to an expired session.</p>
+</ex-card>
+<ex-card id="issueGlobalGrace" title="One grace window for every tenant" tone="question" tag="global, 5 min">
+<p>The 5-minute grace window is global. Some tenants want longer.</p>
+</ex-card>
+</ex-grid>
+
+</ex-document>
+</body>
+</html>
