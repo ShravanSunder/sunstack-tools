@@ -87,6 +87,12 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - Pointing at a box lights the arrows drawn to and from it (free arrows and flow arrows) and dims the others in that picture.
   - Diagrams pre-rendered by the packager now also get node links and tracing.
   - Verified: a deep-dive diagram node traces 10 elements and dims 5; Specification on the free canvas traces exactly its 3 arrows; regression pages show no issues or errors.
+- **Claude** Interaction 2 of D21, reveal controls (owner's explorer: "Current / With proposals"):
+  - `layer="name"` on any element puts it in a layer, and `ex-layers` shows one switch per layer. It is added after the page's first block automatically, or placed by the author with `off="…"` to start hidden.
+  - A hidden layer leaves the layout, and arrows to its boxes disappear and re-route.
+  - A route step or link to an element in a hidden layer turns that layer on.
+  - Verified on the components demo's whiteboard: off hides the card and its two arrows (no blocked routes); the route's step to that card turns the layer back on and both arrows return; no issues or errors.
+  - The guide teaches layers and free-canvas boards.
 
 ## Open
 

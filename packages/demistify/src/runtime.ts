@@ -14,6 +14,7 @@ import { ArrowIsland } from './layout/arrows.ts';
 import { BoardIsland, RegionIsland } from './layout/board.ts';
 import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/document.ts';
 import { FlowIsland } from './layout/flow.ts';
+import { LayersElement } from './layout/layers.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
 import { installArrowTracing } from './layout/trace.ts';
@@ -45,6 +46,7 @@ for (const [tagName, constructor] of [
 	['ex-step', StepElement],
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
+	['ex-layers', LayersElement],
 ] satisfies readonly (readonly [string, CustomElementConstructor])[]) {
 	if (!customElements.get(tagName)) customElements.define(tagName, constructor);
 }

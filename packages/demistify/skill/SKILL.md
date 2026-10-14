@@ -58,7 +58,7 @@ Mermaid: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erD
 | `<ex-grid cols="3">` | side by side; child `span="2"` or `span="all"`; `sticky` keeps a side column in view; `swipe` makes a sideways swipe row on phones |
 | `<ex-flow cols="3">` | an `ex-grid` whose `<ex-arrow from to label>` children route between boxes |
 | `<ex-tabs>` | child `<section label>` views; `columns` shows them side by side when they fit |
-| `<ex-board cols="2">` | a map of `<ex-region id title tone>` groups; children marked `detail` appear when the reader opens a region; built-in Map/Read switch |
+| `<ex-board cols="2">` | a map of `<ex-region id title tone>` groups; children marked `detail` appear when the reader opens a region; built-in Map/Read switch. Without regions it pans and zooms your own layout (one `position: relative` div with absolutely placed islands and `ex-arrow`s) |
 
 Patterns:
 1. Summary row: `<ex-grid cols="4">` with a `tldr` callout `span="2"` and two `ex-stat`.
@@ -66,6 +66,8 @@ Patterns:
 3. Options: cards in `<ex-grid swipe>`, tradeoff in `tag`, `pick` on the chosen one.
 4. Evidence: a chart beside the callout that states its conclusion.
 5. Many things (a domain, a system): `ex-board`, one region per area, overview cards visible, depth marked `detail`.
+
+`layer="proposed"` on any element (cards, arrows, diagrams) lets readers switch that layer off and on; switches appear at the top, or place `<ex-layers off="proposed">` to start it hidden.
 
 Phones get one column automatically. Diagrams, code and trees get enlarge buttons; put a card's depth in `<details>`.
 

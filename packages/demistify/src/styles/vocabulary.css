@@ -1000,3 +1000,26 @@ ex-compare[slider] > [data-side]:nth-of-type(2)::before {
 	stroke: var(--accent);
 	stroke-width: 2.25;
 }
+
+/* Layers: switches for parts of the page readers can show or hide. */
+.ex-layer-off {
+	display: none !important;
+}
+ex-layers {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2);
+	font: var(--text-sm) var(--display);
+}
+.ex-layers-label {
+	color: var(--ink-soft);
+}
+ex-layers button[aria-pressed='false'] {
+	color: var(--ink-soft);
+	text-decoration: line-through;
+}
+ex-layers button[aria-pressed='true'] {
+	border-color: var(--accent);
+	color: var(--accent);
+}

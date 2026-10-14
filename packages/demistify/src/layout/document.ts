@@ -2,6 +2,7 @@ import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createIconButton } from '../core/icons.ts';
 import { installIslandInspector, openIsland } from '../islands/inspector.ts';
 import { BoardIsland } from './board.ts';
+import { revealLayers } from './layers.ts';
 
 export class StructuralIsland extends HTMLElement {
 	connectedCallback(): void {
@@ -19,6 +20,13 @@ export class DocumentIsland extends StructuralIsland {
 			this.id ||= 'ex-content';
 			navigation.setAttribute('for', this.id);
 			document.body.prepend(navigation);
+		}
+		// Layers get their toggles at the top of the page unless the author placed them.
+		if (document.querySelector('[layer]') && !document.querySelector('ex-layers')) {
+			const layers = document.createElement('ex-layers');
+			const first = this.firstElementChild;
+			if (first) first.after(layers);
+			else this.prepend(layers);
 		}
 		if (!document.querySelector('[data-ex-theme]')) {
 			const toggle = createIconButton('circle-half', 'Switch light or dark theme', (): void => {});
@@ -60,6 +68,7 @@ export function installDocumentBehavior(): void {
 
 /** Selects the tab and opens the details that hide an element, so it can be shown. */
 export function revealElement(target: Element): void {
+	revealLayers(target);
 	for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
 		if (ancestor.getAttribute('role') === 'tabpanel' && ancestor.hidden) {
 			ancestor.parentElement

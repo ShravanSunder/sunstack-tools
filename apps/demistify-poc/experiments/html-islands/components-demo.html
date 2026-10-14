@@ -160,6 +160,7 @@
 					>
 					<ex-card
 						id="wb-verify"
+						layer="proposed"
 						title="Verification design"
 						tone="question"
 						icon="shield-check"
@@ -169,8 +170,8 @@
 					<ex-arrow from="wb-req" to="wb-spec" label="informs"></ex-arrow>
 					<ex-arrow from="wb-spec" to="wb-program" label="informs"></ex-arrow>
 					<ex-arrow from="wb-program" to="wb-tests" label="informs"></ex-arrow>
-					<ex-arrow from="wb-tests" to="wb-verify" label="informs"></ex-arrow>
-					<ex-arrow from="wb-spec" to="wb-verify" label="checked by"></ex-arrow>
+					<ex-arrow from="wb-tests" to="wb-verify" label="informs" layer="proposed"></ex-arrow>
+					<ex-arrow from="wb-spec" to="wb-verify" label="checked by" layer="proposed"></ex-arrow>
 				</div>
 			</ex-board>
 

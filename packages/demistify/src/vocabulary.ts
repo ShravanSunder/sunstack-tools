@@ -206,6 +206,14 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		},
 		within: ['ex-route'],
 	},
+	'ex-layers': {
+		description:
+			'The layer switches; added at the top automatically when any element has layer="…".',
+		attributes: {
+			off: text('Layers that start hidden, space-separated.'),
+			label: text('Text before the switches (default "Show").'),
+		},
+	},
 	'ex-nav': {
 		description: 'Heading navigation; added automatically by ex-document.',
 		attributes: { for: { description: 'Id of the content to outline.', type: { kind: 'id' } } },
@@ -250,6 +258,7 @@ const globalAttributes = new Set([
 	'popover',
 ]);
 const islandAttributes: Readonly<Record<string, AttributeSpec>> = {
+	layer: text('A layer readers can switch on and off (e.g. "proposed").'),
 	zoom: oneOf('Bare `zoom` adds sidebar and expand buttons; "none" removes them.', ['', 'none']),
 };
 
