@@ -113,6 +113,13 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - The tour agents found two errors in my brief: the 15-minute cap never engages with six attempts (attempt 6 waits 640 s), and the brief's hunk header counts do not match its excerpt. Both flagged it instead of repeating the claim.
   - **Library change from the treatment domain map:** it drew 16 `ex-arrow`s on the board between cards in different regions. A flow or region now routes only arrows between its own direct children; any other arrow (such as cards in two regions) goes to the obstacle-avoiding router, and the "must be a direct child" error and its checker rule are gone. The page now renders all 16 relationships with no issues.
 
+- **Claude** Main-thread cost while pages load (the worker experiment named the outline's scroll handler as the largest remaining cost). Measured as blocking time from navigation through a scripted scroll at 4× CPU, median of 5:
+  - The outline now learns where headings are from an IntersectionObserver and rewrites links only when the current section changes. Before, it measured every heading on each scroll frame, forcing layout while islands rendered.
+  - Free arrows no longer re-route when a camera or zoom restyles their container (boxes did not move) or when the geometry is unchanged, and label widths are cached.
+  - Results: round-6 domain map (board, 20 cards, 16 cross-region arrows) 992 → 619 ms; html-islands-live 171 → 148 ms; round-4 planning 148 → 169 ms, within run-to-run noise (89–247 ms).
+  - The outline still marks the right section, and the regression pages are clean.
+  - Next: the router search itself, the largest remaining cost on arrow-heavy boards.
+
 ## Open
 
 - Diagram engine chunk is still 500 KiB gzip (beautiful-mermaid + elkjs); a lighter path for simple flowcharts is unexplored.

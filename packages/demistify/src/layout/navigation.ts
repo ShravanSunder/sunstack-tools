@@ -18,6 +18,10 @@ export class HeadingNavigation extends HTMLElement {
 		if (this.sidebarMedia.matches) this.navigationPanel.removeAttribute('popover');
 		else this.navigationPanel.popover = 'auto';
 	};
+	private currentHeading: Element | undefined;
+	/** Whether each heading's top is above the reading line (a quarter down the viewport). */
+	private readonly passedHeadings = new WeakMap<Element, boolean>();
+	private headingObserver: IntersectionObserver | undefined;
 	private readonly scheduleCurrentSection = (): void => {
 		if (this.scheduledFrame !== undefined) return;
 		this.scheduledFrame = requestAnimationFrame((): void => {
@@ -111,8 +115,6 @@ export class HeadingNavigation extends HTMLElement {
 			attributes: true,
 			attributeFilter: ['hidden'],
 		});
-		window.addEventListener('scroll', this.scheduleCurrentSection, { passive: true });
-		window.addEventListener('resize', this.scheduleCurrentSection);
 		this.sidebarMedia.addEventListener('change', this.updatePresentation);
 		this.updatePresentation();
 		this.renderHeadings();
@@ -120,8 +122,7 @@ export class HeadingNavigation extends HTMLElement {
 
 	disconnectedCallback(): void {
 		this.contentObserver?.disconnect();
-		window.removeEventListener('scroll', this.scheduleCurrentSection);
-		window.removeEventListener('resize', this.scheduleCurrentSection);
+		this.headingObserver?.disconnect();
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
 		this.navigationPanel?.remove();
 		if (this.scheduledFrame !== undefined) cancelAnimationFrame(this.scheduledFrame);
@@ -185,6 +186,8 @@ export class HeadingNavigation extends HTMLElement {
 			}
 			this.navigationPanel.append(pages);
 		}
+		this.currentHeading = undefined;
+		this.observeHeadings();
 		this.updateCurrentSection();
 	}
 
@@ -217,16 +220,33 @@ export class HeadingNavigation extends HTMLElement {
 		}
 	}
 
+	/**
+	 * The browser reports when a heading crosses the reading line, so scrolling reads no layout:
+	 * measuring every heading on each scroll frame forced a full layout while islands rendered.
+	 */
+	private observeHeadings(): void {
+		this.headingObserver?.disconnect();
+		this.headingObserver = new IntersectionObserver(
+			(entries): void => {
+				for (const entry of entries) {
+					const line = entry.rootBounds?.bottom ?? window.innerHeight * 0.25;
+					const bounds = entry.boundingClientRect;
+					this.passedHeadings.set(entry.target, bounds.height > 0 && bounds.top <= line);
+				}
+				this.scheduleCurrentSection();
+			},
+			{ rootMargin: '0px 0px -75% 0px' },
+		);
+		for (const heading of this.headingLinks.keys()) this.headingObserver.observe(heading);
+	}
+
 	private updateCurrentSection(): void {
 		let activeHeading = this.headingLinks.keys().next().value;
-		let latestTop = -Infinity;
-		for (const heading of this.headingLinks.keys()) {
-			const top = heading.getBoundingClientRect().top;
-			if (top <= Math.max(64, window.innerHeight * 0.25) && top > latestTop) {
-				latestTop = top;
-				activeHeading = heading;
-			}
-		}
+		for (const heading of this.headingLinks.keys())
+			if (this.passedHeadings.get(heading)) activeHeading = heading;
+		// Rewriting every link on every scroll frame restyles the outline; only touch it on a change.
+		if (activeHeading === this.currentHeading) return;
+		this.currentHeading = activeHeading;
 		for (const [heading, links] of this.headingLinks) {
 			for (const link of links) {
 				if (heading === activeHeading) link.setAttribute('aria-current', 'location');

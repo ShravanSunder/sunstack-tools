@@ -29,9 +29,25 @@ function scheduleArrows(): void {
 }
 
 const resizeWatcher = new ResizeObserver(scheduleArrows);
+// A camera or zoom restyles the container itself without moving boxes inside it; size changes
+// reach the resize watcher, so only changes within the container trigger a redraw.
 const mutationWatcher = new MutationObserver((records): void => {
-	if (records.some((record): boolean => !(record.target instanceof SVGElement))) scheduleArrows();
+	if (
+		records.some(
+			(record): boolean =>
+				!(record.target instanceof SVGElement) &&
+				!(
+					record.attributeName === 'style' &&
+					record.target instanceof Element &&
+					watchedContainers.has(record.target)
+				),
+		)
+	)
+		scheduleArrows();
 });
+/** The geometry each container was last routed for; unchanged geometry needs no new routes. */
+const routedGeometry = new WeakMap<Element, string>();
+const labelWidths = new Map<string, number>();
 
 function endpoints(arrow: ArrowIsland): [HTMLElement | null, HTMLElement | null] {
 	return [
@@ -104,6 +120,20 @@ function drawContainer(container: HTMLElement, arrows: readonly ArrowIsland[]): 
 			!element.closest('.ex-arrow-canvas') &&
 			element.getBoundingClientRect().width > 0,
 	);
+	const geometry = JSON.stringify([
+		arrows.map(
+			(arrow): string => `${arrow.getAttribute('from') ?? ''}>${arrow.getAttribute('to') ?? ''}`,
+		),
+		candidates
+			.map(local)
+			.map((box): number[] => [box.left, box.top, box.right, box.bottom].map(Math.round)),
+	]);
+	if (
+		routedGeometry.get(container) === geometry &&
+		arrows.every((arrow): boolean => arrow.isDrawn())
+	)
+		return;
+	routedGeometry.set(container, geometry);
 	const routes: (Point[] | undefined)[] = [];
 	arrows.forEach((arrow, index): void => {
 		const [source, target] = ends[index] ?? [null, null];
@@ -210,6 +240,9 @@ export class ArrowIsland extends HTMLElement {
 	hide(): void {
 		this.group?.remove();
 	}
+	isDrawn(): boolean {
+		return this.group?.isConnected === true;
+	}
 	private verifyEndpoints(): void {
 		for (const name of ['from', 'to']) {
 			const endpointId = this.getAttribute(name);
@@ -268,9 +301,12 @@ export class ArrowIsland extends HTMLElement {
 		path.setAttribute('d', roundedPath(points));
 		path.classList.toggle('ex-arrow-blocked', !route);
 		caption.textContent = this.getAttribute('label') ?? '';
-		const width = caption.textContent
-			? caption.getComputedTextLength() || caption.textContent.length * 7
-			: 0;
+		const text = caption.textContent;
+		let width = labelWidths.get(text) ?? 0;
+		if (text && width === 0) {
+			width = caption.getComputedTextLength() || text.length * 7;
+			labelWidths.set(text, width);
+		}
 		const spot = width > 0 ? placeLabel(points, width, 18, boxes, placedLabels) : undefined;
 		caption.setAttribute('x', String(spot?.x ?? 0));
 		caption.setAttribute('y', String(spot?.y ?? 0));
