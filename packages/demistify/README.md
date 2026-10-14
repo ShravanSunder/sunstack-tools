@@ -20,14 +20,14 @@ Copy the complete `packages/demistify/dist/` directory to a local/static asset l
 	<span aria-current="page">Session architecture</span>
 </nav>
 <ex-document>
-	<ex-markdown zoom="sidebar" label="Proposal">
+	<ex-markdown label="Proposal">
 		<script type="text/markdown">
 			# Session architecture
 
 			Sessions survive transport disconnections.
 		</script>
 	</ex-markdown>
-	<ex-mermaid zoom="modal" label="Session topology">
+	<ex-mermaid label="Session topology">
 		<script type="text/plain">
 			flowchart LR
 			  Client --> Socket --> Registry --> Session
@@ -55,7 +55,7 @@ Serve that HTML and its assets with any static host. The PoC is a consumer, not 
 
 Light DOM keeps ordinary CSS layout and inheritance available. Use flow, flex/grid or absolute-positioned whiteboards. The library does not rearrange islands. Per-document layout declarations are usage; library code is not.
 
-Use `zoom="modal"` or `zoom="sidebar"` on native islands. For an arbitrary composition use `<ex-zoom mode="sidebar" label="Details">…</ex-zoom>`. Optional direct children with `slot="details"` are hidden inline and revealed in inspection. Inspectors move and restore real DOM content, reserve the inline space, and offer icon controls for magnification/reset/close. There are no saved viewer settings or author-managed state objects.
+All content islands automatically show two small circular Phosphor controls on hover or keyboard focus: sidebar and large centered view. No opt-in attribute is needed. Document scopes, navigation and arrow primitives are not content inspectors. For an arbitrary composition use `<ex-zoom label="Details">…</ex-zoom>`. Optional direct children with `slot="details"` are hidden inline and revealed in inspection. Inspectors move and restore real DOM content, reserve the inline space, and offer icon controls for magnification/reset/close. There are no saved viewer settings or author-managed state objects.
 
 Diagrams are centered and naturally sized. Code blocks, tables and the inspector body own their scrolling. A bounded diagram viewport is explicit author markup such as `style="max-height:420px;overflow:auto"`; the library does not silently crop diagrams.
 
