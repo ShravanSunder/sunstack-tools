@@ -898,10 +898,10 @@ ex-compare img {
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 }
-ex-document figure {
+:is(ex-document, .ex-inspect-body) figure {
 	margin: 0;
 }
-ex-document figcaption {
+:is(ex-document, .ex-inspect-body) figcaption {
 	margin-top: var(--space-2);
 	color: var(--ink-soft);
 	font: var(--text-sm) / 1.4 var(--display);
@@ -909,8 +909,22 @@ ex-document figcaption {
 ex-document img:not(a img, ex-compare[slider] img) {
 	cursor: zoom-in;
 }
-.ex-inspect-body img {
+/* In the side panel and large view, a picture or diagram fits the view at 100%: as wide as the
+   panel, as tall as fits (caption room kept), at most twice a photo's or diagram's natural size.
+   Container height units and pixels scale with the zoom; a percentage does not, so it takes the
+   factor. The shape comes from the inspector (describeShape). */
+.ex-inspect-body {
+	container-type: size;
+}
+.ex-inspect-body :is(img, ex-mermaid > svg) {
+	width: min(
+		calc(100% * var(--inspect-scale, 1)),
+		calc((100cqh - var(--space-12)) * var(--aspect, 1000)),
+		calc(var(--natural-width, 100000px) * 2)
+	);
 	max-width: none;
+	height: auto;
+	margin-inline: auto;
 }
 
 /* Before and after: labelled sides, or one over the other with a divider. */
@@ -930,6 +944,9 @@ ex-compare > [data-side]::before {
 ex-compare[slider] {
 	position: relative;
 	grid-template-columns: minmax(0, 1fr);
+	--thumb: 28px;
+}
+ex-compare[slider] > * {
 	--split: 50%;
 }
 ex-compare[slider] > [data-side] {
@@ -972,15 +989,15 @@ ex-compare[slider] > [data-side]:nth-of-type(2)::before {
 }
 .ex-compare-range::-webkit-slider-thumb {
 	appearance: none;
-	width: 28px;
-	height: 28px;
+	width: var(--thumb);
+	height: var(--thumb);
 	border: 2px solid var(--accent);
 	border-radius: 50%;
 	background: var(--sheet);
 }
 .ex-compare-range::-moz-range-thumb {
-	width: 28px;
-	height: 28px;
+	width: var(--thumb);
+	height: var(--thumb);
 	border: 2px solid var(--accent);
 	border-radius: 50%;
 	background: var(--sheet);

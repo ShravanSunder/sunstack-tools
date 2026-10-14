@@ -137,6 +137,10 @@ ex-mermaid > svg {
 }
 .ex-inspect-header strong {
 	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 .ex-inspect-body {
 	flex: 1;

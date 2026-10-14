@@ -28,13 +28,13 @@ export class CompareIsland extends HTMLElement {
 					side.getAttribute('slot')?.replace(/^\w/, (letter): string => letter.toUpperCase()) ??
 					(index === 0 ? 'Before' : 'After');
 			});
-			if (this.hasAttribute('slider') && sides.length === 2) this.installSlider();
+			if (this.hasAttribute('slider') && sides.length === 2) this.installSlider(sides);
 			this.setAttribute('prepared', '');
 		}
 		installIslandInspector(this);
 	}
 
-	private installSlider(): void {
+	private installSlider(sides: readonly HTMLElement[]): void {
 		const range = document.createElement('input');
 		range.type = 'range';
 		range.min = '0';
@@ -42,7 +42,13 @@ export class CompareIsland extends HTMLElement {
 		range.value = '50';
 		range.className = 'ex-compare-range';
 		range.setAttribute('aria-label', 'Reveal before and after');
-		const update = (): void => this.style.setProperty('--split', `${range.value}%`);
+		// The split sits under the thumb's centre, which travels the width less one thumb. It is set on
+		// the parts that move, so it survives the island opening in the side panel or large view.
+		const parts = [range, ...sides];
+		const update = (): void => {
+			const split = `calc(var(--thumb) / 2 + (100% - var(--thumb)) * ${Number(range.value) / 100})`;
+			for (const part of parts) part.style.setProperty('--split', split);
+		};
 		range.addEventListener('input', update);
 		update();
 		this.append(range);

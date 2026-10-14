@@ -23,6 +23,15 @@ function affordanceFor(owner: HTMLElement): Affordance | undefined {
 	return zoom === null ? undefined : 'enlarge';
 }
 
+/** What an untitled island is called in the panel's header. */
+const plainNames: Readonly<Record<string, string>> = {
+	'ex-mermaid': 'Diagram',
+	'ex-code': 'Code',
+	'ex-file-tree': 'Files',
+	'ex-tree': 'Tree',
+	figure: 'Picture',
+};
+
 function inspectionLabel(owner: HTMLElement): string {
 	return (
 		owner.getAttribute('label') ??
@@ -31,8 +40,40 @@ function inspectionLabel(owner: HTMLElement): string {
 			? owner.querySelector('[role="tab"][aria-selected="true"]')?.textContent
 			: undefined) ??
 		owner.querySelector('h1,h2,h3,h4,h5,h6')?.textContent ??
+		(owner.localName === 'ex-compare'
+			? Array.from(owner.querySelectorAll<HTMLElement>(':scope > [data-side]'), (side): string =>
+					String(side.dataset['side']),
+				).join(' and ')
+			: undefined) ??
+		owner.querySelector(':scope > figcaption')?.textContent?.trim() ??
+		owner.querySelector(':scope > img')?.getAttribute('alt') ??
+		plainNames[owner.localName] ??
 		owner.localName.replace('ex-', '')
 	);
+}
+
+/**
+ * Gives a picture or diagram its shape for the fit rule in the stylesheet: the proportions, so it
+ * can fit the view's height without stretching, and, for a photo or a drawn diagram, its natural
+ * width, so it grows to at most twice that size and a small one stays sharp. Vector pictures may
+ * grow freely.
+ */
+function describeShape(visual: HTMLImageElement | SVGSVGElement): void {
+	if (visual instanceof HTMLImageElement) {
+		if (!visual.complete || visual.naturalHeight === 0) {
+			visual.addEventListener('load', (): void => describeShape(visual), { once: true });
+			return;
+		}
+		visual.style.setProperty('--aspect', String(visual.naturalWidth / visual.naturalHeight));
+		const vector = /\.svg($|[?#])|^data:image\/svg/i.test(visual.currentSrc || visual.src);
+		if (!vector) visual.style.setProperty('--natural-width', `${visual.naturalWidth}px`);
+		return;
+	}
+	const width = Number.parseFloat(visual.getAttribute('width') ?? '');
+	const height = Number.parseFloat(visual.getAttribute('height') ?? '');
+	if (!(width > 0 && height > 0)) return;
+	visual.style.setProperty('--aspect', String(width / height));
+	visual.style.setProperty('--natural-width', `${width}px`);
 }
 
 interface InspectionContent {
@@ -51,6 +92,7 @@ function takeContent(
 	label: string,
 	close: () => void,
 	reserveWidth: boolean,
+	expand?: () => void,
 ): InspectionContent | undefined {
 	const originalStyle = owner.getAttribute('style');
 	const bounds = owner.getBoundingClientRect();
@@ -93,6 +135,8 @@ function takeContent(
 	const updateScale = (nextScale: number): void => {
 		scale = Math.max(0.5, Math.min(2.5, nextScale));
 		content.style.zoom = String(scale);
+		// Pictures fit the view at 100%; zooming lets them grow past it.
+		content.style.setProperty('--inspect-scale', String(scale));
 		magnification.textContent = `${Math.round(scale * 100)}%`;
 	};
 	header.append(title);
@@ -100,6 +144,7 @@ function takeContent(
 	header.append(magnification);
 	addButton('magnifying-glass-plus', 'Zoom in', (): void => updateScale(scale + 0.25));
 	addButton('arrow-counter-clockwise', 'Reset zoom', (): void => updateScale(1));
+	if (expand) addButton('arrows-out', 'Expand', expand);
 	const closeButton = addButton('x', 'Close', close);
 	closeButton.autofocus = true;
 	// The island keeps its place on the page while its content is shown elsewhere.
@@ -110,6 +155,10 @@ function takeContent(
 	placeholder.className = 'ex-inspect-placeholder';
 	placeholder.textContent = `${label} is open in the panel.`;
 	content.append(...contentNodes);
+	for (const visual of content.querySelectorAll<HTMLImageElement | SVGSVGElement>(
+		'img, ex-mermaid > svg[width]',
+	))
+		describeShape(visual);
 	owner.insertBefore(placeholder, controls);
 	body.append(content);
 	for (const detail of detailStates) detail.element.hidden = false;
@@ -162,7 +211,10 @@ function openSidebar(owner: HTMLElement, controls: HTMLElement): void {
 	}
 	const label = inspectionLabel(owner);
 	openDrawer(label, (close): InspectionContent | undefined =>
-		takeContent(owner, controls, label, close, false),
+		takeContent(owner, controls, label, close, false, (): void => {
+			close();
+			openModal(owner, controls, 'modal');
+		}),
 	);
 }
 

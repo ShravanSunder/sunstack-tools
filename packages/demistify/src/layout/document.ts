@@ -48,14 +48,15 @@ export function installDocumentBehavior(): void {
 			document.documentElement.dataset['theme'] = current === 'dark' ? 'light' : 'dark';
 			return;
 		}
-		// A picture opens enlarged; a figure travels with its caption.
+		// A picture opens in the side panel, beside the text that explains it; a figure travels with
+		// its caption. The panel's expand button gives the large view.
 		const image = event.target.closest('img');
 		if (
 			image?.closest('ex-document') &&
 			!image.closest('a, .ex-drawer, dialog, ex-compare[slider], [data-inspector-content]')
 		) {
 			const owner = image.closest('figure') ?? image.parentElement;
-			if (owner instanceof HTMLElement) openIsland(owner, 'modal');
+			if (owner instanceof HTMLElement) openIsland(owner, 'sidebar');
 			return;
 		}
 		const targetLink = event.target.closest('a');

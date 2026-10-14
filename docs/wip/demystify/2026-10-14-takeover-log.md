@@ -125,6 +125,14 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - Round-6 domain map at 4× CPU: 619 → 351 ms blocking. No arrow passes through a box on the components or domain-map pages.
   - oxfmt had re-wrapped the bare Markdown in `components-demo.html`: headings ran into their lead sentence and both trees collapsed onto one line. The local agent restored the page with script wrappers and HTML headings (`7a0de38`); this keeps that and puts the sitrep back to its authored nesting (the rebuild had nested #150 under "Ready to merge — none" and the selector child under a risk line). The lab's explainer HTML is now excluded from the formatter, and `demistify check` warns (`markdown`) when a heading runs into the next line or several list items share a line. No false positives across the 28 lab pages.
 
+- **Pictures and charts fit the side panel and the large view; the slider works in the panel.**
+  - Owner report: an expanded picture ran far below the screen; a before/after slider opened in the panel showed its handle off the line and did not drag.
+  - The panel and large view now size a picture or diagram from its shape (`describeShape` sets proportions and, for photos and drawn diagrams, natural width): as wide as the panel, as tall as fits with caption room, at most twice a photo's or diagram's natural size. Container height units and pixels scale with the zoom, percentages do not, so zoom still enlarges past the fit. An SVG picture with no intrinsic size had stretched to the width and ignored zoom; that is what the shape fixes.
+  - The slider set its split on the hidden original island; it now sets it on the parts that move, and maps the split to the thumb's centre (the thumb travels the width less one thumb).
+  - A picture click opens the side panel (text stays beside it); the panel header has an expand button for the full view. Panel titles: figure caption or alt text, "Before and After" for a slider, "Diagram"/"Code"/"Files"/"Tree" instead of the element name.
+  - Probe at 2000×1050 and 1400×800: figure and xychart fit in panel and view (chart 1328×830 within a 1018 px bottom); panel zoom 150 % grows 419 → 629 px; view zoom scrolls; slider value 29 → clip `calc(29% + 5.88px)` matches the thumb; phone sheet 340 px wide with no sideways scroll; no page errors.
+  - The five route warnings in the owner's screenshot came from a build before `2f195cc`; the current build reports none at that window size, from the top or from a deep link.
+
 ## Open
 
 - Diagram engine chunk is still 500 KiB gzip (beautiful-mermaid + elkjs); a lighter path for simple flowcharts is unexplored.
