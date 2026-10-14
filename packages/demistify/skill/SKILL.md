@@ -39,6 +39,7 @@ Use the library path you are given; `demistify/` is the default. `ex-document` a
 | `<ex-callout tone title>` | TL;DR, decision, risk, gotchas, open questions | ordinary HTML |
 | `<ex-grid>` | islands side by side; columns fit the width (`cols="3"` fixes them; children may set `span="2"`) | any islands |
 | `<ex-tabs>` | alternative views of one subject | child `section`s, each with `label="…"` |
+| `<ex-flow>` | a grid like `ex-grid` whose `ex-arrow` children route through the gaps and never cross a box | islands with ids, then `ex-arrow`s |
 | `<ex-arrow from to label>` | a relationship between two islands that have ids | empty |
 | `<ex-file-tree>` | files a change touches | plain-text tree inside `<script type="text/plain">` |
 
@@ -65,8 +66,8 @@ Overview first; depth one action away.
 
 Arrange islands in any order and layout: `ex-grid`, plain `display:grid`/`flex`, or a `position:relative` box with absolutely positioned islands for a whiteboard. Islands never move themselves.
 
-- An arrow needs ids on both islands and at least 48px between them (`<ex-grid style="gap:56px">`).
-- More than about six connected things: use Mermaid (linked to cards). A few richly described things: cards plus arrows.
+- Connected cards go in `ex-flow`, with their `ex-arrow`s inside it after the cards; arrows then route around boxes. An arrow outside a flow is drawn straight and is reported if it crosses a box.
+- More than about six connected things: use Mermaid (linked to cards). A few richly described things: cards in an `ex-flow`.
 - Headings: one `#` title, `##` sections, `###` sparingly. Cards and callouts need no headings.
 
 ## Example
@@ -82,7 +83,7 @@ Sessions outlive dropped sockets, so a reconnecting client resumes where it left
 flowchart LR
   client[Client] --> socket[Socket] --> registry[Registry] --> session[Session]
 </script></ex-mermaid>
-<ex-grid style="gap:56px">
+<ex-flow>
 <ex-card id="socket" title="Socket" tone="changed" tag="transport">
 <p>Carries frames; may drop at any time.</p>
 </ex-card>
@@ -90,12 +91,12 @@ flowchart LR
 <p>Maps session ids to live state for 5 minutes after a drop.</p>
 <details><summary>Boundary</summary><p>Does not survive a process restart.</p></details>
 </ex-card>
-</ex-grid>
 <ex-arrow from="socket" to="registry" label="re-attaches"></ex-arrow>
+</ex-flow>
 <ex-callout tone="risk" title="Gotchas"><ul><li>Two tabs can claim one session.</li></ul></ex-callout>
 </ex-document>
 ```
 
 ## Check
 
-Open the page: an "authoring issues" panel lists unknown elements or tones, broken or too-short arrows, duplicate ids and diagrams that failed to render. A correct page shows no panel.
+Open the page: an "authoring issues" panel lists unknown elements or tones, broken, too-short or box-crossing arrows, duplicate ids and diagrams that failed to render. A correct page shows no panel.

@@ -54,50 +54,72 @@ ex-document > * + * {
 	margin-top: 28px;
 }
 
-ex-grid {
+ex-grid,
+ex-flow {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 	gap: 20px;
 	align-items: start;
 }
-ex-grid[cols] {
+ex-flow {
+	position: relative;
+	column-gap: 72px;
+	row-gap: 64px;
+	padding: 40px 28px;
+}
+.ex-flow-overlay {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	color: var(--accent);
+	overflow: visible;
+	z-index: 1;
+}
+ex-flow > ex-arrow {
+	display: none;
+}
+:is(ex-grid, ex-flow)[cols] {
 	grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
 }
-ex-grid[cols='1'] {
+:is(ex-grid, ex-flow)[cols='1'] {
 	--cols: 1;
 }
-ex-grid[cols='2'] {
+:is(ex-grid, ex-flow)[cols='2'] {
 	--cols: 2;
 }
-ex-grid[cols='3'] {
+:is(ex-grid, ex-flow)[cols='3'] {
 	--cols: 3;
 }
-ex-grid[cols='4'] {
+:is(ex-grid, ex-flow)[cols='4'] {
 	--cols: 4;
 }
-ex-grid[cols='5'] {
+:is(ex-grid, ex-flow)[cols='5'] {
 	--cols: 5;
 }
-ex-grid[cols='6'] {
+:is(ex-grid, ex-flow)[cols='6'] {
 	--cols: 6;
 }
-ex-grid > [span='2'] {
+:is(ex-grid, ex-flow) > [span='2'] {
 	grid-column: span 2;
 }
-ex-grid > [span='3'] {
+:is(ex-grid, ex-flow) > [span='3'] {
 	grid-column: span 3;
 }
-ex-grid > [span='all'] {
+:is(ex-grid, ex-flow) > [span='all'] {
 	grid-column: 1 / -1;
 }
-ex-grid > * + * {
+:is(ex-grid, ex-flow) > * + * {
 	margin-top: 0;
 }
 @media (max-width: 760px) {
-	ex-grid {
+	:is(ex-grid, ex-flow),
+	:is(ex-grid, ex-flow)[cols] {
 		grid-template-columns: minmax(0, 1fr);
 	}
-	ex-grid > [span] {
+	ex-flow {
+		padding-inline: 32px;
+	}
+	:is(ex-grid, ex-flow) > [span] {
 		grid-column: auto;
 	}
 }

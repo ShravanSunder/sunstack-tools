@@ -2,6 +2,7 @@ import { CalloutIsland, CardIsland } from './card-island.ts';
 import { HeadingNavigation } from './heading-navigation.ts';
 import { createIconButton } from './icon-controls.ts';
 import { ArrowIsland } from './island-arrows.ts';
+import { FlowIsland } from './island-flow.ts';
 import { installIslandInspector, ZoomIsland } from './island-inspector.ts';
 import { reportIssue } from './issues.ts';
 import { MarkdownIsland, MermaidIsland } from './markdown-diagram-islands.ts';
@@ -86,6 +87,7 @@ for (const [tagName, constructor] of [
 	['ex-file-tree', FileTreeIsland],
 	['ex-card', CardIsland],
 	['ex-grid', GridIsland],
+	['ex-flow', FlowIsland],
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 ] satisfies readonly (readonly [string, CustomElementConstructor])[]) {

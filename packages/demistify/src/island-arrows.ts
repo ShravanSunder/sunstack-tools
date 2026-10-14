@@ -46,6 +46,10 @@ export class ArrowIsland extends HTMLElement {
 	private resizeObserver: ResizeObserver | undefined;
 	private mutationObserver: MutationObserver | undefined;
 	connectedCallback(): void {
+		if (this.parentElement?.localName === 'ex-flow') {
+			window.setTimeout((): void => this.verifyEndpoints(), 2000);
+			return;
+		}
 		if (this.overlay) return;
 		const markerId = `island-arrow-${crypto.randomUUID()}`;
 		const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -78,12 +82,15 @@ export class ArrowIsland extends HTMLElement {
 		scheduleArrows();
 		window.setTimeout((): void => this.verifyConnection(), 2000);
 	}
-	private verifyConnection(): void {
+	private verifyEndpoints(): void {
 		for (const name of ['from', 'to']) {
 			const endpointId = this.getAttribute(name);
 			if (!endpointId || !document.getElementById(endpointId))
 				reportIssue(this, `${name}="${endpointId ?? ''}" does not match any element id.`);
 		}
+	}
+	private verifyConnection(): void {
+		this.verifyEndpoints();
 		const source = document.getElementById(this.getAttribute('from') ?? '');
 		const target = document.getElementById(this.getAttribute('to') ?? '');
 		const line = this.path?.getTotalLength() ?? 0;
@@ -92,6 +99,44 @@ export class ArrowIsland extends HTMLElement {
 				this,
 				`Arrow ${source.id} → ${target.id} is only ${Math.round(line)}px long and hard to see; leave a wider gap between the two boxes.`,
 			);
+		if (source && target && this.path && line > 0)
+			this.verifyNoCrossing(source, target, this.path, line);
+	}
+	private verifyNoCrossing(
+		source: Element,
+		target: Element,
+		path: SVGPathElement,
+		line: number,
+	): void {
+		const obstacles = Array.from(
+			document.querySelectorAll('ex-card, ex-callout, ex-markdown, ex-mermaid, ex-file-tree'),
+		).filter(
+			(element): boolean =>
+				element.checkVisibility() &&
+				!element.contains(source) &&
+				!element.contains(target) &&
+				!source.contains(element) &&
+				!target.contains(element),
+		);
+		for (let step = 1; step < 24; step += 1) {
+			const point = path.getPointAtLength((line * step) / 24);
+			const crossed = obstacles.find((element): boolean => {
+				const bounds = element.getBoundingClientRect();
+				return (
+					point.x > bounds.left + 4 &&
+					point.x < bounds.right - 4 &&
+					point.y > bounds.top + 4 &&
+					point.y < bounds.bottom - 4
+				);
+			});
+			if (crossed) {
+				reportIssue(
+					this,
+					`Arrow ${source.id} → ${target.id} crosses ${crossed.id ? `#${crossed.id}` : `a ${crossed.localName}`}; put the connected islands in an <ex-flow> so arrows route between boxes.`,
+				);
+				return;
+			}
+		}
 	}
 	disconnectedCallback(): void {
 		activeArrows.delete(this);
