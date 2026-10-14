@@ -1,5 +1,5 @@
 import { renderThemedDiagram } from './diagram-render.ts';
-import { installIslandInspector } from './island-inspector.ts';
+import { installIslandInspector, openIsland } from './island-inspector.ts';
 import { reportIssue } from './issues.ts';
 import { normalizeIslandText } from './source-text.ts';
 
@@ -20,9 +20,8 @@ function enlargeDiagram(owner: HTMLElement): void {
 }
 
 function openLinkedElement(target: HTMLElement): void {
-	const trigger = target.querySelector<HTMLButtonElement>(':scope > .ex-inspect-trigger');
-	if (trigger) {
-		trigger.click();
+	if (target.querySelector(':scope > .ex-inspect-controls')) {
+		openIsland(target, 'sidebar');
 		return;
 	}
 	target.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -91,7 +90,6 @@ export class MermaidIsland extends HTMLElement {
 			return;
 		}
 		if (this.renderPromise) return;
-		if (!this.hasAttribute('zoom')) this.setAttribute('zoom', 'modal');
 		this.visibilityObserver?.disconnect();
 		this.visibilityObserver = new IntersectionObserver(
 			(entries): void => {

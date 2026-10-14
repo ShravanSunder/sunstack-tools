@@ -54,11 +54,11 @@ Participants: Client, Gateway, Registry, Session.
 
 Resume success rate from the staging soak test (percent of reconnects that resumed):
 
-| Scenario | Before | After this change | With Redis registry (prototype) |
-| --- | --- | --- | --- |
-| Network blip | 35 | 98 | 98 |
-| Deploy | 12 | 0 | 96 |
-| Instance crash | 0 | 0 | 94 |
+| Scenario       | Before | After this change | With Redis registry (prototype) |
+| -------------- | ------ | ----------------- | ------------------------------- |
+| Network blip   | 35     | 98                | 98                              |
+| Deploy         | 12     | 0                 | 96                              |
+| Instance crash | 0      | 0                 | 94                              |
 
 ## Next steps
 

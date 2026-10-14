@@ -71,9 +71,9 @@ xychart-beta
 
 Overview first; depth one action away.
 
-- Card body = summary; depth in `<details><summary>Boundary and sources</summary>…</details>`. Such cards open in a sidebar with everything expanded.
+- Card body = summary; depth in `<details><summary>Boundary and sources</summary>…</details>`.
+- Every island has sidebar and expand buttons on hover; both show everything expanded. `zoom="none"` removes them.
 - A Mermaid node whose id equals a card `id` takes the card's tone colour and opens the card on click. Keep node labels short; put status and detail in the card.
-- Diagrams and code get an expand button; `zoom="sidebar"` or `zoom="modal"` adds one to any island.
 - `ex-tabs` when the reader needs one view at a time.
 - Options: cards side by side, `tag` names the tradeoff ("durable, adds a dependency"), `pick` marks the chosen one.
 

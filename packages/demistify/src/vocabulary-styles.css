@@ -144,7 +144,7 @@ ex-card {
 }
 .ex-card-head {
 	margin-bottom: 8px;
-	padding-right: 36px;
+	padding-right: 64px;
 }
 .ex-card-head strong {
 	font-size: 18px;
@@ -286,7 +286,7 @@ ex-code {
 	padding: 8px 14px;
 	border-bottom: 1px solid var(--rule);
 	font: 14px var(--mono);
-	padding-right: 52px;
+	padding-right: 76px;
 }
 .ex-code-head span {
 	color: var(--ink-soft);

@@ -42,21 +42,27 @@ ex-mermaid > svg {
 	outline: 2px solid var(--accent);
 	outline-offset: 3px;
 }
-.ex-inspect-trigger {
+.ex-inspect-controls {
 	position: absolute;
 	top: 8px;
 	right: 8px;
 	z-index: 2;
+	display: flex;
+	gap: 4px;
 	opacity: 0;
+	transition: opacity 120ms;
+}
+.ex-inspect-trigger {
 	width: 28px;
 	height: 28px;
 	border-radius: 50%;
+	background: var(--sheet);
 }
 .ex-inspect-trigger .ph {
 	font-size: 16px;
 }
-.ex-inspectable:hover > .ex-inspect-trigger,
-.ex-inspectable:focus-within > .ex-inspect-trigger {
+.ex-inspectable:hover:not(:has(.ex-inspectable:hover)) > .ex-inspect-controls,
+.ex-inspectable:focus-within > .ex-inspect-controls {
 	opacity: 1;
 }
 .ex-inspect-dialog {
@@ -105,7 +111,7 @@ ex-mermaid > svg {
 	display: grid;
 	justify-items: center;
 }
-.ex-inspect-body .ex-inspect-trigger {
+.ex-inspect-body .ex-inspect-controls {
 	display: none;
 }
 .ex-arrow-overlay {
@@ -133,7 +139,7 @@ ex-mermaid > svg {
 	stroke-linejoin: round;
 }
 @media (hover: none) {
-	.ex-inspect-trigger {
+	.ex-inspect-controls {
 		opacity: 1;
 	}
 }

@@ -27,10 +27,6 @@ function createHeader(
 	return header;
 }
 
-function hasHiddenDepth(owner: HTMLElement): boolean {
-	return owner.querySelector(':scope > details, :scope > [slot="details"]') !== null;
-}
-
 /** A titled surface for one thing: a component, step, option or finding. */
 export class CardIsland extends HTMLElement {
 	connectedCallback(): void {
@@ -53,7 +49,6 @@ export class CardIsland extends HTMLElement {
 				header.append(chosen);
 			}
 			this.prepend(header);
-			if (!this.hasAttribute('zoom') && hasHiddenDepth(this)) this.setAttribute('zoom', 'sidebar');
 			this.setAttribute('prepared', '');
 		}
 		installIslandInspector(this);

@@ -105,7 +105,6 @@ export class CodeIsland extends HTMLElement {
 						`line="${note.getAttribute('line') ?? ''}" is not a line of this code (lines ${firstNumber}–${lineNumber - 1}).`,
 					);
 		this.replaceChildren(...(header.childElementCount > 0 ? [header] : []), body);
-		if (!this.hasAttribute('zoom')) this.setAttribute('zoom', 'modal');
 		this.setAttribute('prepared', '');
 	}
 }
