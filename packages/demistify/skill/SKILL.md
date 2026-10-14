@@ -5,7 +5,7 @@ description: Use when explaining engineering work (architecture, a plan, a chang
 
 # Demistify explainer
 
-Write one HTML file. You supply meaning, content and layout; the library supplies all styling, icons, rendering, outline navigation, a theme toggle and click-to-inspect. Never write colours, borders, fonts or shadows. Layout CSS (grid, flex, absolute positions, widths, gaps) is allowed.
+Write one HTML file. You supply meaning, content and layout; the library supplies styling, icons, rendering, outline, theme toggle and inspection. Never write colours, borders, fonts or shadows; layout CSS (grid, flex, absolute positions, gaps) is fine.
 
 ## Page
 
@@ -27,48 +27,63 @@ Write one HTML file. You supply meaning, content and layout; the library supplie
 </html>
 ```
 
-Use the library path you are given; `demistify/` is the default. `ex-document` adds the outline (built from your `h1`–`h3`) and the theme toggle.
+Use the library path you are given (default `demistify/`). `ex-document` adds the outline (from `h1`–`h3`) and theme toggle.
 
 ## Islands
 
 | Element | Use for | Content |
 |---|---|---|
 | `<ex-markdown>` | prose, headings, lists, tables, code | Markdown inside `<script type="text/markdown">` |
-| `<ex-mermaid>` | flows, sequences, states, dependency graphs | Mermaid inside `<script type="text/plain">` |
-| `<ex-card id title tone tag>` | one thing: component, step, option, finding | ordinary HTML (`p`, `ul`, `strong`, `code`) |
-| `<ex-callout tone title>` | TL;DR, decision, risk, gotchas, open questions | ordinary HTML |
-| `<ex-grid>` | islands side by side; columns fit the width (`cols="3"` fixes them; children may set `span="2"`) | any islands |
+| `<ex-mermaid>` | flowcharts, sequences, states, classes, ER, bar/line charts | Mermaid inside `<script type="text/plain">` |
+| `<ex-card id title tone tag pick>` | one thing: component, step, option, finding | HTML (`p`, `ul`, `strong`, `code`) |
+| `<ex-callout tone title>` | TL;DR, decision, risk, gotchas, open questions | HTML |
+| `<ex-grid>` | islands side by side; columns fit the width (`cols="3"` fixes them; child `span="2"`) | islands |
 | `<ex-tabs>` | alternative views of one subject | child `section`s, each with `label="…"` |
-| `<ex-flow>` | a grid like `ex-grid` whose `ex-arrow` children route through the gaps and never cross a box | islands with ids, then `ex-arrow`s |
-| `<ex-arrow from to label>` | a relationship between two islands that have ids | empty |
+| `<ex-flow>` | an `ex-grid` whose arrows route through the gaps, never across a box | islands with ids, then `ex-arrow`s |
+| `<ex-arrow from to label>` | a relationship between two islands with ids | empty |
+| `<ex-code title lang start>` | code or a unified diff (`lang="diff"`) with margin notes | code inside `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` |
 | `<ex-file-tree>` | files a change touches | plain-text tree inside `<script type="text/plain">` |
 
-All attributes are optional except an arrow's `from`/`to`. Indentation inside `script` is removed for you. Islands nest: cards and callouts can hold Markdown, Mermaid or grids. A `mermaid` code fence inside Markdown also renders a diagram.
+Attributes are optional except an arrow's `from`/`to` and a note's `line` (counted from `start`, default 1; `@@` lines are not counted). Indentation inside `script` is removed for you. Islands nest. A `mermaid` fence inside Markdown also renders a diagram.
 
 ## Tones
 
-`tone` names a meaning; the library picks the icon and colour. Use only these:
+`tone` names a meaning; the library picks icon and colour. Only these:
 
 `note` · `tldr` · `decision` · `risk` · `question` · `done` · `planned` · `changed` · `added` · `removed`
 
-The title says the specific thing ("Retry storms under load"); the tone says what kind of thing it is (`risk`).
+Title = the specific thing ("Retry storms under load"); tone = what kind (`risk`). Omit for neutral. Review severity: blocking `risk`, nit `question`, nice `note`.
+
+## Diagrams
+
+Supported: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erDiagram`, `xychart-beta` (not pie, gantt, timeline, mindmap). A chart:
+
+```text
+xychart-beta
+  title "Transferred KiB"
+  x-axis ["No diagram", "With diagram"]
+  y-axis "KiB" 0 --> 1000
+  bar "Before" [443, 949]
+  bar "After" [143, 650]
+```
 
 ## Progressive disclosure
 
 Overview first; depth one action away.
 
-- Card body = the summary. Depth goes in `<details><summary>Boundary and sources</summary>…</details>`. Cards with `details` get an inspect button that opens a sidebar with everything expanded.
-- Link a diagram to its cards: when a Mermaid node id equals a card `id`, the node takes the card's tone colour and clicking it opens the card. So keep node labels short (just the name) and put status and detail in the card.
-- Diagrams get an expand button. `zoom="sidebar"` or `zoom="modal"` makes any other island inspectable.
+- Card body = summary; depth in `<details><summary>Boundary and sources</summary>…</details>`. Such cards open in a sidebar with everything expanded.
+- A Mermaid node whose id equals a card `id` takes the card's tone colour and opens the card on click. Keep node labels short; put status and detail in the card.
+- Diagrams and code get an expand button; `zoom="sidebar"` or `zoom="modal"` adds one to any island.
 - `ex-tabs` when the reader needs one view at a time.
+- Options: cards side by side, `tag` names the tradeoff ("durable, adds a dependency"), `pick` marks the chosen one.
 
 ## Composition
 
-Arrange islands in any order and layout: `ex-grid`, plain `display:grid`/`flex`, or a `position:relative` box with absolutely positioned islands for a whiteboard. Islands never move themselves.
+Any order and layout: `ex-grid`, plain `display:grid`/`flex`, or a `position:relative` whiteboard with absolutely positioned islands.
 
-- Connected cards go in `ex-flow`, with their `ex-arrow`s inside it after the cards; arrows then route around boxes. An arrow outside a flow is drawn straight and is reported if it crosses a box.
-- More than about six connected things: use Mermaid (linked to cards). A few richly described things: cards in an `ex-flow`.
-- Headings: one `#` title, `##` sections, `###` sparingly. Cards and callouts need no headings.
+- Connected cards go in `ex-flow` with their `ex-arrow`s inside it. An arrow outside a flow is drawn straight and reported if it crosses a box.
+- More than about six connected things: Mermaid linked to cards. A few richly described things: cards in an `ex-flow`.
+- One `#` title, `##` sections, `###` sparingly; cards need no headings.
 
 ## Example
 
@@ -99,4 +114,4 @@ flowchart LR
 
 ## Check
 
-Open the page: an "authoring issues" panel lists unknown elements or tones, broken, too-short or box-crossing arrows, duplicate ids and diagrams that failed to render. A correct page shows no panel.
+An "authoring issues" panel on the page lists mistakes (unknown elements or tones, bad arrows or note lines, duplicate ids, failed diagrams). A correct page shows no panel.

@@ -1,4 +1,5 @@
 import { CalloutIsland, CardIsland } from './card-island.ts';
+import { CodeIsland, CodeNoteIsland } from './code-island.ts';
 import { HeadingNavigation } from './heading-navigation.ts';
 import { createIconButton } from './icon-controls.ts';
 import { ArrowIsland } from './island-arrows.ts';
@@ -88,6 +89,8 @@ for (const [tagName, constructor] of [
 	['ex-card', CardIsland],
 	['ex-grid', GridIsland],
 	['ex-flow', FlowIsland],
+	['ex-code', CodeIsland],
+	['ex-note', CodeNoteIsland],
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 ] satisfies readonly (readonly [string, CustomElementConstructor])[]) {

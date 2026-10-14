@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises';
 
 import { renderMermaidSVG } from 'beautiful-mermaid';
 
+import { renderThemedDiagram } from './diagram-render.ts';
 import { decodeEscapedHtmlText } from './html-text.ts';
 import { renderMarkdownContent } from './markdown-content.ts';
 import { normalizeIslandText } from './source-text.ts';
-import { removeSvgFontImports } from './svg-fonts.ts';
 
 function readAuthorText(sourceHtml: string): string {
 	const textBlock = /<script\s+type="text\/(?:markdown|plain)"\s*>([\s\S]*?)<\/script>/.exec(
@@ -25,7 +25,7 @@ export function prepareIslandContent(
 		(_match: string, attributes: string, sourcePath: string): string => {
 			const sourceText = diagrams[sourcePath];
 			if (!sourceText) throw new Error(`Unknown Mermaid island source: ${sourcePath}`);
-			return `<ex-mermaid${attributes} prepared>${removeSvgFontImports(renderMermaidSVG(sourceText, { bg: 'var(--sheet)', fg: 'var(--ink)', accent: 'var(--accent)', surface: 'var(--accent-soft)', border: 'var(--rule)', font: 'IBM Plex Sans Condensed', transparent: true }))}</ex-mermaid>`;
+			return `<ex-mermaid${attributes} prepared>${renderThemedDiagram(renderMermaidSVG, sourceText)}</ex-mermaid>`;
 		},
 	);
 	if (!standalone) return preparedHtml;
@@ -43,7 +43,7 @@ export function prepareIslandContent(
 				templateText === undefined
 					? readAuthorText(content)
 					: normalizeIslandText(decodeEscapedHtmlText(templateText));
-			return `<ex-mermaid${attributes} prepared>${removeSvgFontImports(renderMermaidSVG(sourceText, { bg: 'var(--sheet)', fg: 'var(--ink)', accent: 'var(--accent)', surface: 'var(--accent-soft)', border: 'var(--rule)', font: 'IBM Plex Sans Condensed', transparent: true }))}</ex-mermaid>`;
+			return `<ex-mermaid${attributes} prepared>${renderThemedDiagram(renderMermaidSVG, sourceText)}</ex-mermaid>`;
 		},
 	);
 }

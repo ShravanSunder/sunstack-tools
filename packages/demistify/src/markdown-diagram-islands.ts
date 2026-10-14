@@ -1,7 +1,7 @@
+import { renderThemedDiagram } from './diagram-render.ts';
 import { installIslandInspector } from './island-inspector.ts';
 import { reportIssue } from './issues.ts';
 import { normalizeIslandText } from './source-text.ts';
-import { removeSvgFontImports } from './svg-fonts.ts';
 
 /** Reads island source from a script or template child, or plain text when the author wrote no wrapper. */
 function readIslandSource(owner: HTMLElement): string | undefined {
@@ -15,7 +15,8 @@ function readIslandSource(owner: HTMLElement): string | undefined {
 function enlargeDiagram(owner: HTMLElement): void {
 	const svg = owner.querySelector(':scope > svg');
 	const width = Number.parseFloat(svg?.getAttribute('width') ?? '');
-	if (svg instanceof SVGSVGElement && width > 0) svg.style.width = `${Math.round(width * 1.25)}px`;
+	if (svg instanceof SVGSVGElement && width > 0 && width < 720)
+		svg.style.width = `${Math.round(Math.min(width * 1.25, 720))}px`;
 }
 
 function openLinkedElement(target: HTMLElement): void {
@@ -92,11 +93,14 @@ export class MermaidIsland extends HTMLElement {
 		if (this.renderPromise) return;
 		if (!this.hasAttribute('zoom')) this.setAttribute('zoom', 'modal');
 		this.visibilityObserver?.disconnect();
-		this.visibilityObserver = new IntersectionObserver((entries): void => {
-			if (!entries.some((entry): boolean => entry.isIntersecting)) return;
-			this.visibilityObserver?.disconnect();
-			this.renderPromise ??= this.renderDiagram();
-		});
+		this.visibilityObserver = new IntersectionObserver(
+			(entries): void => {
+				if (!entries.some((entry): boolean => entry.isIntersecting)) return;
+				this.visibilityObserver?.disconnect();
+				this.renderPromise ??= this.renderDiagram();
+			},
+			{ rootMargin: '300px 0px' },
+		);
 		this.visibilityObserver.observe(this);
 	}
 	disconnectedCallback(): void {
@@ -107,17 +111,7 @@ export class MermaidIsland extends HTMLElement {
 		const sourceText = readIslandSource(this) ?? '';
 		try {
 			const { renderMermaidSVG } = await import('beautiful-mermaid');
-			this.innerHTML = removeSvgFontImports(
-				renderMermaidSVG(normalizeIslandText(sourceText), {
-					bg: 'var(--sheet)',
-					fg: 'var(--ink)',
-					accent: 'var(--accent)',
-					surface: 'var(--accent-soft)',
-					border: 'var(--rule)',
-					font: 'IBM Plex Sans Condensed',
-					transparent: true,
-				}),
-			);
+			this.innerHTML = renderThemedDiagram(renderMermaidSVG, normalizeIslandText(sourceText));
 			this.setAttribute('prepared', '');
 			enlargeDiagram(this);
 			linkDiagramNodes(this);

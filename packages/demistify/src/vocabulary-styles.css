@@ -151,6 +151,19 @@ ex-card {
 	font-weight: 600;
 	line-height: 1.25;
 }
+ex-card[pick] {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 1px var(--accent);
+}
+.ex-card-pick {
+	font: 600 12px var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--sheet);
+	background: var(--accent);
+	border-radius: 4px;
+	padding: 2px 7px;
+}
 .ex-card-tag {
 	font: 12px var(--mono);
 	color: var(--ink-soft);
@@ -257,4 +270,100 @@ ex-callout::after {
 }
 .ex-linked-node:focus-visible {
 	outline: none;
+}
+
+ex-code {
+	display: block;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: 8px;
+	overflow: hidden;
+}
+.ex-code-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 14px;
+	border-bottom: 1px solid var(--rule);
+	font: 14px var(--mono);
+	padding-right: 52px;
+}
+.ex-code-head span {
+	color: var(--ink-soft);
+	font-size: 12px;
+}
+.ex-code-lines {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) minmax(0, 36%);
+	font: 13.5px/1.55 var(--mono);
+	padding: 6px 0;
+}
+.ex-code-number {
+	color: var(--ink-soft);
+	opacity: 0.7;
+	text-align: right;
+	padding: 0 12px 0 14px;
+	user-select: none;
+}
+.ex-code-text {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	background: none;
+	padding: 0 12px;
+	border-left: 3px solid transparent;
+}
+.ex-code-number[data-noted] {
+	color: var(--tone);
+	background: var(--tone-bg);
+	font-weight: 600;
+	opacity: 1;
+}
+.ex-code-text[data-kind='added'] {
+	background: var(--diff-added-bg);
+	border-left-color: var(--diff-added);
+}
+.ex-code-text[data-kind='removed'] {
+	background: var(--diff-removed-bg);
+	border-left-color: var(--diff-removed);
+}
+.ex-code-text[data-kind='hunk'] {
+	color: var(--ink-soft);
+}
+.ex-code-text[data-noted] {
+	background: var(--tone-bg);
+	border-left-color: var(--tone);
+}
+.ex-code-margin {
+	padding: 0 14px 0 10px;
+}
+ex-note {
+	display: block;
+	font: 14px/1.45 var(--display);
+	color: var(--ink);
+	background: var(--tone-bg);
+	border-left: 3px solid var(--tone);
+	border-radius: 4px;
+	padding: 4px 8px;
+	margin: 1px 0 4px;
+}
+ex-note .ex-tone-icon {
+	font-size: 15px;
+	vertical-align: -2px;
+	margin-right: 6px;
+}
+@media (max-width: 760px) {
+	.ex-code-lines {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+	.ex-code-margin {
+		grid-column: 1 / -1;
+		padding-left: 14px;
+	}
+	.ex-code-margin:not([data-noted]) {
+		display: none;
+	}
+}
+
+ex-mermaid:not([prepared]) {
+	min-height: 160px;
 }

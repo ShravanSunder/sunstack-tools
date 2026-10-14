@@ -45,6 +45,13 @@ export class CardIsland extends HTMLElement {
 				chip.textContent = tag;
 				header.append(chip);
 			}
+			if (this.hasAttribute('pick')) {
+				const chosen = document.createElement('span');
+				chosen.className = 'ex-card-pick';
+				const pickLabel = this.getAttribute('pick')?.trim();
+				chosen.textContent = pickLabel === undefined || pickLabel === '' ? 'Chosen' : pickLabel;
+				header.append(chosen);
+			}
 			this.prepend(header);
 			if (!this.hasAttribute('zoom') && hasHiddenDepth(this)) this.setAttribute('zoom', 'sidebar');
 			this.setAttribute('prepared', '');
