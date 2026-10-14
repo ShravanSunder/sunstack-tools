@@ -111,3 +111,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Demistify generated artifacts and local scratch
+tmp/
+apps/demistify-poc/public/experiments/

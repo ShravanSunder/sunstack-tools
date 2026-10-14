@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta
+			name="description"
+			content="A private lab for comparing ways to explain software designs."
+		/>
+		<title>Presentation lab</title>
+		<link rel="stylesheet" href="/src/lab-styles.css" />
+	</head>
+	<body>
+		<header class="lab-header">
+			<span class="lab-name">Presentation experiments</span>
+			<a id="source-report-link" href="#source-report">Read the source report ↓</a>
+		</header>
+
+		<main>
+			<section class="lab-introduction" aria-labelledby="lab-title">
+				<div>
+					<p class="lab-context">An open question, made visible</p>
+					<h1 id="lab-title">Presentation lab</h1>
+					<p class="lab-purpose">
+						How can an agent write less, while helping a reader understand more?
+					</p>
+					<p class="lab-description">
+						Compare the same explanation through different approaches. Inspect what was written,
+						read the result, and see what each approach gains and costs.
+					</p>
+				</div>
+
+				<figure class="comparison-flow">
+					<figcaption>Three choices to examine separately</figcaption>
+					<div class="flow-step">
+						<span class="flow-label">Authoring</span>
+						<strong>What the agent writes</strong>
+						<span>Prose, structure, references, changes</span>
+					</div>
+					<span class="flow-connector" aria-hidden="true">↓</span>
+					<div class="flow-step">
+						<span class="flow-label">Rendering</span>
+						<strong>What turns it into a view</strong>
+						<span>Components, diagrams, layout, interaction</span>
+					</div>
+					<span class="flow-connector" aria-hidden="true">↓</span>
+					<div class="flow-step">
+						<span class="flow-label">Delivery</span>
+						<strong>What the reader opens</strong>
+						<span>A live view or a portable document</span>
+					</div>
+				</figure>
+			</section>
+
+			<section class="candidate-studies" aria-labelledby="studies-title">
+				<div class="section-introduction">
+					<h2 id="studies-title">Five separate prototypes</h2>
+					<p>
+						Five separate views of your complex planning DAG. Open the result, inspect its source,
+						and compare what each approach gains and costs.
+					</p>
+				</div>
+				<ul class="experiment-list">
+					<li>
+						<div>
+							<h3><a href="/experiments/visual-plan.html">Visual Plan · MDX</a></h3>
+							<p>How far does an existing plan vocabulary take us?</p>
+						</div>
+						<a class="experiment-status" href="/experiments/visual-plan.html">Open experiment →</a>
+					</li>
+					<li>
+						<div>
+							<h3><a href="/experiments/quick-json.html">Quick JSON · visual-explainer</a></h3>
+							<p>What do we gain when the renderer owns the visual structure?</p>
+						</div>
+						<a class="experiment-status" href="/experiments/quick-json.html">Open experiment →</a>
+					</li>
+					<li>
+						<div>
+							<h3><a href="/experiments/markdown-directives.html">Markdown · D2 references</a></h3>
+							<p>Can readable prose carry useful structure and reuse existing sources?</p>
+						</div>
+						<a class="experiment-status" href="/experiments/markdown-directives.html"
+							>Open experiment →</a
+						>
+					</li>
+					<li>
+						<div>
+							<h3><a href="/experiments/graph-diff.html">Graph diff · three views</a></h3>
+							<p>Can a small change set explain current, proposed, and changed architecture?</p>
+						</div>
+						<a class="experiment-status" href="/experiments/graph-diff.html">Open experiment →</a>
+					</li>
+					<li>
+						<div>
+							<h3>
+								<a href="/experiments/html-islands.html">HTML Islands · Claude reference styling</a>
+							</h3>
+							<p>Native composable elements, three complex views, shared zoom and local fonts.</p>
+						</div>
+						<a class="experiment-status" href="/experiments/html-islands.html"
+							>Open prototype 5 →</a
+						>
+					</li>
+				</ul>
+			</section>
+
+			<p><a href="/experiments/report.html">Read the five-prototype comparison report →</a></p>
+			<aside class="next-question" aria-labelledby="next-question-title">
+				<h2 id="next-question-title">Read the same design four ways</h2>
+				<p>
+					The sample moves session lifetime from a socket cache into a session store and adds a
+					reconnect worker. Each experiment includes its input, rendered output, file sizes, and
+					limitations. Human comprehension and model token cost have not been measured.
+				</p>
+			</aside>
+			<details id="source-report" class="source-report">
+				<summary>Original research report</summary>
+				<p>The supplied Markdown source, shown as plain text. Its claims remain research inputs.</p>
+				<pre id="source-report-text"></pre>
+			</details>
+		</main>
+		<footer class="lab-footer">
+			Private local lab · Research claims are inputs; results need evidence.
+		</footer>
+		<script type="module" src="/src/lab-entry.ts"></script>
+	</body>
+</html>

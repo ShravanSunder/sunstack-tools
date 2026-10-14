@@ -1,0 +1,239 @@
+/* Layout: a reading column with a sticky contents rail; the tree drawn as stacked level bands, L3 on top, L0 at the base. */
+:root {
+	--paper: #f5f6f8;
+	--sheet: #ffffff;
+	--ink: #18202b;
+	--ink-soft: #4a5566;
+	--rule: #d9dee6;
+	--accent: #1d6672;
+	--accent-soft: #e3f0f1;
+	--keep: #5b6678;
+	--keep-bg: #eceff3;
+	--change: #9a5b00;
+	--change-bg: #fbefd9;
+	--strong: #1f5fa8;
+	--strong-bg: #e3edf9;
+	--missing: #b1324a;
+	--missing-bg: #fbe6ea;
+	--patch: #6b48a8;
+	--patch-bg: #efe8f8;
+	--codex: #3e5f2c;
+	--codex-bg: #ecf3e6;
+	--diff-added: #276c42;
+	--diff-added-bg: #dff2e6;
+	--diff-removed: #aa3345;
+	--diff-removed-bg: #fbe5e9;
+	--diff-modified: #98600a;
+	--diff-modified-bg: #fbefd9;
+	--diff-unchanged: #627185;
+	--diff-unchanged-bg: #edf0f5;
+	--display: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+	--body: 'Literata', Georgia, 'Times New Roman', serif;
+	--mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
+		--paper: #11161d;
+		--sheet: #171d26;
+		--ink: #e7ebf1;
+		--ink-soft: #a5afbd;
+		--rule: #2c3542;
+		--accent: #6fc0ca;
+		--accent-soft: #1a3236;
+		--keep: #a8b2c2;
+		--keep-bg: #232b37;
+		--change: #f0b45a;
+		--change-bg: #3a2c14;
+		--strong: #8ab8ef;
+		--strong-bg: #1b2b40;
+		--missing: #f08a9c;
+		--missing-bg: #3d1c24;
+		--patch: #c3a6f0;
+		--patch-bg: #2c2240;
+		--codex: #a7d18c;
+		--codex-bg: #1f2d19;
+		--diff-added: #8bd5a6;
+		--diff-added-bg: #193725;
+		--diff-removed: #ef93a1;
+		--diff-removed-bg: #3b2028;
+		--diff-modified: #edb056;
+		--diff-modified-bg: #3a2e17;
+		--diff-unchanged: #9facbf;
+		--diff-unchanged-bg: #252e3a;
+	}
+}
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--paper: #11161d;
+	--sheet: #171d26;
+	--ink: #e7ebf1;
+	--ink-soft: #a5afbd;
+	--rule: #2c3542;
+	--accent: #6fc0ca;
+	--accent-soft: #1a3236;
+	--keep: #a8b2c2;
+	--keep-bg: #232b37;
+	--change: #f0b45a;
+	--change-bg: #3a2c14;
+	--strong: #8ab8ef;
+	--strong-bg: #1b2b40;
+	--missing: #f08a9c;
+	--missing-bg: #3d1c24;
+	--patch: #c3a6f0;
+	--patch-bg: #2c2240;
+	--codex: #a7d18c;
+	--codex-bg: #1f2d19;
+	--diff-added: #8bd5a6;
+	--diff-added-bg: #193725;
+	--diff-removed: #ef93a1;
+	--diff-removed-bg: #3b2028;
+	--diff-modified: #edb056;
+	--diff-modified-bg: #3a2e17;
+	--diff-unchanged: #9facbf;
+	--diff-unchanged-bg: #252e3a;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--body);
+	font-size: 17px;
+	line-height: 1.6;
+	padding: 0 20px;
+}
+.wrap {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding-block: 40px 80px;
+	display: grid;
+	grid-template-columns: 220px minmax(0, 1fr);
+	gap: 48px;
+}
+@media (max-width: 900px) {
+	.wrap {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 24px;
+	}
+}
+nav.toc {
+	position: sticky;
+	top: calc(env(safe-area-inset-top, 0px) + 24px);
+	align-self: start;
+	font-family: var(--display);
+	font-size: 15px;
+}
+@media (max-width: 900px) {
+	nav.toc {
+		position: static;
+	}
+}
+nav.toc p {
+	margin: 0 0 8px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: 12px;
+	color: var(--ink-soft);
+	font-weight: 600;
+}
+nav.toc ol {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 6px;
+}
+nav.toc a {
+	color: var(--ink);
+	text-decoration: none;
+	border-left: 2px solid var(--rule);
+	padding-left: 10px;
+	display: block;
+}
+nav.toc a:hover,
+nav.toc a:focus-visible {
+	border-left-color: var(--accent);
+	color: var(--accent);
+	outline: none;
+}
+main {
+	min-width: 0;
+}
+h1,
+h2,
+h3,
+h4 {
+	font-family: var(--display);
+	line-height: 1.15;
+	text-wrap: balance;
+	margin: 0;
+}
+h1 {
+	font-size: 44px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+h2 {
+	font-size: 30px;
+	font-weight: 600;
+	margin-top: 64px;
+	padding-top: 8px;
+}
+h3 {
+	font-size: 22px;
+	font-weight: 600;
+	margin-top: 36px;
+}
+h4 {
+	font-size: 19px;
+	font-weight: 600;
+}
+p,
+li {
+	max-width: 68ch;
+}
+p {
+	margin: 12px 0;
+}
+ul,
+ol {
+	margin: 10px 0;
+	padding-left: 22px;
+}
+li {
+	margin: 4px 0;
+}
+code,
+.mono {
+	font-family: var(--mono);
+	font-size: 0.86em;
+}
+code {
+	background: var(--keep-bg);
+	padding: 1px 5px;
+	border-radius: 4px;
+}
+a {
+	color: var(--accent);
+}
+.eyebrow {
+	font-family: var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	font-size: 13px;
+	color: var(--accent);
+	font-weight: 600;
+}
+.meta {
+	color: var(--ink-soft);
+	font-size: 15px;
+	margin-top: 10px;
+}
+.lede {
+	font-size: 20px;
+	line-height: 1.55;
+	max-width: 62ch;
+	margin-top: 18px;
+}

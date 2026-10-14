@@ -1,0 +1,149 @@
+{
+	"title": "Session reconnection",
+	"subtitle": "Synthetic design example \u2014 not a claim about any product",
+	"summary": "Today, closing a transport also destroys the logical session. Move session lifetime into the session store so a new transport can attach to the same session.",
+	"sections": [
+		{
+			"title": "Current architecture",
+			"flow": {
+				"nodes": [
+					{
+						"id": "client",
+						"label": "Client"
+					},
+					{
+						"id": "gateway",
+						"label": "Gateway"
+					},
+					{
+						"id": "session_store",
+						"label": "Session store"
+					},
+					{
+						"id": "socket_cache",
+						"label": "Socket cache"
+					}
+				],
+				"edges": [
+					{
+						"from": "client",
+						"to": "gateway",
+						"label": "connects"
+					},
+					{
+						"from": "gateway",
+						"to": "socket_cache",
+						"label": "owns transport state"
+					},
+					{
+						"from": "socket_cache",
+						"to": "session_store",
+						"label": "owns session lifetime"
+					}
+				]
+			}
+		},
+		{
+			"title": "Proposed architecture",
+			"flow": {
+				"nodes": [
+					{
+						"id": "client",
+						"label": "Client"
+					},
+					{
+						"id": "gateway",
+						"label": "Gateway"
+					},
+					{
+						"id": "session_store",
+						"label": "Session store (owns lifetime)"
+					},
+					{
+						"id": "reconnect_worker",
+						"label": "Reconnect worker"
+					}
+				],
+				"edges": [
+					{
+						"from": "client",
+						"to": "gateway",
+						"label": "connects"
+					},
+					{
+						"from": "gateway",
+						"to": "session_store",
+						"label": "attaches transport"
+					},
+					{
+						"from": "session_store",
+						"to": "reconnect_worker",
+						"label": "requests reconnect"
+					},
+					{
+						"from": "reconnect_worker",
+						"to": "gateway",
+						"label": "opens new transport"
+					}
+				]
+			}
+		},
+		{
+			"title": "Decision",
+			"callouts": [
+				{
+					"body": "The session store owns session lifetime; the reconnect worker owns reconnection attempts.",
+					"tone": "accent"
+				}
+			]
+		},
+		{
+			"title": "Alternatives",
+			"table": {
+				"columns": ["Alternative", "Gain", "Cost"],
+				"rows": [
+					[
+						"Reconnect inside transport",
+						"Fewer components to introduce",
+						"Session lifetime remains coupled to a connection"
+					],
+					[
+						"Reconnect owned by session",
+						"One session survives replacement transports",
+						"Attachment and cleanup rules need explicit ownership"
+					]
+				]
+			}
+		},
+		{
+			"title": "Implementation phases",
+			"steps": [
+				{
+					"title": "Define attachment ownership",
+					"body": "Specify one active transport per session and refusal of stale attachments.",
+					"status": "next"
+				},
+				{
+					"title": "Move lifetime into the store",
+					"body": "Add a reconnect worker and replace the transport-local socket cache.",
+					"status": "next"
+				},
+				{
+					"title": "Exercise disconnect and reconnect",
+					"body": "Verify that the same session survives and a second attachment is refused.",
+					"status": "next"
+				}
+			]
+		},
+		{
+			"title": "Risk",
+			"risks": [
+				{
+					"title": "Concurrent attachment",
+					"body": "Two transports may race to attach. The session store must accept one active transport per session and refuse the stale attachment.",
+					"severity": "high"
+				}
+			]
+		}
+	]
+}

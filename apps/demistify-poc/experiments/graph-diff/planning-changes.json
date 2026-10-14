@@ -1,0 +1,101 @@
+{
+	"base": "fixtures/planning-base.json",
+	"changes": [
+		{
+			"kind": "add-node",
+			"node": {
+				"id": "run1",
+				"label": "Main planner"
+			}
+		},
+		{
+			"kind": "add-node",
+			"node": {
+				"id": "run2",
+				"label": "Improvement planner"
+			}
+		},
+		{
+			"kind": "add-node",
+			"node": {
+				"id": "proof",
+				"label": "Structural proof"
+			}
+		},
+		{
+			"kind": "add-node",
+			"node": {
+				"id": "assessment",
+				"label": "Lead assessment"
+			}
+		},
+		{
+			"kind": "add-node",
+			"node": {
+				"id": "review",
+				"label": "Independent review"
+			}
+		},
+		{
+			"kind": "add-node",
+			"node": {
+				"id": "wrap",
+				"label": "PR readiness"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "family_run1",
+				"from": "family",
+				"to": "run1",
+				"label": "depends on"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "run1_run2",
+				"from": "run1",
+				"to": "run2",
+				"label": "depends on"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "run2_proof",
+				"from": "run2",
+				"to": "proof",
+				"label": "depends on"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "proof_assessment",
+				"from": "proof",
+				"to": "assessment",
+				"label": "depends on"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "assessment_review",
+				"from": "assessment",
+				"to": "review",
+				"label": "depends on"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "review_wrap",
+				"from": "review",
+				"to": "wrap",
+				"label": "depends on"
+			}
+		}
+	]
+}

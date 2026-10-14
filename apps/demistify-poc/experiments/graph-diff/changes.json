@@ -1,0 +1,56 @@
+{
+	"base": "fixtures/session-graph.json",
+	"changes": [
+		{
+			"kind": "remove-edge",
+			"id": "gateway_cache"
+		},
+		{
+			"kind": "remove-edge",
+			"id": "cache_store"
+		},
+		{
+			"kind": "remove-node",
+			"id": "socket_cache"
+		},
+		{
+			"kind": "change-node",
+			"id": "session_store",
+			"label": "Session store (owns lifetime)"
+		},
+		{
+			"kind": "add-node",
+			"node": {
+				"id": "reconnect_worker",
+				"label": "Reconnect worker"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "gateway_store",
+				"from": "gateway",
+				"to": "session_store",
+				"label": "attaches transport"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "store_worker",
+				"from": "session_store",
+				"to": "reconnect_worker",
+				"label": "requests reconnect"
+			}
+		},
+		{
+			"kind": "add-edge",
+			"edge": {
+				"id": "worker_gateway",
+				"from": "reconnect_worker",
+				"to": "gateway",
+				"label": "opens new transport"
+			}
+		}
+	]
+}
