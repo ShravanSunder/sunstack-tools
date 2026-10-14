@@ -43,6 +43,16 @@ const elementAliases: Readonly<Record<string, string>> = {
 	'ex-connector': 'ex-arrow',
 	'ex-link': 'ex-arrow',
 };
+/** Elements whose bare text is Markdown. */
+const markdownHosts = new Set([
+	'ex-document',
+	'section',
+	'ex-card',
+	'ex-callout',
+	'ex-tree',
+	'ex-region',
+	'details',
+]);
 /** CSS the author may write: layout only; the library owns colour, borders, type and shadows. */
 const layoutProperty =
 	/^(display|grid|gap|row-gap|column-gap|flex|order|align|justify|place|position|inset|top|right|bottom|left|width|height|min-|max-|margin|padding|overflow|z-index|aspect-ratio|box-sizing|container)/;
@@ -399,6 +409,38 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 					`Diagram does not render: ${String(error).replace(/^Error: /, '')}`,
 				);
 			}
+		}
+	}
+
+	// Bare Markdown that an HTML formatter re-wrapped: a heading joined to its paragraph, or a list
+	// joined onto one line. Both still parse, so only the source shows the damage.
+	for (const element of elements) {
+		if (!markdownHosts.has(element.tagName)) continue;
+		for (const child of element.childNodes) {
+			if (!('value' in child) || typeof child.value !== 'string' || isElement(child)) continue;
+			const firstLine = child.sourceCodeLocation?.startLine ?? 1;
+			const lines = child.value.split('\n');
+			lines.forEach((line, index): void => {
+				const place = { line: firstLine + index, column: line.search(/\S/) + 1 };
+				const heading = /^\s*#{1,6}\s+(.+)$/.exec(line);
+				const next = lines[index + 1]?.trim() ?? '';
+				if (heading && next && !next.startsWith('<'))
+					findings.push({
+						...place,
+						severity: 'warning',
+						rule: 'markdown',
+						message:
+							'Put a blank line after each heading; a formatter has joined this heading to the text below it.',
+					});
+				if (/^\s*[-*+]\s/.test(line) && (line.match(/\s-\s/g) ?? []).length >= 2)
+					findings.push({
+						...place,
+						severity: 'warning',
+						rule: 'markdown',
+						message:
+							'Several list items share one line; a formatter has joined the list. Put each "- item" on its own line.',
+					});
+			});
 		}
 	}
 

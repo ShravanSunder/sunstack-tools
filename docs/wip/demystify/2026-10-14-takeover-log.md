@@ -120,6 +120,11 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - The outline still marks the right section, and the regression pages are clean.
   - Next: the router search itself, the largest remaining cost on arrow-heavy boards.
 
+- _*A* router; formatter damage to bare Markdown._*
+  - The free router is now A* with obstacles and earlier routes stamped onto the grid once, so each step is a lookup. Seeded synthetic boards, old vs new: small and whiteboard identical routes (29 → 11 ms, 89 → 35 ms); 30 arrows 838 → 97 ms and 60 arrows 9.5 s → 0.44 s, with 0 box hits, 0 failures and lower total cost (fewer bends, a few more crossings on one board).
+  - Round-6 domain map at 4× CPU: 619 → 351 ms blocking. No arrow passes through a box on the components or domain-map pages.
+  - oxfmt had re-wrapped the bare Markdown in `components-demo.html`: headings ran into their lead sentence and both trees collapsed onto one line. The local agent restored the page with script wrappers and HTML headings (`7a0de38`); this keeps that and puts the sitrep back to its authored nesting (the rebuild had nested #150 under "Ready to merge — none" and the selector child under a risk line). The lab's explainer HTML is now excluded from the formatter, and `demistify check` warns (`markdown`) when a heading runs into the next line or several list items share a line. No false positives across the 28 lab pages.
+
 ## Open
 
 - Diagram engine chunk is still 500 KiB gzip (beautiful-mermaid + elkjs); a lighter path for simple flowcharts is unexplored.

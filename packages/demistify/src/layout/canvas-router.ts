@@ -46,11 +46,6 @@ const inflate = (box: Box, margin: number): Box => ({
 	right: box.right + margin,
 	bottom: box.bottom + margin,
 });
-const inside = (box: Box, point: Point): boolean =>
-	point.x > box.left + 0.5 &&
-	point.x < box.right - 0.5 &&
-	point.y > box.top + 0.5 &&
-	point.y < box.bottom - 0.5;
 export const overlaps = (first: Box, second: Box): boolean =>
 	first.left < second.right &&
 	second.left < first.right &&
@@ -98,27 +93,27 @@ function axisLines(values: readonly number[], extra: readonly number[]): number[
 	return Array.from(lines).toSorted((first, second): number => first - second);
 }
 
-/** Minimal binary heap keyed by cost. */
+/** Minimal binary heap keyed by priority (path cost plus the distance still to go). */
 class Queue {
-	private readonly items: { cost: number; state: number }[] = [];
+	private readonly items: { priority: number; cost: number; state: number }[] = [];
 	get size(): number {
 		return this.items.length;
 	}
-	push(cost: number, state: number): void {
+	push(priority: number, cost: number, state: number): void {
 		const items = this.items;
-		items.push({ cost, state });
+		items.push({ priority, cost, state });
 		let index = items.length - 1;
 		while (index > 0) {
 			const parent = (index - 1) >> 1;
 			const above = items[parent];
 			const current = items[index];
-			if (!above || !current || above.cost <= current.cost) break;
+			if (!above || !current || above.priority <= current.priority) break;
 			items[parent] = current;
 			items[index] = above;
 			index = parent;
 		}
 	}
-	pop(): { cost: number; state: number } | undefined {
+	pop(): { priority: number; cost: number; state: number } | undefined {
 		const items = this.items;
 		const top = items[0];
 		const last = items.pop();
@@ -129,8 +124,9 @@ class Queue {
 				const left = index * 2 + 1;
 				const right = left + 1;
 				let smallest = index;
-				if ((items[left]?.cost ?? Infinity) < (items[smallest]?.cost ?? Infinity)) smallest = left;
-				if ((items[right]?.cost ?? Infinity) < (items[smallest]?.cost ?? Infinity))
+				if ((items[left]?.priority ?? Infinity) < (items[smallest]?.priority ?? Infinity))
+					smallest = left;
+				if ((items[right]?.priority ?? Infinity) < (items[smallest]?.priority ?? Infinity))
 					smallest = right;
 				if (smallest === index) break;
 				const swap = items[smallest];
@@ -145,28 +141,7 @@ class Queue {
 	}
 }
 
-const directionIndex = (from: Point, to: Point): number =>
-	to.x > from.x ? 0 : to.y > from.y ? 1 : to.x < from.x ? 2 : 3;
 const sideDirection: Record<Side, number> = { right: 0, bottom: 1, left: 2, top: 3 };
-
-/**
- * True when the move from `first` to `second` crosses an earlier segment inside that segment. The
- * move counts its starting point but not its end, so a crossing at a grid point is counted once.
- */
-function segmentsCross(first: Point, second: Point, third: Point, fourth: Point): boolean {
-	const moveFlat = Math.abs(first.y - second.y) < 0.5;
-	const otherFlat = Math.abs(third.y - fourth.y) < 0.5;
-	if (moveFlat === otherFlat) return false;
-	const crossX = moveFlat ? third.x : first.x;
-	const crossY = moveFlat ? first.y : third.y;
-	const insideOther = otherFlat
-		? crossX > Math.min(third.x, fourth.x) + 0.5 && crossX < Math.max(third.x, fourth.x) - 0.5
-		: crossY > Math.min(third.y, fourth.y) + 0.5 && crossY < Math.max(third.y, fourth.y) - 0.5;
-	const along = moveFlat
-		? (crossX - first.x) / (second.x - first.x || 1)
-		: (crossY - first.y) / (second.y - first.y || 1);
-	return insideOther && along > -0.001 && along < 0.999;
-}
 
 /** Removes points that sit on a straight line between their neighbours. */
 function simplify(points: readonly Point[]): Point[] {
@@ -188,9 +163,44 @@ function simplify(points: readonly Point[]): Point[] {
 	return result;
 }
 
+/** Index of the line equal to `value` (within half a pixel), else -1. */
+function lineIndex(lines: readonly number[], value: number): number {
+	let low = 0;
+	let high = lines.length - 1;
+	while (low <= high) {
+		const middle = (low + high) >> 1;
+		const line = lines[middle] ?? 0;
+		if (Math.abs(line - value) < 0.5) return middle;
+		if (line < value) low = middle + 1;
+		else high = middle - 1;
+	}
+	return -1;
+}
+
+/** Index of the last line strictly below `value` (−1 if none). */
+function gapBelow(lines: readonly number[], value: number): number {
+	let low = 0;
+	let high = lines.length - 1;
+	let found = -1;
+	while (low <= high) {
+		const middle = (low + high) >> 1;
+		if ((lines[middle] ?? 0) < value - 0.5) {
+			found = middle;
+			low = middle + 1;
+		} else high = middle - 1;
+	}
+	return found;
+}
+
+const bump = (grid: Uint16Array, node: number): void => {
+	grid[node] = (grid[node] ?? 0) + 1;
+};
+
 /**
  * Finds the cheapest orthogonal route from a side of the source to a side of the target that keeps
- * `clearance` away from every obstacle. Returns undefined when the boxes leave no gap to pass.
+ * `clearance` away from every obstacle. Costs are length, bends and crossings of earlier routes; the
+ * search is A* with the remaining Manhattan distance, and every obstacle and earlier route is
+ * stamped onto the grid once, so each step is a lookup. Returns undefined when no gap is left.
  */
 export function routeConnector(
 	request: RouteRequest,
@@ -221,20 +231,91 @@ export function routeConnector(
 	const columns = columnLines.length;
 	const rows = rowLines.length;
 	const nodeAt = (column: number, row: number): number => column * rows + row;
-	const free = new Uint8Array(columns * rows);
-	for (let column = 0; column < columns; column += 1)
-		for (let row = 0; row < rows; row += 1) {
-			const point = { x: columnLines[column] ?? 0, y: rowLines[row] ?? 0 };
-			free[nodeAt(column, row)] = blockers.some((box): boolean => inside(box, point)) ? 0 : 1;
+	const column = (value: number): number => columnLines[value] ?? 0;
+	const row = (value: number): number => rowLines[value] ?? 0;
+
+	// Stamp each obstacle: nodes strictly inside it, and steps whose middle is inside it.
+	const blockedNode = new Uint8Array(columns * rows);
+	const blockedRight = new Uint8Array(columns * rows);
+	const blockedDown = new Uint8Array(columns * rows);
+	for (const box of blockers) {
+		for (let x = 0; x < columns; x += 1) {
+			const atX = column(x);
+			const nextX = column(x + 1);
+			const nodeInsideX = atX > box.left + 0.5 && atX < box.right - 0.5;
+			const stepInsideX =
+				x + 1 < columns &&
+				(atX + nextX) / 2 > box.left + 0.5 &&
+				(atX + nextX) / 2 < box.right - 0.5;
+			if (!nodeInsideX && !stepInsideX) continue;
+			for (let y = 0; y < rows; y += 1) {
+				const atY = row(y);
+				const insideY = atY > box.top + 0.5 && atY < box.bottom - 0.5;
+				const node = nodeAt(x, y);
+				if (nodeInsideX && insideY) blockedNode[node] = 1;
+				if (stepInsideX && insideY) blockedRight[node] = 1;
+				const middleY = (atY + row(y + 1)) / 2;
+				if (nodeInsideX && y + 1 < rows && middleY > box.top + 0.5 && middleY < box.bottom - 0.5)
+					blockedDown[node] = 1;
+			}
 		}
+	}
+
+	// Stamp earlier routes: how many of their segments a step crosses. A step counts a crossing at
+	// its start but not its end, so a crossing exactly on a grid line is counted once.
+	const crossRight = new Uint16Array(columns * rows);
+	const crossLeft = new Uint16Array(columns * rows);
+	const crossDown = new Uint16Array(columns * rows);
+	const crossUp = new Uint16Array(columns * rows);
+	for (const route of earlierRoutes) {
+		if (!route) continue;
+		for (let index = 0; index < route.length - 1; index += 1) {
+			const first = route[index];
+			const second = route[index + 1];
+			if (!first || !second) continue;
+			if (Math.abs(first.y - second.y) < 0.5) {
+				// A horizontal segment is crossed by vertical steps at columns strictly inside it.
+				const low = Math.min(first.x, second.x);
+				const high = Math.max(first.x, second.x);
+				const onLine = lineIndex(rowLines, first.y);
+				const below = gapBelow(rowLines, first.y);
+				for (let x = 0; x < columns; x += 1) {
+					if (column(x) <= low + 0.5 || column(x) >= high - 0.5) continue;
+					if (onLine >= 0) {
+						if (onLine + 1 < rows) bump(crossDown, nodeAt(x, onLine));
+						if (onLine > 0) bump(crossUp, nodeAt(x, onLine));
+					} else if (below >= 0 && below + 1 < rows) {
+						bump(crossDown, nodeAt(x, below));
+						bump(crossUp, nodeAt(x, below + 1));
+					}
+				}
+			} else {
+				const low = Math.min(first.y, second.y);
+				const high = Math.max(first.y, second.y);
+				const onLine = lineIndex(columnLines, first.x);
+				const left = gapBelow(columnLines, first.x);
+				for (let y = 0; y < rows; y += 1) {
+					if (row(y) <= low + 0.5 || row(y) >= high - 0.5) continue;
+					if (onLine >= 0) {
+						if (onLine + 1 < columns) bump(crossRight, nodeAt(onLine, y));
+						if (onLine > 0) bump(crossLeft, nodeAt(onLine, y));
+					} else if (left >= 0 && left + 1 < columns) {
+						bump(crossRight, nodeAt(left, y));
+						bump(crossLeft, nodeAt(left + 1, y));
+					}
+				}
+			}
+		}
+	}
+
 	const indexOf = (point: Point): number => {
-		const column = columnLines.findIndex((value): boolean => Math.abs(value - point.x) < 0.75);
-		const row = rowLines.findIndex((value): boolean => Math.abs(value - point.y) < 0.75);
-		return column < 0 || row < 0 ? -1 : nodeAt(column, row);
+		const x = lineIndex(columnLines, point.x);
+		const y = lineIndex(rowLines, point.y);
+		return x < 0 || y < 0 ? -1 : nodeAt(x, y);
 	};
 	const pointOf = (node: number): Point => ({
-		x: columnLines[Math.floor(node / rows)] ?? 0,
-		y: rowLines[node % rows] ?? 0,
+		x: column(Math.floor(node / rows)),
+		y: row(node % rows),
 	});
 	// States are node × arrival direction (0 right, 1 down, 2 left, 3 up); one extra state is the goal.
 	const states = columns * rows * 4;
@@ -242,16 +323,25 @@ export function routeConnector(
 	const best = new Float64Array(states + 1).fill(Infinity);
 	const previous = new Int32Array(states + 1).fill(-1);
 	const endsByNode = new Map<number, { side: Side; port: Point }[]>();
+	const endStubs: Point[] = [];
 	for (const end of ends) {
 		const node = indexOf(end.stub);
-		if (node < 0 || !free[node]) continue;
+		if (node < 0 || blockedNode[node]) continue;
 		endsByNode.set(node, [...(endsByNode.get(node) ?? []), end]);
+		endStubs.push(pointOf(node));
 	}
+	if (endStubs.length === 0) return undefined;
+	const remaining = (point: Point): number => {
+		let shortest = Infinity;
+		for (const stub of endStubs)
+			shortest = Math.min(shortest, Math.abs(stub.x - point.x) + Math.abs(stub.y - point.y));
+		return shortest;
+	};
 	const goalPort = new Map<number, Point>();
 	const queue = new Queue();
 	for (const start of starts) {
 		const node = indexOf(start.stub);
-		if (node < 0 || !free[node]) continue;
+		if (node < 0 || blockedNode[node]) continue;
 		const facing =
 			normals[start.side].x * (towards.x - from.x) + normals[start.side].y * (towards.y - from.y);
 		const state = node * 4 + sideDirection[start.side];
@@ -259,25 +349,15 @@ export function routeConnector(
 		if (cost < (best[state] ?? Infinity)) {
 			best[state] = cost;
 			previous[state] = -2 - starts.indexOf(start);
-			queue.push(cost, state);
+			queue.push(cost + remaining(pointOf(node)), cost, state);
 		}
 	}
-	const crossings = (first: Point, second: Point): number => {
-		let count = 0;
-		for (const route of earlierRoutes) {
-			if (!route) continue;
-			for (let index = 0; index < route.length - 1; index += 1) {
-				const start = route[index];
-				const end = route[index + 1];
-				if (start && end && segmentsCross(first, second, start, end)) count += 1;
-			}
-		}
-		return count;
-	};
-	const midpointFree = (first: Point, second: Point): boolean => {
-		const middle = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
-		return !blockers.some((box): boolean => inside(box, middle));
-	};
+	const moves: readonly (readonly [number, number])[] = [
+		[1, 0],
+		[0, 1],
+		[-1, 0],
+		[0, -1],
+	];
 	while (queue.size > 0) {
 		const next = queue.pop();
 		if (!next) break;
@@ -286,7 +366,6 @@ export function routeConnector(
 		if (state === goal) break;
 		const node = Math.floor(state / 4);
 		const direction = state % 4;
-		const here = pointOf(node);
 		for (const end of endsByNode.get(node) ?? []) {
 			const arrive = (sideDirection[end.side] + 2) % 4;
 			const facing =
@@ -296,38 +375,50 @@ export function routeConnector(
 				best[goal] = total;
 				previous[goal] = state;
 				goalPort.set(goal, end.port);
-				queue.push(total, goal);
+				queue.push(total, total, goal);
 			}
 		}
-		const column = Math.floor(node / rows);
-		const row = node % rows;
-		const neighbours: [number, number][] = [
-			[column + 1, row],
-			[column, row + 1],
-			[column - 1, row],
-			[column, row - 1],
-		];
-		for (const [nextColumn, nextRow] of neighbours) {
-			if (nextColumn < 0 || nextRow < 0 || nextColumn >= columns || nextRow >= rows) continue;
-			const neighbour = nodeAt(nextColumn, nextRow);
-			if (!free[neighbour]) continue;
-			const there = pointOf(neighbour);
-			if (!midpointFree(here, there)) continue;
-			const turn = directionIndex(here, there);
-			if ((turn + 2) % 4 === direction) continue;
+		const x = Math.floor(node / rows);
+		const y = node % rows;
+		moves.forEach(([moveX, moveY], turn): void => {
+			if ((turn + 2) % 4 === direction) return;
+			const nextX = x + moveX;
+			const nextY = y + moveY;
+			if (nextX < 0 || nextY < 0 || nextX >= columns || nextY >= rows) return;
+			const neighbour = nodeAt(nextX, nextY);
+			if (blockedNode[neighbour]) return;
+			// Steps right and down are stamped on their start node; left and up on their end node.
+			const blocked =
+				turn === 0
+					? blockedRight[node]
+					: turn === 1
+						? blockedDown[node]
+						: turn === 2
+							? blockedRight[neighbour]
+							: blockedDown[neighbour];
+			if (blocked) return;
+			const crossings =
+				turn === 0
+					? crossRight[node]
+					: turn === 1
+						? crossDown[node]
+						: turn === 2
+							? crossLeft[node]
+							: crossUp[node];
 			const nextState = neighbour * 4 + turn;
+			const there = pointOf(neighbour);
 			const nextCost =
 				cost +
-				Math.abs(there.x - here.x) +
-				Math.abs(there.y - here.y) +
+				Math.abs(column(nextX) - column(x)) +
+				Math.abs(row(nextY) - row(y)) +
 				(turn === direction ? 0 : bendCost) +
-				crossings(here, there) * crossingCost;
+				(crossings ?? 0) * crossingCost;
 			if (nextCost < (best[nextState] ?? Infinity)) {
 				best[nextState] = nextCost;
 				previous[nextState] = state;
-				queue.push(nextCost, nextState);
+				queue.push(nextCost + remaining(there), nextCost, nextState);
 			}
-		}
+		});
 	}
 	const endPort = goalPort.get(goal);
 	if (!endPort || previous[goal] === -1) return undefined;
