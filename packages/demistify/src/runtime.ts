@@ -16,6 +16,7 @@ import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/do
 import { FlowIsland } from './layout/flow.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
+import { installArrowTracing } from './layout/trace.ts';
 
 // A board is defined first so it arranges its children before they upgrade.
 for (const [tagName, constructor] of [
@@ -51,3 +52,4 @@ for (const [tagName, constructor] of [
 reportStructuralIssues();
 installDocumentBehavior();
 installRoutes();
+installArrowTracing();

@@ -281,6 +281,11 @@ export class FlowIsland extends HTMLElement {
 			path.classList.add('ex-arrow-line');
 			path.setAttribute('d', roundedPath(points));
 			path.setAttribute('marker-end', `url(#${overlay.dataset['marker'] ?? ''})`);
+			const ends = {
+				from: route.arrow.getAttribute('from') ?? '',
+				to: route.arrow.getAttribute('to') ?? '',
+			};
+			Object.assign(path.dataset, ends);
 			fragment.append(path);
 			const labelText = route.arrow.getAttribute('label');
 			if (labelText) {
@@ -295,6 +300,7 @@ export class FlowIsland extends HTMLElement {
 				label.setAttribute('x', String(middle.x));
 				label.setAttribute('y', String(middle.y));
 				label.textContent = labelText;
+				Object.assign(label.dataset, ends);
 				fragment.append(label);
 			}
 		}

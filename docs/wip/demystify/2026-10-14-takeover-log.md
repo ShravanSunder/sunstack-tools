@@ -82,6 +82,11 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - Pages that render diagrams in the browser show all of them, with linked nodes, no issues and no errors (round-5 deep dive 4, round-4 planning 3, round-5 code review 2, html-islands-live 6).
   - A `file://` page loading the library from another origin with CORS renders identically through the fallback, guards included.
   - The README's new Hosting section says what to deploy together.
+- **Claude** Interaction 1 of D21, hover and reveal (owner's explorer: "hover a card to trace its path"):
+  - Pointing at or focusing a diagram node lights its edges, edge labels and neighbouring nodes and dims the rest of that diagram.
+  - Pointing at a box lights the arrows drawn to and from it (free arrows and flow arrows) and dims the others in that picture.
+  - Diagrams pre-rendered by the packager now also get node links and tracing.
+  - Verified: a deep-dive diagram node traces 10 elements and dims 5; Specification on the free canvas traces exactly its 3 arrows; regression pages show no issues or errors.
 
 ## Open
 

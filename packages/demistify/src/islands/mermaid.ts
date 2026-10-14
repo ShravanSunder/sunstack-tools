@@ -1,5 +1,6 @@
 import { reportIssue } from '../core/issues.ts';
 import { normalizeIslandText, readIslandSource } from '../core/source-text.ts';
+import { traceDiagram } from '../layout/trace.ts';
 import { renderDiagramSvg } from '../render/diagram-client.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
@@ -68,7 +69,7 @@ function checkDiagram(owner: HTMLElement, sourceText: string): void {
 function linkDiagramNodes(owner: HTMLElement): void {
 	for (const node of owner.querySelectorAll<SVGGElement>('g.node[data-id]')) {
 		const target = document.getElementById(node.dataset['id'] ?? '');
-		if (!target || owner.contains(target)) continue;
+		if (!target || owner.contains(target) || node.classList.contains('ex-linked-node')) continue;
 		const tone = target.getAttribute('tone');
 		if (tone) node.setAttribute('tone', tone);
 		node.classList.add('ex-linked-node');
@@ -92,6 +93,10 @@ export class MermaidIsland extends HTMLElement {
 	private visibilityObserver: IntersectionObserver | undefined;
 	connectedCallback(): void {
 		if (this.hasAttribute('prepared')) {
+			// Pre-rendered by the packager: link and trace the shipped SVG.
+			linkDiagramNodes(this);
+			const svg = this.querySelector(':scope > svg');
+			if (svg instanceof SVGSVGElement) traceDiagram(svg);
 			installIslandInspector(this);
 			return;
 		}
@@ -119,6 +124,8 @@ export class MermaidIsland extends HTMLElement {
 			sizeDiagramWhenShown(this);
 			checkDiagram(this, sourceText);
 			linkDiagramNodes(this);
+			const svg = this.querySelector(':scope > svg');
+			if (svg instanceof SVGSVGElement) traceDiagram(svg);
 			installIslandInspector(this);
 			this.dispatchEvent(new Event('island-ready', { bubbles: true }));
 		} catch (error) {

@@ -250,6 +250,8 @@ export class ArrowIsland extends HTMLElement {
 			this.group.innerHTML = `<path class="ex-arrow-line" marker-end="url(#${canvas.dataset['head'] ?? ''})"/><text class="ex-arrow-label" dominant-baseline="central"/>`;
 			canvas.append(this.group);
 		}
+		this.group.dataset['from'] = this.getAttribute('from') ?? '';
+		this.group.dataset['to'] = this.getAttribute('to') ?? '';
 		const path = this.group.querySelector('path');
 		const caption = this.group.querySelector('text');
 		if (!path || !caption) return;
