@@ -11,6 +11,46 @@ function readIslandSource(owner: HTMLElement): string | undefined {
 	return owner.children.length === 0 ? (owner.textContent ?? '') : undefined;
 }
 
+/** Renders diagram text closer to body size; the SVG still never exceeds its island. */
+function enlargeDiagram(owner: HTMLElement): void {
+	const svg = owner.querySelector(':scope > svg');
+	const width = Number.parseFloat(svg?.getAttribute('width') ?? '');
+	if (svg instanceof SVGSVGElement && width > 0) svg.style.width = `${Math.round(width * 1.25)}px`;
+}
+
+function openLinkedElement(target: HTMLElement): void {
+	const trigger = target.querySelector<HTMLButtonElement>(':scope > .ex-inspect-trigger');
+	if (trigger) {
+		trigger.click();
+		return;
+	}
+	target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	target.focus({ preventScroll: true });
+}
+
+/** A diagram node whose id matches an element on the page takes that element's tone and opens it. */
+function linkDiagramNodes(owner: HTMLElement): void {
+	for (const node of owner.querySelectorAll<SVGGElement>('g.node[data-id]')) {
+		const target = document.getElementById(node.dataset['id'] ?? '');
+		if (!target || owner.contains(target)) continue;
+		const tone = target.getAttribute('tone');
+		if (tone) node.setAttribute('tone', tone);
+		node.classList.add('ex-linked-node');
+		node.setAttribute('tabindex', '0');
+		node.setAttribute('role', 'button');
+		node.setAttribute(
+			'aria-label',
+			`Open ${target.getAttribute('label') ?? node.dataset['label'] ?? ''}`,
+		);
+		node.addEventListener('click', (): void => openLinkedElement(target));
+		node.addEventListener('keydown', (event: KeyboardEvent): void => {
+			if (event.key !== 'Enter' && event.key !== ' ') return;
+			event.preventDefault();
+			openLinkedElement(target);
+		});
+	}
+}
+
 export class MarkdownIsland extends HTMLElement {
 	private renderPromise: Promise<void> | undefined;
 	connectedCallback(): void {
@@ -79,6 +119,8 @@ export class MermaidIsland extends HTMLElement {
 				}),
 			);
 			this.setAttribute('prepared', '');
+			enlargeDiagram(this);
+			linkDiagramNodes(this);
 			installIslandInspector(this);
 			this.dispatchEvent(new Event('island-ready', { bubbles: true }));
 		} catch (error) {

@@ -47,29 +47,82 @@ export function prepareIslandContent(
 		},
 	);
 }
+const fontFamilies = [
+	{ slug: 'ibm-plex-sans-condensed', family: 'IBM Plex Sans Condensed', weights: [500, 600, 700] },
+	{ slug: 'literata', family: 'Literata', weights: [400, 600] },
+	{ slug: 'ibm-plex-mono', family: 'IBM Plex Mono', weights: [400] },
+] as const;
+
+/** Icons the theme ships: library controls, the tone vocabulary, and the few the lab pages name. */
+export const shippedIconNames = [
+	'arrow-counter-clockwise',
+	'arrow-right',
+	'arrow-up-right',
+	'arrows-out',
+	'changes',
+	'check-circle',
+	'circle-dashed',
+	'circle-half',
+	'controls',
+	'diff',
+	'info',
+	'lightning',
+	'list',
+	'magnifying-glass-minus',
+	'magnifying-glass-plus',
+	'minus-circle',
+	'panel',
+	'pencil-simple',
+	'plus-circle',
+	'question',
+	'sidebar-simple',
+	'signpost',
+	'warning',
+	'x',
+] as const;
+
+export interface FontFile {
+	readonly fileName: string;
+	readonly sourceUrl: URL;
+	readonly family: string;
+	readonly weight: number;
+}
+
+export function localFontFiles(): readonly FontFile[] {
+	return fontFamilies.flatMap((family) =>
+		family.weights.map((weight): FontFile => ({
+			fileName: `${family.slug}-${weight}.woff2`,
+			sourceUrl: new URL(
+				import.meta.resolve(
+					`@fontsource/${family.slug}/files/${family.slug}-latin-${weight}-normal.woff2`,
+				),
+			),
+			family: family.family,
+			weight,
+		})),
+	);
+}
+
+function fontFaceRule(font: FontFile, source: string): string {
+	return `@font-face{font-family:'${font.family}';font-style:normal;font-weight:${font.weight};font-display:swap;src:url(${source}) format('woff2')}`;
+}
+
+/** Font faces that reference separate files, so text paints before fonts arrive and unused faces never download. */
+export function linkedFontStyles(directory: string): string {
+	return localFontFiles()
+		.map((font): string => fontFaceRule(font, `'${directory}/${font.fileName}'`))
+		.join('\n');
+}
+
+/** Font faces embedded as data URLs for single-file offline bundles. */
 export async function localFontStyles(): Promise<string> {
-	const families = [
-		{
-			slug: 'ibm-plex-sans-condensed',
-			family: 'IBM Plex Sans Condensed',
-			weights: [500, 600, 700],
-		},
-		{ slug: 'literata', family: 'Literata', weights: [400, 500, 600] },
-		{ slug: 'ibm-plex-mono', family: 'IBM Plex Mono', weights: [400, 500] },
-	];
 	return (
 		await Promise.all(
-			families.flatMap((family) =>
-				family.weights.map(async (weight): Promise<string> => {
-					const fontBytes = await readFile(
-						new URL(
-							import.meta.resolve(
-								`@fontsource/${family.slug}/files/${family.slug}-latin-${weight}-normal.woff2`,
-							),
-						),
-					);
-					return `@font-face{font-family:'${family.family}';font-style:normal;font-weight:${weight};font-display:swap;src:url(data:font/woff2;base64,${fontBytes.toString('base64')}) format('woff2')}`;
-				}),
+			localFontFiles().map(async (font): Promise<string> =>
+				fontFaceRule(
+					font,
+					`data:font/woff2;base64,${(await readFile(font.sourceUrl)).toString('base64')}`,
+				),
 			),
 		)
 	).join('\n');
@@ -80,8 +133,29 @@ export async function localPhosphorStyles(fontUrl: string): Promise<string> {
 		new URL(import.meta.resolve('@phosphor-icons/web/regular')),
 		'utf8',
 	);
-	return iconCss.replace(
-		/@font-face\s*\{[^}]*\}/,
-		`@font-face{font-family:'Phosphor';font-style:normal;font-weight:normal;font-display:block;src:url('${fontUrl}') format('woff2')}`,
+	const shipped = new Set<string>(shippedIconNames);
+	return iconCss
+		.replace(
+			/@font-face\s*\{[^}]*\}/,
+			`@font-face{font-family:'Phosphor';font-style:normal;font-weight:normal;font-display:block;src:url('${fontUrl}') format('woff2')}`,
+		)
+		.replace(
+			/\.ph\.ph-([a-z0-9-]+):before\s*\{[^}]*\}\s*/g,
+			(rule: string, name: string): string => (shipped.has(name) ? rule : ''),
+		);
+}
+
+/** Unicode code points of the shipped icons, for subsetting the icon font. */
+export async function shippedIconCodePoints(): Promise<string> {
+	const iconCss = await readFile(
+		new URL(import.meta.resolve('@phosphor-icons/web/regular')),
+		'utf8',
 	);
+	const shipped = new Set<string>(shippedIconNames);
+	return Array.from(
+		iconCss.matchAll(/\.ph\.ph-([a-z0-9-]+):before\s*\{\s*content:\s*"\\([0-9a-f]+)"/g),
+	)
+		.filter((match): boolean => shipped.has(match[1] ?? ''))
+		.map((match): string => String.fromCodePoint(Number.parseInt(match[2] ?? '0', 16)))
+		.join('');
 }

@@ -17,7 +17,12 @@ class GridIsland extends HTMLElement {}
 class DocumentIsland extends StructuralIsland {
 	override connectedCallback(): void {
 		super.connectedCallback();
-		if (!document.querySelector('ex-nav')) this.before(document.createElement('ex-nav'));
+		if (!document.querySelector('ex-nav')) {
+			const navigation = document.createElement('ex-nav');
+			this.id ||= 'ex-content';
+			navigation.setAttribute('for', this.id);
+			document.body.prepend(navigation);
+		}
 		if (!document.querySelector('[data-ex-theme]')) {
 			const toggle = createIconButton('circle-half', 'Switch light or dark theme', (): void => {});
 			toggle.dataset['exTheme'] = '';

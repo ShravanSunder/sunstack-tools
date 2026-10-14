@@ -24,6 +24,7 @@
 		"experiments/quick-json/upstream",
 		"apps/demistify-poc/public/experiments",
 		"apps/demistify-poc/experiments/quick-json/upstream",
-		"apps/demistify-poc/references"
+		"apps/demistify-poc/references",
+		"packages/demistify/skill"
 	]
 }

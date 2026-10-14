@@ -20,8 +20,8 @@
 	--tone-bg: var(--change-bg);
 }
 [tone='done'] {
-	--tone: var(--codex);
-	--tone-bg: var(--codex-bg);
+	--tone: var(--strong);
+	--tone-bg: var(--strong-bg);
 }
 [tone='planned'] {
 	--tone: var(--keep);
@@ -55,14 +55,19 @@ ex-document > * + * {
 }
 
 ex-grid {
-	--cols: 2;
 	display: grid;
-	grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 	gap: 20px;
 	align-items: start;
 }
+ex-grid[cols] {
+	grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+}
 ex-grid[cols='1'] {
 	--cols: 1;
+}
+ex-grid[cols='2'] {
+	--cols: 2;
 }
 ex-grid[cols='3'] {
 	--cols: 3;
@@ -128,8 +133,8 @@ ex-card {
 	font: 12px var(--mono);
 	color: var(--ink-soft);
 	background: var(--keep-bg);
-	border-radius: 999px;
-	padding: 2px 8px;
+	border-radius: 4px;
+	padding: 1px 6px;
 }
 ex-card > :is(p, ul, ol) {
 	margin: 6px 0;
@@ -214,4 +219,20 @@ ex-callout::after {
 .ex-issues button {
 	all: unset;
 	cursor: pointer;
+}
+
+.ex-linked-node {
+	cursor: pointer;
+}
+.ex-linked-node[tone] > :is(rect, polygon, path, circle, ellipse) {
+	fill: var(--tone-bg);
+	stroke: var(--tone);
+	stroke-width: 1.5;
+}
+.ex-linked-node:is(:hover, :focus-visible) > :is(rect, polygon, path, circle, ellipse) {
+	stroke: var(--accent);
+	stroke-width: 2.5;
+}
+.ex-linked-node:focus-visible {
+	outline: none;
 }

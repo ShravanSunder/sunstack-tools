@@ -103,10 +103,22 @@ diagramReferences['fixtures/proposal.mmd'] = diagramReferences['fixtures/diff.mm
 
 // The demo reuses the independently built component library.
 const iconFontBytes = await readFile(`${libraryDirectory}/Phosphor.woff2`);
-const standaloneThemeCss = themeCss.replace(
-	"'./Phosphor.woff2'",
-	`'data:font/woff2;base64,${iconFontBytes.toString('base64')}'`,
+const fontFileNames = await readdir(`${libraryDirectory}/fonts`);
+const fontBytes = new Map(
+	await Promise.all(
+		fontFileNames.map(async (name): Promise<readonly [string, Buffer]> => [
+			name,
+			await readFile(`${libraryDirectory}/fonts/${name}`),
+		]),
+	),
 );
+const standaloneThemeCss = themeCss
+	.replace("'./Phosphor.woff2'", `'data:font/woff2;base64,${iconFontBytes.toString('base64')}'`)
+	.replaceAll(
+		/'\.\/fonts\/([^']+)'/g,
+		(_reference: string, name: string): string =>
+			`'data:font/woff2;base64,${fontBytes.get(name)?.toString('base64') ?? ''}'`,
+	);
 const runtimeSource = await readFile(`${outputDirectory}/islands/runtime.js`, 'utf8');
 const islandSource = await readFile('experiments/html-islands/planning.html', 'utf8');
 await writeFile(
@@ -374,9 +386,10 @@ if (process.argv.includes('--islands-only')) {
 		measurements,
 		sharedAssets: [
 			{ name: 'HTML Islands core runtime', bytes: Buffer.byteLength(runtimeSource) },
+			{ name: 'Theme CSS', bytes: Buffer.byteLength(themeCss) },
 			{
-				name: 'Theme + embedded local fonts',
-				bytes: Buffer.byteLength(themeCss),
+				name: 'Text fonts (separate WOFF2 files; only used faces download)',
+				bytes: Array.from(fontBytes.values()).reduce((total, bytes) => total + bytes.byteLength, 0),
 			},
 			{ name: 'Phosphor regular icons (shared WOFF2)', bytes: iconFontBytes.byteLength },
 			...chunks,
