@@ -115,7 +115,7 @@ export function graphToD2(
 					: change?.kind === 'change-node'
 						? 'modified'
 						: undefined;
-		lines.push(`${node.id}: ${JSON.stringify(status ? `${node.label} · ${status}` : node.label)}`);
+		lines.push(`${node.id}: ${JSON.stringify(status ? `${node.label} [${status}]` : node.label)}`);
 		const styleKind = status ?? 'unchanged';
 		lines.push(`${node.id}.style.fill: "${graphThemeColor(themeColors, `diff-${styleKind}-bg`)}"`);
 		lines.push(`${node.id}.style.stroke: "${graphThemeColor(themeColors, `diff-${styleKind}`)}"`);
