@@ -281,6 +281,8 @@ ex-callout > :is(p, ul, ol) {
 }
 .ex-issues button {
 	all: unset;
+	/* A block keeps the list number on the first line of a wrapped message. */
+	display: block;
 	cursor: pointer;
 }
 
@@ -710,6 +712,12 @@ ex-mermaid.ex-diagram-wide > svg {
 :root[data-resizing] {
 	cursor: col-resize;
 	user-select: none;
+}
+.ex-inspect-placeholder {
+	margin: 0;
+	padding: var(--space-4);
+	color: var(--ink-soft);
+	font: var(--text-sm) var(--display);
 }
 .ex-inspected {
 	outline: 2px dashed var(--accent);

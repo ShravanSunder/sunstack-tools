@@ -128,15 +128,19 @@ ex-mermaid > svg {
 .ex-inspect-body .ex-inspect-controls {
 	display: none;
 }
-.ex-arrow-overlay {
-	position: fixed;
-	inset: 0;
-	width: 100vw;
-	height: 100vh;
+.ex-arrow-canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 1px;
+	height: 1px;
+	overflow: visible;
 	pointer-events: none;
 	color: var(--accent);
 	z-index: 1;
-	overflow: hidden;
+}
+.ex-arrow-blocked {
+	stroke-dasharray: 4 4;
 }
 .ex-arrow-line {
 	fill: none;

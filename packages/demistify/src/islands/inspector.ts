@@ -39,6 +39,9 @@ function inspectionLabel(owner: HTMLElement): string {
 	return (
 		owner.getAttribute('label') ??
 		owner.dataset['title'] ??
+		(owner.localName === 'ex-tabs'
+			? owner.querySelector('[role="tab"][aria-selected="true"]')?.textContent
+			: undefined) ??
 		owner.querySelector('h1,h2,h3,h4,h5,h6')?.textContent ??
 		owner.localName.replace('ex-', '')
 	);
@@ -115,7 +118,11 @@ function takeContent(
 	if (reserveWidth) owner.style.width = `${bounds.width}px`;
 	owner.style.height = `${bounds.height}px`;
 	owner.classList.add('ex-inspected');
+	const placeholder = document.createElement('p');
+	placeholder.className = 'ex-inspect-placeholder';
+	placeholder.textContent = `${label} is open in the panel.`;
 	content.append(...contentNodes);
+	owner.insertBefore(placeholder, controls);
 	body.append(content);
 	for (const detail of detailStates) detail.element.hidden = false;
 	for (const disclosure of disclosureStates) disclosure.element.open = true;
@@ -123,6 +130,7 @@ function takeContent(
 		header,
 		body,
 		restore: (): void => {
+			placeholder.remove();
 			for (const node of contentNodes) owner.insertBefore(node, controls);
 			for (const detail of detailStates) detail.element.hidden = detail.hidden;
 			for (const disclosure of disclosureStates) disclosure.element.open = disclosure.open;
@@ -211,6 +219,8 @@ export function installIslandInspector(owner: HTMLElement, always: boolean = fal
 
 export class ZoomIsland extends HTMLElement {
 	connectedCallback(): void {
+		// The inspector's copy shows everything, details included.
+		if (this.hasAttribute('data-inspector-content')) return;
 		installIslandInspector(this, true);
 		for (const detail of this.querySelectorAll<HTMLElement>(':scope > [slot="details"]'))
 			detail.hidden = true;
