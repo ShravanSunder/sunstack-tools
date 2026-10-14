@@ -99,7 +99,7 @@ node packages/demistify/bin/demistify.ts check --fix page.html    # also applies
 node packages/demistify/bin/demistify.ts check --render page.html # adds layout checks in headless Chromium (needs Playwright)
 ```
 
-Output is one line per problem (`page.html:16:31 error attribute: <ex-card> has no attribute "type". Use tone. (fixable)`); a problem repeated across lines prints once with every line number. Static checks cover unknown elements and attributes (with the likely intended name), values (tones, columns, spans, sides), required attributes, duplicate and missing ids, nesting, arrows in a flow, island sources the HTML parser broke, diagrams the engine rejects or draws empty, styling beyond layout CSS, cards and regions without a tone, and the library links.
+Output is one line per problem (`page.html:16:31 error attribute: <ex-card> has no attribute "type". Use tone. (fixable)`); a problem repeated across lines prints once with every line number. Static checks cover unknown elements and attributes (with the likely intended name), values (tones, columns, spans, sides), required attributes, duplicate and missing ids, nesting, arrows in a flow, island sources the HTML parser broke, diagrams the engine rejects or draws empty, styling beyond layout CSS, cards and regions without a tone, bare Markdown an HTML formatter re-wrapped (a heading joined to its paragraph, a list on one line), and the library links. Keep explainer pages out of HTML formatters such as Prettier or oxfmt.
 
 For Claude Code, a PostToolUse hook runs the check whenever an agent writes a page and returns problems to the agent (exit 2); clean or non-explainer files stay silent:
 
