@@ -784,13 +784,20 @@ ex-tree li > ul {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 2px var(--space-2);
+	width: fit-content;
 	padding: 3px 0;
 }
 .ex-tree-node > .ex-tone-icon {
 	font-size: var(--text-md);
 }
+/* A branch folds on click. Open, it carries no mark (everything is already in view); folded, it
+   shows a caret and how many nodes it hides. */
 .ex-tree-node[aria-expanded] {
 	cursor: pointer;
+	border-radius: var(--radius-sm);
+}
+.ex-tree-node[aria-expanded]:hover {
+	background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 .ex-tree-node[aria-expanded]:focus-visible {
 	outline: 2px solid var(--accent);
@@ -798,9 +805,9 @@ ex-tree li > ul {
 	border-radius: var(--radius-sm);
 }
 .ex-tree-node > .ph-caret-down {
+	display: none;
 	color: var(--ink-soft);
 	font-size: var(--text-2xs);
-	transition: transform var(--motion-fast);
 }
 .ex-tree-count {
 	display: none;
@@ -814,9 +821,11 @@ li[data-collapsed] > .ex-tree-node > .ex-tree-count {
 	display: inline-block;
 }
 li[data-collapsed] > .ex-tree-node > .ph-caret-down {
+	display: inline-block;
 	transform: rotate(-90deg);
 }
-li[data-collapsed] > ul {
+ex-tree li[data-collapsed] > ul,
+ex-tree[layout='map'] li[data-collapsed] > ul {
 	display: none;
 }
 .ex-tree-root > .ex-tree-node strong {

@@ -133,6 +133,10 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - Probe at 2000×1050 and 1400×800: figure and xychart fit in panel and view (chart 1328×830 within a 1018 px bottom); panel zoom 150 % grows 419 → 629 px; view zoom scrolls; slider value 29 → clip `calc(29% + 5.88px)` matches the thumb; phone sheet 340 px wide with no sideways scroll; no page errors.
   - The five route warnings in the owner's screenshot came from a build before `2f195cc`; the current build reports none at that window size, from the top or from a deep link.
 
+- **Tree branches carry no fold mark while open.** Owner: "what's with the drop down when you show everything anyway". An open branch now shows nothing (it folds on click, with a hover highlight); a folded one shows a caret and "+N". The map layout never hid a folded branch's children (its `display: flex` outranked the fold rule); it does now. Probe: 0 carets at rest, folding "Expiry sweeper" in the map hides its child and shows "+1", unfolding returns to 0.
+
+- **Maps are opt-in (D29).** Owner: "the map should be a conscious decision of the model to use, not default". `ex-board` now opens in the reading view unless the author writes `mode="map"`; a region map still reads on narrow screens, a hand-placed map stays a map. Guide, vocabulary and README say so; the components whiteboard asks for the map. Probe: components whiteboard map at 1400 and 390 px; round-6 domain map (no mode) reads at both widths with 16 arrows routed, none through a box, no sideways scroll.
+
 ## Open
 
 - Diagram engine chunk is still 500 KiB gzip (beautiful-mermaid + elkjs); a lighter path for simple flowcharts is unexplored.
