@@ -22,7 +22,7 @@ const contentIslands = new Set([
 ]);
 
 /** Surfaces whose own inspector already shows the Markdown placed directly inside them. */
-const textContainers = new Set(['ex-zoom', 'ex-card', 'ex-callout', 'ex-decision']);
+const textContainers = new Set(['ex-zoom', 'ex-card', 'ex-callout', 'ex-decision', 'details']);
 
 /**
  * A Markdown island gains nothing from its own controls when it holds only headings, or when it

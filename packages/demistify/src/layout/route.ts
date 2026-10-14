@@ -1,6 +1,7 @@
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { openIsland } from '../islands/inspector.ts';
+import { BoardIsland } from './board.ts';
 import { revealElement } from './document.ts';
 
 type OpenMode = 'sidebar' | 'modal';
@@ -141,7 +142,11 @@ class RoutePlayer {
 		revealElement(target);
 		target.classList.add('ex-route-focus');
 		this.focused = target;
-		settleIntoView(target);
+		const board = target.closest('ex-board');
+		if (board instanceof BoardIsland && board.isMap()) {
+			board.focusOn(target);
+			settleIntoView(board);
+		} else settleIntoView(target);
 		if (step.open && target instanceof HTMLElement) {
 			openIsland(target, step.open);
 			document.querySelector('dialog.ex-inspect-dialog[open]')?.append(this.bar);

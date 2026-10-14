@@ -15,12 +15,16 @@ import { MermaidIsland } from './islands/mermaid.ts';
 import { StatIsland } from './islands/stat.ts';
 import { TabsIsland } from './islands/tabs.ts';
 import { ArrowIsland } from './layout/arrows.ts';
+import { BoardIsland, RegionIsland } from './layout/board.ts';
 import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/document.ts';
 import { FlowIsland } from './layout/flow.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
 
+// A board is defined first so it arranges its children before they upgrade.
 for (const [tagName, constructor] of [
+	['ex-board', BoardIsland],
+	['ex-region', RegionIsland],
 	['ex-markdown', MarkdownIsland],
 	['ex-mermaid', MermaidIsland],
 	['ex-arrow', ArrowIsland],

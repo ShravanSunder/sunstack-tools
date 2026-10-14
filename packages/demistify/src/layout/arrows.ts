@@ -46,7 +46,10 @@ export class ArrowIsland extends HTMLElement {
 	private resizeObserver: ResizeObserver | undefined;
 	private mutationObserver: MutationObserver | undefined;
 	connectedCallback(): void {
-		if (this.parentElement?.localName === 'ex-flow') {
+		if (
+			this.parentElement?.localName === 'ex-flow' ||
+			this.parentElement?.localName === 'ex-region'
+		) {
 			window.setTimeout((): void => this.verifyEndpoints(), 2000);
 			return;
 		}
