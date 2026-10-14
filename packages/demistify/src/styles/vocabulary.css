@@ -41,17 +41,17 @@
 }
 .ex-tone-icon {
 	color: var(--tone, var(--accent));
-	font-size: 20px;
+	font-size: var(--text-xl);
 	flex: none;
 }
 
 ex-document {
 	display: block;
 	max-width: 1440px;
-	margin: 32px auto 96px;
+	margin: var(--space-8) auto 96px;
 }
 ex-document > * + * {
-	margin-top: 28px;
+	margin-top: var(--space-6);
 }
 
 ex-grid,
@@ -66,9 +66,9 @@ ex-flow {
 ex-flow {
 	--gap: 72px;
 	position: relative;
-	column-gap: 72px;
-	row-gap: 64px;
-	padding: 40px 28px;
+	column-gap: var(--space-18);
+	row-gap: var(--space-16);
+	padding: var(--space-10) var(--space-6);
 }
 .ex-flow-overlay {
 	position: absolute;
@@ -129,12 +129,12 @@ ex-flow > ex-arrow {
 }
 :is(ex-grid, ex-flow) > [sticky] {
 	position: sticky;
-	top: 16px;
+	top: var(--space-4);
 	align-self: start;
 }
 @media (max-width: 760px) {
 	ex-flow {
-		padding-inline: 32px;
+		padding-inline: var(--space-8);
 	}
 	/* A swipe grid becomes one horizontal row of cards on phones instead of a tall stack. */
 	ex-grid[swipe] {
@@ -144,7 +144,7 @@ ex-flow > ex-arrow {
 		overflow-x: auto;
 		scroll-snap-type: x mandatory;
 		overscroll-behavior-x: contain;
-		padding-bottom: 8px;
+		padding-bottom: var(--space-2);
 	}
 	ex-grid[swipe] > * {
 		scroll-snap-align: start;
@@ -156,9 +156,9 @@ ex-card {
 	background: var(--sheet);
 	border: 1px solid var(--rule);
 	border-top: 3px solid var(--tone, var(--rule));
-	border-radius: 8px;
-	padding: 16px 20px;
-	font-size: 15px;
+	border-radius: var(--radius-md);
+	padding: var(--space-4) var(--space-5);
+	font-size: var(--text-md);
 	line-height: 1.55;
 }
 .ex-card-head,
@@ -166,40 +166,40 @@ ex-card {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 6px 8px;
+	gap: var(--space-1) var(--space-2);
 	font-family: var(--display);
 }
 .ex-card-head {
-	margin-bottom: 8px;
-	padding-right: 64px;
+	margin-bottom: var(--space-2);
+	padding-right: var(--space-16);
 }
 .ex-card-head strong {
-	font-size: 18px;
+	font-size: var(--text-lg);
 	font-weight: 600;
 	line-height: 1.25;
 }
 ex-card[pick] {
 	border-color: var(--accent);
-	box-shadow: 0 0 0 1px var(--accent);
+	box-shadow: var(--ring);
 }
 .ex-card-pick {
-	font: 600 12px var(--display);
+	font: 600 var(--text-2xs) var(--display);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
 	color: var(--sheet);
 	background: var(--accent);
-	border-radius: 4px;
-	padding: 2px 7px;
+	border-radius: var(--radius-sm);
+	padding: 2px var(--space-2);
 }
 .ex-card-tag {
-	font: 12px var(--mono);
+	font: var(--text-2xs) var(--mono);
 	color: var(--ink-soft);
 	background: var(--keep-bg);
-	border-radius: 4px;
-	padding: 1px 6px;
+	border-radius: var(--radius-sm);
+	padding: 1px var(--space-1);
 }
 ex-card > :is(p, ul, ol) {
-	margin: 6px 0;
+	margin: var(--space-1) 0;
 }
 ex-card > :last-child {
 	margin-bottom: 0;
@@ -209,61 +209,61 @@ ex-callout {
 	display: block;
 	background: var(--tone-bg, var(--accent-soft));
 	border-left: 4px solid var(--tone, var(--accent));
-	border-radius: 6px;
-	padding: 14px 18px;
+	border-radius: var(--radius-sm);
+	padding: var(--space-3) var(--space-4);
 }
 ex-callout:not(:has(> .ex-callout-head strong)) {
 	position: relative;
-	padding-left: 48px;
+	padding-left: var(--space-12);
 }
 .ex-callout-head {
 	position: absolute;
-	left: 18px;
-	top: 16px;
+	left: var(--space-4);
+	top: var(--space-4);
 }
 .ex-callout-head:has(strong) {
 	position: static;
-	margin: 0 0 6px;
+	margin: 0 0 var(--space-1);
 }
 .ex-callout-head strong {
-	font-size: 16px;
+	font-size: var(--text-md);
 	font-weight: 600;
 }
 ex-callout > :is(p, ul, ol) {
-	margin: 4px 0;
+	margin: var(--space-1) 0;
 }
 
 :is(ex-card, ex-callout) details {
-	margin-top: 10px;
+	margin-top: var(--space-2);
 	border-top: 1px solid var(--rule);
-	padding-top: 8px;
+	padding-top: var(--space-2);
 }
 :is(ex-card, ex-callout) summary {
 	cursor: pointer;
-	font: 600 14px var(--display);
+	font: 600 var(--text-sm) var(--display);
 	color: var(--accent);
 }
 :is(ex-card, ex-callout) details > :not(summary) {
-	margin: 6px 0;
+	margin: var(--space-1) 0;
 }
 
 /* Page chrome lives in the left rail, which already reserves its space, so it never covers content. */
 .ex-theme-toggle {
 	position: fixed;
-	left: 17px;
-	bottom: 14px;
+	left: var(--space-4);
+	bottom: var(--space-3);
 	z-index: 5;
 	background: var(--sheet);
 }
 
 .ex-issue-target {
 	outline: 2px dashed var(--missing);
-	outline-offset: 4px;
+	outline-offset: var(--space-1);
 }
 .ex-issues {
 	position: fixed;
-	right: 12px;
-	bottom: 12px;
+	right: var(--space-3);
+	bottom: var(--space-3);
 	z-index: 10;
 	max-width: min(460px, 92vw);
 	max-height: 40vh;
@@ -271,13 +271,13 @@ ex-callout > :is(p, ul, ol) {
 	background: var(--missing-bg);
 	color: var(--ink);
 	border: 1px solid var(--missing);
-	border-radius: 8px;
-	padding: 10px 14px;
-	font: 14px/1.4 var(--display);
+	border-radius: var(--radius-md);
+	padding: var(--space-2) var(--space-3);
+	font: var(--text-sm)/1.4 var(--display);
 }
 .ex-issues ol {
-	margin: 6px 0 0;
-	padding-left: 18px;
+	margin: var(--space-1) 0 0;
+	padding-left: var(--space-4);
 }
 .ex-issues button {
 	all: unset;
@@ -305,40 +305,40 @@ ex-code {
 	container-type: inline-size;
 	background: var(--sheet);
 	border: 1px solid var(--rule);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	overflow: hidden;
 }
 .ex-code-head {
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	padding: 8px 14px;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
 	border-bottom: 1px solid var(--rule);
-	font: 14px var(--mono);
+	font: var(--text-sm) var(--mono);
 	padding-right: 76px;
 }
 .ex-code-head span {
 	color: var(--ink-soft);
-	font-size: 12px;
+	font-size: var(--text-2xs);
 }
 .ex-code-lines {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr) minmax(0, 36%);
-	font: 13.5px/1.55 var(--mono);
-	padding: 6px 0;
+	font: var(--text-xs)/1.55 var(--mono);
+	padding: var(--space-1) 0;
 }
 .ex-code-number {
 	color: var(--ink-soft);
 	opacity: 0.7;
 	text-align: right;
-	padding: 0 12px 0 14px;
+	padding: 0 var(--space-3) 0 var(--space-3);
 	user-select: none;
 }
 .ex-code-text {
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 	background: none;
-	padding: 0 12px;
+	padding: 0 var(--space-3);
 	border-left: 3px solid transparent;
 }
 .ex-code-number[data-noted] {
@@ -363,22 +363,22 @@ ex-code {
 	border-left-color: var(--tone);
 }
 .ex-code-margin {
-	padding: 0 14px 0 10px;
+	padding: 0 var(--space-3) 0 var(--space-2);
 }
 ex-note {
 	display: block;
-	font: 14px/1.45 var(--display);
+	font: var(--text-sm)/1.45 var(--display);
 	color: var(--ink);
 	background: var(--tone-bg);
 	border-left: 3px solid var(--tone);
-	border-radius: 4px;
-	padding: 4px 8px;
-	margin: 1px 0 4px;
+	border-radius: var(--radius-sm);
+	padding: var(--space-1) var(--space-2);
+	margin: 1px 0 var(--space-1);
 }
 ex-note .ex-tone-icon {
-	font-size: 15px;
+	font-size: var(--text-md);
 	vertical-align: -2px;
-	margin-right: 6px;
+	margin-right: var(--space-1);
 }
 @container (max-width: 700px) {
 	.ex-code-lines {
@@ -386,7 +386,7 @@ ex-note .ex-tone-icon {
 	}
 	.ex-code-margin {
 		grid-column: 1 / -1;
-		padding-left: 14px;
+		padding-left: var(--space-3);
 	}
 	.ex-code-margin:not([data-noted]) {
 		display: none;
@@ -403,19 +403,19 @@ ex-stat {
 	gap: 2px;
 	background: var(--sheet);
 	border: 1px solid var(--rule);
-	border-radius: 8px;
-	padding: 14px 18px;
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
 }
 .ex-stat-value {
-	font: 600 32px/1.1 var(--display);
+	font: 600 var(--text-3xl)/1.1 var(--display);
 	letter-spacing: -0.01em;
 }
 .ex-stat-label {
-	font: 14px/1.35 var(--display);
+	font: var(--text-sm)/1.35 var(--display);
 	color: var(--ink-soft);
 }
 .ex-stat-note {
-	font: 600 13px/1.35 var(--display);
+	font: 600 var(--text-xs)/1.35 var(--display);
 	color: var(--tone, var(--ink-soft));
 }
 
@@ -426,16 +426,16 @@ ex-tabs[data-layout='columns'] {
 	display: grid;
 	grid-auto-flow: column;
 	grid-auto-columns: minmax(0, 1fr);
-	gap: 24px;
+	gap: var(--space-6);
 }
 ex-tabs[data-layout='columns'] > [role='region']::before {
 	content: attr(label);
 	display: block;
-	font: 600 13px var(--display);
+	font: 600 var(--text-xs) var(--display);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
 	color: var(--ink-soft);
-	margin-bottom: 8px;
+	margin-bottom: var(--space-2);
 }
 
 ex-route,
@@ -444,8 +444,8 @@ ex-step {
 }
 .ex-route-launcher {
 	position: fixed;
-	left: 17px;
-	bottom: 56px;
+	left: var(--space-4);
+	bottom: var(--space-12);
 	z-index: 5;
 	background: var(--sheet);
 	color: var(--accent);
@@ -456,51 +456,51 @@ ex-step {
 .ex-route-player {
 	position: fixed;
 	left: 50%;
-	bottom: 16px;
+	bottom: var(--space-4);
 	transform: translateX(-50%);
 	z-index: 20;
 	width: min(640px, calc(100vw - 24px));
 	background: var(--sheet);
 	color: var(--ink);
 	border: 1px solid var(--rule);
-	border-radius: 12px;
-	box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
-	padding: 10px 14px;
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-float);
+	padding: var(--space-2) var(--space-3);
 	font-family: var(--display);
 }
 .ex-route-controls {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 }
 .ex-route-controls > strong,
 .ex-route-controls > select {
 	margin-right: auto;
-	font: 600 15px var(--display);
+	font: 600 var(--text-md) var(--display);
 }
 .ex-route-controls > select {
 	background: var(--sheet);
 	color: var(--ink);
 	border: 1px solid var(--rule);
-	border-radius: 6px;
-	padding: 4px 6px;
+	border-radius: var(--radius-sm);
+	padding: var(--space-1) var(--space-1);
 }
 .ex-route-count {
-	font: 14px var(--mono);
+	font: var(--text-sm) var(--mono);
 	color: var(--ink-soft);
 	min-width: 4ch;
 	text-align: center;
 }
 .ex-route-narration {
-	margin: 8px 2px 2px;
-	font: 16px/1.45 var(--body);
+	margin: var(--space-2) 2px 2px;
+	font: var(--text-base)/1.45 var(--body);
 	max-width: none;
 }
 .ex-route-focus {
 	outline: 3px solid var(--accent);
-	outline-offset: 6px;
-	border-radius: 8px;
-	transition: outline-color 200ms;
+	outline-offset: var(--space-1);
+	border-radius: var(--radius-md);
+	transition: outline-color var(--motion-base);
 }
 ex-mermaid g.ex-route-focus > :is(rect, polygon, path, circle, ellipse) {
 	stroke: var(--accent);
@@ -510,7 +510,7 @@ ex-mermaid g.ex-route-focus > :is(rect, polygon, path, circle, ellipse) {
 	position: static;
 	transform: none;
 	width: auto;
-	margin: 0 12px 12px;
+	margin: 0 var(--space-3) var(--space-3);
 	box-shadow: none;
 }
 :root[data-route] ex-document {
@@ -520,7 +520,7 @@ ex-mermaid g.ex-route-focus > :is(rect, polygon, path, circle, ellipse) {
 	.ex-route-player {
 		bottom: 0;
 		width: 100vw;
-		border-radius: 12px 12px 0 0;
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 	}
 }
 
@@ -534,7 +534,7 @@ ex-board[data-mode='map'] {
 	touch-action: none;
 	cursor: grab;
 	border: 1px solid var(--rule);
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 	background-color: var(--paper);
 	background-image: radial-gradient(var(--rule) 1px, transparent 1px);
 	background-size: 22px 22px;
@@ -547,7 +547,7 @@ ex-board[data-mode='map'] > .ex-board-canvas {
 	top: 0;
 	left: 0;
 	transform-origin: 0 0;
-	transition: transform 450ms cubic-bezier(0.2, 0.7, 0.2, 1);
+	transition: transform var(--motion-slow) var(--ease-out);
 }
 ex-board[data-dragging] > .ex-board-canvas {
 	transition: none;
@@ -557,30 +557,30 @@ ex-board[data-mode='read'] > .ex-board-canvas {
 }
 .ex-board-toolbar {
 	position: absolute;
-	top: 10px;
-	right: 10px;
+	top: var(--space-2);
+	right: var(--space-2);
 	z-index: 4;
 	display: flex;
-	gap: 4px;
+	gap: var(--space-1);
 	background: var(--sheet);
 	border: 1px solid var(--rule);
-	border-radius: 999px;
+	border-radius: var(--radius-pill);
 	padding: 3px;
 }
 ex-board[data-mode='read'] > .ex-board-toolbar {
 	position: static;
 	width: max-content;
-	margin: 0 0 12px auto;
+	margin: 0 0 var(--space-3) auto;
 }
 .ex-board-toolbar .ex-icon-button {
 	border: none;
 	width: auto;
 	min-width: 32px;
 	height: 30px;
-	gap: 6px;
-	padding: 0 10px;
-	border-radius: 999px;
-	font: 600 13px var(--display);
+	gap: var(--space-1);
+	padding: 0 var(--space-2);
+	border-radius: var(--radius-pill);
+	font: 600 var(--text-xs) var(--display);
 	display: inline-flex;
 }
 .ex-board-toolbar [aria-pressed='true'] {
@@ -591,7 +591,7 @@ ex-board[data-mode='read'] > .ex-board-toolbar {
 	display: flex;
 	gap: 2px;
 	border-left: 1px solid var(--rule);
-	padding-left: 4px;
+	padding-left: var(--space-1);
 }
 ex-board[data-mode='read'] .ex-board-map-controls {
 	display: none;
@@ -601,15 +601,15 @@ ex-region {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 	align-content: start;
-	column-gap: 48px;
-	row-gap: 40px;
+	column-gap: var(--space-12);
+	row-gap: var(--space-10);
 	position: relative;
 	container-type: inline-size;
-	padding: 16px 20px 24px;
+	padding: var(--space-4) var(--space-5) var(--space-6);
 	background: var(--sheet);
 	border: 1px solid var(--rule);
 	border-top: 3px solid var(--tone, var(--accent));
-	border-radius: 10px;
+	border-radius: var(--radius-md);
 }
 ex-region > :is(.ex-region-head, ex-markdown, ex-callout) {
 	grid-column: 1 / -1;
@@ -623,20 +623,20 @@ ex-region > * + * {
 .ex-region-head {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 	margin: 0;
-	font-size: 21px;
+	font-size: var(--text-xl);
 }
 ex-board[data-mode='map'] .ex-region-head {
 	cursor: zoom-in;
 }
 .ex-region-more {
 	margin-left: auto;
-	font: 600 12px var(--display);
+	font: 600 var(--text-2xs) var(--display);
 	color: var(--accent);
 	background: var(--accent-soft);
-	border-radius: 999px;
-	padding: 2px 8px;
+	border-radius: var(--radius-pill);
+	padding: 2px var(--space-2);
 }
 ex-board[data-mode='map'] ex-region:not([data-open]) > [detail] {
 	display: none;
@@ -671,7 +671,7 @@ ex-mermaid.ex-diagram-wide > svg {
 	background: var(--sheet);
 	color: var(--ink);
 	border-left: 1px solid var(--rule);
-	box-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
+	box-shadow: var(--shadow-edge);
 }
 .ex-drawer[hidden] {
 	display: none;
@@ -681,7 +681,7 @@ ex-mermaid.ex-diagram-wide > svg {
 	min-height: 0;
 	overflow: auto;
 	overscroll-behavior: contain;
-	padding: 20px;
+	padding: var(--space-5);
 }
 .ex-drawer-handle {
 	position: absolute;
@@ -713,6 +713,6 @@ ex-mermaid.ex-diagram-wide > svg {
 }
 .ex-inspected {
 	outline: 2px dashed var(--accent);
-	outline-offset: 4px;
-	border-radius: 8px;
+	outline-offset: var(--space-1);
+	border-radius: var(--radius-md);
 }

@@ -1,10 +1,10 @@
 /* Opt-in document navigation; island layouts retain their normal HTML owner. */
 body:has(ex-nav) {
-	padding-inline-start: 68px;
+	padding-inline-start: var(--space-16);
 }
 ex-nav {
 	position: fixed;
-	left: 12px;
+	left: var(--space-3);
 	top: 50%;
 	transform: translateY(-50%);
 	width: 36px;
@@ -25,7 +25,7 @@ ex-nav > .ex-icon-button {
 	display: flex;
 	align-items: center;
 	height: 15px;
-	padding-inline: 5px;
+	padding-inline: var(--space-1);
 }
 .ex-heading-markers > a::before {
 	content: '';
@@ -50,31 +50,31 @@ ex-nav > .ex-icon-button {
 .ex-heading-panel {
 	position: fixed;
 	inset: auto;
-	left: 48px;
+	left: var(--space-12);
 	top: 50%;
 	transform: translateY(-50%);
 	margin: 0;
 	width: min(300px, calc(100vw - 68px));
 	max-height: 80dvh;
 	overflow-y: auto;
-	padding: 12px;
+	padding: var(--space-3);
 	background: var(--sheet);
 	color: var(--ink);
 	border: 1px solid var(--rule);
-	border-radius: 8px;
-	box-shadow: 0 12px 35px rgb(0 0 0 / 20%);
-	font: 15px/1.4 var(--display);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-float);
+	font: var(--text-md)/1.4 var(--display);
 }
 .ex-heading-panel a {
 	display: block;
-	padding: 5px 10px;
+	padding: var(--space-1) var(--space-2);
 	color: var(--ink-soft);
 	text-decoration: none;
-	border-radius: 4px;
+	border-radius: var(--radius-sm);
 	border-left: 2px solid transparent;
 }
 .ex-heading-panel a[data-level='1'] {
-	font-size: 16px;
+	font-size: var(--text-md);
 	font-weight: 600;
 	color: var(--ink);
 }
@@ -83,10 +83,10 @@ ex-nav > .ex-icon-button {
 	color: var(--ink);
 }
 .ex-heading-panel a[data-level='3'] {
-	padding-left: 22px;
+	padding-left: var(--space-5);
 }
 .ex-heading-panel a:is([data-level='4'], [data-level='5'], [data-level='6']) {
-	padding-left: 34px;
+	padding-left: var(--space-8);
 }
 .ex-heading-panel a:is(:hover, :focus-visible, [data-preview]) {
 	color: var(--accent);
@@ -98,30 +98,30 @@ ex-nav > .ex-icon-button {
 }
 .ex-navigation-label {
 	display: block;
-	font-size: 14px;
+	font-size: var(--text-sm);
 	font-weight: 500;
 	color: var(--ink-soft);
-	margin: 4px 10px 10px;
+	margin: var(--space-1) var(--space-2) var(--space-2);
 }
 .ex-heading-pages {
 	border-top: 1px solid var(--rule);
-	padding-top: 14px;
-	margin-top: 18px;
+	padding-top: var(--space-3);
+	margin-top: var(--space-4);
 }
 .ex-heading-panel .ex-page-link {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 8px;
+	gap: var(--space-2);
 }
 .ex-breadcrumbs {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 10px;
-	padding: 18px 0;
+	gap: var(--space-2);
+	padding: var(--space-4) 0;
 	border-bottom: 1px solid var(--rule);
-	font: 15px var(--display);
+	font: var(--text-md) var(--display);
 	color: var(--ink-soft);
 }
 .ex-breadcrumbs > span[aria-current] {
@@ -129,7 +129,7 @@ ex-nav > .ex-icon-button {
 }
 .ex-breadcrumbs > span[aria-current]::before {
 	content: '›';
-	margin-right: 10px;
+	margin-right: var(--space-2);
 	color: var(--ink-soft);
 }
 .ex-breadcrumbs > .ex-icon-button {
@@ -143,13 +143,13 @@ ex-nav > .ex-icon-button {
 		display: none;
 	}
 	.ex-heading-panel[data-pinned] {
-		left: 20px;
+		left: var(--space-5);
 		top: 92px;
-		bottom: 24px;
+		bottom: var(--space-6);
 		transform: none;
 		width: 252px;
 		max-height: calc(100dvh - 116px);
-		padding: 0 16px 0 0;
+		padding: 0 var(--space-4) 0 0;
 		border: 0;
 		border-right: 1px solid var(--rule);
 		border-radius: 0;

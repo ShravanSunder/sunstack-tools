@@ -11,14 +11,14 @@ ex-mermaid > svg {
 .island-surface {
 	background: var(--sheet);
 	border: 1px solid var(--rule);
-	border-radius: 8px;
-	padding: 20px;
+	border-radius: var(--radius-md);
+	padding: var(--space-5);
 }
 .island-surface h3 {
 	margin-top: 0;
 }
 .island-surface p {
-	font-size: 15px;
+	font-size: var(--text-md);
 }
 .ex-inspectable {
 	position: relative;
@@ -32,7 +32,7 @@ ex-mermaid > svg {
 	flex: none;
 }
 .ex-icon-button .ph {
-	font-size: 20px;
+	font-size: var(--text-xl);
 }
 .ex-icon-button:hover {
 	border-color: var(--accent);
@@ -44,14 +44,14 @@ ex-mermaid > svg {
 }
 .ex-inspect-controls {
 	position: absolute;
-	top: 6px;
-	right: 6px;
+	top: var(--space-1);
+	right: var(--space-1);
 	z-index: 2;
 	display: flex;
-	gap: 4px;
+	gap: var(--space-1);
 	opacity: 0;
 	pointer-events: none;
-	transition: opacity 120ms;
+	transition: opacity var(--motion-fast);
 }
 .ex-inspect-trigger {
 	width: 28px;
@@ -60,7 +60,7 @@ ex-mermaid > svg {
 	background: var(--sheet);
 }
 .ex-inspect-trigger .ph {
-	font-size: 16px;
+	font-size: var(--text-md);
 }
 .ex-inspectable:hover:not(:has(.ex-inspectable:hover)) > .ex-inspect-controls,
 .ex-inspectable:focus-within > .ex-inspect-controls {
@@ -68,10 +68,10 @@ ex-mermaid > svg {
 	pointer-events: auto;
 }
 .ex-inspectable > .ex-tab-bar {
-	padding-inline-end: 72px;
+	padding-inline-end: var(--space-18);
 }
 .ex-inspectable > :is(h1, h2, h3, h4, h5, h6):first-child {
-	padding-inline-end: 64px;
+	padding-inline-end: var(--space-16);
 }
 .ex-inspect-dialog {
 	width: calc(100vw - 48px);
@@ -79,7 +79,7 @@ ex-mermaid > svg {
 	max-width: none;
 	max-height: 94dvh;
 	border: 1px solid var(--rule);
-	border-radius: 10px;
+	border-radius: var(--radius-md);
 	padding: 0;
 	background: var(--paper);
 	color: var(--ink);
@@ -102,10 +102,10 @@ ex-mermaid > svg {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 8px;
-	padding: 14px 20px;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--rule);
-	font: 600 16px var(--display);
+	font: 600 var(--text-md) var(--display);
 }
 .ex-inspect-header strong {
 	flex: 1;
@@ -115,7 +115,7 @@ ex-mermaid > svg {
 	min-height: 0;
 	overflow: auto;
 	overscroll-behavior: contain;
-	padding: 24px;
+	padding: var(--space-6);
 }
 .ex-inspect-body > ex-markdown {
 	width: min(78ch, 100%);
@@ -145,7 +145,7 @@ ex-mermaid > svg {
 }
 .ex-arrow-label {
 	fill: var(--ink);
-	font: 14px var(--display);
+	font: var(--text-sm) var(--display);
 	text-anchor: middle;
 	paint-order: stroke;
 	stroke: var(--paper);
@@ -176,8 +176,8 @@ ex-compare,
 ex-diagram-diff {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 18px;
-	margin-block: 24px;
+	gap: var(--space-4);
+	margin-block: var(--space-6);
 }
 ex-compare > [slot],
 ex-diagram-diff > [slot] {
@@ -187,14 +187,14 @@ ex-diagram-diff > [slot] {
 .ex-zoom-toolbar {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
-	margin-block: 14px;
+	gap: var(--space-2);
+	margin-block: var(--space-3);
 }
 button {
-	font: 600 15px var(--display);
+	font: 600 var(--text-md) var(--display);
 	border: 1px solid var(--rule);
-	border-radius: 5px;
-	padding: 8px 12px;
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
 	background: var(--sheet);
 	color: var(--ink);
 	cursor: pointer;
@@ -209,29 +209,29 @@ button[aria-selected='true'] {
 }
 .ex-timeline {
 	border-left: 2px solid var(--accent);
-	padding-left: 24px;
-	margin-block: 24px;
+	padding-left: var(--space-6);
+	margin-block: var(--space-6);
 }
 .ex-timeline > section {
-	padding: 10px 0 20px;
+	padding: var(--space-2) 0 var(--space-5);
 }
 .ex-timeline h3 {
 	margin-top: 0;
 }
 .ex-file-tree {
-	font: 14px var(--mono);
+	font: var(--text-sm) var(--mono);
 	white-space: pre-wrap;
 	background: var(--sheet);
 	border: 1px solid var(--rule);
-	padding: 20px;
-	margin-block: 20px;
+	padding: var(--space-5);
+	margin-block: var(--space-5);
 }
 ex-markdown pre {
 	overflow: auto;
 	background: var(--sheet);
 	border: 1px solid var(--rule);
-	padding: 18px;
-	font: 13px/1.6 var(--mono);
+	padding: var(--space-4);
+	font: var(--text-xs)/1.6 var(--mono);
 }
 ex-markdown {
 	min-width: 0;
@@ -246,10 +246,10 @@ ex-markdown ex-mermaid svg {
 	display: block;
 	max-width: 100%;
 	height: auto;
-	margin-block: 20px;
+	margin-block: var(--space-5);
 }
 ex-document h1 + p {
-	font-size: 20px;
+	font-size: var(--text-xl);
 	line-height: 1.55;
 	max-width: 62ch;
 }
@@ -280,38 +280,38 @@ ex-callout[type='risk'] {
 	color: var(--accent);
 }
 .prototype-banner {
-	font: 14px var(--display);
-	padding: 12px 20px;
+	font: var(--text-sm) var(--display);
+	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--rule);
 }
 .detail-index {
 	display: grid;
-	gap: 16px;
+	gap: var(--space-4);
 }
 .detail-index article {
-	padding: 18px;
+	padding: var(--space-4);
 	border: 1px solid var(--rule);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	background: var(--sheet);
 }
 .detail-index h3 {
 	margin-top: 0;
 }
 .detail-index p {
-	font-size: 15px;
+	font-size: var(--text-md);
 }
 .wide-reading {
 	max-width: none;
 }
 .diagram-label {
-	font: 600 18px var(--display);
-	margin-block: 12px;
+	font: 600 var(--text-lg) var(--display);
+	margin-block: var(--space-3);
 }
 .ex-toc-source {
-	margin-top: 28px;
+	margin-top: var(--space-6);
 }
 .ex-toc-source a {
-	font-size: 14px;
+	font-size: var(--text-sm);
 }
 @media (max-width: 800px) {
 	ex-compare,

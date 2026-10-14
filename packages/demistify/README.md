@@ -74,6 +74,17 @@ At viewport widths of 1440px and above it keeps a quiet left sidebar visible; sm
 
 Phosphor regular is the icon family, subset at build time to the icons the library uses (tones, inspection, navigation and a few lab icons; about 2 KB). Authors name tones rather than icons. Text fonts are separate WOFF2 files referenced from the theme, so only faces a page uses download, after first paint. Upstream Mermaid font imports are removed so the document uses local theme fonts.
 
+## Design scales
+
+Every spacing, type size, radius, shadow and motion value in the library CSS comes from tokens on `:root` in `styles/theme.css`, so pages stay consistent and the look can be tuned in one place without editing explainers:
+
+- Spacing `--space-1` … `--space-18` (n × 4px: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 72). Hairlines (1–3px) and layout widths stay literal.
+- Type `--text-2xs` 12, `xs` 13, `sm` 14, `md` 15, `base` 17 (prose), `lg` 18, `xl` 21, `2xl` 24, `3xl` 30, `4xl` 44.
+- Radius `--radius-sm` 4, `md` 8, `lg` 12, `pill`.
+- Motion `--motion-fast` 120ms, `base` 200ms, `slow` 450ms, `--ease-out`; shadows `--shadow-float`, `--shadow-edge`, `--ring`.
+
+Authors normally write no CSS. Hand-placed layouts may use the spacing tokens in inline styles (`style="gap: var(--space-6)"`).
+
 ## Source layout
 
 ```text
