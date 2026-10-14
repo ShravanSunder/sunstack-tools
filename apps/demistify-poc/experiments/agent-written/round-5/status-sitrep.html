@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Release train status</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Release train: morning status
+
+Illustrative project **payments-gateway**. Dated 2026-10-14, status as of 08:18, for the engineering lead reading before stand-up.
+
+<ex-grid cols="4">
+<ex-callout id="verdict" tone="tldr" span="2" title="Nothing is ready to merge">Two changes need one more proof each, one change is blocked on an owner decision, and the infrastructure stack is paused.</ex-callout>
+<ex-stat value="0" label="Changes ready to merge" note="#212, #215 and #219 are all open" tone="risk"></ex-stat>
+<ex-stat value="3" label="Open items for the 10:30 check-in" note="2 of 5 done" tone="planned"></ex-stat>
+</ex-grid>
+
+<ex-route label="60-second read">
+<ex-step to="verdict">Nothing is ready to merge.</ex-step>
+<ex-step to="pr212">#212 needs its replay proof and a second review.</ex-step>
+<ex-step to="pr215">#215 waits on a product decision.</ex-step>
+<ex-step to="pr219">#219 carries a retry-storm risk.</ex-step>
+<ex-step to="lead">What needs the lead.</ex-step>
+</ex-route>
+<ex-route label="Before 10:30" steps="pr212 pr215 pr219 checklist"></ex-route>
+
+## Three changes, none ready
+
+<ex-grid cols="3">
+<ex-card id="pr212" title="#212 Idempotent refunds" tone="planned" tag="replay booked 08:40–09:00" icon="credit-card">
+Owner: Priya.
+
+- **Passed:** build, unit tests (412), lint, type check.
+- **Needs verification:** replay test against the sandbox processor. The previous window was lost because the sandbox token expired.
+- **In progress:** second review by Marco, expected by 10:00.
+- **Not ready until:** the replay proof passes and the second review approves.
+</ex-card>
+<ex-card id="pr215" title="#215 Currency rounding" tone="decision" tag="asked 2026-10-13" icon="code">
+Owner: Ken.
+
+- **Passed:** build, unit tests (388), property tests (10,000 cases).
+- **Blocked:** product must decide banker's rounding or half-up for JPY and KRW. No answer yet.
+- **Ready to merge** as soon as the decision lands, if it is banker's rounding (already implemented). Half-up needs about two hours of change.
+</ex-card>
+<ex-card id="pr219" title="#219 Webhook retries" tone="risk" tag="load test booked 11:00" icon="plug">
+Owner: Priya.
+
+- **Passed:** build and unit tests (97).
+- **Needs verification:** load test at 2× peak, booked for 11:00.
+- **Risk:** retry storm if the processor is down for more than 15 minutes. A circuit breaker is proposed but not built.
+</ex-card>
+</ex-grid>
+
+## 10:30 check-in
+
+<ex-grid cols="2">
+<ex-callout id="lead" tone="decision" title="Needs the lead">
+
+- Chase the rounding decision for [#215](#pr215) with product.
+- Decide whether [#219](#pr219) can merge without the circuit breaker if the load test passes.
+
+</ex-callout>
+<ex-tree id="checklist" title="Check-in checklist">
+- [ ] Replay proof for [#212](#pr212)
+- [ ] Second review for [#212](#pr212)
+- [ ] Rounding decision for [#215](#pr215)
+- [x] Load test booked for [#219](#pr219)
+- [x] Change-freeze end date confirmed
+</ex-tree>
+</ex-grid>
+
+## Infrastructure stack, paused
+
+Owner: Dana. #204 depends on #201, and #207 depends on #204.
+
+<ex-flow cols="3">
+<ex-card id="pg16" title="#201 Postgres 16 upgrade" tone="done" tag="after change-freeze" icon="database">
+Done in staging, waiting for the change-freeze to end on 2026-10-16.
+</ex-card>
+<ex-card id="pool" title="#204 Connection pool resize" tone="planned" tag="after #201" icon="plug">
+Depends on #201.
+</ex-card>
+<ex-card id="replica" title="#207 Read replica for reporting" tone="planned" tag="after #204" icon="database">
+Depends on #204. Design approved.
+</ex-card>
+<ex-arrow from="pg16" to="pool" label="needed by"></ex-arrow>
+<ex-arrow from="pool" to="replica" label="needed by"></ex-arrow>
+</ex-flow>
+</ex-document>
+</body>
+</html>

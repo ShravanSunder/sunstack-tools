@@ -60,15 +60,23 @@ export class BoardIsland extends HTMLElement {
 
 	connectedCallback(): void {
 		if (this.canvas) return;
-		const canvas = document.createElement('ex-flow');
+		// Regions are laid out by the board; anything else is the author's own canvas (absolute,
+		// grid or flex), kept exactly as written, with the camera, routes and arrows on top.
+		const free = !this.querySelector(':scope > ex-region');
+		const canvas = document.createElement(free ? 'div' : 'ex-flow');
 		canvas.className = 'ex-board-canvas';
-		const columns = Number.parseInt(this.getAttribute('cols') ?? '3', 10) || 3;
-		canvas.setAttribute('cols', String(columns));
-		canvas.dataset['designWidth'] = String(columns * regionWidth + (columns - 1) * 72 + 56);
+		if (free) canvas.dataset['free'] = '';
+		else {
+			const columns = Number.parseInt(this.getAttribute('cols') ?? '3', 10) || 3;
+			canvas.setAttribute('cols', String(columns));
+			canvas.dataset['designWidth'] = String(columns * regionWidth + (columns - 1) * 72 + 56);
+		}
 		canvas.append(...Array.from(this.childNodes));
 		this.append(this.createToolbar(), canvas);
 		this.canvas = canvas;
-		this.setMode(this.clientWidth >= 760 && this.getAttribute('mode') !== 'read' ? 'map' : 'read');
+		const wanted = this.getAttribute('mode');
+		// A hand-placed canvas cannot reflow, so it stays a map on narrow screens too.
+		this.setMode(wanted === 'read' || (!free && this.clientWidth < 760) ? 'read' : 'map');
 		const refit = new ResizeObserver((): void => {
 			if (this.dataset['mode'] === 'map' && !this.userMoved) this.fit();
 		});
@@ -164,7 +172,10 @@ export class BoardIsland extends HTMLElement {
 		for (const button of this.querySelectorAll<HTMLButtonElement>('.ex-board-toolbar [data-mode]'))
 			button.setAttribute('aria-pressed', String(button.dataset['mode'] === mode));
 		if (mode === 'map') {
-			canvas.style.width = `${canvas.dataset['designWidth'] ?? '1400'}px`;
+			canvas.style.width =
+				canvas.dataset['designWidth'] === undefined
+					? 'max-content'
+					: `${canvas.dataset['designWidth']}px`;
 			this.userMoved = false;
 			requestAnimationFrame((): void => this.fit());
 		} else {

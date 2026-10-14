@@ -177,6 +177,9 @@ ex-card {
 }
 .ex-card-head {
 	margin-bottom: var(--space-2);
+}
+/* Room for the inspection buttons, only on cards that have them. */
+.ex-inspectable > .ex-card-head {
 	padding-right: var(--space-16);
 }
 .ex-card-head strong {
@@ -585,6 +588,9 @@ ex-board[data-dragging] > .ex-board-canvas {
 }
 ex-board[data-mode='read'] > .ex-board-canvas {
 	padding-inline: 0;
+}
+ex-board[data-mode='read'] > .ex-board-canvas[data-free] {
+	overflow-x: auto;
 }
 .ex-board-toolbar {
 	position: absolute;

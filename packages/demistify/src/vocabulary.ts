@@ -88,6 +88,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		attributes: {
 			title: text('Optional heading.'),
 			tone,
+			icon,
 			type: text('Legacy name for tone.'),
 			label,
 		},
@@ -173,7 +174,8 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		attributes: { columns: flag('Shows the views side by side when they fit.'), label },
 	},
 	'ex-board': {
-		description: 'A pannable map of ex-region groups with a Map/Read switch.',
+		description:
+			'A pannable, zoomable map: of ex-region groups, or of your own layout (absolute, grid or flex) when it has no regions.',
 		attributes: {
 			cols: columns,
 			mode: oneOf('Start in the map or the reading view.', ['map', 'read']),

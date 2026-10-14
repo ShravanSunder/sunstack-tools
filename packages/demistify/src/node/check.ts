@@ -6,6 +6,7 @@
 import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
 import { normalizeIslandText } from '../core/source-text.ts';
+import { parseCode } from '../render/code-lines.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
 import { checkAttributes, closest, taughtElements, vocabulary } from '../vocabulary.ts';
@@ -273,6 +274,60 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			const type = script ? attributeMap(script).get('type') : undefined;
 			if (script && type !== spec.source)
 				report(script, 'warning', 'source', `Use <script type="${spec.source}"> inside <${name}>.`);
+		}
+
+		// Notes must name a row of their code (and, in a multi-file diff, a file).
+		if (name === 'ex-code') {
+			const children = element.childNodes.filter(isElement);
+			const script = children.find((child): boolean => child.tagName === 'script');
+			const lines = normalizeIslandText(script ? textOf(script) : '').split('\n');
+			const diff =
+				attributes.get('lang') === 'diff' || lines.some((line): boolean => line.startsWith('@@'));
+			const files = parseCode(
+				lines,
+				diff,
+				Number.parseInt(attributes.get('start') ?? '1', 10) || 1,
+			);
+			for (const note of children.filter((child): boolean => child.tagName === 'ex-note')) {
+				const noteAttributes = attributeMap(note);
+				const line = Number.parseInt(noteAttributes.get('line') ?? '', 10);
+				const named = noteAttributes.get('file');
+				if (files.length > 1 && !named) {
+					report(
+						note,
+						'error',
+						'note',
+						`This diff has ${files.length} files; add file="…" to say which one line="${line}" is in.`,
+					);
+					continue;
+				}
+				const inFiles = files.filter(
+					(file): boolean => !named || file.path?.endsWith(named) === true,
+				);
+				if (named && inFiles.length === 0) {
+					report(
+						note,
+						'error',
+						'note',
+						`file="${named}" is not a file in this diff (${files.map((file) => file.path ?? '?').join(', ')}).`,
+						'file',
+					);
+					continue;
+				}
+				const numbers = inFiles.flatMap((file): number[] =>
+					file.lines.flatMap((codeLine): number[] =>
+						codeLine.number === undefined ? [] : [codeLine.number],
+					),
+				);
+				if (!numbers.includes(line))
+					report(
+						note,
+						'error',
+						'note',
+						`line="${noteAttributes.get('line') ?? ''}" is not a row of this code; rows are ${Math.min(...numbers)}–${Math.max(...numbers)}${diff ? ' (every row counts, removed lines included; a @@ header restarts at its + number)' : ''}.`,
+						'line',
+					);
+			}
 		}
 
 		if (name === 'ex-mermaid' && options.diagrams !== false) {

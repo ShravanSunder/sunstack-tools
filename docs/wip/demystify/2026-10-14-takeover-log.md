@@ -55,6 +55,28 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - Pictures stay plain HTML (`<figure><img><figcaption>`): the library frames them and a click opens one enlarged; several in an `ex-grid` make a gallery.
   - `ex-compare` is now taught: before and after side by side, or with `slider`, overlaid with a keyboard-accessible divider and labelled corner chips. Bare images are framed so their side can carry a label.
   - Verified on the components demo: two files with correct counts (+4 −2, +1 −0); all three notes on the right file lines (42, 43, 13); images load; the slider moves with the arrow keys; a click opens a figure enlarged; no issues, errors or overflow on desktop or phone. Checker 0/0.
+- **Claude** Canvas (D19): an `ex-board` without regions is a free canvas. The author's own layout (absolute, grid or flex) is kept exactly, and the board adds the camera, routes and routed arrows. It stays a map on narrow screens, since a hand-placed layout cannot reflow, and Read scrolls sideways inside the board. Verified with the whiteboard layout from the owner's screenshot: five arrows, no box crossings, a route step moves the camera to its card, a phone fits it at 60%, no issues. Card heads now reserve room for inspection buttons only when a card has them (a long title had wrapped its icon onto its own line).
+- **Claude** Haiku round 5 (fresh Haiku per brief; guide + brief + output path + checker command only; at most 5 checker runs). Briefs: new `status-sitrep`, plus `code-review`, `domain-map` and `component-deep-dive`, which are comparable to round 4.
+
+  | Page                | Tokens (round 4 → 5) | Checker runs to 0/0 | New features used                     | Browser issues/errors     |
+  | ------------------- | -------------------- | ------------------- | ------------------------------------- | ------------------------- |
+  | status-sitrep       | — → 1,132            | 3                   | tree with a 5-item checklist, 6 icons | 0 / 0                     |
+  | code-review         | 2,058 → 1,723        | 2                   | 8 icons, 4 notes                      | 0 / 0 after the fix below |
+  | domain-map          | 2,304 → 2,490        | 1                   | board, 25 cards, 5 icons              | 0 / 0                     |
+  | component-deep-dive | 2,328 → 2,330        | 1                   | 16 icons, 3 notes                     | 0 / 0 (round 4: 1)        |
+
+  Mixed-row share: 30, 33, 76 and 24%. No style blocks. Two defects found:
+  - **Checker bug:** the checker wrongly rejected `icon` on callouts, so two pages removed their callout icons to satisfy it. The vocabulary is fixed.
+  - **Numbering regression:** my hunk-based diff numbering stranded one note once Haiku put the `@@` header in its code. Diff rows now count one number per row from the hunk start, removed lines included, so every number is unique and is the one a reader sees. The line parser is a pure module shared with the checker, which now verifies every note's line and file statically.
+  - Domain-map pages grew taller (desktop 2,807 → 3,960 px).
+
+- **Claude** Render-worker experiment (delegated Worker in an isolated worktree, branch `feat/demistify-render-worker`). Diagram rendering moves to a module worker started from a same-origin Blob that imports `diagram-worker.js`, with a main-thread fallback. Results:
+  - Main-thread blocking falls 120 → 0 ms at 1× CPU and about 1,100 → 125–225 ms at 4×.
+  - Diagrams are identical across 74 runs (SVG hashes match).
+  - The fallback works when `Worker` is missing, with CSP `worker-src 'none'`, on `file://` and after a failed first render.
+  - Costs: about +60 ms until diagrams finish at 1×, about +260 ms on a slow device, and a worker thread of about 7.6 MB.
+  - The worker needs a workaround for beautiful-mermaid's `self` reassignment inside workers; keep the engine version pinned.
+  - Markdown stays on the main thread (about 51 ms at 1×, mostly first-use parser warm-up).
 
 ## Open
 
