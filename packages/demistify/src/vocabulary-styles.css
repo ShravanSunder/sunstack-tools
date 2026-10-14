@@ -1,0 +1,217 @@
+/* Authoring vocabulary: meaning tones, cards, callouts, grids, page chrome and authoring issues. */
+[tone='note'] {
+	--tone: var(--accent);
+	--tone-bg: var(--accent-soft);
+}
+[tone='tldr'] {
+	--tone: var(--strong);
+	--tone-bg: var(--strong-bg);
+}
+[tone='decision'] {
+	--tone: var(--patch);
+	--tone-bg: var(--patch-bg);
+}
+[tone='risk'] {
+	--tone: var(--missing);
+	--tone-bg: var(--missing-bg);
+}
+[tone='question'] {
+	--tone: var(--change);
+	--tone-bg: var(--change-bg);
+}
+[tone='done'] {
+	--tone: var(--codex);
+	--tone-bg: var(--codex-bg);
+}
+[tone='planned'] {
+	--tone: var(--keep);
+	--tone-bg: var(--keep-bg);
+}
+[tone='changed'] {
+	--tone: var(--diff-modified);
+	--tone-bg: var(--diff-modified-bg);
+}
+[tone='added'] {
+	--tone: var(--diff-added);
+	--tone-bg: var(--diff-added-bg);
+}
+[tone='removed'] {
+	--tone: var(--diff-removed);
+	--tone-bg: var(--diff-removed-bg);
+}
+.ex-tone-icon {
+	color: var(--tone, var(--accent));
+	font-size: 20px;
+	flex: none;
+}
+
+ex-document {
+	display: block;
+	max-width: 1200px;
+	margin: 32px auto 96px;
+}
+ex-document > * + * {
+	margin-top: 28px;
+}
+
+ex-grid {
+	--cols: 2;
+	display: grid;
+	grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+	gap: 20px;
+	align-items: start;
+}
+ex-grid[cols='1'] {
+	--cols: 1;
+}
+ex-grid[cols='3'] {
+	--cols: 3;
+}
+ex-grid[cols='4'] {
+	--cols: 4;
+}
+ex-grid[cols='5'] {
+	--cols: 5;
+}
+ex-grid[cols='6'] {
+	--cols: 6;
+}
+ex-grid > [span='2'] {
+	grid-column: span 2;
+}
+ex-grid > [span='3'] {
+	grid-column: span 3;
+}
+ex-grid > [span='all'] {
+	grid-column: 1 / -1;
+}
+ex-grid > * + * {
+	margin-top: 0;
+}
+@media (max-width: 760px) {
+	ex-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	ex-grid > [span] {
+		grid-column: auto;
+	}
+}
+
+ex-card {
+	display: block;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-top: 3px solid var(--tone, var(--rule));
+	border-radius: 8px;
+	padding: 16px 20px;
+	font-size: 15px;
+	line-height: 1.55;
+}
+.ex-card-head,
+.ex-callout-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 8px;
+	font-family: var(--display);
+}
+.ex-card-head {
+	margin-bottom: 8px;
+	padding-right: 36px;
+}
+.ex-card-head strong {
+	font-size: 18px;
+	font-weight: 600;
+	line-height: 1.25;
+}
+.ex-card-tag {
+	font: 12px var(--mono);
+	color: var(--ink-soft);
+	background: var(--keep-bg);
+	border-radius: 999px;
+	padding: 2px 8px;
+}
+ex-card > :is(p, ul, ol) {
+	margin: 6px 0;
+}
+ex-card > :last-child {
+	margin-bottom: 0;
+}
+
+ex-callout {
+	display: block;
+	background: var(--tone-bg, var(--accent-soft));
+	border-left: 4px solid var(--tone, var(--accent));
+	border-radius: 6px;
+	padding: 14px 18px;
+}
+.ex-callout-head {
+	float: left;
+	margin: 2px 10px 0 0;
+}
+.ex-callout-head:has(strong) {
+	float: none;
+	margin: 0 0 6px;
+}
+.ex-callout-head strong {
+	font-size: 16px;
+	font-weight: 600;
+}
+ex-callout > :is(p, ul, ol) {
+	margin: 4px 0;
+}
+ex-callout::after {
+	content: '';
+	display: block;
+	clear: both;
+}
+
+:is(ex-card, ex-callout) details {
+	margin-top: 10px;
+	border-top: 1px solid var(--rule);
+	padding-top: 8px;
+}
+:is(ex-card, ex-callout) summary {
+	cursor: pointer;
+	font: 600 14px var(--display);
+	color: var(--accent);
+}
+:is(ex-card, ex-callout) details > :not(summary) {
+	margin: 6px 0;
+}
+
+.ex-theme-toggle {
+	position: fixed;
+	top: 12px;
+	right: 12px;
+	z-index: 5;
+	background: var(--sheet);
+}
+
+.ex-issue-target {
+	outline: 2px dashed var(--missing);
+	outline-offset: 4px;
+}
+.ex-issues {
+	position: fixed;
+	right: 12px;
+	bottom: 12px;
+	z-index: 10;
+	max-width: min(460px, 92vw);
+	max-height: 40vh;
+	overflow: auto;
+	background: var(--missing-bg);
+	color: var(--ink);
+	border: 1px solid var(--missing);
+	border-radius: 8px;
+	padding: 10px 14px;
+	font: 14px/1.4 var(--display);
+}
+.ex-issues ol {
+	margin: 6px 0 0;
+	padding-left: 18px;
+}
+.ex-issues button {
+	all: unset;
+	cursor: pointer;
+}

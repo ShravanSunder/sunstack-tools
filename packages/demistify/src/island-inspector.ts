@@ -5,8 +5,9 @@ type InspectionMode = 'modal' | 'sidebar';
 const installedInspectors = new WeakSet<HTMLElement>();
 
 export function installIslandInspector(owner: HTMLElement, always: boolean = false): void {
+	const zoom = owner.getAttribute('zoom');
 	if (
-		(!always && !owner.hasAttribute('zoom')) ||
+		(!always && (zoom === null || zoom === 'none')) ||
 		owner.hasAttribute('data-inspector-content') ||
 		installedInspectors.has(owner)
 	)
@@ -18,7 +19,10 @@ export function installIslandInspector(owner: HTMLElement, always: boolean = fal
 			? 'sidebar'
 			: 'modal';
 	const label =
-		owner.getAttribute('label') ?? owner.querySelector('h1,h2,h3')?.textContent ?? 'Island';
+		owner.getAttribute('label') ??
+		owner.dataset['title'] ??
+		owner.querySelector('h1,h2,h3')?.textContent ??
+		'Island';
 	const trigger = createIconButton(
 		mode === 'sidebar' ? 'sidebar-simple' : 'arrows-out',
 		`${mode === 'sidebar' ? 'Open sidebar for' : 'Expand'} ${label}`,
@@ -29,6 +33,10 @@ export function installIslandInspector(owner: HTMLElement, always: boolean = fal
 			const detailStates = Array.from(
 				owner.querySelectorAll<HTMLElement>(':scope > [slot="details"]'),
 			).map((element) => ({ element, hidden: element.hidden }));
+			const disclosureStates = Array.from(owner.querySelectorAll('details')).map((element) => ({
+				element,
+				open: element.open,
+			}));
 			const dialog = document.createElement('dialog');
 			dialog.className = 'ex-inspect-dialog';
 			dialog.dataset['mode'] = mode;
@@ -81,6 +89,7 @@ export function installIslandInspector(owner: HTMLElement, always: boolean = fal
 				(): void => {
 					for (const node of contentNodes) owner.insertBefore(node, trigger);
 					for (const detail of detailStates) detail.element.hidden = detail.hidden;
+					for (const disclosure of disclosureStates) disclosure.element.open = disclosure.open;
 					if (originalStyle === null) owner.removeAttribute('style');
 					else owner.setAttribute('style', originalStyle);
 					dialog.remove();
@@ -91,6 +100,7 @@ export function installIslandInspector(owner: HTMLElement, always: boolean = fal
 			);
 			document.body.append(dialog);
 			for (const detail of detailStates) detail.element.hidden = false;
+			for (const disclosure of disclosureStates) disclosure.element.open = true;
 			dialog.showModal();
 		},
 	);

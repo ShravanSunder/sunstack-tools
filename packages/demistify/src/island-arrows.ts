@@ -1,7 +1,9 @@
+import { reportIssue } from './issues.ts';
+
 type IslandAnchor = 'left' | 'right' | 'top' | 'bottom';
 interface ArrowPoint {
-	readonly x: number;
-	readonly y: number;
+	x: number;
+	y: number;
 }
 const activeArrows = new Set<ArrowIsland>();
 let redrawFrame: number | undefined;
@@ -74,6 +76,22 @@ export class ArrowIsland extends HTMLElement {
 			document.addEventListener('island-ready', scheduleArrows);
 		}
 		scheduleArrows();
+		window.setTimeout((): void => this.verifyConnection(), 2000);
+	}
+	private verifyConnection(): void {
+		for (const name of ['from', 'to']) {
+			const endpointId = this.getAttribute(name);
+			if (!endpointId || !document.getElementById(endpointId))
+				reportIssue(this, `${name}="${endpointId ?? ''}" does not match any element id.`);
+		}
+		const source = document.getElementById(this.getAttribute('from') ?? '');
+		const target = document.getElementById(this.getAttribute('to') ?? '');
+		const line = this.path?.getTotalLength() ?? 0;
+		if (source && target && source.checkVisibility() && target.checkVisibility() && line < 28)
+			reportIssue(
+				this,
+				`Arrow ${source.id} → ${target.id} is only ${Math.round(line)}px long and hard to see; leave a wider gap between the two boxes.`,
+			);
 	}
 	disconnectedCallback(): void {
 		activeArrows.delete(this);
@@ -115,6 +133,22 @@ export class ArrowIsland extends HTMLElement {
 			(horizontal ? (forward ? 'left' : 'right') : forward ? 'top' : 'bottom');
 		const start = anchorPoint(sourceBounds, validAnchor(sourceAnchor));
 		const end = anchorPoint(targetBounds, validAnchor(targetAnchor));
+		if (!this.hasAttribute('from-anchor') && !this.hasAttribute('to-anchor')) {
+			const [low, high] = horizontal
+				? [
+						Math.max(sourceBounds.top, targetBounds.top),
+						Math.min(sourceBounds.bottom, targetBounds.bottom),
+					]
+				: [
+						Math.max(sourceBounds.left, targetBounds.left),
+						Math.min(sourceBounds.right, targetBounds.right),
+					];
+			if (high - low > 24) {
+				const shared = (low + high) / 2;
+				if (horizontal) start.y = end.y = shared;
+				else start.x = end.x = shared;
+			}
+		}
 		const bend = Math.min(100, Math.max(32, Math.hypot(end.x - start.x, end.y - start.y) / 3));
 		const direction = forward ? 1 : -1;
 		this.overlay.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);

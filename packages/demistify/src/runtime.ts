@@ -1,6 +1,9 @@
+import { CalloutIsland, CardIsland } from './card-island.ts';
 import { HeadingNavigation } from './heading-navigation.ts';
+import { createIconButton } from './icon-controls.ts';
 import { ArrowIsland } from './island-arrows.ts';
 import { installIslandInspector, ZoomIsland } from './island-inspector.ts';
+import { reportIssue } from './issues.ts';
 import { MarkdownIsland, MermaidIsland } from './markdown-diagram-islands.ts';
 import { normalizeIslandText } from './source-text.ts';
 import { TabsIsland } from './tabs-island.ts';
@@ -10,15 +13,22 @@ class StructuralIsland extends HTMLElement {
 		installIslandInspector(this);
 	}
 }
+class GridIsland extends HTMLElement {}
+class DocumentIsland extends StructuralIsland {
+	override connectedCallback(): void {
+		super.connectedCallback();
+		if (!document.querySelector('ex-nav')) this.before(document.createElement('ex-nav'));
+		if (!document.querySelector('[data-ex-theme]')) {
+			const toggle = createIconButton('circle-half', 'Switch light or dark theme', (): void => {});
+			toggle.dataset['exTheme'] = '';
+			toggle.classList.add('ex-theme-toggle');
+			document.body.append(toggle);
+		}
+	}
+}
 class DecisionIsland extends HTMLElement {
 	connectedCallback(): void {
 		this.classList.add('decision');
-		installIslandInspector(this);
-	}
-}
-class CalloutIsland extends HTMLElement {
-	connectedCallback(): void {
-		this.classList.add('why');
 		installIslandInspector(this);
 	}
 }
@@ -69,17 +79,32 @@ for (const [tagName, constructor] of [
 	['ex-timeline', TimelineIsland],
 	['ex-layer', LayerIsland],
 	['ex-file-tree', FileTreeIsland],
-	['ex-document', StructuralIsland],
+	['ex-card', CardIsland],
+	['ex-grid', GridIsland],
+	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 ] satisfies readonly (readonly [string, CustomElementConstructor])[]) {
 	if (!customElements.get(tagName)) customElements.define(tagName, constructor);
 }
 
+const seenIds = new Set<string>();
+for (const element of document.querySelectorAll('[id]')) {
+	if (seenIds.has(element.id))
+		reportIssue(element, `Duplicate id "${element.id}"; ids must be unique.`);
+	seenIds.add(element.id);
+}
+for (const element of document.querySelectorAll('*')) {
+	if (element.localName.startsWith('ex-') && !customElements.get(element.localName))
+		reportIssue(element, `Unknown element <${element.localName}>.`);
+}
+
 document.addEventListener('click', (event: MouseEvent): void => {
 	if (!(event.target instanceof Element)) return;
 	if (event.target.closest('[data-ex-theme]')) {
-		document.documentElement.dataset['theme'] =
-			document.documentElement.dataset['theme'] === 'dark' ? 'light' : 'dark';
+		const current =
+			document.documentElement.dataset['theme'] ??
+			(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+		document.documentElement.dataset['theme'] = current === 'dark' ? 'light' : 'dark';
 		return;
 	}
 	const targetLink = event.target.closest('a');

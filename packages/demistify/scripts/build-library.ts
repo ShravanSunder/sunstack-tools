@@ -25,9 +25,13 @@ await build({
 	},
 });
 const styles = await Promise.all(
-	['theme.css', 'reference-components.css', 'component-styles.css', 'navigation-styles.css'].map(
-		(name): Promise<string> => readFile(resolve(packageRoot, 'src', name), 'utf8'),
-	),
+	[
+		'theme.css',
+		'reference-components.css',
+		'component-styles.css',
+		'navigation-styles.css',
+		'vocabulary-styles.css',
+	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src', name), 'utf8')),
 );
 const iconFont = await readFile(
 	new URL(import.meta.resolve('@phosphor-icons/web/regular/Phosphor.woff2')),
