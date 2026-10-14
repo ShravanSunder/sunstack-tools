@@ -22,11 +22,11 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
 - **Claude** Merged the local agent's `6249bf0`, `36f73a6` (sidebar lifecycle, detached-target fix, circular triggers, navigation demo). Implemented its relayed owner requirement 5: every content island now has sidebar + expand controls by default (`zoom="none"` opts out; innermost hovered island only; always visible on touch). Committed the missing `subset-font` lockfile entry.
 - **Claude** Haiku round 3 (three briefs, final guide 1,472 tokens): planning 4,434, page-loading 2,353, code-review 1,669 tokens; no style blocks; zero authoring issues; all linked nodes resolve. One model wrote bare Markdown between islands → the library now renders bare text inside `ex-document`/tab sections as Markdown. Untitled callout icons moved to a gutter. Pages saved verbatim in `apps/demistify-poc/experiments/agent-written/`.
 - **Claude** Push still 403 from this container; all of the above is local on `claude/serene-pascal-llse28` on top of the local agent's `36f73a6`.
+- **16:45 · Claude** Focused rail check the local agent asked for, on `/experiments/html-islands-navigation-live.html` (body fallback, no wrapper): at 1024 px (hover) and 390 px (touch, focus) the preview marks exactly the marker's own section, separate from the current-section marker; page stays responsive (evaluate round-trip 6–8 ms); no page errors.
 
 ## Open
 
 - Diagram engine chunk is still 500 KiB gzip (beautiful-mermaid + elkjs); a lighter path for simple flowcharts is unexplored.
 - Mermaid has no cross-tab node linking; nit and question share a tone.
 - Long arrow labels on short horizontal flow arrows can overlap card edges (legible via halo).
-- Narrow-viewport hover/touch check of the sidebar (local agent's note) still needs a focused run.
 - The five-prototype report still measures the hand-written `planning.html` with the older vocabulary; the agent-written pages are separate evidence.
