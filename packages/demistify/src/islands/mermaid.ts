@@ -1,6 +1,6 @@
 import { reportIssue } from '../core/issues.ts';
 import { normalizeIslandText, readIslandSource } from '../core/source-text.ts';
-import { renderThemedDiagram } from '../render/diagram.ts';
+import { renderDiagramSvg } from '../render/diagram-client.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
@@ -19,6 +19,23 @@ function sizeDiagram(owner: HTMLElement): void {
 		svg.style.width = `${Math.round(readableWidth)}px`;
 		owner.classList.add('ex-diagram-wide');
 	}
+}
+
+/**
+ * A diagram starts rendering only once visible, but the worker answers later, by which time a
+ * reader may have switched its tab away; it is then sized when it is next shown.
+ */
+function sizeDiagramWhenShown(owner: HTMLElement): void {
+	if (owner.clientWidth > 0) {
+		sizeDiagram(owner);
+		return;
+	}
+	const observer = new ResizeObserver((): void => {
+		if (owner.clientWidth === 0) return;
+		observer.disconnect();
+		sizeDiagram(owner);
+	});
+	observer.observe(owner);
 }
 
 function openLinkedElement(target: HTMLElement): void {
@@ -97,10 +114,9 @@ export class MermaidIsland extends HTMLElement {
 		if (this.hasAttribute('prepared')) return;
 		const sourceText = readIslandSource(this) ?? '';
 		try {
-			const { renderMermaidSVG } = await import('beautiful-mermaid');
-			this.innerHTML = renderThemedDiagram(renderMermaidSVG, normalizeIslandText(sourceText));
+			this.innerHTML = await renderDiagramSvg(normalizeIslandText(sourceText));
 			this.setAttribute('prepared', '');
-			sizeDiagram(this);
+			sizeDiagramWhenShown(this);
 			checkDiagram(this, sourceText);
 			linkDiagramNodes(this);
 			installIslandInspector(this);

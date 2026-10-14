@@ -85,6 +85,10 @@ Every spacing, type size, radius, shadow and motion value in the library CSS com
 
 Authors normally write no CSS. Hand-placed layouts may use the spacing tokens in inline styles (`style="gap: var(--space-6)"`).
 
+## Hosting
+
+Serve the whole `dist/` folder together: `runtime.js`, `diagram-worker.js`, `chunks/`, `theme.css`, `fonts/` and `Phosphor.woff2`. Diagrams render in a module worker (`diagram-worker.js`, resolved beside `runtime.js`) so laying out a diagram never freezes the page; the worker is started from a same-origin Blob that imports it, which works when the library comes from another origin. Where workers are unavailable (a strict `worker-src`, `file://` pages), diagrams render on the main thread with identical output. Cross-origin hosting needs `Access-Control-Allow-Origin: *` on these files (module scripts and fonts are CORS-checked).
+
 ## Checking pages
 
 `src/vocabulary.ts` is the one description of the authoring vocabulary: every element, its attributes, allowed values, id references and nesting. Everything that checks or documents the vocabulary derives from it.

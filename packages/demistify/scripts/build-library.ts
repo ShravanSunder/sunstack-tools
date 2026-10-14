@@ -23,9 +23,14 @@ await build({
 		outDir: outputDirectory,
 		emptyOutDir: true,
 		lib: {
-			entry: resolve(packageRoot, 'src/runtime.ts'),
+			// The diagram worker sits beside runtime.js, which resolves it from its own URL, and shares
+			// the engine chunk with the main-thread fallback.
+			entry: {
+				runtime: resolve(packageRoot, 'src/runtime.ts'),
+				'diagram-worker': resolve(packageRoot, 'src/render/diagram-worker.ts'),
+			},
 			formats: ['es'],
-			fileName: (): string => 'runtime.js',
+			fileName: (_format: string, entryName: string): string => `${entryName}.js`,
 		},
 		rolldownOptions: { output: { chunkFileNames: 'chunks/[name]-[hash].js' } },
 	},

@@ -77,6 +77,11 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - Costs: about +60 ms until diagrams finish at 1×, about +260 ms on a slow device, and a worker thread of about 7.6 MB.
   - The worker needs a workaround for beautiful-mermaid's `self` reassignment inside workers; keep the engine version pinned.
   - Markdown stays on the main thread (about 51 ms at 1×, mostly first-use parser warm-up).
+- **Claude** Merged the render worker (commit `4431252` from the worker's branch, applied on the current head without conflicts). Re-verified after the merge:
+  - The build emits `diagram-worker.js` beside `runtime.js`.
+  - Pages that render diagrams in the browser show all of them, with linked nodes, no issues and no errors (round-5 deep dive 4, round-4 planning 3, round-5 code review 2, html-islands-live 6).
+  - A `file://` page loading the library from another origin with CORS renders identically through the fallback, guards included.
+  - The README's new Hosting section says what to deploy together.
 
 ## Open
 
