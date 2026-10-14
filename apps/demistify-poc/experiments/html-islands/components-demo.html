@@ -180,6 +180,25 @@
 				<ex-step to="wb-program">Then who owns what.</ex-step>
 				<ex-step to="wb-verify">Finally, how we will know.</ex-step>
 			</ex-route>
+			## Resume, one step at a time
+
+			<ex-mermaid id="resume-walk"
+				><script type="text/plain">
+					flowchart LR
+					  client[Client reconnects] --> gateway[Gateway] --> registry[Registry]
+					  registry --> store[(Session store)]
+					  registry --> binder[Socket binder]
+					  registry --> events[Event publisher]
+				</script></ex-mermaid
+			>
+
+			<ex-route label="Walk the resume">
+				<ex-step to="client">The client reconnects and sends its session id.</ex-step>
+				<ex-step to="gateway">The gateway calls resume.</ex-step>
+				<ex-step to="registry">The registry reads the session and checks its version.</ex-step>
+				<ex-step to="binder">The binder attaches the new socket.</ex-step>
+				<ex-step to="events">Finally the publisher announces the resumed session.</ex-step>
+			</ex-route>
 		</ex-document>
 	</body>
 </html>
