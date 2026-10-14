@@ -1,11 +1,12 @@
 import { nameChartSeries, prepareChartSource } from './chart-source.ts';
+import { respaceGraphEdges } from './graph-source.ts';
 import { removeSvgFontImports } from './svg-fonts.ts';
 
 type MermaidRenderer = (source: string, options: Record<string, unknown>) => string;
 
 /** Renders diagram text with the page's colour tokens and local fonts. */
 export function renderThemedDiagram(render: MermaidRenderer, sourceText: string): string {
-	const chart = prepareChartSource(sourceText);
+	const chart = prepareChartSource(respaceGraphEdges(sourceText));
 	return nameChartSeries(
 		removeSvgFontImports(
 			render(chart.source, {

@@ -1,6 +1,7 @@
 import { reportIssue } from '../core/issues.ts';
 import { normalizeIslandText, readIslandSource } from '../core/source-text.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
+import { hasGraphEdges } from '../render/graph-source.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
 /**
@@ -27,6 +28,22 @@ function openLinkedElement(target: HTMLElement): void {
 	}
 	target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	target.focus({ preventScroll: true });
+}
+
+/** Reports diagram text the engine accepted but drew wrong. */
+function checkDiagram(owner: HTMLElement, sourceText: string): void {
+	for (const group of owner.querySelectorAll<SVGGElement>('g.subgraph[data-id]')) {
+		if (Number.parseFloat(group.querySelector('rect')?.getAttribute('width') ?? '1') > 0) continue;
+		reportIssue(
+			owner,
+			`Subgraph "${group.dataset['id'] ?? ''}" is empty: declare its nodes inside the subgraph block.`,
+		);
+	}
+	if (hasGraphEdges(sourceText) && !owner.querySelector('.edge'))
+		reportIssue(
+			owner,
+			'No arrows rendered: check the arrow syntax, e.g. a --> b or a -->|label| b.',
+		);
 }
 
 /** A diagram node whose id matches an element on the page takes that element's tone and opens it. */
@@ -83,6 +100,7 @@ export class MermaidIsland extends HTMLElement {
 			this.innerHTML = renderThemedDiagram(renderMermaidSVG, normalizeIslandText(sourceText));
 			this.setAttribute('prepared', '');
 			sizeDiagram(this);
+			checkDiagram(this, sourceText);
 			linkDiagramNodes(this);
 			installIslandInspector(this);
 			this.dispatchEvent(new Event('island-ready', { bubbles: true }));
