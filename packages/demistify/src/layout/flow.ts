@@ -1,3 +1,5 @@
+import { reportIssue } from '../core/issues.ts';
+
 interface Point {
 	readonly x: number;
 	readonly y: number;
@@ -117,15 +119,20 @@ export class FlowIsland extends HTMLElement {
 	};
 
 	connectedCallback(): void {
-		if (this.hasAttribute('data-inspector-content') || this.overlay) return;
-		const overlay = document.createElementNS(svgNamespace, 'svg');
-		overlay.classList.add('ex-flow-overlay');
-		overlay.setAttribute('aria-hidden', 'true');
-		const markerId = `ex-flow-${crypto.randomUUID()}`;
-		overlay.innerHTML = `<defs><marker id="${markerId}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"/></marker></defs>`;
-		overlay.dataset['marker'] = markerId;
-		this.prepend(overlay);
-		this.overlay = overlay;
+		if (this.hasAttribute('data-inspector-content')) return;
+		if (!this.overlay) {
+			const overlay = document.createElementNS(svgNamespace, 'svg');
+			overlay.classList.add('ex-flow-overlay');
+			overlay.setAttribute('aria-hidden', 'true');
+			const markerId = `ex-flow-${crypto.randomUUID()}`;
+			overlay.innerHTML = `<defs><marker id="${markerId}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"/></marker></defs>`;
+			overlay.dataset['marker'] = markerId;
+			this.prepend(overlay);
+			this.overlay = overlay;
+			window.setTimeout((): void => this.verifyArrows(), 2000);
+		}
+		// Observers are rebuilt on every connection, so a flow moved elsewhere keeps routing.
+		this.resizeObserver?.disconnect();
 		this.resizeObserver = new ResizeObserver(this.schedule);
 		this.resizeObserver.observe(this);
 		for (const child of this.islands()) this.resizeObserver.observe(child);
@@ -138,6 +145,18 @@ export class FlowIsland extends HTMLElement {
 		this.resizeObserver?.disconnect();
 		document.fonts.removeEventListener('loadingdone', this.schedule);
 		if (this.frame !== undefined) cancelAnimationFrame(this.frame);
+		this.frame = undefined;
+	}
+
+	private verifyArrows(): void {
+		const childIds = new Set(this.islands().map((child): string => child.id));
+		for (const arrow of this.querySelectorAll(':scope > ex-arrow'))
+			for (const end of ['from', 'to'])
+				if (!childIds.has(arrow.getAttribute(end) ?? ''))
+					reportIssue(
+						arrow,
+						`${end}="${arrow.getAttribute(end) ?? ''}" must be an island placed directly in this ${this.localName}.`,
+					);
 	}
 
 	private islands(): HTMLElement[] {
@@ -150,7 +169,15 @@ export class FlowIsland extends HTMLElement {
 	private route(): void {
 		const overlay = this.overlay;
 		if (!overlay || !this.checkVisibility()) return;
-		const origin = this.getBoundingClientRect();
+		// Work in the flow's own units so routing stays correct when a camera or zoom scales it.
+		const screen = this.getBoundingClientRect();
+		const scale = this.offsetWidth > 0 ? screen.width / this.offsetWidth : 1;
+		const origin = {
+			left: screen.left,
+			top: screen.top,
+			width: this.offsetWidth,
+			height: this.offsetHeight,
+		};
 		overlay.setAttribute('viewBox', `0 0 ${origin.width} ${origin.height}`);
 		overlay.setAttribute('width', String(origin.width));
 		overlay.setAttribute('height', String(origin.height));
@@ -160,10 +187,10 @@ export class FlowIsland extends HTMLElement {
 			if (!element.id || bounds.width === 0) continue;
 			boxes.set(element.id, {
 				element,
-				left: bounds.left - origin.left,
-				right: bounds.right - origin.left,
-				top: bounds.top - origin.top,
-				bottom: bounds.bottom - origin.top,
+				left: (bounds.left - origin.left) / scale,
+				right: (bounds.right - origin.left) / scale,
+				top: (bounds.top - origin.top) / scale,
+				bottom: (bounds.bottom - origin.top) / scale,
 				row: 0,
 				column: 0,
 			});

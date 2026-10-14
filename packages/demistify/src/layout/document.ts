@@ -1,6 +1,7 @@
 import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createIconButton } from '../core/icons.ts';
 import { installIslandInspector } from '../islands/inspector.ts';
+import { BoardIsland } from './board.ts';
 
 export class StructuralIsland extends HTMLElement {
 	connectedCallback(): void {
@@ -56,5 +57,6 @@ export function revealElement(target: Element): void {
 				?.click();
 		}
 		if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+		if (ancestor instanceof BoardIsland) ancestor.focusOn(target);
 	}
 }
