@@ -157,7 +157,7 @@ export function graphToMermaid(graph: ArchitectureGraph, changes?: GraphChangeSe
 						? 'modified'
 						: 'unchanged';
 		lines.push(
-			`  ${node.id}[${JSON.stringify(status === 'unchanged' ? node.label : `${node.label} [${status}]`)}]:::${status}`,
+			`  ${node.id}[${JSON.stringify(status === 'unchanged' ? node.label : `${node.label} · ${status}`)}]:::${status}`,
 		);
 	}
 	graph.edges.forEach((edge, index): void => {

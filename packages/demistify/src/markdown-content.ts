@@ -10,7 +10,7 @@ export function renderMarkdownContent(sourceText: string): string {
 			html: (token: Tokens.HTML | Tokens.Tag): string => escapeHtml(token.text),
 			code: (token: Tokens.Code): string | false => {
 				if (token.lang?.trim().split(/\s+/)[0]?.toLowerCase() !== 'mermaid') return false;
-				return `<ex-mermaid zoom="modal"><template>${escapeHtml(token.text)}</template></ex-mermaid>`;
+				return `<ex-mermaid><template>${escapeHtml(token.text)}</template></ex-mermaid>`;
 			},
 		},
 	});

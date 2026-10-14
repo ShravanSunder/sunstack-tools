@@ -44,8 +44,8 @@ ex-mermaid > svg {
 }
 .ex-inspect-controls {
 	position: absolute;
-	top: 8px;
-	right: 8px;
+	top: 6px;
+	right: 6px;
 	z-index: 2;
 	display: flex;
 	gap: 4px;
@@ -65,8 +65,12 @@ ex-mermaid > svg {
 .ex-inspectable:focus-within > .ex-inspect-controls {
 	opacity: 1;
 }
+.ex-inspectable > :is(h1, h2, h3, h4, h5, h6):first-child {
+	padding-inline-end: 64px;
+}
 .ex-inspect-dialog {
-	width: min(1100px, 94vw);
+	width: calc(100vw - 48px);
+	height: calc(100dvh - 48px);
 	max-width: none;
 	max-height: 94dvh;
 	border: 1px solid var(--rule);
@@ -102,10 +106,15 @@ ex-mermaid > svg {
 	flex: 1;
 }
 .ex-inspect-body {
+	flex: 1;
 	min-height: 0;
 	overflow: auto;
 	overscroll-behavior: contain;
 	padding: 24px;
+}
+.ex-inspect-body > ex-markdown {
+	width: min(78ch, 100%);
+	margin-inline: auto;
 }
 .ex-inspect-body > ex-mermaid {
 	display: grid;

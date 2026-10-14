@@ -7,14 +7,14 @@ HTML owns composition and layout. Islands can live in ordinary flow, CSS grid/fl
 <script type="module" src="islands/runtime.js"></script>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px">
-	<ex-markdown id="requirements" zoom="sidebar" label="Requirements">
+	<ex-markdown id="requirements" label="Requirements">
 		<script type="text/markdown">
 			## Requirements
 
 			State the outcome and boundary.
 		</script>
 	</ex-markdown>
-	<ex-mermaid id="design" zoom="modal" label="Design">
+	<ex-mermaid id="design" label="Design">
 		<script type="text/plain">
 			flowchart TD
 			  Requirements --> Design --> Plan
@@ -26,7 +26,7 @@ HTML owns composition and layout. Islands can live in ordinary flow, CSS grid/fl
 
 Markdown Mermaid fences create the same Mermaid island as explicit tags. A `text` fence preserves source literally. Inert source blocks preserve HTML/Markdown whitespace; generated diagram islands use inert templates internally. Mermaid `src` references are resolved by packaging from the supplied corpus.
 
-Use `zoom="modal"` or `zoom="sidebar"` on Markdown, Mermaid, callouts, decisions and other native islands. `ex-zoom` is the generic wrapper for ordinary HTML or compositions. It keeps natural inline layout and opens a larger inspector with magnification controls. Optional direct children with `slot="details"` are hidden inline and revealed by the inspector. Content is moved and restored with its original place reserved; it is not duplicated.
+Markdown, Mermaid, callouts, decisions and other content islands automatically provide small circular sidebar and centered-view controls; no opt-in attribute is needed. `ex-zoom` is the generic wrapper for ordinary HTML or compositions. It keeps natural inline layout and opens a larger inspector with magnification controls. Optional direct children with `slot="details"` are hidden inline and revealed by the inspector. Content is moved and restored with its original place reserved; it is not duplicated.
 
 Diagrams are centered and use natural height by default; content is never cropped into a preview automatically. Scrollable Markdown code blocks and tables own their overflow. If a layout needs a bounded diagram viewport, explicitly give that island `style="max-height:420px;overflow:auto"`.
 

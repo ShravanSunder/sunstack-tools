@@ -33,8 +33,8 @@ function inspectionLabel(owner: HTMLElement): string {
 	return (
 		owner.getAttribute('label') ??
 		owner.dataset['title'] ??
-		owner.querySelector('h1,h2,h3')?.textContent ??
-		'this island'
+		owner.querySelector('h1,h2,h3,h4,h5,h6')?.textContent ??
+		owner.localName.replace('ex-', '')
 	);
 }
 
@@ -138,6 +138,8 @@ export function installIslandInspector(owner: HTMLElement, always: boolean = fal
 	const label = inspectionLabel(owner);
 	const controls = document.createElement('span');
 	controls.className = 'ex-inspect-controls';
+	controls.setAttribute('role', 'group');
+	controls.setAttribute('aria-label', `Inspect ${label}`);
 	const sidebar = createIconButton('sidebar-simple', `Open ${label} in a sidebar`, (): void =>
 		openInspector(owner, controls, 'sidebar'),
 	);
