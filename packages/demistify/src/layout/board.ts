@@ -74,9 +74,11 @@ export class BoardIsland extends HTMLElement {
 		canvas.append(...Array.from(this.childNodes));
 		this.append(this.createToolbar(), canvas);
 		this.canvas = canvas;
-		const wanted = this.getAttribute('mode');
-		// A hand-placed canvas cannot reflow, so it stays a map on narrow screens too.
-		this.setMode(wanted === 'read' || (!free && this.clientWidth < 760) ? 'read' : 'map');
+		// The map is the author's deliberate choice (mode="map"); a board otherwise reads like the page.
+		// Regions reflow, so a region map reads on narrow screens; a hand-placed canvas cannot, so it
+		// stays a map when one was asked for.
+		const map = this.getAttribute('mode') === 'map' && (free || this.clientWidth >= 760);
+		this.setMode(map ? 'map' : 'read');
 		const refit = new ResizeObserver((): void => {
 			if (this.dataset['mode'] === 'map' && !this.userMoved) this.fit();
 		});

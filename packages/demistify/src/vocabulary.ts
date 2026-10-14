@@ -178,7 +178,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			'A pannable, zoomable map: of ex-region groups, or of your own layout (absolute, grid or flex) when it has no regions.',
 		attributes: {
 			cols: columns,
-			mode: oneOf('Start in the map or the reading view.', ['map', 'read']),
+			mode: oneOf(
+				'read (default) shows the board like the page; map starts as a pannable, zoomable map, a deliberate choice for an overview.',
+				['map', 'read'],
+			),
 		},
 	},
 	'ex-region': {
