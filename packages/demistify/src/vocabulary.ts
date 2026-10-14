@@ -3,19 +3,10 @@
  * one source for the runtime's attribute checks, the `demistify check` CLI, the element manifest
  * and editor completions, so the contract cannot drift between them. Pure data; safe in Node.
  */
-export const toneNames = [
-	'note',
-	'tldr',
-	'decision',
-	'risk',
-	'question',
-	'done',
-	'planned',
-	'changed',
-	'added',
-	'removed',
-] as const;
-export type ToneName = (typeof toneNames)[number];
+import { subjectIconAliases, subjectIcons } from './core/subject-icons.ts';
+import { toneAliases, type ToneName, toneNames } from './core/tone-names.ts';
+
+export { type ToneName, toneNames };
 
 export type AttributeType =
 	| { readonly kind: 'text' }
@@ -58,6 +49,7 @@ const oneOf = (description: string, values: readonly string[]): AttributeSpec =>
 });
 const tone: AttributeSpec = oneOf('What kind of thing this is; sets icon and colour.', toneNames);
 const toneExpected: AttributeSpec = { ...tone, recommended: true };
+const icon = oneOf('What the thing is (a curated icon); the tone still colours it.', subjectIcons);
 const label = text('Name used by the inspector, tabs and routes.');
 const columns: AttributeSpec = {
 	description: 'Most columns side by side (1–6); fewer when narrow, one on phones.',
@@ -85,6 +77,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		attributes: {
 			title: text('The specific thing, shown as the card heading.'),
 			tone: toneExpected,
+			icon,
 			tag: text('Short tag beside the title, e.g. a tradeoff or location.'),
 			pick: flag('Marks the chosen option.'),
 			label,
@@ -143,6 +136,17 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		attributes: { label },
 		source: 'text/plain',
 	},
+	'ex-tree': {
+		description:
+			'A Markdown list as a tree: "tone: text" gives a node its icon, [x]/[ ] make a checklist, [text](#id) jumps to an island.',
+		attributes: {
+			title: text('Root node.'),
+			tone,
+			icon,
+			layout: oneOf('outline (default) or a left-to-right mind map.', ['outline', 'map']),
+			label,
+		},
+	},
 	'ex-grid': {
 		description: 'Children side by side; wraps when narrow, one column on phones.',
 		attributes: { cols: columns, swipe: flag('A sideways swipe row on phones.') },
@@ -176,7 +180,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-region': {
 		description: 'A titled group on a board; children marked `detail` show when it opens.',
-		attributes: { title: text('Region heading.'), tone: toneExpected, label },
+		attributes: { title: text('Region heading.'), tone: toneExpected, icon, label },
 		childAttributes: { detail: flag('Hidden on the map until the region is opened.') },
 		within: ['ex-board'],
 	},
@@ -257,21 +261,6 @@ const attributeAliases: Readonly<Record<string, string>> = {
 	language: 'lang',
 	'start-line': 'start',
 };
-const toneAliases: Readonly<Record<string, ToneName>> = {
-	info: 'note',
-	tip: 'note',
-	summary: 'tldr',
-	warning: 'risk',
-	danger: 'risk',
-	error: 'risk',
-	blocking: 'risk',
-	success: 'done',
-	complete: 'done',
-	todo: 'planned',
-	new: 'added',
-	deleted: 'removed',
-	modified: 'changed',
-};
 
 export interface AttributeProblem {
 	readonly attribute: string;
@@ -320,11 +309,21 @@ function checkValue(
 			message: `${name}="${value}" still turns ${name} on; remove the attribute instead.`,
 		};
 	if (type.kind === 'enum' && !type.values.includes(value)) {
-		const meant =
-			(type.values === toneNames ? toneAliases[value] : undefined) ?? closest(value, type.values);
+		const aliases: Readonly<Record<string, string>> | undefined =
+			type.values === toneNames
+				? toneAliases
+				: type.values === subjectIcons
+					? subjectIconAliases
+					: undefined;
+		const alias = aliases?.[value];
+		const meant = alias ?? closest(value, type.values);
 		return {
 			attribute: name,
-			message: `${name}="${value}" is not one of: ${type.values.join(', ')}.${meant ? ` Use ${name}="${meant}".` : ''}`,
+			// A known synonym still works at runtime; it is only worth writing the real name.
+			...(alias ? { severity: 'warning' as const } : {}),
+			message: meant
+				? `${name}="${value}" is not a known ${name}; write ${name}="${meant}".`
+				: `${name}="${value}" is not one of: ${type.values.join(', ')}.`,
 			...(meant ? { fix: { value: meant } } : {}),
 		};
 	}
@@ -363,7 +362,7 @@ export function checkAttributes(
 					severity: 'warning',
 					message:
 						name === 'tone'
-							? `<${element}> has no tone, so no icon or colour; add tone="…" for its status or kind (timing and location go in tag).`
+							? `<${element}> has no tone, so no ${attributes.has('icon') ? '' : 'icon or '}colour; add tone="…" for its status or kind (timing and location go in tag).`
 							: `<${element}> should have ${name}="…".`,
 				});
 	for (const [name, value] of attributes) {

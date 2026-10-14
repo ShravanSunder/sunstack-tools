@@ -117,6 +117,10 @@ ex-flow > ex-arrow {
 :is(ex-grid, ex-flow) > [span='all'] {
 	grid-column: 1 / -1;
 }
+/* Islands stacked in one grid cell (a plain column div) keep the grid's rhythm. */
+:is(ex-grid, ex-flow) > :not([class]) > * + * {
+	margin-top: var(--space-4);
+}
 :is(ex-grid, ex-flow) > * + * {
 	margin-top: 0;
 }
@@ -193,7 +197,7 @@ ex-card[pick] {
 	border-radius: var(--radius-sm);
 	padding: 2px var(--space-2);
 }
-.ex-card-tag {
+.ex-head-tag {
 	font: var(--text-2xs) var(--mono);
 	color: var(--ink-soft);
 	background: var(--keep-bg);
@@ -725,4 +729,133 @@ ex-mermaid.ex-diagram-wide > svg {
 	outline: 2px dashed var(--accent);
 	outline-offset: var(--space-1);
 	border-radius: var(--radius-md);
+}
+
+/* Tree: a Markdown list as an outline, or as a left-to-right mind map when there is room. */
+ex-tree {
+	display: block;
+	container-type: inline-size;
+	font: var(--text-md) / 1.45 var(--display);
+}
+ex-tree ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+ex-tree li {
+	margin: 0;
+}
+ex-tree li > ul {
+	margin-left: 9px;
+	padding-left: var(--space-4);
+	border-left: 1px solid var(--rule);
+}
+.ex-tree-node {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px var(--space-2);
+	padding: 3px 0;
+}
+.ex-tree-node > .ex-tone-icon {
+	font-size: var(--text-md);
+}
+.ex-tree-node[aria-expanded] {
+	cursor: pointer;
+}
+.ex-tree-node[aria-expanded]:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}
+.ex-tree-node > .ph-caret-down {
+	color: var(--ink-soft);
+	font-size: var(--text-2xs);
+	transition: transform var(--motion-fast);
+}
+.ex-tree-count {
+	display: none;
+	border-radius: var(--radius-pill);
+	padding: 0 var(--space-2);
+	background: var(--keep-bg);
+	color: var(--ink-soft);
+	font-size: var(--text-2xs);
+}
+li[data-collapsed] > .ex-tree-node > .ex-tree-count {
+	display: inline-block;
+}
+li[data-collapsed] > .ex-tree-node > .ph-caret-down {
+	transform: rotate(-90deg);
+}
+li[data-collapsed] > ul {
+	display: none;
+}
+.ex-tree-root > .ex-tree-node strong {
+	font-size: var(--text-lg);
+}
+.ex-tree-node a {
+	color: var(--accent);
+}
+@container (min-width: 640px) {
+	ex-tree[layout='map'] .ex-tree-body {
+		overflow-x: auto;
+		padding-block: var(--space-2);
+	}
+	ex-tree[layout='map'] li {
+		position: relative;
+		display: flex;
+		align-items: center;
+		padding-block: var(--space-1);
+	}
+	ex-tree[layout='map'] li > ul {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		margin-left: 0;
+		padding-left: var(--space-8);
+		border-left: 0;
+	}
+	/* From a node to its children's spine, then from the spine to each child. */
+	ex-tree[layout='map'] li > ul::before,
+	ex-tree[layout='map'] li > ul > li::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		width: var(--space-4);
+		border-top: 1.5px solid var(--rule);
+	}
+	ex-tree[layout='map'] li > ul::before {
+		left: 0;
+	}
+	ex-tree[layout='map'] li > ul > li::before {
+		left: calc(-1 * var(--space-4));
+	}
+	ex-tree[layout='map'] li > ul > li::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: calc(-1 * var(--space-4));
+		border-left: 1.5px solid var(--rule);
+	}
+	ex-tree[layout='map'] li > ul > li:first-child::after {
+		top: 50%;
+	}
+	ex-tree[layout='map'] li > ul > li:last-child::after {
+		bottom: 50%;
+	}
+	ex-tree[layout='map'] li > ul > li:only-child::after {
+		display: none;
+	}
+	ex-tree[layout='map'] .ex-tree-node {
+		flex: none;
+		max-width: 280px;
+		padding: var(--space-1) var(--space-3);
+		border: 1px solid var(--rule);
+		border-radius: var(--radius-md);
+		background: var(--sheet);
+	}
+	ex-tree[layout='map'] li[tone] > .ex-tree-node {
+		border-color: color-mix(in srgb, var(--tone) 50%, var(--rule));
+	}
 }

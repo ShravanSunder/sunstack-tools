@@ -155,6 +155,14 @@ await writeFile(
 		false,
 	),
 );
+await writeFile(
+	`${outputDirectory}/html-islands-components-live.html`,
+	prepareIslandContent(
+		await readFile('experiments/html-islands/components-demo.html', 'utf8'),
+		diagramReferences,
+		false,
+	),
+);
 
 await writeFile(
 	`${outputDirectory}/html-islands-navigation-live.html`,

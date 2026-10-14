@@ -14,6 +14,7 @@ import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
 import { StatIsland } from './islands/stat.ts';
 import { TabsIsland } from './islands/tabs.ts';
+import { TreeIsland } from './islands/tree.ts';
 import { ArrowIsland } from './layout/arrows.ts';
 import { BoardIsland, RegionIsland } from './layout/board.ts';
 import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/document.ts';
@@ -37,6 +38,7 @@ for (const [tagName, constructor] of [
 	['ex-timeline', TimelineIsland],
 	['ex-layer', LayerIsland],
 	['ex-file-tree', FileTreeIsland],
+	['ex-tree', TreeIsland],
 	['ex-card', CardIsland],
 	['ex-grid', GridIsland],
 	['ex-flow', FlowIsland],

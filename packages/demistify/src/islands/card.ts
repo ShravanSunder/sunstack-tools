@@ -1,6 +1,6 @@
 import { adoptBareMarkdown } from '../core/bare-markdown.ts';
-import { createToneIcon, readTone } from '../core/tones.ts';
-import type { Tone } from '../core/tones.ts';
+import { createHead, readIcon } from '../core/head.ts';
+import { readTone } from '../core/tones.ts';
 import { installIslandInspector } from './inspector.ts';
 
 function takeTitle(owner: HTMLElement): string | undefined {
@@ -18,44 +18,19 @@ function adoptBodyMarkdown(owner: HTMLElement): void {
 	for (const details of owner.querySelectorAll(':scope > details')) adoptBareMarkdown(details);
 }
 
-function createHeader(
-	className: string,
-	tone: Tone | undefined,
-	title: string | undefined,
-): HTMLElement {
-	const header = document.createElement('div');
-	header.className = className;
-	if (tone) header.append(createToneIcon(tone));
-	if (title) {
-		const heading = document.createElement('strong');
-		heading.textContent = title;
-		header.append(heading);
-	}
-	return header;
-}
-
 /** A titled surface for one thing: a component, step, option or finding. */
 export class CardIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
 		if (!this.hasAttribute('prepared')) {
 			adoptBodyMarkdown(this);
-			const tone = readTone(this, undefined);
-			const header = createHeader('ex-card-head', tone, takeTitle(this));
-			const tag = this.getAttribute('tag');
-			if (tag) {
-				const chip = document.createElement('span');
-				chip.className = 'ex-card-tag';
-				chip.textContent = tag;
-				header.append(chip);
-			}
-			if (this.hasAttribute('pick')) {
-				const chosen = document.createElement('span');
-				chosen.className = 'ex-card-pick';
-				const pickLabel = this.getAttribute('pick')?.trim();
-				chosen.textContent = pickLabel === undefined || pickLabel === '' ? 'Chosen' : pickLabel;
-				header.append(chosen);
-			}
+			const header = createHead('div', 'ex-card-head', {
+				tone: readTone(this, undefined),
+				icon: readIcon(this),
+				title: takeTitle(this),
+				tag: this.getAttribute('tag'),
+				pick: this.getAttribute('pick'),
+			});
 			this.prepend(header);
 			this.setAttribute('prepared', '');
 		}
@@ -69,8 +44,13 @@ export class CalloutIsland extends HTMLElement {
 		if (this.hasAttribute('data-inspector-content')) return;
 		if (!this.hasAttribute('prepared')) {
 			adoptBodyMarkdown(this);
-			const tone = readTone(this, 'note');
-			this.prepend(createHeader('ex-callout-head', tone, takeTitle(this)));
+			this.prepend(
+				createHead('div', 'ex-callout-head', {
+					tone: readTone(this, 'note'),
+					icon: readIcon(this),
+					title: takeTitle(this),
+				}),
+			);
 			this.setAttribute('prepared', '');
 		}
 		installIslandInspector(this);

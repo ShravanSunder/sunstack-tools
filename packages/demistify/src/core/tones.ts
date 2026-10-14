@@ -1,6 +1,6 @@
-import type { ToneName } from '../vocabulary.ts';
 import { createPhosphorIcon } from './icons.ts';
 import { reportIssue } from './issues.ts';
+import { toneAliases, type ToneName } from './tone-names.ts';
 
 export const toneIcons = {
 	note: 'info',
@@ -17,7 +17,7 @@ export const toneIcons = {
 
 export type Tone = keyof typeof toneIcons;
 
-function isTone(value: string): value is Tone {
+export function isTone(value: string): value is Tone {
 	return Object.hasOwn(toneIcons, value);
 }
 
@@ -30,6 +30,11 @@ export function readTone(owner: HTMLElement, fallback: Tone | undefined): Tone |
 	if (isTone(requested)) {
 		owner.setAttribute('tone', requested);
 		return requested;
+	}
+	const meant = toneAliases[requested];
+	if (meant) {
+		owner.setAttribute('tone', meant);
+		return meant;
 	}
 	// The legacy free-form `type` attribute stays valid; only `tone` is checked.
 	if (owner.hasAttribute('tone'))

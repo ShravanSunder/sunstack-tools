@@ -41,6 +41,9 @@ Write prose as bare Markdown directly inside `ex-document`, tab sections, cards,
 | `<ex-mermaid>` | Mermaid in `<script type="text/plain">` |
 | `<ex-code title lang start>` | code or a diff (`lang="diff"`) in `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` |
 | `<ex-file-tree>` | plain-text tree in `<script type="text/plain">` |
+| `<ex-tree title layout>` | a Markdown list as a tree: status reports, breakdowns, checklists (`- [x]`); `- risk: text` gives a node its tone; `[text](#id)` jumps to an island; `layout="map"` draws a mind map |
+
+`icon` (cards, callouts, regions, trees) = what the thing is, from: database hard-drives cloud globe cpu stack plug code terminal git-branch package gear bug test-tube user users robot lock key shield-check file folder book-open clock envelope chat-circle bell shopping-cart credit-card truck chart-line rocket.
 
 Tones (only these): `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `added` `removed`. Every card and region takes a tone: it is the icon and colour. Title = the specific thing; tone = its status or kind; `tag` = timing, location or tradeoff (`tone="planned" tag="after implementation"`, not a bold status sentence). Review severity: blocking `risk`, nit `question`, nice `note`.
 

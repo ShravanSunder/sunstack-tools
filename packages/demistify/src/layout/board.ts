@@ -1,6 +1,7 @@
 import { adoptBareMarkdown } from '../core/bare-markdown.ts';
+import { createHead, readIcon } from '../core/head.ts';
 import { createIconButton } from '../core/icons.ts';
-import { createToneIcon, readTone } from '../core/tones.ts';
+import { readTone } from '../core/tones.ts';
 import { FlowIsland } from './flow.ts';
 
 type BoardMode = 'map' | 'read';
@@ -24,11 +25,11 @@ export class RegionIsland extends FlowIsland {
 	override connectedCallback(): void {
 		if (!this.hasAttribute('prepared') && !this.hasAttribute('data-inspector-content')) {
 			adoptBareMarkdown(this);
-			const tone = readTone(this, undefined);
-			const heading = document.createElement('h3');
-			heading.className = 'ex-region-head';
-			if (tone) heading.append(createToneIcon(tone));
-			heading.append(this.getAttribute('title') ?? this.id);
+			const heading = createHead('h3', 'ex-region-head', {
+				tone: readTone(this, undefined),
+				icon: readIcon(this),
+				title: this.getAttribute('title') ?? this.id,
+			});
 			this.setAttribute(
 				'label',
 				this.getAttribute('label') ?? this.getAttribute('title') ?? this.id,

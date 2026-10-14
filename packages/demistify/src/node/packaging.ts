@@ -4,6 +4,7 @@ import { renderMermaidSVG } from 'beautiful-mermaid';
 
 import { decodeEscapedHtmlText } from '../core/html-text.ts';
 import { normalizeIslandText } from '../core/source-text.ts';
+import { subjectIcons } from '../core/subject-icons.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
 import { renderMarkdownContent } from '../render/markdown-content.ts';
 
@@ -55,6 +56,8 @@ const fontFamilies = [
 
 /** Icons the theme ships: library controls, the tone vocabulary, and the few the lab pages name. */
 export const shippedIconNames = [
+	...subjectIcons,
+	'caret-down',
 	'arrow-counter-clockwise',
 	'arrow-right',
 	'arrow-left',

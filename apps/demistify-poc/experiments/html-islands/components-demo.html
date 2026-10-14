@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Morning status — session gateway</title>
+		<link rel="stylesheet" href="islands/theme.css" />
+		<script type="module" src="islands/runtime.js"></script>
+	</head>
+	<body>
+		<ex-document>
+			# Morning status: session gateway Three changes are in flight. Nothing is ready to merge; one
+			owner decision blocks the selector work.
+
+			<ex-grid cols="3">
+				<ex-tree title="8:18 sitrep" icon="rocket" span="2">
+					- planned: Ready to merge — none - [#150 Resume owns completion](#pr-150) - done: Build,
+					artifacts, format and strict lint pass - question: Needs debug verification - Fresh window
+					8:20–8:40; the previous slot never started - SQLite question reserved 8:45–9:05 - planned:
+					In progress - Independent review is switching reviewer - Parent publication waits on CI -
+					risk: Not ready: live proof, review and delivery gates - [Selector child](#selector) -
+					done: Extraction and 794 tests pass - risk: Owner design blocker — the remote selection
+					contract - planned: Host stack, paused - [ ] #131 main conflicts and proof - [ ] #133
+					depends on #131 - [x] #135 role proof drafted
+				</ex-tree>
+				<div>
+					<ex-card
+						id="pr-150"
+						title="#150 Resume owns completion"
+						tone="question"
+						icon="git-branch"
+						tag="needs verification"
+					>
+						Resume now completes the session it restores. Verification needs one live debug window.
+					</ex-card>
+					<ex-card
+						id="selector"
+						title="Selector child"
+						tone="risk"
+						icon="users"
+						tag="blocked on owner"
+					>
+						The remote selection contract needs an owner decision before the child PR can go up.
+					</ex-card>
+				</div>
+			</ex-grid>
+
+			## The registry at a glance
+
+			<ex-tree title="Session registry" icon="database" layout="map">
+				- [Registry API](#pr-150) - create - resume - expire - Session store - Redis hash per
+				session - TTL equals the grace window - done: Socket binder - planned: Expiry sweeper - runs
+				every 30 s
+			</ex-tree>
+
+			<ex-grid cols="3">
+				<ex-card title="Store" icon="database" tone="done">Redis, shared across gateways.</ex-card>
+				<ex-card title="Gateway" icon="hard-drives" tone="changed"
+					>Calls resume on reconnect.</ex-card
+				>
+				<ex-card title="Client" icon="user" tone="note">Sends its session id.</ex-card>
+			</ex-grid>
+		</ex-document>
+	</body>
+</html>
