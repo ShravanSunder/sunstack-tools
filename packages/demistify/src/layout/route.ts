@@ -181,6 +181,29 @@ class RoutePlayer {
 		this.closeInspector();
 		this.focused?.classList.remove('ex-route-focus');
 		const target = step.targetId ? findTarget(step.targetId) : document.body;
+		if (!target && step.targetId) {
+			// The node's diagram has not rendered yet: bring it into view and focus once it is drawn.
+			const diagram = Array.from(
+				document.querySelectorAll<HTMLElement>('ex-mermaid:not([prepared])'),
+			).find((candidate): boolean => {
+				const words: readonly string[] =
+					candidate.querySelector('script, template')?.textContent?.match(/[A-Za-z_][\w-]*/g) ?? [];
+				return words.includes(step.targetId);
+			});
+			if (diagram) {
+				diagram.addEventListener(
+					'island-ready',
+					(): void => {
+						if (this.stepIndex === index) {
+							this.stepIndex = index - 1;
+							this.step(1);
+						}
+					},
+					{ once: true },
+				);
+				settleIntoView(diagram);
+			}
+		}
 		this.counter.textContent = `${index + 1} / ${steps.length}`;
 		this.narration.textContent = step.narration;
 		this.narration.hidden = step.narration === '';
@@ -316,11 +339,20 @@ export function installRoutes(): void {
 			steps: element.readSteps(),
 		}))
 		.filter((route): boolean => route.steps.length > 0);
+	// Diagrams render lazily, so a node id counts as found when any diagram's source names it.
+	const diagramWords = new Set(
+		Array.from(
+			document.querySelectorAll('ex-mermaid'),
+			(diagram): string[] =>
+				(diagram.querySelector('script, template')?.textContent ?? '').match(/[A-Za-z_][\w-]*/g) ??
+				[],
+		).flat(),
+	);
 	for (const element of routeElements)
 		for (const step of element.readSteps())
 			if (step.page === undefined && step.targetId && !findTarget(step.targetId))
 				window.setTimeout((): void => {
-					if (!findTarget(step.targetId))
+					if (!findTarget(step.targetId) && !diagramWords.has(step.targetId))
 						reportIssue(
 							element,
 							`Step to="${step.targetId}" does not match any island id or diagram node.`,
