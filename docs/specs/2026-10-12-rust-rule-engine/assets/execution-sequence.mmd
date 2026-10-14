@@ -8,7 +8,7 @@ sequenceDiagram
   participant HTTP as Jev adapter
   participant Policy as Policy interpreter
   Note over Host,Run: Proposed-only with no predecessor. Program facade owns framing
-  Host->>Run: added typed skill-pack bindings, input paths, settings and cancellation
+  Host->>Run: typed skill-pack and repo bindings, scopes, settings and cancellation
   Run->>Src: added capture rule/input bytes and optional comparison
   Src-->>Run: frozen snapshot or capture failure
   alt capture refused or aborted
@@ -23,16 +23,22 @@ sequenceDiagram
       Sel->>Src: added query frozen sources
       Src-->>Sel: bundles, match sets or source diagnostics
       Sel-->>Run: every occurrence selected, skipped or failed
-      Run->>Judge: added explicit named group and SkillRuleState
-      Judge->>HTTP: added async request, finite settings and cancellation
-      Note over HTTP: External inference may occur. Cancellation does not undo it
-      HTTP-->>Judge: body or safe failure plus attempt observations
-      alt response admitted and not aborted
-        Judge-->>Run: completed answers, receipt and attempts
-        Run->>Policy: added apply admitted rule data
-        Policy-->>Run: source-linked finding
-      else failure or abort
-        Judge-->>Run: execution outcome and remote uncertainty, no finding
+      Run->>Judge: named group and attributed SkillRuleState within declared context
+      Judge->>Judge: assess serialized request and allowed accounting
+      Note over Judge,Run: Required overflow or unverifiable budget returns a diagnostic without inference
+      alt budget admitted and not aborted
+        Judge->>HTTP: admitted body, finite settings and cancellation
+        Note over HTTP: External inference may occur. Cancellation does not undo it
+        HTTP-->>Judge: body or safe failure plus attempt observations
+        alt response admitted and not aborted
+          Judge-->>Run: completed answers, receipt and attempts
+          Run->>Policy: added apply admitted rule data
+          Policy-->>Run: source-linked finding
+        else failure or abort
+          Judge-->>Run: execution outcome and remote uncertainty, no finding
+        end
+      else required overflow or refused accounting
+        Judge-->>Run: budget diagnostic, no inference or finding
       end
       Note over Run: Stop new work on cancellation and join owned work before terminal result
       Run-->>Host: ordered report, coverage and measurements

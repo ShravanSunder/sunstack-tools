@@ -8,6 +8,10 @@ The second customer is a Rust application such as codex-router. It needs the sam
 
 ## The two customer journeys
 
+![Skill-agent and native-consumer jobs served by connected change evidence](assets/requirements-change-journeys.png)
+
+[Diagram source](assets/requirements-change-journeys.mmd)
+
 | Customer | Job sequence | Current missing capability and evidence | Desired outcome |
 | --- | --- | --- | --- |
 | Skill creator/updater and rule author | Write/update skill → load JSONL rules → locate paragraph IDs → collect evidence → evaluate checks → inspect source-linked feedback → repair | Owner supplied the JSONL-to-paragraph use case; repository inspection finds no loader, evidence engine or runner. No measured failure rate or latency baseline exists | Cheap local filtering, precise model inputs, useful findings and a separate explanation when evaluation fails; U4, U7, U14–U17 |
@@ -17,7 +21,7 @@ There is no new UI screen. Findings and diagnostics are data for an agent, termi
 
 ## Authorized needs
 
-IDs U1–U14 retain the prior needs where applicable. Their revised language/platform constraints follow the owner's explicit Rust-first reset and “we have built nothing so we have no priors.” Priorities are unranked by the owner. New needs U15–U18 capture the concrete evidence and consumption use case, rather than treating it as an SDK convenience.
+IDs U1–U14 retain the prior needs where applicable. Their revised language/platform constraints follow the owner's explicit Rust-first reset and “we have built nothing so we have no priors.” Priorities are unranked by the owner. U15–U19 capture packs, reusable evidence and crate boundaries; U20–U23 capture the confirmed time/connected-repo and semantic-context use case.
 
 | ID | Need and reason | Evidence and authority |
 | --- | --- | --- |
@@ -40,6 +44,10 @@ IDs U1–U14 retain the prior needs where applicable. Their revised language/pla
 | U17 | Structural facts, relationship hypotheses and model judgments must remain distinguishable; uncertain candidates can still inform an agent | Authorized: owner-supplied AST-grep/evidence-tag research and the request to make those inputs useful; heuristic/calibration details remain proposals |
 | U18 | TS can consume Rust through a thin boundary; direct Rust consumers should not pay a mandatory process or JS cost | Authorized: owner asks whether TS can just use Rust and accepts the one-core proposal |
 | U19 | Use composable Rust crates with clear responsibility and dependency boundaries; keep cohesive jobs together rather than creating tiny crates | Authorized: owner: “Rust should be composable crates ... with clear boundaries” and “not too tiny but clear separation of responsibilities” |
+| U20 | Select current uncommitted changes, explicit commits/comparisons, commits in a time window, or their union; use approximate file timestamps for recent uncommitted selection | Authorized: owner requests minute-to-minute/commit scopes and explicitly chooses “Approximate recent files using timestamps”; exact dirty-edit history is not required |
+| U21 | Analyze connected caller-supplied repositories; a changed definition may bring unchanged callers from another supplied repository into the same evaluation | Authorized: owner explicitly selects “Connected analysis across supplied repos” |
+| U22 | Map changed source to useful syntax units, discover bounded candidate caller/callee paths, and supply attributed semantic chunks to rule judgments | Authorized: owner describes diff → call relationships → semantic chunks → Jev lint judgment and supplies approximate AST-grep research; exhaustive compiler/runtime stacks are not required |
+| U23 | Respect the selected model's context budget while keeping related evidence together and exposing omitted or unavailable context | Authorized: owner explicitly requires model context-length consideration; existing no-silent-truncation and failure/finding boundaries remain applicable |
 
 ## What the Rust reset supersedes
 
@@ -61,6 +69,8 @@ Permitted repository: sunstack-tools. Existing skill packages, production hooks,
 
 One invocation composes multiple per-skill bindings. A binding identifies a skill document and the JSONL files that form its pack; a shared JSONL file may be explicitly included in multiple packs. Rule IDs are unique within a pack, paragraph IDs within a document. The caller's input paths bound evidence gathering; a Git comparison narrows change-scoped checks when requested. This composition introduces neither inheritance nor cross-skill policy.
 
+The caller may supply several repository/worktree roots and select change scopes independently for them. These roots also bound connected discovery: an unchanged caller in one supplied repository can provide context for a changed definition in another. Tools prepares changes, candidate relationships and semantic chunks; Sunstack or the native consumer supplies rule meaning and decides what context is required. Recent dirty-file selection is explicitly approximate: current diffs can contain older edits, and deleted files have unknown timestamp recency. No edit-history recorder or background watcher is required.
+
 The first data-rule format is deliberately bounded. The proposed policies classify one answer using explicit noul/score bands or a choice-label map. It is not an arbitrary expression language or workflow DAG. Consumers can implement richer composition in Rust code using the same judgment entrypoint. Whether v1 must express richer composition inside JSONL is an owner decision if that restriction prevents a real rule.
 
 Excluded: mandatory Bun service; mandatory native JS addon; LSP/type-checker replacement; automatic edits/renames; dynamic provider discovery; persistent index, daemon or result store; generic workflow language; hidden retrieval/truncation; automatic acceptance/merge authority; new skill/eval authoring inside Tools.
@@ -70,6 +80,8 @@ Excluded: mandatory Bun service; mandatory native JS addon; LSP/type-checker rep
 The first delivery needs real Rust library and executable paths, strict applicable checks, source/diff/Markdown/query integration, boundary and negative controls, and a genuine mixed-primitives Jev request with validated answers/usage. Controlled HTTP transport proves local wiring; it does not prove hosted behavior or semantic accuracy. A skipped hosted call is an integration gap.
 
 Fast filtering needs measurements over declared workloads: repository size, changed files, rule count, scanned bytes, parsed files, selected/skipped/failed checks, elapsed time and model request count. No numeric performance promise or improvement percentage has been supplied. Accuracy and ranking calibration require independently labeled examples, not self-generated expectations.
+
+Connected discovery and chunking additionally need independent known caller/callee examples, contradictory/shadowed matches, before/after deletion cases, cross-repo attribution, cycles/fan-out limits and model-budget failures. Syntax discovery, approximate recency and a bounded search cannot certify exhaustive history or compiler-resolved references.
 
 ## Source basis and remaining choices
 

@@ -3,7 +3,8 @@ flowchart TB
   P["Skill tool or optional TS caller"] -->|"versioned request"| C["Executable boundary<br/>framing and serialization"]
   C --> O
   O <-->|"admitted packs or diagnostics"| R["Rule admission owner<br/>JSONL and policy checks"]
-  O <-->|"frozen bytes and bundles or source errors"| E["Evidence crate<br/>capture, optional Git, target and search"]
+  O <-->|"frozen evidence plans or source errors"| E["Evidence crate<br/>changes, targets, related sources and chunks"]
+  C -->|"direct prepare evidence"| E
   O <-->|"occurrence selection records"| F["Selection owner<br/>applicability and dependencies"]
   O <-->|"request / validated outcome"| J["Judgment owner in decisions crate<br/>correlation and safe failures"]
   J <-->|"body / attempt observations"| B["Jev adapter<br/>HTTP attempts and private credentials"]

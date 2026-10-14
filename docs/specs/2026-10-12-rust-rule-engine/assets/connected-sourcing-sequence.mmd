@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant Host as Rule host
+  participant Evidence as Evidence owner
+  participant B as Supplied library repo B
+  participant A as Supplied consumer repo A
+  Note over Host,A: Proposed-only with no predecessor. Relationships remain candidates
+  Host->>Evidence: Roots, scopes and bounded query
+  Evidence->>B: Resolve changes and capture definition sides
+  B-->>Evidence: Frozen bytes, revisions and change provenance
+  Evidence->>Evidence: AST locates changed unit and basis spans
+  loop Unvisited in-scope candidates within resource limits
+    Evidence->>A: Capture unchanged possible caller source
+    A-->>Evidence: Frozen consumer bytes and repository identity
+    Evidence->>Evidence: Reuse AST for imports, calls and shadows
+    Evidence->>Evidence: Record candidate or unresolved link and contradictions
+  end
+  Evidence->>Evidence: Check capture stability and record frontier/cutoffs
+  alt Required source unavailable or query limited
+    Evidence-->>Host: Partial plan and coverage diagnostics
+  else Requested source scope scanned
+    Evidence-->>Host: Units, candidate links and remaining uncertainty
+  end
+  Note over Host,Evidence: Host declares required context. Evidence owns source grouping, not rule policy

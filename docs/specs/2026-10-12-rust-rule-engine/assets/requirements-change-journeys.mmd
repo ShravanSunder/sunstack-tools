@@ -1,0 +1,15 @@
+flowchart TB
+  subgraph Skill["Skill creator or updater — U4, U7, U14 to U16, U20 to U23"]
+    direction TB
+    S1["Create or update a skill"] --> S2["Choose its rule pack<br/>and recent changed material"]
+    S2 --> S3["Evaluate with relevant source context"]
+    S3 --> S4["Read paragraph-linked feedback<br/>repair and check again"]
+    S2 -.-> SG["Current gap: no runnable engine<br/>latency and model accuracy unmeasured"]
+  end
+  subgraph Native["Rust or program consumer — U1, U8, U18, U20 to U23"]
+    direction TB
+    N1["Supply repo paths and a change window"] --> N2["Inspect connected callers and evidence"]
+    N2 --> N3["Ask a bounded rule judgment"]
+    N3 --> N4["Handle typed findings or diagnostics<br/>caller retains action policy"]
+    N2 -.-> NG["Current gap: no shared runnable path<br/>cross-repo retrieval quality unmeasured"]
+  end

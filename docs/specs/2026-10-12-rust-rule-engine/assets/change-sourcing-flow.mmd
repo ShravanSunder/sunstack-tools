@@ -1,0 +1,20 @@
+flowchart TB
+  Start["Evidence owner<br/>admit supplied roots, paths and one UTC anchor"] --> Scope{"Declared source scope"}
+  Scope -->|"full"| Files["Allowed source files<br/>Git optional"]
+  Scope -->|"dirty / recent dirty"| Dirty["Scoped staged, unstaged and untracked candidates"]
+  Dirty --> Time{"Recency requested?"}
+  Time -->|"no"| Capture
+  Time -->|"yes"| Recent["Present-file mtime filter<br/>unknown dates follow explicit policy"]
+  Scope -->|"refs / commit set / commit window"| History["Resolved commit and parent sides<br/>bounded history coverage"]
+  Scope -->|"union"| Union["Resolve each member<br/>retain layer and revision provenance"]
+  Files --> Capture["Capture before/after bytes and identities<br/>never substitute later live text"]
+  Recent --> Capture
+  History --> Capture
+  Union --> Capture
+  Capture --> Stable{"Relevant capture stable?"}
+  Stable -->|"mutation / source unavailable"| Refuse["Preparation diagnostic<br/>affected required evidence incomplete"]
+  Stable -->|"yes"| Units["Map changed spans to syntax units<br/>before deletions remain attributable"]
+  Units --> Related["Bounded related-source discovery<br/>unchanged files allowed inside supplied paths"]
+  Related --> Seal{"All used mutable captures still stable?"}
+  Seal -->|"no"| Refuse
+  Seal -->|"yes"| Out["Frozen evidence plan and coverage<br/>rules owner selects occurrences"]
