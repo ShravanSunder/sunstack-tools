@@ -144,6 +144,8 @@ The current native Changes diagram exposes a beautiful-mermaid label limitation:
 
 ## Next iteration: what to preserve and what to explore
 
+The owner subsequently named `claude/serene-pascal-llse28` as the cloud coordination branch. Read [the local sidebar contribution and latest owner requirements](2026-10-14-local-sidebar-followup.md), then the cloud agent's `2026-10-14-takeover-log.md` and decisions document when present. Preserve each writer's append-only record. The local follow-up does not claim the requested all-islands/two-destination inspector API is finished; that requirement is explicitly handed to the cloud iteration.
+
 Preserve the package/app boundary, plain HTML entry point, minimal vocabulary, comparable five-way corpus and cost separation. Do not restart with five unrelated bespoke stories or include renderer implementation in usage totals. Do not add D2 to native islands. Keep diagrams and long text inspectable without crop-by-default or wrapper scrollbars.
 
 The next cloud agent should first run/view this version and discuss one bounded improvement with Shravan. Likely questions: whether responsive outline should use a document layout contract rather than the current viewport breakpoint; how rich detail inspection should behave for arbitrary nested layouts; whether pan/pinch is worth a lazy diagram-only dependency; and how semantic graph changes should reference existing source identities without duplicating full diagrams. Research existing renderer capabilities before proposing a new diff parser. Measure an experiment before recommending a winner.

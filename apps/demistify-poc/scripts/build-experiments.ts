@@ -144,6 +144,15 @@ await writeFile(
 	),
 );
 
+await writeFile(
+	`${outputDirectory}/html-islands-navigation-live.html`,
+	prepareIslandContent(
+		await readFile('experiments/html-islands/navigation-demo.html', 'utf8'),
+		diagramReferences,
+		false,
+	),
+);
+
 if (process.argv.includes('--islands-only')) {
 	await writeFile(`${outputDirectory}/html-islands-rendered.html`, standaloneIslandHtml);
 	process.stdout.write(

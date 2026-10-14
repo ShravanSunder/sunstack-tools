@@ -48,6 +48,12 @@ ex-mermaid > svg {
 	right: 8px;
 	z-index: 2;
 	opacity: 0;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+}
+.ex-inspect-trigger .ph {
+	font-size: 16px;
 }
 .ex-inspectable:hover > .ex-inspect-trigger,
 .ex-inspectable:focus-within > .ex-inspect-trigger {

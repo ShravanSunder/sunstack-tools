@@ -27,7 +27,11 @@ export class HeadingNavigation extends HTMLElement {
 	};
 
 	connectedCallback(): void {
-		if (this.navigationPanel) return;
+		if (this.navigationPanel) {
+			document.body.append(this.navigationPanel);
+			this.connectObservers();
+			return;
+		}
 		this.contentRoot =
 			(this.getAttribute('for') ? document.getElementById(this.getAttribute('for') ?? '') : null) ??
 			document.querySelector<HTMLElement>('ex-document, main') ??
@@ -58,7 +62,10 @@ export class HeadingNavigation extends HTMLElement {
 			if (event.target instanceof Element) this.previewHeading(event.target.closest('a'));
 		});
 		railMarkers.addEventListener('focusin', (event: FocusEvent): void => {
-			if (event.target instanceof HTMLAnchorElement) this.previewHeading(event.target);
+			if (event.target instanceof HTMLAnchorElement) {
+				this.openPanel();
+				this.previewHeading(event.target);
+			}
 		});
 		railMarkers.addEventListener('pointerleave', (): void => this.previewHeading(null));
 		navigationPanel.addEventListener('pointerleave', (event: PointerEvent): void => {
@@ -70,7 +77,28 @@ export class HeadingNavigation extends HTMLElement {
 		navigationPanel.addEventListener('focusout', (event: FocusEvent): void => {
 			if (!this.containsNavigation(event.relatedTarget)) this.closePanel();
 		});
-		this.contentObserver = new MutationObserver((): void => this.renderHeadings());
+		navigationPanel.addEventListener('beforetoggle', (): void => {
+			this.changingPopover = true;
+		});
+		navigationPanel.addEventListener('toggle', (): void => {
+			this.changingPopover = false;
+			if (
+				!this.matches(':hover') &&
+				!navigationPanel.matches(':hover') &&
+				!this.containsNavigation(document.activeElement)
+			)
+				this.closePanel();
+		});
+		this.contentObserver = new MutationObserver((records): void => {
+			// The body fallback includes our portal: its outline writes are not content changes.
+			if (records.some((record): boolean => !this.containsNavigation(record.target)))
+				this.renderHeadings();
+		});
+		this.connectObservers();
+	}
+
+	private connectObservers(): void {
+		if (!this.contentRoot || !this.contentObserver) return;
 		this.contentObserver.observe(this.contentRoot, {
 			subtree: true,
 			childList: true,
@@ -91,6 +119,8 @@ export class HeadingNavigation extends HTMLElement {
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
 		this.navigationPanel?.remove();
 		if (this.scheduledFrame !== undefined) cancelAnimationFrame(this.scheduledFrame);
+		this.scheduledFrame = undefined;
+		this.changingPopover = false;
 	}
 
 	private renderHeadings(): void {
@@ -166,22 +196,12 @@ export class HeadingNavigation extends HTMLElement {
 			this.navigationPanel.matches(':popover-open')
 		)
 			return;
-		this.changingPopover = true;
-		try {
-			this.navigationPanel.showPopover();
-		} finally {
-			this.changingPopover = false;
-		}
+		this.navigationPanel.showPopover();
 	}
 
 	private closePanel(): void {
 		if (this.changingPopover || !this.navigationPanel?.matches(':popover-open')) return;
-		this.changingPopover = true;
-		try {
-			this.navigationPanel.hidePopover();
-		} finally {
-			this.changingPopover = false;
-		}
+		this.navigationPanel.hidePopover();
 	}
 
 	private previewHeading(marker: HTMLAnchorElement | null): void {

@@ -50,7 +50,7 @@ ex-nav > .ex-icon-button {
 .ex-heading-panel {
 	position: fixed;
 	inset: auto;
-	left: 52px;
+	left: 48px;
 	top: 50%;
 	transform: translateY(-50%);
 	margin: 0;
