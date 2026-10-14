@@ -1,13 +1,11 @@
 ---
 name: demistify-explainer
-description: Use when explaining engineering work (architecture, a plan, a change, a review, a comparison) as a visual HTML page. Write content and HTML layout; the Demistify library renders Markdown, Mermaid, cards, callouts, arrows, navigation, inspection and light/dark themes.
+description: Use when explaining engineering work (architecture, a plan, a change, a review, a domain model, a comparison) as a visual HTML page. Write content and HTML layout; the Demistify library renders Markdown, Mermaid, cards, stats, code notes, arrows, maps, guided routes, navigation, inspection and light/dark themes.
 ---
 
 # Demistify explainer
 
-Write one HTML file. You supply meaning, content and layout; the library supplies styling, icons, rendering, outline, theme toggle and inspection. Never write colours, borders, fonts or shadows; layout CSS (grid, flex, absolute positions, gaps) is fine.
-
-## Page
+Write one HTML file. You supply meaning, content and layout; the library supplies styling, icons, rendering, outline, theme toggle, inspection and route player. Never write colours, borders, fonts or shadows; layout CSS (grid, flex, gaps) is fine.
 
 ```html
 <!doctype html>
@@ -21,97 +19,95 @@ Write one HTML file. You supply meaning, content and layout; the library supplie
 </head>
 <body>
 <ex-document>
-…islands…
+…
 </ex-document>
 </body>
 </html>
 ```
 
-Use the library path you are given (default `demistify/`). `ex-document` adds the outline (from `h1`–`h3`) and theme toggle.
+Use the library path you are given (default `demistify/`).
+
+## Markdown first
+
+Write prose as bare Markdown directly inside `ex-document`, tab sections, cards, callouts and their `<details>`. Headings (`#`, `##`) build the outline. Indentation is removed. Bare Markdown must not contain `<`; for that, use `<ex-markdown><script type="text/markdown">…</script></ex-markdown>`.
 
 ## Islands
 
-| Element | Use for | Content |
-|---|---|---|
-| `<ex-markdown>` | prose, headings, lists, tables, code | Markdown inside `<script type="text/markdown">` |
-| `<ex-mermaid>` | flowcharts, sequences, states, classes, ER, bar/line charts | Mermaid inside `<script type="text/plain">` |
-| `<ex-card id title tone tag pick>` | one thing: component, step, option, finding | HTML (`p`, `ul`, `strong`, `code`) |
-| `<ex-callout tone title>` | TL;DR, decision, risk, gotchas, open questions | HTML |
-| `<ex-grid>` | islands side by side; columns fit the width (`cols="3"` fixes them; child `span="2"`) | islands |
-| `<ex-tabs>` | alternative views of one subject | child `section`s, each with `label="…"` |
-| `<ex-flow>` | an `ex-grid` whose arrows route through the gaps, never across a box | islands with ids, then `ex-arrow`s |
-| `<ex-arrow from to label>` | a relationship between two islands with ids | empty |
-| `<ex-code title lang start>` | code or a unified diff (`lang="diff"`) with margin notes | code inside `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` |
-| `<ex-file-tree>` | files a change touches | plain-text tree inside `<script type="text/plain">` |
+| Element | For |
+|---|---|
+| `<ex-card id title tone tag pick>` | one thing (component, entity, step, option, finding); body in Markdown; depth in `<details><summary>…</summary>…</details>`; `pick` marks the chosen option |
+| `<ex-callout tone title>` | TL;DR, decision, risk, gotchas, open questions |
+| `<ex-stat value label note tone>` | one number, e.g. `value="143 KiB" label="First load" note="was 443 KiB" tone="done"` |
+| `<ex-mermaid>` | Mermaid in `<script type="text/plain">` |
+| `<ex-code title lang start>` | code or a diff (`lang="diff"`) in `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` |
+| `<ex-file-tree>` | plain-text tree in `<script type="text/plain">` |
 
-Attributes are optional except an arrow's `from`/`to` and a note's `line` (counted from `start`, default 1; `@@` lines are not counted). Indentation inside `script` is removed for you. Islands nest. A `mermaid` fence inside Markdown also renders a diagram.
+Tones (only these): `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `added` `removed`. Title = the specific thing; tone = what kind. Review severity: blocking `risk`, nit `question`, nice `note`.
 
-## Tones
+Mermaid: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erDiagram`, `xychart-beta` (bars/lines: `x-axis ["A", "B"]`, `bar "Before" [1, 2]`, `bar "After" [3, 4]`). A node whose id equals a card `id` takes its tone and opens it on click, so keep node labels short.
 
-`tone` names a meaning; the library picks icon and colour. Only these:
+## Layout: rows, not a stack
 
-`note` · `tldr` · `decision` · `risk` · `question` · `done` · `planned` · `changed` · `added` · `removed`
+| Element | Does |
+|---|---|
+| `<ex-grid cols="3">` | side by side; child `span="2"` or `span="all"`; `sticky` keeps a side column in view; `swipe` makes a sideways swipe row on phones |
+| `<ex-flow cols="3">` | an `ex-grid` whose `<ex-arrow from to label>` children route between boxes |
+| `<ex-tabs>` | child `<section label>` views; `columns` shows them side by side when they fit |
+| `<ex-board cols="2">` | a map of `<ex-region id title tone>` groups; children marked `detail` appear when the reader opens a region; built-in Map/Read switch |
 
-Title = the specific thing ("Retry storms under load"); tone = what kind (`risk`). Omit for neutral. Review severity: blocking `risk`, nit `question`, nice `note`.
+Patterns:
+1. Summary row: `<ex-grid cols="4">` with a `tldr` callout `span="2"` and two `ex-stat`.
+2. Picture + parts: `<ex-grid cols="3">` with a diagram `span="2"` and a `sticky` column of cards.
+3. Options: cards in `<ex-grid swipe>`, tradeoff in `tag`, `pick` on the chosen one.
+4. Evidence: a chart beside the callout that states its conclusion.
+5. Many things (a domain, a system): `ex-board`, one region per area, overview cards visible, depth marked `detail`.
 
-## Diagrams
+Phones get one column automatically. Every island has sidebar and expand buttons.
 
-Supported: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erDiagram`, `xychart-beta` (not pie, gantt, timeline, mindmap). A chart:
+## Routes
 
-```text
-xychart-beta
-  title "Transferred KiB"
-  x-axis ["No diagram", "With diagram"]
-  y-axis "KiB" 0 --> 1000
-  bar "Before" [443, 949]
-  bar "After" [143, 650]
+Give different readers different paths through the same islands:
+
+```html
+<ex-route label="60-second tour">
+<ex-step to="verdict">Start here.</ex-step>
+<ex-step to="f1" open="sidebar">The blocking bug.</ex-step>
+</ex-route>
+<ex-route label="Reviewer pass" steps="f1 f2 f3"></ex-route>
 ```
 
-## Progressive disclosure
-
-Overview first; depth one action away.
-
-- Card body = summary; depth in `<details><summary>Boundary and sources</summary>…</details>`.
-- Every island has sidebar and expand buttons on hover; both show everything expanded. `zoom="none"` removes them.
-- A Mermaid node whose id equals a card `id` takes the card's tone colour and opens the card on click. Keep node labels short; put status and detail in the card.
-- `ex-tabs` when the reader needs one view at a time.
-- Options: cards side by side, `tag` names the tradeoff ("durable, adds a dependency"), `pick` marks the chosen one.
-
-## Composition
-
-Any order and layout: `ex-grid`, plain `display:grid`/`flex`, or a `position:relative` whiteboard with absolutely positioned islands.
-
-- Connected cards go in `ex-flow` with their `ex-arrow`s inside it. An arrow outside a flow is drawn straight and reported if it crosses a box.
-- More than about six connected things: Mermaid linked to cards. A few richly described things: cards in an `ex-flow`.
-- One `#` title, `##` sections, `###` sparingly; cards need no headings.
+Steps target any island, region or diagram node id. Add one or two routes.
 
 ## Example
 
 ```html
 <ex-document>
-<ex-markdown><script type="text/markdown">
 # Session survival
 Sessions outlive dropped sockets, so a reconnecting client resumes where it left off.
-</script></ex-markdown>
-<ex-callout tone="tldr">The registry, not the socket, owns a session.</ex-callout>
-<ex-mermaid><script type="text/plain">
+
+<ex-grid cols="4">
+<ex-callout tone="tldr" span="2">The registry, not the socket, owns a session.</ex-callout>
+<ex-stat value="98%" label="Resume after a blip" note="was 35%" tone="done"></ex-stat>
+<ex-stat value="0%" label="Resume after deploy" note="still broken" tone="risk"></ex-stat>
+</ex-grid>
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
 flowchart LR
-  client[Client] --> socket[Socket] --> registry[Registry] --> session[Session]
+  socket[Socket] --> registry[Registry] --> session[Session]
 </script></ex-mermaid>
-<ex-flow>
-<ex-card id="socket" title="Socket" tone="changed" tag="transport">
-<p>Carries frames; may drop at any time.</p>
-</ex-card>
+<div sticky>
 <ex-card id="registry" title="Session registry" tone="added" tag="new">
-<p>Maps session ids to live state for 5 minutes after a drop.</p>
-<details><summary>Boundary</summary><p>Does not survive a process restart.</p></details>
+Maps session ids to live state for **5 minutes** after a drop.
+<details><summary>Boundary</summary>Does not survive a restart.</details>
 </ex-card>
-<ex-arrow from="socket" to="registry" label="re-attaches"></ex-arrow>
-</ex-flow>
-<ex-callout tone="risk" title="Gotchas"><ul><li>Two tabs can claim one session.</li></ul></ex-callout>
+</div>
+</ex-grid>
+
+<ex-route label="Quick tour" steps="registry"></ex-route>
 </ex-document>
 ```
 
 ## Check
 
-An "authoring issues" panel on the page lists mistakes (unknown elements or tones, bad arrows or note lines, duplicate ids, failed diagrams). A correct page shows no panel.
+An "authoring issues" panel lists mistakes (unknown elements or tones, bad ids, arrows, note lines, failed diagrams). A correct page shows none.
