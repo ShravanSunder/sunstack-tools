@@ -61,3 +61,18 @@ The local contribution is ready to fetch for source review and the explicit brow
 ## 2026-10-14 16:46 UTC — scope correction
 
 Kept the middle-dot suffix repair confined to the native Mermaid generator. The prior edit also changed D2 node labels through a shared text replacement; restored D2's established bracket status suffix. The other four approaches retain their original renderer behavior. This does not affect the new automatic inspector controls. Browser proof remains blocked until an available Chrome window/connection is restored.
+
+## 2026-10-14 18:10 UTC — local and cloud versions integrated for owner viewing
+
+Shravan explicitly selected `claude/serene-pascal-llse28` as the local agent's working branch and requested integrating both versions. The fetched cloud head is `5487d857d7873325e9b400138997b6e294cca829`. It already includes the entire local `feat/demistify-html-islands` contribution through `581cfadfdaa1bd967bcaa54df6bb434aa4685dee`; ancestry verification passed and merging that branch returned `Already up to date`. Both versions are preserved without a redundant merge or rewritten history. The isolated local worktree now tracks the cloud branch. The handoff header and continuation prompt name this active branch.
+
+Fresh `pnpm install --frozen-lockfile` and `pnpm build` both exited 0. The loopback preview runs on port 4174. All four requested routes returned HTTP 200, with response HTML exactly matching the freshly built file; their directly linked runtime and stylesheet also returned 200:
+
+- `/experiments/agent-written/code-review.html`
+- `/experiments/agent-written/page-loading.html`
+- `/experiments/agent-written/planning.html`
+- `/experiments/html-islands-layouts-live.html`
+
+This establishes local delivery of the current build. At the owner's subsequent request, all four pages were opened in separate Chrome tabs through native app control; their page titles, rendered content and inspection controls appeared in the accessibility tree. The code-review example was left selected. Browser tab automation still timed out, but native app control was available. No fresh comprehensive visual or interaction review is claimed; the owner is reviewing these pages. No test suite, paid model call, deployment or generated-file commit was added. The other agent's append-only takeover log remains untouched.
+
+Owner follow-up for the comparison: include prose and diagram definitions behind references in a full-content token comparison, while keeping new authoring, reused input and reusable library costs explicit. The current authored-usage table alone does not establish that full-content comparison. This reporting correction remains pending; the current pages and their authoring measurements have not been silently rewritten.
