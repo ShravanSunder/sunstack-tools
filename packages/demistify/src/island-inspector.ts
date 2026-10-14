@@ -21,12 +21,10 @@ const contentIslands = new Set([
 	'ex-layer',
 ]);
 
-/** A Markdown island holding only a heading and a sentence or two gains nothing from inspection. */
+/** A Markdown island holding only headings (a section title) gains nothing from inspection. */
 function hasInspectableDepth(owner: HTMLElement): boolean {
 	if (owner.localName !== 'ex-markdown') return true;
-	const blocks = Array.from(owner.children);
-	const paragraphs = blocks.filter((block): boolean => block.localName === 'p').length;
-	return paragraphs > 2 || blocks.some((block): boolean => !/^(h[1-6]|p)$/.test(block.localName));
+	return Array.from(owner.children).some((block): boolean => !/^h[1-6]$/.test(block.localName));
 }
 
 function inspectionLabel(owner: HTMLElement): string {

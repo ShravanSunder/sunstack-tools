@@ -50,6 +50,7 @@ ex-mermaid > svg {
 	display: flex;
 	gap: 4px;
 	opacity: 0;
+	pointer-events: none;
 	transition: opacity 120ms;
 }
 .ex-inspect-trigger {
@@ -64,6 +65,10 @@ ex-mermaid > svg {
 .ex-inspectable:hover:not(:has(.ex-inspectable:hover)) > .ex-inspect-controls,
 .ex-inspectable:focus-within > .ex-inspect-controls {
 	opacity: 1;
+	pointer-events: auto;
+}
+.ex-inspectable > .ex-tab-bar {
+	padding-inline-end: 72px;
 }
 .ex-inspectable > :is(h1, h2, h3, h4, h5, h6):first-child {
 	padding-inline-end: 64px;
@@ -150,6 +155,7 @@ ex-mermaid > svg {
 @media (hover: none) {
 	.ex-inspect-controls {
 		opacity: 1;
+		pointer-events: auto;
 	}
 }
 ex-document,

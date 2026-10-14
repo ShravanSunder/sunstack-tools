@@ -32,14 +32,7 @@
 			><ex-tabs
 				><section label="Grid">
 					<div style="overflow: auto">
-						<div
-							style="
-								display: grid;
-								grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
-								gap: 70px;
-								padding: 24px;
-							"
-						>
+						<ex-flow>
 							<ex-zoom id="grid-requirements" label="Requirements" class="island-surface" style=""
 								><ex-markdown
 									><script type="text/markdown">
@@ -156,7 +149,7 @@
 							<ex-arrow from="grid-specification" to="grid-program" label="informs"></ex-arrow>
 							<ex-arrow from="grid-program" to="grid-tests" label="informs"></ex-arrow>
 							<ex-arrow from="grid-tests" to="grid-verification" label="informs"></ex-arrow>
-						</div>
+						</ex-flow>
 					</div>
 				</section>
 				<section label="Normal flow">
