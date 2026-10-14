@@ -1,6 +1,6 @@
-import { installIslandInspector } from './island-inspector.ts';
-import { createToneIcon, readTone } from './tones.ts';
-import type { Tone } from './tones.ts';
+import { createToneIcon, readTone } from '../core/tones.ts';
+import type { Tone } from '../core/tones.ts';
+import { installIslandInspector } from './inspector.ts';
 
 function takeTitle(owner: HTMLElement): string | undefined {
 	const title = owner.getAttribute('title') ?? owner.dataset['title'];

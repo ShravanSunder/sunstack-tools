@@ -1,4 +1,4 @@
-import { reportIssue } from './issues.ts';
+import { reportIssue } from '../core/issues.ts';
 
 type IslandAnchor = 'left' | 'right' | 'top' | 'bottom';
 interface ArrowPoint {

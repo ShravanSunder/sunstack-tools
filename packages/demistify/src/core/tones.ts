@@ -1,4 +1,4 @@
-import { createPhosphorIcon } from './icon-controls.ts';
+import { createPhosphorIcon } from './icons.ts';
 import { reportIssue } from './issues.ts';
 
 export const toneIcons = {

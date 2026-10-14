@@ -1,7 +1,7 @@
-import { installIslandInspector } from './island-inspector.ts';
-import { reportIssue } from './issues.ts';
-import { normalizeIslandText } from './source-text.ts';
-import { createToneIcon, readTone } from './tones.ts';
+import { reportIssue } from '../core/issues.ts';
+import { normalizeIslandText } from '../core/source-text.ts';
+import { createToneIcon, readTone } from '../core/tones.ts';
+import { installIslandInspector } from './inspector.ts';
 
 type LineKind = 'added' | 'removed' | 'context' | 'hunk';
 

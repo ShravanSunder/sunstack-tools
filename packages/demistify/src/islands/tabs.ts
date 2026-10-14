@@ -1,4 +1,4 @@
-import { installIslandInspector } from './island-inspector.ts';
+import { installIslandInspector } from './inspector.ts';
 
 export class TabsIsland extends HTMLElement {
 	connectedCallback(): void {

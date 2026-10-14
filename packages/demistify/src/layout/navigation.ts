@@ -1,4 +1,4 @@
-import { createIconButton, createPhosphorIcon } from './icon-controls.ts';
+import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
 
 export class HeadingNavigation extends HTMLElement {
 	private contentObserver: MutationObserver | undefined;

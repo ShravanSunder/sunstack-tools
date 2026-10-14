@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises';
 
 import { renderMermaidSVG } from 'beautiful-mermaid';
 
-import { renderThemedDiagram } from './diagram-render.ts';
-import { decodeEscapedHtmlText } from './html-text.ts';
-import { renderMarkdownContent } from './markdown-content.ts';
-import { normalizeIslandText } from './source-text.ts';
+import { decodeEscapedHtmlText } from '../core/html-text.ts';
+import { normalizeIslandText } from '../core/source-text.ts';
+import { renderThemedDiagram } from '../render/diagram.ts';
+import { renderMarkdownContent } from '../render/markdown-content.ts';
 
 function readAuthorText(sourceHtml: string): string {
 	const textBlock = /<script\s+type="text\/(?:markdown|plain)"\s*>([\s\S]*?)<\/script>/.exec(

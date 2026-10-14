@@ -7,9 +7,9 @@
 	"exports": {
 		"./runtime": "./dist/runtime.js",
 		"./theme.css": "./dist/theme.css",
-		"./packaging": "./src/packaging.ts",
-		"./source-text": "./src/source-text.ts",
-		"./markdown-content": "./src/markdown-content.ts"
+		"./packaging": "./src/node/packaging.ts",
+		"./source-text": "./src/core/source-text.ts",
+		"./markdown-content": "./src/render/markdown-content.ts"
 	},
 	"scripts": {
 		"build": "node scripts/build-library.ts"

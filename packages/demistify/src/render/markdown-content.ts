@@ -1,8 +1,8 @@
 import { Marked } from 'marked';
 import type { Tokens } from 'marked';
 
-import { escapeHtml } from './html-text.ts';
-import { normalizeIslandText } from './source-text.ts';
+import { escapeHtml } from '../core/html-text.ts';
+import { normalizeIslandText } from '../core/source-text.ts';
 
 export function renderMarkdownContent(sourceText: string): string {
 	const parser = new Marked({

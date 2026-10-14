@@ -10,7 +10,7 @@ import {
 	localFontFiles,
 	localPhosphorStyles,
 	shippedIconCodePoints,
-} from '../src/packaging.ts';
+} from '../src/node/packaging.ts';
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const outputDirectory = resolve(packageRoot, 'dist');
@@ -30,13 +30,9 @@ await build({
 	},
 });
 const styles = await Promise.all(
-	[
-		'theme.css',
-		'reference-components.css',
-		'component-styles.css',
-		'navigation-styles.css',
-		'vocabulary-styles.css',
-	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src', name), 'utf8')),
+	['theme.css', 'reference.css', 'components.css', 'navigation.css', 'vocabulary.css'].map(
+		(name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8'),
+	),
 );
 await mkdir(resolve(outputDirectory, 'fonts'), { recursive: true });
 await Promise.all(

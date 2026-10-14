@@ -15,7 +15,7 @@ it('uses the shared semantic theme for additions, removals and modifications in 
 	const sources = await Promise.all([
 		readFile('fixtures/session-graph.json', 'utf8'),
 		readFile('experiments/graph-diff/changes.json', 'utf8'),
-		readFile('../../packages/demistify/src/theme.css', 'utf8'),
+		readFile('../../packages/demistify/src/styles/theme.css', 'utf8'),
 	]);
 	const graph = graphSchema.parse(JSON.parse(sources[0] ?? ''));
 	const changes = changeSetSchema.parse(JSON.parse(sources[1] ?? ''));

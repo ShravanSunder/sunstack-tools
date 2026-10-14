@@ -1,15 +1,7 @@
-import { renderThemedDiagram } from './diagram-render.ts';
-import { installIslandInspector, openIsland } from './island-inspector.ts';
-import { reportIssue } from './issues.ts';
-import { normalizeIslandText } from './source-text.ts';
-
-/** Reads island source from a script or template child, or plain text when the author wrote no wrapper. */
-function readIslandSource(owner: HTMLElement): string | undefined {
-	const wrapper = owner.querySelector(':scope > script, :scope > template');
-	if (wrapper instanceof HTMLTemplateElement) return wrapper.content.textContent ?? '';
-	if (wrapper) return wrapper.textContent ?? '';
-	return owner.children.length === 0 ? (owner.textContent ?? '') : undefined;
-}
+import { reportIssue } from '../core/issues.ts';
+import { normalizeIslandText, readIslandSource } from '../core/source-text.ts';
+import { renderThemedDiagram } from '../render/diagram.ts';
+import { installIslandInspector, openIsland } from './inspector.ts';
 
 /** Renders diagram text closer to body size; the SVG still never exceeds its island. */
 function enlargeDiagram(owner: HTMLElement): void {
@@ -48,36 +40,6 @@ function linkDiagramNodes(owner: HTMLElement): void {
 			event.preventDefault();
 			openLinkedElement(target);
 		});
-	}
-}
-
-export class MarkdownIsland extends HTMLElement {
-	private renderPromise: Promise<void> | undefined;
-	connectedCallback(): void {
-		if (this.hasAttribute('prepared')) {
-			installIslandInspector(this);
-			return;
-		}
-		this.renderPromise ??= this.renderContent();
-	}
-	private async renderContent(): Promise<void> {
-		if (this.hasAttribute('prepared')) return;
-		const sourceText = readIslandSource(this);
-		if (sourceText === undefined) {
-			this.setAttribute('prepared', '');
-			installIslandInspector(this);
-			return;
-		}
-		try {
-			const { renderMarkdownContent } = await import('./markdown-content.ts');
-			this.innerHTML = renderMarkdownContent(sourceText);
-			this.setAttribute('prepared', '');
-			installIslandInspector(this);
-			this.dispatchEvent(new Event('island-ready', { bubbles: true }));
-		} catch (error) {
-			this.textContent = `Markdown could not render: ${String(error)}`;
-			reportIssue(this, `Markdown could not render: ${String(error)}`);
-		}
 	}
 }
 

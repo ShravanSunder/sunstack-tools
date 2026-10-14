@@ -51,3 +51,17 @@ export function reportIssue(element: Element | undefined, message: string): void
 	console.warn(`[demistify] ${describeElement(element)}: ${message}`);
 	renderFrame ??= requestAnimationFrame(renderPanel);
 }
+
+/** Reports duplicate ids and unknown ex-* elements once the vocabulary is registered. */
+export function reportStructuralIssues(): void {
+	const seenIds = new Set<string>();
+	for (const element of document.querySelectorAll('[id]:not(svg *)')) {
+		if (seenIds.has(element.id))
+			reportIssue(element, `Duplicate id "${element.id}"; ids must be unique.`);
+		seenIds.add(element.id);
+	}
+	for (const element of document.querySelectorAll('*')) {
+		if (element.localName.startsWith('ex-') && !customElements.get(element.localName))
+			reportIssue(element, `Unknown element <${element.localName}>.`);
+	}
+}

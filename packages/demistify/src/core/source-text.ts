@@ -12,3 +12,11 @@ export function normalizeIslandText(sourceText: string): string {
 		.join('\n')
 		.trim();
 }
+
+/** Reads island source from a script or template child, or plain text when the author wrote no wrapper. */
+export function readIslandSource(owner: HTMLElement): string | undefined {
+	const wrapper = owner.querySelector(':scope > script, :scope > template');
+	if (wrapper instanceof HTMLTemplateElement) return wrapper.content.textContent ?? '';
+	if (wrapper) return wrapper.textContent ?? '';
+	return owner.children.length === 0 ? (owner.textContent ?? '') : undefined;
+}

@@ -1,4 +1,4 @@
-import { createIconButton } from './icon-controls.ts';
+import { createIconButton } from '../core/icons.ts';
 
 type InspectionMode = 'modal' | 'sidebar';
 

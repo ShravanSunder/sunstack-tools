@@ -1,102 +1,22 @@
-import { CalloutIsland, CardIsland } from './card-island.ts';
-import { CodeIsland, CodeNoteIsland } from './code-island.ts';
-import { HeadingNavigation } from './heading-navigation.ts';
-import { createIconButton } from './icon-controls.ts';
-import { ArrowIsland } from './island-arrows.ts';
-import { FlowIsland } from './island-flow.ts';
-import { installIslandInspector, ZoomIsland } from './island-inspector.ts';
-import { reportIssue } from './issues.ts';
-import { MarkdownIsland, MermaidIsland } from './markdown-diagram-islands.ts';
-import { normalizeIslandText } from './source-text.ts';
-import { TabsIsland } from './tabs-island.ts';
-
-class StructuralIsland extends HTMLElement {
-	connectedCallback(): void {
-		installIslandInspector(this);
-	}
-}
-class GridIsland extends HTMLElement {}
-/** Bare text written between islands is Markdown; it becomes a Markdown island in place. */
-function adoptBareMarkdown(container: Element): void {
-	let run: Text[] = [];
-	const flush = (): void => {
-		const first = run[0];
-		if (first && run.some((node): boolean => node.data.trim().length > 0)) {
-			const script = document.createElement('script');
-			script.type = 'text/markdown';
-			script.textContent = run.map((node): string => node.data).join('');
-			const island = document.createElement('ex-markdown');
-			island.append(script);
-			first.before(island);
-			for (const node of run) node.remove();
-		}
-		run = [];
-	};
-	for (const node of Array.from(container.childNodes)) {
-		if (node instanceof Text) run.push(node);
-		else flush();
-	}
-	flush();
-}
-
-class DocumentIsland extends StructuralIsland {
-	override connectedCallback(): void {
-		adoptBareMarkdown(this);
-		for (const panel of this.querySelectorAll(':scope ex-tabs > section')) adoptBareMarkdown(panel);
-		super.connectedCallback();
-		if (!document.querySelector('ex-nav')) {
-			const navigation = document.createElement('ex-nav');
-			this.id ||= 'ex-content';
-			navigation.setAttribute('for', this.id);
-			document.body.prepend(navigation);
-		}
-		if (!document.querySelector('[data-ex-theme]')) {
-			const toggle = createIconButton('circle-half', 'Switch light or dark theme', (): void => {});
-			toggle.dataset['exTheme'] = '';
-			toggle.classList.add('ex-theme-toggle');
-			document.body.append(toggle);
-		}
-	}
-}
-class DecisionIsland extends HTMLElement {
-	connectedCallback(): void {
-		this.classList.add('decision');
-		installIslandInspector(this);
-	}
-}
-class CompareIsland extends HTMLElement {
-	connectedCallback(): void {
-		this.classList.add('ex-compare');
-		installIslandInspector(this);
-	}
-}
-class TimelineIsland extends HTMLElement {
-	connectedCallback(): void {
-		this.classList.add('ex-timeline');
-		installIslandInspector(this);
-	}
-}
-class LayerIsland extends HTMLElement {
-	connectedCallback(): void {
-		this.classList.add('band');
-		installIslandInspector(this);
-	}
-}
-class FileTreeIsland extends HTMLElement {
-	connectedCallback(): void {
-		if (this.hasAttribute('prepared')) {
-			installIslandInspector(this);
-			return;
-		}
-		this.classList.add('ex-file-tree');
-		this.textContent = normalizeIslandText(
-			this.querySelector('script[type="text/plain"]')?.textContent ?? this.textContent ?? '',
-		);
-		this.setAttribute('prepared', '');
-		installIslandInspector(this);
-	}
-}
-class DiagramDiffIsland extends CompareIsland {}
+import { reportStructuralIssues } from './core/issues.ts';
+import { CalloutIsland, CardIsland } from './islands/card.ts';
+import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
+import { FileTreeIsland } from './islands/file-tree.ts';
+import { ZoomIsland } from './islands/inspector.ts';
+import {
+	CompareIsland,
+	DecisionIsland,
+	DiagramDiffIsland,
+	LayerIsland,
+	TimelineIsland,
+} from './islands/legacy.ts';
+import { MarkdownIsland } from './islands/markdown.ts';
+import { MermaidIsland } from './islands/mermaid.ts';
+import { TabsIsland } from './islands/tabs.ts';
+import { ArrowIsland } from './layout/arrows.ts';
+import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/document.ts';
+import { FlowIsland } from './layout/flow.ts';
+import { HeadingNavigation } from './layout/navigation.ts';
 
 for (const [tagName, constructor] of [
 	['ex-markdown', MarkdownIsland],
@@ -122,38 +42,5 @@ for (const [tagName, constructor] of [
 	if (!customElements.get(tagName)) customElements.define(tagName, constructor);
 }
 
-const seenIds = new Set<string>();
-for (const element of document.querySelectorAll('[id]')) {
-	if (seenIds.has(element.id))
-		reportIssue(element, `Duplicate id "${element.id}"; ids must be unique.`);
-	seenIds.add(element.id);
-}
-for (const element of document.querySelectorAll('*')) {
-	if (element.localName.startsWith('ex-') && !customElements.get(element.localName))
-		reportIssue(element, `Unknown element <${element.localName}>.`);
-}
-
-document.addEventListener('click', (event: MouseEvent): void => {
-	if (!(event.target instanceof Element)) return;
-	if (event.target.closest('[data-ex-theme]')) {
-		const current =
-			document.documentElement.dataset['theme'] ??
-			(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-		document.documentElement.dataset['theme'] = current === 'dark' ? 'light' : 'dark';
-		return;
-	}
-	const targetLink = event.target.closest('a');
-	const href = targetLink?.getAttribute('href');
-	if (!href?.startsWith('#')) return;
-	const targetElement = document.getElementById(href.slice(1));
-	if (!targetElement) return;
-	for (let ancestor = targetElement.parentElement; ancestor; ancestor = ancestor.parentElement) {
-		if (ancestor.getAttribute('role') === 'tabpanel') {
-			const ownerTabs = ancestor.parentElement;
-			ownerTabs
-				?.querySelector<HTMLButtonElement>(`button[aria-controls="${CSS.escape(ancestor.id)}"]`)
-				?.click();
-		}
-		if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
-	}
-});
+reportStructuralIssues();
+installDocumentBehavior();

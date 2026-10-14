@@ -70,6 +70,20 @@ At viewport widths of 1440px and above it keeps a quiet left sidebar visible; sm
 
 Phosphor regular is the icon family, subset at build time to the icons the library uses (tones, inspection, navigation and a few lab icons; about 2 KB). Authors name tones rather than icons. Text fonts are separate WOFF2 files referenced from the theme, so only faces a page uses download, after first paint. Upstream Mermaid font imports are removed so the document uses local theme fonts.
 
+## Source layout
+
+```text
+src/
+  runtime.ts     Entry: registers every element, then runs page checks and document behaviour
+  core/          Shared services: authoring issues, tones, Phosphor icon buttons, source/HTML text helpers
+  islands/       One file per content element: markdown, mermaid, card (+ callout), code (+ note),
+                 tabs, file-tree, inspector (+ ex-zoom), legacy (earlier lab vocabulary)
+  layout/        document (chrome, bare Markdown, ex-grid), flow, arrows, navigation
+  render/        Markdown and diagram rendering adapters, chart-source fixes, SVG font cleanup
+  node/          packaging.ts: Node-only build/packaging adapter (fonts, icons, pre-rendering)
+  styles/        theme, reference, components, navigation and vocabulary CSS, concatenated by the build
+```
+
 ## Packaging boundary and limits
 
 `@sunstack/demistify/packaging` exposes `prepareIslandContent(sourceHtml, diagramDictionary, standalone)`, `localFontStyles` and `localPhosphorStyles`. This experimental Node entry currently exports TypeScript source and targets the lab's Node 26 tooling; it is not a published npm release. Browser consumers use built JavaScript and CSS.

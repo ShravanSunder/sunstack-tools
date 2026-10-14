@@ -95,22 +95,7 @@ Usage counts come from exact UTF-8 author files via js-tiktoken 1.0.21, encoding
 
 ## Library implementation map
 
-| File                              | Responsibility                                                                              |
-| --------------------------------- | ------------------------------------------------------------------------------------------- |
-| `src/runtime.ts`                  | Registration, shared theme toggle and native target reveal for tabs/details                 |
-| `src/markdown-content.ts`         | Shared Marked adapter; escaped HTML, fenced Mermaid islands, table overflow wrapper         |
-| `src/markdown-diagram-islands.ts` | Async Markdown and visibility-triggered Mermaid rendering; preparation guards               |
-| `src/source-text.ts`              | Common-indent removal while preserving code/diagram relative whitespace                     |
-| `src/island-inspector.ts`         | Native dialog modal/sidebar, icon controls, moving/restoring real content and detail slots  |
-| `src/island-arrows.ts`            | Event-driven SVG portals and ID-to-ID endpoint geometry                                     |
-| `src/heading-navigation.ts`       | Heading discovery, anchor creation, current marker, hover preview and responsive navigation |
-| `src/navigation-styles.css`       | Left rail/sidebar, grouped outline/page links, breadcrumbs                                  |
-| `src/icon-controls.ts`            | Phosphor DOM icon buttons with accessible names/tooltips                                    |
-| `src/theme.css`                   | Shared palette, fonts, optional reading geometry and semantic change tokens                 |
-| `src/reference-components.css`    | Studied typography/callout/band/table patterns                                              |
-| `src/component-styles.css`        | Island surfaces, comparisons, inspector, diagram centering and content overflow             |
-| `src/packaging.ts`                | Supplied-reference resolution, standalone preparation, local font CSS                       |
-| `src/svg-fonts.ts`                | Remove upstream generated font imports; use the local document theme                        |
+The source layout moved into folders (core, islands, layout, render, node, styles) after this handoff was written; [the library README's source layout](../../../packages/demistify/README.md#source-layout) is the current map.
 
 Light DOM allows normal HTML composition. No Shadow DOM isolation is currently required. Content rendering is guarded across reconnects; inspection moves real nodes instead of cloning live state. The renderer owns colors for added (green), removed (red), modified (amber), unchanged (neutral) and focused (accent). Contributor/workflow colors are separate meanings.
 
