@@ -21,9 +21,16 @@ const contentIslands = new Set([
 	'ex-layer',
 ]);
 
-/** A Markdown island holding only headings (a section title) gains nothing from inspection. */
+/** Surfaces whose own inspector already shows the Markdown placed directly inside them. */
+const textContainers = new Set(['ex-zoom', 'ex-card', 'ex-callout', 'ex-decision']);
+
+/**
+ * A Markdown island gains nothing from its own controls when it holds only headings, or when it
+ * sits directly in a surface that is inspected as a whole (its controls would cover the surface's).
+ */
 function hasInspectableDepth(owner: HTMLElement): boolean {
 	if (owner.localName !== 'ex-markdown') return true;
+	if (textContainers.has(owner.parentElement?.localName ?? '')) return false;
 	return Array.from(owner.children).some((block): boolean => !/^h[1-6]$/.test(block.localName));
 }
 
