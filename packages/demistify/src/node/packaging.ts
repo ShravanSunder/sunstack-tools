@@ -57,6 +57,7 @@ const fontFamilies = [
 export const shippedIconNames = [
 	'arrow-counter-clockwise',
 	'arrow-right',
+	'arrow-left',
 	'arrow-up-right',
 	'arrows-out',
 	'changes',
@@ -73,6 +74,7 @@ export const shippedIconNames = [
 	'minus-circle',
 	'panel',
 	'pencil-simple',
+	'play',
 	'plus-circle',
 	'question',
 	'sidebar-simple',

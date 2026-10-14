@@ -1,3 +1,4 @@
+import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createIconButton } from '../core/icons.ts';
 import { installIslandInspector } from '../islands/inspector.ts';
 
@@ -7,29 +8,6 @@ export class StructuralIsland extends HTMLElement {
 	}
 }
 export class GridIsland extends HTMLElement {}
-/** Bare text written between islands is Markdown; it becomes a Markdown island in place. */
-function adoptBareMarkdown(container: Element): void {
-	let run: Text[] = [];
-	const flush = (): void => {
-		const first = run[0];
-		if (first && run.some((node): boolean => node.data.trim().length > 0)) {
-			const script = document.createElement('script');
-			script.type = 'text/markdown';
-			script.textContent = run.map((node): string => node.data).join('');
-			const island = document.createElement('ex-markdown');
-			island.append(script);
-			first.before(island);
-			for (const node of run) node.remove();
-		}
-		run = [];
-	};
-	for (const node of Array.from(container.childNodes)) {
-		if (node instanceof Text) run.push(node);
-		else flush();
-	}
-	flush();
-}
-
 export class DocumentIsland extends StructuralIsland {
 	override connectedCallback(): void {
 		adoptBareMarkdown(this);
@@ -65,15 +43,18 @@ export function installDocumentBehavior(): void {
 		const href = targetLink?.getAttribute('href');
 		if (!href?.startsWith('#')) return;
 		const targetElement = document.getElementById(href.slice(1));
-		if (!targetElement) return;
-		for (let ancestor = targetElement.parentElement; ancestor; ancestor = ancestor.parentElement) {
-			if (ancestor.getAttribute('role') === 'tabpanel') {
-				const ownerTabs = ancestor.parentElement;
-				ownerTabs
-					?.querySelector<HTMLButtonElement>(`button[aria-controls="${CSS.escape(ancestor.id)}"]`)
-					?.click();
-			}
-			if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
-		}
+		if (targetElement) revealElement(targetElement);
 	});
+}
+
+/** Selects the tab and opens the details that hide an element, so it can be shown. */
+export function revealElement(target: Element): void {
+	for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
+		if (ancestor.getAttribute('role') === 'tabpanel' && ancestor.hidden) {
+			ancestor.parentElement
+				?.querySelector<HTMLButtonElement>(`button[aria-controls="${CSS.escape(ancestor.id)}"]`)
+				?.click();
+		}
+		if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+	}
 }

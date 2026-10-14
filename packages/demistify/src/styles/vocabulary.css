@@ -47,7 +47,7 @@
 
 ex-document {
 	display: block;
-	max-width: 1200px;
+	max-width: 1440px;
 	margin: 32px auto 96px;
 }
 ex-document > * + * {
@@ -56,12 +56,15 @@ ex-document > * + * {
 
 ex-grid,
 ex-flow {
+	--gap: 20px;
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-	gap: 20px;
+	gap: var(--gap);
 	align-items: start;
+	container-type: inline-size;
 }
 ex-flow {
+	--gap: 72px;
 	position: relative;
 	column-gap: 72px;
 	row-gap: 64px;
@@ -78,8 +81,12 @@ ex-flow {
 ex-flow > ex-arrow {
 	display: none;
 }
+/* At most --cols columns; columns wrap when each would be narrower than 240px. */
 :is(ex-grid, ex-flow)[cols] {
-	grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+	grid-template-columns: repeat(
+		auto-fit,
+		minmax(max(min(100%, 240px), calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols))), 1fr)
+	);
 }
 :is(ex-grid, ex-flow)[cols='1'] {
 	--cols: 1;
@@ -111,16 +118,36 @@ ex-flow > ex-arrow {
 :is(ex-grid, ex-flow) > * + * {
 	margin-top: 0;
 }
-@media (max-width: 760px) {
-	:is(ex-grid, ex-flow),
-	:is(ex-grid, ex-flow)[cols] {
-		grid-template-columns: minmax(0, 1fr);
+/* Spans and sticky columns only hold while the grid itself is wide enough. */
+@container (max-width: 620px) {
+	:is(ex-grid, ex-flow) > [span] {
+		grid-column: auto;
 	}
+	:is(ex-grid, ex-flow) > [sticky] {
+		position: static;
+	}
+}
+:is(ex-grid, ex-flow) > [sticky] {
+	position: sticky;
+	top: 16px;
+	align-self: start;
+}
+@media (max-width: 760px) {
 	ex-flow {
 		padding-inline: 32px;
 	}
-	:is(ex-grid, ex-flow) > [span] {
-		grid-column: auto;
+	/* A swipe grid becomes one horizontal row of cards on phones instead of a tall stack. */
+	ex-grid[swipe] {
+		grid-template-columns: none;
+		grid-auto-flow: column;
+		grid-auto-columns: 82%;
+		overflow-x: auto;
+		scroll-snap-type: x mandatory;
+		overscroll-behavior-x: contain;
+		padding-bottom: 8px;
+	}
+	ex-grid[swipe] > * {
+		scroll-snap-align: start;
 	}
 }
 
@@ -274,6 +301,7 @@ ex-callout > :is(p, ul, ol) {
 
 ex-code {
 	display: block;
+	container-type: inline-size;
 	background: var(--sheet);
 	border: 1px solid var(--rule);
 	border-radius: 8px;
@@ -351,7 +379,7 @@ ex-note .ex-tone-icon {
 	vertical-align: -2px;
 	margin-right: 6px;
 }
-@media (max-width: 760px) {
+@container (max-width: 700px) {
 	.ex-code-lines {
 		grid-template-columns: auto minmax(0, 1fr);
 	}
@@ -366,4 +394,141 @@ ex-note .ex-tone-icon {
 
 ex-mermaid:not([prepared]) {
 	min-height: 160px;
+}
+
+ex-stat {
+	display: grid;
+	align-content: start;
+	gap: 2px;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: 8px;
+	padding: 14px 18px;
+}
+.ex-stat-value {
+	font: 600 32px/1.1 var(--display);
+	letter-spacing: -0.01em;
+}
+.ex-stat-label {
+	font: 14px/1.35 var(--display);
+	color: var(--ink-soft);
+}
+.ex-stat-note {
+	font: 600 13px/1.35 var(--display);
+	color: var(--tone, var(--ink-soft));
+}
+
+ex-tabs[data-layout='columns'] > .ex-tab-bar {
+	display: none;
+}
+ex-tabs[data-layout='columns'] {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(0, 1fr);
+	gap: 24px;
+}
+ex-tabs[data-layout='columns'] > [role='region']::before {
+	content: attr(label);
+	display: block;
+	font: 600 13px var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-soft);
+	margin-bottom: 8px;
+}
+
+ex-route,
+ex-step {
+	display: none;
+}
+.ex-route-launcher {
+	position: fixed;
+	top: 12px;
+	right: 56px;
+	z-index: 5;
+	width: auto;
+	gap: 6px;
+	padding: 0 12px 0 10px;
+	border-radius: 999px;
+	background: var(--sheet);
+	font: 600 14px var(--display);
+	display: inline-flex;
+	align-items: center;
+}
+.ex-route-player {
+	position: fixed;
+	left: 50%;
+	bottom: 16px;
+	transform: translateX(-50%);
+	z-index: 20;
+	width: min(640px, calc(100vw - 24px));
+	background: var(--sheet);
+	color: var(--ink);
+	border: 1px solid var(--rule);
+	border-radius: 12px;
+	box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+	padding: 10px 14px;
+	font-family: var(--display);
+}
+.ex-route-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.ex-route-controls > strong,
+.ex-route-controls > select {
+	margin-right: auto;
+	font: 600 15px var(--display);
+}
+.ex-route-controls > select {
+	background: var(--sheet);
+	color: var(--ink);
+	border: 1px solid var(--rule);
+	border-radius: 6px;
+	padding: 4px 6px;
+}
+.ex-route-count {
+	font: 14px var(--mono);
+	color: var(--ink-soft);
+	min-width: 4ch;
+	text-align: center;
+}
+.ex-route-narration {
+	margin: 8px 2px 2px;
+	font: 16px/1.45 var(--body);
+	max-width: none;
+}
+.ex-route-focus {
+	outline: 3px solid var(--accent);
+	outline-offset: 6px;
+	border-radius: 8px;
+	transition: outline-color 200ms;
+}
+ex-mermaid g.ex-route-focus > :is(rect, polygon, path, circle, ellipse) {
+	stroke: var(--accent);
+	stroke-width: 3;
+}
+.ex-inspect-dialog > .ex-route-player {
+	position: static;
+	transform: none;
+	width: auto;
+	margin: 0 12px 12px;
+	box-shadow: none;
+}
+:root[data-route] ex-document {
+	padding-bottom: 180px;
+}
+@media (max-width: 760px) {
+	.ex-route-launcher > span {
+		display: none;
+	}
+	.ex-route-launcher {
+		padding: 0;
+		width: 34px;
+	}
+	.ex-route-player {
+		bottom: 0;
+		width: 100vw;
+		border-radius: 12px 12px 0 0;
+	}
 }

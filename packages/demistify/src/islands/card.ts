@@ -1,3 +1,4 @@
+import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createToneIcon, readTone } from '../core/tones.ts';
 import type { Tone } from '../core/tones.ts';
 import { installIslandInspector } from './inspector.ts';
@@ -9,6 +10,12 @@ function takeTitle(owner: HTMLElement): string | undefined {
 	owner.removeAttribute('title');
 	owner.setAttribute('label', owner.getAttribute('label') ?? title);
 	return title;
+}
+
+/** Card and callout bodies, and their details, may be written as bare Markdown. */
+function adoptBodyMarkdown(owner: HTMLElement): void {
+	adoptBareMarkdown(owner);
+	for (const details of owner.querySelectorAll(':scope > details')) adoptBareMarkdown(details);
 }
 
 function createHeader(
@@ -32,6 +39,7 @@ export class CardIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
 		if (!this.hasAttribute('prepared')) {
+			adoptBodyMarkdown(this);
 			const tone = readTone(this, undefined);
 			const header = createHeader('ex-card-head', tone, takeTitle(this));
 			const tag = this.getAttribute('tag');
@@ -60,6 +68,7 @@ export class CalloutIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
 		if (!this.hasAttribute('prepared')) {
+			adoptBodyMarkdown(this);
 			const tone = readTone(this, 'note');
 			this.prepend(createHeader('ex-callout-head', tone, takeTitle(this)));
 			this.setAttribute('prepared', '');

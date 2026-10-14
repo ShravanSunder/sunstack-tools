@@ -54,6 +54,28 @@ export class TabsIsland extends HTMLElement {
 		tabBar.append(...buttons);
 		this.prepend(tabBar);
 		selectPanel(0);
+		if (this.hasAttribute('columns')) {
+			let selected = 0;
+			const fitsSideBySide = (): boolean =>
+				this.clientWidth >= panels.length * 340 + (panels.length - 1) * 24;
+			new ResizeObserver((): void => {
+				const columns = fitsSideBySide();
+				if (columns === (this.dataset['layout'] === 'columns')) return;
+				if (columns)
+					selected = Math.max(
+						0,
+						buttons.findIndex((button): boolean => button.getAttribute('aria-selected') === 'true'),
+					);
+				this.dataset['layout'] = columns ? 'columns' : 'tabs';
+				panels.forEach((panel): void => {
+					panel.setAttribute('role', columns ? 'region' : 'tabpanel');
+					if (columns) panel.setAttribute('aria-label', panel.getAttribute('label') ?? '');
+				});
+				if (columns) for (const panel of panels) panel.hidden = false;
+				else selectPanel(selected);
+				this.dispatchEvent(new Event('island-ready', { bubbles: true }));
+			}).observe(this);
+		}
 		installIslandInspector(this);
 	}
 }

@@ -12,11 +12,13 @@ import {
 } from './islands/legacy.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
+import { StatIsland } from './islands/stat.ts';
 import { TabsIsland } from './islands/tabs.ts';
 import { ArrowIsland } from './layout/arrows.ts';
 import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/document.ts';
 import { FlowIsland } from './layout/flow.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
+import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
 
 for (const [tagName, constructor] of [
 	['ex-markdown', MarkdownIsland],
@@ -36,6 +38,9 @@ for (const [tagName, constructor] of [
 	['ex-flow', FlowIsland],
 	['ex-code', CodeIsland],
 	['ex-note', CodeNoteIsland],
+	['ex-stat', StatIsland],
+	['ex-route', RouteElement],
+	['ex-step', StepElement],
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 ] satisfies readonly (readonly [string, CustomElementConstructor])[]) {
@@ -44,3 +49,4 @@ for (const [tagName, constructor] of [
 
 reportStructuralIssues();
 installDocumentBehavior();
+installRoutes();
