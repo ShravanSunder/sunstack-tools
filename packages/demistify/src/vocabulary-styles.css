@@ -185,12 +185,17 @@ ex-callout {
 	border-radius: 6px;
 	padding: 14px 18px;
 }
+ex-callout:not(:has(> .ex-callout-head strong)) {
+	position: relative;
+	padding-left: 48px;
+}
 .ex-callout-head {
-	float: left;
-	margin: 2px 10px 0 0;
+	position: absolute;
+	left: 18px;
+	top: 16px;
 }
 .ex-callout-head:has(strong) {
-	float: none;
+	position: static;
 	margin: 0 0 6px;
 }
 .ex-callout-head strong {
@@ -199,11 +204,6 @@ ex-callout {
 }
 ex-callout > :is(p, ul, ol) {
 	margin: 4px 0;
-}
-ex-callout::after {
-	content: '';
-	display: block;
-	clear: both;
 }
 
 :is(ex-card, ex-callout) details {
