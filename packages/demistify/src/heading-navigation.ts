@@ -91,7 +91,13 @@ export class HeadingNavigation extends HTMLElement {
 		});
 		this.contentObserver = new MutationObserver((records): void => {
 			// The body fallback includes our portal: its outline writes are not content changes.
-			if (records.some((record): boolean => !this.containsNavigation(record.target)))
+			if (
+				records.some(
+					(record): boolean =>
+						Boolean(this.contentRoot?.contains(record.target)) &&
+						!this.containsNavigation(record.target),
+				)
+			)
 				this.renderHeadings();
 		});
 		this.connectObservers();
