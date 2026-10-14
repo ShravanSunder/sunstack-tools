@@ -12,7 +12,7 @@ const installedInspectors = new WeakSet<HTMLElement>();
  * own affordance; prose, plain cards and stats get nothing. A bare `zoom` attribute forces the
  * buttons and `zoom="none"` removes them.
  */
-const visualIslands = new Set(['ex-mermaid', 'ex-code', 'ex-file-tree']);
+const visualIslands = new Set(['ex-mermaid', 'ex-code', 'ex-file-tree', 'ex-compare']);
 type Affordance = 'enlarge' | 'more';
 
 function affordanceFor(owner: HTMLElement): Affordance | undefined {

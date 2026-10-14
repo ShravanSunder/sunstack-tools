@@ -60,6 +60,67 @@
 				>
 				<ex-card title="Client" icon="user" tone="note">Sends its session id.</ex-card>
 			</ex-grid>
+			## The change, file by file
+
+			<ex-code title="Resume owns completion" lang="diff"
+				><script type="text/plain">
+					diff --git a/src/session/resume.ts b/src/session/resume.ts
+					--- a/src/session/resume.ts
+					+++ b/src/session/resume.ts
+					@@ -40,6 +40,9 @@ export async function resume(id: string, socket: Socket) {
+					   const session = await store.read(id);
+					-  if (!session) return undefined;
+					+  if (!session || session.state !== 'detached') return undefined;
+					+  const attached = await store.compareAndSet(id, session.version, { state: 'active' });
+					+  if (!attached) return undefined;
+					   binder.attach(id, socket);
+					   events.publish('session.resumed', { id });
+					-  return session;
+					+  return attached;
+					 }
+					diff --git a/src/session/store.ts b/src/session/store.ts
+					--- a/src/session/store.ts
+					+++ b/src/session/store.ts
+					@@ -12,3 +12,7 @@ export interface SessionStore {
+					   read(id: string): Promise<Session | undefined>;
+					+  compareAndSet(id: string, version: number, change: Partial<Session>): Promise<Session | undefined>;
+					   touch(id: string): Promise<void>;
+					 }
+				</script>
+				<ex-note file="resume.ts" line="42" tone="decision"
+					>Compare-and-set on the version stops two tabs resuming the same session.</ex-note
+				>
+				<ex-note file="resume.ts" line="43" tone="question"
+					>The loser sees a miss; logs cannot tell it from an expired session.</ex-note
+				>
+				<ex-note file="store.ts" line="13" tone="added"
+					>New store method; Redis implements it with WATCH/MULTI.</ex-note
+				>
+			</ex-code>
+
+			## Evidence in pictures
+
+			<ex-grid cols="2">
+				<figure>
+					<img
+						src="media/resume-after.svg"
+						alt="Resume success by cause after the change: high for blips, deploys and crashes; zero after long sleep"
+					/>
+					<figcaption>After the change, deploys and crashes resume like blips.</figcaption>
+				</figure>
+				<ex-compare slider>
+					<img
+						label="Before"
+						src="media/resume-before.svg"
+						alt="Resume success before the change: low across causes"
+					/>
+					<img
+						label="After"
+						src="media/resume-after.svg"
+						alt="Resume success after the change: high except long sleep"
+					/>
+				</ex-compare>
+			</ex-grid>
 		</ex-document>
 	</body>
 </html>

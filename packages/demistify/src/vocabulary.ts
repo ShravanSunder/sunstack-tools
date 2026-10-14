@@ -127,6 +127,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 				type: { kind: 'number', min: 1, max: 1_000_000 },
 				required: true,
 			},
+			file: text('In a multi-file diff, the file the line is in (path or its end).'),
 			tone,
 		},
 		within: ['ex-code'],
@@ -217,7 +218,12 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		attributes: { status: text('Decision status.'), label },
 		legacy: true,
 	},
-	'ex-compare': { description: 'Side-by-side comparison.', attributes: { label }, legacy: true },
+	'ex-compare': {
+		description:
+			'Before and after: two children side by side, or overlaid with a draggable divider (`slider`).',
+		attributes: { slider: flag('Overlay the two sides with a divider.'), label },
+		childAttributes: { label: text('Name of this side (default Before / After).') },
+	},
 	'ex-diagram-diff': {
 		description: 'Before and after diagrams.',
 		attributes: { label },

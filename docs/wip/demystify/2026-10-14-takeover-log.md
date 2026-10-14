@@ -50,6 +50,11 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - The curated subject icons (32 Phosphor names, `icon` on cards, callouts, regions and trees) say what a thing is, while tone says its state. Common synonyms map in both runtime and checker (`server`→`hard-drives`, and tone synonyms such as `warning`→`risk`), as fixable warnings.
   - The icon font grows 2 → 6.6 KB, one cached file. Islands stacked in a plain column div inside a grid keep the grid's spacing.
   - Verified on a new lab page (`html-islands-components-live.html`): two trees, 29 nodes, a correct checklist, the map horizontal on desktop and an outline on a phone, collapse and link-jump working, no issues, errors or overflow in light, dark or phone views; the checker reports 0/0. The guide is 1,617 tokens.
+- **Claude** Components, part 2 (owner D23: standard code diffs, images including generated pictures):
+  - `ex-code` handles multi-file unified diffs. `diff --git`/`+++` headers split the diff into collapsible file sections with +/− counts and a total in the head. With `@@ -a +b @@` hunk headers, line numbers follow the files, GitHub style; without them, numbering stays sequential from `start`, which keeps existing pages' notes in place. `<ex-note file="store.ts" line="13">` names the file.
+  - Pictures stay plain HTML (`<figure><img><figcaption>`): the library frames them and a click opens one enlarged; several in an `ex-grid` make a gallery.
+  - `ex-compare` is now taught: before and after side by side, or with `slider`, overlaid with a keyboard-accessible divider and labelled corner chips. Bare images are framed so their side can carry a label.
+  - Verified on the components demo: two files with correct counts (+4 −2, +1 −0); all three notes on the right file lines (42, 43, 13); images load; the slider moves with the arrow keys; a click opens a figure enlarged; no issues, errors or overflow on desktop or phone. Checker 0/0.
 
 ## Open
 

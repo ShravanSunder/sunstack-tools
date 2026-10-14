@@ -1,15 +1,10 @@
 import { reportStructuralIssues } from './core/issues.ts';
 import { CalloutIsland, CardIsland } from './islands/card.ts';
 import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
+import { CompareIsland, DiagramDiffIsland } from './islands/compare.ts';
 import { FileTreeIsland } from './islands/file-tree.ts';
 import { ZoomIsland } from './islands/inspector.ts';
-import {
-	CompareIsland,
-	DecisionIsland,
-	DiagramDiffIsland,
-	LayerIsland,
-	TimelineIsland,
-} from './islands/legacy.ts';
+import { DecisionIsland, LayerIsland, TimelineIsland } from './islands/legacy.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
 import { StatIsland } from './islands/stat.ts';

@@ -23,7 +23,92 @@ export class CodeNoteIsland extends HTMLElement {
 	}
 }
 
-/** Line-numbered code or a unified diff, with ex-note children shown beside the lines they name. */
+interface CodeLine {
+	readonly text: string;
+	readonly kind: LineKind;
+	/** The number shown and the number notes attach to; undefined for hunk headers. */
+	readonly number: number | undefined;
+}
+interface CodeFile {
+	readonly path: string | undefined;
+	readonly lines: CodeLine[];
+}
+
+const fileHeader = /^diff --git a\/(\S+) b\/(\S+)/;
+const fileMetadata =
+	/^(index |new file mode|deleted file mode|similarity index|rename (from|to)|old mode|new mode|--- |\+\+\+ )/;
+const hunkHeader = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+
+/**
+ * Splits code or a unified diff into files and numbers its lines. With `@@ -a +b @@` headers,
+ * numbers follow the files (added and context lines take new-file numbers, removed lines old ones);
+ * without them, lines count on from `start`, so a note names the row it sits on.
+ */
+function parseCode(lines: readonly string[], diff: boolean, firstNumber: number): CodeFile[] {
+	const files: CodeFile[] = [];
+	let current: CodeFile = { path: undefined, lines: [] };
+	const realNumbers = diff && lines.some((line): boolean => hunkHeader.test(line));
+	let newNumber = firstNumber;
+	let oldNumber = firstNumber;
+	for (const line of lines) {
+		const header = diff ? fileHeader.exec(line) : null;
+		const plusPath =
+			diff && line.startsWith('+++ ') ? line.slice(4).replace(/^b\//, '') : undefined;
+		if (header) {
+			if (current.lines.length > 0 || current.path) files.push(current);
+			current = { path: header[2], lines: [] };
+			continue;
+		}
+		if (plusPath !== undefined && current.lines.length === 0) {
+			if (plusPath !== '/dev/null') current = { path: current.path ?? plusPath, lines: [] };
+			continue;
+		}
+		if (diff && current.lines.length === 0 && fileMetadata.test(line)) {
+			if (line.startsWith('--- ') && !current.path)
+				current = { path: line.slice(4).replace(/^a\//, ''), lines: [] };
+			continue;
+		}
+		const kind = lineKind(line, diff);
+		if (kind === 'hunk') {
+			const numbers = hunkHeader.exec(line);
+			if (numbers) {
+				oldNumber = Number(numbers[1]);
+				newNumber = Number(numbers[2]);
+			}
+			current.lines.push({ text: line, kind, number: undefined });
+			continue;
+		}
+		if (!realNumbers) {
+			current.lines.push({ text: line, kind, number: newNumber });
+			newNumber += 1;
+			continue;
+		}
+		if (kind === 'removed') {
+			current.lines.push({ text: line, kind, number: oldNumber });
+			oldNumber += 1;
+			continue;
+		}
+		current.lines.push({ text: line, kind, number: newNumber });
+		newNumber += 1;
+		if (kind === 'context') oldNumber += 1;
+	}
+	files.push(current);
+	return files;
+}
+
+function changeCounts(lines: readonly CodeLine[]): HTMLElement {
+	const counts = document.createElement('span');
+	counts.className = 'ex-code-counts';
+	const added = lines.filter((line): boolean => line.kind === 'added').length;
+	const removed = lines.filter((line): boolean => line.kind === 'removed').length;
+	counts.innerHTML = `<b data-kind="added">+${added}</b> <b data-kind="removed">−${removed}</b>`;
+	return counts;
+}
+
+/**
+ * Line-numbered code or a unified diff (one file or many), with ex-note children shown beside the
+ * lines they name. In a multi-file diff a note names its file: <ex-note file="resume.ts" line="43">.
+ */
 export class CodeIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
@@ -42,14 +127,13 @@ export class CodeIsland extends HTMLElement {
 		const diff =
 			this.getAttribute('lang') === 'diff' || lines.some((line): boolean => line.startsWith('@@'));
 		const firstNumber = Number.parseInt(this.getAttribute('start') ?? '1', 10) || 1;
-		const notes = new Map<number, HTMLElement[]>();
-		for (const note of this.querySelectorAll<HTMLElement>(':scope > ex-note')) {
-			const line = Number.parseInt(note.getAttribute('line') ?? '', 10);
-			notes.set(line, [...(notes.get(line) ?? []), note]);
-		}
+		const files = parseCode(lines, diff, firstNumber);
+		const multiple = files.length > 1;
+		const notes = Array.from(this.querySelectorAll<HTMLElement>(':scope > ex-note'));
+		const placed = new Set<HTMLElement>();
 		const header = document.createElement('div');
 		header.className = 'ex-code-head';
-		const title = this.getAttribute('title');
+		const title = this.getAttribute('title') ?? (multiple ? undefined : files[0]?.path);
 		if (title) {
 			this.dataset['title'] = title;
 			this.removeAttribute('title');
@@ -58,53 +142,81 @@ export class CodeIsland extends HTMLElement {
 			name.textContent = title;
 			header.append(name);
 		}
+		if (multiple) {
+			const summary = document.createElement('strong');
+			summary.textContent = `${files.length} files`;
+			if (!title) header.append(summary);
+		}
 		const language = this.getAttribute('lang');
 		if (language) {
 			const chip = document.createElement('span');
 			chip.textContent = language;
 			header.append(chip);
 		}
-		const body = document.createElement('div');
-		body.className = 'ex-code-lines';
-		let lineNumber = firstNumber;
-		const placed = new Set<number>();
-		for (const line of lines) {
-			const kind = lineKind(line, diff);
-			const number = document.createElement('span');
-			number.className = 'ex-code-number';
-			const code = document.createElement('code');
-			code.className = 'ex-code-text';
-			code.dataset['kind'] = kind;
-			code.textContent = line || ' ';
-			const margin = document.createElement('span');
-			margin.className = 'ex-code-margin';
-			if (kind !== 'hunk') {
-				number.textContent = String(lineNumber);
-				const lineNotes = notes.get(lineNumber);
-				if (lineNotes) {
-					placed.add(lineNumber);
-					margin.append(...lineNotes);
-					const tone = lineNotes[0]?.getAttribute('tone') ?? 'note';
-					number.setAttribute('tone', tone);
-					number.dataset['noted'] = '';
-					if (kind === 'context') {
-						code.setAttribute('tone', tone);
-						code.dataset['noted'] = '';
+		if (diff) header.append(changeCounts(files.flatMap((file): CodeLine[] => file.lines)));
+		const sections = files.map((file): HTMLElement => {
+			const body = document.createElement('div');
+			body.className = 'ex-code-lines';
+			const fileNotes = notes.filter((note): boolean => {
+				const named = note.getAttribute('file');
+				return !multiple || (named !== null && file.path?.endsWith(named) === true);
+			});
+			for (const line of file.lines) {
+				const number = document.createElement('span');
+				number.className = 'ex-code-number';
+				const code = document.createElement('code');
+				code.className = 'ex-code-text';
+				code.dataset['kind'] = line.kind;
+				code.textContent = line.text || ' ';
+				const margin = document.createElement('span');
+				margin.className = 'ex-code-margin';
+				if (line.number !== undefined) {
+					number.textContent = String(line.number);
+					const lineNotes =
+						line.kind === 'removed' &&
+						diff &&
+						file.lines.some((other): boolean => other.kind === 'hunk')
+							? []
+							: fileNotes.filter(
+									(note): boolean =>
+										!placed.has(note) &&
+										Number.parseInt(note.getAttribute('line') ?? '', 10) === line.number,
+								);
+					if (lineNotes.length > 0) {
+						for (const note of lineNotes) placed.add(note);
+						margin.append(...lineNotes);
+						const tone = lineNotes[0]?.getAttribute('tone') ?? 'note';
+						number.setAttribute('tone', tone);
+						number.dataset['noted'] = '';
+						if (line.kind === 'context') {
+							code.setAttribute('tone', tone);
+							code.dataset['noted'] = '';
+						}
+						margin.dataset['noted'] = '';
 					}
-					margin.dataset['noted'] = '';
 				}
-				lineNumber += 1;
+				body.append(number, code, margin);
 			}
-			body.append(number, code, margin);
-		}
-		for (const [line, lineNotes] of notes)
-			if (!placed.has(line))
-				for (const note of lineNotes)
-					reportIssue(
-						note,
-						`line="${note.getAttribute('line') ?? ''}" is not a line of this code (lines ${firstNumber}–${lineNumber - 1}).`,
-					);
-		this.replaceChildren(...(header.childElementCount > 0 ? [header] : []), body);
+			if (!multiple) return body;
+			const section = document.createElement('details');
+			section.className = 'ex-code-file';
+			section.open = true;
+			const name = document.createElement('summary');
+			const path = document.createElement('span');
+			path.textContent = file.path ?? 'file';
+			name.append(path, changeCounts(file.lines));
+			section.append(name, body);
+			return section;
+		});
+		for (const note of notes)
+			if (!placed.has(note))
+				reportIssue(
+					note,
+					multiple && !note.hasAttribute('file')
+						? `This diff has ${files.length} files; add file="…" to say which one line="${note.getAttribute('line') ?? ''}" is in.`
+						: `line="${note.getAttribute('line') ?? ''}"${note.hasAttribute('file') ? ` in file="${note.getAttribute('file') ?? ''}"` : ''} is not a line of this code.`,
+				);
+		this.replaceChildren(...(header.childElementCount > 0 ? [header] : []), ...sections);
 		this.setAttribute('prepared', '');
 	}
 }

@@ -7,12 +7,6 @@ export class DecisionIsland extends HTMLElement {
 		installIslandInspector(this);
 	}
 }
-export class CompareIsland extends HTMLElement {
-	connectedCallback(): void {
-		this.classList.add('ex-compare');
-		installIslandInspector(this);
-	}
-}
 export class TimelineIsland extends HTMLElement {
 	connectedCallback(): void {
 		this.classList.add('ex-timeline');
@@ -25,4 +19,3 @@ export class LayerIsland extends HTMLElement {
 		installIslandInspector(this);
 	}
 }
-export class DiagramDiffIsland extends CompareIsland {}

@@ -175,6 +175,7 @@ await writeFile(
 
 // Explainers written by a small model from the skill guide and a fact brief, kept verbatim and
 // grouped by experiment round; each round folder gets its own copy of the library.
+await cp('experiments/html-islands/media', `${outputDirectory}/media`, { recursive: true });
 await cp('experiments/agent-written', `${outputDirectory}/agent-written`, { recursive: true });
 await Promise.all(
 	(await readdir('experiments/agent-written', { withFileTypes: true }))

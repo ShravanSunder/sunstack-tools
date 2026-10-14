@@ -39,7 +39,9 @@ Write prose as bare Markdown directly inside `ex-document`, tab sections, cards,
 | `<ex-callout tone title>` | TL;DR, decision, risk, gotchas, open questions |
 | `<ex-stat value label note tone>` | one number, e.g. `value="143 KiB" label="First load" note="was 443 KiB" tone="done"` |
 | `<ex-mermaid>` | Mermaid in `<script type="text/plain">` |
-| `<ex-code title lang start>` | code or a diff (`lang="diff"`) in `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` |
+| `<ex-code title lang start>` | code or a diff (`lang="diff"`; several files with `diff --git` headers) in `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` (`file="x.ts"` when several files) |
+| `<figure><img src alt><figcaption>` | a picture, screenshot or generated image; click enlarges; several in an `ex-grid` make a gallery |
+| `<ex-compare slider>` | before and after: two children side by side; `slider` overlays them with a divider; child `label` names a side |
 | `<ex-file-tree>` | plain-text tree in `<script type="text/plain">` |
 | `<ex-tree title layout>` | a Markdown list as a tree: status reports, breakdowns, checklists (`- [x]`); `- risk: text` gives a node its tone; `[text](#id)` jumps to an island; `layout="map"` draws a mind map |
 

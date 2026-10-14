@@ -1,6 +1,6 @@
 import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createIconButton } from '../core/icons.ts';
-import { installIslandInspector } from '../islands/inspector.ts';
+import { installIslandInspector, openIsland } from '../islands/inspector.ts';
 import { BoardIsland } from './board.ts';
 
 export class StructuralIsland extends HTMLElement {
@@ -38,6 +38,16 @@ export function installDocumentBehavior(): void {
 				document.documentElement.dataset['theme'] ??
 				(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 			document.documentElement.dataset['theme'] = current === 'dark' ? 'light' : 'dark';
+			return;
+		}
+		// A picture opens enlarged; a figure travels with its caption.
+		const image = event.target.closest('img');
+		if (
+			image?.closest('ex-document') &&
+			!image.closest('a, .ex-drawer, dialog, ex-compare[slider], [data-inspector-content]')
+		) {
+			const owner = image.closest('figure') ?? image.parentElement;
+			if (owner instanceof HTMLElement) openIsland(owner, 'modal');
 			return;
 		}
 		const targetLink = event.target.closest('a');
