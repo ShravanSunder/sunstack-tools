@@ -6,6 +6,7 @@ flowchart TB
   Unit -->|"0..n attributed links within supplied roots"| Rel["E20 Relationship candidate<br/>candidate, contradicted or unresolved"]
   Unit -->|"1..n related excerpts"| Chunk["E21 Semantic chunk<br/>required context and explicit optional omissions"]
   Rel -->|"relationships preserved"| Chunk
-  Chunk -->|"part of 1 proposed request"| Budget["E22 Context budget<br/>exact, estimated or unavailable accounting"]
+  Chunk -->|"required evidence complete;<br/>optional omissions explicit"| Budget["E22 Context budget<br/>exact, estimated or unavailable accounting"]
+  Chunk -->|"required group incomplete:<br/>unresolved, missing or limited"| Failure["E14 Diagnostic<br/>no inference and no pass"]
   Budget -->|"within configured budget and ready evidence"| Judge["E4 Request / E5 Judgment<br/>validated E6 answer or execution failure"]
-  Budget -->|"required overflow or unverifiable"| Failure["E14 Diagnostic<br/>no inference and no pass"]
+  Budget -->|"required overflow or unverifiable"| Failure

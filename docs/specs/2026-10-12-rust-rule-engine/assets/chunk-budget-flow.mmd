@@ -1,12 +1,13 @@
 flowchart TB
   Start["Host assembles required context<br/>questions, state and envelope"] --> First["Decisions: initial full-request assessment"]
   First --> Gate{"Budget assessment"}
-  Gate -->|"within limit and allowed accounting"| Ready["Admitted body<br/>send the exact assessed bytes"]
+  Gate -->|"within limit and allowed accounting"| Ready["Immutable admitted request<br/>bound to selected backend and assessed bytes"]
   Gate -->|"required overflow or unverifiable"| Block["Budget diagnostic<br/>no inference or rule pass"]
-  Gate -->|"overflow and optional excerpts available"| Omit["Host: one optional omission pass<br/>record removed context"]
+  Gate -->|"overflow and optional excerpts available"| Omit["Host: remove all optional excerpts once<br/>keep required membership and omission records"]
   Omit --> Second["Decisions: assess changed body once"]
   Second --> Final{"Final budget assessment"}
   Final -->|"within limit and allowed accounting"| Ready
   Final -->|"still over limit or unverifiable"| Block
+  Ready --> Dispatch["Backend sends admitted bytes unchanged<br/>no re-encoding or replacement body"]
   Cancel["Invocation owner observes cancellation<br/>before terminal admission or inference"] -.-> Join["Stop scheduling and join owned work"]
   Join --> Cancelled["Settled cancellation<br/>no new inference"]
