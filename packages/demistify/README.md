@@ -40,22 +40,23 @@ Serve that HTML and its assets with any static host. The PoC is a consumer, not 
 
 ## Composition vocabulary
 
-| Element                                   | Job                                                                         |
-| ----------------------------------------- | --------------------------------------------------------------------------- |
-| `ex-markdown`                             | Headings, prose, lists, tables and fenced code                              |
-| `ex-mermaid`                              | Explicit diagram island; Mermaid fences in Markdown create this same island |
-| `ex-zoom`                                 | Generic inspection wrapper around arbitrary HTML or nested islands          |
-| `ex-arrow`                                | Connect `from` and `to` HTML IDs                                            |
-| `ex-nav`                                  | Discover actual h1–h6 headings and provide document/page navigation         |
-| `ex-tabs`                                 | Labeled child sections become tab panels                                    |
-| `ex-compare`, `ex-diagram-diff`           | Composition containers; graph interpretation remains caller-owned           |
-| `ex-decision`, `ex-callout`               | Reusable semantic emphasis and nesting                                      |
-| `ex-timeline`, `ex-layer`, `ex-file-tree` | Implementation phases, architecture layers and file proposals               |
-| `ex-document`                             | Optional document scope; it does not impose a mandatory layout              |
+The agent-facing guide is [`skill/SKILL.md`](skill/SKILL.md), written in skill format and kept under ~1.5k tokens. It is the only document an authoring model needs.
+
+| Element                                                                              | Job                                                                                                                                                               |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ex-document`                                                                        | Document scope; adds the outline navigation and theme toggle, and renders bare Markdown text between islands                                                      |
+| `ex-markdown`, `ex-mermaid`                                                          | Markdown and diagram islands (flowchart, sequence, state, class, ER, `xychart-beta` charts)                                                                       |
+| `ex-card`, `ex-callout`                                                              | Titled surfaces whose `tone` (note, tldr, decision, risk, question, done, planned, changed, added, removed) chooses icon and colour; `pick` marks a chosen option |
+| `ex-grid`, `ex-flow`                                                                 | Side-by-side layout; `ex-flow` routes its `ex-arrow` children through the gaps so they never cross a box                                                          |
+| `ex-code`, `ex-note`                                                                 | Line-numbered code or unified diffs with margin notes                                                                                                             |
+| `ex-tabs`, `ex-arrow`, `ex-file-tree`                                                | Alternative views, relationships between islands, file proposals                                                                                                  |
+| `ex-zoom`, `ex-decision`, `ex-compare`, `ex-diagram-diff`, `ex-timeline`, `ex-layer` | Earlier vocabulary kept for the lab pages; not in the guide                                                                                                       |
+
+Every content island offers sidebar and expand controls; `zoom="none"` removes them. A Mermaid node whose id matches an element on the page takes that element's tone and opens it. An authoring-issues panel reports unknown elements or tones, broken, invisible or box-crossing arrows, misplaced notes, duplicate ids and failed diagrams.
 
 Light DOM keeps ordinary CSS layout and inheritance available. Use flow, flex/grid or absolute-positioned whiteboards. The library does not rearrange islands. Per-document layout declarations are usage; library code is not.
 
-Use `zoom="modal"` or `zoom="sidebar"` on native islands. For an arbitrary composition use `<ex-zoom mode="sidebar" label="Details">…</ex-zoom>`. Optional direct children with `slot="details"` are hidden inline and revealed in inspection. Inspectors move and restore real DOM content, reserve the inline space, and offer icon controls for magnification/reset/close. There are no saved viewer settings or author-managed state objects.
+Inspection opens a right sidebar or a large centred view. Native `<details>` inside an island are expanded in both. Optional direct children with `slot="details"` are hidden inline and revealed in inspection. Inspectors move and restore real DOM content, reserve the inline space, and offer icon controls for magnification/reset/close. There are no saved viewer settings or author-managed state objects.
 
 Diagrams are centered and naturally sized. Code blocks, tables and the inspector body own their scrolling. A bounded diagram viewport is explicit author markup such as `style="max-height:420px;overflow:auto"`; the library does not silently crop diagrams.
 
@@ -67,7 +68,7 @@ Diagrams are centered and naturally sized. Code blocks, tables and the inspector
 
 At viewport widths of 1440px and above it keeps a quiet left sidebar visible; smaller views use a compact rail and native popover. Hovering/focusing a marker previews that corresponding outline row. The current reading section has a separate border indicator. A list icon opens the outline for keyboard/touch users. Native anchors handle section jumps. Relative links authored as children appear under Other pages. `.ex-breadcrumbs` styles ordinary accessible breadcrumb markup. The breakpoint is an experimental design choice, not a measured universal threshold.
 
-Phosphor is the standard icon family: the shared theme includes regular-weight `@phosphor-icons/web@2.1.2`. Write `<i class="ph ph-arrow-right" aria-hidden="true"></i>` anywhere. Put accessible labels on the parent button when an icon replaces text. Only regular weight is shipped; there is no icon JavaScript or CDN call. The shared font is 147,380 raw bytes and is reported as a library delivery cost. Upstream Mermaid font imports are removed so the document uses local theme fonts.
+Phosphor regular is the icon family, subset at build time to the icons the library uses (tones, inspection, navigation and a few lab icons; about 2 KB). Authors name tones rather than icons. Text fonts are separate WOFF2 files referenced from the theme, so only faces a page uses download, after first paint. Upstream Mermaid font imports are removed so the document uses local theme fonts.
 
 ## Packaging boundary and limits
 

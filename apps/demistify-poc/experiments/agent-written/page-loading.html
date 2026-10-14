@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demistify page loading</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+<ex-markdown><script type="text/markdown">
+# How a Demistify page loads
+Audience: engineers deciding whether to adopt Demistify for agent-written explainers. They care about load speed and how the pieces fit.
+</script></ex-markdown>
+
+<ex-callout tone="tldr">
+<p>An explainer is a small HTML file. It loads one shared stylesheet and one small runtime; everything heavy loads later, only when the page uses it. Text paints before fonts arrive.</p>
+</ex-callout>
+
+<ex-markdown><script type="text/markdown">
+## Measurements
+Before and after this iteration. Measured 2026-10-14 in Chromium over local HTTP with a simulated 10 Mbps / 40 ms link.
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+xychart-beta
+  title "Size in KiB, before and after"
+  x-axis ["Lab page, no diagrams", "Page with a diagram", "Single-file bundle"]
+  y-axis "KiB" 0 --> 1000
+  bar "Before" [443, 949, 570]
+  bar "After" [143, 650, 241]
+</script></ex-mermaid>
+
+<ex-markdown><script type="text/markdown">
+| Page | Before | After |
+|---|---|---|
+| Main lab page without diagrams, transferred | 443 KiB | 143 KiB |
+| Main lab page, first contentful paint | 324 ms | 152 ms |
+| Page with a diagram, transferred | 949 KiB | 650 KiB |
+| Single-file offline bundle | 570 KiB | 241 KiB |
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+## Parts
+Ten parts. Click a node to open its card; each card holds the sizes and the depth.
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+flowchart LR
+  page[Explainer HTML] -->|parallel, blocking| theme[theme.css]
+  page -->|parallel, deferred| runtime[runtime.js]
+  theme -->|uses| icons[Icon font]
+  theme -.->|after first paint| fonts[Text fonts]
+  runtime -.->|lazy| markdown[Markdown chunk]
+  runtime -.->|on visibility| diagram[Diagram engine chunk]
+  runtime -->|includes| inspector[Inspector]
+  runtime -->|includes| outline[Outline navigation]
+  runtime -->|includes| issues[Authoring issues panel]
+</script></ex-mermaid>
+
+<ex-grid>
+<ex-card id="page" title="Explainer HTML" tag="authored by the agent">
+<p>About 5–25 KB. Holds content and layout only.</p>
+</ex-card>
+<ex-card id="theme" title="theme.css" tone="changed" tag="shared, render-blocking">
+<p>27 KB raw, 6 KB gzip. Colours, typography, components, and light and dark themes.</p>
+<details><summary>Before this iteration</summary><p>Previously 302 KB, because eight fonts were embedded in it as base64.</p></details>
+</ex-card>
+<ex-card id="runtime" title="runtime.js" tag="shared module, deferred">
+<p>24 KB raw, 7 KB gzip. Registers the elements, adds outline navigation and the theme toggle, and reports authoring issues.</p>
+</ex-card>
+<ex-card id="fonts" title="Text fonts" tone="changed" tag="after first paint">
+<p>Six separate WOFF2 files, 15–22 KB each. Only the faces a page actually uses download.</p>
+<details><summary>Loading</summary><p>They download after first paint, with font-display: swap.</p><p>Previously eight fonts were embedded in theme.css as base64.</p></details>
+</ex-card>
+<ex-card id="icons" title="Icon font" tone="changed" tag="Phosphor regular">
+<p>Subset to 24 icons. 2 KB.</p>
+<details><summary>Before this iteration</summary><p>Previously 147 KB for 1,530 icons.</p></details>
+</ex-card>
+<ex-card id="markdown" title="Markdown chunk" tag="lazy">
+<p>57 KB raw, 15 KB gzip. Loads when the page has a Markdown island.</p>
+</ex-card>
+<ex-card id="diagram" title="Diagram engine chunk" tone="risk" tag="lazy, on visibility">
+<p>2.2 MB raw, 500 KB gzip. Built from beautiful-mermaid with the elkjs layout engine. Loads only when a diagram scrolls into view.</p>
+<details><summary>Cost</summary><p>Imported once and shared by every diagram on the page. A page with one small diagram pays all of it.</p></details>
+</ex-card>
+<ex-card id="inspector" title="Inspector" tag="part of runtime">
+<p>Opens any island in a modal or sidebar, using the native dialog element.</p>
+<details><summary>How it works</summary><p>Moves the real content into the dialog, and restores it on close.</p></details>
+</ex-card>
+<ex-card id="outline" title="Outline navigation" tag="part of runtime">
+<p>Built from the page's real headings, including headings rendered from Markdown.</p>
+</ex-card>
+<ex-card id="issues" title="Authoring issues panel" tag="part of runtime">
+<p>Lists unknown elements or tones, broken or too-short arrows, duplicate ids, and failed diagrams.</p>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## First paint
+Five steps, in order. Step 2 is the parallel fetch.
+</script></ex-markdown>
+
+<ex-flow>
+<ex-card id="step-parse" title="1. Parse" tag="browser">
+<p>Browser parses the explainer HTML.</p>
+</ex-card>
+<ex-card id="step-fetch" title="2. Fetch in parallel" tag="blocking and deferred">
+<p><code>theme.css</code> (blocking) and <code>runtime.js</code> (module, deferred) are fetched at the same time.</p>
+</ex-card>
+<ex-card id="step-paint" title="3. First paint" tag="fallback fonts">
+<p>Paint happens with fallback fonts once <code>theme.css</code> arrives.</p>
+</ex-card>
+<ex-card id="step-fonts" title="4. Fonts swap in" tag="after paint">
+<p>Text fonts download and swap in.</p>
+</ex-card>
+<ex-card id="step-render" title="5. Islands render" tag="runtime">
+<p>The runtime registers elements and renders islands.</p>
+</ex-card>
+<ex-arrow from="step-parse" to="step-fetch"></ex-arrow>
+<ex-arrow from="step-fetch" to="step-paint" label="theme.css arrives"></ex-arrow>
+<ex-arrow from="step-paint" to="step-fonts"></ex-arrow>
+<ex-arrow from="step-fonts" to="step-render"></ex-arrow>
+</ex-flow>
+
+<ex-markdown><script type="text/markdown">
+## Rendering one diagram
+Steps for one diagram island. The engine chunk is imported once for the whole page.
+</script></ex-markdown>
+
+<ex-flow>
+<ex-card id="d-wait" title="Wait for the viewport" tag="lazy">
+<p>The island waits until it is near the viewport.</p>
+</ex-card>
+<ex-card id="d-import" title="Import the engine once" tag="shared">
+<p>Imports the diagram engine chunk once, shared by every diagram on the page.</p>
+</ex-card>
+<ex-card id="d-render" title="Render a themed SVG">
+<p>Renders an SVG themed with the page's colour tokens.</p>
+</ex-card>
+<ex-card id="d-link" title="Link nodes to cards">
+<p>Nodes whose id matches a card on the page take that card's tone colour and open the card when clicked.</p>
+</ex-card>
+<ex-card id="d-inspect" title="Make it inspectable">
+<p>The island becomes inspectable, with an expand button.</p>
+</ex-card>
+<ex-arrow from="d-wait" to="d-import"></ex-arrow>
+<ex-arrow from="d-import" to="d-render"></ex-arrow>
+<ex-arrow from="d-render" to="d-link"></ex-arrow>
+<ex-arrow from="d-link" to="d-inspect"></ex-arrow>
+</ex-flow>
+
+<ex-markdown><script type="text/markdown">
+## Arrows between islands
+Three options were considered. The first is chosen.
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="opt-flow" title="No crossings by layout" tag="light and predictable" pick>
+<p>A flow container keeps connected islands in rows or columns, and routes arrows through the gaps.</p>
+<details><summary>Trade-off</summary><p>Free-form whiteboard arrows stay simple, and the issues panel flags crossings.</p></details>
+</ex-card>
+<ex-card id="opt-routed" title="Routed anywhere" tag="most flexible, needs a routing engine">
+<p>Any arrow finds a path around boxes, in any layout.</p>
+<details><summary>Trade-off</summary><p>Needs a lazy routing engine of a few hundred KB, and gives less predictable results.</p></details>
+</ex-card>
+<ex-card id="opt-diagrams" title="Diagrams only" tag="lightest, arrows may cross boxes">
+<p>Connected structure belongs in Mermaid. Arrows between islands may cross boxes.</p>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## Risks and open questions
+</script></ex-markdown>
+
+<ex-callout tone="risk" title="Diagram engine weight">
+<p>Still 500 KB gzip. A page with one small diagram pays all of it.</p>
+</ex-callout>
+
+<ex-callout tone="question" title="Open question">
+<p>Can a lighter layout path serve simple flowcharts?</p>
+</ex-callout>
+
+<ex-callout tone="risk" title="Not verified">
+<p>Browser <code>file://</code> opening and embedded WebViews are not verified.</p>
+</ex-callout>
+
+<ex-callout tone="note" title="Single-file bundle">
+<p>Embeds every font face, including ones the page never uses.</p>
+</ex-callout>
+
+</ex-document>
+</body>
+</html>

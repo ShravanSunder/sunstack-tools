@@ -165,6 +165,15 @@ await writeFile(
 	),
 );
 
+// Explainers written by a small model from the skill guide and a fact brief, kept verbatim.
+await mkdir(`${outputDirectory}/agent-written`, { recursive: true });
+await cp(libraryDirectory, `${outputDirectory}/agent-written/demistify`, { recursive: true });
+await Promise.all(
+	(await readdir('experiments/agent-written')).map(async (name): Promise<void> =>
+		cp(`experiments/agent-written/${name}`, `${outputDirectory}/agent-written/${name}`),
+	),
+);
+
 if (process.argv.includes('--islands-only')) {
 	await writeFile(`${outputDirectory}/html-islands-rendered.html`, standaloneIslandHtml);
 	process.stdout.write(

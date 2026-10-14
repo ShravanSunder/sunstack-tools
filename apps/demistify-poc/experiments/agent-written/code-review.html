@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session resume review</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+<ex-markdown><script type="text/markdown">
+# Resume sessions after socket drops
+Review of an illustrative change, dated 2026-10-14. Written for the change author and a second reviewer.
+</script></ex-markdown>
+
+## Verdict
+
+<ex-callout tone="decision" title="Request changes">
+<p>The change fixes resume after network blips but breaks resume after every deploy, because sessions live only in process memory.</p>
+</ex-callout>
+
+## The change
+
+<ex-markdown><script type="text/markdown">
+File `src/session/resume.ts`, starting at line 40. Line 40 is the `export function resume` line. Lines 41 and 42 are removed, lines 43 to 48 are added, and line 49 is the closing brace. The notes on the diff carry the finding IDs.
+</script></ex-markdown>
+
+<ex-code title="src/session/resume.ts" lang="diff" start="40">
+<script type="text/plain">
+@@ -40,7 +40,12 @@ export function resume(id: string)
+ export function resume(id: string): Session | undefined {
+-  const socket = sockets.get(id);
+-  return socket?.session;
++  const session = registry.get(id);
++  if (!session) return undefined;
++  if (session.expiresAt < Date.now()) {
++    registry.delete(id);
++  }
++  return session.attach(currentSocket());
+ }
+</script>
+<ex-note line="43" tone="risk">F1 (blocking): registry is an in-memory Map, empty after any deploy or crash.</ex-note>
+<ex-note line="44" tone="question">F3 (nit): the early return drops the miss silently.</ex-note>
+<ex-note line="45" tone="risk">F2 (blocking): lines 45 to 47 delete an expired session, then line 48 still returns and attaches it.</ex-note>
+<ex-note line="48" tone="note">F4 (nice): attach keeps the socket swap in one place.</ex-note>
+</ex-code>
+
+<ex-markdown><script type="text/markdown">
+Files this change touches:
+</script></ex-markdown>
+
+<ex-file-tree><script type="text/plain">
+src/session/
+  resume.ts         modified, the change above
+  registry.ts       new, 64 lines
+  socket.ts         modified
+  legacy-store.ts   deleted
+test/session/
+  resume.test.ts    new
+</script></ex-file-tree>
+
+## Findings
+
+<ex-markdown><script type="text/markdown">
+Five findings: two blocking, one nit, one nice, one question. Each card names the line or file it refers to.
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="f1" title="F1 · Registry is in process memory" tone="risk" tag="blocking, line 43">
+<p><code>registry</code> is an in-memory Map. After any deploy or crash it is empty, so every resume returns undefined and clients start new sessions.</p>
+<details><summary>Impact and options</summary><p>Deploy resume success is 12% before this change and 0% after it. Fix options are below; the Redis-backed registry is recommended.</p></details>
+</ex-card>
+<ex-card id="f2" title="F2 · Expired session still attached" tone="risk" tag="blocking, lines 45–47">
+<p>An expired session is deleted but still returned and attached on line 48. It should return undefined after deleting.</p>
+<details><summary>Fix</summary><p>Fix in this change (Next steps, item 1).</p></details>
+</ex-card>
+<ex-card id="f3" title="F3 · Resume misses are silent" tone="question" tag="nit, line 44">
+<p>The early return drops the miss silently. Log the session id at debug level so resume misses are visible in traces.</p>
+</ex-card>
+<ex-card id="f4" title="F4 · Socket swap kept in one place" tone="note" tag="nice, line 48">
+<p><code>attach</code> keeps the socket swap in one place; the old code scattered it across two call sites.</p>
+</ex-card>
+<ex-card id="f5" title="F5 · Is the grace window configurable?" tone="question" tag="question, registry.ts">
+<p>Is the 5-minute grace window configurable per tenant, or fixed?</p>
+<details><summary>Status</summary><p>Open. Answer before merge (Next steps, item 3).</p></details>
+</ex-card>
+</ex-grid>
+
+## How resume works after the change
+
+<ex-markdown><script type="text/markdown">
+Nodes that carry a finding ID open that finding's card when clicked.
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+flowchart TD
+  client["Client reconnects with session id"] --> gateway["Gateway calls resume(id)"]
+  gateway --> f1["Registry: look up id"]
+  f1 --> f2{"Found and not expired?"}
+  f2 -->|yes| f4["Session attaches new socket"]
+  f4 --> confirmed["Gateway confirms resume"]
+  f2 -->|otherwise| newsession["Gateway tells client to start a new session"]
+</script></ex-mermaid>
+
+## Fix options for F1
+
+<ex-markdown><script type="text/markdown">
+Three options for the registry. The reviewers recommend the Redis-backed registry.
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="opt-memory" title="In-memory registry (current)" tag="speed over durability">
+<p>Fast and simple. Loses every session on restart.</p>
+</ex-card>
+<ex-card id="opt-redis" title="Redis-backed registry" tag="durability for a dependency" pick>
+<p>Survives restarts and is shared across instances.</p>
+<p>Adds Redis to every environment and about 2 ms per resume.</p>
+<p><strong>Recommended.</strong></p>
+</ex-card>
+<ex-card id="opt-sticky" title="Sticky sockets at the load balancer" tag="no new state but fragile">
+<p>No new state. Breaks whenever an instance is replaced, so it does not fix deploys.</p>
+</ex-card>
+</ex-grid>
+
+## Evidence
+
+<ex-markdown><script type="text/markdown">
+Resume success rate from the staging soak test, as a percent of reconnects that resumed.
+
+| Scenario | Before | After this change | With Redis registry (prototype) |
+| --- | --- | --- | --- |
+| Network blip | 35% | 98% | 98% |
+| Deploy | 12% | 0% | 96% |
+| Instance crash | 0% | 0% | 94% |
+</script></ex-markdown>
+
+<ex-callout tone="risk" title="Deploy resume drops to 0%">
+<p>With this change, resume after a deploy falls from 12% to 0%. The Redis registry prototype reaches 96%.</p>
+</ex-callout>
+
+## Next steps
+
+<ex-callout tone="planned">
+<ol>
+<li>Fix F2 in this change.</li>
+<li>Decide the F1 option; the reviewers recommend Redis.</li>
+<li>Answer F5 before merge.</li>
+</ol>
+</ex-callout>
+
+</ex-document>
+</body>
+</html>

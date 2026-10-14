@@ -25,6 +25,7 @@
 		"apps/demistify-poc/public/experiments",
 		"apps/demistify-poc/experiments/quick-json/upstream",
 		"apps/demistify-poc/references",
-		"packages/demistify/skill"
+		"packages/demistify/skill",
+		"apps/demistify-poc/experiments/agent-written"
 	]
 }
