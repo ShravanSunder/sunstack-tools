@@ -6,6 +6,16 @@ Date: 2026-10-14. Branch: `claude/serene-pascal-llse28`, fast-forwarded from `fe
 
 Agents make new explainers cheaply and correctly. The pages load fast as plain web HTML with light and dark themes. Acceptance test: **a small model (Haiku-class subagent), given only the authoring guide and a fact brief, produces a complex explainer people can consume easily** (see D7, D8). Token efficiency of authoring and of the guide itself both count.
 
+## Directives for every iteration (owner)
+
+Judge each Haiku round and each library change against all five:
+
+1. Token efficient for the authoring agent.
+2. Easy for a model to use.
+3. Compatible with web standards and with what models already understand about HTML.
+4. Easy for humans to understand visually: what is going on is apparent from the page.
+5. Designed for progressive disclosure of details.
+
 ## Decisions (owner, confirmed)
 
 | ID  | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -19,6 +29,8 @@ Agents make new explainers cheaply and correctly. The pages load fast as plain w
 | D7  | Haiku test input: Haiku receives the authoring guide plus a fixed fact brief (the script: content and story). Briefs are complex explainers: the captured planning corpus (3 perspectives, 25 nodes, 24 relationships) plus two more briefs of similar scale. Haiku owns presentation, not research.                                                                                                                                                                                                                                                                                                                                                     |
 | D8  | Haiku pass bar is human consumption, not just rendering: a person can scan it easily (clear order and hierarchy, legible diagrams, nothing clipped or crammed, depth held behind inspection rather than walls of text). Judged from screenshots against a short checklist; owner gives the final look. Also required: no console errors, no hand-written CSS, no guessed attributes, visible non-crossing arrows, theme toggle.                                                                                                                                                                                                                          |
 | D9  | Vocabulary follows the recurring patterns in [The unreasonable effectiveness of HTML](https://claude.dev/blog/using-claude-code-the-unreasonable-effectiveness-of-html/), where agents hand-write each page; Demistify makes the same pages cheap. Add: annotated code and diffs (margin notes by severity blocking/nit/nice, steps linked to source lines); options with tradeoffs (cards labeled by tradeoff, a recommended pick; TL;DR, gotchas and open questions as callout meanings); simple themed charts from a small inline table (lazy module). Excluded: copy-back export buttons and throwaway interactive editors (sliders, drag-and-drop). |
+| D10 | The authoring guide is written in skill format (SKILL.md frontmatter plus a short body) so it can be paired with a skill later.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| D11 | Composition is the island idea: islands compose in any order and any 2D arrangement (grid, flex, absolute) anywhere, not only top-down. The library extracts as much repeated work as it can (surfaces, colours, icons, rendering, inspection, arrows) while keeping pages understandable and plain-HTML compatible. Authored layout CSS (grid/flex/absolute) is legitimate; authored styling (colours, borders, fonts) is not needed and the D8 check targets that, not layout.                                                                                                                                                                         |
 
 ## Baseline evidence (observed this session)
 
