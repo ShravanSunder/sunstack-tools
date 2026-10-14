@@ -93,6 +93,11 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - A route step or link to an element in a hidden layer turns that layer on.
   - Verified on the components demo's whiteboard: off hides the card and its two arrows (no blocked routes); the route's step to that card turns the layer back on and both arrows return; no issues or errors.
   - The guide teaches layers and free-canvas boards.
+- **Claude** Interaction 3 of D21, tours across pages (D20):
+  - A route step's `to` may name another page (`registry.html#resume`). The player navigates there carrying the tour's home, label, step and the route itself, compactly encoded in the address, so the next page continues with no fetch. That matters because `file://` pages cannot fetch each other. Previous and next cross pages in both directions.
+  - Without the carried route, the page fetches its home; failing that, it offers a "Continue" link.
+  - The checker verifies a cross-page step's file and id statically (a misspelled page and a missing id are both caught).
+  - Verified: a four-step tour across two pages walks overview → deep dive → deep dive → overview (1/4 to 4/4, correct focus) with no errors, both as local files loading the library from a web origin and over HTTP.
 
 ## Open
 

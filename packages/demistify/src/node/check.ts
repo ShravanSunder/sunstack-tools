@@ -150,6 +150,21 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		elements.some((element): boolean => element.tagName === 'ex-mermaid')
 			? await import('beautiful-mermaid')
 			: undefined;
+	const otherPages = new Map<string, Set<string> | undefined>();
+	const idsOnPage = async (file: string): Promise<Set<string> | undefined> => {
+		if (!otherPages.has(file)) {
+			const text = await options.readSource?.(file);
+			otherPages.set(
+				file,
+				text === undefined
+					? undefined
+					: new Set(
+							Array.from(text.matchAll(/\sid="([^"]+)"/g), (match): string => match[1] ?? ''),
+						),
+			);
+		}
+		return otherPages.get(file);
+	};
 	let loadsTheme = false;
 	let loadsRuntime = false;
 	for (const element of elements) {
@@ -225,6 +240,29 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			if (!value || (attributeSpec.type.kind !== 'id' && attributeSpec.type.kind !== 'ids'))
 				continue;
 			for (const target of value.split(/\s+/).filter(Boolean)) {
+				// A tour step on another page: the file must exist next to this one, with that id.
+				if ((name === 'ex-step' || name === 'ex-route') && /\.html?($|[?#])/i.test(target)) {
+					const [file = '', hash = ''] = target.split('#');
+					// oxlint-disable-next-line no-await-in-loop -- other pages are read once each, in page order.
+					const otherIds = options.readSource ? await idsOnPage(file) : new Set<string>([hash]);
+					if (!otherIds)
+						report(
+							element,
+							'error',
+							'missing-page',
+							`${attribute}="${target}": ${file} is not a page next to this one.`,
+							attribute,
+						);
+					else if (hash && !otherIds.has(decodeURIComponent(hash)))
+						report(
+							element,
+							'error',
+							'missing-id',
+							`${attribute}="${target}": ${file} has no element with id "${hash}".`,
+							attribute,
+						);
+					continue;
+				}
 				if (ids.has(target) || (name === 'ex-step' && diagramWords.has(target))) continue;
 				const meant = closest(target, ids.keys());
 				report(

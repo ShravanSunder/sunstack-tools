@@ -198,7 +198,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		description: 'One stop on a route; its text is the narration.',
 		attributes: {
 			to: {
-				description: 'Id of the island, region or diagram node.',
+				description: 'Id of the island, region or diagram node; or another page, page.html#id.',
 				type: { kind: 'id' },
 				required: true,
 			},

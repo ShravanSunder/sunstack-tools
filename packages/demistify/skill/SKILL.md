@@ -83,7 +83,7 @@ Give different readers different paths through the same islands:
 <ex-route label="Reviewer pass" steps="f1 f2 f3"></ex-route>
 ```
 
-Steps target any island, region or diagram node id. Add one or two routes.
+Steps target any island, region or diagram node id, or another page (`to="registry.html#resume"`): the tour continues there. Add one or two routes.
 
 ## Example
 
