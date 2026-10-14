@@ -1,5 +1,6 @@
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
+import { closeDrawer, isDrawerOpen } from '../islands/drawer.ts';
 import { openIsland } from '../islands/inspector.ts';
 import { BoardIsland } from './board.ts';
 import { revealElement } from './document.ts';
@@ -98,7 +99,8 @@ class RoutePlayer {
 			if (this.bar.hidden || event.target instanceof HTMLSelectElement) return;
 			if (event.key === 'ArrowRight') this.step(1);
 			else if (event.key === 'ArrowLeft') this.step(-1);
-			else if (event.key === 'Escape' && !document.querySelector('dialog[open]')) this.stop();
+			else if (event.key === 'Escape' && !document.querySelector('dialog[open]') && !isDrawerOpen())
+				this.stop();
 		});
 	}
 
@@ -120,6 +122,7 @@ class RoutePlayer {
 	}
 
 	private closeInspector(): void {
+		closeDrawer();
 		const dialog = document.querySelector<HTMLDialogElement>('dialog.ex-inspect-dialog[open]');
 		if (!dialog) return;
 		document.body.append(this.bar);

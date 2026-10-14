@@ -30,10 +30,12 @@ export function readTone(owner: HTMLElement, fallback: Tone | undefined): Tone |
 		owner.setAttribute('tone', requested);
 		return requested;
 	}
-	reportIssue(
-		owner,
-		`Unknown tone "${requested}". Use one of: ${Object.keys(toneIcons).join(', ')}.`,
-	);
+	// The legacy free-form `type` attribute stays valid; only `tone` is checked.
+	if (owner.hasAttribute('tone'))
+		reportIssue(
+			owner,
+			`Unknown tone "${requested}". Use one of: ${Object.keys(toneIcons).join(', ')}.`,
+		);
 	if (fallback) owner.setAttribute('tone', fallback);
 	return fallback;
 }

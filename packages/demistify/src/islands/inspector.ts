@@ -1,4 +1,5 @@
 import { createIconButton } from '../core/icons.ts';
+import { openDrawer } from './drawer.ts';
 
 type InspectionMode = 'modal' | 'sidebar';
 
@@ -43,9 +44,23 @@ function inspectionLabel(owner: HTMLElement): string {
 	);
 }
 
-function openInspector(owner: HTMLElement, controls: HTMLElement, mode: InspectionMode): void {
-	const label = inspectionLabel(owner);
-	const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+interface InspectionContent {
+	readonly header: HTMLElement;
+	readonly body: HTMLElement;
+	readonly restore: () => void;
+}
+
+/**
+ * Moves an island's real content into an inspection shell with zoom controls, revealing hidden
+ * details; restore() puts every node and state back where it was.
+ */
+function takeContent(
+	owner: HTMLElement,
+	controls: HTMLElement,
+	label: string,
+	close: () => void,
+	reserveWidth: boolean,
+): InspectionContent | undefined {
 	const originalStyle = owner.getAttribute('style');
 	const bounds = owner.getBoundingClientRect();
 	const contentNodes = Array.from(owner.childNodes).filter((node): boolean => node !== controls);
@@ -56,24 +71,22 @@ function openInspector(owner: HTMLElement, controls: HTMLElement, mode: Inspecti
 		element,
 		open: element.open,
 	}));
-	const dialog = document.createElement('dialog');
-	dialog.className = 'ex-inspect-dialog';
-	dialog.dataset['mode'] = mode;
-	dialog.setAttribute('aria-label', label);
+	const content = owner.cloneNode(false);
+	if (!(content instanceof HTMLElement)) return undefined;
+	content.removeAttribute('id');
+	content.removeAttribute('style');
+	content.removeAttribute('zoom');
+	content.removeAttribute('mode');
+	content.removeAttribute('span');
+	content.removeAttribute('sticky');
+	content.classList.remove('ex-inspectable', 'ex-route-focus');
+	content.setAttribute('data-inspector-content', '');
 	const header = document.createElement('header');
 	header.className = 'ex-inspect-header';
 	const title = document.createElement('strong');
 	title.textContent = label;
 	const body = document.createElement('div');
 	body.className = 'ex-inspect-body';
-	const content = owner.cloneNode(false);
-	if (!(content instanceof HTMLElement)) return;
-	content.removeAttribute('id');
-	content.removeAttribute('style');
-	content.removeAttribute('zoom');
-	content.removeAttribute('mode');
-	content.classList.remove('ex-inspectable');
-	content.setAttribute('data-inspector-content', '');
 	let scale = 1;
 	const magnification = document.createElement('span');
 	magnification.textContent = '100%';
@@ -96,31 +109,70 @@ function openInspector(owner: HTMLElement, controls: HTMLElement, mode: Inspecti
 	header.append(magnification);
 	addButton('magnifying-glass-plus', 'Zoom in', (): void => updateScale(scale + 0.25));
 	addButton('arrow-counter-clockwise', 'Reset zoom', (): void => updateScale(1));
-	const closeButton = addButton('x', 'Close', (): void => dialog.close());
+	const closeButton = addButton('x', 'Close', close);
 	closeButton.autofocus = true;
-	owner.style.width = `${bounds.width}px`;
+	// The island keeps its place on the page while its content is shown elsewhere.
+	if (reserveWidth) owner.style.width = `${bounds.width}px`;
 	owner.style.height = `${bounds.height}px`;
+	owner.classList.add('ex-inspected');
 	content.append(...contentNodes);
 	body.append(content);
-	dialog.append(header, body);
-	dialog.addEventListener(
-		'close',
-		(): void => {
+	for (const detail of detailStates) detail.element.hidden = false;
+	for (const disclosure of disclosureStates) disclosure.element.open = true;
+	return {
+		header,
+		body,
+		restore: (): void => {
 			for (const node of contentNodes) owner.insertBefore(node, controls);
 			for (const detail of detailStates) detail.element.hidden = detail.hidden;
 			for (const disclosure of disclosureStates) disclosure.element.open = disclosure.open;
 			if (originalStyle === null) owner.removeAttribute('style');
 			else owner.setAttribute('style', originalStyle);
+			owner.classList.remove('ex-inspected');
+			document.dispatchEvent(new Event('island-ready'));
+		},
+	};
+}
+
+/** The large centred view: a modal dialog over the page. */
+function openModal(owner: HTMLElement, controls: HTMLElement, mode: InspectionMode): void {
+	const label = inspectionLabel(owner);
+	const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+	const dialog = document.createElement('dialog');
+	dialog.className = 'ex-inspect-dialog';
+	dialog.dataset['mode'] = mode;
+	dialog.setAttribute('aria-label', label);
+	const inspection = takeContent(owner, controls, label, (): void => dialog.close(), true);
+	if (!inspection) return;
+	dialog.append(inspection.header, inspection.body);
+	dialog.addEventListener(
+		'close',
+		(): void => {
+			inspection.restore();
 			dialog.remove();
 			returnFocus?.focus();
-			document.dispatchEvent(new Event('island-ready'));
 		},
 		{ once: true },
 	);
 	document.body.append(dialog);
-	for (const detail of detailStates) detail.element.hidden = false;
-	for (const disclosure of disclosureStates) disclosure.element.open = true;
 	dialog.showModal();
+}
+
+/** The right drawer on wide screens; a full-width sheet over the page on narrow ones. */
+function openSidebar(owner: HTMLElement, controls: HTMLElement): void {
+	if (window.innerWidth < 900) {
+		openModal(owner, controls, 'sidebar');
+		return;
+	}
+	const label = inspectionLabel(owner);
+	openDrawer(label, (close): InspectionContent | undefined =>
+		takeContent(owner, controls, label, close, false),
+	);
+}
+
+function openInspector(owner: HTMLElement, controls: HTMLElement, mode: InspectionMode): void {
+	if (mode === 'sidebar') openSidebar(owner, controls);
+	else openModal(owner, controls, mode);
 }
 
 /** Opens any island in a right sidebar or a large centred view; the real content moves and returns. */

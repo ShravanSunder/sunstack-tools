@@ -247,10 +247,11 @@ ex-callout > :is(p, ul, ol) {
 	margin: 6px 0;
 }
 
+/* Page chrome lives in the left rail, which already reserves its space, so it never covers content. */
 .ex-theme-toggle {
 	position: fixed;
-	top: 12px;
-	right: 12px;
+	left: 17px;
+	bottom: 14px;
 	z-index: 5;
 	background: var(--sheet);
 }
@@ -443,17 +444,14 @@ ex-step {
 }
 .ex-route-launcher {
 	position: fixed;
-	top: 12px;
-	right: 56px;
+	left: 17px;
+	bottom: 56px;
 	z-index: 5;
-	width: auto;
-	gap: 6px;
-	padding: 0 12px 0 10px;
-	border-radius: 999px;
 	background: var(--sheet);
-	font: 600 14px var(--display);
-	display: inline-flex;
-	align-items: center;
+	color: var(--accent);
+}
+.ex-route-launcher > span {
+	display: none;
 }
 .ex-route-player {
 	position: fixed;
@@ -519,13 +517,6 @@ ex-mermaid g.ex-route-focus > :is(rect, polygon, path, circle, ellipse) {
 	padding-bottom: 180px;
 }
 @media (max-width: 760px) {
-	.ex-route-launcher > span {
-		display: none;
-	}
-	.ex-route-launcher {
-		padding: 0;
-		width: 34px;
-	}
 	.ex-route-player {
 		bottom: 0;
 		width: 100vw;
@@ -665,4 +656,63 @@ ex-mermaid.ex-diagram-wide {
 ex-mermaid.ex-diagram-wide > svg {
 	max-width: none;
 	margin-inline: 0;
+}
+
+/* Drawer: a docked panel that takes space; the page narrows beside it and keeps scrolling. */
+.ex-drawer {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 15;
+	width: var(--ex-drawer-width, 460px);
+	display: flex;
+	flex-direction: column;
+	background: var(--sheet);
+	color: var(--ink);
+	border-left: 1px solid var(--rule);
+	box-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
+}
+.ex-drawer[hidden] {
+	display: none;
+}
+.ex-drawer > .ex-inspect-body {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	padding: 20px;
+}
+.ex-drawer-handle {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -4px;
+	width: 8px;
+	cursor: col-resize;
+	z-index: 1;
+}
+.ex-drawer-handle:is(:hover, :focus-visible) {
+	background: var(--accent);
+	opacity: 0.5;
+	outline: none;
+}
+:root[data-drawer] body {
+	padding-inline-end: calc(var(--ex-drawer-width, 460px) + 20px);
+}
+:root[data-drawer] .ex-issues {
+	right: calc(var(--ex-drawer-width, 460px) + 12px);
+}
+:root[data-drawer] .ex-route-player {
+	left: calc((100vw - var(--ex-drawer-width, 460px)) / 2);
+	width: min(640px, calc(100vw - var(--ex-drawer-width, 460px) - 24px));
+}
+:root[data-resizing] {
+	cursor: col-resize;
+	user-select: none;
+}
+.ex-inspected {
+	outline: 2px dashed var(--accent);
+	outline-offset: 4px;
+	border-radius: 8px;
 }
