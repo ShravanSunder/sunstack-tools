@@ -244,6 +244,9 @@ importers:
       marked:
         specifier: 18.1.1
         version: 18.1.1
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
     devDependencies:
       subset-font:
         specifier: 2.4.0

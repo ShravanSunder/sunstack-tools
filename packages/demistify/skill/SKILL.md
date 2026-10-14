@@ -42,7 +42,7 @@ Write prose as bare Markdown directly inside `ex-document`, tab sections, cards,
 | `<ex-code title lang start>` | code or a diff (`lang="diff"`) in `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` |
 | `<ex-file-tree>` | plain-text tree in `<script type="text/plain">` |
 
-Tones (only these): `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `added` `removed`. Title = the specific thing; tone = what kind. Review severity: blocking `risk`, nit `question`, nice `note`.
+Tones (only these): `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `added` `removed`. Every card and region takes a tone: it is the icon and colour. Title = the specific thing; tone = its status or kind; `tag` = timing, location or tradeoff (`tone="planned" tag="after implementation"`, not a bold status sentence). Review severity: blocking `risk`, nit `question`, nice `note`.
 
 Mermaid: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erDiagram`, `xychart-beta` (bars/lines: `x-axis ["A", "B"]`, `bar "Before" [1, 2]`, `bar "After" [3, 4]`). A node whose id equals a card `id` takes its tone and opens it on click, so keep node labels short.
 
@@ -62,7 +62,7 @@ Patterns:
 4. Evidence: a chart beside the callout that states its conclusion.
 5. Many things (a domain, a system): `ex-board`, one region per area, overview cards visible, depth marked `detail`.
 
-Phones get one column automatically. Every island has sidebar and expand buttons.
+Phones get one column automatically. Diagrams, code and trees get enlarge buttons; put a card's depth in `<details>`.
 
 ## Routes
 
@@ -110,4 +110,4 @@ Maps session ids to live state for **5 minutes** after a drop.
 
 ## Check
 
-An "authoring issues" panel lists mistakes (unknown elements or tones, bad ids, arrows, note lines, failed diagrams). A correct page shows none.
+Run the checker you are given (`demistify check page.html`) and fix every line until it reports 0 errors and 0 warnings; `--fix` repairs the mechanical ones. In the browser, the "authoring issues" panel shows layout problems; a correct page shows none.

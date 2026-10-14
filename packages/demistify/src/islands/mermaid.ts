@@ -22,7 +22,8 @@ function sizeDiagram(owner: HTMLElement): void {
 }
 
 function openLinkedElement(target: HTMLElement): void {
-	if (target.querySelector(':scope > .ex-inspect-controls')) {
+	// An island opens beside the diagram, so the reader keeps the picture in view.
+	if (target.localName.startsWith('ex-')) {
 		openIsland(target, 'sidebar');
 		return;
 	}

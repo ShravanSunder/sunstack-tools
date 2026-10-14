@@ -85,6 +85,37 @@ Every spacing, type size, radius, shadow and motion value in the library CSS com
 
 Authors normally write no CSS. Hand-placed layouts may use the spacing tokens in inline styles (`style="gap: var(--space-6)"`).
 
+## Checking pages
+
+`src/vocabulary.ts` is the one description of the authoring vocabulary: every element, its attributes, allowed values, id references and nesting. Everything that checks or documents the vocabulary derives from it.
+
+```sh
+node packages/demistify/bin/demistify.ts check page.html          # static checks, about 0.1 s per page
+node packages/demistify/bin/demistify.ts check --fix page.html    # also applies mechanical repairs
+node packages/demistify/bin/demistify.ts check --render page.html # adds layout checks in headless Chromium (needs Playwright)
+```
+
+Output is one line per problem (`page.html:16:31 error attribute: <ex-card> has no attribute "type". Use tone. (fixable)`); a problem repeated across lines prints once with every line number. Static checks cover unknown elements and attributes (with the likely intended name), values (tones, columns, spans, sides), required attributes, duplicate and missing ids, nesting, arrows in a flow, island sources the HTML parser broke, diagrams the engine rejects or draws empty, styling beyond layout CSS, cards and regions without a tone, and the library links.
+
+For Claude Code, a PostToolUse hook runs the check whenever an agent writes a page and returns problems to the agent (exit 2); clean or non-explainer files stay silent:
+
+```json
+{
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "Write|Edit",
+				"hooks": [
+					{ "type": "command", "command": "node packages/demistify/bin/demistify.ts check --hook" }
+				]
+			}
+		]
+	}
+}
+```
+
+The build also writes `dist/custom-elements.json` (Custom Elements Manifest) and `dist/html-custom-data.json` (VS Code `html.customData`) for completions and hover docs.
+
 ## Source layout
 
 ```text

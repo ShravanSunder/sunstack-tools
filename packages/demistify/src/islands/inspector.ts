@@ -5,34 +5,22 @@ type InspectionMode = 'modal' | 'sidebar';
 
 const installedInspectors = new WeakSet<HTMLElement>();
 
-/** Content islands get inspection controls by default; layout containers and the document do not. */
-const contentIslands = new Set([
-	'ex-markdown',
-	'ex-mermaid',
-	'ex-card',
-	'ex-callout',
-	'ex-code',
-	'ex-file-tree',
-	'ex-tabs',
-	'ex-zoom',
-	'ex-decision',
-	'ex-compare',
-	'ex-diagram-diff',
-	'ex-timeline',
-	'ex-layer',
-]);
-
-/** Surfaces whose own inspector already shows the Markdown placed directly inside them. */
-const textContainers = new Set(['ex-zoom', 'ex-card', 'ex-callout', 'ex-decision', 'details']);
-
 /**
- * A Markdown island gains nothing from its own controls when it holds only headings, or when it
- * sits directly in a surface that is inspected as a whole (its controls would cover the surface's).
+ * Which islands get inspection controls. Containers (tabs, grids, flows, boards, regions) never do:
+ * they arrange; their content carries its own affordances. Visuals worth enlarging get sidebar and
+ * expand buttons; an island whose depth is hidden gets a "More" button; inline <details> are their
+ * own affordance; prose, plain cards and stats get nothing. A bare `zoom` attribute forces the
+ * buttons and `zoom="none"` removes them.
  */
-function hasInspectableDepth(owner: HTMLElement): boolean {
-	if (owner.localName !== 'ex-markdown') return true;
-	if (textContainers.has(owner.parentElement?.localName ?? '')) return false;
-	return Array.from(owner.children).some((block): boolean => !/^h[1-6]$/.test(block.localName));
+const visualIslands = new Set(['ex-mermaid', 'ex-code', 'ex-file-tree']);
+type Affordance = 'enlarge' | 'more';
+
+function affordanceFor(owner: HTMLElement): Affordance | undefined {
+	const zoom = owner.getAttribute('zoom');
+	if (zoom === 'none') return undefined;
+	if (visualIslands.has(owner.localName)) return 'enlarge';
+	if (owner.querySelector(':scope > [slot="details"]')) return 'more';
+	return zoom === null ? undefined : 'enlarge';
 }
 
 function inspectionLabel(owner: HTMLElement): string {
@@ -183,28 +171,43 @@ function openInspector(owner: HTMLElement, controls: HTMLElement, mode: Inspecti
 	else openModal(owner, controls, mode);
 }
 
-/** Opens any island in a right sidebar or a large centred view; the real content moves and returns. */
+/**
+ * Opens any island in the side panel or the large view; the real content moves and returns. An
+ * island without visible controls (routes and diagram links open plain cards too) gets hidden ones.
+ */
 export function openIsland(owner: HTMLElement, mode: InspectionMode): void {
-	const controls = owner.querySelector<HTMLElement>(':scope > .ex-inspect-controls');
-	if (controls) openInspector(owner, controls, mode);
+	let controls = owner.querySelector<HTMLElement>(':scope > .ex-inspect-controls');
+	if (!controls) {
+		controls = document.createElement('span');
+		controls.className = 'ex-inspect-controls';
+		controls.hidden = true;
+		owner.append(controls);
+	}
+	openInspector(owner, controls, mode);
 }
 
-/** Adds sidebar and expand controls to a content island unless it opts out with zoom="none". */
-export function installIslandInspector(owner: HTMLElement, always: boolean = false): void {
-	if (
-		owner.getAttribute('zoom') === 'none' ||
-		owner.hasAttribute('data-inspector-content') ||
-		installedInspectors.has(owner) ||
-		(!always && (!contentIslands.has(owner.localName) || !hasInspectableDepth(owner)))
-	)
-		return;
+/** Adds the island's inspection affordance, if it has one (see affordanceFor). */
+export function installIslandInspector(owner: HTMLElement): void {
+	if (owner.hasAttribute('data-inspector-content') || installedInspectors.has(owner)) return;
+	const affordance = affordanceFor(owner);
+	if (!affordance) return;
 	installedInspectors.add(owner);
-	owner.classList.add('ex-inspectable');
 	const label = inspectionLabel(owner);
 	const controls = document.createElement('span');
 	controls.className = 'ex-inspect-controls';
 	controls.setAttribute('role', 'group');
 	controls.setAttribute('aria-label', `Inspect ${label}`);
+	if (affordance === 'more') {
+		controls.classList.add('ex-inspect-more');
+		const more = createIconButton('caret-right', `More about ${label}`, (): void =>
+			openInspector(owner, controls, 'sidebar'),
+		);
+		more.prepend('More');
+		controls.append(more);
+		owner.append(controls);
+		return;
+	}
+	owner.classList.add('ex-inspectable');
 	const sidebar = createIconButton('sidebar-simple', `Open ${label} in a sidebar`, (): void =>
 		openInspector(owner, controls, 'sidebar'),
 	);
@@ -221,8 +224,8 @@ export class ZoomIsland extends HTMLElement {
 	connectedCallback(): void {
 		// The inspector's copy shows everything, details included.
 		if (this.hasAttribute('data-inspector-content')) return;
-		installIslandInspector(this, true);
 		for (const detail of this.querySelectorAll<HTMLElement>(':scope > [slot="details"]'))
 			detail.hidden = true;
+		installIslandInspector(this);
 	}
 }

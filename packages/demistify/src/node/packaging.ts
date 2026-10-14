@@ -61,6 +61,7 @@ export const shippedIconNames = [
 	'arrow-up-right',
 	'arrows-out',
 	'article',
+	'caret-right',
 	'changes',
 	'check-circle',
 	'circle-dashed',

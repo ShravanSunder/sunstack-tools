@@ -11,6 +11,7 @@ import {
 	localPhosphorStyles,
 	shippedIconCodePoints,
 } from '../src/node/packaging.ts';
+import { vocabulary } from '../src/vocabulary.ts';
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const outputDirectory = resolve(packageRoot, 'dist');
@@ -52,6 +53,57 @@ await writeFile(
 		'\n',
 	),
 );
+// Editor and tooling data from the one vocabulary: a Custom Elements Manifest and VS Code HTML data.
+const valuesOf = (type: (typeof vocabulary)[string]['attributes'][string]['type']): string =>
+	type.kind === 'enum'
+		? type.values.map((value): string => JSON.stringify(value)).join(' | ')
+		: type.kind === 'number' || type.kind === 'flag'
+			? type.kind === 'number'
+				? 'number'
+				: 'boolean'
+			: 'string';
+const declarations = Object.entries(vocabulary).map(([tagName, spec]) => {
+	const declaration: Record<string, unknown> = {
+		kind: 'class',
+		name: tagName,
+		tagName,
+		customElement: true,
+		description: spec.description,
+		attributes: Object.entries(spec.attributes).map(([name, attribute]) => ({
+			name,
+			description: attribute.description,
+			type: { text: valuesOf(attribute.type) },
+		})),
+	};
+	if (spec.legacy) declaration['deprecated'] = 'Earlier lab vocabulary; still rendered.';
+	return declaration;
+});
+const customData = Object.entries(vocabulary).map(([name, spec]) => ({
+	name,
+	description: spec.description,
+	attributes: Object.entries(spec.attributes).map(([attributeName, attribute]) => {
+		const entry: Record<string, unknown> = {
+			name: attributeName,
+			description: attribute.description,
+		};
+		if (attribute.type.kind === 'enum')
+			entry['values'] = attribute.type.values.map((value) => ({ name: value }));
+		if (attribute.type.kind === 'flag') entry['valueSet'] = 'v';
+		return entry;
+	}),
+}));
+const json = (value: unknown): string => `${JSON.stringify(value, null, '\t')}\n`;
+await writeFile(
+	resolve(outputDirectory, 'custom-elements.json'),
+	json({
+		schemaVersion: '2.1.0',
+		modules: [{ kind: 'javascript-module', path: 'runtime.js', declarations, exports: [] }],
+	}),
+);
+await writeFile(
+	resolve(outputDirectory, 'html-custom-data.json'),
+	json({ version: 1.1, tags: customData }),
+);
 process.stdout.write(
-	'Built drop-in Demistify runtime, lazy renderer chunks, theme, linked fonts and subset icons.\n',
+	'Built drop-in Demistify runtime, lazy renderer chunks, theme, linked fonts, subset icons and editor data.\n',
 );

@@ -178,9 +178,8 @@ export class FlowIsland extends HTMLElement {
 			width: this.offsetWidth,
 			height: this.offsetHeight,
 		};
-		overlay.setAttribute('viewBox', `0 0 ${origin.width} ${origin.height}`);
-		overlay.setAttribute('width', String(origin.width));
-		overlay.setAttribute('height', String(origin.height));
+		// The overlay is sized by CSS to exactly the flow and draws in the flow's own pixels, so a
+		// stale size can never stick out and make a scrolling parent flip its scrollbars.
 		const boxes = new Map<string, Box>();
 		for (const element of this.islands()) {
 			const bounds = element.getBoundingClientRect();

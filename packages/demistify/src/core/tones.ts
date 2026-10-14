@@ -1,3 +1,4 @@
+import type { ToneName } from '../vocabulary.ts';
 import { createPhosphorIcon } from './icons.ts';
 import { reportIssue } from './issues.ts';
 
@@ -12,7 +13,7 @@ export const toneIcons = {
 	changed: 'pencil-simple',
 	added: 'plus-circle',
 	removed: 'minus-circle',
-} as const;
+} as const satisfies Record<ToneName, string>;
 
 export type Tone = keyof typeof toneIcons;
 
