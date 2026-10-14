@@ -121,6 +121,64 @@
 					/>
 				</ex-compare>
 			</ex-grid>
+			## The design family on a whiteboard Hand-placed boxes inside a board: drag to pan, pinch or
+			ctrl-scroll to zoom, hover a box to trace its arrows.
+
+			<ex-board>
+				<div style="position: relative; width: 1100px; height: 640px">
+					<ex-card
+						id="wb-req"
+						title="Requirements"
+						tone="done"
+						icon="file"
+						style="position: absolute; left: 20px; top: 30px; width: 260px"
+						>Authorized outcome and boundary.</ex-card
+					>
+					<ex-card
+						id="wb-spec"
+						title="Specification"
+						tone="done"
+						icon="book-open"
+						style="position: absolute; left: 360px; top: 70px; width: 260px"
+						>Entities, invariants and obligations.</ex-card
+					>
+					<ex-card
+						id="wb-program"
+						title="Program design"
+						tone="planned"
+						icon="code"
+						style="position: absolute; left: 700px; top: 25px; width: 260px"
+						>Owners, interfaces and proof seams.</ex-card
+					>
+					<ex-card
+						id="wb-tests"
+						title="Test design"
+						tone="planned"
+						icon="test-tube"
+						style="position: absolute; left: 120px; top: 360px; width: 260px"
+						>Scenario, real interaction, oracle.</ex-card
+					>
+					<ex-card
+						id="wb-verify"
+						title="Verification design"
+						tone="question"
+						icon="shield-check"
+						style="position: absolute; left: 600px; top: 390px; width: 260px"
+						>Reference, route, observation.</ex-card
+					>
+					<ex-arrow from="wb-req" to="wb-spec" label="informs"></ex-arrow>
+					<ex-arrow from="wb-spec" to="wb-program" label="informs"></ex-arrow>
+					<ex-arrow from="wb-program" to="wb-tests" label="informs"></ex-arrow>
+					<ex-arrow from="wb-tests" to="wb-verify" label="informs"></ex-arrow>
+					<ex-arrow from="wb-spec" to="wb-verify" label="checked by"></ex-arrow>
+				</div>
+			</ex-board>
+
+			<ex-route label="Design walk">
+				<ex-step to="wb-req">Start with what must be true.</ex-step>
+				<ex-step to="wb-program">Then who owns what.</ex-step>
+				<ex-step to="wb-verify">Finally, how we will know.</ex-step>
+			</ex-route>
 		</ex-document>
 	</body>
 </html>
