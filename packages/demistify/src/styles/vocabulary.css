@@ -1023,3 +1023,9 @@ ex-layers button[aria-pressed='true'] {
 	border-color: var(--accent);
 	color: var(--accent);
 }
+
+/* A route step on a diagram node: the node itself is ringed. */
+g.ex-route-focus > :is(rect, polygon, circle, ellipse, path) {
+	stroke: var(--accent);
+	stroke-width: 3;
+}

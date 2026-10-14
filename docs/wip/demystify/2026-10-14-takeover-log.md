@@ -98,6 +98,7 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - Without the carried route, the page fetches its home; failing that, it offers a "Continue" link.
   - The checker verifies a cross-page step's file and id statically (a misspelled page and a missing id are both caught).
   - Verified: a four-step tour across two pages walks overview → deep dive → deep dive → overview (1/4 to 4/4, correct focus) with no errors, both as local files loading the library from a web origin and over HTTP.
+- **Claude** Interaction 4 of D21, step-through. A route step on a diagram node lights that node, its edges and its neighbours and dims the rest, so a route can walk a diagram node by node with narration. The trace clears between steps and when the route stops. Verified on a five-node flowchart walked in four steps: the last step lights Registry → Socket binder and dims the others; no errors.
 
 ## Open
 

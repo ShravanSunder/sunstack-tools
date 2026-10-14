@@ -4,6 +4,7 @@ import { closeDrawer, isDrawerOpen } from '../islands/drawer.ts';
 import { openIsland } from '../islands/inspector.ts';
 import { BoardIsland } from './board.ts';
 import { revealElement } from './document.ts';
+import { setTrace } from './trace.ts';
 
 type OpenMode = 'sidebar' | 'modal';
 
@@ -97,6 +98,7 @@ class RoutePlayer {
 	private routeIndex = 0;
 	private stepIndex = -1;
 	private focused: Element | undefined;
+	private tracedDiagram: Element | undefined;
 
 	constructor(private readonly routes: readonly Route[]) {
 		this.bar.className = 'ex-route-player';
@@ -141,6 +143,8 @@ class RoutePlayer {
 	}
 
 	stop(): void {
+		if (this.tracedDiagram) setTrace(this.tracedDiagram, undefined);
+		this.tracedDiagram = undefined;
 		this.closeInspector();
 		this.focused?.classList.remove('ex-route-focus');
 		this.focused = undefined;
@@ -184,6 +188,14 @@ class RoutePlayer {
 		revealElement(target);
 		target.classList.add('ex-route-focus');
 		this.focused = target;
+		// A step on a diagram node lights the node and its connections: a walk through the diagram.
+		if (this.tracedDiagram) setTrace(this.tracedDiagram, undefined);
+		this.tracedDiagram = undefined;
+		const diagram = target.matches('g[data-id]') ? target.closest('svg') : null;
+		if (diagram && target instanceof SVGElement) {
+			setTrace(diagram, target.dataset['id']);
+			this.tracedDiagram = diagram;
+		}
 		const board = target.closest('ex-board');
 		if (board instanceof BoardIsland && board.isMap()) {
 			board.focusOn(target);

@@ -4,7 +4,7 @@
  */
 const traceable = '[data-from][data-to]';
 
-function setTrace(container: Element, id: string | undefined): void {
+export function setTrace(container: Element, id: string | undefined): void {
 	const items = Array.from(container.querySelectorAll<SVGElement | HTMLElement>(traceable));
 	const touching = (item: SVGElement | HTMLElement): boolean =>
 		id !== undefined && (item.dataset['from'] === id || item.dataset['to'] === id);
