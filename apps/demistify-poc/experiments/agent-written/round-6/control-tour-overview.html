@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notification service overview</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Notification service overview
+
+<ex-grid cols="4">
+<ex-callout id="summary" tone="tldr" span="all">The notification service turns product events into emails, push messages and SMS. It accepts about 2.1 million events a day and delivers 99.4% within one minute.</ex-callout>
+<ex-stat value="2.1 M" label="Events per day" note="last 30 days" tone="note"></ex-stat>
+<ex-stat value="99.4%" label="Delivered within 1 minute" note="last 30 days" tone="note"></ex-stat>
+<ex-stat value="0.3%" label="Permanently failed" note="last 30 days" tone="note"></ex-stat>
+<ex-stat value="38 ms" label="p95 compose time" note="last 30 days" tone="note"></ex-stat>
+</ex-grid>
+
+## Parts and flow
+
+Five parts take a product event to a channel. The composer reads the preference store. The digest batcher is a proposal: the proposed switch at the top hides it and shows the current system.
+
+<ex-flow id="flow" cols="4">
+<ex-card id="intake" title="Event intake" tone="note" icon="plug">Receives product events from the event bus. Validates them and de-duplicates them by event id.</ex-card>
+<ex-card id="composer" title="Composer" tone="note" icon="file">Turns an event and a template into a message per channel.</ex-card>
+<ex-card id="queue" title="Delivery queue" tone="note" icon="stack">Holds messages until a channel worker sends them. Retries failures. [Deep dive](control-tour-queue.html)</ex-card>
+<ex-card id="workers" title="Channel workers" tone="note" icon="cpu">One per channel: email through a mail provider, push through the mobile push services, SMS through an SMS gateway.</ex-card>
+<ex-card id="prefs" title="Preference store" tone="note" icon="database">Each user's channels, quiet hours and unsubscribes. Postgres.</ex-card>
+<ex-card id="batcher" title="Digest batcher" tone="planned" tag="proposed, not built" icon="envelope" layer="proposed">Groups low-priority messages into one daily email per user.</ex-card>
+<ex-arrow from="intake" to="composer" label="events"></ex-arrow>
+<ex-arrow from="prefs" to="composer" label="reads"></ex-arrow>
+<ex-arrow from="composer" to="queue" label="messages (current)"></ex-arrow>
+<ex-arrow from="queue" to="workers" label="messages"></ex-arrow>
+<ex-arrow from="composer" to="batcher" label="low-priority" layer="proposed"></ex-arrow>
+<ex-arrow from="batcher" to="queue" label="daily digest" layer="proposed"></ex-arrow>
+</ex-flow>
+
+<ex-callout id="proposal-status" tone="planned" title="Proposed, not built" layer="proposed">Approved in design review on 2026-10-10. Implementation has not started. Hide the proposed layer at the top to see the current system.</ex-callout>
+
+## Deep dive
+
+The [delivery queue deep dive](control-tour-queue.html) covers message states, the retry policy, the change under review (#341), configuration and known issues.
+
+<ex-route label="Guided tour">
+<ex-step to="summary">Start with the summary: about 2.1 million events a day, and 99.4% delivered within one minute.</ex-step>
+<ex-step to="flow">Follow the flow: event intake, then the composer, which reads preferences, then the delivery queue and the channel workers.</ex-step>
+<ex-step to="control-tour-queue.html#states">On the deep dive: a message is queued, then sending, then sent, retrying or dead.</ex-step>
+<ex-step to="control-tour-queue.html#retry-change">The change under review, #341, caps backoff at 15 minutes and adds the cap as a setting.</ex-step>
+<ex-step to="batcher">Back on the overview: the digest batcher is approved but not built. Hide it to see the current system.</ex-step>
+</ex-route>
+</ex-document>
+</body>
+</html>

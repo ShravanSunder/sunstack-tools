@@ -275,20 +275,6 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			}
 		}
 
-		// Arrows in a flow route between the flow's own boxes.
-		if (name === 'ex-arrow' && parent?.tagName === 'ex-flow')
-			for (const end of ['from', 'to']) {
-				const target = ids.get(attributes.get(end) ?? '');
-				if (target && parentElement(target) !== parent)
-					report(
-						element,
-						'error',
-						'flow-arrow',
-						`${end}="${attributes.get(end) ?? ''}" is not a direct child of this ex-flow; arrows in a flow connect its own boxes.`,
-						end,
-					);
-			}
-
 		if (name === 'ex-tabs')
 			for (const child of element.childNodes.filter(isElement))
 				if (child.tagName !== 'section' || !attributeMap(child).has('label'))

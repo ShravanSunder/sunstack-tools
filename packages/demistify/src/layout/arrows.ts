@@ -176,10 +176,16 @@ export class ArrowIsland extends HTMLElement {
 	private routed = true;
 	private length = Infinity;
 	connectedCallback(): void {
-		if (
-			this.parentElement?.localName === 'ex-flow' ||
-			this.parentElement?.localName === 'ex-region'
-		) {
+		// A flow (or a board's region) routes arrows between its own boxes through its gaps; an arrow
+		// whose ends sit deeper, such as cards in two regions of a board, is routed around boxes here.
+		const parent = this.parentElement;
+		const routedByFlow =
+			(parent?.localName === 'ex-flow' || parent?.localName === 'ex-region') &&
+			['from', 'to'].every(
+				(name): boolean =>
+					document.getElementById(this.getAttribute(name) ?? '')?.parentElement === parent,
+			);
+		if (routedByFlow) {
 			window.setTimeout((): void => this.verifyEndpoints(), 2000);
 			return;
 		}

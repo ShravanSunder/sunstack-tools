@@ -99,6 +99,19 @@ Branch: `claude/serene-pascal-llse28` (base: `feat/demistify-html-islands` at `a
   - The checker verifies a cross-page step's file and id statically (a misspelled page and a missing id are both caught).
   - Verified: a four-step tour across two pages walks overview → deep dive → deep dive → overview (1/4 to 4/4, correct focus) with no errors, both as local files loading the library from a web origin and over HTTP.
 - **Claude** Interaction 4 of D21, step-through. A route step on a diagram node lights that node, its edges and its neighbours and dims the rest, so a route can walk a diagram node by node with narration. The trace clears between steps and when the route stops. Verified on a five-node flowchart walked in four steps: the last step lights Registry → Socket binder and dims the others; no errors.
+- **Claude** Haiku round 6, an A/B of the guide split (fresh Haiku per run; the guide path is the only difference). Control = the previous single guide (1,820 tokens, kept at `round-6/guide-control/SKILL.md`). Treatment = core (1,178 tokens) + `references/` (99–262 tokens each). Briefs: status-sitrep, domain-map, and the new two-page tour (an overview plus a deep dive, a cross-page tour and a proposed layer).
+
+  | Brief         | Guide tokens read (control / treatment)                                              | Output tokens (control / treatment) | Checker runs  | Browser issues/errors |
+  | ------------- | ------------------------------------------------------------------------------------ | ----------------------------------- | ------------- | --------------------- |
+  | status-sitrep | 1,820 / 1,178                                                                        | 1,141 / 1,008                       | 2 / 1         | 0 / 0 both            |
+  | domain-map    | 1,820 + README grep / 1,178 + 587 (maps, trees, code)                                | 2,530 / 2,291                       | 1 / 1         | 0 / 0 both            |
+  | two-page tour | 1,820 + checker, vocabulary and line-parser source / 1,178 + 530 (tours, maps, code) | 2,093 / 2,203                       | 1 + 1 / 1 + 1 | 0 / 0 both            |
+  - Treatment domain map: desktop 4,537 → 2,655 px, mixed-row share 79 → 93%.
+  - Both tours use `layer="proposed"` and cross-page steps. Both walk overview → deep dive in the browser (steps 1–2 on the overview, 3–4 on the deep dive).
+  - The control tour agent read library source to learn the diff and note rules, which the treatment found in `code.md`. Decision D28: keep the split.
+  - Agents in this repo also read the handoff doc because AGENTS.md asks for it; this applies equally to both arms.
+  - The tour agents found two errors in my brief: the 15-minute cap never engages with six attempts (attempt 6 waits 640 s), and the brief's hunk header counts do not match its excerpt. Both flagged it instead of repeating the claim.
+  - **Library change from the treatment domain map:** it drew 16 `ex-arrow`s on the board between cards in different regions. A flow or region now routes only arrows between its own direct children; any other arrow (such as cards in two regions) goes to the obstacle-avoiding router, and the "must be a direct child" error and its checker rule are gone. The page now renders all 16 relationships with no issues.
 
 ## Open
 

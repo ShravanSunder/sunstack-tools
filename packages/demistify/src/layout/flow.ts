@@ -1,5 +1,3 @@
-import { reportIssue } from '../core/issues.ts';
-
 interface Point {
 	readonly x: number;
 	readonly y: number;
@@ -129,7 +127,6 @@ export class FlowIsland extends HTMLElement {
 			overlay.dataset['marker'] = markerId;
 			this.prepend(overlay);
 			this.overlay = overlay;
-			window.setTimeout((): void => this.verifyArrows(), 2000);
 		}
 		// Observers are rebuilt on every connection, so a flow moved elsewhere keeps routing.
 		this.resizeObserver?.disconnect();
@@ -146,17 +143,6 @@ export class FlowIsland extends HTMLElement {
 		document.fonts.removeEventListener('loadingdone', this.schedule);
 		if (this.frame !== undefined) cancelAnimationFrame(this.frame);
 		this.frame = undefined;
-	}
-
-	private verifyArrows(): void {
-		const childIds = new Set(this.islands().map((child): string => child.id));
-		for (const arrow of this.querySelectorAll(':scope > ex-arrow'))
-			for (const end of ['from', 'to'])
-				if (!childIds.has(arrow.getAttribute(end) ?? ''))
-					reportIssue(
-						arrow,
-						`${end}="${arrow.getAttribute(end) ?? ''}" must be an island placed directly in this ${this.localName}.`,
-					);
 	}
 
 	private islands(): HTMLElement[] {
