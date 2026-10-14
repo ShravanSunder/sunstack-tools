@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decision-answer.schema.json",
+  "title": "Validated decision answer",
+  "$ref": "#/$defs/JudgmentAnswer",
+  "$defs": {
+    "NoulAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "noul"
+        },
+        "yes_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "type",
+        "yes_probability"
+      ],
+      "additionalProperties": false
+    },
+    "ChoiceAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "choice"
+        },
+        "selected_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "probabilities": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "required": [
+        "type",
+        "selected_label",
+        "confidence",
+        "probabilities"
+      ],
+      "additionalProperties": false
+    },
+    "ScoreAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "score"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "legend": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "additionalProperties": {
+            "$ref": "decision-question.schema.json#/$defs/StructuredEntry"
+          }
+        },
+        "probabilities": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "required": [
+        "type",
+        "score",
+        "confidence",
+        "legend",
+        "probabilities"
+      ],
+      "additionalProperties": false
+    },
+    "JudgmentAnswer": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NoulAnswer"
+        },
+        {
+          "$ref": "#/$defs/ChoiceAnswer"
+        },
+        {
+          "$ref": "#/$defs/ScoreAnswer"
+        }
+      ]
+    },
+    "NamedAnswers": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/JudgmentAnswer"
+      }
+    }
+  }
+}

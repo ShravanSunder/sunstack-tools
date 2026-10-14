@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rule-file.schema.json",
+  "title": "Rule definition: one JSONL line",
+  "$ref": "#/$defs/RuleDefinition",
+  "$defs": {
+    "RuleDefinition": {
+      "type": "object",
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "$ref": "evidence-selector.schema.json#/$defs/TargetId"
+        },
+        "applicability": {
+          "$ref": "evidence-selector.schema.json#/$defs/ApplicabilityTest"
+        },
+        "context_selectors": {
+          "type": "array",
+          "items": {
+            "$ref": "evidence-selector.schema.json#/$defs/ContextSelectorDeclaration"
+          },
+          "minItems": 0
+        },
+        "questions": {
+          "$ref": "decision-question.schema.json#/$defs/NamedQuestions"
+        }
+      },
+      "required": [
+        "rule_id",
+        "target_id",
+        "applicability",
+        "context_selectors",
+        "questions"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

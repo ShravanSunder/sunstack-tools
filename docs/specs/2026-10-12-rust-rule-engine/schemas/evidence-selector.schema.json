@@ -1,0 +1,516 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence-selector.schema.json",
+  "title": "Evidence selection declarations",
+  "$ref": "#/$defs/EvidenceSelector",
+  "$defs": {
+    "TargetId": {
+      "type": "string",
+      "pattern": "^[A-Za-z][0-9]{3,}$"
+    },
+    "RepositoryId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "QueryPath": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "glob"
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "pattern"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ParagraphSelector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "paragraph"
+        },
+        "source_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "repository_id": {
+          "$ref": "#/$defs/RepositoryId"
+        }
+      },
+      "required": [
+        "kind",
+        "source_path",
+        "target_id",
+        "repository_id"
+      ],
+      "additionalProperties": false
+    },
+    "FileTextSelector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "file_text"
+        },
+        "source_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository_id": {
+          "$ref": "#/$defs/RepositoryId"
+        }
+      },
+      "required": [
+        "kind",
+        "source_path",
+        "repository_id"
+      ],
+      "additionalProperties": false
+    },
+    "LiteralTextSelector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "literal_text"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QueryPath"
+          },
+          "minItems": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository_id": {
+          "$ref": "#/$defs/RepositoryId"
+        }
+      },
+      "required": [
+        "kind",
+        "paths",
+        "text",
+        "repository_id"
+      ],
+      "additionalProperties": false
+    },
+    "RegexTextSelector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "regex_text"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QueryPath"
+          },
+          "minItems": 1
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository_id": {
+          "$ref": "#/$defs/RepositoryId"
+        }
+      },
+      "required": [
+        "kind",
+        "paths",
+        "pattern",
+        "repository_id"
+      ],
+      "additionalProperties": false
+    },
+    "AstPatternSelector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "ast_pattern"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QueryPath"
+          },
+          "minItems": 1
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository_id": {
+          "$ref": "#/$defs/RepositoryId"
+        }
+      },
+      "required": [
+        "kind",
+        "paths",
+        "language",
+        "pattern",
+        "repository_id"
+      ],
+      "additionalProperties": false
+    },
+    "PrimitiveSelector": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ParagraphSelector"
+        },
+        {
+          "$ref": "#/$defs/FileTextSelector"
+        },
+        {
+          "$ref": "#/$defs/LiteralTextSelector"
+        },
+        {
+          "$ref": "#/$defs/RegexTextSelector"
+        },
+        {
+          "$ref": "#/$defs/AstPatternSelector"
+        }
+      ]
+    },
+    "RepositorySelector": {
+      "$ref": "#/$defs/PrimitiveSelector"
+    },
+    "SourceUnitSeeds": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "changed_units"
+            },
+            "repository_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RepositoryId"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "kind",
+            "repository_ids"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "selector_units"
+            },
+            "selectors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RepositorySelector"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "kind",
+            "selectors"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SourceUnitQuery": {
+      "type": "object",
+      "properties": {
+        "seeds": {
+          "$ref": "#/$defs/SourceUnitSeeds"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "rust",
+              "typescript",
+              "tsx",
+              "markdown"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "unit_kinds": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "function",
+              "method",
+              "class",
+              "paragraph",
+              "section"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "source_sides": {
+          "enum": [
+            "after_only",
+            "before_only",
+            "both_available",
+            "paired_required"
+          ]
+        }
+      },
+      "required": [
+        "seeds",
+        "languages",
+        "unit_kinds",
+        "source_sides"
+      ],
+      "additionalProperties": false
+    },
+    "RelationshipQuery": {
+      "type": "object",
+      "properties": {
+        "source_units": {
+          "$ref": "#/$defs/SourceUnitQuery"
+        },
+        "repository_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RepositoryId"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "directions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "callers",
+              "callees",
+              "imports",
+              "imported_by"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "requested_hops": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "source_units",
+        "repository_ids",
+        "directions",
+        "requested_hops"
+      ],
+      "additionalProperties": false
+    },
+    "UnitContent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "whole_unit"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "bounded_excerpt"
+            },
+            "max_bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "max_bytes"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ChunkSettings": {
+      "type": "object",
+      "properties": {
+        "grouping": {
+          "enum": [
+            "single_group",
+            "per_seed"
+          ]
+        },
+        "seed_content": {
+          "$ref": "#/$defs/UnitContent"
+        },
+        "related_content": {
+          "$ref": "#/$defs/UnitContent"
+        },
+        "max_chunk_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "grouping",
+        "seed_content",
+        "related_content",
+        "max_chunk_bytes"
+      ],
+      "additionalProperties": false
+    },
+    "RelatedUnitsSelector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "related_units"
+        },
+        "query": {
+          "$ref": "#/$defs/RelationshipQuery"
+        },
+        "chunk_settings": {
+          "$ref": "#/$defs/ChunkSettings"
+        },
+        "minimum_related_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "kind",
+        "query",
+        "chunk_settings",
+        "minimum_related_units"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceSelector": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PrimitiveSelector"
+        },
+        {
+          "$ref": "#/$defs/RelatedUnitsSelector"
+        }
+      ]
+    },
+    "ContextSelectorDeclaration": {
+      "type": "object",
+      "properties": {
+        "selector_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirement": {
+          "enum": [
+            "required",
+            "optional"
+          ]
+        },
+        "selector": {
+          "$ref": "#/$defs/EvidenceSelector"
+        },
+        "max_matches": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "selector_id",
+        "requirement",
+        "selector",
+        "max_matches",
+        "max_bytes"
+      ],
+      "additionalProperties": false
+    },
+    "PresenceSelector": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LiteralTextSelector"
+        },
+        {
+          "$ref": "#/$defs/RegexTextSelector"
+        },
+        {
+          "$ref": "#/$defs/AstPatternSelector"
+        }
+      ]
+    },
+    "ApplicabilityTest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "always"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "presence"
+            },
+            "selector": {
+              "$ref": "#/$defs/PresenceSelector"
+            },
+            "max_scan_bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "selector",
+            "max_scan_bytes"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

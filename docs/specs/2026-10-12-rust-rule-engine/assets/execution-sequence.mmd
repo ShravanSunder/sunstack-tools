@@ -6,42 +6,39 @@ sequenceDiagram
   participant Sel as Selection owner
   participant Judge as Judgment owner
   participant HTTP as Jev adapter
-  participant Policy as Policy interpreter
-  Note over Host,Run: Proposed-only with no predecessor. Program facade owns framing
-  Host->>Run: typed skill-pack and repo bindings, scopes, settings and cancellation
-  Run->>Src: added capture rule/input bytes and optional comparison
-  Src-->>Run: frozen snapshot or capture failure
-  alt capture refused or aborted
-    Run-->>Host: safe preparation failure or settled cancellation
-  else capture admitted
-    Run->>Rules: added preflight all captured JSONL/configuration
-    Rules-->>Run: admitted packs or linked diagnostics
-    alt invalid pack or configuration
-      Run-->>Host: invalid invocation, no inference
-    else admitted
-      Run->>Sel: added before/current applicability, targets, context and definitions
-      Sel->>Src: added query frozen sources
-      Src-->>Sel: bundles, match sets or source diagnostics
-      Sel-->>Run: every occurrence selected, skipped or failed
-      Note over Run,Src: Only complete nonempty required groups construct a request. Optional partial context stays attributed
-      Run->>Judge: named group and attributed SkillRuleState within declared context
-      Judge->>Judge: assess serialized request and allowed accounting
-      Note over Judge,Run: Required overflow or unverifiable budget returns a diagnostic without inference
-      alt budget admitted and not aborted
-        Judge->>HTTP: admitted body, finite settings and cancellation
-        Note over HTTP: External inference may occur. Cancellation does not undo it
-        HTTP-->>Judge: body or safe failure plus attempt observations
-        alt response admitted and not aborted
-          Judge-->>Run: completed answers, receipt and attempts
-          Run->>Policy: added apply admitted rule data
-          Policy-->>Run: source-linked finding
-        else failure or abort
-          Judge-->>Run: execution outcome and remote uncertainty, no finding
-        end
-      else required overflow or refused accounting
-        Judge-->>Run: budget diagnostic, no inference or finding
+  Note over Host,Run: Proposed-only. Caller selects RuleSets and starts this invocation
+  Host->>Run: skill bindings, RuleSet paths, repo scopes, settings and cancellation
+  Run->>Src: capture selected RuleSet JSON bytes
+  Src-->>Run: captured definitions or source failure
+  Run->>Rules: validate RuleSets and resolve explicit JSONL references
+  Rules-->>Run: referenced paths or safe definition diagnostics
+  Run->>Src: capture referenced JSONL and scoped subject/context bytes
+  Src-->>Run: frozen snapshot or source failure
+  Run->>Rules: preflight all captured rule definitions and named questions
+  Rules-->>Run: admitted RuleSets/rules or source-linked diagnostics
+  alt capture failed or definitions invalid
+    Run-->>Host: preparation failure or invalid invocation, no inference
+  else admitted
+    Run->>Sel: before/current targets, context, applicability and effective questions
+    Sel->>Src: query frozen sources under caller scope
+    Src-->>Sel: evidence or source diagnostics
+    Sel-->>Run: every occurrence selected, skipped or failed
+    Note over Run,Src: Required evidence must be complete, optional omissions remain attributed
+    Run->>Judge: named questions with RuleSet prefix and captured state
+    Judge->>Judge: validate and assess complete encoded request
+    alt supported and within budget, not aborted
+      Judge->>HTTP: admitted body, finite attempts and cancellation
+      Note over HTTP: External inference may occur, cancellation cannot reverse it
+      HTTP-->>Judge: untrusted body or safe failure and attempt observations
+      alt response admitted and not aborted
+        Judge-->>Run: native answers, receipt and attempts
+        Run->>Run: retain one outcome and correlate authored question references
+      else failure or observed abort
+        Judge-->>Run: typed execution outcome, no completed answer references
       end
-      Note over Run: Stop new work on cancellation and join owned work before terminal result
-      Run-->>Host: ordered report, coverage and measurements
+    else invalid, required overflow or refused accounting
+      Judge-->>Run: diagnostic, no inference
     end
+    Note over Run: Cancellation stops scheduling and joins owned work before terminal return
+    Run-->>Host: source-linked native judgments, coverage, diagnostics and measurements
   end
