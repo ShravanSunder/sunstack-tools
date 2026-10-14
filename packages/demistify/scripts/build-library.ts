@@ -39,8 +39,11 @@ const styles = await Promise.all(
 	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src', name), 'utf8')),
 );
 await mkdir(resolve(outputDirectory, 'fonts'), { recursive: true });
-for (const font of localFontFiles())
-	await writeFile(resolve(outputDirectory, 'fonts', font.fileName), await readFile(font.sourceUrl));
+await Promise.all(
+	localFontFiles().map(async (font): Promise<void> =>
+		writeFile(resolve(outputDirectory, 'fonts', font.fileName), await readFile(font.sourceUrl)),
+	),
+);
 const iconFont = await subsetFont(
 	await readFile(new URL(import.meta.resolve('@phosphor-icons/web/regular/Phosphor.woff2'))),
 	await shippedIconCodePoints(),
