@@ -23,6 +23,7 @@ sequenceDiagram
       Sel->>Src: added query frozen sources
       Src-->>Sel: bundles, match sets or source diagnostics
       Sel-->>Run: every occurrence selected, skipped or failed
+      Note over Run,Src: Only complete nonempty required groups construct a request. Optional partial context stays attributed
       Run->>Judge: named group and attributed SkillRuleState within declared context
       Judge->>Judge: assess serialized request and allowed accounting
       Note over Judge,Run: Required overflow or unverifiable budget returns a diagnostic without inference

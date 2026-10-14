@@ -92,19 +92,19 @@ The serialized payloads use their owning crate's public types, with a thin progr
 | --- | --- |
 | `InvocationEnvelope` | `protocol_version: 1`, `operation`, matching `input`; no arbitrary top-level metadata |
 | `PrepareEvidenceInput` | Evidence-owned `EvidencePlanInput`; repository bindings, source/relationship query, optional explicit package bindings, chunk settings and limits; no credentials or skill pack |
-| `PrepareRulesInput` | `skill_packs: nonempty SkillPackBinding[]`, `repositories: nonempty RepositoryBinding[]`, `scope`, `limits`; no credentials |
+| `PrepareRulesInput` | `skill_packs: nonempty SkillPackBinding[]`, `repositories: nonempty RepositoryBinding[]`, `limits`; no credentials or independently supplied invocation scope |
 | `SkillPackBinding` | `repository_id`, `skill_path`, `rule_paths: nonempty ordered path[]`; skill path is relative to that repository's root, rule paths are explicit caller-authorized file locations |
 | `RulePreparationOutcome` | tagged `prepared { preparation }`, `invalid_invocation { diagnostics }`, `preparation_failed { diagnostics }`, `cancelled { diagnostics }`; prepared data contains every selection record, including failures |
 | `PreparedRuleInputs` | frozen source/pack identities, ordered admitted packs, every selection record, `SelectedEvidence` per selected occurrence, diagnostics and measurements; no backend |
 | `SelectedEvidence` | tagged `ready { bundle }` or `refused { diagnostics }`, keyed by `RuleOccurrenceKey`; refusal never constructs a request |
 | `RunJudgmentsInput` | `request: { questions, state }`, `backend_selection`, `attempt_settings`, `request_budget`; no secret value |
 | `EvaluateRulesInput` | PrepareRulesInput fields plus `backend_selection`, `attempt_settings`, `request_budget`, `max_concurrent_groups`, explicit `batch_groups` (empty means one call per selected rule) |
-| `EvaluationScope` | tagged `full` or `changed`; each repository binding carries its explicit `ChangeScope`; full captures declared files without requiring Git |
+| `RepositoryScopeSummary` | Derived ordered entries `{ repository_id, requested_change_scope, resolved_selection }`; each repository binding is the sole input scope authority, including mixed full/change bindings |
 | `SourceComparison` | Resolved primitive comparison inside a ChangeScope member: tagged `commits { base_revision, head_revision }` or `worktree { base_revision }`; refs resolved before use; repository-qualified input paths determine untracked inclusion |
 | `SourceSpan` | repository ID, repository-relative path, snapshot/revision identity, start/end byte offsets (end exclusive), start/end line and column; user-facing lines/columns are 1-based |
 | `RuleEvaluationOutcome` | tagged `finding { finding }`, `evaluation_failed { diagnostics }`, `cancelled { diagnostics }` or `not_started { reason: caller_cancelled }`, all correlated to skill path, rule ID and target ID |
 | `LintInvocationOutcome` | tagged `invalid_invocation { diagnostics }`, `preparation_failed { diagnostics, measurements }`, `completed_report { report }`, `incomplete_report { report }`, `cancelled_report { partial_report?, diagnostics, measurements }`; absent partial report means cancellation before report admission |
-| `LintReport` | requested scope/comparison, ordered skill-pack/snapshot identities, ordered selection records and evaluation outcomes, diagnostic list plus omitted count, measurements |
+| `LintReport` | Derived repository scope summaries, ordered skill-pack/snapshot identities, ordered selection records and evaluation outcomes, diagnostic list plus omitted count, measurements; no overriding global scope |
 | `ProgramResponse` | `protocol_version: 1`, operation, matching closed outcome; failure/partial/cancelled results never contain a completion-shaped default |
 
 Batch groups list `RuleOccurrenceKey { repository_id, skill_path, rule_id }`, not ambiguous bare rule IDs. Admission requires selected occurrences, no repeated occurrence across groups, identical evidence identities and caller-declared independence. Invalid groups refuse the invocation before model calls. The rule request builder assigns `q000001`, `q000002`, etc. in each group's declared order and retains the name-to-occurrence map; these request-local names never replace report identity. Ungrouped selected rules run separately. Direct judgment callers retain their own names.
@@ -146,7 +146,6 @@ The invocation binds packs explicitly. A pack is a logical collection of JSONL s
     "input_paths": ["skills/create-skill", "skills/update-skill", "shared-references"],
     "change_scope": { "kind": "full" }
   }],
-  "scope": { "kind": "full" },
   "limits": {
     "max_files": 200,
     "max_file_bytes": 1048576,
@@ -154,12 +153,19 @@ The invocation binds packs explicitly. A pack is a logical collection of JSONL s
     "max_matches": 256,
     "max_model_state_bytes": 262144,
     "max_model_request_bytes": 524288,
-    "include_ignored": false
+    "include_ignored": false,
+    "discovery_limits": {
+      "max_unit_visits": 4096,
+      "max_relationship_candidates": 2048,
+      "max_fan_out": 64,
+      "max_history_commits": 5000,
+      "max_local_time_ms": 3000
+    }
   }
 }
 ```
 
-The example is the `PrepareRulesInput` payload, rather than its outer protocol envelope; numeric limits are illustrative settings, not defaults or latency promises. `InvocationLimits` requires positive `max_files`, `max_file_bytes`, `max_total_bytes`, `max_matches`, `max_model_state_bytes` and `max_model_request_bytes`, plus explicit `include_ignored`. File/total limits include rule-source capture; model limits apply to actual UTF-8 serialized state and complete request. Rule paths resolve relative to the invocation's working directory, then normalize into explicit source identities. All bound packs are admitted atomically before inference. Pack identity includes repository ID, normalized skill path, ordered source paths and captured source content identities; rule-definition locations preserve file plus line/column. A shared source is captured once for consumers and validated into each explicit binding, without implicit merging or inheritance.
+The example is the `PrepareRulesInput` payload, rather than its outer protocol envelope; numeric limits are illustrative settings, not defaults or latency promises. `InvocationLimits` requires positive `max_files`, `max_file_bytes`, `max_total_bytes`, `max_matches`, `max_model_state_bytes` and `max_model_request_bytes`, explicit `include_ignored`, and required `discovery_limits: DiscoveryLimits` imported from the evidence crate. This same limits object is required by `evaluate_rules`; no selector-local or hidden discovery defaults exist. File/total limits include rule-source capture; model limits apply to actual UTF-8 serialized state and complete request. Rule paths resolve relative to the invocation's working directory, then normalize into explicit source identities. All bound packs are admitted atomically before inference. Pack identity includes repository ID, normalized skill path, ordered source paths and captured source content identities; rule-definition locations preserve file plus line/column. A shared source is captured once for consumers and validated into each explicit binding, without implicit merging or inheritance.
 
 Representative rule line, formatted here for readability; each source stores one object per line:
 
@@ -215,7 +221,7 @@ The initial selector grammar is deliberately small and is owned by evidence's `e
 | `literal_text` | `paths: path[]`, `text: nonempty string`; case-sensitive substring occurrences |
 | `regex_text` | `paths: path[]`, `pattern: nonempty string`; Rust `regex` UTF-8 dialect, default Unicode/case-sensitive mode, inline flags supported; no lookaround/backreferences |
 | `ast_pattern` | `paths: path[]`, explicit supported `language`, `pattern: nonempty string`; AST-grep pattern/metavariables only, not arbitrary YAML rule objects or rewrites |
-| `related_units` | Explicit changed or selector-qualified seeds, declared repositories, relation direction/hop query and limits; returns attributed units/excerpts/candidate relations, not exact symbols |
+| `related_units` | `query: RelationshipQuery`, `chunk_settings: ChunkSettings`, `minimum_related_units: nonnegative integer`; the enclosing declaration's required/optional flag and total match/byte bounds remain authoritative |
 
 The v1 language set has one authority: the built-in `SupportLang` catalog and its accepted language tokens in the [pinned AST-grep language definitions at 0be5673](https://github.com/ast-grep/ast-grep/blob/0be5673107200ee28be83517756e2fd122611fbc/crates/language/src/lib.rs). All built-in variants of that catalog are included; custom/dynamically loaded grammars are outside v1. Admission derives accepted names from that catalog rather than a hand-maintained second list. V6 uses the pinned catalog as the independent acceptance oracle and includes a token absent from it as a refusal control; actual built artifact/catalog agreement is V15 proof.
 
@@ -238,12 +244,20 @@ This is a proposed path with no implemented predecessor. The evidence crate owns
 | `TimeWindow` | `lookback { seconds: positive integer }` or `absolute { since_utc, until_utc }`; ordered finite UTC bounds resolved once at invocation admission |
 | `CommitParentPolicy` | `first_parent` or `each_parent`; root commit compares against empty tree. Preserve parent attribution; never infer a linear history from timestamps |
 | `UnknownRecencyPolicy` | `include_with_diagnostic` (proposed default) or explicit `exclude_with_omission`; deleted/missing/skewed timestamps never receive invented dates |
-| `RelationshipQuery` | Repository-qualified seeds or changed units, caller/callee/import direction, requested hop depth, supported language resolution subset and optional test/doc context |
-| `DiscoveryLimits` | Positive file/byte/visited-unit/candidate/fan-out/history/time caps; distinct from the query's requested depth; resource exhaustion records limited coverage |
-| `EvidencePlanInput` | Repository bindings, source-unit query, optional relationship query, chunk settings and discovery limits; no provider or rule policy |
+| `RelationshipQuery` | `source_units: SourceUnitQuery`, `repository_ids: nonempty unique RepositoryId[]`, `directions: nonempty unique RelationDirection[]`, `requested_hops: positive integer`; query repositories include every seed repository and are admitted bindings |
+| `SourceCaptureLimits` | Evidence-owned positive `max_files`, `max_file_bytes`, `max_total_bytes`, `max_matches`, and explicit `include_ignored`; rules projects these exact InvocationLimits fields without changing their values |
+| `DiscoveryLimits` | Evidence-owned required positive integers `max_unit_visits`, `max_relationship_candidates`, `max_fan_out`, `max_history_commits`, `max_local_time_ms`; milliseconds are elapsed monotonic time, not UTC selection bounds; no implicit defaults |
+| `EvidencePlanLimits` | Evidence-owned `{ source: SourceCaptureLimits, discovery: DiscoveryLimits }`; no model or rules dependency |
+| `EvidencePlanInput` | `repositories`, tagged `analysis: units { query: SourceUnitQuery } | related { query: RelationshipQuery }`, `chunk_settings`, required `limits: EvidencePlanLimits`, optional `package_bindings` (absence means empty); no competing seed/query inputs, provider or rule policy |
 | `EvidencePlanOutcome` | `prepared { snapshot, changes, units, relationships, chunks, coverage, diagnostics, measurements }`, `refused { diagnostics }`, `incomplete { partial_plan, diagnostics, measurements }`, or settled `cancelled { partial_plan?, diagnostics }`; no findings |
 
 `prepare_evidence` serializes these evidence-owned input/outcome types; the CLI defines no parallel schema. Rule preparation uses the same source operations. Code-oriented hosts may consume prepared chunks and supply their own questions/policy through the native decision API. The initial skill JSONL target format remains paragraph-based; this does not quietly add an executable rule language or a second code-rule-pack format.
+
+Repository scopes are independent input truths. The invocation/report summary is derived, never a second caller override. A full binding selects its own applicable pack occurrences; a dirty/commit/time binding selects only occurrences affected under that binding. One full and one changed binding are valid and reported separately. A full binding may also supply unchanged discovery context for another binding's changed seeds. An attempted outer `scope` field is an unknown input field and refused. There is no precedence rule to invent.
+
+Rules passes the admitted `InvocationLimits.discovery_limits` unchanged to evidence and projects its existing file/byte/match/ignored fields into `SourceCaptureLimits`. Evidence owns one ephemeral preparation context with those limits, observed counters, start `Instant` and cancellation for this invocation; every related selector receives that same context rather than a fresh allowance. Native `prepare_evidence` supplies the same source/discovery types directly. Limits accumulate across repositories and selectors, while requested hop depth remains query-owned. No global limiter or scheduler is introduced.
+
+`max_unit_visits` counts processed unit/direction/depth visit states (revisiting under another query counts actual work); `max_relationship_candidates` counts emitted candidate/contradicted/unresolved records; `max_fan_out` caps expansion from one visited unit; `max_history_commits` counts commits examined, including out-of-window dates; `max_local_time_ms` covers elapsed local preparation, including capture/search/history, excluding model IO. Guards prevent admitting further work past the bound and record its frontier/cutoff. Time guards are observed between bounded work units and cannot forcibly preempt arbitrary blocking parser/IO work; this is not a hard latency SLA. Reuse of immutable bytes/trees/results is measured, not a reason to reset counters. A required selector with a three-neighbor frontier and `max_fan_out: 2` receives the recorded cutoff and is refused even if its minimum match count is already satisfied; an optional selector remains explicitly partial. V17/V18 must observe these exact admitted-limit and no-pass paths.
 
 One captured UTC anchor resolves lookback intervals for all supplied repositories. Git commit windows walk from resolved declared references and filter committer timestamps without stopping at the first older commit; bounded or shallow history produces a coverage diagnostic. Commit-set/time scopes preserve individual commit/parent deltas, including before units that later disappear. `revision_diff` is instead an endpoint net comparison. These observations are not merged into a fictional historical patch. For current-state linting, historical changes select affected current occurrences; a removed or unavailable required current target is diagnosed. A native caller requesting historical evidence receives its exact commit sides rather than current replacements.
 
@@ -259,7 +273,28 @@ The reader freezes each selected source side and its content/revision identity. 
 
 The evidence owner maps both sides of diff spans to enclosing functions, methods, classes and Markdown units using real AST ranges. Pure deletion can seed a before-side unit without inventing an after declaration. Parsing/query plans are reused for the same captured content and language. Cheap paths/text/import queries identify candidate files first, but finding callers may still require scanning the full declared discovery scope; no speed improvement is assumed. A primitive selector belongs to an explicit repository ID, defaulting to its skill binding's repository when omitted; a connected relation query lists all permitted repository IDs.
 
-The invocation-local relationship graph keys each node by snapshot, repository, revision, path and range. Visits are deduplicated by node plus requested direction/depth; cycles stop revisiting rather than exhausting the executor. In-scope declarations, import paths, explicit aliases and lexical shadowing provide basis facts. `PackageSourceBinding { importing_repository_id, module_prefix, target_repository_id, target_path_prefix, language }` is optional caller-supplied data in `EvidencePlanInput`; overlapping ambiguous bindings are refused, and the target must be an admitted root/path. It identifies supplied source context, not an installed/released dependency version. Supported static relative-module paths and these explicit bindings can corroborate a link. Relationship-language profiles declare supported syntax/resolution operations at admission; the full AST language catalog does not promise full graph support. Unsupported language rules, dynamic dispatch, macros, package aliases or re-exports return unresolved candidates; matching a name alone is not resolved identity. Custom compiler-grade resolvers and LSP remain outside scope.
+The invocation-local relationship graph keys each node by snapshot, repository, revision, path and range. Visits are deduplicated by node plus requested direction/depth; cycles stop revisiting rather than exhausting the executor. In-scope declarations, import paths, explicit aliases and lexical shadowing provide basis facts. `PackageSourceBinding { importing_repository_id, module_prefix, target_repository_id, target_path_prefix, language }` is optional caller-supplied data in `EvidencePlanInput`; overlapping ambiguous bindings are refused, and the target must be an admitted root/path. It identifies supplied source context, not an installed/released dependency version. Matching a name alone is not resolved identity. Custom compiler-grade resolvers and LSP remain outside scope.
+
+The first related-code operation set is fixed, not a configurable profile framework. `GraphLanguage` is `rust | typescript | tsx`; `RelationDirection` is `callers | callees | imports | imported_by`. Normalized language aliases come from the existing AST catalog, then admission checks this smaller graph set. Markdown retains paragraph/section source units and primitive selectors/chunks, but no Markdown call/import graph is promised. Other languages retain the full primitive AST-pattern surface; a request for an unsupported graph language/direction is refused with `unsupported_relationship_query` before scanning/inference. This separates AST parsing coverage from the initial relationship mechanism without removing either responsibility.
+
+| Fixed language capability | Located units and supported relationship evidence | Explicit unresolved boundary |
+| --- | --- | --- |
+| `typescript`, `tsx` | Named function declarations, methods and classes; same-file bare-identifier calls; ES named/default imports and named aliases; static relative-file and explicit package-source paths; imported bare calls linked to located declarations | Receiver/dynamic dispatch, wildcard/namespace binding resolution, re-export chains, computed imports, ambiguous declarations/paths and unrecognized lexical binding forms |
+| `rust` | Function items and impl/trait methods, with enclosing impl/type signature context; same-file bare or static-module-path free calls; explicit non-glob `use` paths/aliases; ordinary `mod` file paths and explicit package-source paths | Macro expansion, receiver/trait/associated-type dispatch, glob imports, conditional/path-attribute module rules, external crate versions and ambiguous declarations/paths |
+
+Static file resolution uses only admitted paths. An import with an explicit extension resolves that exact path; an extensionless TS path checks `.ts`, `.tsx`, `/index.ts`, `/index.tsx`, preserving ambiguity if several exist. Rust ordinary `mod name` checks `name.rs` and `name/mod.rs`; both present is ambiguous. No tsconfig aliases, `.js`→`.ts` remapping, package installation, Cargo feature evaluation or release-version inference is added. Unsupported constructs within an otherwise admitted language produce `unresolved { target_hint, reason }` with source basis, rather than disappearing as zero matches. Recognized simple parameter/local-identifier shadowing supplies a positive contradiction; absence of a detected shadow is not a proof of no shadow. Ambiguous names remain multiple candidates or an unresolved hint, never first-match resolution. V17's literal expected capability cases are the acceptance oracle, not a list derived from implementation output.
+
+| Source/group declaration in `sunstack-evidence/evidence_contracts` | Closed payload / admission |
+| --- | --- |
+| `SourceUnitQuery` | `seeds`, nonempty unique `languages: rust | typescript | tsx | markdown`, nonempty unique `unit_kinds: function | method | class | paragraph | section`, and `source_sides`; Rust admits function/method, TS/TSX function/method/class, Markdown paragraph/section. Every requested language/kind pair must be compatible; relation queries additionally restrict languages to GraphLanguage |
+| `SourceUnitSeeds` | `changed_units { repository_ids }` or `selector_units { selectors: nonempty RepositorySelector[] }`; each seed repository is admitted and allowed by its query; related selectors cannot seed themselves recursively |
+| `RepositorySelector` | `repository_id` plus an admitted primitive `paragraph | file_text | literal_text | regex_text | ast_pattern` selector; an explicit AST language must belong to SourceUnitQuery.languages |
+| `SourceSides` | `after_only`, `before_only`, `both_available`, or `paired_required`; paired requires a uniquely attributable before/after unit pair, never name-only equivalence |
+| `ChunkSettings` | `grouping: single_group | per_seed`, `seed_content: UnitContent`, `related_content: UnitContent`, positive `max_chunk_bytes`; standalone/native plans may use either grouping; a JSONL related selector requires single_group |
+| `UnitContent` | Tagged `whole_unit { kind: whole_unit }` or `bounded_excerpt { kind: bounded_excerpt, max_bytes: positive integer }`; an excerpt records partial membership plus enclosing signature/import context and syntax-aligned ranges; it never satisfies whole_unit |
+| `ContextGroupOutcome` | `complete { group, coverage }`, `partial { group, coverage, omissions, diagnostics }`, or `unavailable { diagnostics }`; evidence owns this shape, rules owns whether it permits inference |
+
+Changed-unit seeds require a change selection with an admitted before/after side in each listed seed repository; a full-only root can be discovery context but cannot fabricate a diff seed. Selector-unit seeds work in full or change scopes. No seed or required source side is invented when a match, baseline or unit pair is missing. Unit kinds incompatible with a requested graph language are admission errors. Root/path membership, cardinalities, unique identifiers, compatible direction/language combinations and bounds are checked before query execution; invalid JSONL selectors refuse pack preflight.
 
 Finite requested hop depth defines the query's neighborhood, not “all call stacks.” Resource/fan-out/time limits additionally produce cutoffs with frontier/source attribution. `DiscoveryCoverage` is tagged `complete_within_declared_scope { query_bounds }`, `limited { query_bounds, cutoffs }` or `unavailable { diagnostics }`; parser/relationship uncertainty is preserved even in a fully scanned neighborhood. A caller can use partial candidates for exploration. A rule requiring evidence beyond that coverage remains incomplete. Relevance ordering is a deterministic evidence priority with explicit basis, not a numeric probability; optional model reranking is a caller-declared decision stage with a separate budget and cannot overturn mechanically established contradictions.
 
@@ -271,13 +306,64 @@ Finite requested hop depth defines the query's neighborhood, not “all call sta
 
 The evidence owner groups changed units and related excerpts by rule-declared relationships. Excerpts retain repository, source side, content identity, byte span, enclosing signature and relevant import context. Reused excerpts are deduplicated while relationships refer to them by chunk/unit keys. A giant function is not blindly cut at a character count: nested syntactic boundaries may produce explicitly partial excerpts with enclosing context, but a rule requiring the full unit is refused if that unit cannot fit. Optional omission is recorded in both model state and the report.
 
-The rules owner or native host chooses the question and required-context declarations. Evidence owns source grouping; decisions owns the serialized request and selected backend's accounting. This keeps evidence independent of model/HTTP dependencies. `ChunkSettings` names requested source sides, unit/relationship grouping, maximum excerpt/chunk bytes and required/optional roles. Context selectors may request the existing primitive selectors or an explicit `related_units` query; repository IDs and all query/limit fields are admitted before scanning. No implicit graph traversal is added to an ordinary text selector.
+The rules owner or native host chooses the question and required-context declarations. Evidence owns source grouping; decisions owns the serialized request and selected backend's accounting. This keeps evidence independent of model/HTTP dependencies. Context selectors may request the existing primitive selectors or an explicit `related_units` query using the closed declarations above. No implicit graph traversal is added to an ordinary text selector.
+
+A required related selector is ready only when: at least one seed is located; all requested seed sides/pairs and whole-unit requirements are present; the related-unit minimum is met; the entire declared repository/path/depth query was scanned without resource cutoff, required source/parse failure or unresolved endpoint affecting its requested relations; and the total group respects selector, chunk and invocation byte/match bounds. Located candidate links may still have explicitly retained type/binding uncertainty because they are not compiler resolution. A contradicted link is retained as evidence but does not count toward the minimum. A missing/unlocated endpoint, ambiguous required pair or cutoff makes the group partial/unavailable and refuses that required selector, even if some matches were found. Requested hop depth is a scope boundary; resource exhaustion is limited coverage.
+
+Optional related selectors may contribute located partial excerpts only with their coverage, unresolved hints and omission reasons in state/report; no empty or failed scan proves absence. Native `prepare_evidence` returns incomplete plans with partial groups for exploration. Rules constructs `SelectedEvidence.ready` only when every required selector is complete and nonempty; optional partial groups do not repair a required failure. An omitted optional group remains in the omission list. These guards precede request construction and report admission, so nonzero-match checks alone cannot produce a pass.
+
+JSONL keeps one primary answer over one composed evidence state. All required selector groups/chunks for that occurrence must fit together, and JSONL permits only `single_group`; there is no per-chunk independence/aggregation field. Native caller code may request `per_seed`, issue its own independent requests and implement its own composition using the existing judgment API. The reusable JSONL interpreter does not split, average or take the maximum of those judgments.
+
+This complete illustrative rule line requests one linked context group. Its enclosing skill pack names its repository; the `library` and `consumer` bindings/paths must also be supplied. It is formatted for reading here; JSONL stores one object per line. These paths, limits and rule content are demonstration data, not a shipped Sunstack rule or executed proof fixture.
+
+```json
+{
+  "rule_id": "skill.source.consistency",
+  "target_id": "U001",
+  "applicability": { "kind": "always" },
+  "context_selectors": [{
+    "selector_id": "linked-save-context",
+    "requirement": "required",
+    "max_matches": 32,
+    "max_bytes": 65536,
+    "selector": {
+      "kind": "related_units",
+      "query": {
+        "source_units": {
+          "seeds": { "kind": "selector_units", "selectors": [{
+            "repository_id": "library",
+            "selector": { "kind": "ast_pattern", "paths": ["src/save.ts"], "language": "typescript", "pattern": "function save($$$ARGS) { $$$BODY }" }
+          }] },
+          "languages": ["typescript"],
+          "unit_kinds": ["function", "method"],
+          "source_sides": "after_only"
+        },
+        "repository_ids": ["library", "consumer"],
+        "directions": ["callers"],
+        "requested_hops": 1
+      },
+      "chunk_settings": { "grouping": "single_group", "seed_content": { "kind": "whole_unit" }, "related_content": { "kind": "whole_unit" }, "max_chunk_bytes": 65536 },
+      "minimum_related_units": 1
+    }
+  }],
+  "question": { "type": "choice", "instructions": "Does the skill paragraph agree with the supplied definition and caller behavior?", "criteria": { "consistent": "The described behavior agrees", "inconsistent": "The described behavior conflicts", "unclear": "The evidence does not settle agreement" } },
+  "policy": { "kind": "choice_disposition", "labels": { "consistent": "pass", "inconsistent": "fail", "unclear": "review" } },
+  "feedback": { "pass": "Description agrees with the supplied context.", "fail": "Repair the conflicting behavior description.", "review": "Clarify the description against the supplied context." }
+}
+```
+
+| Required example outcome | Evidence admission / observable result |
+| --- | --- |
+| Definition and at least one located imported caller; declared neighborhood completely scanned | One complete group with both whole units, import/call basis and retained semantic uncertainty; one primary judgment may execute |
+| One caller located but another requested endpoint unresolved | Partial group with unresolved hint; required selector refused, no judgment/pass |
+| Located caller plus file/node/fan-out/time cutoff | Limited coverage; required selector refused regardless of positive match count |
+| Whole required definition/caller exceeds group or final request budget | Required overflow diagnostic; no split, trim, independent chunk call or pass |
 
 `RequestBudgetSettings` has positive `max_input_tokens`, `max_request_bytes`, `max_questions`, `max_requests`, nonnegative safety/reserved-overhead margins and `accounting_policy: require_exact | allow_estimated`. The backend profile declares a known context ceiling when available and an accounting method. Unknown model ceilings are returned as uncertainty; they are not replaced with another model's limit. Native/program callers supply the same settings. The proposed initial policy requires explicit estimation allowance until exact selected-model accounting is demonstrated.
 
 `assess_request_budget` is a pure decisions operation over the actual serialized candidate request, including JSON escaping, questions/criteria/instructions, shared state and adapter envelope. It returns `within_configured_budget`, `exceeded` or `unverifiable`, each with accounting basis and diagnostics; it starts no HTTP request. Estimated counting includes the configured margin and does not guarantee agreement with the provider tokenizer. Hosted rejection remains an execution failure, not a finding. The final serialized body is checked again only when it changes; an unchanged assessed body is the body sent.
 
-On overflow, only explicitly optional excerpts may be removed. The initial bounded mechanism permits one optional-omission pass and one assessment of the changed body, rather than a retry loop; unchanged bodies are never reassessed. Required overflow/refused accounting yields `context_budget_exceeded` or `budget_unverifiable`, no inference and no pass. The invocation owner enforces the finite model-request count separately from these pure assessments. A rule can declare independent per-chunk judgments, but a relationship-spanning rule keeps its required caller/callee evidence together. Cross-chunk aggregation belongs to explicit Sunstack/native policy; averaging or taking maximum probabilities is not an engine default. This preserves R7/R13 while making bounded semantic preparation useful.
+On overflow, only explicitly optional excerpts may be removed. The initial bounded mechanism permits one optional-omission pass and one assessment of the changed body, rather than a retry loop; unchanged bodies are never reassessed. Required overflow/refused accounting yields `context_budget_exceeded` or `budget_unverifiable`, no inference and no pass. The invocation owner enforces the finite model-request count separately from these pure assessments. Relationship-spanning JSONL context stays in one judgment; independent per-chunk execution/composition remains native caller code as described above. This preserves R7/R13 and the bounded one-answer policy format.
 
 ## Model-facing evidence state
 
@@ -334,6 +420,7 @@ Each domain diagnostic is constructed where its issue is detected. Known input c
 | Evidence / source | `source_unavailable`, `revision_unavailable`, `path_outside_root`, `unsupported_encoding`, `source_changed`, `missing_target`, `duplicate_target`, `deleted_target`, `evidence_limit`, `missing_context` |
 | Evidence / selection | `invalid_selector`, `unsupported_language`, `selector_limit` |
 | Evidence / connected sourcing | `invalid_repository_binding`, `unknown_repository`, `history_incomplete`, `recency_unknown`, `relationship_unresolved`, `discovery_limit` |
+| Evidence / related declaration and grouping | `unsupported_relationship_query`, `invalid_context_group`, `missing_related_context`, `required_group_incomplete` |
 | Decisions / request budget | `context_budget_exceeded`, `budget_unverifiable`, `unsupported_budget_profile` |
 | Rules / rule_pack | `malformed_json`, `unknown_field`, `duplicate_field`, `duplicate_rule_id`, `duplicate_rule_source`, `duplicate_skill_binding`, `empty_rule_pack`, `invalid_policy` |
 | Rules / selection | `applicability_unknown`, `target_outside_scope` |
@@ -432,13 +519,13 @@ Invalid ID states are rejected by constructors; primitive/result kinds are enum-
 | U6,U16 | R18 measured filtering | E11,E16 | Invocation owner | Report measurements | InvocationMeasurements, rule_execution | Run → measured report | No predicted SLA/savings | V14 declared workload profile |
 | U2,U10,U14 | R19 credential/body isolation | E3,E11,E14 | Adapter and diagnostic owners | Secret config/safe mapping | Private secret in sunstack-decisions; owned domain diagnostic payloads | Memory-only config | No raw/default body logs | V10 sentinel output capture |
 | U9,U10,U11,U13,U18,U19 | R20 bounded composable delivery/quality | none: platform constraint | Repository and program owners | Build/check/public surfaces | Four-crate workspace dependency graph and owned contracts | Development → verified artifacts | Cycles/reverse dependencies and other-repo edits excluded | V1/V2 independent consumers; V15 real gates/dependency graph |
-| U16,U20 | R21 selected Git/time changes | E11,E17,E18 | Evidence change-source owner | Resolve ChangeScope | RepositoryBinding/ResolvedChangeSelection, evidence_contracts | Requested → resolved/approximate/unavailable | Unknown dates/history/layers remain attributed | V16 actual Git/filesystem time and cancellation controls |
+| U16,U20 | R21 selected Git/time changes | E11,E17,E18 | Evidence change-source owner | Resolve each binding's sole ChangeScope | RepositoryBinding/ResolvedChangeSelection/derived scope summary, evidence_contracts | Requested → resolved/approximate/unavailable | Mixed scopes valid; no caller override; unknown metadata attributed | V16 mixed per-repo and actual Git/time/cancellation controls |
 | U16,U21 | R22 connected repo attribution | E11,E13,E17,E20 | Evidence source/relationship owners | Capture and traverse supplied roots | SourceSnapshot/SourceSpan/RelationshipCandidate, evidence_contracts | Supplied roots → captured connected context | No outside-root reads or atomic multi-repo claim | V17 cross-repo callers and partial-source failures |
-| U17,U22 | R23 bounded candidate paths | E18,E19,E20 | Evidence structural/relationship owners | Locate units and query neighborhood | SourceUnit/RelationshipCandidate/DiscoveryCoverage, evidence_contracts | Changed spans → units → candidates | Cycles/cutoffs/unresolved/contradictions visible | V17/V18 independent relation/range expectations |
-| U5,U9,U22,U23 | R24 coherent semantic chunks | E9,E13,E19,E20,E21 | Evidence assembly and rule policy owners | Plan excerpts with required roles | SemanticChunk/ChunkSettings, evidence_contracts; policy in rule_contracts | Candidate units → ready/incomplete chunk | No required trim or undeclared score aggregation | V18 relationship-spanning and giant-unit controls |
+| U17,U22 | R23 bounded candidate paths | E18,E19,E20 | Evidence structural/relationship owners | Admit fixed graph language/operation set then query | SourceUnitQuery/RelationshipQuery/SourceUnit/DiscoveryCoverage, evidence_contracts | Validated query → units → candidates | Unsupported refused; unresolved/cutoffs/contradictions attributed | V17/V18 literal capability/alias/shadow/range cases |
+| U5,U9,U22,U23 | R24 coherent semantic chunks | E9,E13,E19,E20,E21 | Evidence assembly and rule policy owners | Admit declared groups under unchanged invocation discovery limits | SemanticChunk/ChunkSettings/ContextGroupOutcome/DiscoveryLimits, evidence_contracts; single-answer policy in rule_contracts | Located query → complete/partial/unavailable group → readiness | Unresolved/observed cutoff/whole-unit failure refuses required group; no JSONL split/aggregation | V18 complete/unresolved/admitted-limit/cutoff/oversized linked-group controls |
 | U12,U14,U23 | R25 serialized request budget | E3,E4,E13,E21,E22 | Decisions request admission; rules/host assembles | Pure assess_request_budget before execution | RequestBudgetSettings/Assessment, decision_contracts | Proposed body → within/exceeded/unverifiable | No inference/pass on required overflow or refused accounting | V19 actual envelope/token-basis and no-call controls |
 
-All E1–E16 are bound in the entity table. C1–C7 correspond to the interfaces, source/selection, judgments, diagnostic/lifecycle, policy and performance sections above. V1–V15 name future observations, not completed tests. No visual or static design check substitutes for their execution.
+All E1–E22 are bound in the entity table. C1–C8 correspond to the interfaces, source/selection, judgments, diagnostic/lifecycle, policy, performance and connected-context sections above. V1–V19 name future observations, not completed tests. No visual or static design check substitutes for their execution.
 
 ## External source basis and compatibility limits
 

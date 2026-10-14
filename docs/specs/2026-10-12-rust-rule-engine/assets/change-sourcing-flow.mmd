@@ -1,5 +1,5 @@
 flowchart TB
-  Start["Evidence owner<br/>admit supplied roots, paths and one UTC anchor"] --> Scope{"Declared source scope"}
+  Start["Evidence owner<br/>admit roots, queries, limits and one UTC anchor"] --> Scope{"Each repo's sole declared scope"}
   Scope -->|"full"| Files["Allowed source files<br/>Git optional"]
   Scope -->|"dirty / recent dirty"| Dirty["Scoped staged, unstaged and untracked candidates"]
   Dirty --> Time{"Recency requested?"}
@@ -17,4 +17,4 @@ flowchart TB
   Units --> Related["Bounded related-source discovery<br/>unchanged files allowed inside supplied paths"]
   Related --> Seal{"All used mutable captures still stable?"}
   Seal -->|"no"| Refuse
-  Seal -->|"yes"| Out["Frozen evidence plan and coverage<br/>rules owner selects occurrences"]
+  Seal -->|"yes"| Out["Frozen plan with complete or partial groups<br/>rules owner requires complete nonempty required context"]

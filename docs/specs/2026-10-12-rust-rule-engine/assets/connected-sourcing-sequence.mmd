@@ -4,7 +4,7 @@ sequenceDiagram
   participant B as Supplied library repo B
   participant A as Supplied consumer repo A
   Note over Host,A: Proposed-only with no predecessor. Relationships remain candidates
-  Host->>Evidence: Roots, scopes and bounded query
+  Host->>Evidence: Per-repo scopes and admitted fixed-capability query
   Evidence->>B: Resolve changes and capture definition sides
   B-->>Evidence: Frozen bytes, revisions and change provenance
   Evidence->>Evidence: AST locates changed unit and basis spans
@@ -16,8 +16,8 @@ sequenceDiagram
   end
   Evidence->>Evidence: Check capture stability and record frontier/cutoffs
   alt Required source unavailable or query limited
-    Evidence-->>Host: Partial plan and coverage diagnostics
+    Evidence-->>Host: Partial group and diagnostics, no required-context readiness
   else Requested source scope scanned
-    Evidence-->>Host: Units, candidate links and remaining uncertainty
+    Evidence-->>Host: Located group or unresolved endpoint outcome
   end
   Note over Host,Evidence: Host declares required context. Evidence owns source grouping, not rule policy
