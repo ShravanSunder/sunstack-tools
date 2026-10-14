@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Release train status</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+# Release train: morning status
+
+Illustrative project **payments-gateway**, status as of 08:18 on 2026-10-14, for the engineering lead's 08:30 read before stand-up.
+
+<ex-grid cols="4">
+<ex-callout id="verdict" tone="tldr" title="Nothing is ready to merge" span="2">
+
+Two changes need one more proof each; one change is blocked on an owner decision; the infrastructure stack is paused.
+
+</ex-callout>
+<ex-stat value="2" label="Need one more proof" note="#212 and #219" tone="planned"></ex-stat>
+<ex-stat value="1" label="Blocked on a decision" note="#215, asked 2026-10-13" tone="decision"></ex-stat>
+</ex-grid>
+
+<ex-route label="60-second tour">
+<ex-step to="verdict">Nothing is ready to merge. Start with the summary.</ex-step>
+<ex-step to="c215">#215 is the one change blocked on an owner decision.</ex-step>
+<ex-step to="c219">The retry-storm risk and the load test booked for 11:00.</ex-step>
+<ex-step to="lead">What needs the lead before stand-up.</ex-step>
+</ex-route>
+
+## Changes
+
+<ex-grid cols="2">
+<ex-card id="c212" title="#212 Idempotent refunds" tone="planned" tag="replay window 08:40–09:00" icon="credit-card">
+
+**Owner:** Priya
+
+- **Passed:** build, unit tests (412), lint, type check.
+- **Needs verification:** replay test against the sandbox processor. Window booked 08:40–09:00; the previous window was lost because the sandbox token expired.
+- **In progress:** second review (Marco), expected by 10:00.
+- **Not ready until:** replay proof passes and the second review approves.
+
+</ex-card>
+<ex-card id="c215" title="#215 Currency rounding" tone="decision" tag="blocked on product" icon="code">
+
+**Owner:** Ken
+
+- **Passed:** build, unit tests (388), property tests (10,000 cases).
+- **Blocked:** product must decide banker's rounding versus half-up for JPY and KRW. Asked on 2026-10-13; no answer yet.
+- **If banker's rounding:** ready to merge as soon as the decision lands. It is already implemented.
+- **If half-up:** about two hours of change.
+
+</ex-card>
+<ex-card id="c219" title="#219 Webhook retries" tone="risk" tag="load test booked 11:00" icon="globe">
+
+**Owner:** Priya
+
+- **Passed:** build and unit tests (97).
+- **Needs verification:** load test at 2× peak, booked for 11:00.
+- **Risk:** retry storm if the processor is down for more than 15 minutes. A circuit breaker is proposed but not built.
+
+</ex-card>
+<ex-card id="infra" title="Infrastructure stack" tone="planned" tag="paused" icon="database">
+
+**Owner:** Dana
+
+- **#201 Postgres 16 upgrade:** done in staging, waiting for the change-freeze to end on 2026-10-16.
+- **#204 Connection pool resize:** depends on #201.
+- **#207 Read replica for reporting:** depends on #204; design approved.
+
+</ex-card>
+</ex-grid>
+
+## Checklist for the 10:30 check-in
+
+<ex-grid cols="3">
+<ex-tree title="10:30 check-in items" span="2">
+
+- [ ] Replay proof for #212
+- [ ] Second review for #212
+- [ ] Rounding decision for #215
+- [x] Load test booked for #219
+- [x] Change-freeze end date confirmed
+
+</ex-tree>
+<ex-stat value="2 of 5" label="Checklist done" note="load test and freeze date" tone="done"></ex-stat>
+</ex-grid>
+
+## Needs the lead
+
+<ex-callout id="lead" tone="decision" title="Chase and decide">
+
+- Chase the rounding decision for #215 with product.
+- Decide whether #219 can merge without the circuit breaker if the load test passes.
+
+</ex-callout>
+
+</ex-document>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payments release status</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Payments release status
+
+Illustrative project `payments-gateway`, status as of 08:18 on 2026-10-14, for the 08:30 read before stand-up.
+
+<ex-grid cols="4">
+<ex-callout id="verdict" tone="tldr" span="2" title="Nothing is ready to merge.">Two changes need one more proof each; one change is blocked on an owner decision; the infrastructure stack is paused.</ex-callout>
+<ex-stat value="0" label="Ready to merge" note="of three changes" tone="risk"></ex-stat>
+<ex-stat value="2" label="Need one more proof" note="#212 and #219" tone="planned"></ex-stat>
+</ex-grid>
+
+## Changes
+
+<ex-grid cols="3">
+<ex-card id="c212" title="#212 Idempotent refunds" tone="planned" tag="replay window 08:40–09:00" icon="credit-card">
+
+**Owner:** Priya.
+
+- **Passed:** build, unit tests (412), lint, type check.
+- **Needs verification:** replay test against the sandbox processor. Window booked 08:40–09:00.
+- **In progress:** second review (Marco), expected by 10:00.
+- **Not ready until:** replay proof passes and the second review approves.
+
+<details><summary>Why the previous window was lost</summary>The sandbox token expired.</details>
+
+</ex-card>
+<ex-card id="c215" title="#215 Currency rounding" tone="decision" tag="product decision" icon="code">
+
+**Owner:** Ken.
+
+- **Passed:** build, unit tests (388), property tests (10,000 cases).
+- **Blocked:** product must decide banker's rounding versus half-up for JPY and KRW. Asked on 2026-10-13; no answer yet.
+- **If banker's rounding:** ready to merge as soon as the decision lands. Already implemented.
+- **If half-up:** about two hours of change.
+
+</ex-card>
+<ex-card id="c219" title="#219 Webhook retries" tone="planned" tag="load test 11:00" icon="plug">
+
+**Owner:** Priya.
+
+- **Passed:** build and unit tests (97).
+- **Needs verification:** load test at 2× peak, booked for 11:00.
+
+<ex-callout tone="risk" title="Risk">Retry storm if the processor is down for more than 15 minutes. A circuit breaker is proposed but not built.</ex-callout>
+
+</ex-card>
+</ex-grid>
+
+## Infrastructure stack
+
+<ex-grid cols="2">
+<ex-card id="infra" title="Infrastructure stack" tone="planned" tag="change freeze ends 2026-10-16" icon="database">
+
+**Owner:** Dana. Paused.
+
+- **#201 Postgres 16 upgrade:** done in staging, waiting for the change freeze to end on 2026-10-16.
+- **#204 Connection pool resize:** depends on #201.
+- **#207 Read replica for reporting:** depends on #204; design approved.
+
+</ex-card>
+<ex-tree title="Key times" icon="clock">
+- 08:18 status snapshot
+- 08:30 lead reads this before stand-up
+- 08:40–09:00 replay window for #212
+- 10:00 second review for #212 expected
+- 10:30 check-in
+- 11:00 load test for #219
+- 2026-10-16 change freeze ends
+</ex-tree>
+</ex-grid>
+
+## Before the 10:30 check-in
+
+<ex-grid cols="2">
+<ex-tree title="Checklist for the 10:30 check-in" icon="test-tube">
+- [ ] Replay proof for [#212](#c212)
+- [ ] Second review for [#212](#c212)
+- [ ] Rounding decision for [#215](#c215)
+- [x] Load test booked for [#219](#c219)
+- [x] Change-freeze end date confirmed
+</ex-tree>
+<ex-callout id="lead" tone="decision" title="Needs the lead" icon="user">
+- Chase the rounding decision for #215 with product.
+- Decide whether #219 can merge without the circuit breaker if the load test passes.
+</ex-callout>
+</ex-grid>
+
+<ex-route label="60-second read">
+<ex-step to="verdict">Nothing is ready to merge.</ex-step>
+<ex-step to="c212">#212 needs the replay proof and the second review.</ex-step>
+<ex-step to="c215">#215 waits on the rounding decision from product.</ex-step>
+<ex-step to="c219">#219 needs the 11:00 load test, with a retry storm risk.</ex-step>
+</ex-route>
+<ex-route label="Lead's decisions" steps="c215 c219 lead"></ex-route>
+</ex-document>
+</body>
+</html>
