@@ -38,16 +38,24 @@ An unknown version or operation, malformed framing or an over-limit input is a `
 
 **Input `EvidencePlanInput`:**
 - `repositories: [RepositoryBinding]`
-- `sources: map<InputName, { declaration: InputDeclaration, binding: InputBinding }>`
+- `sources: map<SourceName, SourceSpec>`: evidence-owned, so a direct caller needs no rules types
 - `payload_schemas: [{ name, path }]`
 - `cursors: [{ transcript_path, format, cursor }]`
 - `declarations: [EvidenceDeclaration]`: over `sources`, the same shape rules use
 - `native_queries: [{ id, selector: EvidenceSelector }]`: repository-qualified, from [the native selector schema](schemas/evidence-selector.schema.json). This is the only place a caller names seeds directly
 - `package_bindings: [PackageSourceBinding]`
 - `limits: InvocationLimits`
-- `discovery_limits?: DiscoveryLimits`: required when any native query or change-set source needs discovery
+- `discovery: none | bounded { limits: DiscoveryLimits }`. Admission refuses a native query or change-set source that needs discovery when `discovery` is `none`
 
 No backend and no credentials.
+
+**`SourceSpec`** (`sunstack-evidence/evidence_contracts`):
+- `document { repository, path }`
+- `conversation { transcript_path, format, final_assistant_text? }`
+- `payload { schema, value }`
+- `change_set { repository }`
+
+Rules never passes its own types down. After admitting an invocation, `sunstack-rules/input_binding` maps each admitted declaration and binding to a `SourceSpec`; a payload takes its schema from the input declaration. `SourceName` is the evidence-owned name type; rules uses it for input names. `EvidenceDeclaration` is also evidence-owned, and rules imports it.
 
 **Outcome `EvidencePlanOutcome`:**
 
@@ -99,7 +107,7 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 
 | Shape | Fields |
 | --- | --- |
-| `PreparedGroup` | `rule_set`, `position`, `derived_from?: { router_group }`, `leading_entries: [EvaluatedEntry]`, `status: planned \| not_applicable { entry, basis } \| applicability_failed { entry, cause }` |
+| `PreparedGroup` | `rule_set`, `position`, `binding: bound \| routed { router_group }`, `leading_entries: [EvaluatedEntry]`, `status: planned \| not_applicable { entry, basis } \| applicability_failed { entry, cause }` |
 | `PreparedOccurrence` | `key: RuleOccurrenceKey`, `status: planned \| not_applicable { entry, basis } \| selection_failed { diagnostics }` |
 | `PlannedRequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `budget: within_configured_budget { counts, basis } \| exceeded { diagnostics } \| unverifiable { diagnostics }`, `evidence: [SelectionResult]` |
 
@@ -160,9 +168,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | `ReportedOrigin` | `direct`, or `hook { host, event, session: ObservedField, turn: ObservedField, agent: main \| subagent { id, type: ObservedField } \| unknown \| unavailable, observed_at: ObservedField }`. `ObservedField` is `observed { value } \| unavailable` |
 | `EntryKey` | `owner: router \| rule_set { path, group } \| rule { path, group, rule_id }`, `position` |
 | `RuleOccurrenceKey` | `rule_set`, `group`, `rule_id` |
-| `GroupResult` | `rule_set`, `position`, `derived_from?: { router_group }`, `applicability: ApplicabilityOutcome`, `entries: [EvaluatedEntry]` |
+| `GroupResult` | `rule_set`, `position`, `binding: bound \| routed { router_group }`, `applicability: ApplicabilityOutcome`, `entries: [EvaluatedEntry]` |
 | `ApplicabilityOutcome` | `applicable`; `not_applicable { entry: EntryKey, basis }`; `applicability_failed { entry: EntryKey, cause: Cause }`; `not_evaluated { reason: cancelled \| invocation_refused \| earlier_entry_stopped }` |
-| `EvaluatedEntry` | `key: EntryKey`, `result`: `condition { outcome: passed \| did_not_pass \| unresolved { diagnostic }, basis }`, `decision { outcome: passed \| did_not_pass \| failed { cause } \| cancelled, answer?: JudgmentReference, threshold }`, or `not_evaluated { reason }`. `basis` describes the declared test, never a received payload value |
+| `EvaluatedEntry` | `key: EntryKey`, `result`: `condition { outcome: passed \| did_not_pass \| unresolved { diagnostic }, basis }`, `decision { threshold, outcome: passed { answer: JudgmentReference } \| did_not_pass { answer: JudgmentReference } \| failed { cause: Cause } \| cancelled }`, or `not_evaluated { reason }`. `basis` describes the declared test, never a received payload value |
 | `RuleOccurrenceResult` | Every variant carries `key: RuleOccurrenceKey`: `judged { judgment: RuleJudgment }`, `not_applicable { stopped_at: EntryKey, basis }`, `outside_change_scope { reason }`, `selection_failed { diagnostics }`, `evaluation_failed { cause: Cause }`, `cancelled`, `not_started { reason: caller_cancelled \| request_limit }` |
 | `Cause` | `request { request_index }`, `evidence { diagnostics }`, `budget { diagnostics }`, `gate { entry: EntryKey }`, `condition { entry: EntryKey, diagnostic }` |
 | `RuleJudgment` | `key`, `verdict: VerdictOutcome`, `declared_severity: block \| nudge`, `answers: map<QuestionName, JudgmentReference>`, `target: TargetLocation` |

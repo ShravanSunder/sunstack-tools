@@ -26,7 +26,7 @@ Rule meaning stays Sunstack content: questions, applicability, routers, schemas 
 
 | Crate | Owns, and its reason to change | Public contract and consumer | Excludes |
 | --- | --- | --- | --- |
-| `sunstack-evidence` | Reading and selecting supplied sources: document capture, paragraph targets, text and AST matches, transcript capture with built-in and injected adapters, conversation selection and cursors, payload schema validation and pointers, and (milestone 2) Git change selection, source units, relationships and chunks. Changes when a source format or selection behavior changes | Captures, selections, target locations, coverage, cursors and evidence diagnostics. Rules and direct evidence callers consume it | HTTP, credentials, model questions, thresholds, verdicts |
+| `sunstack-evidence` | Reading and selecting supplied sources: document capture, paragraph targets, text and AST matches, transcript capture with built-in and injected adapters, conversation selection and cursors, payload schema validation and pointers, and (milestone 2) Git change selection, source units, relationships and chunks. Changes when a source format or selection behavior changes | Source specs, evidence declarations, captures, selections, target locations, coverage, cursors and evidence diagnostics. Rules and direct evidence callers consume it, and evidence imports nothing from rules | HTTP, credentials, model questions, thresholds, verdicts |
 | `sunstack-decisions` | Native primitive questions and answers, request-relative validation, budget assessment of encoded bytes, the backend trait, the Jev HTTP adapter, attempts and cancellation. Changes when decision contracts or provider protocols change | Structured requests, closed run outcomes, receipts and decision diagnostics. Rules and direct judgment callers consume it | Git, AST, transcripts, RuleSets, verdict policy |
 | `sunstack-rules` | Definitions (RuleSets, rule files, routers), input bindings, applicability, request planning, verdicts, scheduling and reports. Changes when the authored rule language or execution model changes | Admitted definitions, prepared rules, reports and rule diagnostics. Native hosts and the executable consume it | Provider wire decoding, transcript parsing, process framing and signals |
 | `sunstack-rule-cli` | The process protocol: one JSON request on stdin, one result on stdout, signal-to-cancellation mapping, exit codes. Changes when process UX changes | The program contract for hooks, skill tools and TS callers | Any domain validation, scheduling or answer interpretation of its own |
@@ -101,13 +101,13 @@ Deserialization admits shape. Constructors and request-relative validators admit
 | E23 Rule file | Definition admission | `sunstack-rules/definition_admission` | `ValidatedRuleFile { source, content_identity, rules: nonempty [located RuleDefinition] }` | Captured bytes |
 | E24 RuleSet | Definition admission | `sunstack-rules/definition_contracts` | `RuleSetDefinition { schema_version: 1, name, description, inputs: map<InputName, InputDeclaration>, applicability, common_ruleset_instructions: StructuredEntry, rule_paths }` | Captured bytes |
 | E25 Input declaration | Definition admission | `sunstack-rules/definition_contracts` | `InputDeclaration`: `document`, `conversation`, `change_set`, `payload { schema: SchemaName }` | Immutable |
-| E26 Binding group | Binding admission | `sunstack-rules/input_binding` | Wire: `{ bindings: map<InputName, InputBinding> }`. Native: `AdmittedBindingGroup { owner, position, sources: map<InputName, SourceId>, derived_from: Option<RouterGroupRef> }` | Per invocation |
+| E26 Binding group | Binding admission | `sunstack-rules/input_binding` | Wire: `{ bindings: map<InputName, InputBinding> }`. Native: `AdmittedBindingGroup { owner, position, binding: bound \| routed { router_group }, sources: map<SourceName, AdmittedSource { id: SourceId, spec: SourceSpec }> }`. Each admitted binding is mapped to the evidence-owned `SourceSpec` here, so evidence never sees a rules type | Per invocation |
 | E27 Applicability entry | Definition admission | `sunstack-rules/definition_contracts` | `ApplicabilityEntry`: `condition { test: ConditionTest }` or `decision { question, evidence, threshold }` | Immutable |
 | E28 Applicability outcome | Applicability evaluation | `sunstack-rules/report_contracts` | `ApplicabilityOutcome`: `applicable`, `not_applicable { entry, basis }`, `applicability_failed { entry, cause }`, `not_evaluated { reason }` | Report value |
 | E29 Verdict | Verdict evaluation | `sunstack-rules/definition_contracts` and `verdict_evaluation` | Declared `VerdictDeclaration`: `noul { question, threshold, block_at_or_below? }` or `composite { dimensions: [{ question, weight }], threshold, block_at_or_below? }`; evaluated `VerdictOutcome` | Immutable / report |
 | E30 Conversation capture | Evidence | `sunstack-evidence/conversation_capture` | `ConversationCapture { source: TranscriptSource, format, committed_bytes, records, turns, tail: complete \| incomplete { bytes }, gaps, supplement }` | Shared by groups binding the same source |
 | E31 Conversation record | Transcript adapter, validated by evidence | `sunstack-evidence/conversation_contracts` | `ConversationRecord { record_id, position, body: user_message \| assistant_message { blocks } \| tool_use(ToolUse), provenance: transcript \| hook_supplement, injection: known_injected \| not_injected \| unknown }` | Per capture |
-| E32 Turn | Evidence normalization | `sunstack-evidence/conversation_contracts` | `ConversationTurn { opened_by: Option<RecordId>, records, boundary: clear \| ambiguous { reason } }` | Per capture |
+| E32 Turn | Evidence normalization | `sunstack-evidence/conversation_contracts` | `ConversationTurn { opening: user_message { record_id } \| capture_start, records, boundary: clear \| ambiguous { reason } }` | Per capture |
 | E33 Tool use | Transcript adapter, validated by evidence | `sunstack-evidence/conversation_contracts` | `ToolUse { call_id, tool_name, category, input: StructuredJson, outcome: succeeded \| failed \| result_present_status_unknown \| result_missing, result: full_observed { text } \| clipped { text, original_bytes: known \| unknown } \| absent }` | Per capture |
 | E34 Conversation selection | Evidence | `sunstack-evidence/conversation_selection` | `ConversationSelection { turns: all \| last { count } \| since_cursor, user_messages, assistant_messages: excluded \| all \| final_only, tool_use: excluded \| included { tools, results }, hook_injected }` | Immutable declaration |
 | E35 Monitoring cursor | Evidence | `sunstack-evidence/conversation_selection` | Opaque wire string encoding `MonitoringCursor { source, format, committed_bytes, prefix_digest, record_watermarks }` | Caller-held |
@@ -145,7 +145,7 @@ Authors write three file kinds. The [schema inventory](schema-inventory.md) list
 
 **Router JSON** ([schema](schemas/router.schema.json)): `inputs`, `evidence`, one `choice` question, `routes` and `confidence_floor`, as in Specification C13.
 
-**Evidence declarations** ([schema](schemas/evidence-declaration.schema.json)) are tagged by `select.kind`. Admission checks each against its input's kind:
+**Evidence declarations** ([schema](schemas/evidence-declaration.schema.json)) are owned by `sunstack-evidence/evidence_contracts` and imported by rules. They are tagged by `select.kind`. Admission checks each against its input's kind:
 
 | Input kind | Allowed `select` kinds | May be a target |
 | --- | --- | --- |
@@ -198,7 +198,7 @@ Credentials never appear in it.
 | `payload` | `value` | Validated against the schema its declaration names. A binding naming another schema is an unknown field |
 | `change_set` | `repository` | Uses that binding's admitted change selection (milestone 2) |
 
-**Router groups.** With a router, each binding group binds only the router's inputs. For each route target, `input_binding` derives one group per router group by applying the route's wiring, and records `derived_from`. A routed RuleSet's input never gets a second, independently supplied value.
+**Router groups.** With a router, each binding group binds only the router's inputs. For each route target, `input_binding` derives one group per router group by applying the route's wiring, and records `binding: routed { router_group }`. A routed RuleSet's input never gets a second, independently supplied value.
 
 **Payload schemas.** `PayloadSchemaCatalog` maps a schema name to a compiled Draft 2020-12 validator:
 - **Program callers** list `{ name, path }` entries. The paths resolve from the definition root and are read like definitions.
@@ -456,7 +456,7 @@ Envelope: `{ protocol_version: 1, operation, input }`. The result is `protocol_e
 `RuleInvocationReport` contains:
 - `origin`
 - `routing`: `rule_sets`, or `router { outcome }`
-- `groups`: each with RuleSet, position, `derived_from`, `applicability` and `entries` (each evaluated entry with its basis, answer reference and cost)
+- `groups`: each with RuleSet, position, `binding` (`bound`, or `routed` from a router group), `applicability` and `entries` (each evaluated entry with its basis, and a decision's answer reference when it completed)
 - `occurrences`: each a `RuleOccurrenceResult`
 - `requests`
 - `captures`: conversation coverage per source
