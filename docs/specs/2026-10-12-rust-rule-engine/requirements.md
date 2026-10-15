@@ -26,7 +26,7 @@ There is no new UI screen. Answers and diagnostics are data for an agent, termin
 
 ## Authorized needs
 
-U1–U14 keep the earlier needs, revised by the owner's explicit Rust-first reset: "we have built nothing so we have no priors." U15–U19 cover RuleSets, reusable evidence and crate boundaries. U20–U23 cover time-scoped and connected-repository change evidence. U24–U30 cover hook-invoked monitoring, applicability, severity, conversation evidence and typed inputs. Priorities are unranked by the owner. Activity numbers refer to owner decisions recorded on work root `01a12ca7-621c-71b9-8fc3-0cf055fe6952`.
+U1–U14 keep the earlier needs, revised by the owner's explicit Rust-first reset: "we have built nothing so we have no priors." U15–U19 cover RuleSets, reusable evidence and crate boundaries. U20–U23 cover time-scoped and connected-repository change evidence. U24–U31 cover hook-invoked monitoring, applicability, severity, conversation evidence, typed inputs and efficient declarative execution patterns. Priorities are unranked by the owner. Activity numbers refer to owner decisions recorded on work root `01a12ca7-621c-71b9-8fc3-0cf055fe6952`.
 
 | ID | Need and reason | Evidence and authority |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ U1–U14 keep the earlier needs, revised by the owner's explicit Rust-first rese
 | U28 | Typed payloads, such as the `AgentJobPacket` commission, are inputs validated against their schema before use. Their Zod schemas live in Sunstack (ai-tools). Commission and handback correlate through router message and reply identities | Authorized: "i prefer typed messages. zod can be converted to json schema easily" (6571); "we define the schemas with zod in Sunstack (ai-tools repo)" (scope decision in the Lead channel) |
 | U29 | Every contract's discriminated unions are valid JSON and follow strict discriminated-union practice | Authorized: "make sure how we use discriminated union is valid json because there's strict guidelines for it" (6605) |
 | U30 | Session identity and other hook information are invocation inputs, available as provenance in results | Authorized: "i need to have as inputs session id, any other information" (6535 lineage) |
-| U31 | Make model calls efficient with declarative TypeSafe patterns. A RuleSet's rules over one input binding are judged in one call. Gates and routers that read the same input ride in that call speculatively, while gates over different input are staged unless the host opts into speculation. A router at the trigger level picks which RuleSets run (intent routing). Blocking requires a confident fail (confidence gating). A rule may compute its verdict from weighted dimensions (composite scoring) | Authorized: "it's the same source content for speculative fan-out"; "if the input is the same we can use speculative"; "i want to know what patterns can we do declaratively, how that looks, how we test". Execution model, router, confidence band and composite verdict selected (6671). Source: TypeSafe patterns and confidence documentation |
+| U31 | Make model calls efficient with declarative TypeSafe patterns. A RuleSet's rules over one input binding are judged in one call. Gates and routers that read the same input ride in that call speculatively, while gates over different input are staged unless the host opts into speculation. A router at the trigger level picks which RuleSets run (intent routing). A blocking rule can require a confident fail (confidence gating). A rule may compute its verdict from weighted dimensions (composite scoring) | Authorized: "it's the same source content for speculative fan-out"; "if the input is the same we can use speculative"; "i want to know what patterns can we do declaratively, how that looks, how we test". Execution model, router, confidence band and composite verdict selected (6671). Source: TypeSafe patterns and confidence documentation |
 
 ## What the Rust reset supersedes
 
@@ -76,7 +76,7 @@ No shipped behavior or data needs migration. Earlier review receipts do not esta
 
 ## Scope and protected systems
 
-This design covers composable Rust libraries, a thin executable boundary, and local skill-lint and handoff-monitor examples and proof fixtures. Sunstack supplies rule content: questions, applicability, evidence requirements, rubrics and severities. Tools admits those declarations, acquires and prepares evidence, executes decisions, and correlates native answers with their sources. Consumers may interpret probabilities and scores in their own code. Whether a rule's evidence proves a claim, for example that a file was read, is rule meaning owned by the rule author; complex judgments use model decisions (6602).
+This design covers composable Rust libraries, a thin executable boundary, and local skill-lint and handoff-monitor examples and proof fixtures. Sunstack supplies rule content: RuleSets, routers, questions, verdicts, applicability, evidence requirements, rubrics and severities. Tools admits those declarations, acquires and prepares evidence, executes decisions, and correlates native answers with their sources. Consumers may interpret probabilities and scores in their own code. Whether a rule's evidence proves a claim, for example that a file was read, is rule meaning owned by the rule author; complex judgments use model decisions (6602).
 
 Permitted repository: sunstack-tools. Existing skill packages, production hooks, codex-router, ai-tools schemas, infrastructure and eval datasets are read-only consumers or reference sources in this job. Registering hook schemas in codex-router, implementing hook transport, changing ai-tools schemas, publishing packages and installing services are outside this work.
 
@@ -84,7 +84,7 @@ The caller chooses when to invoke the engine and which RuleSets to offer. RuleSe
 
 The engine reads only sources the caller passed: repository roots and paths, transcript paths, and typed payloads. It never guesses session directories. Approximate dirty-file recency, transcript lag and missing tool results stay visible as uncertainty; missing evidence never becomes a negative or positive finding.
 
-Native noul, choice and score answers are preserved. Choice criteria may directly define pass, fail, review or domain categories. A RuleSet groups rules and returns their named answers together; it computes no overall verdict.
+Native noul, choice and score answers are preserved. Every rule ends in its own pass or fail verdict, and its other answers stay available. A RuleSet groups rules and returns their results together; it computes no overall verdict.
 
 Excluded: a mandatory Bun service; a mandatory native JS addon; LSP or type-checker replacement; automatic edits; dynamic provider discovery; a persistent index, daemon, watcher or result store; a generic workflow language; hidden retrieval or truncation; automatic acceptance or merge authority; new skill or eval authoring inside Tools; named conversation presets; dynamically loaded adapter plugins.
 
