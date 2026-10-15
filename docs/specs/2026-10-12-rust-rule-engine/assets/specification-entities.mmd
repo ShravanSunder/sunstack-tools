@@ -1,13 +1,14 @@
 flowchart TB
-  INV["E16 Rule invocation<br/>caller request; complete, incomplete or cancelled"] -->|"0..1 router"| RT["E39 Router<br/>choice question, routes, confidence floor"]
-  INV -->|"1..n RuleSets"| RS["E24 RuleSet<br/>identity: canonical path"]
-  RT -->|"routes 0..n"| RS
-  RS -->|"1..n named"| IN["E25 Input declaration<br/>identity: name within RuleSet"]
+  INV["E16 Rule invocation<br/>caller request; complete, incomplete or cancelled"] -->|"either 1 router"| RT["E39 Router<br/>evidence, choice question, routes, confidence floor"]
+  INV -->|"or 1..n RuleSets"| RS["E24 RuleSet<br/>identity: canonical path"]
+  RT -->|"routes per label"| RS
+  RS -->|"1..n named"| IN["E25 Input declaration<br/>identity: name within its owner"]
+  RT -->|"1..n named"| IN
   RS -->|"ordered 0..n"| AE["E27 Applicability entry<br/>condition or decision with threshold"]
   RS -->|"1..n files"| RF["E23 Rule file"]
   RF -->|"1..n rules; IDs unique per RuleSet"| RD["E9 Rule definition<br/>evidence, target, severity"]
   RD -->|"exactly 1"| VD["E29 Verdict<br/>noul or composite, threshold, blocking band"]
-  INV -->|"1..n per RuleSet"| BG["E26 Binding group<br/>identity: position; binds every input once"]
+  INV -->|"1..n per owner"| BG["E26 Binding group<br/>identity: position; binds every input once"]
   BG -->|"applicable, not applicable,<br/>failed, not evaluated"| AO["E28 Applicability outcome<br/>one per RuleSet x group"]
   BG -->|"one record per occurrence"| SR["E15 Selection record<br/>occurrence = RuleSet, rule, group"]
   SR -->|"selected"| RG["E40 Request group<br/>one Jev request: speculative, staged gate or split"]
