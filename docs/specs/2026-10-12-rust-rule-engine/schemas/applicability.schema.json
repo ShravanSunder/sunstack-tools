@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "applicability.schema.json",
+  "title": "Ordered applicability entries",
+  "description": "An empty list means the owner always applies. Entries are identified by their position.",
+  "$ref": "#/$defs/ApplicabilityList",
+  "$defs": {
+    "ApplicabilityList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ApplicabilityEntry" }
+    },
+    "ApplicabilityEntry": {
+      "oneOf": [
+        { "$ref": "#/$defs/ConditionEntry" },
+        { "$ref": "#/$defs/DecisionEntry" }
+      ]
+    },
+    "ConditionEntry": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "condition" },
+        "test": { "$ref": "#/$defs/ConditionTest" }
+      },
+      "required": ["kind", "test"],
+      "additionalProperties": false
+    },
+    "DecisionEntry": {
+      "type": "object",
+      "description": "A noul question over its own declared evidence. Passes when the yes probability is at least the threshold. Never receives common_ruleset_instructions.",
+      "properties": {
+        "kind": { "const": "decision" },
+        "question": { "$ref": "decision-question.schema.json#/$defs/NoulQuestion" },
+        "evidence": {
+          "allOf": [
+            { "$ref": "evidence-declaration.schema.json#/$defs/EvidenceDeclarations" },
+            { "minItems": 1 }
+          ]
+        },
+        "threshold": { "$ref": "#/$defs/Threshold" }
+      },
+      "required": ["kind", "question", "evidence", "threshold"],
+      "additionalProperties": false
+    },
+    "Threshold": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "ConditionTest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "payload_field_equals" },
+            "input": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
+            "pointer": { "$ref": "evidence-declaration.schema.json#/$defs/JsonPointer" },
+            "value": {}
+          },
+          "required": ["kind", "input", "pointer", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "payload_field_in" },
+            "input": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
+            "pointer": { "$ref": "evidence-declaration.schema.json#/$defs/JsonPointer" },
+            "values": { "type": "array", "minItems": 1 }
+          },
+          "required": ["kind", "input", "pointer", "values"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "payload_field_present" },
+            "input": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
+            "pointer": { "$ref": "evidence-declaration.schema.json#/$defs/JsonPointer" }
+          },
+          "required": ["kind", "input", "pointer"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "origin_field_equals" },
+            "field": { "enum": ["host", "event", "agent_kind", "agent_type"] },
+            "value": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "pattern_present" },
+            "input": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
+            "pattern": { "$ref": "#/$defs/PresencePattern" },
+            "max_scan_bytes": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["kind", "input", "pattern", "max_scan_bytes"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "PresencePattern": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "literal" },
+            "text": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "text"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "regex" },
+            "pattern": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "pattern"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "ast" },
+            "language": { "type": "string", "minLength": 1 },
+            "pattern": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "language", "pattern"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

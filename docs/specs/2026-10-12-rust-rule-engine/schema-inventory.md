@@ -1,67 +1,99 @@
-# Domain schema inventory
+# Schema inventory
 
-The authored definition is split into **RuleSet JSON** and **rule-definition JSONL**. Question and answer contracts belong to decisions; source selectors belong to evidence; RuleSet loading, rule identity and result correlation belong to rules. These are the same three library domains in [Program Design](program-design.md#composable-crate-boundaries).
+Every field a rule author or a caller writes, and what the engine returns. Each schema has one owning crate, named in [Program Design](program-design.md#crates-and-dependency-direction). The JSON Schemas in [`schemas/`](schemas/) are design contracts. Production schemas are generated from the owning Rust types and checked against them.
 
-## Definitions authored by a rule author
+**Shared conventions:**
+- Every union is internally tagged. The tag is `type` for the Jev-facing primitives, and `kind` everywhere else.
+- Unknown fields and duplicate keys are refused.
+- Free JSON is allowed only inside instructions, criteria and payload values.
 
-| Domain and schema | Field | Purpose and why it is separate |
+**Tag conventions are per domain, and deliberately so.** Decision primitives use `type` because that is the native noul, choice and score contract. Tools-owned contracts use `kind`. Payload values are owned by their publishers and keep their own field case; `AgentJobPacket` is camelCase.
+
+## Authored by a rule author
+
+| Schema | Field | Purpose, and why it is separate |
 | --- | --- | --- |
-| RuleSet — [schema](schemas/rule-set.schema.json) | `schema_version` | Identifies the document format; unsupported versions refuse admission. Not a revision or another RuleSet identity |
-| RuleSet | `name` | Human/agent label for choosing a RuleSet. It is not model instructions or an execution condition |
-| RuleSet | `description` | Explains what this RuleSet checks. It is not automatically forwarded to the model |
-| RuleSet | `rule_paths` | Ordered explicit JSONL files to load, relative to this RuleSet file. Duplicate normalized sources refuse admission |
-| RuleSet | `instruction_prefix` | Shared question instructions for this RuleSet. Null means add nothing. Other values retain structured content; no string concatenation or key override |
-| Rule — [one-line schema](schemas/rule-file.schema.json) | `rule_id` | Stable check identity within the selected RuleSet. Distinct from a question name and source target ID |
-| Rule | `target_id` | Paragraph selected in the bound skill document. This is the initial skill-lint profile, not a restriction on the generic decisions API |
-| Rule | `applicability` | Locally evaluable `always` or selector-presence condition for this rule. It does not start a run or subscribe to a lifecycle |
-| Rule | `context_selectors` | Declares additional evidence the rule needs, with required/optional meaning and finite limits. It stores requirements, not captured source text |
-| Rule | `questions` | Nonempty map of independently answered names to native question variants; all questions in a rule share its prepared evidence |
-| Question — [schema](schemas/decision-question.schema.json) | `type` | Closed noul/choice/score discriminator; determines the corresponding criteria/answer shape |
-| Question | `instructions` | What this question asks. String/object/array/null; author-controlled JSON labels inside objects have no engine behavior |
-| Question | `criteria` | Meaning of choice options, ordered score levels or paired noul descriptions. Required for choice/score; absent or complete true/false pair for noul |
+| [RuleSet](schemas/rule-set.schema.json) | `schema_version` | Format version. Unsupported versions are refused |
+| RuleSet | `name`, `description` | For people and agents choosing RuleSets. Never sent to the model, never a condition |
+| RuleSet | `inputs` | Named inputs, each `document`, `conversation`, `change_set` or `payload { schema }`. Rules reference names; invocations bind them |
+| RuleSet | `applicability` | Ordered conditions and decisions. Empty means always |
+| RuleSet | `common_ruleset_instructions` | Shared instructions for this RuleSet's rule questions and noul verdicts. Null adds nothing. Never sent with routers or decisions |
+| RuleSet | `rule_paths` | Ordered JSONL files, relative to the RuleSet |
+| [Rule line](schemas/rule-file.schema.json) | `rule_id` | Unique within a RuleSet. The same ID under another RuleSet is a different occurrence |
+| Rule line | `evidence` | Declarations over named inputs. Each one is labeled with this rule and its ID in the request |
+| Rule line | `target` | Which declaration the result points at: a paragraph, conversation records, a payload field or code units |
+| Rule line | `applicability` | Rule-level conditions and decisions, after the RuleSet's |
+| Rule line | `questions` | Informational native questions. May be empty |
+| Rule line | `verdict` | `noul { question, threshold, block_at_or_below? }` or `composite { dimensions, threshold, block_at_or_below? }`. Required on every rule |
+| Rule line | `severity` | `block` or `nudge`. Omitted means nudge. Never sent to the model |
+| [Router](schemas/router.schema.json) | `inputs`, `evidence`, `question` | Its own named inputs and declarations, and one `choice` question |
+| Router | `routes` | Label to RuleSets, each with input wiring from RuleSet input name to router input name |
+| Router | `confidence_floor` | Compared with the Choice answer's native confidence |
+| [Evidence declaration](schemas/evidence-declaration.schema.json) | `id`, `input`, `requirement`, `select`, `max_items`, `max_bytes` | What to read from one input. `requirement` omitted means required |
+| Evidence declaration | `select.kind` | Document: `paragraph`, `whole_document`, `literal_text`, `regex_text`, `ast_pattern`. Conversation: `conversation`. Payload: `whole_payload`, `payload_field`. Change set (milestone 2): `change_set_literal_text`, `change_set_regex_text`, `change_set_ast_pattern`, `changed_units`, `related_units` |
+| Conversation selection | `turns`, `user_messages`, `assistant_messages`, `tool_use`, `hook_injected` | One generic selector with no presets. `turns` is `all`, `last { count }` or `since_cursor`. `tool_use` is `excluded` or `included { tools, results }` |
+| [Applicability](schemas/applicability.schema.json) | `condition { test }` | `payload_field_equals`, `payload_field_in`, `payload_field_present`, `origin_field_equals`, `pattern_present` |
+| Applicability | `decision { question, evidence, threshold }` | A noul over its own evidence. Passes at yes probability ≥ threshold |
+| [Questions](schemas/decision-question.schema.json) | `type`, `instructions`, `criteria` | Native noul, choice and score. Noul criteria may be omitted, or given as both `true` and `false` |
 
-`RuleSet.instruction_prefix` and `question.instructions` serve different scopes. The prefix exists only for authoring reuse. With a null prefix the question value is forwarded unchanged; with a prefix, both values survive under separate `prefix` and `question` labels. If reuse is not useful, use null. No third instruction layer exists on a JSONL file or individual rule.
+**What JSON Schema cannot check, and admission does:**
+- references across files
+- input kinds against selections
+- weights summing to 1
+- a band below its threshold, and only on a block rule
+- composite dimensions naming this rule's noul or score questions
+- route labels inside the choice criteria
+- complete, kind-compatible wiring
+- a conversation selection that selects at least one record type
+- unique rule IDs per RuleSet
 
-RuleSet composition groups its referenced definitions, shared instruction prefix and named native results, as defined in [Specification C6](specification.md#c6--native-judgments-and-result-composition). The schema fully expresses that metadata/prefix/file-reference contract. There is no placeholder `composition` accepting arbitrary JSON, no hidden all/any/average operation and no required overall-verdict choice. Consumer code can deliberately combine native results without adding an interpretation layer to every rule.
+## Supplied by a caller
 
-## Evidence declarations and invocation input
-
-| Owner / schema | Fields | Purpose / invariant |
+| Schema | Field | Purpose |
 | --- | --- | --- |
-| Skill binding — [schema](schemas/skill-binding.schema.json) | `repository_id`, `skill_path`, `rule_set_paths` | Associates caller-selected RuleSets with one subject document. Subject contents are captured at runtime; they are not copied into definitions |
-| Evidence — [schema](schemas/evidence-selector.schema.json) | `kind`, `repository_id`, query-specific path/text/pattern fields | A primitive selector declares what source to select and in which supplied repository. Repository is stated once; there is no second wrapper override |
-| Evidence | `selector_id`, `requirement`, `selector`, `max_matches`, `max_bytes` | Attributes each context requirement and its bounded capture. Required failure blocks inference; optional omission remains visible |
-| Evidence | `SourceUnitQuery`, `RelationshipQuery`, `ChunkSettings` payloads | Closed syntax-unit/relationship/chunk declarations. Language/kind compatibility, AST catalog membership and resource bounds need semantic admission in addition to JSON Schema |
-| Evidence invocation | Repository roots, input paths, `change_scope`, file/discovery limits | Selects which captured material is available. A RuleSet does not secretly override input scope or retrieve outside it |
-| Decisions execution | Backend/model, attempt settings, context budget and cancellation | Runtime configuration supplied by the caller, separate from reusable authored questions |
-| Private transport | Credentials | Kept outside rule files, RuleSets, ordinary invocations, model state and diagnostics |
+| [Invocation](schemas/rule-invocation.schema.json) | `definition_root` | Where definition, rule and payload-schema paths resolve from |
+| Invocation | `definitions` | `router { path, binding_groups }` or `rule_sets { rule_sets: [{ path, binding_groups }] }` |
+| Invocation | `binding_groups[].bindings` | Each input bound once: `document { repository, path }`, `conversation { transcript_path, format, final_assistant_text? }`, `payload { value }`, `change_set { repository }` |
+| Invocation | `repositories` | Repository bindings: the only authority for roots, allowed paths and change scope. Milestone 1 admits `full` |
+| Invocation | `payload_schemas` | `{ name, path }` catalog entries. Remote references are never fetched |
+| Invocation | `origin` | `hook { host, event, session?, turn?, agent?, observed_at? }` or `direct`. An omitted hook field is reported as unavailable. Provenance only |
+| Invocation | `cursors` | One per transcript source, as returned by an earlier report |
+| Invocation | `execution` | `speculation: off \| on` for gates over different inputs, and `max_concurrent_requests` |
+| Invocation | `limits`, `backend`, `attempts`, `request_budget` | Cumulative evidence limits; the Jev endpoint and model; attempt control; the request budget. Credentials are never here |
+| [Native selectors](schemas/evidence-selector.schema.json) | Repository-qualified selectors, `RelationshipQuery`, `ChunkSettings`, `QueryPath` | For native and `prepare_evidence` callers. `QueryPath` is now tagged `exact` or `glob` |
 
-`RepositorySelector` references the same evidence-owned primitive selector schema; it is not another schema with its own duplicate repository/path fields. `TargetId` and source selectors are likewise imported by the rule schema, not redefined by rules.
+## Returned
 
-## Returned data
-
-| Owner | Shape / fields | Purpose / invariant |
+| Owner | Shape | Purpose |
 | --- | --- | --- |
-| Decisions — [answer schema](schemas/decision-answer.schema.json) | Noul `yes_probability`; choice `selected_label`, `confidence`, `probabilities`; score `score`, `confidence`, `legend`, `probabilities` | One canonical typed answer definition. Native values/distributions are preserved; no mandatory verdict remapping |
-| Decisions | Receipt with resolved model, token usage and independently absent reported cost | Records observations from one actual run. Missing cost is not zero; configured and observed model serve different purposes |
-| Decisions | Completed / invalid request / provider failure / invalid response / cancelled | Closed execution outcomes. A failure never becomes an answer or finding |
-| Rules | Occurrence, target/source attribution and authored-question-to-native-answer references | Restores source identity after request-local correlation names. References target one canonical execution outcome rather than duplicating answers/receipts |
-| Boundary owner | Safe diagnostic origin/code/location and repair advice | Useful machine/agent repair information; no raw errors, response bodies, secret values or arbitrary received fields |
-| Rules model state | `related_context`: `none` or `prepared` with required units/relationships/chunks/coverage | Keeps conditional data together as one tagged payload; ordinary target/context fields remain required |
-| Evidence/rules | Coverage, omissions and work measurements | Makes bounded search, incomplete evaluation and actual work visible; not a model judgment or calibrated probability |
+| Decisions ([answer](schemas/decision-answer.schema.json)) | Noul `yes_probability`; choice `selected_label`, `confidence`, `probabilities`; score `score`, `confidence`, `legend`, `probabilities` | Native answers, unchanged |
+| Decisions | `DecisionRunOutcome`, receipt, attempt records | One per actual request |
+| Rules | `RuleInvocationOutcome` | `invalid`, `preparation_failed`, `complete_report`, `incomplete_report`, `cancelled { progress }` |
+| Rules | `RuleOccurrenceResult` | `judged`, `not_applicable`, `outside_change_scope`, `selection_failed`, `evaluation_failed`, `cancelled`, `not_started` |
+| Rules | `VerdictOutcome` | Basis (noul answer, or composite dimensions with normalized values and weights), value, threshold, `pass` or `fail { activation: nudge \| block \| nudge_above_band }` |
+| Rules | `RouterOutcome` | `routed`, `uncertain_intent { confidence, floor, distribution }`, `no_route`, `router_failed`, `not_evaluated` |
+| Rules | `RequestRecord` | Mode, question bindings, outcome, discarded answers with their cost |
+| Evidence | Captures, coverage, cursors | Tail state, gaps, omissions, bytes read and parsed |
+| Each boundary owner | Diagnostics | Origin, closed code, safe location, guidance, retry advice. Never received values |
 
-Public answer field names are the Tools contract: the adapter maps Jev wire keys into these typed fields without changing probabilities, labels, scores or distributions. This is one answer schema, not another verdict or policy layer.
+## Removed from the earlier design
 
-Request-relative validation still checks exact question names/kinds, choice labels/probability keys and score indices/ranges. JSON Schema alone cannot enforce those relationships to a different request document. Strict JSON decoding separately refuses duplicate keys and non-JSON numbers; constructors enforce finite numbers, IDs, paths and cross-field invariants. Deserialization is not semantic admission.
+| Removed | Replaced by |
+| --- | --- |
+| `instruction_prefix` | `common_ruleset_instructions` |
+| `target_id` on a rule | A `target` declaration ID, of any targetable kind |
+| `context_selectors` and `selector_id` | `evidence` declarations with `id` |
+| `applicability: { kind: always \| presence }` | An ordered list of conditions and decisions |
+| `SkillRuleBinding` | Named inputs and binding groups |
+| `batch_groups` and per-rule calls | One request per RuleSet × group, planned by the engine |
+| An untagged `QueryPath` string | Tagged `{ kind: exact, path }` |
 
-## Excluded redundant or misplaced fields
+## Checked
 
-- No JSONL header, record tag or `definition` wrapper: each line is directly a rule definition.
-- No extra pack manifest: a RuleSet selects rule files; a skill binding associates it with a subject.
-- No mandatory `policy` mapping an already desired choice label to another label, and no mandatory duplicated feedback map.
-- No fixed `guidance`, `purpose`, `inspect`, `focus` or `examples` schema inside question content. Authors may use descriptive keys as ordinary structured data.
-- No authored `state`, source bytes, model, provider credentials, retries or usage fields inside a rule definition.
-- No implicit trigger/event/lifecycle/watch fields. The caller selects a RuleSet and starts the invocation.
-- No local two-level minimum imposed on the native score rubric: the schema requires a nonempty list and retains actual request-relative indices.
+`validate_design_examples.py` validates every example against these schemas and runs 21 refusal controls. It also checks each schema against the Draft 2020-12 metaschema and refuses duplicate keys. The script lives in the Lead's job scratch.
 
-The JSON Schemas describe the proposed wire shapes, not a running Rust implementation. Production schemas must be derived from their owning Rust types and checked against this reviewed contract. Schema/example checks do not establish capture, execution, cancellation, hosted inference or semantic accuracy.
+Last run, with jsonschema 4.26.0, exit 0:
+- 13 valid cases
+- 21 refused controls
+
+This proves shape only. It does not prove admission semantics, capture, execution or model behavior.

@@ -1,15 +1,15 @@
 flowchart TB
-  Caller["Caller selects a RuleSet<br/>and supplies subject bindings + input scope"] --> RS["RuleSet JSON<br/>name + description + instruction prefix<br/>ordered JSONL paths"]
-  RS -->|"explicit references"| Rule["JSONL rule definitions<br/>rule ID + target/evidence declarations<br/>named native questions"]
-  RS -->|"prefix: null or structured value"| Assembly["Rules request assembly<br/>null: question instructions unchanged<br/>provided: retain prefix and question separately"]
-  Rule -->|"instructions + unchanged criteria"| Assembly
-  Evidence["Captured subject and context<br/>source attribution + coverage"] -->|"required evidence ready"| Request["Decisions admission<br/>named questions + shared state<br/>complete serialized budget"]
-  Assembly --> Request
-  Evidence -->|"required evidence unavailable"| Failure["Typed diagnostic<br/>no completed judgment or pass"]
-  Request -->|"supported, within budget"| Jev["Jev / OpenRouter"]
-  Request -->|"invalid or budget refused"| Failure
-  Jev -->|"untrusted answers and usage"| Validate["Request-relative response validation"]
-  Jev -->|"provider failure"| Failure
-  Validate -->|"wrong name, kind, labels or values"| Failure
-  Validate -->|"completed native answers"| Result["Source-linked named judgments<br/>probability / category / rubric score<br/>receipt retained once per run"]
-  Request -.->|"observed cancellation; settle owned work"| Failure
+  RS["RuleSet JSON<br/>inputs, applicability,<br/>common_ruleset_instructions, rule_paths"] --> Adm["Definition admission<br/>strict fields, references, verdicts, bands"]
+  RL["Rule lines (JSONL)<br/>evidence, target, applicability,<br/>questions, verdict, severity"] --> Adm
+  RT["Router JSON (optional)<br/>inputs, evidence, choice, routes, floor"] --> Adm
+  B["Binding groups<br/>document, conversation, payload"] --> Bind["Binding admission<br/>every input once, payload schema valid"]
+  Adm --> Plan["Request planning per RuleSet x group"]
+  Bind --> Plan
+  Plan -->|"each declaration"| Sel["Evidence selection<br/>labeled owner/declaration"]
+  Sel -->|"ready"| State["Request state<br/>labels to deduplicated contents"]
+  Sel -->|"required refused"| Fail["Owner refused<br/>no question sent"]
+  Plan -->|"verdict + informational + riding gates"| Q["Questions q000001...<br/>instruction wrapper: owner, reads,<br/>common instructions, question"]
+  State --> Req["One structured request"]
+  Q --> Req
+  Req -->|"budget, then Jev"| Ans["Validated answer map"]
+  Ans --> Red["Reduction in authored order<br/>gates, conditions, verdicts"]

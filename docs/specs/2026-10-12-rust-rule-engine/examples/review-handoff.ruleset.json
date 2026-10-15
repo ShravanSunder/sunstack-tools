@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "review-handoff",
+  "description": "Checks a reviewer's handback against its commission: required sources read, read-only access kept, and the review target addressed.",
+  "inputs": {
+    "subject": { "kind": "conversation" },
+    "commission": { "kind": "payload", "schema": "agent-job-packet" }
+  },
+  "applicability": [
+    {
+      "kind": "condition",
+      "test": { "kind": "payload_field_equals", "input": "commission", "pointer": "/role", "value": "reviewer" }
+    }
+  ],
+  "common_ruleset_instructions": {
+    "context": "You are checking a reviewer agent's work against the commission it was given. The commission is a typed AgentJobPacket. Conversation records come from the reviewer's own transcript; tool-use records show calls and, where included, their results.",
+    "caution": "A tool call is evidence that a read or edit was requested, not proof of understanding. Judge only the evidence labeled for this question."
+  },
+  "rule_paths": ["review-handoff-rules.jsonl"]
+}

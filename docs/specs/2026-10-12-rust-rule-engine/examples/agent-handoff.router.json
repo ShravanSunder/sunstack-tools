@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "agent-handoff-router",
+  "description": "Chooses which handoff RuleSets apply to an agent message.",
+  "inputs": { "message": { "kind": "payload", "schema": "agent-job-packet" }, "session": { "kind": "conversation" } },
+  "evidence": [
+    { "id": "commission", "input": "message", "select": { "kind": "whole_payload" } },
+    { "id": "recent_turns", "input": "session", "select": { "kind": "conversation", "turns": { "kind": "last", "count": 2 }, "user_messages": "included", "assistant_messages": "final_only", "tool_use": { "kind": "excluded" }, "hook_injected": "excluded" } }
+  ],
+  "question": {
+    "type": "choice",
+    "instructions": "What kind of agent message is this?",
+    "criteria": { "review_handback": "A reviewer returning its finished review.", "clarifying_question": "An agent asking a question mid-task.", "commission": "A Lead assigning work.", "other": "Anything else." }
+  },
+  "routes": {
+    "review_handback": [ { "rule_set": "review-handoff.ruleset.json", "inputs": { "subject": "session", "commission": "message" } } ],
+    "commission": [ { "rule_set": "commission-completeness.ruleset.json", "inputs": { "commission": "message" } } ]
+  },
+  "confidence_floor": 0.6
+}

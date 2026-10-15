@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rule-invocation.schema.json",
+  "title": "Rule invocation input (prepare_rules and evaluate_rules)",
+  "description": "Credentials never appear here. Admission also checks: every declared input bound exactly once per group, payloads valid against their declared schema, document paths inside their repository binding, one cursor per bound transcript source.",
+  "$ref": "#/$defs/RuleInvocationInput",
+  "$defs": {
+    "RuleInvocationInput": {
+      "type": "object",
+      "properties": {
+        "definition_root": { "type": "string", "minLength": 1 },
+        "definitions": { "$ref": "#/$defs/Definitions" },
+        "repositories": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RepositoryBinding" }
+        },
+        "payload_schemas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "path": { "description": "Relative to definition_root.", "type": "string", "minLength": 1 }
+            },
+            "required": ["name", "path"],
+            "additionalProperties": false
+          }
+        },
+        "origin": { "$ref": "#/$defs/InvocationOrigin" },
+        "cursors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "transcript_path": { "type": "string", "minLength": 1 },
+              "format": { "$ref": "#/$defs/TranscriptFormatName" },
+              "cursor": { "description": "Opaque, as returned in an earlier report.", "type": "string", "minLength": 1 }
+            },
+            "required": ["transcript_path", "format", "cursor"],
+            "additionalProperties": false
+          }
+        },
+        "execution": {
+          "type": "object",
+          "properties": {
+            "speculation": {
+              "description": "Whether gates over different bound inputs run concurrently with what they gate.",
+              "enum": ["off", "on"]
+            },
+            "max_concurrent_requests": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["speculation", "max_concurrent_requests"],
+          "additionalProperties": false
+        },
+        "limits": { "$ref": "#/$defs/InvocationLimits" },
+        "backend": { "$ref": "#/$defs/BackendSelection" },
+        "attempts": { "$ref": "#/$defs/AttemptSettings" },
+        "request_budget": { "$ref": "#/$defs/RequestBudgetSettings" }
+      },
+      "required": ["definition_root", "definitions", "repositories", "payload_schemas", "origin", "cursors", "execution", "limits", "backend", "attempts", "request_budget"],
+      "additionalProperties": false
+    },
+    "Definitions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "router" },
+            "path": { "type": "string", "minLength": 1 },
+            "binding_groups": { "$ref": "#/$defs/BindingGroups" }
+          },
+          "required": ["kind", "path", "binding_groups"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "rule_sets" },
+            "rule_sets": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": { "type": "string", "minLength": 1 },
+                  "binding_groups": { "$ref": "#/$defs/BindingGroups" }
+                },
+                "required": ["path", "binding_groups"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["kind", "rule_sets"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "BindingGroups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "bindings": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
+            "additionalProperties": { "$ref": "#/$defs/InputBinding" }
+          }
+        },
+        "required": ["bindings"],
+        "additionalProperties": false
+      }
+    },
+    "InputBinding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "document" },
+            "repository": { "type": "string", "minLength": 1 },
+            "path": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "repository", "path"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation" },
+            "transcript_path": { "type": "string", "minLength": 1 },
+            "format": { "$ref": "#/$defs/TranscriptFormatName" },
+            "final_assistant_text": {
+              "description": "Present only when the hook supplied it.",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "transcript_path", "format"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "payload" },
+            "value": {}
+          },
+          "required": ["kind", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "change_set" },
+            "repository": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "repository"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TranscriptFormatName": {
+      "description": "Built-in claude_code_jsonl or codex_rollout_jsonl, or a name a native caller registered.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "RepositoryBinding": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "root": { "type": "string", "minLength": 1 },
+        "input_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "evidence-selector.schema.json#/$defs/QueryPath" }
+        },
+        "change_scope": {
+          "description": "Milestone 1 admits full only. Milestone 2 adds the variants in program-design-connected-evidence.md.",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": { "kind": { "const": "full" } },
+              "required": ["kind"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["key", "root", "input_paths", "change_scope"],
+      "additionalProperties": false
+    },
+    "InvocationOrigin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "hook" },
+            "host": { "type": "string", "minLength": 1 },
+            "event": { "type": "string", "minLength": 1 },
+            "session": { "type": "string", "minLength": 1 },
+            "turn": { "description": "In the host's namespace, such as a Codex turn_id or a Claude prompt_id.", "type": "string", "minLength": 1 },
+            "agent": { "$ref": "#/$defs/OriginAgent" },
+            "observed_at": { "type": "string", "format": "date-time" }
+          },
+          "required": ["kind", "host", "event"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": { "kind": { "const": "direct" } },
+          "required": ["kind"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "OriginAgent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": { "kind": { "const": "main" } },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "subagent" },
+            "id": { "type": "string", "minLength": 1 },
+            "type": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "id"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": { "kind": { "const": "unknown" } },
+          "required": ["kind"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "InvocationLimits": {
+      "type": "object",
+      "properties": {
+        "max_files": { "type": "integer", "minimum": 1 },
+        "max_file_bytes": { "type": "integer", "minimum": 1 },
+        "max_total_bytes": { "type": "integer", "minimum": 1 },
+        "max_matches": { "type": "integer", "minimum": 1 },
+        "max_transcript_bytes": { "type": "integer", "minimum": 1 },
+        "include_ignored": { "type": "boolean" }
+      },
+      "required": ["max_files", "max_file_bytes", "max_total_bytes", "max_matches", "max_transcript_bytes", "include_ignored"],
+      "additionalProperties": false
+    },
+    "BackendSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "jev_openrouter" },
+            "endpoint": { "type": "string", "minLength": 1 },
+            "model": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "endpoint", "model"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "AttemptSettings": {
+      "type": "object",
+      "properties": {
+        "attempt_timeout_ms": { "type": "integer", "minimum": 1 },
+        "retry_count": { "type": "integer", "minimum": 0 },
+        "initial_backoff_ms": { "type": "integer", "minimum": 1 },
+        "max_backoff_ms": { "type": "integer", "minimum": 1 },
+        "max_response_bytes": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["attempt_timeout_ms", "retry_count", "initial_backoff_ms", "max_backoff_ms", "max_response_bytes"],
+      "additionalProperties": false
+    },
+    "RequestBudgetSettings": {
+      "type": "object",
+      "properties": {
+        "max_input_tokens": { "type": "integer", "minimum": 1 },
+        "max_request_bytes": { "type": "integer", "minimum": 1 },
+        "max_questions": { "type": "integer", "minimum": 1 },
+        "max_requests": { "type": "integer", "minimum": 1 },
+        "safety_margin_tokens": { "type": "integer", "minimum": 0 },
+        "accounting_policy": { "enum": ["require_exact", "allow_estimated"] }
+      },
+      "required": ["max_input_tokens", "max_request_bytes", "max_questions", "max_requests", "safety_margin_tokens", "accounting_policy"],
+      "additionalProperties": false
+    }
+  }
+}
