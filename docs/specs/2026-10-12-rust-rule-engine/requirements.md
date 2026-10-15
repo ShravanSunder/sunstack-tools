@@ -89,7 +89,9 @@ Excluded: a mandatory Bun service; a mandatory native JS addon; LSP or type-chec
 
 ## First-delivery boundary
 
-**Awaiting owner confirmation.** The Lead's proposed sequencing: the first delivery serves the skill-lint and handoff-monitor customers. It includes the RuleSet and rule contracts, applicability, severity and results; the Jev decision path with model-budget admission and visible omissions (U23); document, payload and conversation inputs, with Claude Code and Codex transcripts; and the executable. Git change selection and connected code discovery with semantic chunking (U20–U22) follow in a later delivery, reusing the same budgeted decision path. Cursor transcripts follow once their raw format is qualified. Deferral is sequencing, not removal: U20–U23 remain authorized needs.
+**Confirmed by the owner (6651):** "a, then b ... milestones stacked prs ... and i want it to be working ... each implementation has verify." Delivery is two milestones, each a stack of slice PRs, with milestone 2 stacked on milestone 1. Each milestone must work through its real path. Every slice's proof is challenged and observed by a paired verifier.
+
+**Milestone 1** serves the skill-lint and handoff-monitor customers. It includes the RuleSet and rule contracts, applicability, severity and results; the Jev decision path with model-budget admission and visible omissions (U23); document, payload and conversation inputs, with Claude Code and Codex transcripts; and the executable. **Milestone 2** adds Git change selection and connected code discovery with semantic chunking (U20–U22), reusing the same budgeted decision path. Cursor transcripts follow once their raw format is qualified. Deferral is sequencing, not removal: U20–U23 remain authorized needs.
 
 ## Evidence needed to close the outcome
 
