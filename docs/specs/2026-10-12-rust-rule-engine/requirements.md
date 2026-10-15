@@ -109,9 +109,9 @@ Authority is the owner conversation, recorded on work root `01a12ca7-621c-71b9-8
 
 Owner choices that shape the Specification, all settled on 2026-10-15:
 - **Named inputs** (6664): a RuleSet declares named inputs (document, conversation, change set, typed payload); the invocation binds each name to a supplied source; rules refer to inputs by name.
-- **Host adapters** (6678): built-in Claude Code and Codex adapters, plus a public adapter interface that native callers can extend. Cursor follows once its format is qualified.
-- **Applicability decisions** (6678): a decision entry is a yes/no question with a threshold; the RuleSet applies only while every entry passes.
-- **Failed decisions** (6678): stop, and report the failure clearly; never a skip or a pass.
-- **Rule verdicts** (6678): every rule ends in pass or fail through a required yes/no verdict question with a threshold. Severity applies when the verdict is fail.
+- **Host adapters** (6667): built-in Claude Code and Codex adapters, plus a public adapter interface that native callers can extend. Cursor follows once its format is qualified.
+- **Applicability decisions** (6667): a decision entry is a yes/no question with a threshold; the RuleSet applies only while every entry passes.
+- **Failed decisions** (6667): stop, and report the failure clearly; never a skip or a pass.
+- **Rule verdicts** (6667): every rule ends in pass or fail through a required yes/no verdict question with a threshold. Severity applies when the verdict is fail.
 
 Unverified: provider and model availability and credentials, numeric latency targets, supported distribution platforms, the optional TS binding, Cursor's transcript format, and live host behavior.
