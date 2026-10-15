@@ -1,0 +1,1 @@
+Unmodified Quick renderer, base CSS and schema from nicobailon/visual-explainer commit 33a6b4d43958d2d152c9cb13762af802062fade5, copied 2026-10-14. MIT license included. Used locally without installing its agent skill or MCP server.

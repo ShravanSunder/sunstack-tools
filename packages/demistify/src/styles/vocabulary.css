@@ -1,0 +1,1057 @@
+/* Authoring vocabulary: meaning tones, cards, callouts, grids, page chrome and authoring issues. */
+[tone='note'] {
+	--tone: var(--accent);
+	--tone-bg: var(--accent-soft);
+}
+[tone='tldr'] {
+	--tone: var(--strong);
+	--tone-bg: var(--strong-bg);
+}
+[tone='decision'] {
+	--tone: var(--patch);
+	--tone-bg: var(--patch-bg);
+}
+[tone='risk'] {
+	--tone: var(--missing);
+	--tone-bg: var(--missing-bg);
+}
+[tone='question'] {
+	--tone: var(--change);
+	--tone-bg: var(--change-bg);
+}
+[tone='done'] {
+	--tone: var(--strong);
+	--tone-bg: var(--strong-bg);
+}
+[tone='planned'] {
+	--tone: var(--keep);
+	--tone-bg: var(--keep-bg);
+}
+[tone='changed'] {
+	--tone: var(--diff-modified);
+	--tone-bg: var(--diff-modified-bg);
+}
+[tone='added'] {
+	--tone: var(--diff-added);
+	--tone-bg: var(--diff-added-bg);
+}
+[tone='removed'] {
+	--tone: var(--diff-removed);
+	--tone-bg: var(--diff-removed-bg);
+}
+.ex-tone-icon {
+	color: var(--tone, var(--accent));
+	font-size: var(--text-xl);
+	flex: none;
+}
+
+ex-document {
+	display: block;
+	max-width: 1440px;
+	margin: var(--space-8) auto 96px;
+}
+ex-document > * + * {
+	margin-top: var(--space-6);
+}
+
+ex-grid,
+ex-flow {
+	--gap: 20px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+	gap: var(--gap);
+	align-items: start;
+	container-type: inline-size;
+}
+ex-flow {
+	--gap: 72px;
+	position: relative;
+	column-gap: var(--space-18);
+	row-gap: var(--space-16);
+	padding: var(--space-10) var(--space-6);
+}
+.ex-flow-overlay {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	color: var(--accent);
+	overflow: visible;
+	z-index: 1;
+}
+ex-flow > ex-arrow {
+	display: none;
+}
+/* At most --cols columns; columns wrap when each would be narrower than 240px. */
+:is(ex-grid, ex-flow)[cols] {
+	grid-template-columns: repeat(
+		auto-fit,
+		minmax(max(min(100%, 240px), calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols))), 1fr)
+	);
+}
+:is(ex-grid, ex-flow)[cols='1'] {
+	--cols: 1;
+}
+:is(ex-grid, ex-flow)[cols='2'] {
+	--cols: 2;
+}
+:is(ex-grid, ex-flow)[cols='3'] {
+	--cols: 3;
+}
+:is(ex-grid, ex-flow)[cols='4'] {
+	--cols: 4;
+}
+:is(ex-grid, ex-flow)[cols='5'] {
+	--cols: 5;
+}
+:is(ex-grid, ex-flow)[cols='6'] {
+	--cols: 6;
+}
+:is(ex-grid, ex-flow) > [span='2'] {
+	grid-column: span 2;
+}
+:is(ex-grid, ex-flow) > [span='3'] {
+	grid-column: span 3;
+}
+:is(ex-grid, ex-flow) > [span='all'] {
+	grid-column: 1 / -1;
+}
+/* Islands stacked in one grid cell (a plain column div) keep the grid's rhythm. */
+:is(ex-grid, ex-flow) > :not([class]) > * + * {
+	margin-top: var(--space-4);
+}
+:is(ex-grid, ex-flow) > * + * {
+	margin-top: 0;
+}
+/* Spans and sticky columns only hold while the grid itself is wide enough. */
+@container (max-width: 620px) {
+	:is(ex-grid, ex-flow) > [span] {
+		grid-column: auto;
+	}
+	:is(ex-grid, ex-flow) > [sticky] {
+		position: static;
+	}
+}
+:is(ex-grid, ex-flow) > [sticky] {
+	position: sticky;
+	top: var(--space-4);
+	align-self: start;
+}
+@media (max-width: 760px) {
+	ex-flow {
+		padding-inline: var(--space-8);
+	}
+	/* A swipe grid becomes one horizontal row of cards on phones instead of a tall stack. */
+	ex-grid[swipe] {
+		grid-template-columns: none;
+		grid-auto-flow: column;
+		grid-auto-columns: 82%;
+		overflow-x: auto;
+		scroll-snap-type: x mandatory;
+		overscroll-behavior-x: contain;
+		padding-bottom: var(--space-2);
+	}
+	ex-grid[swipe] > * {
+		scroll-snap-align: start;
+	}
+}
+
+ex-card {
+	display: block;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-top: 3px solid var(--tone, var(--rule));
+	border-radius: var(--radius-md);
+	padding: var(--space-4) var(--space-5);
+	font-size: var(--text-md);
+	line-height: 1.55;
+}
+.ex-card-head,
+.ex-callout-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-1) var(--space-2);
+	font-family: var(--display);
+}
+.ex-card-head {
+	margin-bottom: var(--space-2);
+}
+/* Room for the inspection buttons, only on cards that have them. */
+.ex-inspectable > .ex-card-head {
+	padding-right: var(--space-16);
+}
+.ex-card-head strong {
+	font-size: var(--text-lg);
+	font-weight: 600;
+	line-height: 1.25;
+}
+ex-card[pick] {
+	border-color: var(--accent);
+	box-shadow: var(--ring);
+}
+.ex-card-pick {
+	font: 600 var(--text-2xs) var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--sheet);
+	background: var(--accent);
+	border-radius: var(--radius-sm);
+	padding: 2px var(--space-2);
+}
+.ex-head-tag {
+	font: var(--text-2xs) var(--mono);
+	color: var(--ink-soft);
+	background: var(--keep-bg);
+	border-radius: var(--radius-sm);
+	padding: 1px var(--space-1);
+}
+ex-card > :is(p, ul, ol) {
+	margin: var(--space-1) 0;
+}
+ex-card > :last-child {
+	margin-bottom: 0;
+}
+
+ex-callout {
+	display: block;
+	background: var(--tone-bg, var(--accent-soft));
+	border-left: 4px solid var(--tone, var(--accent));
+	border-radius: var(--radius-sm);
+	padding: var(--space-3) var(--space-4);
+}
+ex-callout:not(:has(> .ex-callout-head strong)) {
+	position: relative;
+	padding-left: var(--space-12);
+}
+.ex-callout-head {
+	position: absolute;
+	left: var(--space-4);
+	top: var(--space-4);
+}
+.ex-callout-head:has(strong) {
+	position: static;
+	margin: 0 0 var(--space-1);
+}
+.ex-callout-head strong {
+	font-size: var(--text-md);
+	font-weight: 600;
+}
+ex-callout > :is(p, ul, ol) {
+	margin: var(--space-1) 0;
+}
+
+:is(ex-card, ex-callout) details {
+	margin-top: var(--space-2);
+	border-top: 1px solid var(--rule);
+	padding-top: var(--space-2);
+}
+:is(ex-card, ex-callout) summary {
+	cursor: pointer;
+	font: 600 var(--text-sm) var(--display);
+	color: var(--accent);
+}
+:is(ex-card, ex-callout) details > :not(summary) {
+	margin: var(--space-1) 0;
+}
+
+/* Page chrome lives in the left rail, which already reserves its space, so it never covers content. */
+.ex-theme-toggle {
+	position: fixed;
+	left: var(--space-4);
+	bottom: var(--space-3);
+	z-index: 5;
+	background: var(--sheet);
+}
+
+.ex-issue-target {
+	outline: 2px dashed var(--missing);
+	outline-offset: var(--space-1);
+}
+.ex-issues {
+	position: fixed;
+	right: var(--space-3);
+	bottom: var(--space-3);
+	z-index: 10;
+	max-width: min(460px, 92vw);
+	max-height: 40vh;
+	overflow: auto;
+	background: var(--missing-bg);
+	color: var(--ink);
+	border: 1px solid var(--missing);
+	border-radius: var(--radius-md);
+	padding: var(--space-2) var(--space-3);
+	font: var(--text-sm)/1.4 var(--display);
+}
+.ex-issues ol {
+	margin: var(--space-1) 0 0;
+	padding-left: var(--space-4);
+}
+.ex-issues button {
+	all: unset;
+	/* A block keeps the list number on the first line of a wrapped message. */
+	display: block;
+	cursor: pointer;
+}
+
+.ex-linked-node {
+	cursor: pointer;
+}
+.ex-linked-node[tone] > :is(rect, polygon, path, circle, ellipse) {
+	fill: var(--tone-bg);
+	stroke: var(--tone);
+	stroke-width: 1.5;
+}
+.ex-linked-node:is(:hover, :focus-visible) > :is(rect, polygon, path, circle, ellipse) {
+	stroke: var(--accent);
+	stroke-width: 2.5;
+}
+.ex-linked-node:focus-visible {
+	outline: none;
+}
+
+ex-code {
+	display: block;
+	container-type: inline-size;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	overflow: hidden;
+}
+.ex-code-head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border-bottom: 1px solid var(--rule);
+	font: var(--text-sm) var(--mono);
+	padding-right: 76px;
+}
+.ex-code-head span {
+	color: var(--ink-soft);
+	font-size: var(--text-2xs);
+}
+.ex-code-lines {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) minmax(0, 36%);
+	font: var(--text-xs)/1.55 var(--mono);
+	padding: var(--space-1) 0;
+}
+.ex-code-number {
+	color: var(--ink-soft);
+	opacity: 0.7;
+	text-align: right;
+	padding: 0 var(--space-3) 0 var(--space-3);
+	user-select: none;
+}
+.ex-code-text {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	background: none;
+	padding: 0 var(--space-3);
+	border-left: 3px solid transparent;
+}
+.ex-code-number[data-noted] {
+	color: var(--tone);
+	background: var(--tone-bg);
+	font-weight: 600;
+	opacity: 1;
+}
+.ex-code-text[data-kind='added'] {
+	background: var(--diff-added-bg);
+	border-left-color: var(--diff-added);
+}
+.ex-code-text[data-kind='removed'] {
+	background: var(--diff-removed-bg);
+	border-left-color: var(--diff-removed);
+}
+.ex-code-text[data-kind='hunk'] {
+	color: var(--ink-soft);
+}
+.ex-code-text[data-noted] {
+	background: var(--tone-bg);
+	border-left-color: var(--tone);
+}
+.ex-code-margin {
+	padding: 0 var(--space-3) 0 var(--space-2);
+}
+.ex-code-counts {
+	margin-left: auto;
+	font: 600 var(--text-2xs) var(--mono);
+}
+.ex-code-counts [data-kind='added'] {
+	color: var(--diff-added);
+}
+.ex-code-counts [data-kind='removed'] {
+	color: var(--diff-removed);
+}
+/* A multi-file diff: one collapsible section per file. */
+.ex-code-file + .ex-code-file {
+	border-top: 1px solid var(--rule);
+}
+.ex-code-file > summary {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	background: var(--keep-bg);
+	font: var(--text-sm) var(--mono);
+	cursor: pointer;
+}
+ex-note {
+	display: block;
+	font: var(--text-sm)/1.45 var(--display);
+	color: var(--ink);
+	background: var(--tone-bg);
+	border-left: 3px solid var(--tone);
+	border-radius: var(--radius-sm);
+	padding: var(--space-1) var(--space-2);
+	margin: 1px 0 var(--space-1);
+}
+ex-note .ex-tone-icon {
+	font-size: var(--text-md);
+	vertical-align: -2px;
+	margin-right: var(--space-1);
+}
+@container (max-width: 700px) {
+	.ex-code-lines {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+	.ex-code-margin {
+		grid-column: 1 / -1;
+		padding-left: var(--space-3);
+	}
+	.ex-code-margin:not([data-noted]) {
+		display: none;
+	}
+}
+
+ex-mermaid:not([prepared]) {
+	min-height: 160px;
+}
+
+ex-stat {
+	display: grid;
+	align-content: start;
+	gap: 2px;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+}
+.ex-stat-value {
+	font: 600 var(--text-3xl)/1.1 var(--display);
+	letter-spacing: -0.01em;
+}
+.ex-stat-label {
+	font: var(--text-sm)/1.35 var(--display);
+	color: var(--ink-soft);
+}
+.ex-stat-note {
+	font: 600 var(--text-xs)/1.35 var(--display);
+	color: var(--tone, var(--ink-soft));
+}
+
+ex-tabs[data-layout='columns'] > .ex-tab-bar {
+	display: none;
+}
+ex-tabs[data-layout='columns'] {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(0, 1fr);
+	gap: var(--space-6);
+}
+ex-tabs[data-layout='columns'] > [role='region']::before {
+	content: attr(label);
+	display: block;
+	font: 600 var(--text-xs) var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-soft);
+	margin-bottom: var(--space-2);
+}
+
+ex-route,
+ex-step {
+	display: none;
+}
+.ex-route-launcher {
+	position: fixed;
+	left: var(--space-4);
+	bottom: var(--space-12);
+	z-index: 5;
+	background: var(--sheet);
+	color: var(--accent);
+}
+.ex-route-launcher > span {
+	display: none;
+}
+.ex-route-player {
+	position: fixed;
+	left: 50%;
+	bottom: var(--space-4);
+	transform: translateX(-50%);
+	z-index: 20;
+	width: min(640px, calc(100vw - 24px));
+	background: var(--sheet);
+	color: var(--ink);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-float);
+	padding: var(--space-2) var(--space-3);
+	font-family: var(--display);
+}
+.ex-route-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.ex-route-controls > strong,
+.ex-route-controls > select {
+	margin-right: auto;
+	font: 600 var(--text-md) var(--display);
+}
+.ex-route-controls > select {
+	background: var(--sheet);
+	color: var(--ink);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-sm);
+	padding: var(--space-1) var(--space-1);
+}
+.ex-route-count {
+	font: var(--text-sm) var(--mono);
+	color: var(--ink-soft);
+	min-width: 4ch;
+	text-align: center;
+}
+.ex-route-narration {
+	margin: var(--space-2) 2px 2px;
+	font: var(--text-base)/1.45 var(--body);
+	max-width: none;
+}
+.ex-route-focus {
+	outline: 3px solid var(--accent);
+	outline-offset: var(--space-1);
+	border-radius: var(--radius-md);
+	transition: outline-color var(--motion-base);
+}
+ex-mermaid g.ex-route-focus > :is(rect, polygon, path, circle, ellipse) {
+	stroke: var(--accent);
+	stroke-width: 3;
+}
+.ex-inspect-dialog > .ex-route-player {
+	position: static;
+	transform: none;
+	width: auto;
+	margin: 0 var(--space-3) var(--space-3);
+	box-shadow: none;
+}
+:root[data-route] ex-document {
+	padding-bottom: 180px;
+}
+@media (max-width: 760px) {
+	.ex-route-player {
+		bottom: 0;
+		width: 100vw;
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+	}
+}
+
+ex-board {
+	display: block;
+	position: relative;
+}
+ex-board[data-mode='map'] {
+	height: min(80vh, 820px);
+	overflow: hidden;
+	touch-action: none;
+	cursor: grab;
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-lg);
+	background-color: var(--paper);
+	background-image: radial-gradient(var(--rule) 1px, transparent 1px);
+	background-size: 22px 22px;
+}
+ex-board[data-dragging] {
+	cursor: grabbing;
+}
+ex-board[data-mode='map'] > .ex-board-canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	transform-origin: 0 0;
+	transition: transform var(--motion-slow) var(--ease-out);
+}
+ex-board[data-dragging] > .ex-board-canvas {
+	transition: none;
+}
+ex-board[data-mode='read'] > .ex-board-canvas {
+	padding-inline: 0;
+}
+ex-board[data-mode='read'] > .ex-board-canvas[data-free] {
+	overflow-x: auto;
+}
+.ex-board-toolbar {
+	position: absolute;
+	top: var(--space-2);
+	right: var(--space-2);
+	z-index: 4;
+	display: flex;
+	gap: var(--space-1);
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-pill);
+	padding: 3px;
+}
+ex-board[data-mode='read'] > .ex-board-toolbar {
+	position: static;
+	width: max-content;
+	margin: 0 0 var(--space-3) auto;
+}
+.ex-board-toolbar .ex-icon-button {
+	border: none;
+	width: auto;
+	min-width: 32px;
+	height: 30px;
+	gap: var(--space-1);
+	padding: 0 var(--space-2);
+	border-radius: var(--radius-pill);
+	font: 600 var(--text-xs) var(--display);
+	display: inline-flex;
+}
+.ex-board-toolbar [aria-pressed='true'] {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+.ex-board-map-controls {
+	display: flex;
+	gap: 2px;
+	border-left: 1px solid var(--rule);
+	padding-left: var(--space-1);
+}
+ex-board[data-mode='read'] .ex-board-map-controls {
+	display: none;
+}
+
+ex-region {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+	align-content: start;
+	column-gap: var(--space-12);
+	row-gap: var(--space-10);
+	position: relative;
+	container-type: inline-size;
+	padding: var(--space-4) var(--space-5) var(--space-6);
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-top: 3px solid var(--tone, var(--accent));
+	border-radius: var(--radius-md);
+}
+ex-region > :is(.ex-region-head, ex-markdown, ex-callout) {
+	grid-column: 1 / -1;
+}
+ex-region > ex-markdown {
+	margin-top: -28px;
+}
+ex-region > * + * {
+	margin-top: 0;
+}
+.ex-region-head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: 0;
+	font-size: var(--text-xl);
+}
+ex-board[data-mode='map'] .ex-region-head {
+	cursor: zoom-in;
+}
+.ex-region-more {
+	margin-left: auto;
+	font: 600 var(--text-2xs) var(--display);
+	color: var(--accent);
+	background: var(--accent-soft);
+	border-radius: var(--radius-pill);
+	padding: 2px var(--space-2);
+}
+ex-board[data-mode='map'] ex-region:not([data-open]) > [detail] {
+	display: none;
+}
+ex-board[data-mode='map'] ex-region[data-open] > .ex-region-head .ex-region-more,
+ex-board[data-mode='read'] .ex-region-more {
+	display: none;
+}
+ex-board[data-mode='map'] ex-region[data-open] {
+	box-shadow: 0 0 0 2px var(--accent);
+}
+
+ex-mermaid.ex-diagram-wide {
+	overflow-x: auto;
+	justify-items: start;
+}
+ex-mermaid.ex-diagram-wide > svg {
+	max-width: none;
+	margin-inline: 0;
+}
+
+/* Drawer: a docked panel that takes space; the page narrows beside it and keeps scrolling. */
+.ex-drawer {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 15;
+	width: var(--ex-drawer-width, 460px);
+	display: flex;
+	flex-direction: column;
+	background: var(--sheet);
+	color: var(--ink);
+	border-left: 1px solid var(--rule);
+	box-shadow: var(--shadow-edge);
+}
+.ex-drawer[hidden] {
+	display: none;
+}
+.ex-drawer > .ex-inspect-body {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	padding: var(--space-5);
+}
+.ex-drawer-handle {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -4px;
+	width: 8px;
+	cursor: col-resize;
+	z-index: 1;
+}
+.ex-drawer-handle:is(:hover, :focus-visible) {
+	background: var(--accent);
+	opacity: 0.5;
+	outline: none;
+}
+:root[data-drawer] body {
+	padding-inline-end: calc(var(--ex-drawer-width, 460px) + 20px);
+}
+:root[data-drawer] .ex-issues {
+	right: calc(var(--ex-drawer-width, 460px) + 12px);
+}
+:root[data-drawer] .ex-route-player {
+	left: calc((100vw - var(--ex-drawer-width, 460px)) / 2);
+	width: min(640px, calc(100vw - var(--ex-drawer-width, 460px) - 24px));
+}
+:root[data-resizing] {
+	cursor: col-resize;
+	user-select: none;
+}
+.ex-inspect-placeholder {
+	margin: 0;
+	padding: var(--space-4);
+	color: var(--ink-soft);
+	font: var(--text-sm) var(--display);
+}
+.ex-inspected {
+	outline: 2px dashed var(--accent);
+	outline-offset: var(--space-1);
+	border-radius: var(--radius-md);
+}
+
+/* Tree: a Markdown list as an outline, or as a left-to-right mind map when there is room. */
+ex-tree {
+	display: block;
+	container-type: inline-size;
+	font: var(--text-md) / 1.45 var(--display);
+}
+ex-tree ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+ex-tree li {
+	margin: 0;
+}
+ex-tree li > ul {
+	margin-left: 9px;
+	padding-left: var(--space-4);
+	border-left: 1px solid var(--rule);
+}
+.ex-tree-node {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px var(--space-2);
+	width: fit-content;
+	padding: 3px 0;
+}
+.ex-tree-node > .ex-tone-icon {
+	font-size: var(--text-md);
+}
+/* A branch folds on click. Open, it carries no mark (everything is already in view); folded, it
+   shows a caret and how many nodes it hides. */
+.ex-tree-node[aria-expanded] {
+	cursor: pointer;
+	border-radius: var(--radius-sm);
+}
+.ex-tree-node[aria-expanded]:hover {
+	background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.ex-tree-node[aria-expanded]:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}
+.ex-tree-node > .ph-caret-down {
+	display: none;
+	color: var(--ink-soft);
+	font-size: var(--text-2xs);
+}
+.ex-tree-count {
+	display: none;
+	border-radius: var(--radius-pill);
+	padding: 0 var(--space-2);
+	background: var(--keep-bg);
+	color: var(--ink-soft);
+	font-size: var(--text-2xs);
+}
+li[data-collapsed] > .ex-tree-node > .ex-tree-count {
+	display: inline-block;
+}
+li[data-collapsed] > .ex-tree-node > .ph-caret-down {
+	display: inline-block;
+	transform: rotate(-90deg);
+}
+ex-tree li[data-collapsed] > ul,
+ex-tree[layout='map'] li[data-collapsed] > ul {
+	display: none;
+}
+.ex-tree-root > .ex-tree-node strong {
+	font-size: var(--text-lg);
+}
+.ex-tree-node a {
+	color: var(--accent);
+}
+@container (min-width: 640px) {
+	ex-tree[layout='map'] .ex-tree-body {
+		overflow-x: auto;
+		padding-block: var(--space-2);
+	}
+	ex-tree[layout='map'] li {
+		position: relative;
+		display: flex;
+		align-items: center;
+		padding-block: var(--space-1);
+	}
+	ex-tree[layout='map'] li > ul {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		margin-left: 0;
+		padding-left: var(--space-8);
+		border-left: 0;
+	}
+	/* From a node to its children's spine, then from the spine to each child. */
+	ex-tree[layout='map'] li > ul::before,
+	ex-tree[layout='map'] li > ul > li::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		width: var(--space-4);
+		border-top: 1.5px solid var(--rule);
+	}
+	ex-tree[layout='map'] li > ul::before {
+		left: 0;
+	}
+	ex-tree[layout='map'] li > ul > li::before {
+		left: calc(-1 * var(--space-4));
+	}
+	ex-tree[layout='map'] li > ul > li::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: calc(-1 * var(--space-4));
+		border-left: 1.5px solid var(--rule);
+	}
+	ex-tree[layout='map'] li > ul > li:first-child::after {
+		top: 50%;
+	}
+	ex-tree[layout='map'] li > ul > li:last-child::after {
+		bottom: 50%;
+	}
+	ex-tree[layout='map'] li > ul > li:only-child::after {
+		display: none;
+	}
+	ex-tree[layout='map'] .ex-tree-node {
+		flex: none;
+		max-width: 280px;
+		padding: var(--space-1) var(--space-3);
+		border: 1px solid var(--rule);
+		border-radius: var(--radius-md);
+		background: var(--sheet);
+	}
+	ex-tree[layout='map'] li[tone] > .ex-tree-node {
+		border-color: color-mix(in srgb, var(--tone) 50%, var(--rule));
+	}
+}
+
+/* Pictures: plain figures and images; a click opens one enlarged. */
+ex-document :is(figure, p) > img,
+ex-compare img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+}
+:is(ex-document, .ex-inspect-body) figure {
+	margin: 0;
+}
+:is(ex-document, .ex-inspect-body) figcaption {
+	margin-top: var(--space-2);
+	color: var(--ink-soft);
+	font: var(--text-sm) / 1.4 var(--display);
+}
+ex-document img:not(a img, ex-compare[slider] img) {
+	cursor: zoom-in;
+}
+/* In the side panel and large view, a picture or diagram fits the view at 100%: as wide as the
+   panel, as tall as fits (caption room kept), at most twice a photo's or diagram's natural size.
+   Container height units and pixels scale with the zoom; a percentage does not, so it takes the
+   factor. The shape comes from the inspector (describeShape). */
+.ex-inspect-body {
+	container-type: size;
+}
+.ex-inspect-body :is(img, ex-mermaid > svg) {
+	width: min(
+		calc(100% * var(--inspect-scale, 1)),
+		calc((100cqh - var(--space-12)) * var(--aspect, 1000)),
+		calc(var(--natural-width, 100000px) * 2)
+	);
+	max-width: none;
+	height: auto;
+	margin-inline: auto;
+}
+
+/* Before and after: labelled sides, or one over the other with a divider. */
+ex-compare > [data-side] {
+	position: relative;
+	min-width: 0;
+}
+ex-compare > [data-side]::before {
+	content: attr(data-side);
+	display: block;
+	margin-bottom: var(--space-2);
+	color: var(--ink-soft);
+	font: 600 var(--text-xs) var(--display);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+ex-compare[slider] {
+	position: relative;
+	grid-template-columns: minmax(0, 1fr);
+	--thumb: 28px;
+}
+ex-compare[slider] > * {
+	--split: 50%;
+}
+ex-compare[slider] > [data-side] {
+	grid-area: 1 / 1;
+}
+ex-compare[slider] > [data-side]:nth-of-type(2) {
+	clip-path: inset(0 0 0 var(--split));
+}
+/* Over the picture, the side names sit as chips in its lower corners, clear of the buttons. */
+ex-compare[slider] > [data-side]::before {
+	position: absolute;
+	bottom: var(--space-2);
+	left: var(--space-2);
+	z-index: 1;
+	margin: 0;
+	padding: 2px var(--space-2);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-pill);
+	background: var(--sheet);
+}
+ex-compare[slider] > [data-side]:nth-of-type(2)::before {
+	right: var(--space-2);
+	left: auto;
+}
+.ex-compare-range {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	appearance: none;
+	background: linear-gradient(
+		to right,
+		transparent calc(var(--split) - 1px),
+		var(--accent) calc(var(--split) - 1px),
+		var(--accent) calc(var(--split) + 1px),
+		transparent calc(var(--split) + 1px)
+	);
+	cursor: ew-resize;
+}
+.ex-compare-range::-webkit-slider-thumb {
+	appearance: none;
+	width: var(--thumb);
+	height: var(--thumb);
+	border: 2px solid var(--accent);
+	border-radius: 50%;
+	background: var(--sheet);
+}
+.ex-compare-range::-moz-range-thumb {
+	width: var(--thumb);
+	height: var(--thumb);
+	border: 2px solid var(--accent);
+	border-radius: 50%;
+	background: var(--sheet);
+}
+.ex-compare-range:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* Tracing: the hovered box's or node's connections stay; the rest of that picture steps back. */
+.ex-tracing :is([data-from][data-to], g[data-id]):not(.ex-traced) {
+	opacity: 0.22;
+	transition: opacity var(--motion-fast);
+}
+.ex-tracing :is(path, polyline, line).ex-traced,
+.ex-tracing .ex-traced > :is(path, line) {
+	stroke: var(--accent);
+	stroke-width: 2.25;
+}
+
+/* Layers: switches for parts of the page readers can show or hide. */
+.ex-layer-off {
+	display: none !important;
+}
+ex-layers {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2);
+	font: var(--text-sm) var(--display);
+}
+.ex-layers-label {
+	color: var(--ink-soft);
+}
+ex-layers button[aria-pressed='false'] {
+	color: var(--ink-soft);
+	text-decoration: line-through;
+}
+ex-layers button[aria-pressed='true'] {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+/* A route step on a diagram node: the node itself is ringed. */
+g.ex-route-focus > :is(rect, polygon, circle, ellipse, path) {
+	stroke: var(--accent);
+	stroke-width: 3;
+}

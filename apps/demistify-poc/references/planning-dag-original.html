@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sunstack · Design, planning & proof</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap">
+<style>
+/* Layout: a reading column with a sticky contents rail; the tree drawn as stacked level bands, L3 on top, L0 at the base. */
+:root{
+  --paper:#f5f6f8;
+  --sheet:#ffffff;
+  --ink:#18202b;
+  --ink-soft:#4a5566;
+  --rule:#d9dee6;
+  --accent:#1d6672;
+  --accent-soft:#e3f0f1;
+  --keep:#5b6678;      --keep-bg:#eceff3;
+  --change:#9a5b00;    --change-bg:#fbefd9;
+  --strong:#1f5fa8;    --strong-bg:#e3edf9;
+  --missing:#b1324a;   --missing-bg:#fbe6ea;
+  --patch:#6b48a8;     --patch-bg:#efe8f8;
+  --codex:#3e5f2c;     --codex-bg:#ecf3e6;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Literata",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#11161d; --sheet:#171d26; --ink:#e7ebf1; --ink-soft:#a5afbd; --rule:#2c3542;
+    --accent:#6fc0ca; --accent-soft:#1a3236;
+    --keep:#a8b2c2; --keep-bg:#232b37;
+    --change:#f0b45a; --change-bg:#3a2c14;
+    --strong:#8ab8ef; --strong-bg:#1b2b40;
+    --missing:#f08a9c; --missing-bg:#3d1c24;
+    --patch:#c3a6f0; --patch-bg:#2c2240;
+    --codex:#a7d18c; --codex-bg:#1f2d19;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#11161d; --sheet:#171d26; --ink:#e7ebf1; --ink-soft:#a5afbd; --rule:#2c3542;
+  --accent:#6fc0ca; --accent-soft:#1a3236;
+  --keep:#a8b2c2; --keep-bg:#232b37;
+  --change:#f0b45a; --change-bg:#3a2c14;
+  --strong:#8ab8ef; --strong-bg:#1b2b40;
+  --missing:#f08a9c; --missing-bg:#3d1c24;
+  --patch:#c3a6f0; --patch-bg:#2c2240;
+  --codex:#a7d18c; --codex-bg:#1f2d19;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;padding:0 20px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:40px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:24px}}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-family:var(--display);font-size:15px}
+@media (max-width:900px){nav.toc{position:static}}
+nav.toc p{margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:var(--ink-soft);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+nav.toc a{color:var(--ink);text-decoration:none;border-left:2px solid var(--rule);padding-left:10px;display:block}
+nav.toc a:hover,nav.toc a:focus-visible{border-left-color:var(--accent);color:var(--accent);outline:none}
+main{min-width:0}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:44px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:30px;font-weight:600;margin-top:64px;padding-top:8px}
+h3{font-size:22px;font-weight:600;margin-top:36px}
+h4{font-size:19px;font-weight:600}
+p,li{max-width:68ch}
+p{margin:12px 0}
+ul,ol{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--keep-bg);padding:1px 5px;border-radius:4px}
+a{color:var(--accent)}
+.eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:13px;color:var(--accent);font-weight:600}
+.meta{color:var(--ink-soft);font-size:15px;margin-top:10px}
+.lede{font-size:20px;line-height:1.55;max-width:62ch;margin-top:18px}
+
+/* the decision callout */
+.decision{margin-top:28px;background:var(--sheet);border:1px solid var(--rule);border-left:4px solid var(--accent);padding:20px 24px;border-radius:6px}
+.decision .q{font-family:var(--display);font-size:24px;font-weight:600;line-height:1.25;margin:6px 0 8px;max-width:none}
+.decision p{margin:6px 0}
+.decision .decided{background:var(--keep-bg);border-radius:6px;padding:10px 14px}
+
+/* legend + chips */
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:18px 0 6px;font-family:var(--display);font-size:14px;color:var(--ink-soft)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:13px;padding:3px 9px;border-radius:999px;text-decoration:none;line-height:1.4;border:1px solid transparent;white-space:nowrap}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.s-keep{color:var(--keep);background:var(--keep-bg)}
+.s-change{color:var(--change);background:var(--change-bg)}
+.s-strong{color:var(--strong);background:var(--strong-bg)}
+.s-missing{color:var(--missing);background:var(--missing-bg);border:1px dashed var(--missing)}
+.s-patch{color:var(--patch);background:var(--patch-bg)}
+a.chip:hover,a.chip:focus-visible{border-color:currentColor;outline:none}
+
+/* the tree: stacked level bands */
+.tree{display:grid;gap:10px;margin-top:22px}
+.band{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;display:grid;grid-template-columns:150px minmax(0,1fr);overflow:hidden}
+@media (max-width:640px){.band{grid-template-columns:minmax(0,1fr)}}
+.band .lv{padding:16px;border-right:1px solid var(--rule);display:grid;align-content:start;gap:2px;background:var(--accent-soft)}
+@media (max-width:640px){.band .lv{border-right:0;border-bottom:1px solid var(--rule)}}
+.band .lv .code{font-family:var(--display);font-size:30px;font-weight:700;color:var(--accent);line-height:1}
+.band .lv .name{font-family:var(--display);font-weight:600;font-size:17px}
+.band .lv .kind{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:var(--ink-soft)}
+.band .body{padding:14px 16px;display:grid;gap:10px}
+.band .q{font-style:italic;color:var(--ink-soft);margin:0;max-width:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.band.cross .lv{background:var(--keep-bg)}
+.band.proposed{border-style:dashed;border-width:2px}
+.band.proposed .lv{background:var(--sheet)}
+.band.proposed .lv .code{font-size:20px}
+.band.cross .lv .code{color:var(--keep);font-size:20px}
+
+/* tables */
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--rule)}
+th{font-family:var(--display);font-weight:600;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft)}
+
+/* lessons */
+.lessons{display:grid;gap:28px;margin-top:18px}
+.lesson h3{margin-top:0}
+.why{background:var(--accent-soft);border-radius:6px;padding:12px 16px;margin-top:12px}
+.why b{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:var(--accent)}
+.src{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft)}
+.ok{color:var(--codex);font-weight:600}
+.hold{color:var(--change);font-weight:600}
+
+/* skill cards */
+.level{margin-top:44px}
+.level>h3{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.level>h3 .code{color:var(--accent)}
+.level-intro{color:var(--ink-soft)}
+.skills{display:grid;gap:14px;margin-top:14px}
+.skill{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:16px 20px;scroll-margin-top:24px}
+.skill header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.skill h4{font-family:var(--mono);font-weight:500;font-size:17px}
+.skill .tag{font-family:var(--display);font-size:13px;color:var(--ink-soft)}
+.skill dl{display:grid;grid-template-columns:90px minmax(0,1fr);gap:6px 14px;margin:12px 0 0}
+@media (max-width:640px){.skill dl{grid-template-columns:minmax(0,1fr)}}
+.skill dt{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;color:var(--ink-soft);padding-top:3px}
+.skill dd{margin:0}
+.skill dd ul{margin:0}
+.note{margin-top:12px;border-radius:6px;padding:10px 14px;font-size:15.5px}
+.note.codex{background:var(--codex-bg)}
+.note.advisor{background:var(--accent-soft)}
+.note b{font-family:var(--display);letter-spacing:.04em}
+.principles{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+
+.decisions{counter-reset:d;list-style:none;padding:0;display:grid;gap:10px}
+.decisions li{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:12px 16px;max-width:none}
+.decisions li.first{border-left:4px solid var(--accent)}
+.forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
+.form-card{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:14px 18px}
+.form-card h4{font-family:var(--display);font-size:18px}
+.form-card p{margin:6px 0 0;font-size:15.5px}
+pre.flow{font-family:var(--mono);font-size:13.5px;line-height:1.5;background:var(--sheet);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;overflow-x:auto;margin:14px 0;white-space:pre}
+.rolegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px;margin-top:14px}
+.rolegrid .skill dl{grid-template-columns:76px minmax(0,1fr)}
+.rolegrid .skill dd{font-size:15.5px}
+.case{font-size:15px;color:var(--ink-soft)}
+.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin-top:14px}
+.three .form-card ul{margin:6px 0 0;padding-left:18px;font-size:15.5px}
+footer{margin-top:64px;color:var(--ink-soft);font-size:15px;border-top:1px solid var(--rule);padding-top:18px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+html{scroll-behavior:smooth}
+</style>
+<style>
+body{margin:0}.wrap{max-width:1360px;grid-template-columns:200px minmax(0,1fr);gap:36px;padding-top:32px}
+.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:20px}
+button{font-family:var(--display);font-size:16px;line-height:1.35;background:var(--sheet);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}button[aria-selected="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.theme-button{margin-top:20px;font-size:14px}.snapshot{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.dag-section h2{margin-top:28px}.graph-intro{font-size:16px;color:var(--ink-soft);max-width:72ch}
+.graph-scroll{overflow:auto;margin-top:20px;border:1px solid var(--rule);background:var(--sheet);border-radius:8px}
+.graph-canvas{position:relative;width:800px;margin:0 auto;background:var(--sheet)}
+.graph-canvas svg{position:absolute;inset:0;width:800px;height:100%;pointer-events:none}
+.edge{stroke:var(--rule);stroke-width:2;fill:none;transition:stroke .15s}.edge.related{stroke:var(--accent);stroke-width:2.5}
+.edge.facts{stroke:var(--patch);stroke-dasharray:5 4}.edge-label{font-family:var(--display);font-size:13px;fill:var(--ink-soft)}
+.dag-node{position:absolute;width:220px;height:140px;text-align:left;padding:13px 15px;border-radius:8px;border:1px solid var(--rule);background:var(--sheet);display:flex;flex-direction:column;justify-content:center;gap:5px}
+.dag-node .node-kicker{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.055em;color:var(--ink-soft)}
+.dag-node .node-title{font-family:var(--display);font-size:22px;font-weight:600;line-height:1.05}
+.dag-node .node-subtitle{font-family:var(--body);font-size:14px;line-height:1.35;color:var(--ink-soft)}
+.dag-node.tone-change{border-top:3px solid var(--change);background:var(--change-bg)}
+.dag-node.tone-strong{border-top:3px solid var(--strong)}.dag-node.tone-keep{border-top:3px solid var(--keep)}
+.dag-node[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:3px}.dag-node.related{border-color:var(--accent)}
+.detail{margin-top:18px;background:var(--sheet);border:1px solid var(--rule);border-left:4px solid var(--accent);padding:18px 22px;border-radius:6px;min-height:180px;scroll-margin-top:20px}
+.detail h3{margin-top:4px}.detail p{font-size:16px;margin:8px 0;max-width:75ch}.detail .detail-label{font-family:var(--display);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:600}
+.flow-note{margin-top:12px;font-size:15px;color:var(--ink-soft)}.reading-nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px;font-family:var(--display);font-size:15px}
+.layers-section h2,.status-section h2{margin-top:48px}.compact{font-size:15.5px}
+.band .body p{margin:0;font-style:normal}.band .body code{font-size:12px}
+.status-row{display:grid;grid-template-columns:180px minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.status-row strong{font-family:var(--display);font-size:18px}.status-row p{margin:0;font-size:16px}
+.wide-note{max-width:none;font-size:16px}.source-list li{font-size:15px}
+@media(min-width:1230px){.graph-canvas{width:800px}}@media(max-width:900px){.wrap{grid-template-columns:1fr}.toc{position:static}.toc ol{display:flex;flex-wrap:wrap;gap:12px}.theme-button{margin-top:12px}h1{font-size:36px}}
+@media(max-width:600px){body{padding:0 12px}.wrap{padding-top:20px}.dag-node{width:220px}.status-row{grid-template-columns:1fr;gap:4px}.lede{font-size:18px}.toolbar button{font-size:14px}.detail{padding:14px 16px}.graph-scroll{max-width:100%}}
+@media print{nav.toc,.toolbar,.theme-button{display:none}.wrap{display:block;padding:0}.graph-scroll{overflow:visible;border:0}.graph-canvas{transform:scale(.85);transform-origin:top left;margin-bottom:-70px}button{-webkit-print-color-adjust:exact;print-color-adjust:exact}.detail{break-inside:avoid}}
+</style></head><body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <p>Sunstack · current map</p>
+  <ol><li><a href="#dag">The DAG</a></li><li><a href="#detail">Selected node</a></li><li><a href="#layers">Skill layers</a></li><li><a href="#status">What is ready</a></li><li><a href="#sources">Sources</a></li></ol>
+  <button class="theme-button" type="button" id="theme-button" aria-label="Switch color theme">Switch theme</button>
+</nav>
+<main>
+<p class="eyebrow">The Layer Tree · updated 2026-10-14</p>
+<h1>Design, planning &amp; proof</h1>
+<p class="lede">The design sets what must work and how we will know. Planning carries that meaning into executable work. The Lead owns the picture and acceptance; the Implementer and Verifier supply different evidence.</p>
+<p class="meta">Claude’s original typography, palette and layout, updated by Codex. This is a reading aid for the accepted sources, not new workflow authority.</p>
+<div class="snapshot" aria-label="Current delivery snapshot"><a class="chip s-strong" href="https://github.com/ShravanSunder/sunstack/pull/127">#127 · draft</a><a class="chip s-strong" href="https://github.com/ShravanSunder/sunstack/pull/128">#128 · draft</a><a class="chip s-change" href="./spec.md">F6 · spec accepted</a></div>
+<section class="dag-section" id="dag" aria-labelledby="graph-title">
+  <div class="toolbar" role="tablist" aria-label="Choose a diagram">
+    <button id="tab-roadmap" role="tab" aria-selected="true" aria-controls="graph-panel" data-view="roadmap">Changes DAG</button>
+    <button id="tab-design" role="tab" aria-selected="false" aria-controls="graph-panel" data-view="design">Design → planning</button>
+    <button id="tab-roles" role="tab" aria-selected="false" aria-controls="graph-panel" data-view="roles">Role topology</button>
+  </div>
+  <div id="graph-panel" role="tabpanel" aria-labelledby="tab-roadmap">
+    <h2 id="graph-title"></h2><p class="graph-intro" id="graph-intro"></p>
+    <div class="legend"><span class="chip s-strong">implemented source</span><span class="chip s-change">accepted design · not implemented</span><span class="chip s-keep">later work</span></div>
+    <div class="graph-scroll" tabindex="0" aria-label="Scrollable diagram; use Tab to visit each node"><div class="graph-canvas" id="graph-canvas"></div></div>
+    <p class="flow-note" id="flow-note"></p>
+  </div>
+</section>
+<section class="detail" id="detail" aria-live="polite" aria-atomic="true"><span class="detail-label" id="detail-kicker"></span><h3 id="detail-title"></h3><p id="detail-purpose"></p><p id="detail-boundary"></p><a id="detail-source" href="./spec.md"></a></section>
+<p class="reading-nav"><a href="./spec.md">Open the accepted F6 spec</a><span>·</span><span>Scroll sideways on a small screen; select any node for the reasoning.</span></p>
+
+<section class="layers-section" id="layers"><h2>The layers still have different jobs</h2><p>These are composition and responsibility layers. Their position does not mean every task must invoke every skill.</p>
+<div class="tree">
+<div class="band"><div class="lv"><span class="code">L3</span><span class="name">Orchestrators</span><span class="kind">Whole job</span></div><div class="body"><p>Pick the next decision, interpret results, keep the job coherent and respect its terminal.</p><div class="chips"><code>orchestrator-design</code><code>orchestrator-implementation-goal</code></div></div></div>
+<div class="band"><div class="lv"><span class="code">L2</span><span class="name">Phases</span><span class="kind">Engineering step</span></div><div class="body"><p>Own the judgment at one altitude: observable meaning, structure, tests, real proof, planning or review.</p><div class="chips"><code>spec-design</code><code>program-design</code><code>test-design</code><code>verification-design</code><code>plan-implementation</code></div></div></div>
+<div class="band cross"><div class="lv"><span class="code">Roles</span><span class="name">Responsibility</span><span class="kind">Who owns the result</span></div><div class="body"><p>Roles compose practices and principles. They do not select a lifecycle. Worker and Sidekick describe execution form, not engineering responsibility.</p><div class="chips"><span class="chip s-strong">🦁 Lead</span><span class="chip s-strong">🐒 Implementer</span><span class="chip s-strong">🔬 Verifier</span><span class="chip s-strong">🔎 Reviewer</span><span class="chip s-keep">🦉 Advisor</span><span class="chip s-keep">📚 Researcher</span><span class="chip s-keep">🔧 Operator</span></div></div></div>
+<div class="band"><div class="lv"><span class="code">L1</span><span class="name">Practices</span><span class="kind">Repeatable methods</span></div><div class="body"><p>Find and check evidence, manage scoped helpers, collaborate and preserve a useful work trail.</p><div class="chips"><code>practices-research</code><code>practices-manage-agents</code><code>practices-collaboration</code><code>practices-show-me-your-work</code></div></div></div>
+<div class="band"><div class="lv"><span class="code">L0</span><span class="name">Principles</span><span class="kind">Engineering judgment</span></div><div class="body"><p>Teach how to think at a decision. The caller reads an applicable card in full; a name or summary is not enough.</p><div class="chips"><code>write-tests-that-can-fail</code><code>prove-it-works</code><code>verify-before-accepting</code><code>one-owner-per-truth</code><code>types-are-communication</code></div></div></div>
+</div></section>
+
+<section class="status-section" id="status"><h2>What is ready — and what is still owed</h2>
+<div class="status-row"><strong>Ready for your review</strong><p>#127 and #128 are open draft PRs with source-level review. F6 v3 is independently accepted at SPEC stage: four checks complete, four findings closed.</p></div>
+<div class="status-row"><strong>Next implementation</strong><p>F6’s two planner runs are not started. They would be a dependent layer above #128 under a bounded commission. Acceptance of this spec alone does not dispatch work.</p></div>
+<div class="status-row"><strong>Separate lanes</strong><p>Global/client token routing, installed refresh, behavior evaluations, Jev tooling and future watchdog work are separate work. This DAG makes none of them an automatic requirement or authorization.</p></div>
+<div class="status-row"><strong>Trust still needs evidence</strong><p>Source agreement is a step toward reliability. It does not show agents consistently load the guidance, keep the design intact, choose useful tests or verify the actual feature.</p></div>
+<div class="why"><b>The lead must keep the meaning</b><p class="wide-note">A verifier can produce a real observation of the wrong thing. The Lead must compare the required outcome with the target and evidence actually observed. More roles cannot replace that judgment.</p></div>
+<details class="skill" style="margin-top:18px"><summary>How planning handles smaller repairs and plan storage</summary><p class="compact">A positively source-proven mechanics-only improvement can retain its smaller regression/proof path. Missing Test Design or Verification Design never qualifies a design-bearing change for that shortcut.</p><p class="compact">Written plans default to a durable home under the explicit owner or governing repository policy; <code>plan-only</code> is a delivery terminal, not a storage rule. The adopted default is <code>docs/specs/&lt;spec&gt;/plans/</code>. The no-file-backed-spec dated work folder remains a proposed Lead default the owner can change.</p></details>
+</section>
+<footer id="sources"><p><b>Sources and snapshot.</b> Sources are current local branch files plus the accepted F6 spec. PR states were refreshed on 2026-10-14. This page is not a live dashboard.</p><ul class="source-list"><li><a href="./spec.md">F6 v3 accepted specification</a> · docs commit <code>c884c015</code></li><li><a href="https://github.com/ShravanSunder/sunstack/pull/127">Roles and practices · PR #127</a> · <code>0bad422c</code></li><li><a href="https://github.com/ShravanSunder/sunstack/pull/128">Five-document design family · PR #128</a> · <code>ffe30964</code></li></ul><p>Original layer-tree CSS reused unchanged; only diagram-specific styles and current content were added. The older page is preserved.</p></footer>
+</main></div>
+
+<script>
+const graphData = {"roadmap": {"title": "The changes and their dependencies", "description": "Solid arrows mean “depends on”. Click a node for its job, boundary and source. The two PRs contain implemented source; the amber F6 nodes are accepted design awaiting implementation.", "height": 750, "nodes": [{"id": "roles", "label": "Roles + practices", "eyebrow": "PR #127 · draft", "subtitle": "Implemented source · reviewed", "x": 35, "y": 35, "tone": "strong", "purpose": "Seven responsibilities, Worker/Sidekick execution forms, progressive job packets, and one Verifier paired with each Implementer.", "boundary": "This is source-reviewed work. Draft PR status does not establish installed behavior or earned trust.", "source": "PR #127 · head 0bad422c", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "family", "label": "Five-document family", "eyebrow": "PR #128 · draft", "subtitle": "Implemented source · reviewed", "x": 470, "y": 35, "tone": "strong", "purpose": "Requirements, Specification, Program Design, Test Design and Verification Design each own a different decision. Each has a local review, followed by integrated reading.", "boundary": "The family is stacked above #127. Its new design return exists, but current planners still consume the older three-document basis.", "source": "PR #128 · head ffe30964", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/128"}, {"id": "run1", "label": "Main planner", "eyebrow": "F6 · run 1", "subtitle": "Spec accepted · not started", "x": 145, "y": 230, "tone": "change", "purpose": "Plan Implementation reads all five documents and current closures, then schedules adopted test and verification strategy into slices, commands and prerequisites. It updates the canonical plan and actual consumers.", "boundary": "It does not choose a replacement oracle or test layer for an adopted design. Missing strategy returns to the design owner.", "source": "F6 spec · Run 1", "sourceUrl": "./spec.md"}, {"id": "run2", "label": "Improvement planner", "eyebrow": "F6 · run 2", "subtitle": "Spec accepted · not started", "x": 470, "y": 230, "tone": "change", "purpose": "Plan Improve Repo adopts the same five-document basis for design-bearing findings and preserves positively source-proven mechanics-only work.", "boundary": "Audit-only exits, direct plan-only results, validation receipts and triage stay distinct. An incomplete design is never a mechanics-only fallback.", "source": "F6 spec · Run 2", "sourceUrl": "./spec.md"}, {"id": "proof", "label": "Structural proof", "eyebrow": "Later · after implementation", "subtitle": "Planned checks · not run", "x": 35, "y": 420, "tone": "keep", "purpose": "Permanent source-contract checks, existing schema tests, and a real source walk through producer → planner → handoff → executor/review. The paired Verifier reports finite observations.", "boundary": "String checks and schema parsing establish their structural claims; they do not show that a model follows the workflow.", "source": "F6 spec · Proof and independent review", "sourceUrl": "./spec.md"}, {"id": "assessment", "label": "Lead assessment", "eyebrow": "Later · after scoped proof", "subtitle": "Own reading and interpretation", "x": 290, "y": 420, "tone": "keep", "purpose": "The Lead opens the actual diff and decisive proof, checks them against the accepted need and design, and resolves every material gap before independent implementation review.", "boundary": "A helper report or a green count cannot replace the Lead’s understanding of what was required and observed.", "source": "F6 spec · Proof, step 4", "sourceUrl": "./spec.md"}, {"id": "review", "label": "Independent review", "eyebrow": "Later · same relationships", "subtitle": "Findings and correction closure", "x": 145, "y": 585, "tone": "keep", "purpose": "Independent reviewers inspect the implemented skills, their teaching, calls, claims and consumer consistency. The same review relationship checks bounded corrections.", "boundary": "Today’s accepted SPEC is not a review of an F6 implementation; none exists yet.", "source": "F6 spec · Review and coordination", "sourceUrl": "./spec.md"}, {"id": "wrap", "label": "PR readiness", "eyebrow": "Later · separate delivery", "subtitle": "Owner retains merge authority", "x": 470, "y": 585, "tone": "keep", "purpose": "Current PR head, checks, comments, review threads and mergeability are examined at the authorized delivery boundary.", "boundary": "This diagram starts no work, grants no merge, and claims no client refresh or runtime behavior.", "source": "F6 spec · Coordination and non-goals", "sourceUrl": "./spec.md"}], "edges": [["roles", "family"], ["family", "run1"], ["run1", "run2"], ["run2", "proof"], ["proof", "assessment"], ["assessment", "review"], ["review", "wrap"]]}, "design": {"title": "What each design contributes to planning", "description": "This is the normal dependency path for an adopted substantial design unit. Every document has its own local review; the whole set has an integrated review. Early feasibility research can look ahead without changing who owns a decision.", "height": 570, "nodes": [{"id": "requirements", "label": "Requirements", "eyebrow": "WHY · for whom", "subtitle": "Authorized outcome and boundary", "x": 35, "y": 35, "tone": "strong", "purpose": "The Lead clarifies the consumer, adopted outcome, constraints and scope with the owner. Requirements receives its local review and owner confirmation or explicit waiver.", "boundary": "No inferred preference becomes an authorized requirement.", "source": "Five-document family · Requirements", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/128"}, {"id": "specification", "label": "Specification", "eyebrow": "WHAT · observable", "subtitle": "Entities, invariants and obligations", "x": 290, "y": 35, "tone": "strong", "purpose": "It defines what correct means through observable permitted and forbidden behavior, traced to Requirements, including domain identity and states.", "boundary": "It does not choose internal modules, persistence shapes, test layers or mechanisms.", "source": "Five-document family · Specification", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/128"}, {"id": "program", "label": "Program Design", "eyebrow": "HOW · structure", "subtitle": "Owners, interfaces and proof seams", "x": 545, "y": 35, "tone": "strong", "purpose": "It chooses responsibilities, interfaces, state, failure and concurrency realization. It names sufficient observation seams and what must stay real, with structural confirmation or waiver.", "boundary": "Test Design chooses scenarios and layers within these structural constraints.", "source": "Five-document family · Program Design", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/128"}, {"id": "tests", "label": "Test Design", "eyebrow": "WHICH wrong behavior", "subtitle": "Scenario → real interaction → oracle", "x": 35, "y": 220, "tone": "strong", "purpose": "It selects scenarios, independent oracles, the cheapest honest layers, substitutions, deterministic completion, and keep/repair/remove decisions.", "boundary": "A planned red is owed evidence. It is not an executed failing test. The Implementer writes product tests.", "source": "Five-document family · Test Design", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/128"}, {"id": "verification", "label": "Verification Design", "eyebrow": "HOW the real system shows it", "subtitle": "Reference → route → observation", "x": 290, "y": 220, "tone": "strong", "purpose": "It names the independent correctness reference, real build/configuration/client, outcome observations, passing conditions, reuse and limits.", "boundary": "An acknowledgement, another target or a mocked path cannot prove the adopted outcome. Planned observations remain owed.", "source": "Five-document family · Verification Design", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/128"}, {"id": "integrated", "label": "Integrated review", "eyebrow": "ALL FIVE · one coherent picture", "subtitle": "Whole-set reading + final confirmation", "x": 545, "y": 220, "tone": "strong", "purpose": "After five current local review closures, an independent reader reconstructs the whole set. The owner confirms or waives the final set.", "boundary": "Five local verdicts cannot be relayed as the integrated reader’s judgment.", "source": "Five-document family · orchestrator-design", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/128"}, {"id": "payload", "label": "Ready design data", "eyebrow": "PRODUCER owns validation", "subtitle": "Five documents + closures + owed proof", "x": 35, "y": 405, "tone": "strong", "purpose": "The cycle producer validates its own result. Planning receives its ready fields as data and opens the actual documents, confirmations and review evidence. Direct source-based planning verifies equivalent readiness.", "boundary": "The phase never imports an orchestrator-owned validator. Shared document/closure schemas constrain shape, not semantic correctness.", "source": "F6 spec · D15 and Run 1", "sourceUrl": "./spec.md"}, {"id": "planning", "label": "Planning", "eyebrow": "F6 · adopted strategy", "subtitle": "Schedule it, preserve its meaning", "x": 290, "y": 405, "tone": "change", "purpose": "Choose slices, concrete commands, dependencies, write scopes and earliest useful integration gates for the adopted strategy. Every owed test or observation is scheduled or returned as an exact gap.", "boundary": "No silent fallback to three documents; no replacing real proof with a cheaper check that cannot observe the claim.", "source": "F6 spec · D3 and Run 1", "sourceUrl": "./spec.md"}, {"id": "canonical", "label": "Canonical plan", "eyebrow": "ONE execution authority", "subtitle": "Durable path + basis + delivery intent", "x": 545, "y": 405, "tone": "change", "purpose": "One immutable Markdown plan links its current basis, proof obligations and intended delivery boundary. Handoff, implementation and review preserve the record.", "boundary": "A plan-only result stays non-executable. Tickets, handoff and validation do not upgrade authority or create another plan.", "source": "F6 spec · D5, D14 and D16", "sourceUrl": "./spec.md"}], "edges": [["requirements", "specification"], ["specification", "program"], ["program", "tests"], ["tests", "verification"], ["verification", "integrated"], ["integrated", "payload"], ["payload", "planning"], ["planning", "canonical"]]}, "roles": {"title": "Who owns the work and the judgment", "description": "This view is role topology, not a dependency DAG. The dotted Implementer–Verifier link means shared facts and reproductions. Advice, observation, findings and acceptance are separate results.", "height": 980, "nodes": [{"id": "owner", "label": "You", "eyebrow": "OWNER", "subtitle": "Meaning, tradeoffs and merge", "x": 290, "y": 30, "tone": "strong", "purpose": "You build the governing mental model with the Lead, settle owner-controlled choices, confirm adopted design decisions and retain merge authority.", "boundary": "You do not need to ferry routine logs or errors between helpers.", "source": "Roles · Lead charter", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "advisor", "label": "🦉 Advisor", "eyebrow": "CHALLENGE", "subtitle": "Competing model and tradeoffs", "x": 35, "y": 215, "tone": "strong", "purpose": "Challenge the Lead’s assumptions and the inference from observation to claim. Bring a credible competing picture with source evidence, gains, costs and who pays.", "boundary": "Advice is not approval or independent review. It does not author governing design.", "source": "Roles · Advisor charter", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "lead", "label": "🦁 Lead", "eyebrow": "GOVERNING AUTHOR", "subtitle": "Design, plan, integration and acceptance", "x": 290, "y": 215, "tone": "strong", "purpose": "The owner’s main conversation. Writes the design and plan, cuts bounded assignments, reads decisive evidence, integrates results and accepts only claims it understands.", "boundary": "It cannot become a delegator who forwards “done.” A Verifier may run the observation; interpretation stays here.", "source": "Roles · Lead charter", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "support", "label": "📚 Researcher / 🔧 Operator", "eyebrow": "BOUNDED HELP", "subtitle": "Checked answers / prescribed observations", "x": 545, "y": 215, "tone": "strong", "purpose": "The Researcher answers a supplied question from inspected evidence. The Operator scrapes, extracts, monitors or runs scripts under supplied criteria.", "boundary": "Neither owns architecture or acceptance. Cheap models do not acquire implementation authority. Worker/Sidekick describe how these roles run.", "source": "Roles · practices-manage-agents", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "implementer", "label": "🐒 Implementer", "eyebrow": "SIDEKICK", "subtitle": "Code + product tests + associated proof", "x": 145, "y": 415, "tone": "strong", "purpose": "Execute the Lead’s bounded plan, write feature code and product regression tests, run associated proof, and correct accepted implementation defects. Every Implementer has a paired Verifier.", "boundary": "Material design/plan meaning returns to the Lead. It does not author governing replacements.", "source": "Roles · Implementer", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "verifier", "label": "🔬 Verifier", "eyebrow": "PAIRED SIDEKICK", "subtitle": "Outcome observation + test adequacy", "x": 470, "y": 415, "tone": "strong", "purpose": "Challenge proof feasibility early, check pyramid/TDD/sensitivity, inspect applicable real-path evidence and observe the adopted outcome. Own only assigned verification drivers/scripts.", "boundary": "No feature repairs or product-suite edits. Missing cases return to the Implementer; wrong expected meaning returns to the Lead. It does not accept delivery.", "source": "Roles · Verifier charter", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "accept", "label": "🦁 Lead assessment", "eyebrow": "BEFORE independent review", "subtitle": "Required outcome ↔ actual observation", "x": 290, "y": 625, "tone": "strong", "purpose": "Read the diff, the expected outcome and the actual target-bound observations. Determine whether the evidence establishes the claimed result and what remains open.", "boundary": "Verifier judgment is evidence to inspect. A receipt can be real yet test the wrong requirement.", "source": "Roles · Lead acceptance", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}, {"id": "reviewer", "label": "🔎 Reviewer", "eyebrow": "INDEPENDENT · later", "subtitle": "Code, contracts, tests and corrections", "x": 290, "y": 810, "tone": "strong", "purpose": "Inspect ownership, types, state transitions, assertions and scope against governing sources. Detect tautological tests and assertions that invent restrictions. Verify corrected findings.", "boundary": "No editing or delivery acceptance. Review does not replace the Verifier’s real-system observation.", "source": "Roles · Reviewer charter", "sourceUrl": "https://github.com/ShravanSunder/sunstack/pull/127"}], "edges": [["owner", "lead"], ["advisor", "lead"], ["support", "lead"], ["lead", "implementer"], ["lead", "verifier"], ["implementer", "verifier", "facts"], ["implementer", "accept"], ["verifier", "accept"], ["accept", "reviewer"]]}};
+const canvas = document.getElementById('graph-canvas');
+const svgNamespace = 'http://www.w3.org/2000/svg';
+let currentView = 'roadmap';
+let selectedNodeId = 'run1';
+
+function svgElement(name, attributes) {
+  const element = document.createElementNS(svgNamespace, name);
+  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+  return element;
+}
+
+function edgePath(from, to) {
+  const width = 220;
+  const height = 140;
+  if (from.y === to.y) {
+    const rightward = to.x > from.x;
+    return `M ${from.x + (rightward ? width : 0)} ${from.y + height / 2} L ${to.x + (rightward ? 0 : width)} ${to.y + height / 2}`;
+  }
+  const startX = from.x + width / 2;
+  const startY = from.y + height;
+  const endX = to.x + width / 2;
+  const endY = to.y;
+  const middleY = startY + (endY - startY) / 2;
+  return `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`;
+}
+
+function selectNode(identity, moveFocus = false) {
+  const graph = graphData[currentView];
+  const node = graph.nodes.find(item => item.id === identity);
+  if (!node) return;
+  selectedNodeId = identity;
+  const related = new Set([identity]);
+  for (const [from, to] of graph.edges) if (from === identity || to === identity) { related.add(from); related.add(to); }
+  for (const button of canvas.querySelectorAll('.dag-node')) {
+    button.setAttribute('aria-pressed', String(button.dataset.node === identity));
+    button.classList.toggle('related', related.has(button.dataset.node));
+  }
+  for (const edge of canvas.querySelectorAll('.edge')) edge.classList.toggle('related', edge.dataset.from === identity || edge.dataset.to === identity);
+  document.getElementById('detail-kicker').textContent = node.eyebrow;
+  document.getElementById('detail-title').textContent = node.label;
+  document.getElementById('detail-purpose').textContent = node.purpose;
+  document.getElementById('detail-boundary').textContent = 'Boundary: ' + node.boundary;
+  const sourceLink = document.getElementById('detail-source');
+  sourceLink.textContent = node.source;
+  sourceLink.href = node.sourceUrl;
+  if (moveFocus) document.getElementById('detail').scrollIntoView({block:'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+}
+
+function renderGraph(view) {
+  currentView = view;
+  const graph = graphData[view];
+  canvas.replaceChildren();
+  canvas.style.height = graph.height + 'px';
+  document.getElementById('graph-title').textContent = graph.title;
+  document.getElementById('graph-intro').textContent = graph.description;
+  document.getElementById('graph-panel').setAttribute('aria-labelledby', 'tab-' + view);
+  for (const button of document.querySelectorAll('[data-view]')) { button.setAttribute('aria-selected', String(button.dataset.view === view)); button.tabIndex = button.dataset.view === view ? 0 : -1; }
+  document.getElementById('flow-note').textContent = view === 'roles' ? 'Advice and observations do not grant acceptance. The Reviewer starts after the Lead’s assessment; the pair can work together earlier.' : 'Correction paths are intentionally outside the DAG: a gap returns to the document or plan owner. It is not patched by the next stage.';
+  const svg = svgElement('svg', {viewBox:`0 0 800 ${graph.height}`, 'aria-hidden':'true'});
+  const defs = svgElement('defs', {});
+  const marker = svgElement('marker', {id:'arrow', viewBox:'0 0 10 10', refX:9, refY:5, markerWidth:7, markerHeight:7, orient:'auto-start-reverse'});
+  marker.append(svgElement('path', {d:'M 0 0 L 10 5 L 0 10 z', fill:'var(--ink-soft)'}));
+  defs.append(marker); svg.append(defs);
+  for (const [fromId, toId, kind] of graph.edges) {
+    const from = graph.nodes.find(node => node.id === fromId);
+    const to = graph.nodes.find(node => node.id === toId);
+    const path = svgElement('path', {d:edgePath(from,to), class:'edge' + (kind === 'facts' ? ' facts' : ''), 'marker-end':'url(#arrow)'});
+    path.dataset.from = fromId; path.dataset.to = toId;
+    if (kind === 'facts') path.setAttribute('marker-start','url(#arrow)');
+    svg.append(path);
+  }
+  canvas.append(svg);
+  for (const node of graph.nodes) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'dag-node tone-' + node.tone; button.style.left=node.x+'px'; button.style.top=node.y+'px'; button.dataset.node=node.id;
+    button.setAttribute('aria-label', node.label + '. ' + node.eyebrow + '. Show details');
+    for (const [className,text] of [['node-kicker',node.eyebrow],['node-title',node.label],['node-subtitle',node.subtitle]]) {
+      const span=document.createElement('span'); span.className=className; span.textContent=text; button.append(span);
+    }
+    button.addEventListener('click',()=>selectNode(node.id,true));
+    canvas.append(button);
+  }
+  selectNode(view === 'roadmap' ? 'run1' : view === 'design' ? 'planning' : 'lead');
+  history.replaceState(null,'','#view='+view);
+}
+
+for (const button of document.querySelectorAll('[data-view]')) {
+  button.addEventListener('click',()=>renderGraph(button.dataset.view));
+  button.addEventListener('keydown',event=>{
+    const keys=['ArrowLeft','ArrowRight','Home','End']; if (!keys.includes(event.key)) return;
+    event.preventDefault(); const tabs=[...document.querySelectorAll('[data-view]')]; const index=tabs.indexOf(button);
+    const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:tabs.length-1))%tabs.length;
+    tabs[next].focus(); renderGraph(tabs[next].dataset.view);
+  });
+}
+document.getElementById('theme-button').addEventListener('click',()=>{
+  const root=document.documentElement; const dark=root.dataset.theme==='dark'||(!root.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);
+  root.dataset.theme=dark?'light':'dark';
+  document.getElementById('theme-button').textContent=dark?'Dark theme':'Light theme';
+});
+const requestedView=new URLSearchParams(location.hash.slice(1)).get('view');
+renderGraph(Object.hasOwn(graphData,requestedView)?requestedView:'roadmap');
+</script></body></html>

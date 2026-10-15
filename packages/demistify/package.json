@@ -1,0 +1,35 @@
+{
+	"name": "@sunstack/demistify",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Composable visual documents using native Web Components",
+	"bin": {
+		"demistify": "./bin/demistify.ts"
+	},
+	"type": "module",
+	"exports": {
+		"./runtime": "./dist/runtime.js",
+		"./theme.css": "./dist/theme.css",
+		"./packaging": "./src/node/packaging.ts",
+		"./source-text": "./src/core/source-text.ts",
+		"./markdown-content": "./src/render/markdown-content.ts",
+		"./vocabulary": "./src/vocabulary.ts",
+		"./check": "./src/node/check.ts"
+	},
+	"scripts": {
+		"build": "node scripts/build-library.ts",
+		"check-page": "node bin/demistify.ts check"
+	},
+	"dependencies": {
+		"@fontsource/ibm-plex-mono": "^5.3.0",
+		"@fontsource/ibm-plex-sans-condensed": "5.3.0",
+		"@fontsource/literata": "^5.3.0",
+		"@phosphor-icons/web": "2.1.2",
+		"beautiful-mermaid": "1.1.3",
+		"marked": "18.1.1",
+		"parse5": "7.3.0"
+	},
+	"devDependencies": {
+		"subset-font": "2.4.0"
+	}
+}

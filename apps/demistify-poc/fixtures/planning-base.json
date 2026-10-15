@@ -1,0 +1,21 @@
+{
+	"title": "The changes and their dependencies",
+	"nodes": [
+		{
+			"id": "roles",
+			"label": "Roles + practices"
+		},
+		{
+			"id": "family",
+			"label": "Five-document family"
+		}
+	],
+	"edges": [
+		{
+			"id": "roles_family",
+			"from": "roles",
+			"to": "family",
+			"label": "depends on"
+		}
+	]
+}

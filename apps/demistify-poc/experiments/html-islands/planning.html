@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Design, planning &amp; proof</title>
+		<link rel="stylesheet" href="islands/theme.css" />
+		<script type="module" src="islands/runtime.js"></script>
+	</head>
+	<body>
+		<ex-nav><a href="./html-islands-layouts-live.html">Flow, grid &amp; whiteboard</a></ex-nav>
+		<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
+			<a href="../..">Explainers</a><span aria-current="page">Design, planning &amp; proof</span>
+			<a href="html-islands.html">Source &amp; findings</a>
+			<button
+				type="button"
+				class="ex-icon-button"
+				data-ex-theme
+				aria-label="Switch theme"
+				title="Switch theme"
+			>
+				<i class="ph ph-circle-half" aria-hidden="true"></i>
+			</button>
+		</nav>
+		<ex-document style="display: block; max-width: 1320px; margin: 40px auto 80px"
+			><ex-markdown
+				><script type="text/markdown">
+					# Design, planning & proof
+
+					The design sets what must work and how we will know. Planning carries that meaning into executable work. The Lead owns the picture and acceptance; the Implementer and Verifier supply different evidence.
+				</script></ex-markdown
+			><ex-callout type="risk"
+				>Source snapshot: 2026-10-14. This is a visual comparison of the supplied planning DAG, not
+				live PR status or new workflow authority.</ex-callout
+			><ex-tabs
+				><section label="The changes and their dependencies">
+					<ex-markdown
+						><script type="text/markdown">
+							## The changes and their dependencies
+
+							Solid arrows mean “depends on”. Each node’s job, boundary and source are listed below. The two PRs contain implemented source; the F6 nodes are accepted design awaiting implementation.
+						</script></ex-markdown
+					>
+					<ex-mermaid
+						label="The changes and their dependencies"
+						src="fixtures/roadmap.mmd"
+					></ex-mermaid>
+					<div
+						style="
+							display: grid;
+							grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+							gap: 20px;
+							margin-top: 24px;
+						"
+					>
+						<ex-markdown id="roles" label="Roles + practices" class="island-surface"
+							><script type="text/markdown">
+								### Roles + practices
+
+								**PR #127 · draft — Implemented source · reviewed**
+
+								Seven responsibilities, Worker/Sidekick execution forms, progressive job packets, and one Verifier paired with each Implementer.
+
+								**Boundary:** This is source-reviewed work. Draft PR status does not establish installed behavior or earned trust.
+
+								Source reference: PR #127 · head 0bad422c
+							</script></ex-markdown
+						>
+						<ex-markdown id="family" label="Five-document family" class="island-surface"
+							><script type="text/markdown">
+								### Five-document family
+
+								**PR #128 · draft — Implemented source · reviewed**
+
+								Requirements, Specification, Program Design, Test Design and Verification Design each own a different decision. Each has a local review, followed by integrated reading.
+
+								**Boundary:** The family is stacked above #127. Its new design return exists, but current planners still consume the older three-document basis.
+
+								Source reference: PR #128 · head ffe30964
+							</script></ex-markdown
+						>
+						<ex-markdown id="run1" label="Main planner" class="island-surface"
+							><script type="text/markdown">
+								### Main planner
+
+								**F6 · run 1 — Spec accepted · not started**
+
+								Plan Implementation reads all five documents and current closures, then schedules adopted test and verification strategy into slices, commands and prerequisites. It updates the canonical plan and actual consumers.
+
+								**Boundary:** It does not choose a replacement oracle or test layer for an adopted design. Missing strategy returns to the design owner.
+
+								Source reference: F6 spec · Run 1
+							</script></ex-markdown
+						>
+						<ex-markdown id="run2" label="Improvement planner" class="island-surface"
+							><script type="text/markdown">
+								### Improvement planner
+
+								**F6 · run 2 — Spec accepted · not started**
+
+								Plan Improve Repo adopts the same five-document basis for design-bearing findings and preserves positively source-proven mechanics-only work.
+
+								**Boundary:** Audit-only exits, direct plan-only results, validation receipts and triage stay distinct. An incomplete design is never a mechanics-only fallback.
+
+								Source reference: F6 spec · Run 2
+							</script></ex-markdown
+						>
+						<ex-markdown id="proof" label="Structural proof" class="island-surface"
+							><script type="text/markdown">
+								### Structural proof
+
+								**Later · after implementation — Planned checks · not run**
+
+								Permanent source-contract checks, existing schema tests, and a real source walk through producer → planner → handoff → executor/review. The paired Verifier reports finite observations.
+
+								**Boundary:** String checks and schema parsing establish their structural claims; they do not show that a model follows the workflow.
+
+								Source reference: F6 spec · Proof and independent review
+							</script></ex-markdown
+						>
+						<ex-markdown id="assessment" label="Lead assessment" class="island-surface"
+							><script type="text/markdown">
+								### Lead assessment
+
+								**Later · after scoped proof — Own reading and interpretation**
+
+								The Lead opens the actual diff and decisive proof, checks them against the accepted need and design, and resolves every material gap before independent implementation review.
+
+								**Boundary:** A helper report or a green count cannot replace the Lead’s understanding of what was required and observed.
+
+								Source reference: F6 spec · Proof, step 4
+							</script></ex-markdown
+						>
+						<ex-markdown id="review" label="Independent review" class="island-surface"
+							><script type="text/markdown">
+								### Independent review
+
+								**Later · same relationships — Findings and correction closure**
+
+								Independent reviewers inspect the implemented skills, their teaching, calls, claims and consumer consistency. The same review relationship checks bounded corrections.
+
+								**Boundary:** Today’s accepted SPEC is not a review of an F6 implementation; none exists yet.
+
+								Source reference: F6 spec · Review and coordination
+							</script></ex-markdown
+						>
+						<ex-markdown id="wrap" label="PR readiness" class="island-surface"
+							><script type="text/markdown">
+								### PR readiness
+
+								**Later · separate delivery — Owner retains merge authority**
+
+								Current PR head, checks, comments, review threads and mergeability are examined at the authorized delivery boundary.
+
+								**Boundary:** This diagram starts no work, grants no merge, and claims no client refresh or runtime behavior.
+
+								Source reference: F6 spec · Coordination and non-goals
+							</script></ex-markdown
+						>
+					</div>
+				</section>
+				<section label="What each design contributes to planning">
+					<ex-markdown
+						><script type="text/markdown">
+							## What each design contributes to planning
+
+							This is the normal dependency path for an adopted substantial design unit. Every document has its own local review; the whole set has an integrated review. Early feasibility research can look ahead without changing who owns a decision.
+						</script></ex-markdown
+					>
+					<ex-mermaid
+						label="What each design contributes to planning"
+						src="fixtures/design.mmd"
+					></ex-mermaid>
+					<div
+						style="
+							display: grid;
+							grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+							gap: 20px;
+							margin-top: 24px;
+						"
+					>
+						<ex-markdown id="requirements" label="Requirements" class="island-surface"
+							><script type="text/markdown">
+								### Requirements
+
+								**WHY · for whom — Authorized outcome and boundary**
+
+								The Lead clarifies the consumer, adopted outcome, constraints and scope with the owner. Requirements receives its local review and owner confirmation or explicit waiver.
+
+								**Boundary:** No inferred preference becomes an authorized requirement.
+
+								Source reference: Five-document family · Requirements
+							</script></ex-markdown
+						>
+						<ex-markdown id="specification" label="Specification" class="island-surface"
+							><script type="text/markdown">
+								### Specification
+
+								**WHAT · observable — Entities, invariants and obligations**
+
+								It defines what correct means through observable permitted and forbidden behavior, traced to Requirements, including domain identity and states.
+
+								**Boundary:** It does not choose internal modules, persistence shapes, test layers or mechanisms.
+
+								Source reference: Five-document family · Specification
+							</script></ex-markdown
+						>
+						<ex-markdown id="program" label="Program Design" class="island-surface"
+							><script type="text/markdown">
+								### Program Design
+
+								**HOW · structure — Owners, interfaces and proof seams**
+
+								It chooses responsibilities, interfaces, state, failure and concurrency realization. It names sufficient observation seams and what must stay real, with structural confirmation or waiver.
+
+								**Boundary:** Test Design chooses scenarios and layers within these structural constraints.
+
+								Source reference: Five-document family · Program Design
+							</script></ex-markdown
+						>
+						<ex-markdown id="tests" label="Test Design" class="island-surface"
+							><script type="text/markdown">
+								### Test Design
+
+								**WHICH wrong behavior — Scenario → real interaction → oracle**
+
+								It selects scenarios, independent oracles, the cheapest honest layers, substitutions, deterministic completion, and keep/repair/remove decisions.
+
+								**Boundary:** A planned red is owed evidence. It is not an executed failing test. The Implementer writes product tests.
+
+								Source reference: Five-document family · Test Design
+							</script></ex-markdown
+						>
+						<ex-markdown id="verification" label="Verification Design" class="island-surface"
+							><script type="text/markdown">
+								### Verification Design
+
+								**HOW the real system shows it — Reference → route → observation**
+
+								It names the independent correctness reference, real build/configuration/client, outcome observations, passing conditions, reuse and limits.
+
+								**Boundary:** An acknowledgement, another target or a mocked path cannot prove the adopted outcome. Planned observations remain owed.
+
+								Source reference: Five-document family · Verification Design
+							</script></ex-markdown
+						>
+						<ex-markdown id="integrated" label="Integrated review" class="island-surface"
+							><script type="text/markdown">
+								### Integrated review
+
+								**ALL FIVE · one coherent picture — Whole-set reading + final confirmation**
+
+								After five current local review closures, an independent reader reconstructs the whole set. The owner confirms or waives the final set.
+
+								**Boundary:** Five local verdicts cannot be relayed as the integrated reader’s judgment.
+
+								Source reference: Five-document family · orchestrator-design
+							</script></ex-markdown
+						>
+						<ex-markdown id="payload" label="Ready design data" class="island-surface"
+							><script type="text/markdown">
+								### Ready design data
+
+								**PRODUCER owns validation — Five documents + closures + owed proof**
+
+								The cycle producer validates its own result. Planning receives its ready fields as data and opens the actual documents, confirmations and review evidence. Direct source-based planning verifies equivalent readiness.
+
+								**Boundary:** The phase never imports an orchestrator-owned validator. Shared document/closure schemas constrain shape, not semantic correctness.
+
+								Source reference: F6 spec · D15 and Run 1
+							</script></ex-markdown
+						>
+						<ex-markdown id="planning" label="Planning" class="island-surface"
+							><script type="text/markdown">
+								### Planning
+
+								**F6 · adopted strategy — Schedule it, preserve its meaning**
+
+								Choose slices, concrete commands, dependencies, write scopes and earliest useful integration gates for the adopted strategy. Every owed test or observation is scheduled or returned as an exact gap.
+
+								**Boundary:** No silent fallback to three documents; no replacing real proof with a cheaper check that cannot observe the claim.
+
+								Source reference: F6 spec · D3 and Run 1
+							</script></ex-markdown
+						>
+						<ex-markdown id="canonical" label="Canonical plan" class="island-surface"
+							><script type="text/markdown">
+								### Canonical plan
+
+								**ONE execution authority — Durable path + basis + delivery intent**
+
+								One immutable Markdown plan links its current basis, proof obligations and intended delivery boundary. Handoff, implementation and review preserve the record.
+
+								**Boundary:** A plan-only result stays non-executable. Tickets, handoff and validation do not upgrade authority or create another plan.
+
+								Source reference: F6 spec · D5, D14 and D16
+							</script></ex-markdown
+						>
+					</div>
+				</section>
+				<section label="Who owns the work and the judgment">
+					<ex-markdown
+						><script type="text/markdown">
+							## Who owns the work and the judgment
+
+							This view is role topology, not a dependency DAG. The dotted Implementer–Verifier link means shared facts and reproductions. Advice, observation, findings and acceptance are separate results.
+						</script></ex-markdown
+					>
+					<ex-mermaid
+						label="Who owns the work and the judgment"
+						src="fixtures/roles.mmd"
+					></ex-mermaid>
+					<div
+						style="
+							display: grid;
+							grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+							gap: 20px;
+							margin-top: 24px;
+						"
+					>
+						<ex-markdown id="owner" label="You" class="island-surface"
+							><script type="text/markdown">
+								### You
+
+								**OWNER — Meaning, tradeoffs and merge**
+
+								You build the governing mental model with the Lead, settle owner-controlled choices, confirm adopted design decisions and retain merge authority.
+
+								**Boundary:** You do not need to ferry routine logs or errors between helpers.
+
+								Source reference: Roles · Lead charter
+							</script></ex-markdown
+						>
+						<ex-markdown id="advisor" label="🦉 Advisor" class="island-surface"
+							><script type="text/markdown">
+								### 🦉 Advisor
+
+								**CHALLENGE — Competing model and tradeoffs**
+
+								Challenge the Lead’s assumptions and the inference from observation to claim. Bring a credible competing picture with source evidence, gains, costs and who pays.
+
+								**Boundary:** Advice is not approval or independent review. It does not author governing design.
+
+								Source reference: Roles · Advisor charter
+							</script></ex-markdown
+						>
+						<ex-markdown id="lead" label="🦁 Lead" class="island-surface"
+							><script type="text/markdown">
+								### 🦁 Lead
+
+								**GOVERNING AUTHOR — Design, plan, integration and acceptance**
+
+								The owner’s main conversation. Writes the design and plan, cuts bounded assignments, reads decisive evidence, integrates results and accepts only claims it understands.
+
+								**Boundary:** It cannot become a delegator who forwards “done.” A Verifier may run the observation; interpretation stays here.
+
+								Source reference: Roles · Lead charter
+							</script></ex-markdown
+						>
+						<ex-markdown id="support" label="📚 Researcher / 🔧 Operator" class="island-surface"
+							><script type="text/markdown">
+								### 📚 Researcher / 🔧 Operator
+
+								**BOUNDED HELP — Checked answers / prescribed observations**
+
+								The Researcher answers a supplied question from inspected evidence. The Operator scrapes, extracts, monitors or runs scripts under supplied criteria.
+
+								**Boundary:** Neither owns architecture or acceptance. Cheap models do not acquire implementation authority. Worker/Sidekick describe how these roles run.
+
+								Source reference: Roles · practices-manage-agents
+							</script></ex-markdown
+						>
+						<ex-markdown id="implementer" label="🐒 Implementer" class="island-surface"
+							><script type="text/markdown">
+								### 🐒 Implementer
+
+								**SIDEKICK — Code + product tests + associated proof**
+
+								Execute the Lead’s bounded plan, write feature code and product regression tests, run associated proof, and correct accepted implementation defects. Every Implementer has a paired Verifier.
+
+								**Boundary:** Material design/plan meaning returns to the Lead. It does not author governing replacements.
+
+								Source reference: Roles · Implementer
+							</script></ex-markdown
+						>
+						<ex-markdown id="verifier" label="🔬 Verifier" class="island-surface"
+							><script type="text/markdown">
+								### 🔬 Verifier
+
+								**PAIRED SIDEKICK — Outcome observation + test adequacy**
+
+								Challenge proof feasibility early, check pyramid/TDD/sensitivity, inspect applicable real-path evidence and observe the adopted outcome. Own only assigned verification drivers/scripts.
+
+								**Boundary:** No feature repairs or product-suite edits. Missing cases return to the Implementer; wrong expected meaning returns to the Lead. It does not accept delivery.
+
+								Source reference: Roles · Verifier charter
+							</script></ex-markdown
+						>
+						<ex-markdown id="accept" label="🦁 Lead assessment" class="island-surface"
+							><script type="text/markdown">
+								### 🦁 Lead assessment
+
+								**BEFORE independent review — Required outcome ↔ actual observation**
+
+								Read the diff, the expected outcome and the actual target-bound observations. Determine whether the evidence establishes the claimed result and what remains open.
+
+								**Boundary:** Verifier judgment is evidence to inspect. A receipt can be real yet test the wrong requirement.
+
+								Source reference: Roles · Lead acceptance
+							</script></ex-markdown
+						>
+						<ex-markdown id="reviewer" label="🔎 Reviewer" class="island-surface"
+							><script type="text/markdown">
+								### 🔎 Reviewer
+
+								**INDEPENDENT · later — Code, contracts, tests and corrections**
+
+								Inspect ownership, types, state transitions, assertions and scope against governing sources. Detect tautological tests and assertions that invent restrictions. Verify corrected findings.
+
+								**Boundary:** No editing or delivery acceptance. Review does not replace the Verifier’s real-system observation.
+
+								Source reference: Roles · Reviewer charter
+							</script></ex-markdown
+						>
+					</div>
+				</section></ex-tabs
+			><ex-markdown
+				><script type="text/markdown">
+					## Implemented source and the planned extension
+
+					The current view contains two implemented-source nodes and one dependency relationship. The proposal adds six planned nodes and six dependency relationships, producing eight nodes and seven relationships. “Added” means added to this graph proposal; it does not mean implemented.
+
+					Current preserves the captured base. Changes keeps that base and marks additions. Proposed shows the resulting graph without change labels.
+				</script></ex-markdown
+			>
+			<div
+				style="
+					display: grid;
+					grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+					gap: 24px;
+				"
+			>
+				<section>
+					<ex-markdown
+						><script type="text/markdown">
+							### Implemented source
+						</script></ex-markdown
+					><ex-mermaid label="Implemented source" src="fixtures/current.mmd"></ex-mermaid>
+				</section>
+				<section>
+					<ex-markdown
+						><script type="text/markdown">
+							### Changes
+						</script></ex-markdown
+					><ex-mermaid label="Changes" src="fixtures/diff.mmd"></ex-mermaid>
+				</section>
+				<section>
+					<ex-markdown
+						><script type="text/markdown">
+							### With the accepted plan
+						</script></ex-markdown
+					><ex-mermaid label="With the accepted plan" src="fixtures/proposed.mmd"></ex-mermaid>
+				</section></div
+		></ex-document>
+	</body>
+</html>

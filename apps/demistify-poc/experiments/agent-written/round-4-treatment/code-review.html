@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resume review</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Resume sessions after socket drops
+
+Review of the change "Resume sessions after socket drops", dated 2026-10-14. Audience: the change author and a second reviewer. The change is illustrative.
+
+<ex-grid cols="4">
+<ex-callout id="verdict" tone="tldr" span="2" title="Verdict: request changes">The change fixes resume after network blips but breaks resume after every deploy, because sessions live only in process memory. Two blocking findings: F1 and F2.</ex-callout>
+<ex-stat value="98%" label="Network blip resume" note="was 35% before" tone="done"></ex-stat>
+<ex-stat value="0%" label="Deploy resume" note="was 12% before" tone="risk"></ex-stat>
+</ex-grid>
+
+## Findings
+
+Five findings: two blocking (F1, F2), one nit (F3), one nice (F4) and one question (F5).
+
+<ex-grid cols="2">
+<ex-card id="registry" title="Registry is in memory only" tone="risk" tag="F1 · blocking · line 43">
+Line 43 looks the id up in `registry`, an in-memory Map. After any deploy or crash it is empty, so every resume returns undefined and clients start new sessions.
+<details><summary>Effect on resume</summary>Deploy resume is 12% before and 0% after this change. Network blip resume goes from 35% to 98%.</details>
+</ex-card>
+<ex-card id="expired" title="Expired session still attached" tone="risk" tag="F2 · blocking · lines 45-47">
+Lines 45 to 47 delete an expired session, but it is still returned and attached on line 48. It should return undefined after deleting.
+</ex-card>
+<ex-card id="miss" title="Resume misses are silent" tone="question" tag="F3 · nit · line 44">
+The early return on line 44 drops the miss silently.
+<details><summary>Suggested fix</summary>Log the session id at debug level so resume misses are visible in traces.</details>
+</ex-card>
+<ex-card id="attach" title="Socket swap sits in one place" tone="note" tag="F4 · nice · line 48">
+Line 48, the attach call, keeps the socket swap in one place. The old code scattered it across two call sites.
+</ex-card>
+<ex-card id="grace" title="Is the grace window per tenant?" tone="question" tag="F5 · question · registry.ts">
+Is the 5-minute grace window in registry.ts configurable per tenant, or fixed? Answer before merge.
+</ex-card>
+</ex-grid>
+
+## The change
+
+File `src/session/resume.ts`, starting at line 40. Hunk header: `@@ -40,7 +40,12 @@ export function resume(id: string)`. In the diff below, line 40 is the `export function` line, lines 41 and 42 are the two removed lines, lines 43 to 48 are the added lines, and line 49 is the closing brace. Other files touched are in the tree beside the diff.
+
+<ex-grid cols="3">
+<ex-code id="diff" span="2" title="src/session/resume.ts" lang="diff" start="40"><script type="text/plain">
+ export function resume(id: string): Session | undefined {
+-  const socket = sockets.get(id);
+-  return socket?.session;
++  const session = registry.get(id);
++  if (!session) return undefined;
++  if (session.expiresAt < Date.now()) {
++    registry.delete(id);
++  }
++  return session.attach(currentSocket());
+ }
+</script>
+<ex-note line="43" tone="risk">F1, blocking: registry is an in-memory Map, empty after any deploy or crash.</ex-note>
+<ex-note line="44" tone="question">F3, nit: the early return drops the miss silently. Log the session id at debug level.</ex-note>
+<ex-note line="45" tone="risk">F2, blocking, lines 45 to 47: the expired session is deleted here but still returned and attached on line 48.</ex-note>
+<ex-note line="48" tone="note">F4, nice: attach keeps the socket swap in one place.</ex-note>
+</ex-code>
+<div sticky>
+<ex-file-tree><script type="text/plain">
+src/session/
+├── resume.ts          modified (the diff)
+├── registry.ts        new, 64 lines
+├── socket.ts          modified
+└── legacy-store.ts    deleted
+test/session/
+└── resume.test.ts     new
+</script></ex-file-tree>
+</div>
+</ex-grid>
+
+## How resume works after the change
+
+Nodes that match a finding take its tone and open its card on click.
+
+<ex-grid cols="3">
+<ex-mermaid id="flow" span="2"><script type="text/plain">
+flowchart LR
+  client[Client sends session id] --> gateway[Gateway calls resume]
+  gateway --> registry[Registry lookup - F1]
+  registry -->|found| expired{Expired? - F2}
+  registry -->|missing| miss[Miss not logged - F3]
+  miss --> newsession[Client starts new session]
+  expired -->|no| attach[Session attaches socket - F4]
+  attach --> confirm[Gateway confirms]
+  expired -->|yes| newsession
+</script></ex-mermaid>
+<div sticky>
+<ex-callout id="steps" tone="note" title="Steps and participants">
+1. The client reconnects and sends its session id.
+2. The gateway calls `resume(id)`.
+3. `resume` looks the id up in the registry.
+4. If found and not expired, the session attaches the new socket and the gateway confirms.
+5. Otherwise the gateway tells the client to start a new session.
+
+Participants: Client, Gateway, Registry, Session.
+</ex-callout>
+</div>
+</ex-grid>
+
+## Fix options for F1
+
+Three ways to fix F1, the in-memory registry. The reviewers recommend Redis; the decision is still open.
+
+<ex-grid cols="3" swipe>
+<ex-card id="opt-memory" title="In-memory registry (current)" tone="note" tag="speed over durability">
+Fast and simple. Loses every session on restart.
+</ex-card>
+<ex-card id="opt-redis" title="Redis-backed registry (recommended)" tone="planned" tag="durability for a dependency">
+Survives restarts and is shared across instances. Adds Redis to every environment and about 2 ms per resume. The reviewers recommend this option.
+</ex-card>
+<ex-card id="opt-sticky" title="Sticky sockets at the load balancer" tone="risk" tag="no new state but fragile">
+No new state. Breaks whenever an instance is replaced, so it does not fix deploys.
+</ex-card>
+</ex-grid>
+
+## Evidence
+
+Resume success rate from the staging soak test (percent of reconnects that resumed).
+
+<ex-grid cols="3">
+<ex-mermaid id="evidence" span="2"><script type="text/plain">
+xychart-beta
+  title "Reconnects that resumed (percent)"
+  x-axis ["Network blip", "Deploy", "Instance crash"]
+  y-axis "Resumed (%)" 0 --> 100
+  bar "Before" [35, 12, 0]
+  bar "After this change" [98, 0, 0]
+  bar "With Redis registry (prototype)" [98, 96, 94]
+</script></ex-mermaid>
+<ex-callout tone="risk" title="The change alone breaks deploy resume">
+Network blip resume rises from 35% to 98%, but deploy resume falls from 12% to 0%. Instance crash stays at 0%. The Redis prototype reaches 98%, 96% and 94% across the three scenarios.
+<details><summary>Raw numbers</summary>
+
+| Scenario | Before | After this change | With Redis registry (prototype) |
+|---|---|---|---|
+| Network blip | 35 | 98 | 98 |
+| Deploy | 12 | 0 | 96 |
+| Instance crash | 0 | 0 | 94 |
+
+</details>
+</ex-callout>
+</ex-grid>
+
+## Next steps
+
+<ex-callout id="next" tone="planned" title="Next steps">
+1. Fix F2 in this change.
+2. Decide the F1 option. The reviewers recommend Redis.
+3. Answer F5 before merge.
+</ex-callout>
+
+<ex-route label="60-second tour">
+<ex-step to="verdict">Start here. The verdict is request changes.</ex-step>
+<ex-step to="registry" open="sidebar">The blocking bug: sessions live only in memory.</ex-step>
+<ex-step to="expired">The second blocker: expired sessions still attach.</ex-step>
+<ex-step to="evidence">The numbers: deploy resume drops to 0%.</ex-step>
+</ex-route>
+<ex-route label="Reviewer pass" steps="diff registry expired miss attach grace opt-redis evidence next"></ex-route>
+</ex-document>
+</body>
+</html>

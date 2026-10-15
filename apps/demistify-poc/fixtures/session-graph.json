@@ -1,0 +1,41 @@
+{
+	"title": "Session reconnection",
+	"nodes": [
+		{
+			"id": "client",
+			"label": "Client"
+		},
+		{
+			"id": "gateway",
+			"label": "Gateway"
+		},
+		{
+			"id": "session_store",
+			"label": "Session store"
+		},
+		{
+			"id": "socket_cache",
+			"label": "Socket cache"
+		}
+	],
+	"edges": [
+		{
+			"id": "client_gateway",
+			"from": "client",
+			"to": "gateway",
+			"label": "connects"
+		},
+		{
+			"id": "gateway_cache",
+			"from": "gateway",
+			"to": "socket_cache",
+			"label": "owns transport state"
+		},
+		{
+			"id": "cache_store",
+			"from": "socket_cache",
+			"to": "session_store",
+			"label": "owns session lifetime"
+		}
+	]
+}

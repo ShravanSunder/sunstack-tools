@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Morning status — session gateway</title>
+		<link rel="stylesheet" href="islands/theme.css" />
+		<script type="module" src="islands/runtime.js"></script>
+	</head>
+	<body>
+		<ex-document>
+			<h1>Morning status: session gateway</h1>
+			<p>
+				Three changes are in flight. Nothing is ready to merge; one owner decision blocks the
+				selector work.
+			</p>
+
+			<ex-grid cols="3">
+				<ex-tree title="8:18 sitrep" icon="rocket" span="2"
+					><script type="text/plain">
+						- planned: Ready to merge — none
+						- [#150 Resume owns completion](#pr-150)
+						  - done: Build, artifacts, format and strict lint pass
+						  - question: Needs debug verification
+						    - Fresh window 8:20–8:40; the previous slot never started
+						    - SQLite question reserved 8:45–9:05
+						  - planned: In progress
+						    - Independent review is switching reviewer
+						    - Parent publication waits on CI
+						  - risk: Not ready: live proof, review and delivery gates
+						- [Selector child](#selector)
+						  - done: Extraction and 794 tests pass
+						  - risk: Owner design blocker — the remote selection contract
+						- planned: Host stack, paused
+						  - [ ] #131 main conflicts and proof
+						  - [ ] #133 depends on #131
+						  - [x] #135 role proof drafted
+					</script></ex-tree
+				>
+				<div>
+					<ex-card
+						id="pr-150"
+						title="#150 Resume owns completion"
+						tone="question"
+						icon="git-branch"
+						tag="needs verification"
+					>
+						Resume now completes the session it restores. Verification needs one live debug window.
+					</ex-card>
+					<ex-card
+						id="selector"
+						title="Selector child"
+						tone="risk"
+						icon="users"
+						tag="blocked on owner"
+					>
+						The remote selection contract needs an owner decision before the child PR can go up.
+					</ex-card>
+				</div>
+			</ex-grid>
+
+			## The registry at a glance
+
+			<ex-tree title="Session registry" icon="database" layout="map"
+				><script type="text/plain">
+					- [Registry API](#pr-150)
+					  - create
+					  - resume
+					  - expire
+					- Session store
+					  - Redis hash per session
+					  - TTL equals the grace window
+					- done: Socket binder
+					- planned: Expiry sweeper
+					  - runs every 30 s
+				</script></ex-tree
+			>
+
+			<ex-grid cols="3">
+				<ex-card title="Store" icon="database" tone="done">Redis, shared across gateways.</ex-card>
+				<ex-card title="Gateway" icon="hard-drives" tone="changed"
+					>Calls resume on reconnect.</ex-card
+				>
+				<ex-card title="Client" icon="user" tone="note">Sends its session id.</ex-card>
+			</ex-grid>
+			## The change, file by file
+
+			<ex-code title="Resume owns completion" lang="diff"
+				><script type="text/plain">
+					diff --git a/src/session/resume.ts b/src/session/resume.ts
+					--- a/src/session/resume.ts
+					+++ b/src/session/resume.ts
+					@@ -40,6 +40,9 @@ export async function resume(id: string, socket: Socket) {
+					   const session = await store.read(id);
+					-  if (!session) return undefined;
+					+  if (!session || session.state !== 'detached') return undefined;
+					+  const attached = await store.compareAndSet(id, session.version, { state: 'active' });
+					+  if (!attached) return undefined;
+					   binder.attach(id, socket);
+					   events.publish('session.resumed', { id });
+					-  return session;
+					+  return attached;
+					 }
+					diff --git a/src/session/store.ts b/src/session/store.ts
+					--- a/src/session/store.ts
+					+++ b/src/session/store.ts
+					@@ -12,3 +12,7 @@ export interface SessionStore {
+					   read(id: string): Promise<Session | undefined>;
+					+  compareAndSet(id: string, version: number, change: Partial<Session>): Promise<Session | undefined>;
+					   touch(id: string): Promise<void>;
+					 }
+				</script>
+				<ex-note file="resume.ts" line="43" tone="decision"
+					>Compare-and-set on the version stops two tabs resuming the same session.</ex-note
+				>
+				<ex-note file="resume.ts" line="44" tone="question"
+					>The loser sees a miss; logs cannot tell it from an expired session.</ex-note
+				>
+				<ex-note file="store.ts" line="13" tone="added"
+					>New store method; Redis implements it with WATCH/MULTI.</ex-note
+				>
+			</ex-code>
+
+			## Evidence in pictures
+
+			<ex-grid cols="2">
+				<figure>
+					<img
+						src="media/resume-after.svg"
+						alt="Resume success by cause after the change: high for blips, deploys and crashes; zero after long sleep"
+					/>
+					<figcaption>After the change, deploys and crashes resume like blips.</figcaption>
+				</figure>
+				<ex-compare slider>
+					<img
+						label="Before"
+						src="media/resume-before.svg"
+						alt="Resume success before the change: low across causes"
+					/>
+					<img
+						label="After"
+						src="media/resume-after.svg"
+						alt="Resume success after the change: high except long sleep"
+					/>
+				</ex-compare>
+			</ex-grid>
+			<h2>The design family on a whiteboard</h2>
+			<p>
+				Hand-placed boxes inside a board: drag to pan, pinch or ctrl-scroll to zoom, hover a box to
+				trace its arrows.
+			</p>
+
+			<ex-board mode="map">
+				<div style="position: relative; width: 1100px; height: 640px">
+					<ex-card
+						id="wb-req"
+						title="Requirements"
+						tone="done"
+						icon="file"
+						style="position: absolute; left: 20px; top: 30px; width: 260px"
+						>Authorized outcome and boundary.</ex-card
+					>
+					<ex-card
+						id="wb-spec"
+						title="Specification"
+						tone="done"
+						icon="book-open"
+						style="position: absolute; left: 360px; top: 70px; width: 260px"
+						>Entities, invariants and obligations.</ex-card
+					>
+					<ex-card
+						id="wb-program"
+						title="Program design"
+						tone="planned"
+						icon="code"
+						style="position: absolute; left: 700px; top: 25px; width: 260px"
+						>Owners, interfaces and proof seams.</ex-card
+					>
+					<ex-card
+						id="wb-tests"
+						title="Test design"
+						tone="planned"
+						icon="test-tube"
+						style="position: absolute; left: 120px; top: 360px; width: 260px"
+						>Scenario, real interaction, oracle.</ex-card
+					>
+					<ex-card
+						id="wb-verify"
+						layer="proposed"
+						title="Verification design"
+						tone="question"
+						icon="shield-check"
+						style="position: absolute; left: 600px; top: 390px; width: 260px"
+						>Reference, route, observation.</ex-card
+					>
+					<ex-arrow from="wb-req" to="wb-spec" label="informs"></ex-arrow>
+					<ex-arrow from="wb-spec" to="wb-program" label="informs"></ex-arrow>
+					<ex-arrow from="wb-program" to="wb-tests" label="informs"></ex-arrow>
+					<ex-arrow from="wb-tests" to="wb-verify" label="informs" layer="proposed"></ex-arrow>
+					<ex-arrow from="wb-spec" to="wb-verify" label="checked by" layer="proposed"></ex-arrow>
+				</div>
+			</ex-board>
+
+			<ex-route label="Design walk">
+				<ex-step to="wb-req">Start with what must be true.</ex-step>
+				<ex-step to="wb-program">Then who owns what.</ex-step>
+				<ex-step to="wb-verify">Finally, how we will know.</ex-step>
+			</ex-route>
+			## Resume, one step at a time
+
+			<ex-mermaid id="resume-walk"
+				><script type="text/plain">
+					flowchart LR
+					  client[Client reconnects] --> gateway[Gateway] --> registry[Registry]
+					  registry --> store[(Session store)]
+					  registry --> binder[Socket binder]
+					  registry --> events[Event publisher]
+				</script></ex-mermaid
+			>
+
+			<ex-route label="Walk the resume">
+				<ex-step to="client">The client reconnects and sends its session id.</ex-step>
+				<ex-step to="gateway">The gateway calls resume.</ex-step>
+				<ex-step to="registry">The registry reads the session and checks its version.</ex-step>
+				<ex-step to="binder">The binder attaches the new socket.</ex-step>
+				<ex-step to="events">Finally the publisher announces the resumed session.</ex-step>
+			</ex-route>
+		</ex-document>
+	</body>
+</html>

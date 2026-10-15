@@ -1,0 +1,32 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"printWidth": 100,
+	"tabWidth": 2,
+	"useTabs": true,
+	"semi": true,
+	"singleQuote": true,
+	"trailingComma": "all",
+	"sortImports": {
+		"enabled": true
+	},
+	"sortPackageJson": {
+		"enabled": true
+	},
+	"ignorePatterns": [
+		"dist",
+		"build",
+		"coverage",
+		"node_modules",
+		"tmp",
+		"references",
+		"AGENTS.md",
+		"public/experiments",
+		"experiments/quick-json/upstream",
+		"apps/demistify-poc/public/experiments",
+		"apps/demistify-poc/experiments/quick-json/upstream",
+		"apps/demistify-poc/references",
+		"packages/demistify/skill",
+		"apps/demistify-poc/experiments/agent-written",
+		"apps/demistify-poc/experiments/html-islands/*.html"
+	]
+}

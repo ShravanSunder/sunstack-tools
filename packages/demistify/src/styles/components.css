@@ -1,0 +1,357 @@
+/* HTML Islands: composition and behavior styling owned once by the library. */
+ex-arrow {
+	display: none;
+}
+ex-mermaid > svg {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin-inline: auto;
+}
+.island-surface {
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	padding: var(--space-5);
+}
+.island-surface h3 {
+	margin-top: 0;
+}
+.island-surface p {
+	font-size: var(--text-md);
+}
+.ex-inspectable {
+	position: relative;
+}
+.ex-icon-button {
+	display: inline-grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	flex: none;
+}
+.ex-icon-button .ph {
+	font-size: var(--text-xl);
+}
+.ex-icon-button:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+.ex-icon-button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+.ex-inspect-controls {
+	position: absolute;
+	top: var(--space-1);
+	right: var(--space-1);
+	z-index: 2;
+	display: flex;
+	gap: var(--space-1);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--motion-fast);
+}
+.ex-inspect-controls[hidden] {
+	display: none;
+}
+/* Hidden depth: a plain "More" button under the content, always visible. */
+.ex-inspect-controls.ex-inspect-more {
+	position: static;
+	margin-top: var(--space-3);
+	opacity: 1;
+	pointer-events: auto;
+}
+.ex-inspect-more > .ex-icon-button {
+	display: inline-flex;
+	align-items: center;
+	width: auto;
+	height: auto;
+	gap: 2px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent);
+	font: 600 var(--text-sm) var(--display);
+}
+.ex-inspect-more > .ex-icon-button .ph {
+	font-size: var(--text-sm);
+}
+.ex-inspect-more > .ex-icon-button:hover {
+	text-decoration: underline;
+}
+.ex-inspect-trigger {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--sheet);
+}
+.ex-inspect-trigger .ph {
+	font-size: var(--text-md);
+}
+.ex-inspectable:hover:not(:has(.ex-inspectable:hover)) > .ex-inspect-controls,
+.ex-inspectable:focus-within > .ex-inspect-controls {
+	opacity: 1;
+	pointer-events: auto;
+}
+.ex-inspectable > .ex-tab-bar {
+	padding-inline-end: var(--space-18);
+}
+.ex-inspectable > :is(h1, h2, h3, h4, h5, h6):first-child {
+	padding-inline-end: var(--space-16);
+}
+.ex-inspect-dialog {
+	width: calc(100vw - 48px);
+	height: calc(100dvh - 48px);
+	max-width: none;
+	max-height: 94dvh;
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	padding: 0;
+	background: var(--paper);
+	color: var(--ink);
+}
+.ex-inspect-dialog[open] {
+	display: flex;
+	flex-direction: column;
+}
+.ex-inspect-dialog::backdrop {
+	background: rgb(0 0 0 / 55%);
+}
+.ex-inspect-dialog[data-mode='sidebar'] {
+	width: min(580px, 100vw);
+	height: 100dvh;
+	max-height: 100dvh;
+	margin: 0 0 0 auto;
+	border-radius: 0;
+}
+.ex-inspect-header {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
+	border-bottom: 1px solid var(--rule);
+	font: 600 var(--text-md) var(--display);
+}
+.ex-inspect-header strong {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.ex-inspect-body {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	padding: var(--space-6);
+}
+.ex-inspect-body > ex-markdown {
+	width: min(78ch, 100%);
+	margin-inline: auto;
+}
+.ex-inspect-body > ex-mermaid {
+	display: grid;
+	justify-items: center;
+}
+.ex-inspect-body .ex-inspect-controls {
+	display: none;
+}
+.ex-arrow-canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 1px;
+	height: 1px;
+	overflow: visible;
+	pointer-events: none;
+	color: var(--accent);
+	z-index: 1;
+}
+.ex-arrow-blocked {
+	stroke-dasharray: 4 4;
+}
+.ex-arrow-line {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.8;
+}
+.ex-arrow-label {
+	fill: var(--ink);
+	font: var(--text-sm) var(--display);
+	text-anchor: middle;
+	paint-order: stroke;
+	stroke: var(--paper);
+	stroke-width: 5px;
+	stroke-linejoin: round;
+}
+@media (hover: none) {
+	.ex-inspect-controls {
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+ex-document,
+ex-markdown,
+ex-mermaid,
+ex-tabs,
+ex-zoom,
+ex-decision,
+ex-callout,
+ex-timeline,
+ex-file-tree {
+	display: block;
+}
+ex-layer.band {
+	display: grid;
+}
+ex-compare,
+ex-diagram-diff {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-4);
+	margin-block: var(--space-6);
+}
+ex-compare > [slot],
+ex-diagram-diff > [slot] {
+	min-width: 0;
+}
+.ex-tab-bar,
+.ex-zoom-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	margin-block: var(--space-3);
+}
+button {
+	font: 600 var(--text-md) var(--display);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+	background: var(--sheet);
+	color: var(--ink);
+	cursor: pointer;
+}
+button[aria-selected='true'] {
+	background: var(--accent-soft);
+	border-color: var(--accent);
+	color: var(--accent);
+}
+[hidden] {
+	display: none !important;
+}
+.ex-timeline {
+	border-left: 2px solid var(--accent);
+	padding-left: var(--space-6);
+	margin-block: var(--space-6);
+}
+.ex-timeline > section {
+	padding: var(--space-2) 0 var(--space-5);
+}
+.ex-timeline h3 {
+	margin-top: 0;
+}
+.ex-file-tree {
+	font: var(--text-sm) var(--mono);
+	white-space: pre-wrap;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	padding: var(--space-5);
+	margin-block: var(--space-5);
+}
+ex-markdown pre {
+	overflow: auto;
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	padding: var(--space-4);
+	font: var(--text-xs)/1.6 var(--mono);
+}
+ex-markdown {
+	min-width: 0;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+.ex-table-scroll {
+	max-width: 100%;
+	overflow-x: auto;
+}
+ex-markdown ex-mermaid svg {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin-block: var(--space-5);
+}
+ex-document h1 + p {
+	font-size: var(--text-xl);
+	line-height: 1.55;
+	max-width: 62ch;
+}
+ex-markdown pre code {
+	background: none;
+	padding: 0;
+}
+ex-decision[status='accepted'] {
+	border-left-color: var(--codex);
+}
+ex-callout[type='risk'] {
+	background: var(--missing-bg);
+	border-left: 4px solid var(--missing);
+}
+[data-change='added'] {
+	color: var(--diff-added);
+}
+[data-change='removed'] {
+	color: var(--diff-removed);
+}
+[data-change='modified'] {
+	color: var(--diff-modified);
+}
+[data-change='unchanged'] {
+	color: var(--diff-unchanged);
+}
+[data-change='focused'] {
+	color: var(--accent);
+}
+.prototype-banner {
+	font: var(--text-sm) var(--display);
+	padding: var(--space-3) var(--space-5);
+	border-bottom: 1px solid var(--rule);
+}
+.detail-index {
+	display: grid;
+	gap: var(--space-4);
+}
+.detail-index article {
+	padding: var(--space-4);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--sheet);
+}
+.detail-index h3 {
+	margin-top: 0;
+}
+.detail-index p {
+	font-size: var(--text-md);
+}
+.wide-reading {
+	max-width: none;
+}
+.diagram-label {
+	font: 600 var(--text-lg) var(--display);
+	margin-block: var(--space-3);
+}
+.ex-toc-source {
+	margin-top: var(--space-6);
+}
+.ex-toc-source a {
+	font-size: var(--text-sm);
+}
+@media (max-width: 800px) {
+	ex-compare,
+	ex-diagram-diff {
+		grid-template-columns: 1fr;
+	}
+}

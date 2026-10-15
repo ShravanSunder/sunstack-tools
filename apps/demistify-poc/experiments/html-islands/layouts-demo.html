@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>HTML Islands — Any HTML layout</title>
+		<link rel="stylesheet" href="islands/theme.css" />
+		<script type="module" src="islands/runtime.js"></script>
+	</head>
+	<body>
+		<ex-nav><a href="./html-islands-live.html">Planning explainer</a></ex-nav>
+		<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
+			<a href="../..">Explainers</a><span aria-current="page">Layout showcase</span>
+			<a href="html-islands-live.html">Planning explainer</a>
+			<button
+				type="button"
+				class="ex-icon-button"
+				data-ex-theme
+				aria-label="Switch theme"
+				title="Switch theme"
+			>
+				<i class="ph ph-circle-half" aria-hidden="true"></i>
+			</button>
+		</nav>
+		<ex-document style="display: block; max-width: 1320px; margin: 40px auto"
+			><ex-markdown
+				><script type="text/markdown">
+					# The same islands in any HTML layout
+
+					HTML owns the layout. Islands keep their rendering, inspection and connections in a grid, ordinary flow or an absolute-positioned whiteboard. Expand any item to inspect its full job and boundary.
+				</script></ex-markdown
+			><ex-tabs
+				><section label="Grid">
+					<div style="overflow: auto">
+						<ex-flow>
+							<ex-zoom id="grid-requirements" label="Requirements" class="island-surface" style=""
+								><ex-markdown
+									><script type="text/markdown">
+										### Requirements
+
+										Authorized outcome and boundary
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHY · for whom — Authorized outcome and boundary**
+
+										The Lead clarifies the consumer, adopted outcome, constraints and scope with the owner. Requirements receives its local review and owner confirmation or explicit waiver.
+
+										**Boundary:** No inferred preference becomes an authorized requirement.
+
+										Source reference: Five-document family · Requirements
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom id="grid-specification" label="Specification" class="island-surface" style=""
+								><ex-markdown
+									><script type="text/markdown">
+										### Specification
+
+										Entities, invariants and obligations
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHAT · observable — Entities, invariants and obligations**
+
+										It defines what correct means through observable permitted and forbidden behavior, traced to Requirements, including domain identity and states.
+
+										**Boundary:** It does not choose internal modules, persistence shapes, test layers or mechanisms.
+
+										Source reference: Five-document family · Specification
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom id="grid-program" label="Program Design" class="island-surface" style=""
+								><ex-markdown
+									><script type="text/markdown">
+										### Program Design
+
+										Owners, interfaces and proof seams
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**HOW · structure — Owners, interfaces and proof seams**
+
+										It chooses responsibilities, interfaces, state, failure and concurrency realization. It names sufficient observation seams and what must stay real, with structural confirmation or waiver.
+
+										**Boundary:** Test Design chooses scenarios and layers within these structural constraints.
+
+										Source reference: Five-document family · Program Design
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom id="grid-tests" label="Test Design" class="island-surface" style=""
+								><ex-markdown
+									><script type="text/markdown">
+										### Test Design
+
+										Scenario → real interaction → oracle
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHICH wrong behavior — Scenario → real interaction → oracle**
+
+										It selects scenarios, independent oracles, the cheapest honest layers, substitutions, deterministic completion, and keep/repair/remove decisions.
+
+										**Boundary:** A planned red is owed evidence. It is not an executed failing test. The Implementer writes product tests.
+
+										Source reference: Five-document family · Test Design
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="grid-verification"
+								label="Verification Design"
+								class="island-surface"
+								style=""
+								><ex-markdown
+									><script type="text/markdown">
+										### Verification Design
+
+										Reference → route → observation
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**HOW the real system shows it — Reference → route → observation**
+
+										It names the independent correctness reference, real build/configuration/client, outcome observations, passing conditions, reuse and limits.
+
+										**Boundary:** An acknowledgement, another target or a mocked path cannot prove the adopted outcome. Planned observations remain owed.
+
+										Source reference: Five-document family · Verification Design
+									</script></ex-markdown
+								></ex-zoom
+							><ex-arrow
+								from="grid-requirements"
+								to="grid-specification"
+								label="informs"
+							></ex-arrow>
+							<ex-arrow from="grid-specification" to="grid-program" label="informs"></ex-arrow>
+							<ex-arrow from="grid-program" to="grid-tests" label="informs"></ex-arrow>
+							<ex-arrow from="grid-tests" to="grid-verification" label="informs"></ex-arrow>
+						</ex-flow>
+					</div>
+				</section>
+				<section label="Normal flow">
+					<div style="overflow: auto">
+						<div style="display: block; max-width: 680px; margin: auto; padding: 24px">
+							<ex-zoom
+								id="flow-requirements"
+								label="Requirements"
+								class="island-surface"
+								style="margin-bottom: 70px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Requirements
+
+										Authorized outcome and boundary
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHY · for whom — Authorized outcome and boundary**
+
+										The Lead clarifies the consumer, adopted outcome, constraints and scope with the owner. Requirements receives its local review and owner confirmation or explicit waiver.
+
+										**Boundary:** No inferred preference becomes an authorized requirement.
+
+										Source reference: Five-document family · Requirements
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="flow-specification"
+								label="Specification"
+								class="island-surface"
+								style="margin-bottom: 70px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Specification
+
+										Entities, invariants and obligations
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHAT · observable — Entities, invariants and obligations**
+
+										It defines what correct means through observable permitted and forbidden behavior, traced to Requirements, including domain identity and states.
+
+										**Boundary:** It does not choose internal modules, persistence shapes, test layers or mechanisms.
+
+										Source reference: Five-document family · Specification
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="flow-program"
+								label="Program Design"
+								class="island-surface"
+								style="margin-bottom: 70px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Program Design
+
+										Owners, interfaces and proof seams
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**HOW · structure — Owners, interfaces and proof seams**
+
+										It chooses responsibilities, interfaces, state, failure and concurrency realization. It names sufficient observation seams and what must stay real, with structural confirmation or waiver.
+
+										**Boundary:** Test Design chooses scenarios and layers within these structural constraints.
+
+										Source reference: Five-document family · Program Design
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="flow-tests"
+								label="Test Design"
+								class="island-surface"
+								style="margin-bottom: 70px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Test Design
+
+										Scenario → real interaction → oracle
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHICH wrong behavior — Scenario → real interaction → oracle**
+
+										It selects scenarios, independent oracles, the cheapest honest layers, substitutions, deterministic completion, and keep/repair/remove decisions.
+
+										**Boundary:** A planned red is owed evidence. It is not an executed failing test. The Implementer writes product tests.
+
+										Source reference: Five-document family · Test Design
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="flow-verification"
+								label="Verification Design"
+								class="island-surface"
+								style="margin-bottom: 70px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Verification Design
+
+										Reference → route → observation
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**HOW the real system shows it — Reference → route → observation**
+
+										It names the independent correctness reference, real build/configuration/client, outcome observations, passing conditions, reuse and limits.
+
+										**Boundary:** An acknowledgement, another target or a mocked path cannot prove the adopted outcome. Planned observations remain owed.
+
+										Source reference: Five-document family · Verification Design
+									</script></ex-markdown
+								></ex-zoom
+							><ex-arrow
+								from="flow-requirements"
+								to="flow-specification"
+								label="informs"
+							></ex-arrow>
+							<ex-arrow from="flow-specification" to="flow-program" label="informs"></ex-arrow>
+							<ex-arrow from="flow-program" to="flow-tests" label="informs"></ex-arrow>
+							<ex-arrow from="flow-tests" to="flow-verification" label="informs"></ex-arrow>
+						</div>
+					</div>
+				</section>
+				<section label="Whiteboard">
+					<div style="overflow: auto">
+						<div style="position: relative; width: 1080px; height: 700px; margin: 24px">
+							<ex-zoom
+								id="board-requirements"
+								label="Requirements"
+								class="island-surface"
+								style="position: absolute; left: 20px; top: 30px; width: 280px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Requirements
+
+										Authorized outcome and boundary
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHY · for whom — Authorized outcome and boundary**
+
+										The Lead clarifies the consumer, adopted outcome, constraints and scope with the owner. Requirements receives its local review and owner confirmation or explicit waiver.
+
+										**Boundary:** No inferred preference becomes an authorized requirement.
+
+										Source reference: Five-document family · Requirements
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="board-specification"
+								label="Specification"
+								class="island-surface"
+								style="position: absolute; left: 360px; top: 70px; width: 280px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Specification
+
+										Entities, invariants and obligations
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHAT · observable — Entities, invariants and obligations**
+
+										It defines what correct means through observable permitted and forbidden behavior, traced to Requirements, including domain identity and states.
+
+										**Boundary:** It does not choose internal modules, persistence shapes, test layers or mechanisms.
+
+										Source reference: Five-document family · Specification
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="board-program"
+								label="Program Design"
+								class="island-surface"
+								style="position: absolute; left: 700px; top: 25px; width: 280px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Program Design
+
+										Owners, interfaces and proof seams
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**HOW · structure — Owners, interfaces and proof seams**
+
+										It chooses responsibilities, interfaces, state, failure and concurrency realization. It names sufficient observation seams and what must stay real, with structural confirmation or waiver.
+
+										**Boundary:** Test Design chooses scenarios and layers within these structural constraints.
+
+										Source reference: Five-document family · Program Design
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="board-tests"
+								label="Test Design"
+								class="island-surface"
+								style="position: absolute; left: 120px; top: 330px; width: 280px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Test Design
+
+										Scenario → real interaction → oracle
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**WHICH wrong behavior — Scenario → real interaction → oracle**
+
+										It selects scenarios, independent oracles, the cheapest honest layers, substitutions, deterministic completion, and keep/repair/remove decisions.
+
+										**Boundary:** A planned red is owed evidence. It is not an executed failing test. The Implementer writes product tests.
+
+										Source reference: Five-document family · Test Design
+									</script></ex-markdown
+								></ex-zoom
+							>
+							<ex-zoom
+								id="board-verification"
+								label="Verification Design"
+								class="island-surface"
+								style="position: absolute; left: 600px; top: 360px; width: 280px"
+								><ex-markdown
+									><script type="text/markdown">
+										### Verification Design
+
+										Reference → route → observation
+									</script></ex-markdown
+								><ex-markdown slot="details"
+									><script type="text/markdown">
+										    									**HOW the real system shows it — Reference → route → observation**
+
+										It names the independent correctness reference, real build/configuration/client, outcome observations, passing conditions, reuse and limits.
+
+										**Boundary:** An acknowledgement, another target or a mocked path cannot prove the adopted outcome. Planned observations remain owed.
+
+										Source reference: Five-document family · Verification Design
+									</script></ex-markdown
+								></ex-zoom
+							><ex-arrow
+								from="board-requirements"
+								to="board-specification"
+								label="informs"
+							></ex-arrow>
+							<ex-arrow from="board-specification" to="board-program" label="informs"></ex-arrow>
+							<ex-arrow from="board-program" to="board-tests" label="informs"></ex-arrow>
+							<ex-arrow from="board-tests" to="board-verification" label="informs"></ex-arrow>
+						</div>
+					</div></section></ex-tabs
+		></ex-document>
+	</body>
+</html>

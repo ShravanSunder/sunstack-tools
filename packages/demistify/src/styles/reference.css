@@ -1,0 +1,420 @@
+/* the decision callout */
+.decision {
+	margin-top: var(--space-6);
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-left: 4px solid var(--accent);
+	padding: var(--space-5) var(--space-6);
+	border-radius: var(--radius-sm);
+}
+.decision .q {
+	font-family: var(--display);
+	font-size: var(--text-2xl);
+	font-weight: 600;
+	line-height: 1.25;
+	margin: var(--space-1) 0 var(--space-2);
+	max-width: none;
+}
+.decision p {
+	margin: var(--space-1) 0;
+}
+.decision .decided {
+	background: var(--keep-bg);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+}
+
+/* legend + chips */
+.legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2) var(--space-4);
+	margin: var(--space-4) 0 var(--space-1);
+	font-family: var(--display);
+	font-size: var(--text-sm);
+	color: var(--ink-soft);
+}
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	font-family: var(--mono);
+	font-size: var(--text-xs);
+	padding: 3px var(--space-2);
+	border-radius: var(--radius-pill);
+	text-decoration: none;
+	line-height: 1.4;
+	border: 1px solid transparent;
+	white-space: nowrap;
+}
+.chip::before {
+	content: '';
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+	flex: none;
+}
+.s-keep {
+	color: var(--keep);
+	background: var(--keep-bg);
+}
+.s-change {
+	color: var(--change);
+	background: var(--change-bg);
+}
+.s-strong {
+	color: var(--strong);
+	background: var(--strong-bg);
+}
+.s-missing {
+	color: var(--missing);
+	background: var(--missing-bg);
+	border: 1px dashed var(--missing);
+}
+.s-patch {
+	color: var(--patch);
+	background: var(--patch-bg);
+}
+a.chip:hover,
+a.chip:focus-visible {
+	border-color: currentColor;
+	outline: none;
+}
+
+/* the tree: stacked level bands */
+.tree {
+	display: grid;
+	gap: var(--space-2);
+	margin-top: var(--space-5);
+}
+.band {
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr);
+	overflow: hidden;
+}
+@media (max-width: 640px) {
+	.band {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+.band .lv {
+	padding: var(--space-4);
+	border-right: 1px solid var(--rule);
+	display: grid;
+	align-content: start;
+	gap: 2px;
+	background: var(--accent-soft);
+}
+@media (max-width: 640px) {
+	.band .lv {
+		border-right: 0;
+		border-bottom: 1px solid var(--rule);
+	}
+}
+.band .lv .code {
+	font-family: var(--display);
+	font-size: var(--text-3xl);
+	font-weight: 700;
+	color: var(--accent);
+	line-height: 1;
+}
+.band .lv .name {
+	font-family: var(--display);
+	font-weight: 600;
+	font-size: var(--text-base);
+}
+.band .lv .kind {
+	font-family: var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	font-size: var(--text-2xs);
+	color: var(--ink-soft);
+}
+.band .body {
+	padding: var(--space-3) var(--space-4);
+	display: grid;
+	gap: var(--space-2);
+}
+.band .q {
+	font-style: italic;
+	color: var(--ink-soft);
+	margin: 0;
+	max-width: none;
+}
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1);
+}
+.band.cross .lv {
+	background: var(--keep-bg);
+}
+.band.proposed {
+	border-style: dashed;
+	border-width: 2px;
+}
+.band.proposed .lv {
+	background: var(--sheet);
+}
+.band.proposed .lv .code {
+	font-size: var(--text-xl);
+}
+.band.cross .lv .code {
+	color: var(--keep);
+	font-size: var(--text-xl);
+}
+
+/* tables */
+.tbl {
+	overflow-x: auto;
+	margin: var(--space-3) 0;
+}
+table {
+	border-collapse: collapse;
+	width: 100%;
+	font-size: var(--text-md);
+}
+th,
+td {
+	text-align: left;
+	vertical-align: top;
+	padding: var(--space-2) var(--space-3);
+	border-bottom: 1px solid var(--rule);
+}
+th {
+	font-family: var(--display);
+	font-weight: 600;
+	font-size: var(--text-sm);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-soft);
+}
+
+/* lessons */
+.lessons {
+	display: grid;
+	gap: var(--space-6);
+	margin-top: var(--space-4);
+}
+.lesson h3 {
+	margin-top: 0;
+}
+.why {
+	background: var(--accent-soft);
+	border-radius: var(--radius-sm);
+	padding: var(--space-3) var(--space-4);
+	margin-top: var(--space-3);
+}
+.why b {
+	font-family: var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: var(--text-xs);
+	color: var(--accent);
+}
+.src {
+	font-family: var(--mono);
+	font-size: var(--text-2xs);
+	color: var(--ink-soft);
+}
+.ok {
+	color: var(--codex);
+	font-weight: 600;
+}
+.hold {
+	color: var(--change);
+	font-weight: 600;
+}
+
+/* skill cards */
+.level {
+	margin-top: var(--space-10);
+}
+.level > h3 {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-3);
+	flex-wrap: wrap;
+}
+.level > h3 .code {
+	color: var(--accent);
+}
+.level-intro {
+	color: var(--ink-soft);
+}
+.skills {
+	display: grid;
+	gap: var(--space-3);
+	margin-top: var(--space-3);
+}
+.skill {
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	padding: var(--space-4) var(--space-5);
+	scroll-margin-top: 24px;
+}
+.skill header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2) var(--space-3);
+}
+.skill h4 {
+	font-family: var(--mono);
+	font-weight: 500;
+	font-size: var(--text-base);
+}
+.skill .tag {
+	font-family: var(--display);
+	font-size: var(--text-xs);
+	color: var(--ink-soft);
+}
+.skill dl {
+	display: grid;
+	grid-template-columns: 90px minmax(0, 1fr);
+	gap: var(--space-1) var(--space-3);
+	margin: var(--space-3) 0 0;
+}
+@media (max-width: 640px) {
+	.skill dl {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+.skill dt {
+	font-family: var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: var(--text-2xs);
+	color: var(--ink-soft);
+	padding-top: 3px;
+}
+.skill dd {
+	margin: 0;
+}
+.skill dd ul {
+	margin: 0;
+}
+.note {
+	margin-top: var(--space-3);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+	font-size: var(--text-md);
+}
+.note.codex {
+	background: var(--codex-bg);
+}
+.note.advisor {
+	background: var(--accent-soft);
+}
+.note b {
+	font-family: var(--display);
+	letter-spacing: 0.04em;
+}
+.principles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1);
+	margin-top: var(--space-2);
+}
+
+.decisions {
+	counter-reset: d;
+	list-style: none;
+	padding: 0;
+	display: grid;
+	gap: var(--space-2);
+}
+.decisions li {
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-sm);
+	padding: var(--space-3) var(--space-4);
+	max-width: none;
+}
+.decisions li.first {
+	border-left: 4px solid var(--accent);
+}
+.forms {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: var(--space-3);
+	margin-top: var(--space-3);
+}
+.form-card {
+	background: var(--sheet);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+}
+.form-card h4 {
+	font-family: var(--display);
+	font-size: var(--text-lg);
+}
+.form-card p {
+	margin: var(--space-1) 0 0;
+	font-size: var(--text-md);
+}
+pre.flow {
+	font-family: var(--mono);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+	background: var(--sheet);
+	color: var(--ink);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+	overflow-x: auto;
+	margin: var(--space-3) 0;
+	white-space: pre;
+}
+.rolegrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+	gap: var(--space-3);
+	margin-top: var(--space-3);
+}
+.rolegrid .skill dl {
+	grid-template-columns: 76px minmax(0, 1fr);
+}
+.rolegrid .skill dd {
+	font-size: var(--text-md);
+}
+.case {
+	font-size: var(--text-md);
+	color: var(--ink-soft);
+}
+.three {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+	gap: var(--space-3);
+	margin-top: var(--space-3);
+}
+.three .form-card ul {
+	margin: var(--space-1) 0 0;
+	padding-left: var(--space-4);
+	font-size: var(--text-md);
+}
+footer {
+	margin-top: var(--space-16);
+	color: var(--ink-soft);
+	font-size: var(--text-md);
+	border-top: 1px solid var(--rule);
+	padding-top: var(--space-4);
+}
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		scroll-behavior: auto;
+	}
+}
+html {
+	scroll-behavior: smooth;
+}

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Commerce domain map</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+<ex-markdown><script type="text/markdown">
+# Commerce domain at a glance
+
+An illustrative domain, dated 2026-10-14, for an engineer joining the team. Use it to see every entity, the area each one lives in and how they connect, then come back to look things up. Each card is tagged with its kind (aggregate, entity or value); fields sit one click away.
+</script></ex-markdown>
+
+<ex-callout tone="tldr">Five areas own twenty entities. An order is the spine: identity places it, catalog prices it, billing pays for it, fulfilment delivers it.</ex-callout>
+
+<ex-markdown><script type="text/markdown">
+## The spine
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+flowchart LR
+  identity["Identity<br/>who the customer is"] -->|places| order["Order"]
+  catalog["Catalog<br/>what can be sold"] -->|prices| order
+  billing["Billing<br/>money in and out"] -->|pays for| order
+  fulfilment["Fulfilment<br/>getting it to the customer"] -->|delivers| order
+</script></ex-mermaid>
+
+<ex-markdown><script type="text/markdown">
+## How the entities connect
+
+Every box opens its card. Each arrow reads from the first entity to the second.
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+flowchart LR
+  subgraph areaIdentity["Identity"]
+    customer["Customer"]
+    account["Account"]
+    address["Address"]
+    consent["Consent record"]
+  end
+  subgraph areaOrdering["Ordering"]
+    cart["Cart"]
+    order["Order"]
+    orderLine["Order line"]
+    discount["Discount"]
+  end
+  subgraph areaCatalog["Catalog"]
+    product["Product"]
+    sku["Variant / SKU"]
+    price["Price"]
+    inventory["Inventory level"]
+  end
+  subgraph areaBilling["Billing"]
+    payment["Payment"]
+    invoice["Invoice"]
+    refund["Refund"]
+    taxRate["Tax rate"]
+  end
+  subgraph areaFulfilment["Fulfilment"]
+    warehouse["Warehouse"]
+    shipment["Shipment"]
+    parcel["Parcel"]
+    returns["Return"]
+  end
+  customer -->|has one| account
+  customer -->|has many| address
+  customer -->|places| order
+  cart -->|checks out to| order
+  order -->|contains| orderLine
+  orderLine -->|refers to| sku
+  sku -->|belongs to| product
+  sku -->|priced by| price
+  sku -->|stocked as| inventory
+  order -->|paid by| payment
+  payment -->|issues| invoice
+  payment -->|reversed by| refund
+  order -->|fulfilled by| shipment
+  shipment -->|leaves from| warehouse
+  shipment -->|contains| parcel
+  returns -->|triggers| refund
+</script></ex-mermaid>
+
+<ex-card title="All 16 relationships" tag="as a list">
+<details><summary>Show the list</summary>
+<ul>
+<li>Customer → Account (has one)</li>
+<li>Customer → Address (has many)</li>
+<li>Customer → Order (places)</li>
+<li>Cart → Order (checks out to)</li>
+<li>Order → Order line (contains)</li>
+<li>Order line → Variant / SKU (refers to)</li>
+<li>Variant / SKU → Product (belongs to)</li>
+<li>Variant / SKU → Price (priced by)</li>
+<li>Variant / SKU → Inventory level (stocked as)</li>
+<li>Order → Payment (paid by)</li>
+<li>Payment → Invoice (issues)</li>
+<li>Payment → Refund (reversed by)</li>
+<li>Order → Shipment (fulfilled by)</li>
+<li>Shipment → Warehouse (leaves from)</li>
+<li>Shipment → Parcel (contains)</li>
+<li>Return → Refund (triggers)</li>
+</ul>
+</details>
+</ex-card>
+
+<ex-callout tone="risk" title="Things people get wrong">
+<ul>
+<li>Order line prices are copied at purchase; changing a Price never changes an existing order.</li>
+<li>Inventory is reserved at checkout and released if payment fails within 15 minutes.</li>
+<li>A cancelled order that was already paid needs a Refund; cancelling does not refund by itself.</li>
+</ul>
+</ex-callout>
+
+<ex-markdown><script type="text/markdown">
+## Lifecycles and statuses
+</script></ex-markdown>
+
+<ex-mermaid><script type="text/plain">
+stateDiagram-v2
+  [*] --> placed
+  placed --> paid
+  paid --> fulfilled
+  fulfilled --> closed
+  closed --> [*]
+  placed --> cancelled
+  paid --> cancelled
+</script></ex-mermaid>
+
+<ex-markdown><script type="text/markdown">
+| Entity | Status values |
+|---|---|
+| Order | placed, paid, fulfilled, closed, cancelled |
+| Product | draft, live, retired |
+| Payment | authorised, captured, failed, refunded |
+| Shipment | pending, packed, shipped, delivered |
+</script></ex-markdown>
+
+<ex-markdown><script type="text/markdown">
+## Identity: who the customer is
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="customer" title="Customer" tag="aggregate">
+<p>Person or company that places orders.</p>
+<p><strong>Rule:</strong> email is unique.</p>
+<details><summary>Fields</summary><p>id, name, email, type (person | company), created at</p></details>
+</ex-card>
+<ex-card id="account" title="Account" tag="entity">
+<p>Sign-in credentials for a customer.</p>
+<p><strong>Rule:</strong> one account per customer.</p>
+<details><summary>Fields</summary><p>customer id, password hash, MFA enabled, last sign-in</p></details>
+</ex-card>
+<ex-card id="address" title="Address" tag="value">
+<p>Postal address, used for shipping and invoices.</p>
+<details><summary>Fields</summary><p>lines, city, postcode, country</p></details>
+</ex-card>
+<ex-card id="consent" title="Consent record" tag="entity">
+<p>Marketing and data-processing consents.</p>
+<p><strong>Rule:</strong> append-only; latest version wins.</p>
+<details><summary>Fields</summary><p>customer id, purpose, granted at, version</p></details>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## Catalog: what can be sold
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="product" title="Product" tag="aggregate">
+<p>A sellable item family.</p>
+<details><summary>Fields</summary><p>id, name, description, status (draft | live | retired)</p></details>
+</ex-card>
+<ex-card id="sku" title="Variant / SKU" tag="entity">
+<p>A specific size or colour.</p>
+<details><summary>Fields</summary><p>sku, product id, attributes, weight</p></details>
+</ex-card>
+<ex-card id="price" title="Price" tag="value">
+<p>Price of a SKU in a currency.</p>
+<p><strong>Rule:</strong> one active price per SKU and currency.</p>
+<details><summary>Fields</summary><p>sku, currency, amount, valid from</p></details>
+</ex-card>
+<ex-card id="inventory" title="Inventory level" tag="entity">
+<p>Stock per SKU per warehouse.</p>
+<details><summary>Fields</summary><p>sku, warehouse id, on hand, reserved</p></details>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## Ordering: carts become orders
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="cart" title="Cart" tag="aggregate">
+<p>Items before checkout.</p>
+<p><strong>Rule:</strong> expires after 7 days idle.</p>
+<details><summary>Fields</summary><p>id, customer id (optional), lines, expires at</p></details>
+</ex-card>
+<ex-card id="order" title="Order" tag="aggregate">
+<p>The committed purchase.</p>
+<p><strong>States:</strong> placed → paid → fulfilled → closed; cancelled from placed or paid.</p>
+<details><summary>Fields</summary><p>id, customer id, status, totals, placed at</p></details>
+</ex-card>
+<ex-card id="orderLine" title="Order line" tag="entity">
+<p>One SKU in an order.</p>
+<p><strong>Rule:</strong> price is copied, never re-read.</p>
+<details><summary>Fields</summary><p>sku, quantity, unit price at purchase</p></details>
+</ex-card>
+<ex-card id="discount" title="Discount" tag="value">
+<p>A promotion applied to an order.</p>
+<p><strong>Rule:</strong> at most one per order.</p>
+<details><summary>Fields</summary><p>code, amount or percent</p></details>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## Billing: money in and out
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="payment" title="Payment" tag="aggregate">
+<p>An attempt to collect money.</p>
+<details><summary>Fields</summary><p>id, order id, method, amount, status (authorised | captured | failed | refunded)</p></details>
+</ex-card>
+<ex-card id="invoice" title="Invoice" tag="entity">
+<p>Legal document issued when an order is paid.</p>
+<p><strong>Rule:</strong> numbers are sequential per country.</p>
+<details><summary>Fields</summary><p>number, order id, billing address, tax lines</p></details>
+</ex-card>
+<ex-card id="refund" title="Refund" tag="entity">
+<p>Money returned.</p>
+<p><strong>Rule:</strong> total refunds ≤ captured amount.</p>
+<details><summary>Fields</summary><p>payment id, amount, reason</p></details>
+</ex-card>
+<ex-card id="taxRate" title="Tax rate" tag="value">
+<p>Rate by country and product class.</p>
+<details><summary>Fields</summary><p>country, class, percent</p></details>
+</ex-card>
+</ex-grid>
+
+<ex-markdown><script type="text/markdown">
+## Fulfilment: getting it to the customer
+</script></ex-markdown>
+
+<ex-grid>
+<ex-card id="warehouse" title="Warehouse" tag="entity">
+<p>A stocking location.</p>
+<details><summary>Fields</summary><p>id, address, cut-off time</p></details>
+</ex-card>
+<ex-card id="shipment" title="Shipment" tag="aggregate">
+<p>Goods leaving one warehouse for one order.</p>
+<details><summary>Fields</summary><p>id, order id, warehouse id, status (pending | packed | shipped | delivered)</p></details>
+</ex-card>
+<ex-card id="parcel" title="Parcel" tag="entity">
+<p>A physical box in a shipment.</p>
+<details><summary>Fields</summary><p>tracking number, carrier, weight</p></details>
+</ex-card>
+<ex-card id="returns" title="Return" tag="entity">
+<p>Goods coming back. Triggers a refund.</p>
+<details><summary>Fields</summary><p>order line, reason, received at</p></details>
+</ex-card>
+</ex-grid>
+
+<ex-callout tone="question" title="Open questions">
+<ul>
+<li>Should Address become an entity with an id so invoices can reference it after edits?</li>
+<li>Do company customers need multiple accounts?</li>
+</ul>
+</ex-callout>
+
+</ex-document>
+</body>
+</html>

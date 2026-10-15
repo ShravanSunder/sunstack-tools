@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Heading navigation without a document wrapper</title>
+		<link rel="stylesheet" href="islands/theme.css" />
+		<script type="module" src="islands/runtime.js"></script>
+	</head>
+	<body>
+		<ex-nav><a href="./html-islands-live.html">Planning explainer</a></ex-nav>
+		<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
+			<a href="../..">Explainers</a><span aria-current="page">Navigation showcase</span>
+		</nav>
+		<section style="max-width: 1000px; margin: 40px 0">
+			<ex-markdown
+				><script type="text/markdown">
+					# Heading navigation without a document wrapper
+
+					This page deliberately uses the body fallback: no main or ex-document wrapper. A single ex-nav discovers asynchronously rendered Markdown headings without observing its own outline updates.
+
+					## The proposal
+
+					Keep session identity separate from the transport connection.
+
+					### Ownership
+
+					The registry owns the session. The socket carries messages.
+
+					#### State transition
+
+					An interrupted connection does not destroy the session.
+
+					##### Reconnection rule
+
+					Resume the same identity after validating the reconnect request.
+
+					###### Observation
+
+					Look for the same session identity before and after transport reconnection.
+
+					## Next page
+
+					Use the ordinary relative page link under Other pages.
+				</script></ex-markdown
+			>
+		</section>
+	</body>
+</html>

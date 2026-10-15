@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session registry deep dive</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Session registry
+
+Deep dive for an engineer about to change the session registry. Illustrative component, dated 2026-10-14.
+
+<ex-grid cols="4">
+<ex-callout tone="tldr" span="2" title="What it does">The session registry keeps a client's session alive across dropped connections. It maps a session id to live state for a grace window, so a reconnecting client resumes instead of starting over. It runs in every gateway instance and stores sessions in Redis.</ex-callout>
+<ex-stat value="97.8%" label="Resume success rate" note="last 7 days, production" tone="done"></ex-stat>
+<ex-stat value="0%" label="Resume after client sleep over 5 min" note="last 7 days, production" tone="risk"></ex-stat>
+</ex-grid>
+
+<ex-route label="60-second tour">
+<ex-step to="api">Registry API is the only entry point: create, resume, touch and expire.</ex-step>
+<ex-step to="store">Each session is a Redis hash under sess:{id}, with a TTL equal to the grace window.</ex-step>
+<ex-step to="detached">A dropped socket leaves the session detached while the grace window runs.</ex-step>
+<ex-step to="check">Resume succeeds only when the session is detached and the version matches.</ex-step>
+</ex-route>
+<ex-route label="Before changing it" steps="api decide-cas fail-tabs issue-logs issue-grace"></ex-route>
+
+## Parts
+
+The registry is five parts around one session store. Click a box to open its card.
+
+<ex-mermaid><script type="text/plain">
+flowchart LR
+  api["Registry API"] -->|reads and writes| store["Session store"]
+  api -->|attach and detach| binder["Socket binder"]
+  api -->|started and resumed| publisher["Event publisher"]
+  sweeper["Expiry sweeper"] -->|scans| store
+  sweeper -->|ended| publisher
+  publisher --> bus["Event bus"]
+</script></ex-mermaid>
+
+<ex-grid cols="3">
+<ex-card id="api" title="Registry API" tone="note" tag="entry point">
+
+The only entry point: `create(clientId)`, `resume(sessionId, socket)`, `touch(sessionId)`, `expire(sessionId)`.
+
+<details><summary>Relationships</summary>Reads and writes the session store, attaches and detaches sockets through the socket binder, and publishes started and resumed events.</details>
+</ex-card>
+<ex-card id="store" title="Session store" tone="note" tag="Redis">
+
+One Redis hash per session, key `sess:{id}`. Fields: client id, state, last seen, version. TTL equals the grace window.
+
+<details><summary>Grace window</summary>Set by `SESSION_GRACE_SECONDS`, default 300.</details>
+</ex-card>
+<ex-card id="binder" title="Socket binder" tone="note" tag="one socket">
+
+Attaches and detaches the live socket for a session. At most one socket per session.
+</ex-card>
+<ex-card id="sweeper" title="Expiry sweeper" tone="note" tag="every 30 s">
+
+Background task. Scans the session store, ends sessions whose grace window has passed, and emits `session.ended`.
+
+<details><summary>Period</summary>Set by `SWEEP_INTERVAL_SECONDS`, default 30.</details>
+</ex-card>
+<ex-card id="publisher" title="Event publisher" tone="note" tag="event bus">
+
+Publishes `session.started`, `session.resumed` and `session.ended` to the event bus.
+
+<details><summary>Who publishes what</summary>The registry API publishes started and resumed. The expiry sweeper publishes ended.</details>
+</ex-card>
+</ex-grid>
+
+## States
+
+A session is in one of three states. Socket events and the grace window move it.
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+stateDiagram-v2
+  active --> detached : socket drops
+  detached --> active : resume within grace window
+  detached --> ended : grace window passed
+  active --> ended : logout
+  ended --> [*]
+</script></ex-mermaid>
+<div sticky>
+<ex-card id="active" title="Active" tone="note" tag="socket attached">
+
+A socket is attached. Moves to detached on a socket drop, or to ended on logout.
+</ex-card>
+<ex-card id="detached" title="Detached" tone="note" tag="grace running">
+
+The socket dropped and the grace window is running. Returns to active on a resume within the window. Moves to ended when the window passes.
+</ex-card>
+<ex-card id="ended" title="Ended" tone="note" tag="final">
+
+The grace window passed or the client logged out. Final.
+</ex-card>
+</div>
+</ex-grid>
+
+## Resume flow
+
+The gateway calls `resume` and the registry checks the stored session before attaching the socket.
+
+<ex-grid cols="3">
+<ex-mermaid span="2"><script type="text/plain">
+flowchart TD
+  client["Client reconnects with session id"] --> gw["Gateway calls resume"]
+  gw --> store["Registry reads session from Redis"]
+  store --> check{"Detached and version matches?"}
+  check -- yes --> binder["Binder attaches socket"]
+  binder --> active["State active, version increments"]
+  active --> publisher["Publish session.resumed"]
+  publisher --> ret["Return session"]
+  check -- no --> miss["Gateway tells client to start new session"]
+</script></ex-mermaid>
+<ex-card id="resume-steps" title="Resume, step by step" tone="note">
+
+1. Client reconnects and sends its session id.
+2. Gateway calls `resume(sessionId, socket)`.
+3. Registry reads `sess:{id}` from Redis.
+4. If the state is detached and the version matches, the binder attaches the socket, state becomes active, version increments.
+5. Registry publishes `session.resumed` and returns the session.
+6. Otherwise the gateway tells the client to start a new session.
+</ex-card>
+</ex-grid>
+
+## Key code
+
+The `resume` function as written. The notes mark the lines that matter.
+
+<ex-code title="resume, as written" lang="ts" start="1"><script type="text/plain">
+export async function resume(id: string, socket: Socket): Promise<Session | undefined> {
+  const session = await store.read(id);
+  if (!session || session.state !== 'detached') return undefined;
+  const attached = await store.compareAndSet(id, session.version, { state: 'active' });
+  if (!attached) return undefined;
+  binder.attach(id, socket);
+  events.publish('session.resumed', { id });
+  return attached;
+}
+</script>
+<ex-note line="2" tone="note">A network round trip to Redis.</ex-note>
+<ex-note line="4" tone="decision">The version stops two tabs resuming the same session.</ex-note>
+<ex-note line="5" tone="risk">Returns undefined when another tab won, which looks like a miss to the caller.</ex-note>
+</ex-code>
+
+## Configuration
+
+Four settings. The grace window is global; see known issues.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `SESSION_GRACE_SECONDS` | 300 | How long a detached session can resume |
+| `SWEEP_INTERVAL_SECONDS` | 30 | Expiry sweeper period |
+| `REDIS_URL` | — | Session store location |
+| `MAX_SESSIONS_PER_CLIENT` | 5 | Oldest session ends when exceeded |
+
+## Metrics
+
+Production, last 7 days.
+
+<ex-grid cols="4">
+<ex-stat value="97.8%" label="Resume success rate" note="last 7 days" tone="done"></ex-stat>
+<ex-stat value="4.1 ms" label="p95 resume latency" note="last 7 days" tone="done"></ex-stat>
+<ex-stat value="1,240" label="Sessions ended by sweeper" note="per hour" tone="note"></ex-stat>
+<ex-stat value="37" label="Two-tab conflicts" note="per day" tone="note"></ex-stat>
+</ex-grid>
+
+**Resume success by cause of disconnect**
+
+<ex-grid cols="4">
+<ex-stat value="98%" label="Network blip" tone="done"></ex-stat>
+<ex-stat value="96%" label="Deploy" tone="done"></ex-stat>
+<ex-stat value="94%" label="Instance crash" tone="note"></ex-stat>
+<ex-stat value="0%" label="Client sleep over 5 min" tone="risk"></ex-stat>
+</ex-grid>
+
+## Failure behaviour
+
+<ex-grid cols="3">
+<ex-card id="fail-redis" title="Redis unavailable" tone="risk" tag="fails closed">
+
+`create` fails closed: the client gets an error. `resume` returns undefined, so clients start new sessions.
+</ex-card>
+<ex-card id="fail-sweeper" title="Sweeper lagging" tone="note" tag="harmless">
+
+Sessions live longer than the grace window. Harmless except for memory.
+</ex-card>
+<ex-card id="fail-tabs" title="Two tabs resume at once" tone="note" tag="version wins">
+
+One wins by version. The other starts a new session.
+</ex-card>
+</ex-grid>
+
+## Decisions
+
+<ex-grid cols="2">
+<ex-card id="decide-redis" title="Redis over in-memory" tone="decision" tag="costs ~2 ms">
+
+Survives deploys and is shared across gateway instances. Costs about 2 ms per resume.
+</ex-card>
+<ex-card id="decide-cas" title="Compare-and-set on a version, not a lock" tone="decision" tag="no lock service">
+
+No lock service needed. The loser sees a miss.
+</ex-card>
+</ex-grid>
+
+## Known issues
+
+<ex-grid cols="2">
+<ex-card id="issue-logs" title="Two-tab conflicts look like expiries in logs" tone="risk" tag="logging">
+
+A two-tab conflict looks identical to an expired session in logs.
+</ex-card>
+<ex-card id="issue-grace" title="Grace window is global" tone="question" tag="open">
+
+The 5-minute grace window is global. Some tenants want longer.
+</ex-card>
+</ex-grid>
+
+</ex-document>
+</body>
+</html>

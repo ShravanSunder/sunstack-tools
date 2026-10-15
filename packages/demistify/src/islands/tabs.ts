@@ -1,0 +1,81 @@
+import { installIslandInspector } from './inspector.ts';
+
+export class TabsIsland extends HTMLElement {
+	connectedCallback(): void {
+		if (this.hasAttribute('data-inspector-content')) return;
+		if (this.querySelector(':scope > .ex-tab-bar')) {
+			installIslandInspector(this);
+			return;
+		}
+		const panels = Array.from(this.children).filter(
+			(element): element is HTMLElement => element instanceof HTMLElement,
+		);
+		const tabBar = document.createElement('div');
+		tabBar.className = 'ex-tab-bar';
+		tabBar.setAttribute('role', 'tablist');
+		const buttons = panels.map((panel, index): HTMLButtonElement => {
+			const tabButton = document.createElement('button');
+			tabButton.type = 'button';
+			tabButton.textContent = panel.getAttribute('label') ?? `View ${index + 1}`;
+			tabButton.setAttribute('role', 'tab');
+			panel.id ||= `ex-panel-${crypto.randomUUID()}`;
+			tabButton.id = `${panel.id}-tab`;
+			tabButton.setAttribute('aria-controls', panel.id);
+			panel.setAttribute('role', 'tabpanel');
+			panel.setAttribute('aria-labelledby', tabButton.id);
+			tabButton.addEventListener('click', (): void => selectPanel(index));
+			tabButton.addEventListener('keydown', (event: KeyboardEvent): void => {
+				const nextIndex =
+					event.key === 'ArrowRight'
+						? (index + 1) % panels.length
+						: event.key === 'ArrowLeft'
+							? (index + panels.length - 1) % panels.length
+							: event.key === 'Home'
+								? 0
+								: event.key === 'End'
+									? panels.length - 1
+									: undefined;
+				if (nextIndex === undefined) return;
+				event.preventDefault();
+				selectPanel(nextIndex);
+				buttons[nextIndex]?.focus();
+			});
+			return tabButton;
+		});
+		function selectPanel(selectedIndex: number): void {
+			panels.forEach((panel, index): void => {
+				panel.hidden = index !== selectedIndex;
+			});
+			buttons.forEach((button, index): void => {
+				button.setAttribute('aria-selected', String(index === selectedIndex));
+				button.tabIndex = index === selectedIndex ? 0 : -1;
+			});
+		}
+		tabBar.append(...buttons);
+		this.prepend(tabBar);
+		selectPanel(0);
+		if (this.hasAttribute('columns')) {
+			let selected = 0;
+			const fitsSideBySide = (): boolean =>
+				this.clientWidth >= panels.length * 340 + (panels.length - 1) * 24;
+			new ResizeObserver((): void => {
+				const columns = fitsSideBySide();
+				if (columns === (this.dataset['layout'] === 'columns')) return;
+				if (columns)
+					selected = Math.max(
+						0,
+						buttons.findIndex((button): boolean => button.getAttribute('aria-selected') === 'true'),
+					);
+				this.dataset['layout'] = columns ? 'columns' : 'tabs';
+				panels.forEach((panel): void => {
+					panel.setAttribute('role', columns ? 'region' : 'tabpanel');
+					if (columns) panel.setAttribute('aria-label', panel.getAttribute('label') ?? '');
+				});
+				if (columns) for (const panel of panels) panel.hidden = false;
+				else selectPanel(selected);
+				this.dispatchEvent(new Event('island-ready', { bubbles: true }));
+			}).observe(this);
+		}
+		installIslandInspector(this);
+	}
+}

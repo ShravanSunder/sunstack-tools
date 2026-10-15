@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>HTML Islands — Mixed composition and shared styling</title>
+		<link rel="stylesheet" href="islands/theme.css" />
+		<script type="module" src="islands/runtime.js"></script>
+	</head>
+	<body>
+		<div class="prototype-banner">
+			<a href="report.html">Comparison report</a> · Component composition showcase — outside
+			comparison totals
+		</div>
+		<div class="wrap">
+			<nav class="toc" aria-label="Contents">
+				<p>Mixed islands</p>
+				<ol>
+					<li><a href="#composition">One document</a></li>
+					<li><a href="#proposal">Decision and comparison</a></li>
+					<li><a href="#details">Markdown details</a></li>
+				</ol>
+				<button type="button" data-ex-theme>Switch theme</button>
+			</nav>
+			<main>
+				<ex-document>
+					<ex-markdown id="composition"
+						><script type="text/markdown">
+							# Prose and diagrams, composed as islands
+
+							Markdown owns the explanation. Mermaid owns the diagram. HTML places them inside the same decision, comparison and document. The shared library owns their styling and interactions.
+						</script></ex-markdown
+					>
+					<ex-decision id="proposal" status="proposed">
+						<p class="eyebrow">Illustrative proposal</p>
+						<h2 class="q">Should a session survive its transport?</h2>
+						<div class="decided">
+							<ex-markdown
+								><script type="text/markdown">
+									**Proposed:** give the registry ownership of the session. The socket becomes a replaceable connection.
+								</script></ex-markdown
+							>
+						</div>
+						<ex-callout type="rationale">
+							<b>Rationale</b>
+							<ex-markdown
+								><script type="text/markdown">
+									A reconnect should attach to the existing session. Keeping that explanation next to the graph makes the ownership change inspectable.
+								</script></ex-markdown
+							>
+						</ex-callout>
+						<ex-compare>
+							<section slot="before">
+								<ex-markdown
+									><script type="text/markdown">
+										### Current
+
+										The session follows the socket's lifetime.
+									</script></ex-markdown
+								>
+								<ex-zoom
+									><ex-mermaid
+										><script type="text/plain">
+											flowchart TD
+											  Client --> Socket --> Session
+										</script></ex-mermaid
+									></ex-zoom
+								>
+							</section>
+							<section slot="after">
+								<ex-markdown
+									><script type="text/markdown">
+										### Proposed
+
+										The registry owns the session independently of the socket.
+									</script></ex-markdown
+								>
+								<ex-zoom
+									><ex-mermaid
+										><script type="text/plain">
+											flowchart TD
+											  Client --> Socket --> Registry --> Session
+											  Registry --> Reconnect
+										</script></ex-mermaid
+									></ex-zoom
+								>
+							</section>
+						</ex-compare>
+						<div class="note">
+							<b>Study note</b>
+							The supplied styling study distinguishes the question, answer, rationale and
+							commentary. Their visual geometry is shared; the author supplies the meaning.
+						</div>
+					</ex-decision>
+					<ex-markdown id="details"
+						><script type="text/markdown">
+							## Details stay Markdown
+
+							| Part     | Responsibility                  | Stable identifier                                         |
+							| -------- | ------------------------------- | --------------------------------------------------------- |
+							| Socket   | Transport connection            | `session-transport-connection-current-socket`             |
+							| Registry | Find and retain sessions        | `session-registry-owner-for-running-agent-conversations`  |
+							| Session  | Running work and retained state | `running-session-survives-disconnection-and-reconnection` |
+
+							Mermaid fences render through the same Mermaid island as an explicit tag:
+
+							```mermaid
+							flowchart TD
+							  Client --> Session
+							```
+
+							Use a text fence to show the source literally:
+
+							```text
+							flowchart TD
+							  Client --> Session
+							```
+						</script></ex-markdown
+					>
+					<ex-callout type="risk"
+						>This is an illustrative design, with no claim that the proposed system is
+						implemented.</ex-callout
+					>
+				</ex-document>
+			</main>
+		</div>
+	</body>
+</html>
