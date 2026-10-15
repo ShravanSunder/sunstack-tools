@@ -1,0 +1,15 @@
+flowchart TB
+  Caller["Caller selects a RuleSet<br/>and supplies subject bindings + input scope"] --> RS["RuleSet JSON<br/>name + description + instruction prefix<br/>ordered JSONL paths"]
+  RS -->|"explicit references"| Rule["JSONL rule definitions<br/>rule ID + target/evidence declarations<br/>named native questions"]
+  RS -->|"prefix: null or structured value"| Assembly["Rules request assembly<br/>null: question instructions unchanged<br/>provided: retain prefix and question separately"]
+  Rule -->|"instructions + unchanged criteria"| Assembly
+  Evidence["Captured subject and context<br/>source attribution + coverage"] -->|"required evidence ready"| Request["Decisions admission<br/>named questions + shared state<br/>complete serialized budget"]
+  Assembly --> Request
+  Evidence -->|"required evidence unavailable"| Failure["Typed diagnostic<br/>no completed judgment or pass"]
+  Request -->|"supported, within budget"| Jev["Jev / OpenRouter"]
+  Request -->|"invalid or budget refused"| Failure
+  Jev -->|"untrusted answers and usage"| Validate["Request-relative response validation"]
+  Jev -->|"provider failure"| Failure
+  Validate -->|"wrong name, kind, labels or values"| Failure
+  Validate -->|"completed native answers"| Result["Source-linked named judgments<br/>probability / category / rubric score<br/>receipt retained once per run"]
+  Request -.->|"observed cancellation; settle owned work"| Failure

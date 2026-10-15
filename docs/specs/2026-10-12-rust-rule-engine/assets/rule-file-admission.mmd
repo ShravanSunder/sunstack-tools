@@ -1,0 +1,11 @@
+stateDiagram-v2
+  [*] --> ReadRuleSets
+  ReadRuleSets --> CaptureSources: selected RuleSet JSON is valid
+  ReadRuleSets --> Refused: invalid fields or version
+  CaptureSources --> ValidateRuleLines: referenced sources captured
+  CaptureSources --> SourceFailure: unavailable or changed bytes
+  ValidateRuleLines --> Refused: invalid, empty or duplicate definitions
+  ValidateRuleLines --> Admitted: all selected definitions valid
+  Admitted --> [*]
+  Refused --> [*]
+  SourceFailure --> [*]

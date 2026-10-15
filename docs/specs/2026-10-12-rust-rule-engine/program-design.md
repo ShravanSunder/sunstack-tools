@@ -8,16 +8,16 @@ The [Specification](specification.md) fixes behavior; [Requirements](requirement
 
 [Diagram source](assets/program-components.mmd)
 
-The owners above are modules grouped by responsibility into the crates below. Rule questions, applicability, thresholds, feedback and eval expectations remain Sunstack content; Tools interprets the bounded declarations. Crate boundaries are reusable domains, not one crate for each helper or provider.
+The owners above are modules grouped by responsibility into the crates below. Rule questions, applicability, evidence requirements, rubrics and eval expectations remain Sunstack content; Tools admits the declarations, prepares evidence and returns correlated native answers. Consumers may explicitly interpret those answers; RuleSet composition groups referenced definitions and native results as specified in C6. Crate boundaries are reusable domains, not one crate for each helper or provider.
 
 ## Composable crate boundaries
 
 | Crate | Owns and reason to change | Public contract and actual consumer | Excludes |
 | --- | --- | --- | --- |
 | `sunstack-evidence` | Source capture, Git/time selection, paragraph/source-unit resolution, text/AST-grep queries, related-source discovery, semantic excerpts and coverage; changes when source formats or discovery behavior change | Validated snapshots, target/evidence plans, immutable bundles/chunks and diagnostics; rules and direct repository tools consume it | Decision HTTP, credentials, model questions, provider token accounting, thresholds, lint findings |
-| `sunstack-decisions` | Native primitive schemas, request-relative answer validation, backend trait, Jev HTTP adapter, usage and attempt/cancellation semantics; changes when decision contracts or provider protocols change | Structured requests, typed decision outcomes, prepared backend and decision diagnostics; rules and direct decision callers consume it | Git, AST-grep, Markdown paragraph IDs, rule-pack loading, pass/fail policy |
-| `sunstack-rules` | JSONL admission, applicability/dependency selection, policy validation/composition, per-rule scheduling and reports; changes when data-rule or finding semantics change | Admitted rule packs, preparation/evaluation operations, findings, selection records and reports; skill tooling/native rule callers consume it | Provider wire decoding, source parsing algorithms, signal handlers and process framing |
-| `sunstack-rule-cli` | Invocation JSON framing, environment/configuration wiring, process signals, exit codes and serialization; changes when process UX/protocol changes | The program contract for agents and optional TS callers; calls rules for pack operations and decisions for direct judgments | Duplicate selection, response validation, retry or policy implementations |
+| `sunstack-decisions` | Native primitive schemas, request-relative answer validation, backend trait, Jev HTTP adapter, usage and attempt/cancellation semantics; changes when decision contracts or provider protocols change | Structured requests, typed decision outcomes, prepared backend and decision diagnostics; rules and direct decision callers consume it | Git, AST-grep, Markdown paragraph IDs, RuleSet/rule loading, consumer verdict policy |
+| `sunstack-rules` | RuleSet/JSONL admission, applicability/dependency selection, per-rule scheduling, correlation and reports; changes when authored rules or RuleSet execution contracts change | Admitted RuleSets, skill bindings, preparation/evaluation operations, source-linked judgments, selection records and reports; native/skill tooling consumes it | Provider wire decoding, source parsing algorithms, signal handlers and process framing |
+| `sunstack-rule-cli` | Invocation JSON framing, environment/configuration wiring, process signals, exit codes and serialization; changes when process UX/protocol changes | The program contract for agents and optional TS callers; calls rules for RuleSet operations and decisions for direct judgments | Duplicate selection, response validation, retry or answer-interpretation implementations |
 
 ![Four cohesive crates and their allowed dependency direction](assets/crate-dependencies.png)
 
@@ -42,7 +42,7 @@ At repository baseline `c3220fc`, tracked content is LICENSE, .gitignore and ear
 | Rust core plus native JS bindings immediately | Direct calls for existing JS hosts | Addon packaging, async/cancellation and runtime ABI proof before the first customer needs it; defer |
 | Mandatory service or persistent index | Warm cross-process state and possible reuse | Adds lifetime, versioning and invalidation machinery without a measured requirement; defer |
 
-The policy interpreter is a bounded data mechanism, not a workflow language. If the first actual rule needs arbitrary cross-answer composition inside JSONL, the policy contract must be revisited. Direct Rust consumers can already compose answers in code. No execution of JS or externally supplied Rust code is introduced.
+RuleSets and rules are declarative data. Decisions preserves native question/answer meaning; rules adds source selection and correlation. A mandatory pass/fail conversion layer is unnecessary when the question's choice labels already express the desired result. Consumers may deliberately interpret native probabilities/scores in their own code. RuleSet composition groups definitions and native results under Specification C6; no expression language, workflow DAG, external code loading or overall-result operator is introduced.
 
 ## Entity bindings and data homes
 
@@ -52,16 +52,16 @@ Every state-dependent payload belongs to its enum variant. An operation and its 
 
 | E | Semantic owner | Package/module and schema/type home | Boundary shape | Lifetime / convention |
 | --- | --- | --- | --- | --- |
-| E1 Named question | Judgment admission | `sunstack-decisions/decision_contracts` (new) | `NamedQuestionMap<QuestionName, JudgmentQuestion>`; noul/choice/score enum with `StructuredContainer` instructions; primitive-specific descriptions | Derived immutable; enum and validated names |
+| E1 Named question | Judgment admission | `sunstack-decisions/decision_contracts` (new) | `NamedQuestionMap<QuestionName, JudgmentQuestion>`; noul/choice/score enum with `StructuredEntry` instructions; primitive-specific descriptions | Derived immutable; enum and validated names |
 | E2 Shared state | Caller supplies, judgment owner preserves | `sunstack-decisions/decision_contracts` (new) | `SharedEvidenceState`: text or JSON object/array; nested values use `StructuredJson` | Invocation-owned snapshot; recursive JSON enum |
 | E3 Backend | Adapter prepares, judgment owner selects | `sunstack-decisions/decision_backends` (new); public trait in `decision_contracts` | `DecisionBackend` capability/accounting profile, pure request encoding/assessment and async request operation; `BackendPreparation` ready/refused | Configured in-process; secret private |
 | E4 Request | Judgment admission | `sunstack-decisions/decision_contracts` (new) | `StructuredJudgmentRequest { questions, state }`; connection and cancellation passed separately | Derived immutable; fallible constructors |
 | E5 Decision run | Judgment owner | `sunstack-decisions/judgment_execution` (new); outcome in `decision_contracts` | `DecisionRunOutcome`: completed/invalid_request/provider_failure/invalid_response/cancelled | Invocation-local; tagged enum |
 | E6 Answer | Response admission | `sunstack-decisions/judgment_validation` (new); answer shapes in `decision_contracts` | `JudgmentAnswer`: native noul, choice or score fields; map keyed by requested name | Admitted output; runtime correlation |
 | E7 Receipt | Adapter reports, response admission validates | `sunstack-decisions/judgment_validation` (new) | `ExecutionReceipt { resolved_model, usage: { input_tokens, output_tokens, cost_usd: Option<ReportedUsdCost> } }`; None means the provider omitted cost, never zero | Derived; finite counts/cost; independently absent observation |
-| E8 Finding | Policy owner executes Sunstack meaning | `sunstack-rules/rule_policy` (new); shape in `rule_contracts` | `RuleFinding { occurrence, target_id, source_span, policy_result, judgment, feedback }`; occurrence is repository ID, skill path and rule ID | Derived per rule/target; tagged policy enum |
-| E9 Rule definition | Rule admission | `sunstack-rules/rule_contracts` (new) | `RuleDefinition { rule_id, target_id, applicability, context_selectors, question, policy, feedback }` | Supplied JSONL then validated immutable data |
-| E10 Rule pack | Rule admission | `sunstack-rules/rule_pack_loading` (new); shape in `rule_contracts` | `ValidatedRulePack { repository_id, skill_path, content_identity, rule_sources, rules, definition_locations }`; every source records its path/content identity | Invocation-local; atomic admission |
+| E8 Rule judgment | Rule result correlation | `sunstack-rules/rule_contracts` (new) | `RuleJudgment { occurrence, target_id, source_span, answer_references }`; reference map keys are authored question names | Derived per occurrence; only completed correlated native answers |
+| E9 Rule definition | Rule admission | `sunstack-rules/rule_contracts` (new) | `RuleDefinition { rule_id, target_id, applicability, context_selectors, questions }`; question types imported from decisions | One bare JSONL line, then validated immutable data |
+| E10 Skill binding | RuleSet admission | `sunstack-rules/rule_set_loading` (new); shape in `rule_contracts` | `ValidatedSkillBinding { repository_id, skill_path, rule_sets }`; ordered selected RuleSets retain source identities | Invocation-local; atomic admission |
 | E11 Snapshot | Evidence owner | `sunstack-evidence/source_evidence` (new); shape in `evidence_contracts` | `SourceSnapshot { snapshot_identity, repository_captures, captured_rule_sources }`; each capture records resolved changes, revisions/index identity and frozen sources keyed by repository/revision/path/content | Frozen within invocation; no persistent cache |
 | E12 Target | Target resolver | `sunstack-evidence/markdown_targets` (new); shape in `evidence_contracts` | `TargetResolution`: resolved paragraph/span, missing, ambiguous or deleted | Derived from captured bytes; distinct `TargetId` |
 | E13 Evidence | Evidence owner | `sunstack-evidence/source_evidence` (new); shape in `evidence_contracts` | `EvidenceBundle { snapshot_identity, target, context, facts, uncertainties, completeness }` | Derived; source-linked facts/closed completeness |
@@ -74,6 +74,8 @@ Every state-dependent payload belongs to its enum variant. An operation and its 
 | E20 Relationship candidate | Relationship evidence owner | `sunstack-evidence/related_sources` (new); shape in `evidence_contracts` | `RelationshipCandidate`: `candidate { source_unit, target_unit, call_site_span, relation_kind, basis_spans, facts, uncertainties }`, `contradicted { source_unit, possible_target, basis_spans, contradiction }`, or `unresolved { source_unit, target_hint, relation_kind, basis_spans, reason }`; no invented target unit | Invocation-local graph; no calibrated heuristic confidence |
 | E21 Semantic chunk | Evidence assembly owner | `sunstack-evidence/semantic_chunks` (new); shape in `evidence_contracts` | `SemanticChunk { chunk_key, units, relationships, excerpts, omitted_optional, coverage }`; ready/incomplete plan outcomes | Derived immutable content, shared excerpts deduplicated |
 | E22 Context budget | Backend request admission | `sunstack-decisions/request_budgeting` (new); shape in `decision_contracts` | `RequestBudgetAssessment`: within_configured_budget with immutable `AdmittedBackendRequest` and count/basis/margin, exceeded with bounded requirements, or unverifiable with diagnostics; `RequestBudgetSettings` supplied separately | Pure assessment, no inference; native admission binds request bytes and prepared backend |
+| E23 Rule file | Rule admission | `sunstack-rules/rule_file_loading` (new); shape in `rule_contracts` | `ValidatedRuleFile { source_path, content_identity, rules, definition_locations }`; nonempty ordered bare definitions | Captured JSONL bytes; no header/shared instructions |
+| E24 RuleSet | RuleSet admission | `sunstack-rules/rule_set_loading` (new); shape in `rule_contracts` | `RuleSet { schema_version, name, description, instruction_prefix, rule_paths }`; `ValidatedRuleSet { source_path, content_identity, definition, rule_files }` | JSON definition; resolved paths and captured sources; native-result grouping under Specification C6 |
 
 No owner writes a run database, modifies source or changes Git state. Rule preparation and decision execution can also be used separately; the orchestration module does not make every consumer adopt the skill-lint report.
 
@@ -82,129 +84,83 @@ No owner writes a run database, modifies source or changes Git state. Rule prepa
 | Operation | Inputs / preconditions | Output / effects |
 | --- | --- | --- |
 | Backend preparation | Explicit endpoint/model/secret and finite attempt settings | Ready backend or safe configuration diagnostic; no inference |
-| Prepare rule inputs | Unknown skill-pack bindings, declared input paths, full/changed scope and explicit limits | Admitted pack, snapshot, every selection record and ready evidence or boundary diagnostics; repository reads only |
+| Prepare rule inputs | Unknown skill bindings, declared input paths, full/changed scope and explicit limits | Admitted RuleSets, snapshot, every selection record and ready evidence or boundary diagnostics; repository reads only |
 | Execute judgments | Prepared backend, supplied named request and cancellation context | One closed decision outcome; external inference after validation only |
-| Evaluate selected rules | Prepared selections, backend, bounded execution settings and cancellation | Report with findings, failures, skips, coverage and measurements; no source writes |
+| Evaluate selected rules | Prepared selections, backend, bounded execution settings and cancellation | Report with source-linked `RuleJudgment` records, failures, skips, coverage and measurements; no source writes |
 
-The program envelope uses `protocol_version: 1` and `operation: prepare_evidence | prepare_rules | run_judgments | evaluate_rules`. `prepare_evidence` exposes the evidence library to code-oriented/process consumers without requiring a skill pack or provider. Unknown version/operation or malformed framing is an invalid invocation returned through `protocol_error`, not a fabricated known operation. One invocation per process accepts one bounded JSON request from stdin and emits one JSON result to stdout; stderr is bounded operational text, never machine results or input/provider dumps. EOF is a framing boundary. Policy pass/fail is in JSON, not inferred from process success. Exit mapping is explicit below.
+The program envelope uses `protocol_version: 1` and `operation: prepare_evidence | prepare_rules | run_judgments | evaluate_rules`. `prepare_evidence` exposes the evidence library to code-oriented/process consumers without requiring a skill binding or provider. Unknown version/operation or malformed framing is an invalid invocation returned through `protocol_error`, not a fabricated known operation. One invocation per process accepts one bounded JSON request from stdin and emits one JSON result to stdout; stderr is bounded operational text, never machine results or input/provider dumps. EOF is a framing boundary. Native answers are in JSON; process success reports completion, not a favorable model judgment. Exit mapping is explicit below.
 
 The serialized payloads use their owning crate's public types, with a thin program envelope. The CLI serializes those types directly rather than maintaining parallel copies:
 
 | Shape | Required fields / variants and optionality |
 | --- | --- |
 | `InvocationEnvelope` | `protocol_version: 1` plus operation-tagged `ProgramOperationInput`: `prepare_evidence { input: EvidencePlanInput }`, `prepare_rules { input: PrepareRulesInput }`, `run_judgments { input: RunJudgmentsInput }`, or `evaluate_rules { input: EvaluateRulesInput }`; same wire fields `operation`/`input`, no independent loose payload or arbitrary top-level metadata |
-| `PrepareEvidenceInput` | Evidence-owned `EvidencePlanInput`; repository bindings, source/relationship query, `package_bindings: PackageSourceBinding[]` (wire omission decodes to an empty native collection, not Option<Vec>), chunk settings and limits; no credentials or skill pack |
-| `PrepareRulesInput` | `skill_packs: nonempty SkillPackBinding[]`, `repositories: nonempty RepositoryBinding[]`, `limits`; no credentials or independently supplied invocation scope |
-| `SkillPackBinding` | `repository_id`, `skill_path`, `rule_paths: nonempty ordered path[]`; skill path is relative to that repository's root, rule paths are explicit caller-authorized file locations |
+| `PrepareEvidenceInput` | Evidence-owned `EvidencePlanInput`; repository bindings, source/relationship query, `package_bindings: PackageSourceBinding[]` (wire omission decodes to an empty native collection, not Option<Vec>), chunk settings and limits; no credentials or skill binding |
+| `PrepareRulesInput` | `skill_bindings: nonempty SkillRuleBinding[]`, `repositories: nonempty RepositoryBinding[]`, `limits`; no credentials or competing invocation scope |
+| `SkillRuleBinding` | `repository_id`, `skill_path`, `rule_set_paths: nonempty ordered path[]`; skill path is relative to its repository root, RuleSet paths are explicit caller-selected definitions |
 | `RulePreparationOutcome` | tagged `prepared { preparation }`, `invalid_invocation { diagnostics }`, `preparation_failed { diagnostics }`, `cancelled { diagnostics }`; prepared data contains every selection record, including failures |
-| `PreparedRuleInputs` | frozen source/pack identities, ordered admitted packs, every selection record, `SelectedEvidence` per selected occurrence, diagnostics and measurements; no backend |
+| `PreparedRuleInputs` | Frozen RuleSet/rule/source identities, admitted ordered bindings, every selection record, `SelectedEvidence` per selected occurrence, diagnostics and measurements; no backend |
 | `SelectedEvidence` | tagged `ready { bundle }` or `refused { diagnostics }`, keyed by `RuleOccurrenceKey`; refusal never constructs a request |
 | `RunJudgmentsInput` | `request: { questions, state }`, `backend_selection`, `attempt_settings`, `request_budget`; no secret value |
 | `EvaluateRulesInput` | PrepareRulesInput fields plus `backend_selection`, `attempt_settings`, `request_budget`, `max_concurrent_groups`, explicit `batch_groups` (empty means one call per selected rule) |
 | `RepositoryScopeSummary` | Derived ordered entries `{ repository_id, requested_change_scope, resolved_selection }`; each repository binding is the sole input scope authority, including mixed full/change bindings |
 | `SourceComparison` | Resolved primitive comparison inside a ChangeScope member: tagged `commits { base_revision, head_revision }` or `worktree { base_revision }`; refs resolved before use; repository-qualified input paths determine untracked inclusion |
 | `SourceSpan` | repository ID, repository-relative path, snapshot/revision identity, start/end byte offsets (end exclusive), start/end line and column; user-facing lines/columns are 1-based |
-| `RuleEvaluationOutcome` | tagged `finding { finding }`, `evaluation_failed { diagnostics }`, `cancelled { diagnostics }` or `not_started { reason: caller_cancelled }`, all correlated to skill path, rule ID and target ID |
+| `RuleEvaluationOutcome` | tagged `evaluated { judgment: RuleJudgment }`, `evaluation_failed { diagnostics }`, `cancelled { diagnostics }` or `not_started { reason: caller_cancelled }`, correlated to the complete RuleOccurrenceKey |
 | `LintInvocationOutcome` | tagged `invalid_invocation { diagnostics }`, `preparation_failed { diagnostics, measurements }`, `completed_report { report }`, `incomplete_report { report }`, `cancelled_report { progress: LintCancellationProgress, diagnostics, measurements }` |
 | `LintCancellationProgress` | Rules-owned tagged `before_report_admission` or `report_admitted { partial_report }`; the latter requires the admitted report and retained peer outcomes, the former carries no report field |
-| `LintReport` | Derived repository scope summaries, ordered skill-pack/snapshot identities, ordered selection records and evaluation outcomes, diagnostic list plus omitted count, measurements; no overriding global scope |
+| `LintReport` | Derived repository scopes, ordered skill/RuleSet/snapshot identities, selection/evaluation records, `executions: RuleExecutionGroup[]`, diagnostics plus omitted count, measurements; no aggregate verdict or overriding scope |
 | `ProgramOperationOutcome` | Operation-tagged `prepare_evidence { outcome: EvidencePlanOutcome }`, `prepare_rules { outcome: RulePreparationOutcome }`, `run_judgments { outcome: DecisionRunOutcome }`, or `evaluate_rules { outcome: LintInvocationOutcome }`; never independently assignable operation and unrelated result |
 | `ProgramResponse` | `kind` is required on the native and wire variants: `protocol_error { protocol_version: 1, diagnostics }` or `operation_result { protocol_version: 1, result: ProgramOperationOutcome }`. Wire `result` is one required nested object containing `operation` and its matching `outcome`; neither field is flattened onto the outer response. Protocol error has no `result`/`operation`/`outcome`, and absence is never the discriminant. An unknown input operation is not echoed as a known variant |
 
-Batch groups list `RuleOccurrenceKey { repository_id, skill_path, rule_id }`, not ambiguous bare rule IDs. Admission requires selected occurrences, no repeated occurrence across groups, identical evidence identities and caller-declared independence. Invalid groups refuse the invocation before model calls. The rule request builder assigns `q000001`, `q000002`, etc. in each group's declared order and retains the name-to-occurrence map; these request-local names never replace report identity. Ungrouped selected rules run separately. Direct judgment callers retain their own names.
+`RuleOccurrenceKey { repository_id, skill_path, rule_set_path, rule_id }` uses the captured canonical RuleSet path, not its descriptive name. A shared JSONL rule under another RuleSet/prefix is a distinct occurrence. Batch groups list complete occurrence keys and require no duplicates, selected occurrences, identical evidence and explicit independence. Ungrouped rules execute separately; every question within a rule is independent over that rule's shared evidence.
+
+The builder assigns `q000001`, `q000002`, etc. by group occurrence order and lexicographic authored question name, retaining `RuleQuestionBinding { occurrence, question_name }` for every request name. `RuleExecutionGroup { question_bindings, outcome: DecisionRunOutcome }` retains one canonical outcome, receipt and attempt history per actual decision run. `JudgmentReference { group_index, request_question_name }` refers into the report's ordered execution groups. A completed RuleJudgment maps each authored question name to one valid reference; no second answer/receipt schema or copied mutable result is stored. Report construction validates reference bounds, completed outcome and exact bindings. Native answer lookup resolves references to borrowed decisions-owned answers; the process result preserves these explicit links. Failed/unstarted evaluations never fabricate a reference to a completed answer.
+
+These correlation/grouping records preserve native results without an aggregate verdict. The RuleSet data schema below completely defines the selected metadata, prefix and rule-file references; Specification C6 preserves consumer-owned result composition without imposing another data language.
 
 | Operation outcome | Exit code |
 | --- | --- |
-| prepared with no selection or evidence failures; completed judgment; completed lint report (including failing findings) | 0 |
-| invalid framing/version/operation/configuration/pack; invalid judgment request | 2 |
+| prepared with no selection or evidence failures; completed judgment; completed lint report (including unfavorable native answers) | 0 |
+| invalid framing/version/operation/configuration/RuleSet; invalid judgment request | 2 |
 | preparation failed or prepared with selection or evidence failures; provider failure; invalid response; incomplete lint report | 3 |
 | cancelled preparation/judgment/invocation, after owned work settles | 4 |
 
-The rules owner returns preparation data; `prepare_rules` is deliberately named for that operation. Direct local evidence consumers call the evidence library without loading a rule pack or provider.
+The rules owner returns preparation data; `prepare_rules` is deliberately named for that operation. Direct local evidence consumers call the evidence library without loading a RuleSet or provider.
 
 Secrets enter through configured in-memory native arguments or the executable's inherited environment, never its request document. A process caller closes/cancels explicitly through OS termination signaling; the executable converts a supported termination signal into cancellation, stops admission, joins owned work, emits its terminal result when stdout remains available and exits. Forced process kill/crash may yield no report; the caller must treat missing/truncated output as execution failure, never completion. No multiplexed daemon protocol is needed for v1.
 
 A native host owns its existing Tokio runtime. The executable creates one process runtime. The library never calls nested `block_on` or creates a second runtime. Async functions remain normal native library calls. A future TS client can serialize these contracts; an N-API wrapper is not part of initial delivery.
 
-## The narrow JSONL policy and target format
+## RuleSets and rule definitions
 
-The invocation binds packs explicitly. A pack is a logical collection of JSONL source paths, not one file:
+The invocation's skill binding supplies `repository_id`, `skill_path` and ordered `rule_set_paths`. A RuleSet is the named JSON definition selected by the caller; a rule file is the referenced JSONL storage of reusable rule definitions. There is no separate pack file, event, trigger condition, watcher or host lifecycle built into this boundary.
 
-```json
-{
-  "skill_packs": [
-    {
-      "repository_id": "sunstack",
-      "skill_path": "skills/create-skill/SKILL.md",
-      "rule_paths": ["rules/create-trigger.jsonl", "rules/create-proof.jsonl"]
-    },
-    {
-      "repository_id": "sunstack",
-      "skill_path": "skills/update-skill/SKILL.md",
-      "rule_paths": ["rules/update-trigger.jsonl", "rules/update-proof.jsonl"]
-    }
-  ],
-  "repositories": [{
-    "repository_id": "sunstack",
-    "root_path": ".",
-    "input_paths": ["skills/create-skill", "skills/update-skill", "shared-references"],
-    "change_scope": { "kind": "full" }
-  }],
-  "limits": {
-    "max_files": 200,
-    "max_file_bytes": 1048576,
-    "max_total_bytes": 8388608,
-    "max_matches": 256,
-    "max_model_state_bytes": 262144,
-    "max_model_request_bytes": 524288,
-    "include_ignored": false,
-    "discovery_limits": {
-      "max_unit_visits": 4096,
-      "max_relationship_candidates": 2048,
-      "max_fan_out": 64,
-      "max_history_commits": 5000,
-      "max_local_time_ms": 3000
-    }
-  }
-}
-```
+![RuleSet prefix and referenced JSONL rules become named questions over captured evidence](assets/rule-question-flow.png)
 
-The example is the `PrepareRulesInput` payload, rather than its outer protocol envelope; numeric limits are illustrative settings, not defaults or latency promises. `InvocationLimits` requires positive `max_files`, `max_file_bytes`, `max_total_bytes`, `max_matches`, `max_model_state_bytes` and `max_model_request_bytes`, explicit `include_ignored`, and required `discovery_limits: DiscoveryLimits` imported from the evidence crate. This same limits object is required by `evaluate_rules`; no selector-local or hidden discovery defaults exist. File/total limits include rule-source capture; model limits apply to actual UTF-8 serialized state and complete request. Rule paths resolve relative to the invocation's working directory, then normalize into explicit source identities. All bound packs are admitted atomically before inference. Pack identity includes repository ID, normalized skill path, ordered source paths and captured source content identities; rule-definition locations preserve file plus line/column. A shared source is captured once for consumers and validated into each explicit binding, without implicit merging or inheritance.
+[Diagram source](assets/rule-question-flow.mmd). [Worked files](rule-question-examples.md) and the [schema inventory](schema-inventory.md) provide the complete known-field view.
 
-Representative rule line, formatted here for readability; each source stores one object per line:
+| Schema / owner | Exact shape and purpose |
+| --- | --- |
+| `RuleSet`, rules | Required `schema_version: 1`, `name`, `description`, `instruction_prefix: StructuredEntry`, `rule_paths: nonempty ordered path[]`. Name/description inform caller selection and are not model instructions. C6 defines structural grouping with native answers; no placeholder field accepts unknown behavior |
+| `RuleDefinition`, rules | Required `rule_id`, `target_id`, `applicability`, `context_selectors`, `questions: NamedQuestionMap`; exactly one bare object per nonblank JSONL line. No record tag, wrapper, shared file header, mandatory policy or feedback |
+| `ValidatedRuleSet`, rules | Captured source identity, admitted definition and ordered admitted rule files; rule IDs unique across those files. Referenced paths resolve relative to this RuleSet file |
+| `ValidatedRuleFile`, rules | Captured JSONL identity, nonempty ordered definitions and physical line/column locations; unknown/duplicate fields refused |
+| `EffectiveRuleDefinition`, rules | Derived occurrence plus RuleSet instruction prefix and rule definition; used for change selection and request construction, never independently edited |
+| `JudgmentQuestion` / `JudgmentAnswer`, decisions | Native noul/choice/score enums. Rules imports and references their schemas rather than defining another model or answer format |
+| `ContextSelectorDeclaration` / `ApplicabilityTest`, evidence | Typed evidence declarations imported by rules; source selection is separate from question meaning and from captured evidence bytes |
 
-```json
-{
-  "rule_id": "skill.trigger.clarity",
-  "target_id": "U001",
-  "applicability": { "kind": "always" },
-  "context_selectors": [],
-  "question": {
-    "type": "choice",
-    "instructions": { "question": "How explicit is this paragraph's activation condition?", "inspect": "target.text" },
-    "criteria": {
-      "missing": { "definition": "No activation condition is stated" },
-      "vague": { "definition": "Topic named, but activation condition unclear" },
-      "explicit": { "definition": "Reader can identify when to use the skill" }
-    }
-  },
-  "policy": {
-    "kind": "choice_disposition",
-    "labels": { "missing": "fail", "vague": "review", "explicit": "pass" }
-  },
-  "feedback": {
-    "fail": "State the concrete situation that activates this skill.",
-    "review": "Make the activation condition more specific.",
-    "pass": "Activation condition is explicit."
-  }
-}
-```
+RuleSet paths resolve from invocation cwd; its JSONL paths resolve from the RuleSet directory. Exact referenced files are captured once within invocation file/byte limits, with normalized identities and no implicit directory scan. Duplicate canonical paths within a binding/RuleSet refuse admission. All selected definitions are admitted before inference. Loading rule definitions never grants evidence access outside caller-authorized repository/path scopes. JSONL blank lines are ignored; comments, headers, record wrappers and empty files refuse admission. RuleSet format starts at version 1; no implemented predecessor exists.
 
-`RuleId`, `TargetId` and `RepositoryId` are distinct validated types. `RuleOccurrenceKey` identifies repository, normalized skill path and rule ID; the same ID in another pack is a different occurrence. The binding owns the skill path once. Skill/context paths are normalized relative to their declared repository root; cross-repo selectors name an admitted repository ID explicitly. Resolutions outside supplied roots/paths are refused. Rule files are exactly the caller-authorized JSONL paths, which may be outside those roots; loading one does not grant access to its parent directory. IDs and offsets are validated before diagnostic locations are exposed. This is scope containment for declared evidence, not a general sandbox claim.
+If `instruction_prefix` is null, each question's instructions pass through unchanged. Otherwise the builder produces `instructions = { "prefix": rule_set.instruction_prefix, "question": authored_question.instructions }`, retaining both structured values, including a null question instruction. These two outer labels describe the assembly; arbitrary keys beneath them are author content. No key merge, string concatenation, path evaluation or template substitution occurs. Criteria stay unchanged. `state` is independently built from captured subject/context. Complete encoded questions, repeated prefixes, state and adapter overhead count toward budget admission. A reused JSONL file under two RuleSets gets each RuleSet's own prefix; no cross-RuleSet inheritance occurs.
 
-The Markdown target resolver uses AST-grep's Markdown block tree to locate paragraph nodes, then recognizes the exact ID prefix in eligible prose. It retains full wrapped paragraph bytes and ancestor context, excluding fence/heading/blockquote/inline-code examples. Structural matching alone does not define the ID convention. A `TargetResolution` cannot choose the first of multiple declarations.
+Effective content includes the prefix, applicability/evidence requirements and all named questions. A prefix change selects every currently applicable occurrence in that RuleSet; names/descriptions alone do not change a model request. Source identities still describe all captured bytes. Before/after comparisons load the same selected RuleSet paths and their referenced rule sources on each available side. An unavailable/malformed baseline conservatively selects, under the existing `baseline_unavailable` rule.
 
-Policy variants are `noul_bands`, `choice_disposition`, `choice_category` and `score_bands`; limits, inclusivity and domain coverage are checked during pack admission. Probability/score bands use ordered lower-inclusive/upper-exclusive intervals, with the last endpoint inclusive, covering the primitive's domain without gaps/overlap. Choice mappings cover exactly admitted labels. Native composition is a consumer function over validated outcomes; no string expressions/eval or arbitrary rule code is loaded.
+`RuleId`, `TargetId` and `RepositoryId` remain distinct validated types. `RuleOccurrenceKey` includes repository, normalized skill path, canonical RuleSet path and rule ID. The first skill-lint data profile resolves `target_id` against the bound skill document. Direct evidence and decision consumers remain independent of this Markdown-specific profile. A physical JSONL file location is provenance, not a replacement for a rule ID. Moving lines alone does not change a definition.
+
+The Markdown resolver uses AST-grep's Markdown block tree plus the exact target-ID prefix convention. It retains wrapped paragraph bytes and ancestor context, excluding fence/heading/blockquote/inline-code examples; it cannot select the first duplicate. Missing/deleted/ambiguous subjects are evidence failures, never a negative model answer or a pass.
+
+The wire schemas in `schemas/` express the proposed known-field contracts. Each owning Rust crate must derive/distribute its production schemas from its canonical types and prove agreement with the reviewed design; a second hand-maintained production definition is not allowed. JSON Schema validates shape. Admission additionally validates duplicate JSON keys/IDs, normalized paths, repository/language membership, source scope, numeric limits and request-relative answer correlation.
 
 ## Source capture and reusable selectors
 
@@ -220,18 +176,18 @@ The initial selector grammar is deliberately small and is owned by evidence's `e
 
 | Tagged selector | Required payload / semantics |
 | --- | --- |
-| `paragraph` | `source_path`, `target_id`; resolve exactly one eligible paragraph |
-| `file_text` | `source_path`; whole captured UTF-8 file |
-| `literal_text` | `paths: path[]`, `text: nonempty string`; case-sensitive substring occurrences |
-| `regex_text` | `paths: path[]`, `pattern: nonempty string`; Rust `regex` UTF-8 dialect, default Unicode/case-sensitive mode, inline flags supported; no lookaround/backreferences |
-| `ast_pattern` | `paths: path[]`, explicit supported `language`, `pattern: nonempty string`; AST-grep pattern/metavariables only, not arbitrary YAML rule objects or rewrites |
+| `paragraph` | `repository_id`, `source_path`, `target_id`; resolve exactly one eligible paragraph |
+| `file_text` | `repository_id`, `source_path`; whole captured UTF-8 file |
+| `literal_text` | `repository_id`, `paths: path[]`, `text: nonempty string`; case-sensitive substring occurrences |
+| `regex_text` | `repository_id`, `paths: path[]`, `pattern: nonempty string`; Rust `regex` UTF-8 dialect, default Unicode/case-sensitive mode, inline flags supported; no lookaround/backreferences |
+| `ast_pattern` | `repository_id`, `paths: path[]`, explicit supported `language`, `pattern: nonempty string`; AST-grep pattern/metavariables only, not arbitrary YAML rule objects or rewrites |
 | `related_units` | `query: RelationshipQuery`, `chunk_settings: ChunkSettings`, `minimum_related_units: nonnegative integer`; the enclosing declaration's required/optional flag and total match/byte bounds remain authoritative |
 
 The v1 language set has one authority: the built-in `SupportLang` catalog and its accepted language tokens in the [pinned AST-grep language definitions at 0be5673](https://github.com/ast-grep/ast-grep/blob/0be5673107200ee28be83517756e2fd122611fbc/crates/language/src/lib.rs). All built-in variants of that catalog are included; custom/dynamically loaded grammars are outside v1. Admission derives accepted names from that catalog rather than a hand-maintained second list. V6 uses the pinned catalog as the independent acceptance oracle and includes a token absent from it as a refusal control; actual built artifact/catalog agreement is V15 proof.
 
 A query's paths may be exact relative paths or tagged `glob { pattern }` entries, always intersected with caller input scope. Globs use `globset` syntax over normalized `/` paths, case-sensitive with literal separators and backslash escaping enabled; malformed globs fail admission. `*` does not cross directories; `**` uses globset's recursive rules. Each `ContextSelectorDeclaration` has a distinct `selector_id`, `requirement: required | optional`, a selector, and positive `max_matches`/`max_bytes` limits no greater than invocation limits. `ApplicabilityTest` is tagged `always` or `presence { selector, max_scan_bytes }` over literal/regex/AST variants. It need not materialize all matches to prove presence, but absence needs a complete scan. Invalid patterns/unsupported language/unknown fields are preflight diagnostics, not empty matches. Source read or scan failure is selection failure; required context zero matches or overflow blocks that occurrence's inference. Optional omissions are explicit. V3/V6 pin grammar and negative controls; full AST rule configuration needs a real consumer before expanding this contract.
 
-Change scope projects the caller's declared bindings onto both comparison sides. It compares target bytes, selector match sets and captured context bytes, applicability outcomes, and rule definitions keyed by rule ID across the same declared JSONL source paths at the base and current side. The baseline does not claim what a previous invocation loaded. A missing, malformed, outside-repository or otherwise unavailable baseline selects every currently applicable rule in that pack with `baseline_unavailable`; a new or changed definition selects its occurrence. A false-to-true applicability transition selects even when target text is unchanged. Current false applicability is `not_applicable`; unresolved current applicability is `selection_failed`. If before-side context/applicability cannot be established, current-ready occurrences are conservatively selected. Both-side selectors see the same declared input scope projected onto frozen bytes. Before/after target maps handle deleted/moved paragraphs without equating line movement to behavior change. A missing required after target produces a target diagnostic even if a before paragraph exists. Required evidence overflow refuses that rule before inference. Optional context may be omitted only when its optionality and omission are represented in the bundle. No model reranker is on the essential local path.
+Change scope projects the caller's declared bindings onto both comparison sides. It compares target bytes, selector match sets and captured context bytes, applicability outcomes, and effective definitions (including the selected RuleSet prefix) keyed by RuleSet path and rule ID across the same declared source paths at the base and current side. The baseline does not claim what a previous invocation loaded. A missing, malformed, outside-repository or otherwise unavailable baseline selects every currently applicable rule in that RuleSet with `baseline_unavailable`; a new or changed definition selects its occurrence. A false-to-true applicability transition selects even when target text is unchanged. Current false applicability is `not_applicable`; unresolved current applicability is `selection_failed`. If before-side context/applicability cannot be established, current-ready occurrences are conservatively selected. Both-side selectors see the same declared input scope projected onto frozen bytes. Before/after target maps handle deleted/moved paragraphs without equating line movement to behavior change. A missing required after target produces a target diagnostic even if a before paragraph exists. Required evidence overflow refuses that rule before inference. Optional context may be omitted only when its optionality and omission are represented in the bundle. No model reranker is on the essential local path.
 
 ## Change sourcing: roots, scopes and frozen evidence
 
@@ -243,7 +199,7 @@ This is a proposed path with no implemented predecessor. The evidence crate owns
 
 | Source control / schema home `sunstack-evidence/evidence_contracts` | Required payload and meaning |
 | --- | --- |
-| `ChangeScope` | Closed variants `full`, `uncommitted { layers }`, `revision_diff { base_revision, head: commit | worktree }`, `commit_set { commit_ids, parent_policy }`, `recent_commits { reference, window, parent_policy }`, `recent_uncommitted { layers, window, unknown_recency }`, `union { members }`; nested unions refused |
+| `ChangeScope` | Closed variants `full`, `uncommitted { layers }`, `revision_diff { base_revision, head: commit \| worktree }`, `commit_set { commit_ids, parent_policy }`, `recent_commits { reference, window, parent_policy }`, `recent_uncommitted { layers, window, unknown_recency }`, `union { members }`; nested unions refused |
 | `DirtyLayer` | `staged`, `unstaged` or `untracked`; nonempty unique selection. Keep HEAD→index and index→worktree observations distinct |
 | `TimeWindow` | `lookback { seconds: positive integer }` or `absolute { since_utc, until_utc }`; ordered finite UTC bounds resolved once at invocation admission |
 | `CommitParentPolicy` | `first_parent` or `each_parent`; root commit compares against empty tree. Preserve parent attribution; never infer a linear history from timestamps |
@@ -253,13 +209,13 @@ This is a proposed path with no implemented predecessor. The evidence crate owns
 | `SourceCaptureLimits` | Evidence-owned positive `max_files`, `max_file_bytes`, `max_total_bytes`, `max_matches`, and explicit `include_ignored`; rules projects these exact InvocationLimits fields without changing their values |
 | `DiscoveryLimits` | Evidence-owned required positive integers `max_unit_visits`, `max_relationship_candidates`, `max_fan_out`, `max_history_commits`, `max_local_time_ms`; milliseconds are elapsed monotonic time, not UTC selection bounds; no implicit defaults |
 | `EvidencePlanLimits` | Evidence-owned `{ source: SourceCaptureLimits, discovery: DiscoveryLimits }`; no model or rules dependency |
-| `EvidencePlanInput` | `repositories`, tagged `analysis: units { query: SourceUnitQuery } | related { query: RelationshipQuery }`, `chunk_settings`, required `limits: EvidencePlanLimits`, `package_bindings: PackageSourceBinding[]` (wire omission decodes to an empty native collection, not Option<Vec>); no competing seed/query inputs, provider or rule policy |
+| `EvidencePlanInput` | `repositories`, tagged `analysis: units { query: SourceUnitQuery } \| related { query: RelationshipQuery }`, `chunk_settings`, required `limits: EvidencePlanLimits`, `package_bindings: PackageSourceBinding[]` (wire omission decodes to an empty native collection, not Option<Vec>); no competing seed/query inputs, provider or consumer interpretation |
 | `EvidencePlanOutcome` | `prepared { snapshot, changes, units, relationships, chunks, coverage, diagnostics, measurements }`, `refused { diagnostics }`, `incomplete { partial_plan, diagnostics, measurements }`, or settled `cancelled { progress: EvidenceCancellationProgress, diagnostics }`; no findings |
 | `EvidenceCancellationProgress` | Evidence-owned tagged `before_plan_admission` or `plan_admitted { partial_plan }`; no absent field standing in for lifecycle state |
 
-`prepare_evidence` serializes these evidence-owned input/outcome types; the CLI defines no parallel schema. Rule preparation uses the same source operations. Code-oriented hosts may consume prepared chunks and supply their own questions/policy through the native decision API. The initial skill JSONL target format remains paragraph-based; this does not quietly add an executable rule language or a second code-rule-pack format.
+`prepare_evidence` serializes these evidence-owned input/outcome types; the CLI defines no parallel schema. Rule preparation uses the same source operations. Code-oriented hosts may consume prepared chunks and supply their own questions/policy through the native decision API. The initial skill JSONL target format remains paragraph-based; this does not quietly add an executable rule language or a second code-rule-definition format.
 
-Repository scopes are independent input truths. The invocation/report summary is derived, never a second caller override. A full binding selects its own applicable pack occurrences; a dirty/commit/time binding selects only occurrences affected under that binding. One full and one changed binding are valid and reported separately. A full binding may also supply unchanged discovery context for another binding's changed seeds. An attempted outer `scope` field is an unknown input field and refused. There is no precedence rule to invent.
+Repository scopes are independent input truths. The invocation/report summary is derived, never a second caller override. A full binding selects its own applicable RuleSet occurrences; a dirty/commit/time binding selects only occurrences affected under that binding. One full and one changed binding are valid and reported separately. A full binding may also supply unchanged discovery context for another binding's changed seeds. An attempted outer `scope` field is an unknown input field and refused. There is no precedence rule to invent.
 
 Rules passes the admitted `InvocationLimits.discovery_limits` unchanged to evidence and projects its existing file/byte/match/ignored fields into `SourceCaptureLimits`. Evidence owns one ephemeral preparation context with those limits, observed counters, start `Instant` and cancellation for this invocation; every related selector receives that same context rather than a fresh allowance. Native `prepare_evidence` supplies the same source/discovery types directly. Limits accumulate across repositories and selectors, while requested hop depth remains query-owned. No global limiter or scheduler is introduced.
 
@@ -277,7 +233,7 @@ The reader freezes each selected source side and its content/revision identity. 
 
 [Diagram source](assets/connected-sourcing-sequence.mmd)
 
-The evidence owner maps both sides of diff spans to enclosing functions, methods, classes and Markdown units using real AST ranges. Pure deletion can seed a before-side unit without inventing an after declaration. Parsing/query plans are reused for the same captured content and language. Cheap paths/text/import queries identify candidate files first, but finding callers may still require scanning the full declared discovery scope; no speed improvement is assumed. A primitive selector belongs to an explicit repository ID, defaulting to its skill binding's repository when omitted; a connected relation query lists all permitted repository IDs.
+The evidence owner maps both sides of diff spans to enclosing functions, methods, classes and Markdown units using real AST ranges. Pure deletion can seed a before-side unit without inventing an after declaration. Parsing/query plans are reused for the same captured content and language. Cheap paths/text/import queries identify candidate files first, but finding callers may still require scanning the full declared discovery scope; no speed improvement is assumed. A primitive selector carries one required repository ID; a connected relation query lists its admitted repository IDs. No wrapper supplies a competing repository identity.
 
 The invocation-local relationship graph keys each node by snapshot, repository, revision, path and range. Visits are deduplicated by node plus requested direction/depth; cycles stop revisiting rather than exhausting the executor. In-scope declarations, import paths, explicit aliases and lexical shadowing provide basis facts. `PackageSourceBinding { importing_repository_id, module_prefix, target_repository_id, target_path_prefix, language }` is optional caller-supplied data in `EvidencePlanInput`; overlapping ambiguous bindings are refused, and the target must be an admitted root/path. It identifies supplied source context, not an installed/released dependency version. Matching a name alone is not resolved identity. Custom compiler-grade resolvers and LSP remain outside scope.
 
@@ -292,16 +248,16 @@ Static file resolution uses only admitted paths. An import with an explicit exte
 
 | Source/group declaration in `sunstack-evidence/evidence_contracts` | Closed payload / admission |
 | --- | --- |
-| `SourceUnitQuery` | `seeds`, nonempty unique `languages: rust | typescript | tsx | markdown`, nonempty unique `unit_kinds: function | method | class | paragraph | section`, and `source_sides`; Rust admits function/method, TS/TSX function/method/class, Markdown paragraph/section. Every requested language/kind pair must be compatible; relation queries additionally restrict languages to GraphLanguage |
+| `SourceUnitQuery` | `seeds`, nonempty unique `languages: rust \| typescript \| tsx \| markdown`, nonempty unique `unit_kinds: function \| method \| class \| paragraph \| section`, and `source_sides`; Rust admits function/method, TS/TSX function/method/class, Markdown paragraph/section. Every requested language/kind pair must be compatible; relation queries additionally restrict languages to GraphLanguage |
 | `SourceUnitKind` | Output tagged `function { signature }`, `method { signature }`, `class { signature }`, `paragraph` or `section`; Markdown units carry no invented empty/optional code signature. This realizes the existing E19 kinds, with query filters using those same discriminants |
 | `SourceUnitSeeds` | `changed_units { repository_ids }` or `selector_units { selectors: nonempty RepositorySelector[] }`; each seed repository is admitted and allowed by its query; related selectors cannot seed themselves recursively |
-| `RepositorySelector` | `repository_id` plus an admitted primitive `paragraph | file_text | literal_text | regex_text | ast_pattern` selector; an explicit AST language must belong to SourceUnitQuery.languages |
+| `RepositorySelector` | Evidence-owned alias of the primitive selector enum; every primitive carries `repository_id` once alongside its query fields. Only paragraph/file/text/regex/AST selectors can seed source units |
 | `SourceSides` | `after_only`, `before_only`, `both_available`, or `paired_required`; paired requires a uniquely attributable before/after unit pair, never name-only equivalence |
-| `ChunkSettings` | `grouping: single_group | per_seed`, `seed_content: UnitContent`, `related_content: UnitContent`, positive `max_chunk_bytes`; standalone/native plans may use either grouping; a JSONL related selector requires single_group |
+| `ChunkSettings` | `grouping: single_group \| per_seed`, `seed_content: UnitContent`, `related_content: UnitContent`, positive `max_chunk_bytes`; standalone/native plans may use either grouping; a JSONL related selector requires single_group |
 | `UnitContent` | Tagged `whole_unit { kind: whole_unit }` or `bounded_excerpt { kind: bounded_excerpt, max_bytes: positive integer }`; an excerpt records partial membership plus enclosing signature/import context and syntax-aligned ranges; it never satisfies whole_unit |
 | `ContextGroupOutcome` | `complete { group, coverage }`, `partial { group, coverage, omissions, diagnostics }`, or `unavailable { diagnostics }`; evidence owns this shape, rules owns whether it permits inference |
 
-Changed-unit seeds require a change selection with an admitted before/after side in each listed seed repository; a full-only root can be discovery context but cannot fabricate a diff seed. Selector-unit seeds work in full or change scopes. No seed or required source side is invented when a match, baseline or unit pair is missing. Unit kinds incompatible with a requested graph language are admission errors. Root/path membership, cardinalities, unique identifiers, compatible direction/language combinations and bounds are checked before query execution; invalid JSONL selectors refuse pack preflight.
+Changed-unit seeds require a change selection with an admitted before/after side in each listed seed repository; a full-only root can be discovery context but cannot fabricate a diff seed. Selector-unit seeds work in full or change scopes. No seed or required source side is invented when a match, baseline or unit pair is missing. Unit kinds incompatible with a requested graph language are admission errors. Root/path membership, cardinalities, unique identifiers, compatible direction/language combinations and bounds are checked before query execution; invalid JSONL selectors refuse definition preflight.
 
 Finite requested hop depth defines the query's neighborhood, not “all call stacks.” Resource/fan-out/time limits additionally produce cutoffs with frontier/source attribution. `DiscoveryCoverage` is tagged `complete_within_declared_scope { query_bounds }`, `limited { query_bounds, cutoffs }` or `unavailable { diagnostics }`; parser/relationship uncertainty is preserved even in a fully scanned neighborhood. A caller can use partial candidates for exploration. A rule requiring evidence beyond that coverage remains incomplete. Relevance ordering is a deterministic evidence priority with explicit basis, not a numeric probability; optional model reranking is a caller-declared decision stage with a separate budget and cannot overturn mechanically established contradictions.
 
@@ -319,49 +275,13 @@ A required related selector is ready only when: at least one seed is located; al
 
 Optional related selectors may contribute located partial excerpts only with their coverage, unresolved hints and omission reasons in state/report; no empty or failed scan proves absence. Native `prepare_evidence` returns incomplete plans with partial groups for exploration. Rules constructs `SelectedEvidence.ready` only when every required selector is complete and nonempty; optional partial groups do not repair a required failure. An omitted optional group remains in the omission list. These guards precede request construction and report admission, so nonzero-match checks alone cannot produce a pass.
 
-JSONL keeps one primary answer over one composed evidence state. All required selector groups/chunks for that occurrence must fit together, and JSONL permits only `single_group`; there is no per-chunk independence/aggregation field. Native caller code may request `per_seed`, issue its own independent requests and implement its own composition using the existing judgment API. The reusable JSONL interpreter does not split, average or take the maximum of those judgments.
+Each JSONL rule keeps one nonempty named-question set over one composed evidence state. All required selector groups/chunks for that occurrence must fit together, and the skill-rule data profile permits only `single_group`; there is no per-chunk independence/aggregation field. Native caller code may request `per_seed`, issue its own independent requests and implement its own composition using the existing judgment API. The reusable JSONL interpreter does not split, average or take the maximum of those judgments.
 
-This complete illustrative rule line requests one linked context group. Its enclosing skill pack names its repository; the `library` and `consumer` bindings/paths must also be supplied. It is formatted for reading here; JSONL stores one object per line. These paths, limits and rule content are demonstration data, not a shipped Sunstack rule or executed proof fixture.
-
-```json
-{
-  "rule_id": "skill.source.consistency",
-  "target_id": "U001",
-  "applicability": { "kind": "always" },
-  "context_selectors": [{
-    "selector_id": "linked-save-context",
-    "requirement": "required",
-    "max_matches": 32,
-    "max_bytes": 65536,
-    "selector": {
-      "kind": "related_units",
-      "query": {
-        "source_units": {
-          "seeds": { "kind": "selector_units", "selectors": [{
-            "repository_id": "library",
-            "selector": { "kind": "ast_pattern", "paths": ["src/save.ts"], "language": "typescript", "pattern": "function save($$$ARGS) { $$$BODY }" }
-          }] },
-          "languages": ["typescript"],
-          "unit_kinds": ["function", "method"],
-          "source_sides": "after_only"
-        },
-        "repository_ids": ["library", "consumer"],
-        "directions": ["callers"],
-        "requested_hops": 1
-      },
-      "chunk_settings": { "grouping": "single_group", "seed_content": { "kind": "whole_unit" }, "related_content": { "kind": "whole_unit" }, "max_chunk_bytes": 65536 },
-      "minimum_related_units": 1
-    }
-  }],
-  "question": { "type": "choice", "instructions": "Does the skill paragraph agree with the supplied definition and caller behavior?", "criteria": { "consistent": "The described behavior agrees", "inconsistent": "The described behavior conflicts", "unclear": "The evidence does not settle agreement" } },
-  "policy": { "kind": "choice_disposition", "labels": { "consistent": "pass", "inconsistent": "fail", "unclear": "review" } },
-  "feedback": { "pass": "Description agrees with the supplied context.", "fail": "Repair the conflicting behavior description.", "review": "Clarify the description against the supplied context." }
-}
-```
+A worked related-context declaration remains part of the evidence schema. A rule may request a `related_units` selector with `single_group`; all its named questions then receive that one complete evidence state. The same required-neighborhood controls below apply before any question executes.
 
 | Required example outcome | Evidence admission / observable result |
 | --- | --- |
-| Definition and at least one located imported caller; declared neighborhood completely scanned | One complete group with both whole units, import/call basis and retained semantic uncertainty; one primary judgment may execute |
+| Definition and at least one located imported caller; declared neighborhood completely scanned | One complete group with both whole units, import/call basis and retained semantic uncertainty; the named questions may execute |
 | One caller located but another requested endpoint unresolved | Partial group with unresolved hint; required selector refused, no judgment/pass |
 | Located caller plus file/node/fan-out/time cutoff | Limited coverage; required selector refused regardless of positive match count |
 | Whole required definition/caller exceeds group or final request budget | Required overflow diagnostic; no split, trim, independent chunk call or pass |
@@ -380,7 +300,7 @@ The decisions crate owns the following native shapes for E22/R25; they introduce
 
 The backend dispatch operation accepts `AdmittedBackendRequest`, not an unassessed request or a separate replacement body. The Jev adapter borrows its exact admitted bytes for every configured attempt without re-encoding; the retained canonical request is the response-correlation authority. Execution checks that the admission belongs to its selected prepared backend before dispatch; a mismatch is `invalid_configuration` with no attempt. Changing model, envelope, questions or state creates a different encoded candidate requiring fresh admission. The admission value stays inside native execution, outside program outcomes/receipts/diagnostics; it neither transports secrets nor exposes request text through logs. Public `run_judgments` still takes ordinary canonical questions/state and performs this admission internally. An injected adapter must honor this dispatch contract; conformance observes its actual body rather than assuming the trait can enforce third-party behavior. V19 observes identical assessed/dispatched bytes and refusal of changed-body or wrong-backend dispatch.
 
-On overflow, the one omission pass removes all explicitly optional context entries and text membership used exclusively by them, rebuilds state from required membership plus omission records, and encodes/assesses that changed body once. Required targets, groups, shared required members, questions and attribution remain intact; omitted selectors use the existing `limit` reason in state/report. No optional subset ranking or repeated shrinking is performed. This deterministic choice can discard useful optional context, but avoids a second selection policy; a still-oversized request is refused. If nothing optional can change the body, no second assessment occurs. Only the second admitted value may dispatch, never the first candidate with replacement bytes. Required overflow/refused accounting yields `context_budget_exceeded` or `budget_unverifiable`, no inference and no pass. The invocation owner enforces the finite model-request count separately from these pure assessments. Relationship-spanning JSONL context stays in one judgment; independent per-chunk execution/composition remains native caller code as described above. This preserves R7/R13 and the bounded one-answer policy format.
+On overflow, the one omission pass removes all explicitly optional context entries and text membership used exclusively by them, rebuilds state from required membership plus omission records, and encodes/assesses that changed body once. Required targets, groups, shared required members, questions and attribution remain intact; omitted selectors use the existing `limit` reason in state/report. No optional subset ranking or repeated shrinking is performed. This deterministic choice can discard useful optional context, but avoids a second selection policy; a still-oversized request is refused. If nothing optional can change the body, no second assessment occurs. Only the second admitted value may dispatch, never the first candidate with replacement bytes. Required overflow/refused accounting yields `context_budget_exceeded` or `budget_unverifiable`, no inference and no pass. The invocation owner enforces the finite model-request count separately from these pure assessments. Relationship-spanning JSONL context stays in one judgment; independent per-chunk execution/composition remains native caller code as described above. This preserves R7/R13 and the native named-answer contract.
 
 ## Model-facing evidence state
 
@@ -391,8 +311,8 @@ Rules owns the conversion from evidence types into `SkillRuleState`; decisions a
 | `state_version` | Integer 1; state paths are an intentional rule contract |
 | `target` | `repository_id`, `skill_path`, `target_id`, `text`, `source_span`, `content_identity`; instructions may refer to `target.text` |
 | `context` | Ordered entries with `selector_id`, `requirement`, `text`, `source_span`, `content_identity`, and attributed facts/captures |
-| `omitted_optional_context` | `selector_id` and closed reason `no_match | unavailable | limit`; omitted count is explicit |
-| `source_units`, `relationships`, `chunks`, `coverage` | When a related-unit query is requested: repository/revision-qualified keys, basis spans, candidate/contradicted/unresolved dispositions, declared query bounds and cutoffs; no runtime-stack claim |
+| `omitted_optional_context` | `selector_id` and closed reason `no_match \| unavailable \| limit`; omitted count is explicit |
+| `related_context` | Required tagged `none` or `prepared { source_units, relationships, chunks, coverage }`; prepared carries repository/revision-qualified keys, basis spans, dispositions, bounds and cutoffs. No four independently optional fields or runtime-stack claim |
 | `facts` | Tagged `structural_fact` with closed `fact_code` and source span/capture; only mechanically established facts |
 | `uncertainties` | Tagged `relationship_hypothesis { label, basis_spans }` or `analysis_unavailable { reason }`; not provider probabilities |
 
@@ -400,7 +320,7 @@ Fact codes include `paragraph_id_resolved`, `text_match`, `ast_match`, `git_chan
 
 ## Judgment admission, transport and useful diagnostics
 
-`StructuredJson` represents recursive finite JSON, including nested null; `StructuredContainer` constrains a root to text/object/array. Shared state, instructions, noul descriptions and score levels use that non-null root. Choice descriptions additionally admit top-level null. Noul criteria is `omitted` or `specified { true_description, false_description }`; a half-supplied pair is invalid. Questions preserve structured instructions, choice descriptions, score levels and both noul descriptions. `QuestionName`, `ChoiceLabel` and `ModelSelection` are distinct validated values. The native request map is dynamic where loaded from JSONL; response correlation checks exact names, kinds, labels/probability keys, rubric/index sets, numeric ranges and receipt fields.
+`StructuredJson` is the recursive JSON enum: null, boolean, finite number, string, array or object. `StructuredEntry` admits a string, object, array or null root, with `StructuredJson` children; every primitive's instructions and every criterion description use this same decisions-owned type. `StructuredContainer` separately restricts shared-state roots to text/object/array; it does not narrow prompt content. Null is an actual entry value, never an omitted-field sentinel. Noul criteria is `omitted` or `specified { true_description, false_description }`; a half-supplied pair is invalid. Questions preserve structured instructions, choice descriptions, score levels and both noul descriptions. `QuestionName`, `ChoiceLabel` and `ModelSelection` are distinct validated values. The native request map is dynamic where loaded from JSONL; response correlation checks exact names, kinds, labels/probability keys, rubric/index sets, numeric ranges and receipt fields.
 
 The canonical public payloads below are Tools-owned Rust enums/newtypes, serialized with the shown tags. Adapter translation preserves the native primitive meaning, rather than exporting SDK classes:
 
@@ -409,16 +329,18 @@ The canonical public payloads below are Tools-owned Rust enums/newtypes, seriali
 | `JudgmentQuestion` | `type: noul` with instructions and optional paired criteria; `type: choice` with instructions and label-to-description criteria; `type: score` with instructions and ordered level criteria |
 | `JudgmentAnswer` / noul | `type: noul`, `yes_probability: finite [0,1]` |
 | `JudgmentAnswer` / choice | `type: choice`, `selected_label: ChoiceLabel`, `confidence: finite [0,1]`, `probabilities: map<ChoiceLabel, finite [0,1]>`; keys equal requested labels |
-| `JudgmentAnswer` / score | `type: score`, `score: finite [0,last_index]`, `confidence: finite [0,1]`, `legend: map<RubricIndex, StructuredContainer>`, `probabilities: map<RubricIndex, finite [0,1]>`; keys equal requested indices |
+| `JudgmentAnswer` / score | `type: score`, `score: finite [0,last_index]`, `confidence: finite [0,1]`, `legend: map<RubricIndex, StructuredEntry>`, `probabilities: map<RubricIndex, finite [0,1]>`; keys equal requested indices |
 | `BackendSelection` | `kind: jev_openrouter`, validated `endpoint` and nonempty `model`; credentials supplied separately |
 | `AttemptSettings` | Positive `attempt_timeout_ms`, finite `retry_count`, positive `initial_backoff_ms`, `max_backoff_ms`, `max_response_bytes`; initial backoff does not exceed cap |
 | `BackendPreparation` | `ready { backend }` or `refused { diagnostics }`; it starts no inference |
 
 Native answer names are keyed by `QuestionName`; file-loaded keys remain request-relative runtime facts. Canonical fields are mapped from source-verified provider fields at the adapter boundary, never inferred from prose. A body that cannot supply those semantics is invalid response. Query/config/request constructors reject empty IDs, invalid ranges and inconsistent settings before IO. Response reads are bounded by `max_response_bytes`; exceeding the bound is `invalid_response/invalid_body`, without emitting raw data.
 
-The adapter trait exposes supported primitive semantics and async execution, not filesystem or rule policy. Its received body is an explicitly untrusted adapter-envelope value consumed by the judgment owner; it is never a public completed outcome. Unknown provider data is decoded into canonical primitive structures and validated relative to the immutable request. Alternate/injected adapter envelopes are admitted before branching; unexpected adapter faults become safe `unexpected_provider_error` outcomes.
+The adapter trait exposes supported primitive semantics and async execution, not filesystem or consumer interpretation. Its received body is an explicitly untrusted adapter-envelope value consumed by the judgment owner; it is never a public completed outcome. Unknown provider data is decoded into canonical primitive structures and validated relative to the immutable request. Alternate/injected adapter envelopes are admitted before branching; unexpected adapter faults become safe `unexpected_provider_error` outcomes.
 
 The first Jev adapter calls OpenRouter System One over HTTP directly using a reusable `reqwest` client. It preserves the native questions/state/model protocol and Authorization header. Client errors, body text, response headers and parse trees never leave the adapter raw. No SDK is required. Future Alpha Decisions and OpenAI Decisions adapters can map their own wire contracts; confidence, structured data, usage and cancellation semantics require new conformance evidence before claiming support.
+
+Noul criteria omission is represented by the native enum, not `Option<StructuredEntry>`: `omitted` means no criteria field; `specified` requires both descriptions, either of which may contain literal null. Serde-tagged question variants own their corresponding payloads; unknown fields and numeric/boolean entry roots are refused.
 
 The public decision outcome variants and their fields are:
 
@@ -430,7 +352,7 @@ The public decision outcome variants and their fields are:
 | `invalid_response` | Required nonempty safe diagnostics and attempt records; no partial answer map |
 | `cancelled` | Required caller-aborted reason, safe diagnostic and attempt records; no completed answers; cancellation does not establish no remote inference |
 
-Each domain diagnostic is constructed where its issue is detected. Known input contracts reject unknown and duplicate fields; serde default field-ignoring is not admission. This applies recursively to bindings, rule objects, selectors, policies, invocation/configuration envelopes and known request shapes, while arbitrary structured JSON content remains open data. A location identifies the containing contract field or JSONL line/column; unknown input key text and received values are not copied into messages.
+Each domain diagnostic is constructed where its issue is detected. Known input contracts reject unknown and duplicate fields; serde default field-ignoring is not admission. This applies recursively to bindings, rule objects, selectors, policies, invocation/configuration envelopes and known request shapes, while arbitrary structured JSON content remains open data. A location identifies the containing contract field or source-file line/column; unknown input key text and received values are not copied into messages.
 
 | Diagnostic owner / origin | Closed codes |
 | --- | --- |
@@ -439,9 +361,9 @@ Each domain diagnostic is constructed where its issue is detected. Known input c
 | Evidence / connected sourcing | `invalid_repository_binding`, `unknown_repository`, `history_incomplete`, `recency_unknown`, `relationship_unresolved`, `discovery_limit` |
 | Evidence / related declaration and grouping | `unsupported_relationship_query`, `invalid_context_group`, `missing_related_context`, `required_group_incomplete` |
 | Decisions / request budget | `context_budget_exceeded`, `budget_unverifiable`, `unsupported_budget_profile` |
-| Rules / rule_pack | `malformed_json`, `unknown_field`, `duplicate_field`, `duplicate_rule_id`, `duplicate_rule_source`, `duplicate_skill_binding`, `empty_rule_pack`, `invalid_policy` |
+| Rules / rule_set or rule_file | `malformed_json`, `unknown_field`, `duplicate_field`, `invalid_rule_file`, `unsupported_rule_set_version`, `duplicate_rule_id`, `duplicate_rule_source`, `duplicate_rule_set`, `duplicate_skill_binding`, `empty_rule_file` |
 | Rules / selection | `applicability_unknown`, `target_outside_scope` |
-| Rules / invocation or execution | `invalid_configuration`, `invalid_batch_group`, `policy_mismatch`, `unexpected_execution_error`, `caller_aborted` |
+| Rules / invocation or execution | `invalid_configuration`, `invalid_batch_group`, `unexpected_execution_error`, `caller_aborted` |
 | Decisions / request | `unknown_field`, `duplicate_field`, `invalid_question`, `invalid_state`, `unsupported_primitive`, `invalid_number`, `invalid_rubric`, `invalid_configuration` |
 | Decisions / response | `invalid_body`, `missing_answer`, `unexpected_answer`, `wrong_answer_kind`, `invalid_choice`, `invalid_number`, `invalid_rubric`, `invalid_receipt` |
 | Decisions / provider or execution | `provider_rejected_request`, `authentication`, `authorization`, `insufficient_credits`, `provider_resource_unavailable`, `request_too_large`, `rate_limit`, `provider_unavailable`, `timeout`, `connection`, `http_error`, `unexpected_provider_error`, `caller_aborted` |
@@ -479,28 +401,28 @@ This is a proposed-only path; no predecessor exists. Every local call/return is 
 
 [Diagram source](assets/execution-sequence.mmd)
 
-Shapes on the new boundaries are the binding table's invocation, validated pack, frozen evidence, structured request, closed decision outcome and lint report. HTTP sends only the admitted native model/questions/state; model-request body logs are disabled. Source capture is read-only; policy/report generation writes only the returned value.
+Shapes on the new boundaries are the binding table's invocation, validated RuleSets, frozen evidence, structured request, closed decision outcome and lint report. HTTP sends only the admitted native model/questions/state; model-request body logs are disabled. Source capture is read-only; correlation/report generation writes only the returned value.
 
 ## Failure, overlap and runtime ownership
 
 | State / owner | Admission or transition | Failure / cleanup |
 | --- | --- | --- |
-| Preflight / rule admission | Pack, configuration and limits are valid | Whole invocation refused; zero provider calls |
+| Preflight / rule admission | RuleSets, rule definitions, configuration and limits are valid | Whole invocation refused; zero provider calls |
 | Preparing / evidence owner | Refs/bytes captured, targets and queries resolved | Per-rule selection/evidence failure; independently ready rules remain usable |
-| Executing / invocation and judgment owners | Explicit group has complete evidence, supported questions, available capacity | Finite attempts; provider/response failure never invokes success policy |
-| Composing / policy owner | Completed correlated judgment and validated matching policy | Deterministic finding; impossible policy mismatch becomes execution diagnostic, no guessed disposition |
+| Executing / invocation and judgment owners | Explicit group has complete evidence, supported questions, available capacity | Finite attempts; provider/response failure never constructs a completed judgment |
+| Correlating / rules owner | Completed native outcome with exact question bindings | Source-linked RuleJudgment references admitted answers; no mandatory verdict conversion |
 | Cancelling / invocation owner | Caller cancellation observed before terminal admission | Stop new scans/calls/attempts, propagate tokens, join owned work; completed peer outcomes retained |
 | Terminal / invocation owner | All owned work settled; report admission rules below select the outcome | Immutable complete/incomplete/cancelled result; no background follow-up |
 
-The invocation owner admits the terminal outcome once. Invalid binding/configuration/pack input is `invalid_invocation` before inference. Source capture or revision failure that prevents pack/snapshot admission is `preparation_failed`, with diagnostics and observed measurements rather than a fabricated report; it maps to exit 3. Cancellation observed before terminal admission is `cancelled_report` (exit 4) with tagged progress: `before_report_admission` carries no report, while `report_admitted { partial_report }` requires the admitted report and retained completed peer findings. Evidence cancellation similarly distinguishes `before_plan_admission` from `plan_admitted { partial_plan }`. These are admitted data states, not an assertion that owned tasks can be left running; terminal cancellation still requires settlement.
+The invocation owner admits the terminal outcome once. Invalid binding/configuration/RuleSet input is `invalid_invocation` before inference. Source capture or revision failure that prevents RuleSet/snapshot admission is `preparation_failed`, with diagnostics and observed measurements rather than a fabricated report; it maps to exit 3. Cancellation observed before terminal admission is `cancelled_report` (exit 4) with tagged progress: `before_report_admission` carries no report, while `report_admitted { partial_report }` requires the admitted report and retained completed peer judgments. Evidence cancellation similarly distinguishes `before_plan_admission` from `plan_admitted { partial_plan }`. These are admitted data states, not an assertion that owned tasks can be left running; terminal cancellation still requires settlement.
 
-For an admitted requested scope without cancellation, `completed_report` (exit 0) requires every occurrence to be either a justified `not_applicable`/`outside_change_scope` skip or a selected occurrence with a valid finding. Any `selection_failed`, `evaluation_failed`, refused required evidence, missing/duplicate/deleted required target, or invocation diagnostic preventing an in-scope check makes it `incomplete_report` (exit 3). No failed/unevaluated occurrence is absorbed into a pass. A failing/review/category finding, declared optional-context omission, conservative baseline selection or earlier unknown attempt followed by a validated judgment does not itself make coverage incomplete; those facts remain visible in their own fields. Completeness covers the requested scope only. V12 exercises one successful peer plus each unavailable/failing evaluation case and asserts incomplete report and exit 3; V13 asserts cancellation precedence and retained peer findings.
+For an admitted requested scope without cancellation, `completed_report` (exit 0) requires every occurrence to be either a justified `not_applicable`/`outside_change_scope` skip or a selected occurrence with a completed correlated rule judgment. Any `selection_failed`, `evaluation_failed`, refused required evidence, missing/duplicate/deleted required target, or invocation diagnostic preventing an in-scope check makes it `incomplete_report` (exit 3). No failed/unevaluated occurrence is absorbed into a pass. A native choice answer labeled fail/review or another category, declared optional-context omission, conservative baseline selection or earlier unknown attempt followed by a validated judgment does not itself make coverage incomplete; those facts remain visible in their own fields. Completeness covers the requested scope only. V12 exercises one successful peer plus each unavailable/failing evaluation case and asserts incomplete report and exit 3; V13 asserts cancellation precedence and retained peer judgments.
 
 The native caller supplies a cancellation token; the executable owns its signal-to-token mapping. Invocation tasks are owned in a join set/tracker and drained. Synchronous Git/tree parsing/search work runs in bounded blocking tasks, checking cancellation between bounded units; cancellation cannot forcibly preempt arbitrary blocking code. No “cancelled” terminal claim is made until those owned tasks actually settle. Async HTTP futures are not detached; cancellation/timeout drops the attempt future under the adapter and awaits task settlement before retry/return.
 
 One adapter attempt controller governs the reusable HTTP client. Defaults proposed for initial proof are a 10,000 ms attempt timeout, zero automatic retries, caller-selected finite retry count, and capped backoff/Retry-After. When retries are enabled, only declared transient connection/timeout/rate-limit/server classes qualify; invalid request/response/authentication never retries automatically. Underlying HTTP automatic retry is disabled so another controller cannot multiply attempts. A transport loss may follow accepted inference, so retries can incur extra billing. Usage from a completed response does not establish total billed cost of lost attempts.
 
-Concurrency capacity is explicit invocation configuration. Report order follows skill-binding order, then JSONL-path order and line order, not task completion order. Selected records exist before evidence assembly; an incomplete selected bundle produces `evaluation_failed` without a call. A failure that prevents an applicability decision produces `selection_failed` instead. Shared immutable bytes/trees and a reusable client do not share mutable per-run answer or cancellation state. No global scheduler/limiter, persistent cache, inference idempotency or crash recovery store is added. A crash leaves invocation completion unknown to the process caller until a complete result is observed.
+Concurrency capacity is explicit invocation configuration. Report order follows skill-binding order, then RuleSet-path order, JSONL-path order and line order, not task completion order. Selected records exist before evidence assembly; an incomplete selected bundle produces `evaluation_failed` without a call. A failure that prevents an applicability decision produces `selection_failed` instead. Shared immutable bytes/trees and a reusable client do not share mutable per-run answer or cancellation state. No global scheduler/limiter, persistent cache, inference idempotency or crash recovery store is added. A crash leaves invocation completion unknown to the process caller until a complete result is observed.
 
 ## Proof paths and real dependencies
 
@@ -508,30 +430,30 @@ Concurrency capacity is explicit invocation configuration. Report order follows 
 
 [Diagram source](assets/proof-boundaries.mmd)
 
-Local library/selector dependencies are real in evidence integration. An HTTP fixture substitutes only the hosted boundary in V9/V13; it must observe actual request bodies/attempts, not mock the adapter being proved. V11 closes the hosted gap through the public Rust API. V12 uses the same per-skill pack (including multiple JSONL sources and cross-skill ID controls) in lint and eval drivers with independently written expectations; it does not migrate or certify the production plugin. V14 profiles cold/warm runs and counts scans/parses/requests before adopting a persistent cache or native addon.
+Local library/selector dependencies are real in evidence integration. An HTTP fixture substitutes only the hosted boundary in V9/V13; it must observe actual request bodies/attempts, not mock the adapter being proved. V11 closes the hosted gap through the public Rust API. V12 uses the same RuleSets (including shared JSONL sources and cross-skill/RuleSet ID controls) in lint and eval drivers with independently written expectations; it does not migrate or certify the production plugin. V14 profiles cold/warm runs and counts scans/parses/requests before adopting a persistent cache or native addon.
 
-Invalid ID states are rejected by constructors; primitive/result kinds are enum-constrained; JSONL/policy inconsistencies are rejected at pack admission; source/selection incompleteness prevents inference for that rule; wrong answer correlation/unsafe diagnostics are rejected at judgment admission; execution-failure findings are unrepresentable in the report's distinct result variants. Native operation/payload mismatches, a report/plan on the before-admission cancellation variant, missing retained data on the admitted variant, and a code signature on a Markdown unit are unrepresentable. Timed-member constructors require their resolved UTC interval; unrelated optional time metadata is not an alternate state. V1/V2/V8/V15 must observe the actual native contracts, serialized variant payloads and refusal controls; source tables alone are not type-checking proof. Static checks and behavioral negative controls reinforce these boundaries rather than replacing them.
+Invalid ID states are rejected by constructors; primitive/result kinds are enum-constrained; invalid RuleSet/JSONL declarations are rejected at admission; source/selection incompleteness prevents inference for that rule; wrong answer correlation/unsafe diagnostics are rejected at judgment admission; execution failures cannot construct completed rule judgments in the report's distinct result variants. Native operation/payload mismatches, a report/plan on the before-admission cancellation variant, missing retained data on the admitted variant, and a code signature on a Markdown unit are unrepresentable. Timed-member constructors require their resolved UTC interval; unrelated optional time metadata is not an alternate state. V1/V2/V8/V15 must observe the actual native contracts, serialized variant payloads and refusal controls; source tables alone are not type-checking proof. Static checks and behavioral negative controls reinforce these boundaries rather than replacing them.
 
 ## Obligation realization and proof seams
 
 | U | R and scenario | E | Owner | Interface | Shape and home | State | Failure | Proof seam |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | U1,U8,U18,U19 | R1 independent libraries and program reuse | E5,E13,E16 | Domain owners and invocation owner | Evidence/decision/rule entries; program facade | Owned public types in sunstack-evidence/decisions/rules; envelope in sunstack-rule-cli | Independent entry → terminal | No reverse dependencies or required JS | V1 independent native consumers; V2 real process |
-| U3,U14,U15 | R2 pack preflight | E9,E10,E14 | Rule admission | Pack loading | ValidatedRulePack, rule_contracts | Supplied → admitted/refused | Atomic no-inference refusal | V3 multiple source files/packs, strict field admission and zero calls |
+| U3,U14,U15 | R2 definition preflight | E9,E10,E14,E23,E24 | RuleSet/rule admission | Definition loading | RuleSet, ValidatedRuleFile and SkillRuleBinding, rule_contracts | Supplied → admitted/refused | Atomic no-inference refusal | V3 JSON/version, bare JSONL, strict fields/IDs, multiple named questions and zero calls |
 | U14,U15 | R3 target identity | E11,E12,E14 | Target resolver | Resolve paragraph | TargetResolution, evidence_contracts | Captured → resolved/refused | Missing/duplicate/deleted diagnostic | V4 real Markdown spans |
 | U16 | R4 Git/content consistency | E11,E13,E16 | Evidence owner | Capture comparison | SourceSnapshot, evidence_contracts | Read → freeze | Source changed/ref unavailable | V5 repository content mutations |
 | U16,U17 | R5 structural candidates | E11,E13 | Evidence owner | Search selector | SourceFact and uncertainty, evidence_contracts | Frozen → matches | Syntax-only attribution | V6 actual AST/text results |
-| U14,U16 | R6 selection accounting | E9,E15,E16 | Selection owner | Select rules | RuleSelection, rule_contracts | Rule → one disposition | Unknown cannot silently skip | V7 both-side applicability/context/baseline controls |
+| U14,U16 | R6 selection accounting | E9,E15,E16 | Selection owner | Select rules | RuleSelection, rule_contracts | Rule → one disposition | Unknown cannot silently skip | V7 both-side applicability/context/baseline and file-guidance controls |
 | U5,U14,U16 | R7 required evidence | E11,E13,E14 | Evidence owner | Prepare bundle | EvidenceBundle, evidence_contracts | Selected → ready/refused | Limit/missing context diagnostic | V7 no inference on incomplete bundle |
-| U3,U4,U5 | R8 structured mixed batch | E1,E2,E4,E5 | Judgment owner | Request admission/execution | JudgmentQuestion and StructuredJson, decision_contracts | Request → execute | No flatten/drop/regroup | V8 domain cases; V9 exact questions and SkillRuleState HTTP body |
+| U3,U4,U5 | R8 structured named questions | E1,E2,E4,E5,E24 | Rules assembles; decisions admits | Request admission/execution | NamedQuestionMap/StructuredEntry in decisions; RuleSet prefix in rules | Ready evidence → named request | No flatten/drop/regroup or cross-RuleSet prefix | V8 rich entries/null; V9 prefix passthrough/assembly and exact state/questions |
 | U3,U4 | R9 correlated completion | E1,E5,E6,E7 | Response admission | Validate body/request | JudgmentAnswer and Receipt, judgment_validation | Untrusted → complete/refuse | No partial success | V8 mismatch controls; V9 adapter |
 | U2,U3,U14 | R10 useful safe diagnostics | E14 | Detecting boundary owner; rules report wraps | Map issue/failure once | Domain diagnostics in evidence/decisions/rules; ReportDiagnostic in sunstack-rules/report_contracts | Fault → typed diagnostic → report | No duplicate schema/raw values; bounded omission count | V10 status/unknown-field/remote-effect/exposure controls |
 | U4,U12 | R11 backend substitution | E1,E3,E5 | Judgment owner and Jev adapter | Backend trait/capabilities | DecisionBackend, decision_contracts | Prepare → select/refuse | Unsupported primitive | V9 conformance; V11 Jev only |
 | U6 | R12 native usage/model/cost | E5,E7 | Response admission | Receipt admission | ExecutionReceipt, judgment_validation | Complete | Missing/malformed known fields | V9 supplied/absent cost; V11 hosted |
-| U7,U14 | R13 failure vs finding | E5,E8,E14,E16 | Invocation and policy owners | Compose/report | Distinct result variants, rule_contracts | Judgment → finding or failure | No failure-to-pass aggregation | V8/V12 independent failure and whole-report completeness controls |
+| U7,U14 | R13 failure vs judgment | E5,E8,E14,E16 | Invocation and result-correlation owners | Compose/report | Distinct result variants, rule_contracts | Native outcome → correlated judgment or failure | No failure-to-pass aggregation | V8/V12 independent failure and whole-report completeness controls |
 | U1,U3 | R14 cancellation settlement | E5,E16 | Invocation owner | Cancellation/join | Cancellation token/outcome; LintCancellationProgress in rules, EvidenceCancellationProgress in evidence | Active → cancelling → tagged admitted-data progress → terminal | No detached owned task or conditional optional report/plan | V9/V13 held work, both progress payload variants and cleanup |
 | U3,U6 | R15 bounded one-controller attempts | E3,E5,E7 | Jev adapter | HTTP attempt loop | Attempt settings, decision_backends | Attempt → settle/retry/stop | Finite limits; remote ambiguity | V9/V13 observed attempt count |
-| U5,U7,U9,U15 | R16 source-linked policy | E6,E8,E9,E16 | Policy owner | Apply declared policy | RulePolicy/RuleFinding, rule_policy | Valid answer → finding | Refused policy cannot compose | V12 shared rules/independent expectation |
+| U5,U7,U9,U15 | R16 source-linked native judgments | E6,E8,E9,E16,E24 | Rule result correlation; consumer interpretation | Expose exact native results | RuleJudgment references decisions-owned answers; RuleSet grouping in C6 | Completed native answers → source-linked results | No forced mapping/aggregate; independent eval expectations | V12 same definitions and native outputs with independent oracle |
 | U4,U17 | R17 facts vs inference | E6,E13 | Evidence and judgment owners | Evidence attribution | Fact/uncertainty/judgment variants | Discover → present | No calibrated heuristic claim | V6/V12 contradiction cases |
 | U6,U16 | R18 measured filtering | E11,E16 | Invocation owner | Report measurements | InvocationMeasurements, rule_execution | Run → measured report | No predicted SLA/savings | V14 declared workload profile |
 | U2,U10,U14 | R19 credential/body isolation | E3,E11,E14 | Adapter and diagnostic owners | Secret config/safe mapping | Private secret in sunstack-decisions; owned domain diagnostic payloads | Memory-only config | No raw/default body logs | V10 sentinel output capture |
@@ -539,10 +461,10 @@ Invalid ID states are rejected by constructors; primitive/result kinds are enum-
 | U16,U20 | R21 selected Git/time changes | E11,E17,E18 | Evidence change-source owner | Resolve each binding's sole ChangeScope | RepositoryBinding/ResolvedChangeSelection/ResolvedChangeMember/derived scope summary, evidence_contracts | Requested → resolved/approximate/unavailable | Each timed member requires its own interval; no caller override or recency default; unknown metadata attributed | V16 explicit/omitted recency policy, multiple timed union members, mixed per-repo and actual Git/time/cancellation controls |
 | U16,U21 | R22 connected repo attribution | E11,E13,E17,E20 | Evidence source/relationship owners | Capture and traverse supplied roots | SourceSnapshot/SourceSpan/RelationshipCandidate, evidence_contracts | Supplied roots → captured connected context | No outside-root reads or atomic multi-repo claim | V17 cross-repo callers and partial-source failures |
 | U17,U22 | R23 bounded candidate paths | E18,E19,E20 | Evidence structural/relationship owners | Admit fixed graph language/operation set then query | SourceUnitQuery/RelationshipQuery/SourceUnitKind/SourceUnit/DiscoveryCoverage, evidence_contracts | Validated query → kind-specific units → candidates | Unsupported refused; no code-signature placeholder on Markdown; unresolved/cutoffs/contradictions attributed | V17/V18 literal capability/alias/shadow/range cases |
-| U5,U9,U22,U23 | R24 coherent semantic chunks | E9,E13,E19,E20,E21 | Evidence assembly and rule policy owners | Admit declared groups under unchanged invocation discovery limits | SemanticChunk/ChunkSettings/ContextGroupOutcome/DiscoveryLimits, evidence_contracts; single-answer policy in rule_contracts | Located query → complete/partial/unavailable group → readiness | Unresolved/observed cutoff/whole-unit failure refuses required group; no JSONL split/aggregation | V18 complete/unresolved/admitted-limit/cutoff/oversized linked-group controls |
+| U5,U9,U22,U23 | R24 coherent semantic chunks | E9,E13,E19,E20,E21 | Evidence assembly and consumer interpretation owners | Admit declared groups under unchanged invocation discovery limits | SemanticChunk/ChunkSettings/ContextGroupOutcome/DiscoveryLimits, evidence_contracts; named-question rule definition in rule_contracts | Located query → complete/partial/unavailable group → readiness | Unresolved/observed cutoff/whole-unit failure refuses required group; no JSONL split/aggregation | V18 complete/unresolved/admitted-limit/cutoff/oversized linked-group controls |
 | U12,U14,U23 | R25 serialized request budget | E3,E4,E13,E21,E22 | Decisions request admission; rules/host assembles | Pure assess_request_budget and admitted-body dispatch | RequestBudgetSettings/Assessment/AdmittedBackendRequest, decision_contracts | Encoded candidate → admitted immutable body or refusal | No replacement-body dispatch; omit-all optional pass once; no inference/pass on required overflow or refused accounting | V19 assessed/dispatched byte identity, wrong-backend refusal, token-basis and no-call controls |
 
-All E1–E22 are bound in the entity table. C1–C8 correspond to the interfaces, source/selection, judgments, diagnostic/lifecycle, policy, performance and connected-context sections above. V1–V19 name future observations, not completed tests. No visual or static design check substitutes for their execution.
+All E1–E24 are bound in the entity table. C1–C8 correspond to the interfaces, source/selection, judgments, diagnostic/lifecycle, result-correlation, performance and connected-context sections above. V1–V19 name future observations, not completed tests. No visual or static design check substitutes for their execution.
 
 ## External source basis and compatibility limits
 
@@ -555,4 +477,4 @@ Current published `openrouter-rs` 0.19.0 has a Decisions client and JSON-valued 
 - [OpenAI Decisions](https://developers.openai.com/api/docs/guides/decisions) and [OpenRouter Alpha Decisions](https://openrouter.ai/docs/client-sdks/python/sdks/decisions/README#alpha-decisions) inform future adapter shape only; neither is v1 support.
 - [Tokio owned task tracking](https://docs.rs/tokio-util/latest/tokio_util/task/struct.TaskTracker.html) and [reqwest client configuration](https://docs.rs/reqwest/latest/reqwest/struct.ClientBuilder.html) inform cleanup/timeout/retry mechanisms; physical cancellation and exact library versions require runtime proof.
 
-Remaining structural choices are the narrow rule-policy/paragraph conventions if a real first rule cannot use them, native shipping platforms, and an optional TS integration method. No numeric latency budget, calibrated ranking, immutable distribution destination or alternate provider conformance is inferred from these sources.
+Remaining delivery choices are native shipping platforms and an optional TS integration method. A newly required paragraph convention or overall-result feature needs a concrete consumer contract before expanding this design. No numeric latency budget, calibrated ranking, immutable distribution destination or alternate provider conformance is inferred from these sources.

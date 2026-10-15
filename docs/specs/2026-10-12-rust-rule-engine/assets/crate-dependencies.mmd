@@ -1,5 +1,5 @@
 flowchart TB
-  C["Executable crate<br/>framing, signals and wiring"] --> R["Rules crate<br/>packs, selection, policy and reports"]
+  C["Executable crate<br/>framing, signals and wiring"] --> R["Rules crate<br/>RuleSets, selection, correlation and reports"]
   C -->|"direct judgments"| D["Decisions crate<br/>typed primitives, validation and Jev"]
   C -->|"direct evidence preparation"| E["Evidence crate<br/>sources, changes, related units and chunks"]
   R -->|"typed snapshots and bundles"| E

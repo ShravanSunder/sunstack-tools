@@ -2,12 +2,12 @@ flowchart TB
   N["Native Rust caller"] -->|"typed rule call"| O["Invocation owner in rules crate<br/>preflight, scheduling, report and cleanup"]
   P["Skill tool or optional TS caller"] -->|"versioned request"| C["Executable boundary<br/>framing and serialization"]
   C --> O
-  O <-->|"admitted packs or diagnostics"| R["Rule admission owner<br/>JSONL and policy checks"]
-  O <-->|"frozen evidence plans or source errors"| E["Evidence crate<br/>changes, targets, related sources and chunks"]
-  C -->|"direct prepare evidence"| E
+  O <-->|"selected definitions or diagnostics"| R["Rule admission owner<br/>RuleSet JSON + JSONL questions"]
+  O <-->|"frozen evidence or source errors"| E["Evidence crate<br/>changes, targets, related sources and chunks"]
+  C -->|"direct evidence operation"| E
   O <-->|"occurrence selection records"| F["Selection owner<br/>applicability and dependencies"]
   O <-->|"request / validated outcome"| J["Judgment owner in decisions crate<br/>correlation and safe failures"]
   J <-->|"body / attempt observations"| B["Jev adapter<br/>HTTP attempts and private credentials"]
   B <-->|"native JSON / response"| X["OpenRouter System One"]
-  O <-->|"admitted answer and policy / finding"| V["Policy owner<br/>interpret Sunstack-authored bands or labels"]
+  O <-->|"bindings / source-linked answers"| V["Rule result correlation<br/>one canonical execution outcome"]
   J -.-> A["Future adapter<br/>not implemented in v1"]
