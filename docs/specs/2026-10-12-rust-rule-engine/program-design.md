@@ -4,7 +4,7 @@ The [Specification](specification.md) fixes behavior, and [Requirements](require
 
 The target is one implementation in four crates: three libraries (evidence, decisions, rules) and one thin executable. A Rust host calls the libraries. A hook, a skill tool or an optional TS caller runs the executable with one JSON request. There is no daemon, JS addon, persistent store or second engine.
 
-Milestone 2's change sourcing, connected discovery and chunking live in [Connected evidence](program-design-connected-evidence.md). Everything else is here, including the context budget that milestone 1 needs.
+Two companions complete it. [Public contracts](program-design-contracts.md) gives the exact fields of every program input, outcome, report and diagnostic. [Connected evidence](program-design-connected-evidence.md) covers milestone 2's change sourcing, connected discovery and chunking. Everything else is here, including the context budget that milestone 1 needs.
 
 ## The integrated model
 
@@ -93,7 +93,10 @@ Deserialization admits shape. Constructors and request-relative validators admit
 | E15 Selection record | Rules occurrence resolution | `sunstack-rules/report_contracts` | Folded into `RuleOccurrenceResult` (below); every variant carries `RuleOccurrenceKey` | Report value |
 | E16 Rule invocation | Invocation owner | `sunstack-rules/invocation_contracts` and `rule_execution` | `RuleInvocationInput` and `RuleInvocationOutcome` (under [Program surface](#program-surface-and-outcomes)) | One process or call |
 | E17 Repository binding | Evidence | `sunstack-evidence/repository_sources` | `RepositoryBinding { key, root, input_paths, change_scope }`; milestone 1 admits `change_scope: full` only | Per invocation |
-| E18–E21 | Evidence | Milestone 2 modules | See [Connected evidence](program-design-connected-evidence.md) | Per invocation |
+| E18 Change selection | Evidence change selection | `sunstack-evidence/change_selection` | `ResolvedChangeSelection { repository, members: [ResolvedChangeMember], coverage }`; member variants in [Connected evidence](program-design-connected-evidence.md#roots-scopes-and-frozen-evidence) | Per invocation |
+| E19 Source unit | Evidence structural units | `sunstack-evidence/source_units` | `SourceUnit { key: SourceUnitKey { snapshot, repository, revision, path, byte_start, byte_end }, kind: SourceUnitKind, span: SourceSpan, content_identity, syntax_quality: parsed \| recovered_with_errors }` | Derived |
+| E20 Relationship candidate | Evidence relationships | `sunstack-evidence/related_sources` | `RelationshipCandidate`: `candidate { source_unit, target_unit, call_site_span, relation_kind, basis_spans, facts, uncertainties }`, `contradicted { source_unit, possible_target, basis_spans, contradiction }`, `unresolved { source_unit, target_hint, relation_kind, basis_spans, reason }` | Invocation-local |
+| E21 Semantic chunk | Evidence chunks | `sunstack-evidence/semantic_chunks` | `SemanticChunk { key, units: [SourceUnitKey], relationships, excerpts: [Excerpt], omitted_optional: [Omission], coverage: DiscoveryCoverage }`; readiness `ContextGroupOutcome` | Derived |
 | E22 Context budget | Decisions request admission | `sunstack-decisions/request_budgeting` | `RequestBudgetAssessment`: `within_configured_budget { admitted_request }`, `exceeded`, `unverifiable` | Pure, per request |
 | E23 Rule file | Definition admission | `sunstack-rules/definition_admission` | `ValidatedRuleFile { source, content_identity, rules: nonempty [located RuleDefinition] }` | Captured bytes |
 | E24 RuleSet | Definition admission | `sunstack-rules/definition_contracts` | `RuleSetDefinition { schema_version: 1, name, description, inputs: map<InputName, InputDeclaration>, applicability, common_ruleset_instructions: StructuredEntry, rule_paths }` | Captured bytes |
@@ -319,7 +322,7 @@ Planning is pure and deterministic. It runs after admission and after the leadin
    - R waits until G settles.
    - G's own `staged_gate` request becomes ready only when every entry before G in its owner's list has settled and passed. Its evidence is acquired only then.
    - A same-input decision that comes before G cannot ride with the rules, which wait for G. It gets its own earlier `staged_gate` request.
-   - Gates that directly follow G, with no condition between, and that read only sources G reads, ride in G's request.
+   - A different-input gate never rides in another staged gate's request. A gate H after G waits for G to pass, even when H reads only G's sources, so each staged request carries exactly one gate.
 5. **Speculation on.** If speculation is `on`, R and G's request are sent together, and G's answer still decides. Reduction still applies every entry in authored order.
 6. **Router.** The router is the first gate of every candidate RuleSet. It rides in the first candidate rules request that is over the same inputs and has no staged dependency. If none qualifies, it is staged alone, or sent concurrently when speculation is on. With the router riding, every candidate whose rules request's read set covers the router's read set (through the route wiring) is sent too, so that is the speculative fan-out. Every other candidate waits for the router.
 7. **Budget.** Each request is encoded and assessed (C8 and the [budget](#context-budget-and-admitted-bytes) section). A rules request over budget is split:
@@ -441,7 +444,7 @@ The sequence diagram above shows this path with its failure branches.
 
 ## Program surface and outcomes
 
-Envelope: `{ protocol_version: 1, operation, input }`. The result is `protocol_error { protocol_version, diagnostics }` or `operation_result { protocol_version, result: { operation, outcome } }`. The executable serializes the libraries' own types.
+Envelope: `{ protocol_version: 1, operation, input }`. The result is `protocol_error { protocol_version, diagnostics }` or `operation_result { protocol_version, result: { operation, outcome } }`. The executable serializes the libraries' own types. Every field of every variant below is in [Public contracts](program-design-contracts.md).
 
 | Operation | Input | Outcome variants (`kind`) | Model call |
 | --- | --- | --- | --- |
@@ -483,7 +486,7 @@ Credentials come from the executable's environment (`OPENROUTER_API_KEY`) or a n
 
 ## Decisions crate
 
-Retained from the reviewed design. The decisions crate does not know about rules.
+Retained from the reviewed design. The decisions crate does not know about rules. `DecisionRunOutcome`, receipts and attempt records are spelled out in [Public contracts](program-design-contracts.md#run_judgments-sunstack-decisions).
 
 - **Content types.** `StructuredJson` is the recursive JSON enum. `StructuredEntry` admits string, object, array or null roots for every instruction and criterion. Shared state roots are text, object or array.
 - **Response admission.** It checks exact question names, kinds, labels, probability keys, rubric indices, finite ranges and receipt fields against the request. A mismatch is `invalid_response`, with no partial answers.
@@ -523,7 +526,11 @@ Retained from the reviewed design. The decisions crate does not know about rules
 | Rules / bindings | **`unbound_input`**, **`duplicate_binding`**, **`extra_binding`**, **`binding_kind_mismatch`** |
 | Rules / applicability | **`condition_unresolved`**, **`decision_failed`**, **`router_failed`** |
 | Rules / execution | `invalid_configuration`, **`rule_exceeds_budget`**, **`request_limit`**, `unexpected_execution_error`, `caller_aborted` |
-| Decisions | Unchanged request, response, budget and provider codes |
+| Evidence / connected (milestone 2) | `revision_unavailable`, `invalid_repository_binding`, `unknown_repository`, `history_incomplete`, `recency_unknown`, `relationship_unresolved`, `discovery_limit`, `unsupported_relationship_query`, `invalid_context_group`, `missing_related_context`, `required_group_incomplete` |
+| Decisions / request | `unknown_field`, `duplicate_field`, `invalid_question`, `invalid_state`, `unsupported_primitive`, `invalid_number`, `invalid_rubric`, `invalid_configuration` |
+| Decisions / budget | `context_budget_exceeded`, `budget_unverifiable`, `unsupported_budget_profile` |
+| Decisions / response | `invalid_body`, `missing_answer`, `unexpected_answer`, `wrong_answer_kind`, `invalid_choice`, `invalid_number`, `invalid_rubric`, `invalid_receipt` |
+| Decisions / provider and execution | `provider_rejected_request`, `authentication`, `authorization`, `insufficient_credits`, `provider_resource_unavailable`, `request_too_large`, `rate_limit`, `provider_unavailable`, `timeout`, `connection`, `http_error`, `unexpected_provider_error`, `caller_aborted` |
 | Executable / protocol | `malformed_json`, `unknown_field`, `duplicate_field`, `unsupported_protocol_version`, `unsupported_operation`, `invalid_framing`, `input_limit` |
 
 Bounds:
@@ -565,7 +572,7 @@ Each milestone ships only after its V rows run through the real library and exec
 
 | U | R and scenario | E | Owner | Interface | Shape and home | State | Failure | Proof |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| U1, U8, U18, U19 | R1 libraries and program reuse | E5, E13, E16 | Domain owners; invocation owner | Library entry points; program operations | Public crate types; envelope in `sunstack-rule-cli/protocol_boundary` | Entry → terminal | No reverse dependency or JS runtime | V1, V2 |
+| U1, U8, U18, U19 | R1 libraries and program reuse | E5, E13, E16 | Domain owners; invocation owner | Library entry points; program operations | Public crate types and every operation's outcome in [Public contracts](program-design-contracts.md); envelope in `sunstack-rule-cli/protocol_boundary` | Entry → terminal | No reverse dependency or JS runtime | V1, V2 |
 | U3, U14, U15 | R2 definition preflight | E9, E14, E23–E25, E29 | Definition admission | Load definitions | `RuleSetDefinition`, `RuleDefinition`, `ValidatedRuleFile` in `definition_contracts` | Supplied → admitted or refused | Refused before reads or calls | V3 |
 | U14, U15 | R3 target resolution | E11, E12, E14 | Evidence target resolver | Resolve declared target | `TargetLocation`, `TargetResolution` in `evidence_contracts` | Captured → resolved or refused | Missing, duplicate, deleted or unavailable is never judged | V4 |
 | U16 | R4 captured Git content | E11, E13, E16 | Evidence | Capture comparisons | `SourceSnapshot`; milestone 2 change types | Read → frozen | `source_changed` | V5 |

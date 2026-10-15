@@ -16,115 +16,254 @@
     "EvidenceDeclaration": {
       "type": "object",
       "properties": {
-        "id": { "$ref": "#/$defs/DeclarationId" },
-        "input": { "$ref": "#/$defs/InputName" },
-        "requirement": { "enum": ["required", "optional"] },
-        "select": { "$ref": "#/$defs/Selection" },
-        "max_items": { "type": "integer", "minimum": 1 },
-        "max_bytes": { "type": "integer", "minimum": 1 }
+        "id": {
+          "$ref": "#/$defs/DeclarationId"
+        },
+        "input": {
+          "$ref": "#/$defs/InputName"
+        },
+        "requirement": {
+          "enum": [
+            "required",
+            "optional"
+          ]
+        },
+        "select": {
+          "$ref": "#/$defs/Selection"
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
       },
-      "required": ["id", "input", "select"],
+      "required": [
+        "id",
+        "input",
+        "select"
+      ],
       "additionalProperties": false
     },
     "EvidenceDeclarations": {
       "type": "array",
-      "items": { "$ref": "#/$defs/EvidenceDeclaration" }
+      "items": {
+        "$ref": "#/$defs/EvidenceDeclaration"
+      }
     },
     "Selection": {
       "oneOf": [
-        { "$ref": "#/$defs/ParagraphSelection" },
-        { "$ref": "#/$defs/WholeDocumentSelection" },
-        { "$ref": "#/$defs/DocumentTextSelection" },
-        { "$ref": "#/$defs/DocumentRegexSelection" },
-        { "$ref": "#/$defs/DocumentAstSelection" },
-        { "$ref": "#/$defs/ConversationSelection" },
-        { "$ref": "#/$defs/WholePayloadSelection" },
-        { "$ref": "#/$defs/PayloadFieldSelection" },
-        { "$ref": "#/$defs/ChangeSetTextSelection" },
-        { "$ref": "#/$defs/ChangeSetRegexSelection" },
-        { "$ref": "#/$defs/ChangeSetAstSelection" },
-        { "$ref": "#/$defs/ChangedUnitsSelection" },
-        { "$ref": "#/$defs/RelatedUnitsSelection" }
+        {
+          "$ref": "#/$defs/ParagraphSelection"
+        },
+        {
+          "$ref": "#/$defs/WholeDocumentSelection"
+        },
+        {
+          "$ref": "#/$defs/DocumentTextSelection"
+        },
+        {
+          "$ref": "#/$defs/DocumentRegexSelection"
+        },
+        {
+          "$ref": "#/$defs/DocumentAstSelection"
+        },
+        {
+          "$ref": "#/$defs/ConversationSelection"
+        },
+        {
+          "$ref": "#/$defs/WholePayloadSelection"
+        },
+        {
+          "$ref": "#/$defs/PayloadFieldSelection"
+        },
+        {
+          "$ref": "#/$defs/ChangeSetTextSelection"
+        },
+        {
+          "$ref": "#/$defs/ChangeSetRegexSelection"
+        },
+        {
+          "$ref": "#/$defs/ChangeSetAstSelection"
+        },
+        {
+          "$ref": "#/$defs/ChangedUnitsSelection"
+        },
+        {
+          "$ref": "#/$defs/RelatedUnitsSelection"
+        }
       ]
     },
     "ParagraphSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "paragraph" },
-        "target_id": { "$ref": "evidence-selector.schema.json#/$defs/TargetId" }
+        "kind": {
+          "const": "paragraph"
+        },
+        "target_id": {
+          "$ref": "evidence-selector.schema.json#/$defs/TargetId"
+        }
       },
-      "required": ["kind", "target_id"],
+      "required": [
+        "kind",
+        "target_id"
+      ],
       "additionalProperties": false
     },
     "WholeDocumentSelection": {
       "type": "object",
-      "properties": { "kind": { "const": "whole_document" } },
-      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "const": "whole_document"
+        }
+      },
+      "required": [
+        "kind"
+      ],
       "additionalProperties": false
     },
     "DocumentTextSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "literal_text" },
-        "text": { "type": "string", "minLength": 1 }
+        "kind": {
+          "const": "literal_text"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["kind", "text"],
+      "required": [
+        "kind",
+        "text"
+      ],
       "additionalProperties": false
     },
     "DocumentRegexSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "regex_text" },
-        "pattern": { "type": "string", "minLength": 1 }
+        "kind": {
+          "const": "regex_text"
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["kind", "pattern"],
+      "required": [
+        "kind",
+        "pattern"
+      ],
       "additionalProperties": false
     },
     "DocumentAstSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "ast_pattern" },
-        "language": { "type": "string", "minLength": 1 },
-        "pattern": { "type": "string", "minLength": 1 }
+        "kind": {
+          "const": "ast_pattern"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["kind", "language", "pattern"],
+      "required": [
+        "kind",
+        "language",
+        "pattern"
+      ],
       "additionalProperties": false
     },
     "ConversationSelection": {
       "type": "object",
       "description": "One generic selector with no presets. Admission refuses a selection that selects no record type.",
       "properties": {
-        "kind": { "const": "conversation" },
-        "turns": { "$ref": "#/$defs/TurnWindow" },
-        "user_messages": { "enum": ["included", "excluded"] },
-        "assistant_messages": { "enum": ["excluded", "all", "final_only"] },
-        "tool_use": { "$ref": "#/$defs/ToolUseSelection" },
-        "hook_injected": { "enum": ["included", "excluded"] }
+        "kind": {
+          "const": "conversation"
+        },
+        "turns": {
+          "$ref": "#/$defs/TurnWindow"
+        },
+        "user_messages": {
+          "enum": [
+            "included",
+            "excluded"
+          ]
+        },
+        "assistant_messages": {
+          "enum": [
+            "excluded",
+            "all",
+            "final_only"
+          ]
+        },
+        "tool_use": {
+          "$ref": "#/$defs/ToolUseSelection"
+        },
+        "hook_injected": {
+          "enum": [
+            "included",
+            "excluded"
+          ]
+        }
       },
-      "required": ["kind", "turns", "user_messages", "assistant_messages", "tool_use", "hook_injected"],
+      "required": [
+        "kind",
+        "turns",
+        "user_messages",
+        "assistant_messages",
+        "tool_use",
+        "hook_injected"
+      ],
       "additionalProperties": false
     },
     "TurnWindow": {
       "oneOf": [
         {
           "type": "object",
-          "properties": { "kind": { "const": "all" } },
-          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "const": "all"
+            }
+          },
+          "required": [
+            "kind"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "kind": { "const": "last" },
-            "count": { "type": "integer", "minimum": 1 }
+            "kind": {
+              "const": "last"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
-          "required": ["kind", "count"],
+          "required": [
+            "kind",
+            "count"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
-          "properties": { "kind": { "const": "since_cursor" } },
-          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "const": "since_cursor"
+            }
+          },
+          "required": [
+            "kind"
+          ],
           "additionalProperties": false
         }
       ]
@@ -133,18 +272,37 @@
       "oneOf": [
         {
           "type": "object",
-          "properties": { "kind": { "const": "excluded" } },
-          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "const": "excluded"
+            }
+          },
+          "required": [
+            "kind"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "kind": { "const": "included" },
-            "tools": { "$ref": "#/$defs/ToolFilter" },
-            "results": { "enum": ["included", "excluded"] }
+            "kind": {
+              "const": "included"
+            },
+            "tools": {
+              "$ref": "#/$defs/ToolFilter"
+            },
+            "results": {
+              "enum": [
+                "included",
+                "excluded"
+              ]
+            }
           },
-          "required": ["kind", "tools", "results"],
+          "required": [
+            "kind",
+            "tools",
+            "results"
+          ],
           "additionalProperties": false
         }
       ]
@@ -153,53 +311,96 @@
       "oneOf": [
         {
           "type": "object",
-          "properties": { "kind": { "const": "all" } },
-          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "const": "all"
+            }
+          },
+          "required": [
+            "kind"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "kind": { "const": "named" },
+            "kind": {
+              "const": "named"
+            },
             "names": {
               "type": "array",
-              "items": { "type": "string", "minLength": 1 },
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
               "minItems": 1,
               "uniqueItems": true
             }
           },
-          "required": ["kind", "names"],
+          "required": [
+            "kind",
+            "names"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "kind": { "const": "categories" },
+            "kind": {
+              "const": "categories"
+            },
             "categories": {
               "type": "array",
-              "items": { "enum": ["read_file", "edit_file", "shell", "search", "web", "mcp", "other", "unknown"] },
+              "items": {
+                "enum": [
+                  "read_file",
+                  "edit_file",
+                  "shell",
+                  "search",
+                  "web",
+                  "mcp",
+                  "other",
+                  "unknown"
+                ]
+              },
               "minItems": 1,
               "uniqueItems": true
             }
           },
-          "required": ["kind", "categories"],
+          "required": [
+            "kind",
+            "categories"
+          ],
           "additionalProperties": false
         }
       ]
     },
     "WholePayloadSelection": {
       "type": "object",
-      "properties": { "kind": { "const": "whole_payload" } },
-      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "const": "whole_payload"
+        }
+      },
+      "required": [
+        "kind"
+      ],
       "additionalProperties": false
     },
     "PayloadFieldSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "payload_field" },
-        "pointer": { "$ref": "#/$defs/JsonPointer" }
+        "kind": {
+          "const": "payload_field"
+        },
+        "pointer": {
+          "$ref": "#/$defs/JsonPointer"
+        }
       },
-      "required": ["kind", "pointer"],
+      "required": [
+        "kind",
+        "pointer"
+      ],
       "additionalProperties": false
     },
     "JsonPointer": {
@@ -210,80 +411,218 @@
     "ChangeSetTextSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "change_set_literal_text" },
-        "paths": { "$ref": "#/$defs/QueryPaths" },
-        "text": { "type": "string", "minLength": 1 }
+        "kind": {
+          "const": "change_set_literal_text"
+        },
+        "paths": {
+          "$ref": "#/$defs/QueryPaths"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["kind", "paths", "text"],
+      "required": [
+        "kind",
+        "paths",
+        "text"
+      ],
       "additionalProperties": false
     },
     "ChangeSetRegexSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "change_set_regex_text" },
-        "paths": { "$ref": "#/$defs/QueryPaths" },
-        "pattern": { "type": "string", "minLength": 1 }
+        "kind": {
+          "const": "change_set_regex_text"
+        },
+        "paths": {
+          "$ref": "#/$defs/QueryPaths"
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["kind", "paths", "pattern"],
+      "required": [
+        "kind",
+        "paths",
+        "pattern"
+      ],
       "additionalProperties": false
     },
     "ChangeSetAstSelection": {
       "type": "object",
       "properties": {
-        "kind": { "const": "change_set_ast_pattern" },
-        "paths": { "$ref": "#/$defs/QueryPaths" },
-        "language": { "type": "string", "minLength": 1 },
-        "pattern": { "type": "string", "minLength": 1 }
+        "kind": {
+          "const": "change_set_ast_pattern"
+        },
+        "paths": {
+          "$ref": "#/$defs/QueryPaths"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["kind", "paths", "language", "pattern"],
+      "required": [
+        "kind",
+        "paths",
+        "language",
+        "pattern"
+      ],
       "additionalProperties": false
     },
     "QueryPaths": {
       "type": "array",
-      "items": { "$ref": "evidence-selector.schema.json#/$defs/QueryPath" },
+      "items": {
+        "$ref": "evidence-selector.schema.json#/$defs/QueryPath"
+      },
       "minItems": 1
     },
     "ChangedUnitsSelection": {
       "type": "object",
       "description": "Milestone 2. Changed syntax units of the change-set input's repository binding.",
       "properties": {
-        "kind": { "const": "changed_units" },
+        "kind": {
+          "const": "changed_units"
+        },
         "languages": {
           "type": "array",
-          "items": { "enum": ["rust", "typescript", "tsx", "markdown"] },
+          "items": {
+            "enum": [
+              "rust",
+              "typescript",
+              "tsx",
+              "markdown"
+            ]
+          },
           "minItems": 1,
           "uniqueItems": true
         },
         "unit_kinds": {
           "type": "array",
-          "items": { "enum": ["function", "method", "class", "paragraph", "section"] },
+          "items": {
+            "enum": [
+              "function",
+              "method",
+              "class",
+              "paragraph",
+              "section"
+            ]
+          },
           "minItems": 1,
           "uniqueItems": true
         },
-        "source_sides": { "enum": ["after_only", "before_only", "both_available", "paired_required"] }
+        "source_sides": {
+          "enum": [
+            "after_only",
+            "before_only",
+            "both_available",
+            "paired_required"
+          ]
+        }
       },
-      "required": ["kind", "languages", "unit_kinds", "source_sides"],
+      "required": [
+        "kind",
+        "languages",
+        "unit_kinds",
+        "source_sides"
+      ],
       "additionalProperties": false
     },
     "RelatedUnitsSelection": {
       "type": "object",
-      "description": "Milestone 2. A rule's related units are judged as one group, so grouping must be single_group.",
+      "description": "Milestone 2. Seed-free: seeds are the changed units of the bound change-set input, and discovery covers every repository binding the invocation supplies. A rule cannot name its own seed repository or selector. Grouping must be single_group because a rule's related units are judged as one group.",
       "properties": {
-        "kind": { "const": "related_units" },
-        "query": { "$ref": "evidence-selector.schema.json#/$defs/RelationshipQuery" },
+        "kind": {
+          "const": "related_units"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "rust",
+              "typescript",
+              "tsx"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "unit_kinds": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "function",
+              "method",
+              "class"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "source_sides": {
+          "enum": [
+            "after_only",
+            "before_only",
+            "both_available",
+            "paired_required"
+          ]
+        },
+        "directions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "callers",
+              "callees",
+              "imports",
+              "imported_by"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "requested_hops": {
+          "type": "integer",
+          "minimum": 1
+        },
         "chunk_settings": {
           "allOf": [
-            { "$ref": "evidence-selector.schema.json#/$defs/ChunkSettings" },
+            {
+              "$ref": "evidence-selector.schema.json#/$defs/ChunkSettings"
+            },
             {
               "type": "object",
-              "properties": { "grouping": { "const": "single_group" } },
-              "required": ["grouping"]
+              "properties": {
+                "grouping": {
+                  "const": "single_group"
+                }
+              },
+              "required": [
+                "grouping"
+              ]
             }
           ]
         },
-        "minimum_related_units": { "type": "integer", "minimum": 0 }
+        "minimum_related_units": {
+          "type": "integer",
+          "minimum": 0
+        }
       },
-      "required": ["kind", "query", "chunk_settings", "minimum_related_units"],
+      "required": [
+        "kind",
+        "languages",
+        "unit_kinds",
+        "source_sides",
+        "directions",
+        "requested_hops",
+        "chunk_settings",
+        "minimum_related_units"
+      ],
       "additionalProperties": false
     }
   }

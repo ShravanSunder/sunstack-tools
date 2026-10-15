@@ -2,7 +2,7 @@
 
 This is the milestone 2 part of the [Program Design](program-design.md). It realizes Specification C8: Git change selection, connected discovery across supplied repositories, and chunking. The context budget is milestone 1 and lives in the main design. Everything here belongs to `sunstack-evidence`. Rules decides which occurrences these observations select, and whether a group is complete enough to ask a question.
 
-This content was reviewed in the earlier design and carries over. What changed: a rule now reads a change set through a **change-set input**, so rule-authored selectors no longer name a repository. Native `prepare_evidence` callers still name repositories directly.
+This content was reviewed in the earlier design and carries over. What changed: a rule now reads a change set through a **change-set input**, so rule-authored selectors never name a repository or a seed. Native `prepare_evidence` callers still name repositories and seeds directly, through the full `RelationshipQuery`.
 
 ## Roots, scopes and frozen evidence
 
@@ -40,7 +40,7 @@ A change-set input binds one repository binding. Its declarations are tagged by 
 | `change_set_regex_text` | `paths`, `pattern` (Rust `regex` dialect: no lookaround or backreferences) |
 | `change_set_ast_pattern` | `paths`, `language`, `pattern` (an AST-grep pattern with metavariables, not a YAML rule) |
 | `changed_units` | `languages`, `unit_kinds`, `source_sides` |
-| `related_units` | `query: RelationshipQuery`, `chunk_settings` (grouping must be `single_group`), `minimum_related_units` |
+| `related_units` | `languages` (`rust`, `typescript`, `tsx`), `unit_kinds`, `source_sides`, `directions`, `requested_hops`, `chunk_settings` (grouping must be `single_group`), `minimum_related_units`. It has no seeds and no repository list |
 
 `QueryPath` is tagged: `{ kind: exact, path }` or `{ kind: glob, pattern }`. This replaces the earlier string-or-object union (R37). Globs use `globset` over normalized `/` paths, case-sensitive with literal separators, and are always intersected with the binding's allowed paths. The supported AST languages are the built-in catalog of the pinned AST-grep version. Admission derives accepted names from that catalog, and an unknown name is refused.
 
@@ -65,6 +65,8 @@ When the baseline is unavailable, change scope selects every currently applicabl
 [Diagram source](assets/connected-sourcing-sequence.mmd)
 
 Both sides of each diff span map to enclosing functions, methods, classes and Markdown units, using real AST ranges. A pure deletion seeds a before-side unit only.
+
+**Seeds and scope for a rule.** A rule's `related_units` declaration has no seeds of its own. Admission builds the native query: seeds are the changed units of the bound change-set input's repository binding, and discovery covers every repository binding the invocation supplies, within each binding's allowed paths. So a changed definition in repository B can bring in an unchanged caller from a supplied repository A, and the rule cannot redirect its seed elsewhere.
 
 **The relationship graph** is invocation-local:
 - Each node is keyed by snapshot, repository, revision, path and range.
@@ -102,6 +104,9 @@ Shared excerpts are deduplicated. A giant unit can become an explicitly partial 
 | `ChunkSettings` | `grouping: single_group \| per_seed` (rules allow `single_group` only; native callers may use `per_seed`), `seed_content`, `related_content`, `max_chunk_bytes` |
 | `UnitContent` | `whole_unit` or `bounded_excerpt { max_bytes }` |
 | `ContextGroupOutcome` | `complete { group, coverage }`, `partial { group, coverage, omissions, diagnostics }`, `unavailable { diagnostics }` |
+| `Excerpt` | `unit: SourceUnitKey`, `span: SourceSpan`, `membership: whole_unit \| bounded_excerpt { max_bytes }`, `enclosing_signature?`, `import_context: [SourceSpan]`, `content_identity` |
+| `DiscoveryCoverage` | `complete_within_declared_scope { query_bounds }`, `limited { query_bounds, cutoffs: [{ limit, frontier: [SourceUnitKey] }] }`, `unavailable { diagnostics }` |
+| `PackageSourceBinding` | `importing_repository_id`, `module_prefix`, `target_repository_id`, `target_path_prefix`, `language` |
 
 **A required related selector is ready only when:**
 - seeds are located

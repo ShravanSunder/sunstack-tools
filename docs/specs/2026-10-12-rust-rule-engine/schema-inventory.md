@@ -87,13 +87,14 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | `SkillRuleBinding` | Named inputs and binding groups |
 | `batch_groups` and per-rule calls | One request per RuleSet × group, planned by the engine |
 | An untagged `QueryPath` string | Tagged `{ kind: exact, path }` |
+| A rule-authored `related_units` with its own seeds and repositories | A seed-free declaration; seeds come from the bound change-set input |
 
 ## Checked
 
-`validate_design_examples.py` validates every example against these schemas and runs 21 refusal controls. It also checks each schema against the Draft 2020-12 metaschema and refuses duplicate keys. The script lives in the Lead's job scratch.
+`validate_design_examples.py` validates every example against these schemas and runs 24 refusal controls. It also checks each schema against the Draft 2020-12 metaschema and refuses duplicate keys. The script lives in the Lead's job scratch.
 
 Last run, with jsonschema 4.26.0, exit 0:
-- 13 valid cases
-- 21 refused controls
+- 14 valid cases, including a seed-free `related_units` declaration
+- 24 refused controls, including a `related_units` that names its own seed
 
 This proves shape only. It does not prove admission semantics, capture, execution or model behavior.

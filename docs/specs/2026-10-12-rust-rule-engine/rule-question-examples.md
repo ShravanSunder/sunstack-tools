@@ -99,7 +99,7 @@ The report is complete (exit 0). The hook sees one block and can continue the re
 
 **Case B.** The router's distribution is [0.45, 0.3, 0.15, 0.1]. Its native confidence is about 0.27, below 0.6:
 - The router outcome is `uncertain_intent`, with that distribution.
-- The four answers from the same request are discarded and reported with the request's cost.
+- The router's answer is the controlling answer. The six rule answers from the same request are discarded and reported with the request's cost.
 - There are no rule occurrences. The report is complete (exit 0).
 
 **Case C.** The request fails, for example with a provider timeout:
