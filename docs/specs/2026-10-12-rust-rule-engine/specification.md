@@ -12,20 +12,31 @@ The engine has no authority to approve tools, accept a skill, merge changes, blo
 
 ## How a check runs
 
-An invocation names RuleSets, and for each RuleSet one or more binding groups. A binding group says which supplied source each of the RuleSet's named inputs means for this run. For each RuleSet and binding group, the engine admits the definitions and bindings, evaluates applicability in order, prepares only the evidence each step declares, asks Jev, and returns one result per rule occurrence.
+An invocation names a router or RuleSets, and binding groups. A binding group says which supplied source each named input means for this run. For each RuleSet and binding group, the engine:
+1. admits the definitions and bindings
+2. runs deterministic conditions
+3. prepares the declared evidence
+4. asks Jev **one** combined request carrying every applicable rule's verdict and questions; routers and decisions over the same input ride along speculatively
+5. applies the declared thresholds and bands in code
+6. returns one result per rule occurrence
 
 ```text
-invocation: RuleSet paths × binding groups, repository bindings, origin, limits, cursors
-  -> admission: RuleSets, rule files, input declarations, bindings, payload schemas (no source reads)
-  -> per RuleSet × binding group: applicability entries in order (stop at the first that does not pass)
-  -> per applicable rule: rule applicability, evidence, budget, Jev request (verdict + questions)
-  -> per rule occurrence: verdict pass | fail, activated severity, native answers, locations
-     or a typed failure with no verdict
+invocation: router or RuleSet paths, binding groups, repository bindings, origin, limits, execution settings, cursors
+  -> admission: router, RuleSets, rule files, input declarations, bindings, payload schemas   (no source reads)
+  -> deterministic conditions                                                                   (no model call)
+  -> per RuleSet × binding group: ONE request over the shared evidence
+       router question + decision questions on the same input (speculative)
+       + every rule's verdict and informational questions
+     (gates over different input: a staged request first, unless the caller opts into speculation;
+      over budget: deterministic split along rule boundaries, reported)
+  -> code applies: router floor and routes, decision thresholds, verdict thresholds and blocking bands
+  -> per rule occurrence: verdict pass | fail and activated severity, native answers, locations
+     or not applicable (speculative answers discarded and reported), or a typed failure with no verdict
 ```
 
 ## Entities and identities
 
-E1–E8 keep the decision-domain meanings. E9–E16 cover rules and evidence; E17–E22 cover connected change sourcing and model budget; E23–E24 cover rule files and RuleSets. E25–E29 add named inputs, binding groups, applicability and verdicts. E30–E38 add conversation evidence, typed payloads, origin and transcript formats. These are invocation and content identities, not a persisted identity service.
+E1–E8 keep the decision-domain meanings. E9–E16 cover rules and evidence; E17–E22 cover connected change sourcing and model budget; E23–E24 cover rule files and RuleSets. E25–E29 add named inputs, binding groups, applicability and verdicts. E30–E38 add conversation evidence, typed payloads, origin and transcript formats. E39–E40 add routers and request groups. E10 (Skill binding) is superseded by E25 and E26 under the owner's named-inputs decision; a skill document is now one document input. These are invocation and content identities, not a persisted identity service.
 
 ### Decisions
 
@@ -34,7 +45,7 @@ E1–E8 keep the decision-domain meanings. E9–E16 cover rules and evidence; E1
 | E1 Named question | Its name within one E4 request; a request has 1..n questions | One noul, choice or score, with structured instructions and criteria. Supplied → admitted or refused | U3–U5 |
 | E2 Shared state | One evidence value associated with an E4 request; every question reads that value | Text, or a structured JSON object or array, with nested null values allowed; no silent truncation. Supplied → admitted or refused | U4, U5 |
 | E3 Decision backend | One prepared provider and model connection; a run selects exactly one | Only declared supported semantics can execute. Prepared or preparation refused. The actual model is observed separately | U2, U12 |
-| E4 Structured request | One nonempty named-question set plus shared state. Repeated contents do not make two E5 runs the same | Independent questions only; the consumer schedules answer-dependent follow-up. Supplied → admitted or refused | U3–U5 |
+| E4 Structured request | One nonempty named-question set plus shared state. Repeated contents do not make two E5 runs the same. In rule evaluation, one E40 request group produces one E4 | Independent questions only; the consumer schedules answer-dependent follow-up. Supplied → admitted or refused | U3–U5, U31 |
 | E5 Decision run | One invocation of E3 with an E4. Retries stay inside it | One terminal outcome: completed, invalid request, provider failure, invalid response or cancelled | U1, U3, U14 |
 | E6 Answer | One E5 run plus one E1 name. A completed run has exactly one answer per question | Kind, names, labels and rubric match the request; probabilities and fractional scores retained. Untrusted → admitted or refused | U3, U4 |
 | E7 Receipt | One completed E5 run's execution metadata | Resolved model and native usage. Reported cost if available; absence is not zero. Untrusted → admitted or refused | U6 |
@@ -50,10 +61,12 @@ E1–E8 keep the decision-domain meanings. E9–E16 cover rules and evidence; E1
 | E27 Applicability entry | Its position in one ordered list, owned by an E24 or an E9 | A condition (deterministic, over bound inputs, E37 origin or source presence) or a decision (a noul question, its declared evidence and a threshold in (0, 1]). An empty list means the owner always applies. Admitted → evaluated: passed, did not pass, unresolved or failed, or not evaluated | U25 |
 | E28 Applicability outcome | One E24 × E26 (or one rule occurrence, for rule-level applicability) | Exactly one of: applicable; not applicable, naming the entry and its basis; applicability failed, naming the entry and a clear failure diagnostic; or not evaluated, with the reason (cancelled, or the invocation was refused) | U25 |
 | E9 Rule definition | A nonempty rule ID within one E24 | Holds evidence declarations over named inputs; one declaration marked as its target; an ordered E27 list; 0..n informational E1 questions; one E29 verdict; and a severity of block or nudge, nudge when omitted. Neither severity nor the verdict threshold is ever sent to a model. Supplied → admitted or refused | U15, U26 |
-| E29 Verdict | Exactly one per E9 | A noul question plus a threshold in (0, 1]. For a completed judgment: pass when the yes probability ≥ threshold, otherwise fail. No verdict exists without a completed judgment | U26 |
+| E29 Verdict | Exactly one per E9 | Either a noul verdict (its own noul question, whose yes probability is the verdict value) or a composite verdict (weighted noul and score dimensions drawn from the rule's informational questions, each normalized to [0, 1], with weights summing to 1). Both have a threshold in (0, 1] and may declare a blocking band `block_at_or_below` below the threshold. For a completed judgment: pass when the value ≥ threshold, otherwise fail. A blocking rule blocks only when the value ≤ its band; otherwise it acts as nudge. No verdict exists without a completed judgment | U26, U31 |
+| E39 Router | One normalized router JSON path within an invocation | Declares named inputs, one choice question over them, routes from each label to RuleSet paths, and a confidence floor in (0, 1]. For a completed answer: below the floor, no RuleSet runs ("uncertain intent"); otherwise exactly the chosen label's RuleSets run, each still applying its own applicability. Supplied → admitted or refused | U25, U31 |
+| E40 Request group | One E4 request within an invocation: one RuleSet × E26 group, or one split of it, or one staged gate | Lists its questions (router, decisions, verdicts and informational questions, each bound to its owner) and its mode: speculative, staged gate, or rules. Splits along rule boundaries are deterministic and reported. Discarded speculative answers are reported with their cost, never as answers or verdicts | U31 |
 | E15 Selection record | One rule occurrence: E24 path, E9 rule ID and E26 group | Exactly one of: selected; not applicable; outside the requested change scope; or selection failed. Always with a reason | U16, U25 |
 | E8 Rule judgment | One selected rule occurrence with a completed E5 run | References the verdict outcome, the activated severity when the verdict is fail, every informational native answer, and the resolved E12 target locations. Execution failure never becomes a judgment | U7, U9, U14, U26 |
-| E16 Rule invocation | One caller request: ordered E24 paths, each with 1..n E26 groups, plus E17 repository bindings, E37 origin, limits, backend configuration and E35 cursors | Each admitted rule occurrence has one E15 record. Limits are cumulative across RuleSets and groups. Complete for the requested scope, incomplete, or cancelled | U1, U15, U24 |
+| E16 Rule invocation | One caller request: either an E39 router or ordered E24 paths, plus 1..n E26 groups, E17 repository bindings, E37 origin, limits, backend configuration, execution settings (speculation for gates over different input: on or off) and E35 cursors | Each admitted rule occurrence has one E15 record. Limits are cumulative across RuleSets and groups. Complete for the requested scope, incomplete, or cancelled | U1, U15, U24, U31 |
 
 ### Evidence
 
@@ -117,7 +130,7 @@ Each P→O cell names a concrete problem and the observation that shows it solve
 | R5 | Text and structural selectors MUST return source-located facts and candidates without claiming compiler-backed symbol or type identity | U16, U17 / E11, E13 | P5 raw matches mislead → O5 attributed local evidence | C3 / V6 |
 | R6 | Every admitted rule occurrence MUST expose a selection disposition and reason. Uncertain applicability MUST NOT be silently treated as not applicable | U14, U16, U25 / E9, E15, E16 | P6 filtering hides checks → O6 visible coverage | C3, C10 / V7 |
 | R7 | Required targets and declared evidence MUST be present before inference. Missing, over-limit or unresolvable evidence MUST produce diagnostics, never silent trimming | U5, U14, U16 / E11, E13, E14 | P7 incomplete input false-flags → O7 declared evidence honored | C3 / V7 |
-| R8 | The engine MUST preserve mixed named primitives and structured JSON instructions and criteria over shared state. Explicit batching MUST NOT drop or regroup evidence silently | U3, U4, U5 / E1, E2, E4, E5 | P8 flattening loses meaning → O8 native structured requests | C4 / V8, V9 |
+| R8 | The engine MUST preserve mixed named primitives and structured JSON instructions and criteria over shared state. Grouping questions into requests MUST NOT drop evidence or change which evidence a question's owner declared | U3, U4, U5, U31 / E1, E2, E4, E5, E40 | P8 flattening loses meaning → O8 native structured requests | C4, C13 / V8, V9 |
 | R9 | A completed run MUST contain exactly the requested answer names, kinds, labels and rubric ranges, plus a valid receipt. A mismatch MUST be an invalid response | U3, U4 / E1, E5–E7 | P9 HTTP success mistaken for a valid judgment → O9 correlated validation | C4 / V8, V9 |
 | R10 | Diagnostics MUST keep origin, a safe path or location, a closed code, bounded actionable text and observed retry advice. Raw errors and values MUST NOT escape | U2, U3, U14 / E14 | P10 opaque or leaky failure → O10 useful, safe repair feedback | C5 / V10 |
 | R11 | Backend selection MUST be independent of rule meaning. Initial execution supports Jev only, and unsupported semantics are refused rather than probabilities fabricated | U4, U12 / E1, E3, E5 | P11 provider coupling → O11 replaceable semantic boundary | C4 / V9, V11 |
@@ -137,8 +150,8 @@ Each P→O cell names a concrete problem and the observation that shows it solve
 | R25 | Budget assessment MUST include the serialized questions, verdict, instructions, state and adapter overhead. Unsupported or exceeded accounting MUST be explicit. Required evidence that cannot fit MUST NOT yield a judgment | U12, U14, U23 / E3, E4, E13, E21, E22 | P25 a model limit silently loses context → O25 bounded, visible evaluation | C4, C8 / V19 |
 | R26 | Every named-input reference from a rule's evidence, target or applicability, and from RuleSet applicability, MUST resolve to a declared input of a compatible kind, in every RuleSet that loads the rule. Every binding group MUST bind each declared input exactly once to a compatible supplied source. Violations MUST refuse admission before any source read | U15, U24 / E9, E24–E27 | P26 rules silently run on the wrong material → O26 checked input contracts | C2, C9 / V20 |
 | R27 | Each RuleSet × binding group MUST be evaluated independently: applicability, selection, evidence and judgments. A rule occurrence MUST be identified by RuleSet, rule ID and binding group. Groups with identical values MUST NOT merge. Invocation limits MUST be cumulative across groups | U15, U24 / E15, E16, E26, E28 | P27 one group's answer applied to another → O27 per-group results | C9, C10 / V21 |
-| R28 | Applicability entries MUST be evaluated in declared order, and the first entry that does not pass MUST stop evaluation; later entries and their evidence MUST NOT be acquired. A condition MUST be deterministic over bound inputs, origin or source presence. An unresolvable condition MUST be applicability failed, never false. A decision MUST pass only when its yes probability ≥ its threshold. A failed decision call MUST stop that RuleSet × group with clear failure information, mark the report incomplete, and run none of its rules. Every evaluated entry MUST be recorded with its basis and cost | U25 / E27, E28 | P28 the wrong checks run, or none, silently → O28 visible, ordered applicability | C10 / V22 |
-| R29 | Every completed rule judgment MUST carry a verdict: pass when the verdict's yes probability ≥ its threshold, otherwise fail. A rule's severity, block or nudge (nudge when omitted), MUST be activated only on fail. Neither severity nor any threshold MUST appear in a model request. Without a completed judgment there MUST be no verdict | U26 / E8, E9, E29 | P29 no uniform outcome for hosts to act on → O29 pass/fail with severity | C6, C12 / V23 |
+| R28 | Applicability entries MUST be evaluated in declared order, and the first entry that does not pass MUST stop evaluation. Later entries' answers MUST NOT be used, and evidence that only later entries or the stopped rules declare MUST NOT be acquired, except when it rides in a speculative request (R38). A condition MUST be deterministic over bound inputs, origin or source presence. An unresolvable condition MUST be applicability failed, never false. A decision MUST pass only when its yes probability ≥ its threshold. A failed decision call MUST stop that RuleSet × group with clear failure information, mark the report incomplete, and run none of its rules. Every evaluated entry MUST be recorded with its basis and cost | U25 / E27, E28 | P28 the wrong checks run, or none, silently → O28 visible, ordered applicability | C10 / V22 |
+| R29 | Every completed rule judgment MUST carry a verdict: pass when the verdict value (a noul yes probability, or a composite weighted value) ≥ its threshold, otherwise fail. A rule's severity, block or nudge (nudge when omitted), MUST be activated only on fail. A blocking rule with a declared band MUST block only when the value ≤ the band, and otherwise act as nudge. No severity, threshold, band, weight or route MUST appear in a model request. Without a completed judgment there MUST be no verdict | U26, U31 / E8, E9, E29 | P29 no uniform outcome for hosts to act on → O29 pass/fail with confident severity | C6, C12 / V23, V33 |
 | R30 | The engine MUST read only transcript paths the caller bound, in a declared E38 format. An unknown format MUST be refused. Captures MUST count only complete records and report an incomplete tail. Unknown, malformed or unsupported records MUST be coverage gaps. Hook-supplied final text MUST be a separately attributed assistant supplement, never treated as hook-injected | U24, U27 / E30, E31, E38 | P30 transcripts misread or silently partial → O30 attributed conversation capture | C11 / V24 |
 | R31 | Normalization MUST keep whole-message identity across blocks, mark ambiguous turn boundaries, pair tool calls with results by native ID, report orphan results as gaps, distinguish the four tool-use outcomes and the three result fidelities, and assign one of the eight categories without interpreting shell commands | U27 / E31–E33 | P31 lossy normalization misleads rules → O31 faithful records | C11 / V24 |
 | R32 | Conversation selection MUST be generic: turns, user messages, assistant messages, tool use and hook-injected text, each set independently, with no named presets. A selection that selects no record type MUST be refused. Results MUST state their omissions and gaps | U27 / E34 | P32 hardcoded windows → O32 composable selection | C11 / V25 |
@@ -147,6 +160,10 @@ Each P→O cell names a concrete problem and the observation that shows it solve
 | R35 | The invocation origin MUST be carried into results as provenance, with unavailable fields explicit and turn identifiers kept in their host's namespace. Origin MUST NOT route RuleSets or authorize source reads | U30 / E37 | P35 untraceable results or origin misuse → O35 provenance only | C9 / V29 |
 | R36 | A native caller MAY supply transcript adapters for additional formats. The engine MUST pass adapters only captured bytes, keep acquisition itself, and validate adapter output structurally: unique identities, positions inside the capture, and outcomes consistent with results | U27 / E30, E38 | P36 every new host needs a Tools release → O36 extensible host support | C11 / V27 |
 | R37 | Every authored and wire contract union MUST be internally tagged, with each variant carrying its own complete fields and unknown fields refused. Author content in instructions and criteria stays free JSON | U29 / all contract entities | P37 ambiguous unions → O37 valid discriminated unions | C2, C9 / V3, V8 |
+| R38 | Every applicable rule in one RuleSet × binding group MUST be judged in one request over their shared evidence, unless the budget forces a split. Splits MUST fall deterministically on rule boundaries and be reported. A router question or decision entry whose evidence is the same as the rules' MUST ride in that request speculatively. A gate over different evidence MUST be staged before the rules unless the invocation enables speculation. Answers for rules that turn out not to apply MUST be discarded, reported with their cost, and never become answers or verdicts. Results MUST be the same as staged execution would give on the same provider answers | U31 / E4, E40, E27, E39 | P38 one call per rule wastes round trips over the same source → O38 one call per RuleSet and input | C13 / V31, V32 |
+| R39 | A router MUST ask one choice question over its declared inputs. Below its confidence floor, no RuleSet MUST run, and the result MUST say "uncertain intent". Otherwise exactly the chosen label's RuleSets MUST run, each still applying its own applicability. A failed router call MUST stop with clear failure information, like a failed decision | U25, U31 / E39 | P39 every candidate RuleSet pays for its own gate → O39 one routing decision per event | C13 / V34 |
+| R40 | A composite verdict MUST draw only on the rule's own informational noul and score questions. It MUST normalize them (a noul's yes probability as is; a score's position divided by its last rubric index), use positive weights summing to 1, and compare the weighted value with its threshold. It MUST NOT combine answers across rules or RuleSets | U26, U31 / E29 | P40 multi-dimension rules need a combined verdict → O40 declared composite within one rule | C12 / V35 |
+| R41 | Admission MUST refuse: a blocking band at or above the threshold, or declared on a nudge rule; a composite dimension that names a missing or non-noul/score question, a non-positive weight, or weights not summing to 1; a router whose routes name labels outside its choice criteria, or RuleSets that are not admitted; and a router floor outside (0, 1] | U3, U29, U31 / E29, E39 | P41 contradictory pattern declarations → O41 checked declarations | C2, C13 / V3, V33–V35 |
 
 ## C1: Two entry surfaces, one implementation
 
@@ -172,7 +189,7 @@ Each nonblank JSONL line is one bare rule definition:
 - evidence declarations over named inputs, one of them marked as the rule's **target**
 - an applicability list (empty means always)
 - 0..n informational questions
-- a required **verdict**: a noul question plus a threshold
+- a required **verdict**: a noul question plus a threshold (the default), or a composite of the rule's own dimensions plus a threshold, optionally with a blocking band (C12)
 - a **severity**: block or nudge, nudge when omitted
 
 The target says what the rule's result points at (E12). A paragraph-ID target is the skill-lint case. A conversation record set, code units or a payload field are equally valid targets.
@@ -216,7 +233,7 @@ Fractions stay fractions. Transport validation applies no automatic conversion t
 - Choice labels form a nonempty map. Score criteria form a nonempty ordered rubric.
 - Unsupported roots and values are refused before inference. [TypeSafe structured primitives](https://docs.typesafe.ai/primitives/advanced)
 
-A request has multiple named, independent questions over one shared state; a rule's request carries its verdict and its informational questions together. Explicitly requested groups may share a call only with identical evidence and declared independence. Answer-dependent follow-up stays with the caller. No undocumented exact probability-sum or legend-text constraint is invented.
+A request has multiple named, independent questions over one shared state. In rule evaluation, one request carries a RuleSet × binding group's questions: its applicable rules' verdicts and informational questions, plus, speculatively, any router or decision questions over the same evidence (C13). Answer-dependent follow-up stays with the caller, or with a staged gate. No undocumented exact probability-sum or legend-text constraint is invented.
 
 **Backends.** Jev via OpenRouter is the first actual backend. OpenAI Decisions and OpenRouter Alpha Decisions are future candidates; their adapters must independently establish primitive, confidence, structured input and receipt semantics. Missing fields are never fabricated to make an unsupported model look conforming.
 
@@ -306,6 +323,11 @@ Delivery is two milestones. Each must work through its real path: the real libra
 | V28 | Typed payloads: the generated `AgentJobPacket` JSON Schema admitting a valid commission and refusing invalid ones; a condition over a missing field unresolved, never false | Schema registration is assumed, not proved |
 | V29 | Milestone 1 handoff monitor, end to end: the executable invoked with hook origin, a commission payload and a reviewer transcript fixture, through applicability, rules and a genuine Jev call, giving verdicts, severities, locations and origin provenance in the report | Not a live codex-router hook |
 | V30 | Milestone 1 skill lint, end to end: the executable over a skill document and RuleSet, with a genuine Jev call, giving paragraph-linked verdicts and answers | Not production skill-plugin integration |
+| V31 | Request grouping over controlled HTTP: one request per RuleSet × group, with exactly the expected question names; shared evidence included once; no threshold, band, weight, route or severity in any body; a staged gate over different evidence sent first; concurrent requests when speculation is enabled; deterministic splits under a tight budget | Request shape, not model accuracy |
+| V32 | An equivalence oracle: the same canned provider answers give the same results under staged, speculative and split execution, apart from provenance and cost; discarded speculative answers are reported and never become verdicts | Canned answers stand in for the provider |
+| V33 | Confidence bands: with threshold 0.8 and band 0.3, values 0.30, 0.31, 0.79 and 0.80 give block, nudge, nudge and pass; a band at or above the threshold, or on a nudge rule, is refused at admission | Logic only |
+| V34 | Router: each label selects exactly its routes; values 0.59 and 0.60 around floor 0.6 give "uncertain intent" and routed; an unrouted label runs nothing; a failed router call stops with clear failure information; request count measured against per-RuleSet decisions on one declared workload; a genuine Jev routing call | Routing accuracy needs independently labeled examples |
+| V35 | Composite verdicts: normalization of noul and score dimensions, weighted values at the threshold boundary, and refusal of missing or wrong-type dimensions, non-positive weights and weights not summing to 1 | Logic only |
 
 No V row has been executed by authoring this Specification.
 
@@ -338,8 +360,9 @@ A relative interval is anchored once per invocation and returned as UTC bounds. 
 ## C9: Hook invocation, named inputs and binding groups
 
 A host hook, or any other caller, invokes the engine with parameters only:
-- the definition root and RuleSet paths
-- for each RuleSet, its binding groups
+- the definition root, and either a router path or RuleSet paths
+- binding groups: for a router, groups that bind the router's inputs and, by name, the routed RuleSets' inputs; otherwise, groups per RuleSet
+- execution settings: whether gates over different evidence are staged or speculative
 - repository bindings
 - the origin
 - limits, backend configuration and cursors
@@ -378,7 +401,7 @@ A RuleSet's applicability list, and each rule's own list, holds entries evaluate
 - **Unresolved condition** (a missing payload field, an incomplete scan): stop. The outcome is applicability failed. A missing field is never false.
 - **Failed decision call** (timeout, invalid response, provider failure, budget refusal or unavailable evidence): stop. The outcome is applicability failed, with a diagnostic naming the entry, the failure class and the retry advice. That RuleSet × group's rules do not run, and the report is incomplete.
 
-Entries after a stop are not evaluated, and their evidence is not acquired. Every evaluated entry is recorded: conditions with their basis, decisions with their native answer, receipt and attempt history. An empty list means always applicable. RuleSet applicability is decided per binding group; rule applicability per rule occurrence.
+Entries after a stop are not used, and evidence only they need is not acquired. The exception is a speculative request (C13), where a decision over the same evidence as the rules is answered alongside them and applied afterwards in code. Every evaluated entry is recorded: conditions with their basis, decisions with their native answer, receipt and attempt history. An empty list means always applicable. RuleSet applicability is decided per binding group; rule applicability per rule occurrence.
 
 ## C11: Conversation evidence
 
@@ -438,15 +461,69 @@ Every rule has exactly one verdict: a noul question plus a threshold. It travels
 
 The verdict judges the supplied evidence directly. Like every question in a request, it is independent of its siblings and cannot consume another question's answer; "at the end" means the rule's final outcome, not a later question. The verdict's answer is correlated through its own binding, distinct from informational question names, so a question named `verdict` cannot overwrite it. Response validation covers the whole request: an invalid informational answer makes the response invalid, and a well-formed verdict cannot bypass that. Thresholds are finite values in (0, 1] on the same scale as the yes probability, the comparison is inclusive (≥), and no percentage conversion is applied.
 
+A verdict comes in one of two variants, tagged by `kind`:
+- **`noul` (the default):** the verdict has its own noul question, and its value is that question's yes probability.
+- **`composite`:** the value is a weighted sum of the rule's own informational noul and score questions. A noul contributes its yes probability; a score contributes its position divided by its last rubric index. Weights are positive and sum to 1. A composite never draws on another rule.
+
 For each completed judgment:
-- **Pass:** the verdict's yes probability ≥ its threshold.
+- **Pass:** the verdict value ≥ its threshold.
 - **Fail:** otherwise. The rule's severity, `block` or `nudge` (default `nudge`), is reported as activated.
+- **Confident fail:** a blocking rule may declare `block_at_or_below`, a value below its threshold. It then blocks only when the value is at or below that band. A fail between the band and the threshold is reported as a fail with the severity acting as nudge, and the report says why. Pass/fail itself stays binary. This is TypeSafe's confidence gating: the answer says what, confidence says whether to act.
 
 The engine never acts on severity. Hosts decide what block and nudge mean on their surface: continuing the agent, a message, an exit code. When there is no completed judgment (refused evidence, a failed call, cancellation), there is no verdict and no activated severity, and the report is incomplete with the reason.
 
+## C13: Execution model and declarative patterns
+
+Every rule in a RuleSet × binding group reads the same bound inputs, so their questions travel together. TypeSafe evaluates the questions of one request in parallel, and code applies the declared patterns afterwards. [TypeSafe patterns](https://docs.typesafe.ai/patterns)
+
+**Request groups (R38).** For each RuleSet × binding group, the engine:
+1. runs deterministic conditions, which cost no model call
+2. builds **one** request: every applicable rule's verdict and informational questions over their declared evidence, deduplicated
+3. adds, speculatively, any router or decision question whose declared evidence is the same as the rules'
+4. stages a gate whose evidence differs: it is asked in its own request first, unless the invocation enables speculation, in which case both requests run concurrently and the gate's answer still decides
+5. splits a request over budget deterministically along rule boundaries, and reports the split
+6. applies the router floor, decision thresholds, verdict thresholds and blocking bands in code
+
+Answers for rules that turn out not to apply are discarded, reported with their request and cost, and never become answers, verdicts or severities. Whatever the grouping, the results are those staged execution would give on the same provider answers. Only provenance and cost differ.
+
+**Routers (R39).** A router file is the trigger-level way to choose RuleSets, TypeSafe's intent routing:
+
+```json
+{
+  "schema_version": 1,
+  "name": "agent-handoff-router",
+  "description": "Chooses which handoff RuleSets apply to an agent message.",
+  "inputs": { "message": { "kind": "payload", "schema": "agent-job-packet" }, "session": { "kind": "conversation" } },
+  "question": {
+    "type": "choice",
+    "instructions": "What kind of agent message is this?",
+    "criteria": { "review_handback": "A reviewer returning its finished review.", "clarifying_question": "An agent asking a question mid-task.", "commission": "A Lead assigning work.", "other": "Anything else." }
+  },
+  "routes": { "review_handback": ["review-handoff.ruleset.json"], "commission": ["commission-completeness.ruleset.json"] },
+  "confidence_floor": 0.6
+}
+```
+
+- Below the floor, no RuleSet runs, and the result says "uncertain intent" with the answer's distribution.
+- A label with no route runs nothing, and the result says so.
+- Routed RuleSets still apply their own applicability.
+- When the router's evidence is the same as the routed RuleSets', its question can ride in their request, and code applies the route.
+- A router's question never receives a RuleSet's common instructions.
+
+**The declarative pattern catalog:**
+
+| Pattern | Declared in | Engine behavior | Proof |
+| --- | --- | --- | --- |
+| Speculative fan-out | Nothing to declare: it is the execution model. Speculation across differing evidence is an invocation setting | One request per RuleSet × group; same-evidence gates ride along; discarded answers reported | V31, V32 |
+| Intent routing | A router file | One choice question picks RuleSets; a confidence floor stops uncertain routing | V34 |
+| Confidence gating | `threshold` on decisions and verdicts; `block_at_or_below` on blocking verdicts; `confidence_floor` on routers | Code compares answer values with declared bounds; none of them reach the model | V22, V33, V34 |
+| Composite scoring | A `composite` verdict | Weighted, normalized dimensions within one rule | V35 |
+
 ## Undefined behavior and negative space
 
-- No overall RuleSet or invocation verdict, and no aggregation across rules or groups.
+- No overall RuleSet or invocation verdict, and no aggregation across rules or groups. A composite verdict combines only one rule's own dimensions.
+- No answer-dependent questions inside one request. A staged gate is the only dependent step.
+- No promise about provider cost per question. Fan-out cost is measured, not assumed.
 - No ordering promise between independent RuleSets or groups beyond report order. Report order follows caller order, not completion order.
 - No reading of undeclared paths, session directories or host stores, and no fetching of schemas or transcripts from remote locations.
 - No interpretation of shell commands into file reads.

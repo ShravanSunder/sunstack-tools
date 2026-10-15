@@ -60,6 +60,7 @@ U1–U14 keep the earlier needs, revised by the owner's explicit Rust-first rese
 | U28 | Typed payloads, such as the `AgentJobPacket` commission, are inputs validated against their schema before use. Their Zod schemas live in Sunstack (ai-tools). Commission and handback correlate through router message and reply identities | Authorized: "i prefer typed messages. zod can be converted to json schema easily" (6571); "we define the schemas with zod in Sunstack (ai-tools repo)" (scope decision in the Lead channel) |
 | U29 | Every contract's discriminated unions are valid JSON and follow strict discriminated-union practice | Authorized: "make sure how we use discriminated union is valid json because there's strict guidelines for it" (6605) |
 | U30 | Session identity and other hook information are invocation inputs, available as provenance in results | Authorized: "i need to have as inputs session id, any other information" (6535 lineage) |
+| U31 | Make model calls efficient with declarative TypeSafe patterns. A RuleSet's rules over one input binding are judged in one call. Gates and routers that read the same input ride in that call speculatively, while gates over different input are staged unless the host opts into speculation. A router at the trigger level picks which RuleSets run (intent routing). Blocking requires a confident fail (confidence gating). A rule may compute its verdict from weighted dimensions (composite scoring) | Authorized: "it's the same source content for speculative fan-out"; "if the input is the same we can use speculative"; "i want to know what patterns can we do declaratively, how that looks, how we test". Execution model, router, confidence band and composite verdict selected (6671). Source: TypeSafe patterns and confidence documentation |
 
 ## What the Rust reset supersedes
 
@@ -112,6 +113,7 @@ Owner choices that shape the Specification, all settled on 2026-10-15:
 - **Host adapters** (6667): built-in Claude Code and Codex adapters, plus a public adapter interface that native callers can extend. Cursor follows once its format is qualified.
 - **Applicability decisions** (6667): a decision entry is a yes/no question with a threshold; the RuleSet applies only while every entry passes.
 - **Failed decisions** (6667): stop, and report the failure clearly; never a skip or a pass.
-- **Rule verdicts** (6667): every rule ends in pass or fail through a required yes/no verdict question with a threshold. Severity applies when the verdict is fail.
+- **Rule verdicts** (6667, 6671): every rule ends in pass or fail through a required verdict: a yes/no question with a threshold by default, or an optional weighted composite of the rule's own dimensions. Severity applies when the verdict is fail. A block may require a confident fail.
+- **Execution and patterns** (6671): one model call per RuleSet and input binding; speculative gates and routers on the same input; staged otherwise unless the host opts in; router files for intent routing.
 
 Unverified: provider and model availability and credentials, numeric latency targets, supported distribution platforms, the optional TS binding, Cursor's transcript format, and live host behavior.

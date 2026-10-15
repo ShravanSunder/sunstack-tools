@@ -1,11 +1,13 @@
 stateDiagram-v2
-  [*] --> ReadRuleSets
-  ReadRuleSets --> CaptureSources: selected RuleSet JSON is valid
-  ReadRuleSets --> Refused: invalid fields or version
-  CaptureSources --> ValidateRuleLines: referenced sources captured
-  CaptureSources --> SourceFailure: unavailable or changed bytes
-  ValidateRuleLines --> Refused: invalid, empty or duplicate definitions
-  ValidateRuleLines --> Admitted: all selected definitions valid
+  [*] --> ReadDefinitions
+  ReadDefinitions --> CaptureRuleFiles: router and RuleSet JSON valid
+  ReadDefinitions --> Refused: invalid fields, version or pattern declarations
+  CaptureRuleFiles --> ValidateRules: referenced rule files captured
+  CaptureRuleFiles --> SourceFailure: unavailable or changed bytes
+  ValidateRules --> CheckBindings: rules, verdicts and input references valid
+  ValidateRules --> Refused: invalid, empty, duplicate or incompatible
+  CheckBindings --> Admitted: every input bound once, payloads match schemas
+  CheckBindings --> Refused: unbound, extra or mismatched bindings
   Admitted --> [*]
   Refused --> [*]
   SourceFailure --> [*]

@@ -1,7 +1,11 @@
 flowchart TB
-  A["Skill creator or updater"] <-->|"selected RuleSets, subject bindings and input paths / typed judgments"| E["Rust rule engine<br/>opaque library or program"]
-  R["Rust application"] <-->|"prepared requests / typed judgments and usage"| E
+  A["Skill creator or updater"] <-->|"RuleSets, named-input bindings / verdicts, answers"| E["Rust rule engine<br/>opaque library or program"]
+  H["Host hook: codex-router,<br/>Claude Code or Codex"] <-->|"router or RuleSets, session, transcript paths,<br/>typed payloads / verdicts and severities"| E
+  R["Rust application"] <-->|"typed calls, injected transcript adapters /<br/>typed results and usage"| E
   T["Optional TypeScript caller"] <-->|"program requests / structured results"| E
-  E <-->|"state and typed questions / response"| J["Jev via OpenRouter"]
-  S["Sunstack rule author"] -.->|"rule meaning and expected results"| A
+  E <-->|"one request per RuleSet and binding:<br/>state and typed questions / answers"| J["Jev via OpenRouter"]
+  S["Sunstack rule author"] -.->|"RuleSets, rules, routers, schemas"| A
+  S -.->|"RuleSets, rules, routers, schemas"| H
+  Z["ai-tools Zod payload schemas"] -.->|"published JSON Schema, registration assumed"| H
   F["Future Decisions provider"] -.->|"requires an admitted adapter"| E
+  N["Not in scope: hook registration, host actions,<br/>persistent store, Cursor format"] -.- E
