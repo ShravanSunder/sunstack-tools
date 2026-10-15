@@ -89,7 +89,7 @@ Excluded: a mandatory Bun service; a mandatory native JS addon; LSP or type-chec
 
 ## First-delivery boundary
 
-**Awaiting owner confirmation.** The Lead's proposed sequencing: the first delivery serves the skill-lint and handoff-monitor customers. It includes the RuleSet and rule contracts, applicability, severity and results; the Jev decision path; document, payload and conversation inputs, with Claude Code and Codex transcripts; and the executable. Connected change discovery (U20–U23) follows in a later delivery. Cursor transcripts follow once their raw format is qualified. Deferral is sequencing, not removal: U20–U23 remain authorized needs.
+**Awaiting owner confirmation.** The Lead's proposed sequencing: the first delivery serves the skill-lint and handoff-monitor customers. It includes the RuleSet and rule contracts, applicability, severity and results; the Jev decision path with model-budget admission and visible omissions (U23); document, payload and conversation inputs, with Claude Code and Codex transcripts; and the executable. Git change selection and connected code discovery with semantic chunking (U20–U22) follow in a later delivery, reusing the same budgeted decision path. Cursor transcripts follow once their raw format is qualified. Deferral is sequencing, not removal: U20–U23 remain authorized needs.
 
 ## Evidence needed to close the outcome
 
