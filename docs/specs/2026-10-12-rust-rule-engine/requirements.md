@@ -80,7 +80,7 @@ This design covers composable Rust libraries, a thin executable boundary, and lo
 
 Permitted repository: sunstack-tools. Existing skill packages, production hooks, codex-router, ai-tools schemas, infrastructure and eval datasets are read-only consumers or reference sources in this job. Registering hook schemas in codex-router, implementing hook transport, changing ai-tools schemas, publishing packages and installing services are outside this work.
 
-The caller chooses when to invoke the engine and which RuleSets to offer. RuleSet name and description help a person or agent choose; they are never model instructions or execution conditions. Applicability (U25) is the only engine-side decision about whether a RuleSet acts. The engine keeps only invocation-local capture, query and execution data. The host owns state across invocations: monitoring cursors, loop counters, and correlation between a dispatch and its handback.
+The caller chooses when to invoke the engine and which RuleSets to offer. RuleSet name and description help a person or agent choose; they are never model instructions or execution conditions. Routers (U31) and applicability (U25) are the only engine-side decisions about whether a RuleSet acts. The engine keeps only invocation-local capture, query and execution data. The host owns state across invocations: monitoring cursors, loop counters, and correlation between a dispatch and its handback.
 
 The engine reads only sources the caller passed: repository roots and paths, transcript paths, and typed payloads. It never guesses session directories. Approximate dirty-file recency, transcript lag and missing tool results stay visible as uncertainty; missing evidence never becomes a negative or positive finding.
 
