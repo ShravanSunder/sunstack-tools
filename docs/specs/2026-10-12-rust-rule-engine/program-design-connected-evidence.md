@@ -114,7 +114,7 @@ The origin is rules-owned and never change-tracked, so it maps as `no_before_sid
 
 An occurrence whose gate does not pass never reaches step 2. It is `not_applicable`, or reduces as for a failed gate, and its pending dependencies are never read. `prepare_rules` runs step 2 for the requests it prepares; an occurrence whose request is waiting stays `comparison_pending`.
 
-**Rules' mapping.** Both levels map comparisons to `SelectedReason` the same way. `selected_by` lists every reason found in the step that settled selection, in the closed order:
+**Rules' mapping.** `selected_by` lists every reason found in the step that settled selection, in the closed order. The levels differ in one case: at path level, a declaration or input whose file was modified (`changed`) gives no reason. It leaves the occurrence `comparison_pending`, because moved lines or an edit elsewhere in the file may leave its selected content unchanged. Its `added` or `deleted` at path level does give its reason. Definition files are compared only at path level, so their `changed` gives `rule_changed` directly. Otherwise both levels map as follows:
 
 | Dependency | Comparison | Reason |
 | --- | --- | --- |
