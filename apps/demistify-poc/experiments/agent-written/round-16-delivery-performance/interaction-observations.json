@@ -1,0 +1,130 @@
+[
+  {
+    "requested": "practices-research",
+    "heading": "practices-research",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 6.600000023841858
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 14.100000023841858
+      }
+    ],
+    "longTasks": [],
+    "status": "10 nodes · 9 connections · WITH PROPOSALS"
+  },
+  {
+    "requested": "program-design",
+    "heading": "program-design",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 7.799999952316284
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 26.600000023841858
+      }
+    ],
+    "longTasks": [],
+    "status": "21 nodes · 47 connections · WITH PROPOSALS"
+  },
+  {
+    "requested": "principle-define-the-domain-first",
+    "heading": "principle-define-the-domain-first",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 7.199999928474426
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 13.699999928474426
+      }
+    ],
+    "longTasks": [],
+    "status": "1 nodes · 0 connections · WITH PROPOSALS"
+  },
+  {
+    "requested": "spec-design",
+    "heading": "spec-design",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 7.100000023841858
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 28.399999976158142
+      }
+    ],
+    "longTasks": [],
+    "status": "22 nodes · 46 connections · WITH PROPOSALS"
+  },
+  {
+    "requested": "implementation-review",
+    "heading": "implementation-review",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 7.800000071525574
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 19.100000023841858
+      }
+    ],
+    "longTasks": [],
+    "status": "17 nodes · 25 connections · WITH PROPOSALS"
+  },
+  {
+    "requested": "practices-collaboration",
+    "heading": "practices-collaboration",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 5.200000047683716
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 16.300000071525574
+      }
+    ],
+    "longTasks": [],
+    "status": "4 nodes · 3 connections · WITH PROPOSALS"
+  },
+  {
+    "requested": "principle-write-tests-that-can-fail",
+    "heading": "principle-write-tests-that-can-fail",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 3.6999999284744263
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 16
+      }
+    ],
+    "longTasks": [],
+    "status": "1 nodes · 0 connections · WITH PROPOSALS"
+  },
+  {
+    "requested": "spec-design",
+    "heading": "spec-design",
+    "measures": [
+      {
+        "name": "demistify:explorer:selection-sync",
+        "duration": 9.899999976158142
+      },
+      {
+        "name": "demistify:explorer:selection-paint",
+        "duration": 32.199999928474426
+      }
+    ],
+    "longTasks": [],
+    "status": "22 nodes · 46 connections · WITH PROPOSALS"
+  }
+]

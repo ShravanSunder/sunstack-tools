@@ -1,0 +1,21 @@
+{
+	"currentViewProof": {
+		"edges": 45,
+		"rows": 45,
+		"title": "spec-design"
+	},
+	"proposedViewProof": {
+		"edges": 46,
+		"rows": 46
+	},
+	"searchProof": ["principle-write-tests-that-can-fail"],
+	"reverseProof": {
+		"nodes": 1,
+		"rows": 6,
+		"title": "principle-write-tests-that-can-fail"
+	},
+	"historyProof": {
+		"nodes": 22,
+		"title": "spec-design"
+	}
+}

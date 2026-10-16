@@ -1,0 +1,84 @@
+{
+  "normalization": "Machine paths replaced with placeholders; private original receipt retained. Model claims require Lead verification.",
+  "receipt": {
+    "outcome": "Iteration complete; checker passed on first new call. Prior artifacts were not written.",
+    "filesRead": [
+      "$EXPERIMENT/sol/final.html",
+      "$EXPERIMENT/inputs/guide.md",
+      "$EXPERIMENT/inputs/brief.md",
+      "$EXPERIMENT/inputs/starter.html",
+      "$EXPERIMENT/inputs/references/code.md",
+      "$EXPERIMENT/inputs/references/trees.md",
+      "$EXPERIMENT/inputs/completion.md"
+    ],
+    "extraReads": [
+      "$EXPERIMENT/sol/final.html"
+    ],
+    "checkerFeedbackRead": "$EXPERIMENT/sol/iteration-check-1.txt (prescribed checker feedback)",
+    "changes": [
+      "Converted six Markdown section headings to real h2 elements: Exact change and findings; Reconnect flow; Repository changes; Fix options for F1; Evidence; Next steps before merge."
+    ],
+    "unchangedByDesign": [
+      "Summary remains a three-column grid with a span=2 callout and one stat; it already fills one row without an orphan stat.",
+      "Existing text already distinguishes intended missing/expired reconnect behavior from actual F2 fallthrough, so no redundant explanation was added.",
+      "Required facts, exact diff, line references, options, repository tree, evidence and next steps preserved."
+    ],
+    "commands": [
+      {
+        "command": "cat $EXPERIMENT/sol/final.html",
+        "exitCode": 0
+      },
+      {
+        "command": "cat $EXPERIMENT/inputs/guide.md",
+        "exitCode": 0
+      },
+      {
+        "command": "cat $EXPERIMENT/inputs/brief.md",
+        "exitCode": 0
+      },
+      {
+        "command": "cat $EXPERIMENT/inputs/starter.html",
+        "exitCode": 0
+      },
+      {
+        "command": "cat $EXPERIMENT/inputs/references/code.md",
+        "exitCode": 0
+      },
+      {
+        "command": "cat $EXPERIMENT/inputs/references/trees.md",
+        "exitCode": 0
+      },
+      {
+        "command": "cat $EXPERIMENT/inputs/completion.md",
+        "exitCode": 0
+      },
+      {
+        "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport re\noutput = Path('$EXPERIMENT/sol')\npage = (output / 'final.html').read_text()\npage, section_count = re.subn(r'^## (.+)$', r'<h2>\\1</h2>', page, flags=re.MULTILINE)\nassert section_count == 6\n(output / 'iterated.html').write_text(page)\nprint('Converted six section headings to h2. Summary layout and reconnect explanation unchanged.')\nPY",
+        "exitCode": 0
+      },
+      {
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/sol/iterated.html > $EXPERIMENT/sol/iteration-check-1.txt 2>&1\nchecker_exit=$?\ncat $EXPERIMENT/sol/iteration-check-1.txt\nprintf '\\nCHECKER_EXIT=%s\\n' \"$checker_exit\"",
+        "cwd": "$WORKTREE",
+        "exitCode": 0,
+        "checkerExitCode": 0
+      }
+    ],
+    "checkerRuns": [
+      {
+        "call": 1,
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/sol/iterated.html",
+        "exitCode": 0,
+        "feedbackFile": "$EXPERIMENT/sol/iteration-check-1.txt",
+        "feedback": "1 file: 0 errors, 0 warnings\n",
+        "errors": 0,
+        "warnings": 0
+      }
+    ],
+    "checkerRepairs": [],
+    "unverifiedClaims": [
+      "No browser was inspected. Actual outline navigation, layout usefulness and route behavior remain for Lead browser verification.",
+      "No tokenizer was run; token efficiency was addressed by changing only the six section heading tags and adding no prose, not by a measured token claim.",
+      "Illustrative findings, staging percentages, Redis cost and prototype behavior remain supplied claims, not independently validated source or runtime facts."
+    ]
+  }
+}

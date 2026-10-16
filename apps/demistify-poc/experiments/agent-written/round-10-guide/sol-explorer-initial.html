@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Planning explorer · dated proposal</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-explorer id="planning" src="planning.json" selected="spec-design" view="proposed">
+<ex-markdown><script type="text/markdown">
+## Reading guide
+
+Start at **spec-design** in **Proposed**. Use grouped search to select another node; selection history lets you return to earlier choices. Switch **Current / Proposed** to compare the frozen source relationships with the proposed changes.
+
+Hover a node or connection to trace related paths. Click an **arrow** to select its **Connections** evidence row, then read the quotation and source link. Inspect **incoming consumers** to see which nodes reference the selected node; these are declared relationships, not proof of runtime loading or assignment. Related tables supply the broader context.
+
+## Scope and proof limits
+
+This is a **dated proposal from 2026-10-15**, marked spec reviewed and not implemented in the supplied data. Current source is pinned to `d9e717b677e2ba32ad5c38896b5e6802ee029ed6`; the proposal points to `789e0ef0`. Target kind and proposal status are separate meanings: relationship colors describe target kinds, while PROPOSED indicates status.
+
+The supplied complete graph contains **49 nodes**, **329 current edges**, **21 proposed edges** and **9 runs**. Source descriptions are frontmatter claims. Quotations and source links do **not** prove execution, runtime loading, assignment, or a shipped implementation.
+
+This page uses the unchanged supplied graph and the shared explorer component. The original reference visual has not been browser-verified here; this is a new component rendering, not a copy of the original application. Normalization and full referenced content belong in the token ledger. Static checks do not replace browser review or content verification.
+</script></ex-markdown>
+</ex-explorer>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Layouts and navigation · Demistify components</title>
+<link rel="stylesheet" href="/experiments/islands/theme.css">
+<script type="module" src="/experiments/islands/runtime.js">
+</script>
+</head>
+<body>
+<ex-nav for="guide">
+<nav slot="pages" aria-label="Component guide pages">
+<a href="index.html">Start here</a>
+<a href="content.html">Content and decisions</a>
+<a href="layouts.html">Layouts and navigation</a>
+<a href="visuals.html">Visuals and structure</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+</nav>
+<nav slot="presentations" aria-label="Other presentations">
+<a href="../navigation-markdown-fix/index.html">
+<strong>Session design</strong>
+<span>Three named presentations with referenced Markdown and deep links.</span>
+</a>
+<a href="../layout-regression-fix/index.html">
+<strong>Layout stress cases</strong>
+<span>Wide diagrams and long tree labels.</span>
+</a>
+</nav>
+</ex-nav>
+<ex-document id="guide">
+<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
+<a href="index.html">Demistify component guide</a>
+<span aria-current="page">Layouts and navigation</span>
+</nav>
+<ex-presentation id="examples" title="Layouts and navigation" description="Working components with copyable source and usage guidance.">
+<h1>Layouts and navigation</h1>
+<section id="component-ex-grid">
+<h2>Grid <code>ex-grid</code>
+</h2>
+<p>Arrange related views with ordinary HTML. Columns collapse on narrow screens.</p>
+<ex-grid cols="2">
+<ex-card title="Source" tone="note">Author facts and meaning.</ex-card>
+<ex-card title="Presentation" tone="note">Reuse the library.</ex-card>
+</ex-grid>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-grid usage" lang="html">
+<template>&lt;ex-grid cols=&quot;2&quot;&gt;&lt;ex-card title=&quot;Source&quot; tone=&quot;note&quot;&gt;Author facts and meaning.&lt;/ex-card&gt;&lt;ex-card title=&quot;Presentation&quot; tone=&quot;note&quot;&gt;Reuse the library.&lt;/ex-card&gt;&lt;/ex-grid&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-flow">
+<h2>Routed flow and arrows <code>ex-flow</code>
+</h2>
+<h3 id="component-ex-arrow">Arrows <code>ex-arrow</code></h3>
+<p>Arrows name their source and destination with stable island ids.</p>
+<p>Use stable island IDs. Arrows route between boxes while the grid owns placement.</p>
+<ex-flow cols="2">
+<ex-card id="flow-client" title="Client" tone="note">Requests a session.</ex-card>
+<ex-card id="flow-registry" title="Registry" tone="decision">Owns the session.</ex-card>
+<ex-arrow from="flow-client" to="flow-registry" label="resumes">
+</ex-arrow>
+</ex-flow>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-flow usage" lang="html">
+<template>&lt;ex-flow cols=&quot;2&quot;&gt;&lt;ex-card id=&quot;flow-client&quot; title=&quot;Client&quot; tone=&quot;note&quot;&gt;Requests a session.&lt;/ex-card&gt;&lt;ex-card id=&quot;flow-registry&quot; title=&quot;Registry&quot; tone=&quot;decision&quot;&gt;Owns the session.&lt;/ex-card&gt;&lt;ex-arrow from=&quot;flow-client&quot; to=&quot;flow-registry&quot; label=&quot;resumes&quot;&gt;&lt;/ex-arrow&gt;&lt;/ex-flow&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-tabs">
+<h2>Tabs and comparison columns <code>ex-tabs</code>
+</h2>
+<p>Each view is a section with a label. Use columns when both views should be readable side by side.</p>
+<ex-tabs>
+<section label="Current">A socket owns the session.</section>
+<section label="Proposed">The registry owns the session.</section>
+</ex-tabs>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-tabs usage" lang="html">
+<template>&lt;ex-tabs&gt;&lt;section label=&quot;Current&quot;&gt;A socket owns the session.&lt;/section&gt;&lt;section label=&quot;Proposed&quot;&gt;The registry owns the session.&lt;/section&gt;&lt;/ex-tabs&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-board">
+<h2>Boards and regions <code>ex-board</code>
+</h2>
+<h3 id="component-ex-region">Regions <code>ex-region</code></h3>
+<p>Regions group related content and optional detail on a board.</p>
+<p>Read is the default. Switch to Map for a spatial overview; the same region content remains available.</p>
+<ex-board cols="2">
+<ex-region id="board-client" title="Client" tone="note" icon="user">
+<p>Requests reconnection.</p>
+<p detail>Sends the known session id.</p>
+</ex-region>
+<ex-region id="board-store" title="Registry" tone="decision" icon="database">
+<p>Finds the session.</p>
+<p detail>Preserves its lifetime independently of transport.</p>
+</ex-region>
+<ex-arrow from="board-client" to="board-store" label="looks up">
+</ex-arrow>
+</ex-board>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-board usage" lang="html">
+<template>&lt;ex-board cols=&quot;2&quot;&gt;&lt;ex-region id=&quot;board-client&quot; title=&quot;Client&quot; tone=&quot;note&quot; icon=&quot;user&quot;&gt;&lt;p&gt;Requests reconnection.&lt;/p&gt;&lt;p detail&gt;Sends the known session id.&lt;/p&gt;&lt;/ex-region&gt;&lt;ex-region id=&quot;board-store&quot; title=&quot;Registry&quot; tone=&quot;decision&quot; icon=&quot;database&quot;&gt;&lt;p&gt;Finds the session.&lt;/p&gt;&lt;p detail&gt;Preserves its lifetime independently of transport.&lt;/p&gt;&lt;/ex-region&gt;&lt;ex-arrow from=&quot;board-client&quot; to=&quot;board-store&quot; label=&quot;looks up&quot;&gt;&lt;/ex-arrow&gt;&lt;/ex-board&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-layers">
+<h2>Layers <code>ex-layers</code>
+</h2>
+<p>Toggle a meaningful optional layer. Layer names are single identifiers; an off list is space-separated.</p>
+<ex-layers off="future" label="Show">
+</ex-layers>
+<ex-card title="Current transport" tone="note">Available now.</ex-card>
+<ex-card title="Future transport" tone="planned" layer="future">A proposed addition.</ex-card>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-layers usage" lang="html">
+<template>&lt;ex-layers off=&quot;future&quot; label=&quot;Show&quot;&gt;&lt;/ex-layers&gt;&lt;ex-card title=&quot;Current transport&quot; tone=&quot;note&quot;&gt;Available now.&lt;/ex-card&gt;&lt;ex-card title=&quot;Future transport&quot; tone=&quot;planned&quot; layer=&quot;future&quot;&gt;A proposed addition.&lt;/ex-card&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-route">
+<h2>Guided routes <code>ex-route</code>
+</h2>
+<h3 id="component-ex-step">Route steps <code>ex-step</code></h3>
+<p>Each step targets a real island, diagram node or another page.</p>
+<p>A route narrates selected islands and can continue onto another page. The player is a small start button.</p>
+<ex-route label="Session ownership tour">
+<ex-step to="flow-client">Start with the reconnect request.</ex-step>
+<ex-step to="flow-registry" open="sidebar">Inspect the lifetime owner.</ex-step>
+<ex-step to="content.html#sample-card">Read the decision.</ex-step>
+</ex-route>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-route usage" lang="html">
+<template>&lt;ex-route label=&quot;Session ownership tour&quot;&gt;&lt;ex-step to=&quot;flow-client&quot;&gt;Start with the reconnect request.&lt;/ex-step&gt;&lt;ex-step to=&quot;flow-registry&quot; open=&quot;sidebar&quot;&gt;Inspect the lifetime owner.&lt;/ex-step&gt;&lt;ex-step to=&quot;content.html#sample-card&quot;&gt;Read the decision.&lt;/ex-step&gt;&lt;/ex-route&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-document">
+<h2>Document <code>ex-document</code>
+</h2>
+<p>This page uses one document scope. It renders bare Markdown between islands and provides heading navigation and the theme control.</p>
+</section>
+<section id="component-ex-nav">
+<h2>Navigation <code>ex-nav</code>
+</h2>
+<p>The left menu is this component’s live example: Presentations selects an explainer, Pages links this collection, and headings form the active outline.</p>
+<ex-code title="Navigation usage" lang="html">
+<template>&lt;ex-nav for=&quot;content&quot;&gt;&lt;nav slot=&quot;pages&quot; aria-label=&quot;Pages&quot;&gt;&lt;a href=&quot;index.html&quot;&gt;Overview&lt;/a&gt;&lt;/nav&gt;&lt;nav slot=&quot;presentations&quot; aria-label=&quot;Presentations&quot;&gt;&lt;a href=&quot;review.html&quot;&gt;&lt;strong&gt;Review&lt;/strong&gt;&lt;span&gt;Findings and rationale.&lt;/span&gt;&lt;/a&gt;&lt;/nav&gt;&lt;/ex-nav&gt;&lt;ex-document id=&quot;content&quot;&gt;…&lt;/ex-document&gt;</template>
+</ex-code>
+</section>
+<section id="component-ex-presentation">
+<h2>Presentations <code>ex-presentation</code>
+</h2>
+<p>Use the Presentations button to switch between this page’s examples and Authoring notes. Each has a name and description; only the selected presentation is displayed. Deep links select the containing presentation.</p>
+<ex-code title="Presentation usage" lang="html">
+<template>&lt;ex-presentation id=&quot;architecture&quot; title=&quot;Architecture&quot; description=&quot;How services fit together.&quot;&gt;…&lt;/ex-presentation&gt;&lt;ex-presentation id=&quot;plan&quot; title=&quot;Plan&quot; description=&quot;Delivery phases.&quot;&gt;…&lt;/ex-presentation&gt;</template>
+</ex-code>
+</section>
+</ex-presentation>
+<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+<ex-markdown id="authoring-notes" src="usage-notes.md">
+</ex-markdown>
+</ex-presentation>
+</ex-document>
+</body>
+</html>

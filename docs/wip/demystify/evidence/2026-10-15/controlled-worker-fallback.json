@@ -1,0 +1,6 @@
+{
+	"result": {
+		"type": "string",
+		"value": "{\"events\":[{\"type\":\"constructed\"},{\"type\":\"policy\",\"directive\":\"worker-src\"}],\"nodes\":4,\"svg\":true,\"issues\":0}"
+	}
+}

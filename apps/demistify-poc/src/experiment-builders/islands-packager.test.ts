@@ -52,3 +52,20 @@ it('renders the real formatted showcase with its Markdown table and all three di
 	expect(output).toContain('<td>Registry</td>');
 	expect(output).toContain('<code class="language-text">flowchart TD');
 });
+
+it('exports the actual standalone page with its lazy runtime dependency catalog', async (): Promise<void> => {
+	const artifact = await readFile('public/experiments/html-islands-rendered.html', 'utf8');
+	const catalogText =
+		/<script id="demistify-offline-modules" type="application\/json">([\s\S]*?)<\/script>/.exec(
+			artifact,
+		)?.[1];
+	expect(catalogText).toBeDefined();
+	const catalog: unknown = JSON.parse(catalogText ?? 'null');
+	expect(catalog).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({ name: 'runtime.js' }),
+			expect.objectContaining({ name: 'diagram-worker.js' }),
+		]),
+	);
+	expect(artifact).not.toContain('src="islands/runtime.js"');
+});

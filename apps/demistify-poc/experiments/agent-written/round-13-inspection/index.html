@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demistify · Sol and Luna with public assets</title>
+<link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/16ac23d/theme.css">
+<script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/16ac23d/runtime.js"></script>
+</head>
+<body><ex-document>
+# Sol and Luna explainers with public assets
+
+Four existing author samples and an interactive inspection example load the same version-pinned Demistify library from Cloudflare. Each page opens independently. The library supplies rendering, themes, icons, navigation and inspection.
+
+<ex-callout tone="note" title="What these examples establish">
+These are public-hosting editions of existing Sol and Luna outputs. The Lead changed asset URLs and corrected two explorer instructions. They are not new model runs. Review figures remain supplied illustrative evidence; the skill graph is a dated source snapshot, not runtime proof.
+</ex-callout>
+
+## Code review
+
+<ex-grid cols="2">
+<ex-card title="Sol review" tone="note" icon="code">
+A review with an exact diff, anchored findings, a sequence diagram, options and evidence.
+
+[Open Sol review](sol-review.html)
+</ex-card>
+<ex-card title="Luna review" tone="note" icon="code">
+The same supplied review brief, composed with a numbered flow, findings, options and evidence.
+
+[Open Luna review](luna-review.html)
+</ex-card>
+</ex-grid>
+
+## Full explorer
+
+<ex-grid cols="2">
+<ex-card title="Sol explorer" tone="note" icon="git-branch">
+The full graph, grouped search, selection history, current/proposed views and source tables, with Sol's reading guide.
+
+[Open Sol explorer](sol-explorer.html)
+</ex-card>
+<ex-card title="Luna explorer" tone="note" icon="git-branch">
+The same complete graph and shared interactions, with Luna's compact reading guide.
+
+[Open Luna explorer](luna-explorer.html)
+</ex-card>
+</ex-grid>
+
+## Inspect a composition
+
+[Open the inspection example](inspection.html): tabs, a collapsible tree, a comparison slider, linked diagrams and gray review notes. Sidebar views keep the main islands visible.
+
+## Reuse the library
+
+A page loads the version-pinned stylesheet and module with two HTML tags. It can be served from another static host; there is no per-page application build or framework requirement.
+
+<pre><code>&lt;link rel=&quot;stylesheet&quot; href=&quot;https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/16ac23d/theme.css&quot;&gt;
+&lt;script type=&quot;module&quot; src=&quot;https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/16ac23d/runtime.js&quot;&gt;&lt;/script&gt;</code></pre>
+
+<ex-callout tone="note" title="Measurement boundary">
+Referenced graph content still counts in content/context accounting. The reusable library is separate from author markup. Static success does not establish prose truth, readability or complete interaction parity.
+</ex-callout>
+</ex-document></body></html>

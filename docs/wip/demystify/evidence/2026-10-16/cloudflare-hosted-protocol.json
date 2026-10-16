@@ -1,0 +1,313 @@
+{
+	"origin": "https://demistify-assets-cli-experiment.askluna.workers.dev",
+	"files": [
+		{
+			"path": "index.html",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "17e0b8da784ab5d01b1ae6149e6a155dd03c3640256f670551d0b7c9dfdfbded",
+			"cors": "*",
+			"cache": "no-cache",
+			"mime": "text/html",
+			"mimeValid": true,
+			"etag": null
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/index.html",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "df49ebe04024e2e8bdf266c991135c77cbc3565076bf2054d8cdb7c4cf7c93ae",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html",
+			"mimeValid": true,
+			"etag": null
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/luna-explorer.html",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "ee78e3e6be7cd997710d5aae11eac27122604d6124ce30e3f8fb0af33cbdeac1",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html",
+			"mimeValid": true,
+			"etag": null
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/luna-review.html",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "f56d0f6d6f9c2ba7e05fae77318fbe11cfe870689a1494444a4b29c49db55a49",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html",
+			"mimeValid": true,
+			"etag": null
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/planning.json",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json",
+			"mimeValid": true,
+			"etag": "W/\"082d46e3e25144d9a658c9e48ceac643\""
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/provenance.json",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "b1be37f7fdfeb2f2de3927de79ec9ab292fdc2982200f96692b739a7e152ff6e",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json",
+			"mimeValid": true,
+			"etag": "W/\"842874ec5322ed54faece596ed331877\""
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/sol-explorer.html",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "719cc4bd645f539187831c23e974b285023b8484eba5f299767ed1588da38f82",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html",
+			"mimeValid": true,
+			"etag": null
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/sol-review.html",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "a70f9a59894fbf28bc3c1fe96f98a98dc13de8d2db94da13775b601e3bf8ed74",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html",
+			"mimeValid": true,
+			"etag": null
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/Phosphor.woff2",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "1f509eee7fec3a29f85c8f4b629e8d31f8ccb077f038ae690b16dd25f52b06ff",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2",
+			"mimeValid": true,
+			"etag": "\"6bcb1d47f458160d0ea19aefa41f81a9\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/custom-elements.json",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "8068835aeb336c5592c5f41e55c7bdf5b002cf3b47a42fda936a82734d39f085",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json",
+			"mimeValid": true,
+			"etag": "W/\"6021acaf81fa52ce80161dc27d840fb4\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/diagram-worker.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "1196c756bd1295e2be95924b6730b6bd0a28367aa04b9f13848878939c70d2ac",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"bc8d01aa6a0422763699db6554136e37\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/html-custom-data.json",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "b8f34fd5be9206296c02f002359adeb3756241815cd7229e14bd4bf5fd7c1910",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json",
+			"mimeValid": true,
+			"etag": "W/\"24e19d1606ed21b95e8cad3862e29735\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/runtime.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "a12ba39a9410baa861c39a667eab4195d9e805acdb4283c38f1f06162f349f7c",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"42c7b3d9120f6a4193060e0e33e6dcbe\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/theme.css",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "491e29058bb4e0938c532fc932e10336ee2f50a93309feac8b05a3bc0e7e6019",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/css",
+			"mimeValid": true,
+			"etag": "W/\"7d38403f465baeea77c82e771ebcbbfb\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/diagram-Bf7Lsqv1.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "0f46c1b1dfcd6e0fc0f6e840dc043eb79fab32004773131677ef4e90dd080560",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"6a780f9a81866e1ffc5d270d4dd6bd17\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/dist-DcDoeHXN.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"13c2fe422ff25c4b2e99c0e03c2c1f05\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/explorer-controller-cRuW89TU.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "ce622f2a4c00154ef144d80019c8536c1f58bdbb8861375a9c21ac9aa8ff541b",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"92d47acd5b30a67b61785c8a99ca9207\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/html-text-DKjmYQsC.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "6093bb06b48c19d0e15ed13b49ac43aa7a988d52a7aad76ca3cd291121a886ad",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"e043192b2124de173b860b907f50e9d7\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/icons-BTtd1_Fe.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "b1950a97a6c65a3b6a9fd290ee9be1753d65ca73f0a0e87bbc39c0b8efbea2bb",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"cda2bd68b78b2b3029b0c2ac03a9d923\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/markdown-content-DJ4Rn4TJ.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "1cc6afd22c81df8ab75b7b256e906df67d96d0dfb7664d039bfd939e11a18d4e",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"55d4055ca7369777f051aa82434ca605\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/source-text-LCI4h-OT.js",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "6bf5ff9098ca6444a0012a17abf65fcd270051c290a7e3ed473347dcbd94124f",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript",
+			"mimeValid": true,
+			"etag": "W/\"9dac4585ac846e4aa560a71b83df6a24\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-mono-400.woff2",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2",
+			"mimeValid": true,
+			"etag": "\"86348d462740fd14324170a9d059b01b\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-500.woff2",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "e3b4fd97fd20bc70fda66d8d5f0745d8d6958068a024cb4724bbc1ffb6cbc183",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2",
+			"mimeValid": true,
+			"etag": "\"b94e520d00881ea63eb8b66604d00b00\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-600.woff2",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "3d72a0923c5830358b0a8e25b258aecadbecbf542b6ee9a25f387803e37d56b9",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2",
+			"mimeValid": true,
+			"etag": "\"38b1f4bf335522c7532b4a815d0e7f6a\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-700.woff2",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "4768878c107d92c528a65bba206a87cdcf2c694514e75907fb91772cf8a388a5",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2",
+			"mimeValid": true,
+			"etag": "\"60089eb9ab8f48269f468523b2bb69ff\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/literata-400.woff2",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "a60c193b55766b68b922e2327e15c2d8c145532f283a27c3411b9c47a8583d18",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2",
+			"mimeValid": true,
+			"etag": "\"5be1974cedfb38b8aa3d29b12800e18c\""
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/literata-600.woff2",
+			"status": 200,
+			"exactBytes": true,
+			"sha256": "99284fd89c86b8c58e921f42e05a42dae1add53e797b80d82165778b932bf924",
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2",
+			"mimeValid": true,
+			"etag": "\"b769f671c99f689f1e464e90629f1484\""
+		}
+	],
+	"checks": {
+		"allBodiesExact": true,
+		"allCors": true,
+		"allMime": true,
+		"pinnedImmutable": true,
+		"conditional304": true,
+		"conditionalCors": true,
+		"missing404": true,
+		"landingRevalidates": true
+	},
+	"limits": "Hosted unauthenticated protocol proof from one client. No multi-region propagation, production traffic, rollout reliability or performance distribution claim."
+}

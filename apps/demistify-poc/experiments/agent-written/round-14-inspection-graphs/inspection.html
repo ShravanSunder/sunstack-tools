@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspect islands without losing the page</title>
+<link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/theme.css"><script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/runtime.js"></script>
+</head><body><ex-document>
+# Inspect islands without losing the page
+
+Open the sidebar beside a live island. Its main content stays available. The panel starts from the current view, then its local controls work independently; it is not a synchronized editor. Fullscreen enlarges the original view and returns it on close.
+
+## Interactive composition
+
+<ex-tabs zoom label="Interactive composition">
+<section label="Tree">
+<ex-tree>
+- Session lifecycle
+  - Current transport
+  - Stable session
+    - Reconnect
+    - Expire
+</ex-tree>
+<details><summary>Why two owners?</summary>The session owns work; the transport owns a connection.</details>
+</section>
+<section label="Comparison">
+<ex-compare slider>
+<div label="Before"><ex-callout title="Socket owns work" tone="removed">A disconnect loses the session.</ex-callout></div>
+<div label="After"><ex-callout title="Session owns work" tone="added">Reconnect swaps the transport.</ex-callout></div>
+</ex-compare>
+</section>
+</ex-tabs>
+
+## Diagram and linked detail
+
+<ex-grid cols="2">
+<ex-mermaid label="Session ownership"><script type="text/plain">
+flowchart LR
+  transport[Transport] --> session[Session]
+</script></ex-mermaid>
+<ex-card id="session" title="Session" tone="note" icon="cpu" zoom>
+The main card remains visible when the diagram opens it in the sidebar.
+<details><summary>Lifecycle</summary>A reconnect attaches a new transport; expiry releases the work.</details>
+</ex-card>
+</ex-grid>
+
+## Notes beside a diff
+
+<ex-code title="src/session/resume.ts" lang="diff" start="40"><script type="text/plain">
+ export function resume(id: string) {
+-  return sockets.get(id)?.session;
++  const session = registry.get(id);
++  return session?.attach(currentSocket());
+ }
+</script><ex-note line="42" tone="risk">The in-memory registry does not survive a restart.</ex-note><ex-note line="43" tone="question">Check expiry before attaching the new transport.</ex-note></ex-code>
+
+Comments have a neutral background and a small severity accent. Diff additions and removals keep their own colors.
+</ex-document></body></html>

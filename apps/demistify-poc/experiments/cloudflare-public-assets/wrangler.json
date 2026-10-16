@@ -1,0 +1,15 @@
+{
+	"name": "demistify-assets-cli-experiment",
+	"main": "worker.ts",
+	"compatibility_date": "2026-10-15",
+	"workers_dev": true,
+	"preview_urls": false,
+	"routes": [],
+	"send_metrics": false,
+	"assets": {
+		"directory": "../../../../tmp/demistify-cloudflare-public/public",
+		"binding": "ASSETS",
+		"run_worker_first": true,
+		"not_found_handling": "none"
+	}
+}

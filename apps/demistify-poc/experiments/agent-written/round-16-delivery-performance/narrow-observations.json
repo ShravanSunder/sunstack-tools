@@ -1,0 +1,62 @@
+[
+  {
+    "page": "explorer",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 376,
+    "mainCodeRows": 0,
+    "scrollWidth": 376,
+    "svg": 0,
+    "issues": [],
+    "errors": []
+  },
+  {
+    "page": "review",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 376,
+    "mainCodeRows": 9,
+    "scrollWidth": 376,
+    "svg": 1,
+    "issues": [],
+    "errors": []
+  },
+  {
+    "page": "prepared",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 376,
+    "mainCodeRows": 9,
+    "scrollWidth": 376,
+    "svg": 1,
+    "issues": [],
+    "errors": []
+  },
+  {
+    "page": "prepared-narrow-inspection",
+    "clientWidth": 376,
+    "dialogMode": true,
+    "mainRows": 9,
+    "panelRows": 9,
+    "scrollWidth": 376
+  },
+  {
+    "page": "prepared-narrow-close",
+    "allCodeRows": 18,
+    "mainRows": 9,
+    "openDialogs": 1
+  },
+  {
+    "page": "prepared-narrow-pointer-close",
+    "locatorAutoScrollLimit": "The locator moved the tall parent iframe toolbar out of view; direct screenshot-based click used after restoring parent scroll.",
+    "allRows": 9,
+    "mainRows": 9,
+    "openDialogs": 0
+  }
+]

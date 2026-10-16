@@ -1,0 +1,119 @@
+{
+	"files": [
+		{
+			"name": "Phosphor.woff2",
+			"bytes": 6592,
+			"gzip": 6615,
+			"sha256": "1f509eee7fec3a29f85c8f4b629e8d31f8ccb077f038ae690b16dd25f52b06ff"
+		},
+		{
+			"name": "chunks/diagram-Bf7Lsqv1.js",
+			"bytes": 2412,
+			"gzip": 1163,
+			"sha256": "0f46c1b1dfcd6e0fc0f6e840dc043eb79fab32004773131677ef4e90dd080560"
+		},
+		{
+			"name": "chunks/dist-DcDoeHXN.js",
+			"bytes": 2195817,
+			"gzip": 513243,
+			"sha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f"
+		},
+		{
+			"name": "chunks/explorer-controller-cRuW89TU.js",
+			"bytes": 25813,
+			"gzip": 7301,
+			"sha256": "ce622f2a4c00154ef144d80019c8536c1f58bdbb8861375a9c21ac9aa8ff541b"
+		},
+		{
+			"name": "chunks/html-text-DKjmYQsC.js",
+			"bytes": 218,
+			"gzip": 155,
+			"sha256": "6093bb06b48c19d0e15ed13b49ac43aa7a988d52a7aad76ca3cd291121a886ad"
+		},
+		{
+			"name": "chunks/icons-BTtd1_Fe.js",
+			"bytes": 1925,
+			"gzip": 876,
+			"sha256": "b1950a97a6c65a3b6a9fd290ee9be1753d65ca73f0a0e87bbc39c0b8efbea2bb"
+		},
+		{
+			"name": "chunks/markdown-content-DJ4Rn4TJ.js",
+			"bytes": 56572,
+			"gzip": 15107,
+			"sha256": "1cc6afd22c81df8ab75b7b256e906df67d96d0dfb7664d039bfd939e11a18d4e"
+		},
+		{
+			"name": "chunks/source-text-LCI4h-OT.js",
+			"bytes": 611,
+			"gzip": 366,
+			"sha256": "6bf5ff9098ca6444a0012a17abf65fcd270051c290a7e3ed473347dcbd94124f"
+		},
+		{
+			"name": "custom-elements.json",
+			"bytes": 19788,
+			"gzip": 2893,
+			"sha256": "8068835aeb336c5592c5f41e55c7bdf5b002cf3b47a42fda936a82734d39f085"
+		},
+		{
+			"name": "diagram-worker.js",
+			"bytes": 722,
+			"gzip": 425,
+			"sha256": "1196c756bd1295e2be95924b6730b6bd0a28367aa04b9f13848878939c70d2ac"
+		},
+		{
+			"name": "fonts/ibm-plex-mono-400.woff2",
+			"bytes": 14708,
+			"gzip": 14731,
+			"sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7"
+		},
+		{
+			"name": "fonts/ibm-plex-sans-condensed-500.woff2",
+			"bytes": 19952,
+			"gzip": 19980,
+			"sha256": "e3b4fd97fd20bc70fda66d8d5f0745d8d6958068a024cb4724bbc1ffb6cbc183"
+		},
+		{
+			"name": "fonts/ibm-plex-sans-condensed-600.woff2",
+			"bytes": 19816,
+			"gzip": 19844,
+			"sha256": "3d72a0923c5830358b0a8e25b258aecadbecbf542b6ee9a25f387803e37d56b9"
+		},
+		{
+			"name": "fonts/ibm-plex-sans-condensed-700.woff2",
+			"bytes": 19352,
+			"gzip": 19380,
+			"sha256": "4768878c107d92c528a65bba206a87cdcf2c694514e75907fb91772cf8a388a5"
+		},
+		{
+			"name": "fonts/literata-400.woff2",
+			"bytes": 20420,
+			"gzip": 20422,
+			"sha256": "a60c193b55766b68b922e2327e15c2d8c145532f283a27c3411b9c47a8583d18"
+		},
+		{
+			"name": "fonts/literata-600.woff2",
+			"bytes": 21860,
+			"gzip": 21888,
+			"sha256": "99284fd89c86b8c58e921f42e05a42dae1add53e797b80d82165778b932bf924"
+		},
+		{
+			"name": "html-custom-data.json",
+			"bytes": 19270,
+			"gzip": 2712,
+			"sha256": "b8f34fd5be9206296c02f002359adeb3756241815cd7229e14bd4bf5fd7c1910"
+		},
+		{
+			"name": "runtime.js",
+			"bytes": 83071,
+			"gzip": 23803,
+			"sha256": "a12ba39a9410baa861c39a667eab4195d9e805acdb4283c38f1f06162f349f7c"
+		},
+		{
+			"name": "theme.css",
+			"bytes": 61464,
+			"gzip": 12618,
+			"sha256": "491e29058bb4e0938c532fc932e10336ee2f50a93309feac8b05a3bc0e7e6019"
+		}
+	],
+	"limits": "One local unreleased build; generated library bytes are delivery cost, not authored content. Protocol trials used their earlier frozen snapshot; this file does not rebind those observations to a later build."
+}

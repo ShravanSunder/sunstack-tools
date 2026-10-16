@@ -1,0 +1,35 @@
+{
+  "libraryCommit": "49686d9d30cf3290d7a396fb2ae4b4b3a065fcc8",
+  "model": "gpt-6-luna",
+  "effort": "high",
+  "freshConversation": true,
+  "arms": {
+    "baseline": {
+      "initialErrors": 2,
+      "initialWarnings": 5,
+      "checkerCalls": 2,
+      "finalErrors": 0,
+      "finalWarnings": 0,
+      "finalExitCode": 0,
+      "browserWarnings": []
+    },
+    "starter": {
+      "initialErrors": 4,
+      "initialWarnings": 0,
+      "checkerCalls": 3,
+      "finalErrors": 0,
+      "finalWarnings": 0,
+      "finalExitCode": 0,
+      "browserWarnings": [
+        "ex-tree needs a Markdown list: HTML ul is not accepted as source."
+      ]
+    }
+  },
+  "limits": [
+    "Initial checker exit codes were not captured: both workers used the reserved zsh variable status; stdout was retained.",
+    "One run per arm; no statistical winner.",
+    "The starter arm made one extra successful checker call within the cap.",
+    "Read manifests are worker-reported. Parent checked source content and final browser observations.",
+    "All required findings, options and evidence values were present in parent source inspection; no exhaustive comprehension or accessibility claim."
+  ]
+}

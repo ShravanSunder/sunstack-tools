@@ -1,0 +1,31 @@
+{
+  "normalization": "Machine paths replaced with placeholders; private original receipt retained. Model claims require Lead verification.",
+  "receipt": {
+    "files_read": [
+      "$EXPERIMENT/explorer-inputs/guide.md",
+      "$EXPERIMENT/explorer-inputs/explorers.md",
+      "$EXPERIMENT/explorer-inputs/brief.md",
+      "$EXPERIMENT/explorer-inputs/inventory.json",
+      "$EXPERIMENT/luna-explorer/initial.html",
+      "$EXPERIMENT/luna-explorer/final.html",
+      "$EXPERIMENT/luna-explorer/check-1.txt",
+      "$EXPERIMENT/luna-explorer/planning.json (read by the checker as the referenced explorer validation input)"
+    ],
+    "commands": [
+      {
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/luna-explorer/final.html",
+        "working_directory": "$WORKTREE",
+        "exit_code": 0,
+        "output_file": "$EXPERIMENT/luna-explorer/check-1.txt",
+        "result": "1 file: 0 errors, 0 warnings"
+      }
+    ],
+    "repairs": [],
+    "unverified_claims": [
+      "No browser or visual acceptance check was performed.",
+      "The source inventory notes that the original reference visual was not browser-verified.",
+      "Proposal and source evidence do not establish that a skill executes or that implementation has shipped.",
+      "The full referenced graph count and content ledger remain for independent Lead validation."
+    ]
+  }
+}

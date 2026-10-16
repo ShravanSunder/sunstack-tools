@@ -1,0 +1,9 @@
+{
+	"mutation": "Replace every copy of one source URL/quotation identity with an omission marker; graph schema remains valid.",
+	"changedSourceCopies": 1,
+	"exitCode": 1,
+	"missingProseStrings": 0,
+	"missingSourceOccurrences": 1,
+	"sourceSha256": "619a6b0af4c0d4e46c4ab491060a20849b25d7ba71f0ddecbf79d8a79fd3b961",
+	"limits": "One seeded omission proves this content-preservation oracle detects the named loss. It does not establish independent factual truth or all semantic changes."
+}

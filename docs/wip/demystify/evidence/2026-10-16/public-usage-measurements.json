@@ -1,0 +1,40 @@
+{
+	"encoding": "o200k_base",
+	"newModelRuns": false,
+	"pages": [
+		{
+			"file": "sol-review.html",
+			"bytes": 8002,
+			"tokens": 1918,
+			"sourceRound10Tokens": 1872,
+			"sha256": "a70f9a59894fbf28bc3c1fe96f98a98dc13de8d2db94da13775b601e3bf8ed74"
+		},
+		{
+			"file": "luna-review.html",
+			"bytes": 7296,
+			"tokens": 1831,
+			"sourceRound10Tokens": 1785,
+			"sha256": "f56d0f6d6f9c2ba7e05fae77318fbe11cfe870689a1494444a4b29c49db55a49"
+		},
+		{
+			"file": "sol-explorer.html",
+			"bytes": 2414,
+			"tokens": 530,
+			"sourceRound10Tokens": 459,
+			"sha256": "719cc4bd645f539187831c23e974b285023b8484eba5f299767ed1588da38f82"
+		},
+		{
+			"file": "luna-explorer.html",
+			"bytes": 1786,
+			"tokens": 396,
+			"sourceRound10Tokens": 350,
+			"sha256": "ee78e3e6be7cd997710d5aae11eac27122604d6124ce30e3f8fb0af33cbdeac1"
+		}
+	],
+	"referencedGraph": {
+		"bytes": 776437,
+		"tokens": 173601,
+		"sha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0"
+	},
+	"limits": "Source-file tokens only. Lead prepared public-asset derivatives and corrected explorer prose. No fresh authoring, consumed-context, generation or billing claim. Library implementation is excluded from usage and remains a separate delivery/development cost."
+}

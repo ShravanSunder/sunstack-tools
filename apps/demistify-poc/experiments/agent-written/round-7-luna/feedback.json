@@ -1,0 +1,26 @@
+{
+  "baseline": [
+    {
+      "log": "run1.stdout",
+      "output": "page.html:9:1 warning styling: <style> sets body; the library owns colour, borders, type and shadows. Keep only layout CSS.\npage.html:9:1 warning styling: <style> sets ex-grid; the library owns colour, borders, type and shadows. Keep only layout CSS.\npage.html:9:1 warning styling: <style> sets ex-code; the library owns colour, borders, type and shadows. Keep only layout CSS.\npage.html:9:1 warning styling: <style> sets ex-route; the library owns colour, borders, type and shadows. Keep only layout CSS.\npage.html:31:12 error missing-id: to=\"evidence\" matches no element id.\npage.html:53:10 error note: line=\"48\" is not a row of this code; rows are 40\u201347.\npage.html:103:88 warning attribute: icon=\"network\" is not a known icon; write icon=\"globe\". (fixable)\n1 file: 2 errors, 5 warnings\n"
+    },
+    {
+      "log": "run2.stdout",
+      "output": "1 file: 0 errors, 0 warnings\n"
+    }
+  ],
+  "starter": [
+    {
+      "log": "check-1.stdout",
+      "output": "page.html:40,41,42,43 error note: file=\"src/session/resume.ts\" is not a file in this diff (?).\n1 file: 4 errors, 0 warnings\n"
+    },
+    {
+      "log": "check-2.stdout",
+      "output": "1 file: 0 errors, 0 warnings\n"
+    },
+    {
+      "log": "check-3.stdout",
+      "output": "1 file: 0 errors, 0 warnings\n"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+	"mutation": "Move all source evidence from one relationship to another; retain all quotations globally and preserve valid graph schema.",
+	"sourceEdge": "current-0",
+	"destinationEdge": "current-1",
+	"movedSources": 2,
+	"exitCode": 1,
+	"globalMissingSourceOccurrences": 0,
+	"missingEdgeAssociations": ["edges/0/anchors/0", "edges/0/anchors/1"],
+	"limits": "This seeded wrong association is rejected even though global text/source coverage passes. It does not establish all semantic changes or source truth."
+}

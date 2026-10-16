@@ -119,7 +119,9 @@ export class FlowIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
 		if (!this.overlay) {
-			const overlay = document.createElementNS(svgNamespace, 'svg');
+			const overlay =
+				this.querySelector<SVGSVGElement>(':scope > .ex-flow-overlay') ??
+				document.createElementNS(svgNamespace, 'svg');
 			overlay.classList.add('ex-flow-overlay');
 			overlay.setAttribute('aria-hidden', 'true');
 			const markerId = `ex-flow-${crypto.randomUUID()}`;

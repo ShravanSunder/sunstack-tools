@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Implementation detail</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body>
+<ex-nav for="content">
+<nav slot="pages" aria-label="Pages"><a href="index.html">Overview</a><a href="details.html">Implementation detail</a></nav>
+<nav slot="presentations" aria-label="Other presentations"><a href="details.html"><strong>Implementation detail</strong><span>A separate HTML page in the same collection.</span></a></nav>
+</ex-nav>
+<ex-document id="content">
+<nav class="ex-breadcrumbs" aria-label="Breadcrumb"><a href="index.html">Session explainers</a><span aria-current="page">Overview</span></nav>
+# Implementation detail
+
+This page belongs to the same collection. The Pages list takes you back to Overview.
+
+[Open Recovery in the Architecture presentation](index.html#notes--recovery).
+
+<ex-code id="lookup" title="Session lookup" lang="ts"><script type="text/plain">const session = registry.get(sessionId);
+return session;
+</script></ex-code>
+</ex-document></body></html>

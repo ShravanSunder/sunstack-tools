@@ -36,9 +36,16 @@ await build({
 	},
 });
 const styles = await Promise.all(
-	['theme.css', 'reference.css', 'components.css', 'navigation.css', 'vocabulary.css'].map(
-		(name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8'),
-	),
+	[
+		'theme.css',
+		'reference.css',
+		'components.css',
+		'navigation.css',
+		'presentations.css',
+		'inspection-gestures.css',
+		'vocabulary.css',
+		'explorer.css',
+	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8')),
 );
 await mkdir(resolve(outputDirectory, 'fonts'), { recursive: true });
 await Promise.all(

@@ -1,0 +1,957 @@
+{
+	"origin": "https://demistify-assets-cli-experiment.askluna.workers.dev",
+	"deployVersion": "46686e68-6b07-4173-8ec0-a53a9b4cd897",
+	"sourceCommit": "c96a72e5835f588d0af738bfd287533f94993ece",
+	"files": [
+		{
+			"path": "index.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "3c36ef03f78f79a3041ea37122d01c08d883fecca2f8467dfb01cbbb4a654a0a",
+			"bytes": 323,
+			"cors": "*",
+			"cache": "no-cache",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/index.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "df49ebe04024e2e8bdf266c991135c77cbc3565076bf2054d8cdb7c4cf7c93ae",
+			"bytes": 2884,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/luna-explorer.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "ee78e3e6be7cd997710d5aae11eac27122604d6124ce30e3f8fb0af33cbdeac1",
+			"bytes": 1786,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/luna-review.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "f56d0f6d6f9c2ba7e05fae77318fbe11cfe870689a1494444a4b29c49db55a49",
+			"bytes": 7296,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/planning.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+			"bytes": 776437,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/provenance.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "b1be37f7fdfeb2f2de3927de79ec9ab292fdc2982200f96692b739a7e152ff6e",
+			"bytes": 2135,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/sol-explorer.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "719cc4bd645f539187831c23e974b285023b8484eba5f299767ed1588da38f82",
+			"bytes": 2414,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v1/sol-review.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "a70f9a59894fbf28bc3c1fe96f98a98dc13de8d2db94da13775b601e3bf8ed74",
+			"bytes": 8002,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/index.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "c726d21a6793705b86047d0e6081e11ab1ccfe1b9aa29700822b79b77aff2c01",
+			"bytes": 3124,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/inspection.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "85131cba82657c5ab1309833a4fdc10c4f49d48d615dfbfc84a392718aa2d061",
+			"bytes": 2523,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/luna-explorer.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "6a47129d7e88e501d297f9c9c8d5c8c82b5cc9f6d07e4d45c0f53eb100da7644",
+			"bytes": 1786,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/luna-review.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "fab7bff505b337a8db03c5d3bc20be03cada6bbd763efdd621adc2c0c44837bd",
+			"bytes": 7296,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/planning.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+			"bytes": 776437,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/provenance.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "3ba26d4a6e9640a87d03d91808f788591cab1570c5a67878e09162ef0a69a35e",
+			"bytes": 2351,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/sol-explorer.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "8de7931a1afd410ddaf977a4f8ce22114f8547fc7765e6d38e6a1344edd53a08",
+			"bytes": 2414,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v2/sol-review.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "ec84194c4509222d6786d82d344198cc67a559e7649a9aacdd137b11a1c439c2",
+			"bytes": 8002,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/index.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "1a4992f86c4017644537bce589b953521b85bdeb2108428671f4aaab5d929456",
+			"bytes": 3124,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/inspection.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "c62f9df0ef28930ec6dc3ae8d056eda1bb614a655cd3a80ea752e965c935b84d",
+			"bytes": 2523,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/luna-explorer.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "26cf8a7e0d5ac8c24b90fe134ce250100223a05f69a2499846f044a01e8d9112",
+			"bytes": 1786,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/luna-review.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "81de77b9297d2adbf08aea829e67811020f559267cfb83a5849d7a9e2ddd14eb",
+			"bytes": 7296,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/planning.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+			"bytes": 776437,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/provenance.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "7b76b5f5f7e8465a90fd2f1976b78e1019ba29821c339fe6d5be689dde7d2e9d",
+			"bytes": 469,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/sol-explorer.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "55996d81dd6382b8de8f89d8fc0a6333b26fc632b015535b5761f3fa88b399bd",
+			"bytes": 2414,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "examples/2026-10-16-sol-luna-v3/sol-review.html",
+			"status": 200,
+			"matches": true,
+			"sha256": "1bfef1cdba9596762b9f206867d7f9105f9e59c9ffbd24955f696f0376e40233",
+			"bytes": 8002,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/html"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/Phosphor.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "1f509eee7fec3a29f85c8f4b629e8d31f8ccb077f038ae690b16dd25f52b06ff",
+			"bytes": 6592,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/custom-elements.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "8068835aeb336c5592c5f41e55c7bdf5b002cf3b47a42fda936a82734d39f085",
+			"bytes": 19788,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/diagram-worker.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "1196c756bd1295e2be95924b6730b6bd0a28367aa04b9f13848878939c70d2ac",
+			"bytes": 722,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/html-custom-data.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "b8f34fd5be9206296c02f002359adeb3756241815cd7229e14bd4bf5fd7c1910",
+			"bytes": 19270,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/runtime.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "6e36b18d54607981f69d0221522c1578f6f7b597d0ab516fe9cddee0b316c168",
+			"bytes": 84294,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/theme.css",
+			"status": 200,
+			"matches": true,
+			"sha256": "7e258a3ed33044377ec3b66bdf289df36c2772b94ea485c5f2b639cb5c3af8af",
+			"bytes": 61699,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/css"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/Phosphor.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "1f509eee7fec3a29f85c8f4b629e8d31f8ccb077f038ae690b16dd25f52b06ff",
+			"bytes": 6592,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/custom-elements.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "8068835aeb336c5592c5f41e55c7bdf5b002cf3b47a42fda936a82734d39f085",
+			"bytes": 19788,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/diagram-worker.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "1196c756bd1295e2be95924b6730b6bd0a28367aa04b9f13848878939c70d2ac",
+			"bytes": 722,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/html-custom-data.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "b8f34fd5be9206296c02f002359adeb3756241815cd7229e14bd4bf5fd7c1910",
+			"bytes": 19270,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/runtime.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "091a4e850380f08a1bee899fe8a9a55af234aaeeb1d5d05533f381373925663e",
+			"bytes": 84294,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/theme.css",
+			"status": 200,
+			"matches": true,
+			"sha256": "7e258a3ed33044377ec3b66bdf289df36c2772b94ea485c5f2b639cb5c3af8af",
+			"bytes": 61699,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/css"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/Phosphor.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "1f509eee7fec3a29f85c8f4b629e8d31f8ccb077f038ae690b16dd25f52b06ff",
+			"bytes": 6592,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/custom-elements.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "8068835aeb336c5592c5f41e55c7bdf5b002cf3b47a42fda936a82734d39f085",
+			"bytes": 19788,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/diagram-worker.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "1196c756bd1295e2be95924b6730b6bd0a28367aa04b9f13848878939c70d2ac",
+			"bytes": 722,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/html-custom-data.json",
+			"status": 200,
+			"matches": true,
+			"sha256": "b8f34fd5be9206296c02f002359adeb3756241815cd7229e14bd4bf5fd7c1910",
+			"bytes": 19270,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "application/json"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/runtime.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "a12ba39a9410baa861c39a667eab4195d9e805acdb4283c38f1f06162f349f7c",
+			"bytes": 83071,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/theme.css",
+			"status": 200,
+			"matches": true,
+			"sha256": "491e29058bb4e0938c532fc932e10336ee2f50a93309feac8b05a3bc0e7e6019",
+			"bytes": 61464,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/css"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/authoring/SKILL.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "a9e5a4b9bb4bfddb764395141fb4bd92d41d6ba7ccc8c74657d13e6ab8f6c822",
+			"bytes": 4833,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/chunks/diagram-Bf7Lsqv1.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "0f46c1b1dfcd6e0fc0f6e840dc043eb79fab32004773131677ef4e90dd080560",
+			"bytes": 2412,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/chunks/dist-DcDoeHXN.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f",
+			"bytes": 2195817,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/chunks/explorer-controller-CyhfqsYZ.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "8d6498e4b93c57fe9c6c75c37e6dd6426c7029b4ad6e02da0bbe0ad0e76fa14b",
+			"bytes": 26152,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/chunks/html-text-DKjmYQsC.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "6093bb06b48c19d0e15ed13b49ac43aa7a988d52a7aad76ca3cd291121a886ad",
+			"bytes": 218,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/chunks/inspection-copy-CbiTBQ-L.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "3bd3488ce513422dc927d6a8c8ea19aa7a1918a2d47e5ba228b8f108dd9b09f4",
+			"bytes": 3685,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/chunks/markdown-content-DJ4Rn4TJ.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "1cc6afd22c81df8ab75b7b256e906df67d96d0dfb7664d039bfd939e11a18d4e",
+			"bytes": 56572,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/chunks/source-text-LCI4h-OT.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "6bf5ff9098ca6444a0012a17abf65fcd270051c290a7e3ed473347dcbd94124f",
+			"bytes": 611,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/fonts/ibm-plex-mono-400.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+			"bytes": 14708,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/fonts/ibm-plex-sans-condensed-500.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "e3b4fd97fd20bc70fda66d8d5f0745d8d6958068a024cb4724bbc1ffb6cbc183",
+			"bytes": 19952,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/fonts/ibm-plex-sans-condensed-600.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "3d72a0923c5830358b0a8e25b258aecadbecbf542b6ee9a25f387803e37d56b9",
+			"bytes": 19816,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/fonts/ibm-plex-sans-condensed-700.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "4768878c107d92c528a65bba206a87cdcf2c694514e75907fb91772cf8a388a5",
+			"bytes": 19352,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/fonts/literata-400.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "a60c193b55766b68b922e2327e15c2d8c145532f283a27c3411b9c47a8583d18",
+			"bytes": 20420,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/fonts/literata-600.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "99284fd89c86b8c58e921f42e05a42dae1add53e797b80d82165778b932bf924",
+			"bytes": 21860,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/authoring/SKILL.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "a9e5a4b9bb4bfddb764395141fb4bd92d41d6ba7ccc8c74657d13e6ab8f6c822",
+			"bytes": 4833,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/chunks/diagram-Bf7Lsqv1.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "0f46c1b1dfcd6e0fc0f6e840dc043eb79fab32004773131677ef4e90dd080560",
+			"bytes": 2412,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/chunks/dist-DcDoeHXN.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f",
+			"bytes": 2195817,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/chunks/explorer-controller-By8Deyxe.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "575b9072244b51878d1423d9a6014138478abbf0254c3f46adc03d966da3cd90",
+			"bytes": 26465,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/chunks/html-text-DKjmYQsC.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "6093bb06b48c19d0e15ed13b49ac43aa7a988d52a7aad76ca3cd291121a886ad",
+			"bytes": 218,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/chunks/inspection-copy-CbiTBQ-L.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "3bd3488ce513422dc927d6a8c8ea19aa7a1918a2d47e5ba228b8f108dd9b09f4",
+			"bytes": 3685,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/chunks/markdown-content-DJ4Rn4TJ.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "1cc6afd22c81df8ab75b7b256e906df67d96d0dfb7664d039bfd939e11a18d4e",
+			"bytes": 56572,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/chunks/source-text-LCI4h-OT.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "6bf5ff9098ca6444a0012a17abf65fcd270051c290a7e3ed473347dcbd94124f",
+			"bytes": 611,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/fonts/ibm-plex-mono-400.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+			"bytes": 14708,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/fonts/ibm-plex-sans-condensed-500.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "e3b4fd97fd20bc70fda66d8d5f0745d8d6958068a024cb4724bbc1ffb6cbc183",
+			"bytes": 19952,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/fonts/ibm-plex-sans-condensed-600.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "3d72a0923c5830358b0a8e25b258aecadbecbf542b6ee9a25f387803e37d56b9",
+			"bytes": 19816,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/fonts/ibm-plex-sans-condensed-700.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "4768878c107d92c528a65bba206a87cdcf2c694514e75907fb91772cf8a388a5",
+			"bytes": 19352,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/fonts/literata-400.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "a60c193b55766b68b922e2327e15c2d8c145532f283a27c3411b9c47a8583d18",
+			"bytes": 20420,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/fonts/literata-600.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "99284fd89c86b8c58e921f42e05a42dae1add53e797b80d82165778b932bf924",
+			"bytes": 21860,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/diagram-Bf7Lsqv1.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "0f46c1b1dfcd6e0fc0f6e840dc043eb79fab32004773131677ef4e90dd080560",
+			"bytes": 2412,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/dist-DcDoeHXN.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f",
+			"bytes": 2195817,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/explorer-controller-cRuW89TU.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "ce622f2a4c00154ef144d80019c8536c1f58bdbb8861375a9c21ac9aa8ff541b",
+			"bytes": 25813,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/html-text-DKjmYQsC.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "6093bb06b48c19d0e15ed13b49ac43aa7a988d52a7aad76ca3cd291121a886ad",
+			"bytes": 218,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/icons-BTtd1_Fe.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "b1950a97a6c65a3b6a9fd290ee9be1753d65ca73f0a0e87bbc39c0b8efbea2bb",
+			"bytes": 1925,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/markdown-content-DJ4Rn4TJ.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "1cc6afd22c81df8ab75b7b256e906df67d96d0dfb7664d039bfd939e11a18d4e",
+			"bytes": 56572,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/chunks/source-text-LCI4h-OT.js",
+			"status": 200,
+			"matches": true,
+			"sha256": "6bf5ff9098ca6444a0012a17abf65fcd270051c290a7e3ed473347dcbd94124f",
+			"bytes": 611,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/javascript"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-mono-400.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+			"bytes": 14708,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-500.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "e3b4fd97fd20bc70fda66d8d5f0745d8d6958068a024cb4724bbc1ffb6cbc183",
+			"bytes": 19952,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-600.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "3d72a0923c5830358b0a8e25b258aecadbecbf542b6ee9a25f387803e37d56b9",
+			"bytes": 19816,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-700.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "4768878c107d92c528a65bba206a87cdcf2c694514e75907fb91772cf8a388a5",
+			"bytes": 19352,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/literata-400.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "a60c193b55766b68b922e2327e15c2d8c145532f283a27c3411b9c47a8583d18",
+			"bytes": 20420,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/e3a92d2/fonts/literata-600.woff2",
+			"status": 200,
+			"matches": true,
+			"sha256": "99284fd89c86b8c58e921f42e05a42dae1add53e797b80d82165778b932bf924",
+			"bytes": 21860,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "font/woff2"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/authoring/references/code.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "608fa82d1be524c4c8cc059780b2c2980eece1ac223a88ac1a2e619a5abf0781",
+			"bytes": 563,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/authoring/references/explorers.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "9c6b9ea8f5bff3cf458ceeb689f12ac8aefcb0b3e2f99fd2192cbc342f4f9f97",
+			"bytes": 2170,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/authoring/references/maps.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "19fbc1d8260639a3cefb780126b757e26b414a8bf95cea8f0a8987179be9e519",
+			"bytes": 1370,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/authoring/references/pictures.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "24e6c0f685506748068fe6a8ac02e914e3bc83aede16bf6cefbb42b6c4497c17",
+			"bytes": 498,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/authoring/references/tours.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "0100de754652266701fdee45362de880dad755f5f5c826ccebc99b4610824ef6",
+			"bytes": 441,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/16ac23d/authoring/references/trees.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "acf755065f4e2648ef9b64402ebb86416b4f1cfd95ac6f248ad7022ce225a4a1",
+			"bytes": 547,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/authoring/references/code.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "608fa82d1be524c4c8cc059780b2c2980eece1ac223a88ac1a2e619a5abf0781",
+			"bytes": 563,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/authoring/references/explorers.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "9c6b9ea8f5bff3cf458ceeb689f12ac8aefcb0b3e2f99fd2192cbc342f4f9f97",
+			"bytes": 2170,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/authoring/references/maps.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "19fbc1d8260639a3cefb780126b757e26b414a8bf95cea8f0a8987179be9e519",
+			"bytes": 1370,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/authoring/references/pictures.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "24e6c0f685506748068fe6a8ac02e914e3bc83aede16bf6cefbb42b6c4497c17",
+			"bytes": 498,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/authoring/references/tours.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "0100de754652266701fdee45362de880dad755f5f5c826ccebc99b4610824ef6",
+			"bytes": 441,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		},
+		{
+			"path": "demistify/experimental/c96a72e/authoring/references/trees.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "acf755065f4e2648ef9b64402ebb86416b4f1cfd95ac6f248ad7022ce225a4a1",
+			"bytes": 547,
+			"cors": "*",
+			"cache": "public, max-age=31536000, immutable",
+			"mime": "text/markdown"
+		}
+	]
+}

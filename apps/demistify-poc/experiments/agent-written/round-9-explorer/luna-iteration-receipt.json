@@ -1,0 +1,31 @@
+{
+  "normalization": "Machine paths replaced with placeholders; private original receipt retained. Model claims require Lead verification.",
+  "receipt": {
+    "files_read": [
+      "$EXPERIMENT/luna-explorer/final.html",
+      "$WORKTREE/packages/demistify/skill/references/explorers.md",
+      "$EXPERIMENT/luna-explorer/iterated.html (read by checker)",
+      "$EXPERIMENT/luna-explorer/planning.json (read by checker as the referenced explorer validation input)",
+      "$EXPERIMENT/luna-explorer/iteration-check-1.txt"
+    ],
+    "commands": [
+      {
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/luna-explorer/iterated.html",
+        "working_directory": "$WORKTREE",
+        "exit_code": 0,
+        "output_file": "$EXPERIMENT/luna-explorer/iteration-check-1.txt",
+        "result": "1 file: 0 errors, 0 warnings"
+      }
+    ],
+    "changes": [
+      "Changed the document body to contain one ex-explorer directly.",
+      "Moved the existing ex-markdown reading guide inside ex-explorer so it follows the explorer title.",
+      "Preserved the guide text and the explorer id, src, selected node, and view attributes."
+    ],
+    "repairs": [],
+    "unverified_claims": [
+      "No browser or visual acceptance check was performed.",
+      "The static checker pass does not establish runtime rendering or visual usability."
+    ]
+  }
+}

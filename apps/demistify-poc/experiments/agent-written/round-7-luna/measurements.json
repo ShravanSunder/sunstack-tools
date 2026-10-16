@@ -1,0 +1,60 @@
+{
+  "encoding": "o200k_base",
+  "arms": [
+    {
+      "arm": "baseline",
+      "inputFiles": [
+        {
+          "file": "guide/SKILL.md",
+          "tokens": 1178
+        },
+        {
+          "file": "brief.md",
+          "tokens": 802
+        },
+        {
+          "file": "guide/references/code.md",
+          "tokens": 160
+        },
+        {
+          "file": "guide/references/tours.md",
+          "tokens": 108
+        }
+      ],
+      "inputFileTokens": 2248,
+      "initialHtmlTokens": 1571,
+      "finalHtmlTokens": 1558,
+      "checkerCalls": 2
+    },
+    {
+      "arm": "starter",
+      "inputFiles": [
+        {
+          "file": "guide/SKILL.md",
+          "tokens": 1178
+        },
+        {
+          "file": "guide/references/code.md",
+          "tokens": 160
+        },
+        {
+          "file": "brief.md",
+          "tokens": 802
+        },
+        {
+          "file": "starter/starter.html",
+          "tokens": 111
+        }
+      ],
+      "inputFileTokens": 2251,
+      "initialHtmlTokens": 1590,
+      "finalHtmlTokens": 1556,
+      "checkerCalls": 3
+    }
+  ],
+  "planningSource": {
+    "wholeFileTokens": 174303,
+    "embeddedDataTokens": 151645
+  },
+  "limits": "Input-file and authored-file source counts only. Excludes prompts, tool framing and feedback; not billed or total model context tokens."
+}

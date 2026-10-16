@@ -1,0 +1,27 @@
+{
+  "normalization": "Machine paths replaced with placeholders; private original receipt retained. Model claims require Lead verification.",
+  "receipt": {
+    "filesRead": [
+      "$EXPERIMENT/inputs/guide.md",
+      "$EXPERIMENT/inputs/brief.md",
+      "$EXPERIMENT/inputs/starter.html",
+      "$EXPERIMENT/inputs/references/code.md",
+      "$EXPERIMENT/inputs/references/trees.md",
+      "$EXPERIMENT/inputs/completion.md"
+    ],
+    "commands": [
+      {
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/luna/final.html",
+        "exitCode": 0,
+        "outputFile": "$EXPERIMENT/luna/check-1.txt",
+        "result": "1 file: 0 errors, 0 warnings"
+      }
+    ],
+    "repairs": [],
+    "unverifiedClaims": [
+      "Browser rendering and interaction were not inspected; the Lead owns the browser check.",
+      "Review findings and staging soak percentages are reproduced from the assigned brief and were not independently verified against source code or test artifacts.",
+      "The Redis prototype measurements and its stated approximately 2 ms per-resume cost are supplied by the brief and were not independently measured."
+    ]
+  }
+}

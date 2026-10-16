@@ -1,0 +1,218 @@
+{
+  "workerEvents": [
+    {
+      "kind": "created",
+      "protocol": "blob:"
+    },
+    {
+      "kind": "message",
+      "replyKind": "ready",
+      "svgCharacters": 0
+    },
+    {
+      "kind": "message",
+      "replyKind": "rendered",
+      "svgCharacters": 8570
+    }
+  ],
+  "pageReady": 339.7000000476837,
+  "fontsReady": 343.2000000476837,
+  "firstContentfulPaint": 92,
+  "largestContentfulPaint": 92,
+  "layoutShift": 0.6762257926769615,
+  "longTasks": [],
+  "unsupported": [],
+  "islandReady": [
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 106.39999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 110.10000002384186
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 110.20000004768372
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 110.39999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 111.60000002384186
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 111.89999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 112
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 112.20000004768372
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 112.39999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 112.5
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 112.60000002384186
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 117.60000002384186
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 117.89999997615814
+    },
+    {
+      "tag": "ex-mermaid",
+      "id": "sequence",
+      "at": 339.7000000476837
+    }
+  ],
+  "errors": [],
+  "marks": [],
+  "measures": [],
+  "resources": [
+    {
+      "path": "/worker-diagnostic-review/lib/theme.css",
+      "transfer": 61999,
+      "encoded": 61699,
+      "duration": 15.200000047683716
+    },
+    {
+      "path": "/worker-diagnostic-review/observer.js",
+      "transfer": 3773,
+      "encoded": 3473,
+      "duration": 14.5
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/runtime.js",
+      "transfer": 84594,
+      "encoded": 84294,
+      "duration": 15.899999976158142
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/fonts/literata-400.woff2",
+      "transfer": 20720,
+      "encoded": 20420,
+      "duration": 6.700000047683716
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+      "transfer": 20252,
+      "encoded": 19952,
+      "duration": 5.199999928474426
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/chunks/inspection-copy-CbiTBQ-L.js",
+      "transfer": 3985,
+      "encoded": 3685,
+      "duration": 4.199999928474426
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/chunks/source-text-LCI4h-OT.js",
+      "transfer": 911,
+      "encoded": 611,
+      "duration": 5
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/chunks/diagram-Bf7Lsqv1.js",
+      "transfer": 2712,
+      "encoded": 2412,
+      "duration": 5.299999952316284
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+      "transfer": 56872,
+      "encoded": 56572,
+      "duration": 2.0999999046325684
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/Phosphor.woff2",
+      "transfer": 6892,
+      "encoded": 6592,
+      "duration": 6.300000071525574
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+      "transfer": 20116,
+      "encoded": 19816,
+      "duration": 6.600000023841858
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/fonts/ibm-plex-mono-400.woff2",
+      "transfer": 15008,
+      "encoded": 14708,
+      "duration": 5.599999904632568
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/chunks/html-text-DKjmYQsC.js",
+      "transfer": 518,
+      "encoded": 218,
+      "duration": 2.4000000953674316
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/diagram-worker.js",
+      "transfer": 1022,
+      "encoded": 722,
+      "duration": 2.1999999284744263
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/chunks/diagram-Bf7Lsqv1.js",
+      "transfer": 0,
+      "encoded": 2412,
+      "duration": 1.2000000476837158
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/chunks/dist-DcDoeHXN.js",
+      "transfer": 2196117,
+      "encoded": 2195817,
+      "duration": 10.900000095367432
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/fonts/literata-600.woff2",
+      "transfer": 22160,
+      "encoded": 21860,
+      "duration": 5.700000047683716
+    },
+    {
+      "path": "/worker-diagnostic-review/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+      "transfer": 19652,
+      "encoded": 19352,
+      "duration": 6
+    }
+  ],
+  "viewport": {
+    "width": 1398,
+    "height": 747
+  },
+  "outerOverflow": false,
+  "graphNodes": 0,
+  "diagramSvg": 1,
+  "issues": []
+}

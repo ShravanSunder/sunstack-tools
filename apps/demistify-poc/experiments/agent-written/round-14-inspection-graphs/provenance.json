@@ -1,0 +1,7 @@
+{
+  "sourceCommit": "c96a72e5835f588d0af738bfd287533f94993ece",
+  "description": "Lead derivatives of existing Sol/Luna samples; corrected shared inspector and explorer-copy interactions, no fresh model run.",
+  "priorSamples": "examples/2026-10-16-sol-luna-v2",
+  "graph": "https://demistify-assets-cli-experiment.askluna.workers.dev/examples/2026-10-16-sol-luna-v2/planning.json",
+  "graphSha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0"
+}

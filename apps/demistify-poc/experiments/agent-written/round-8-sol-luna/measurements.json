@@ -1,0 +1,98 @@
+{
+  "encoding": "o200k_base",
+  "inputFiles": [
+    {
+      "file": "guide.md",
+      "tokens": 1178
+    },
+    {
+      "file": "brief.md",
+      "tokens": 802
+    },
+    {
+      "file": "starter.html",
+      "tokens": 111
+    },
+    {
+      "file": "references/code.md",
+      "tokens": 160
+    },
+    {
+      "file": "references/trees.md",
+      "tokens": 165
+    },
+    {
+      "file": "completion.md",
+      "tokens": 312
+    }
+  ],
+  "inputFileTokens": 2728,
+  "arms": [
+    {
+      "arm": "sol",
+      "initial": 2109,
+      "final": 2109,
+      "feedback": 11,
+      "checkerCalls": 1
+    },
+    {
+      "arm": "luna",
+      "initial": 1706,
+      "final": 1706,
+      "feedback": 11,
+      "checkerCalls": 1
+    }
+  ],
+  "limits": "File payload counts only. Prompt/tool framing, hidden context, provider billing and human comprehension not measured.",
+  "modelConfiguration": {
+    "sol": {
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "luna": {
+      "model": "gpt-6-luna",
+      "effort": "high"
+    },
+    "freshFirstRun": true,
+    "iterationReusedAuthorSession": true
+  },
+  "outputFileLedger": [
+    {
+      "file": "sol-initial.html",
+      "bytes": 8589,
+      "tokens": 2109,
+      "sha256": "d539eb88b380d26df439c498d37e1894dd39a53027904fb5a1f48f7d468b049a"
+    },
+    {
+      "file": "sol.html",
+      "bytes": 8589,
+      "tokens": 2109,
+      "sha256": "d539eb88b380d26df439c498d37e1894dd39a53027904fb5a1f48f7d468b049a"
+    },
+    {
+      "file": "sol-iterated.html",
+      "bytes": 8625,
+      "tokens": 2138,
+      "sha256": "8da21cb466925606e5fcc5f871c6fc63703768ab31cdbaf77ea0ff60f1a7eaf2"
+    },
+    {
+      "file": "luna-initial.html",
+      "bytes": 6512,
+      "tokens": 1706,
+      "sha256": "114d0daeb822abf31077d20c27ffe7956aebb9ffc78989196163dedb4c5d03d6"
+    },
+    {
+      "file": "luna.html",
+      "bytes": 6512,
+      "tokens": 1706,
+      "sha256": "114d0daeb822abf31077d20c27ffe7956aebb9ffc78989196163dedb4c5d03d6"
+    },
+    {
+      "file": "luna-iterated.html",
+      "bytes": 7066,
+      "tokens": 1849,
+      "sha256": "33dcf380211572339eee0fb49be2b499609c56f780ee7abba9af1cc3057ed509"
+    }
+  ],
+  "promptLedger": "Visible assignment prompts and tool framing were not captured as complete exact input ledgers in these rounds. File counts are lower bounds; no total-context or billed-token claim."
+}
