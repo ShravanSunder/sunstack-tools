@@ -54,7 +54,7 @@ No backend and no credentials.
 - `select(declaration)` acquires lazily and returns a `SelectionResult`. A first acquisition, including every file a change-set selection reads, finishes its verification pass before `select` returns. A source that changed during that capture is refused with `source_changed`.
 - A selection finds an existing capture by source identity alone, before touching the filesystem. Identity is the repository binding plus the lexically normalized path inside it, the transcript path and format, or the payload value. Root and symlink checks run only when a source is first captured. So deleting or replacing a file after its capture never affects a later selection or alias of it.
 - A returned capture is final. Later selections reuse its frozen bytes, and a change to the file after its capture interval is neither reread nor reported, as Specification E11 says: locations refer to the captured bytes, never to later reads. A `ready` result is never made tentative or invalidated afterwards.
-- Closing it yields captures, returned cursors and measurements. It publishes what was captured and does not revisit it.
+- Closing it yields captures, resolved change selections, returned cursors and measurements. It publishes what was captured and does not revisit it.
 
 `prepare_evidence` is a thin wrapper that opens a session, selects every declaration and closes it. Rules (S3) uses one session per invocation, so every request shares one capture and one set of limits, and no source is read twice. There is still one capture owner: rules never captures or caches sources itself.
 
@@ -70,10 +70,10 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 
 | `kind` | Fields |
 | --- | --- |
-| `prepared` | `selections: [SelectionResult]`, `captures: [CaptureCoverage]`, `cursors: [ReturnedCursor]`, `measurements` |
+| `prepared` | `selections: [SelectionResult]`, `captures: [CaptureCoverage]`, `change_selections: [ResolvedChangeSelection]` (milestone 2; empty when no binding has a change scope), `cursors: [ReturnedCursor]`, `measurements` |
 | `incomplete` | the same fields plus `diagnostics: DiagnosticList`. Used only when a `required` declaration is refused. A refused `optional` declaration leaves the plan `prepared`: its `SelectionResult` is `refused { diagnostics }`, and rules records it in request state as `Omission { reason: optional_unavailable }` |
 | `refused` | `diagnostics` |
-| `cancelled` | `progress: before_plan_admission \| plan_admitted { partial: { selections, captures, cursors } }`, `diagnostics`, `measurements` |
+| `cancelled` | `progress: before_plan_admission \| plan_admitted { partial: { selections, captures, change_selections, cursors } }`, `diagnostics`, `measurements` |
 
 **`SelectionResult`:**
 - `id`
@@ -174,6 +174,7 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 - `occurrences: [RuleOccurrenceResult]`
 - `requests: [RequestRecord]`
 - `captures: [CaptureCoverage]`
+- `change_selections: [ResolvedChangeSelection]` (milestone 2)
 - `cursors: [ReturnedCursor]`
 - `diagnostics: DiagnosticList`
 - `measurements: InvocationMeasurements`
