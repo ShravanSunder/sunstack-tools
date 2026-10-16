@@ -49,6 +49,13 @@ An unknown version or operation, malformed framing or an over-limit input is a `
 
 No backend and no credentials.
 
+**Native `EvidenceSession`** (`sunstack-evidence`, native API only, never on the wire). It holds one invocation's admitted sources, frozen `SourceSnapshot`, capture cache, cursors and cumulative limits:
+- `open(...)` admits the sources once.
+- `select(declaration)` acquires lazily and returns a `SelectionResult`.
+- Closing it yields captures, returned cursors and measurements.
+
+`prepare_evidence` is a thin wrapper that opens a session, selects every declaration and closes it. Rules (S3) uses one session per invocation, so every request shares one capture and one set of limits, and no source is read twice. There is still one capture owner: rules never captures or caches sources itself.
+
 **`SourceSpec`** (`sunstack-evidence/evidence_contracts`):
 - `document { repository, path }`
 - `conversation { transcript_path, format, final_assistant_text? }`
