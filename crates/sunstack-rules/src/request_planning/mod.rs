@@ -16,3 +16,8 @@ pub(crate) use request_scheduler::*;
 
 mod budget_splitting;
 pub(crate) use budget_splitting::*;
+
+mod entry_reporting;
+pub(crate) use entry_reporting::*;
+mod occurrence_reporting;
+pub(crate) use occurrence_reporting::*;
