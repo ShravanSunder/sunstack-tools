@@ -52,6 +52,7 @@ No backend and no credentials.
 **Native `EvidenceSession`** (`sunstack-evidence`, native API only, never on the wire). It holds one invocation's admitted sources, frozen `SourceSnapshot`, capture cache, cursors and cumulative limits:
 - `open(...)` admits the sources once.
 - `select(declaration)` acquires lazily and returns a `SelectionResult`. A first acquisition, including every file a change-set selection reads, finishes its verification pass before `select` returns. A source that changed during that capture is refused with `source_changed`.
+- A selection finds an existing capture by source identity alone, before touching the filesystem. Identity is the repository binding plus the lexically normalized path inside it, the transcript path and format, or the payload value. Root and symlink checks run only when a source is first captured. So deleting or replacing a file after its capture never affects a later selection or alias of it.
 - A returned capture is final. Later selections reuse its frozen bytes, and a change to the file after its capture interval is neither reread nor reported, as Specification E11 says: locations refer to the captured bytes, never to later reads. A `ready` result is never made tentative or invalidated afterwards.
 - Closing it yields captures, returned cursors and measurements. It publishes what was captured and does not revisit it.
 
