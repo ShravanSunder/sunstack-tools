@@ -6,7 +6,13 @@ Run the existing native and process harness at SKILL.md's pinned product target.
 
 Use `library-gates.md`'s workspace command with the main SDK prefix and that route's same-run reuse rule. That reference owns gate setup, fmt/clippy, the workspace command and LEAK interpretation; `executable-operations.md` owns the current CLI count and M2 shapes. Require the named tests below in the run's non-skipped pass list. A pass line alone is insufficient for the process readbacks.
 
-The existing harness writes each child's stdin/stdout/stderr/result and controlled HTTP observations in the locations documented by `executable-operations.md`. Reopen the artifacts from this run, joining actual binary/CWD/PID, operation, exit and source/request identity. This reference owns all M2 recipe readbacks, including cancellation. Native assertion evidence covers its named public consumer, not an unobserved process input.
+The existing harness writes each child's stdin/stdout/stderr/result and controlled HTTP observations in the locations documented by `executable-operations.md`. Reopen the artifacts from this run, joining actual binary/CWD/PID, operation, exit and source/request identity. Native assertion evidence covers its named public consumer, not an unobserved process input.
+
+For example, join `moved_process_paragraphs_are_pruned_with_outside_not_sent_and_no_http` to artifacts **before reading its deciding stdout**:
+
+1. Enumerate only this run's new `<test-pid>-<sequence>` directories. Read the named test, `support/scope_fixture.rs` and its input builder. The artifact records no test name: match `stdin.json` and `result.json`, not a favorable output.
+2. Find one same-PID/CWD/binary pair, ordered `prepare_rules` then `evaluate_rules`, both exit 0, with identical inputs: absolute definition/repository roots matching that CWD, one `set.json` RuleSet, only the `subject` document binding to `repo` / `source.md`, and one `repo` selection of `uncommitted` / `unstaged`. Distinguish the mixed-owner pair's relative `.` roots, the gate cases' extra `gate` binding, the duplicate-target pair's exits 3, and the connected cases' different repository bindings. Require a unique match; ambiguity leaves the readback unknown. The source fixture prepends `# Prefix` while retaining U001/U002 text, so movement alone must not select them.
+3. Only then read the matched stdout: exactly two preparation occurrences outside/no_declared_change, no planned requests; exactly two evaluation occurrences outside/no_declared_change, with the request not_sent/outside_change_scope. Join any HTTP observation by PID/source/request identity. This fixture emits no separate HTTP observation: zero dispatch is corroborated by its non-skipped passing test's actual `server.finish().await.0 == 0` assertion, read in source. Do not invent a zero-count artifact or select this pair by those desired output values.
 
 Each reused M1 hosted observation at this target needs its own source, dependencies, configuration and exercised-route applicability check under SKILL.md. An unchanged decisions crate can support V11 reuse only for that route, not all hosted claims.
 
@@ -39,7 +45,7 @@ Optional omission has a visible reason; required relationship/group overflow ref
 
 ## Named harness and deciding readbacks
 
-Paths below are under `crates/`. Each named test must be a non-skipped pass in the selected run; unmapped or narrower claims remain unknown/draft. Read actual source assertions and retained outputs, rather than deriving expectations from production output.
+Paths below are under `crates/`. Match the named tests to the selected run's non-skipped pass list as above; unmapped or narrower claims remain unknown/draft. Read actual source assertions and retained outputs, rather than deriving expectations from production output.
 
 | Obligation | Named permanent tests and deciding readback |
 | --- | --- |

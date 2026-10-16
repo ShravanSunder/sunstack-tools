@@ -12,7 +12,7 @@ The app is three Rust libraries (`sunstack-evidence`, `sunstack-decisions`, `sun
 ## Choose the target and journey
 
 1. From the monorepo root, record `git rev-parse --show-toplevel`, `git branch --show-current`, `git rev-parse HEAD` and `git status --short`. Record the declared product commit, build location, configuration and calling client. Confirm the driven checkout matches that product commit; the skill may be on a separate branch. Stop if the target changes during observation.
-2. The adopted oracle is design revision `f259d4b28f5131478e574e123335904c78b0d347`; every route on this branch uses product target `2adcb3a2cc13c9bc168803f7dfc2e861413ba8f8`. Read oracle files with `git show <design revision>:<repo-relative-path>`, except `docs/specs/2026-10-12-rust-rule-engine/schemas/rule-invocation.schema.json` and `docs/specs/2026-10-12-rust-rule-engine/schema-inventory.md`, which use adopted schema revision `fc754c8335963bf809dad7472109a81dc29c3c2b`. Start with `git show f259d4b28f5131478e574e123335904c78b0d347:docs/specs/2026-10-12-rust-rule-engine/specification.md`, especially the selected V rows; use the design revision for `program-design.md`, `program-design-contracts.md`, `program-design-connected-evidence.md`, referenced examples and other schemas. Product design copies may be older and a design working tree may have moved. If a pinned object is unavailable, return that source gap; resolve conflicting expectations with the commissioning Lead before driving the affected case.
+2. The adopted oracle is design revision `f259d4b28f5131478e574e123335904c78b0d347`. Product target: `2adcb3a2cc13c9bc168803f7dfc2e861413ba8f8`. Read oracle files with `git show <design revision>:<repo-relative-path>`, except `docs/specs/2026-10-12-rust-rule-engine/schemas/rule-invocation.schema.json` and `docs/specs/2026-10-12-rust-rule-engine/schema-inventory.md`, which use adopted schema revision `fc754c8335963bf809dad7472109a81dc29c3c2b`. Start with `git show f259d4b28f5131478e574e123335904c78b0d347:docs/specs/2026-10-12-rust-rule-engine/specification.md`, especially the selected V rows; use the design revision for `program-design.md`, `program-design-contracts.md`, `program-design-connected-evidence.md`, referenced examples and other schemas. Product design copies may be older and a design working tree may have moved. If a pinned object is unavailable, return that source gap; resolve conflicting expectations with the commissioning Lead before driving the affected case.
 3. Select the route below. Read it before running. A draft is a coverage obligation with an open prerequisite, never an executable recipe or a passing observation.
 
 | Surface | Route | Availability at the pinned target |
@@ -20,9 +20,10 @@ The app is three Rust libraries (`sunstack-evidence`, `sunstack-decisions`, `sun
 | Native libraries and Rust quality | `references/library-gates.md` | Evidence, decisions and rules harnesses |
 | Genuine Jev mixed primitives, V11 | `references/hosted-decisions.md` | Credential-gated real public-API test |
 | Genuine rules applicability and routing, V22/V34 | `references/hosted-decisions.md` — hosted rules section | Credential-gated native rules tests or applicable independent hosted evidence |
-| Four executable operations, V2/V13 | `references/executable-operations.md` | Real process suite; PreparationFailed runtime reachability remains unproven |
+| Four executable operations, V2/V13 | `references/executable-operations.md` | Real process suite and adopted V2 serializer/source method |
 | Skill lint and handoff monitor, V14/V29/V30 | `references/milestone-1.md` | Controlled journeys/measurement and credential-gated hosted campaign |
 | Git changes, relationships and chunks | `references/milestone-2.md` | Native Git/filesystem/AST and process recipes; remaining draft/unknown prerequisites are listed in the reference |
+| Commissioned usage scenarios | `references/usage-scenarios.md` | Whole caller journeys with owned fixtures; US02 has a separately authorized genuine slot |
 
 MUST load `references/library-gates.md` and return the scoped commands, results and remaining coverage before relying on library or build claims.
 IF hosted V11 is in scope, load `references/hosted-decisions.md` and return its run identity, validated completion and receipt, or its access/setup gap.
@@ -30,6 +31,17 @@ IF genuine V22 or V34 is in scope, load `references/hosted-decisions.md` and ret
 IF executable behavior is in scope, load `references/executable-operations.md` and return the operation coverage, process evidence and remaining proof limits.
 IF milestone 1 journeys are in scope, load `references/milestone-1.md` and return each local/hosted journey's report, measurement or named prerequisite.
 IF change scopes or connected evidence are in scope, load `references/milestone-2.md` and return each scoped V5/V7/V16–V18 claim and the V20 related-units portion as **supported**, **unsupported** or **unknown**, with observed/reused/draft coverage, target and evidence path, per the Evidence, cleanup and return rule below.
+IF usage-scenario verification is in scope, load `references/usage-scenarios.md` and return each selected US ID's supported/unsupported/unknown verdict, observed/reused coverage, relevant V rows, target, process/HTTP evidence and remaining gap, using the return rule below.
+
+For the selected usage scenario, run the selector from the monorepo root. The reference owns the inventory and prerequisites; repeat `--journey` only for requested IDs:
+
+```sh
+env -u PYTHONOPTIMIZE -u UV_INDEX -u UV_EXTRA_INDEX_URL -u UV_INDEX_URL -u UV_FIND_LINKS -u PIP_INDEX_URL -u PIP_EXTRA_INDEX_URL -u UV_DEFAULT_INDEX -u UV_CONFIG_FILE -u UV_ENV_FILE \
+  UV_CACHE_DIR=<authorized-evidence>/uv-cache PYTHONDONTWRITEBYTECODE=1 \
+  uv run --no-config --no-env-file --no-python-downloads --default-index https://pypi.org/simple --locked --script \
+  .agents/skills/verify-sunstack-rule/scripts/usage_scenarios.py \
+  --binary <declared-binary> --evidence <authorized-evidence> --journey <US-ID>
+```
 
 ## Build and readiness
 

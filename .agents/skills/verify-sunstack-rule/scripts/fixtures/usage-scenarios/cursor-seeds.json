@@ -1,0 +1,12 @@
+{
+  "basis": "Synthetic qualified compositions; conversation_capture.rs and transcript_normalization.rs at the declared product pin.",
+  "claude_code_jsonl": [
+    {"type":"user","origin":{"kind":"user"},"message":{"id":"u1","content":"Read the declared source."}},
+    {"type":"assistant","message":{"id":"a1","content":[{"type":"text","text":"FIRST_BLOCK"},{"type":"tool_use","id":"read1","name":"Read","input":{"file_path":"source.md"}}]}}
+  ],
+  "codex_rollout_jsonl": [
+    {"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Read the declared source."}]}},
+    {"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"FIRST_BLOCK"},{"type":"output_text","text":"SECOND_BLOCK"}]}},
+    {"type":"response_item","payload":{"type":"function_call","call_id":"read1","name":"exec_command","arguments":"{\"cmd\":\"cat source.md\"}"}}
+  ]
+}
