@@ -45,13 +45,28 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/demistify-setup
-      - run: pnpm check
-      - run: pnpm build
-      - run: pnpm test
-      - name: Install the pinned Chromium for browser regressions
-        run: pnpm --filter @sunstack/demistify-poc exec playwright install --with-deps chromium
+      - name: Check quality and install Chromium alongside the build
+        shell: bash
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/demistify-chromium
+        run: |
+          pnpm check &
+          quality_pid=$!
+          # Dependencies are already installed; avoid concurrent pnpm verification/install.
+          node apps/demistify-poc/node_modules/playwright/cli.js install --with-deps chromium &
+          chromium_pid=$!
+
+          # The full build generates the fixtures required by the same Node suite.
+          build_status=0
+          pnpm build && pnpm --filter @sunstack/demistify-poc exec vitest run || build_status=$?
+          quality_status=0
+          wait "$quality_pid" || quality_status=$?
+          chromium_status=0
+          wait "$chromium_pid" || chromium_status=$?
+          printf 'Build/Node: %s; quality: %s; Chromium install: %s\n' "$build_status" "$quality_status" "$chromium_status"
+          if (( build_status != 0 || quality_status != 0 || chromium_status != 0 )); then
+            exit 1
+          fi
       - run: pnpm test:browser
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/demistify-chromium
