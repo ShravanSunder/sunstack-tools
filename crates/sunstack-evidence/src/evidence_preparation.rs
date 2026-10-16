@@ -59,14 +59,13 @@ pub async fn prepare_evidence(
             break;
         }
         let result = session.select(&declaration).await;
-        if declaration.requirement == EvidenceRequirement::Required {
-            if let SelectionReadiness::Refused {
+        if declaration.requirement == EvidenceRequirement::Required
+            && let SelectionReadiness::Refused {
                 diagnostics: refused,
             } = &result.readiness
-            {
-                for diagnostic in &refused.items {
-                    diagnostics.push(diagnostic.clone());
-                }
+        {
+            for diagnostic in &refused.items {
+                diagnostics.push(diagnostic.clone());
             }
         }
         selections.push(result);
