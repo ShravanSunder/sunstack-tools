@@ -310,6 +310,12 @@ A **read set** is the set of `SourceId`s that some evidence declarations read. A
 
 Planning is pure and deterministic. It runs after admission and after the leading conditions, which are evaluated per group in authored order before any decision.
 
+**Which conditions lead, and when a condition may read.** A leading condition comes before every gate in its occurrence's order. For a routed RuleSet the router is the first gate, so none of that RuleSet's own conditions lead. A rule's conditions after a RuleSet decision don't lead either. Conditions come in two kinds:
+- **Acquisition-free** conditions (origin, payload value, source presence) read only admitted facts. They may be evaluated whenever planning needs them, and a failing one may prune its rules request before any gate, because its outcome cannot depend on a gate.
+- **Scanning** conditions (for example `pattern_present`) acquire their source. A leading one is scanned before planning. A non-leading one acquires its source only after every earlier entry, the router included, has settled and passed. The exception is a source already captured for a request that rides, whose bytes it reads when its turn comes.
+
+A condition is never a gate. It creates no request, and it does not stage the router or a decision before it: those still ride the same-input rules request. The condition is evaluated in code once the gates before it settle. If it does not pass, its occurrences are `not_applicable { entry }` and the speculative answers are discarded with their cost.
+
 1. **Request order.** Requests are ordered by:
    - RuleSet order: invocation order for `rule_sets`; for a router, label order, then route position
    - group position
