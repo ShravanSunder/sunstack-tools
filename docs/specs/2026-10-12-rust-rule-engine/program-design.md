@@ -372,6 +372,11 @@ When a request settles, the scheduler:
 
 A request that will never be sent, because its gate did not pass, failed or was cancelled, is recorded as `not_sent` with that gate as the reason. A speculative request already in flight is never aborted by a gate outcome. Its answers are discarded and its cost is kept.
 
+**Evidence refused when a request becomes ready.** Acquisition is lazy, so a required declaration can be refused after planning and before dispatch. It refuses only its own owner's evaluation:
+- **A rule's required evidence:** that rule's questions leave the request before encoding, and the rest are budgeted and sent. Its occurrence becomes `selection_failed { diagnostics }`, but only once its controlling gates have settled and passed; if a gate does not pass, the occurrence is `not_applicable` as usual. `RequestRecord.questions` lists only the questions actually encoded.
+- **A gate's own required evidence (decision or router):** its question leaves any request it rides in, its own staged request is not sent, and the gate's slot is `failed { cause: evidence { diagnostics } }`. Dependents then reduce exactly as they do for any failed gate.
+- **No questions left:** when every question in a request has lost its owner this way, the request is recorded as `not_sent { reason: evidence_refused { diagnostics } }`, with the owners' evidence diagnostics wrapped. It is never recorded as a `sent` decision run or as a budget refusal.
+
 ### Reduction in authored order
 
 `applicability_evaluation` and `verdict_evaluation` compute every result from settled outcomes, never from completion events. For each rule occurrence, in order:
