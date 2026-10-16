@@ -104,7 +104,7 @@ Shared excerpts are deduplicated. A giant unit can become an explicitly partial 
 | `ChunkSettings` | `grouping: single_group \| per_seed` (rules allow `single_group` only; native callers may use `per_seed`), `seed_content`, `related_content`, `max_chunk_bytes` |
 | `UnitContent` | `whole_unit` or `bounded_excerpt { max_bytes }` |
 | `ContextGroupOutcome` | `complete { group, coverage }`, `partial { group, coverage, omissions, diagnostics }`, `unavailable { diagnostics }` |
-| `Excerpt` | `unit: SourceUnitKey`, `span: SourceSpan`, `membership: whole_unit \| bounded_excerpt { max_bytes }`, `context: code { enclosing_signature, import_context: [SourceSpan] } \| markdown`, `content_identity` |
+| `Excerpt` | `unit: SourceUnitKey`, `span: SourceSpan`, `text` (the captured bytes of `span`), `membership: whole_unit \| bounded_excerpt { max_bytes }`, `context: code { enclosing_signature, import_context: [SourceSpan] } \| markdown`, `content_identity` |
 | `DiscoveryCoverage` | `complete_within_declared_scope { query_bounds }`, `limited { query_bounds, cutoffs: [{ limit, frontier: [SourceUnitKey] }] }`, `unavailable { diagnostics }` |
 | `PackageSourceBinding` | `importing_repository_id`, `module_prefix`, `target_repository_id`, `target_path_prefix`, `language` |
 

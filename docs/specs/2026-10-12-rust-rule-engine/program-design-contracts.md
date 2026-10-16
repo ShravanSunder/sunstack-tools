@@ -68,7 +68,11 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 
 **`SelectionResult`:**
 - `id`
-- `readiness`: either `ready { content: SelectionContent, omissions: [Omission], coverage }` or `refused { diagnostics }`
+- `readiness`: either `ready { content: SelectionContent, omissions: [Omission], coverage: SelectionCoverage }` or `refused { diagnostics }`
+
+**`SelectionCoverage`:**
+- `single_source { capture: CaptureCoverage }`: document, conversation and payload selections, which read one captured source
+- `change_set { repository, sources: [SourceRef], discovery: DiscoveryCoverage }`: change-set selections, which read many repository files. `sources` lists every file the selection read, and `discovery` states the scanned scope and any cutoffs (a plain text match over paths reports `complete_within_declared_scope` or `limited`)
 
 **`SelectionContent` variants:**
 - `paragraph { span, text }`
@@ -76,7 +80,7 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 - `matches { matches: [{ span, text, captures: map<String, SourceSpan> }] }`
 - `conversation_records { source, records: [ConversationRecord] }`
 - `payload_value { input, pointer, value }`
-- `changed_units { units: [SourceUnit] }`
+- `changed_units { units: [{ unit: SourceUnit, text }] }`: `text` is the unit's captured bytes, so no consumer rereads a source that may have changed
 - `related_group { group: ContextGroupOutcome }`
 
 **`Omission`:** `{ reason: window | projection | limit | optional_unavailable, count }`.
