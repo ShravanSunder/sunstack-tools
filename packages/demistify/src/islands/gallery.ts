@@ -269,7 +269,10 @@ export class GalleryIsland extends HTMLElement {
 			if (capture.metadata['viewport'])
 				label.append(galleryElement('small', '', capture.metadata['viewport']));
 			button.append(label);
-			button.addEventListener('click', (): void => this.selectCapture(capture.id));
+			button.addEventListener('click', (event: MouseEvent): void => {
+				event.stopPropagation();
+				this.selectCapture(capture.id);
+			});
 			controls.strip.append(button);
 			if (this.view === 'grid') {
 				const figure = this.captureFigure(capture);
@@ -396,7 +399,6 @@ export class GalleryIsland extends HTMLElement {
 	}
 
 	private selectCapture(id: string): void {
-		this.pendingFilter.cancel();
 		this.selected = id;
 		this.renderPreview();
 		this.updateNavigation();

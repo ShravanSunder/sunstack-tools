@@ -25,6 +25,15 @@ Inspect every authored link's real destination. Use a stable island ID, scoped M
 </script></ex-pre>
 ```
 
-The plain-text script preserves whitespace and literal characters. Use the shared zoom/sidebar/fullscreen inspection rather than custom fonts, borders or controls. The author may put any literal text drawing here; HTML inside it stays text.
+The plain-text script preserves whitespace and literal characters except an HTML closing-script delimiter, which terminates the carrier before Demistify reads it. For that input, use the existing template carrier and HTML-escape its text:
+
+```html
+<ex-pre label="Literal markup"><template>first line
+&lt;/script&gt;
+&lt;widget&gt;&amp; value
+last line</template></ex-pre>
+```
+
+Escape `&` as `&amp;` and `<` as `&lt;` inside this template; the component reads its decoded text. Use the shared zoom/sidebar/fullscreen inspection rather than custom fonts, borders or controls. Verify the literal delimiter and line breaks in the result.
 
 Complete by folding without navigation, following the trailing go-to to the intended target, and checking a long label with inline code and multiple paragraphs. For ex-pre, compare text and line breaks in main and inspector; clipping or changed characters fail the intended faithful drawing.

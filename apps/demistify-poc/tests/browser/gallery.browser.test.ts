@@ -265,7 +265,71 @@ test('cold Markdown fence node links reveal the lazy diagram before it renders',
 		.toBeGreaterThan(0);
 	const target = requiredElement(fixture, '#requirements--diagram-1--Registry');
 	expect(target.getAttribute('data-id')).toBe('Registry');
-	const bounds = target.getBoundingClientRect();
-	expect(bounds.top).toBeGreaterThanOrEqual(0);
-	expect(bounds.bottom).toBeLessThanOrEqual(fixture.defaultView?.innerHeight ?? 0);
+	await expect
+		.poll((): boolean => {
+			const bounds = target.getBoundingClientRect();
+			return bounds.top >= 0 && bounds.bottom <= (fixture.defaultView?.innerHeight ?? 0);
+		})
+		.toBe(true);
+});
+
+test('thumbnail image clicks select a capture without opening an inspection panel', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('gallery');
+	const gallery = requiredElement(fixture, '#proof-gallery');
+	const local = fixtureLocator(frame, gallery);
+	await fixtureLocator(
+		frame,
+		requiredElement(gallery, '[data-capture-id="settings-laptop"] img'),
+	).click();
+	await expect
+		.element(local.getByRole('img', { name: 'Settings Laptop', exact: true }))
+		.toBeVisible();
+	expect(fixture.querySelector('.ex-drawer')).toBeNull();
+});
+
+test('choosing a thumbnail does not discard a pending search update', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('gallery');
+	const gallery = requiredElement(fixture, '#proof-gallery');
+	const local = fixtureLocator(frame, gallery);
+	let inputAt = 0;
+	let clickAfter = Number.POSITIVE_INFINITY;
+	gallery.addEventListener('input', (): void => {
+		inputAt = fixture.defaultView?.performance.now() ?? 0;
+	});
+	gallery.addEventListener(
+		'click',
+		(): void => {
+			clickAfter = (fixture.defaultView?.performance.now() ?? 0) - inputAt;
+		},
+		{ once: true, capture: true },
+	);
+	await local.getByRole('searchbox', { name: 'Search screenshots', exact: true }).fill('Settings');
+	await local.getByRole('button', { name: 'Settings Laptop', exact: true }).click();
+	expect(clickAfter).toBeLessThan(200);
+	await expect
+		.poll((): string => requiredElement(gallery, '.ex-gallery-count').textContent ?? '')
+		.toBe('2 screenshots');
+	expect(gallery.querySelectorAll('.ex-gallery-thumbnail')).toHaveLength(2);
+	await expect
+		.element(local.getByRole('img', { name: 'Settings Laptop', exact: true }))
+		.toBeVisible();
+});
+
+test('template-backed literal text preserves closing-script content in main and sidebar', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture(
+		'gallery',
+		'#literal-markup',
+		'navigation.html',
+	);
+	const drawing = requiredElement(fixture, '#literal-markup');
+	const expected = 'first line\n</script>\n<widget>& value\nlast line';
+	await expect.poll((): string => drawing.querySelector('pre')?.textContent ?? '').toBe(expected);
+	await userEvent.hover(fixtureLocator(frame, drawing));
+	await fixtureLocator(frame, drawing)
+		.getByRole('button', { name: 'Open Literal markup in a sidebar', exact: true })
+		.click();
+	const panel = frame.getByRole('complementary', { name: 'Literal markup', exact: true });
+	await expect.element(panel).toBeVisible();
+	expect(requiredElement(fixture, '.ex-drawer pre').textContent).toBe(expected);
+	expect(drawing.querySelector('pre')?.textContent).toBe(expected);
 });
