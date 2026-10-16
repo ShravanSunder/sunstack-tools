@@ -5,16 +5,25 @@
 """Standalone helper checks and exact pinned Python quality gates."""
 
 import argparse
+import copy
 import importlib.metadata
 import json
 import os
 import subprocess
 import sys
 import threading
+import typing as t
 import urllib.request
+from functools import partial
 from pathlib import Path
 from queue import Queue
 
+from composition_scenarios import request_owner_label, request_router_group
+from handoff_scenario import (
+    check_final_record,
+    check_handoff_request,
+    expected_final_blocks,
+)
 from pydantic import ValidationError
 from scenario_runtime import (
     INDEX_VARIABLES,
@@ -22,9 +31,135 @@ from scenario_runtime import (
     SKILL_ROOT,
     JsonObject,
     OperationFrame,
+    object_at,
+    read_product_pin,
     write_object,
 )
 from scenario_transport import ControlledServer, response_body
+
+
+def assertion_rejects(operation: t.Callable[[], object]) -> bool:
+    try:
+        operation()
+    except AssertionError:
+        return True
+    return False
+
+
+def sensitivity_checks(evidence: Path) -> None:
+    outcomes: JsonObject = {}
+    for supplement in [False, True]:
+        expected = expected_final_blocks()
+        blocks = (
+            [
+                {
+                    "kind": "text",
+                    "text": "\n".join(str(item["text"]) for item in expected),
+                }
+            ]
+            if supplement
+            else expected
+        )
+        record: JsonObject = {
+            "record_id": "hook:synthetic" if supplement else "review-handback",
+            "provenance": "hook_supplement" if supplement else "transcript",
+            "injection": "not_injected",
+            "body": {"kind": "assistant_message", "blocks": blocks},
+        }
+        check_final_record(record, supplement)
+        truncated = copy.deepcopy(record)
+        object_at(truncated, "body")["blocks"] = (
+            [{"kind": "text", "text": "Finding one\nFinding two"}]
+            if supplement
+            else [
+                {"kind": "text", "text": "Finding one"},
+                {"kind": "text", "text": "Finding two"},
+            ]
+        )
+        outcomes[
+            f"us02-{'supplement' if supplement else 'transcript'}-truncated-record"
+        ] = assertion_rejects(partial(check_final_record, truncated, supplement))
+        owners = [
+            "router/recent_turns",
+            "rule:reviewer.handback-addresses-target/handback",
+            "rule:reviewer.handback-addresses-target:decision:0/final_message",
+        ]
+        request: JsonObject = {
+            "state": {
+                "contents": {"final": [record]},
+                "evidence": {owner: {"content": "final"} for owner in owners},
+            }
+        }
+        check_handoff_request(request, supplement)
+        object_at(request, "state", "contents")["final"] = [truncated]
+        outcomes[
+            f"us02-{'supplement' if supplement else 'transcript'}-truncated-http"
+        ] = assertion_rejects(partial(check_handoff_request, request, supplement))
+    owner: JsonObject = {
+        "questions": {
+            "q1": {"instructions": {"common_ruleset_instructions": "OWNER_B"}}
+        },
+        "state": {
+            "contents": {"c1": "U001: DOCUMENT_B"},
+            "evidence": {
+                "rule:shared/target": {
+                    "content": "c1",
+                    "kind": "paragraph",
+                    "input": "subject",
+                }
+            },
+        },
+    }
+    assert request_owner_label(owner) == "B"
+    object_at(owner, "questions", "q1", "instructions").pop(
+        "common_ruleset_instructions"
+    )
+    outcomes["us09-missing-owner-b-instructions"] = assertion_rejects(
+        lambda: request_owner_label(owner)
+    )
+    router: JsonObject = {
+        "questions": {
+            "q1": {"instructions": {"owner": "router", "reads": ["router/context"]}}
+        },
+        "state": {
+            "contents": {"c1": "U001: DOC_GROUP_1\n", "c2": "U001: DOC_GROUP_1"},
+            "evidence": {
+                "router/context": {
+                    "content": "c1",
+                    "kind": "document_text",
+                    "input": "document",
+                }
+            },
+        },
+    }
+    assert request_router_group(router) == 1
+    object_at(router, "state", "contents")["c1"] = ""
+    outcomes["us12-missing-router-group-1-document"] = assertion_rejects(
+        lambda: request_router_group(router)
+    )
+    write_object(evidence / "sensitivity-checks.json", outcomes)
+    assert all(value is True for value in outcomes.values()), (
+        "A malformed observation was admitted"
+    )
+
+
+def pin_reader_checks() -> None:
+    read_product_pin((SKILL_ROOT / "SKILL.md").read_text())
+    pin = "a" * 40
+    token = f"Product target: `{pin}`"
+    assert read_product_pin(f"Branch-independent sentence. {token}.") == pin
+    refused = 0
+    for invalid in [
+        "No token",
+        f"{token}\n{token}",
+        "Product target: `short`",
+        f"{token}\nProduct target: `short`",
+    ]:
+        try:
+            read_product_pin(invalid)
+        except ValueError:
+            refused += 1
+    assert refused == 4
 
 
 def helper_checks(evidence: Path) -> None:
@@ -109,8 +244,8 @@ def helper_checks(evidence: Path) -> None:
         {
             "frame_controls": 4,
             "http_requests": 1,
-            "duplicate_response_refused": True,
-            "owned_threads_joined": True,
+            "duplicate_response_refused": duplicate_refused,
+            "client_thread_alive_after_join": child.is_alive(),
         },
     )
 
@@ -124,6 +259,8 @@ def main() -> None:
     evidence.mkdir(parents=True, exist_ok=True)
     assert Path(os.environ["UV_CACHE_DIR"]).resolve().is_relative_to(evidence)
     helper_checks(evidence)
+    sensitivity_checks(evidence)
+    pin_reader_checks()
     scripts = str(SKILL_ROOT / "scripts")
     commands = [
         ["ruff", "check", scripts],

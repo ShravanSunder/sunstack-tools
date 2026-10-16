@@ -147,6 +147,10 @@ class DriverContext:
             assert object_at(request.input_value, "request_budget")["max_requests"] == 1
             assert object_at(request.input_value, "attempts")["retry_count"] == 0
             assert (
+                object_at(request.input_value, "attempts")["attempt_timeout_ms"]
+                == 60000
+            )
+            assert (
                 object_at(request.input_value, "backend")["endpoint"]
                 == "https://openrouter.ai/api/v1/systemone"
             )
@@ -270,11 +274,15 @@ def complete_report(outcome: JsonObject) -> JsonObject:
     return object_at(outcome, "report")
 
 
+def read_product_pin(text: str) -> str:
+    matches = re.findall(r"Product target: `([0-9a-f]{40})`", text)
+    if text.count("Product target:") != 1 or len(matches) != 1:
+        raise ValueError("Main skill requires exactly one full Product target token")
+    return matches[0]
+
+
 def checked_source() -> tuple[str, str]:
-    text = (SKILL_ROOT / "SKILL.md").read_text()
-    match = re.search(r"milestone 1 product target is `([0-9a-f]{40})`", text)
-    assert match, "Main skill must declare its product pin"
-    product_commit = match.group(1)
+    product_commit = read_product_pin((SKILL_ROOT / "SKILL.md").read_text())
     source_head = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=REPOSITORY_ROOT, text=True
     ).strip()

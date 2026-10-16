@@ -12,7 +12,7 @@ The app is three Rust libraries (`sunstack-evidence`, `sunstack-decisions`, `sun
 ## Choose the target and journey
 
 1. From the monorepo root, record `git rev-parse --show-toplevel`, `git branch --show-current`, `git rev-parse HEAD` and `git status --short`. Record the declared product commit, build location, configuration and calling client. Confirm the driven checkout matches that product commit; the skill may be on a separate branch. Stop if the target changes during observation.
-2. The adopted oracle is design revision `f259d4b28f5131478e574e123335904c78b0d347`; the milestone 1 product target is `594e480ee496dce0799c4532515caa438ff3de3c`. Read every oracle file with `git show <design revision>:<repo-relative-path>`, including referenced examples and schemas. Start with `git show f259d4b28f5131478e574e123335904c78b0d347:docs/specs/2026-10-12-rust-rule-engine/specification.md`, especially the selected V rows; use the same method for `program-design.md`, `program-design-contracts.md` and, for connected evidence, `program-design-connected-evidence.md` in that directory. Product design copies may be older and a design working tree may have moved. If the pinned object is unavailable, return that source gap; resolve conflicting expectations with the commissioning Lead before driving the affected case.
+2. The adopted oracle is design revision `f259d4b28f5131478e574e123335904c78b0d347`. Product target: `594e480ee496dce0799c4532515caa438ff3de3c`. Read every oracle file with `git show <design revision>:<repo-relative-path>`, including referenced examples and schemas. Start with `git show f259d4b28f5131478e574e123335904c78b0d347:docs/specs/2026-10-12-rust-rule-engine/specification.md`, especially the selected V rows; use the same method for `program-design.md`, `program-design-contracts.md` and, for connected evidence, `program-design-connected-evidence.md` in that directory. Product design copies may be older and a design working tree may have moved. If the pinned object is unavailable, return that source gap; resolve conflicting expectations with the commissioning Lead before driving the affected case.
 3. Select the route below. Read it before running. A draft is a coverage obligation with an open prerequisite, never an executable recipe or a passing observation.
 
 | Surface | Route | Availability at the milestone 1 target |
@@ -36,7 +36,7 @@ IF usage-scenario verification is in scope, load `references/usage-scenarios.md`
 For the selected usage scenario, run the selector from the monorepo root. The reference owns the inventory and prerequisites; repeat `--journey` only for requested IDs:
 
 ```sh
-env -u UV_INDEX -u UV_EXTRA_INDEX_URL -u UV_INDEX_URL -u UV_FIND_LINKS -u PIP_INDEX_URL -u PIP_EXTRA_INDEX_URL -u UV_DEFAULT_INDEX -u UV_CONFIG_FILE -u UV_ENV_FILE \
+env -u PYTHONOPTIMIZE -u UV_INDEX -u UV_EXTRA_INDEX_URL -u UV_INDEX_URL -u UV_FIND_LINKS -u PIP_INDEX_URL -u PIP_EXTRA_INDEX_URL -u UV_DEFAULT_INDEX -u UV_CONFIG_FILE -u UV_ENV_FILE \
   UV_CACHE_DIR=<authorized-evidence>/uv-cache PYTHONDONTWRITEBYTECODE=1 \
   uv run --no-config --no-env-file --no-python-downloads --default-index https://pypi.org/simple --locked --script \
   .agents/skills/verify-sunstack-rule/scripts/usage_scenarios.py \

@@ -19,6 +19,7 @@ from scenario_runtime import (
     OperationRequest,
     array_at,
     as_object,
+    as_text,
     complete_report,
     object_at,
     read_object,
@@ -44,6 +45,47 @@ def native_answer(report: JsonObject, reference: JsonObject) -> JsonObject:
     assert isinstance(index, int) and isinstance(name, str)
     request = objects(report, "requests")[index]
     return object_at(request, "status", "outcome", "answers", name)
+
+
+def request_owner_label(body: JsonObject) -> str:
+    text = json.dumps(body)
+    questions = list(object_at(body, "questions").values())
+    assert len(questions) == 1
+    common = object_at(as_object(questions[0]), "instructions").get(
+        "common_ruleset_instructions"
+    )
+    target = object_at(body, "state", "evidence", "rule:shared/target")
+    content = object_at(body, "state", "contents")[as_text(target["content"])]
+    matches = [
+        label
+        for label in ["A", "B"]
+        if common == f"OWNER_{label}" and content == f"U001: DOCUMENT_{label}"
+    ]
+    assert len(matches) == 1, "Missing or mismatched owner instructions/document"
+    label = matches[0]
+    other = "B" if label == "A" else "A"
+    assert f"DOCUMENT_{label}" in text and f"DOCUMENT_{other}" not in text
+    assert f"OWNER_{other}" not in text
+    return label
+
+
+def request_router_group(body: JsonObject) -> int:
+    text = json.dumps(body)
+    assert "CHAT_GROUP" not in text
+    instructions = [
+        object_at(as_object(question), "instructions")
+        for question in object_at(body, "questions").values()
+    ]
+    routers = [item for item in instructions if item.get("owner") == "router"]
+    assert len(routers) == 1 and "router/context" in array_at(routers[0], "reads")
+    metadata = object_at(body, "state", "evidence", "router/context")
+    assert metadata["input"] == "document" and metadata["kind"] == "document_text"
+    content = object_at(body, "state", "contents")[as_text(metadata["content"])]
+    matches = [group for group in [0, 1] if content == f"U001: DOC_GROUP_{group}\n"]
+    assert len(matches) == 1, "Missing router-owned group document"
+    group = matches[0]
+    assert f"DOC_GROUP_{1 - group}" not in text
+    return group
 
 
 def preparation_journey(context: DriverContext) -> None:
@@ -197,12 +239,11 @@ def grouping_journey(context: DriverContext) -> None:
             )
         ) as process:
             held = [server.next(), server.next()]
-            for pending in reversed(held):
-                text = pending.raw.decode()
-                label = "A" if "OWNER_A" in text else "B"
-                other = "B" if label == "A" else "A"
-                assert f"DOCUMENT_{label}" in text and f"DOCUMENT_{other}" not in text
-                assert f"OWNER_{other}" not in text
+            classified = [
+                (request_owner_label(pending.body), pending) for pending in held
+            ]
+            assert {label for label, _ in classified} == {"A", "B"}
+            for label, pending in reversed(classified):
                 pending.answer(0.2 if label == "A" else 0.9)
             report = complete_report(process.finish(0))
         occurrences = objects(report, "occurrences")
@@ -465,11 +506,11 @@ def routing_journey(context: DriverContext) -> None:
                     assert server.count == 0
                     continue
                 held = [server.next(), server.next()]
-                for pending in reversed(held):
-                    text = pending.raw.decode()
-                    assert "CHAT_GROUP" not in text
-                    group = 0 if "DOC_GROUP_0" in text else 1
-                    assert f"DOC_GROUP_{1 - group}" not in text
+                classified = [
+                    (request_router_group(pending.body), pending) for pending in held
+                ]
+                assert {group for group, _ in classified} == {0, 1}
+                for group, pending in reversed(classified):
                     pending.answer(choice="document" if group == 0 else "conversation")
                 chat = server.next()
                 assert "CHAT_GROUP_1" in chat.raw.decode()

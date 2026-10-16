@@ -16,7 +16,9 @@ from scenario_runtime import (
     JsonObject,
     OperationRequest,
     array_at,
+    as_array,
     as_object,
+    as_text,
     complete_report,
     object_at,
     read_object,
@@ -73,11 +75,15 @@ def reviewed_fixture(context: DriverContext, endpoint: str, case: str) -> JsonOb
     origin = object_at(invocation, "origin")
     origin["host"] = "claude"
     origin["event"] = "SubagentStop" if case == "subagent" else "Stop"
-    origin["agent"] = {
-        "kind": "subagent",
-        "id": "synthetic-reviewer",
-        "type": "reviewer",
-    }
+    origin["agent"] = (
+        {"kind": "main"}
+        if case == "main"
+        else {
+            "kind": "subagent",
+            "id": "synthetic-reviewer",
+            "type": "reviewer",
+        }
+    )
     invocation["payload_schemas"] = [
         {
             "name": "agent-job-packet",
@@ -114,6 +120,53 @@ def read_object_line(line: str) -> JsonObject:
     return JSON_OBJECT.validate_json(line)
 
 
+def expected_final_blocks() -> list[JsonObject]:
+    source = SKILL_ROOT / "scripts/fixtures/usage-scenarios/claude-handoff.jsonl"
+    final = read_object_line(source.read_text().splitlines()[-1])
+    return [
+        {"kind": "text", "text": as_object(block)["text"]}
+        for block in array_at(final, "message", "content")
+    ]
+
+
+def check_final_record(record: JsonObject, supplement: bool) -> None:
+    assert record["provenance"] == ("hook_supplement" if supplement else "transcript")
+    assert record["injection"] == "not_injected"
+    expected = expected_final_blocks()
+    if supplement:
+        expected = [
+            {
+                "kind": "text",
+                "text": "\n".join(as_text(block["text"]) for block in expected),
+            }
+        ]
+    assert array_at(record, "body", "blocks") == expected, (
+        "Final assistant text was truncated or changed"
+    )
+
+
+def check_handoff_request(body: JsonObject, supplement: bool) -> None:
+    for owner in [
+        "router/recent_turns",
+        "rule:reviewer.handback-addresses-target/handback",
+        "rule:reviewer.handback-addresses-target:decision:0/final_message",
+    ]:
+        attribution = object_at(body, "state", "evidence", owner)
+        content = object_at(body, "state", "contents")[as_text(attribution["content"])]
+        records = [as_object(item) for item in as_array(content)]
+        finals = [
+            record
+            for record in records
+            if (
+                record["provenance"] == "hook_supplement"
+                if supplement
+                else record["record_id"] == "review-handback"
+            )
+        ]
+        assert len(finals) == 1
+        check_final_record(finals[0], supplement)
+
+
 def check_handoff(report: JsonObject, invocation: JsonObject) -> None:
     routing = as_object(array_at(report, "routing", "groups")[0])
     assert object_at(routing, "outcome")["kind"] == "routed"
@@ -140,7 +193,15 @@ def check_handoff(report: JsonObject, invocation: JsonObject) -> None:
             "kind": "observed",
             "value": supplied[field],
         }
-    assert object_at(report, "origin", "agent", "type")["value"] == "reviewer"
+    expected_agent = object_at(supplied, "agent")
+    reported_agent = object_at(report, "origin", "agent")
+    assert reported_agent["kind"] == expected_agent["kind"]
+    if expected_agent["kind"] == "subagent":
+        assert reported_agent["id"] == expected_agent["id"]
+        assert object_at(reported_agent, "type") == {
+            "kind": "observed",
+            "value": expected_agent["type"],
+        }
     session = object_at(
         as_object(array_at(invocation, "definitions", "binding_groups")[0]),
         "bindings",
@@ -226,15 +287,7 @@ def handoff_journey(context: DriverContext) -> None:
                 for record in tools
             )
             final = records[-1]
-            assert final["provenance"] == (
-                "hook_supplement" if case == "supplement" else "transcript"
-            )
-            assert final["injection"] == "not_injected"
-            blocks = array_at(final, "body", "blocks")
-            assert "Finding one" in json.dumps(blocks) and "Finding two" in json.dumps(
-                blocks
-            )
-            assert len(blocks) == (1 if case == "supplement" else 2)
+            check_final_record(final, case == "supplement")
             with context.begin(
                 OperationRequest(
                     name=f"{case}-rules",
@@ -244,10 +297,7 @@ def handoff_journey(context: DriverContext) -> None:
                 )
             ) as process:
                 pending = server.next()
-                assert (
-                    "Finding one" in pending.raw.decode()
-                    and "Finding two" in pending.raw.decode()
-                )
+                check_handoff_request(pending.body, case == "supplement")
                 pending.answer()
                 report = complete_report(process.finish(0))
             check_handoff(report, invocation)
@@ -323,7 +373,7 @@ def hosted_handoff(context: DriverContext) -> None:
     # Exclusive durable custody precedes dispatch; any later failure consumes it.
     with slot.open("x") as stream:
         stream.write(
-            '{"journey":"US02","state":"dispatch-authorized-once","max_requests":1,"retry_count":0}\n'
+            '{"journey":"US02","state":"dispatch-authorized-once","max_requests":1,"retry_count":0,"attempt_timeout_ms":60000}\n'
         )
     with context.begin(
         OperationRequest(

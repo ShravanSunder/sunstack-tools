@@ -14,7 +14,7 @@ cargo nextest run --locked --workspace
 
 Record output and the command's own exit status, preserving it when piping to a log. The default local suite excludes ignored hosted tests. A zero-test run is not a behavioral pass. Do not add `--no-tests pass`, skip failures or weaken leak handling. Cargo Clippy checks compilation/types as well as the workspace lint rules.
 
-At the milestone 1 target the default workspace suite has seven deliberate skips: three native hosted cases, two CLI hosted journeys, the fixed measurement workload and the offline preserved-request diagnosis. A skip leaves its claim unknown unless separately observed or validly reused. A workspace run that includes all 25 CLI local cases can also confirm the executable and controlled-journey recipes; reuse that same run instead of repeating the package/subset command.
+At the pinned target the default workspace suite has seven deliberate skips: three native hosted cases, two CLI hosted journeys, the fixed measurement workload and the offline preserved-request diagnosis. A skip leaves its claim unknown unless separately observed or validly reused. `executable-operations.md` owns the current CLI case count. A same-target workspace run whose pass list contains every test the selected routes name can confirm those routes; reuse that run instead of repeating package/subset commands.
 
 ### Interpret nextest LEAK markers
 

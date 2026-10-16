@@ -13,7 +13,7 @@ cargo build -p sunstack-rule-cli
 cargo nextest run -p sunstack-rule-cli
 ```
 
-The default package run executes 25 local cases (24 process tests and one native-enum serializer seam); four CLI cases remain ignored: two hosted journeys, the measurement workload and an offline diagnosis. A current same-target workspace run containing those 25 local passes also confirms this route; do not repeat it just to obtain a package-only receipt. Require exit 0 and preserve failures/LEAK counts under the library-gates interpretation.
+The default package run executes 25 local cases (24 process tests and one native-enum serializer seam); four CLI cases remain ignored: two hosted journeys, the measurement workload and an offline diagnosis. Apply `library-gates.md`'s same-run reuse rule and LEAK interpretation; require exit 0.
 
 The harness starts `CARGO_BIN_EXE_sunstack-rule` through the repository's absolute `scripts/cargo-debug-signing-runner.sh`, with real pipes and explicit child CWD. Local helpers inject a synthetic environment credential and use real loopback HTTP fixtures. They retain the actual binary/library/filesystem/serializer boundaries and await each child/server. They do not dispatch to hosted Jev.
 
@@ -34,7 +34,7 @@ Raw stdin is bounded at **8,388,608 bytes**; the next byte refuses with `input_l
 
 Preparation of evidence has no backend. Rule preparation requires valid backend configuration/environment credential for encoding/accounting but makes zero provider calls. It leaves routers/decisions not evaluated, prepares only requests ready before their answers and records deferred requests as `waiting { on }` without acquisition. Use the synthetic local fixture credential, not the owner's key, for those local tests. Milestone 1 intentionally omits the milestone 2 change-scope shapes (`change_selections`, judged `selected_by`, occurrence/preparation `selection`, and `outside_change_scope`); the exact contracts' SelectedReason paragraph states that accepted milestone 1 shapes omit selection. Do not demand those future shapes from this full-scope target.
 
-**Adopted V2 PreparationFailed method:** prove both native `preparation_failed` variants' wire tags, diagnostics/measurements and exit 3 through the real CLI serializer/exit seam in `crates/sunstack-rule-cli/src/protocol_boundary.rs`, **plus source reading that no valid input reaches the internal invariant/worker-fault outcome**. This is the amended Specification's method, not a pending waiver. Public-stdin reachability is not claimed; do not label the seam as a process journey or add a fault flag to force it. Read `rule_preparation.rs` and `rule_execution.rs` at the product pin for the internal-fault return boundaries and their non-input-reachable worker/invariant paths.
+**Adopted V2 PreparationFailed method:** prove both native `preparation_failed` variants' wire tags, diagnostics/measurements and exit 3 through the real CLI serializer/exit seam in `crates/sunstack-rule-cli/src/protocol_boundary.rs`, **plus source reading that no valid input reaches the internal invariant/worker-fault outcome**. Public-stdin reachability is not claimed; do not label the seam as a process journey or add a fault flag to force it. Read `rule_preparation.rs` and `rule_execution.rs` at the product pin for the internal-fault return boundaries and their non-input-reachable worker/invariant paths.
 
 ## Match the observations to their harness
 

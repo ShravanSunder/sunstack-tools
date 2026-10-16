@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 from composition_scenarios import (
@@ -30,6 +31,10 @@ from scenario_runtime import (
 
 
 def main() -> None:
+    if sys.flags.optimize:
+        raise SystemExit(
+            "Verification requires assertions; unset PYTHONOPTIMIZE and omit -O/-OO"
+        )
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path)
     parser.add_argument("--evidence", type=Path, required=True)
@@ -114,7 +119,7 @@ def main() -> None:
             receipt,
             {
                 "journey": journey,
-                "coverage": "hosted" if arguments.hosted else "controlled",
+                "provider": "hosted" if arguments.hosted else "controlled-loopback",
                 "product_commit": product,
                 "source_head": head,
                 "binary": str(binary),
@@ -122,8 +127,6 @@ def main() -> None:
                 "processes": [
                     record.model_dump(mode="json") for record in context.records
                 ],
-                "owned_processes_joined": True,
-                "owned_servers_joined": True,
             },
         )
         print(
