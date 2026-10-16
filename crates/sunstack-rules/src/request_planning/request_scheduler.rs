@@ -1,6 +1,7 @@
 use super::*;
 use crate::*;
 use std::{
+    collections::{BTreeMap, BTreeSet},
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -65,6 +66,8 @@ pub(crate) async fn execute_plan(
     let semaphore = Arc::new(Semaphore::new(max_concurrent_requests));
     let mut tasks = JoinSet::new();
     let mut fatal = None;
+    let mut split_encodings = BTreeMap::<RequestId, (Vec<UnitKey>, EncodedRequest)>::new();
+    let mut omitted_optionals = BTreeSet::new();
     loop {
         let local_started = Instant::now();
         let mut changed = advance_entries(plan, state, origin, session, &cancellation).await;
@@ -117,9 +120,49 @@ pub(crate) async fn execute_plan(
                 changed = true;
                 continue;
             }
-            let mut admission = encode_units(plan, state, &units, false, backend.as_ref(), &budget);
-            if matches!(admission, RequestAdmission::Exceeded(_)) && has_optional(state, &units) {
+            let mut omit_optional = omitted_optionals.contains(&request.id);
+            let mut admission = match split_encodings.remove(&request.id) {
+                Some((prepared_units, encoded)) if prepared_units == units => {
+                    RequestAdmission::Within(encoded)
+                }
+                _ => encode_units(
+                    plan,
+                    state,
+                    &units,
+                    omit_optional,
+                    backend.as_ref(),
+                    &budget,
+                ),
+            };
+            if matches!(admission, RequestAdmission::Exceeded(_))
+                && !omit_optional
+                && has_optional(state, &units)
+            {
+                omit_optional = true;
+                omitted_optionals.insert(request.id);
                 admission = encode_units(plan, state, &units, true, backend.as_ref(), &budget);
+            }
+            if matches!(admission, RequestAdmission::Exceeded(_))
+                && matches!(request.purpose, RequestPurpose::Rules { .. })
+                && units.iter().any(|unit| matches!(unit, UnitKey::Rule(_)))
+            {
+                let parts = split_rules_request(
+                    plan,
+                    state,
+                    &units,
+                    omit_optional,
+                    backend.as_ref(),
+                    &budget,
+                );
+                for (id, units, encoded) in install_budget_parts(plan, state, &request, parts) {
+                    if omit_optional {
+                        omitted_optionals.insert(id);
+                    }
+                    split_encodings.insert(id, (units, encoded));
+                }
+                drop(permit);
+                changed = true;
+                continue;
             }
             let encoded = match admission {
                 RequestAdmission::Within(encoded) => encoded,
@@ -140,7 +183,6 @@ pub(crate) async fn execute_plan(
                     continue;
                 }
             };
-            // The budget splitter replaces this single ready node before dispatch when needed.
             let backend = backend.clone();
             let attempts = attempts.clone();
             let cancellation = cancellation.clone();
@@ -186,6 +228,9 @@ pub(crate) async fn execute_plan(
                 RuleDiagnosticCode::UnexpectedExecutionError,
             ));
             break;
+        }
+        if changed && waiting && semaphore.available_permits() > 0 {
+            continue;
         }
         let completion = if cancellation.is_cancelled() {
             tasks.join_next().await

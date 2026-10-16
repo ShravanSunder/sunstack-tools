@@ -13,3 +13,6 @@ mod request_settlement;
 pub(crate) use request_settlement::*;
 mod request_scheduler;
 pub(crate) use request_scheduler::*;
+
+mod budget_splitting;
+pub(crate) use budget_splitting::*;
