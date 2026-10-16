@@ -23,7 +23,9 @@ Staging verifies and preserves all prior major directories before deployment. In
 - [x] Check lint/types/format/build and inspect public diff.
 - [x] Push separate PR [#2](https://github.com/ShravanSunder/sunstack-tools/pull/2); source head `21f6961` passed hosted checks and Bugbot, with no comments/threads and conflict-free mergeability.
 - [x] Create `demistify-cdn` and verify its custom deployment policy permits only branch `main`. No credentials were copied.
-- [ ] Supply an approved scoped CI credential, enable bot PR permission, and select/bootstrap the first supported release separately.
+- [x] Create, verify and privately install an approved project CI credential and account secret in the main-only environment.
+- [x] Configure the owner-selected custom hostname and verify ownership/refusal cases.
+- [ ] Enable bot PR permission and select/bootstrap the first supported release separately.
 
 Unchecked rows remain unverified; source, hosted CI, deployed delivery and installed skill availability are separate claims.
 
@@ -33,11 +35,11 @@ Unchecked rows remain unverified; source, hosted CI, deployed delivery and insta
 
 Real Changesets fixture: a declared compatible feature passed parser/status; versioning consumed it and produced 0.2.0; typed version-only validation passed while pending-status exited 1. CI preserves pending-status for non-version PRs and validates the consumed version-only phase separately. This is a diagnosed false failure, not a disabled feature declaration check.
 
-GitHub readback after setup: Actions enabled; default workflow permission read; bot PR permission disabled. The new `demistify-cdn` environment exists, with exactly one allowed deployment ref: branch `main`. Repository secrets are empty; no environment credentials have been installed. No default token permission or Cloudflare resource has changed. First supported version selection remains separate.
+GitHub readback after setup: Actions enabled; default workflow permission read; bot PR permission disabled. The new `demistify-cdn` environment exists, with exactly one allowed deployment ref: branch `main`. Repository-level secrets remain empty; the two Cloudflare environment secrets are installed in `demistify-cdn`. A new project account-owned CI token was created; no Worker or DNS resource was changed. The default GitHub token permission is unchanged. First supported version selection remains separate.
 
-Final local Node suite: 37 tests in 9 files, exit 0. Quality gates and actionlint pass. The actual Changesets parser rejects a body-text fake declaration (exit 1); valid feature and consumed version-only flows pass. No browser tests were run and no Cloudflare resources were changed by this fork.
+Final local Node suite: 37 tests in 9 files, exit 0. Quality gates and actionlint pass. The actual Changesets parser rejects a body-text fake declaration (exit 1); valid feature and consumed version-only flows pass. No browser tests were run and no Worker/DNS resources were changed by this fork.
 
-History origin is derived from the protected Cloudflare account and the Worker configuration using Wrangler’s documented Workers-subdomain endpoint. It is not a separately maintained repository variable. Authentication of that CI read remains unverified until an approved credential is installed. The release protocol fixtures used no authentication. A later local `wrangler whoami --json` succeeded, and the read-only configured-Worker lookup returned provider Worker-not-found code 10007. Identity, account and credential values were suppressed; no Cloudflare resource was created or deployed.
+History origin now uses the owner-selected `demistify.getagentstudio.dev` Custom Domain from the Wrangler configuration. Cloudflare’s authenticated domain lookup must confirm the exact production Worker before any historical download. The real new CI token passed account, selected-zone and domain reads; running the actual resolver against the currently unbound hostname correctly refused release without writing an origin. The release protocol fixtures remain unauthenticated local proof. Existing local Wrangler login also works; the new Worker lookup returned provider Worker-not-found code 10007. No Worker or DNS resource was created or deployed.
 
 ## Source review and integration checkpoint
 
@@ -45,4 +47,12 @@ History origin is derived from the protected Cloudflare account and the Worker c
 
 The fixes workstream is separately pushed on `fix/demistify-mermaid-scroll`, latest handback `bda497218b23a6c46d6e9a4ad8903bb76a3b82f0`. Its new components, authoring guide and browser tests are not included in this workflow PR. Integrate and verify that product branch before choosing the first supported release; build runtime, theme, diagram worker, chunks and guide together. Never place a newer guide under the old experimental asset pin. Reported browser proof belongs to that workstream, not this deployment branch.
 
-The remaining credential-selection question is pending with the owner. Existing local CLI login does not establish a durable GitHub CI credential. Do not copy local OAuth credentials or an unidentified broad API credential into CI. The workflow can be reviewed independently; authenticated hosted deployment and release selection remain open.
+The owner authorized creating a project-specific token through the Cloudflare CLI, then approved provider consent. Installed cf0.11 lacked the new token-creation scope, so a pinned current CLI was used temporarily without replacing the global installation. Cloudflare correctly rejected delegating permissions missing from the initial bootstrap grant; the corrected grant was approved and a single project token was created. Its exact live policy and API access were verified before encrypted GitHub secret installation. No unidentified existing credential or local OAuth token was copied into CI. Hosted CI authentication, first release selection and actual deployment remain open.
+
+## Custom-domain and credential checkpoint
+
+The owner selected `demistify.getagentstudio.dev`. The zone is active in the supplied account, and the exact hostname had no DNS record or Worker binding. The Wrangler route declares it as a Custom Domain; first bootstrap will create its binding/DNS/certificate after a supported release is selected. There is no public `/v1` deployment at this hostname yet.
+
+The CI token has exactly four permissions: Workers Scripts Write and Account Settings Read for the selected account; Workers Routes Write and Zone Read for the selected zone. Actual provider token policy, active status and scoped reads passed. GitHub secret-name readback confirmed both required secrets in the protected environment. Secret values, account/zone/token identifiers, OAuth URLs and credential paths are absent from this repository.
+
+Current local checks: 43 Node tests in 10 files, lint/format/types exit 0, custom-domain Wrangler dry-run exit 0. Six focused target cases cover the valid production binding, missing/reassigned/staging/ambiguous bindings, and invalid route configuration. The initial typed test table was corrected so invalid fixture shapes cannot satisfy the ownership-rejection assertions. [Sanitized control-plane receipt](evidence/2026-10-16/cloudflare-cdn-setup.json). Normal CI correctly refuses an unbound hostname rather than treating it as bootstrap.

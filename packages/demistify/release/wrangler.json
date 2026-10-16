@@ -10,5 +10,12 @@
 		"binding": "ASSETS",
 		"run_worker_first": true,
 		"not_found_handling": "none"
-	}
+	},
+	"routes": [
+		{
+			"pattern": "demistify.getagentstudio.dev",
+			"custom_domain": true,
+			"zone_name": "getagentstudio.dev"
+		}
+	]
 }

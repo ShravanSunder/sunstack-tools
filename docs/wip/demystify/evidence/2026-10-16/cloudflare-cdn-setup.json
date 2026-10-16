@@ -1,0 +1,54 @@
+{
+	"scope": "authenticated setup and local release-target checks; no hosted deployment",
+	"publicHostname": "demistify.getagentstudio.dev",
+	"ownerZoneActiveAndAccountMatched": true,
+	"hostnameHadNoDnsOrWorkerBinding": true,
+	"projectAccountTokenCreated": true,
+	"providerTokenActiveAndExactPolicyVerified": true,
+	"permissions": [
+		"Workers Scripts Write",
+		"Account Settings Read",
+		"Workers Routes Write",
+		"Zone Read"
+	],
+	"permissionBoundaries": {
+		"workersScripts": "selected account",
+		"workersRoutes": "selected zone"
+	},
+	"environment": "demistify-cdn",
+	"environmentDeploymentRefs": [
+		{
+			"name": "main",
+			"type": "branch"
+		}
+	],
+	"environmentSecretsInstalled": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+	"realUnboundOriginGuard": {
+		"exit": 1,
+		"expectedOwnershipRefusal": true,
+		"outputWritten": false
+	},
+	"localChecks": {
+		"nodeTests": 43,
+		"nodeFiles": 10,
+		"nodeExit": 0,
+		"lintFormatTypesExit": 0,
+		"wranglerDryRunExit": 0
+	},
+	"sourceFiles": {
+		"packages/demistify/release/asset-policy.ts": "d43553af6fe17795809b8f18384f1aaba18bc102419a92ee37eb74dcdad1a531",
+		"packages/demistify/release/check-release-intent.ts": "2c2f0f81a8a9803468cb46743bd7193c53371e7fbd70435351f80e1bef1aba72",
+		"packages/demistify/release/prepare-release.ts": "5bae3ed2e0a4d5d67e93eda85ca20cf932281e463916b1e44fc25ff57b867297",
+		"packages/demistify/release/release-schema.ts": "d69bd925e7d1a57039dbe6dc12a5d4e5dea11bd11a08f5c0ca53fb979a1b4ddb",
+		"packages/demistify/release/release-target.ts": "9549919ad09a4fbac1b6064352aa61c8c3d6263d79065f7ed237c298e3c6cf37",
+		"packages/demistify/release/resolve-release-origin.ts": "2f936dcc912a9ee67c2aeffccd966c93859ccb3629e5e801f44813fce1d377fd",
+		"packages/demistify/release/stage-assets.ts": "707f1193b89749e8861ab9446372aa4b696d150742f02ab085591e7af883a166",
+		"packages/demistify/release/verify-release.ts": "5e04695599aea2d707af8587f6e19a897a330d9c0c4ccce64e97a704e7dd179f",
+		"packages/demistify/release/worker.ts": "891f784db0876dc4f4d7b3da35f8592f2124bfa010259f448b86f381d0c1d5c8"
+	},
+	"unverified": [
+		"Hosted deployment using CI credentials",
+		"First supported 1.x release and bootstrap",
+		"Custom-domain DNS/TLS serving published assets"
+	]
+}

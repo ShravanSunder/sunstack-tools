@@ -3,11 +3,11 @@
 This workflow serves the shared library through Workers Static Assets. Authors load two tags from one major path:
 
 ```html
-<link rel="stylesheet" href="https://YOUR_CDN_HOST/v1/theme.css" />
-<script type="module" src="https://YOUR_CDN_HOST/v1/runtime.js"></script>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css" />
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
 ```
 
-The matching component guide is `/v1/authoring/SKILL.md`. The build includes its references, metadata, worker, fonts and lazy chunks. This does not upload authored explainers, publish npm packages, or install a framework for readers. The existing experimental Worker/pins are separate and unchanged.
+These are the intended URLs after the first supported release; the new hostname is not serving a release yet. The matching component guide is `/v1/authoring/SKILL.md`. The build includes its references, metadata, worker, fonts and lazy chunks. This does not upload authored explainers, publish npm packages, or install a framework for readers. The existing experimental Worker/pins are separate and unchanged.
 
 ## Version and release flow
 
@@ -24,15 +24,17 @@ The package remains `0.1.0` in this workflow PR. Pre-1.0 versions run CI without
 ## One-time repository setup
 
 - Allow GitHub Actions to create pull requests. The repository currently uses a read-only default token and has bot PR creation disabled; the version job explicitly requests only its required write permissions. Keep the default read-only.
-- Create environment `demistify-cdn` and restrict its deployment branches to `main`.
-- Store `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as environment secrets. Use a scoped token with the documented Workers deployment permissions; do not copy local OAuth/refresh credentials into CI. Never put secret values into Git, command arguments, logs or authored HTML. An existing 1Password wrapper can supply a value through stdin when configuring GitHub secrets.
-- The job derives its workers.dev origin from the same configured account and Worker name used for deployment; no separately synchronized CDN-origin variable is needed. The token needs the documented account/Workers read access used by Wrangler as well as deployment access. Custom-domain delivery is outside this initial workflow.
+- Use environment `demistify-cdn`, restricted to deployment branch `main`. This environment and its exact main-only policy have been created and verified for this repository.
+- Store `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as environment secrets. A project-specific account-owned token has been created, verified and installed privately for this repository. Its policy grants Workers Scripts Write and Account Settings Read in the selected account, plus Workers Routes Write and Zone Read for `getagentstudio.dev` only. Workers script permission is account-scoped. Never copy local OAuth/refresh credentials into CI or put secret values into Git, command arguments, logs or authored HTML.
+- The job derives its origin from the custom domain in the same Wrangler configuration used for deployment. Before fetching history it verifies through Cloudflare’s fixed API endpoint that this hostname is attached to the configured production Worker in the selected account. Missing, reassigned or ambiguous bindings abort. No separately synchronized CDN-origin variable is needed.
 
-Those settings and the first supported release are prerequisites, not established by adding YAML. No R2 bucket or persistent application server is needed.
+The bot PR setting and first supported release remain open. Creating secrets and an environment does not prove a hosted deployment. No R2 bucket or persistent application server is needed.
 
 ## First supported release and local preparation
 
-After a separate release PR selects a supported version, build that exact commit and prepare a first release only for a verified new `sunstack-demistify` Worker:
+After a separate release PR selects a supported version, build that exact commit and prepare a first release only for a verified new `sunstack-demistify` Worker. Its configured Custom Domain is `demistify.getagentstudio.dev`; the owner’s active zone and absence of existing DNS/domain bindings were checked. Recheck for conflicts immediately before first upload. Cloudflare manages the hostname’s DNS and certificate through the Custom Domain binding. See [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+
+Prepare and inspect the first release:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -45,7 +47,7 @@ pnpm exec wrangler deploy --dry-run --autoconfig=false --config packages/demisti
 
 Normal preparation uses `DEMISTIFY_ASSET_ORIGIN` and refuses a nonempty output directory. Choose an empty directory with `DEMISTIFY_RELEASE_OUTPUT` for a separate local stage; pass that same directory as Wrangler's `--assets` override when needed. The script does not log in or upload.
 
-The protected main deployment uses `wrangler deploy` only after checks and successful retention staging. `pnpm release:verify` compares the staged tree against the actual origin. A failed post-deploy check is a failed release; it is not automatically called rolled back. Fix and publish a new compatible version rather than rewriting an old published version. Retain the failed-run evidence.
+The normal protected main deployment uses `wrangler deploy` only after checks, a matching existing Custom Domain binding and successful retention staging. First bootstrap remains a distinct authorized operator action; the normal job does not turn a missing binding/catalog into permission to overwrite or initialize a target. `pnpm release:verify` compares the staged tree against the actual origin. A failed post-deploy check is a failed release; it is not automatically called rolled back. Fix and publish a new compatible version rather than rewriting an old published version. Retain the failed-run evidence.
 
 ## Proof boundaries
 
