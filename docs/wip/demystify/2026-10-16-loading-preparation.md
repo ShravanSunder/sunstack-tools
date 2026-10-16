@@ -19,7 +19,7 @@ A separate native Worker diagnostic received actual ready and rendered messages,
 
 ## What preparation pays for
 
-The unchanged Luna-authored input is 4,924 bytes / 1,099 o200k_base source tokens. The explicit outline input is 4,975 bytes. The generated prepared page is 13,922 bytes, with Markdown/SVG already present and the shared runtime still owning interactions, theme and inspection. Agent-authored usage, generated output and shared renderer implementation remain separate costs.
+The unchanged Luna-authored input is 4,924 bytes / 1,099 o200k_base source tokens. The explicit outline input is 4,975 bytes. The generated prepared page is 13,920 bytes, with Markdown/SVG already present and the shared runtime still owning interactions, theme and inspection. Agent-authored usage, generated output and shared renderer implementation remain separate costs.
 
 Run from the monorepo root:
 
@@ -27,7 +27,7 @@ Run from the monorepo root:
 node apps/demistify-poc/scripts/prepare-delivery-performance.ts OUTPUT_DIRECTORY
 ```
 
-This is a fixed PoC preparation command using the existing library renderer and diagram preparer. A small Node-only normalization matches bare-text adoption for this review’s document/card/callout owners; it is not a general compiler or new authoring vocabulary. parse5 7.3.0 is declared directly as a PoC dev dependency and was already installed through the library. No new browser dependency or framework is introduced. The prepared body is byte-identical to the measured fixture body; openable copies differ only in using the actual public asset URLs and omitting measurement instrumentation.
+This is a fixed PoC preparation command using the existing library renderer and diagram preparer. A small Node-only normalization matches bare-text adoption for this review’s document/card/callout owners; it is not a general compiler or new authoring vocabulary. parse5 7.3.0 is declared directly as a PoC dev dependency and was already installed through the library. No new browser dependency or framework is introduced. The prepared body matches the measured body apart from removing two whitespace-only SVG style spaces for the repository diff gate; openable copies differ only in using the actual public asset URLs and omitting measurement instrumentation.
 
 The authoring checker accepts the original/outline inputs. It rejects the generated prepared output with 29 errors and 3 warnings because internal prepared attributes and renderer-produced HTML/SVG/styles are outside authoring syntax. Keep source validation before generation, then validate generated output through its actual browser path. Do not teach those internal attributes as agent API or weaken the source checker to manufacture a pass.
 

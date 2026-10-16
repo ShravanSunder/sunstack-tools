@@ -12,7 +12,7 @@ pnpm preview --port 4174
 
 Open `/experiments/agent-written/round-16-delivery-performance/index.html`. The preparation CLI reads the frozen round-15 Luna source and emits baseline.html, explicit-outline.html, prepared.html and a manifest. It uses the existing Markdown renderer and diagram preparation function; a small Node-only transformation matches bare-Markdown adoption for this review's document/card/callout owners. It does not claim to handle arbitrary assets, explorer packaging or every island.
 
-The generated prepared body is byte-identical to the prepared body used in the private measurements. The measurement fixture changed only asset roots to relative private copies and added a timing observer. Here, the copies point at the public shared assets for easy viewing. Source hashes and generated sizes are in preparation.json. Its internal preparation timing excludes Node startup/imports and is not a compiler benchmark.
+The generated prepared body matches the measured body after removing two whitespace-only SVG style spaces for the repository diff gate. The measurement fixture changed only asset roots to relative private copies and added a timing observer. Here, the copies point at the public shared assets for easy viewing. Source hashes and generated sizes are in preparation.json. Its internal preparation timing excludes Node startup/imports and is not a compiler benchmark.
 
 ## Repeating the measurement
 

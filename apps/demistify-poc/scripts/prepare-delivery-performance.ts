@@ -68,7 +68,7 @@ const preparationStart = performance.now();
 // Prepare inert diagram sources first: this helper expects author input, not prepared Markdown.
 const preparedDocument = parse(prepareIslandContent(navigationHtml, {}, true));
 prepareOwnedMarkdown(preparedDocument);
-const preparedHtml = serialize(preparedDocument);
+const preparedHtml = serialize(preparedDocument).replaceAll('\n  \n', '\n\n');
 const preparationMs = performance.now() - preparationStart;
 await mkdir(outputDirectory, { recursive: true });
 const variants = [
