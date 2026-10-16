@@ -71,7 +71,14 @@ pub async fn evaluate_rules(
         }
     };
     let mut plan = definition_topology(admitted.groups, admitted.router);
-    precompute_conditions(&mut plan, &input.origin, &mut session, &cancellation).await;
+    precompute_conditions(
+        &mut plan,
+        &input.origin,
+        &mut session,
+        &cancellation,
+        input.execution.speculation,
+    )
+    .await;
     build_request_graph(&mut plan, &input.execution);
     measurements.local_elapsed_ms = duration_ms(started.elapsed());
     if cancellation.is_cancelled() {
@@ -128,7 +135,10 @@ pub async fn evaluate_rules(
         RuleInvocationOutcome::IncompleteReport { report }
     }
 }
-fn copy_evidence_measurements(target: &mut InvocationMeasurements, evidence: EvidenceMeasurements) {
+pub(crate) fn copy_evidence_measurements(
+    target: &mut InvocationMeasurements,
+    evidence: EvidenceMeasurements,
+) {
     target.files_considered = evidence.files_considered;
     target.files_read = evidence.files_read;
     target.files_parsed = evidence.files_parsed;

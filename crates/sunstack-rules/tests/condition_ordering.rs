@@ -86,7 +86,7 @@ async fn nonleading_payload_condition_never_prunes_its_earlier_carried_decision(
 async fn payload_presence_distinguishes_value_null_and_missing_without_reading_stopped_rules() {
     for (value, expected) in [
         (json!({"field":0}), "judged"),
-        (json!({"field":null}), "not_applicable"),
+        (json!({"field":null}), "judged"),
         (json!({}), "unresolved"),
     ] {
         let root = tempfile::tempdir().unwrap();

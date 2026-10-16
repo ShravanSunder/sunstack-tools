@@ -144,46 +144,39 @@ pub(crate) async fn prepare_units(
     }
     ready
 }
-pub(crate) fn encode_units(
-    plan: &ExecutionPlan,
-    state: &ExecutionState,
+pub(crate) struct PlannedQuestion<'plan> {
+    pub unit: UnitKey,
+    pub question: &'plan sunstack_decisions::JudgmentQuestion,
+    pub binding: QuestionBinding,
+    common: Option<&'plan sunstack_decisions::StructuredEntry>,
+}
+pub(crate) fn describe_questions<'plan>(
+    plan: &'plan ExecutionPlan,
     units: &[UnitKey],
-    omit_optional: bool,
-    backend: &dyn DecisionBackend,
-    budget: &RequestBudgetSettings,
-) -> RequestAdmission {
-    let mut questions = BTreeMap::new();
-    let mut bindings = Vec::new();
-    let mut unit_bindings = Vec::new();
+) -> Result<Vec<PlannedQuestion<'plan>>, DiagnosticList> {
+    let mut descriptions = Vec::new();
     for unit in units {
-        let Some(OwnerPreparation::Ready { selections, .. }) = state.preparation.get(unit) else {
-            continue;
-        };
-        let reads = selections
-            .iter()
-            .map(|selection| selection.label.clone())
-            .collect::<Vec<_>>();
-        let owner = plan.unit_label(*unit);
-        let mut add = |question: &sunstack_decisions::JudgmentQuestion,
-                       question_owner: QuestionOwner,
-                       common: Option<&sunstack_decisions::StructuredEntry>|
+        let mut add = |question: &'plan sunstack_decisions::JudgmentQuestion,
+                       owner: QuestionOwner,
+                       common: Option<&'plan sunstack_decisions::StructuredEntry>|
          -> Result<(), DiagnosticList> {
             let request_name =
-                QuestionName::new(format!("q{:06}", questions.len().saturating_add(1))).map_err(
-                    |_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError),
-                )?;
-            questions.insert(
-                request_name.clone(),
-                wrap_question(question, &owner, reads.clone(), common)?,
-            );
-            bindings.push(QuestionBinding {
-                request_name: request_name.clone(),
-                owner: question_owner,
+                QuestionName::new(format!("q{:06}", descriptions.len().saturating_add(1)))
+                    .map_err(|_| {
+                        DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError)
+                    })?;
+            descriptions.push(PlannedQuestion {
+                unit: *unit,
+                question,
+                binding: QuestionBinding {
+                    request_name,
+                    owner,
+                },
+                common,
             });
-            unit_bindings.push((*unit, request_name));
             Ok(())
         };
-        let result = match *unit {
+        match *unit {
             UnitKey::Rule(index) => {
                 let occurrence = &plan.occurrences[index.0];
                 let rule = &occurrence.rule;
@@ -194,32 +187,25 @@ pub(crate) fn encode_units(
                         .definition
                         .common_ruleset_instructions,
                 );
-                let mut result = Ok(());
                 if let VerdictDeclaration::Noul { question, .. } = &rule.verdict {
-                    result = add(
+                    add(
                         question,
                         QuestionOwner::Verdict {
                             rule_id: rule.rule_id.clone(),
                         },
                         common,
-                    );
+                    )?;
                 }
-                if result.is_ok() {
-                    for (name, question) in &rule.questions {
-                        if let Err(error) = add(
-                            question,
-                            QuestionOwner::Informational {
-                                rule_id: rule.rule_id.clone(),
-                                name: name.clone(),
-                            },
-                            common,
-                        ) {
-                            result = Err(error);
-                            break;
-                        }
-                    }
+                for (name, question) in &rule.questions {
+                    add(
+                        question,
+                        QuestionOwner::Informational {
+                            rule_id: rule.rule_id.clone(),
+                            name: name.clone(),
+                        },
+                        common,
+                    )?;
                 }
-                result
             }
             UnitKey::Gate(index) => {
                 let entry = &plan.entries[index.0];
@@ -231,7 +217,7 @@ pub(crate) fn encode_units(
                         &definition.question,
                         QuestionOwner::Router { group: *position },
                         None,
-                    ),
+                    )?,
                     EntryDefinition::Decision { question, .. } => {
                         let owner = match &entry.key.owner {
                             EntryOwner::Rule { rule_id, .. } => QuestionOwner::RuleDecision {
@@ -242,31 +228,95 @@ pub(crate) fn encode_units(
                                 entry: entry.key.clone(),
                             },
                         };
-                        add(question, owner, None)
+                        add(question, owner, None)?;
                     }
-                    EntryDefinition::Condition(_) => Err(DiagnosticList::rule(
-                        RuleDiagnosticCode::UnexpectedExecutionError,
-                    )),
+                    EntryDefinition::Condition(_) => {
+                        return Err(DiagnosticList::rule(
+                            RuleDiagnosticCode::UnexpectedExecutionError,
+                        ));
+                    }
                 }
             }
-        };
-        if let Err(diagnostics) = result {
-            return RequestAdmission::Invalid(diagnostics);
         }
     }
-    let selections = units
+    Ok(descriptions)
+}
+pub(crate) struct RenderedRequest {
+    pub request: StructuredJudgmentRequest,
+    pub bindings: Vec<QuestionBinding>,
+    pub units: Vec<(UnitKey, QuestionName)>,
+}
+pub(crate) fn render_units(
+    plan: &ExecutionPlan,
+    state: &ExecutionState,
+    units: &[UnitKey],
+    omit_optional: bool,
+) -> Result<RenderedRequest, DiagnosticList> {
+    let ready = units
+        .iter()
+        .copied()
+        .filter(|unit| {
+            matches!(
+                state.preparation.get(unit),
+                Some(OwnerPreparation::Ready { .. })
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut questions = BTreeMap::new();
+    let mut bindings = Vec::new();
+    let mut unit_bindings = Vec::new();
+    for described in describe_questions(plan, &ready)? {
+        let Some(OwnerPreparation::Ready { selections, .. }) =
+            state.preparation.get(&described.unit)
+        else {
+            continue;
+        };
+        let reads = selections
+            .iter()
+            .map(|selection| selection.label.clone())
+            .collect();
+        questions.insert(
+            described.binding.request_name.clone(),
+            wrap_question(
+                described.question,
+                &plan.unit_label(described.unit),
+                reads,
+                described.common,
+            )?,
+        );
+        unit_bindings.push((described.unit, described.binding.request_name.clone()));
+        bindings.push(described.binding);
+    }
+    let selections = ready
         .iter()
         .flat_map(|unit| match state.preparation.get(unit) {
             Some(OwnerPreparation::Ready { selections, .. }) => selections.clone(),
             _ => vec![],
         });
-    let request_state = match build_request_state(selections, omit_optional) {
-        Ok(state) => state,
+    Ok(RenderedRequest {
+        request: StructuredJudgmentRequest {
+            questions,
+            state: build_request_state(selections, omit_optional)?,
+        },
+        bindings,
+        units: unit_bindings,
+    })
+}
+pub(crate) fn encode_units(
+    plan: &ExecutionPlan,
+    state: &ExecutionState,
+    units: &[UnitKey],
+    omit_optional: bool,
+    backend: &dyn DecisionBackend,
+    budget: &RequestBudgetSettings,
+) -> RequestAdmission {
+    let RenderedRequest {
+        request,
+        bindings,
+        units: unit_bindings,
+    } = match render_units(plan, state, units, omit_optional) {
+        Ok(rendered) => rendered,
         Err(diagnostics) => return RequestAdmission::Invalid(diagnostics),
-    };
-    let request = StructuredJudgmentRequest {
-        questions,
-        state: request_state,
     };
     let encoded = match backend.encode_request(&request) {
         Ok(encoded) => encoded,

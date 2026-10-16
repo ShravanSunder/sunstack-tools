@@ -21,3 +21,6 @@ mod entry_reporting;
 pub(crate) use entry_reporting::*;
 mod occurrence_reporting;
 pub(crate) use occurrence_reporting::*;
+
+mod preparation_reporting;
+pub(crate) use preparation_reporting::*;

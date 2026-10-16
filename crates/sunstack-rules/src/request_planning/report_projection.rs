@@ -3,7 +3,10 @@ use crate::*;
 use std::collections::{BTreeMap, BTreeSet};
 use sunstack_decisions::DecisionRunOutcome;
 
-fn report_order(plan: &ExecutionPlan, request: &PlannedRequest) -> (usize, usize, usize) {
+pub(crate) fn report_order(
+    plan: &ExecutionPlan,
+    request: &PlannedRequest,
+) -> (usize, usize, usize) {
     match request.purpose {
         RequestPurpose::Gate { entry } => match plan.entries[entry.0].key.owner {
             EntryOwner::Router { group } => (0, group, 0),

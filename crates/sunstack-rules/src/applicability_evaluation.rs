@@ -82,9 +82,8 @@ pub(crate) async fn evaluate_condition(
         } => payload_field(context.sources, input, pointer)
             .map_or_else(unresolved, |observed| comparison(values.contains(observed))),
         ConditionTest::PayloadFieldPresent { input, pointer } => {
-            payload_field(context.sources, input, pointer).map_or_else(unresolved, |value| {
-                comparison(!matches!(value, sunstack_evidence::StructuredJson::Null))
-            })
+            payload_field(context.sources, input, pointer)
+                .map_or_else(unresolved, |_| ConditionOutcome::Passed)
         }
         ConditionTest::PatternPresent {
             input,

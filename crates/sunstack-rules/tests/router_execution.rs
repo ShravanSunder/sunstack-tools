@@ -234,3 +234,112 @@ async fn same_ruleset_under_two_route_labels_keeps_opposite_wired_gates_separate
         assert_eq!(server.finish().await, 2);
     }
 }
+
+#[tokio::test]
+async fn routed_leading_scan_uses_router_sources_early_and_waits_for_other_sources() {
+    for (same_source, rules_read_scan, passes, label) in [
+        (true, false, true, "alpha"),
+        (true, false, false, "alpha"),
+        (false, false, true, "alpha"),
+        (false, true, true, "alpha"),
+        (false, true, false, "alpha"),
+        (false, false, false, "alpha"),
+        (false, false, true, "none"),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let scan_input = if same_source { "subject" } else { "other" };
+        let literal = if passes {
+            if same_source {
+                "original"
+            } else {
+                "gate content"
+            }
+        } else {
+            "absent scan text"
+        };
+        let mut rule = fixture::rule("one");
+        if rules_read_scan {
+            rule["evidence"]
+                .as_array_mut()
+                .unwrap()
+                .push(fixture::declaration("other", "context"));
+        }
+        fixture::write_set(
+            root.path(),
+            &[rule],
+            vec![
+                json!({"kind":"condition","test":{"kind":"pattern_present","input":scan_input,"pattern":{"kind":"literal","text":literal},"max_scan_bytes":4096}}),
+            ],
+        );
+        router(root.path());
+        let path = root.path().join("router.json");
+        let mut definition: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        definition["routes"].as_object_mut().unwrap().remove("beta");
+        std::fs::write(path, serde_json::to_vec(&definition).unwrap()).unwrap();
+        let mut server = controlled::ControlledServer::start().await;
+        let mut input =
+            serde_json::to_value(fixture::input(root.path(), &server.endpoint)).unwrap();
+        let group = input["definitions"]["rule_sets"][0]["binding_groups"][0].clone();
+        input["definitions"] =
+            json!({"kind":"router","path":"router.json","binding_groups":[group]});
+        let execution = tokio::spawn(evaluate_rules(
+            serde_json::from_value(input).unwrap(),
+            RuleExecutionContext {
+                backend: Arc::new(transport::backend(&server.endpoint)),
+                adapters: AdapterRegistry::builtins().unwrap(),
+                cancellation: CancellationToken::new(),
+            },
+        ));
+        let first = server.next().await;
+        assert_eq!(
+            first.body["questions"].as_object().unwrap().len(),
+            if (same_source || rules_read_scan) && passes {
+                2
+            } else {
+                1
+            }
+        );
+        answer(first, label, 0.9);
+        if !same_source && !rules_read_scan && passes && label == "alpha" {
+            server.next().await.noul(0.9);
+        }
+        let outcome = tokio::time::timeout(Duration::from_secs(3), execution)
+            .await
+            .unwrap()
+            .unwrap();
+        let RuleInvocationOutcome::CompleteReport { report } = outcome else {
+            panic!("{outcome:?}")
+        };
+        assert_eq!(
+            report.measurements.model_requests,
+            if !same_source && !rules_read_scan && passes && label == "alpha" {
+                2
+            } else {
+                1
+            }
+        );
+        assert_eq!(
+            report.measurements.files_read,
+            if !same_source && label == "alpha" {
+                2
+            } else {
+                1
+            }
+        );
+        if label == "none" {
+            assert!(report.occurrences.is_empty());
+        } else if passes {
+            assert!(matches!(
+                report.occurrences[0],
+                RuleOccurrenceResult::Judged { .. }
+            ));
+        } else {
+            assert!(matches!(
+                report.occurrences[0],
+                RuleOccurrenceResult::NotApplicable { .. }
+            ));
+        }
+        assert_eq!(server.finish().await, report.measurements.model_requests);
+    }
+}

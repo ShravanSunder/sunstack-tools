@@ -7,11 +7,58 @@ use std::collections::{BTreeMap, BTreeSet};
 use sunstack_evidence::EvidenceSession;
 use tokio_util::sync::CancellationToken;
 
+pub(crate) fn condition_is_leading(plan: &ExecutionPlan, index: EntryIndex) -> bool {
+    let entry = &plan.entries[index.0];
+    !entry.parents.iter().any(|parent| {
+        let parent = &plan.entries[parent.0];
+        parent.key.owner == entry.key.owner
+            && matches!(parent.definition, EntryDefinition::Decision { .. })
+    })
+}
+fn scan_waits_for_routing(
+    plan: &ExecutionPlan,
+    index: EntryIndex,
+    speculation: Speculation,
+) -> bool {
+    let entry = &plan.entries[index.0];
+    let (Some(routing), EntryDefinition::Condition(ConditionTest::PatternPresent { input, .. })) =
+        (&entry.routing, &entry.definition)
+    else {
+        return false;
+    };
+    let Some(group) = entry.group else {
+        return false;
+    };
+    let read_set = &plan.groups[group.0].read_set;
+    (speculation == Speculation::Off && !plan.entry_read_set(routing.entry).is_subset(read_set))
+        || entry
+            .sources
+            .get(input)
+            .is_some_and(|source| !read_set.contains(&source.id))
+}
+pub(crate) fn group_waits_for_leading_scan(plan: &ExecutionPlan, group: GroupIndex) -> bool {
+    let group = &plan.groups[group.0];
+    group
+        .entries
+        .iter()
+        .copied()
+        .chain(
+            group
+                .occurrences
+                .iter()
+                .flat_map(|index| plan.occurrences[index.0].entries.iter().copied()),
+        )
+        .any(|index| {
+            condition_is_leading(plan, index)
+                && scan_waits_for_routing(plan, index, Speculation::On)
+        })
+}
 pub(crate) async fn precompute_conditions(
     plan: &mut ExecutionPlan,
     origin: &InvocationOrigin,
     session: &mut EvidenceSession,
     cancellation: &CancellationToken,
+    speculation: Speculation,
 ) {
     for position in 0..plan.entries.len() {
         if cancellation.is_cancelled() {
@@ -21,17 +68,12 @@ pub(crate) async fn precompute_conditions(
         let EntryDefinition::Condition(test) = &entry.definition else {
             continue;
         };
-        let leading = !entry.parents.iter().any(|parent| {
-            let parent = &plan.entries[parent.0];
-            parent.key.owner == entry.key.owner
-                && matches!(parent.definition, EntryDefinition::Decision { .. })
-        });
-        if !leading {
+        if !condition_is_leading(plan, EntryIndex(position)) {
             continue;
         }
         let scans = matches!(test, ConditionTest::PatternPresent { .. });
         if scans
-            && (entry.routing.is_some()
+            && (scan_waits_for_routing(plan, EntryIndex(position), speculation)
                 || entry
                     .parents
                     .iter()
@@ -209,6 +251,7 @@ pub(crate) fn build_request_graph(plan: &mut ExecutionPlan, settings: &Execution
                     .as_ref()
                     .is_some_and(|routing| routing.entry == index)
                     && plan.requests[id.0].prerequisites.is_empty()
+                    && !group_waits_for_leading_scan(plan, **group)
                     && read_set.is_subset(&plan.groups[group.0].read_set)
             })
             .map(|(_, id)| *id)
@@ -260,14 +303,18 @@ pub(crate) fn build_request_graph(plan: &mut ExecutionPlan, settings: &Execution
         };
         let Some(group) = group else { continue };
         let carried = router_carriers.get(&routing.entry).copied().flatten();
-        let can_fan_out = if carried.is_some() {
+        let can_fan_out = if group_waits_for_leading_scan(plan, group) {
+            false
+        } else if settings.speculation == Speculation::On {
+            true
+        } else if carried.is_some() {
             plan.entry_read_set(routing.entry)
                 .is_subset(&plan.groups[group.0].read_set)
                 && group_requests
                     .get(&group)
                     .is_some_and(|id| plan.requests[id.0].prerequisites.is_empty())
         } else {
-            settings.speculation == Speculation::On
+            false
         };
         plan.requests[position].waits_for_route = !can_fan_out;
         if can_fan_out {
