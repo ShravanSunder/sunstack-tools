@@ -1,0 +1,69 @@
+{
+	"observations": [
+		{
+			"sample": "sol-review",
+			"connectionRows": 0,
+			"documentWidth": 1523,
+			"graphNodes": 0,
+			"h1": ["Resume sessions after socket drops"],
+			"h2": 6,
+			"issues": [],
+			"outline": 7,
+			"scriptUrls": [
+				"https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/runtime.js"
+			],
+			"title": "Review: Resume sessions after socket drops",
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/examples/2026-10-16-sol-luna-v1/sol-review",
+			"viewport": [1538, 822]
+		},
+		{
+			"sample": "luna-review",
+			"connectionRows": 0,
+			"documentWidth": 1523,
+			"graphNodes": 0,
+			"h1": ["Resume sessions after socket drops"],
+			"h2": 8,
+			"issues": [],
+			"outline": 9,
+			"scriptUrls": [
+				"https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/runtime.js"
+			],
+			"title": "Resume sessions after socket drops — review",
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/examples/2026-10-16-sol-luna-v1/luna-review",
+			"viewport": [1538, 822]
+		},
+		{
+			"sample": "sol-explorer",
+			"connectionRows": 46,
+			"documentWidth": 1523,
+			"graphNodes": 22,
+			"h1": ["How the job is composed"],
+			"h2": 4,
+			"issues": [],
+			"outline": 0,
+			"scriptUrls": [
+				"https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/runtime.js"
+			],
+			"title": "Planning explorer · dated proposal",
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/examples/2026-10-16-sol-luna-v1/sol-explorer",
+			"viewport": [1538, 822]
+		},
+		{
+			"sample": "luna-explorer",
+			"connectionRows": 46,
+			"documentWidth": 1523,
+			"graphNodes": 22,
+			"h1": ["How the job is composed"],
+			"h2": 3,
+			"issues": [],
+			"outline": 0,
+			"scriptUrls": [
+				"https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/runtime.js"
+			],
+			"title": "How the job is composed",
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/examples/2026-10-16-sol-luna-v1/luna-explorer",
+			"viewport": [1538, 822]
+		}
+	],
+	"limits": "Actual DOM and visible screenshots in existing Chrome; one navigation per page, not a performance distribution."
+}

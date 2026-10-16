@@ -1,0 +1,9 @@
+{
+	"exitCode": 0,
+	"workerUrls": ["https://demistify-assets-cli-experiment.askluna.workers.dev"],
+	"versionId": "53a4b26e-567b-475b-8663-1bfac60365ba",
+	"configuration": "apps/demistify-poc/experiments/cloudflare-public-assets/wrangler.json",
+	"publicFiles": 27,
+	"libraryRoot": "demistify/experimental/e3a92d2",
+	"examplesRoot": "examples/2026-10-16-sol-luna-v1"
+}

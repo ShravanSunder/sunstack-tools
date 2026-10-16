@@ -1,0 +1,38 @@
+{
+	"page": "luna-explorer.html",
+	"current": {
+		"nodes": 21,
+		"connectionRows": 45
+	},
+	"proposed": {
+		"nodes": 22,
+		"connectionRows": 46
+	},
+	"searchSelection": {
+		"id": "principle-write-tests-that-can-fail",
+		"nodes": 1,
+		"urlQuery": "?ex.planning=principle-write-tests-that-can-fail"
+	},
+	"back": {
+		"id": "spec-design",
+		"nodes": 22,
+		"connectionRows": 46
+	},
+	"expanded": {
+		"openDialogs": 1,
+		"nodesInDialog": 22
+	},
+	"closed": {
+		"openDialogs": 0,
+		"restoredNodes": 22,
+		"issues": []
+	},
+	"solDiagram": {
+		"svgCount": 1,
+		"participants": ["Client", "Gateway", "Registry", "Session"],
+		"expandedDialog": 1,
+		"closedDialogs": 0,
+		"restoredSvg": 1
+	},
+	"limits": "Actual public-page interactions in Chrome. No claim of exhaustive accessibility, all interaction paths or original-reference visual parity."
+}

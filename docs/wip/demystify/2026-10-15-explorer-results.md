@@ -1,5 +1,7 @@
 # Explorer, model authoring and local delivery results
 
+Later delivery checkpoint: the owner subsequently approved public hosting. The library and four Sol/Luna-derived samples are now live; see [the public deployment and reproduction guide](2026-10-16-public-assets-deployment.md). The local-only statements below describe the earlier checkpoint.
+
 Work branch: `feat/demistify-distribution-authoring-experiments`. These are local experiments on an unreleased library. The existing library was merged through PR #1; this branch's new work has not been merged or deployed. The owner chose full explorer parity as the final target. The model pair and local delivery probes establish specific behavior; they do not close all final acceptance criteria.
 
 The earlier [distribution report](2026-10-15-distribution-authoring-experiments.md) records round 7 and an older reference freeze. Its historical numbers remain intact. The current source freeze and acceptance boundary are in [explorer parity](2026-10-15-explorer-parity.md).
