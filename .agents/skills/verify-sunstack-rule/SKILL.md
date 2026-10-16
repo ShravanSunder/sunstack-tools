@@ -19,12 +19,14 @@ The app is three Rust libraries (`sunstack-evidence`, `sunstack-decisions`, `sun
 | --- | --- | --- |
 | Native libraries and Rust quality | `references/library-gates.md` | Evidence, decisions and rules harnesses |
 | Genuine Jev mixed primitives, V11 | `references/hosted-decisions.md` | Credential-gated real public-API test |
+| Genuine rules applicability and routing, V22/V34 | `references/hosted-decisions.md` — hosted rules section | Credential-gated native rules tests or applicable independent hosted evidence |
 | Four executable operations, V2/V13 | `references/executable-operations.md` | Real process suite; PreparationFailed runtime reachability remains unproven |
 | Skill lint and handoff monitor, V14/V29/V30 | `references/milestone-1.md` | Controlled journeys/measurement and credential-gated hosted campaign |
 | Git changes, relationships and chunks | `references/milestone-2.md` | **DRAFT:** milestone 2 target and real fixtures needed |
 
 MUST load `references/library-gates.md` and return the scoped commands, results and remaining coverage before relying on library or build claims.
 IF hosted V11 is in scope, load `references/hosted-decisions.md` and return its run identity, validated completion and receipt, or its access/setup gap.
+IF genuine V22 or V34 is in scope, load `references/hosted-decisions.md` and return the hosted-rules observation or applicable reused evidence, native answer/receipt checks and any remaining gap.
 IF executable behavior is in scope, load `references/executable-operations.md` and return the operation coverage, process evidence and remaining proof limits.
 IF milestone 1 journeys are in scope, load `references/milestone-1.md` and return each local/hosted journey's report, measurement or named prerequisite.
 IF change scopes or connected evidence are in scope, load `references/milestone-2.md` and return its real-fixture coverage or named open item.
@@ -41,7 +43,7 @@ Use that same prefix on **every Cargo command** shown in the references on this 
 
 On Apple Silicon, `.cargo/config.toml` routes Cargo/nextest execution through `scripts/cargo-debug-signing-runner.sh`. It gives the app and tests stable, separate debug identities. Signing is best effort: a warning means the original binary still runs and LuLu may require approval. Record that condition; do not replace the runner or relax gates.
 
-Read-only health check: compare the target identity again, confirm the selected harness and fixtures exist, and check prerequisites without displaying credentials. The local test result must contain nonzero executed tests. The CLI's `sunstack-rule: ready` line witnesses signal registration; usable readiness requires a completed `operation_result` envelope with the expected outcome and actual exit, not `--help` or the ready line alone. V11 requires a completed validated public-API decision run with receipt. Before hosted CLI work, run the signing preflight in `references/milestone-1.md`; any signing warning stops that campaign.
+Read-only health check: compare the target identity again, confirm the selected harness and fixtures exist, and check prerequisites without displaying credentials. The local test result must contain nonzero executed tests. The CLI's `sunstack-rule: ready` line witnesses signal registration; usable readiness requires a completed `operation_result` envelope with the expected outcome and actual exit, not `--help` or the ready line alone. V11 requires a completed validated public-API decision run with receipt. Before hosted CLI work, run the signing preflight in `references/milestone-1.md`; afterwards inspect every hosted child's `stderr.log` for the runner's `runs unsigned` warning and apply that route's host signing/egress classification. That warning cannot stop the child's dispatch, and `--fail-fast` does not act on it.
 
 ## Evidence, cleanup and return
 
@@ -49,7 +51,7 @@ Keep run evidence in an assignment-authorized directory under system temp, conve
 
 Supply `OPENROUTER_API_KEY` from the owner's secret store only for the hosted command. Keep the value in process memory; disable shell tracing. Never put a credential value, its location or a secret reference into this skill, artifacts or reports. A missing credential or a skipped hosted test leaves the claim **unknown**. Controlled HTTP proves transport behavior and leaves hosted inference open.
 
-Preserve failures and LEAK counts before any rerun. Interpret gate results with the narrow disposition in `references/library-gates.md`: matching full-workspace concurrency markers do not establish a product defect; changed, unexplained or test-owned signatures still require triage. The gate remains nextest exit 0. Never raise timeouts, add retries or disable capture to clear a marker. Report unknown descriptor ownership as unknown. Product failures go to the paired Implementer; disputed expectations and target changes go to the Lead. Repair only assigned verification apparatus.
+Preserve failures and LEAK counts before any rerun. Interpret LEAK markers only through the disposition in `references/library-gates.md`; the gate remains nextest exit 0. Product failures go to the paired Implementer; disputed expectations and target changes go to the Lead. Repair only assigned verification apparatus.
 
 These commands start no persistent service. Await each owned test/process; its harness owns fixture/server teardown. Stop only a process this run started, using its recorded PID/session, and never by name. Leave shared Cargo caches and other sessions alone. Retain evidence; delete only owned disposable files when authorized, with directory removal requiring explicit permission. After cleanup, reopen the receipt/log and verify it survived.
 

@@ -1,8 +1,10 @@
-# Hosted Jev decisions — V11
+# Hosted Jev — native decisions and rules
 
-This route observes one genuine Rust public-API call, as required by Specification C4/C7 and V11. Inputs: pinned source, working SDK/toolchain, authorized network access and hosted spend, owner's credential supplied in memory, and evidence directory. Return run ID, command exit/counts and the safe execution receipt.
+Select the V11 public decisions route or the V22/V34 native rules route below. Their oracle is Specification C4/C7/C10/C13 and V11/V22/V34 at the main skill's pinned revision, read with `git show`. Inputs: pinned source, working SDK/toolchain, authorized network access and hosted spend, owner's credential supplied in memory, and evidence directory. Return the selected claim, run ID or applicable reused observation, command exit/counts, native answer checks and safe execution receipt. A default ignored-test skip leaves the hosted claim unknown.
 
-## Launch and drive
+The V11 and hosted-rules test binaries run under the tests signing identity, which also needs LuLu approval; an unapproved identity can stall about 60 seconds and is classified as host egress, as for the CLI, while the signing preflight remains scoped to hosted CLI work. Timeout alone does not establish which host component blocked traffic.
+
+## V11: launch and drive
 
 Read `crates/sunstack-decisions/tests/hosted_jev.rs` before running. It must still select the actual `JevOpenRouterBackend`, endpoint `https://openrouter.ai/api/v1/systemone`, model `jev-latest`, and exported `run_judgments`; a local server or backend double does not satisfy this route. Confirm the product HEAD and health checks from `SKILL.md`.
 
@@ -28,4 +30,28 @@ Source path: exported API (`src/lib.rs`) → `judgment_execution::run_judgments`
 
 Keep safe failure class, status, diagnostics, attempt evidence and run ID. A timeout/cancellation may still have incurred remote inference/billing. Report `provider_resource_unavailable`, authentication/authorization, credits or network failures as observed; none proves an adapter defect by itself. Historical `PROOF.md` access failures do not settle today's access, and a later success does not explain those failures.
 
-Await nextest completion; no persistent app/server is started. Ensure credential injection ends with the command. Open the saved log/receipt after cleanup. Complete only when V11 has a real result or named access gap at the pinned target. V22/V29/V30/V34 need the separate integrated milestone 1 routes; V11 never substitutes for them. Real tokenizer agreement remains unverified.
+Await nextest completion; no persistent app/server is started. Ensure credential injection ends with the command. Open the saved log/receipt after cleanup. V11 completion requires its real result or named access gap. V22/V34 uses the hosted-rules section below; V29/V30 is selected through the main skill's `milestone-1.md` call. V11 never substitutes for them. Real tokenizer agreement remains unverified.
+
+## V22/V34: genuine native rules applicability and routing
+
+Oracle: Specification C10/C13 and V22/V34; the complete rows govern deterministic controls as well as the genuine call. Local threshold/order/isolation/failure controls live in `library-gates.md`, selected by the main skill's mandatory library route. This hosted route proves actual provider use through rules, not every deterministic case or model accuracy.
+
+Read `crates/sunstack-rules/tests/hosted_rules.rs` and `crates/sunstack-rules/tests/support/rule_fixture.rs` before using this route. They call exported `evaluate_rules` with the real evidence/decisions owners, real definition/document fixtures and genuine Jev via `https://openrouter.ai/api/v1/systemone`, model `jev-latest`. The tests set a 60,000 ms attempt timeout, zero retries and max_requests=3. Credentials enter only the native backend's in-memory argument from the command environment, never definitions or requests.
+
+First check for an independent hosted observation that still applies. Read its report and raw run log, then compare its exact product commit with the declared target for `crates/sunstack-rules/src`, `crates/sunstack-rules/tests/hosted_rules.rs`, `crates/sunstack-rules/tests/support`, `crates/sunstack-decisions`, `crates/sunstack-evidence`, their manifests, dependency resolution, toolchain and runner/configuration. Inspect any differences rather than equating a matching test name with applicability. Record unchanged paths and any unrelated changes with their reason. An applicable prior genuine observation may close this route as reused; a static source pass alone cannot. If applicability fails, keep the route available and its genuine claim unknown until a separately authorized observation. Do not spend merely to refresh a matching pass.
+
+When a fresh hosted observation is authorized and needed, use the SDK prefix from `SKILL.md`, run from the monorepo root and supply `OPENROUTER_API_KEY` from the owner's secret store to this command alone, with tracing disabled:
+
+```sh
+cargo nextest run -p sunstack-rules --test hosted_rules --run-ignored all --success-output immediate
+```
+
+Require exit 0, two non-skipped tests and safe `hosted rules receipt:` output. The assertion checks run inside the public-API consumers; their stdout prints receipts, not full report/answer dumps:
+
+| Genuine case | Required observation |
+| --- | --- |
+| `hosted_applicability_decision_preserves_native_answer_and_receipt_through_rules` — V22 | CompleteReport contains the evaluated applicability decision; passed or did_not_pass resolves through its request reference to an admitted native Noul answer. Either valid answer is allowed. A failed/unadmitted decision cannot count as hosted success. |
+| `hosted_router_preserves_native_choice_confidence_and_source_linked_receipt` — V34 | CompleteReport contains a router outcome routed, uncertain_intent or no_route, referencing an admitted native Choice answer, including its native confidence/distribution. A legitimate uncertain/no-route result proves that native outcome; it does not prove a particular route was reached. Router failure cannot count as completion. |
+| Completed requests in either report | At least one genuine admitted receipt, observed resolved_model/native usage, positive input_tokens and exactly one attempt per completed request; absent cost stays unavailable. No fabricated fields or receipt on failed execution. |
+
+Preserve failures, safe diagnostics, attempt uncertainty and actual executed test counts; do not retry until favorable. The existing HTTP/failure controls provide response-admission sensitivity at the cheaper boundary. Hosted passing answers establish no semantic accuracy or exhaustive routing coverage. The fixture harness owns temporary files and joins its request work; await completion, end command-local credential injection and reopen retained evidence after teardown. Return V22 and V34 separately as supported, unsupported or unknown, marking genuine evidence observed or reused and naming any remaining route/setup gap.
