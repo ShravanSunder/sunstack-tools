@@ -2,7 +2,7 @@
 
 **Open items:** a declared milestone 2 target containing real change-selection/discovery/chunk modules, the matching wire types/schemas and executable, and permanent real Git/filesystem/AST fixtures. None exists at the initial product target. There are no operable commands in this reference; do not invent test names or pass these obligations using milestone 1's full-scope tests.
 
-Oracle: Specification C3/C8, V5/V7/V16–V18, and `program-design-connected-evidence.md` plus exact contracts. Inputs after activation: declared commit/build/client/CWD, isolated supplied repository bindings, before/after sources, discovery paths/limits, package mappings and independent fixture expectations. Read the landed public harness before recording commands. Return resolved changes/provenance, selected units and chunks, coverage/omissions, process/library results and evidence locations.
+Oracle: Specification C3/C8, V5/V7/V16–V18, and `program-design-connected-evidence.md` plus exact contracts, read at `SKILL.md`'s pinned revision with `git show`. Activation is a separate maintenance assignment that replaces this draft with verified invocations; until then, return this open item. Inputs for that assignment: declared commit/build/client/CWD, isolated supplied repository bindings, before/after sources, discovery paths/limits, package mappings and independent fixture expectations. Read the landed public harness before recording commands. Return resolved changes/provenance, selected units and chunks, coverage/omissions, process/library results and evidence locations.
 
 ## V5/V16 — what changed
 
@@ -23,10 +23,12 @@ Observe zero out-of-scope acquisition and explicit finite depth/fan-out/file/nod
 
 A full-scope binding supplies no change delta: `changed_units`, rule-authored `related_units` and native changed-unit seeds must refuse with `no_change_selection`. Keep positive controls for full-scope discovery context supporting another binding's changed seeds and native selector-based seeds. Resolve scopes lazily; an unused binding has no fabricated `change_selections` entry.
 
+Native preparation and rule invocation use the same evidence-owned discovery configuration. A query/declaration or change-set source needing discovery with `discovery: none` refuses admission with `discovery_not_enabled`. For rule invocations, omitted discovery defaults to `none` and omitted package bindings to empty; milestone 1 refuses bounded discovery and nonempty package bindings. Milestone 2 passes both unchanged into the single EvidenceSession, with discovery limits cumulative across groups and RuleSets.
+
 ## V18 — coherent units and chunks
 
 Map real before/after diff spans into actual AST/Markdown units and source ranges. Include deletion, giant units, caller/callee excerpts, required imports/signatures and retained relationships. Assert literal source-side bytes/ranges and membership, not output computed by the production grouping function.
 
 Optional omission has a visible reason; required relationship/group overflow refuses evaluation. A rule's required evidence remains one group: no per-chunk judgment/composition in JSONL. Native callers may request per-seed groups and compose them themselves. Preserve unknown-recency attribution when an excluded dirty source is read as context; do not label it unchanged.
 
-Complete activation only after real fixture outcomes distinguish these failures from allowed approximate/partial results, the process/native entries requested are covered, and the full milestone 1 suite still passes. Keep unobserved platforms, unresolved links, cutoffs and hosted/tokenizer gaps explicit. Cleanup only owned temporary repositories under the assignment's grant; retain evidence and ask before directory removal.
+The separate activation assignment completes only after real fixture outcomes distinguish these failures from allowed approximate/partial results, the process/native entries requested are covered, and the full milestone 1 suite still passes. Keep unobserved platforms, unresolved links, cutoffs and hosted/tokenizer gaps explicit. Cleanup only owned temporary repositories under the assignment's grant; retain evidence and ask before directory removal.

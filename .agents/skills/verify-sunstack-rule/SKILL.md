@@ -1,6 +1,6 @@
 ---
 name: verify-sunstack-rule
-description: Use when verifying the Rust Sunstack rule engine, its evidence and decisions libraries, or the sunstack-rule executable, including hosted Jev and milestone journeys. Not for Demistify or production hook installation.
+description: Use when verifying the Rust Sunstack rule engine, its evidence and decisions libraries, or the sunstack-rule executable, including hosted Jev, skill-lint and handoff-monitor journeys. Not for Demistify or production hook installation.
 ---
 
 # Verify Sunstack Rule
@@ -11,8 +11,8 @@ The app is three Rust libraries (`sunstack-evidence`, `sunstack-decisions`, `sun
 
 ## Choose the target and journey
 
-1. From the monorepo root, record `git rev-parse --show-toplevel`, `git branch --show-current`, `git rev-parse HEAD` and `git status --short`. Record the declared product commit, build location, configuration and calling client. Stop if the target changes during observation.
-2. Read the adopted `docs/specs/2026-10-12-rust-rule-engine/specification.md`, especially the selected V rows, and `program-design-contracts.md` for exact shapes. The initial oracle is design revision `8ae37613ff86dcad812a85bd51d597999ae85e59`; the initial product source is `6d4a87acd9dbb15d9c6a26e3dbcde526ba9ffd93`. These are separate revisions. If the product checkout has older design text, use the declared design checkout at the adopted revision. Resolve conflicting expectations with the commissioning Lead before driving the affected case.
+1. From the monorepo root, record `git rev-parse --show-toplevel`, `git branch --show-current`, `git rev-parse HEAD` and `git status --short`. Record the declared product commit, build location, configuration and calling client. Confirm the driven checkout matches that product commit; the skill may be on a separate branch. Stop if the target changes during observation.
+2. The adopted oracle is design revision `34bee484935ec4cc8ba42452b527497e9e920256`; the initial product source is `7387c127eefdc23674f6661441bcda144591eb4a`. Read every oracle file with `git show <design revision>:<repo-relative-path>`, including referenced examples and schemas. Start with `git show 34bee484935ec4cc8ba42452b527497e9e920256:docs/specs/2026-10-12-rust-rule-engine/specification.md`, especially the selected V rows; use the same method for `program-design.md`, `program-design-contracts.md` and, for connected evidence, `program-design-connected-evidence.md` in that directory. The product checkout's design copy is older, and a design working tree may have moved. If the pinned object is unavailable, return that source gap; resolve conflicting expectations with the commissioning Lead before driving the affected case.
 3. Select the route below. Read it before running. A draft is a coverage obligation with an open prerequisite, never an executable recipe or a passing observation.
 
 | Surface | Route | Availability at the initial product target |
@@ -47,7 +47,7 @@ Read-only health check: compare the target identity again, confirm the selected 
 
 Keep run evidence in an assignment-authorized directory under system temp, conventionally `yyyy-mm-rule-engine-verify-<run-id>/`. Record the absolute directory on the work thread. Store the exact command, working directory, product/design revisions, configuration, exit code, test counts/run ID, raw output and safe receipts. For process runs keep stdin fixtures, stdout JSON and stderr separately, plus report/cursor readbacks. Use synthetic/public fixtures: results may contain selected evidence.
 
-Supply `OPENROUTER_API_KEY` from the owner's secret store only for the hosted command. Keep the value in process memory; disable shell tracing. Never put a credential value, its location or a secret reference into this skill, artifacts or reports. A missing credential or a skipped hosted test is **unverified**. Controlled HTTP proves transport behavior and leaves hosted inference open.
+Supply `OPENROUTER_API_KEY` from the owner's secret store only for the hosted command. Keep the value in process memory; disable shell tracing. Never put a credential value, its location or a secret reference into this skill, artifacts or reports. A missing credential or a skipped hosted test leaves the claim **unknown**. Controlled HTTP proves transport behavior and leaves hosted inference open.
 
 Preserve any failure before a rerun. A nextest `LEAK` requires participating PID and descriptor evidence before any rerun; do not retry it away or raise its timeout. Report an unknown owner as unknown. Product failures go to the paired Implementer; disputed expectations and target changes go to the Lead. Repair only assigned verification apparatus.
 
