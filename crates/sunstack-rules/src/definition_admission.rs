@@ -27,6 +27,13 @@ pub fn decode_rule_definition(
 }
 pub fn decode_router(bytes: &[u8], file: &Path) -> Result<RouterDefinition, DiagnosticList> {
     let router: RouterDefinition = decode_definition(bytes, file, 1)?;
+    validate_router_definition(&router).map_err(|mut diagnostics| {
+        locate(&mut diagnostics, file, 1);
+        diagnostics
+    })?;
+    Ok(router)
+}
+fn validate_router_definition(router: &RouterDefinition) -> Result<(), DiagnosticList> {
     if router.schema_version != 1 {
         return Err(refusal(RuleDiagnosticCode::UnsupportedSchemaVersion));
     }
@@ -51,18 +58,55 @@ pub fn decode_router(bytes: &[u8], file: &Path) -> Result<RouterDefinition, Diag
         return Err(refusal(RuleDiagnosticCode::InvalidRoute));
     }
     validate_evidence(&router.evidence, &router.inputs)?;
-    Ok(router)
+    Ok(())
 }
 pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize) {
     for diagnostic in &mut diagnostics.items {
-        if let ReportDiagnostic::Rule(diagnostic) = diagnostic
-            && matches!(diagnostic.location, RuleDiagnosticLocation::None)
-        {
-            diagnostic.location = crate::RuleDiagnosticLocation::Definition {
-                file: file.into(),
-                line,
-                column: 1,
-                field_path: vec![],
+        match diagnostic {
+            ReportDiagnostic::Rule(diagnostic) => {
+                if matches!(diagnostic.location, RuleDiagnosticLocation::None) {
+                    diagnostic.location = RuleDiagnosticLocation::Definition {
+                        file: file.into(),
+                        line,
+                        column: 1,
+                        field_path: vec![],
+                    };
+                }
+            }
+            ReportDiagnostic::Decision(diagnostic) => {
+                let field_path = match &diagnostic.location {
+                    sunstack_decisions::DecisionDiagnosticLocation::None => vec![],
+                    sunstack_decisions::DecisionDiagnosticLocation::Field { field_path } => {
+                        field_path
+                            .iter()
+                            .filter(|field| field.as_str() != "validation")
+                            .take(32)
+                            .cloned()
+                            .collect()
+                    }
+                    _ => continue,
+                };
+                diagnostic.location = sunstack_decisions::DecisionDiagnosticLocation::Definition {
+                    file: file.into(),
+                    line,
+                    column: 1,
+                    field_path,
+                };
+            }
+            ReportDiagnostic::Evidence(diagnostic) => {
+                let field_path = match &diagnostic.location {
+                    sunstack_evidence::DiagnosticLocation::None => vec![],
+                    sunstack_evidence::DiagnosticLocation::Field { field_path } => {
+                        field_path.iter().take(32).cloned().collect()
+                    }
+                    _ => continue,
+                };
+                diagnostic.location = sunstack_evidence::DiagnosticLocation::Definition {
+                    file: file.into(),
+                    line,
+                    column: 1,
+                    field_path,
+                };
             }
         }
     }
