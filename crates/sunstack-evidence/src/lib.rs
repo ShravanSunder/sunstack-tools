@@ -32,3 +32,6 @@ pub mod evidence_session;
 pub use evidence_session::*;
 
 mod acquisition_progress;
+
+mod evidence_plan_decoding;
+pub use evidence_plan_decoding::decode_evidence_plan_input;

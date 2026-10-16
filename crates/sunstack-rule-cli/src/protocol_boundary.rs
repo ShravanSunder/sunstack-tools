@@ -3,7 +3,9 @@ use serde_json::value::RawValue;
 use sunstack_decisions::{
     DecisionRunOutcome, RunJudgmentsInput, judgment_validation::decode_run_input,
 };
-use sunstack_evidence::{DiagnosticList, EvidenceCode, EvidencePlanInput, EvidencePlanOutcome};
+use sunstack_evidence::{
+    DiagnosticList, EvidencePlanInput, EvidencePlanOutcome, decode_evidence_plan_input,
+};
 use sunstack_rules::{
     RuleInvocationInput, RuleInvocationOutcome, RulePreparationOutcome, decode_rule_invocation,
 };
@@ -177,14 +179,19 @@ pub fn decode_request(bytes: &[u8]) -> Result<OperationInput, ProtocolCode> {
         return Err(ProtocolCode::UnsupportedProtocolVersion);
     }
     match envelope.operation.as_str() {
-        "prepare_evidence" => Ok(match serde_json::from_str(envelope.input.get()) {
-            Ok(input) => OperationInput::PrepareEvidence(Box::new(input)),
-            Err(_) => OperationInput::Rejected(OperationResult::PrepareEvidence(
-                EvidencePlanOutcome::Refused {
-                    diagnostics: DiagnosticList::one(EvidenceCode::InvalidSelector),
-                },
-            )),
-        }),
+        "prepare_evidence" => Ok(
+            match decode_evidence_plan_input(envelope.input.get().as_bytes()) {
+                Ok(input) => OperationInput::PrepareEvidence(Box::new(input)),
+                Err(diagnostic) => OperationInput::Rejected(OperationResult::PrepareEvidence(
+                    EvidencePlanOutcome::Refused {
+                        diagnostics: DiagnosticList {
+                            items: vec![*diagnostic],
+                            omitted_count: 0,
+                        },
+                    },
+                )),
+            },
+        ),
         "run_judgments" => Ok(match decode_run_input(envelope.input.get().as_bytes()) {
             Ok(input) => OperationInput::RunJudgments(Box::new(input)),
             Err(diagnostic) => OperationInput::Rejected(OperationResult::RunJudgments(
