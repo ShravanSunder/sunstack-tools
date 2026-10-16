@@ -110,7 +110,7 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 
 **`PreparedRules`:**
 - `origin: ReportedOrigin`
-- `routing`: `rule_sets`, or `router { status: not_evaluated, candidate_rule_sets: [path] }`
+- `routing`: `rule_sets`, or `router { status: not_evaluated, candidate_rule_sets: [path], groups: [position] }`
 - `groups: [PreparedGroup]`
 - `occurrences: [PreparedOccurrence]`
 - `planned_requests: [PlannedRequestRecord]`
@@ -166,7 +166,7 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 
 **`RuleInvocationReport`:**
 - `origin: ReportedOrigin`
-- `routing`: `rule_sets`, or `router { outcome: RouterOutcome }`
+- `routing`: `rule_sets`, or `router { groups: [{ position, outcome: RouterOutcome }] }`: one outcome per router binding group, in position order
 - `groups: [GroupResult]`
 - `occurrences: [RuleOccurrenceResult]`
 - `requests: [RequestRecord]`
@@ -178,7 +178,7 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | Shape | Fields |
 | --- | --- |
 | `ReportedOrigin` | `direct`, or `hook { host, event, session: ObservedField, turn: ObservedField, agent: main \| subagent { id, type: ObservedField } \| unknown \| unavailable, observed_at: ObservedField }`. `ObservedField` is `observed { value } \| unavailable` |
-| `EntryKey` | `owner: router \| rule_set { path, group } \| rule { path, group, rule_id }`, `position` |
+| `EntryKey` | `owner: router { group } \| rule_set { path, group } \| rule { path, group, rule_id }`, `position` |
 | `RuleOccurrenceKey` | `rule_set`, `group`, `rule_id` |
 | `GroupResult` | `rule_set`, `position`, `binding: bound \| routed { router_group }`, `applicability: ApplicabilityOutcome`, `entries: [EvaluatedEntry]` |
 | `ApplicabilityOutcome` | `applicable`; `not_applicable { entry: EntryKey, basis }`; `applicability_failed { entry: EntryKey, cause: Cause }`; `not_evaluated { reason: cancelled \| invocation_refused \| earlier_entry_stopped }` |
@@ -190,9 +190,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | `JudgmentReference` | `request_index`, `question_name` (the request-local name, such as `q000003`) |
 | `RouterOutcome` | `routed { label, confidence, answer }`, `uncertain_intent { confidence, floor, distribution: map<label, number>, answer }`, `no_route { label, confidence, answer }`, `router_failed { cause: Cause }`, `not_evaluated { reason: cancelled }` |
 | `RequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `status: sent { outcome: DecisionRunOutcome } \| not_sent { reason: gate_stopped { entry } \| cancelled \| budget_refused { diagnostics } \| request_limit }`, `discarded: [{ question_name, reason: owner_not_applicable { entry } \| not_routed }]` |
-| `RequestOwner` | `router`, `rule_set_group { rule_set, group }` |
+| `RequestOwner` | `router { group }`, `rule_set_group { rule_set, group }` |
 | `RequestMode` | `rules`, `speculative`, `staged_gate`, `split { part, of }` |
-| `QuestionBinding` | `request_name`, `owner: router \| rule_set_decision { entry } \| rule_decision { rule_id, entry } \| verdict { rule_id } \| informational { rule_id, name }` |
+| `QuestionBinding` | `request_name`, `owner: router { group } \| rule_set_decision { entry } \| rule_decision { rule_id, entry } \| verdict { rule_id } \| informational { rule_id, name }` |
 | `TargetLocation` | `paragraph { span, target_id }`, `conversation_records { source, record_ids }`, `payload_field { input, pointer }`, `code_units { units: [SourceUnitKey] }` |
 
 A report is complete when every occurrence is `judged`, `not_applicable` or `outside_change_scope`, and the router (if any) is `routed`, `uncertain_intent` or `no_route`.

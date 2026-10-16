@@ -296,13 +296,13 @@ A **gate** is anything that decides whether later work applies:
 - each RuleSet-level decision entry, per binding group
 - each rule-level decision entry, per occurrence
 
-`GateKey { owner, entry_position }` identifies it. The owner is `router`, `rule_set { path, group }` or `rule { path, group, rule_id }`.
+`GateKey { owner, entry_position }` identifies it. The owner is `router { group }`, `rule_set { path, group }` or `rule { path, group, rule_id }`. Each router binding group is its own gate with its own controlling answer, so two router groups can route differently.
 
 `request_planning` gives every gate exactly one **controlling slot**, owned by exactly one planned request. Every other request that depends on the gate refers to that slot and never asks again. When the owning request fails or is cancelled, the slot settles failed or cancelled for all dependents.
 
 ### Same bound inputs
 
-Each admitted binding resolves to a `SourceId`: a canonical transcript path plus format, a repository key plus normalized path, or a payload's group and input. Aliases of one source resolve to one `SourceId`; another source or another captured version does not.
+Each admitted binding resolves to a `SourceId`: a canonical transcript path plus format, a repository key plus normalized path, or a payload's canonical value identity (a digest of its canonical JSON). Equal payload values are the same source, as Specification C13 says, so a routed group's wired payload is the same source as the router group's. Aliases of one source resolve to one `SourceId`; another source or another captured version does not.
 
 A **read set** is the set of `SourceId`s that some evidence declarations read. A gate's read set comes from its own declarations. A rules request's read set comes from the declarations of the rules it judges, computed before any gate is added. A gate is over the same bound inputs as a request when the gate's read set is within that request's read set. Binding an input that no rule reads does not make a gate over it "same input": a decision over a bound but unused document stages. That is the realization of "over the same bound inputs as the rules" in Specification C13.
 
@@ -331,7 +331,7 @@ Planning is pure and deterministic. It runs after admission and after the leadin
    - A rule that cannot fit alone is refused (`rule_exceeds_budget`). The other rules still run, and the report is incomplete.
    - Every split is reassessed. The invocation's request limit counts staged, speculative and split requests together.
 
-**Question names.** A request's question names are `q000001`, `q000002` and so on, in request-local order. A `QuestionBinding { request_name, owner }` maps each one back. The owner is `router`, `rule_set_decision { entry }`, `rule_decision { rule_id, entry }`, `verdict { rule_id }` or `informational { rule_id, name }`. So an authored question named `verdict` cannot collide with a verdict.
+**Question names.** A request's question names are `q000001`, `q000002` and so on, in request-local order. A `QuestionBinding { request_name, owner }` maps each one back. The owner is `router { group }`, `rule_set_decision { entry }`, `rule_decision { rule_id, entry }`, `verdict { rule_id }` or `informational { rule_id, name }`. So an authored question named `verdict` cannot collide with a verdict.
 
 ### Request state and owner labels
 
@@ -455,7 +455,7 @@ Envelope: `{ protocol_version: 1, operation, input }`. The result is `protocol_e
 
 `RuleInvocationReport` contains:
 - `origin`
-- `routing`: `rule_sets`, or `router { outcome }`
+- `routing`: `rule_sets`, or `router { groups: [{ position, outcome }] }`, one outcome per router binding group
 - `groups`: each with RuleSet, position, `binding` (`bound`, or `routed` from a router group), `applicability` and `entries` (each evaluated entry with its basis, and a decision's answer reference when it completed)
 - `occurrences`: each a `RuleOccurrenceResult`
 - `requests`
