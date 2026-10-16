@@ -1,6 +1,6 @@
 ---
 name: demistify-explainer
-description: Use when explaining engineering work (architecture, a plan, a change, a review, a domain model, a status report) as a visual HTML page. Write content and HTML layout; the Demistify library renders Markdown, Mermaid, cards, trees, code notes, arrows, maps, guided routes, navigation, inspection and light/dark themes.
+description: "Use when writing, editing, or checking Demistify markup: component syntax, attributes, nesting, layouts, Markdown/Mermaid islands, and data references."
 ---
 
 # Demistify explainer
