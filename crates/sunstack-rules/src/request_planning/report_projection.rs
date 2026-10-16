@@ -128,6 +128,10 @@ pub(crate) fn project_report(
         };
         let mut discarded = Vec::new();
         for (unit, question_name) in unit_bindings {
+            if !matches!(&status,RequestStatus::Sent{outcome:DecisionRunOutcome::Completed{answers,..}} if answers.contains_key(&question_name))
+            {
+                continue;
+            }
             let routing = match unit {
                 UnitKey::Rule(index) => plan.groups[plan.occurrences[index.0].group.0]
                     .routing
