@@ -1,0 +1,200 @@
+use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
+use sunstack_decisions::{
+    DecisionDiagnostic, DecisionDiagnosticCode, DecisionRunOutcome, RunJudgmentsInput,
+};
+use sunstack_evidence::{DiagnosticList, EvidenceCode, EvidencePlanInput, EvidencePlanOutcome};
+use tokio::io::AsyncReadExt;
+
+pub const MAX_REQUEST_BYTES: u64 = 8_388_608;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RequestEnvelope {
+    protocol_version: u64,
+    operation: String,
+    input: Box<RawValue>,
+}
+pub enum OperationInput {
+    PrepareEvidence(Box<EvidencePlanInput>),
+    RunJudgments(Box<RunJudgmentsInput>),
+    Rejected(OperationResult),
+}
+#[derive(Serialize)]
+#[serde(tag = "operation", content = "outcome", rename_all = "snake_case")]
+pub enum OperationResult {
+    PrepareEvidence(EvidencePlanOutcome),
+    RunJudgments(DecisionRunOutcome),
+}
+impl OperationResult {
+    pub fn exit_code(&self) -> u8 {
+        match self {
+            Self::PrepareEvidence(outcome) => match outcome {
+                EvidencePlanOutcome::Prepared { .. } => 0,
+                EvidencePlanOutcome::Refused { .. } => 2,
+                EvidencePlanOutcome::Incomplete { .. } => 3,
+                EvidencePlanOutcome::Cancelled { .. } => 4,
+            },
+            Self::RunJudgments(outcome) => outcome.exit_code(),
+        }
+    }
+}
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ProgramResponse {
+    ProtocolError {
+        protocol_version: u8,
+        diagnostics: ProtocolDiagnostics,
+    },
+    OperationResult {
+        protocol_version: u8,
+        result: OperationResult,
+    },
+}
+impl ProgramResponse {
+    pub fn protocol_error(code: ProtocolCode) -> Self {
+        Self::ProtocolError {
+            protocol_version: 1,
+            diagnostics: ProtocolDiagnostics {
+                items: vec![ProtocolDiagnostic {
+                    origin: ProtocolOrigin::Protocol,
+                    code,
+                    location: ProtocolLocation::None,
+                    guidance: code.guidance(),
+                    retry_advice: ProtocolRetry::RepairRequest,
+                }],
+                omitted_count: 0,
+            },
+        }
+    }
+    pub fn operation_result(result: OperationResult) -> Self {
+        Self::OperationResult {
+            protocol_version: 1,
+            result,
+        }
+    }
+}
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProtocolCode {
+    MalformedJson,
+    UnknownField,
+    DuplicateField,
+    UnsupportedProtocolVersion,
+    UnsupportedOperation,
+    InvalidFraming,
+    InputLimit,
+}
+impl ProtocolCode {
+    fn guidance(self) -> &'static str {
+        match self {
+            Self::MalformedJson => "Supply one complete JSON request.",
+            Self::UnknownField => "Remove fields outside the versioned request envelope.",
+            Self::DuplicateField => "Supply each request field once.",
+            Self::UnsupportedProtocolVersion => "Use protocol version 1.",
+            Self::UnsupportedOperation => "Select a supported program operation.",
+            Self::InvalidFraming => "Supply exactly one JSON request object on stdin.",
+            Self::InputLimit => {
+                "Keep the raw stdin request at or below 8,388,608 bytes; bind evidence by path."
+            }
+        }
+    }
+}
+#[derive(Serialize)]
+pub struct ProtocolDiagnostics {
+    items: Vec<ProtocolDiagnostic>,
+    omitted_count: usize,
+}
+#[derive(Serialize)]
+struct ProtocolDiagnostic {
+    origin: ProtocolOrigin,
+    code: ProtocolCode,
+    location: ProtocolLocation,
+    guidance: &'static str,
+    retry_advice: ProtocolRetry,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ProtocolOrigin {
+    Protocol,
+}
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum ProtocolLocation {
+    None,
+}
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum ProtocolRetry {
+    RepairRequest,
+}
+
+pub async fn read_frame() -> Result<Vec<u8>, ProtocolCode> {
+    // Read one excess byte so an open producer cannot make an over-limit input
+    // wait for EOF. No JSON parse runs until this bound has been checked.
+    let mut reader = tokio::io::stdin().take(MAX_REQUEST_BYTES + 1);
+    let mut bytes = Vec::new();
+    reader
+        .read_to_end(&mut bytes)
+        .await
+        .map_err(|_| ProtocolCode::InvalidFraming)?;
+    if reader.limit() == 0 {
+        return Err(ProtocolCode::InputLimit);
+    }
+    Ok(bytes)
+}
+pub fn decode_request(bytes: &[u8]) -> Result<OperationInput, ProtocolCode> {
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    let raw =
+        Box::<RawValue>::deserialize(&mut deserializer).map_err(|_| ProtocolCode::MalformedJson)?;
+    deserializer
+        .end()
+        .map_err(|_| ProtocolCode::InvalidFraming)?;
+    if !raw.get().starts_with('{') {
+        return Err(ProtocolCode::InvalidFraming);
+    }
+    let envelope: RequestEnvelope = serde_json::from_str(raw.get()).map_err(|error| {
+        // Classify decoder-owned errors; never copy received keys or values.
+        let message = error.to_string();
+        if message.starts_with("duplicate field") {
+            ProtocolCode::DuplicateField
+        } else if message.starts_with("unknown field") {
+            ProtocolCode::UnknownField
+        } else {
+            ProtocolCode::InvalidFraming
+        }
+    })?;
+    if envelope.protocol_version != 1 {
+        return Err(ProtocolCode::UnsupportedProtocolVersion);
+    }
+    match envelope.operation.as_str() {
+        "prepare_evidence" => Ok(match serde_json::from_str(envelope.input.get()) {
+            Ok(input) => OperationInput::PrepareEvidence(Box::new(input)),
+            Err(_) => OperationInput::Rejected(OperationResult::PrepareEvidence(
+                EvidencePlanOutcome::Refused {
+                    diagnostics: DiagnosticList::one(EvidenceCode::InvalidSelector),
+                },
+            )),
+        }),
+        "run_judgments" => Ok(match serde_json::from_str(envelope.input.get()) {
+            Ok(input) => OperationInput::RunJudgments(Box::new(input)),
+            Err(error) => {
+                let message = error.to_string();
+                let code = if message.starts_with("unknown field") {
+                    DecisionDiagnosticCode::UnknownField
+                } else if message.starts_with("duplicate field") {
+                    DecisionDiagnosticCode::DuplicateField
+                } else {
+                    DecisionDiagnosticCode::InvalidConfiguration
+                };
+                OperationInput::Rejected(OperationResult::RunJudgments(
+                    DecisionRunOutcome::InvalidRequest {
+                        diagnostics: DecisionDiagnostic::request(code).into(),
+                    },
+                ))
+            }
+        }),
+        // S3a integration supplies the two rules operations in phase 2.
+        _ => Err(ProtocolCode::UnsupportedOperation),
+    }
+}
