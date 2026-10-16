@@ -22,7 +22,7 @@ fn add_payload(root: &std::path::Path, input: &mut Value, value: Value) {
 }
 #[tokio::test]
 async fn nonleading_payload_condition_never_prunes_its_earlier_carried_decision() {
-    for probability in [0.9, 0.1] {
+    for (probability, missing) in [(0.9, false), (0.1, false), (0.9, true), (0.1, true)] {
         let root = tempfile::tempdir().unwrap();
         fixture::write_set(
             root.path(),
@@ -35,7 +35,15 @@ async fn nonleading_payload_condition_never_prunes_its_earlier_carried_decision(
         let mut server = controlled::ControlledServer::start().await;
         let mut input =
             serde_json::to_value(fixture::input(root.path(), &server.endpoint)).unwrap();
-        add_payload(root.path(), &mut input, json!({"enabled":false}));
+        add_payload(
+            root.path(),
+            &mut input,
+            if missing {
+                json!({})
+            } else {
+                json!({"enabled":false})
+            },
+        );
         let execution = tokio::spawn(evaluate_rules(
             serde_json::from_value(input).unwrap(),
             RuleExecutionContext {
@@ -55,9 +63,33 @@ async fn nonleading_payload_condition_never_prunes_its_earlier_carried_decision(
             .await
             .unwrap()
             .unwrap();
-        let RuleInvocationOutcome::CompleteReport { report } = outcome else {
-            panic!("{outcome:?}")
+        let report = match outcome {
+            RuleInvocationOutcome::IncompleteReport { report } if missing && probability >= 0.6 => {
+                report
+            }
+            RuleInvocationOutcome::CompleteReport { report } if !missing || probability < 0.6 => {
+                report
+            }
+            other => panic!("{other:?}"),
         };
+        if missing && probability >= 0.6 {
+            assert!(matches!(
+                report.occurrences[0],
+                RuleOccurrenceResult::EvaluationFailed {
+                    cause: Cause::Condition { .. },
+                    ..
+                }
+            ));
+            assert!(matches!(
+                report.groups[0].entries[1].result,
+                EntryResult::Condition {
+                    outcome: ConditionOutcome::Unresolved { .. },
+                    ..
+                }
+            ));
+            assert_eq!(server.finish().await, 1);
+            continue;
+        }
         let RuleOccurrenceResult::NotApplicable { stopped_at, .. } = &report.occurrences[0] else {
             panic!("{report:?}")
         };

@@ -213,15 +213,17 @@ async fn a_same_input_then_condition_then_different_input_gate_preserves_the_laz
 }
 #[tokio::test]
 async fn adjacent_different_input_gates_over_the_same_source_keep_separate_staged_selections() {
-    for probability in [0.1, 0.9] {
+    for stop in ["nonpass", "failure", "pass"] {
         let root = tempfile::tempdir().unwrap();
         let first = fixture::decision("other");
         let mut second = fixture::decision("other");
         second["evidence"][0]["select"] = json!({"kind":"whole_document"});
         fixture::write_set(root.path(), &[fixture::rule("one")], vec![first, second]);
         let mut server = controlled::ControlledServer::start().await;
+        let mut input = fixture::input(root.path(), &server.endpoint);
+        input.attempts.retry_count = 0;
         let execution = tokio::spawn(evaluate_rules(
-            fixture::input(root.path(), &server.endpoint),
+            input,
             RuleExecutionContext {
                 backend: Arc::new(transport::backend(&server.endpoint)),
                 adapters: AdapterRegistry::builtins().unwrap(),
@@ -230,8 +232,12 @@ async fn adjacent_different_input_gates_over_the_same_source_keep_separate_stage
         ));
         let gate = server.next().await;
         assert_eq!(gate.body["questions"].as_object().unwrap().len(), 1);
-        gate.noul(probability);
-        if probability >= 0.6 {
+        if stop == "failure" {
+            gate.respond(503, json!({"error":"controlled failure"}));
+        } else {
+            gate.noul(if stop == "pass" { 0.9 } else { 0.1 });
+        }
+        if stop == "pass" {
             let gate = server.next().await;
             assert_eq!(
                 gate.body["questions"]["q000001"]["instructions"]["owner"],
@@ -244,20 +250,108 @@ async fn adjacent_different_input_gates_over_the_same_source_keep_separate_stage
             .await
             .unwrap()
             .unwrap();
-        let RuleInvocationOutcome::CompleteReport { report } = outcome else {
-            panic!("{outcome:?}")
+        let report = match outcome {
+            RuleInvocationOutcome::CompleteReport { report } if stop != "failure" => report,
+            RuleInvocationOutcome::IncompleteReport { report } if stop == "failure" => report,
+            other => panic!("{other:?}"),
         };
         assert_eq!(
             report.measurements.files_read,
-            if probability >= 0.6 { 2 } else { 1 }
+            if stop == "pass" { 2 } else { 1 }
         );
         assert_eq!(
             report.measurements.files_parsed,
-            if probability >= 0.6 { 3 } else { 1 }
+            if stop == "pass" { 3 } else { 1 }
         );
+        assert_eq!(server.finish().await, if stop == "pass" { 3 } else { 1 });
+    }
+}
+
+#[tokio::test]
+async fn adjacent_different_input_gates_speculate_concurrently_with_one_control_each() {
+    for passes in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let mut second = fixture::decision("other");
+        second["evidence"][0]["select"] = json!({"kind":"whole_document"});
+        fixture::write_set(
+            root.path(),
+            &[fixture::rule("one")],
+            vec![fixture::decision("other"), second],
+        );
+        let mut server = controlled::ControlledServer::start().await;
+        let mut input = fixture::input(root.path(), &server.endpoint);
+        input.execution.speculation = Speculation::On;
+        let execution = tokio::spawn(evaluate_rules(
+            input,
+            RuleExecutionContext {
+                backend: Arc::new(transport::backend(&server.endpoint)),
+                adapters: AdapterRegistry::builtins().unwrap(),
+                cancellation: CancellationToken::new(),
+            },
+        ));
+        let mut held = Vec::new();
+        for _ in 0..3 {
+            held.push(server.next().await);
+        }
+        let owners = held
+            .iter()
+            .map(|request| {
+                request.body["questions"]["q000001"]["instructions"]["owner"]
+                    .as_str()
+                    .unwrap()
+                    .to_owned()
+            })
+            .collect::<std::collections::BTreeSet<_>>();
         assert_eq!(
-            server.finish().await,
-            if probability >= 0.6 { 3 } else { 1 }
+            owners,
+            std::collections::BTreeSet::from([
+                "rule_set_decision:0".into(),
+                "rule_set_decision:1".into(),
+                "rule:one".into()
+            ])
         );
+        for request in held.into_iter().rev() {
+            let first = request.body["questions"]["q000001"]["instructions"]["owner"]
+                == "rule_set_decision:0";
+            request.noul(if first && !passes { 0.1 } else { 0.9 });
+        }
+        let outcome = tokio::time::timeout(Duration::from_secs(3), execution)
+            .await
+            .unwrap()
+            .unwrap();
+        let RuleInvocationOutcome::CompleteReport { report } = outcome else {
+            panic!("{outcome:?}")
+        };
+        assert_eq!(report.measurements.files_read, 2);
+        assert_eq!(report.measurements.model_requests, 3);
+        if passes {
+            assert!(matches!(
+                report.occurrences[0],
+                RuleOccurrenceResult::Judged { .. }
+            ));
+        } else {
+            assert!(matches!(
+                report.occurrences[0],
+                RuleOccurrenceResult::NotApplicable {
+                    stopped_at: EntryKey { position: 0, .. },
+                    ..
+                }
+            ));
+            assert!(matches!(
+                report.groups[0].entries[1].result,
+                EntryResult::NotEvaluated {
+                    reason: NotEvaluatedReason::EarlierEntryStopped
+                }
+            ));
+            assert_eq!(
+                report
+                    .requests
+                    .iter()
+                    .flat_map(|request| &request.discarded)
+                    .count(),
+                2
+            );
+        }
+        assert_eq!(server.finish().await, 3);
     }
 }

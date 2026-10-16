@@ -163,3 +163,61 @@ fn generated_backend_ceiling_schema_matches_native_optional_positive_only_contra
         assert_eq!(schema.is_valid(&case), accepted, "{case}");
     }
 }
+
+#[path = "support/controlled_http.rs"]
+mod controlled;
+#[path = "support/decision_http.rs"]
+mod transport;
+#[tokio::test]
+async fn reviewed_invocations_pass_native_cross_file_admission_and_real_evidence_preparation() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .unwrap();
+    let transcript = tempfile::tempdir().unwrap();
+    let transcript_path = transcript.path().join("reviewer.jsonl");
+    // A public Codex call/result literal retained verbatim, followed by a synthetic
+    // shell pair in that same format so the example's read/shell selector is nonempty.
+    let mut content = std::fs::read_to_string(
+        root.join("crates/sunstack-evidence/tests/fixtures/codex-composed.jsonl"),
+    )
+    .unwrap();
+    content.push_str("{\"timestamp\":\"2026-10-15T00:00:01Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"function_call\",\"call_id\":\"read\",\"name\":\"exec_command\",\"arguments\":\"{\\\"cmd\\\":\\\"cat docs/specs/2026-10-12-rust-rule-engine/program-design.md\\\"}\"}}\n{\"timestamp\":\"2026-10-15T00:00:02Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"function_call_output\",\"call_id\":\"read\",\"output\":\"Program Design read.\"}}\n");
+    std::fs::write(&transcript_path, content).unwrap();
+    for name in [
+        "skill-lint.invocation.json",
+        "handoff-monitor.invocation.json",
+    ] {
+        let server = controlled::ControlledServer::start().await;
+        let mut raw: Value =
+            serde_json::from_slice(&std::fs::read(examples().join(name)).unwrap()).unwrap();
+        raw["definition_root"] = json!(examples().canonicalize().unwrap());
+        raw["backend"] = serde_json::to_value(transport::selection(&server.endpoint)).unwrap();
+        if name.starts_with("skill") {
+            raw["repositories"][0]["root"] = json!(root);
+        } else {
+            raw["definitions"]["binding_groups"][0]["bindings"]["session"]["transcript_path"] =
+                json!(transcript_path);
+            raw["payload_schemas"][0]["path"] = json!(
+                root.join("crates/sunstack-evidence/tests/fixtures/agent-job-packet.schema.json")
+            );
+        }
+        let input = decode_rule_invocation(&serde_json::to_vec(&raw).unwrap()).unwrap();
+        let result = prepare_rules(
+            input,
+            RuleExecutionContext {
+                backend: std::sync::Arc::new(transport::backend(&server.endpoint)),
+                adapters: sunstack_evidence::AdapterRegistry::builtins().unwrap(),
+                cancellation: sunstack_decisions::CancellationToken::new(),
+            },
+        )
+        .await;
+        let RulePreparationOutcome::Prepared { preparation } = result else {
+            panic!("{name}: {result:?}")
+        };
+        assert_eq!(preparation.measurements.model_requests, 0);
+        assert!(!preparation.planned_requests.is_empty());
+        assert!(!preparation.occurrences.is_empty());
+        assert_eq!(server.finish().await, 0);
+    }
+}

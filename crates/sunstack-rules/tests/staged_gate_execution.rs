@@ -149,6 +149,20 @@ async fn staged_gates_wait_in_authored_order_skip_later_acquisition_and_keep_fir
                     .any(|request| matches!(request.status, RequestStatus::NotSent { .. }))
             );
         }
-        let _ = server.finish().await;
+        let EntryResult::Decision {
+            outcome: DecisionEntryOutcome::Passed { answer },
+            ..
+        } = &report.groups[0].entries[0].result
+        else {
+            panic!("{report:?}")
+        };
+        assert!(matches!(
+            report.answer(answer),
+            Some(sunstack_decisions::JudgmentAnswer::Noul { .. })
+        ));
+        assert!(
+            matches!(&report.requests[answer.request_index].status, RequestStatus::Sent { outcome: sunstack_decisions::DecisionRunOutcome::Completed { receipt, attempts, .. } } if receipt.usage.cost_usd == Some(0.001) && attempts.len() == 1)
+        );
+        assert_eq!(server.finish().await, if stop == "pass" { 4 } else { 2 });
     }
 }

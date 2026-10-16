@@ -125,3 +125,130 @@ fn composite_normalizes_fractional_scores_and_keeps_each_native_reference() {
         .is_err()
     );
 }
+
+#[test]
+fn verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape() {
+    let inputs = std::collections::BTreeMap::from([(
+        sunstack_evidence::SourceName::new("subject").unwrap(),
+        InputDeclaration::Document,
+    )]);
+    let baseline = serde_json::json!({"rule_id":"check","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{"yes":{"type":"noul","instructions":"yes"},"quality":{"type":"score","instructions":"quality","criteria":["low","middle","high"]}},"verdict":{"kind":"composite","dimensions":[{"question":"yes","weight":0.5},{"question":"quality","weight":0.5}],"threshold":0.75},"severity":"block"});
+    for case in [
+        "valid",
+        "missing_dimension",
+        "wrong_type",
+        "single_level",
+        "zero_weight",
+        "negative_weight",
+        "weight_sum",
+    ] {
+        let mut raw = baseline.clone();
+        match case {
+            "missing_dimension" => {
+                raw["verdict"]["dimensions"][0]["question"] = serde_json::json!("absent")
+            }
+            "wrong_type" => {
+                raw["questions"]["yes"] = serde_json::json!({"type":"choice","instructions":"choose","criteria":{"a":"a","b":"b"}})
+            }
+            "single_level" => raw["questions"]["quality"]["criteria"] = serde_json::json!(["only"]),
+            "zero_weight" => raw["verdict"]["dimensions"][0]["weight"] = serde_json::json!(0),
+            "negative_weight" => {
+                raw["verdict"]["dimensions"][0]["weight"] = serde_json::json!(-0.5)
+            }
+            "weight_sum" => raw["verdict"]["dimensions"][0]["weight"] = serde_json::json!(0.6),
+            _ => {}
+        }
+        let rule = decode_rule_definition(
+            &serde_json::to_vec(&raw).unwrap(),
+            "rules.jsonl".as_ref(),
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            validate_rule_definition(&rule, &inputs).is_ok(),
+            case == "valid",
+            "{case}"
+        );
+    }
+    for (severity, band, accepted) in [
+        ("block", 0.3, true),
+        ("block", 0.8, false),
+        ("block", 0.9, false),
+        ("nudge", 0.3, false),
+    ] {
+        let mut raw = baseline.clone();
+        raw["verdict"] = serde_json::json!({"kind":"noul","question":{"type":"noul","instructions":"judge"},"threshold":0.8});
+        raw["severity"] = serde_json::json!(severity);
+        raw["verdict"]["block_at_or_below"] = serde_json::json!(band);
+        let rule = decode_rule_definition(
+            &serde_json::to_vec(&raw).unwrap(),
+            "rules.jsonl".as_ref(),
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            validate_rule_definition(&rule, &inputs).is_ok(),
+            accepted,
+            "{severity}/{band}"
+        );
+    }
+}
+#[test]
+fn composite_threshold_equality_and_default_nudge_use_native_values_without_fabricated_confidence()
+{
+    let mut rule = rule();
+    rule.questions = serde_json::from_value(serde_json::json!({"yes":{"type":"noul","instructions":"yes"},"quality":{"type":"score","instructions":"quality","criteria":["low","middle","high"]}})).unwrap();
+    rule.verdict = serde_json::from_value(serde_json::json!({"kind":"composite","dimensions":[{"question":"yes","weight":0.5},{"question":"quality","weight":0.5}],"threshold":0.75})).unwrap();
+    rule.severity = Severity::Nudge;
+    for (probability, expected, passes) in [(0.5, 0.75, true), (0.4998, 0.7499, false)] {
+        let informational = BTreeMap::from([
+            (
+                QuestionName::new("yes").unwrap(),
+                ReferencedAnswer {
+                    answer: JudgmentAnswer::Noul {
+                        yes_probability: probability,
+                    },
+                    reference: reference("q000001"),
+                },
+            ),
+            (
+                QuestionName::new("quality").unwrap(),
+                ReferencedAnswer {
+                    answer: JudgmentAnswer::Score {
+                        score: 2.0,
+                        confidence: 0.9,
+                        legend: BTreeMap::new(),
+                        probabilities: BTreeMap::new(),
+                    },
+                    reference: reference("q000002"),
+                },
+            ),
+        ]);
+        let verdict = evaluate_verdict(
+            &rule,
+            &VerdictAnswers {
+                noul_verdict: None,
+                informational,
+            },
+        )
+        .unwrap();
+        assert!((verdict.value - expected).abs() < 1e-12);
+        assert_eq!(matches!(verdict.result, VerdictResult::Pass), passes);
+        if !passes {
+            assert!(matches!(
+                verdict.result,
+                VerdictResult::Fail {
+                    activation: Activation::Nudge
+                }
+            ));
+        }
+    }
+    let raw = serde_json::json!({"rule_id":"default","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{},"verdict":{"kind":"noul","question":{"type":"noul","instructions":"judge"},"threshold":0.8}});
+    let default = decode_rule_definition(
+        &serde_json::to_vec(&raw).unwrap(),
+        "rules.jsonl".as_ref(),
+        1,
+    )
+    .unwrap();
+    assert_eq!(default.severity, Severity::Nudge);
+}
