@@ -11,27 +11,48 @@ pub fn resolve_paragraph(
     document: &CapturedDocument,
     target: &TargetId,
 ) -> EvidenceResult<SelectionContent> {
-    let mut quote_depth = 0_usize;
-    let mut paragraph_start = None;
-    let mut item_start = None;
+    let mut block_stack = Vec::new();
+    let mut paragraph_range: Option<std::ops::Range<usize>> = None;
     let mut candidates = Vec::new();
     for (event, range) in Parser::new(&document.text).into_offset_iter() {
-        match event {
-            Event::Start(Tag::BlockQuote(_)) => quote_depth += 1,
-            Event::End(TagEnd::BlockQuote(_)) => quote_depth = quote_depth.saturating_sub(1),
-            Event::Start(Tag::Paragraph) if quote_depth == 0 => paragraph_start = Some(range.start),
-            Event::End(TagEnd::Paragraph) if quote_depth == 0 => {
-                if let Some(start) = paragraph_start.take() {
-                    candidates.push(start..range.end);
+        match &event {
+            Event::Start(tag) if is_block_end(tag.to_end()) => {
+                if let Some(paragraph) = paragraph_range.take() {
+                    candidates.push(paragraph);
+                }
+                block_stack.push(tag.to_end());
+                if matches!(tag, Tag::Paragraph)
+                    && !block_stack
+                        .iter()
+                        .any(|tag| matches!(tag, TagEnd::BlockQuote(_)))
+                {
+                    paragraph_range = Some(range);
                 }
             }
-            Event::Start(Tag::Item) if quote_depth == 0 => item_start = Some(range.start),
-            Event::Text(_) if quote_depth == 0 && paragraph_start.is_none() => {
-                if item_start.take().is_some() {
-                    candidates.push(range);
+            Event::End(tag) if is_block_end(*tag) => {
+                if let Some(paragraph) = paragraph_range.take() {
+                    candidates.push(paragraph);
+                }
+                block_stack.pop();
+            }
+            Event::Rule => {
+                if let Some(paragraph) = paragraph_range.take() {
+                    candidates.push(paragraph);
                 }
             }
-            Event::End(TagEnd::Item) => item_start = None,
+            _ if matches!(block_stack.last(), Some(TagEnd::Item | TagEnd::Paragraph))
+                && !block_stack
+                    .iter()
+                    .any(|tag| matches!(tag, TagEnd::BlockQuote(_))) =>
+            {
+                // Tight lists omit Paragraph events. Keep the complete inline source range,
+                // including markup delimiters and wrapped lines, until the next block boundary.
+                if let Some(paragraph) = &mut paragraph_range {
+                    paragraph.end = paragraph.end.max(range.end);
+                } else {
+                    paragraph_range = Some(range);
+                }
+            }
             _ => {}
         }
     }
@@ -56,6 +77,19 @@ pub fn resolve_paragraph(
         _ => Err(EvidenceCode::DuplicateTarget.into()),
     }
 }
+fn is_block_end(tag: TagEnd) -> bool {
+    !matches!(
+        tag,
+        TagEnd::Emphasis
+            | TagEnd::Strong
+            | TagEnd::Strikethrough
+            | TagEnd::Superscript
+            | TagEnd::Subscript
+            | TagEnd::Link
+            | TagEnd::Image
+    )
+}
+
 /// Every returned AST match is a syntactic fact. No symbol identity is inferred.
 pub fn select_document(
     document: &CapturedDocument,

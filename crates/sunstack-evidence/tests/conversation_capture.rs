@@ -414,3 +414,94 @@ async fn malformed_unsupported_ambiguous_and_explicit_failure_stay_observable() 
     assert_eq!(tool.outcome, ToolOutcome::Failed);
     assert_eq!(tool.category, ToolCategory::Shell);
 }
+
+#[tokio::test]
+async fn category_and_name_filters_exclude_contrasting_tools_and_remove_present_results() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("mixed-tools.jsonl");
+    let messages = [
+        serde_json::json!({"type":"assistant","message":{"id":"mixed","content":[
+            {"type":"tool_use","id":"read","name":"Read","input":{"file_path":"/fixture"}},
+            {"type":"tool_use","id":"shell","name":"Bash","input":{"command":"cat /fixture"}},
+            {"type":"tool_use","id":"search","name":"Search","input":{"query":"fixture"}}
+        ]}}),
+        serde_json::json!({"type":"user","message":{"content":[
+            {"type":"tool_result","tool_use_id":"read","content":"read-result"},
+            {"type":"tool_result","tool_use_id":"shell","content":"shell-result"},
+            {"type":"tool_result","tool_use_id":"search","content":"search-result"}
+        ]}}),
+    ];
+    let bytes = messages
+        .iter()
+        .map(|value| format!("{}\n", serde_json::to_string(value).unwrap()))
+        .collect::<String>();
+    std::fs::write(&path, bytes).unwrap();
+    let captured = capture(request(&path)).await;
+    let mut projection = selection();
+    projection.turns = TurnWindow::All;
+    projection.user_messages = Inclusion::Excluded;
+    projection.assistant_messages = AssistantSelection::Excluded;
+    let all = select_conversation(&captured, &projection).unwrap();
+    assert_eq!(all.records.len(), 3);
+    assert!(all.records.iter().all(|record| matches!(&record.body, ConversationBody::ToolUse(tool) if matches!(tool.result, ToolResult::FullObserved { .. }) && tool.outcome == ToolOutcome::Succeeded)));
+    for (filter, expected_id, expected_category) in [
+        (
+            ToolFilter::Categories {
+                categories: vec![ToolCategory::ReadFile],
+            },
+            "read",
+            ToolCategory::ReadFile,
+        ),
+        (
+            ToolFilter::Named {
+                names: vec!["Search".into()],
+            },
+            "search",
+            ToolCategory::Search,
+        ),
+    ] {
+        projection.tool_use = ToolUseSelection::Included {
+            tools: filter,
+            results: Inclusion::Included,
+        };
+        let selected = select_conversation(&captured, &projection).unwrap();
+        assert_eq!(selected.records.len(), 1);
+        let ConversationBody::ToolUse(tool) = &selected.records[0].body else {
+            unreachable!()
+        };
+        assert_eq!(tool.call_id.as_str(), expected_id);
+        assert_eq!(tool.category, expected_category);
+    }
+    projection.tool_use = ToolUseSelection::Included {
+        tools: ToolFilter::All,
+        results: Inclusion::Excluded,
+    };
+    let excluded = select_conversation(&captured, &projection).unwrap();
+    assert_eq!(excluded.records.len(), 3);
+    for (original, projected) in all.records.iter().zip(&excluded.records) {
+        let (ConversationBody::ToolUse(original), ConversationBody::ToolUse(projected)) =
+            (&original.body, &projected.body)
+        else {
+            unreachable!()
+        };
+        assert_eq!(projected.call_id, original.call_id);
+        assert_eq!(projected.input, original.input);
+        assert_eq!(projected.outcome, original.outcome);
+        assert_eq!(projected.result, ToolResult::Absent);
+    }
+}
+
+#[tokio::test]
+async fn unknown_format_is_refused_at_capture_entry_before_file_acquisition() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(&root.path().join("does-not-exist"));
+    request.format = TranscriptFormatName::new("unregistered-host").unwrap();
+    let error = capture_conversation(
+        request,
+        AdapterRegistry::builtins().unwrap(),
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error.code, EvidenceCode::UnknownTranscriptFormat);
+}

@@ -121,3 +121,107 @@ async fn duplicate_deleted_literal_and_regex_targets_use_frozen_source_ranges() 
         TargetResolution::Ambiguous
     );
 }
+
+async fn assert_paragraph_case(markdown: &str, target_id: &str, expected: Option<&str>) {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(root.path().join("paragraph.md"), markdown).unwrap();
+    let binding = RepositoryBinding {
+        key: RepositoryId::new("paragraph_case").unwrap(),
+        root: root.path().into(),
+        input_paths: vec![QueryPath::Exact {
+            path: "paragraph.md".into(),
+        }],
+        change_scope: ChangeScope::Full,
+    };
+    let document = capture_document(
+        binding,
+        "paragraph.md".into(),
+        10000,
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    let result = resolve_paragraph(&document, &TargetId::new(target_id).unwrap());
+    if let Some(expected) = expected {
+        let SelectionContent::Paragraph { text, span } = result.unwrap() else {
+            unreachable!()
+        };
+        assert_eq!(text, expected);
+        assert_eq!(&markdown[span.byte_start..span.byte_end], expected);
+        let start = markdown.find(expected).unwrap();
+        assert_eq!(
+            (span.byte_start, span.byte_end),
+            (start, start + expected.len())
+        );
+    } else {
+        assert_eq!(result.unwrap_err().code, EvidenceCode::MissingTarget);
+    }
+}
+macro_rules! paragraph_regression {
+    ($name:ident, $markdown:expr, $target:expr, $expected:expr) => {
+        #[tokio::test]
+        async fn $name() {
+            assert_paragraph_case($markdown, $target, $expected).await;
+        }
+    };
+}
+paragraph_regression!(
+    paragraph_control_ordinary_wrapped,
+    "U001: first\ncontinuation\n",
+    "U001",
+    Some("U001: first\ncontinuation")
+);
+paragraph_regression!(
+    paragraph_regression_tight_list_wrapped,
+    "- U002: first\n  continuation\n",
+    "U002",
+    Some("U002: first\n  continuation")
+);
+paragraph_regression!(
+    paragraph_regression_tight_list_emphasis,
+    "- U003: first *emphasis* tail\n",
+    "U003",
+    Some("U003: first *emphasis* tail")
+);
+paragraph_regression!(
+    paragraph_regression_tight_list_link,
+    "- U004: first [label](https://example.com) tail\n",
+    "U004",
+    Some("U004: first [label](https://example.com) tail")
+);
+paragraph_regression!(
+    paragraph_regression_tight_list_inline_code,
+    "- U005: first `code` tail\n",
+    "U005",
+    Some("U005: first `code` tail")
+);
+paragraph_regression!(
+    paragraph_control_loose_list_wrapped,
+    "- U006: first\n  continuation\n\n- next item\n",
+    "U006",
+    Some("U006: first\n  continuation")
+);
+paragraph_regression!(
+    paragraph_control_inline_code_id,
+    "- `U007: example`\n",
+    "U007",
+    None
+);
+paragraph_regression!(
+    paragraph_regression_list_heading_excluded,
+    "- # U008: heading\n",
+    "U008",
+    None
+);
+paragraph_regression!(
+    paragraph_regression_list_fence_excluded,
+    "- ```\n  U009: example\n  ```\n",
+    "U009",
+    None
+);
+paragraph_regression!(
+    paragraph_control_ordinary_emphasis,
+    "U010: first *emphasis* tail\n",
+    "U010",
+    Some("U010: first *emphasis* tail")
+);
