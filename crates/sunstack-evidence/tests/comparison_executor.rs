@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod support;
-use std::time::Duration;
+use std::{future::Future, time::Duration};
 use sunstack_evidence::*;
 use support::*;
 use tokio_util::sync::CancellationToken;
@@ -71,15 +71,28 @@ fn assert_comparison_waits_for_blocking_worker(work: ComparisonWork) {
             .unwrap();
         let (polling, polled) = tokio::sync::oneshot::channel();
         let comparison = tokio::spawn(async move {
-            let _ = polling.send(());
-            session.compare_change_sides(subject, level).await
-        });
-        tokio::time::timeout(Duration::from_secs(2), polled)
+            let comparison = session.compare_change_sides(subject, level);
+            tokio::pin!(comparison);
+            let mut polling = Some(polling);
+            std::future::poll_fn(|context| {
+                let result = comparison.as_mut().poll(context);
+                if result.is_pending()
+                    && let Some(polling) = polling.take()
+                {
+                    let _ = polling.send(());
+                }
+                result
+            })
             .await
-            .unwrap()
+        });
+        let yielded = tokio::time::timeout(Duration::from_secs(2), polled)
+            .await
             .unwrap();
-        // On a current-thread runtime the comparison has reached its first yield by now.
-        // Inline lookup/mapping would already have returned its empty/outside result.
+        assert!(
+            yielded.is_ok(),
+            "comparison completed without yielding to the occupied blocking worker"
+        );
+        // Pending was observed from the actual comparison future, not a task-start signal.
         assert!(
             !comparison.is_finished(),
             "comparison bypassed the occupied blocking worker"
