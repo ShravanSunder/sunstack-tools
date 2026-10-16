@@ -1,6 +1,12 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used)]
 use serde_json::{Value, json};
-use std::time::Duration;
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Duration,
+};
 use sunstack_decisions::CancellationToken;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -40,21 +46,21 @@ impl ControlledServer {
         let (send, requests) = mpsc::unbounded_channel();
         let cancellation = CancellationToken::new();
         let stopped = cancellation.clone();
+        let received = Arc::new(AtomicUsize::new(0));
         let task = tokio::spawn(async move {
             let mut connections = JoinSet::new();
             loop {
                 tokio::select! {biased;_=stopped.cancelled()=>break,
                     accepted=listener.accept()=>{
-                        let (connection,_)=accepted.unwrap();let send=send.clone();let stopped=stopped.clone();
-                        connections.spawn(async move {tokio::select! {biased;_=stopped.cancelled()=>0, count=serve(connection,send)=>count}});
+                        let (connection,_)=accepted.unwrap();let send=send.clone();let stopped=stopped.clone();let received=received.clone();
+                        connections.spawn(async move {tokio::select! {biased;_=stopped.cancelled()=>{}, _=serve(connection,send,received)=>{}}});
                     }
                 }
             }
-            let mut count = 0;
             while let Some(result) = connections.join_next().await {
-                count += result.unwrap();
+                result.unwrap();
             }
-            count
+            received.load(Ordering::SeqCst)
         });
         Self {
             endpoint,
@@ -77,13 +83,17 @@ impl ControlledServer {
             .unwrap()
     }
 }
-async fn serve(mut stream: TcpStream, send: mpsc::UnboundedSender<PendingHttpRequest>) -> usize {
+async fn serve(
+    mut stream: TcpStream,
+    send: mpsc::UnboundedSender<PendingHttpRequest>,
+    received: Arc<AtomicUsize>,
+) {
     let mut bytes = Vec::new();
     let mut buffer = [0u8; 2048];
     let (header_end, length) = loop {
         let count = stream.read(&mut buffer).await.unwrap_or(0);
         if count == 0 {
-            return 0;
+            return;
         }
         bytes.extend_from_slice(&buffer[..count]);
         if let Some(end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
@@ -102,14 +112,15 @@ async fn serve(mut stream: TcpStream, send: mpsc::UnboundedSender<PendingHttpReq
     while bytes.len() < header_end + length {
         let count = stream.read(&mut buffer).await.unwrap_or(0);
         if count == 0 {
-            return 0;
+            return;
         }
         bytes.extend_from_slice(&buffer[..count]);
     }
     let body = serde_json::from_slice(&bytes[header_end..header_end + length]).unwrap();
+    received.fetch_add(1, Ordering::SeqCst);
     let (reply, receive) = oneshot::channel();
     if send.send(PendingHttpRequest { body, reply }).is_err() {
-        return 1;
+        return;
     }
     if let Ok((status, body)) = receive.await {
         let bytes = serde_json::to_vec(&body).unwrap();
@@ -121,5 +132,4 @@ async fn serve(mut stream: TcpStream, send: mpsc::UnboundedSender<PendingHttpReq
             let _ = stream.write_all(&bytes).await;
         }
     }
-    1
 }
