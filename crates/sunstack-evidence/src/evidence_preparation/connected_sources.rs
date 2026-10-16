@@ -10,7 +10,7 @@ pub(super) enum RepositoryView {
 impl Preparation {
     pub(super) fn discovery_limits(&self) -> EvidenceResult<DiscoveryLimits> {
         let EvidenceDiscovery::Bounded { limits } = &self.input.discovery else {
-            return Err(EvidenceCode::UnsupportedRelationshipQuery.into());
+            return Err(EvidenceCode::DiscoveryNotEnabled.into());
         };
         let mut limits = limits.clone();
         limits.max_files = limits.max_files.min(self.input.limits.max_files);

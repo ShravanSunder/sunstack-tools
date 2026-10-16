@@ -44,6 +44,7 @@ pub enum EvidenceCode {
     RecencyUnknown,
     RelationshipUnresolved,
     DiscoveryLimit,
+    DiscoveryNotEnabled,
     UnsupportedRelationshipQuery,
     InvalidContextGroup,
     MissingRelatedContext,
@@ -93,6 +94,11 @@ impl Diagnostic {
     pub fn new(code: EvidenceCode) -> Self {
         use EvidenceCode::*;
         let (origin, guidance, retry_advice) = match code {
+            DiscoveryNotEnabled => (
+                DiagnosticOrigin::Invocation,
+                "Enable bounded discovery for change-set or relationship evidence.",
+                RetryAdvice::RepairConfiguration,
+            ),
             NoChangeSelection => (
                 DiagnosticOrigin::Selection,
                 "Supply a change scope for changed-unit seeds; full scope is discovery context only.",

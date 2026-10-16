@@ -224,8 +224,13 @@ async fn unused_non_git_change_scope_is_lazy_and_the_used_scope_is_reported_once
 async fn failed_utf8_acquisition_still_consumes_the_invocation_file_and_byte_budget() {
     let fixture = GitFixture::new();
     std::fs::write(fixture.directory.path().join("source.ts"), [0xff; 20]).unwrap();
-    fixture.write("later.ts", "function later() {}");
-    for bound_files in [true, false] {
+    fixture.write("zz-later.ts", "function later() {}");
+    for (source, bound_files) in [
+        ("document", true),
+        ("document", false),
+        ("changes", true),
+        ("changes", false),
+    ] {
         let mut input = request(
             &fixture,
             ChangeScope::Uncommitted {
@@ -236,7 +241,7 @@ async fn failed_utf8_acquisition_still_consumes_the_invocation_file_and_byte_bud
             SourceName::new("later").unwrap(),
             SourceSpec::Document {
                 repository: RepositoryId::new("fixture").unwrap(),
-                path: "later.ts".into(),
+                path: "zz-later.ts".into(),
             },
         );
         if bound_files {
@@ -254,8 +259,12 @@ async fn failed_utf8_acquisition_still_consumes_the_invocation_file_and_byte_bud
         let failed = session
             .select(&declaration(
                 "bad_utf8",
-                "document",
-                EvidenceSelection::WholeDocument,
+                source,
+                if source == "changes" {
+                    units()
+                } else {
+                    EvidenceSelection::WholeDocument
+                },
             ))
             .await;
         assert!(

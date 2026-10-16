@@ -9,19 +9,19 @@ pub(crate) fn admit_connected_plan(input: &EvidencePlanInput) -> EvidenceResult<
         if let SourceSpec::ChangeSet { repository } = source {
             repository_binding(input, repository)?;
             if matches!(input.discovery, EvidenceDiscovery::None) {
-                return Err(EvidenceCode::UnsupportedRelationshipQuery.into());
+                return Err(EvidenceCode::DiscoveryNotEnabled.into());
             }
         }
     }
     for query in &input.native_queries {
         if let EvidenceSelector::RelatedUnits { query, .. } = &query.selector {
             if matches!(input.discovery, EvidenceDiscovery::None) {
-                return Err(EvidenceCode::UnsupportedRelationshipQuery.into());
+                return Err(EvidenceCode::DiscoveryNotEnabled.into());
             }
-            if query.repository_ids.is_empty()
-                || query.directions.is_empty()
-                || query.source_units.languages.is_empty()
-                || query.source_units.unit_kinds.is_empty()
+            if !nonempty_unique(&query.repository_ids)
+                || !nonempty_unique(&query.directions)
+                || !nonempty_unique(&query.source_units.languages)
+                || !nonempty_unique(&query.source_units.unit_kinds)
             {
                 return Err(EvidenceCode::InvalidSelector.into());
             }
@@ -30,7 +30,7 @@ pub(crate) fn admit_connected_plan(input: &EvidencePlanInput) -> EvidenceResult<
             }
             match &query.source_units.seeds {
                 SourceUnitSeeds::ChangedUnits { repository_ids } => {
-                    if repository_ids.is_empty() {
+                    if !nonempty_unique(repository_ids) {
                         return Err(EvidenceCode::InvalidSelector.into());
                     }
                     for repository in repository_ids {
@@ -114,7 +114,7 @@ pub(crate) fn admit_connected_selection(selection: &EvidenceSelection) -> Eviden
             languages,
             unit_kinds,
             ..
-        } if languages.is_empty() || unit_kinds.is_empty() => {
+        } if !nonempty_unique(languages) || !nonempty_unique(unit_kinds) => {
             return Err(EvidenceCode::InvalidSelector.into());
         }
         EvidenceSelection::RelatedUnits {
@@ -123,17 +123,15 @@ pub(crate) fn admit_connected_selection(selection: &EvidenceSelection) -> Eviden
             directions,
             chunk_settings,
             ..
-        } => {
-            if languages.is_empty()
-                || unit_kinds.is_empty()
-                || directions.is_empty()
-                || chunk_settings.grouping != ChunkGrouping::SingleGroup
-                || unit_kinds
-                    .iter()
-                    .any(|kind| matches!(kind, UnitKindFilter::Paragraph | UnitKindFilter::Section))
-            {
-                return Err(EvidenceCode::InvalidContextGroup.into());
-            }
+        } if !nonempty_unique(languages)
+            || !nonempty_unique(unit_kinds)
+            || !nonempty_unique(directions)
+            || chunk_settings.grouping != ChunkGrouping::SingleGroup
+            || unit_kinds.iter().any(|kind| {
+                matches!(kind, UnitKindFilter::Paragraph | UnitKindFilter::Section)
+            }) =>
+        {
+            return Err(EvidenceCode::InvalidContextGroup.into());
         }
         _ => {}
     }
@@ -183,4 +181,12 @@ fn validate_primitive(selection: &EvidenceSelection) -> EvidenceResult<()> {
         _ => {}
     }
     Ok(())
+}
+
+fn nonempty_unique<TValue: PartialEq>(values: &[TValue]) -> bool {
+    !values.is_empty()
+        && values
+            .iter()
+            .enumerate()
+            .all(|(position, value)| !values[..position].contains(value))
 }

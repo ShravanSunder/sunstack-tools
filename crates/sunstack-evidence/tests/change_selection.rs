@@ -349,3 +349,40 @@ async fn untracked_selection_is_explicit_and_rename_keeps_captured_sides() {
         Some("fn moved() {}\n")
     );
 }
+
+#[tokio::test]
+async fn explicit_commit_events_obey_the_history_budget() {
+    let fixture = GitFixture::new();
+    fixture.write("source.ts", "function first() {}");
+    fixture.stage("source.ts");
+    let first = fixture.commit(1000);
+    fixture.write("source.ts", "function second() {}");
+    fixture.stage("source.ts");
+    let second = fixture.commit(1100);
+    let mut limits = discovery_limits();
+    limits.max_history_commits = 1.try_into().unwrap();
+    let captured = capture_change_selection(
+        ChangeCaptureRequest {
+            binding: fixture.binding(ChangeScope::CommitSet {
+                commit_ids: vec![
+                    GitObjectId::new(first.to_string()).unwrap(),
+                    GitObjectId::new(second.to_string()).unwrap(),
+                ],
+                parent_policy: CommitParentPolicy::FirstParent,
+            }),
+            limits,
+            anchor_utc: anchor(),
+        },
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        captured.members.len(),
+        1,
+        "the second requested commit must be omitted with a cutoff"
+    );
+    assert!(
+        matches!(&captured.coverage, DiscoveryCoverage::Limited { cutoffs, .. } if cutoffs.iter().any(|cutoff| cutoff.limit == DiscoveryLimit::HistoryCommits))
+    );
+}

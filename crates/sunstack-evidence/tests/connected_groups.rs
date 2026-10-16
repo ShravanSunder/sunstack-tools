@@ -90,6 +90,10 @@ async fn public_native_per_seed_groups_attribute_shared_related_units_without_re
         };
         assert_eq!(group.excerpts.len(), 2);
         assert!(
+            group.unknown_recency_context.is_empty(),
+            "known full-context sources must not be labelled unknown recency"
+        );
+        assert!(
             group
                 .excerpts
                 .iter()
@@ -282,4 +286,94 @@ async fn public_unknown_recency_context_is_labelled_without_becoming_a_changed_s
     assert!(
         matches!(&group.unknown_recency_context[0], SourceRef::RepositoryFile { path, revision: SourceRevision::Worktree { .. }, .. } if path.to_str() == Some("helper.ts"))
     );
+}
+
+#[tokio::test]
+async fn public_excluded_unread_context_is_not_labelled_as_captured_or_unchanged() {
+    let fixture = GitFixture::new();
+    fixture.write("seed.ts", "function seed() { return 0; }");
+    fixture.write("helper.ts", "export function helper() { return 0; }");
+    fixture.stage("seed.ts");
+    fixture.stage("helper.ts");
+    fixture.commit(1000);
+    fixture.write(
+        "seed.ts",
+        "import { helper } from './helper'; function seed() { helper(); }",
+    );
+    fixture.write(
+        "helper.ts",
+        &format!(
+            "export function helper() {{ /* {} */ }}",
+            "large".repeat(200)
+        ),
+    );
+    std::fs::File::options()
+        .write(true)
+        .open(fixture.directory.path().join("helper.ts"))
+        .unwrap()
+        .set_times(
+            std::fs::FileTimes::new()
+                .set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(3600)),
+        )
+        .unwrap();
+    let mut input = plan(
+        vec![fixture.binding(ChangeScope::RecentUncommitted {
+            layers: vec![DirtyLayer::Unstaged],
+            window: TimeWindow::Lookback {
+                seconds: 60.try_into().unwrap(),
+            },
+            unknown_recency: UnknownRecencyPolicy::ExcludeWithOmission,
+        })],
+        related(RelationDirection::Callees),
+        EvidenceRequirement::Optional,
+    );
+    let EvidenceDiscovery::Bounded { limits } = &mut input.discovery else {
+        unreachable!()
+    };
+    limits.max_file_bytes = 256.try_into().unwrap();
+    let outcome = prepare_evidence(
+        input,
+        AdapterRegistry::builtins().unwrap(),
+        CancellationToken::new(),
+    )
+    .await;
+    let EvidencePlanOutcome::Prepared {
+        selections,
+        change_selections,
+        ..
+    } = outcome
+    else {
+        panic!("optional partial must survive: {outcome:?}")
+    };
+    assert!(matches!(
+        &change_selections[0].members[0].recency,
+        ChangeRecencyBasis::ApproximateFileTime {
+            unknown: UnknownFileRecency::Excluded { count: 1 }
+        }
+    ));
+    let SelectionReadiness::Ready {
+        content: SelectionContent::RelatedGroup { group },
+        coverage,
+        ..
+    } = &selections[0].readiness
+    else {
+        panic!("partial chunk missing")
+    };
+    assert!(
+        matches!(coverage.as_ref(), SelectionCoverage::ChangeSet { sources, .. } if sources.iter().all(|source| !matches!(source, SourceRef::RepositoryFile { path, .. } if path.to_str() == Some("helper.ts"))))
+    );
+    let ContextGroupOutcome::Partial {
+        group, diagnostics, ..
+    } = group.as_ref()
+    else {
+        panic!("unread helper must not produce a complete group")
+    };
+    assert!(
+        diagnostics
+            .items
+            .iter()
+            .any(|diagnostic| diagnostic.code == EvidenceCode::DiscoveryLimit)
+    );
+    assert!(group.unknown_recency_context.is_empty());
+    assert!(group.excerpts.iter().all(|excerpt| !matches!(&excerpt.span.source, SourceRef::RepositoryFile { path, .. } if path.to_str() == Some("helper.ts"))));
 }

@@ -33,7 +33,7 @@ async fn change_set_primitives_keep_sides_paths_and_every_read_source() {
     for selector in [
         EvidenceSelection::ChangeSetLiteralText {
             paths: vec![QueryPath::Exact {
-                path: "changed.ts".into(),
+                path: "./changed.ts".into(),
             }],
             text: "selected".into(),
         },

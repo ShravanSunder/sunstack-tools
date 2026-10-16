@@ -58,7 +58,9 @@ impl Preparation {
             select_source_units(&seed_captures, &source_query, remaining_matches)
         })
         .await
-        .map_err(|_| EvidenceCode::InvalidSelector)??;
+        .map_err(|_| EvidenceCode::InvalidSelector);
+        self.discovery_elapsed += started.elapsed();
+        let seed_selection = seed_selection??;
         self.discovery_matches += seed_selection.matches_considered;
         self.measurements.files_parsed += seed_selection.files_parsed;
         self.measurements.bytes_scanned += seed_selection.bytes_scanned;
@@ -106,7 +108,8 @@ impl Preparation {
                 });
             }
         }
-        let mut discovery = if exhausted.is_empty() {
+        let graph_started = Instant::now();
+        let discovery_result = if exhausted.is_empty() {
             limits.max_unit_visits = visits
                 .try_into()
                 .map_err(|_| EvidenceCode::DiscoveryLimit)?;
@@ -131,9 +134,10 @@ impl Preparation {
                 })
             })
             .await
-            .map_err(|_| EvidenceCode::SourceUnavailable)??
+            .map_err(|_| EvidenceCode::SourceUnavailable.into())
+            .and_then(|result| result)
         } else {
-            RelationshipDiscovery {
+            Ok(RelationshipDiscovery {
                 seeds: seed_selection.units.clone(),
                 units: seed_selection.units,
                 relationships: vec![],
@@ -151,9 +155,10 @@ impl Preparation {
                 relationship_candidates: 0,
                 files_parsed: 0,
                 bytes_scanned: 0,
-            }
+            })
         };
-        self.discovery_elapsed += started.elapsed();
+        self.discovery_elapsed += graph_started.elapsed();
+        let mut discovery = discovery_result?;
         self.discovery_unit_visits += discovery.unit_visits;
         self.discovery_candidates += discovery.relationship_candidates;
         self.measurements.files_parsed += discovery.files_parsed;

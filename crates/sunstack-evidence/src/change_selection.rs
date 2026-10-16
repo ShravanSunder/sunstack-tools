@@ -153,6 +153,9 @@ fn resolve_scope(
             parent_policy,
         } => {
             for commit_id in commit_ids {
+                if !capture.checkpoint()? || !capture.admit_history_commit() {
+                    break;
+                }
                 let oid = git2::Oid::from_str(commit_id.as_str())
                     .map_err(|_| EvidenceCode::RevisionUnavailable)?;
                 capture_commit(

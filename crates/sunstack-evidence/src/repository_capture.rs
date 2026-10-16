@@ -480,16 +480,6 @@ impl<'repo> RepositoryCapture<'repo> {
         Ok(self.time_available())
     }
     pub fn coverage(&self) -> DiscoveryCoverage {
-        if self
-            .diagnostics
-            .items
-            .iter()
-            .any(|diagnostic| diagnostic.code == EvidenceCode::HistoryIncomplete)
-        {
-            return DiscoveryCoverage::Unavailable {
-                diagnostics: self.diagnostics.clone(),
-            };
-        }
         let query_bounds = QueryBounds {
             repository_ids: vec![self.binding.key.clone()],
             requested_hops: 0,

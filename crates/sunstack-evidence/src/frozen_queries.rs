@@ -85,7 +85,16 @@ pub(crate) fn primitive_selector(
 pub(crate) fn matches_paths(paths: &[QueryPath], path: &Path) -> EvidenceResult<bool> {
     for query in paths {
         match query {
-            QueryPath::Exact { path: exact } if exact == path => return Ok(true),
+            QueryPath::Exact { path: exact }
+                if exact
+                    .components()
+                    .filter(|component| !matches!(component, std::path::Component::CurDir))
+                    .eq(path.components().filter(|component| {
+                        !matches!(component, std::path::Component::CurDir)
+                    })) =>
+            {
+                return Ok(true);
+            }
             QueryPath::Glob { pattern } => {
                 let matcher = globset::GlobBuilder::new(pattern)
                     .literal_separator(true)

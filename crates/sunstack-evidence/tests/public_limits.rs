@@ -219,3 +219,82 @@ fn native_plan(root: &std::path::Path, needles: &[&str]) -> EvidencePlanInput {
         .collect();
     input
 }
+
+#[tokio::test]
+async fn public_history_budget_is_shared_across_repository_selections() {
+    let first = GitFixture::new();
+    let second = GitFixture::new();
+    for fixture in [&first, &second] {
+        fixture.write("source.ts", "function selected() {}");
+        fixture.stage("source.ts");
+        fixture.commit(1000);
+    }
+    let scope = ChangeScope::RecentCommits {
+        reference: "HEAD".into(),
+        window: TimeWindow::Absolute {
+            since_utc: chrono::DateTime::from_timestamp(0, 0).unwrap(),
+            until_utc: chrono::DateTime::from_timestamp(2000, 0).unwrap(),
+        },
+        parent_policy: CommitParentPolicy::FirstParent,
+    };
+    let mut other = second.binding(scope.clone());
+    other.key = RepositoryId::new("other").unwrap();
+    let mut input = plan(
+        vec![first.binding(scope), other.clone()],
+        EvidenceSelection::ChangeSetLiteralText {
+            paths: vec![QueryPath::Glob {
+                pattern: "*.ts".into(),
+            }],
+            text: "selected".into(),
+        },
+        EvidenceRequirement::Required,
+    );
+    input.sources.insert(
+        SourceName::new("other_changes").unwrap(),
+        SourceSpec::ChangeSet {
+            repository: other.key,
+        },
+    );
+    let mut second_declaration = input.declarations[0].clone();
+    second_declaration.id = DeclarationId::new("other_context").unwrap();
+    second_declaration.input = SourceName::new("other_changes").unwrap();
+    input.declarations.push(second_declaration);
+    let EvidenceDiscovery::Bounded { limits } = &mut input.discovery else {
+        unreachable!()
+    };
+    limits.max_history_commits = 1.try_into().unwrap();
+    let outcome = prepare_evidence(
+        input,
+        AdapterRegistry::builtins().unwrap(),
+        CancellationToken::new(),
+    )
+    .await;
+    let EvidencePlanOutcome::Prepared {
+        selections,
+        change_selections,
+        ..
+    } = outcome
+    else {
+        panic!("simple evidence can expose limited coverage: {outcome:?}");
+    };
+    assert!(
+        matches!(&selections[0].readiness, SelectionReadiness::Ready { content: SelectionContent::Matches { matches }, .. } if matches.len() == 1)
+    );
+    assert!(
+        matches!(&selections[1].readiness, SelectionReadiness::Ready { content: SelectionContent::Matches { matches }, .. } if matches.is_empty())
+    );
+    let second_report = change_selections
+        .iter()
+        .find(|report| report.repository.as_str() == "other")
+        .unwrap();
+    assert!(
+        matches!(&second_report.coverage, DiscoveryCoverage::Limited { cutoffs, .. } if cutoffs.iter().any(|cutoff| cutoff.limit == DiscoveryLimit::HistoryCommits))
+    );
+    assert!(
+        second_report.members[0]
+            .diagnostics
+            .items
+            .iter()
+            .any(|diagnostic| diagnostic.code == EvidenceCode::HistoryIncomplete)
+    );
+}
