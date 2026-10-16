@@ -491,7 +491,7 @@ Retained from the reviewed design. The decisions crate does not know about rules
 - **Content types.** `StructuredJson` is the recursive JSON enum. `StructuredEntry` admits string, object, array or null roots for every instruction and criterion. Shared state roots are text, object or array.
 - **Response admission.** It checks exact question names, kinds, labels, probability keys, rubric indices, finite ranges and receipt fields against the request. A mismatch is `invalid_response`, with no partial answers.
 - **Receipts.** They keep the resolved model, native token counts and an optional reported USD cost. Absence is not zero.
-- **Attempts.** One adapter controller runs finite attempts, defaulting to a 10,000 ms timeout and zero automatic retries. Retries cover only declared transient classes, and the HTTP client's own retries are disabled. Each `InferenceAttemptRecord` is `not_dispatched`, `completed` or `remote_outcome_unknown`.
+- **Attempts.** One adapter controller runs finite attempts, defaulting to a 10,000 ms timeout and zero automatic retries. Retries cover only declared transient classes, and the HTTP client's own retries are disabled. Each `InferenceAttemptRecord` is `not_dispatched`, `completed` or `remote_outcome_unknown`, and its `AttemptFailureClass` includes `caller_aborted` and `invalid_response`, which a whole run reports through its own `cancelled` and `invalid_response` outcomes rather than as a provider failure.
 - **HTTP classification.** Status codes map to closed codes and safe retry advice:
   - 400 → `provider_rejected_request`
   - 401/403 → `authentication`/`authorization`

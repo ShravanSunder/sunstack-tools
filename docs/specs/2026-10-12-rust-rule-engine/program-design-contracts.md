@@ -135,8 +135,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | --- | --- |
 | `JudgmentAnswer` | `noul { yes_probability }`; `choice { selected_label, confidence, probabilities: map<label, number> }`; `score { score, confidence, legend: map<index, StructuredEntry>, probabilities: map<index, number> }` ([schema](schemas/decision-answer.schema.json)) |
 | `ExecutionReceipt` | `resolved_model`, `usage: { input_tokens, output_tokens, cost_usd? }` |
-| `InferenceAttemptRecord` | `ordinal`, `evidence: not_dispatched { failure_class } \| completed { http_status } \| remote_outcome_unknown { failure_class, http_status? }` |
-| `ProviderFailureClass` | `provider_rejected_request`, `authentication`, `authorization`, `insufficient_credits`, `provider_resource_unavailable`, `request_too_large`, `rate_limit`, `provider_unavailable`, `timeout`, `connection`, `http_error`, `unexpected_provider_error`, `invalid_response` |
+| `InferenceAttemptRecord` | `ordinal`, `evidence: not_dispatched { failure_class: AttemptFailureClass } \| completed { http_status } \| remote_outcome_unknown { failure_class: AttemptFailureClass, http_status? }` |
+| `ProviderFailureClass` | Why a whole run ended as `provider_failure`: `provider_rejected_request`, `authentication`, `authorization`, `insufficient_credits`, `provider_resource_unavailable`, `request_too_large`, `rate_limit`, `provider_unavailable`, `timeout`, `connection`, `http_error`, `unexpected_provider_error` |
+| `AttemptFailureClass` | Why one attempt ended without a completion: every `ProviderFailureClass` value, plus `invalid_response` (the body failed request-relative admission) and `caller_aborted` (the caller cancelled; after dispatch the attempt is `remote_outcome_unknown`, because cancellation never proves remote inference or billing stopped) |
 
 ## `evaluate_rules` (`sunstack-rules`)
 
