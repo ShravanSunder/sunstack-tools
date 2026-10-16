@@ -34,30 +34,34 @@ impl Preparation {
                     return Err(EvidenceCode::InvalidSelector.into());
                 }
                 let bindings = self.input.repositories.clone();
-                for binding in bindings {
-                    if !binding.change_scope.has_change_selection() {
-                        continue;
+                let located = tokio::task::spawn_blocking(move || -> EvidenceResult<_> {
+                    for binding in bindings {
+                        if !binding.change_scope.has_change_selection() {
+                            continue;
+                        }
+                        let root = binding
+                            .root
+                            .canonicalize()
+                            .map_err(|_| EvidenceCode::SourceUnavailable)?;
+                        if let Ok(relative) = path.strip_prefix(&root)
+                            && path_is_allowed(&binding, relative)?
+                        {
+                            return Ok(Some((binding.key, relative.to_path_buf())));
+                        }
                     }
-                    let root = binding
-                        .root
-                        .canonicalize()
-                        .map_err(|_| EvidenceCode::SourceUnavailable)?;
-                    if let Ok(relative) = path.strip_prefix(&root)
-                        && path_is_allowed(&binding, relative)?
-                    {
-                        return self
-                            .compare_repository_path(
-                                &binding.key,
-                                relative.to_path_buf(),
-                                None,
-                                ComparisonLevel::Path,
-                            )
-                            .await;
+                    Ok(None)
+                })
+                .await
+                .map_err(|_| EvidenceCode::SourceUnavailable)??;
+                return match located {
+                    Some((repository, path)) => {
+                        self.compare_repository_path(&repository, path, None, ComparisonLevel::Path)
+                            .await
                     }
-                }
-                return Ok(ChangeComparison::NoBeforeSide {
-                    reason: NoBeforeSideReason::OutsideChangeScopePaths,
-                });
+                    None => Ok(ChangeComparison::NoBeforeSide {
+                        reason: NoBeforeSideReason::OutsideChangeScopePaths,
+                    }),
+                };
             }
             ChangeComparisonSubject::Declaration { declaration } => {
                 crate::evidence_admission::admit_declaration(&declaration, &self.input.sources)?;
@@ -278,12 +282,19 @@ impl Preparation {
                         GraphLanguage::Tsx => SourceLanguage::Tsx,
                     })
                     .collect::<Vec<_>>();
-                let mapping = crate::source_units::map_changed_source_units(
-                    &capture,
-                    &languages,
-                    unit_kinds,
-                    *source_sides,
-                )?;
+                let capture_for_mapping = capture.clone();
+                let unit_kinds = unit_kinds.clone();
+                let source_sides = *source_sides;
+                let mapping = tokio::task::spawn_blocking(move || {
+                    crate::source_units::map_changed_source_units(
+                        &capture_for_mapping,
+                        &languages,
+                        &unit_kinds,
+                        source_sides,
+                    )
+                })
+                .await
+                .map_err(|_| EvidenceCode::InvalidSelector)??;
                 self.measurements.files_parsed += mapping.files_parsed;
                 self.measurements.bytes_scanned += mapping.bytes_scanned;
                 if mapping.units.is_empty() {
