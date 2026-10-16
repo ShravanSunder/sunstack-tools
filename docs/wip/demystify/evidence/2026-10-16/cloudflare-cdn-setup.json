@@ -37,7 +37,7 @@
 	},
 	"sourceFiles": {
 		"packages/demistify/release/asset-policy.ts": "d43553af6fe17795809b8f18384f1aaba18bc102419a92ee37eb74dcdad1a531",
-		"packages/demistify/release/check-release-intent.ts": "2c2f0f81a8a9803468cb46743bd7193c53371e7fbd70435351f80e1bef1aba72",
+		"packages/demistify/release/check-release-intent.ts": "0e3114113b3cdca69404ced6eaecc061a2febcef4569a306fcf024075dcb6b61",
 		"packages/demistify/release/prepare-release.ts": "5bae3ed2e0a4d5d67e93eda85ca20cf932281e463916b1e44fc25ff57b867297",
 		"packages/demistify/release/release-schema.ts": "d69bd925e7d1a57039dbe6dc12a5d4e5dea11bd11a08f5c0ca53fb979a1b4ddb",
 		"packages/demistify/release/release-target.ts": "9549919ad09a4fbac1b6064352aa61c8c3d6263d79065f7ed237c298e3c6cf37",
@@ -50,5 +50,26 @@
 		"Hosted deployment using CI credentials",
 		"First supported 1.x release and bootstrap",
 		"Custom-domain DNS/TLS serving published assets"
-	]
+	],
+	"versionBotPullRequestPermissionEnabled": true,
+	"defaultWorkflowPermission": "read",
+	"experimentalV1Policy": {
+		"initialVersionApproved": "1.0.0",
+		"breakingChangesAllowedUntilOwnerDeclaresStable": true,
+		"realCliControls": [
+			{
+				"version": "1.0.0",
+				"exit": 0
+			},
+			{
+				"version": "1.1.0",
+				"exit": 0
+			},
+			{
+				"version": "2.0.0",
+				"exit": 1
+			}
+		],
+		"originalPackageRestoredExactly": true
+	}
 }

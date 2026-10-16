@@ -11,7 +11,7 @@ These are the intended URLs after the first supported release; the new hostname 
 
 ## Version and release flow
 
-1. A feature PR runs `pnpm changeset` and declares `@sunstack/demistify` patch, minor or major. Compatible fixes use patch; compatible additions use minor; removing/renaming a component/attribute or changing its meaning uses major. Reviewers judge semantic compatibility; a source diff cannot establish it automatically.
+1. A feature PR runs `pnpm changeset` and declares `@sunstack/demistify` patch, minor or major. The initial release is owner-approved `1.0.0`. While `/v1` is experimental, use patch/minor updates even for breaking vocabulary changes. CI rejects a planned major above 1 until the owner explicitly enables strict major-version compatibility. After that decision, incompatible API changes will use a new major and preserve the previous major directory.
 2. PR CI checks formatting/lint/types, builds the complete library/demo, runs Node tests, validates the actual Changesets plan and compiles the Cloudflare Worker without credentials or upload.
 3. After merge, Changesets opens a version/changelog PR. It uses no npm publish command and creates no Git tags. The workflow explicitly dispatches checks for the bot branch because PRs created with `GITHUB_TOKEN` do not start another PR workflow automatically.
 4. Merging a supported version PR deploys the current major. `1.2.3 → 1.3.0` updates `/v1/`; `1.3.0 → 2.0.0` adds `/v2/` and keeps `/v1/`. There are no public minor/patch-history URLs.
@@ -19,20 +19,20 @@ These are the intended URLs after the first supported release; the new hostname 
 
 Stable entry files and guides revalidate. Content-hashed chunks cache immutably; earlier chunks are retained for already-open pages. A hash URL cannot acquire different bytes. Same-version different assets and accidental downgrades fail. Old major directories are included in every deployment, rather than relying on Cloudflare deployment-history retention.
 
-The package remains `0.1.0` in this workflow PR. Pre-1.0 versions run CI without publishing `/v0` or pretending they are `/v1`. Selecting the first supported 1.x version belongs to a separate release PR. Test-only or release-tooling-only changes may use `pnpm changeset add --empty`; public source/guide changes must have a real target release declaration.
+The package remains `0.1.0` in this workflow PR. Pre-1.0 versions run CI without publishing `/v0` or pretending they are `/v1`. The owner selected `1.0.0` for the initial release; its package/changelog update belongs to a separate version PR after product integration. Test-only or release-tooling-only changes may use `pnpm changeset add --empty`; public source/guide changes must have a real target release declaration.
 
 ## One-time repository setup
 
-- Allow GitHub Actions to create pull requests. The repository currently uses a read-only default token and has bot PR creation disabled; the version job explicitly requests only its required write permissions. Keep the default read-only.
+- Allow GitHub Actions to create pull requests. Bot PR creation is enabled and the repository retains a read-only default token; the version job explicitly requests only its required write permissions. Keep the default read-only.
 - Use environment `demistify-cdn`, restricted to deployment branch `main`. This environment and its exact main-only policy have been created and verified for this repository.
 - Store `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as environment secrets. A project-specific account-owned token has been created, verified and installed privately for this repository. Its policy grants Workers Scripts Write and Account Settings Read in the selected account, plus Workers Routes Write and Zone Read for `getagentstudio.dev` only. Workers script permission is account-scoped. Never copy local OAuth/refresh credentials into CI or put secret values into Git, command arguments, logs or authored HTML.
 - The job derives its origin from the custom domain in the same Wrangler configuration used for deployment. Before fetching history it verifies through Cloudflare’s fixed API endpoint that this hostname is attached to the configured production Worker in the selected account. Missing, reassigned or ambiguous bindings abort. No separately synchronized CDN-origin variable is needed.
 
-The bot PR setting and first supported release remain open. Creating secrets and an environment does not prove a hosted deployment. No R2 bucket or persistent application server is needed.
+The first supported release still requires product integration, a version PR and an explicit bootstrap. Creating secrets and an environment does not prove a hosted deployment. No R2 bucket or persistent application server is needed.
 
 ## First supported release and local preparation
 
-After a separate release PR selects a supported version, build that exact commit and prepare a first release only for a verified new `sunstack-demistify` Worker. Its configured Custom Domain is `demistify.getagentstudio.dev`; the owner’s active zone and absence of existing DNS/domain bindings were checked. Recheck for conflicts immediately before first upload. Cloudflare manages the hostname’s DNS and certificate through the Custom Domain binding. See [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+After the separate version PR records the approved initial `1.0.0`, build that exact commit and prepare a first release only for a verified new `sunstack-demistify` Worker. Its configured Custom Domain is `demistify.getagentstudio.dev`; the owner’s active zone and absence of existing DNS/domain bindings were checked. Recheck for conflicts immediately before first upload. Cloudflare manages the hostname’s DNS and certificate through the Custom Domain binding. See [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
 
 Prepare and inspect the first release:
 

@@ -6,7 +6,16 @@ import { fileURLToPath } from 'node:url';
 
 import { z } from 'zod';
 
-import { compareVersions, versionSchema } from './release-schema.ts';
+import { compareVersions, versionNumbers, versionSchema } from './release-schema.ts';
+
+// Owner policy: /v1 remains experimental, including breaking changes, until
+// the owner explicitly promotes it to strict major-version compatibility.
+function requireExperimentalTrack(version: string): void {
+	if (versionNumbers(version)[0] > 1)
+		throw new Error(
+			'The experimental /v1 track allows breaking changes. Use patch/minor releases until the owner approves strict major versioning.',
+		);
+}
 
 const base = process.env['DEMISTIFY_BASE_REF'] ?? 'origin/main';
 if (base !== 'origin/main' && !/^[a-f0-9]{40}$/.test(base))
@@ -41,6 +50,7 @@ if (publicChanges && after.version !== before.version)
 	throw new Error('Keep public source changes and the consumed version-only PR separate.');
 if (compareVersions(after.version, before.version) < 0)
 	throw new Error('A package version cannot go backwards.');
+requireExperimentalTrack(after.version);
 const versionPullRequest = after.version !== before.version && !publicChanges;
 if (versionPullRequest) {
 	process.stdout.write(
@@ -72,6 +82,7 @@ if (versionPullRequest) {
 		throw new Error(
 			'Public library/guide changes need a Changeset declaring @sunstack/demistify patch, minor or major.',
 		);
+	requireExperimentalTrack(release.newVersion);
 	process.stdout.write(
 		`Public library declaration: ${release.type} → ${release.newVersion}; reviewers must confirm semantic compatibility.\n`,
 	);
