@@ -73,13 +73,7 @@ export class ExplorerController {
 		issues.type = 'button';
 		issues.textContent = `Composition issues · ${graphDocument.nodes.filter((node): boolean => Boolean(node.issue)).length}`;
 		issues.addEventListener('click', (): void => this.select('__issues'));
-		const themeToggle = createIconButton(
-			'circle-half',
-			'Switch light or dark theme',
-			(): void => {},
-		);
-		themeToggle.dataset['exTheme'] = '';
-		this.browser.append(this.search, issues, this.list, themeToggle);
+		this.browser.append(this.search, issues, this.list);
 		const header = document.createElement('header');
 		const title = document.createElement('h1');
 		title.textContent = graphDocument.title;

@@ -1,7 +1,24 @@
 import { expect, it } from 'vitest';
 
 import { checkHtml } from './check.ts';
+import { embedMarkdownFiles } from './markdown-files.ts';
 import { prepareIslandContent } from './packaging.ts';
+
+it('keeps shared Cloudflare assets and image paths external when embedding Markdown', (): void => {
+	const output = embedMarkdownFiles(
+		'<!doctype html><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script><ex-document><ex-markdown src="notes.md"></ex-markdown><img src="captures/mobile.png" alt="Mobile"></ex-document>',
+		{ 'notes.md': '# Notes\n\nExact authored source.' },
+	);
+	expect(output).toContain('href="https://demistify.getagentstudio.dev/v1/theme.css"');
+	expect(output).toContain('src="https://demistify.getagentstudio.dev/v1/runtime.js"');
+	expect(output).toContain('src="captures/mobile.png"');
+	expect(output).not.toContain('src="notes.md"');
+	expect(output).not.toContain('data:font');
+	expect(output).not.toContain('data:image');
+	expect(output).not.toContain('<style');
+	expect(output.match(/<script\b/g)).toHaveLength(2);
+	expect(output).toContain('Exact authored source.');
+});
 
 it('accepts a readable Markdown file and rejects a missing file at the author boundary', async (): Promise<void> => {
 	const page =

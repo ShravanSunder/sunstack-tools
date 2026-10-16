@@ -74,7 +74,7 @@ test('Show Markdown source displays the exact file while main content stays visi
 	await verifyMarkdownSource('embedded');
 });
 
-test('presentation menu shows descriptions and switches the visible explainer and outline', async (): Promise<void> => {
+test('presentation menu starts a named path while existing content and outline remain', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('navigation');
 	await expect
 		.element(frame.getByRole('heading', { name: 'Session ownership', exact: true }))
@@ -82,36 +82,17 @@ test('presentation menu shows descriptions and switches the visible explainer an
 	await frame.getByRole('button', { name: 'Browse presentations', exact: true }).click();
 	const menu = frame.getByRole('navigation', { name: 'Presentations', exact: true });
 	await expect
-		.element(menu.getByText('Who owns a session and how reconnect works.', { exact: true }))
-		.toBeVisible();
-	await expect
 		.element(menu.getByText('The proposed path and its two delivery phases.', { exact: true }))
 		.toBeVisible();
 	await menu.getByRole('link', { name: /Implementation plan/ }).click();
 	await expect
-		.element(frame.getByRole('heading', { name: 'Implementation plan', exact: true }))
-		.toBeVisible();
-	await expect
-		.element(
-			frame.getByRole('heading', {
-				name: 'Session architecture',
-				exact: true,
-				includeHidden: true,
-			}),
-		)
-		.not.toBeVisible();
-	await expect
-		.element(frame.getByRole('heading', { name: 'Review', exact: true, includeHidden: true }))
-		.not.toBeVisible();
-	await expect
-		.poll((): boolean => {
-			const outline = requiredElement(fixture, '.ex-heading-panel');
-			return (
-				(outline.textContent ?? '').includes('Phases') &&
-				!(outline.textContent ?? '').includes('Session ownership')
-			);
-		})
+		.poll((): boolean => requiredElement(fixture, '#plan').classList.contains('ex-route-focus'))
 		.toBe(true);
+	expect(requiredElement(fixture, '#architecture').hasAttribute('hidden')).toBe(false);
+	expect(requiredElement(fixture, '#review').hasAttribute('hidden')).toBe(false);
+	await expect
+		.element(frame.getByRole('region', { name: 'Presentation player', exact: true }))
+		.toBeVisible();
 });
 
 async function verifyInitialFragment(
@@ -240,9 +221,15 @@ test('compact headings menu stays open after hover then click and reaches a Mark
 	await expect.element(menu).toBeVisible();
 	await trigger.click();
 	await expect.element(menu).toBeVisible();
+	await frame.getByRole('button', { name: 'Browse pages', exact: true }).click();
 	await expect
-		.element(menu.getByRole('link', { name: 'Implementation detail', exact: true }))
+		.element(
+			frame
+				.getByRole('navigation', { name: 'Pages', exact: true })
+				.getByRole('link', { name: 'Implementation detail', exact: true }),
+		)
 		.toBeVisible();
+	await frame.getByRole('button', { name: 'Browse page headings', exact: true }).click();
 	await menu.getByRole('link', { name: 'Recovery', exact: true }).click();
 	await expect.element(menu).not.toBeVisible();
 	await expect

@@ -1,9 +1,9 @@
 import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createIconButton } from '../core/icons.ts';
 import { installIslandInspector, openIsland } from '../islands/inspector.ts';
-import { BoardIsland } from './board.ts';
-import { revealLayers } from './layers.ts';
-import { selectPresentationFor } from './presentations.ts';
+import { resolveTarget } from './target-resolution.ts';
+export { revealElement } from './target-resolution.ts';
+import { revealElement } from './target-resolution.ts';
 
 export class StructuralIsland extends HTMLElement {
 	connectedCallback(): void {
@@ -14,7 +14,9 @@ export class GridIsland extends HTMLElement {}
 export class DocumentIsland extends StructuralIsland {
 	override connectedCallback(): void {
 		adoptBareMarkdown(this);
-		for (const panel of this.querySelectorAll(':scope ex-tabs > section')) adoptBareMarkdown(panel);
+		for (const panel of this.querySelectorAll('section, article')) {
+			if (!panel.closest('ex-gallery, ex-presentation')) adoptBareMarkdown(panel);
+		}
 		super.connectedCallback();
 		if (!document.querySelector('ex-nav')) {
 			const navigation = document.createElement('ex-nav');
@@ -40,25 +42,23 @@ export class DocumentIsland extends StructuralIsland {
 
 /** Theme toggling and in-page links that reveal their target inside tabs or details. */
 export function installDocumentBehavior(): void {
-	let lastFragmentTarget: Element | undefined;
+	let pending: AbortController | undefined;
 	const revealFragment = (): void => {
-		let id: string;
+		pending?.abort();
+		pending = new AbortController();
+		let reference: string;
 		try {
-			id = decodeURIComponent(location.hash.slice(1));
+			reference = decodeURIComponent(location.hash.slice(1));
 		} catch {
 			return;
 		}
-		const target = id ? document.getElementById(id) : null;
-		if (!target || target === lastFragmentTarget) return;
-		lastFragmentTarget = target;
-		revealElement(target);
-		target.scrollIntoView({ block: 'start' });
+		if (!reference || document.getElementById(reference)?.localName === 'ex-presentation') return;
+		const signal = pending.signal;
+		void resolveTarget(reference, signal).then((target): void => {
+			if (target && !signal.aborted) target.scrollIntoView({ block: 'start' });
+		});
 	};
-	window.addEventListener('hashchange', (): void => {
-		lastFragmentTarget = undefined;
-		revealFragment();
-	});
-	document.addEventListener('island-ready', revealFragment);
+	window.addEventListener('hashchange', revealFragment);
 	revealFragment();
 	document.addEventListener('click', (event: MouseEvent): void => {
 		if (!(event.target instanceof Element)) return;
@@ -86,19 +86,4 @@ export function installDocumentBehavior(): void {
 		const targetElement = document.getElementById(href.slice(1));
 		if (targetElement) revealElement(targetElement);
 	});
-}
-
-/** Selects the tab and opens the details that hide an element, so it can be shown. */
-export function revealElement(target: Element): void {
-	selectPresentationFor(target);
-	revealLayers(target);
-	for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
-		if (ancestor.getAttribute('role') === 'tabpanel' && ancestor.hidden) {
-			ancestor.parentElement
-				?.querySelector<HTMLButtonElement>(`button[aria-controls="${CSS.escape(ancestor.id)}"]`)
-				?.click();
-		}
-		if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
-		if (ancestor instanceof BoardIsland) ancestor.focusOn(target);
-	}
 }

@@ -11,30 +11,27 @@
 <body>
 <ex-nav for="guide">
 <nav slot="pages" aria-label="Component guide pages">
-<a href="index.html">Start here</a>
+<a href="index.html">Demistify components</a>
 <a href="content.html">Content and decisions</a>
 <a href="layouts.html">Layouts and navigation</a>
 <a href="visuals.html">Visuals and structure</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Presentations and deep links</a>
 <a href="explorer.html">Graph explorer</a>
 <a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Proof and usage</a>
 </nav>
 <nav slot="presentations" aria-label="Other presentations">
-<a href="../navigation-markdown-fix/index.html">
+<a href="navigation.html#walkthrough">
 <strong>Session design</strong>
 <span>Three named presentations with referenced Markdown and deep links.</span>
 </a>
-<a href="../layout-regression-fix/index.html">
-<strong>Layout stress cases</strong>
-<span>Wide diagrams and long tree labels.</span>
-</a>
+
 </nav>
 </ex-nav>
 <ex-document id="guide">
-<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
-<a href="index.html">Demistify component guide</a>
-<span aria-current="page">Demistify component guide</span>
-</nav>
-<ex-presentation id="examples" title="Demistify component guide" description="Working components with copyable source and usage guidance.">
+
+<section id="examples">
 <h1>Demistify component guide</h1>
 <p>Review the working library by group. Every component has a live example and copyable markup. The examples use the matching local build; they do not claim that an older public asset pin supports these additions.</p>
 <p>Use <strong>Presentations</strong> for the examples/notes and other explainers. Use <strong>Pages</strong> for this guide’s sections. Open a component link to jump directly to its example.</p>
@@ -214,14 +211,7 @@
 </td>
 <td>Layouts and navigation</td>
 </tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-route">
-<code>ex-route</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
+
 <tr>
 <td>
 <a href="content.html#component-ex-stat">
@@ -270,13 +260,17 @@
 </td>
 <td>Earlier vocabulary</td>
 </tr>
+<tr><td><a href="pictures.html#component-ex-gallery"><code>ex-gallery</code></a></td><td>Screenshot gallery</td></tr>
+<tr><td><a href="visuals.html#component-ex-pre"><code>ex-pre</code></a></td><td>Visuals and structure</td></tr>
 </tbody>
 </table>
-</ex-presentation>
-<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+</section>
+<section id="authoring">
 <ex-markdown id="authoring-notes" src="usage-notes.md">
 </ex-markdown>
-</ex-presentation>
+</section>
+<ex-presentation id="show-examples" title="Demistify component guide" description="Working components with copyable source and usage guidance."><ex-step to="examples">Read Demistify component guide.</ex-step></ex-presentation>
+<ex-presentation id="show-authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance."><ex-step to="authoring">Read Authoring notes.</ex-step></ex-presentation>
 </ex-document>
 </body>
 </html>

@@ -1,14 +1,21 @@
 /* Layout: a reading column with a sticky contents rail; the tree drawn as stacked level bands, L3 on top, L0 at the base. */
 :root {
-	--paper: #f5f6f8;
-	--sheet: #ffffff;
+	--surface-page: #f5f6f8;
+	--surface-content: #ffffff;
 	--ink: #18202b;
+	--diagram-foreground: #18202b;
 	--ink-soft: #4a5566;
 	--rule: #d9dee6;
 	--accent: #1d6672;
+	--focus-color: #1d6672;
+	--selection-color: #1d6672;
+	--link-color: #1d6672;
+	--presentation-color: #1d6672;
 	--accent-soft: #e3f0f1;
+	--selection-surface: #e3f0f1;
 	--keep: #5b6678;
 	--keep-bg: #eceff3;
+	--comment-surface: #eceff3;
 	--change: #9a5b00;
 	--change-bg: #fbefd9;
 	--strong: #1f5fa8;
@@ -26,10 +33,11 @@
 	--diff-modified: #98600a;
 	--diff-modified-bg: #fbefd9;
 	--diff-unchanged: #627185;
-	--diff-unchanged-bg: #edf0f5;
-	--display: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
-	--body: 'Literata', Georgia, 'Times New Roman', serif;
-	--mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+	--diff-unchanged-bg: #eceff3;
+
+	--font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+	--font-body: 'Literata', Georgia, 'Times New Roman', serif;
+	--font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 	/* Design scales: every spacing, type size, radius and motion value in the library uses these. */
 	--space-1: 4px;
 	--space-2: 8px;
@@ -62,20 +70,26 @@
 	--ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 	--shadow-float: 0 12px 32px rgb(0 0 0 / 18%);
 	--shadow-edge: -8px 0 24px rgb(0 0 0 / 8%);
-	--ring: 0 0 0 1px var(--accent);
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
 		color-scheme: dark;
-		--paper: #11161d;
-		--sheet: #171d26;
+		--surface-page: #11161d;
+		--surface-content: #171d26;
 		--ink: #e7ebf1;
+		--diagram-foreground: #e7ebf1;
 		--ink-soft: #a5afbd;
 		--rule: #2c3542;
 		--accent: #6fc0ca;
+		--focus-color: #6fc0ca;
+		--selection-color: #6fc0ca;
+		--link-color: #6fc0ca;
+		--presentation-color: #6fc0ca;
 		--accent-soft: #1a3236;
+		--selection-surface: #1a3236;
 		--keep: #a8b2c2;
 		--keep-bg: #232b37;
+		--comment-surface: #232b37;
 		--change: #f0b45a;
 		--change-bg: #3a2c14;
 		--strong: #8ab8ef;
@@ -93,20 +107,27 @@
 		--diff-modified: #edb056;
 		--diff-modified-bg: #3a2e17;
 		--diff-unchanged: #9facbf;
-		--diff-unchanged-bg: #252e3a;
+		--diff-unchanged-bg: #232b37;
 	}
 }
 :root[data-theme='dark'] {
 	color-scheme: dark;
-	--paper: #11161d;
-	--sheet: #171d26;
+	--surface-page: #11161d;
+	--surface-content: #171d26;
 	--ink: #e7ebf1;
+	--diagram-foreground: #e7ebf1;
 	--ink-soft: #a5afbd;
 	--rule: #2c3542;
 	--accent: #6fc0ca;
+	--focus-color: #6fc0ca;
+	--selection-color: #6fc0ca;
+	--link-color: #6fc0ca;
+	--presentation-color: #6fc0ca;
 	--accent-soft: #1a3236;
+	--selection-surface: #1a3236;
 	--keep: #a8b2c2;
 	--keep-bg: #232b37;
+	--comment-surface: #232b37;
 	--change: #f0b45a;
 	--change-bg: #3a2c14;
 	--strong: #8ab8ef;
@@ -124,15 +145,15 @@
 	--diff-modified: #edb056;
 	--diff-modified-bg: #3a2e17;
 	--diff-unchanged: #9facbf;
-	--diff-unchanged-bg: #252e3a;
+	--diff-unchanged-bg: #232b37;
 }
 * {
 	box-sizing: border-box;
 }
 body {
-	background: var(--paper);
+	background: var(--surface-page);
 	color: var(--ink);
-	font-family: var(--body);
+	font-family: var(--font-body);
 	font-size: var(--text-base);
 	line-height: 1.6;
 	padding: 0 var(--space-5);
@@ -155,7 +176,7 @@ nav.toc {
 	position: sticky;
 	top: calc(env(safe-area-inset-top, 0px) + 24px);
 	align-self: start;
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-size: var(--text-md);
 }
 @media (max-width: 900px) {
@@ -198,7 +219,7 @@ h1,
 h2,
 h3,
 h4 {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	line-height: 1.15;
 	text-wrap: balance;
 	margin: 0;
@@ -240,7 +261,7 @@ li {
 }
 code,
 .mono {
-	font-family: var(--mono);
+	font-family: var(--font-mono);
 	font-size: 0.86em;
 }
 code {
@@ -249,10 +270,10 @@ code {
 	border-radius: var(--radius-sm);
 }
 a {
-	color: var(--accent);
+	color: var(--link-color);
 }
 .eyebrow {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	text-transform: uppercase;
 	letter-spacing: 0.1em;
 	font-size: var(--text-xs);
@@ -269,4 +290,73 @@ a {
 	line-height: 1.55;
 	max-width: 62ch;
 	margin-top: var(--space-4);
+}
+
+:root {
+	--tone-note: #1d6672;
+	--tone-note-surface: #e3f0f1;
+	--tone-tldr: #1f5fa8;
+	--tone-tldr-surface: #e3edf9;
+	--tone-decision: #6b48a8;
+	--tone-decision-surface: #efe8f8;
+	--tone-risk: #b1324a;
+	--tone-risk-surface: #fbe6ea;
+	--tone-question: #9a5b00;
+	--tone-question-surface: #fbefd9;
+	--tone-done: #1f5fa8;
+	--tone-done-surface: #e3edf9;
+	--tone-planned: #5b6678;
+	--tone-planned-surface: #eceff3;
+	--tone-changed: #98600a;
+	--tone-changed-surface: #fbefd9;
+	--tone-added: #276c42;
+	--tone-added-surface: #dff2e6;
+	--tone-removed: #aa3345;
+	--tone-removed-surface: #fbe5e9;
+}
+:root[data-theme='dark'] {
+	--tone-note: #6fc0ca;
+	--tone-note-surface: #1a3236;
+	--tone-tldr: #8ab8ef;
+	--tone-tldr-surface: #1b2b40;
+	--tone-decision: #c3a6f0;
+	--tone-decision-surface: #2c2240;
+	--tone-risk: #f08a9c;
+	--tone-risk-surface: #3d1c24;
+	--tone-question: #f0b45a;
+	--tone-question-surface: #3a2c14;
+	--tone-done: #8ab8ef;
+	--tone-done-surface: #1b2b40;
+	--tone-planned: #a8b2c2;
+	--tone-planned-surface: #232b37;
+	--tone-changed: #edb056;
+	--tone-changed-surface: #3a2e17;
+	--tone-added: #8bd5a6;
+	--tone-added-surface: #193725;
+	--tone-removed: #ef93a1;
+	--tone-removed-surface: #3b2028;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--tone-note: #6fc0ca;
+		--tone-note-surface: #1a3236;
+		--tone-tldr: #8ab8ef;
+		--tone-tldr-surface: #1b2b40;
+		--tone-decision: #c3a6f0;
+		--tone-decision-surface: #2c2240;
+		--tone-risk: #f08a9c;
+		--tone-risk-surface: #3d1c24;
+		--tone-question: #f0b45a;
+		--tone-question-surface: #3a2c14;
+		--tone-done: #8ab8ef;
+		--tone-done-surface: #1b2b40;
+		--tone-planned: #a8b2c2;
+		--tone-planned-surface: #232b37;
+		--tone-changed: #edb056;
+		--tone-changed-surface: #3a2e17;
+		--tone-added: #8bd5a6;
+		--tone-added-surface: #193725;
+		--tone-removed: #ef93a1;
+		--tone-removed-surface: #3b2028;
+	}
 }
