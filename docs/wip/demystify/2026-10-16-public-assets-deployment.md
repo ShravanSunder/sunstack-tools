@@ -95,3 +95,5 @@ The complete shared graph is 776,437 bytes / 173,601 source tokens. It is not fr
 ## Remaining boundaries
 
 This deployment closes the missing public-library URL and provides four independently hosted Sol/Luna-derived examples. It does not close original-reference visual parity, exhaustive accessibility/interaction coverage, actual author-guide read observation PF-1, a standalone checker release, multi-region edge propagation/cost or long-term immutable release retention. The illustrative review evidence and dated skill graph are not fresh runtime facts. Credentials, account identifiers and raw CLI/browser authentication output are excluded from the public artifacts.
+
+Later correction: [sidebar inspection, neutral code notes and version-matched public guides](2026-10-16-inspection-fixes.md) provides new immutable pins and v3 examples. The earlier measurements above remain historical.

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resume sessions after socket drops — review</title>
+<link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/theme.css">
+<script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Resume sessions after socket drops
+
+Review · 2026-10-14 · illustrative change
+
+<ex-grid cols="4">
+<ex-callout id="verdict" tone="risk" title="Verdict: request changes" span="2">
+The change improves recovery from network blips, but the in-memory registry loses every session after a deploy or crash. Fix the expiry path and decide how resume state survives restarts before merge.
+</ex-callout>
+<ex-stat value="3" label="Blocking / open findings" note="F1 and F2 block; F5 needs an answer" tone="risk"></ex-stat>
+<ex-stat value="96%" label="Deploy resumes with Redis" note="Supplied staging-soak figures; illustrative" tone="planned"></ex-stat>
+</ex-grid>
+
+<ex-route label="Review in 60 seconds">
+<ex-step to="verdict">Start with the request-changes verdict and the deploy failure.</ex-step>
+<ex-step to="findings">Review each finding at its cited line.</ex-step>
+<ex-step to="options">Compare the three F1 remedies and their tradeoffs.</ex-step>
+<ex-step to="evidence">Check the supplied soak figures and their proof boundary.</ex-step>
+</ex-route>
+
+<ex-callout id="findings" tone="risk" title="Findings at a glance">F1 and F2 block approval. F3 is a nit, F4 is a positive observation, and F5 needs an answer before merge.</ex-callout>
+
+## Review scope and evidence boundary
+
+This is an illustrative review brief, not an inspection of a live repository or a verified implementation. The line references, code, file list, and staging-soak figures below are supplied facts. They describe intended behavior and reported measurements; they do not establish that code ran, that the measurements were independently reproduced, or that a fix shipped.
+
+## Intended resume flow
+
+1. The client reconnects and sends its session id.
+2. The gateway calls `resume(id)`.
+3. `resume` looks the id up in the registry.
+4. If it exists and is not expired, the session attaches the new socket and the gateway confirms.
+5. Otherwise the gateway tells the client to start a new session.
+
+## Exact change under review
+
+The supplied diff is in `src/session/resume.ts`, starting at line 40. Line numbers below follow the brief, including removed lines.
+
+<ex-code title="src/session/resume.ts" lang="diff" start="40">
+<script type="text/plain">
+@@ -40,7 +40,12 @@ export function resume(id: string)
+ export function resume(id: string): Session | undefined {
+-  const socket = sockets.get(id);
+-  return socket?.session;
++  const session = registry.get(id);
++  if (!session) return undefined;
++  if (session.expiresAt < Date.now()) {
++    registry.delete(id);
++  }
++  return session.attach(currentSocket());
+ }
+</script>
+<ex-note line="43" tone="risk">F1: the supplied brief says `registry` is an in-memory Map, so it is empty after a deploy or crash.</ex-note>
+<ex-note line="44" tone="question">F3: a miss returns silently; the proposed debug log would make misses visible in traces.</ex-note>
+<ex-note line="45" tone="risk">F2: expiry is detected here, but execution continues after deletion.</ex-note>
+<ex-note line="48" tone="risk">F2: this still attaches and returns the expired session; return undefined after deletion.</ex-note>
+<ex-note line="48" tone="done">F4: `attach` centralizes the socket swap, unlike the old two-call-site path.</ex-note>
+</ex-code>
+
+## Findings
+
+<ex-grid cols="2" swipe>
+<ex-card id="f1" title="F1 · Registry is lost on restart" tone="risk" icon="database" tag="blocking · line 43">
+The brief identifies `registry` as an in-memory Map. After any deploy or crash it is empty, so resume returns `undefined` and clients start new sessions.
+</ex-card>
+<ex-card id="f2" title="F2 · Expired session is still attached" tone="risk" icon="clock" tag="blocking · lines 45–48">
+The code deletes an expired entry, then continues and attaches that same session. Return `undefined` immediately after deletion.
+</ex-card>
+<ex-card id="f3" title="F3 · Resume miss is silent" tone="question" icon="chat-circle" tag="nit · line 44">
+The early return drops the miss without a trace. Add a debug-level log with the session id so misses can be investigated.
+</ex-card>
+<ex-card id="f4" title="F4 · Socket swap has one owner" tone="note" icon="plug" tag="nice · line 48">
+`attach` keeps the socket swap in one place; the brief says the old code spread it across two call sites.
+</ex-card>
+<ex-card id="f5" title="F5 · Grace-window policy is open" tone="question" icon="clock" tag="question · registry.ts">
+The registry has a 5-minute grace window. Clarify whether tenants can configure it or whether it is fixed before merge.
+</ex-card>
+</ex-grid>
+
+## Fix options for F1
+
+<ex-callout id="options" tone="decision" title="Recommended option">Use a Redis-backed registry. It survives restarts and is shared across instances, at the cost of a Redis dependency and about 2 ms per resume.</ex-callout>
+
+<ex-grid cols="3" swipe>
+<ex-card id="option-memory" title="Keep the in-memory registry" tone="note" icon="cpu" tag="fast and simple">
+Preserves speed and avoids another dependency. Every session is lost on process restart, so this does not address deploy or crash recovery.
+</ex-card>
+<ex-card id="option-redis" title="Use a Redis-backed registry" tone="planned" icon="database" tag="recommended · about 2 ms per resume" pick>
+Survives restarts and shares state across instances. Adds Redis to every environment. The supplied brief recommends this option.
+</ex-card>
+<ex-card id="option-sticky" title="Use sticky load-balancer sockets" tone="risk" icon="plug" tag="no new state">
+Avoids a new state store, but fails when an instance is replaced. It does not fix deploys.
+</ex-card>
+</ex-grid>
+
+## Supplied staging-soak evidence
+
+<ex-callout id="evidence" tone="note" title="Evidence boundary">The percentages below are reported in the illustrative brief. This page does not independently verify the soak test or its runtime behavior.</ex-callout>
+
+Resume success rate is reported as a percentage of reconnects that resumed.
+
+| Scenario | Before | After this change | With Redis registry (prototype) |
+| --- | ---: | ---: | ---: |
+| Network blip | 35% | 98% | 98% |
+| Deploy | 12% | 0% | 96% |
+| Instance crash | 0% | 0% | 94% |
+
+These figures are supplied in the illustrative brief. No test run, raw events, sample counts, or independent measurement is included here, so they support the reported comparison only.
+
+## Repository changes listed in the brief
+
+<ex-tree title="Files in the illustrative change" icon="folder">
+- src/
+  - session/
+    - resume.ts — changed, diff above
+    - registry.ts — new, 64 lines
+    - socket.ts — modified
+    - legacy-store.ts — deleted
+- test/
+  - session/
+    - resume.test.ts — new
+</ex-tree>
+
+## Review actions
+
+1. Fix F2 in this change.
+2. Decide the F1 option; the reviewers recommend Redis.
+3. Answer F5 before merge.
+
+</ex-document>
+</body>
+</html>

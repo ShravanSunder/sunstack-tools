@@ -4,14 +4,16 @@ Updated 16 October 2026. This is the delivery checklist requested by the owner; 
 
 ## Current work
 
-- [ ] Sidebar inspection leaves the original island visible and usable in the main document, for every component using the shared inspector. Verify code, diagrams and an interactive composition.
-- [ ] Code title, change counts and inspection controls remain readable in the main view and narrow sidebar.
-- [ ] Review comments use a neutral gray background with a severity accent in main, sidebar and fullscreen views. Added/removed code retains its separate diff styling.
-- [ ] Rebuild and publish corrected library assets under a new immutable Cloudflare path, preserving existing published paths.
-- [ ] Refresh several public Sol/Luna sample pages to the corrected assets; capture actual Chrome screenshots and inspect their interactions.
+- [x] Sidebar inspection leaves the original island visible and usable in the main document, for every component using the shared inspector. Verify code, diagrams and an interactive composition.
+- [x] Code title, change counts and inspection controls remain readable in the main view and narrow sidebar.
+- [x] Review comments use a neutral gray background with a severity accent in main, sidebar and fullscreen views. Added/removed code retains its separate diff styling.
+- [x] Rebuild and publish corrected library assets under a new immutable Cloudflare path, preserving existing published paths.
+- [x] Refresh several public Sol/Luna sample pages to the corrected assets; capture actual Chrome screenshots and inspect their interactions.
 - [ ] Create Sunstack `presentation-html` using `skill-authoring:skill-creation`: explain the public runtime/theme URLs, plain HTML composition, component reference retrieval, local viewing and static/browser validation. Complete independent spec/file reviews and representative authoring proof.
 - [ ] Update the handoff with actual URLs, commands, navigation behavior, source branches, proof and remaining limitations.
 - [ ] Commit and push scoped changes; verify remote heads and tell the owner which requests are complete.
+
+Current UI/public-delivery evidence: [inspection fixes](2026-10-16-inspection-fixes.md). Skill source is implemented in its isolated plugin branch after accepted spec review; fresh proof, independent file review and push remain open.
 
 ## Broader experiment obligations — retain until separately proved
 

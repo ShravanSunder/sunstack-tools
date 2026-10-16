@@ -1,0 +1,66 @@
+{
+	"source": "16ac23d; c96a72e explorer correction locally verified separately",
+	"browser": "Chrome",
+	"reportedFailure": {
+		"mainCodeLines": 0,
+		"panelCodeLines": 11,
+		"placeholder": true,
+		"coloredNoteBackgrounds": true
+	},
+	"hostedReview": {
+		"mainCodeLines": 11,
+		"panelCodeLines": 11,
+		"placeholders": 0,
+		"headings": 8,
+		"outlineLinks": 9,
+		"duplicateIds": 0,
+		"outerOverflow": false,
+		"noteBackground": "rgb(35,43,55)",
+		"severityAccents": "risk/question/note preserved"
+	},
+	"lightThemeLocal": {
+		"noteBackground": "rgb(236,239,243)",
+		"modalCodeLines": 11,
+		"modalNotes": 5,
+		"restoredCodeLines": 11
+	},
+	"composition": {
+		"mainSelected": "Tree",
+		"panelSelected": "Comparison",
+		"mainRange": 50,
+		"panelRange": 51,
+		"duplicateIds": 0,
+		"treeCollapse": "panel collapses without changing main",
+		"authoringIssues": 0
+	},
+	"diagramLocal": {
+		"mainSvg": 1,
+		"panelSvg": 1,
+		"panelLinkedNode": 1,
+		"duplicateIds": 0
+	},
+	"explorerLocal": {
+		"beforeMainNodes": 22,
+		"beforePanelNodes": 22,
+		"afterSelected": "principle-define-the-domain-first",
+		"afterMainNodes": 1,
+		"afterPanelNodes": 1,
+		"afterConnectionRows": 1,
+		"authoringIssues": 0
+	},
+	"limits": [
+		"Not synchronized arbitrary editors: tab/tree/slider inspections start from the current view and have independent local UI state.",
+		"Responsive viewport override did not change the target tab; narrow-sheet path not established by that probe.",
+		"Browser selected-tab/native-window inspection failed independently; not an application load-time measurement."
+	],
+	"explorerHosted": {
+		"runtime": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/runtime.js",
+		"beforeMainNodes": 22,
+		"beforePanelNodes": 22,
+		"afterSelected": "principle-define-the-domain-first",
+		"afterMainNodes": 1,
+		"afterPanelNodes": 1,
+		"afterDetailsRows": 1,
+		"authoringIssues": 0
+	}
+}

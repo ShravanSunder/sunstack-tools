@@ -14,7 +14,7 @@ export default {
 		headers.set('Timing-Allow-Origin', '*');
 		const pinned =
 			url.pathname.startsWith('/demistify/experimental/') ||
-			url.pathname.startsWith('/examples/2026-10-16-sol-luna-v1/');
+			/^\/examples\/2026-10-16-sol-luna-v[123]\//.test(url.pathname);
 		headers.set(
 			'Cache-Control',
 			(response.status === 200 || response.status === 304) && pinned
