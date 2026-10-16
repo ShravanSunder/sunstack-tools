@@ -159,7 +159,7 @@ A declaration ID is unique within its owner: a rule, a decision entry or the rou
 **Admission order** (all before any source read or inference):
 1. Strictly decode each file: duplicate keys and unknown fields are refused, and arbitrary keys inside instructions and criteria stay data.
 2. Validate each declaration's own rules: thresholds and floors in (0, 1]; bands below the threshold and only on block rules; composite weights positive and summing to 1, naming noul or score informational questions; a single-level score rubric refused in a composite.
-3. Check cross-file rules: unique rule IDs per RuleSet, input references resolving with compatible kinds in every RuleSet that loads a rule, route labels inside the choice criteria, routed RuleSets admitted, and wiring that is complete and kind-compatible.
+3. Check cross-file rules: unique rule IDs per RuleSet, input references resolving with compatible kinds in every RuleSet that loads a rule, route labels inside the choice criteria, routed RuleSets admitted, and wiring that is complete and kind-compatible. A RuleSet is one normalized path within an invocation (Specification E24), so a path appears at most once in `definitions.rule_sets`, and a caller puts all of its groups in that one entry; a repeat is refused with `duplicate_rule_set`. Within one route label a normalized RuleSet path appears at most once, and a repeat is refused with `invalid_route`. The same path under different labels is valid, because only one label runs. Otherwise two occurrences would share one RuleSet, rule ID and group position.
 4. Admit bindings.
 
 Diagnostics carry file, line, column and a safe field path.
@@ -522,7 +522,7 @@ Retained from the reviewed design. The decisions crate does not know about rules
 | Evidence / transcript | **`unknown_transcript_format`**, **`transcript_unavailable`**, **`transcript_discontinuous`**, **`invalid_cursor`**, **`adapter_output_invalid`**, **`transcript_limit`** |
 | Evidence / payload | **`unknown_payload_schema`**, **`payload_schema_mismatch`**, **`payload_schema_invalid`**, **`invalid_pointer`** |
 | Evidence / selection | `invalid_selector`, `unsupported_language`, `selector_limit`, **`empty_projection`** |
-| Rules / definitions | `malformed_json`, `unknown_field`, `duplicate_field`, `unsupported_schema_version`, `duplicate_rule_id`, `duplicate_rule_source`, `empty_rule_file`, **`invalid_threshold`**, **`invalid_band`**, **`invalid_composite`**, **`invalid_target`**, **`undeclared_input`**, **`input_kind_mismatch`**, **`invalid_route`**, **`invalid_wiring`** |
+| Rules / definitions | `malformed_json`, `unknown_field`, `duplicate_field`, `unsupported_schema_version`, `duplicate_rule_id`, `duplicate_rule_source`, **`duplicate_rule_set`**, `empty_rule_file`, **`invalid_threshold`**, **`invalid_band`**, **`invalid_composite`**, **`invalid_target`**, **`undeclared_input`**, **`input_kind_mismatch`**, **`invalid_route`**, **`invalid_wiring`** |
 | Rules / bindings | **`unbound_input`**, **`duplicate_binding`**, **`extra_binding`**, **`binding_kind_mismatch`** |
 | Rules / applicability | **`condition_unresolved`**, **`decision_failed`**, **`router_failed`** |
 | Rules / execution | `invalid_configuration`, **`rule_exceeds_budget`**, **`request_limit`**, `unexpected_execution_error`, `caller_aborted` |
