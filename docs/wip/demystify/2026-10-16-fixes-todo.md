@@ -36,9 +36,9 @@ Updated 2026-10-16. Fixes belong to branch `fix/demistify-mermaid-scroll`; Cloud
 - [x] Provide examples, descriptions, composition guidance and copyable markup for all 28 registered components across six review pages. Mark earlier vocabulary explicitly.
 - [x] Manually review representative content/card, visuals, layout/navigation and graph-explorer pages using one retained browser tab.
 - [x] Complete the independent Verifier's initial frozen-build launch-to-cleanup pass; preserve its exact ten-case scope and limits separately from the compact-menu correction.
-- [ ] Commit/push the scoped changes and hand the exact revision to the deployment and skill owners.
+- [x] Commit/push the scoped product changes and hand the revision to deployment/skill owners; final documentation preserves verification boundaries.
 
-- [x] Reproduce and repair the compact heading-menu hover/click dismissal; the final regression rejects the old runtime, all 11 current cases pass, and a narrow manual page transition works.
+- [x] Reproduce and repair the compact heading-menu hover/click dismissal; the final regression rejects the old runtime, all 11 current cases pass, a narrow manual page transition works, and the independent focused correction check passes on fda39cb.
 
 ## Cross-owner integration
 

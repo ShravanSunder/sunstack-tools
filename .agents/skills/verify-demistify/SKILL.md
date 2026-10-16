@@ -7,7 +7,7 @@ description: Verify Demistify's built browser runtime and Markdown CLI through p
 
 Verify `packages/demistify` through its plain-HTML consumer, `apps/demistify-poc`. Keep the real built library, Markdown files, native custom elements, diagram renderer and browser layout in the path. CLI checking and embedding prove different claims from browser behavior.
 
-**Draft: source-mapped only.** A representative launch-to-cleanup pass has not established that this recipe is operable. Observation needs a pinned commit/build, frozen fixture and released browser surface or finished authorized browser harness. The new harness command is not yet published. All unobserved journeys remain unknown.
+**Operable for the focused headless browser and CLI routes below.** Broader journey variants remain explicitly unobserved. Record the actual target and coverage in the task's evidence/trace; a working recipe is not product acceptance.
 
 ## Target and contract
 
@@ -17,25 +17,33 @@ Record the declared commit, permitted dirty-state exceptions, build location/rec
 
 Public-safe fixtures need no account/backend. Existing dependencies are a prerequisite; this recipe grants no installation, browser control or execution beyond the current commission.
 
-## Build, launch and health
+## Frozen built-library launch and health
 
-From the monorepo root, with Node 26+ and pnpm 12, after execution is authorized:
+From the monorepo root, with Node 26+, pnpm 12 and the existing task Chromium cache, run the finished repository harness after execution is authorized:
 
 ```sh
-pnpm check
-pnpm build
-pnpm --filter @sunstack/demistify-poc preview --port 4174
+PLAYWRIGHT_BROWSERS_PATH=/private/tmp/2026-10-demistify-browser-tests/chromium pnpm test:browser
 ```
 
-These commands come from root/package scripts and [README](../../../README.md). The root build builds the library, then the PoC, which copies the library into public assets and builds static output. A library-only build leaves the PoC copy stale. Preview binds loopback; record its actual URL/port and process/session identity. Leave occupied ports/processes alone and select an unused port.
+For an explicitly scoped compact-headings correction, run only its permanent case:
 
-For an already built frozen instance, inspect its build receipt/resources instead of rebuilding it. An answering port or Vite ready message alone is insufficient.
+```sh
+PLAYWRIGHT_BROWSERS_PATH=/private/tmp/2026-10-demistify-browser-tests/chromium pnpm --filter @sunstack/demistify-poc exec vitest run --config vitest.browser.config.ts tests/browser/document.browser.test.ts -t 'compact headings menu'
+```
 
-**Read-only health check:** confirm the declared fixture and expected heading at the recorded origin; served runtime/theme match declared built assets; relevant elements have upgraded; visible Markdown is prepared with `aria-busy` cleared; visible Mermaid has a real nonempty SVG. Inspect relevant failed requests/browser errors. Use bounded readiness checks, ordinarily revealing lazy diagrams through their tab/scroll position first. Missing served-build identity is a setup gap.
+Report selected tests separately from name-filtered skips and uncollected files. A focused pass is not a full-suite pass.
+
+The root/package scripts route this to `vitest run --config vitest.browser.config.ts`. The existing Vitest Playwright provider launches isolated headless Chromium; no desktop tab is used. Its Vite plugin snapshots the complete `packages/demistify/dist` and authored fixtures, then serves those bytes from a fresh loopback port. `DEMISTIFY_BROWSER_ASSETS` optionally selects a declared complete library copy; record any override. Keep the same existing browser cache. Installations require a separate grant. See the [harness README](../../../apps/demistify-poc/tests/browser/README.md).
+
+Keep stdout/stderr, exit code, printed snapshot directory and API URL. Compare the snapshot's asset hashes with the declared library. Vite writes generated config/cache files under `node_modules/.vite-temp`; if sandbox permissions prevent launch, preserve that startup failure and request the exact access for the same command. It is not a product test failure. Never rebuild a frozen target.
+
+**Readiness/health:** `openFixture` polls for the real document, upgraded navigation controls and stylesheet, then awaits fonts. Each behavior test waits for its actual heading/table/SVG or inspection result. These checks, together with snapshot identity, establish a usable real target; a listening port alone does not. Preserve failed assertions and request/browser errors emitted by the suite. Successful tests do not establish a comprehensive console/network audit.
+
+For separately authorized PoC preview work, root `pnpm build` refreshes the library and copied static host; `pnpm --filter @sunstack/demistify-poc preview --port 4174` serves it on loopback. This is a distinct delivery path from the harness snapshot. The owner desktop surface needs its own release. Do not run these commands during a source/build freeze.
 
 ## Drive and reuse
 
-Use the finished repository browser suite after inspecting its published command, configuration, fixtures and real-path assertions. At this draft's source cutoff, `apps/demistify-poc/vitest.config.ts` uses Node, and the package `test` script builds experiments then runs Vitest. That command alone is not browser evidence. The Implementer owns product tests and the pending harness; integrate its finished command when the Lead publishes it.
+Inspect the finished browser configuration and assertions before reuse. The separate `apps/demistify-poc/vitest.config.ts` uses Node; the package `test` command is not browser evidence. The Implementer owns product tests. The eleven browser scenarios cover selected real interactions; their exact assertion limits are in the journey reference.
 
 For direct UI observation, use host computer-use/Chrome on one released surface with sole control. Use ordinary links, tabs, buttons, wheel and pointer input. Read-only DOM geometry corroborates visible outcomes. Internal setters, synthetic events and mocked rendering/fetch do not establish user interaction. Do not introduce a separate Playwright driver.
 
@@ -54,7 +62,7 @@ Read [journey instructions and source map](references/journeys.md) for the selec
 | Visual gestures | Cmd+wheel anchors zoom at the pointer; Cmd+drag pans; normal scroll, buttons, reset and restoration remain usable |
 | CLI checking/embedding | Local sources check/embed and missing sources fail; transformation stays distinct from runtime/offline proof |
 
-The first representative live pass uses the built navigation/Markdown fixture: load, switch presentation, open a cold Markdown fragment, observe text/SVG, open exact source with main content retained, close, save evidence and clean up. A pass covers only interactions actually driven.
+The representative pass uses the complete existing suite: real frame launch/readiness, navigation selection and cold fragment cases, external/embedded rendered text/SVG, exact-source inspection with original heading/table retained, Close, then automatic teardown. Cases use fresh frames rather than sharing one continuous user session. A pass covers only the assertions actually exercised.
 
 ## Evidence, ownership and cleanup
 
@@ -64,6 +72,6 @@ For each journey report **supported**, **unsupported** or **unknown**, evidence 
 
 The Verifier owns this recipe and assigned apparatus. Product failures/test gaps go to the Implementer; unsettled expectations/targets go to the Lead. Run history belongs in the authorized trace/evidence. This recipe grants no product/test edits, public uploads, release or acceptance authority.
 
-Stop only the process/session this run started, by recorded identity. Leave shared instances/tabs and others' files alone. Preserve evidence and reopen it after cleanup; record intentionally shared state. Directory removal needs explicit repository permission; retain scoped residue if absent.
+The non-watch Vitest command exits and tears down its server/browser. Confirm the recorded API port has no listener; preserve/reopen evidence afterward. Keep the immutable temp snapshot if it is still needed as input evidence. Stop only a hung process/session this run started, by recorded identity. Leave shared instances/tabs and others' files alone. Directory removal needs explicit repository permission.
 
-Before calling the recipe operable, integrate the published browser command where applicable and exercise launch, readiness, health, the representative journey, evidence and cleanup on the frozen real build. Other journeys stay unobserved until adequate applicable evidence exists. Embedding/HTTP rendering alone does not establish offline/file viewing.
+Report the exact build and exercised scope on every use. Other journey variants stay unknown until adequate applicable evidence exists. Embedding/HTTP rendering alone does not establish offline/file viewing. Normal main-diagram scroll input, precise pointer anchoring, drawer resize and narrow-navigation interactions beyond the scoped 390px hover/click/Recovery case need separate proof.
