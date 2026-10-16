@@ -102,12 +102,14 @@ The granularity is the file. An edit anywhere in a RuleSet file marks all its ru
 
 The origin is rules-owned and never change-tracked, so it maps as `no_before_side` without a call.
 
-**Selection never reads ahead of applicability (Specification R28).** Leading conditions run first, exactly as in milestone 1. An occurrence they stop is `not_applicable`, or applicability failed, and gets no comparison at all. For the rest, selection runs in two steps.
+**Selection never reads ahead of applicability (Specification R28).** Selection runs in two steps. The first reads no subject, so it can run before anything else; the second waits for the occurrence's acquisition frontier.
 
-1. **At planning, at path level.** Rules compares every dependency at path level, which reads no subject:
+1. **At planning, at path level, before the leading conditions.** Rules compares every dependency at path level, which reads no subject:
    - If any dependency gives a reason, selection settles with those reasons.
-   - If every dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }` and nothing of it is acquired.
-   - Otherwise some declaration or input is `path_changed`, and only content can tell whether its selected part changed. The occurrence is planned as `comparison_pending` and evaluates like a selected one. A binding resolution refused here is carried to step 2 as that dependency's refusal.
+   - If every dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }`. Its leading conditions never run and nothing of it is acquired.
+   - Otherwise some declaration or input is `path_changed`, and only content can tell whether its selected part changed. The occurrence is planned as `comparison_pending` and evaluates like a selected one. A binding resolution refused here is carried to step 2 as that dependency's refusal; it is never decisive here.
+
+   **Then the leading conditions run**, exactly as in milestone 1, for every occurrence that is selected or pending. An occurrence they stop is `not_applicable`. An unresolved condition gives `evaluation_failed { cause: condition }` with its group `applicability_failed`, as in milestone 1. Either way the occurrence keeps its step-1 selection, and it never reaches step 2.
 2. **At the acquisition frontier, at content level.** When the occurrence's own request becomes ready, the same session compares its `path_changed` dependencies by content. That is the point where milestone 1 acquires the occurrence's evidence anyway. Ready means one of two things:
    - **Staged work:** its controlling gates settled and passed. Gate inputs were reached at their gates, and the target and context arrive with the request.
    - **Speculative ride (R38):** the request is acquired before its gates settle.
@@ -143,7 +145,7 @@ A dependency that is not change-tracked can never prove the occurrence irrelevan
 
 - **A refused comparison** makes preparation or the report incomplete. Peer occurrences keep their own dispositions.
 - **Outside change scope** requires every dependency established `unchanged`, at path level or at content level.
-- **Selected or pending:** the occurrence's later applicability entries run as in milestone 1. Not applicable is `not_applicable` (the `not_applicable_current` case), and unresolved applicability is `selection_failed` (`selection_diagnostic`).
+- **Selected or pending:** the occurrence's applicability entries run as in milestone 1, under both full and change scope, with one rule. Not applicable is `not_applicable` (the `not_applicable_current` case). An unresolved condition is `evaluation_failed { cause: condition }` with its group `applicability_failed`. That is milestone 1's realization of Specification C3's "unresolved current applicability is a selection failure". `selection_failed` stays reserved for refused evidence and refused comparisons.
 - **Target deleted:** the occurrence is selected (`target_changed`). Its current-side selection then refuses with `deleted_target`, so it ends `selection_failed`, as in milestone 1. A deletion is never `outside_change_scope`.
 
 **Applicability is compared by its inputs, not its outcomes.** Rules never evaluates conditions or decisions on the before side, so it never makes a before-side model call. A change to any applicability dependency selects the occurrence, a superset of an outcome change: a false-to-true flip always selects, and a true-to-true change with changed inputs also selects. The cost is extra judged occurrences when applicability inputs change without changing the outcome. The gain is no before-side evaluation and no second evaluation path.
