@@ -77,9 +77,20 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			'The page body: bare Markdown, islands and layouts; adds outline and theme toggle.',
 		attributes: {},
 	},
+	'ex-presentation': {
+		description: 'One named explainer in a collection; the presentations menu shows one at a time.',
+		attributes: {
+			title: text('Presentation name shown in the menu.', true),
+			description: text('Short description shown beneath its name.', true),
+		},
+	},
 	'ex-markdown': {
-		description: 'Markdown that may contain `<`; put it in <script type="text/markdown">.',
-		attributes: { label },
+		description:
+			'Markdown inline or from a file; source stays inspectable beside the rendered content.',
+		attributes: {
+			label,
+			src: text('Markdown URL relative to this page; embed local files for file-protocol viewing.'),
+		},
 		source: 'text/markdown',
 	},
 	'ex-card': {

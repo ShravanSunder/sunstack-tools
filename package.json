@@ -11,7 +11,8 @@
 		"fmt": "oxfmt packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json",
 		"fmt:check": "oxfmt --check packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json",
 		"check": "pnpm lint && pnpm fmt:check && pnpm typecheck",
-		"test": "pnpm --filter @sunstack/demistify-poc test"
+		"test": "pnpm --filter @sunstack/demistify-poc test",
+		"test:browser": "pnpm --filter @sunstack/demistify-poc test:browser"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.5",

@@ -9,7 +9,8 @@
 		"dev:serve": "vite --host 127.0.0.1",
 		"preview": "vite preview --host 127.0.0.1",
 		"islands:package": "node scripts/build-experiments.ts --reuse-runtime --islands-only",
-		"test": "node scripts/build-experiments.ts && vitest run"
+		"test": "node scripts/build-experiments.ts && vitest run",
+		"test:browser": "vitest run --config vitest.browser.config.ts"
 	},
 	"dependencies": {
 		"@sunstack/demistify": "workspace:*",
@@ -25,6 +26,8 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"parse5": "7.3.0"
+		"@vitest/browser-playwright": "5.0.4",
+		"parse5": "7.3.0",
+		"playwright": "1.64.0"
 	}
 }

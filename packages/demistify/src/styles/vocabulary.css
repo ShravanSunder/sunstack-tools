@@ -124,6 +124,9 @@ ex-flow > ex-arrow {
 :is(ex-grid, ex-flow) > * + * {
 	margin-top: 0;
 }
+:is(ex-grid, ex-flow) > * {
+	min-width: 0;
+}
 /* Spans and sticky columns only hold while the grid itself is wide enough. */
 @container (max-width: 620px) {
 	:is(ex-grid, ex-flow) > [span] {
@@ -188,8 +191,7 @@ ex-card {
 	line-height: 1.25;
 }
 ex-card[pick] {
-	border-color: var(--accent);
-	box-shadow: var(--ring);
+	border-top-color: var(--accent);
 }
 .ex-card-pick {
 	font: 600 var(--text-2xs) var(--display);
@@ -697,15 +699,6 @@ ex-board[data-mode='map'] ex-region[data-open] {
 	box-shadow: 0 0 0 2px var(--accent);
 }
 
-ex-mermaid.ex-diagram-wide {
-	overflow-x: auto;
-	justify-items: start;
-}
-ex-mermaid.ex-diagram-wide > svg {
-	max-width: none;
-	margin-inline: 0;
-}
-
 /* Drawer: a docked panel that takes space; the page narrows beside it and keeps scrolling. */
 .ex-drawer {
 	position: fixed;
@@ -792,14 +785,25 @@ ex-tree li > ul {
 }
 .ex-tree-node {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
+	align-items: flex-start;
 	gap: 2px var(--space-2);
 	width: fit-content;
+	max-width: 100%;
 	padding: 3px 0;
+}
+.ex-tree-label {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.ex-tree-label > p {
+	margin: 0;
+}
+.ex-tree-label > p + p {
+	margin-top: var(--space-2);
 }
 .ex-tree-node > .ex-tone-icon {
 	font-size: var(--text-md);
+	line-height: inherit;
 }
 /* A branch folds on click. Open, it carries no mark (everything is already in view); folded, it
    shows a caret and how many nodes it hides. */
@@ -943,6 +947,7 @@ ex-document img:not(a img, ex-compare[slider] img) {
 		calc(var(--natural-width, 100000px) * 2)
 	);
 	max-width: none;
+	min-width: 0;
 	height: auto;
 	margin-inline: auto;
 }

@@ -3,25 +3,40 @@ import { readFile } from 'node:fs/promises';
 import { renderMermaidSVG } from 'beautiful-mermaid';
 
 import { decodeEscapedHtmlText } from '../core/html-text.ts';
+import {
+	markdownSourceMarkup,
+	parseMarkdownSource,
+	type MarkdownSource,
+} from '../core/markdown-source.ts';
 import { normalizeIslandText } from '../core/source-text.ts';
 import { subjectIcons } from '../core/subject-icons.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
 import { renderMarkdownContent } from '../render/markdown-content.ts';
+import { embedMarkdownFiles } from './markdown-files.ts';
 
-function readAuthorText(sourceHtml: string): string {
+function readMarkdownRecord(sourceHtml: string): MarkdownSource {
+	const retained =
+		/<script type="application\/json" data-ex-markdown-source(?:="")?>([\s\S]*?)<\/script>/.exec(
+			sourceHtml,
+		)?.[1];
+	if (retained !== undefined) return parseMarkdownSource(retained);
 	const textBlock = /<script\s+type="text\/(?:markdown|plain)"\s*>([\s\S]*?)<\/script>/.exec(
 		sourceHtml,
 	);
 	if (textBlock?.[1] === undefined)
 		throw new Error('Island source requires an inert text block to preserve whitespace.');
-	return normalizeIslandText(textBlock[1]);
+	return { text: textBlock[1], reference: '' };
+}
+
+function readAuthorText(sourceHtml: string): string {
+	return normalizeIslandText(readMarkdownRecord(sourceHtml).text);
 }
 export function prepareIslandContent(
 	sourceHtml: string,
 	diagrams: Readonly<Record<string, string>>,
 	standalone: boolean,
 ): string {
-	let preparedHtml = sourceHtml.replace(
+	let preparedHtml = embedMarkdownFiles(sourceHtml, diagrams).replace(
 		/<ex-mermaid([^>]*\bsrc="([^"]+)"[^>]*)>\s*<\/ex-mermaid>/g,
 		(_match: string, attributes: string, sourcePath: string): string => {
 			const sourceText = diagrams[sourcePath];
@@ -33,7 +48,7 @@ export function prepareIslandContent(
 	preparedHtml = preparedHtml.replace(
 		/<ex-markdown([^>]*)>([\s\S]*?)<\/ex-markdown\s*>/g,
 		(_match: string, attributes: string, content: string): string =>
-			`<ex-markdown${attributes} prepared>${renderMarkdownContent(readAuthorText(content))}</ex-markdown>`,
+			`<ex-markdown${attributes} prepared>${renderMarkdownContent(readAuthorText(content))}${markdownSourceMarkup(readMarkdownRecord(content))}</ex-markdown>`,
 	);
 	return preparedHtml.replace(
 		/<ex-mermaid([^>]*)>([\s\S]*?)<\/ex-mermaid\s*>/g,

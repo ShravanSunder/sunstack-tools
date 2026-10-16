@@ -1,4 +1,6 @@
+import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
+import { createPresentationMenu } from './presentations.ts';
 
 export class HeadingNavigation extends HTMLElement {
 	private contentObserver: MutationObserver | undefined;
@@ -7,6 +9,7 @@ export class HeadingNavigation extends HTMLElement {
 	private railMarkers: HTMLElement | undefined;
 	private contentRoot: HTMLElement | undefined;
 	private pageLinks: readonly HTMLAnchorElement[] = [];
+	private presentationsButton: HTMLButtonElement | undefined;
 	private readonly headingLinks = new Map<Element, readonly HTMLAnchorElement[]>();
 	private readonly sidebarMedia = window.matchMedia('(min-width: 1440px)');
 	private changingPopover = false;
@@ -15,6 +18,8 @@ export class HeadingNavigation extends HTMLElement {
 		if (this.navigationPanel.matches(':popover-open')) this.closePanel();
 		this.toggleAttribute('data-pinned', this.sidebarMedia.matches);
 		this.navigationPanel.toggleAttribute('data-pinned', this.sidebarMedia.matches);
+		if (this.presentationsButton)
+			(this.sidebarMedia.matches ? this.navigationPanel : this).prepend(this.presentationsButton);
 		if (this.sidebarMedia.matches) this.navigationPanel.removeAttribute('popover');
 		else this.navigationPanel.popover = 'auto';
 	};
@@ -40,7 +45,10 @@ export class HeadingNavigation extends HTMLElement {
 			(this.getAttribute('for') ? document.getElementById(this.getAttribute('for') ?? '') : null) ??
 			document.querySelector<HTMLElement>('ex-document, main') ??
 			document.body;
-		this.pageLinks = Array.from(this.querySelectorAll<HTMLAnchorElement>('a[href]'));
+		this.pageLinks = Array.from(this.querySelectorAll<HTMLAnchorElement>('a[href]')).filter(
+			(link): boolean => !link.closest('[slot="presentations"]'),
+		);
+		this.presentationsButton = createPresentationMenu(this)?.button;
 		const navigationPanel = document.createElement('nav');
 		navigationPanel.className = 'ex-heading-panel';
 		navigationPanel.popover = 'auto';
@@ -53,7 +61,11 @@ export class HeadingNavigation extends HTMLElement {
 		const menuButton = createIconButton('list', 'Browse page headings', (): void =>
 			this.openPanel(),
 		);
-		this.replaceChildren(menuButton, railMarkers);
+		this.replaceChildren(
+			...(this.presentationsButton ? [this.presentationsButton] : []),
+			menuButton,
+			railMarkers,
+		);
 		document.body.append(navigationPanel);
 		this.addEventListener('pointerenter', (): void => this.openPanel());
 		this.addEventListener('pointerleave', (event: PointerEvent): void => {
@@ -132,11 +144,14 @@ export class HeadingNavigation extends HTMLElement {
 
 	private renderHeadings(): void {
 		if (!this.contentRoot || !this.navigationPanel || !this.railMarkers) return;
+		assignHeadingFragments(this.contentRoot);
 		const headings = Array.from(
 			this.contentRoot.querySelectorAll<HTMLHeadingElement>('h1,h2,h3,h4,h5,h6'),
 		).filter((heading): boolean => !heading.closest('[hidden]'));
 		this.headingLinks.clear();
 		this.navigationPanel.replaceChildren();
+		if (this.presentationsButton && this.sidebarMedia.matches)
+			this.navigationPanel.append(this.presentationsButton);
 		this.railMarkers.replaceChildren();
 		const outline = document.createElement('div');
 		outline.className = 'ex-heading-outline';
@@ -146,19 +161,6 @@ export class HeadingNavigation extends HTMLElement {
 		outline.append(sectionLabel);
 		this.navigationPanel.append(outline);
 		for (const heading of headings) {
-			if (!heading.id) {
-				const slug =
-					heading.textContent
-						?.trim()
-						.toLowerCase()
-						.replace(/[^\p{L}\p{N}]+/gu, '-')
-						.replace(/^-|-$/g, '') || 'section';
-				const baseId = `heading-${slug}`;
-				let suffix = 1;
-				heading.id = baseId;
-				while (document.getElementById(heading.id) !== heading)
-					heading.id = `${baseId}-${++suffix}`;
-			}
 			const label = heading.textContent?.trim() ?? '';
 			const level = heading.tagName.slice(1);
 			const marker = document.createElement('a');
@@ -172,14 +174,29 @@ export class HeadingNavigation extends HTMLElement {
 			this.railMarkers.append(marker);
 			outline.append(menuLink);
 		}
-		if (this.pageLinks.length) {
+		const selected = this.contentRoot.querySelector('ex-presentation:not([hidden])');
+		const pageLinks = [
+			...this.pageLinks,
+			...Array.from(
+				selected?.querySelectorAll<HTMLAnchorElement>(':scope > nav[slot="pages"] a[href]') ?? [],
+			),
+		];
+		if (pageLinks.length) {
 			const pages = document.createElement('div');
 			pages.className = 'ex-heading-pages';
 			const pagesLabel = document.createElement('strong');
 			pagesLabel.className = 'ex-navigation-label';
-			pagesLabel.textContent = 'Other pages';
+			pagesLabel.textContent = 'Pages';
 			pages.append(pagesLabel);
-			for (const link of this.pageLinks) {
+			for (const original of pageLinks) {
+				const copy = original.cloneNode(true);
+				if (!(copy instanceof HTMLAnchorElement)) continue;
+				const link = copy;
+				if (
+					new URL(link.href).pathname === location.pathname &&
+					(!link.hash || link.hash === location.hash)
+				)
+					link.setAttribute('aria-current', 'page');
 				link.classList.add('ex-page-link');
 				if (!link.querySelector('.ph')) link.append(createPhosphorIcon('arrow-up-right'));
 				pages.append(link);

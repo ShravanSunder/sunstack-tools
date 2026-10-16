@@ -1,6 +1,7 @@
 import { createIconButton } from '../core/icons.ts';
 import { openDrawer } from './drawer.ts';
 import { copyInspectionContent } from './inspection-copy.ts';
+import { installInspectionGestures } from './inspection-gestures.ts';
 
 type InspectionMode = 'modal' | 'sidebar';
 
@@ -148,7 +149,10 @@ function takeContent(
 	addButton('magnifying-glass-minus', 'Zoom out', (): void => updateScale(scale - 0.25));
 	header.append(magnification);
 	addButton('magnifying-glass-plus', 'Zoom in', (): void => updateScale(scale + 0.25));
-	addButton('arrow-counter-clockwise', 'Reset zoom', (): void => updateScale(1));
+	addButton('arrow-counter-clockwise', 'Reset zoom', (): void => {
+		updateScale(1);
+		body.scrollTo({ left: 0, top: 0 });
+	});
 	if (expand) addButton('arrows-out', 'Expand', expand);
 	const closeButton = addButton('x', 'Close', close);
 	closeButton.autofocus = true;
@@ -168,6 +172,8 @@ function takeContent(
 		describeShape(visual);
 	if (reserveWidth) owner.insertBefore(placeholder, controls);
 	body.append(content);
+	if (content.querySelector('img, svg'))
+		installInspectionGestures(body, { readScale: (): number => scale, setScale: updateScale });
 	for (const detail of detailStates) detail.element.hidden = false;
 	for (const disclosure of disclosureStates) disclosure.element.open = true;
 	return {

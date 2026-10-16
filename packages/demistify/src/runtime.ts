@@ -17,6 +17,7 @@ import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/do
 import { FlowIsland } from './layout/flow.ts';
 import { LayersElement } from './layout/layers.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
+import { PresentationIsland } from './layout/presentations.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
 import { installArrowTracing } from './layout/trace.ts';
 
@@ -46,6 +47,7 @@ for (const [tagName, constructor] of [
 	['ex-stat', StatIsland],
 	['ex-route', RouteElement],
 	['ex-step', StepElement],
+	['ex-presentation', PresentationIsland],
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 	['ex-layers', LayersElement],

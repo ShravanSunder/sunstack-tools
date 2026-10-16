@@ -49,6 +49,7 @@ export class TreeIsland extends HTMLElement {
 				icon: readIcon(this),
 				title,
 			});
+			label.querySelector('strong')?.classList.add('ex-tree-label');
 			item.append(label, branches);
 			root.append(item);
 			body.append(root);
@@ -113,13 +114,14 @@ function convertList(list: Element): HTMLUListElement {
 		const node = document.createElement('li');
 		const label = document.createElement('div');
 		label.className = 'ex-tree-node';
+		const labelContent = document.createElement('div');
+		labelContent.className = 'ex-tree-label';
+		label.append(labelContent);
 		const children: Element[] = [];
 		for (const child of Array.from(item.childNodes)) {
 			if (child instanceof Element && (child.localName === 'ul' || child.localName === 'ol'))
 				children.push(child);
-			else if (child instanceof Element && child.localName === 'p')
-				label.append(...child.childNodes);
-			else label.append(child);
+			else labelContent.append(child);
 		}
 		let tone: Tone | undefined;
 		const box = label.querySelector('input[type="checkbox"]');

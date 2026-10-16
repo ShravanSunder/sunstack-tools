@@ -3,10 +3,12 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, relative, resolve } from 'node:path';
 
 import { parseGraphDocument } from '../explorer/graph-document.ts';
+import { embedMarkdownFiles, markdownFileReferences } from './markdown-files.ts';
 
 export interface StandaloneHtmlOptions {
 	readonly sourceHtml: string;
 	readonly libraryDirectory: string;
+	readonly resolveMarkdownSource?: (sourcePath: string) => Promise<string>;
 	readonly resolveExplorerSource?: (sourcePath: string) => Promise<string>;
 }
 export interface StandaloneHtmlBundle {
@@ -83,7 +85,14 @@ export async function bundleStandaloneHtml(
 		}
 		return result;
 	}
-	let page = options.sourceHtml;
+	const markdownSources: Record<string, string> = {};
+	for (const reference of markdownFileReferences(options.sourceHtml)) {
+		if (!options.resolveMarkdownSource)
+			throw new Error('Provide an explicit resolver for referenced Markdown files.');
+		// oxlint-disable-next-line no-await-in-loop -- embed each complete source before creating the offline bundle.
+		markdownSources[reference] = await options.resolveMarkdownSource(reference);
+	}
+	let page = embedMarkdownFiles(options.sourceHtml, markdownSources);
 	const unresolvedDiagram = [...page.matchAll(/<ex-mermaid\b([^>]*)>/gi)].some(
 		(match): boolean =>
 			/\bsrc=/.test(match[1] ?? '') && !/(?:^|\s)prepared(?:\s|$|=)/.test(match[1] ?? ''),

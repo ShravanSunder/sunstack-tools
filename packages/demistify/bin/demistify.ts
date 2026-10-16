@@ -11,6 +11,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 
 import { applyEdits, type CheckOptions, checkHtml, formatFindings } from '../src/node/check.ts';
+import { embedMarkdownFiles, markdownFileReferences } from '../src/node/markdown-files.ts';
 import { renderCheck } from '../src/node/render-check.ts';
 
 const write = (text: string): void => {
@@ -39,6 +40,26 @@ async function readHookFile(): Promise<string | undefined> {
 
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
+	if (command === 'embed') {
+		const [input, output] = rest;
+		if (!input || !output || rest.length !== 2) {
+			write('Usage: demistify embed input.html output.html');
+			return 1;
+		}
+		const html = await readFile(input, 'utf8');
+		const sources: Record<string, string> = {};
+		for (const reference of markdownFileReferences(html)) {
+			if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(reference))
+				throw new Error('embed reads local Markdown files only.');
+			// oxlint-disable-next-line no-await-in-loop -- read each local source before writing the output.
+			sources[reference] = await readFile(resolve(dirname(input), reference), 'utf8');
+		}
+		await writeFile(output, embedMarkdownFiles(html, sources));
+		write(
+			`Embedded ${Object.keys(sources).length} Markdown file(s) into ${output}. Shared library links retained.`,
+		);
+		return 0;
+	}
 	if (command !== 'check') {
 		write(
 			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook',

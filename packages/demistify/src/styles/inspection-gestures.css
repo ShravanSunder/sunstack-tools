@@ -1,0 +1,12 @@
+.ex-inspect-body[data-panning] {
+	cursor: grabbing;
+	user-select: none;
+}
+.ex-inspect-body[data-panning] * {
+	pointer-events: none;
+}
+
+/* Inspection has one pan/zoom viewport; main-page diagrams keep their own local scrolling. */
+.ex-inspect-body ex-mermaid {
+	overflow: visible;
+}

@@ -139,6 +139,10 @@ ex-nav > .ex-icon-button {
 	body:has(ex-nav) {
 		padding-inline-start: 304px;
 	}
+	/* The rail already reserves a gutter; centering again can add hundreds of blank pixels. */
+	body:has(ex-nav) > ex-document {
+		margin-inline-start: 0;
+	}
 	ex-nav[data-pinned] {
 		display: none;
 	}

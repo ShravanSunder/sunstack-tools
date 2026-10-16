@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Content and decisions · Demistify components</title>
+<link rel="stylesheet" href="/experiments/islands/theme.css">
+<script type="module" src="/experiments/islands/runtime.js">
+</script>
+</head>
+<body>
+<ex-nav for="guide">
+<nav slot="pages" aria-label="Component guide pages">
+<a href="index.html">Start here</a>
+<a href="content.html">Content and decisions</a>
+<a href="layouts.html">Layouts and navigation</a>
+<a href="visuals.html">Visuals and structure</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+</nav>
+<nav slot="presentations" aria-label="Other presentations">
+<a href="../navigation-markdown-fix/index.html">
+<strong>Session design</strong>
+<span>Three named presentations with referenced Markdown and deep links.</span>
+</a>
+<a href="../layout-regression-fix/index.html">
+<strong>Layout stress cases</strong>
+<span>Wide diagrams and long tree labels.</span>
+</a>
+</nav>
+</ex-nav>
+<ex-document id="guide">
+<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
+<a href="index.html">Demistify component guide</a>
+<span aria-current="page">Content and decisions</span>
+</nav>
+<ex-presentation id="examples" title="Content and decisions" description="Working components with copyable source and usage guidance.">
+<h1>Content and decisions</h1>
+<section id="component-ex-markdown">
+<h2>Markdown <code>ex-markdown</code>
+</h2>
+<p>Use inline prose or reference a real file. Hover to open the exact Markdown source; this example includes a fenced diagram.</p>
+<ex-markdown id="markdown-example">
+<script type="text/markdown">## A reconnect proposal
+
+A **registry** owns session lifetime. The socket carries messages.
+
+| Owner | Responsibility |
+| --- | --- |
+| Registry | Find the session |
+| Socket | Carry messages |
+
+```mermaid
+flowchart LR
+ Client --> Registry --> Session
+```
+</script>
+</ex-markdown>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-markdown usage" lang="html">
+<template>&lt;ex-markdown id=&quot;markdown-example&quot;&gt;&lt;script type=&quot;text/markdown&quot;&gt;## A reconnect proposal
+
+A **registry** owns session lifetime. The socket carries messages.
+
+| Owner | Responsibility |
+| --- | --- |
+| Registry | Find the session |
+| Socket | Carry messages |
+
+```mermaid
+flowchart LR
+ Client --&gt; Registry --&gt; Session
+```
+&lt;/script&gt;&lt;/ex-markdown&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-card">
+<h2>Cards <code>ex-card</code>
+</h2>
+<p>One component, option, finding or decision. A tone supplies meaning; pick adds a chosen badge with a single top accent.</p>
+<ex-grid cols="2">
+<ex-card id="sample-card" title="Registry owns lifetime" tone="decision" icon="database" pick>Reconnect finds the same session.</ex-card>
+<ex-card title="Socket owns transport" tone="note" icon="plug">A socket can disappear without ending the session.</ex-card>
+</ex-grid>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-card usage" lang="html">
+<template>&lt;ex-grid cols=&quot;2&quot;&gt;&lt;ex-card id=&quot;sample-card&quot; title=&quot;Registry owns lifetime&quot; tone=&quot;decision&quot; icon=&quot;database&quot; pick&gt;Reconnect finds the same session.&lt;/ex-card&gt;&lt;ex-card title=&quot;Socket owns transport&quot; tone=&quot;note&quot; icon=&quot;plug&quot;&gt;A socket can disappear without ending the session.&lt;/ex-card&gt;&lt;/ex-grid&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-callout">
+<h2>Callouts <code>ex-callout</code>
+</h2>
+<p>An aside for rationale, risk, a decision or a reader question.</p>
+<ex-callout title="Reconnect boundary" tone="risk">Expiry and reconnection must agree about which session is current.</ex-callout>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-callout usage" lang="html">
+<template>&lt;ex-callout title=&quot;Reconnect boundary&quot; tone=&quot;risk&quot;&gt;Expiry and reconnection must agree about which session is current.&lt;/ex-callout&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-stat">
+<h2>Numbers <code>ex-stat</code>
+</h2>
+<p>State the unit, label and context. Example values are illustrative, not measured performance.</p>
+<ex-stat value="2" label="Runtime adapters" note="One shared session contract" tone="note">
+</ex-stat>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-stat usage" lang="html">
+<template>&lt;ex-stat value=&quot;2&quot; label=&quot;Runtime adapters&quot; note=&quot;One shared session contract&quot; tone=&quot;note&quot;&gt;&lt;/ex-stat&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-code">
+<h2>Code and diffs <code>ex-code</code>
+</h2>
+<h3 id="component-ex-note">Line notes <code>ex-note</code></h3>
+<p>A note names the visible row number of its enclosing code block.</p>
+<p>Keep source in an inert script. Notes attach to visible row numbers; removed rows count too.</p>
+<ex-code title="session.ts" lang="diff" start="40">
+<script type="text/plain"> const session = registry.get(id);
+- if (!session) return undefined;
++ if (!session || session.expired) return undefined;
+ return session;
+</script>
+<ex-note line="42" tone="question">Check expiry before attaching the transport.</ex-note>
+</ex-code>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-code usage" lang="html">
+<template>&lt;ex-code title=&quot;session.ts&quot; lang=&quot;diff&quot; start=&quot;40&quot;&gt;&lt;script type=&quot;text/plain&quot;&gt; const session = registry.get(id);
+- if (!session) return undefined;
++ if (!session || session.expired) return undefined;
+ return session;
+&lt;/script&gt;&lt;ex-note line=&quot;42&quot; tone=&quot;question&quot;&gt;Check expiry before attaching the transport.&lt;/ex-note&gt;&lt;/ex-code&gt;</template>
+</ex-code>
+</details>
+</section>
+</ex-presentation>
+<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+<ex-markdown id="authoring-notes" src="usage-notes.md">
+</ex-markdown>
+</ex-presentation>
+</ex-document>
+</body>
+</html>

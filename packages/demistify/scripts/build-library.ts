@@ -41,6 +41,8 @@ const styles = await Promise.all(
 		'reference.css',
 		'components.css',
 		'navigation.css',
+		'presentations.css',
+		'inspection-gestures.css',
 		'vocabulary.css',
 		'explorer.css',
 	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8')),
