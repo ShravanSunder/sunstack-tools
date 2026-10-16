@@ -54,10 +54,16 @@ A change-set input binds one repository binding. Its declarations are tagged by 
 
 Evidence owns both sides of a change; rules owns the selection. Rules asks the invocation's one `EvidenceSession` whether a subject changed (`compare_change_sides`), then turns the answers into an E15 selection record. Rules never reads Git or files itself, and never opens a second capture.
 
-**Subjects.** A comparison's subject is one of:
+**Subjects and levels.** A comparison's subject is one of:
 - `declaration`: an evidence declaration;
 - `input`: a whole bound input, for a condition that scans it;
 - `definition_file`: a rule file's or RuleSet file's resolved path.
+
+Each comparison runs at one of two levels:
+- `path` reads no subject content. It checks the subject's source paths against the binding's resolved changed paths, and classifies inputs that are not change-tracked by kind.
+- `content` compares what the subject selects on both sides. It exists for declarations and inputs.
+
+Either level may resolve a binding's change selection, once per binding: that resolution is the binding-level acquisition C8 defines, and its reads are reported in its coverage.
 
 **`ChangeComparison`** (`evidence_contracts`), for one subject:
 
@@ -71,7 +77,7 @@ Evidence owns both sides of a change; rules owns the selection. Rules asks the i
 | `no_before_side { reason: full_scope \| conversation_input \| payload_input \| outside_change_scope_paths }` | The subject is not change-tracked: it has no before side to compare |
 | `refused { diagnostics }` | The comparison could not finish. The causes are an unreadable current side, a source that changed during its capture (`source_changed`), an invalid selection, or an exhausted limit. The diagnostics are the evidence diagnostics `select` already uses. Cancellation follows the session's established cancellation behavior |
 
-**A declaration** is compared by the content it selects, never by its locations, so moved lines are not a change. Evidence compares, per member delta:
+**A declaration at content level** is compared by the content it selects, never by its locations, so moved lines are not a change. Evidence compares, per member delta:
 - a paragraph's text, by its target ID;
 - document text;
 - a match set, as the multiset of matched text and capture text;
@@ -81,7 +87,7 @@ A change-set declaration (`change_set_*`, `changed_units`, `related_units`) sele
 
 **An input** is compared as its whole bound content. A document input in a change-scoped binding is compared like `document_text`. A conversation or payload input, a document in a full-scope binding, and the invocation's origin have no before side.
 
-**A definition file** (a rule file, or the RuleSet file that holds `common_ruleset_instructions`) is compared by path. No bytes are read:
+**A definition file** (a rule file, or the RuleSet file that holds `common_ruleset_instructions`) is compared at path level only. It reads no bytes beyond its binding's shared resolution:
 - If the resolved path lies inside a change-scoped repository binding's allowed paths, the binding's resolved changed paths decide `added`, `changed` or `unchanged`.
 - Otherwise the result is `no_before_side { reason: outside_change_scope_paths }`.
 
@@ -93,9 +99,22 @@ The granularity is the file. An edit anywhere in a RuleSet file marks all its ru
 - its context declarations;
 - every input its RuleSet-level and rule-level applicability entries read. That covers the evidence declarations its decisions read, and the operands its conditions read directly: the payload input of a `payload_field_*` test, the input a `pattern_present` test scans, and the origin an `origin_field_equals` test reads.
 
-Rules compares each dependency through the session. The origin is the exception: rules owns it, and it is never change-tracked, so it maps as `no_before_side` without a call.
+The origin is rules-owned and never change-tracked, so it maps as `no_before_side` without a call.
 
-**Rules' mapping.** The comparisons produce the occurrence's `selected_by` reasons, in the closed `SelectedReason` order:
+**Selection never reads ahead of applicability (Specification R28).** Leading conditions run first, exactly as in milestone 1. An occurrence they stop is `not_applicable`, or applicability failed, and gets no comparison at all. For the rest, selection runs in two steps.
+
+1. **At planning, at path level.** Rules compares every dependency at path level, which reads no subject:
+   - If any dependency gives a reason, selection settles with those reasons.
+   - If every dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }` and nothing of it is acquired.
+   - Otherwise a tracked source path changed, and only content can tell whether the selected part changed. The occurrence is planned as `comparison_pending` and evaluates like a selected one. A binding resolution refused here is carried to step 2 as that dependency's refusal.
+2. **At the acquisition frontier, at content level.** When the occurrence's own request becomes ready, the same session compares its pending dependencies by content. Ready means its controlling gates settled and passed, or the request rides speculatively (R38). That is the point where milestone 1 acquires the occurrence's evidence anyway: gate inputs were reached at their gates, and the target and context arrive with the request.
+   - If any reason holds, selection settles with those reasons and the questions stay.
+   - If every pending dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }`. Its questions leave the request before encoding, as with an evidence refusal. A request left with no questions is `not_sent { reason: outside_change_scope }`.
+   - If a comparison is `refused`, the occurrence follows the existing rule for a rule's refused required evidence (Program Design scheduling): `selection_failed { diagnostics }`, because its gates have passed.
+
+An occurrence whose gate does not pass never reaches step 2. It is `not_applicable`, or reduces as for a failed gate, and its pending dependencies are never read. `prepare_rules` runs step 2 for the requests it prepares; an occurrence whose request is waiting stays `comparison_pending`.
+
+**Rules' mapping.** Both levels map comparisons to `SelectedReason` the same way. `selected_by` lists every reason found in the step that settled selection, in the closed order:
 
 | Dependency | Comparison | Reason |
 | --- | --- | --- |
@@ -110,9 +129,9 @@ Rules compares each dependency through the session. The origin is the exception:
 
 A dependency that is not change-tracked can never prove the occurrence irrelevant, so it selects as `full_scope`: that dependency is evaluated as under full scope. A dependency whose before side exists but is unresolved selects with its own unknown reason. Both follow Specification C3: missing evidence never proves irrelevance.
 
-- **A comparison refused:** if any dependency's comparison is `refused`, the occurrence is `selection_failed { diagnostics }` (`selection_diagnostic`), even when another reason holds. Preparation and the report are then incomplete, and peer occurrences keep their own dispositions.
-- **No reason holds:** only when every dependency compared `unchanged` is the occurrence `outside_change_scope { reason: no_declared_change }`. Its current evidence is then never acquired.
-- **Selected:** current applicability then runs as in milestone 1. Not applicable is `not_applicable` (the `not_applicable_current` case), and unresolved current applicability is `selection_failed` (`selection_diagnostic`).
+- **A refused comparison** makes preparation or the report incomplete. Peer occurrences keep their own dispositions.
+- **Outside change scope** requires every dependency established `unchanged`, at path level or at content level.
+- **Selected or pending:** the occurrence's later applicability entries run as in milestone 1. Not applicable is `not_applicable` (the `not_applicable_current` case), and unresolved applicability is `selection_failed` (`selection_diagnostic`).
 - **Target deleted:** the occurrence is selected (`target_changed`). Its current-side selection then refuses with `deleted_target`, so it ends `selection_failed`, as in milestone 1. A deletion is never `outside_change_scope`.
 
 **Applicability is compared by its inputs, not its outcomes.** Rules never evaluates conditions or decisions on the before side, so it never makes a before-side model call. A change to any applicability dependency selects the occurrence, a superset of an outcome change: a false-to-true flip always selects, and a true-to-true change with changed inputs also selects. The cost is extra judged occurrences when applicability inputs change without changing the outcome. The gain is no before-side evaluation and no second evaluation path.
