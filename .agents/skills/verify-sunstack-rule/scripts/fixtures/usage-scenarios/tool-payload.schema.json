@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {"type":"object","properties":{"kind":{"const":"proposal"},"arguments":{"type":"object"}},"required":["kind","arguments"],"additionalProperties":false},
+    {"type":"object","properties":{"kind":{"const":"observation"},"arguments":{"type":"object"},"outcome":{"type":"object"}},"required":["kind","arguments","outcome"],"additionalProperties":false}
+  ]
+}

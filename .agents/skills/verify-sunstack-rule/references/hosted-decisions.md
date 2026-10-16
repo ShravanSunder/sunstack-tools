@@ -2,7 +2,7 @@
 
 Select the V11 public decisions route or the V22/V34 native rules route below. Their oracle is Specification C4/C7/C10/C13 and V11/V22/V34 at the main skill's pinned revision, read with `git show`. Inputs: pinned source, working SDK/toolchain, authorized network access and hosted spend, owner's credential supplied in memory, and evidence directory. Return the selected claim, run ID or applicable reused observation, command exit/counts, native answer checks and safe execution receipt. A default ignored-test skip leaves the hosted claim unknown.
 
-The V11 and hosted-rules test binaries run under the tests signing identity, which also needs LuLu approval; an unapproved identity can stall about 60 seconds and is classified as host egress, as for the CLI, while the signing preflight remains scoped to hosted CLI work. Timeout alone does not establish which host component blocked traffic.
+The V11 and hosted-rules test binaries run under the tests signing identity, which also needs LuLu approval; signing preflight remains scoped to hosted CLI work. Apply `milestone-1.md`'s warning/stall interpretation for that CLI surface. Timeout alone does not establish which host component blocked traffic.
 
 ## V11: launch and drive
 
@@ -16,7 +16,9 @@ cargo nextest run -p sunstack-decisions --test hosted_jev --run-ignored all --su
 
 `--success-output immediate` preserves the test's safe `hosted receipt:` output. Keep the output and exit status, not just a success summary. The existing test fails when an explicitly requested hosted run lacks its credential; do not replace that failure with a pass. Without authorized credentials/network, report the prerequisite and leave V11 unknown.
 
-The fixture has one shared message and three named questions: `is_blue` (noul), `sky_color` (choice with blue/red labels) and `warmth` (three-level score). Instructions include structured JSON and criteria include literal null. The test configures one 60,000 ms attempt, no retries, finite response/request limits and explicit estimated accounting. Do not silently change those limits to make a failure pass.
+The fixture has one shared message and three named questions: `is_blue` (noul), `sky_color` (choice with blue/red labels) and `warmth` (three-level score). Instructions include structured JSON; the literal null is a **choice criterion**. The test configures one 60,000 ms attempt, no retries, finite response/request limits and explicit estimated accounting. Do not silently change those limits to make a failure pass.
+
+**H01 observed hosted limitation:** direct `run_judgments` calls with noul instructions root null, noul true/false criteria root null or score entries null were refused with HTTP 400; choice-criterion null was admitted. This bounds the observed hosted positions, not native rich-JSON/null admission. Rule question instructions are wrapped objects and null common instructions are omitted by the rules encoder; do not generalize the direct-judgment instructions limitation to a RuleSet. Existing admitted fixtures and US02 avoid rejected positions; no extra diagnosis, contract narrowing or new hosted call follows from this note.
 
 ## Observe the result
 
