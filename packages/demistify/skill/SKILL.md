@@ -25,7 +25,7 @@ Write one HTML file. You supply meaning, content and layout; the library supplie
 </html>
 ```
 
-Use the library path you are given; the public default is `https://demistify.getagentstudio.dev/v1/`. Experimental v1 may have breaking changes until the owner declares the vocabulary stable. For a locally bundled library, use its supplied relative path instead. A page with inline/embedded content and public HTTPS library links needs no app server or per-page framework. A CDN-bound file still needs network access; a fully offline file needs the standalone bundle. Follow your browser tool's supported URL/access policy rather than opening more browser instances to work around a denial.
+Use the library path you are given; the public default is `https://demistify.getagentstudio.dev/v1/`. Experimental v1 may have breaking changes until the owner declares the vocabulary stable. For a locally bundled library, use its supplied relative path instead. A page with inline/embedded content and public HTTPS library links needs no app server or per-page framework. A CDN-bound file still needs network access; fully offline delivery needs the source packaging described below. Follow your browser tool's supported URL/access policy rather than opening more browser instances to work around a denial.
 
 ## Markdown first
 
@@ -47,7 +47,7 @@ Browsers generally block `file://` pages fetching sibling files. For double-clic
 node packages/demistify/bin/demistify.ts embed input.html output.html
 ```
 
-Run this from a dependency-installed matching sunstack-tools checkout with Node 26. This reads local Markdown files and embeds exact source safely; it retains the shared library links. Rerun after the source `.md` changes. No custom Python generator or application build is needed per page. Use the library's separate standalone bundle when runtime/fonts/data must also work offline. A live URL reference and an embedded snapshot have different update behavior; name which you produced.
+Run this from a dependency-installed matching sunstack-tools checkout with Node 26. This reads local Markdown files and embeds exact source safely; it retains the shared library links. Rerun after the source `.md` changes. No custom Python generator or application build is needed per page. When runtime/fonts/data must also work offline, the matching source checkout exposes `bundleStandaloneHtml` in `packages/demistify/src/node/standalone.ts`; this is a source API, not a shipped `bundle` command. A live URL reference and an embedded snapshot have different update behavior; name which you produced.
 
 Give an island a stable `id`. A Markdown heading `## Recovery` inside `id="requirements"` has fragment `#requirements--recovery`; repeated headings get suffixes. A link to a Mermaid component uses its island id, for example `#architecture-diagram`. Direct opening and clicking reveal the containing presentation/tab/detail before scrolling to the target. Plain headings outside named Markdown retain generated `heading-…` fragments; use explicit HTML ids for durable authored anchors.
 
@@ -138,4 +138,10 @@ IF the page uses a supplied explorer graph document, load `references/explorers.
 
 ## Check
 
-Run the checker you are given (`demistify check page.html`) and fix every line until it reports 0 errors and 0 warnings; `--fix` repairs the mechanical ones.
+The checker is distributed in source, not as a published standalone CLI or npm package. From a matching sunstack-tools monorepo checkout with Node 26 and its pnpm dependencies installed, run:
+
+```sh
+node packages/demistify/bin/demistify.ts check /absolute/path/to/page.html
+```
+
+Fix every reported error and warning; `check --fix` repairs mechanical findings. If the source checkout/checker is unavailable, name that gap and still inspect the actual rendered page. A checker pass does not establish content truth, diagram readability or browser interactions.

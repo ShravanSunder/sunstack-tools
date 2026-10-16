@@ -7,7 +7,7 @@ This workflow serves the shared library through Workers Static Assets. Authors l
 <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
 ```
 
-These URLs serve the initial experimental 1.0.0 release. The matching component guide is `/v1/authoring/SKILL.md`. The build includes its references, metadata, worker, fonts and lazy chunks. This does not upload authored explainers, publish npm packages, or install a framework for readers. The existing experimental Worker/pins are separate and unchanged.
+These URLs serve the current experimental v1 release; `/v1/release.json` records its active version and source commit. The matching component guide is `/v1/authoring/SKILL.md`. The build includes its references, metadata, worker, fonts and lazy chunks. This does not upload authored explainers, publish npm packages, or install a framework for readers. The existing experimental Worker/pins are separate and unchanged.
 
 ## Version and release flow
 
