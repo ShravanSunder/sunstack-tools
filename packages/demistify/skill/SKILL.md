@@ -11,7 +11,7 @@ Choose matching assets and file delivery, compose the content, add navigation/pr
 
 ## Small HTML, no local server
 
-Use the supplied library base; the public default is `https://demistify.getagentstudio.dev/v1/`. Load its matching API guide at `authoring/SKILL.md`; `release.json` identifies the active version and source. Experimental v1 may change vocabulary. A source preview must use its matching local build rather than mixing new markup with an older public runtime.
+Use the supplied library base; the public default is `https://demistify.getagentstudio.dev/v1/`. Before writing page markup, MUST load `release.json` and `authoring/SKILL.md` relative to that base and return the base, recorded version/source commit, and confirmation that chosen markup is documented there and both imports use that base. Reading this exact matching guide already satisfies its guide read; do not recursively reload it. Experimental v1 may change vocabulary. A source preview must use its matching local build rather than mixing new markup with an older public runtime; when its release metadata is unavailable, name that gap and do not claim a published binding.
 
 ```html
 <!doctype html>
