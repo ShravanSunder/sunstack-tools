@@ -21,6 +21,14 @@ describe('configured CDN history ownership', (): void => {
 			}),
 		).toBe('https://demistify.getagentstudio.dev');
 	});
+	it('accepts a current provider binding without the deprecated environment field', (): void => {
+		expect(
+			verifiedCustomDomainOrigin(parseReleaseTarget(target), {
+				success: true,
+				result: [{ hostname: binding.hostname, service: binding.service }],
+			}),
+		).toBe('https://demistify.getagentstudio.dev');
+	});
 	const rejectedBindings = [
 		{ reason: 'missing binding', bindings: [] },
 		{ reason: 'another Worker', bindings: [{ ...binding, service: 'another-worker' }] },
