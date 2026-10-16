@@ -1,6 +1,6 @@
 use crate::decision_diagnostics::{DecisionDiagnostic, DecisionDiagnosticCode, DiagnosticList};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, num::NonZeroU64};
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("A nonempty decision identifier is required.")]
@@ -154,7 +154,21 @@ pub struct ExecutionReceipt {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum BackendSelection {
-    JevOpenrouter { endpoint: String, model: ModelName },
+    JevOpenrouter {
+        endpoint: String,
+        model: ModelName,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "specified_context_ceiling"
+        )]
+        context_ceiling_tokens: Option<NonZeroU64>,
+    },
+}
+fn specified_context_ceiling<'de, TDeserializer: Deserializer<'de>>(
+    deserializer: TDeserializer,
+) -> Result<Option<NonZeroU64>, TDeserializer::Error> {
+    NonZeroU64::deserialize(deserializer).map(Some)
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

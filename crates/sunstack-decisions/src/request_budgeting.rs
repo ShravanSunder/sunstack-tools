@@ -1,5 +1,6 @@
 use crate::{decision_contracts::*, decision_diagnostics::*};
-use std::sync::Arc;
+use serde::{Deserialize, Serialize};
+use std::{num::NonZeroU64, sync::Arc};
 
 /// Opaque, instance-specific backend identity. Clone only for the same backend.
 #[derive(Debug, Clone)]
@@ -43,18 +44,29 @@ impl EncodedBackendRequest {
 pub enum TokenAccounting {
     Exact {
         input_tokens: u64,
-        context_ceiling_tokens: u64,
+        provider_ceiling: ProviderContextCeiling,
     },
     Estimated {
         input_tokens: u64,
-        context_ceiling_tokens: u64,
+        provider_ceiling: ProviderContextCeiling,
     },
     Unavailable,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum ProviderContextCeiling {
+    CallerDeclared { tokens: NonZeroU64 },
+    NotDeclared,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AccountingBasis {
-    Exact,
-    Estimated,
+    Exact {
+        provider_ceiling: ProviderContextCeiling,
+    },
+    Estimated {
+        provider_ceiling: ProviderContextCeiling,
+    },
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RequestBudgetCounts {
@@ -114,30 +126,37 @@ pub fn assess_request_budget(
     {
         return exceeded();
     }
-    let (tokens, ceiling, basis) = match accounting {
+    let (tokens, provider_ceiling, basis) = match accounting {
         TokenAccounting::Exact {
             input_tokens,
-            context_ceiling_tokens,
-        } => (input_tokens, context_ceiling_tokens, AccountingBasis::Exact),
+            provider_ceiling,
+        } => (
+            input_tokens,
+            provider_ceiling,
+            AccountingBasis::Exact { provider_ceiling },
+        ),
         TokenAccounting::Estimated {
             input_tokens,
-            context_ceiling_tokens,
+            provider_ceiling,
         } if settings.accounting_policy == AccountingPolicy::AllowEstimated => (
             input_tokens,
-            context_ceiling_tokens,
-            AccountingBasis::Estimated,
+            provider_ceiling,
+            AccountingBasis::Estimated { provider_ceiling },
         ),
         TokenAccounting::Estimated { .. } | TokenAccounting::Unavailable => {
             return unverifiable(DecisionDiagnosticCode::BudgetUnverifiable);
         }
     };
-    if ceiling == 0 {
-        return unverifiable(DecisionDiagnosticCode::BudgetUnverifiable);
-    }
     let Some(total_tokens) = tokens.checked_add(settings.safety_margin_tokens) else {
         return exceeded();
     };
-    if total_tokens > settings.max_input_tokens.min(ceiling) {
+    let input_limit = match provider_ceiling {
+        ProviderContextCeiling::CallerDeclared { tokens } => {
+            settings.max_input_tokens.min(tokens.get())
+        }
+        ProviderContextCeiling::NotDeclared => settings.max_input_tokens,
+    };
+    if total_tokens > input_limit {
         return exceeded();
     }
     let counts = RequestBudgetCounts {

@@ -11,15 +11,9 @@ async fn hosted_mixed_native_primitives_return_validated_model_and_usage() {
     let selection = BackendSelection::JevOpenrouter {
         endpoint: "https://openrouter.ai/api/v1/systemone".into(),
         model: ModelName::new("jev-latest").unwrap(),
+        context_ceiling_tokens: None,
     };
-    let backend = JevOpenRouterBackend::new(
-        selection.clone(),
-        &api_key,
-        JevAccountingProfile::EstimatedBytes {
-            context_ceiling_tokens: 262_144,
-        },
-    )
-    .unwrap();
+    let backend = JevOpenRouterBackend::new(selection.clone(), &api_key).unwrap();
     let input:RunJudgmentsInput=serde_json::from_value(json!({
         "request":{"state":{"message":"The sky is blue and the temperature is warm."},"questions":{
             "is_blue":{"type":"noul","instructions":{"question":"Does the message say the sky is blue?","field":"message"},"criteria":{"true":"It says blue.","false":"It does not say blue."}},
