@@ -479,13 +479,15 @@ Envelope: `{ protocol_version: 1, operation, input }`. The result is `protocol_e
 - `measurements`
 
 `RuleOccurrenceResult` (`kind`) is one of:
-- `judged { judgment }`
+- `judged { judgment, selected_by }`
 - `not_applicable { stopped_at, basis }`
 - `outside_change_scope { reason }`
 - `selection_failed { diagnostics }`
-- `evaluation_failed { cause }`
-- `cancelled`
-- `not_started { reason }`
+- `evaluation_failed { cause, selected_by }`
+- `cancelled { selected_by }`
+- `not_started { reason, selected_by }`
+
+`selected_by` lists why a selected occurrence is in scope, the Specification E15 reason ([contracts](program-design-contracts.md#evaluate_rules-sunstack-rules)). Milestone 2 adds it; under milestone 1's full scope the reason is always `full_scope`.
 
 A report is complete when every occurrence is `judged`, `not_applicable` or `outside_change_scope`, and the router (if any) is routed, uncertain or no route. Otherwise it is incomplete.
 
