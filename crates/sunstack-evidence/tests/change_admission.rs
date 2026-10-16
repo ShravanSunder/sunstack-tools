@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod support;
 use sunstack_evidence::*;
 use support::connected_inputs::*;
@@ -134,17 +134,33 @@ async fn disabled_discovery_has_its_own_closed_admission_code() {
         EvidenceRequirement::Required,
     );
     input.discovery = EvidenceDiscovery::None;
-    let outcome = prepare_evidence(
-        input,
-        AdapterRegistry::builtins().unwrap(),
-        CancellationToken::new(),
-    )
-    .await;
-    let EvidencePlanOutcome::Refused { diagnostics } = outcome else {
-        panic!("discovery must refuse before work: {outcome:?}")
-    };
-    assert_eq!(
-        serde_json::to_value(diagnostics.items[0].code).unwrap(),
-        "discovery_not_enabled"
-    );
+    let mut native = input.clone();
+    native.sources.clear();
+    native.declarations.clear();
+    native.native_queries.push(NativeQuery {
+        id: DeclarationId::new("native").unwrap(),
+        selector: EvidenceSelector::RelatedUnits {
+            query: serde_json::from_value(serde_json::json!({
+                "source_units": {"seeds": {"kind": "changed_units", "repository_ids": ["fixture"]}, "languages": ["typescript"], "unit_kinds": ["function"], "source_sides": "after_only"},
+                "repository_ids": ["fixture"], "directions": ["callees"], "requested_hops": 1
+            })).unwrap(),
+            chunk_settings: ChunkSettings { grouping: ChunkGrouping::SingleGroup, seed_content: UnitContent::WholeUnit, related_content: UnitContent::WholeUnit, max_chunk_bytes: 1000.try_into().unwrap() },
+            minimum_related_units: 0,
+        },
+    });
+    for input in [input, native] {
+        let outcome = prepare_evidence(
+            input,
+            AdapterRegistry::builtins().unwrap(),
+            CancellationToken::new(),
+        )
+        .await;
+        let EvidencePlanOutcome::Refused { diagnostics } = outcome else {
+            panic!("discovery must refuse before work: {outcome:?}")
+        };
+        assert_eq!(
+            serde_json::to_value(diagnostics.items[0].code).unwrap(),
+            "discovery_not_enabled"
+        );
+    }
 }
