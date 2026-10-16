@@ -1,21 +1,4 @@
-import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createIconButton } from '../core/icons.ts';
-
-export class PresentationIsland extends HTMLElement {
-	connectedCallback(): void {
-		adoptBareMarkdown(this);
-		const presentations = Array.from(document.querySelectorAll('ex-presentation'));
-		this.hidden = presentations[0] !== this;
-	}
-}
-
-export function selectPresentationFor(target: Element): void {
-	const selected = target.closest('ex-presentation');
-	if (!selected) return;
-	for (const presentation of document.querySelectorAll<HTMLElement>('ex-presentation'))
-		presentation.hidden = presentation !== selected;
-	document.dispatchEvent(new Event('presentation-change'));
-}
 
 interface PresentationMenu {
 	readonly button: HTMLButtonElement;
@@ -46,6 +29,11 @@ export function createPresentationMenu(navigation: HTMLElement): PresentationMen
 		link.href = `#${presentation.id}`;
 		const name = document.createElement('strong');
 		name.textContent = presentation.getAttribute('title') ?? presentation.id;
+		link.addEventListener('click', (event: MouseEvent): void => {
+			event.preventDefault();
+			presentation.dispatchEvent(new Event('presentation-start'));
+			panel.hidePopover();
+		});
 		const description = document.createElement('span');
 		description.textContent = presentation.getAttribute('description') ?? '';
 		link.append(name, description);
@@ -65,7 +53,9 @@ export function createPresentationMenu(navigation: HTMLElement): PresentationMen
 		if (event.target instanceof Element && event.target.closest('a')) panel.hidePopover();
 	});
 	const updateCurrent = (): void => {
-		const selected = document.querySelector<HTMLElement>('ex-presentation:not([hidden])');
+		const selected = document.getElementById(
+			document.documentElement.dataset['presentation'] ?? '',
+		);
 		for (const link of links) {
 			if (selected && link.getAttribute('href') === `#${selected.id}`)
 				link.setAttribute('aria-current', 'true');

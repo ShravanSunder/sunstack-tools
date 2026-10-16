@@ -12,7 +12,6 @@
   "ex-board": "layouts.html",
   "ex-region": "layouts.html",
   "ex-layers": "layouts.html",
-  "ex-route": "layouts.html",
   "ex-step": "layouts.html",
   "ex-document": "layouts.html",
   "ex-nav": "layouts.html",
@@ -26,5 +25,7 @@
   "ex-decision": "legacy.html",
   "ex-diagram-diff": "legacy.html",
   "ex-timeline": "legacy.html",
-  "ex-layer": "legacy.html"
+  "ex-layer": "legacy.html",
+  "ex-gallery": "pictures.html",
+  "ex-pre": "visuals.html"
 }

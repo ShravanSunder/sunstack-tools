@@ -2,15 +2,16 @@ import { expect } from 'vitest';
 import { page } from 'vitest/browser';
 
 export async function openFixture(
-	name: 'navigation' | 'layout' | 'embedded',
+	name: 'navigation' | 'layout' | 'embedded' | 'gallery',
 	fragment = '',
+	file = 'index.html',
 ): Promise<{ readonly document: Document; readonly frame: ReturnType<typeof page.frameLocator> }> {
 	const iframe = document.createElement('iframe');
 	iframe.dataset['testid'] = 'explainer';
 	iframe.title = 'Demistify fixture';
 	iframe.style.cssText = 'display:block;width:100%;height:100vh;border:0';
 	document.body.style.margin = '0';
-	iframe.src = `/__demistify/${name}/index.html${fragment}`;
+	iframe.src = `/__demistify/${name}/${file}${fragment}`;
 	document.body.append(iframe);
 	await expect
 		.poll((): boolean => !!iframe.contentDocument?.querySelector('ex-document'))
@@ -20,7 +21,7 @@ export async function openFixture(
 	await expect
 		.poll(
 			(): boolean =>
-				!!fixtureDocument.querySelector('ex-nav button') &&
+				!!fixtureDocument.querySelector('.ex-document-toolbar button') &&
 				!!fixtureDocument.querySelector<HTMLLinkElement>('link[rel="stylesheet"]')?.sheet,
 		)
 		.toBe(true);

@@ -1,43 +1,43 @@
 /* Authoring vocabulary: meaning tones, cards, callouts, grids, page chrome and authoring issues. */
 [tone='note'] {
-	--tone: var(--accent);
-	--tone-bg: var(--accent-soft);
+	--tone: var(--tone-note);
+	--tone-bg: var(--tone-note-surface);
 }
 [tone='tldr'] {
-	--tone: var(--strong);
-	--tone-bg: var(--strong-bg);
+	--tone: var(--tone-tldr);
+	--tone-bg: var(--tone-tldr-surface);
 }
 [tone='decision'] {
-	--tone: var(--patch);
-	--tone-bg: var(--patch-bg);
+	--tone: var(--tone-decision);
+	--tone-bg: var(--tone-decision-surface);
 }
 [tone='risk'] {
-	--tone: var(--missing);
-	--tone-bg: var(--missing-bg);
+	--tone: var(--tone-risk);
+	--tone-bg: var(--tone-risk-surface);
 }
 [tone='question'] {
-	--tone: var(--change);
-	--tone-bg: var(--change-bg);
+	--tone: var(--tone-question);
+	--tone-bg: var(--tone-question-surface);
 }
 [tone='done'] {
-	--tone: var(--strong);
-	--tone-bg: var(--strong-bg);
+	--tone: var(--tone-done);
+	--tone-bg: var(--tone-done-surface);
 }
 [tone='planned'] {
-	--tone: var(--keep);
-	--tone-bg: var(--keep-bg);
+	--tone: var(--tone-planned);
+	--tone-bg: var(--tone-planned-surface);
 }
 [tone='changed'] {
-	--tone: var(--diff-modified);
-	--tone-bg: var(--diff-modified-bg);
+	--tone: var(--tone-changed);
+	--tone-bg: var(--tone-changed-surface);
 }
 [tone='added'] {
-	--tone: var(--diff-added);
-	--tone-bg: var(--diff-added-bg);
+	--tone: var(--tone-added);
+	--tone-bg: var(--tone-added-surface);
 }
 [tone='removed'] {
-	--tone: var(--diff-removed);
-	--tone-bg: var(--diff-removed-bg);
+	--tone: var(--tone-removed);
+	--tone-bg: var(--tone-removed-surface);
 }
 .ex-tone-icon {
 	color: var(--tone, var(--accent));
@@ -48,7 +48,7 @@
 ex-document {
 	display: block;
 	max-width: 1440px;
-	margin: var(--space-8) auto 96px;
+	margin: var(--space-4) auto var(--space-16);
 }
 ex-document > * + * {
 	margin-top: var(--space-6);
@@ -162,9 +162,9 @@ ex-flow > ex-arrow {
 
 ex-card {
 	display: block;
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
-	border-top: 3px solid var(--tone, var(--rule));
+	border-top: 2px solid var(--tone, var(--rule));
 	border-radius: var(--radius-md);
 	padding: var(--space-4) var(--space-5);
 	font-size: var(--text-md);
@@ -176,7 +176,7 @@ ex-card {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--space-1) var(--space-2);
-	font-family: var(--display);
+	font-family: var(--font-display);
 }
 .ex-card-head {
 	margin-bottom: var(--space-2);
@@ -190,20 +190,17 @@ ex-card {
 	font-weight: 600;
 	line-height: 1.25;
 }
-ex-card[pick] {
-	border-top-color: var(--accent);
-}
 .ex-card-pick {
-	font: 600 var(--text-2xs) var(--display);
+	font: 600 var(--text-2xs) var(--font-display);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
-	color: var(--sheet);
-	background: var(--accent);
+	color: var(--surface-content);
+	background: var(--selection-color);
 	border-radius: var(--radius-sm);
 	padding: 2px var(--space-2);
 }
 .ex-head-tag {
-	font: var(--text-2xs) var(--mono);
+	font: var(--text-2xs) var(--font-mono);
 	color: var(--ink-soft);
 	background: var(--keep-bg);
 	border-radius: var(--radius-sm);
@@ -219,7 +216,7 @@ ex-card > :last-child {
 ex-callout {
 	display: block;
 	background: var(--tone-bg, var(--accent-soft));
-	border-left: 4px solid var(--tone, var(--accent));
+	border-left: 2px solid var(--tone, var(--accent));
 	border-radius: var(--radius-sm);
 	padding: var(--space-3) var(--space-4);
 }
@@ -251,20 +248,11 @@ ex-callout > :is(p, ul, ol) {
 }
 :is(ex-card, ex-callout) summary {
 	cursor: pointer;
-	font: 600 var(--text-sm) var(--display);
+	font: 600 var(--text-sm) var(--font-display);
 	color: var(--accent);
 }
 :is(ex-card, ex-callout) details > :not(summary) {
 	margin: var(--space-1) 0;
-}
-
-/* Page chrome lives in the left rail, which already reserves its space, so it never covers content. */
-.ex-theme-toggle {
-	position: fixed;
-	left: var(--space-4);
-	bottom: var(--space-3);
-	z-index: 5;
-	background: var(--sheet);
 }
 
 .ex-issue-target {
@@ -284,7 +272,7 @@ ex-callout > :is(p, ul, ol) {
 	border: 1px solid var(--missing);
 	border-radius: var(--radius-md);
 	padding: var(--space-2) var(--space-3);
-	font: var(--text-sm)/1.4 var(--display);
+	font: var(--text-sm)/1.4 var(--font-display);
 }
 .ex-issues ol {
 	margin: var(--space-1) 0 0;
@@ -316,7 +304,7 @@ ex-callout > :is(p, ul, ol) {
 ex-code {
 	display: block;
 	container-type: inline-size;
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	overflow: hidden;
@@ -328,7 +316,7 @@ ex-code {
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-3);
 	border-bottom: 1px solid var(--rule);
-	font: var(--text-sm) var(--mono);
+	font: var(--text-sm) var(--font-mono);
 	padding-right: 76px;
 }
 .ex-code-head strong {
@@ -346,7 +334,7 @@ ex-code {
 .ex-code-lines {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr) minmax(0, 36%);
-	font: var(--text-xs)/1.55 var(--mono);
+	font: var(--text-xs)/1.55 var(--font-mono);
 	padding: var(--space-1) 0;
 }
 .ex-code-number {
@@ -361,7 +349,7 @@ ex-code {
 	overflow-wrap: anywhere;
 	background: none;
 	padding: 0 var(--space-3);
-	border-left: 3px solid transparent;
+	border-left: 2px solid transparent;
 }
 .ex-code-number[data-noted] {
 	color: var(--tone);
@@ -380,7 +368,7 @@ ex-code {
 .ex-code-text[data-kind='hunk'] {
 	color: var(--ink-soft);
 }
-.ex-code-text[data-noted] {
+.ex-code-text[data-noted]:not([data-kind='added']):not([data-kind='removed']) {
 	background: var(--keep-bg);
 	border-left-color: var(--tone);
 }
@@ -391,7 +379,7 @@ ex-code {
 	flex-shrink: 0;
 	white-space: nowrap;
 	margin-left: auto;
-	font: 600 var(--text-2xs) var(--mono);
+	font: 600 var(--text-2xs) var(--font-mono);
 }
 .ex-code-counts [data-kind='added'] {
 	color: var(--diff-added);
@@ -409,15 +397,15 @@ ex-code {
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-3);
 	background: var(--keep-bg);
-	font: var(--text-sm) var(--mono);
+	font: var(--text-sm) var(--font-mono);
 	cursor: pointer;
 }
 ex-note {
 	display: block;
-	font: var(--text-sm)/1.45 var(--display);
+	font: var(--text-sm)/1.45 var(--font-display);
 	color: var(--ink);
-	background: var(--keep-bg);
-	border-left: 3px solid var(--tone);
+	background: var(--comment-surface);
+	border-left: 2px solid var(--tone);
 	border-radius: var(--radius-sm);
 	padding: var(--space-1) var(--space-2);
 	margin: 1px 0 var(--space-1);
@@ -448,21 +436,21 @@ ex-stat {
 	display: grid;
 	align-content: start;
 	gap: 2px;
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	padding: var(--space-3) var(--space-4);
 }
 .ex-stat-value {
-	font: 600 var(--text-3xl)/1.1 var(--display);
+	font: 600 var(--text-3xl)/1.1 var(--font-display);
 	letter-spacing: -0.01em;
 }
 .ex-stat-label {
-	font: var(--text-sm)/1.35 var(--display);
+	font: var(--text-sm)/1.35 var(--font-display);
 	color: var(--ink-soft);
 }
 .ex-stat-note {
-	font: 600 var(--text-xs)/1.35 var(--display);
+	font: 600 var(--text-xs)/1.35 var(--font-display);
 	color: var(--tone, var(--ink-soft));
 }
 
@@ -478,26 +466,15 @@ ex-tabs[data-layout='columns'] {
 ex-tabs[data-layout='columns'] > [role='region']::before {
 	content: attr(label);
 	display: block;
-	font: 600 var(--text-xs) var(--display);
+	font: 600 var(--text-xs) var(--font-display);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
 	color: var(--ink-soft);
 	margin-bottom: var(--space-2);
 }
 
-ex-route,
+ex-presentation,
 ex-step {
-	display: none;
-}
-.ex-route-launcher {
-	position: fixed;
-	left: var(--space-4);
-	bottom: var(--space-12);
-	z-index: 5;
-	background: var(--sheet);
-	color: var(--accent);
-}
-.ex-route-launcher > span {
 	display: none;
 }
 .ex-route-player {
@@ -507,13 +484,13 @@ ex-step {
 	transform: translateX(-50%);
 	z-index: 20;
 	width: min(640px, calc(100vw - 24px));
-	background: var(--sheet);
+	background: var(--surface-content);
 	color: var(--ink);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-float);
 	padding: var(--space-2) var(--space-3);
-	font-family: var(--display);
+	font-family: var(--font-display);
 }
 .ex-route-controls {
 	display: flex;
@@ -523,35 +500,25 @@ ex-step {
 .ex-route-controls > strong,
 .ex-route-controls > select {
 	margin-right: auto;
-	font: 600 var(--text-md) var(--display);
+	font: 600 var(--text-md) var(--font-display);
 }
 .ex-route-controls > select {
-	background: var(--sheet);
+	background: var(--surface-content);
 	color: var(--ink);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-sm);
 	padding: var(--space-1) var(--space-1);
 }
 .ex-route-count {
-	font: var(--text-sm) var(--mono);
+	font: var(--text-sm) var(--font-mono);
 	color: var(--ink-soft);
 	min-width: 4ch;
 	text-align: center;
 }
 .ex-route-narration {
 	margin: var(--space-2) 2px 2px;
-	font: var(--text-base)/1.45 var(--body);
+	font: var(--text-base)/1.45 var(--font-body);
 	max-width: none;
-}
-.ex-route-focus {
-	outline: 3px solid var(--accent);
-	outline-offset: var(--space-1);
-	border-radius: var(--radius-md);
-	transition: outline-color var(--motion-base);
-}
-ex-mermaid g.ex-route-focus > :is(rect, polygon, path, circle, ellipse) {
-	stroke: var(--accent);
-	stroke-width: 3;
 }
 .ex-inspect-dialog > .ex-route-player {
 	position: static;
@@ -582,7 +549,7 @@ ex-board[data-mode='map'] {
 	cursor: grab;
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-lg);
-	background-color: var(--paper);
+	background-color: var(--surface-page);
 	background-image: radial-gradient(var(--rule) 1px, transparent 1px);
 	background-size: 22px 22px;
 }
@@ -612,7 +579,7 @@ ex-board[data-mode='read'] > .ex-board-canvas[data-free] {
 	z-index: 4;
 	display: flex;
 	gap: var(--space-1);
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-pill);
 	padding: 3px;
@@ -630,7 +597,7 @@ ex-board[data-mode='read'] > .ex-board-toolbar {
 	gap: var(--space-1);
 	padding: 0 var(--space-2);
 	border-radius: var(--radius-pill);
-	font: 600 var(--text-xs) var(--display);
+	font: 600 var(--text-xs) var(--font-display);
 	display: inline-flex;
 }
 .ex-board-toolbar [aria-pressed='true'] {
@@ -656,9 +623,9 @@ ex-region {
 	position: relative;
 	container-type: inline-size;
 	padding: var(--space-4) var(--space-5) var(--space-6);
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
-	border-top: 3px solid var(--tone, var(--accent));
+	border-top: 2px solid var(--tone, var(--accent));
 	border-radius: var(--radius-md);
 }
 ex-region > :is(.ex-region-head, ex-markdown, ex-callout) {
@@ -682,7 +649,7 @@ ex-board[data-mode='map'] .ex-region-head {
 }
 .ex-region-more {
 	margin-left: auto;
-	font: 600 var(--text-2xs) var(--display);
+	font: 600 var(--text-2xs) var(--font-display);
 	color: var(--accent);
 	background: var(--accent-soft);
 	border-radius: var(--radius-pill);
@@ -709,7 +676,7 @@ ex-board[data-mode='map'] ex-region[data-open] {
 	width: var(--ex-drawer-width, 460px);
 	display: flex;
 	flex-direction: column;
-	background: var(--sheet);
+	background: var(--surface-content);
 	color: var(--ink);
 	border-left: 1px solid var(--rule);
 	box-shadow: var(--shadow-edge);
@@ -756,7 +723,7 @@ ex-board[data-mode='map'] ex-region[data-open] {
 	margin: 0;
 	padding: var(--space-4);
 	color: var(--ink-soft);
-	font: var(--text-sm) var(--display);
+	font: var(--text-sm) var(--font-display);
 }
 .ex-inspected {
 	outline: 2px dashed var(--accent);
@@ -768,7 +735,7 @@ ex-board[data-mode='map'] ex-region[data-open] {
 ex-tree {
 	display: block;
 	container-type: inline-size;
-	font: var(--text-md) / 1.45 var(--display);
+	font: var(--text-md) / 1.45 var(--font-display);
 }
 ex-tree ul {
 	margin: 0;
@@ -807,37 +774,22 @@ ex-tree li > ul {
 }
 /* A branch folds on click. Open, it carries no mark (everything is already in view); folded, it
    shows a caret and how many nodes it hides. */
-.ex-tree-node[aria-expanded] {
-	cursor: pointer;
-	border-radius: var(--radius-sm);
+.ex-tree-disclosure {
+	width: 22px;
+	height: 22px;
+	border: 0;
+	background: transparent;
 }
-.ex-tree-node[aria-expanded]:hover {
-	background: color-mix(in srgb, var(--ink) 6%, transparent);
-}
-.ex-tree-node[aria-expanded]:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
-	border-radius: var(--radius-sm);
-}
-.ex-tree-node > .ph-caret-down {
-	display: none;
-	color: var(--ink-soft);
-	font-size: var(--text-2xs);
-}
-.ex-tree-count {
-	display: none;
-	border-radius: var(--radius-pill);
-	padding: 0 var(--space-2);
-	background: var(--keep-bg);
-	color: var(--ink-soft);
-	font-size: var(--text-2xs);
-}
-li[data-collapsed] > .ex-tree-node > .ex-tree-count {
-	display: inline-block;
-}
-li[data-collapsed] > .ex-tree-node > .ph-caret-down {
-	display: inline-block;
+.ex-tree-disclosure[aria-expanded='false'] .ph {
 	transform: rotate(-90deg);
+}
+.ex-tree-go {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	padding-inline: var(--space-1);
+	color: var(--accent);
+	text-decoration: none;
 }
 ex-tree li[data-collapsed] > ul,
 ex-tree[layout='map'] li[data-collapsed] > ul {
@@ -906,7 +858,7 @@ ex-tree[layout='map'] li[data-collapsed] > ul {
 		padding: var(--space-1) var(--space-3);
 		border: 1px solid var(--rule);
 		border-radius: var(--radius-md);
-		background: var(--sheet);
+		background: var(--surface-content);
 	}
 	ex-tree[layout='map'] li[tone] > .ex-tree-node {
 		border-color: color-mix(in srgb, var(--tone) 50%, var(--rule));
@@ -928,7 +880,7 @@ ex-compare img {
 :is(ex-document, .ex-inspect-body) figcaption {
 	margin-top: var(--space-2);
 	color: var(--ink-soft);
-	font: var(--text-sm) / 1.4 var(--display);
+	font: var(--text-sm) / 1.4 var(--font-display);
 }
 ex-document img:not(a img, ex-compare[slider] img) {
 	cursor: zoom-in;
@@ -962,7 +914,7 @@ ex-compare > [data-side]::before {
 	display: block;
 	margin-bottom: var(--space-2);
 	color: var(--ink-soft);
-	font: 600 var(--text-xs) var(--display);
+	font: 600 var(--text-xs) var(--font-display);
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
 }
@@ -990,7 +942,7 @@ ex-compare[slider] > [data-side]::before {
 	padding: 2px var(--space-2);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-pill);
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 ex-compare[slider] > [data-side]:nth-of-type(2)::before {
 	right: var(--space-2);
@@ -1018,17 +970,17 @@ ex-compare[slider] > [data-side]:nth-of-type(2)::before {
 	height: var(--thumb);
 	border: 2px solid var(--accent);
 	border-radius: 50%;
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 .ex-compare-range::-moz-range-thumb {
 	width: var(--thumb);
 	height: var(--thumb);
 	border: 2px solid var(--accent);
 	border-radius: 50%;
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 .ex-compare-range:focus-visible {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--focus-color);
 	outline-offset: 2px;
 }
 
@@ -1055,7 +1007,7 @@ ex-layers {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--space-2);
-	font: var(--text-sm) var(--display);
+	font: var(--text-sm) var(--font-display);
 }
 .ex-layers-label {
 	color: var(--ink-soft);
@@ -1070,7 +1022,72 @@ ex-layers button[aria-pressed='true'] {
 }
 
 /* A route step on a diagram node: the node itself is ringed. */
-g.ex-route-focus > :is(rect, polygon, circle, ellipse, path) {
+g.ex-diagram-keyboard-focus > :is(rect, polygon, circle, ellipse, path) {
 	stroke: var(--accent);
 	stroke-width: 3;
+}
+
+/* Content grouping is shared even when an author nests ordinary sections. */
+ex-document
+	:is(section, article)
+	> :is(ex-card, ex-callout, ex-layers)
+	+ :is(ex-card, ex-callout, ex-layers),
+ex-document > :is(ex-card, ex-callout, ex-layers) + :is(ex-card, ex-callout, ex-layers) {
+	margin-top: var(--space-4);
+}
+ex-markdown li:has(> input[type='checkbox']),
+ex-markdown li:has(> p > input[type='checkbox']) {
+	position: relative;
+	list-style: none;
+	padding-inline-start: 24px;
+}
+ex-markdown li > input[type='checkbox'],
+ex-markdown li > p > input[type='checkbox'] {
+	position: absolute;
+	left: 0;
+	top: 0.4em;
+	margin: 0;
+	accent-color: var(--accent);
+}
+ex-markdown li:has(> p > input[type='checkbox']) > p:first-child {
+	margin-top: 0;
+}
+ex-pre {
+	display: block;
+	min-width: 0;
+}
+ex-pre > pre {
+	margin: 0;
+	overflow: auto;
+	padding: var(--space-4);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	font: var(--text-sm)/1.5 var(--font-mono);
+	white-space: pre;
+}
+.ex-presentation-marker {
+	position: fixed;
+	z-index: 9;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent);
+	pointer-events: none;
+	animation: ex-presentation-breathe 5s ease-in-out infinite;
+}
+@keyframes ex-presentation-breathe {
+	0%,
+	100% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.ex-presentation-marker {
+		animation: none;
+	}
 }

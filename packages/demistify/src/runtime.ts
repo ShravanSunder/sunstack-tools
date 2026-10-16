@@ -4,10 +4,12 @@ import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
 import { CompareIsland, DiagramDiffIsland } from './islands/compare.ts';
 import { ExplorerIsland } from './islands/explorer.ts';
 import { FileTreeIsland } from './islands/file-tree.ts';
+import { GalleryIsland } from './islands/gallery.ts';
 import { ZoomIsland } from './islands/inspector.ts';
 import { DecisionIsland, LayerIsland, TimelineIsland } from './islands/legacy.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
+import { PreformattedIsland } from './islands/preformatted.ts';
 import { StatIsland } from './islands/stat.ts';
 import { TabsIsland } from './islands/tabs.ts';
 import { TreeIsland } from './islands/tree.ts';
@@ -17,7 +19,6 @@ import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/do
 import { FlowIsland } from './layout/flow.ts';
 import { LayersElement } from './layout/layers.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
-import { PresentationIsland } from './layout/presentations.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
 import { installArrowTracing } from './layout/trace.ts';
 
@@ -37,6 +38,8 @@ for (const [tagName, constructor] of [
 	['ex-timeline', TimelineIsland],
 	['ex-layer', LayerIsland],
 	['ex-file-tree', FileTreeIsland],
+	['ex-gallery', GalleryIsland],
+	['ex-pre', PreformattedIsland],
 	['ex-explorer', ExplorerIsland],
 	['ex-tree', TreeIsland],
 	['ex-card', CardIsland],
@@ -45,9 +48,8 @@ for (const [tagName, constructor] of [
 	['ex-code', CodeIsland],
 	['ex-note', CodeNoteIsland],
 	['ex-stat', StatIsland],
-	['ex-route', RouteElement],
+	['ex-presentation', RouteElement],
 	['ex-step', StepElement],
-	['ex-presentation', PresentationIsland],
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 	['ex-layers', LayersElement],

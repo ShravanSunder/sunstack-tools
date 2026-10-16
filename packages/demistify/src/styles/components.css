@@ -21,7 +21,7 @@ ex-mermaid > svg {
 	margin-inline: auto;
 }
 .island-surface {
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	padding: var(--space-5);
@@ -51,7 +51,7 @@ ex-mermaid > svg {
 	color: var(--accent);
 }
 .ex-icon-button:focus-visible {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--focus-color);
 	outline-offset: 3px;
 }
 .ex-inspect-controls {
@@ -95,7 +95,7 @@ ex-mermaid > .ex-inspect-controls {
 	border: 0;
 	background: none;
 	color: var(--accent);
-	font: 600 var(--text-sm) var(--display);
+	font: 600 var(--text-sm) var(--font-display);
 }
 .ex-inspect-more > .ex-icon-button .ph {
 	font-size: var(--text-sm);
@@ -107,7 +107,7 @@ ex-mermaid > .ex-inspect-controls {
 	width: 28px;
 	height: 28px;
 	border-radius: 50%;
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 .ex-inspect-trigger .ph {
 	font-size: var(--text-md);
@@ -131,7 +131,7 @@ ex-mermaid > .ex-inspect-controls {
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	padding: 0;
-	background: var(--paper);
+	background: var(--surface-page);
 	color: var(--ink);
 }
 .ex-inspect-dialog[open] {
@@ -155,7 +155,7 @@ ex-mermaid > .ex-inspect-controls {
 	gap: var(--space-2);
 	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--rule);
-	font: 600 var(--text-md) var(--display);
+	font: 600 var(--text-md) var(--font-display);
 }
 .ex-inspect-header strong {
 	flex: 1;
@@ -199,10 +199,10 @@ ex-mermaid > .ex-inspect-controls {
 }
 .ex-arrow-label {
 	fill: var(--ink);
-	font: var(--text-sm) var(--display);
+	font: var(--text-sm) var(--font-display);
 	text-anchor: middle;
 	paint-order: stroke;
-	stroke: var(--paper);
+	stroke: var(--surface-page);
 	stroke-width: 5px;
 	stroke-linejoin: round;
 }
@@ -245,11 +245,11 @@ ex-tabs > :is([role='region'], [role='tabpanel']) {
 	margin-block: var(--space-3);
 }
 button {
-	font: 600 var(--text-md) var(--display);
+	font: 600 var(--text-md) var(--font-display);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-sm);
 	padding: var(--space-2) var(--space-3);
-	background: var(--sheet);
+	background: var(--surface-content);
 	color: var(--ink);
 	cursor: pointer;
 }
@@ -273,19 +273,19 @@ button[aria-selected='true'] {
 	margin-top: 0;
 }
 .ex-file-tree {
-	font: var(--text-sm) var(--mono);
+	font: var(--text-sm) var(--font-mono);
 	white-space: pre-wrap;
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	padding: var(--space-5);
 	margin-block: var(--space-5);
 }
 ex-markdown pre {
 	overflow: auto;
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	padding: var(--space-4);
-	font: var(--text-xs)/1.6 var(--mono);
+	font: var(--text-xs)/1.6 var(--font-mono);
 }
 ex-markdown {
 	min-width: 0;
@@ -316,7 +316,7 @@ ex-decision[status='accepted'] {
 }
 ex-callout[type='risk'] {
 	background: var(--missing-bg);
-	border-left: 4px solid var(--missing);
+	border-left: 2px solid var(--missing);
 }
 [data-change='added'] {
 	color: var(--diff-added);
@@ -334,7 +334,7 @@ ex-callout[type='risk'] {
 	color: var(--accent);
 }
 .prototype-banner {
-	font: var(--text-sm) var(--display);
+	font: var(--text-sm) var(--font-display);
 	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--rule);
 }
@@ -346,7 +346,7 @@ ex-callout[type='risk'] {
 	padding: var(--space-4);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 .detail-index h3 {
 	margin-top: 0;
@@ -358,7 +358,7 @@ ex-callout[type='risk'] {
 	max-width: none;
 }
 .diagram-label {
-	font: 600 var(--text-lg) var(--display);
+	font: 600 var(--text-lg) var(--font-display);
 	margin-block: var(--space-3);
 }
 .ex-toc-source {

@@ -1,9 +1,8 @@
 import { createIconButton } from '../core/icons.ts';
-import { reportIssue } from '../core/issues.ts';
 import { closeDrawer, isDrawerOpen } from '../islands/drawer.ts';
 import { openIsland } from '../islands/inspector.ts';
 import { BoardIsland } from './board.ts';
-import { revealElement } from './document.ts';
+import { resolveTarget } from './target-resolution.ts';
 import { setTrace } from './trace.ts';
 
 type OpenMode = 'sidebar' | 'modal';
@@ -18,6 +17,8 @@ interface RouteStep {
 }
 
 interface Route {
+	readonly id: string;
+	readonly description: string;
 	readonly label: string;
 	/** The page that declares the route; tours on other pages read it from there. */
 	readonly home: string;
@@ -30,7 +31,7 @@ function pageOf(url: URL): string {
 }
 
 /**
- * Reads the steps of an ex-route element. A step's `to` is an id on the route's home page, or
+ * Reads the steps of an ex-presentation element. A step's `to` is an id on the route's home page, or
  * another page (`registry.html#resume`), which makes the route a tour across pages.
  */
 function readRouteSteps(route: Element, home: URL): RouteStep[] {
@@ -51,11 +52,7 @@ function readRouteSteps(route: Element, home: URL): RouteStep[] {
 			open: open === 'sidebar' || open === 'modal' ? open : undefined,
 		};
 	});
-	if (children.length > 0) return children;
-	return (route.getAttribute('steps') ?? '')
-		.split(/\s+/)
-		.filter(Boolean)
-		.map((to): RouteStep => Object.assign(resolve(to), { narration: '', open: undefined }));
+	return children;
 }
 
 /** One step of a route: the island to show, how to open it, and what to say about it. */
@@ -63,30 +60,16 @@ export class StepElement extends HTMLElement {}
 
 /** A named path through islands, read from ex-step children or a steps="id id" list. */
 export class RouteElement extends HTMLElement {
+	connectedCallback(): void {
+		this.hidden = true;
+	}
 	readSteps(): readonly RouteStep[] {
 		return readRouteSteps(this, new URL(location.href));
 	}
 }
 
-function findTarget(targetId: string): Element | null {
-	return (
-		document.getElementById(targetId) ??
-		document.querySelector(`ex-mermaid g.node[data-id="${CSS.escape(targetId)}"]`)
-	);
-}
-
-/**
- * Scrolls a target to the centre and corrects the position while islands above it finish
- * rendering (a diagram that renders during the scroll changes the page height).
- */
-function settleIntoView(target: Element, attempt: number = 0): void {
-	target.scrollIntoView({ behavior: attempt === 0 ? 'smooth' : 'instant', block: 'center' });
-	if (attempt >= 4) return;
-	window.setTimeout((): void => {
-		const bounds = target.getBoundingClientRect();
-		const visible = bounds.top >= 0 && bounds.top < window.innerHeight * 0.6;
-		if (!visible) settleIntoView(target, attempt + 1);
-	}, 450);
+function settleIntoView(target: Element): void {
+	target.scrollIntoView({ block: 'center' });
 }
 
 /** Floating previous/next player that walks a route, spotlighting and optionally opening each island. */
@@ -95,6 +78,8 @@ class RoutePlayer {
 	private readonly picker = document.createElement('select');
 	private readonly counter = document.createElement('span');
 	private readonly narration = document.createElement('p');
+	private readonly marker = document.createElement('span');
+	private pendingTarget: AbortController | undefined;
 	private routeIndex = 0;
 	private stepIndex = -1;
 	private focused: Element | undefined;
@@ -103,11 +88,25 @@ class RoutePlayer {
 	constructor(private readonly routes: readonly Route[]) {
 		this.bar.className = 'ex-route-player';
 		this.bar.setAttribute('role', 'region');
-		this.bar.setAttribute('aria-label', 'Guided route');
+		this.bar.setAttribute('aria-label', 'Presentation player');
+		this.marker.className = 'ex-presentation-marker';
+		this.marker.setAttribute('aria-hidden', 'true');
+		this.marker.hidden = true;
+		const positionMarker = (): void => {
+			if (!this.focused || this.bar.hidden) return;
+			const bounds = this.focused.getBoundingClientRect();
+			const gutter = this.focused.closest('ex-mermaid')?.getBoundingClientRect() ?? bounds;
+			this.marker.style.left = `${Math.max(6, gutter.left - 15)}px`;
+			this.marker.style.top = `${bounds.top + Math.min(16, bounds.height / 2)}px`;
+			this.marker.hidden = bounds.bottom < 0 || bounds.top > innerHeight;
+		};
+		window.addEventListener('scroll', positionMarker, { passive: true, capture: true });
+		window.addEventListener('resize', positionMarker);
+		document.addEventListener('presentation-target', positionMarker);
 		this.bar.hidden = true;
 		for (const [index, route] of routes.entries())
 			this.picker.add(new Option(route.label, String(index)));
-		this.picker.setAttribute('aria-label', 'Route');
+		this.picker.setAttribute('aria-label', 'Presentation');
 		this.picker.hidden = routes.length < 2;
 		this.picker.addEventListener('change', (): void => this.start(Number(this.picker.value)));
 		const title = document.createElement('strong');
@@ -118,14 +117,23 @@ class RoutePlayer {
 		this.narration.setAttribute('aria-live', 'polite');
 		const previous = createIconButton('arrow-left', 'Previous step', (): void => this.step(-1));
 		const next = createIconButton('arrow-right', 'Next step', (): void => this.step(1));
-		const close = createIconButton('x', 'Leave the route', (): void => this.stop());
+		const close = createIconButton('x', 'Leave presentation', (): void => this.stop());
 		const controls = document.createElement('div');
 		controls.className = 'ex-route-controls';
 		controls.append(this.picker, title, previous, this.counter, next, close);
 		this.bar.append(controls, this.narration);
-		document.body.append(this.bar);
+		document.body.append(this.bar, this.marker);
 		document.addEventListener('keydown', (event: KeyboardEvent): void => {
-			if (this.bar.hidden || event.target instanceof HTMLSelectElement) return;
+			if (
+				this.bar.hidden ||
+				event.defaultPrevented ||
+				event.ctrlKey ||
+				event.metaKey ||
+				event.altKey ||
+				(event.target instanceof Element &&
+					event.target.closest('input,select,textarea,[contenteditable="true"]'))
+			)
+				return;
 			if (event.key === 'ArrowRight') this.step(1);
 			else if (event.key === 'ArrowLeft') this.step(-1);
 			else if (event.key === 'Escape' && !document.querySelector('dialog[open]') && !isDrawerOpen())
@@ -140,9 +148,15 @@ class RoutePlayer {
 		this.bar.hidden = false;
 		document.documentElement.dataset['route'] = '';
 		this.step(1);
+		document.documentElement.dataset['presentation'] = this.routes[routeIndex]?.id ?? '';
+		document.dispatchEvent(new Event('presentation-change'));
 	}
 
 	stop(): void {
+		this.pendingTarget?.abort();
+		this.marker.hidden = true;
+		delete document.documentElement.dataset['presentation'];
+		document.dispatchEvent(new Event('presentation-change'));
 		if (this.tracedDiagram) setTrace(this.tracedDiagram, undefined);
 		this.tracedDiagram = undefined;
 		this.closeInspector();
@@ -150,6 +164,10 @@ class RoutePlayer {
 		this.focused = undefined;
 		this.bar.hidden = true;
 		delete document.documentElement.dataset['route'];
+		const address = new URL(location.href);
+		for (const key of ['ex-tour', 'ex-route', 'ex-name', 'ex-step', 'ex-path'])
+			address.searchParams.delete(key);
+		history.replaceState(null, '', address);
 	}
 
 	private closeInspector(): void {
@@ -170,7 +188,8 @@ class RoutePlayer {
 			// The step lives on another page: go there and carry the tour along in the address.
 			const next = new URL(step.page);
 			next.searchParams.set('ex-tour', route.home);
-			next.searchParams.set('ex-route', route.label);
+			next.searchParams.set('ex-route', route.id);
+			next.searchParams.set('ex-name', route.label);
 			next.searchParams.set('ex-step', String(index));
 			next.searchParams.set('ex-path', encodeRoute(route));
 			next.hash = step.targetId;
@@ -180,54 +199,51 @@ class RoutePlayer {
 		this.stepIndex = index;
 		this.closeInspector();
 		this.focused?.classList.remove('ex-route-focus');
-		const target = step.targetId ? findTarget(step.targetId) : document.body;
-		if (!target && step.targetId) {
-			// The node's diagram has not rendered yet: bring it into view and focus once it is drawn.
-			const diagram = Array.from(
-				document.querySelectorAll<HTMLElement>('ex-mermaid:not([prepared])'),
-			).find((candidate): boolean => {
-				const words: readonly string[] =
-					candidate.querySelector('script, template')?.textContent?.match(/[A-Za-z_][\w-]*/g) ?? [];
-				return words.includes(step.targetId);
-			});
-			if (diagram) {
-				diagram.addEventListener(
-					'island-ready',
-					(): void => {
-						if (this.stepIndex === index) {
-							this.stepIndex = index - 1;
-							this.step(1);
-						}
-					},
-					{ once: true },
-				);
-				settleIntoView(diagram);
-			}
-		}
+		this.focused = undefined;
+		this.marker.hidden = true;
+		this.pendingTarget?.abort();
+		const pending = new AbortController();
+		this.pendingTarget = pending;
 		this.counter.textContent = `${index + 1} / ${steps.length}`;
 		this.narration.textContent = step.narration;
 		this.narration.hidden = step.narration === '';
-		if (!target) return;
-		revealElement(target);
-		target.classList.add('ex-route-focus');
-		this.focused = target;
-		// A step on a diagram node lights the node and its connections: a walk through the diagram.
-		if (this.tracedDiagram) setTrace(this.tracedDiagram, undefined);
-		this.tracedDiagram = undefined;
-		const diagram = target.matches('g[data-id]') ? target.closest('svg') : null;
-		if (diagram && target instanceof SVGElement) {
-			setTrace(diagram, target.dataset['id']);
-			this.tracedDiagram = diagram;
-		}
-		const board = target.closest('ex-board');
-		if (board instanceof BoardIsland && board.isMap()) {
-			board.focusOn(target);
-			settleIntoView(board);
-		} else settleIntoView(target);
-		if (step.open && target instanceof HTMLElement) {
-			openIsland(target, step.open);
-			document.querySelector('dialog.ex-inspect-dialog[open]')?.append(this.bar);
-		}
+		const address = new URL(location.href);
+		address.searchParams.set('ex-tour', route.home);
+		address.searchParams.set('ex-route', route.id);
+		address.searchParams.set('ex-name', route.label);
+		address.searchParams.set('ex-step', String(index));
+		address.hash = step.targetId;
+		if (address.href !== location.href) history.pushState(null, '', address);
+		void (
+			step.targetId ? resolveTarget(step.targetId, pending.signal) : Promise.resolve(document.body)
+		).then((target): void => {
+			if (pending.signal.aborted) return;
+			if (!target) {
+				this.narration.hidden = false;
+				this.narration.textContent = `Target unavailable: ${step.targetId}`;
+				return;
+			}
+			target.classList.add('ex-route-focus');
+			this.focused = target;
+			// A step on a diagram node lights the node and its connections: a walk through the diagram.
+			if (this.tracedDiagram) setTrace(this.tracedDiagram, undefined);
+			this.tracedDiagram = undefined;
+			const diagram = target.matches('g[data-id]') ? target.closest('svg') : null;
+			if (diagram && target instanceof SVGElement) {
+				setTrace(diagram, target.dataset['id']);
+				this.tracedDiagram = diagram;
+			}
+			const board = target.closest('ex-board');
+			if (board instanceof BoardIsland && board.isMap()) {
+				board.focusOn(target);
+				settleIntoView(board);
+			} else settleIntoView(target);
+			if (step.open && target instanceof HTMLElement) {
+				openIsland(target, step.open);
+				document.querySelector('dialog.ex-inspect-dialog[open]')?.append(this.bar);
+			}
+			document.dispatchEvent(new Event('presentation-target'));
+		});
 	}
 }
 
@@ -303,72 +319,57 @@ async function resumeTour(
 	const stepIndex = Number.parseInt(params.get('ex-step') ?? '0', 10) || 0;
 	if (!home || label === null) return;
 	if (pageOf(new URL(home)) === pageOf(new URL(location.href))) {
-		const index = localRoutes.findIndex((route): boolean => route.label === label);
+		const index = localRoutes.findIndex((route): boolean => route.id === label);
 		if (player && index >= 0) player.start(index, stepIndex);
 		return;
 	}
 	const carried = decodeRoute(params.get('ex-path') ?? '');
 	if (carried) {
-		new RoutePlayer([{ label, home, steps: carried }]).start(0, stepIndex);
+		new RoutePlayer([
+			{ id: label, label: params.get('ex-name') ?? label, description: '', home, steps: carried },
+		]).start(0, stepIndex);
 		return;
 	}
 	try {
 		const response = await fetch(home);
 		const source = new DOMParser().parseFromString(await response.text(), 'text/html');
-		const element = Array.from(source.querySelectorAll('ex-route')).find(
-			(route): boolean => route.getAttribute('label') === label,
+		const element = Array.from(source.querySelectorAll('ex-presentation')).find(
+			(route): boolean => route.id === label,
 		);
 		if (!element) throw new Error(`no route "${label}" on ${home}`);
-		new RoutePlayer([{ label, home, steps: readRouteSteps(element, new URL(home)) }]).start(
-			0,
-			stepIndex,
-		);
+		new RoutePlayer([
+			{
+				id: label,
+				label: element.getAttribute('title') ?? label,
+				description: element.getAttribute('description') ?? '',
+				home,
+				steps: readRouteSteps(element, new URL(home)),
+			},
+		]).start(0, stepIndex);
 	} catch {
 		// file:// pages cannot fetch each other; the reader still gets back to the tour.
 		showTourReturn(home, label, stepIndex);
 	}
 }
 
-/** Adds a route launcher beside the theme toggle when the page defines any routes. */
+/** Presentation paths share one launcher/menu with document navigation. */
 export function installRoutes(): void {
-	const routeElements = Array.from(document.querySelectorAll<RouteElement>('ex-route'));
-	const routes = routeElements
-		.map((element, index): Route => ({
-			label: element.getAttribute('label') ?? `Route ${index + 1}`,
-			home: location.href.split(/[?#]/)[0] ?? location.href,
-			steps: element.readSteps(),
-		}))
-		.filter((route): boolean => route.steps.length > 0);
-	// Diagrams render lazily, so a node id counts as found when any diagram's source names it.
-	const diagramWords = new Set(
-		Array.from(
-			document.querySelectorAll('ex-mermaid'),
-			(diagram): string[] =>
-				(diagram.querySelector('script, template')?.textContent ?? '').match(/[A-Za-z_][\w-]*/g) ??
-				[],
-		).flat(),
-	);
-	for (const element of routeElements)
-		for (const step of element.readSteps())
-			if (step.page === undefined && step.targetId && !findTarget(step.targetId))
-				window.setTimeout((): void => {
-					if (!findTarget(step.targetId) && !diagramWords.has(step.targetId))
-						reportIssue(
-							element,
-							`Step to="${step.targetId}" does not match any island id or diagram node.`,
-						);
-				}, 2500);
-	const player = routes.length > 0 ? new RoutePlayer(routes) : undefined;
-	void resumeTour(routes, player);
-	if (!player) return;
-	const launcher = createIconButton(
-		'play',
-		`Start guided route: ${routes[0]?.label ?? ''}`,
-		(): void => player.start(0),
-	);
-	launcher.classList.add('ex-route-launcher');
-	const label = document.createElement('span');
-	label.textContent = routes.length > 1 ? 'Guided routes' : (routes[0]?.label ?? '');
-	launcher.append(label);
-	document.body.append(launcher);
+	const elements = Array.from(document.querySelectorAll<RouteElement>('ex-presentation'));
+	const routes = elements.map((element, index): Route => ({
+		id: element.id || `presentation-${index + 1}`,
+		label: element.getAttribute('title') ?? element.id,
+		description: element.getAttribute('description') ?? '',
+		home: location.href.split(/[?#]/)[0] ?? location.href,
+		steps: element.readSteps(),
+	}));
+	const player = routes.length ? new RoutePlayer(routes) : undefined;
+	for (const [index, element] of elements.entries())
+		element.addEventListener('presentation-start', (): void => player?.start(index));
+	const initial = elements.findIndex((element): boolean => `#${element.id}` === location.hash);
+	if (initial >= 0) player?.start(initial);
+	else void resumeTour(routes, player);
+	window.addEventListener('popstate', (): void => {
+		if (new URLSearchParams(location.search).has('ex-route')) void resumeTour(routes, player);
+		else player?.stop();
+	});
 }

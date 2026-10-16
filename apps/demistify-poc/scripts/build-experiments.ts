@@ -85,7 +85,7 @@ const diagramColors = Object.fromEntries(
 );
 const graphThemeColors = Object.fromEntries(
 	Object.entries(diagramColors).filter(
-		([name]) => name === 'ink' || name === 'sheet' || name.startsWith('diff-'),
+		([name]) => name === 'ink' || name === 'surface-content' || name.startsWith('diff-'),
 	),
 );
 const diagramReferences: Record<string, string> = {};

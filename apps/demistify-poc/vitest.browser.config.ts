@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 
 import { browserPort } from './tests/browser/browser-port.ts';
 import { builtFixtures } from './tests/browser/built-fixtures.ts';
-import { panInspection } from './tests/browser/gesture-commands.ts';
+import { clickInspectionBackdrop, panInspection } from './tests/browser/gesture-commands.ts';
 
 export default defineConfig({
 	plugins: [await builtFixtures()],
@@ -13,7 +13,7 @@ export default defineConfig({
 		testTimeout: 20_000,
 		expect: { poll: { timeout: 5_000 } },
 		browser: {
-			commands: { panInspection },
+			commands: { clickInspectionBackdrop, panInspection },
 			enabled: true,
 			headless: true,
 			provider: playwright({ actionTimeout: 5_000 }),

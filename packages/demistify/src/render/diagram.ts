@@ -10,7 +10,7 @@ export function renderThemedDiagram(render: MermaidRenderer, sourceText: string)
 	return nameChartSeries(
 		removeSvgFontImports(
 			render(chart.source, {
-				bg: 'var(--sheet)',
+				bg: 'var(--surface-content)',
 				fg: 'var(--ink)',
 				// Inherit the page accent; assigning --accent to itself makes it invalid.
 				surface: 'var(--accent-soft)',

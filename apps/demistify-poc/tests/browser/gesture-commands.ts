@@ -25,5 +25,15 @@ export const panInspection: BrowserCommand = async (context): Promise<void> => {
 declare module 'vitest/browser' {
 	interface BrowserCommands {
 		panInspection: () => Promise<void>;
+		clickInspectionBackdrop: () => Promise<void>;
 	}
 }
+
+/** A real click outside the native dialog, rather than dispatching a synthetic close event. */
+export const clickInspectionBackdrop: BrowserCommand = async (context): Promise<void> => {
+	if (context.provider.name !== 'playwright') throw new Error('Backdrop input needs Playwright.');
+	const frame = context.iframe.getByTestId('explainer');
+	const bounds = await frame.boundingBox();
+	if (!bounds) throw new Error('Fixture frame is not visible.');
+	await context.page.mouse.click(bounds.x + 2, bounds.y + 2);
+};

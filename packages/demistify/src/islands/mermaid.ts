@@ -1,5 +1,6 @@
 import { reportIssue } from '../core/issues.ts';
 import { normalizeIslandText, readIslandSource } from '../core/source-text.ts';
+import { assignDiagramFragments } from '../layout/target-resolution.ts';
 import { traceDiagram } from '../layout/trace.ts';
 import { renderDiagramSvg } from '../render/diagram-client.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
@@ -72,8 +73,11 @@ export class MermaidIsland extends HTMLElement {
 	private renderPromise: Promise<void> | undefined;
 	private visibilityObserver: IntersectionObserver | undefined;
 	connectedCallback(): void {
+		// A cold scoped fragment must find and reveal this lazy island before its SVG exists.
+		assignDiagramFragments(this);
 		if (this.hasAttribute('prepared')) {
 			// Pre-rendered by the packager: link and trace the shipped SVG.
+			assignDiagramFragments(this);
 			sizeDiagram(this);
 			linkDiagramNodes(this);
 			const svg = this.querySelector(':scope > svg');
@@ -102,6 +106,7 @@ export class MermaidIsland extends HTMLElement {
 		try {
 			this.innerHTML = await renderDiagramSvg(normalizeIslandText(sourceText));
 			this.setAttribute('prepared', '');
+			assignDiagramFragments(this);
 			sizeDiagram(this);
 			checkDiagram(this, sourceText);
 			linkDiagramNodes(this);

@@ -201,11 +201,11 @@
 				</div>
 			</ex-board>
 
-			<ex-route label="Design walk">
+			<ex-presentation id="walk-1" title="Design walk" description="A guided path through the existing explanation.">
 				<ex-step to="wb-req">Start with what must be true.</ex-step>
 				<ex-step to="wb-program">Then who owns what.</ex-step>
 				<ex-step to="wb-verify">Finally, how we will know.</ex-step>
-			</ex-route>
+			</ex-presentation>
 			## Resume, one step at a time
 
 			<ex-mermaid id="resume-walk"
@@ -218,13 +218,13 @@
 				</script></ex-mermaid
 			>
 
-			<ex-route label="Walk the resume">
+			<ex-presentation id="walk-2" title="Walk the resume" description="A guided path through the existing explanation.">
 				<ex-step to="client">The client reconnects and sends its session id.</ex-step>
 				<ex-step to="gateway">The gateway calls resume.</ex-step>
 				<ex-step to="registry">The registry reads the session and checks its version.</ex-step>
 				<ex-step to="binder">The binder attaches the new socket.</ex-step>
 				<ex-step to="events">Finally the publisher announces the resumed session.</ex-step>
-			</ex-route>
+			</ex-presentation>
 		</ex-document>
 	</body>
 </html>

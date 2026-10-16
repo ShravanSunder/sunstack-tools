@@ -72,6 +72,13 @@ const fontFamilies = [
 /** Icons the theme ships: library controls, the tone vocabulary, and the few the lab pages name. */
 export const shippedIconNames = [
 	...subjectIcons,
+	'files',
+	'arrow-up',
+	'arrow-down',
+	'arrow-square-out',
+	'squares-four',
+	'funnel-simple',
+	'resize',
 	'caret-down',
 	'arrow-counter-clockwise',
 	'arrow-right',

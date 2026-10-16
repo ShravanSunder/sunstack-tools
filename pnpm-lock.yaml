@@ -266,6 +266,9 @@ importers:
       parse5:
         specifier: 7.3.0
         version: 7.3.0
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       subset-font:
         specifier: 2.4.0

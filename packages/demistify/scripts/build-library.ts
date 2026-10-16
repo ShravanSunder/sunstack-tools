@@ -45,6 +45,7 @@ const styles = await Promise.all(
 		'inspection-gestures.css',
 		'vocabulary.css',
 		'explorer.css',
+		'gallery.css',
 	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8')),
 );
 await mkdir(resolve(outputDirectory, 'fonts'), { recursive: true });

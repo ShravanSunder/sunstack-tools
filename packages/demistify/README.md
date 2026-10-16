@@ -1,154 +1,153 @@
 # Demistify
 
-Demistify is a lightweight visual-document vocabulary implemented with native Web Components. Agents write content and ordinary HTML layout. The library owns Markdown/Mermaid rendering, consistent styles, icons, navigation and inspection. A document does not need a React app, backend, application router or per-document build setup.
+Agents author HTML, Markdown and image references. Demistify supplies native elements, rendering, a shared visual language, navigation and inspection. Use the runtime and authoring guide from the same release.
 
-Build the library once from the monorepo root:
+## Open the integrated guide
+
+From the monorepo root:
 
 ```sh
-pnpm --filter @sunstack/demistify build
+pnpm install --frozen-lockfile
+pnpm build
+pnpm --filter @sunstack/demistify-poc dev:serve --port 4202
 ```
 
-Copy the complete `packages/demistify/dist/` directory to a local/static asset location. Keep the lazy `chunks/` directory and `Phosphor.woff2` beside the runtime/theme. Then a plain HTML document can load it:
+Open `/experiments/agent-written/component-guide/index.html`. The nine guide pages cover every current and earlier element, with real examples and copyable markup. The PoC server previews the files; it is not a backend required by a reader's document.
+
+For reader delivery, keep HTML small and import the matching shared library from Cloudflare. The default channel is `https://demistify.getagentstudio.dev/v1/`; it serves runtime, CSS, fonts, worker and lazy chunks. No reader-local server or application is required. The live version and source commit are recorded in `/v1/release.json`; the matching API guide is `/v1/authoring/SKILL.md`. A source preview uses the local build so it cannot accidentally combine new markup with an older runtime.
 
 ```html
-<link rel="stylesheet" href="./demistify/theme.css" />
-<script type="module" src="./demistify/runtime.js"></script>
-
-<ex-nav><a href="./implementation.html">Implementation</a></ex-nav>
-<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
-	<a href="./index.html">Explainers</a>
-	<span aria-current="page">Session architecture</span>
-</nav>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css" />
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
 <ex-document>
-	<ex-markdown label="Proposal">
-		<script type="text/markdown">
-			# Session architecture
-
-			Sessions survive transport disconnections.
-		</script>
-	</ex-markdown>
-	<ex-mermaid label="Session topology">
-		<script type="text/plain">
-			flowchart LR
-			  Client --> Socket --> Registry --> Session
-		</script>
-	</ex-mermaid>
+	<h1>Session architecture</h1>
+	<ex-markdown id="requirements" src="./notes/requirements.md"></ex-markdown>
+	<ex-card id="lifetime" title="Session lifetime" tone="decision" pick>
+		The registry owns the session.
+	</ex-card>
 </ex-document>
 ```
 
-Serve that HTML and its assets with any static host. The PoC is a consumer, not a runtime requirement. The PoC includes separate offline packaging experiments for fonts, the module graph and explorer data; see [the local results](../../docs/wip/demystify/2026-10-15-explorer-results.md). `bundleStandaloneHtml` at the Node packaging boundary embeds the fixed built module graph, fonts and explicitly resolved explorer JSON. The PoC standalone export and offline CLI share it; arbitrary assets, cyclic module graphs and direct file/WebView behavior remain outside the proven boundary. Browser `file://` and embedded WebView operation have not been verified.
+## Files and no-server delivery
+
+Small HTML plus shared HTTPS assets is the default. Do not inline the library, fonts or image bytes. Keep images as ordinary local paths or web URLs. Several HTML pages reuse the same Cloudflare assets and browser cache.
+
+| Content                                    | Direct-file delivery                                                                            |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Markdown already in the page               | The Cloudflare runtime renders it                                                               |
+| Markdown at an HTTPS URL with allowed CORS | `ex-markdown src` loads that URL                                                                |
+| Sibling local Markdown                     | Embed its exact source at author time; browsers block fetching it from `file://`                |
+| Images                                     | Keep normal relative `img src` paths or HTTPS URLs                                              |
+| Explorer JSON                              | Supply inline JSON or a CORS-readable HTTPS source; sibling fetch has the same file restriction |
+
+The existing source CLI embeds only Markdown source and keeps external library/image references:
+
+```sh
+node packages/demistify/bin/demistify.ts embed input.html output.html
+node packages/demistify/bin/demistify.ts check output.html
+```
+
+Run it once while authoring, from the matching dependency-installed checkout. Keep output beside the input or preserve relative page/image paths. Rerun after Markdown edits. The reader double-clicks the HTML; no Python, Node, Vite or web server is required. Internet access is required for Cloudflare assets. The same files can optionally be hosted by any ordinary static HTTP server; it needs no Demistify-specific routes or backend. The older research-only standalone bundler is a separate fully-offline experiment, not the normal delivery.
+
+Markdown islands render GFM tables, fenced code, nested/task lists, links, images and Mermaid fences. The source control opens the exact original Markdown in the shared sidebar. Use a script-backed island when literal `<` must survive HTML parsing:
+
+```html
+<ex-markdown id="notes"
+	><script type="text/markdown">
+		## Recovery
+
+		The literal `<registry>` remains source text.
+	</script></ex-markdown
+>
+```
+
+## Pages, breadcrumbs and presentations
+
+Declare one native page-link list on each file. Its first link is Home; the matching URL supplies the current page name. The library derives the compact sticky header, Pages dropdown and breadcrumbs. Real headings populate the page-named, independently scrolling outline. Captions do not add outline entries. Presentations and Theme use the same navigation system.
+
+```html
+<ex-nav for="content"
+	><nav slot="pages" aria-label="Pages">
+		<a href="index.html">Session guide</a>
+		<a href="details.html">Implementation</a>
+	</nav></ex-nav
+>
+<ex-document id="content">
+	<!-- Existing content islands live here. -->
+	<ex-presentation
+		id="review"
+		title="Session review"
+		description="Requirements and the lifetime decision."
+	>
+		<ex-step to="requirements--recovery">Read recovery.</ex-step>
+		<ex-step to="lifetime" open="sidebar">Inspect the decision.</ex-step>
+	</ex-presentation>
+</ex-document>
+```
+
+A presentation is an ordered path, not a content container. Several paths can reuse any existing island or inner anchor; one stop is valid. `ex-route` and wrapper-selection semantics are removed in this integrated vocabulary. Use `#requirements--recovery` for a Markdown heading, `#architecture--Registry` for a node in Mermaid island `architecture`, and `other.html#target` for a cross-page stop. Missing targets show a visible player error. Native fragment links, tree go-to links and presentation stops share target readiness/revelation behavior.
+
+## Gallery
+
+Use one `ex-gallery` among other content or as the whole page. Review and grid are two views of the same selection and filters. Authors supply evidence; readers do not upload it.
+
+```html
+<ex-gallery id="evidence" label="UI evidence">
+	<figure id="home-mobile" data-screen="Home" data-viewport="Mobile" data-state="Ready">
+		<img src="captures/home-mobile.png" alt="Home, signed in" />
+		<figcaption><strong>Ready state.</strong> The account menu remains reachable.</figcaption>
+	</figure>
+	<figure id="home-laptop" data-screen="Home" data-viewport="Laptop" data-state="Ready">
+		<img src="captures/home-laptop.png" alt="Home on a laptop" />
+		<figcaption>
+			<ex-markdown
+				><script type="text/markdown">
+					The same **ready state**, with a wider layout.
+				</script></ex-markdown
+			>
+		</figcaption>
+	</figure>
+</ex-gallery>
+```
+
+`data-screen`, `data-viewport`, `data-state` provide default facets when present. Viewport names are authored strings, not inferred device claims. Add your own `data-…` fields and `filters="screen viewport release"`, or a small `script type="application/json" data-gallery-filters` array of `{ "field": "release", "label": "Release", "icon": "package" }`. Values derive from the figures. Icons use the curated subject list in `src/core/subject-icons.ts`.
+
+Up/Down selects screenshots; Left/Right switches viewport categories while retaining related screen context when possible. Text fields keep normal editing keys. Search/facets share a 200ms trailing debounce; reset and direct navigation are immediate. An unchanged selected capture retains its image and zoom. Captions are native HTML or a Markdown island, with the same content in the shared inspector. Avoid putting a second application inside a caption.
 
 ## Composition vocabulary
 
-The agent-facing guide is [`skill/SKILL.md`](skill/SKILL.md), in skill format: a short core (about 1.2k tokens) plus reference files in `skill/references/` that an agent reads only when a page needs them. [`src/vocabulary.ts`](src/vocabulary.ts) is the complete, checked list of elements and attributes.
+| Elements                                                               | Use                                                                                          |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `ex-document`, `ex-nav`                                                | Document and collection navigation                                                           |
+| `ex-markdown`, `ex-mermaid`                                            | Full Markdown/file islands and scoped diagrams                                               |
+| `ex-card`, `ex-callout`, `ex-region`, `ex-stat`                        | Titled semantic content, findings, regions and figures                                       |
+| `ex-code`, `ex-note`                                                   | Code/unified diffs with neutral margin comments beside colored changes                       |
+| `ex-tree`                                                              | Collapsible Markdown tree; plain labels, separate leading disclosure and trailing go-to icon |
+| `ex-pre`, `ex-file-tree`                                               | Literal text/TUI drawings and plain file trees                                               |
+| `ex-gallery`, `ex-compare`                                             | Screenshot review/grid and before/after comparison                                           |
+| `ex-grid`, `ex-flow`, `ex-arrow`                                       | Native composition and labelled connections                                                  |
+| `ex-tabs`, `ex-board`, `ex-layers`                                     | Alternative views, boards and optional layers                                                |
+| `ex-presentation`, `ex-step`                                           | Named/described ordered stops through existing content                                       |
+| `ex-explorer`                                                          | Searchable graph document, selection/history, tracing and evidence                           |
+| `ex-zoom`, `ex-decision`, `ex-diagram-diff`, `ex-timeline`, `ex-layer` | Earlier lab vocabulary; reviewable in the legacy guide page                                  |
 
-| Element                                                                | Job                                                                                                                                                                        |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ex-document`                                                          | Document scope; adds outline navigation, theme toggle and layer switches; bare Markdown between islands renders as Markdown                                                |
-| `ex-markdown`, `ex-mermaid`                                            | Markdown and diagram islands (flowchart, sequence, state, class, ER, `xychart-beta` charts)                                                                                |
-| `ex-card`, `ex-callout`, `ex-region`                                   | Titled surfaces sharing one head: `tone` sets status icon and colour, `icon` names what the thing is (32 curated Phosphor icons), `tag`, `pick`                            |
-| `ex-stat`                                                              | One number with label and toned note                                                                                                                                       |
-| `ex-tree`                                                              | A Markdown list as a tree: status reports, checklists, breakdowns; tone words, links that jump to islands, collapsing; `layout="map"` mind map                             |
-| `ex-code`, `ex-note`                                                   | Line-numbered code or unified diffs (one or many files) with margin notes                                                                                                  |
-| `ex-compare`                                                           | Before and after, side by side or overlaid with a `slider`                                                                                                                 |
-| `ex-grid`, `ex-flow`                                                   | Width-aware side-by-side layout (`cols`, child `span`, `sticky`, `swipe`); `ex-flow` routes its arrows through the gaps                                                    |
-| `ex-tabs`                                                              | Alternative views; `columns` shows them side by side when they fit                                                                                                         |
-| `ex-board`, `ex-region`                                                | Whiteboard: Read by default, `mode="map"` for the pan/zoom camera, fit, drill-down revealing `detail` islands; without regions, a free canvas over the author's own layout |
-| `ex-arrow`                                                             | A labelled connection; outside a flow it routes orthogonally around every box, in lanes, with labels kept clear                                                            |
-| `ex-route`, `ex-step`                                                  | Guided routes with narration; steps on islands, regions, diagram nodes (step-through) or other pages (tours)                                                               |
-| `ex-layers`                                                            | Switches for `layer="…"` groups readers show or hide                                                                                                                       |
-| `ex-explorer`                                                          | Searchable graph document; selection/history, current/proposed views, tracing, source evidence and related tables (experimental)                                           |
-| `ex-file-tree`                                                         | Plain-text file trees                                                                                                                                                      |
-| `ex-zoom`, `ex-decision`, `ex-diagram-diff`, `ex-timeline`, `ex-layer` | Earlier vocabulary kept for the lab pages; not in the guide                                                                                                                |
+`src/vocabulary.ts` owns element attributes and validation/editor metadata. The packaged `skill/` teaches the matching markup; component-guide pages provide runnable examples.
 
-Inspection follows the hierarchy of the page: containers never get controls; diagrams, code, trees, comparisons and wide content get sidebar and expand buttons; an island whose depth is hidden (`slot="details"`) gets a "More ›" link; prose, plain cards and stats get none; `zoom` forces buttons and `zoom="none"` removes them. Routes and diagram links open any island in the drawer. Sidebar inspectors keep the main content visible and create an interactive copy. Fullscreen temporarily moves live content and restores it on close. The sidebar view is a docked, resizable drawer that the page reflows beside.
+## Shared visual and inspection behavior
 
-Hovering or focusing a box lights the arrows drawn to and from it; a diagram node lights its edges and neighbours. A Mermaid node whose id matches an element on the page takes that element's tone and opens it.
+The theme owns colors, fonts, spacing, radii and motion. Semantic roles for tone, selection, keyboard focus, links, presentation position, comments and diffs are distinct. Related items use 16px gaps; neutral boundaries are 1px, semantic accents 2px. Chosen is a separate badge and does not recolor a card's meaning. A small slow marker sits outside the current presentation target; reduced motion leaves it static.
 
-Light DOM keeps ordinary CSS layout and inheritance available; the library does not rearrange islands. Problems are reported twice: statically by `demistify check` (see below) and at runtime in the authoring-issues panel, which also sees layout (unroutable or tiny arrows, failed diagrams).
+Sidebar inspection copies content and preserves the main view. Fullscreen uses the shared native dialog; Escape, Close or a backdrop click dismiss it and restore focus. Cmd/Ctrl+wheel zooms and modifier-drag pans images/diagrams; ordinary scrolling remains native. Controls provide the same actions without gestures. The library subsets actual Phosphor glyphs into the matching build.
 
-## Navigation and icons
-
-`<ex-nav></ex-nav>` reads the first `ex-document` or `main`, or the body as fallback. `for="content-id"` selects a scope. It enumerates actual `h1`–`h6`, including asynchronous Markdown; hidden tab/detail headings are excluded. Missing anchors receive text-derived IDs, while authored IDs remain authoritative. Set explicit IDs for durable cross-document links when headings repeat or change.
-
-At viewport widths of 1440px and above it keeps a quiet left sidebar visible; smaller views use a compact rail and native popover. Hovering/focusing a marker previews that corresponding outline row. The current reading section has a separate border indicator. A list icon opens the outline for keyboard/touch users. Native anchors handle section jumps. Relative links authored as children appear under Other pages. `.ex-breadcrumbs` styles ordinary accessible breadcrumb markup. The breakpoint is an experimental design choice, not a measured universal threshold.
-
-Phosphor regular is the icon family, subset at build time to the icons the library uses: tones, the 32 subject icons, inspection, navigation and a few lab icons (about 6.6 KB). Authors name tones and curated subjects, never raw icon names outside that list. Text fonts are separate WOFF2 files referenced from the theme, so only faces a page uses download, after first paint. Upstream Mermaid font imports are removed so the document uses local theme fonts.
-
-## Design scales
-
-Every spacing, type size, radius, shadow and motion value in the library CSS comes from tokens on `:root` in `styles/theme.css`, so pages stay consistent and the look can be tuned in one place without editing explainers:
-
-- Spacing `--space-1` … `--space-18` (n × 4px: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 72). Hairlines (1–3px) and layout widths stay literal.
-- Type `--text-2xs` 12, `xs` 13, `sm` 14, `md` 15, `base` 17 (prose), `lg` 18, `xl` 21, `2xl` 24, `3xl` 30, `4xl` 44.
-- Radius `--radius-sm` 4, `md` 8, `lg` 12, `pill`.
-- Motion `--motion-fast` 120ms, `base` 200ms, `slow` 450ms, `--ease-out`; shadows `--shadow-float`, `--shadow-edge`, `--ring`.
-
-Authors normally write no CSS. Hand-placed layouts may use the spacing tokens in inline styles (`style="gap: var(--space-6)"`).
-
-## Hosting
-
-Serve the whole `dist/` folder together: `runtime.js`, `diagram-worker.js`, `chunks/`, `theme.css`, `fonts/` and `Phosphor.woff2`. Diagrams render in a module worker (`diagram-worker.js`, resolved beside `runtime.js`) so laying out a diagram never freezes the page; the worker is started from a same-origin Blob that imports it, which works when the library comes from another origin. Where workers are unavailable (a strict `worker-src`, `file://` pages), diagrams render on the main thread with identical output. Cross-origin hosting needs `Access-Control-Allow-Origin: *` on these files (module scripts and fonts are CORS-checked).
-
-## Checking pages
-
-`src/vocabulary.ts` is the one description of the authoring vocabulary: every element, its attributes, allowed values, id references and nesting. Everything that checks or documents the vocabulary derives from it.
+## Proof and source owners
 
 ```sh
-node packages/demistify/bin/demistify.ts check page.html          # static checks, about 0.1 s per page
-node packages/demistify/bin/demistify.ts check --fix page.html    # also applies mechanical repairs
-node packages/demistify/bin/demistify.ts check --render page.html # adds layout checks in headless Chromium (needs Playwright)
+pnpm check
+pnpm test
+pnpm test:browser
+pnpm build
 ```
 
-Output is one line per problem (`page.html:16:31 error attribute: <ex-card> has no attribute "type". Use tone. (fixable)`); a problem repeated across lines prints once with every line number. Static checks cover unknown elements and attributes (with the likely intended name), values (tones, columns, spans, sides), required attributes, duplicate and missing ids, nesting, arrows in a flow, island sources the HTML parser broke, diagrams the engine rejects or draws empty, styling beyond layout CSS, cards and regions without a tone, bare Markdown an HTML formatter re-wrapped (a heading joined to its paragraph, a list on one line), and the library links. Keep explainer pages out of HTML formatters such as Prettier or oxfmt.
+Browser tests use real built assets and native browser inputs. Checker output, HTTP browser behavior, direct-file behavior and hosted release integrity are separate evidence boundaries.
 
-For Claude Code, a PostToolUse hook runs the check whenever an agent writes a page and returns problems to the agent (exit 2); clean or non-explainer files stay silent:
-
-```json
-{
-	"hooks": {
-		"PostToolUse": [
-			{
-				"matcher": "Write|Edit",
-				"hooks": [
-					{ "type": "command", "command": "node packages/demistify/bin/demistify.ts check --hook" }
-				]
-			}
-		]
-	}
-}
-```
-
-The build also writes `dist/custom-elements.json` (Custom Elements Manifest) and `dist/html-custom-data.json` (VS Code `html.customData`) for completions and hover docs.
-
-## Source layout
-
-```text
-src/
-  runtime.ts     Entry: registers every element, then runs page checks and document behaviour
-  core/          Shared services: authoring issues, tones, Phosphor icon buttons, source/HTML text helpers
-  islands/       One file per content element: markdown, mermaid, card (+ callout), code (+ note),
-                 tabs, file-tree, inspector (+ ex-zoom), legacy (earlier lab vocabulary)
-  layout/        document (chrome, bare Markdown, ex-grid), flow, arrows, navigation
-  render/        Markdown and diagram rendering adapters, chart-source fixes, SVG font cleanup
-  node/          packaging.ts: Node-only build/packaging adapter (fonts, icons, pre-rendering)
-  styles/        theme, reference, components, navigation and vocabulary CSS, concatenated by the build
-```
-
-## Packaging boundary and limits
-
-`@sunstack/demistify/packaging` exposes `prepareIslandContent(sourceHtml, diagramDictionary, standalone)`, `localFontStyles` and `localPhosphorStyles`. This experimental Node entry currently exports TypeScript source and targets the lab's Node 26 tooling; it is not a published npm release. Browser consumers use built JavaScript and CSS.
-
-Mermaid `src` references are resolved by the packaging caller's explicit dictionary. Browser-time arbitrary repository fetching is not implemented. Markdown escapes raw HTML; the outer authored HTML remains trusted content. Mermaid rendering uses beautiful-mermaid's supported subset. D2 is excluded from this library. Semantic patches are implemented by the separate flat graph experiment, not by a generic Mermaid diff parser.
-
-The full explorer experiment and source/usage accounting are in [the explorer acceptance notes](../../docs/wip/demystify/2026-10-15-explorer-parity.md).
-
-The detailed intent, experiments, evidence boundaries and next iteration questions are in [the monorepo handoff](../../docs/wip/demystify/2026-10-14-demistify-handoff.md).
-
-## Referenced Markdown and presentation collections
-
-`<ex-markdown id="requirements" src="./requirements.md">` loads Markdown relative to the page, including Mermaid fences; its source button retains the exact file text in the shared inspector. `demistify embed input.html output.html` embeds local Markdown references for no-server viewing while keeping library links. Fully offline delivery uses `bundleStandaloneHtml` with its explicit Markdown/data resolvers. File-protocol sibling fetches are a browser restriction, not a reason to build another application.
-
-`<ex-presentation id title description>` defines one complete explainer in an HTML collection. A side menu selects one presentation; fragment links reveal its content. `ex-nav` distinguishes `nav slot="pages"` (page links) from `nav slot="presentations"` (other named/described explainers), while headings populate the outline. See [the canonical guide](skill/SKILL.md) and the [working multi-page example](../../apps/demistify-poc/experiments/agent-written/navigation-markdown-fix/index.html). These additions require this matching build; older experimental public pins do not acquire them retroactively.
-
-Review all 28 current/earlier vocabulary entries in the [component guide](../../apps/demistify-poc/experiments/agent-written/component-guide/index.html): six grouped pages with live examples and copyable markup. The guide uses this branch’s matching built assets.
+Reusable runtime, styles and Node packaging live in `packages/demistify`; authored pages and browser fixtures live in `apps/demistify-poc`. There is no per-document router, renderer fork or application build.

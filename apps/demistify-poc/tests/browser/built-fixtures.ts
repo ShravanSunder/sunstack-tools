@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +30,8 @@ export async function builtFixtures(): Promise<Plugin> {
 		[
 			['navigation', 'navigation-markdown-fix'],
 			['layout', 'layout-regression-fix'],
+			['gallery', 'integrated-review'],
+			['explorer', 'round-13-inspection'],
 		].map(async ([name, source]): Promise<void> => {
 			if (!name || !source) throw new Error('Missing fixture name.');
 			await cp(
@@ -37,13 +39,19 @@ export async function builtFixtures(): Promise<Plugin> {
 				join(snapshot, name),
 				{ recursive: true },
 			);
-			const file = join(snapshot, name, 'index.html');
-			const html = await readFile(file, 'utf8');
-			await writeFile(
-				file,
-				html
-					.replaceAll('/experiments/islands/', '/__demistify/library/')
-					.replaceAll('../../../../../packages/demistify/dist/', '/__demistify/library/'),
+			await Promise.all(
+				(await readdir(join(snapshot, name)))
+					.filter((file): boolean => file.endsWith('.html'))
+					.map(async (filename): Promise<void> => {
+						const file = join(snapshot, name, filename);
+						const html = await readFile(file, 'utf8');
+						await writeFile(
+							file,
+							html
+								.replaceAll('/experiments/islands/', '/__demistify/library/')
+								.replaceAll('../../../../../packages/demistify/dist/', '/__demistify/library/'),
+						);
+					}),
 			);
 		}),
 	);

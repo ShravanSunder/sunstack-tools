@@ -100,7 +100,10 @@ export function graphToD2(
 	themeColors: Readonly<Record<string, string>>,
 	changes?: GraphChangeSet,
 ): string {
-	const lines = ['direction: down', `style.fill: "${graphThemeColor(themeColors, 'sheet')}"`];
+	const lines = [
+		'direction: down',
+		`style.fill: "${graphThemeColor(themeColors, 'surface-content')}"`,
+	];
 	for (const node of graph.nodes) {
 		const change = changes?.changes.find((item): boolean =>
 			item.kind === 'add-node'

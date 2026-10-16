@@ -11,30 +11,27 @@
 <body>
 <ex-nav for="guide">
 <nav slot="pages" aria-label="Component guide pages">
-<a href="index.html">Start here</a>
+<a href="index.html">Demistify components</a>
 <a href="content.html">Content and decisions</a>
 <a href="layouts.html">Layouts and navigation</a>
 <a href="visuals.html">Visuals and structure</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Presentations and deep links</a>
 <a href="explorer.html">Graph explorer</a>
 <a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Proof and usage</a>
 </nav>
 <nav slot="presentations" aria-label="Other presentations">
-<a href="../navigation-markdown-fix/index.html">
+<a href="navigation.html#walkthrough">
 <strong>Session design</strong>
 <span>Three named presentations with referenced Markdown and deep links.</span>
 </a>
-<a href="../layout-regression-fix/index.html">
-<strong>Layout stress cases</strong>
-<span>Wide diagrams and long tree labels.</span>
-</a>
+
 </nav>
 </ex-nav>
 <ex-document id="guide">
-<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
-<a href="index.html">Demistify component guide</a>
-<span aria-current="page">Earlier vocabulary</span>
-</nav>
-<ex-presentation id="examples" title="Earlier vocabulary" description="Working components with copyable source and usage guidance.">
+
+<section id="examples">
 <h1>Earlier vocabulary</h1>
 <p>These earlier lab elements remain rendered for existing artifacts. They are separated here so the current small vocabulary stays clear.</p>
 <section id="component-ex-zoom">
@@ -115,11 +112,13 @@
 </ex-code>
 </details>
 </section>
-</ex-presentation>
-<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+</section>
+<section id="authoring">
 <ex-markdown id="authoring-notes" src="usage-notes.md">
 </ex-markdown>
-</ex-presentation>
+</section>
+<ex-presentation id="show-examples" title="Earlier vocabulary" description="Working components with copyable source and usage guidance."><ex-step to="examples">Read Earlier vocabulary.</ex-step></ex-presentation>
+<ex-presentation id="show-authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance."><ex-step to="authoring">Read Authoring notes.</ex-step></ex-presentation>
 </ex-document>
 </body>
 </html>
