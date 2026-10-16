@@ -70,7 +70,8 @@ Either level may resolve a binding's change selection, once per binding: that re
 | Variant | Meaning |
 | --- | --- |
 | `unchanged` | Same content on both sides of every member delta |
-| `changed { members: [scope_position] }` | Content differs in at least one member delta |
+| `changed { members: [scope_position] }` | Content-level only: the selected content differs in at least one member delta |
+| `path_changed { members }` | Path-level only: the subject's file was modified in at least one member delta, and its content was not compared |
 | `added { members }` | Absent on the before side, present on the after side |
 | `deleted { members }` | Present on the before side, absent on the after side |
 | `before_unknown { reason: baseline_unavailable \| history_incomplete }` | The subject has a before side, but it could not be resolved |
@@ -106,20 +107,31 @@ The origin is rules-owned and never change-tracked, so it maps as `no_before_sid
 1. **At planning, at path level.** Rules compares every dependency at path level, which reads no subject:
    - If any dependency gives a reason, selection settles with those reasons.
    - If every dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }` and nothing of it is acquired.
-   - Otherwise a tracked source path changed, and only content can tell whether the selected part changed. The occurrence is planned as `comparison_pending` and evaluates like a selected one. A binding resolution refused here is carried to step 2 as that dependency's refusal.
-2. **At the acquisition frontier, at content level.** When the occurrence's own request becomes ready, the same session compares its pending dependencies by content. Ready means its controlling gates settled and passed, or the request rides speculatively (R38). That is the point where milestone 1 acquires the occurrence's evidence anyway: gate inputs were reached at their gates, and the target and context arrive with the request.
+   - Otherwise some declaration or input is `path_changed`, and only content can tell whether its selected part changed. The occurrence is planned as `comparison_pending` and evaluates like a selected one. A binding resolution refused here is carried to step 2 as that dependency's refusal.
+2. **At the acquisition frontier, at content level.** When the occurrence's own request becomes ready, the same session compares its `path_changed` dependencies by content. That is the point where milestone 1 acquires the occurrence's evidence anyway. Ready means one of two things:
+   - **Staged work:** its controlling gates settled and passed. Gate inputs were reached at their gates, and the target and context arrive with the request.
+   - **Speculative ride (R38):** the request is acquired before its gates settle.
+
+   Then:
    - If any reason holds, selection settles with those reasons and the questions stay.
    - If every pending dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }`. Its questions leave the request before encoding, as with an evidence refusal. A request left with no questions is `not_sent { reason: outside_change_scope }`.
-   - If a comparison is `refused`, the occurrence follows the existing rule for a rule's refused required evidence (Program Design scheduling): `selection_failed { diagnostics }`, because its gates have passed.
+   - If a comparison is `refused`, the refusal belongs to that request's owner, exactly like a refused required evidence read (Program Design scheduling).
 
-An occurrence whose gate does not pass never reaches step 2. It is `not_applicable`, or reduces as for a failed gate, and its pending dependencies are never read. `prepare_rules` runs step 2 for the requests it prepares; an occurrence whose request is waiting stays `comparison_pending`.
+**Settled gates take precedence.** The step-2 result is final only once the occurrence's gates have settled, under the existing reduction (Specification C13):
+- A gate that passes exposes the step-2 result: selected, `outside_change_scope`, or `selection_failed { diagnostics }` for a refusal.
+- A gate that does not pass makes the occurrence `not_applicable`, whatever its speculative comparison found and in whichever order the two completed. A failed or cancelled gate reduces as it already does.
+- A speculative comparison's reads, diagnostics and cost are still reported.
 
-**Rules' mapping.** `selected_by` lists every reason found in the step that settled selection, in the closed order. The levels differ in one case: at path level, a declaration or input whose file was modified (`changed`) gives no reason. It leaves the occurrence `comparison_pending`, because moved lines or an edit elsewhere in the file may leave its selected content unchanged. Its `added` or `deleted` at path level does give its reason. Definition files are compared only at path level, so their `changed` gives `rule_changed` directly. Otherwise both levels map as follows:
+Staged work whose gate does not pass never reaches step 2, so its pending dependencies are never read. `prepare_rules` runs step 2 for the requests it prepares; an occurrence whose request is waiting stays `comparison_pending`.
+
+**Rules' mapping.** `selected_by` lists every reason found in the step that settled selection, in the closed order.
+
+`path_changed` on a declaration or input gives no reason. It leaves the occurrence `comparison_pending`, because moved lines or an edit elsewhere in the file may leave its selected content unchanged. Its path-level `added` or `deleted` does give its reason. Definition files are compared only at path level, at file granularity, so their `path_changed` gives `rule_changed` directly.
 
 | Dependency | Comparison | Reason |
 | --- | --- | --- |
 | The rule file or its RuleSet file | `added` | `new_rule` |
-| The rule file or its RuleSet file | `changed` | `rule_changed` |
+| The rule file or its RuleSet file | `path_changed` | `rule_changed` |
 | The target declaration | `changed`, `added` or `deleted` | `target_changed` |
 | Any context declaration | `changed`, `added` or `deleted` | `context_changed` |
 | Any applicability dependency | `changed`, `added` or `deleted` | `applicability_changed` |
