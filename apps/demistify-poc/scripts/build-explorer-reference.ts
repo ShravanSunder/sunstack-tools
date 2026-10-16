@@ -365,7 +365,7 @@ const graph = {
 	title: 'How the job is composed',
 	description:
 		'Explore the same frozen skill composition, its proposed changes and source evidence using reusable HTML islands.',
-	note: `Current source ${data.commit}. Proposed: ${data.proposalRevision} — ${data.proposalDocument}. Source descriptions are frontmatter claims. Relationship colors describe target kinds; PROPOSED is a separate status. A declared relationship does not prove a runtime load or an assignment.`,
+	note: `Current source ${data.commit}. Proposed: ${data.proposalRevision} — ${data.proposalDocument}. Skill descriptions are frontmatter claims; the proposed shared procedure's description comes from the proposal. A shared procedure is a reference file, not a skill. Roles describe responsibility context, not execution order. Orchestrators are deferred. Relationship colors describe target kinds; PROPOSED is a separate status. This is authored branch source, not an installed or behavior-tested release. A declared relationship does not prove a runtime load, assignment or usefulness.`,
 	groups: [
 		{ id: 'phases', label: 'L2 · Phases', kind: 'phase' },
 		{ id: 'roles', label: 'Role skills', kind: 'role' },

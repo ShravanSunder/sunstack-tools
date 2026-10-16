@@ -22,8 +22,9 @@ Open each page separately:
 - `/experiments/agent-written/round-9-explorer/luna-iterated.html`
 - `/experiments/agent-written/round-10-guide/sol-review.html` and `luna-review.html`
 - `/experiments/agent-written/round-10-guide/sol-explorer.html` and `luna-explorer.html`
+- `/experiments/agent-written/round-11-reference/index.html` (latest Lead-built reference conversion)
 
-Each round preserves initial outputs, first accepted outputs, one iteration, exact input files and normalized receipts. The build copies the complete library beside the usage. The new explorer data contains the supplied public skill-source citations, not account credentials or private deployment metadata. Generated multi-megabyte offline artifacts and raw authentication output stay outside Git.
+Rounds 8–10 preserve initial outputs, accepted outputs, exact input files and normalized receipts; rounds 8 and 9 also preserve a separate authored iteration. Round 11 preserves the latest Lead-built reference conversion. The build copies the complete library beside the usage. The new explorer data contains the supplied public skill-source citations, not account credentials or private deployment metadata. Generated multi-megabyte offline artifacts and raw authentication output stay outside Git.
 
 ## Model DX and content cost
 
@@ -35,6 +36,8 @@ Each round preserves initial outputs, first accepted outputs, one iteration, exa
 Sol used gpt-6.1-sol medium; Luna used gpt-6-luna high. First runs were fresh sessions without parent history. Iterations reused their author sessions. Every iteration made one new successful check. This is one pair per task, not a reliability estimate or fair isolation of model and effort. There were no invented APIs in the accepted outputs. Source review found all supplied F1–F5 findings, options and evidence values in both code-review pages.
 
 The current source HTML is **174,515 tokens / 792,811 bytes**. The initial normalization duplicated source URLs and grew to **228,920 tokens**. Centralizing the source base reduced the JSON to **173,548 tokens / 776,142 bytes**, with **97,429 gzip bytes**. The input adapter measured **3,759 tokens** at the captured revision. A 212-token wrapper therefore does not mean the full explanation costs 212 tokens. Initial migration, referenced prose/data, per-page usage, library development and generated delivery artifacts are separate costs. The initial migration does not demonstrate an overall token saving once the adapter and complete content are included.
+
+A content-only comparison is more informative than comparing the tiny wrapper with the whole original application. The same frozen read contains **151,827 tokens / 709,189 bytes of embedded source JSON**, versus **173,548 tokens / 776,142 bytes** in the round 9 normalized graph. This conversion expands the referenced content by 21,721 tokens (about 14.3%). The remaining original HTML is 22,688 tokens and includes application implementation plus static help text; it is not all reusable library code. These source measurements are separate from model generation and actual consumed or billed context. See [the exact split](evidence/2026-10-15/reference-content-ledger.json).
 
 Exact source/output sizes and hashes are in each round's `measurements.json`. Assignment prompts and full tool framing were not captured as exact complete ledgers in these rounds. Input-file totals are lower bounds on visible context; they are not provider token usage. The next controlled run must save the exact assignment and feedback before dispatch rather than reconstruct them afterward.
 
@@ -76,7 +79,7 @@ An independent probe executes only the frozen reference's pure composition funct
 
 Actual Chrome observations on the new rendering:
 
-- `spec-design`: Current 22 nodes / 45 connections; With proposals 22 / 46, with corresponding table rows.
+- `spec-design`: Current 21 nodes / 45 connections; With proposals 22 / 46, with corresponding table rows.
 - Search isolated the requested principle; selecting it produced one graph node and six incoming rows; Back restored the earlier selection.
 - Hover tracing for `practices-research` lit the same 10 edges as the frozen reference calculation.
 - Clicking a real SVG arrow selected its actual Connections row (`current-213`). Fullscreen moved/restored the real 22-node graph.
@@ -86,6 +89,26 @@ Actual Chrome observations on the new rendering:
 Selection uses an `ex.<authored-id>` URL query key so ordinary heading fragments remain available. Missing IDs receive independent generated IDs; authors should give explicit IDs for stable links. Full composition with multiple navigators and exhaustive deep-link reload journeys remain to be exercised.
 
 The generic checker still cannot establish domain truth or whether prose omitted a required fact. The validation strategy is: vocabulary plus referenced-schema checks; brief-specific content/relationship review; then real browser interaction/layout checks. Keep valid controls and seeded negatives. An empty explanation passing syntax is a documented limitation, not a trustworthy completion signal.
+
+## Content preservation and latest reproduction
+
+The [preservation probe](../../../apps/demistify-poc/scripts/probe-explorer-preservation.ts) parses the frozen embedded content without executing its application or opening a browser mirror. Against both the retained round 9 data and the latest round 11 data, it found all **1,870 long textual values**, **714 source-anchor occurrences** including nested via references, and **350 relationship identities with their own explanations and attached quotations/links**. Whitespace-normalized text coverage does not establish source truth or complete semantic equivalence. The source-link comparisons retain the exact source revision and line.
+
+Two schema-valid negative controls failed as intended. Removing one complete URL/quotation identity produced one missing source occurrence even though long-text coverage passed. Moving two citations from one relationship to another retained all quotations globally, but failed the two relationship-specific associations. This demonstrates why validation needs both content coverage and ownership of evidence. See [positive results](evidence/2026-10-15/explorer-content-preservation-latest.json), [omission control](evidence/2026-10-15/prose-preservation-negative.json) and [wrong-association control](evidence/2026-10-15/edge-evidence-negative.json).
+
+The latest independently openable page is **round 11**. It keeps the same frozen source and library, and restores caveats that were previously only in the original UI: a shared procedure is a reference file, its description comes from the proposal, roles describe responsibility rather than execution order, orchestrators are deferred, and authored source is not an installed or behavior-tested release. The older measured model inputs remain unchanged. Round 11 is a Lead-built conversion, not another model-author measurement.
+
+```sh
+node apps/demistify-poc/scripts/probe-explorer-preservation.ts SOURCE_HTML apps/demistify-poc/experiments/agent-written/round-11-reference/planning.json
+```
+
+`SOURCE_HTML` is the external frozen file identified by the round's source manifest. The original application is not included in public Git or served as a browser-policy workaround. The converted page runs independently; rerunning the source oracle requires that supplied input.
+
+Chrome rendered the latest page at 1,419 × 747 with 22 proposed-view nodes, 46 connection rows, zero reported authoring issues and no outer width overflow (1,405 document pixels). A fresh native Luna observation pilot also rendered this graph, switched Current 21/45 to With proposals 22/46, selected the searched principle, and returned through Back. Reloading after selection restored that stable-ID selection once the real ready state appeared; history reset as expected for transient state. Its captured first check was 0 errors / 0 warnings. The pilot is unpaired and excluded from the matched author metrics.
+
+The native observation attachment failed before returning any tool-action evidence. No Sol pilot was launched after that failure; the result does not close guide-read proof PF-1. The pilot's prose also overclaimed arrow-hover tracing: the renderer traces on node hover/focus and opens evidence on arrow click. Static validity did not catch that prose error. Its private initial output is retained for a later bounded author correction, without substituting a Lead edit as model success.
+
+![Latest reference graph and navigation](evidence/2026-10-15/latest-reference-graph.jpg)
 
 ## Loading and interaction samples
 
@@ -151,4 +174,4 @@ The repaired artifact is 3,088,926 bytes at the captured build, with nine embedd
 
 ## Remaining work
 
-Complete original-versus-new visual comparison through an allowed source view, exhaustive required interaction acceptance, semantic graph comparison for prose as well as edge sets, and broader embedded-layout/deep-link coverage. Review and test the small guide treatment with a fully captured prompt ledger. Keep production delivery behind an explicit private-access design and authorization. No credentials, raw account metadata or public content hosting are needed to finish these local experiments.
+Complete the original-versus-new visual comparison through an allowed source view, the remaining required interaction/embedded-layout/accessibility acceptance, and actual guide/reference retrieval observation. The new source oracle closes the named text/relationship-preservation checks; it does not establish every semantic or visual claim. One stable-ID reload journey is now proven, while multiple independent navigators and heading-fragment coexistence still need focused coverage. Keep production delivery behind an explicit private-access design and authorization. No credentials, raw account metadata or public content hosting are needed for local experiments.

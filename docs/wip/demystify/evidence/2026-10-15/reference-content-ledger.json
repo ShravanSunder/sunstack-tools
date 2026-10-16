@@ -1,0 +1,19 @@
+{
+	"sourceSha256": "619a6b0af4c0d4e46c4ab491060a20849b25d7ba71f0ddecbf79d8a79fd3b961",
+	"wholeSource": {
+		"bytes": 792811,
+		"tokens": 174515,
+		"gzip": 108451
+	},
+	"embeddedContent": {
+		"bytes": 709189,
+		"tokens": 151827,
+		"gzip": 87712
+	},
+	"outsideEmbeddedContent": {
+		"bytes": 83622,
+		"tokens": 22688,
+		"gzip": 20564
+	},
+	"limits": "All parts measured from one frozen source read. Whole source includes bespoke app implementation; embedded JSON is existing content. No generation, consumed-context or billed-token claim."
+}

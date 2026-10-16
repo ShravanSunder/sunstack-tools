@@ -35,3 +35,5 @@ Run status: implemented. Independent spec review returned great / accepted-to-im
 ## Current proof boundary
 
 Round 10 preserves exact initial/final pages, captured assignment text, source-token ledgers and parent Chrome observations. Both authors composed valid final pages and used the intended heading, summary and introduction shapes. Luna repaired eight static reference errors and received a fixture path correction. Complete native tool-action transcripts were unavailable, so actual reference retrieval and the exact loaded guide copy cannot be inferred. Keep that acceptance item open; do not replace it with correct output or a self-report.
+
+A later fresh native Luna pilot produced a statically valid graph page, but the supported observation attachment failed before returning any actual read events. The pilot is unpaired; a Sol counterpart was not launched after that failure. Its correct rendering and self-reported reads do not close PF-1. Browser review also found an inaccurate prose promise of arrow-hover tracing, which the static checker cannot establish. Keep the initial output as a diagnostic, not accepted guide-consumption proof.
