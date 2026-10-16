@@ -378,10 +378,17 @@
       "type": "object",
       "properties": {
         "importing_repository_id": { "$ref": "evidence-selector.schema.json#/$defs/RepositoryId" },
-        "module_prefix": { "type": "string", "minLength": 1 },
+        "module_prefix": { "type": "string", "pattern": "\\S" },
         "target_repository_id": { "$ref": "evidence-selector.schema.json#/$defs/RepositoryId" },
-        "target_path_prefix": { "type": "string", "minLength": 1 },
-        "language": { "type": "string", "minLength": 1 }
+        "target_path_prefix": {
+          "description": "A relative path inside the target repository; empty means its root. Absolute paths and parent (..) components are refused.",
+          "type": "string",
+          "pattern": "^(?!/)(?!(.*/)?\\.\\.(/|$))"
+        },
+        "language": {
+          "description": "The connected-discovery languages.",
+          "enum": ["rust", "typescript", "tsx"]
+        }
       },
       "required": ["importing_repository_id", "module_prefix", "target_repository_id", "target_path_prefix", "language"],
       "additionalProperties": false
