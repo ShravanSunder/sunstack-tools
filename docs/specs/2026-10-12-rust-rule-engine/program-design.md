@@ -96,12 +96,12 @@ Deserialization admits shape. Constructors and request-relative validators admit
 | E18 Change selection | Evidence change selection | `sunstack-evidence/change_selection` | `ResolvedChangeSelection { repository, members: [ResolvedChangeMember], coverage }`; member variants in [Connected evidence](program-design-connected-evidence.md#roots-scopes-and-frozen-evidence) | Per invocation |
 | E19 Source unit | Evidence structural units | `sunstack-evidence/source_units` | `SourceUnit { key: SourceUnitKey { snapshot, repository, revision, path, byte_start, byte_end }, kind: SourceUnitKind, span: SourceSpan, content_identity, syntax_quality: parsed \| recovered_with_errors }` | Derived |
 | E20 Relationship candidate | Evidence relationships | `sunstack-evidence/related_sources` | `RelationshipCandidate`: `candidate { source_unit, target_unit, call_site_span, relation_kind, basis_spans, facts, uncertainties }`, `contradicted { source_unit, possible_target, basis_spans, contradiction }`, `unresolved { source_unit, target_hint, relation_kind, basis_spans, reason }` | Invocation-local |
-| E21 Semantic chunk | Evidence chunks | `sunstack-evidence/semantic_chunks` | `SemanticChunk { key, units: [SourceUnitKey], relationships, excerpts: [Excerpt], omitted_optional: [Omission], coverage: DiscoveryCoverage }`; readiness `ContextGroupOutcome` | Derived |
+| E21 Semantic chunk | Evidence chunks | `sunstack-evidence/semantic_chunks` | `SemanticChunk { key, units: [SourceUnitKey], relationships, excerpts: [Excerpt], omitted_optional: [Omission], unknown_recency_context: [SourceRef], coverage: DiscoveryCoverage }`. `unknown_recency_context` lists each source read as context that the change selection excluded for unknown recency: a dirty file whose time is unknown, never presented as unchanged; readiness `ContextGroupOutcome` | Derived |
 | E22 Context budget | Decisions request admission | `sunstack-decisions/request_budgeting` | `RequestBudgetAssessment`: `within_configured_budget { admitted_request }`, `exceeded`, `unverifiable` | Pure, per request |
 | E23 Rule file | Definition admission | `sunstack-rules/definition_admission` | `ValidatedRuleFile { source, content_identity, rules: nonempty [located RuleDefinition] }` | Captured bytes |
 | E24 RuleSet | Definition admission | `sunstack-rules/definition_contracts` | `RuleSetDefinition { schema_version: 1, name, description, inputs: map<InputName, InputDeclaration>, applicability, common_ruleset_instructions: StructuredEntry, rule_paths }` | Captured bytes |
 | E25 Input declaration | Definition admission | `sunstack-rules/definition_contracts` | `InputDeclaration`: `document`, `conversation`, `change_set`, `payload { schema: SchemaName }` | Immutable |
-| E26 Binding group | Binding admission | `sunstack-rules/input_binding` | Wire: `{ bindings: map<InputName, InputBinding> }`. Native: `AdmittedBindingGroup { owner, position, binding: bound \| routed { router_group }, sources: map<SourceName, AdmittedSource { id: SourceId, spec: SourceSpec }> }`. Each admitted binding is mapped to the evidence-owned `SourceSpec` here, so evidence never sees a rules type | Per invocation |
+| E26 Binding group | Binding admission | `sunstack-rules/input_binding` | Wire: `{ bindings: map<InputName, InputBinding> }`. Native: `AdmittedBindingGroup { owner, position, binding: bound \| routed { router_group, label }, sources: map<SourceName, AdmittedSource { id: SourceId, spec: SourceSpec }> }`. Each admitted binding is mapped to the evidence-owned `SourceSpec` here, so evidence never sees a rules type | Per invocation |
 | E27 Applicability entry | Definition admission | `sunstack-rules/definition_contracts` | `ApplicabilityEntry`: `condition { test: ConditionTest }` or `decision { question, evidence, threshold }` | Immutable |
 | E28 Applicability outcome | Applicability evaluation | `sunstack-rules/report_contracts` | `ApplicabilityOutcome`: `applicable`, `not_applicable { entry, basis }`, `applicability_failed { entry, cause }`, `not_evaluated { reason }` | Report value |
 | E29 Verdict | Verdict evaluation | `sunstack-rules/definition_contracts` and `verdict_evaluation` | Declared `VerdictDeclaration`: `noul { question, threshold, block_at_or_below? }` or `composite { dimensions: [{ question, weight }], threshold, block_at_or_below? }`; evaluated `VerdictOutcome` | Immutable / report |
@@ -159,7 +159,7 @@ A declaration ID is unique within its owner: a rule, a decision entry or the rou
 **Admission order** (all before any source read or inference):
 1. Strictly decode each file: duplicate keys and unknown fields are refused, and arbitrary keys inside instructions and criteria stay data.
 2. Validate each declaration's own rules: thresholds and floors in (0, 1]; bands below the threshold and only on block rules; composite weights positive and summing to 1, naming noul or score informational questions; a single-level score rubric refused in a composite.
-3. Check cross-file rules: unique rule IDs per RuleSet, input references resolving with compatible kinds in every RuleSet that loads a rule, route labels inside the choice criteria, routed RuleSets admitted, and wiring that is complete and kind-compatible.
+3. Check cross-file rules: unique rule IDs per RuleSet, input references resolving with compatible kinds in every RuleSet that loads a rule, route labels inside the choice criteria, routed RuleSets admitted, and wiring that is complete and kind-compatible. A RuleSet is one normalized path within an invocation (Specification E24), so a path appears at most once in `definitions.rule_sets`, and a caller puts all of its groups in that one entry; a repeat is refused with `duplicate_rule_set`. Within one route label a normalized RuleSet path appears at most once, and a repeat is refused with `invalid_route`. The same path under different labels is valid, because only one label runs. Otherwise two occurrences would share one RuleSet, rule ID and group position. Until routing settles, though, each label's route is a separate candidate with its own wiring, so its derived group, gates and requests carry its route label (see [Gates and their controlling answers](#gates-and-their-controlling-answers)).
 4. Admit bindings.
 
 Diagnostics carry file, line, column and a safe field path.
@@ -188,6 +188,7 @@ Criteria pass through unchanged. A null `common_ruleset_instructions` is left ou
 - `cursors`: `[{ transcript_path, format, cursor }]`
 - `execution { speculation: off | on, max_concurrent_requests }`
 - `limits`, `backend`, `attempts` and `request_budget`
+- milestone 2 only: `discovery: none | bounded { limits: DiscoveryLimits }` and `package_bindings: [PackageSourceBinding]`, the same evidence-owned types `prepare_evidence` takes ([connected evidence](program-design-connected-evidence.md#connected-discovery)). Both are optional on the wire, with `discovery` defaulting to `none` and `package_bindings` to empty. `input_binding` passes them unchanged into the invocation's one `EvidenceSession`, so discovery limits are cumulative across RuleSets and groups like every other limit. A related-units declaration or a change-set source that needs discovery is refused at admission with `discovery_not_enabled` when `discovery` is `none`. Milestone 1 admission refuses `bounded` discovery and any package binding, as it refuses milestone 2 scopes
 
 Credentials never appear in it.
 
@@ -261,7 +262,7 @@ The prototype's two failed obligations (supplement attribution and supplement vi
 
 Text of unknown injection origin is never removed by excluding hook-injected text. A selection that selects no record type is refused at definition admission.
 
-**Cursors.** After selection, evidence returns one cursor per captured source in the report. It is base64url JSON of the source, format, committed byte count, prefix digest, and a per-record watermark: the byte position of the last source entry that contributed to each record. Any record that later entries can amend carries one. A whole assistant message changes when another streamed entry with its message ID arrives, and a tool use changes when its result arrives. "New or changed since" compares those watermarks. A late block therefore returns the whole updated message, a late result returns with its call, and a supplement always reappears until the transcript contains it. The engine holds no state between invocations. Measurements report the bytes read and parsed per capture.
+**Cursors.** After selection, evidence returns one cursor per captured source in the report. It is base64url JSON of the source, format, committed byte count, prefix digest, and a per-record watermark: the byte position of the last source entry that contributed to each record. Any record that later entries can amend carries one. A whole assistant message changes when another streamed entry with its message ID arrives, and a tool use changes when its result arrives. "New or changed since" compares those watermarks. A late block therefore returns the whole updated message, and a late result returns with its call. A supplement (the caller-supplied final assistant text the transcript has not yet flushed) is tracked by the same cursor, which records the content digest of the supplement it last returned. It is returned when first seen or when its text changes, and not again while it is unchanged and the transcript still lacks it. When the transcript later commits that message, the committed record is new transcript content and is returned once, and the cursor drops the supplement digest. The engine holds no state between invocations. Measurements report the bytes read and parsed per capture.
 
 ## Payload evidence and conditions
 
@@ -277,7 +278,7 @@ Conditions use the same pointer resolution.
 | --- | --- | --- |
 | `payload_field_equals` | `input`, `pointer`, `value` | Passed if equal. A missing field is unresolved, never false |
 | `payload_field_in` | `input`, `pointer`, `values` | As above |
-| `payload_field_present` | `input`, `pointer` | Passed or did not pass |
+| `payload_field_present` | `input`, `pointer` | Passed if the field is present, including a present JSON `null`; a missing field is unresolved, never false. It has no did-not-pass outcome (Specification C10, R34) |
 | `origin_field_equals` | `field: host \| event \| agent_kind \| agent_type`, `value` | An `unavailable` origin field, or a `direct` origin, is unresolved |
 | `pattern_present` | `input`, `pattern: literal \| regex \| ast`, `max_scan_bytes` | Scans a document, or a conversation's normalized text. An incomplete scan is unresolved |
 
@@ -296,19 +297,27 @@ A **gate** is anything that decides whether later work applies:
 - each RuleSet-level decision entry, per binding group
 - each rule-level decision entry, per occurrence
 
-`GateKey { owner, entry_position }` identifies it. The owner is `router`, `rule_set { path, group }` or `rule { path, group, rule_id }`.
+`GateKey { owner, entry_position }` identifies it. The owner is `router { group }`, `rule_set { path, group, route? }` or `rule { path, group, rule_id, route? }`. Each router binding group is its own gate with its own controlling answer, so two router groups can route differently. `route` is the route label, present only for a routed candidate: two labels that route the same RuleSet with different wiring are different candidates, so their decisions over differently wired sources never share a slot, and the selected label's candidate uses only its own answers. After routing settles, only that candidate's occurrences exist, under the public `RuleOccurrenceKey { rule_set, group, rule_id }`.
 
 `request_planning` gives every gate exactly one **controlling slot**, owned by exactly one planned request. Every other request that depends on the gate refers to that slot and never asks again. When the owning request fails or is cancelled, the slot settles failed or cancelled for all dependents.
 
 ### Same bound inputs
 
-Each admitted binding resolves to a `SourceId`: a canonical transcript path plus format, a repository key plus normalized path, or a payload's group and input. Aliases of one source resolve to one `SourceId`; another source or another captured version does not.
+Each admitted binding resolves to a `SourceId`: a canonical transcript path plus format, a repository key plus normalized path, or a payload's canonical value identity (a digest of its canonical JSON). Equal payload values are the same source, as Specification C13 says, so a routed group's wired payload is the same source as the router group's. Aliases of one source resolve to one `SourceId`; another source or another captured version does not.
 
 A **read set** is the set of `SourceId`s that some evidence declarations read. A gate's read set comes from its own declarations. A rules request's read set comes from the declarations of the rules it judges, computed before any gate is added. A gate is over the same bound inputs as a request when the gate's read set is within that request's read set. Binding an input that no rule reads does not make a gate over it "same input": a decision over a bound but unused document stages. That is the realization of "over the same bound inputs as the rules" in Specification C13.
 
 ### The planning algorithm
 
 Planning is pure and deterministic. It runs after admission and after the leading conditions, which are evaluated per group in authored order before any decision.
+
+**Which conditions lead, and when a condition may read.** A leading condition comes before its owner's first decision entry (Specification C13). Every other condition is evaluated only once every entry before it has settled and passed, as C13 says; it never runs or prunes earlier, however cheap it is. Conditions come in two kinds:
+- **Acquisition-free** conditions (origin, payload value, source presence) read only admitted facts. A leading one is evaluated before planning, and if it does not pass, its group gets no rules request.
+- **Scanning** conditions (for example `pattern_present`) acquire their source. A leading one is scanned before planning. A non-leading one acquires its source only when its turn comes, unless that source is already captured for a request that rides, whose bytes it reads.
+
+The router is the first gate of every candidate RuleSet. It does not change which conditions lead, but it bounds acquisition. A candidate whose rules request can carry the router (the router's read set is within that request's read set, the same-input test below) is sent speculatively, so that request's evidence may be acquired before the router answers (Specification R28). Its leading scans over sources in that request's read set therefore scan before the router answers, and when they pass, the request carries the router in one call. This holds whether the scanned source is one the router reads or one only the rules read. A leading scan over a scan-only source, outside that request's read set, waits until the router has settled and selected the candidate. A candidate that cannot carry the router waits for routing as a whole when speculation is `off`; when it is `on`, that candidate's request runs concurrently with the router's, like any gate over different inputs (step 5), and the router's answer still decides. Either way, a scan-only leading scan waits for routing, and so does the request it leads. Acquisition-free leading conditions still run before planning. A candidate whose acquisition-free leading condition fails gets no rules request, and the router rides another qualifying candidate's request or its own.
+
+A condition is never a gate. It creates no request, and it does not stage the router or a decision before it: those still ride the same-input rules request. If a non-leading condition does not pass, its occurrences are `not_applicable { entry }` and the speculative answers are discarded with their cost. Reported outcomes follow authored order: an entry reached only after a gate that did not pass, failed or was cancelled is reported `not_evaluated`, even if it was computed.
 
 1. **Request order.** Requests are ordered by:
    - RuleSet order: invocation order for `rule_sets`; for a router, label order, then route position
@@ -331,7 +340,7 @@ Planning is pure and deterministic. It runs after admission and after the leadin
    - A rule that cannot fit alone is refused (`rule_exceeds_budget`). The other rules still run, and the report is incomplete.
    - Every split is reassessed. The invocation's request limit counts staged, speculative and split requests together.
 
-**Question names.** A request's question names are `q000001`, `q000002` and so on, in request-local order. A `QuestionBinding { request_name, owner }` maps each one back. The owner is `router`, `rule_set_decision { entry }`, `rule_decision { rule_id, entry }`, `verdict { rule_id }` or `informational { rule_id, name }`. So an authored question named `verdict` cannot collide with a verdict.
+**Question names.** A request's question names are `q000001`, `q000002` and so on, in request-local order. A `QuestionBinding { request_name, owner }` maps each one back. The owner is `router { group }`, `rule_set_decision { entry }`, `rule_decision { rule_id, entry }`, `verdict { rule_id }` or `informational { rule_id, name }`. So an authored question named `verdict` cannot collide with a verdict.
 
 ### Request state and owner labels
 
@@ -371,6 +380,11 @@ When a request settles, the scheduler:
 3. loops until nothing is ready or in flight
 
 A request that will never be sent, because its gate did not pass, failed or was cancelled, is recorded as `not_sent` with that gate as the reason. A speculative request already in flight is never aborted by a gate outcome. Its answers are discarded and its cost is kept.
+
+**Evidence refused when a request becomes ready.** Acquisition is lazy, so a required declaration can be refused after planning and before dispatch. It refuses only its own owner's evaluation:
+- **A rule's required evidence:** that rule's questions leave the request before encoding, and the rest are budgeted and sent. Its occurrence becomes `selection_failed { diagnostics }`, but only once its controlling gates have settled and passed; if a gate does not pass, the occurrence is `not_applicable` as usual. `RequestRecord.questions` lists only the questions actually encoded.
+- **A gate's own required evidence (decision or router):** its question leaves any request it rides in, its own staged request is not sent, and the gate's slot is `failed { cause: evidence { diagnostics } }`. Dependents then reduce exactly as they do for any failed gate.
+- **No questions left:** when every question in a request has lost its owner this way, the request is recorded as `not_sent { reason: evidence_refused { diagnostics } }`, with the owners' evidence diagnostics wrapped. It is never recorded as a `sent` decision run or as a budget refusal.
 
 ### Reduction in authored order
 
@@ -455,7 +469,7 @@ Envelope: `{ protocol_version: 1, operation, input }`. The result is `protocol_e
 
 `RuleInvocationReport` contains:
 - `origin`
-- `routing`: `rule_sets`, or `router { outcome }`
+- `routing`: `rule_sets`, or `router { groups: [{ position, outcome }] }`, one outcome per router binding group
 - `groups`: each with RuleSet, position, `binding` (`bound`, or `routed` from a router group), `applicability` and `entries` (each evaluated entry with its basis, and a decision's answer reference when it completed)
 - `occurrences`: each a `RuleOccurrenceResult`
 - `requests`
@@ -491,7 +505,7 @@ Retained from the reviewed design. The decisions crate does not know about rules
 - **Content types.** `StructuredJson` is the recursive JSON enum. `StructuredEntry` admits string, object, array or null roots for every instruction and criterion. Shared state roots are text, object or array.
 - **Response admission.** It checks exact question names, kinds, labels, probability keys, rubric indices, finite ranges and receipt fields against the request. A mismatch is `invalid_response`, with no partial answers.
 - **Receipts.** They keep the resolved model, native token counts and an optional reported USD cost. Absence is not zero.
-- **Attempts.** One adapter controller runs finite attempts, defaulting to a 10,000 ms timeout and zero automatic retries. Retries cover only declared transient classes, and the HTTP client's own retries are disabled. Each `InferenceAttemptRecord` is `not_dispatched`, `completed` or `remote_outcome_unknown`.
+- **Attempts.** One adapter controller runs finite attempts, defaulting to a 10,000 ms timeout and zero automatic retries. Retries cover only declared transient classes, and the HTTP client's own retries are disabled. Each `InferenceAttemptRecord` is `not_dispatched`, `completed` or `remote_outcome_unknown`, and its `AttemptFailureClass` includes `caller_aborted` and `invalid_response`, which a whole run reports through its own `cancelled` and `invalid_response` outcomes rather than as a provider failure.
 - **HTTP classification.** Status codes map to closed codes and safe retry advice:
   - 400 → `provider_rejected_request`
   - 401/403 → `authentication`/`authorization`
@@ -522,11 +536,11 @@ Retained from the reviewed design. The decisions crate does not know about rules
 | Evidence / transcript | **`unknown_transcript_format`**, **`transcript_unavailable`**, **`transcript_discontinuous`**, **`invalid_cursor`**, **`adapter_output_invalid`**, **`transcript_limit`** |
 | Evidence / payload | **`unknown_payload_schema`**, **`payload_schema_mismatch`**, **`payload_schema_invalid`**, **`invalid_pointer`** |
 | Evidence / selection | `invalid_selector`, `unsupported_language`, `selector_limit`, **`empty_projection`** |
-| Rules / definitions | `malformed_json`, `unknown_field`, `duplicate_field`, `unsupported_schema_version`, `duplicate_rule_id`, `duplicate_rule_source`, `empty_rule_file`, **`invalid_threshold`**, **`invalid_band`**, **`invalid_composite`**, **`invalid_target`**, **`undeclared_input`**, **`input_kind_mismatch`**, **`invalid_route`**, **`invalid_wiring`** |
+| Rules / definitions | `malformed_json`, `unknown_field`, `duplicate_field`, `unsupported_schema_version`, `duplicate_rule_id`, `duplicate_rule_source`, **`duplicate_rule_set`**, `empty_rule_file`, **`invalid_threshold`**, **`invalid_band`**, **`invalid_composite`**, **`invalid_target`**, **`undeclared_input`**, **`input_kind_mismatch`**, **`invalid_route`**, **`invalid_wiring`** |
 | Rules / bindings | **`unbound_input`**, **`duplicate_binding`**, **`extra_binding`**, **`binding_kind_mismatch`** |
 | Rules / applicability | **`condition_unresolved`**, **`decision_failed`**, **`router_failed`** |
 | Rules / execution | `invalid_configuration`, **`rule_exceeds_budget`**, **`request_limit`**, `unexpected_execution_error`, `caller_aborted` |
-| Evidence / connected (milestone 2) | `revision_unavailable`, `invalid_repository_binding`, `unknown_repository`, `history_incomplete`, `recency_unknown`, `relationship_unresolved`, `discovery_limit`, `unsupported_relationship_query`, `invalid_context_group`, `missing_related_context`, `required_group_incomplete` |
+| Evidence / connected (milestone 2) | `revision_unavailable`, `invalid_repository_binding`, `unknown_repository`, `history_incomplete`, `recency_unknown`, `relationship_unresolved`, `discovery_limit`, **`discovery_not_enabled`**, `unsupported_relationship_query`, `invalid_context_group`, `missing_related_context`, `required_group_incomplete`, **`no_change_selection`** |
 | Decisions / request | `unknown_field`, `duplicate_field`, `invalid_question`, `invalid_state`, `unsupported_primitive`, `invalid_number`, `invalid_rubric`, `invalid_configuration` |
 | Decisions / budget | `context_budget_exceeded`, `budget_unverifiable`, `unsupported_budget_profile` |
 | Decisions / response | `invalid_body`, `missing_answer`, `unexpected_answer`, `wrong_answer_kind`, `invalid_choice`, `invalid_number`, `invalid_rubric`, `invalid_receipt` |

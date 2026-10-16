@@ -21,7 +21,7 @@ for provenance, literal expectations, licenses and exact generation command.
 | adapter_output_validation_rejects_each_structural_contradiction | Duplicate IDs, out-of-bounds positions, missing results, impossible clipping or foreign turns accepted | Program Design adapter invariants |
 | diagnostic_debug_and_json_never_copy_received_content | Received values escape through Debug/JSON, list/message bounds exceeded | R19/V10 and diagnostic bounds |
 | real_append_cursor_returns_whole_streamed_message_and_late_result | Delta omits old blocks, unpaired late result, partial line committed, false byte counts | Spec C11/V26 and literal byte lengths |
-| late_supplement_repeats_until_transcript_materializes_it | Supplement lost after cursor, treated as injection, or duplicated after materialization | C11/V24/V26 |
+| late_supplement_repeats_until_transcript_materializes_it (superseded) | Current cursor cases and results: [SUPPLEMENT-CURSOR-PROOF.md](SUPPLEMENT-CURSOR-PROOF.md) | C11/V24/V26; limits repair: [ACQUISITION-LIMITS-PROOF.md](ACQUISITION-LIMITS-PROOF.md) |
 | cursor_refuses_same_length_rewrite_truncation_and_identical_replacement | Digest/identity continuity unchecked | C11/V26 and real file rewrites/replacement |
 | pinned_public_literals_have_whole_message_records_and_explicit_gaps | Block splitting, wrong tool/category/outcome, unsupported records dropped | Pinned public literals; Lead whole-message disposition |
 | generic_projection_windows_precede_filters_and_preserve_unknown_injection | Wrong last-5/final-only filtering, unknown text removed, tool filter ignored or empty projection admitted | C11/V25; literal six-turn composition |

@@ -16,7 +16,7 @@ This companion to the [Program Design](program-design.md) gives the complete fie
 | `ProgramRequest` | `protocol_version: 1`, `operation: prepare_evidence \| prepare_rules \| run_judgments \| evaluate_rules`, `input`: the matching input below |
 | `ProgramResponse` | `protocol_error { protocol_version: 1, diagnostics: DiagnosticList }` or `operation_result { protocol_version: 1, result: { operation, outcome } }`, where `outcome` matches `operation` |
 
-An unknown version or operation, malformed framing or an over-limit input is a `protocol_error`, never a fabricated known outcome.
+An unknown version or operation, malformed framing or an over-limit input is a `protocol_error`, never a fabricated known outcome. The executable reads one JSON request from stdin, up to 8 MiB (8,388,608 bytes); a longer input is refused with `input_limit` without parsing it. Paths in the request stay paths, so this bounds the request, not the evidence it names. After installing its signal handlers and before reading stdin, the executable writes the single line `sunstack-rule: ready` to stderr. Stderr is operational only: it never carries results, selected evidence, request content or credentials, and callers may ignore it.
 
 ## Shared shapes
 
@@ -45,9 +45,18 @@ An unknown version or operation, malformed framing or an over-limit input is a `
 - `native_queries: [{ id, selector: EvidenceSelector }]`: repository-qualified, from [the native selector schema](schemas/evidence-selector.schema.json). This is the only place a caller names seeds directly
 - `package_bindings: [PackageSourceBinding]`
 - `limits: InvocationLimits`
-- `discovery: none | bounded { limits: DiscoveryLimits }`. Admission refuses a native query or change-set source that needs discovery when `discovery` is `none`
+- `discovery: none | bounded { limits: DiscoveryLimits }`. Admission refuses a native query or change-set source that needs discovery with `discovery_not_enabled` when `discovery` is `none`
 
 No backend and no credentials.
+
+**Native `EvidenceSession`** (`sunstack-evidence`, native API only, never on the wire). It holds one invocation's admitted sources, frozen `SourceSnapshot`, capture cache, cursors and cumulative limits:
+- `open(...)` admits the sources once.
+- `select(declaration)` acquires lazily and returns a `SelectionResult`. A first acquisition, including every file a change-set selection reads, finishes its verification pass before `select` returns. A source that changed during that capture is refused with `source_changed`.
+- A selection finds an existing capture by source identity alone, before touching the filesystem. Identity is the repository binding plus the lexically normalized path inside it, the transcript path and format, or the payload value. Root and symlink checks run only when a source is first captured. So deleting or replacing a file after its capture never affects a later selection or alias of it.
+- A returned capture is final. Later selections reuse its frozen bytes, and a change to the file after its capture interval is neither reread nor reported, as Specification E11 says: locations refer to the captured bytes, never to later reads. A `ready` result is never made tentative or invalidated afterwards.
+- Closing it yields captures, resolved change selections, returned cursors and measurements. It publishes what was captured and does not revisit it.
+
+`prepare_evidence` is a thin wrapper that opens a session, selects every declaration and closes it. Rules (S3) uses one session per invocation, so every request shares one capture and one set of limits, and no source is read twice. There is still one capture owner: rules never captures or caches sources itself.
 
 **`SourceSpec`** (`sunstack-evidence/evidence_contracts`):
 - `document { repository, path }`
@@ -61,14 +70,18 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 
 | `kind` | Fields |
 | --- | --- |
-| `prepared` | `selections: [SelectionResult]`, `captures: [CaptureCoverage]`, `cursors: [ReturnedCursor]`, `measurements` |
-| `incomplete` | the same fields plus `diagnostics: DiagnosticList` |
+| `prepared` | `selections: [SelectionResult]`, `captures: [CaptureCoverage]`, `change_selections: [ResolvedChangeSelection]` (milestone 2; one entry per binding whose change selection was resolved, so empty when none was), `cursors: [ReturnedCursor]`, `measurements` |
+| `incomplete` | the same fields plus `diagnostics: DiagnosticList`. Used only when a `required` declaration is refused. A refused `optional` declaration leaves the plan `prepared`: its `SelectionResult` is `refused { diagnostics }`, and rules records it in request state as `Omission { reason: optional_unavailable }` |
 | `refused` | `diagnostics` |
-| `cancelled` | `progress: before_plan_admission \| plan_admitted { partial: { selections, captures, cursors } }`, `diagnostics`, `measurements` |
+| `cancelled` | `progress: before_plan_admission \| plan_admitted { partial: { selections, captures, change_selections, cursors } }`, `diagnostics`, `measurements` |
 
 **`SelectionResult`:**
 - `id`
-- `readiness`: either `ready { content: SelectionContent, omissions: [Omission], coverage }` or `refused { diagnostics }`
+- `readiness`: either `ready { content: SelectionContent, omissions: [Omission], coverage: SelectionCoverage }` or `refused { diagnostics }`
+
+**`SelectionCoverage`:**
+- `single_source { capture: CaptureCoverage }`: document, conversation and payload selections, which read one captured source
+- `change_set { repository, sources: [SourceRef], discovery: DiscoveryCoverage }`: change-set selections, which read many repository files. `sources` lists every file the selection read, and `discovery` states the scanned scope and any cutoffs (a plain text match over paths reports `complete_within_declared_scope` or `limited`)
 
 **`SelectionContent` variants:**
 - `paragraph { span, text }`
@@ -76,8 +89,9 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 - `matches { matches: [{ span, text, captures: map<String, SourceSpan> }] }`
 - `conversation_records { source, records: [ConversationRecord] }`
 - `payload_value { input, pointer, value }`
-- `changed_units { units: [SourceUnit] }`
-- `related_group { group: ContextGroupOutcome }`
+- `changed_units { units: [{ unit: SourceUnit, text }] }`: `text` is the unit's captured bytes, so no consumer rereads a source that may have changed
+- `related_group { group: ContextGroupOutcome }`: a `single_group` related query, the only grouping rules use
+- `related_groups { groups: [{ seed: SourceUnitKey, outcome: ContextGroupOutcome }] }`: a native `per_seed` related query. There is one entry per located seed unit, in `SourceUnitKey` order, and each group is self-contained, so a related unit can appear in several groups. It is ready when at least one seed unit is located, with each group's outcome reported as it is. Composing the groups is the native caller's code, as Specification R24 says
 
 **`Omission`:** `{ reason: window | projection | limit | optional_unavailable, count }`.
 
@@ -99,7 +113,7 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 
 **`PreparedRules`:**
 - `origin: ReportedOrigin`
-- `routing`: `rule_sets`, or `router { status: not_evaluated, candidate_rule_sets: [path] }`
+- `routing`: `rule_sets`, or `router { status: not_evaluated, candidate_rule_sets: [path], groups: [position] }`
 - `groups: [PreparedGroup]`
 - `occurrences: [PreparedOccurrence]`
 - `planned_requests: [PlannedRequestRecord]`
@@ -107,9 +121,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 
 | Shape | Fields |
 | --- | --- |
-| `PreparedGroup` | `rule_set`, `position`, `binding: bound \| routed { router_group }`, `leading_entries: [EvaluatedEntry]`, `status: planned \| not_applicable { entry, basis } \| applicability_failed { entry, cause }` |
+| `PreparedGroup` | `rule_set`, `position`, `binding: bound \| routed { router_group, label }`, `leading_entries: [EvaluatedEntry]`, `status: planned \| not_applicable { entry, basis } \| applicability_failed { entry, cause }` |
 | `PreparedOccurrence` | `key: RuleOccurrenceKey`, `status: planned \| not_applicable { entry, basis } \| selection_failed { diagnostics }` |
-| `PlannedRequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `budget: within_configured_budget { counts, basis } \| exceeded { diagnostics } \| unverifiable { diagnostics }`, `evidence: [SelectionResult]` |
+| `PlannedRequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `readiness: prepared { budget: within_configured_budget { counts, basis } \| exceeded { diagnostics } \| unverifiable { diagnostics }, evidence: [SelectionResult] } \| waiting { on: [EntryKey] }`. A request is `prepared` when the planning rules, under the invocation's speculation setting, would make it ready before any router or decision answers: a rules request carrying its riding gates, a staged gate whose earlier entries are all leading conditions that passed, and anything that runs concurrently because speculation is `on`. A routed candidate is `waiting` on the router when its rules request cannot carry the router and speculation is `off`, or when one of its leading scans reads a scan-only source outside that request's read set (Program Design planning). Otherwise it is `waiting` on the gates it depends on, and its evidence is not acquired (Specification R28) |
 
 `prepared_with_failures` means a selection, evidence or budget failure, or an unresolved leading condition, is recorded somewhere in `PreparedRules`.
 
@@ -120,6 +134,12 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 - `backend: BackendSelection`
 - `attempts: AttemptSettings`
 - `request_budget: RequestBudgetSettings`
+
+**`BackendSelection`:** `jev_openrouter { endpoint, model, context_ceiling_tokens? }`. This realizes Specification C8's 'a known provider context ceiling further constrains the caller limit'. Jev's System One surface publishes no tokenizer and no ceiling for `jev-latest`, so the engine never assumes one.
+- `context_ceiling_tokens` is optional. When the caller declares it, it further constrains `max_input_tokens`. When it is absent, no provider ceiling is known and the caller's `max_input_tokens` alone bounds the request.
+- The decisions crate derives the backend's accounting from the selection: an estimated byte upper bound, labeled as estimated, admitted only under `accounting_policy: allow_estimated`. `require_exact` with this backend assesses as `unverifiable`.
+- The budget assessment's basis records the accounting as estimated and the provider ceiling as `caller_declared { tokens }` or `not_declared`, so no assessment or report implies a verified model capacity.
+- The same `BackendSelection` appears in `RuleInvocationInput`.
 
 **Outcome `DecisionRunOutcome`:**
 
@@ -135,8 +155,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | --- | --- |
 | `JudgmentAnswer` | `noul { yes_probability }`; `choice { selected_label, confidence, probabilities: map<label, number> }`; `score { score, confidence, legend: map<index, StructuredEntry>, probabilities: map<index, number> }` ([schema](schemas/decision-answer.schema.json)) |
 | `ExecutionReceipt` | `resolved_model`, `usage: { input_tokens, output_tokens, cost_usd? }` |
-| `InferenceAttemptRecord` | `ordinal`, `evidence: not_dispatched { failure_class } \| completed { http_status } \| remote_outcome_unknown { failure_class, http_status? }` |
-| `ProviderFailureClass` | `provider_rejected_request`, `authentication`, `authorization`, `insufficient_credits`, `provider_resource_unavailable`, `request_too_large`, `rate_limit`, `provider_unavailable`, `timeout`, `connection`, `http_error`, `unexpected_provider_error`, `invalid_response` |
+| `InferenceAttemptRecord` | `ordinal`, `evidence: not_dispatched { failure_class: AttemptFailureClass } \| completed { http_status } \| remote_outcome_unknown { failure_class: AttemptFailureClass, http_status? }` |
+| `ProviderFailureClass` | Why a whole run ended as `provider_failure`: `provider_rejected_request`, `authentication`, `authorization`, `insufficient_credits`, `provider_resource_unavailable`, `request_too_large`, `rate_limit`, `provider_unavailable`, `timeout`, `connection`, `http_error`, `unexpected_provider_error` |
+| `AttemptFailureClass` | Why one attempt ended without a completion: every `ProviderFailureClass` value, plus `invalid_response` (the body failed request-relative admission) and `caller_aborted` (the caller cancelled; after dispatch the attempt is `remote_outcome_unknown`, because cancellation never proves remote inference or billing stopped) |
 
 ## `evaluate_rules` (`sunstack-rules`)
 
@@ -154,11 +175,12 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 
 **`RuleInvocationReport`:**
 - `origin: ReportedOrigin`
-- `routing`: `rule_sets`, or `router { outcome: RouterOutcome }`
+- `routing`: `rule_sets`, or `router { groups: [{ position, outcome: RouterOutcome }] }`: one outcome per router binding group, in position order
 - `groups: [GroupResult]`
 - `occurrences: [RuleOccurrenceResult]`
 - `requests: [RequestRecord]`
 - `captures: [CaptureCoverage]`
+- `change_selections: [ResolvedChangeSelection]` (milestone 2)
 - `cursors: [ReturnedCursor]`
 - `diagnostics: DiagnosticList`
 - `measurements: InvocationMeasurements`
@@ -166,9 +188,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | Shape | Fields |
 | --- | --- |
 | `ReportedOrigin` | `direct`, or `hook { host, event, session: ObservedField, turn: ObservedField, agent: main \| subagent { id, type: ObservedField } \| unknown \| unavailable, observed_at: ObservedField }`. `ObservedField` is `observed { value } \| unavailable` |
-| `EntryKey` | `owner: router \| rule_set { path, group } \| rule { path, group, rule_id }`, `position` |
+| `EntryKey` | `owner: router { group } \| rule_set { path, group, route? } \| rule { path, group, rule_id, route? }`, `position`. `route` is the route label, present only for a routed candidate |
 | `RuleOccurrenceKey` | `rule_set`, `group`, `rule_id` |
-| `GroupResult` | `rule_set`, `position`, `binding: bound \| routed { router_group }`, `applicability: ApplicabilityOutcome`, `entries: [EvaluatedEntry]` |
+| `GroupResult` | `rule_set`, `position`, `binding: bound \| routed { router_group, label }`, `applicability: ApplicabilityOutcome`, `entries: [EvaluatedEntry]` |
 | `ApplicabilityOutcome` | `applicable`; `not_applicable { entry: EntryKey, basis }`; `applicability_failed { entry: EntryKey, cause: Cause }`; `not_evaluated { reason: cancelled \| invocation_refused \| earlier_entry_stopped }` |
 | `EvaluatedEntry` | `key: EntryKey`, `result`: `condition { outcome: passed \| did_not_pass \| unresolved { diagnostic }, basis }`, `decision { threshold, outcome: passed { answer: JudgmentReference } \| did_not_pass { answer: JudgmentReference } \| failed { cause: Cause } \| cancelled }`, or `not_evaluated { reason }`. `basis` describes the declared test, never a received payload value |
 | `RuleOccurrenceResult` | Every variant carries `key: RuleOccurrenceKey`: `judged { judgment: RuleJudgment }`, `not_applicable { stopped_at: EntryKey, basis }`, `outside_change_scope { reason }`, `selection_failed { diagnostics }`, `evaluation_failed { cause: Cause }`, `cancelled`, `not_started { reason: caller_cancelled \| request_limit }` |
@@ -177,10 +199,10 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | `VerdictOutcome` | `basis: noul { answer: JudgmentReference } \| composite { dimensions: [{ question, weight, normalized_value, answer: JudgmentReference }] }`, `value`, `threshold`, `result: pass \| fail { activation: nudge \| block \| nudge_above_band { band } }` |
 | `JudgmentReference` | `request_index`, `question_name` (the request-local name, such as `q000003`) |
 | `RouterOutcome` | `routed { label, confidence, answer }`, `uncertain_intent { confidence, floor, distribution: map<label, number>, answer }`, `no_route { label, confidence, answer }`, `router_failed { cause: Cause }`, `not_evaluated { reason: cancelled }` |
-| `RequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `status: sent { outcome: DecisionRunOutcome } \| not_sent { reason: gate_stopped { entry } \| cancelled \| budget_refused { diagnostics } \| request_limit }`, `discarded: [{ question_name, reason: owner_not_applicable { entry } \| not_routed }]` |
-| `RequestOwner` | `router`, `rule_set_group { rule_set, group }` |
+| `RequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `status: sent { outcome: DecisionRunOutcome } \| not_sent { reason: gate_stopped { entry } \| cancelled \| budget_refused { diagnostics } \| evidence_refused { diagnostics } \| request_limit }` (`evidence_refused`: every question's owner lost required evidence when the request became ready; see Program Design scheduling), `discarded: [{ question_name, reason: owner_not_applicable { entry } \| not_routed }]` |
+| `RequestOwner` | `router { group }`, `rule_set_group { rule_set, group, route? }`; `route` as in `EntryKey` |
 | `RequestMode` | `rules`, `speculative`, `staged_gate`, `split { part, of }` |
-| `QuestionBinding` | `request_name`, `owner: router \| rule_set_decision { entry } \| rule_decision { rule_id, entry } \| verdict { rule_id } \| informational { rule_id, name }` |
+| `QuestionBinding` | `request_name`, `owner: router { group } \| rule_set_decision { entry } \| rule_decision { rule_id, entry } \| verdict { rule_id } \| informational { rule_id, name }` |
 | `TargetLocation` | `paragraph { span, target_id }`, `conversation_records { source, record_ids }`, `payload_field { input, pointer }`, `code_units { units: [SourceUnitKey] }` |
 
 A report is complete when every occurrence is `judged`, `not_applicable` or `outside_change_scope`, and the router (if any) is `routed`, `uncertain_intent` or `no_route`.

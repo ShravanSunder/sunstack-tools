@@ -1778,6 +1778,7 @@ version = "0.1.0"
 dependencies = [
  "proptest",
  "reqwest",
+ "schemars",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -1823,8 +1824,22 @@ dependencies = [
 name = "sunstack-rules"
 version = "0.1.0"
 dependencies = [
+ "ast-grep-core",
+ "ast-grep-language",
+ "chrono",
+ "jsonschema",
+ "proptest",
+ "regex",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
  "sunstack-decisions",
  "sunstack-evidence",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]

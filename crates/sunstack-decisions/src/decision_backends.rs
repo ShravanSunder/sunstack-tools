@@ -61,13 +61,6 @@ pub trait DecisionBackend: Send + Sync {
     ) -> Result<(NamedAnswerMap, ExecutionReceipt), DecisionDiagnostic>;
 }
 
-/// Accounting is caller-supplied because the System One HTTP surface has no
-/// exact tokenizer contract. A byte upper estimate is labeled as such.
-#[derive(Debug, Clone)]
-pub enum JevAccountingProfile {
-    EstimatedBytes { context_ceiling_tokens: u64 },
-    Unavailable,
-}
 pub enum BackendPreparation {
     Ready { backend: JevOpenRouterBackend },
     Refused { diagnostics: DiagnosticList },
@@ -92,28 +85,19 @@ pub struct JevOpenRouterBackend {
     endpoint: reqwest::Url,
     authorization: reqwest::header::HeaderValue,
     client: reqwest::Client,
-    accounting: JevAccountingProfile,
     #[cfg(test)]
     test_observation: Option<AdapterTestObservation>,
 }
 impl JevOpenRouterBackend {
-    pub fn prepare(
-        selection: BackendSelection,
-        api_key: &str,
-        accounting: JevAccountingProfile,
-    ) -> BackendPreparation {
-        match Self::new(selection, api_key, accounting) {
+    pub fn prepare(selection: BackendSelection, api_key: &str) -> BackendPreparation {
+        match Self::new(selection, api_key) {
             Ok(backend) => BackendPreparation::Ready { backend },
             Err(diagnostic) => BackendPreparation::Refused {
                 diagnostics: diagnostic.into(),
             },
         }
     }
-    pub fn new(
-        selection: BackendSelection,
-        api_key: &str,
-        accounting: JevAccountingProfile,
-    ) -> Result<Self, DecisionDiagnostic> {
+    pub fn new(selection: BackendSelection, api_key: &str) -> Result<Self, DecisionDiagnostic> {
         let invalid = || DecisionDiagnostic::request(DecisionDiagnosticCode::InvalidConfiguration);
         let BackendSelection::JevOpenrouter { endpoint, .. } = &selection;
         let endpoint = reqwest::Url::parse(endpoint).map_err(|_| invalid())?;
@@ -140,7 +124,6 @@ impl JevOpenRouterBackend {
             endpoint,
             authorization,
             client,
-            accounting,
             #[cfg(test)]
             test_observation: None,
         })
@@ -181,17 +164,22 @@ impl DecisionBackend for JevOpenRouterBackend {
         if !encoded.backend_matches(&self.identity) {
             return TokenAccounting::Unavailable;
         }
-        match self.accounting {
-            JevAccountingProfile::EstimatedBytes {
-                context_ceiling_tokens,
-            } => match u64::try_from(encoded.body().len()) {
-                Ok(input_tokens) => TokenAccounting::Estimated {
-                    input_tokens,
-                    context_ceiling_tokens,
-                },
-                Err(_) => TokenAccounting::Unavailable,
+        let BackendSelection::JevOpenrouter {
+            context_ceiling_tokens,
+            ..
+        } = &self.selection;
+        let provider_ceiling = match context_ceiling_tokens {
+            Some(tokens) => ProviderContextCeiling::CallerDeclared { tokens: *tokens },
+            None => ProviderContextCeiling::NotDeclared,
+        };
+        // System One publishes no tokenizer or model ceiling. The byte upper
+        // estimate stays labeled estimated; the caller declares the ceiling.
+        match u64::try_from(encoded.body().len()) {
+            Ok(input_tokens) => TokenAccounting::Estimated {
+                input_tokens,
+                provider_ceiling,
             },
-            JevAccountingProfile::Unavailable => TokenAccounting::Unavailable,
+            Err(_) => TokenAccounting::Unavailable,
         }
     }
     fn dispatch<'request>(

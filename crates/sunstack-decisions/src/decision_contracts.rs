@@ -1,6 +1,7 @@
 use crate::decision_diagnostics::{DecisionDiagnostic, DecisionDiagnosticCode, DiagnosticList};
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, num::NonZeroU64};
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("A nonempty decision identifier is required.")]
@@ -11,6 +12,16 @@ macro_rules! named_string {
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
         #[serde(try_from = "String", into = "String")]
         pub struct $name(String);
+        impl schemars::JsonSchema for $name {
+            fn schema_name() -> std::borrow::Cow<'static, str> {
+                stringify!($name).into()
+            }
+            fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+                let mut schema = schemars::schema_for!(String);
+                schema.insert("minLength".into(), serde_json::json!(1));
+                schema
+            }
+        }
         impl $name {
             pub fn new(value: impl Into<String>) -> Result<Self, InvalidIdentifier> {
                 let value = value.into();
@@ -42,7 +53,7 @@ named_string!(ChoiceLabel);
 named_string!(ModelName);
 
 // Author content is JSON itself, so its variants intentionally have no wire tag.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum StructuredJson {
     Null,
@@ -52,7 +63,7 @@ pub enum StructuredJson {
     Array(Vec<StructuredJson>),
     Object(#[serde(deserialize_with = "unique_map")] BTreeMap<String, StructuredJson>),
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum StructuredEntry {
     Null,
@@ -60,7 +71,7 @@ pub enum StructuredEntry {
     Array(Vec<StructuredJson>),
     Object(#[serde(deserialize_with = "unique_map")] BTreeMap<String, StructuredJson>),
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum SharedEvidenceState {
     Text(String),
@@ -68,7 +79,7 @@ pub enum SharedEvidenceState {
     Object(#[serde(deserialize_with = "unique_map")] BTreeMap<String, StructuredJson>),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NoulDescriptions {
     #[serde(rename = "true")]
@@ -82,7 +93,7 @@ fn specified_criteria<'de, TDeserializer: Deserializer<'de>>(
     NoulDescriptions::deserialize(deserializer).map(Some)
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JudgmentQuestion {
     Noul {
@@ -92,30 +103,34 @@ pub enum JudgmentQuestion {
             skip_serializing_if = "Option::is_none",
             deserialize_with = "specified_criteria"
         )]
+        #[schemars(with = "NoulDescriptions")]
         criteria: Option<NoulDescriptions>,
     },
     Choice {
         instructions: StructuredEntry,
         #[serde(deserialize_with = "unique_map")]
+        #[schemars(extend("minProperties" = 1))]
         criteria: BTreeMap<ChoiceLabel, StructuredEntry>,
     },
     Score {
         instructions: StructuredEntry,
+        #[schemars(length(min = 1))]
         criteria: Vec<StructuredEntry>,
     },
 }
 
 pub type NamedQuestionMap = BTreeMap<QuestionName, JudgmentQuestion>;
 pub type NamedAnswerMap = BTreeMap<QuestionName, JudgmentAnswer>;
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct StructuredJudgmentRequest {
     #[serde(deserialize_with = "unique_map")]
+    #[schemars(extend("minProperties" = 1))]
     pub questions: NamedQuestionMap,
     pub state: SharedEvidenceState,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JudgmentAnswer {
     Noul {
@@ -136,7 +151,7 @@ pub enum JudgmentAnswer {
         probabilities: BTreeMap<String, f64>,
     },
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionUsage {
     pub input_tokens: u64,
@@ -144,25 +159,45 @@ pub struct ExecutionUsage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost_usd: Option<f64>,
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionReceipt {
     pub resolved_model: ModelName,
     pub usage: ExecutionUsage,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum BackendSelection {
-    JevOpenrouter { endpoint: String, model: ModelName },
+    JevOpenrouter {
+        endpoint: String,
+        model: ModelName,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "specified_context_ceiling"
+        )]
+        #[schemars(with = "NonZeroU64")]
+        context_ceiling_tokens: Option<NonZeroU64>,
+    },
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+fn specified_context_ceiling<'de, TDeserializer: Deserializer<'de>>(
+    deserializer: TDeserializer,
+) -> Result<Option<NonZeroU64>, TDeserializer::Error> {
+    NonZeroU64::deserialize(deserializer).map(Some)
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AttemptSettings {
+    #[schemars(range(min = 1))]
     pub attempt_timeout_ms: u64,
+    #[schemars(range(max = 4294967294_u64))]
     pub retry_count: u32,
+    #[schemars(range(min = 1))]
     pub initial_backoff_ms: u64,
+    #[schemars(range(min = 1))]
     pub max_backoff_ms: u64,
+    #[schemars(range(min = 1))]
     pub max_response_bytes: usize,
 }
 impl Default for AttemptSettings {
@@ -192,23 +227,27 @@ impl AttemptSettings {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountingPolicy {
     RequireExact,
     AllowEstimated,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RequestBudgetSettings {
+    #[schemars(range(min = 1))]
     pub max_input_tokens: u64,
+    #[schemars(range(min = 1))]
     pub max_request_bytes: usize,
+    #[schemars(range(min = 1))]
     pub max_questions: usize,
+    #[schemars(range(min = 1))]
     pub max_requests: usize,
     pub safety_margin_tokens: u64,
     pub accounting_policy: AccountingPolicy,
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RunJudgmentsInput {
     pub request: StructuredJudgmentRequest,
@@ -217,7 +256,7 @@ pub struct RunJudgmentsInput {
     pub request_budget: RequestBudgetSettings,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderFailureClass {
     ProviderRejectedRequest,
@@ -235,7 +274,7 @@ pub enum ProviderFailureClass {
 }
 /// An attempt can end through cancellation or invalid response without the
 /// whole run being a provider failure. Kept separate by the adopted contract.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AttemptFailureClass {
     ProviderRejectedRequest,
@@ -292,7 +331,7 @@ impl AttemptFailureClass {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AttemptEvidence {
     NotDispatched {
@@ -307,13 +346,13 @@ pub enum AttemptEvidence {
         http_status: Option<u16>,
     },
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InferenceAttemptRecord {
     pub ordinal: u32,
     pub evidence: AttemptEvidence,
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DecisionRunOutcome {
     Completed {
