@@ -1,4 +1,6 @@
-use crate::{definition_contracts::*, invocation_contracts::*, rule_diagnostics::*};
+use crate::{
+    definition_contracts::*, invocation_contracts::*, rule_diagnostics::*, selection_contracts::*,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf};
@@ -207,6 +209,7 @@ pub enum RuleOccurrenceResult {
     Judged {
         key: RuleOccurrenceKey,
         judgment: RuleJudgment,
+        selected_by: SelectedReasons,
     },
     NotApplicable {
         key: RuleOccurrenceKey,
@@ -215,7 +218,7 @@ pub enum RuleOccurrenceResult {
     },
     OutsideChangeScope {
         key: RuleOccurrenceKey,
-        reason: String,
+        reason: OutsideChangeReason,
     },
     SelectionFailed {
         key: RuleOccurrenceKey,
@@ -224,13 +227,16 @@ pub enum RuleOccurrenceResult {
     EvaluationFailed {
         key: RuleOccurrenceKey,
         cause: Cause,
+        selection: OccurrenceSelection,
     },
     Cancelled {
         key: RuleOccurrenceKey,
+        selection: OccurrenceSelection,
     },
     NotStarted {
         key: RuleOccurrenceKey,
         reason: NotStartedReason,
+        selection: OccurrenceSelection,
     },
 }
 impl RuleOccurrenceResult {
@@ -241,7 +247,7 @@ impl RuleOccurrenceResult {
             | Self::OutsideChangeScope { key, .. }
             | Self::SelectionFailed { key, .. }
             | Self::EvaluationFailed { key, .. }
-            | Self::Cancelled { key }
+            | Self::Cancelled { key, .. }
             | Self::NotStarted { key, .. } => key,
         }
     }
@@ -384,6 +390,7 @@ pub enum RequestStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NotSentReason {
+    OutsideChangeScope,
     GateStopped { entry: EntryKey },
     Cancelled,
     BudgetRefused { diagnostics: DiagnosticList },
@@ -422,6 +429,7 @@ pub struct RuleInvocationReport {
     pub occurrences: Vec<RuleOccurrenceResult>,
     pub requests: Vec<RequestRecord>,
     pub captures: Vec<CaptureCoverage>,
+    pub change_selections: Vec<sunstack_evidence::ResolvedChangeSelection>,
     pub cursors: Vec<ReturnedCursor>,
     pub diagnostics: DiagnosticList,
     pub measurements: InvocationMeasurements,

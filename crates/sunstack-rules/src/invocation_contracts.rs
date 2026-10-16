@@ -13,6 +13,10 @@ pub struct RuleInvocationInput {
     pub definition_root: PathBuf,
     pub definitions: InvocationDefinitions,
     pub repositories: Vec<RepositoryBinding>,
+    #[serde(default = "no_discovery")]
+    pub discovery: sunstack_evidence::EvidenceDiscovery,
+    #[serde(default)]
+    pub package_bindings: Vec<sunstack_evidence::PackageSourceBinding>,
     pub payload_schemas: Vec<PayloadSchemaPath>,
     pub origin: InvocationOrigin,
     pub cursors: Vec<ReturnedCursor>,
@@ -200,4 +204,8 @@ impl InvocationOrigin {
             },
         }
     }
+}
+
+fn no_discovery() -> sunstack_evidence::EvidenceDiscovery {
+    sunstack_evidence::EvidenceDiscovery::None
 }

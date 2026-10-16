@@ -114,7 +114,11 @@ pub(crate) async fn execute_plan(
                     plan,
                     state,
                     &request,
-                    RequestRefusal::Evidence { diagnostics },
+                    if request_outside_scope(state, &request.units) {
+                        RequestRefusal::OutsideChangeScope
+                    } else {
+                        RequestRefusal::Evidence { diagnostics }
+                    },
                 );
                 drop(permit);
                 changed = true;

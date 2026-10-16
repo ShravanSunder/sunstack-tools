@@ -1842,6 +1842,7 @@ dependencies = [
  "ast-grep-core",
  "ast-grep-language",
  "chrono",
+ "git2",
  "jsonschema",
  "proptest",
  "regex",

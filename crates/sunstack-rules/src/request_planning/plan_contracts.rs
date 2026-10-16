@@ -65,6 +65,7 @@ pub(crate) struct PlannedGroup {
 }
 #[derive(Debug)]
 pub(crate) struct PlannedOccurrence {
+    pub scope: ScopeEvaluation,
     pub key: RuleOccurrenceKey,
     pub rule: Arc<RuleDefinition>,
     pub group: GroupIndex,
@@ -168,6 +169,7 @@ pub(crate) enum RouterSettlement {
 }
 #[derive(Debug, Clone)]
 pub(crate) enum OwnerPreparation {
+    OutsideChangeScope,
     Cancelled {
         selections: Vec<crate::request_state::LabeledSelection>,
     },
@@ -201,6 +203,7 @@ pub(crate) struct ExecutionState {
     pub requests: BTreeMap<RequestId, RequestSettlement>,
     pub preparation: BTreeMap<UnitKey, OwnerPreparation>,
     pub budget_refusals: BTreeMap<UnitKey, DiagnosticList>,
+    pub scopes: BTreeMap<OccurrenceIndex, ScopeEvaluation>,
 }
 pub(crate) fn selection_read_set(
     declarations: &[EvidenceDeclaration],
@@ -336,6 +339,7 @@ pub(crate) fn definition_topology(
             all_entries.extend(entries);
             read_set.extend(selection_read_set(&rule.evidence, &sources));
             plan.occurrences.push(PlannedOccurrence {
+                scope: ScopeEvaluation::full_scope(),
                 key: RuleOccurrenceKey {
                     rule_set: admitted.set.path.clone(),
                     group: admitted.position,
@@ -395,4 +399,38 @@ fn append_entries(
         parents.push(index);
     }
     indices
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum TargetPresence {
+    ResolveCurrent,
+    Deleted,
+}
+#[derive(Debug, Clone)]
+pub(crate) enum ScopeDisposition {
+    InScope { selection: OccurrenceSelection },
+    OutsideChangeScope,
+}
+#[derive(Debug, Clone)]
+pub(crate) struct ScopeEvaluation {
+    pub disposition: ScopeDisposition,
+    pub target: TargetPresence,
+}
+impl ScopeEvaluation {
+    pub fn full_scope() -> Self {
+        Self {
+            disposition: ScopeDisposition::InScope {
+                selection: OccurrenceSelection::full_scope(),
+            },
+            target: TargetPresence::ResolveCurrent,
+        }
+    }
+    pub fn pending() -> Self {
+        Self {
+            disposition: ScopeDisposition::InScope {
+                selection: OccurrenceSelection::ComparisonPending {},
+            },
+            target: TargetPresence::ResolveCurrent,
+        }
+    }
 }

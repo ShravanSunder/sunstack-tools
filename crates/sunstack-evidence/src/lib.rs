@@ -57,3 +57,6 @@ mod repository_catalogue;
 pub use change_reporting::*;
 mod acquisition_progress;
 mod connected_admission;
+
+pub mod change_comparison_contracts;
+pub use change_comparison_contracts::*;

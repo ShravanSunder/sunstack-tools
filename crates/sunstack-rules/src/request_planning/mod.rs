@@ -24,3 +24,9 @@ pub(crate) use occurrence_reporting::*;
 
 mod preparation_reporting;
 pub(crate) use preparation_reporting::*;
+
+mod change_selection;
+pub(crate) use change_selection::*;
+
+#[cfg(test)]
+mod comparison_gate_order_tests;

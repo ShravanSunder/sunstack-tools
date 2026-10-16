@@ -213,6 +213,7 @@ fn pattern_present(text: &str, pattern: &PresencePattern) -> Result<bool, ()> {
 pub(crate) fn stopped_occurrence(
     key: RuleOccurrenceKey,
     outcome: &ApplicabilityOutcome,
+    selection: OccurrenceSelection,
 ) -> Option<RuleOccurrenceResult> {
     match outcome {
         ApplicabilityOutcome::Applicable => None,
@@ -226,9 +227,12 @@ pub(crate) fn stopped_occurrence(
         ApplicabilityOutcome::ApplicabilityFailed { cause, .. } => {
             Some(RuleOccurrenceResult::EvaluationFailed {
                 key,
+                selection,
                 cause: cause.clone(),
             })
         }
-        ApplicabilityOutcome::NotEvaluated { .. } => Some(RuleOccurrenceResult::Cancelled { key }),
+        ApplicabilityOutcome::NotEvaluated { .. } => {
+            Some(RuleOccurrenceResult::Cancelled { key, selection })
+        }
     }
 }

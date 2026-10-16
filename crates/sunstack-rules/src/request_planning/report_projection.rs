@@ -241,6 +241,7 @@ pub(crate) fn project_report(
         occurrences,
         requests,
         captures: vec![],
+        change_selections: vec![],
         cursors: vec![],
         diagnostics,
         measurements,

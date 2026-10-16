@@ -71,6 +71,7 @@ pub async fn evaluate_rules(
         }
     };
     let mut plan = definition_topology(admitted.groups, admitted.router);
+    plan_change_selection(&mut plan, &mut session).await;
     precompute_conditions(
         &mut plan,
         &input.origin,
@@ -119,6 +120,7 @@ pub async fn evaluate_rules(
     }
     let mut report = project_report(&plan, &state, &input.origin, measurements);
     report.captures = closed.captures;
+    report.change_selections = closed.change_selections;
     report.cursors = closed.cursors;
     if cancellation.is_cancelled() {
         let measurements = report.measurements.clone();

@@ -39,6 +39,7 @@ pub(crate) struct PreparationProjection {
     pub records: BTreeMap<RequestId, (Vec<QuestionBinding>, RequestPreparationReadiness)>,
     pub measurements: InvocationMeasurements,
     pub captures: Vec<CaptureCoverage>,
+    pub change_selections: Vec<sunstack_evidence::ResolvedChangeSelection>,
     pub cursors: Vec<ReturnedCursor>,
 }
 pub(crate) fn project_preparation(
@@ -52,6 +53,7 @@ pub(crate) fn project_preparation(
         mut records,
         mut measurements,
         captures,
+        change_selections,
         cursors,
     } = projection;
     let mut candidates = Vec::new();
@@ -134,30 +136,48 @@ pub(crate) fn project_preparation(
         .iter()
         .enumerate()
         .map(|(position, occurrence)| {
-            let status = match leading_stop(plan, &occurrence.entries) {
-                Some(LeadingConditionStop::DidNotPass { index, basis }) => {
-                    measurements.rules_skipped += 1;
-                    PreparedOccurrenceStatus::NotApplicable {
-                        entry: plan.entries[index.0].key.clone(),
-                        basis,
-                    }
+            let status = if matches!(
+                effective_scope(plan, state, OccurrenceIndex(position)).disposition,
+                ScopeDisposition::OutsideChangeScope
+            ) {
+                measurements.rules_skipped += 1;
+                PreparedOccurrenceStatus::OutsideChangeScope {
+                    reason: OutsideChangeReason::NoDeclaredChange,
                 }
-                _ => match state
-                    .preparation
-                    .get(&UnitKey::Rule(OccurrenceIndex(position)))
-                {
-                    Some(OwnerPreparation::Refused { diagnostics, .. }) => {
-                        measurements.rules_failed += 1;
-                        PreparedOccurrenceStatus::SelectionFailed {
-                            diagnostics: diagnostics.clone(),
+            } else {
+                match leading_stop(plan, &occurrence.entries) {
+                    Some(LeadingConditionStop::DidNotPass { index, basis }) => {
+                        measurements.rules_skipped += 1;
+                        PreparedOccurrenceStatus::NotApplicable {
+                            entry: plan.entries[index.0].key.clone(),
+                            basis,
                         }
                     }
-                    Some(OwnerPreparation::Ready { .. }) => {
-                        measurements.rules_selected += 1;
-                        PreparedOccurrenceStatus::Planned
-                    }
-                    _ => PreparedOccurrenceStatus::Planned,
-                },
+                    _ => match state
+                        .preparation
+                        .get(&UnitKey::Rule(OccurrenceIndex(position)))
+                    {
+                        Some(OwnerPreparation::Refused { diagnostics, .. }) => {
+                            measurements.rules_failed += 1;
+                            PreparedOccurrenceStatus::SelectionFailed {
+                                diagnostics: diagnostics.clone(),
+                            }
+                        }
+                        Some(OwnerPreparation::Ready { .. }) => {
+                            measurements.rules_selected += 1;
+                            PreparedOccurrenceStatus::Planned {
+                                selection: occurrence_selection(
+                                    plan,
+                                    state,
+                                    OccurrenceIndex(position),
+                                ),
+                            }
+                        }
+                        _ => PreparedOccurrenceStatus::Planned {
+                            selection: occurrence_selection(plan, state, OccurrenceIndex(position)),
+                        },
+                    },
+                }
             };
             PreparedOccurrence {
                 key: occurrence.key.clone(),
@@ -203,6 +223,7 @@ pub(crate) fn project_preparation(
         occurrences,
         planned_requests,
         captures,
+        change_selections,
         cursors,
         measurements,
     }

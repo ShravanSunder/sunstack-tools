@@ -5,9 +5,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use sunstack_evidence::{
-    AdapterRegistry, EvidenceDiscovery, EvidencePlanInput, SourceName, SourceSpec,
-};
+use sunstack_evidence::{AdapterRegistry, EvidencePlanInput, SourceName, SourceSpec};
 use tokio_util::sync::CancellationToken;
 #[derive(Debug, Clone)]
 pub struct LocatedRuleDefinition {
@@ -209,20 +207,21 @@ pub(crate) async fn admit_invocation(
     for entry in &mut payload_schemas {
         entry.path = resolved_path(&root, &entry.path)?;
     }
+    let evidence = EvidencePlanInput {
+        repositories: input.repositories.clone(),
+        sources,
+        payload_schemas,
+        cursors: input.cursors.clone(),
+        declarations: mapped_declarations(&groups, router.as_ref())?,
+        native_queries: vec![],
+        package_bindings: input.package_bindings.clone(),
+        limits: input.limits.clone(),
+        discovery: input.discovery.clone(),
+    };
     Ok(AdmittedInvocation {
         groups,
         router,
-        evidence: EvidencePlanInput {
-            repositories: input.repositories.clone(),
-            sources,
-            payload_schemas,
-            cursors: input.cursors.clone(),
-            declarations: vec![],
-            native_queries: vec![],
-            package_bindings: vec![],
-            limits: input.limits.clone(),
-            discovery: EvidenceDiscovery::None,
-        },
+        evidence,
     })
 }
 type LoadedInvocation = (
@@ -340,4 +339,57 @@ fn load_invocation(
         }
     };
     Ok((groups, router, sources))
+}
+
+fn mapped_declarations(
+    groups: &[AdmittedGroup],
+    router: Option<&AdmittedRouter>,
+) -> Result<Vec<sunstack_evidence::EvidenceDeclaration>, DiagnosticList> {
+    let mut mapped = Vec::new();
+    for group in groups {
+        append_entry_declarations(
+            &mut mapped,
+            &group.set.definition.applicability,
+            &group.sources,
+        )?;
+        for rule in &group.set.rules {
+            append_declarations(&mut mapped, &rule.definition.evidence, &group.sources)?;
+            append_entry_declarations(&mut mapped, &rule.definition.applicability, &group.sources)?;
+        }
+    }
+    if let Some(router) = router {
+        for sources in &router.groups {
+            append_declarations(&mut mapped, &router.definition.evidence, sources)?;
+        }
+    }
+    Ok(mapped)
+}
+fn append_entry_declarations(
+    mapped: &mut Vec<sunstack_evidence::EvidenceDeclaration>,
+    entries: &[ApplicabilityEntry],
+    sources: &AdmittedSources,
+) -> Result<(), DiagnosticList> {
+    for entry in entries {
+        if let ApplicabilityEntry::Decision { evidence, .. } = entry {
+            append_declarations(mapped, evidence, sources)?;
+        }
+    }
+    Ok(())
+}
+fn append_declarations(
+    mapped: &mut Vec<sunstack_evidence::EvidenceDeclaration>,
+    declarations: &[sunstack_evidence::EvidenceDeclaration],
+    sources: &AdmittedSources,
+) -> Result<(), DiagnosticList> {
+    for declaration in declarations {
+        let source = sources
+            .get(&declaration.input)
+            .ok_or_else(|| DiagnosticList::rule(RuleDiagnosticCode::UndeclaredInput))?;
+        let mut declaration = declaration.clone();
+        declaration.input = source.name.clone();
+        declaration.id = sunstack_evidence::DeclarationId::new(format!("d{:06}", mapped.len()))
+            .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+        mapped.push(declaration);
+    }
+    Ok(())
 }

@@ -13,6 +13,7 @@ pub struct PreparedRules {
     pub occurrences: Vec<PreparedOccurrence>,
     pub planned_requests: Vec<PlannedRequestRecord>,
     pub captures: Vec<CaptureCoverage>,
+    pub change_selections: Vec<sunstack_evidence::ResolvedChangeSelection>,
     pub cursors: Vec<ReturnedCursor>,
     pub measurements: InvocationMeasurements,
 }
@@ -56,7 +57,8 @@ pub struct PreparedOccurrence {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PreparedOccurrenceStatus {
-    Planned,
+    Planned { selection: OccurrenceSelection },
+    OutsideChangeScope { reason: OutsideChangeReason },
     NotApplicable { entry: EntryKey, basis: EntryBasis },
     SelectionFailed { diagnostics: DiagnosticList },
 }

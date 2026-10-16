@@ -1,3 +1,4 @@
+mod change_comparison;
 mod connected_relationships;
 mod connected_sources;
 mod native_queries;

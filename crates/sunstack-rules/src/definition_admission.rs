@@ -144,6 +144,8 @@ pub fn validate_rule_definition(
             | EvidenceSelection::Conversation { .. }
             | EvidenceSelection::WholePayload
             | EvidenceSelection::PayloadField { .. }
+            | EvidenceSelection::ChangedUnits { .. }
+            | EvidenceSelection::RelatedUnits { .. }
     ) {
         return Err(refusal(RuleDiagnosticCode::InvalidTarget));
     }
@@ -237,6 +239,13 @@ pub(crate) fn validate_evidence(
             ) | (
                 InputDeclaration::Payload { .. },
                 EvidenceSelection::WholePayload | EvidenceSelection::PayloadField { .. }
+            ) | (
+                InputDeclaration::ChangeSet,
+                EvidenceSelection::ChangeSetLiteralText { .. }
+                    | EvidenceSelection::ChangeSetRegexText { .. }
+                    | EvidenceSelection::ChangeSetAstPattern { .. }
+                    | EvidenceSelection::ChangedUnits { .. }
+                    | EvidenceSelection::RelatedUnits { .. }
             )
         );
         if !compatible {

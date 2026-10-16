@@ -53,6 +53,16 @@ pub(crate) fn group_waits_for_leading_scan(plan: &ExecutionPlan, group: GroupInd
                 && scan_waits_for_routing(plan, index, Speculation::On)
         })
 }
+pub(crate) fn entry_outside_scope(plan: &ExecutionPlan, index: EntryIndex) -> bool {
+    plan.entries[index.0].group.is_some()
+        && !plan.occurrences.iter().any(|occurrence| {
+            occurrence.entries.contains(&index)
+                && !matches!(
+                    occurrence.scope.disposition,
+                    ScopeDisposition::OutsideChangeScope
+                )
+        })
+}
 pub(crate) async fn precompute_conditions(
     plan: &mut ExecutionPlan,
     origin: &InvocationOrigin,
@@ -63,6 +73,9 @@ pub(crate) async fn precompute_conditions(
     for position in 0..plan.entries.len() {
         if cancellation.is_cancelled() {
             break;
+        }
+        if entry_outside_scope(plan, EntryIndex(position)) {
+            continue;
         }
         let entry = &plan.entries[position];
         let EntryDefinition::Condition(test) = &entry.definition else {
@@ -98,8 +111,11 @@ pub(crate) async fn precompute_conditions(
         plan.precomputed.insert(EntryIndex(position), outcome);
     }
 }
-fn rule_pruned(plan: &ExecutionPlan, index: OccurrenceIndex) -> bool {
-    plan.occurrences[index.0].entries.iter().any(|entry| {
+pub(crate) fn rule_pruned(plan: &ExecutionPlan, index: OccurrenceIndex) -> bool {
+    matches!(
+        plan.occurrences[index.0].scope.disposition,
+        ScopeDisposition::OutsideChangeScope
+    ) || plan.occurrences[index.0].entries.iter().any(|entry| {
         plan.precomputed
             .get(entry)
             .is_some_and(|outcome| !matches!(outcome, ConditionOutcome::Passed))
@@ -202,6 +218,9 @@ pub(crate) fn build_request_graph(plan: &mut ExecutionPlan, settings: &Execution
             continue;
         }
         let Some(group) = entry.group else { continue };
+        if entry_outside_scope(plan, index) {
+            continue;
+        }
         let carrier = group_requests.get(&group).copied().filter(|_| {
             !staged.contains(&index)
                 && plan
@@ -358,6 +377,7 @@ impl ExecutionState {
                 .collect(),
             preparation: BTreeMap::new(),
             budget_refusals: BTreeMap::new(),
+            scopes: BTreeMap::new(),
         }
     }
 }

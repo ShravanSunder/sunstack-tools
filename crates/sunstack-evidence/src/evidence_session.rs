@@ -50,6 +50,13 @@ impl EvidenceSession {
             readiness,
         }
     }
+    pub async fn compare_change_sides(
+        &mut self,
+        subject: ChangeComparisonSubject,
+        level: ComparisonLevel,
+    ) -> ChangeComparison {
+        self.preparation.compare_change_sides(subject, level).await
+    }
     pub fn measurements(&self) -> &EvidenceMeasurements {
         self.preparation.measurements()
     }

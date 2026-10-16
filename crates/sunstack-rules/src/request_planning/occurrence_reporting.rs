@@ -39,32 +39,60 @@ pub(crate) fn occurrence_result(
 ) -> RuleOccurrenceResult {
     let occurrence = &plan.occurrences[index.0];
     let key = occurrence.key.clone();
+    if matches!(
+        occurrence.scope.disposition,
+        ScopeDisposition::OutsideChangeScope
+    ) {
+        return RuleOccurrenceResult::OutsideChangeScope {
+            key,
+            reason: OutsideChangeReason::NoDeclaredChange,
+        };
+    }
+    let selection = occurrence_selection(plan, state, index);
     if let Some(routing) = &plan.groups[occurrence.group.0].routing {
         match route_state(plan, state, routing) {
             RouteState::Failed { cause: failure } => {
                 return RuleOccurrenceResult::EvaluationFailed {
+                    selection: selection.clone(),
                     key,
                     cause: cause(&failure, plan, indices),
                 };
             }
             RouteState::Cancelled | RouteState::Pending => {
-                return RuleOccurrenceResult::Cancelled { key };
+                return RuleOccurrenceResult::Cancelled {
+                    key,
+                    selection: selection.clone(),
+                };
             }
             _ => {}
         }
     }
     let applicability = applicability(&occurrence.entries, plan, state, indices);
-    if let Some(result) =
-        crate::applicability_evaluation::stopped_occurrence(key.clone(), &applicability)
-    {
+    if let Some(result) = crate::applicability_evaluation::stopped_occurrence(
+        key.clone(),
+        &applicability,
+        selection.clone(),
+    ) {
         return result;
+    }
+    if matches!(
+        effective_scope(plan, state, index).disposition,
+        ScopeDisposition::OutsideChangeScope
+    ) {
+        return RuleOccurrenceResult::OutsideChangeScope {
+            key,
+            reason: OutsideChangeReason::NoDeclaredChange,
+        };
     }
     let unit = UnitKey::Rule(index);
     if matches!(
         state.preparation.get(&unit),
         Some(OwnerPreparation::Cancelled { .. })
     ) {
-        return RuleOccurrenceResult::Cancelled { key };
+        return RuleOccurrenceResult::Cancelled {
+            key,
+            selection: selection.clone(),
+        };
     }
     if let Some(OwnerPreparation::Refused { diagnostics, .. }) = state.preparation.get(&unit) {
         return RuleOccurrenceResult::SelectionFailed {
@@ -74,6 +102,7 @@ pub(crate) fn occurrence_result(
     }
     if let Some(diagnostics) = state.budget_refusals.get(&unit) {
         return RuleOccurrenceResult::EvaluationFailed {
+            selection: selection.clone(),
             key,
             cause: Cause::Budget {
                 diagnostics: diagnostics.clone(),
@@ -104,13 +133,18 @@ pub(crate) fn occurrence_result(
             });
         return if limited {
             RuleOccurrenceResult::NotStarted {
+                selection: selection.clone(),
                 key,
                 reason: NotStartedReason::RequestLimit,
             }
         } else if state.preparation.contains_key(&unit) {
-            RuleOccurrenceResult::Cancelled { key }
+            RuleOccurrenceResult::Cancelled {
+                key,
+                selection: selection.clone(),
+            }
         } else {
             RuleOccurrenceResult::NotStarted {
+                selection: selection.clone(),
                 key,
                 reason: NotStartedReason::CallerCancelled,
             }
@@ -128,9 +162,13 @@ pub(crate) fn occurrence_result(
                 reason: NotSentReason::Cancelled
             }
         ) {
-            RuleOccurrenceResult::Cancelled { key }
+            RuleOccurrenceResult::Cancelled {
+                key,
+                selection: selection.clone(),
+            }
         } else {
             RuleOccurrenceResult::EvaluationFailed {
+                selection: selection.clone(),
                 key,
                 cause: Cause::Request {
                     request_index: indices.get(&id).copied().unwrap_or(id.0),
@@ -191,17 +229,27 @@ pub(crate) fn occurrence_result(
         };
     };
     match evaluate_verdict(&occurrence.rule, &native) {
-        Ok(verdict) => RuleOccurrenceResult::Judged {
-            key: key.clone(),
-            judgment: RuleJudgment {
-                key,
-                verdict,
-                declared_severity: occurrence.rule.severity,
-                answers: informational,
-                target: target.clone(),
-            },
-        },
+        Ok(verdict) => {
+            let Some(selected_by) = selection.selected_reasons() else {
+                return RuleOccurrenceResult::SelectionFailed {
+                    key,
+                    diagnostics: DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError),
+                };
+            };
+            RuleOccurrenceResult::Judged {
+                selected_by: selected_by.clone(),
+                key: key.clone(),
+                judgment: RuleJudgment {
+                    key,
+                    verdict,
+                    declared_severity: occurrence.rule.severity,
+                    answers: informational,
+                    target: target.clone(),
+                },
+            }
+        }
         Err(_) => RuleOccurrenceResult::EvaluationFailed {
+            selection: selection.clone(),
             key,
             cause: Cause::Request {
                 request_index: indices.get(&id).copied().unwrap_or(id.0),

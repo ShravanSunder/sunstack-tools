@@ -41,24 +41,49 @@ pub(crate) async fn prepare_units(
         if !state.preparation.contains_key(unit) {
             let mut prepared = match *unit {
                 UnitKey::Rule(index) => {
-                    let occurrence = &plan.occurrences[index.0];
-                    let group = &plan.groups[occurrence.group.0];
-                    let evidence = select_rule_evidence(
-                        &occurrence.rule,
-                        &group.admitted.sources,
-                        group.admitted.position,
-                        session,
-                    )
-                    .await;
-                    match evidence.target {
-                        Ok(target) => OwnerPreparation::Ready {
-                            selections: evidence.selections,
-                            target: OwnerTarget::Rule(target),
-                        },
+                    let target_presence =
+                        finish_change_selection(plan, state, index, session).await;
+                    match target_presence {
                         Err(diagnostics) => OwnerPreparation::Refused {
-                            selections: evidence.selections,
+                            selections: vec![],
                             diagnostics,
                         },
+                        Ok(_)
+                            if matches!(
+                                effective_scope(plan, state, index).disposition,
+                                ScopeDisposition::OutsideChangeScope
+                            ) =>
+                        {
+                            OwnerPreparation::OutsideChangeScope
+                        }
+                        Ok(TargetPresence::Deleted) => OwnerPreparation::Refused {
+                            selections: vec![],
+                            diagnostics: sunstack_evidence::DiagnosticList::one(
+                                sunstack_evidence::EvidenceCode::DeletedTarget,
+                            )
+                            .into(),
+                        },
+                        Ok(TargetPresence::ResolveCurrent) => {
+                            let occurrence = &plan.occurrences[index.0];
+                            let group = &plan.groups[occurrence.group.0];
+                            let evidence = select_rule_evidence(
+                                &occurrence.rule,
+                                &group.admitted.sources,
+                                group.admitted.position,
+                                session,
+                            )
+                            .await;
+                            match evidence.target {
+                                Ok(target) => OwnerPreparation::Ready {
+                                    selections: evidence.selections,
+                                    target: OwnerTarget::Rule(target),
+                                },
+                                Err(diagnostics) => OwnerPreparation::Refused {
+                                    selections: evidence.selections,
+                                    diagnostics,
+                                },
+                            }
+                        }
                     }
                 }
                 UnitKey::Gate(index) => {
@@ -103,6 +128,7 @@ pub(crate) async fn prepare_units(
                     OwnerPreparation::Ready { selections, .. }
                     | OwnerPreparation::Refused { selections, .. }
                     | OwnerPreparation::Cancelled { selections } => selections,
+                    OwnerPreparation::OutsideChangeScope => vec![],
                 };
                 prepared = OwnerPreparation::Cancelled { selections };
             }

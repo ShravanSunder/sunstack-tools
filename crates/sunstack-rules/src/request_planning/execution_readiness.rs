@@ -145,6 +145,13 @@ pub(crate) async fn advance_entries(
             continue;
         }
         let index = EntryIndex(position);
+        if super::request_graph::entry_outside_scope(plan, index) {
+            state.entries[position] = EntrySettlement::NotEvaluated {
+                reason: NotEvaluatedReason::EarlierEntryStopped,
+            };
+            changed = true;
+            continue;
+        }
         let entry = &plan.entries[position];
         if let Some(routing) = &entry.routing {
             match route_state(plan, state, routing) {

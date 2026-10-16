@@ -3,6 +3,7 @@ use crate::*;
 use sunstack_decisions::{DecisionRunOutcome, QuestionName};
 #[derive(Clone)]
 pub(crate) enum RequestRefusal {
+    OutsideChangeScope,
     Gate { entry: EntryIndex },
     Cancelled,
     Budget { diagnostics: DiagnosticList },
@@ -17,7 +18,7 @@ pub(crate) fn mark_not_sent(
 ) {
     let failure = match &refusal {
         RequestRefusal::Gate { entry } => Some(FailureCause::Gate { entry: *entry }),
-        RequestRefusal::Cancelled => None,
+        RequestRefusal::Cancelled | RequestRefusal::OutsideChangeScope => None,
         RequestRefusal::Budget { diagnostics } => Some(FailureCause::Budget {
             diagnostics: diagnostics.clone(),
         }),
@@ -62,6 +63,7 @@ pub(crate) fn mark_not_sent(
             entry: plan.entries[entry.0].key.clone(),
         },
         RequestRefusal::Cancelled => NotSentReason::Cancelled,
+        RequestRefusal::OutsideChangeScope => NotSentReason::OutsideChangeScope,
         RequestRefusal::Budget { diagnostics } => NotSentReason::BudgetRefused { diagnostics },
         RequestRefusal::Evidence { diagnostics } => NotSentReason::EvidenceRefused { diagnostics },
         RequestRefusal::Limit => NotSentReason::RequestLimit,

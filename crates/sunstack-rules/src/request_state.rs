@@ -3,9 +3,9 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 use sunstack_decisions::{JudgmentQuestion, SharedEvidenceState, StructuredEntry};
 use sunstack_evidence::{
-    CaptureCoverage, EvidenceDeclaration, EvidenceRequirement, EvidenceSelection, EvidenceSession,
-    Omission, OmissionReason, SelectionContent, SelectionReadiness, SelectionResult, SourceName,
-    SourceSpan,
+    EvidenceDeclaration, EvidenceRequirement, EvidenceSelection, EvidenceSession, Omission,
+    OmissionReason, SelectionContent, SelectionCoverage, SelectionReadiness, SelectionResult,
+    SourceName, SourceSpan,
 };
 #[derive(Debug, Clone)]
 pub(crate) struct LabeledSelection {
@@ -75,10 +75,11 @@ pub(crate) async fn select_owner_evidence(
                 if let SelectionContent::PayloadValue { input, .. } = content {
                     *input = declaration.input.clone();
                 }
-                if let sunstack_evidence::SourceRef::Payload {
-                    group_position,
-                    input,
-                } = &mut coverage.source
+                if let SelectionCoverage::SingleSource { capture } = coverage.as_mut()
+                    && let sunstack_evidence::SourceRef::Payload {
+                        group_position,
+                        input,
+                    } = &mut capture.source
                 {
                     *group_position = group;
                     *input = declaration.input.clone();
@@ -129,8 +130,41 @@ fn resolve_target(selection: &LabeledSelection) -> Option<sunstack_evidence::Tar
                 pointer: pointer.clone(),
             })
         }
+        (SelectionContent::ChangedUnits { units }, _) => {
+            code_target(units.iter().map(|unit| &unit.unit.key))
+        }
+        (SelectionContent::RelatedGroup { group }, _) => match group.as_ref() {
+            sunstack_evidence::ContextGroupOutcome::Complete { group, .. }
+            | sunstack_evidence::ContextGroupOutcome::Partial { group, .. } => {
+                code_target(group.units.iter())
+            }
+            sunstack_evidence::ContextGroupOutcome::Unavailable { .. } => None,
+        },
         _ => None,
     }
+}
+fn code_target<'source>(
+    units: impl Iterator<Item = &'source sunstack_evidence::SourceUnitKey>,
+) -> Option<sunstack_evidence::TargetLocation> {
+    let units = units
+        .filter(|unit| {
+            matches!(
+                unit.revision,
+                sunstack_evidence::SourceRevision::Commit {
+                    side: sunstack_evidence::SourceSide::After,
+                    ..
+                } | sunstack_evidence::SourceRevision::Index {
+                    side: sunstack_evidence::SourceSide::After,
+                    ..
+                } | sunstack_evidence::SourceRevision::Worktree {
+                    side: sunstack_evidence::SourceSide::After,
+                    ..
+                }
+            )
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    (!units.is_empty()).then_some(sunstack_evidence::TargetLocation::CodeUnits { units })
 }
 #[derive(Serialize)]
 struct RuleRequestState {
@@ -143,7 +177,7 @@ struct EvidenceAttribution {
     input: SourceName,
     content: String,
     omissions: Vec<Omission>,
-    coverage: CaptureCoverage,
+    coverage: SelectionCoverage,
 }
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -171,6 +205,14 @@ enum AttributedEvidence {
         attribution: EvidenceAttribution,
         pointer: String,
     },
+    ChangedUnits {
+        #[serde(flatten)]
+        attribution: EvidenceAttribution,
+    },
+    RelatedGroup {
+        #[serde(flatten)]
+        attribution: EvidenceAttribution,
+    },
     OptionalUnavailable {
         input: SourceName,
         omissions: Vec<Omission>,
@@ -183,6 +225,8 @@ enum ContentValue {
     Matches(Vec<sunstack_evidence::EvidenceMatch>),
     Records(Vec<sunstack_evidence::ConversationRecord>),
     Payload(sunstack_evidence::StructuredJson),
+    ChangedUnits(Vec<sunstack_evidence::SelectedSourceUnit>),
+    RelatedGroup(Box<sunstack_evidence::ContextGroupOutcome>),
 }
 pub(crate) fn build_request_state(
     selections: impl Iterator<Item = LabeledSelection>,
@@ -217,6 +261,18 @@ pub(crate) fn build_request_state(
                     SelectionContent::PayloadValue { value, .. } => {
                         ContentValue::Payload(value.clone())
                     }
+                    SelectionContent::ChangedUnits { units } => {
+                        ContentValue::ChangedUnits(units.clone())
+                    }
+                    SelectionContent::RelatedGroup { group } => {
+                        ContentValue::RelatedGroup(group.clone())
+                    }
+                    SelectionContent::RelatedGroups { .. } => {
+                        return Err(sunstack_evidence::DiagnosticList::one(
+                            sunstack_evidence::EvidenceCode::InvalidSelector,
+                        )
+                        .into());
+                    }
                 };
                 let bytes = serde_json::to_vec(&value).map_err(|_| {
                     DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError)
@@ -249,6 +305,18 @@ pub(crate) fn build_request_state(
                             attribution,
                             pointer,
                         }
+                    }
+                    SelectionContent::ChangedUnits { .. } => {
+                        AttributedEvidence::ChangedUnits { attribution }
+                    }
+                    SelectionContent::RelatedGroup { .. } => {
+                        AttributedEvidence::RelatedGroup { attribution }
+                    }
+                    SelectionContent::RelatedGroups { .. } => {
+                        return Err(sunstack_evidence::DiagnosticList::one(
+                            sunstack_evidence::EvidenceCode::InvalidSelector,
+                        )
+                        .into());
                     }
                 }
             }

@@ -58,6 +58,7 @@ pub async fn prepare_rules(
         }
     };
     let mut plan = definition_topology(admitted.groups, admitted.router);
+    plan_change_selection(&mut plan, &mut session).await;
     precompute_conditions(
         &mut plan,
         &input.origin,
@@ -167,6 +168,9 @@ pub async fn prepare_rules(
         }
         let evidence = owner_evidence(&state, &request.units);
         if units.is_empty() {
+            if request_outside_scope(&state, &request.units) {
+                continue;
+            }
             let refused = preparation_diagnostics(&state, &request.units);
             diagnostics.extend(refused.clone());
             records.insert(
@@ -280,6 +284,7 @@ pub async fn prepare_rules(
             records,
             measurements,
             captures: closed.captures,
+            change_selections: closed.change_selections,
             cursors: closed.cursors,
         },
         &mut diagnostics,
@@ -317,7 +322,7 @@ fn owner_evidence(
                 .iter()
                 .map(|selection| selection.result.clone())
                 .collect(),
-            None => vec![],
+            None | Some(OwnerPreparation::OutsideChangeScope) => vec![],
         })
         .collect()
 }
