@@ -54,6 +54,11 @@ A change-set input binds one repository binding. Its declarations are tagged by 
 
 Evidence owns both sides of a change; rules owns the selection. Rules asks the invocation's one `EvidenceSession` whether a subject changed (`compare_change_sides`), then turns the answers into an E15 selection record. Rules never reads Git or files itself, and never opens a second capture.
 
+**Subjects.** A comparison's subject is one of:
+- `declaration`: an evidence declaration;
+- `input`: a whole bound input, for a condition that scans it;
+- `definition_file`: a rule file's or RuleSet file's resolved path.
+
 **`ChangeComparison`** (`evidence_contracts`), for one subject:
 
 | Variant | Meaning |
@@ -62,8 +67,9 @@ Evidence owns both sides of a change; rules owns the selection. Rules asks the i
 | `changed { members: [scope_position] }` | Content differs in at least one member delta |
 | `added { members }` | Absent on the before side, present on the after side |
 | `deleted { members }` | Present on the before side, absent on the after side |
-| `before_unknown { reason: baseline_unavailable \| history_incomplete }` | The before side could not be resolved |
-| `no_before_side { reason: full_scope \| conversation_input \| payload_input \| outside_change_scope_paths }` | The subject has no before side to compare |
+| `before_unknown { reason: baseline_unavailable \| history_incomplete }` | The subject has a before side, but it could not be resolved |
+| `no_before_side { reason: full_scope \| conversation_input \| payload_input \| outside_change_scope_paths }` | The subject is not change-tracked: it has no before side to compare |
+| `refused { diagnostics }` | The comparison could not finish. The causes are an unreadable current side, a source that changed during its capture (`source_changed`), an invalid selection, or an exhausted limit. The diagnostics are the evidence diagnostics `select` already uses. Cancellation follows the session's established cancellation behavior |
 
 **A declaration** is compared by the content it selects, never by its locations, so moved lines are not a change. Evidence compares, per member delta:
 - a paragraph's text, by its target ID;
@@ -71,7 +77,9 @@ Evidence owns both sides of a change; rules owns the selection. Rules asks the i
 - a match set, as the multiset of matched text and capture text;
 - context bytes.
 
-A change-set declaration (`change_set_*`, `changed_units`, `related_units`) selects only from the delta, so it is `changed` when its selection is nonempty and `unchanged` when it is empty. Before-side reads come from the member's before side: a commit or tree blob, or the index. They are charged to the session's cumulative limits like any other read. Commit and tree blobs are immutable and need no verification pass. Conversation and payload inputs have no before side.
+A change-set declaration (`change_set_*`, `changed_units`, `related_units`) selects only from the delta, so it is `changed` when its selection is nonempty and `unchanged` when it is empty. Before-side reads come from the member's before side: a commit or tree blob, or the index. They are charged to the session's cumulative limits like any other read. Commit and tree blobs are immutable and need no verification pass.
+
+**An input** is compared as its whole bound content. A document input in a change-scoped binding is compared like `document_text`. A conversation or payload input, a document in a full-scope binding, and the invocation's origin have no before side.
 
 **A definition file** (a rule file, or the RuleSet file that holds `common_ruleset_instructions`) is compared by path. No bytes are read:
 - If the resolved path lies inside a change-scoped repository binding's allowed paths, the binding's resolved changed paths decide `added`, `changed` or `unchanged`.
@@ -79,27 +87,42 @@ A change-set declaration (`change_set_*`, `changed_units`, `related_units`) sele
 
 The granularity is the file. An edit anywhere in a RuleSet file marks all its rules `rule_changed`, and a newly added RuleSet file marks them all `new_rule`. This only selects more.
 
-**Rules' mapping.** For each admitted occurrence, the comparisons below produce its `selected_by` reasons, in the closed `SelectedReason` order:
+**An occurrence's dependencies** are everything its selection and evaluation read:
+- its rule file and its RuleSet file;
+- its target declaration;
+- its context declarations;
+- every input its RuleSet-level and rule-level applicability entries read. That covers the evidence declarations its decisions read, and the operands its conditions read directly: the payload input of a `payload_field_*` test, the input a `pattern_present` test scans, and the origin an `origin_field_equals` test reads.
 
-| Subject | Comparison | Reason |
+Rules compares each dependency through the session. The origin is the exception: rules owns it, and it is never change-tracked, so it maps as `no_before_side` without a call.
+
+**Rules' mapping.** The comparisons produce the occurrence's `selected_by` reasons, in the closed `SelectedReason` order:
+
+| Dependency | Comparison | Reason |
 | --- | --- | --- |
 | The rule file or its RuleSet file | `added` | `new_rule` |
 | The rule file or its RuleSet file | `changed` | `rule_changed` |
 | The target declaration | `changed`, `added` or `deleted` | `target_changed` |
 | Any context declaration | `changed`, `added` or `deleted` | `context_changed` |
-| Any declaration read by the occurrence's applicability entries | `changed`, `added` or `deleted` | `applicability_changed` |
-| Any compared subject | `before_unknown { baseline_unavailable }` | `baseline_unavailable` |
-| Any compared subject | `before_unknown { history_incomplete }` | `before_analysis_unknown` |
-| The rule file or its RuleSet file | `no_before_side { outside_change_scope_paths }` | `before_analysis_unknown` |
-| The target's input | `no_before_side { conversation_input \| payload_input }`, or a full-scope binding | `full_scope` |
+| Any applicability dependency | `changed`, `added` or `deleted` | `applicability_changed` |
+| Any dependency | `no_before_side`, whatever its reason | `full_scope` |
+| Any dependency | `before_unknown { baseline_unavailable }` | `baseline_unavailable` |
+| Any dependency | `before_unknown { history_incomplete }` | `before_analysis_unknown` |
 
-- **No reason holds:** the occurrence is `outside_change_scope { reason: no_declared_change }` and its current evidence is never acquired.
+A dependency that is not change-tracked can never prove the occurrence irrelevant, so it selects as `full_scope`: that dependency is evaluated as under full scope. A dependency whose before side exists but is unresolved selects with its own unknown reason. Both follow Specification C3: missing evidence never proves irrelevance.
+
+- **A comparison refused:** if any dependency's comparison is `refused`, the occurrence is `selection_failed { diagnostics }` (`selection_diagnostic`), even when another reason holds. Preparation and the report are then incomplete, and peer occurrences keep their own dispositions.
+- **No reason holds:** only when every dependency compared `unchanged` is the occurrence `outside_change_scope { reason: no_declared_change }`. Its current evidence is then never acquired.
 - **Selected:** current applicability then runs as in milestone 1. Not applicable is `not_applicable` (the `not_applicable_current` case), and unresolved current applicability is `selection_failed` (`selection_diagnostic`).
 - **Target deleted:** the occurrence is selected (`target_changed`). Its current-side selection then refuses with `deleted_target`, so it ends `selection_failed`, as in milestone 1. A deletion is never `outside_change_scope`.
 
-**Applicability is compared by its inputs, not its outcomes.** Rules never evaluates conditions or decisions on the before side, so it never makes a before-side model call. A change to any evidence an applicability entry reads selects the occurrence, a superset of an outcome change: a false-to-true flip always selects, and a true-to-true change with changed inputs also selects. The cost is extra judged occurrences when applicability inputs change without changing the outcome. The gain is no before-side evaluation and no second evaluation path.
+**Applicability is compared by its inputs, not its outcomes.** Rules never evaluates conditions or decisions on the before side, so it never makes a before-side model call. A change to any applicability dependency selects the occurrence, a superset of an outcome change: a false-to-true flip always selects, and a true-to-true change with changed inputs also selects. The cost is extra judged occurrences when applicability inputs change without changing the outcome. The gain is no before-side evaluation and no second evaluation path.
 
-**Definitions outside every change-scoped binding** have no before side, so their rules select with `before_analysis_unknown`, under Specification C3's conservative rule. A caller who wants change-scoped precision for rule edits binds the repository that holds the definitions, with a change scope.
+**What narrows and what does not.** Change scope narrows only an occurrence whose every dependency is change-tracked and unchanged. The following always select as `full_scope`:
+- a definition outside every change-scoped binding;
+- a payload, conversation or origin dependency;
+- a document from a full-scope binding.
+
+A caller who wants change-scoped precision binds the repositories that hold the definitions and the context with a change scope, and keeps payload, conversation and origin out of the rules it wants narrowed.
 
 ## Connected discovery
 
