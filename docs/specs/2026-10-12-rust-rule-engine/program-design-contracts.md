@@ -62,7 +62,7 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 | `kind` | Fields |
 | --- | --- |
 | `prepared` | `selections: [SelectionResult]`, `captures: [CaptureCoverage]`, `cursors: [ReturnedCursor]`, `measurements` |
-| `incomplete` | the same fields plus `diagnostics: DiagnosticList` |
+| `incomplete` | the same fields plus `diagnostics: DiagnosticList`. Used only when a `required` declaration is refused. A refused `optional` declaration leaves the plan `prepared`: its `SelectionResult` is `refused { diagnostics }`, and rules records it in request state as `Omission { reason: optional_unavailable }` |
 | `refused` | `diagnostics` |
 | `cancelled` | `progress: before_plan_admission \| plan_admitted { partial: { selections, captures, cursors } }`, `diagnostics`, `measurements` |
 
