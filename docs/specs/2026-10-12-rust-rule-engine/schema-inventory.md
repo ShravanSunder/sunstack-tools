@@ -60,7 +60,7 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | Invocation | `cursors` | One per transcript source, as returned by an earlier report |
 | Invocation | `execution` | `speculation: off \| on` for gates over different inputs, and `max_concurrent_requests` |
 | Invocation | `limits`, `backend`, `attempts`, `request_budget` | Cumulative evidence limits; the Jev endpoint, model and optional caller-declared `context_ceiling_tokens`; attempt control; the request budget. Credentials are never here |
-| Invocation (milestone 2) | `discovery`, `package_bindings` | Optional `none \| bounded { limits: DiscoveryLimits }` and package-source mappings, passed unchanged into the invocation's evidence session. Not in the milestone 1 schema, which refuses them like other milestone 2 variants |
+| Invocation (milestone 2) | `discovery`, `package_bindings` | Optional `none \| bounded { limits: DiscoveryLimits }` and package-source mappings, passed unchanged into the invocation's evidence session. Until the milestone 2 schema revision lands with the milestone 2 pull request, the shapes in [connected evidence](program-design-connected-evidence.md) and the contracts are the oracle for these fields and for non-full change scopes. Not in the milestone 1 schema, which refuses them like other milestone 2 variants |
 | [Native selectors](schemas/evidence-selector.schema.json) | Repository-qualified selectors, `RelationshipQuery`, `ChunkSettings`, `QueryPath` | For native and `prepare_evidence` callers. `QueryPath` is now tagged `exact` or `glob` |
 
 ## Returned
@@ -70,7 +70,11 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | Decisions ([answer](schemas/decision-answer.schema.json)) | Noul `yes_probability`; choice `selected_label`, `confidence`, `probabilities`; score `score`, `confidence`, `legend`, `probabilities` | Native answers, unchanged |
 | Decisions | `DecisionRunOutcome`, receipt, attempt records | One per actual request |
 | Rules | `RuleInvocationOutcome` | `invalid`, `preparation_failed`, `complete_report`, `incomplete_report`, `cancelled { progress }` |
-| Rules | `RuleOccurrenceResult` | `judged`, `not_applicable`, `outside_change_scope`, `selection_failed`, `evaluation_failed`, `cancelled`, `not_started` |
+| Rules | `RuleOccurrenceResult` | `judged`, `not_applicable`, `outside_change_scope`, `selection_failed`, `evaluation_failed`, `cancelled`, `not_started`. Milestone 2: selected variants carry `selected_by: [SelectedReason]` |
+| Rules | `PreparedOccurrence` | `planned { selection }`, `not_applicable`, `outside_change_scope` (milestone 2), `selection_failed` |
+| Rules (milestone 2) | `OccurrenceSelection` | `selected { selected_by }` or `comparison_pending` |
+| Rules (milestone 2) | `SelectedReason` | Closed and ordered: `full_scope`, `target_changed`, `context_changed`, `rule_changed`, `new_rule`, `applicability_changed`, `baseline_unavailable`, `before_analysis_unknown` |
+| Evidence (milestone 2, native only) | `ChangeComparison` | `unchanged`, `changed` (content level), `path_changed` (path level), `added`, `deleted`, `before_unknown`, `no_before_side`, `refused`, from `EvidenceSession::compare_change_sides` over a declaration, a whole input or a definition file, at `path` or `content` level |
 | Rules | `VerdictOutcome` | Basis (noul answer, or composite dimensions with normalized values and weights), value, threshold, `pass` or `fail { activation: nudge \| block \| nudge_above_band }` |
 | Rules | `RouterOutcome` | `routed`, `uncertain_intent { confidence, floor, distribution }`, `no_route`, `router_failed`, `not_evaluated` |
 | Rules | `RequestRecord` | Mode, question bindings, outcome, discarded answers with their cost |

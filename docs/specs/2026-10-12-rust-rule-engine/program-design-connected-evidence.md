@@ -50,14 +50,112 @@ A change-set input binds one repository binding. Its declarations are tagged by 
 - `applicability_changed`, `baseline_unavailable`, `before_analysis_unknown`
 - `not_applicable_current`, `no_declared_change`, `selection_diagnostic`
 
-**How change scope selects.** It compares, on both sides:
-- target bytes
-- selector match sets
-- context bytes
-- applicability outcomes
-- effective definitions, including `common_ruleset_instructions`
+## How change scope selects
 
-When the baseline is unavailable, change scope selects every currently applicable occurrence. A false-to-true applicability change selects even when the target is unchanged. Conversation and payload inputs have no before side, so their occurrences are always `full_scope`.
+Evidence owns both sides of a change; rules owns the selection. Rules asks the invocation's one `EvidenceSession` whether a subject changed (`compare_change_sides`), then turns the answers into an E15 selection record. Rules never reads Git or files itself, and never opens a second capture.
+
+**Subjects and levels.** A comparison's subject is one of:
+- `declaration`: an evidence declaration;
+- `input`: a whole bound input, for a condition that scans it;
+- `definition_file`: a rule file's or RuleSet file's resolved path.
+
+Each comparison runs at one of two levels:
+- `path` reads no subject content. It checks the subject's source paths against the binding's resolved changed paths, and classifies inputs that are not change-tracked by kind.
+- `content` compares what the subject selects on both sides. It exists for declarations and inputs.
+
+Either level may resolve a binding's change selection, once per binding: that resolution is the binding-level acquisition C8 defines, and its reads are reported in its coverage.
+
+**`ChangeComparison`** (`evidence_contracts`), for one subject:
+
+| Variant | Meaning |
+| --- | --- |
+| `unchanged` | Same content on both sides of every member delta |
+| `changed { members: [scope_position] }` | Content-level only: the selected content differs in at least one member delta |
+| `path_changed { members }` | Path-level only: the subject's file was modified in at least one member delta, and its content was not compared |
+| `added { members }` | Absent on the before side, present on the after side |
+| `deleted { members }` | Present on the before side, absent on the after side |
+| `before_unknown { reason: baseline_unavailable \| history_incomplete }` | The subject has a before side, but it could not be resolved |
+| `no_before_side { reason: full_scope \| conversation_input \| payload_input \| outside_change_scope_paths }` | The subject is not change-tracked: it has no before side to compare |
+| `refused { diagnostics }` | The comparison could not finish. The causes are an unreadable current side, a source that changed during its capture (`source_changed`), an invalid selection, or an exhausted limit. The diagnostics are the evidence diagnostics `select` already uses. Cancellation follows the session's established cancellation behavior |
+
+**A declaration at content level** is compared by the content it selects, never by its locations, so moved lines are not a change. Evidence compares, per member delta:
+- a paragraph's text, by its target ID;
+- document text;
+- a match set, as the multiset of matched text and capture text;
+- context bytes.
+
+A change-set declaration (`change_set_*`, `changed_units`, `related_units`) selects only from the delta, so it is `changed` when its selection is nonempty and `unchanged` when it is empty. Before-side reads come from the member's before side: a commit or tree blob, or the index. They are charged to the session's cumulative limits like any other read. Commit and tree blobs are immutable and need no verification pass.
+
+**An input** is compared as its whole bound content. A document input in a change-scoped binding is compared like `document_text`. A conversation or payload input, a document in a full-scope binding, and the invocation's origin have no before side.
+
+**A definition file** (a rule file, or the RuleSet file that holds `common_ruleset_instructions`) is compared at path level only. It reads no bytes beyond its binding's shared resolution:
+- If the resolved path lies inside a change-scoped repository binding's allowed paths, the binding's resolved changed paths decide `added`, `changed` or `unchanged`.
+- Otherwise the result is `no_before_side { reason: outside_change_scope_paths }`.
+
+The granularity is the file. An edit anywhere in a RuleSet file marks all its rules `rule_changed`, and a newly added RuleSet file marks them all `new_rule`. This only selects more.
+
+**An occurrence's dependencies** are everything its selection and evaluation read:
+- its rule file and its RuleSet file;
+- its target declaration;
+- its context declarations;
+- every input its RuleSet-level and rule-level applicability entries read. That covers the evidence declarations its decisions read, and the operands its conditions read directly: the payload input of a `payload_field_*` test, the input a `pattern_present` test scans, and the origin an `origin_field_equals` test reads.
+
+The origin is rules-owned and never change-tracked, so it maps as `no_before_side` without a call.
+
+**Selection never reads ahead of applicability (Specification R28).** Selection runs in two steps. The first reads no subject, so it can run before anything else; the second waits for the occurrence's acquisition frontier.
+
+1. **At planning, at path level, before the leading conditions.** Rules compares every dependency at path level, which reads no subject:
+   - If any dependency gives a reason, selection settles with those reasons.
+   - If every dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }`. Its leading conditions never run and nothing of it is acquired.
+   - Otherwise some declaration or input is `path_changed`, and only content can tell whether its selected part changed. The occurrence is planned as `comparison_pending` and evaluates like a selected one. A binding resolution refused here is carried to step 2 as that dependency's refusal; it is never decisive here.
+
+   **Then the leading conditions run**, exactly as in milestone 1, for every occurrence that is selected or pending. An occurrence they stop is `not_applicable`. An unresolved condition gives `evaluation_failed { cause: condition }` with its group `applicability_failed`, as in milestone 1. Either way the occurrence keeps its step-1 selection, and it never reaches step 2.
+2. **At the acquisition frontier, at content level.** When the occurrence's own request becomes ready, the same session compares its `path_changed` dependencies by content. That is the point where milestone 1 acquires the occurrence's evidence anyway. Ready means one of two things:
+   - **Staged work:** its controlling gates settled and passed. Gate inputs were reached at their gates, and the target and context arrive with the request.
+   - **Speculative ride (R38):** the request is acquired before its gates settle.
+
+   Then:
+   - If any reason holds, selection settles with those reasons and the questions stay.
+   - If every pending dependency is `unchanged`, the occurrence is `outside_change_scope { reason: no_declared_change }`. Its questions leave the request before encoding, as with an evidence refusal. A request left with no questions is `not_sent { reason: outside_change_scope }`.
+   - If a comparison is `refused`, the refusal belongs to that request's owner, exactly like a refused required evidence read (Program Design scheduling).
+
+**Settled gates take precedence.** The step-2 result is final only once the occurrence's gates have settled, under the existing reduction (Specification C13):
+- A gate that passes exposes the step-2 result: selected, `outside_change_scope`, or `selection_failed { diagnostics }` for a refusal.
+- A gate that does not pass makes the occurrence `not_applicable`, whatever its speculative comparison found and in whichever order the two completed. A failed or cancelled gate reduces as it already does.
+- A speculative comparison's reads, diagnostics and cost are still reported.
+
+Staged work whose gate does not pass never reaches step 2, so its pending dependencies are never read. `prepare_rules` runs step 2 for the requests it prepares; an occurrence whose request is waiting stays `comparison_pending`.
+
+**Rules' mapping.** `selected_by` lists every reason found in the step that settled selection, in the closed order.
+
+`path_changed` on a declaration or input gives no reason. It leaves the occurrence `comparison_pending`, because moved lines or an edit elsewhere in the file may leave its selected content unchanged. Its path-level `added` or `deleted` does give its reason. Definition files are compared only at path level, at file granularity, so their `path_changed` gives `rule_changed` directly.
+
+| Dependency | Comparison | Reason |
+| --- | --- | --- |
+| The rule file or its RuleSet file | `added` | `new_rule` |
+| The rule file or its RuleSet file | `path_changed` | `rule_changed` |
+| The target declaration | `changed`, `added` or `deleted` | `target_changed` |
+| Any context declaration | `changed`, `added` or `deleted` | `context_changed` |
+| Any applicability dependency | `changed`, `added` or `deleted` | `applicability_changed` |
+| Any dependency | `no_before_side`, whatever its reason | `full_scope` |
+| Any dependency | `before_unknown { baseline_unavailable }` | `baseline_unavailable` |
+| Any dependency | `before_unknown { history_incomplete }` | `before_analysis_unknown` |
+
+A dependency that is not change-tracked can never prove the occurrence irrelevant, so it selects as `full_scope`: that dependency is evaluated as under full scope. A dependency whose before side exists but is unresolved selects with its own unknown reason. Both follow Specification C3: missing evidence never proves irrelevance.
+
+- **A refused comparison** makes preparation or the report incomplete. Peer occurrences keep their own dispositions.
+- **Outside change scope** requires every dependency established `unchanged`, at path level or at content level.
+- **Selected or pending:** the occurrence's applicability entries run as in milestone 1, under both full and change scope, with one rule. Not applicable is `not_applicable` (the `not_applicable_current` case). An unresolved condition is `evaluation_failed { cause: condition }` with its group `applicability_failed`. That is milestone 1's realization of Specification C3's "unresolved current applicability is a selection failure". `selection_failed` stays reserved for refused evidence and refused comparisons.
+- **Target deleted:** the occurrence is selected (`target_changed`). Its current-side selection then refuses with `deleted_target`, so it ends `selection_failed`, as in milestone 1. A deletion is never `outside_change_scope`.
+
+**Applicability is compared by its inputs, not its outcomes.** Rules never evaluates conditions or decisions on the before side, so it never makes a before-side model call. A change to any applicability dependency selects the occurrence, a superset of an outcome change: a false-to-true flip always selects, and a true-to-true change with changed inputs also selects. The cost is extra judged occurrences when applicability inputs change without changing the outcome. The gain is no before-side evaluation and no second evaluation path.
+
+**What narrows and what does not.** Change scope narrows only an occurrence whose every dependency is change-tracked and unchanged. The following always select as `full_scope`:
+- a definition outside every change-scoped binding;
+- a payload, conversation or origin dependency;
+- a document from a full-scope binding.
+
+A caller who wants change-scoped precision binds the repositories that hold the definitions and the context with a change scope, and keeps payload, conversation and origin out of the rules it wants narrowed.
 
 ## Connected discovery
 
