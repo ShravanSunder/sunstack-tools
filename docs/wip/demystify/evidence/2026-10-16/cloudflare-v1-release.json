@@ -1,0 +1,34 @@
+{
+	"publicOrigin": "https://demistify.getagentstudio.dev",
+	"majorPath": "/v1/",
+	"version": "1.0.0",
+	"sourceCommit": "fb7e2c42ba3dd3988cf655928c267dfd70983571",
+	"artifactRun": 38940088991,
+	"bootstrapCliExit": 0,
+	"allPublicFilesVerified": 28,
+	"publicVerifyExit": 0,
+	"actualBoundOriginResolverExit": 0,
+	"protectedMainDeployment": {
+		"run": 38941869166,
+		"sourceCommit": "9490b7a42998f3f14146d27ad92bda19a03abdd3",
+		"checks": "success",
+		"versionPr": "success",
+		"deploy": "success",
+		"retainedPublicFiles": 28,
+		"publishedVerifyExit": 0
+	},
+	"experimentalBreakingChangesAllowed": true,
+	"privateMetadataIncluded": false,
+	"nodeTests": 51,
+	"nodeFiles": 12,
+	"chromiumTests": 12,
+	"chromiumFiles": 3,
+	"liveProtocol": {
+		"conditionalGet": 304,
+		"head": 200,
+		"options": 204,
+		"post": 405
+	},
+	"crossOriginBrowserSmoke": "unverified; in-app browser unavailable and desktop retained by active design fork",
+	"defaultPythonUserAgent": "Cloudflare 1010; Node/browser-style requests return 200"
+}

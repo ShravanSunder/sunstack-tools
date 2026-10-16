@@ -43,7 +43,7 @@ Updated 2026-10-16. Fixes belong to branch `fix/demistify-mermaid-scroll`; Cloud
 ## Cross-owner integration
 
 - [x] Give the Sunstack Skills Lead the new API/guide delta and old-public-pin boundary; acknowledgement received.
-- [ ] Deployment owner publishes a matching public runtime/theme/guide. The existing `c96a72e` pin does not support these additions.
+- [x] Deployment owner publishes matching public runtime/theme/guide at `https://demistify.getagentstudio.dev/v1/`; all 28 assets pass actual HTTP byte/MIME/CORS/cache checks. The existing `c96a72e` pin remains unchanged. See [v1 handoff](2026-10-16-v1-deployment-handoff.md).
 - [ ] Skills Lead updates the existing `presentation-html` plugin against that verified public version. Its draft remains on the old pin until then.
 
 Earlier code/source-retention and neutral code-comment background repairs are documented in [the inspection fixes](2026-10-16-inspection-fixes.md); this list tracks the subsequent fixes fork.
