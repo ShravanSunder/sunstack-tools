@@ -37,6 +37,18 @@ pub enum EvidenceCode {
     UnsupportedLanguage,
     SelectorLimit,
     EmptyProjection,
+    RevisionUnavailable,
+    InvalidRepositoryBinding,
+    UnknownRepository,
+    HistoryIncomplete,
+    RecencyUnknown,
+    RelationshipUnresolved,
+    DiscoveryLimit,
+    UnsupportedRelationshipQuery,
+    InvalidContextGroup,
+    MissingRelatedContext,
+    RequiredGroupIncomplete,
+    NoChangeSelection,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -81,6 +93,34 @@ impl Diagnostic {
     pub fn new(code: EvidenceCode) -> Self {
         use EvidenceCode::*;
         let (origin, guidance, retry_advice) = match code {
+            NoChangeSelection => (
+                DiagnosticOrigin::Selection,
+                "Supply a change scope for changed-unit seeds; full scope is discovery context only.",
+                RetryAdvice::RepairRequest,
+            ),
+            RevisionUnavailable | InvalidRepositoryBinding | UnknownRepository => (
+                DiagnosticOrigin::Source,
+                "Supply valid in-scope repository roots and available revisions.",
+                RetryAdvice::RepairSource,
+            ),
+            HistoryIncomplete | RecencyUnknown => (
+                DiagnosticOrigin::Source,
+                "Inspect history coverage or choose an explicit unknown-recency policy.",
+                RetryAdvice::RepairSource,
+            ),
+            RelationshipUnresolved | UnsupportedRelationshipQuery => (
+                DiagnosticOrigin::Selection,
+                "Provide a supported syntax relationship and complete source bindings.",
+                RetryAdvice::RepairRequest,
+            ),
+            DiscoveryLimit
+            | RequiredGroupIncomplete
+            | MissingRelatedContext
+            | InvalidContextGroup => (
+                DiagnosticOrigin::Selection,
+                "Supply all required context within explicit discovery and chunk bounds.",
+                RetryAdvice::RepairConfiguration,
+            ),
             UnknownTranscriptFormat => (
                 DiagnosticOrigin::Transcript,
                 "Register a supported transcript format.",

@@ -9,6 +9,7 @@ pub struct EvidenceSession {
 }
 pub struct EvidenceSessionSummary {
     pub captures: Vec<CaptureCoverage>,
+    pub change_selections: Vec<ResolvedChangeSelection>,
     pub cursors: Vec<ReturnedCursor>,
     pub measurements: EvidenceMeasurements,
 }

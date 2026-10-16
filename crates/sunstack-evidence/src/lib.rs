@@ -30,5 +30,30 @@ pub use preparation_contracts::*;
 
 pub mod evidence_session;
 pub use evidence_session::*;
+pub mod change_contracts;
+pub mod connected_contracts;
+pub use change_contracts::*;
+pub use connected_contracts::*;
+pub mod change_selection;
+pub use change_selection::*;
+mod repository_capture;
+pub mod source_units;
+pub use source_units::*;
+pub mod relationship_discovery;
+mod relationship_resolution;
+mod relationship_syntax;
+pub use relationship_discovery::*;
+pub mod semantic_chunks;
+pub use semantic_chunks::*;
+pub mod repository_context;
+pub use repository_context::*;
+mod frozen_queries;
+pub use frozen_queries::{
+    ChangeSetSelection, SourceUnitSelection, select_change_set, select_source_units,
+};
 
+pub mod change_reporting;
+mod repository_catalogue;
+pub use change_reporting::*;
 mod acquisition_progress;
+mod connected_admission;

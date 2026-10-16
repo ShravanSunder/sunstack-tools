@@ -11,10 +11,30 @@ pub fn resolve_paragraph(
     document: &CapturedDocument,
     target: &TargetId,
 ) -> EvidenceResult<SelectionContent> {
+    let candidates = paragraph_ranges(&document.text);
+    let marker = format!("{}:", target.as_str());
+    let matches = candidates
+        .into_iter()
+        .filter(|range| document.text[range.clone()].starts_with(&marker))
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [range] => {
+            let range = range.clone();
+            Ok(SelectionContent::Paragraph {
+                span: source_span(&document.source, &document.text, range.clone()),
+                text: document.text[range].into(),
+            })
+        }
+        [] => Err(EvidenceCode::MissingTarget.into()),
+        _ => Err(EvidenceCode::DuplicateTarget.into()),
+    }
+}
+
+pub(crate) fn paragraph_ranges(text: &str) -> Vec<std::ops::Range<usize>> {
     let mut block_stack = Vec::new();
     let mut paragraph_range: Option<std::ops::Range<usize>> = None;
     let mut candidates = Vec::new();
-    for (event, range) in Parser::new(&document.text).into_offset_iter() {
+    for (event, range) in Parser::new(text).into_offset_iter() {
         match &event {
             Event::Start(tag) if is_block_end(tag.to_end()) => {
                 if let Some(paragraph) = paragraph_range.take() {
@@ -56,26 +76,13 @@ pub fn resolve_paragraph(
             _ => {}
         }
     }
-    let marker = format!("{}:", target.as_str());
-    let matches = candidates
+    candidates
         .into_iter()
-        .filter(|range| document.text[range.clone()].starts_with(&marker))
-        .collect::<Vec<_>>();
-    match matches.as_slice() {
-        [range] => {
-            let end = document.text[range.clone()]
-                .trim_end_matches(['\n', '\r'])
-                .len()
-                + range.start;
-            let range = range.start..end;
-            Ok(SelectionContent::Paragraph {
-                span: source_span(&document.source, &document.text, range.clone()),
-                text: document.text[range].into(),
-            })
-        }
-        [] => Err(EvidenceCode::MissingTarget.into()),
-        _ => Err(EvidenceCode::DuplicateTarget.into()),
-    }
+        .map(|range| {
+            let end = text[range.clone()].trim_end_matches(['\n', '\r']).len() + range.start;
+            range.start..end
+        })
+        .collect()
 }
 fn is_block_end(tag: TagEnd) -> bool {
     !matches!(
@@ -96,21 +103,36 @@ pub fn select_document(
     selection: &EvidenceSelection,
     max_matches: usize,
 ) -> EvidenceResult<SelectionContent> {
+    let (content, limited) = select_document_bounded(document, selection, max_matches)?;
+    if limited {
+        return Err(EvidenceCode::SelectorLimit.into());
+    }
+    Ok(content)
+}
+
+pub(crate) fn select_document_bounded(
+    document: &CapturedDocument,
+    selection: &EvidenceSelection,
+    max_matches: usize,
+) -> EvidenceResult<(SelectionContent, bool)> {
     let text = document.text.as_ref();
     let make_match = |range: std::ops::Range<usize>, captures| EvidenceMatch {
         span: source_span(&document.source, text, range.clone()),
         text: text[range].into(),
         captures,
     };
-    let matches = match selection {
+    let mut matches = match selection {
         EvidenceSelection::Paragraph { target_id } => {
-            return resolve_paragraph(document, target_id);
+            return resolve_paragraph(document, target_id).map(|content| (content, false));
         }
         EvidenceSelection::WholeDocument => {
-            return Ok(SelectionContent::DocumentText {
-                span: source_span(&document.source, text, 0..text.len()),
-                text: text.into(),
-            });
+            return Ok((
+                SelectionContent::DocumentText {
+                    span: source_span(&document.source, text, 0..text.len()),
+                    text: text.into(),
+                },
+                false,
+            ));
         }
         EvidenceSelection::LiteralText { text: needle } => {
             if needle.is_empty() {
@@ -189,10 +211,9 @@ pub fn select_document(
         }
         _ => return Err(EvidenceCode::InvalidSelector.into()),
     };
-    if matches.len() > max_matches {
-        return Err(EvidenceCode::SelectorLimit.into());
-    }
-    Ok(SelectionContent::Matches { matches })
+    let limited = matches.len() > max_matches;
+    matches.truncate(max_matches);
+    Ok((SelectionContent::Matches { matches }, limited))
 }
 
 /// Resolve deletion from caller-supplied frozen before/current captures, without rereading either.

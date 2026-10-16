@@ -1,3 +1,5 @@
+mod connected_relationships;
+mod connected_sources;
 mod native_queries;
 use crate::*;
 use std::{
@@ -17,6 +19,11 @@ pub enum CapturedSource {
 #[derive(Default)]
 pub struct SourceSnapshot {
     pub sources: BTreeMap<SourceName, CapturedSource>,
+    repository_views: BTreeMap<
+        (RepositoryId, connected_sources::RepositoryView),
+        EvidenceResult<Arc<CapturedChangeSelection>>,
+    >,
+    change_selections: BTreeMap<RepositoryId, ResolvedChangeSelection>,
 }
 pub(crate) struct Preparation {
     input: EvidencePlanInput,
@@ -28,6 +35,13 @@ pub(crate) struct Preparation {
     measurements: EvidenceMeasurements,
     total_read: usize,
     document_cache: BTreeMap<(RepositoryId, PathBuf), Arc<CapturedDocument>>,
+    anchor_utc: chrono::DateTime<chrono::Utc>,
+    snapshot_id: SnapshotId,
+    discovery_elapsed: std::time::Duration,
+    discovery_matches: usize,
+    discovery_unit_visits: usize,
+    discovery_candidates: usize,
+    discovery_history_commits: usize,
 }
 /// Direct evidence calls use the same invocation-local session as native rules callers.
 pub async fn prepare_evidence(
@@ -87,6 +101,7 @@ pub async fn prepare_evidence(
     }
     let EvidenceSessionSummary {
         captures,
+        change_selections,
         cursors,
         measurements,
     } = session.close();
@@ -96,6 +111,7 @@ pub async fn prepare_evidence(
                 partial: PartialEvidencePlan {
                     selections,
                     captures,
+                    change_selections,
                     cursors,
                 },
             },
@@ -106,6 +122,7 @@ pub async fn prepare_evidence(
         EvidencePlanOutcome::Prepared {
             selections,
             captures,
+            change_selections,
             cursors,
             measurements,
         }
@@ -113,6 +130,7 @@ pub async fn prepare_evidence(
         EvidencePlanOutcome::Incomplete {
             selections,
             captures,
+            change_selections,
             cursors,
             measurements,
             diagnostics,
@@ -150,6 +168,8 @@ impl Preparation {
             }
         }
         crate::evidence_admission::admission(&input, &registry)?;
+        let anchor_utc = chrono::Utc::now();
+        let snapshot_id = SnapshotId::new(content_digest(anchor_utc.to_rfc3339().as_bytes()))?;
         let mut preparation = Self {
             input,
             registry,
@@ -160,6 +180,13 @@ impl Preparation {
             measurements: EvidenceMeasurements::default(),
             total_read: 0,
             document_cache: BTreeMap::new(),
+            anchor_utc,
+            snapshot_id,
+            discovery_elapsed: std::time::Duration::ZERO,
+            discovery_matches: 0,
+            discovery_unit_visits: 0,
+            discovery_candidates: 0,
+            discovery_history_commits: 0,
         };
         preparation.admit_payloads().await?;
         Ok(preparation)
@@ -170,6 +197,7 @@ impl Preparation {
             u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
         EvidenceSessionSummary {
             captures: self.captures,
+            change_selections: self.snapshot.change_selections.into_values().collect(),
             cursors: self.cursors,
             measurements,
         }
@@ -333,6 +361,14 @@ impl Preparation {
         self.total_read += progress.consumed_bytes();
         self.measurements.files_read += progress.consumed_repository_files();
         let document = result?;
+        self.captures.push(CaptureCoverage {
+            source: document.source.clone(),
+            cursor_basis: CursorBasis::NoCursorSupplied,
+            tail: CaptureTail::Complete,
+            gaps: vec![],
+            bytes_read: document.text.len() as u64,
+            bytes_parsed: document.text.len() as u64,
+        });
         let document = Arc::new(document);
         self.document_cache.insert(cache_key, document.clone());
         Ok(document)
@@ -344,6 +380,11 @@ impl Preparation {
         crate::evidence_admission::admit_declaration(declaration, &self.input.sources)?;
         if self.cancellation.is_cancelled() {
             return Err(EvidenceCode::MissingContext.into());
+        }
+        if let Some(SourceSpec::ChangeSet { repository }) =
+            self.input.sources.get(&declaration.input).cloned()
+        {
+            return self.connected_select(&repository, declaration).await;
         }
         let source = self.source(&declaration.input).await?;
         let (content, omissions, coverage) = match source {
@@ -437,7 +478,7 @@ impl Preparation {
         Ok(SelectionReadiness::Ready {
             content,
             omissions,
-            coverage: Box::new(coverage),
+            coverage: Box::new(SelectionCoverage::SingleSource { capture: coverage }),
         })
     }
 }

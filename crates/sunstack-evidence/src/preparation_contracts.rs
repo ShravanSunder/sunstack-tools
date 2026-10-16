@@ -18,6 +18,11 @@ pub struct NativeQuery {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceSelector {
+    RelatedUnits {
+        query: crate::RelationshipQuery,
+        chunk_settings: crate::ChunkSettings,
+        minimum_related_units: usize,
+    },
     Paragraph {
         repository_id: RepositoryId,
         source_path: PathBuf,
@@ -103,6 +108,7 @@ pub struct EvidenceMeasurements {
 pub struct PartialEvidencePlan {
     pub selections: Vec<SelectionResult>,
     pub captures: Vec<CaptureCoverage>,
+    pub change_selections: Vec<ResolvedChangeSelection>,
     pub cursors: Vec<ReturnedCursor>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -117,12 +123,14 @@ pub enum EvidencePlanOutcome {
     Prepared {
         selections: Vec<SelectionResult>,
         captures: Vec<CaptureCoverage>,
+        change_selections: Vec<ResolvedChangeSelection>,
         cursors: Vec<ReturnedCursor>,
         measurements: EvidenceMeasurements,
     },
     Incomplete {
         selections: Vec<SelectionResult>,
         captures: Vec<CaptureCoverage>,
+        change_selections: Vec<ResolvedChangeSelection>,
         cursors: Vec<ReturnedCursor>,
         measurements: EvidenceMeasurements,
         diagnostics: DiagnosticList,

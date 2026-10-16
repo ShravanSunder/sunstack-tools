@@ -9,6 +9,7 @@ pub(crate) struct AcquisitionProgress {
     repository_files: AtomicUsize,
     source_bytes: AtomicUsize,
     transcript_bytes: AtomicUsize,
+    history_commits: AtomicUsize,
 }
 impl AcquisitionProgress {
     pub fn shared() -> Arc<Self> {
@@ -24,6 +25,9 @@ impl AcquisitionProgress {
         self.source_bytes(count);
         self.transcript_bytes.fetch_add(count, Ordering::Relaxed);
     }
+    pub fn history_commit(&self) {
+        self.history_commits.fetch_add(1, Ordering::Relaxed);
+    }
     pub fn consumed_repository_files(&self) -> usize {
         self.repository_files.load(Ordering::Relaxed)
     }
@@ -32,5 +36,8 @@ impl AcquisitionProgress {
     }
     pub fn consumed_transcript_bytes(&self) -> usize {
         self.transcript_bytes.load(Ordering::Relaxed)
+    }
+    pub fn consumed_history_commits(&self) -> usize {
+        self.history_commits.load(Ordering::Relaxed)
     }
 }

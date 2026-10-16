@@ -283,6 +283,6 @@ async fn conversation_aliases_share_capture_and_cursor_through_public_plan() {
     )
     .await;
     assert!(
-        matches!(outcome,EvidencePlanOutcome::Prepared{captures,cursors,measurements,selections} if captures.len()==1&&cursors.len()==1&&measurements.transcript_bytes_read==bytes.len()as u64&&selections.len()==2)
+        matches!(outcome,EvidencePlanOutcome::Prepared{captures,cursors,measurements,selections,change_selections} if change_selections.is_empty()&&captures.len()==1&&cursors.len()==1&&measurements.transcript_bytes_read==bytes.len()as u64&&selections.len()==2)
     );
 }

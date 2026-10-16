@@ -1,4 +1,7 @@
-use crate::{conversation_contracts::*, evidence_diagnostics::*, structured_json::StructuredJson};
+use crate::{
+    ChangeScope, conversation_contracts::*, evidence_diagnostics::*,
+    structured_json::StructuredJson,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroUsize, path::PathBuf};
@@ -72,6 +75,12 @@ validated_name!(TargetId, |value: &str| value.len() >= 4
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceRef {
+    RepositoryFile {
+        repository: RepositoryId,
+        revision: crate::SourceRevision,
+        path: PathBuf,
+        content_identity: String,
+    },
     Document {
         repository: RepositoryId,
         path: PathBuf,
@@ -119,16 +128,11 @@ pub enum SourceSpec {
         repository: RepositoryId,
     },
 }
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum QueryPath {
     Exact { path: PathBuf },
     Glob { pattern: String },
-}
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
-pub enum ChangeScope {
-    Full,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -171,6 +175,33 @@ pub struct EvidenceDeclaration {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceSelection {
+    ChangeSetLiteralText {
+        paths: Vec<QueryPath>,
+        text: String,
+    },
+    ChangeSetRegexText {
+        paths: Vec<QueryPath>,
+        pattern: String,
+    },
+    ChangeSetAstPattern {
+        paths: Vec<QueryPath>,
+        language: String,
+        pattern: String,
+    },
+    ChangedUnits {
+        languages: Vec<crate::SourceLanguage>,
+        unit_kinds: Vec<crate::UnitKindFilter>,
+        source_sides: crate::SourceSides,
+    },
+    RelatedUnits {
+        languages: Vec<crate::GraphLanguage>,
+        unit_kinds: Vec<crate::UnitKindFilter>,
+        source_sides: crate::SourceSides,
+        directions: Vec<crate::RelationDirection>,
+        requested_hops: NonZeroUsize,
+        chunk_settings: crate::ChunkSettings,
+        minimum_related_units: usize,
+    },
     Paragraph {
         target_id: TargetId,
     },
@@ -272,6 +303,15 @@ pub struct EvidenceMatch {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SelectionContent {
+    RelatedGroups {
+        groups: Vec<crate::SeedContextGroup>,
+    },
+    ChangedUnits {
+        units: Vec<crate::SelectedSourceUnit>,
+    },
+    RelatedGroup {
+        group: Box<crate::ContextGroupOutcome>,
+    },
     Paragraph {
         span: SourceSpan,
         text: String,
@@ -299,7 +339,7 @@ pub enum SelectionReadiness {
     Ready {
         content: SelectionContent,
         omissions: Vec<Omission>,
-        coverage: Box<CaptureCoverage>,
+        coverage: Box<crate::SelectionCoverage>,
     },
     Refused {
         diagnostics: DiagnosticList,
@@ -314,6 +354,9 @@ pub struct SelectionResult {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetLocation {
+    CodeUnits {
+        units: Vec<crate::SourceUnitKey>,
+    },
     Paragraph {
         span: SourceSpan,
         target_id: TargetId,

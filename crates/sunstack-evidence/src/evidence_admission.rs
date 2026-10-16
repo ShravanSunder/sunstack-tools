@@ -5,6 +5,7 @@ pub(crate) fn admission(
     input: &EvidencePlanInput,
     registry: &AdapterRegistry,
 ) -> EvidenceResult<()> {
+    crate::connected_admission::admit_connected_plan(input)?;
     let mut keys = BTreeSet::new();
     let mut roots = BTreeSet::new();
     for binding in &input.repositories {
@@ -42,7 +43,7 @@ pub(crate) fn admission(
                     return Err(EvidenceCode::PathOutsideRoot.into());
                 }
             }
-            SourceSpec::ChangeSet { .. } => return Err(EvidenceCode::InvalidSelector.into()),
+            SourceSpec::ChangeSet { .. } => {}
             SourceSpec::Payload { .. } => {}
         }
     }
@@ -105,6 +106,13 @@ pub(crate) fn admit_declaration(
             SourceSpec::Conversation { .. },
             EvidenceSelection::Conversation { .. }
         ) | (
+            SourceSpec::ChangeSet { .. },
+            EvidenceSelection::ChangeSetLiteralText { .. }
+                | EvidenceSelection::ChangeSetRegexText { .. }
+                | EvidenceSelection::ChangeSetAstPattern { .. }
+                | EvidenceSelection::ChangedUnits { .. }
+                | EvidenceSelection::RelatedUnits { .. }
+        ) | (
             SourceSpec::Payload { .. },
             EvidenceSelection::WholePayload | EvidenceSelection::PayloadField { .. }
         )
@@ -112,6 +120,7 @@ pub(crate) fn admit_declaration(
     if !compatible {
         return Err(EvidenceCode::InvalidSelector.into());
     }
+    crate::connected_admission::admit_connected_selection(&declaration.select)?;
     if let Some(selection) = declaration.select.conversation() {
         selection.validate()?;
     }

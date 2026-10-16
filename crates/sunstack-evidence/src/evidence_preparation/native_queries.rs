@@ -6,6 +6,27 @@ impl Preparation {
         query: &NativeQuery,
     ) -> EvidenceResult<SelectionReadiness> {
         let (repository, paths, selection) = match &query.selector {
+            EvidenceSelector::RelatedUnits {
+                query: relationship_query,
+                chunk_settings,
+                minimum_related_units,
+            } => {
+                return self
+                    .related_select(
+                        relationship_query,
+                        chunk_settings,
+                        *minimum_related_units,
+                        &EvidenceDeclaration {
+                            id: query.id.clone(),
+                            input: SourceName::new("native_query")?,
+                            requirement: EvidenceRequirement::Required,
+                            select: EvidenceSelection::WholeDocument,
+                            max_items: None,
+                            max_bytes: None,
+                        },
+                    )
+                    .await;
+            }
             EvidenceSelector::Paragraph {
                 repository_id,
                 source_path,
