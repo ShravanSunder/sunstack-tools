@@ -7,6 +7,22 @@ use serde_json::json;
 use support::*;
 
 #[tokio::test]
+async fn malformed_judgment_input_keeps_the_native_code_and_safe_schema_path() {
+    let mut input = serde_json::to_value(mixed_input("http://127.0.0.1:1/")).unwrap();
+    input["request"]["questions"] =
+        json!({"PRIVATE_DYNAMIC_QUESTION":{"type":"noul","instructions":true}});
+    let output = run(&workspace_root(), "run_judgments", input).await;
+    let wire = response(&output, 2);
+    let diagnostic = &wire["result"]["outcome"]["diagnostics"]["items"][0];
+    assert_eq!(diagnostic["code"], "invalid_question");
+    assert_eq!(
+        diagnostic["location"],
+        json!({"kind":"field","field_path":["request","questions"]})
+    );
+    assert!(!diagnostic.to_string().contains("PRIVATE_DYNAMIC_QUESTION"));
+}
+
+#[tokio::test]
 async fn real_binary_runs_mixed_judgments_with_admitted_receipt_and_attempts() {
     let mut server = TestServer::start(vec![HttpReply::json(decision_fixtures::response())]).await;
     let input = serde_json::to_value(mixed_input(&server.endpoint)).unwrap();

@@ -23,7 +23,9 @@ unchanged absolute Cargo signing-runner path. Each child has explicit CWD,
 pipes and a synthetic environment credential; no credential is in stdin.
 They inspect the child exit and parse exactly one complete stdout JSON value.
 The process owns one Tokio runtime. Protocol code bounds stdin before parsing;
-library types own input admission and outcomes. The CLI adds only the envelope,
+library types own input admission and outcomes. Judgment input decoding calls
+the decisions crate's existing `judgment_validation::decode_run_input`, retaining
+its closed codes and schema-only diagnostic paths. The CLI adds only the envelope,
 operation delegation, signals and exits. Its closed protocol diagnostics copy
 no received decoder message, key or value. No casts or duplicate domain shapes
 were introduced. RawValue preserves operation-input JSON until native decoding.
@@ -51,6 +53,7 @@ are explicitly synthetic, not live-host qualification.
 | `raw_protocol_errors_never_fabricate_an_operation_result` | Empty/truncated JSON, non-object/multiple frames, raw duplicate/unknown envelope keys, unknown version/operation must give protocol_error/2 without result; actual process framing |
 | `evidence_success_and_required_optional_refusals_use_real_selections_and_exits` | Missing selected text, wrong operation, unselected-text leakage, required refusal treated as success or optional refusal treated as incomplete; actual Markdown selection and 0/2/3 exits |
 | `real_binary_runs_mixed_judgments_with_admitted_receipt_and_attempts` | Fake completion or dropped native primitive/receipt; real process to reqwest to recording HTTP, literal mixed answers and one actual dispatch |
+| `malformed_judgment_input_keeps_the_native_code_and_safe_schema_path` | CLI replacing the native invalid_question code/path or echoing a dynamic question name; actual binary to the public native decoder |
 | `real_binary_distinguishes_invalid_request_provider_failure_and_invalid_response` | Known malformed input becoming protocol_error, budget refusal dispatching, failed work becoming answers or success; operation results/2, both failure variants/3, zero-call observer |
 | `real_binary_keeps_configured_provider_attempts_finite` | Hidden extra retry or missing attempt; actual three HTTP requests and three attempt records under retry_count=2 |
 | `stdin_raw_byte_bound_accepts_exact_limit_and_refuses_excess_without_eof_or_parse` | Rejecting exact 8,388,608 bytes, parsing over-limit malformed input, or waiting on an open writer past limit+1; real byte stream |
@@ -103,12 +106,19 @@ SDKROOT="$(xcrun --show-sdk-path)" CC=/usr/bin/clang CFLAGS="-isysroot $(xcrun -
   the bounded reader to limit+2 made the open-writer limit+1 scenario time out
   for its intended reason (one failed, exit 100). Log:
   `target/cli-bound-sensitivity.log`. All deliberate faults were restored.
+- Final source inspection caught a duplicate CLI judgment-input error classifier
+  despite the existing native decoder. Regression `9956653d-3297-460a-a55b-ca6f11ac6838`
+  failed for invalid_configuration instead of the native invalid_question.
+  Delegating to that existing decoder passed in `8cdaa2e6`; the safe path is
+  [request, questions], never the dynamic author name. This was reversible
+  implementation drift, fixed without an API or contract change. Logs:
+  `target/cli-native-decoder-{red,green}.log`.
 - Final `cargo fmt --all -- --check`: exit 0, `target/cli-final-fmt.log`.
 - Final `cargo clippy --workspace --all-targets -- -D warnings`: exit 0,
   `target/cli-final-clippy.log`.
 - `cargo build -p sunstack-rule-cli`: exit 0, `target/cli-final-build.log`.
-- Final `cargo nextest run --workspace`: exit 0, 97 passed, one hosted ignored,
-  zero LEAK markers, run `b5852f93-a629-4095-b907-3ef68991428f`;
+- Final `cargo nextest run --workspace`: exit 0, 98 passed, one hosted ignored,
+  zero LEAK markers, run `747e99ea-158e-43ce-b553-5d2a9a3b1beb`;
   `target/cli-final-workspace.log`.
 
 Rerun the process suite with `cargo nextest run -p sunstack-rule-cli` and the

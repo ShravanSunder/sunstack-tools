@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use sunstack_decisions::{
-    DecisionDiagnostic, DecisionDiagnosticCode, DecisionRunOutcome, RunJudgmentsInput,
+    DecisionRunOutcome, RunJudgmentsInput, judgment_validation::decode_run_input,
 };
 use sunstack_evidence::{DiagnosticList, EvidenceCode, EvidencePlanInput, EvidencePlanOutcome};
 use tokio::io::AsyncReadExt;
@@ -176,23 +176,13 @@ pub fn decode_request(bytes: &[u8]) -> Result<OperationInput, ProtocolCode> {
                 },
             )),
         }),
-        "run_judgments" => Ok(match serde_json::from_str(envelope.input.get()) {
+        "run_judgments" => Ok(match decode_run_input(envelope.input.get().as_bytes()) {
             Ok(input) => OperationInput::RunJudgments(Box::new(input)),
-            Err(error) => {
-                let message = error.to_string();
-                let code = if message.starts_with("unknown field") {
-                    DecisionDiagnosticCode::UnknownField
-                } else if message.starts_with("duplicate field") {
-                    DecisionDiagnosticCode::DuplicateField
-                } else {
-                    DecisionDiagnosticCode::InvalidConfiguration
-                };
-                OperationInput::Rejected(OperationResult::RunJudgments(
-                    DecisionRunOutcome::InvalidRequest {
-                        diagnostics: DecisionDiagnostic::request(code).into(),
-                    },
-                ))
-            }
+            Err(diagnostic) => OperationInput::Rejected(OperationResult::RunJudgments(
+                DecisionRunOutcome::InvalidRequest {
+                    diagnostics: diagnostic.into(),
+                },
+            )),
         }),
         // S3a integration supplies the two rules operations in phase 2.
         _ => Err(ProtocolCode::UnsupportedOperation),
