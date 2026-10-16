@@ -77,15 +77,15 @@ A change-set declaration (`change_set_*`, `changed_units`, `related_units`) sele
 - If the resolved path lies inside a change-scoped repository binding's allowed paths, the binding's resolved changed paths decide `added`, `changed` or `unchanged`.
 - Otherwise the result is `no_before_side { reason: outside_change_scope_paths }`.
 
-The granularity is the file: an edit anywhere in a RuleSet file marks all its rules `rule_changed`, which only selects more.
+The granularity is the file. An edit anywhere in a RuleSet file marks all its rules `rule_changed`, and a newly added RuleSet file marks them all `new_rule`. This only selects more.
 
 **Rules' mapping.** For each admitted occurrence, the comparisons below produce its `selected_by` reasons, in the closed `SelectedReason` order:
 
 | Subject | Comparison | Reason |
 | --- | --- | --- |
-| The rule file | `added` | `new_rule` |
+| The rule file or its RuleSet file | `added` | `new_rule` |
 | The rule file or its RuleSet file | `changed` | `rule_changed` |
-| The target declaration | `changed` or `added` | `target_changed` |
+| The target declaration | `changed`, `added` or `deleted` | `target_changed` |
 | Any context declaration | `changed`, `added` or `deleted` | `context_changed` |
 | Any declaration read by the occurrence's applicability entries | `changed`, `added` or `deleted` | `applicability_changed` |
 | Any compared subject | `before_unknown { baseline_unavailable }` | `baseline_unavailable` |
@@ -95,7 +95,7 @@ The granularity is the file: an edit anywhere in a RuleSet file marks all its ru
 
 - **No reason holds:** the occurrence is `outside_change_scope { reason: no_declared_change }` and its current evidence is never acquired.
 - **Selected:** current applicability then runs as in milestone 1. Not applicable is `not_applicable` (the `not_applicable_current` case), and unresolved current applicability is `selection_failed` (`selection_diagnostic`).
-- **Target deleted:** the current-side selection refuses with `deleted_target`, as in milestone 1.
+- **Target deleted:** the occurrence is selected (`target_changed`). Its current-side selection then refuses with `deleted_target`, so it ends `selection_failed`, as in milestone 1. A deletion is never `outside_change_scope`.
 
 **Applicability is compared by its inputs, not its outcomes.** Rules never evaluates conditions or decisions on the before side, so it never makes a before-side model call. A change to any evidence an applicability entry reads selects the occurrence, a superset of an outcome change: a false-to-true flip always selects, and a true-to-true change with changed inputs also selects. The cost is extra judged occurrences when applicability inputs change without changing the outcome. The gain is no before-side evaluation and no second evaluation path.
 
