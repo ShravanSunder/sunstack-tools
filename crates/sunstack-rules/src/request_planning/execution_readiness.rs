@@ -285,13 +285,13 @@ pub(crate) fn unit_stopped(
             plan.entries[index.0].routing.as_ref(),
         ),
     };
-    if let Some(routing) = routing {
-        if matches!(
+    if let Some(routing) = routing
+        && matches!(
             route_state(plan, state, routing),
             RouteState::NotSelected | RouteState::Failed { .. } | RouteState::Cancelled
-        ) {
-            return Some(routing.entry);
-        }
+        )
+    {
+        return Some(routing.entry);
     }
     known_stop(parents,state).or_else(||parents.iter().copied().find(|index| {
         if plan.precomputed.get(index).is_some_and(|outcome|!matches!(outcome,ConditionOutcome::Passed)){return true}
@@ -340,14 +340,12 @@ pub(crate) fn request_readiness(
         .units
         .iter()
         .all(|unit| unit_stopped(plan, state, *unit).is_some())
-    {
-        if let Some(entry) = request
+        && let Some(entry) = request
             .units
             .iter()
             .find_map(|unit| unit_stopped(plan, state, *unit))
-        {
-            return RequestReadiness::Stopped { entry };
-        }
+    {
+        return RequestReadiness::Stopped { entry };
     }
     RequestReadiness::Ready
 }

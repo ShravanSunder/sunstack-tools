@@ -442,7 +442,7 @@ impl RuleInvocationReport {
 pub enum InvocationCancellationProgress {
     BeforeReportAdmission,
     ReportAdmitted {
-        partial_report: RuleInvocationReport,
+        partial_report: Box<RuleInvocationReport>,
     },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

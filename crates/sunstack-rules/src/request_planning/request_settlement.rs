@@ -98,7 +98,7 @@ pub(crate) fn settle_request(
                 match &outcome {
                     DecisionRunOutcome::Completed { answers, .. } => match answers.get(name) {
                         Some(answer) => GateSettlement::Answered {
-                            reference,
+                            reference: reference.clone(),
                             answer: answer.clone(),
                         },
                         None => GateSettlement::Failed {
@@ -118,7 +118,7 @@ pub(crate) fn settle_request(
                 match &outcome {
                     DecisionRunOutcome::Completed { answers, .. } => match answers.get(name) {
                         Some(answer) => RouterSettlement::Answered {
-                            reference,
+                            reference: reference.clone(),
                             answer: answer.clone(),
                         },
                         None => RouterSettlement::Failed {

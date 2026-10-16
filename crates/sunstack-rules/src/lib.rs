@@ -19,7 +19,6 @@ pub use report_contracts::*;
 pub mod verdict_evaluation;
 pub use verdict_evaluation::*;
 
-mod request_encoding;
 mod request_state;
 pub mod rule_execution;
 pub use rule_execution::*;

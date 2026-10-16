@@ -5,7 +5,6 @@ use sunstack_evidence::{
     SelectionReadiness, SourceName, SourceSpec, ToolFilter, ToolResult, ToolUseSelection,
     TurnWindow,
 };
-use tokio_util::sync::CancellationToken;
 pub(crate) struct ConditionContext<'invocation> {
     pub sources: &'invocation AdmittedSources,
     pub origin: &'invocation InvocationOrigin,
@@ -13,9 +12,9 @@ pub(crate) struct ConditionContext<'invocation> {
 }
 fn unresolved() -> ConditionOutcome {
     ConditionOutcome::Unresolved {
-        diagnostic: ReportDiagnostic::Rule(RuleDiagnostic::new(
+        diagnostic: ReportDiagnostic::Rule(Box::new(RuleDiagnostic::new(
             RuleDiagnosticCode::ConditionUnresolved,
-        )),
+        ))),
     }
 }
 fn comparison(result: bool) -> ConditionOutcome {
@@ -209,83 +208,6 @@ fn pattern_present(text: &str, pattern: &PresencePattern) -> Result<bool, ()> {
             Ok(language.ast_grep(text).root().find(pattern).is_some())
         }
     }
-}
-pub(crate) async fn evaluate_conditions(
-    entries: &[ApplicabilityEntry],
-    owner: EntryOwner,
-    sources: &AdmittedSources,
-    origin: &InvocationOrigin,
-    session: &mut EvidenceSession,
-    cancellation: &CancellationToken,
-) -> (ApplicabilityOutcome, Vec<EvaluatedEntry>) {
-    let mut evaluated = Vec::new();
-    let mut outcome = ApplicabilityOutcome::Applicable;
-    for (position, entry) in entries.iter().enumerate() {
-        let key = EntryKey {
-            owner: owner.clone(),
-            position,
-        };
-        if cancellation.is_cancelled() {
-            evaluated.push(EvaluatedEntry {
-                key,
-                result: EntryResult::NotEvaluated {
-                    reason: NotEvaluatedReason::Cancelled,
-                },
-            });
-            outcome = ApplicabilityOutcome::NotEvaluated {
-                reason: NotEvaluatedReason::Cancelled,
-            };
-            continue;
-        }
-        if !matches!(outcome, ApplicabilityOutcome::Applicable) {
-            evaluated.push(EvaluatedEntry {
-                key,
-                result: EntryResult::NotEvaluated {
-                    reason: NotEvaluatedReason::EarlierEntryStopped,
-                },
-            });
-            continue;
-        }
-        let ApplicabilityEntry::Condition { test } = entry else {
-            break;
-        };
-        let basis = condition_basis(test);
-        let result = evaluate_condition(
-            test,
-            ConditionContext {
-                sources,
-                origin,
-                session,
-            },
-        )
-        .await;
-        outcome = match &result {
-            ConditionOutcome::Passed => ApplicabilityOutcome::Applicable,
-            ConditionOutcome::DidNotPass => ApplicabilityOutcome::NotApplicable {
-                entry: key.clone(),
-                basis: EntryBasis::Condition {
-                    test: basis.clone(),
-                },
-            },
-            ConditionOutcome::Unresolved { diagnostic } => {
-                ApplicabilityOutcome::ApplicabilityFailed {
-                    entry: key.clone(),
-                    cause: Cause::Condition {
-                        entry: key.clone(),
-                        diagnostic: diagnostic.clone(),
-                    },
-                }
-            }
-        };
-        evaluated.push(EvaluatedEntry {
-            key,
-            result: EntryResult::Condition {
-                outcome: result,
-                basis,
-            },
-        });
-    }
-    (outcome, evaluated)
 }
 pub(crate) fn stopped_occurrence(
     key: RuleOccurrenceKey,

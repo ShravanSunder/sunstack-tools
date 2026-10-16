@@ -208,15 +208,13 @@ fn router_outcome(
         },
     }
 }
-fn request_for_unit<'state>(
-    unit: UnitKey,
-    state: &'state ExecutionState,
-) -> Option<(
-    RequestId,
-    &'state RequestStatus,
-    &'state [QuestionBinding],
-    &'state [(UnitKey, sunstack_decisions::QuestionName)],
-)> {
+struct SettledUnitRequest<'state> {
+    id: RequestId,
+    status: &'state RequestStatus,
+    bindings: &'state [QuestionBinding],
+    unit_bindings: &'state [(UnitKey, sunstack_decisions::QuestionName)],
+}
+fn request_for_unit(unit: UnitKey, state: &ExecutionState) -> Option<SettledUnitRequest<'_>> {
     state
         .requests
         .iter()
@@ -229,7 +227,12 @@ fn request_for_unit<'state>(
                 .iter()
                 .any(|(candidate, _)| *candidate == unit) =>
             {
-                Some((*id, status, bindings.as_slice(), unit_bindings.as_slice()))
+                Some(SettledUnitRequest {
+                    id: *id,
+                    status,
+                    bindings,
+                    unit_bindings,
+                })
             }
             _ => None,
         })
@@ -283,7 +286,13 @@ fn occurrence_result(
             },
         };
     }
-    let Some((id, status, bindings, unit_bindings)) = request_for_unit(unit, state) else {
+    let Some(SettledUnitRequest {
+        id,
+        status,
+        bindings,
+        unit_bindings,
+    }) = request_for_unit(unit, state)
+    else {
         let limited = plan
             .requests
             .iter()
@@ -534,8 +543,8 @@ pub(crate) fn project_report(
                 });
             }
         }
-        if let RequestStatus::Sent { outcome } = &status {
-            match outcome {
+        if let RequestStatus::Sent {
+            outcome:
                 DecisionRunOutcome::InvalidRequest {
                     diagnostics: reported,
                 }
@@ -550,9 +559,10 @@ pub(crate) fn project_report(
                 | DecisionRunOutcome::Cancelled {
                     diagnostics: reported,
                     ..
-                } => diagnostics.extend(reported.clone().into()),
-                _ => {}
-            }
+                },
+        } = &status
+        {
+            diagnostics.extend(reported.clone().into());
         }
         requests.push(RequestRecord {
             index: indices[&request.id],

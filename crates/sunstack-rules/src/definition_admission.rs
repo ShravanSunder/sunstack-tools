@@ -55,14 +55,14 @@ pub fn decode_router(bytes: &[u8], file: &Path) -> Result<RouterDefinition, Diag
 }
 pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize) {
     for diagnostic in &mut diagnostics.items {
-        if let ReportDiagnostic::Rule(diagnostic) = diagnostic {
-            if matches!(diagnostic.location, RuleDiagnosticLocation::None) {
-                diagnostic.location = crate::RuleDiagnosticLocation::Definition {
-                    file: file.into(),
-                    line,
-                    column: 1,
-                    field_path: vec![],
-                }
+        if let ReportDiagnostic::Rule(diagnostic) = diagnostic
+            && matches!(diagnostic.location, RuleDiagnosticLocation::None)
+        {
+            diagnostic.location = crate::RuleDiagnosticLocation::Definition {
+                file: file.into(),
+                line,
+                column: 1,
+                field_path: vec![],
             }
         }
     }

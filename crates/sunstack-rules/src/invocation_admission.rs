@@ -181,17 +181,15 @@ pub(crate) async fn admit_invocation(
         agent,
         ..
     } = &input.origin
-    {
-        if host.is_empty()
+        && (host.is_empty()
             || event.is_empty()
             || session.as_ref().is_some_and(String::is_empty)
             || turn.as_ref().is_some_and(String::is_empty)
-            || matches!(agent,Some(OriginAgent::Subagent{id,agent_type}) if id.is_empty() || agent_type.as_ref().is_some_and(String::is_empty))
-        {
-            return Err(DiagnosticList::rule(
-                RuleDiagnosticCode::InvalidConfiguration,
-            ));
-        }
+            || matches!(agent,Some(OriginAgent::Subagent{id,agent_type}) if id.is_empty() || agent_type.as_ref().is_some_and(String::is_empty)))
+    {
+        return Err(DiagnosticList::rule(
+            RuleDiagnosticCode::InvalidConfiguration,
+        ));
     }
     let owned = input.clone();
     let cancellation = cancellation.clone();

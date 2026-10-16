@@ -216,12 +216,6 @@ pub(crate) fn selection_read_set(
         .collect()
 }
 impl ExecutionPlan {
-    pub fn unit_group(&self, unit: UnitKey) -> Option<GroupIndex> {
-        match unit {
-            UnitKey::Rule(index) => Some(self.occurrences[index.0].group),
-            UnitKey::Gate(index) => self.entries[index.0].group,
-        }
-    }
     pub fn entry_evidence(&self, index: EntryIndex) -> &[EvidenceDeclaration] {
         match &self.entries[index.0].definition {
             EntryDefinition::Decision { evidence, .. } => evidence,

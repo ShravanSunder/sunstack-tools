@@ -23,16 +23,6 @@ pub(crate) enum RequestAdmission {
     Unverifiable(DiagnosticList),
     Invalid(DiagnosticList),
 }
-impl RequestAdmission {
-    pub fn diagnostics(self) -> Option<DiagnosticList> {
-        match self {
-            Self::Within(_) => None,
-            Self::Exceeded(diagnostics)
-            | Self::Unverifiable(diagnostics)
-            | Self::Invalid(diagnostics) => Some(diagnostics),
-        }
-    }
-}
 pub(crate) async fn prepare_units(
     plan: &ExecutionPlan,
     state: &mut ExecutionState,

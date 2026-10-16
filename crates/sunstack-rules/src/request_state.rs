@@ -34,10 +34,10 @@ pub(crate) async fn select_rule_evidence(
     .await;
     let mut refused = DiagnosticList::default();
     for selection in &selections {
-        if selection.declaration.requirement == EvidenceRequirement::Required {
-            if let SelectionReadiness::Refused { diagnostics } = &selection.result.readiness {
-                refused.extend(diagnostics.clone().into())
-            }
+        if selection.declaration.requirement == EvidenceRequirement::Required
+            && let SelectionReadiness::Refused { diagnostics } = &selection.result.readiness
+        {
+            refused.extend(diagnostics.clone().into())
         }
     }
     let target = if refused.is_empty() {

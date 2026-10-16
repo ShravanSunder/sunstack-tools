@@ -159,9 +159,9 @@ impl RuleDiagnostic {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ReportDiagnostic {
-    Rule(RuleDiagnostic),
-    Evidence(sunstack_evidence::Diagnostic),
-    Decision(sunstack_decisions::DecisionDiagnostic),
+    Rule(Box<RuleDiagnostic>),
+    Evidence(Box<sunstack_evidence::Diagnostic>),
+    Decision(Box<sunstack_decisions::DecisionDiagnostic>),
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -193,7 +193,7 @@ impl DiagnosticList {
 impl From<RuleDiagnostic> for DiagnosticList {
     fn from(value: RuleDiagnostic) -> Self {
         Self {
-            items: vec![ReportDiagnostic::Rule(value)],
+            items: vec![ReportDiagnostic::Rule(Box::new(value))],
             omitted_count: 0,
         }
     }
@@ -204,7 +204,7 @@ impl From<sunstack_evidence::DiagnosticList> for DiagnosticList {
             items: value
                 .items
                 .into_iter()
-                .map(ReportDiagnostic::Evidence)
+                .map(|diagnostic| ReportDiagnostic::Evidence(Box::new(diagnostic)))
                 .collect(),
             omitted_count: value.omitted_count,
         }
@@ -216,7 +216,7 @@ impl From<sunstack_decisions::DiagnosticList> for DiagnosticList {
             items: value
                 .items
                 .into_iter()
-                .map(ReportDiagnostic::Decision)
+                .map(|diagnostic| ReportDiagnostic::Decision(Box::new(diagnostic)))
                 .collect(),
             omitted_count: value.omitted_count,
         }
