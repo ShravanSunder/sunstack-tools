@@ -121,10 +121,34 @@ pub async fn prepare_evidence(
 }
 impl Preparation {
     pub(crate) async fn open(
-        input: EvidencePlanInput,
+        mut input: EvidencePlanInput,
         registry: AdapterRegistry,
         cancellation: CancellationToken,
     ) -> EvidenceResult<Self> {
+        // Freeze lexical source identities at admission; later aliases never consult live paths.
+        for source in input.sources.values_mut() {
+            match source {
+                SourceSpec::Document { path, .. } => {
+                    *path = lexical_path(path)
+                        .filter(|path| !path.is_absolute() && !path.as_os_str().is_empty())
+                        .ok_or(EvidenceCode::PathOutsideRoot)?;
+                }
+                SourceSpec::Conversation {
+                    transcript_path, ..
+                } => {
+                    let absolute = if transcript_path.is_absolute() {
+                        transcript_path.clone()
+                    } else {
+                        std::env::current_dir()
+                            .map_err(|_| EvidenceCode::TranscriptUnavailable)?
+                            .join(&*transcript_path)
+                    };
+                    *transcript_path =
+                        lexical_path(&absolute).ok_or(EvidenceCode::TranscriptUnavailable)?;
+                }
+                SourceSpec::Payload { .. } | SourceSpec::ChangeSet { .. } => {}
+            }
+        }
         crate::evidence_admission::admission(&input, &registry)?;
         let mut preparation = Self {
             input,
@@ -193,33 +217,7 @@ impl Preparation {
             .clone();
         // Aliases reuse captures rather than rereading the same bound source.
         for (alias, source) in &self.snapshot.sources {
-            let same =
-                self.input
-                    .sources
-                    .get(alias)
-                    .is_some_and(|existing| match (existing, &spec) {
-                        (
-                            SourceSpec::Conversation {
-                                transcript_path: first,
-                                format: first_format,
-                                final_assistant_text: first_final,
-                            },
-                            SourceSpec::Conversation {
-                                transcript_path: second,
-                                format: second_format,
-                                final_assistant_text: second_final,
-                            },
-                        ) => {
-                            first_format == second_format
-                                && first_final == second_final
-                                && first
-                                    .canonicalize()
-                                    .ok()
-                                    .zip(second.canonicalize().ok())
-                                    .is_some_and(|(first, second)| first == second)
-                        }
-                        _ => existing == &spec,
-                    });
+            let same = self.input.sources.get(alias) == Some(&spec);
             if same {
                 let source = source.clone();
                 self.snapshot.sources.insert(name.clone(), source.clone());
@@ -290,6 +288,13 @@ impl Preparation {
         repository: &RepositoryId,
         path: PathBuf,
     ) -> EvidenceResult<Arc<CapturedDocument>> {
+        let path = lexical_path(&path)
+            .filter(|path| !path.is_absolute() && !path.as_os_str().is_empty())
+            .ok_or(EvidenceCode::PathOutsideRoot)?;
+        let cache_key = (repository.clone(), path.clone());
+        if let Some(document) = self.document_cache.get(&cache_key) {
+            return Ok(document.clone());
+        }
         let binding = self
             .input
             .repositories
@@ -299,21 +304,6 @@ impl Preparation {
             .clone();
         if !path_is_allowed(&binding, &path)? {
             return Err(EvidenceCode::PathOutsideRoot.into());
-        }
-        let root = binding
-            .root
-            .canonicalize()
-            .map_err(|_| EvidenceCode::SourceUnavailable)?;
-        let canonical = root
-            .join(&path)
-            .canonicalize()
-            .map_err(|_| EvidenceCode::SourceUnavailable)?;
-        if !canonical.starts_with(&root) {
-            return Err(EvidenceCode::PathOutsideRoot.into());
-        }
-        let cache_key = (repository.clone(), canonical);
-        if let Some(document) = self.document_cache.get(&cache_key) {
-            return Ok(document.clone());
         }
         if self.measurements.files_read >= self.input.limits.max_files.get() {
             return Err(EvidenceCode::EvidenceLimit.into());
@@ -441,4 +431,20 @@ impl Preparation {
             coverage: Box::new(coverage),
         })
     }
+}
+
+fn lexical_path(path: &std::path::Path) -> Option<PathBuf> {
+    let mut normalized = PathBuf::new();
+    for part in path.components() {
+        match part {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                if !normalized.pop() {
+                    return None;
+                }
+            }
+            other => normalized.push(other),
+        }
+    }
+    Some(normalized)
 }
