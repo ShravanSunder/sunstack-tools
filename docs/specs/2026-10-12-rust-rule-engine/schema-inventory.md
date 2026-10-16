@@ -73,7 +73,7 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | Rules | `RuleOccurrenceResult` | `judged`, `not_applicable`, `outside_change_scope`, `selection_failed`, `evaluation_failed`, `cancelled`, `not_started`. Milestone 2: selected variants carry `selected_by: [SelectedReason]` |
 | Rules | `PreparedOccurrence` | `planned { selected_by }`, `not_applicable`, `outside_change_scope` (milestone 2), `selection_failed` |
 | Rules (milestone 2) | `SelectedReason` | Closed and ordered: `full_scope`, `target_changed`, `context_changed`, `rule_changed`, `new_rule`, `applicability_changed`, `baseline_unavailable`, `before_analysis_unknown` |
-| Evidence (milestone 2, native only) | `ChangeComparison` | `unchanged`, `changed`, `added`, `deleted`, `before_unknown`, `no_before_side`, from `EvidenceSession::compare_change_sides` |
+| Evidence (milestone 2, native only) | `ChangeComparison` | `unchanged`, `changed`, `added`, `deleted`, `before_unknown`, `no_before_side`, `refused`, from `EvidenceSession::compare_change_sides` over a declaration, a whole input or a definition file |
 | Rules | `VerdictOutcome` | Basis (noul answer, or composite dimensions with normalized values and weights), value, threshold, `pass` or `fail { activation: nudge \| block \| nudge_above_band }` |
 | Rules | `RouterOutcome` | `routed`, `uncertain_intent { confidence, floor, distribution }`, `no_route`, `router_failed`, `not_evaluated` |
 | Rules | `RequestRecord` | Mode, question bindings, outcome, discarded answers with their cost |
