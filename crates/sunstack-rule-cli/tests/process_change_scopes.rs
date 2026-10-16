@@ -180,6 +180,7 @@ async fn moved_process_paragraphs_are_pruned_with_outside_not_sent_and_no_http()
         0,
     );
     let preparation = &prepared["result"]["outcome"]["preparation"];
+    assert_eq!(preparation["occurrences"].as_array().unwrap().len(), 2);
     assert_eq!(preparation["planned_requests"], json!([]));
     assert!(
         preparation["occurrences"]
@@ -194,6 +195,7 @@ async fn moved_process_paragraphs_are_pruned_with_outside_not_sent_and_no_http()
         0,
     );
     let report = &evaluated["result"]["outcome"]["report"];
+    assert_eq!(report["occurrences"].as_array().unwrap().len(), 2);
     assert!(
         report["occurrences"]
             .as_array()
@@ -251,6 +253,7 @@ async fn process_gate_frontier_stays_pending_until_nonpass_equality_change_or_re
             0,
         );
         let preparation = &prepared["result"]["outcome"]["preparation"];
+        assert_eq!(preparation["occurrences"].as_array().unwrap().len(), 2);
         assert!(
             preparation["occurrences"]
                 .as_array()
