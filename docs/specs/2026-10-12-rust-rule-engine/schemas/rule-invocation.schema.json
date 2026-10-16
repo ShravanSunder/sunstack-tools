@@ -258,9 +258,14 @@
           "properties": {
             "kind": { "const": "jev_openrouter" },
             "endpoint": { "type": "string", "minLength": 1 },
-            "model": { "type": "string", "minLength": 1 }
+            "model": { "type": "string", "minLength": 1 },
+            "context_ceiling_tokens": {
+              "description": "The provider context ceiling the caller declares for this model. The engine never assumes one; it constrains max_input_tokens.",
+              "type": "integer",
+              "minimum": 1
+            }
           },
-          "required": ["kind", "endpoint", "model"],
+          "required": ["kind", "endpoint", "model", "context_ceiling_tokens"],
           "additionalProperties": false
         }
       ]
