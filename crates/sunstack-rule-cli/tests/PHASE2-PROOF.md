@@ -192,13 +192,45 @@ campaigns remain failed; V29/V30 and genuine hosted first/repeat measurements
 remain open. Total diagnosis/campaign provider attempts so far: two timed-out
 binary attempts plus one successful direct replay, with no hidden retry.
 
+Lead diagnosis `01a145bb-41d2-7c33-a97c-29a8467c5563`: LuLu is active with
+loopback allowed; its rules approve the native test identity but contain no
+approval for the CLI identity. Own read-only inspection corroborates that
+target/debug/sunstack-rule is Developer ID signed as
+`dev.shravansunder.sunstack-rule.debug`, and the LuLu rules contain the
+`dev.shravansunder.sunstack-tools-tests.debug` identity but no CLI identity.
+Private firewall flow logs were unavailable to the Lead, so host egress is the
+leading hypothesis, not an observed drop attributed to LuLu. No firewall rule,
+proxy, signing identity or alternate execution path was changed. The successful
+Python probe is diagnostic evidence only, never V29/V30 proof.
+
+**Blocked: host egress approval for the sunstack-rule identity.** Per Lead
+direction, no further binary hosted calls until the owner approves that
+identity and the Lead authorizes one separately named campaign 3 of the same
+four invocations. If it still times out with approval verified, return to the
+transport/network investigation. This partial target does not close S3b.
+
 ## Gates and remaining boundaries
 
 All Cargo commands use the command-local SDKROOT/CC/CFLAGS prefix from the root,
-as in the phase 1 account. Current local CLI gate: 23 passed, three deliberate
+as in the phase 1 account. Intermediate CLI gate
+`3a141398-90fb-43cb-979f-081f89e26862`: 23 passed, three deliberate
 hosted/measurement skips, exit 0; `target/cli-phase2-current-local.log`.
-Final workspace gates and fresh hosted campaign results are recorded below
-after completion.
+
+Final local gates on source checkpoint `7af7cf1` (only this proof account is
+updated afterward):
+
+| Command | Result | Evidence |
+| --- | --- | --- |
+| cargo fmt --all -- --check | Exit 0 | target/cli-phase2-final-fmt.log |
+| cargo clippy --workspace --all-targets -- -D warnings | Exit 0, zero warnings | target/cli-phase2-final-clippy.log |
+| cargo build -p sunstack-rule-cli | Exit 0 | target/cli-phase2-final-build.log |
+| cargo nextest run --workspace | Exit 0, 168 passed, 7 skipped, no LEAK marker | target/cli-phase2-final-workspace.log |
+
+Workspace run ID `cd668eb4-419b-48ad-99de-08b05e6d5e49`. The seven default skips
+are three native hosted cases, two CLI hosted journey cases, the explicit
+40-process measurement case and the offline preserved-request diagnosis.
+The latter two were separately executed as described above. The real hosted
+journey cases were attempted in two failed campaigns, not silently waived.
 
 The independently observed phase 1 native decisions LEAK remains a separate
 Lead-owned investigation. A later run without a LEAK marker does not prove it
