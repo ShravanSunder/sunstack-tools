@@ -249,3 +249,46 @@ test('compact headings menu stays open after hover then click and reaches a Mark
 		.poll((): boolean => insideViewport(requiredElement(fixture, '#notes--recovery')))
 		.toBe(true);
 });
+
+test('Mermaid hover keeps themed connectors visible and their arrow scale stable in both themes', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('navigation');
+	const owner = requiredElement(fixture, '#notes');
+	owner.scrollIntoView();
+	await expect
+		.poll((): number => owner.querySelectorAll('ex-mermaid svg polyline[data-from]').length)
+		.toBe(2);
+	const diagram = requiredElement(owner, 'ex-mermaid svg');
+	const registry = requiredElement(diagram, 'g[data-id="Registry"]');
+	const edges = Array.from(diagram.querySelectorAll<SVGElement>('polyline[data-from]'));
+	const widthBefore = edges.map(
+		(edge): string => fixture.defaultView?.getComputedStyle(edge).strokeWidth ?? '',
+	);
+	const boundsBefore = registry.getBoundingClientRect();
+	const verifyTheme = async (): Promise<string> => {
+		const sample = fixture.createElement('span');
+		sample.style.color = 'var(--accent)';
+		fixture.body.append(sample);
+		const expectedColor = fixture.defaultView?.getComputedStyle(sample).color;
+		sample.remove();
+		if (!expectedColor) throw new Error('The page accent has no computed colour.');
+		await fixtureLocator(frame, registry).hover();
+		await expect
+			.poll((): boolean =>
+				edges.every(
+					(edge): boolean => fixture.defaultView?.getComputedStyle(edge).stroke === expectedColor,
+				),
+			)
+			.toBe(true);
+		expect(
+			edges.map((edge): string => fixture.defaultView?.getComputedStyle(edge).strokeWidth ?? ''),
+		).toEqual(widthBefore);
+		expect(Math.abs(registry.getBoundingClientRect().width - boundsBefore.width)).toBeLessThan(1);
+		expect(Math.abs(registry.getBoundingClientRect().height - boundsBefore.height)).toBeLessThan(1);
+		await frame.getByRole('heading', { name: 'Session architecture', exact: true }).hover();
+		await expect.poll((): boolean => diagram.classList.contains('ex-tracing')).toBe(false);
+		return expectedColor;
+	};
+	const firstThemeColor = await verifyTheme();
+	await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
+	expect(await verifyTheme()).not.toBe(firstThemeColor);
+});

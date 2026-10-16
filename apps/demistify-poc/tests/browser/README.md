@@ -1,6 +1,6 @@
 # Demistify browser regressions
 
-Eleven Vitest Browser Mode scenarios exercise the built native Web Components in headless Chromium. Each case gets a fresh same-origin document. Vite serves copied runtime, theme, font, chunk and worker files as bytes, so the worker resolves beside the runtime just as it does for a plain HTML consumer. Tests do not import the runtime's TypeScript sources. An SVG outcome proves rendering; this suite does not separately assert that the worker, rather than the supported main-thread fallback, did the render.
+Twelve Vitest Browser Mode scenarios exercise the built native Web Components in headless Chromium. Each case gets a fresh same-origin document. Vite serves copied runtime, theme, font, chunk and worker files as bytes, so the worker resolves beside the runtime just as it does for a plain HTML consumer. Tests do not import the runtime's TypeScript sources. An SVG outcome proves rendering; this suite does not separately assert that the worker, rather than the supported main-thread fallback, did the render.
 
 Build the library before testing. During concurrent work, use a frozen copy of the complete library dist directory instead of rebuilding another writer's target. `DEMISTIFY_BROWSER_ASSETS` selects that copy; without it, the harness snapshots `packages/demistify/dist`. The harness prints its private snapshot path and chooses a free loopback port. It does not use the PoC preview port.
 
@@ -56,3 +56,7 @@ The following optional mode makes one private handler-disabled copy and runs onl
 ```sh
 PLAYWRIGHT_BROWSERS_PATH=/private/tmp/2026-10-demistify-browser-tests/chromium pnpm --filter @sunstack/demistify-poc exec node tests/browser/sensitivity.ts --native-gestures
 ```
+
+## Mermaid hover regression
+
+The node-hover case uses an actual Markdown-fenced Client → Registry → Session SVG. Native hover must keep both incident connectors at the page accent, retain their resting stroke width and node dimensions, and clear tracing on pointer exit. It repeats after the real theme button switches to a distinct second colour. The original runtime fails the visible-stroke check because the SVG declares `--accent: var(--accent)`; its traced stroke resolves to none. The prior hover width also scales default SVG markers. The renderer now inherits the page accent and diagram tracing changes colour without changing connector width; HTML flow overlays retain their existing stroke emphasis. This is a genuine pre-fix failure plus current real-browser proof, not a deliberate mutation.

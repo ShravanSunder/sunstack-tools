@@ -31,7 +31,7 @@ Updated 2026-10-16. Fixes belong to branch `fix/demistify-mermaid-scroll`; Cloud
 ## Verification and review gallery
 
 - [x] Add useful Vitest Browser Mode coverage with an Implementer Sidekick and independent Verifier; preserve Node tests and existing checks.
-- [x] Run 36 Node tests and 11 real Chromium browser scenarios; preserve original native Mermaid pan failure, the bounded CSS correction and later passing results.
+- [x] Run 36 Node tests and 12 real Chromium browser scenarios; preserve original native Mermaid pan failure, the bounded CSS correction and later passing results.
 - [x] Check all six gallery pages and three focused fixtures: zero source-check errors/warnings.
 - [x] Provide examples, descriptions, composition guidance and copyable markup for all 28 registered components across six review pages. Mark earlier vocabulary explicitly.
 - [x] Manually review representative content/card, visuals, layout/navigation and graph-explorer pages using one retained browser tab.
@@ -51,3 +51,7 @@ Earlier code/source-retention and neutral code-comment background repairs are do
 ## Explicit proof limits
 
 The focused browser suite is a focused regression suite, not an exhaustive audit of every component or browser. Exact pointer-anchor stability, every responsive transition while a drawer is open, loading-state timing, keyboard accessibility across every gallery component, and original private-explorer visual parity are not established. Cmd zoom/pan/reset on real pictures and Mermaid are established. Embedding without a sibling Markdown file was exercised over HTTP; full offline/file-protocol browser operation and Cloudflare/CORS/release behavior are separate, unverified here. The public skill/deployment work remains assigned to its existing owners.
+
+## Follow-up: Mermaid hover
+
+- [x] Repair disappearing highlighted connector strokes and arrowhead enlargement on node hover; the real regression fails before the fix and passes in both themes. Node/browser/check/build gates pass; scoped follow-up delivery is recorded in the proof.

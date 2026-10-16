@@ -43,7 +43,7 @@ For separately authorized PoC preview work, root `pnpm build` refreshes the libr
 
 ## Drive and reuse
 
-Inspect the finished browser configuration and assertions before reuse. The separate `apps/demistify-poc/vitest.config.ts` uses Node; the package `test` command is not browser evidence. The Implementer owns product tests. The eleven browser scenarios cover selected real interactions; their exact assertion limits are in the journey reference.
+Inspect the finished browser configuration and assertions before reuse. The separate `apps/demistify-poc/vitest.config.ts` uses Node; the package `test` command is not browser evidence. The Implementer owns product tests. The twelve browser scenarios cover selected real interactions; their exact assertion limits are in the journey reference.
 
 For direct UI observation, use host computer-use/Chrome on one released surface with sole control. Use ordinary links, tabs, buttons, wheel and pointer input. Read-only DOM geometry corroborates visible outcomes. Internal setters, synthetic events and mocked rendering/fetch do not establish user interaction. Do not introduce a separate Playwright driver.
 

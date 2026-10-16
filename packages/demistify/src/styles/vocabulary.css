@@ -1040,6 +1040,9 @@ ex-compare[slider] > [data-side]:nth-of-type(2)::before {
 .ex-tracing :is(path, polyline, line).ex-traced,
 .ex-tracing .ex-traced > :is(path, line) {
 	stroke: var(--accent);
+}
+/* SVG markers scale with their connector stroke; trace diagrams by colour without inflating tips. */
+:is(.ex-arrow-canvas, .ex-flow-overlay).ex-tracing :is(path, polyline, line).ex-traced {
 	stroke-width: 2.25;
 }
 
