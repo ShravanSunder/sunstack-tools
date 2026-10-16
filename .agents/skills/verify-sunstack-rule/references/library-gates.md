@@ -14,6 +14,14 @@ cargo nextest run --workspace
 
 Record output and the command's own exit status, preserving it when piping to a log. The default local suite excludes ignored hosted tests. A zero-test run is not a behavioral pass. Do not add `--no-tests pass`, skip failures or weaken leak handling. Cargo Clippy checks compilation/types as well as the workspace lint rules.
 
+At the milestone 1 target the default workspace suite has seven deliberate skips: three native hosted cases, two CLI hosted journeys, the fixed measurement workload and the offline preserved-request diagnosis. A skip leaves its claim unknown unless separately observed or validly reused. A workspace run that includes all 23 CLI local cases can also confirm the executable and controlled-journey recipes; reuse that same run instead of repeating the package/subset command.
+
+### Interpret nextest LEAK markers
+
+The Lead-dispositioned full-workspace observations fit a harness/platform explanation; no product defect is established and the exact cause is unproven. Bypassing the signing runner did not eliminate the markers. Recorded comparison rates were 25/8600, 21/8600 and 15/8600 test launches under different instrumentation, not estimates of a runner effect; isolated named-test and cancellation-binary workloads had zero markers.
+
+Reuse that disposition **only** for a matching signature: full-workspace concurrency, exit 0, no assertion failures and a comparable low rate. Record the count, test names, workload denominator, capture settings and limits. A single suite cannot establish a recurrence rate; if comparability is uncertain, retain that uncertainty and triage rather than declaring it benign. Triage anything changed, unexplained or tied to test-owned spawned work, even if concurrency-only. Preserve available participating PID/descriptor evidence before another run; missing ownership remains unknown. The gate stays nextest exit 0. Do not raise timeouts, add retries, bypass the official runner or disable capture to clear a LEAK. A later zero-marker run does not prove the historical recurrence fixed.
+
 For an authorized focused observation, the existing package routes are:
 
 ```sh
@@ -39,11 +47,12 @@ Take expectations from Specification C1–C5, C8, C11 and V1/V4/V6/V8–V10/V13/
 | `sunstack-evidence/tests/evidence_preparation.rs` | Public native preparation, requested selected content, required versus optional refusal, limits, lazy reads, projections and cursor continuation/discontinuity controls. |
 | `sunstack-evidence/tests/evidence_session.rs` | Original bytes survive later alias selection after mutation/deletion/replacement, one capture/cumulative limits, lazy open, invalid selector before reads and first-capture containment. Session proof does not show rules uses one session. |
 | `sunstack-evidence/tests/acquisition_limits.rs` | Failed UTF-8/adapter admission still consumes acquired file/byte allowances; metadata rejection before reading consumes no content budget. |
+| `sunstack-rules/tests/` | Public rules composition: admission/binding controls, ordered conditions, router slots, staged/speculative execution, evidence refusal, deterministic splits, equivalence, verdict bands/composites and definition/schema agreement. Full check/source maps are in `crates/sunstack-rules/tests/PROOF.md` and `crates/sunstack-rules/tests/FOLLOWUP-PROOF.md`; controlled HTTP is not hosted inference. |
 
 The native path is exported `prepare_evidence` → `EvidenceSession::open/select/close` → evidence capture/selection → typed plan; it has no backend. Existing tests are external consumers, with crate unit cases adding controlled adapter observation points. Read `crates/sunstack-evidence/tests/PROOF.md`, `crates/sunstack-evidence/tests/SESSION-PROOF.md`, `crates/sunstack-evidence/tests/SUPPLEMENT-CURSOR-PROOF.md` (which supersedes the evidence `PROOF.md` late-supplement row), `crates/sunstack-evidence/tests/ACQUISITION-LIMITS-PROOF.md` and `crates/sunstack-decisions/PROOF.md` for coverage/sensitivity limits; their historical run summaries are not fresh proof.
 
 ## Open coverage
 
-At the initial target, `sunstack-rules/src/lib.rs` and CLI are placeholders. Native rules consumption/composition, V3/V7/V12/V14/V20–V23/V31–V35, full V9 cross-RuleSet isolation and process artifact behavior remain draft in the other routes. V5/V16–V18 need milestone 2. Do not extrapolate the available decisions/evidence suite to those obligations.
+The milestone 1 target has real rules and executable implementations. Native library tests do not replace process or hosted observations; use the main skill's scoped reference calls for those. V5/V16–V18 and change-scoped V7 remain milestone 2 drafts. PreparationFailed runtime reachability, platform artifact/release proof, installed-host qualification and exact tokenizer agreement remain separate proof limits. Do not extrapolate the available suite to them.
 
 Complete when the selected tests' real boundaries and rejection cases match the adopted claims, the gates have preserved results, and all remaining V scope is explicitly observed, reused with applicability, or draft with its prerequisite named. No product edits belong to this route.

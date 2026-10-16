@@ -1,35 +1,58 @@
-# Executable operations — DRAFT
+# Executable operations — milestone 1
 
-**Open item:** a committed `sunstack-rule-cli` process implementation, framing/input bounds, signal handling and permanent process fixtures must be declared as a target. The initial product target has `fn main() {}`. There is no operable process journey here, and no guessed argument syntax or fixture filename should be run.
+Drive the real `sunstack-rule` process at product `919ca49712b7aba527bccd6e413ff27f2beb9738`. Oracle: Specification C14/V2/V13 and exact contracts at `a08839b`, read with the main skill's pinned `git show` method. Each cited Specification row is the full checklist; the controls below do not narrow it. V15 artifact integrity is release proof, open unless separately requested.
 
-Oracle: Specification C14/V2/V13/V15 and `program-design-contracts.md` Envelope plus the four operation sections, read at the pinned revision by the method in `SKILL.md`. Each cited Specification row is the full checklist; this table adds harness controls and never narrows a row. V15 artifact integrity is release proof, open unless separately requested. Activation is a separate maintenance assignment that replaces this draft with verified invocations; until then, return this open item. That assignment inspects the landed protocol entry and process harness. Inputs are a declared binary/build/config/client, fixed working directory and real fixture sources. Return stdout, stderr, exit and owned-settlement evidence per case.
+Inputs: declared checkout/build/config/client, explicit CWD, and an authorized evidence directory. Return the run ID, actual process stdout/stderr/exits, operation coverage and proof limits. The established route is `crates/sunstack-rule-cli/README.md`, permanent tests and `crates/sunstack-rule-cli/tests/support/mod.rs`; `crates/sunstack-rule-cli/tests/PHASE1-PROOF.md` is historical two-operation proof, while `crates/sunstack-rule-cli/tests/PHASE2-PROOF.md` describes the integrated target.
 
-## Contract to preserve when activating
+## Build and run locally
 
-One invocation process takes one bounded JSON object on stdin:
+From the monorepo root, apply the SDK prefix in `SKILL.md` to each Cargo command:
 
-```json
-{"protocol_version":1,"operation":"prepare_evidence","input":{}}
+```sh
+cargo build -p sunstack-rule-cli
+cargo nextest run -p sunstack-rule-cli
 ```
 
-This illustrates the **envelope only**; `{}` is not a valid operation fixture. Use the operation's complete adopted input. A successful framing result is `kind: operation_result`, `protocol_version: 1`, `result: { operation, outcome }`. Protocol failures are `kind: protocol_error` with diagnostics and no known-operation result. Observe parsed stdout JSON, separately captured stderr and the child's actual exit. `--help` and exit 0 alone prove nothing.
+The default package run executes 23 local cases (22 process tests and one native-enum serializer seam); four CLI cases remain ignored: two hosted journeys, the measurement workload and an offline diagnosis. A current same-target workspace run containing those 23 local passes also confirms this route; do not repeat it just to obtain a package-only receipt. Require exit 0 and preserve failures/LEAK counts under the library-gates interpretation.
 
-| Operation / input | Exit 0 | Exit 2 | Exit 3 | Exit 4 |
+The harness starts `CARGO_BIN_EXE_sunstack-rule` through the repository's absolute `scripts/cargo-debug-signing-runner.sh`, with real pipes and explicit child CWD. Local helpers inject a synthetic environment credential and use real loopback HTTP fixtures. They retain the actual binary/library/filesystem/serializer boundaries and await each child/server. They do not dispatch to hosted Jev.
+
+For an authorized manual invocation with a complete caller-supplied request file, the README's route is `scripts/cargo-debug-signing-runner.sh target/debug/sunstack-rule < request.json`. `request.json` means that supplied file, not a committed fixture. It must wrap a full native operation input in the versioned envelope. The permanent tests construct valid complete inputs and are the reproducible recipe above.
+
+## Observe framing, readiness and outcomes
+
+The process installs signal handlers, writes `sunstack-rule: ready` to stderr, then reads one JSON request on stdin. Registration is not operation completion. Require exactly one complete parsed response and its child exit. `sunstack-rule: cancellation observed` is a separate signal-consumption witness. A killed process, missing/truncated JSON or an empty exit 0 is execution failure.
+
+Raw stdin is bounded at **8,388,608 bytes**; the next byte refuses with `input_limit` without waiting for EOF or parsing. Large evidence remains bound by path. Unknown operation/version, malformed/concatenated framing and duplicate/unknown envelope fields yield `protocol_error`, exit 2, no fabricated known-operation result. Success framing is `operation_result` with protocol_version 1 and `result: { operation, outcome }`.
+
+| Operation | Exit 0 | Exit 2 | Exit 3 | Exit 4 |
 | --- | --- | --- | --- | --- |
-| `prepare_evidence` / `EvidencePlanInput` | `prepared`, requested selections/captures/cursors/measurements | `refused` | `incomplete` for required evidence refusal | `cancelled`, with correct plan-admission progress |
-| `prepare_rules` / `RuleInvocationInput` | `prepared { preparation }` | `invalid` | `prepared_with_failures` or `preparation_failed` | `cancelled`, with correct preparation progress |
-| `run_judgments` / `RunJudgmentsInput` | `completed`, correlated answers/receipt/attempts | `invalid_request`, including budget refusal without attempts | `provider_failure` or `invalid_response` | `cancelled`, attempts retained |
-| `evaluate_rules` / `RuleInvocationInput` | `complete_report`, whatever verdicts | `invalid` | `incomplete_report` or `preparation_failed` | `cancelled`, before report or with admitted partial report |
+| `prepare_evidence` | `prepared`, requested selected content/captures/cursors/measurements | `refused` | `incomplete` for required refusal; optional refusal remains prepared/0 | `cancelled`, before or after plan admission |
+| `prepare_rules` | `prepared { preparation }` | native `invalid` | real `prepared_with_failures`; PreparationFailed seam below | `cancelled`, correct preparation progress |
+| `run_judgments` | `completed`, exact correlated native answers/receipt/attempts | `invalid_request`, budget refusal with zero dispatch | `provider_failure` or `invalid_response`, no answers fabricated | `cancelled`, attempts/remote uncertainty retained |
+| `evaluate_rules` | `complete_report`, including failed block verdicts | native `invalid` | real `incomplete_report`; PreparationFailed seam below | `cancelled`, no report before admission or retained partial report afterwards |
 
-Unknown operation/version, malformed framing, duplicate/unknown envelope fields and over-limit stdin must give protocol error with exit 2 and no fabricated operation outcome. Keep the implementation's declared exact finite input limit in the activated recipe.
+Preparation of evidence has no backend. Rule preparation requires valid backend configuration/environment credential for encoding/accounting but makes zero provider calls. It leaves routers/decisions not evaluated, prepares only requests ready before their answers and records deferred requests as `waiting { on }` without acquisition. Use the synthetic local fixture credential, not the owner's key, for those local tests. Milestone 1 intentionally omits milestone 2 `change_selections`; do not demand that future field from this target.
 
-## Required controls
+**PreparationFailed limit:** both native `preparation_failed` variants have wire tags, native diagnostics/measurements and exit 3 proven through the real CLI serializer/exit seam in `crates/sunstack-rule-cli/src/protocol_boundary.rs`. No reachable public-stdin input has been demonstrated. The accepted observation preserves that runtime gap; do not label the seam as a process journey or add a fault flag to force it.
 
-- `prepare_evidence` and `prepare_rules` make zero provider calls. Establish this through the real process fixture's observed transport, not lack of an environment key. Prepare rules runs only leading conditions (before each owner's first decision), leaves routers/decisions not evaluated, and records request readiness as `prepared { budget, evidence }` or `waiting { on }`. It acquires evidence only for requests evaluation would send before any router/decision answers, under the invocation's speculation setting. A request waiting on a router/decision acquires nothing; prepared requests may encode/assess budget but never dispatch. A non-carrying routed candidate waits with speculation off and runs concurrently with it on; a scan-only leading source outside its request's read set, and its request, wait for routing in both modes.
-- Routed candidate gate/entry/request keys carry their route label, and prepared/reported group bindings carry `routed { router_group, label }`; differently wired candidates never share a controlling decision slot. Final occurrence keys remain RuleSet/group/rule ID. Evidence/report `change_selections` contains only bindings whose change selection was resolved; an unused or full-scope context binding has no fabricated entry.
-- Prepare evidence exposes only caller-requested selected evidence in stdout; diagnostics/stderr/default logs omit sentinel content and credentials. Check useful closed diagnostics and bounded guidance remain.
-- A completed failing block verdict still exits **0**. Failure/incomplete execution has no fabricated verdict or activated severity. Missing/truncated output is execution failure even if the child died quietly.
-- Drive SIGINT/SIGTERM through the real process at controlled lifecycle boundaries. Before report admission, cancellation carries no report; after admission it retains completed peers in the partial report. Terminal exit 4 follows owned settlement. A timeout or arbitrary sleep is not proof of that owner boundary; named barriers and process/server readback are open harness requirements.
-- State CWD for every run. Definition root uses the executable's CWD; RuleSet paths resolve from that root and rule files from the RuleSet directory. Include a relative transcript binding and relative supplied cursor path control: the same relative spelling from two working directories must identify the intended different source, and continuation must refer to its bound capture. Inspect the landed cursor-input mechanism before writing commands; the current wire contract carries cursor entries, not an assumed `--cursor-file` option.
+## Match the observations to their harness
 
-IF only library evidence is in scope, load `library-gates.md` and return its scoped results; they do not close these process obligations. The separate activation assignment completes only after all four operations' 0/2/3/4 cases, protocol errors, privacy, cancellation and relative-path controls have real process evidence at the declared target.
+| Tests under `crates/sunstack-rule-cli/tests/` | Deciding observation |
+| --- | --- |
+| `process_protocol.rs`, `process_bounds.rs` | Real framing/error results, exact raw-byte limit and open-writer excess-byte refusal, literal selected bytes versus excluded content, required/optional evidence outcomes. |
+| `process_judgments.rs` | Mixed noul/choice/score, receipt and actual HTTP body/count; native diagnostic path/code; 0/2/3 outcomes; finite configured attempts; no fabricated answer on failure. |
+| `process_rules.rs` | Actual prepared evidence; working HTTP positive control followed by zero additional preparation calls; failed block verdict with exit 0; native invalid, selection and provider/invalid-answer incomplete outcomes. |
+| `process_cancellation.rs`, `process_rule_cancellation.rs` | Both signals before evidence/judgment admission, SIGTERM before rule admission and in flight; real ready/consumed-signal barriers. Causal completed peer retains judgment/receipt, held second request cancels without retry and third stays not_started/unread; actual HTTP/read counters corroborate. FIFO-held evidence worker cannot publish terminal stdout until it settles. |
+| `process_evidence_paths.rs` | Same relative transcript and cursor source paths in two real CWDs resolve to distinct captures; append/resume returns the new whole record. Payload/author/provider/credential sentinels remain absent from safe diagnostics/stderr. |
+| `process_journeys.rs` | Controlled skill-lint/handoff paths and router outcomes, covered by the milestone 1 recipe as part of this same default run. |
+
+The FIFO's 100 ms no-output observation is bounded and corroborated by source awaits; it is not proof about arbitrary timing. Socket EOF and cancellation do not establish remote inference/billing reversal. The accepted phase 1 report additionally observed in-flight SIGINT outside the permanent suite; reuse only with an explicit unchanged-source/config applicability check, or leave that extra case unobserved in your new run.
+
+## Evidence and cleanup
+
+Each child action is retained under `target/cli-process-evidence/<test-pid>-<sequence>/`: stdin.json, stdout.json, stderr.log and result.json (CWD, binary, exit and input byte count). Associated request bodies/counts and barrier sequences are in `target/cli-process-observations/<test-pid>-*.json`. These locations are rooted in the checkout, even with a separate CARGO_TARGET_DIR. Record new test PIDs/artifact paths so stale output cannot count as the current result. Copy owned artifacts to the granted evidence directory before checkout cleanup; synthetic content is allowed, credentials/headers are not.
+
+Reopen stdout/result and relevant HTTP/barrier observations beyond the nextest summary. Confirm tags, exits, answer references and actual effects; a successful test discovery/build proves no operation. The harness owns temporary fixtures and joined child/server cleanup. Retain artifacts after completion, leave shared caches and other sessions alone, and follow the main skill's cleanup permission boundary.
+
+Complete when each scoped operation/control is observed or validly reused with evidence, the runtime PreparationFailed gap is explicit, and no owned process remains. Return this process coverage separately from any main-skill-selected hosted or measurement route; controlled process tests alone do not establish V29/V30 hosted proof.
