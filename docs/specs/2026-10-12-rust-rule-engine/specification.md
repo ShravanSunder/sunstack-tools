@@ -399,6 +399,8 @@ A RuleSet's applicability list, and each rule's own list, holds entries evaluate
 - **Passed:** go on to the next entry.
 - **Did not pass:** stop. The outcome is not applicable, with the entry and its basis.
 - **Unresolved condition** (a missing payload field, an incomplete scan): stop. The outcome is applicability failed. A missing field is never false.
+
+**Payload field tests** resolve their pointer first. A missing field is unresolved. A present field, including one whose value is JSON `null`, is tested as declared: equality and set membership compare the present value, so `null` equals only `null`, and a presence test passes. A presence test therefore never does not pass: it asserts that the field exists.
 - **Failed decision call** (timeout, invalid response, provider failure, budget refusal or unavailable evidence): stop. The outcome is applicability failed, with a diagnostic naming the entry, the failure class and the retry advice. That RuleSet × group's rules do not run, and the report is incomplete.
 
 Entries after a stop are not used, and evidence only they need is not acquired. The exception is a speculative request (C13), where a decision over the same evidence as the rules is answered alongside them and applied afterwards in code. Every evaluated entry is recorded: conditions with their basis, decisions with their native answer, receipt and attempt history. An empty list means always applicable. RuleSet applicability is decided per binding group; rule applicability per rule occurrence.
@@ -560,7 +562,7 @@ These obligations carry over from the earlier design; the executable must keep t
 | Operation | What it does | Success (exit 0) | Other outcomes |
 | --- | --- | --- | --- |
 | Prepare evidence | Captures and selects evidence from declared sources. **No model call** | A prepared evidence plan, including the caller-requested selected evidence | Incomplete plan (3), refused (2), cancelled (4) |
-| Prepare rules | Admits definitions and bindings, runs deterministic conditions, prepares evidence, and plans request groups. **No model call**: routers and decision entries are reported as not evaluated | Prepared rules: selection records, prepared evidence and planned request groups | Prepared with failures, or preparation failed (3); invalid (2); cancelled (4) |
+| Prepare rules | Admits definitions and bindings, runs the leading deterministic conditions, plans request groups, and prepares the evidence of each request that evaluation would send before any router or decision answers. **No model call**: routers and decision entries are reported as not evaluated, and a request that would wait for one is planned and reported as waiting on it, without acquiring its evidence (R28) | Prepared rules: selection records, prepared evidence and planned request groups | Prepared with failures, or preparation failed (3); invalid (2); cancelled (4) |
 | Run judgments | One native mixed-primitive decision request, with no rules | A completed decision run with validated answers and a receipt | Invalid request (2); provider failure or invalid response (3); cancelled (4) |
 | Evaluate rules | The full pipeline: routers, applicability, rules, verdicts | A complete report, whatever its verdicts | Incomplete report (3); preparation failed (3); invalid (2); cancelled (4) |
 
