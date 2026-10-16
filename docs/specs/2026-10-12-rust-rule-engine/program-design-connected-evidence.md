@@ -68,6 +68,8 @@ Both sides of each diff span map to enclosing functions, methods, classes and Ma
 
 **Seeds and scope for a rule.** A rule's `related_units` declaration has no seeds of its own. Admission builds the native query: seeds are the changed units of the bound change-set input's repository binding, and discovery covers every repository binding the invocation supplies, within each binding's allowed paths. So a changed definition in repository B can bring in an unchanged caller from a supplied repository A, and the rule cannot redirect its seed elsewhere.
 
+**Changed units need a change scope.** Changed-unit seeds require a change selection with an admitted before or after side in the seed repository. A repository binding with `change_scope: full` has no delta, so a `changed_units` selection, a rule-authored `related_units` declaration, or a native `SourceUnitSeeds::changed_units` query over it is refused with `no_change_selection`, never answered with every current unit. A full-scope binding can still be discovery context for another binding's changed seeds, and native `selector_units` seeds work in full or change scopes.
+
 **The relationship graph** is invocation-local:
 - Each node is keyed by snapshot, repository, revision, path and range.
 - A visit is deduplicated by node, direction and depth, so cycles stop revisiting.

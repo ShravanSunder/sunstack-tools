@@ -526,7 +526,7 @@ Retained from the reviewed design. The decisions crate does not know about rules
 | Rules / bindings | **`unbound_input`**, **`duplicate_binding`**, **`extra_binding`**, **`binding_kind_mismatch`** |
 | Rules / applicability | **`condition_unresolved`**, **`decision_failed`**, **`router_failed`** |
 | Rules / execution | `invalid_configuration`, **`rule_exceeds_budget`**, **`request_limit`**, `unexpected_execution_error`, `caller_aborted` |
-| Evidence / connected (milestone 2) | `revision_unavailable`, `invalid_repository_binding`, `unknown_repository`, `history_incomplete`, `recency_unknown`, `relationship_unresolved`, `discovery_limit`, `unsupported_relationship_query`, `invalid_context_group`, `missing_related_context`, `required_group_incomplete` |
+| Evidence / connected (milestone 2) | `revision_unavailable`, `invalid_repository_binding`, `unknown_repository`, `history_incomplete`, `recency_unknown`, `relationship_unresolved`, `discovery_limit`, `unsupported_relationship_query`, `invalid_context_group`, `missing_related_context`, `required_group_incomplete`, **`no_change_selection`** |
 | Decisions / request | `unknown_field`, `duplicate_field`, `invalid_question`, `invalid_state`, `unsupported_primitive`, `invalid_number`, `invalid_rubric`, `invalid_configuration` |
 | Decisions / budget | `context_budget_exceeded`, `budget_unverifiable`, `unsupported_budget_profile` |
 | Decisions / response | `invalid_body`, `missing_answer`, `unexpected_answer`, `wrong_answer_kind`, `invalid_choice`, `invalid_number`, `invalid_rubric`, `invalid_receipt` |
