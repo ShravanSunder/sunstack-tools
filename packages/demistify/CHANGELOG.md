@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.0.2
+
+### Patch Changes
+
+- 93d88ad: Narrow the API guide description to writing, editing, and checking Demistify markup. Preserve component instructions and references; presentation authoring remains in the consuming workflow skill.
+
 ## 1.0.1
 
 ### Patch Changes
