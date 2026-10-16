@@ -252,22 +252,26 @@ impl Preparation {
                     .max_total_bytes
                     .get()
                     .saturating_sub(self.total_read);
-                let capture = capture_conversation(
-                    ConversationCaptureRequest {
-                        transcript_path,
-                        format,
-                        cursor,
-                        final_assistant_text,
-                        max_bytes: self.input.limits.max_transcript_bytes.get().min(remaining),
+                let progress = crate::acquisition_progress::AcquisitionProgress::shared();
+                let result = crate::conversation_capture::capture_conversation_accounted(
+                    crate::conversation_capture::ConversationAcquisition {
+                        request: ConversationCaptureRequest {
+                            transcript_path,
+                            format,
+                            cursor,
+                            final_assistant_text,
+                            max_bytes: self.input.limits.max_transcript_bytes.get().min(remaining),
+                        },
+                        registry: self.registry.clone(),
+                        cancellation: self.cancellation.clone(),
+                        progress: progress.clone(),
                     },
-                    self.registry.clone(),
-                    self.cancellation.clone(),
                 )
-                .await?;
-                self.total_read = self
-                    .total_read
-                    .saturating_add(capture.coverage.bytes_read as usize);
-                self.measurements.transcript_bytes_read += capture.coverage.bytes_read;
+                .await;
+                self.total_read += progress.consumed_bytes();
+                self.measurements.transcript_bytes_read +=
+                    progress.consumed_transcript_bytes() as u64;
+                let capture = result?;
                 self.measurements.transcript_bytes_parsed += capture.coverage.bytes_parsed;
                 self.captures.push(capture.coverage.clone());
                 self.cursors.push(ReturnedCursor {
@@ -315,15 +319,20 @@ impl Preparation {
             .max_total_bytes
             .get()
             .saturating_sub(self.total_read);
-        let document = capture_document(
-            binding,
-            path,
-            self.input.limits.max_file_bytes.get().min(remaining),
-            self.cancellation.clone(),
+        let progress = crate::acquisition_progress::AcquisitionProgress::shared();
+        let result = crate::source_capture::capture_document_accounted(
+            crate::source_capture::DocumentCapture {
+                binding,
+                path,
+                max_bytes: self.input.limits.max_file_bytes.get().min(remaining),
+                cancellation: self.cancellation.clone(),
+                progress: progress.clone(),
+            },
         )
-        .await?;
-        self.total_read += document.text.len();
-        self.measurements.files_read += 1;
+        .await;
+        self.total_read += progress.consumed_bytes();
+        self.measurements.files_read += progress.consumed_repository_files();
+        let document = result?;
         let document = Arc::new(document);
         self.document_cache.insert(cache_key, document.clone());
         Ok(document)

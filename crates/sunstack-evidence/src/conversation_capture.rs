@@ -1,7 +1,7 @@
 use crate::source_capture::file_identity;
 use crate::*;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf};
+use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Arc};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]
@@ -30,17 +30,36 @@ pub async fn capture_conversation(
     registry: AdapterRegistry,
     cancellation: CancellationToken,
 ) -> EvidenceResult<ConversationCapture> {
+    capture_conversation_accounted(ConversationAcquisition {
+        request,
+        registry,
+        cancellation,
+        progress: crate::acquisition_progress::AcquisitionProgress::shared(),
+    })
+    .await
+}
+pub(crate) struct ConversationAcquisition {
+    pub request: ConversationCaptureRequest,
+    pub registry: AdapterRegistry,
+    pub cancellation: CancellationToken,
+    pub progress: Arc<crate::acquisition_progress::AcquisitionProgress>,
+}
+pub(crate) async fn capture_conversation_accounted(
+    acquisition: ConversationAcquisition,
+) -> EvidenceResult<ConversationCapture> {
     // Resolve the adapter before any file read.
-    registry.adapter(&request.format)?;
-    tokio::task::spawn_blocking(move || capture_blocking(request, &registry, &cancellation))
+    acquisition.registry.adapter(&acquisition.request.format)?;
+    tokio::task::spawn_blocking(move || capture_blocking(acquisition))
         .await
         .map_err(|_| EvidenceCode::TranscriptUnavailable)?
 }
-fn capture_blocking(
-    request: ConversationCaptureRequest,
-    registry: &AdapterRegistry,
-    cancellation: &CancellationToken,
-) -> EvidenceResult<ConversationCapture> {
+fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<ConversationCapture> {
+    let ConversationAcquisition {
+        request,
+        registry,
+        cancellation,
+        progress,
+    } = acquisition;
     let started_at = chrono::Utc::now();
     let previous_cursor = request
         .cursor
@@ -67,20 +86,28 @@ fn capture_blocking(
         return Err(EvidenceCode::TranscriptDiscontinuous.into());
     }
     let mut bytes = Vec::new();
+    if before.len() > request.max_bytes as u64 {
+        return Err(EvidenceCode::TranscriptLimit.into());
+    }
     let mut buffer = [0_u8; 16 * 1024];
     loop {
         if cancellation.is_cancelled() {
             return Err(EvidenceCode::MissingContext.into());
         }
+        let remaining = request
+            .max_bytes
+            .saturating_sub(bytes.len())
+            .min(buffer.len());
+        if remaining == 0 {
+            break;
+        }
         let count = file
-            .read(&mut buffer)
+            .read(&mut buffer[..remaining])
             .map_err(|_| EvidenceCode::TranscriptUnavailable)?;
         if count == 0 {
             break;
         }
-        if bytes.len().saturating_add(count) > request.max_bytes {
-            return Err(EvidenceCode::TranscriptLimit.into());
-        }
+        progress.transcript_bytes(count);
         bytes.extend_from_slice(&buffer[..count]);
     }
     let at_path = path

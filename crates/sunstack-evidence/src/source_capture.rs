@@ -72,6 +72,32 @@ pub async fn capture_document(
     max_bytes: usize,
     cancellation: CancellationToken,
 ) -> EvidenceResult<CapturedDocument> {
+    capture_document_accounted(DocumentCapture {
+        binding,
+        path,
+        max_bytes,
+        cancellation,
+        progress: crate::acquisition_progress::AcquisitionProgress::shared(),
+    })
+    .await
+}
+pub(crate) struct DocumentCapture {
+    pub binding: RepositoryBinding,
+    pub path: std::path::PathBuf,
+    pub max_bytes: usize,
+    pub cancellation: CancellationToken,
+    pub progress: Arc<crate::acquisition_progress::AcquisitionProgress>,
+}
+pub(crate) async fn capture_document_accounted(
+    request: DocumentCapture,
+) -> EvidenceResult<CapturedDocument> {
+    let DocumentCapture {
+        binding,
+        path,
+        max_bytes,
+        cancellation,
+        progress,
+    } = request;
     tokio::task::spawn_blocking(move || {
         let started_at = chrono::Utc::now();
         if cancellation.is_cancelled() {
@@ -95,21 +121,27 @@ pub async fn capture_document(
         let before = file
             .metadata()
             .map_err(|_| EvidenceCode::SourceUnavailable)?;
+        if before.len() > max_bytes as u64 {
+            return Err(EvidenceCode::EvidenceLimit.into());
+        }
+        progress.repository_file();
         let mut bytes = Vec::new();
         let mut buffer = [0_u8; 16 * 1024];
         loop {
             if cancellation.is_cancelled() {
                 return Err(EvidenceCode::MissingContext.into());
             }
+            let remaining = max_bytes.saturating_sub(bytes.len()).min(buffer.len());
+            if remaining == 0 {
+                break;
+            }
             let count = file
-                .read(&mut buffer)
+                .read(&mut buffer[..remaining])
                 .map_err(|_| EvidenceCode::SourceUnavailable)?;
             if count == 0 {
                 break;
             }
-            if bytes.len().saturating_add(count) > max_bytes {
-                return Err(EvidenceCode::EvidenceLimit.into());
-            }
+            progress.source_bytes(count);
             bytes.extend_from_slice(&buffer[..count]);
         }
         let after = file
