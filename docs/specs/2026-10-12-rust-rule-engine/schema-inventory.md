@@ -54,13 +54,13 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | [Invocation](schemas/rule-invocation.schema.json) | `definition_root` | Where definition, rule and payload-schema paths resolve from |
 | Invocation | `definitions` | `router { path, binding_groups }` or `rule_sets { rule_sets: [{ path, binding_groups }] }` |
 | Invocation | `binding_groups[].bindings` | Each input bound once: `document { repository, path }`, `conversation { transcript_path, format, final_assistant_text? }`, `payload { value }`, `change_set { repository }` |
-| Invocation | `repositories` | Repository bindings: the only authority for roots, allowed paths and change scope. Milestone 1 admits `full` |
+| Invocation | `repositories` | Repository bindings: the only authority for roots, allowed paths and change scope. `ChangeScope` is `full`, `uncommitted`, `revision_diff`, `commit_set`, `recent_commits`, `recent_uncommitted`, or a `union` of those (no nested union) |
 | Invocation | `payload_schemas` | `{ name, path }` catalog entries. Remote references are never fetched |
 | Invocation | `origin` | `hook { host, event, session?, turn?, agent?, observed_at? }` or `direct`. An omitted hook field is reported as unavailable. Provenance only |
 | Invocation | `cursors` | One per transcript source, as returned by an earlier report |
 | Invocation | `execution` | `speculation: off \| on` for gates over different inputs, and `max_concurrent_requests` |
 | Invocation | `limits`, `backend`, `attempts`, `request_budget` | Cumulative evidence limits; the Jev endpoint, model and optional caller-declared `context_ceiling_tokens`; attempt control; the request budget. Credentials are never here |
-| Invocation (milestone 2) | `discovery`, `package_bindings` | Optional `none \| bounded { limits: DiscoveryLimits }` and package-source mappings, passed unchanged into the invocation's evidence session. Until the milestone 2 schema revision lands with the milestone 2 pull request, the shapes in [connected evidence](program-design-connected-evidence.md) and the contracts are the oracle for these fields and for non-full change scopes. Not in the milestone 1 schema, which refuses them like other milestone 2 variants |
+| Invocation (milestone 2) | `discovery`, `package_bindings` | Optional `none \| bounded { limits: DiscoveryLimits }` and package-source mappings, passed unchanged into the invocation's evidence session. Absent means `none` and no mappings. The [invocation schema](schemas/rule-invocation.schema.json) carries them, with the change scopes, from milestone 2 |
 | [Native selectors](schemas/evidence-selector.schema.json) | Repository-qualified selectors, `RelationshipQuery`, `ChunkSettings`, `QueryPath` | For native and `prepare_evidence` callers. `QueryPath` is now tagged `exact` or `glob` |
 
 ## Returned

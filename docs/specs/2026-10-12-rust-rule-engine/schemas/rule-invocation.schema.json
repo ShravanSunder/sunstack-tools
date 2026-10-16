@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "rule-invocation.schema.json",
   "title": "Rule invocation input (prepare_rules and evaluate_rules)",
-  "description": "Credentials never appear here. Admission also checks: every declared input bound exactly once per group, payloads valid against their declared schema, document paths inside their repository binding, one cursor per bound transcript source. Milestone 2 adds optional discovery and package_bindings (Program Design, Invocation, bindings and origin).",
+  "description": "Credentials never appear here. Admission also checks: every declared input bound exactly once per group, payloads valid against their declared schema, document paths inside their repository binding, one cursor per bound transcript source. This is the milestone 2 schema: change scopes beyond full, optional discovery and optional package_bindings (program-design-connected-evidence.md).",
   "$ref": "#/$defs/RuleInvocationInput",
   "$defs": {
     "RuleInvocationInput": {
@@ -13,6 +13,15 @@
         "repositories": {
           "type": "array",
           "items": { "$ref": "#/$defs/RepositoryBinding" }
+        },
+        "discovery": {
+          "description": "Optional; absent means none. Passed unchanged into the invocation's evidence session. A related_units declaration or changed-unit seeds need bounded discovery, else admission refuses with discovery_not_enabled.",
+          "$ref": "#/$defs/EvidenceDiscovery"
+        },
+        "package_bindings": {
+          "description": "Optional; absent means none. Maps an import prefix to supplied source; never claims an installed version.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/PackageSourceBinding" }
         },
         "payload_schemas": {
           "type": "array",
@@ -173,19 +182,208 @@
           "minItems": 1,
           "items": { "$ref": "evidence-selector.schema.json#/$defs/QueryPath" }
         },
-        "change_scope": {
-          "description": "Milestone 1 admits full only. Milestone 2 adds the variants in program-design-connected-evidence.md.",
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": { "kind": { "const": "full" } },
-              "required": ["kind"],
-              "additionalProperties": false
-            }
-          ]
-        }
+        "change_scope": { "$ref": "#/$defs/ChangeScope" }
       },
       "required": ["key", "root", "input_paths", "change_scope"],
+      "additionalProperties": false
+    },
+    "ChangeScope": {
+      "description": "A union's members are any other scope; nested unions are refused.",
+      "oneOf": [
+        { "$ref": "#/$defs/ChangeScopeMember" },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "union" },
+            "members": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/ChangeScopeMember" }
+            }
+          },
+          "required": ["kind", "members"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ChangeScopeMember": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": { "kind": { "const": "full" } },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "uncommitted" },
+            "layers": { "$ref": "#/$defs/DirtyLayers" }
+          },
+          "required": ["kind", "layers"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "revision_diff" },
+            "base_revision": { "$ref": "#/$defs/Revision" },
+            "head": { "$ref": "#/$defs/RevisionHead" }
+          },
+          "required": ["kind", "base_revision", "head"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "commit_set" },
+            "commit_ids": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/GitObjectId" }
+            },
+            "parent_policy": { "$ref": "#/$defs/CommitParentPolicy" }
+          },
+          "required": ["kind", "commit_ids", "parent_policy"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "recent_commits" },
+            "reference": { "$ref": "#/$defs/Revision" },
+            "window": { "$ref": "#/$defs/TimeWindow" },
+            "parent_policy": { "$ref": "#/$defs/CommitParentPolicy" }
+          },
+          "required": ["kind", "reference", "window", "parent_policy"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "recent_uncommitted" },
+            "layers": { "$ref": "#/$defs/DirtyLayers" },
+            "window": { "$ref": "#/$defs/TimeWindow" },
+            "unknown_recency": {
+              "description": "Required; there is no default.",
+              "enum": ["include_with_diagnostic", "exclude_with_omission"]
+            }
+          },
+          "required": ["kind", "layers", "window", "unknown_recency"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DirtyLayers": {
+      "description": "HEAD to index (staged) and index to worktree (unstaged) stay distinct.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["staged", "unstaged", "untracked"] }
+    },
+    "Revision": {
+      "description": "A Git revision expression, resolved once at admission.",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "RevisionHead": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "commit" },
+            "revision": { "$ref": "#/$defs/Revision" }
+          },
+          "required": ["kind", "revision"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": { "kind": { "const": "worktree" } },
+          "required": ["kind"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "GitObjectId": {
+      "type": "string",
+      "pattern": "^([0-9a-fA-F]{40}|[0-9a-fA-F]{64})$"
+    },
+    "CommitParentPolicy": {
+      "description": "A root commit compares against the empty tree.",
+      "enum": ["first_parent", "each_parent"]
+    },
+    "TimeWindow": {
+      "description": "Resolved once against the invocation's single UTC anchor. An absolute window needs since_utc no later than until_utc; admission refuses otherwise.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "lookback" },
+            "seconds": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["kind", "seconds"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "absolute" },
+            "since_utc": { "type": "string", "format": "date-time" },
+            "until_utc": { "type": "string", "format": "date-time" }
+          },
+          "required": ["kind", "since_utc", "until_utc"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EvidenceDiscovery": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": { "kind": { "const": "none" } },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "bounded" },
+            "limits": { "$ref": "#/$defs/DiscoveryLimits" }
+          },
+          "required": ["kind", "limits"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DiscoveryLimits": {
+      "description": "All required and positive, except include_ignored.",
+      "type": "object",
+      "properties": {
+        "max_files": { "type": "integer", "minimum": 1 },
+        "max_file_bytes": { "type": "integer", "minimum": 1 },
+        "max_total_bytes": { "type": "integer", "minimum": 1 },
+        "max_matches": { "type": "integer", "minimum": 1 },
+        "include_ignored": { "type": "boolean" },
+        "max_unit_visits": { "type": "integer", "minimum": 1 },
+        "max_relationship_candidates": { "type": "integer", "minimum": 1 },
+        "max_fan_out": { "type": "integer", "minimum": 1 },
+        "max_history_commits": { "type": "integer", "minimum": 1 },
+        "max_local_time_ms": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["max_files", "max_file_bytes", "max_total_bytes", "max_matches", "include_ignored", "max_unit_visits", "max_relationship_candidates", "max_fan_out", "max_history_commits", "max_local_time_ms"],
+      "additionalProperties": false
+    },
+    "PackageSourceBinding": {
+      "type": "object",
+      "properties": {
+        "importing_repository_id": { "$ref": "evidence-selector.schema.json#/$defs/RepositoryId" },
+        "module_prefix": { "type": "string", "minLength": 1 },
+        "target_repository_id": { "$ref": "evidence-selector.schema.json#/$defs/RepositoryId" },
+        "target_path_prefix": { "type": "string", "minLength": 1 },
+        "language": { "type": "string", "minLength": 1 }
+      },
+      "required": ["importing_repository_id", "module_prefix", "target_repository_id", "target_path_prefix", "language"],
       "additionalProperties": false
     },
     "InvocationOrigin": {
