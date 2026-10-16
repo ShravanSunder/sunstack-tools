@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "rule-invocation.schema.json",
   "title": "Rule invocation input (prepare_rules and evaluate_rules)",
-  "description": "Credentials never appear here. Admission also checks: every declared input bound exactly once per group, payloads valid against their declared schema, document paths inside their repository binding, one cursor per bound transcript source.",
+  "description": "Credentials never appear here. Admission also checks: every declared input bound exactly once per group, payloads valid against their declared schema, document paths inside their repository binding, one cursor per bound transcript source. Milestone 2 adds optional discovery and package_bindings (Program Design, Invocation, bindings and origin).",
   "$ref": "#/$defs/RuleInvocationInput",
   "$defs": {
     "RuleInvocationInput": {

@@ -560,7 +560,7 @@ These obligations carry over from the earlier design; the executable must keep t
 | Operation | What it does | Success (exit 0) | Other outcomes |
 | --- | --- | --- | --- |
 | Prepare evidence | Captures and selects evidence from declared sources. **No model call** | A prepared evidence plan, including the caller-requested selected evidence | Incomplete plan (3), refused (2), cancelled (4) |
-| Prepare rules | Admits definitions and bindings, runs deterministic conditions, prepares evidence, and plans request groups. **No model call**: routers and decision entries are reported as not evaluated | Prepared rules: selection records, prepared evidence and planned request groups | Prepared with failures, or preparation failed (3); invalid (2); cancelled (4) |
+| Prepare rules | Admits definitions and bindings, runs the leading deterministic conditions, plans request groups, and prepares the evidence of each request that evaluation would send before any router or decision answers. **No model call**: routers and decision entries are reported as not evaluated, and a request that would wait for one is planned and reported as waiting on it, without acquiring its evidence (R28) | Prepared rules: selection records, prepared evidence and planned request groups | Prepared with failures, or preparation failed (3); invalid (2); cancelled (4) |
 | Run judgments | One native mixed-primitive decision request, with no rules | A completed decision run with validated answers and a receipt | Invalid request (2); provider failure or invalid response (3); cancelled (4) |
 | Evaluate rules | The full pipeline: routers, applicability, rules, verdicts | A complete report, whatever its verdicts | Incomplete report (3); preparation failed (3); invalid (2); cancelled (4) |
 

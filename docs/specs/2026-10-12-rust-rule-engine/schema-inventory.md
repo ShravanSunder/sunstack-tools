@@ -60,6 +60,7 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | Invocation | `cursors` | One per transcript source, as returned by an earlier report |
 | Invocation | `execution` | `speculation: off \| on` for gates over different inputs, and `max_concurrent_requests` |
 | Invocation | `limits`, `backend`, `attempts`, `request_budget` | Cumulative evidence limits; the Jev endpoint and model; attempt control; the request budget. Credentials are never here |
+| Invocation (milestone 2) | `discovery`, `package_bindings` | Optional `none \| bounded { limits: DiscoveryLimits }` and package-source mappings, passed unchanged into the invocation's evidence session. Not in the milestone 1 schema, which refuses them like other milestone 2 variants |
 | [Native selectors](schemas/evidence-selector.schema.json) | Repository-qualified selectors, `RelationshipQuery`, `ChunkSettings`, `QueryPath` | For native and `prepare_evidence` callers. `QueryPath` is now tagged `exact` or `glob` |
 
 ## Returned

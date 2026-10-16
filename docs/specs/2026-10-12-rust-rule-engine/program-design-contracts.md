@@ -45,7 +45,7 @@ An unknown version or operation, malformed framing or an over-limit input is a `
 - `native_queries: [{ id, selector: EvidenceSelector }]`: repository-qualified, from [the native selector schema](schemas/evidence-selector.schema.json). This is the only place a caller names seeds directly
 - `package_bindings: [PackageSourceBinding]`
 - `limits: InvocationLimits`
-- `discovery: none | bounded { limits: DiscoveryLimits }`. Admission refuses a native query or change-set source that needs discovery when `discovery` is `none`
+- `discovery: none | bounded { limits: DiscoveryLimits }`. Admission refuses a native query or change-set source that needs discovery with `discovery_not_enabled` when `discovery` is `none`
 
 No backend and no credentials.
 
@@ -121,9 +121,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 
 | Shape | Fields |
 | --- | --- |
-| `PreparedGroup` | `rule_set`, `position`, `binding: bound \| routed { router_group }`, `leading_entries: [EvaluatedEntry]`, `status: planned \| not_applicable { entry, basis } \| applicability_failed { entry, cause }` |
+| `PreparedGroup` | `rule_set`, `position`, `binding: bound \| routed { router_group, label }`, `leading_entries: [EvaluatedEntry]`, `status: planned \| not_applicable { entry, basis } \| applicability_failed { entry, cause }` |
 | `PreparedOccurrence` | `key: RuleOccurrenceKey`, `status: planned \| not_applicable { entry, basis } \| selection_failed { diagnostics }` |
-| `PlannedRequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `budget: within_configured_budget { counts, basis } \| exceeded { diagnostics } \| unverifiable { diagnostics }`, `evidence: [SelectionResult]` |
+| `PlannedRequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `readiness: prepared { budget: within_configured_budget { counts, basis } \| exceeded { diagnostics } \| unverifiable { diagnostics }, evidence: [SelectionResult] } \| waiting { on: [EntryKey] }`. A request is `prepared` when the planning rules, under the invocation's speculation setting, would make it ready before any router or decision answers: a rules request carrying its riding gates, a staged gate whose earlier entries are all leading conditions that passed, and anything that runs concurrently because speculation is `on`. Otherwise it is `waiting` on the gates it depends on, and its evidence is not acquired (Specification R28) |
 
 `prepared_with_failures` means a selection, evidence or budget failure, or an unresolved leading condition, is recorded somewhere in `PreparedRules`.
 
@@ -182,9 +182,9 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | Shape | Fields |
 | --- | --- |
 | `ReportedOrigin` | `direct`, or `hook { host, event, session: ObservedField, turn: ObservedField, agent: main \| subagent { id, type: ObservedField } \| unknown \| unavailable, observed_at: ObservedField }`. `ObservedField` is `observed { value } \| unavailable` |
-| `EntryKey` | `owner: router { group } \| rule_set { path, group } \| rule { path, group, rule_id }`, `position` |
+| `EntryKey` | `owner: router { group } \| rule_set { path, group, route? } \| rule { path, group, rule_id, route? }`, `position`. `route` is the route label, present only for a routed candidate |
 | `RuleOccurrenceKey` | `rule_set`, `group`, `rule_id` |
-| `GroupResult` | `rule_set`, `position`, `binding: bound \| routed { router_group }`, `applicability: ApplicabilityOutcome`, `entries: [EvaluatedEntry]` |
+| `GroupResult` | `rule_set`, `position`, `binding: bound \| routed { router_group, label }`, `applicability: ApplicabilityOutcome`, `entries: [EvaluatedEntry]` |
 | `ApplicabilityOutcome` | `applicable`; `not_applicable { entry: EntryKey, basis }`; `applicability_failed { entry: EntryKey, cause: Cause }`; `not_evaluated { reason: cancelled \| invocation_refused \| earlier_entry_stopped }` |
 | `EvaluatedEntry` | `key: EntryKey`, `result`: `condition { outcome: passed \| did_not_pass \| unresolved { diagnostic }, basis }`, `decision { threshold, outcome: passed { answer: JudgmentReference } \| did_not_pass { answer: JudgmentReference } \| failed { cause: Cause } \| cancelled }`, or `not_evaluated { reason }`. `basis` describes the declared test, never a received payload value |
 | `RuleOccurrenceResult` | Every variant carries `key: RuleOccurrenceKey`: `judged { judgment: RuleJudgment }`, `not_applicable { stopped_at: EntryKey, basis }`, `outside_change_scope { reason }`, `selection_failed { diagnostics }`, `evaluation_failed { cause: Cause }`, `cancelled`, `not_started { reason: caller_cancelled \| request_limit }` |
@@ -194,7 +194,7 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | `JudgmentReference` | `request_index`, `question_name` (the request-local name, such as `q000003`) |
 | `RouterOutcome` | `routed { label, confidence, answer }`, `uncertain_intent { confidence, floor, distribution: map<label, number>, answer }`, `no_route { label, confidence, answer }`, `router_failed { cause: Cause }`, `not_evaluated { reason: cancelled }` |
 | `RequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `status: sent { outcome: DecisionRunOutcome } \| not_sent { reason: gate_stopped { entry } \| cancelled \| budget_refused { diagnostics } \| evidence_refused { diagnostics } \| request_limit }` (`evidence_refused`: every question's owner lost required evidence when the request became ready; see Program Design scheduling), `discarded: [{ question_name, reason: owner_not_applicable { entry } \| not_routed }]` |
-| `RequestOwner` | `router { group }`, `rule_set_group { rule_set, group }` |
+| `RequestOwner` | `router { group }`, `rule_set_group { rule_set, group, route? }`; `route` as in `EntryKey` |
 | `RequestMode` | `rules`, `speculative`, `staged_gate`, `split { part, of }` |
 | `QuestionBinding` | `request_name`, `owner: router { group } \| rule_set_decision { entry } \| rule_decision { rule_id, entry } \| verdict { rule_id } \| informational { rule_id, name }` |
 | `TargetLocation` | `paragraph { span, target_id }`, `conversation_records { source, record_ids }`, `payload_field { input, pointer }`, `code_units { units: [SourceUnitKey] }` |
