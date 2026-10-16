@@ -16,7 +16,7 @@ This companion to the [Program Design](program-design.md) gives the complete fie
 | `ProgramRequest` | `protocol_version: 1`, `operation: prepare_evidence \| prepare_rules \| run_judgments \| evaluate_rules`, `input`: the matching input below |
 | `ProgramResponse` | `protocol_error { protocol_version: 1, diagnostics: DiagnosticList }` or `operation_result { protocol_version: 1, result: { operation, outcome } }`, where `outcome` matches `operation` |
 
-An unknown version or operation, malformed framing or an over-limit input is a `protocol_error`, never a fabricated known outcome.
+An unknown version or operation, malformed framing or an over-limit input is a `protocol_error`, never a fabricated known outcome. The executable reads one JSON request from stdin, up to 8 MiB (8,388,608 bytes); a longer input is refused with `input_limit` without parsing it. Paths in the request stay paths, so this bounds the request, not the evidence it names.
 
 ## Shared shapes
 
