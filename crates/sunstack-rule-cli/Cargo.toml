@@ -1,0 +1,18 @@
+[package]
+name = "sunstack-rule-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+sunstack-rules.workspace = true
+sunstack-decisions.workspace = true
+sunstack-evidence.workspace = true
+
+[[bin]]
+name = "sunstack-rule"
+path = "src/main.rs"

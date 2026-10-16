@@ -115,3 +115,6 @@ dist
 # Demistify generated artifacts and local scratch
 tmp/
 apps/demistify-poc/public/experiments/
+
+# Rust build artifacts
+target/
