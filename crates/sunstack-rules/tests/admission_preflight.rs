@@ -87,7 +87,6 @@ async fn definition_and_binding_preflight_refusals_never_reach_source_capture_or
         "array_rule_line",
         "wrapped_rule_line",
         "malformed_rule_line",
-        "shared_rule_kind_mismatch",
         "binding_unbound",
         "binding_extra",
         "binding_kind",
@@ -101,7 +100,6 @@ async fn definition_and_binding_preflight_refusals_never_reach_source_capture_or
         let server = controlled::ControlledServer::start().await;
         let (mut set, mut rule, mut input) = base(root.path(), &server.endpoint);
         let mut raw_rule = None;
-        let mut second = None;
         match case {
             "set_unknown" => set["PRIVATE_AUTHOR_KEY"] = json!("PRIVATE_AUTHOR_VALUE"),
             "set_version" => set["schema_version"] = json!(2),
@@ -147,17 +145,6 @@ async fn definition_and_binding_preflight_refusals_never_reach_source_capture_or
             "array_rule_line" => raw_rule = Some(json!([rule.clone()]).to_string()),
             "wrapped_rule_line" => raw_rule = Some(json!({"rules":[rule.clone()]}).to_string()),
             "malformed_rule_line" => raw_rule = Some("{\"PRIVATE_AUTHOR_KEY\": ".into()),
-            "shared_rule_kind_mismatch" => {
-                let mut other = set.clone();
-                other["inputs"]["subject"] = json!({"kind":"document"});
-                second = Some(other);
-                let mut requested = input["definitions"]["rule_sets"][0].clone();
-                requested["path"] = json!("second.json");
-                input["definitions"]["rule_sets"]
-                    .as_array_mut()
-                    .unwrap()
-                    .push(requested);
-            }
             "binding_unbound" => {
                 input["definitions"]["rule_sets"][0]["binding_groups"][0]["bindings"] = json!({})
             }
@@ -198,9 +185,6 @@ async fn definition_and_binding_preflight_refusals_never_reach_source_capture_or
             raw_rule.unwrap_or_else(|| rule.to_string()),
         )
         .unwrap();
-        if let Some(second) = second {
-            std::fs::write(root.path().join("second.json"), second.to_string()).unwrap();
-        }
         let calls = Arc::new(AtomicUsize::new(0));
         let outcome = evaluate_rules(
             serde_json::from_value(input).unwrap(),
@@ -342,4 +326,50 @@ async fn primitive_and_selector_diagnostics_keep_their_native_codes_and_definiti
         assert_eq!(calls.load(Ordering::SeqCst), 0);
         assert_eq!(server.finish().await, 0);
     }
+}
+
+#[tokio::test]
+async fn shared_rule_file_is_validated_for_each_owner_with_kind_correct_bindings() {
+    let root = tempfile::tempdir().unwrap();
+    let server = controlled::ControlledServer::start().await;
+    let (conversation_set, rule, mut input) = base(root.path(), &server.endpoint);
+    let mut document_set = conversation_set.clone();
+    document_set["inputs"]["subject"] = json!({"kind":"document"});
+    std::fs::write(
+        root.path().join("source.md"),
+        "U001: valid document binding\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("set.json"), conversation_set.to_string()).unwrap();
+    std::fs::write(root.path().join("second.json"), document_set.to_string()).unwrap();
+    // Blank line makes the shared selector's exact owning definition line observable.
+    std::fs::write(root.path().join("rules.jsonl"), format!("\n{rule}\n")).unwrap();
+    input["repositories"] = json!([{"key":"repo","root":root.path(),"input_paths":[{"kind":"exact","path":"source.md"}],"change_scope":{"kind":"full"}}]);
+    input["definitions"]["rule_sets"].as_array_mut().unwrap().push(json!({"path":"second.json","binding_groups":[{"bindings":{"subject":{"kind":"document","repository":"repo","path":"source.md"}}}]}));
+    let calls = Arc::new(AtomicUsize::new(0));
+    // Both owners' binding kinds are valid. The only incompatibility is the cached
+    // shared rule's conversation selector under the second owner's document input.
+    let outcome = prepare_rules(
+        serde_json::from_value(input).unwrap(),
+        RuleExecutionContext {
+            backend: Arc::new(transport::backend(&server.endpoint)),
+            adapters: registry(calls.clone()),
+            cancellation: CancellationToken::new(),
+        },
+    )
+    .await;
+    let RulePreparationOutcome::Invalid { diagnostics } = outcome else {
+        panic!("{outcome:?}")
+    };
+    assert_eq!(diagnostics.items.len(), 1);
+    let ReportDiagnostic::Rule(diagnostic) = &diagnostics.items[0] else {
+        panic!("{diagnostics:?}")
+    };
+    assert_eq!(diagnostic.code, RuleDiagnosticCode::InputKindMismatch);
+    assert!(
+        matches!(&diagnostic.location, RuleDiagnosticLocation::Definition {file,line:2,column:1,..} if file == &root.path().join("rules.jsonl").canonicalize().unwrap()),
+        "{diagnostic:?}"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    assert_eq!(server.finish().await, 0);
 }

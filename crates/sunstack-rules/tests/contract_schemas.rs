@@ -142,25 +142,52 @@ fn generated_invocation_shape_refuses_zero_budgets_and_empty_binding_groups() {
 
 #[test]
 fn generated_backend_ceiling_schema_matches_native_optional_positive_only_contract() {
-    let schema = generated::<sunstack_decisions::BackendSelection>();
-    let base = json!({"kind":"jev_openrouter","endpoint":"https://openrouter.ai/api/v1/systemone","model":"jev-latest"});
-    assert!(schema.is_valid(&base));
-    let _: sunstack_decisions::BackendSelection = serde_json::from_value(base.clone()).unwrap();
-    for (value, accepted) in [
-        (json!(1), true),
-        (json!(262144), true),
-        (json!(0), false),
-        (Value::Null, false),
-        (json!(-1), false),
-        (json!(1.5), false),
+    let backend_schema = generated::<sunstack_decisions::BackendSelection>();
+    let invocation_schema = generated::<RuleInvocationInput>();
+    let reviewed_schema = reviewed("rule-invocation.schema.json");
+    let invocation_base: Value = serde_json::from_str(include_str!(
+        "../../../docs/specs/2026-10-12-rust-rule-engine/examples/skill-lint.invocation.json"
+    ))
+    .unwrap();
+    let backend_base = json!({"kind":"jev_openrouter","endpoint":"https://openrouter.ai/api/v1/systemone","model":"jev-latest"});
+    for (ceiling, accepted) in [
+        (None, true),
+        (Some(json!(1)), true),
+        (Some(json!(262144)), true),
+        (Some(json!(0)), false),
+        (Some(Value::Null), false),
+        (Some(json!(-1)), false),
+        (Some(json!(1.5)), false),
     ] {
-        let mut case = base.clone();
-        case["context_ceiling_tokens"] = value;
+        let mut backend = backend_base.clone();
+        if let Some(value) = ceiling {
+            backend["context_ceiling_tokens"] = value;
+        }
         assert_eq!(
-            serde_json::from_value::<sunstack_decisions::BackendSelection>(case.clone()).is_ok(),
+            serde_json::from_value::<sunstack_decisions::BackendSelection>(backend.clone()).is_ok(),
             accepted
         );
-        assert_eq!(schema.is_valid(&case), accepted, "{case}");
+        assert_eq!(
+            backend_schema.is_valid(&backend),
+            accepted,
+            "backend {backend}"
+        );
+        let mut invocation = invocation_base.clone();
+        invocation["backend"] = backend;
+        assert_eq!(
+            serde_json::from_value::<RuleInvocationInput>(invocation.clone()).is_ok(),
+            accepted
+        );
+        assert_eq!(
+            invocation_schema.is_valid(&invocation),
+            accepted,
+            "generated invocation {invocation}"
+        );
+        assert_eq!(
+            reviewed_schema.is_valid(&invocation),
+            accepted,
+            "reviewed invocation {invocation}"
+        );
     }
 }
 

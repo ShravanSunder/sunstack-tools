@@ -1,6 +1,6 @@
 # S3a native rules proof
 
-This account covers the rules library and its native preparation/evaluation API. It is not CLI acceptance. The S3b pair owns executable framing/signals, exits and the two executable journeys and their cold/warm measurements. Milestone 2 is deferred under the Lead's split; no connected-change or competing-seed claim is made here.
+This account covers the rules library and its native preparation/evaluation API. The R37/V20 successor correction and its current 145-test gates are recorded in [FOLLOWUP-PROOF.md](FOLLOWUP-PROOF.md); the aggregate table below preserves the original `9aeca1f` author results. It is not CLI acceptance. The S3b pair owns executable framing/signals, exits and the two executable journeys and their cold/warm measurements. Milestone 2 is deferred under the Lead's split; no connected-change or competing-seed claim is made here.
 
 ## Governing inputs and scope
 
@@ -8,7 +8,7 @@ The delivery plan's S3 rows govern the library work, amended by the Lead's S3a/S
 
 The final immutable product commit is declared on execution root `01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01`, on branch `rule-engine/m1-rules`. This file is associated product proof; the development trace remains that board thread.
 
-## Routes and final results
+## Original `9aeca1f` routes and results
 
 Local integration tests enter exported rules APIs as external Cargo integration-test consumers, load real definition/source files, use the real EvidenceSession and the real Jev reqwest encoder/accounting/validation/controller. Controlled TCP servers supply canned provider responses and observe full request bodies. They do not replace the adapter under test. `ObservedBackend` forwards every adapter operation and adds only admission/failure events; it does not synthesize answers. Pure verdict/schema/strict-decode cases run at their smaller owning boundary.
 
@@ -37,10 +37,11 @@ Layer: Public native library; real files/adapter/controlled HTTP (schema/decode 
 
 | Test | Wrong behavior and independent oracle |
 | --- | --- |
-| `definition_and_binding_preflight_refusals_never_reach_source_capture_or_http` | Invalid definitions or bindings reach source capture; 36 literal refusals require zero real normalizer callbacks and HTTP bodies, with the positive control below. |
+| `definition_and_binding_preflight_refusals_never_reach_source_capture_or_http` | Invalid definitions or bindings reach source capture; 35 literal refusals require zero real normalizer callbacks and HTTP bodies, with the positive control below. The formerly masked shared-file case is now its own isolated test. |
 | `empty_applicability_and_question_maps_and_reused_ids_across_rulesets_are_admitted` | Empty applicability/questions or reused IDs across distinct RuleSets are incorrectly refused; fixed positive input expects two occurrences, two requests and one normalized capture. |
 | `raw_nested_duplicate_keys_are_refused_before_any_typed_map_can_erase_them` | Duplicate nested keys disappear into typed maps; authored duplicate input/question/instruction/binding objects must be refused before map construction. |
 | `primitive_and_selector_diagnostics_keep_their_native_codes_and_definition_locations` | Forwarded semantic errors lose their native codes or source location; empty score rubric and empty conversation projection retain native codes and definition line 2. |
+| `shared_rule_file_is_validated_for_each_owner_with_kind_correct_bindings` | A cache hit skips the second owner’s selector compatibility check; valid Conversation/Document bindings leave the shared Conversation selector as the sole mismatch. Native preparation must refuse InputKindMismatch at shared rules.jsonl line 2, column 1, before a normalizer callback or HTTP. Deliberate skip-cached-validation fails; original validation is restored. See FOLLOWUP-PROOF.md. |
 
 ### `binding_groups.rs`
 
@@ -121,7 +122,7 @@ Layer: Public native library; real files/adapter/controlled HTTP (schema/decode 
 | `every_reviewed_milestone_one_definition_and_invocation_deserializes_and_validates_generated_schema` | Reviewed examples cannot be consumed by the exported Rust types/generated schemas; every example definition and invocation is decoded, with referenced bare rule lines semantically validated. |
 | `generated_and_reviewed_rule_shapes_agree_on_shape_refusal_controls` | Generated shape admits invalid rule IDs, evidence, targets, thresholds or primitive shapes; reviewed schema and generated schema are compared against fixed positive/negative literals. |
 | `generated_invocation_shape_refuses_zero_budgets_and_empty_binding_groups` | Generated invocation shape permits zero budgets/timeouts or empty binding groups; reviewed and generated validators must both refuse those fixed mutations. |
-| `generated_backend_ceiling_schema_matches_native_optional_positive_only_contract` | Generated backend schema disagrees with native optional-positive ceiling decoding; absence/positive integers pass and null/zero/negative/fraction fail both validators. |
+| `generated_backend_ceiling_schema_matches_native_optional_positive_only_contract` | Generated or reviewed invocation schema disagrees with native optional-positive ceiling decoding; absence/positive integers pass and null/zero/negative/fraction fail native decoding, generated backend/invocation schemas and the reviewed full invocation schema. See FOLLOWUP-PROOF.md for the stale-reviewed-schema red and merge green. |
 | `reviewed_invocations_pass_native_cross_file_admission_and_real_evidence_preparation` | Example invocations only pass shallow decoding; native cross-file admission and real evidence preparation run with explicit local path substitutions, zero HTTP. The generated packet schema fixture is reused, not hand-recreated. |
 
 ### `definition_admission.rs`
@@ -269,7 +270,7 @@ These are author observations retained in raw logs, not independent Verifier mut
 - `ceiling-schema-red.log`, runc70b982a: generated schema accepted explicit null while native Serde refused it. The explicit positive NonZero field schema fixes that mismatch without changing native decoding.
 - Router identity/frontier test setup corrections are not product reds: unregistered `claude_code` corrected to native `claude_code_jsonl`; noncarrying fixture changed to actually use a different source (same-source candidates legitimately fan out with speculation off); wrong public test field/type names corrected; canonical definition path expected instead of a relative path. The failed-router test's extra empty-occurrences assumption was dropped: the governing obligation is an incomplete report, clear failure, and no salvaged judgments, which it now asserts. No product change was made for these test assumptions.
 
-Additional passing focused run IDs: schema/preparation06b0432e (9 tests), owned cancellation9fd8fbb8 (8), router/verdict/staged9390ea00 (11), mixed-kind wiring/split e16aa804 (6), consumer/native examples36d2d62c (6), transcript/mixed missing3b1995d9 (3), real pattern matrix29b35af4 (1), adjacent speculation3396f448 (4), and declared routing workload95f17b37 (1). Final aggregate above supersedes their individual counts for current source health.
+Additional passing focused run IDs: schema/preparation06b0432e (9 tests), owned cancellation9fd8fbb8 (8), router/verdict/staged9390ea00 (11), mixed-kind wiring/split e16aa804 (6), consumer/native examples36d2d62c (6), transcript/mixed missing3b1995d9 (3), real pattern matrix29b35af4 (1), adjacent speculation3396f448 (4), and declared routing workload95f17b37 (1). The aggregate above applies to original9aeca1f; FOLLOWUP-PROOF.md records the successor gates.
 
 ## Boundaries and remaining observation
 
@@ -277,4 +278,4 @@ There is no production stand-in. The controlled provider supplies canned answers
 
 No executable/CLI, live hook, deployed service, release, non-macOS platform, exact Jev tokenizer or known provider context-capacity claim is made. Milestone 2 shapes/changes and related-unit competing-seed proof remain assigned to later slices. The historical S1 Verifier LEAK at bc9c1ddd remains unattributed; zero markers here do not explain it. Any future marker must capture ownership before retrying.
 
-The primary paired Verifier challenged the plan and adopted the governing corrections, and independently supported the accepted native session/acquisition/supplement/ceiling prerequisites. It has not yet observed the complete S3a immutable target declared after this file. Acceptance belongs to the Lead. Do not call these author gates independent acceptance.
+The primary paired Verifier completed the full `9aeca1f` observation: all 60 original named tests passed independently (144 local workspace plus two genuine hosted). It supported the commissioned rows except the stale reviewed R37 schema and masked V20 shared-file negative. Its report established no native product contradiction. The successor adds the isolated V20 test (61 current rules claims, 59 local plus two hosted) and repairs R37 by merging the accepted docs and extending the agreement test. Its bounded independent R37/V20 recheck and Lead acceptance remain pending; other observations are reused only because production/support/hosted code is unchanged.
