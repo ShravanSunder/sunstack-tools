@@ -70,7 +70,7 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 
 | `kind` | Fields |
 | --- | --- |
-| `prepared` | `selections: [SelectionResult]`, `captures: [CaptureCoverage]`, `change_selections: [ResolvedChangeSelection]` (milestone 2; empty when no binding has a change scope), `cursors: [ReturnedCursor]`, `measurements` |
+| `prepared` | `selections: [SelectionResult]`, `captures: [CaptureCoverage]`, `change_selections: [ResolvedChangeSelection]` (milestone 2; one entry per binding whose change selection was resolved, so empty when none was), `cursors: [ReturnedCursor]`, `measurements` |
 | `incomplete` | the same fields plus `diagnostics: DiagnosticList`. Used only when a `required` declaration is refused. A refused `optional` declaration leaves the plan `prepared`: its `SelectionResult` is `refused { diagnostics }`, and rules records it in request state as `Omission { reason: optional_unavailable }` |
 | `refused` | `diagnostics` |
 | `cancelled` | `progress: before_plan_admission \| plan_admitted { partial: { selections, captures, change_selections, cursors } }`, `diagnostics`, `measurements` |
