@@ -24,11 +24,40 @@ has_debug_identity() {
     codesign --verify "$1" 2>/dev/null
 }
 
-sign_with_debug_identity() {
+sign_with_debug_identity() (
   local executable="$1"
   local debug_identifier="$2"
-  local signing_identity
+  local signing_identity temporary_file="" lock_acquired=false
+  local lock_directory="${executable}.signing.lock"
 
+  cleanup_signing() {
+    if [[ -n "${temporary_file}" ]]; then
+      rm -f "${temporary_file}" 2>/dev/null || true
+    fi
+    if [[ "${lock_acquired}" == true ]]; then
+      rmdir "${lock_directory}" 2>/dev/null || true
+    fi
+  }
+  trap cleanup_signing EXIT
+
+  if has_debug_identity "${executable}" "${debug_identifier}"; then
+    return 0
+  fi
+
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    if mkdir "${lock_directory}" 2>/dev/null; then
+      lock_acquired=true
+      break
+    fi
+    if has_debug_identity "${executable}" "${debug_identifier}"; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  if [[ "${lock_acquired}" != true ]]; then
+    warn_unsigned "${executable}" "signing lock unavailable"
+    return 0
+  fi
   if has_debug_identity "${executable}" "${debug_identifier}"; then
     return 0
   fi
@@ -42,19 +71,30 @@ sign_with_debug_identity() {
     return 0
   fi
 
-  if codesign --force --sign "${signing_identity}" --identifier "${debug_identifier}" --timestamp=none "${executable}" >/dev/null 2>&1; then
+  temporary_file="$(mktemp "${executable}.signing.XXXXXX")" || {
+    warn_unsigned "${executable}" "temporary copy unavailable"
+    return 0
+  }
+  if ! cp -p "${executable}" "${temporary_file}"; then
+    warn_unsigned "${executable}" "executable copy failed"
     return 0
   fi
-  # Concurrent runs may race on codesign's temporary file. Wait for the
-  # winning signature before falling back to the original executable.
-  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-    if has_debug_identity "${executable}" "${debug_identifier}"; then
-      return 0
-    fi
-    sleep 0.1
-  done
-  warn_unsigned "${executable}" "codesign failed"
-}
+  if ! codesign --force --sign "${signing_identity}" --identifier "${debug_identifier}" --timestamp=none "${temporary_file}" >/dev/null 2>&1; then
+    warn_unsigned "${executable}" "codesign failed; original unchanged"
+    return 0
+  fi
+  if ! has_debug_identity "${temporary_file}" "${debug_identifier}"; then
+    warn_unsigned "${executable}" "signature verification failed; original unchanged"
+    return 0
+  fi
+  # Rename in the same directory is atomic. Concurrent execs see either the
+  # untouched linked inode or the fully signed inode, never a partial rewrite.
+  if ! mv -f "${temporary_file}" "${executable}"; then
+    warn_unsigned "${executable}" "signed replacement failed; original unchanged"
+    return 0
+  fi
+  temporary_file=""
+)
 
 if [[ "${1:-}" == "--sign-only" ]]; then
   shift
