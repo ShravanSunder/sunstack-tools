@@ -51,8 +51,9 @@ No backend and no credentials.
 
 **Native `EvidenceSession`** (`sunstack-evidence`, native API only, never on the wire). It holds one invocation's admitted sources, frozen `SourceSnapshot`, capture cache, cursors and cumulative limits:
 - `open(...)` admits the sources once.
-- `select(declaration)` acquires lazily and returns a `SelectionResult`.
-- Closing it yields captures, returned cursors and measurements.
+- `select(declaration)` acquires lazily and returns a `SelectionResult`. A first acquisition, including every file a change-set selection reads, finishes its verification pass before `select` returns. A source that changed during that capture is refused with `source_changed`.
+- A returned capture is final. Later selections reuse its frozen bytes, and a change to the file after its capture interval is neither reread nor reported, as Specification E11 says: locations refer to the captured bytes, never to later reads. A `ready` result is never made tentative or invalidated afterwards.
+- Closing it yields captures, returned cursors and measurements. It publishes what was captured and does not revisit it.
 
 `prepare_evidence` is a thin wrapper that opens a session, selects every declaration and closes it. Rules (S3) uses one session per invocation, so every request shares one capture and one set of limits, and no source is read twice. There is still one capture owner: rules never captures or caches sources itself.
 

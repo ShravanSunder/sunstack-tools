@@ -24,7 +24,7 @@ A **repository binding** (E17) is the only authority for a root, its allowed pat
 
 `git2` resolves tree, index and worktree comparisons. Git work happens once per repository and scope member, never per rule. Renames may be delete plus add.
 
-**Capture.** Selected file bytes are frozen with their content and revision identity. A final verification pass rereads mutable files. If relevant content changed, capture is refused once with `source_changed` and `capture_again` advice, with no hidden retry. Commit-to-commit sources use blob IDs. A unit or chunk never mixes a span from one version with text from a later read. No transaction spans several repositories.
+**Capture.** Selected file bytes are frozen with their content and revision identity. Each capture ends with a verification pass that rereads the mutable files it read, before its selection returns. If relevant content changed during that capture, it is refused once with `source_changed` and `capture_again` advice, with no hidden retry. A change after a capture has returned is a later source change: the frozen bytes stand, as the [evidence session](program-design-contracts.md#prepare_evidence-sunstack-evidence) states. Commit-to-commit sources use blob IDs. A unit or chunk never mixes a span from one version with text from a later read. No transaction spans several repositories.
 
 **Time windows.** One UTC anchor resolves lookback for all repositories. Commit windows walk from the declared references, filter on committer time, and don't stop at the first older commit. Shallow or bounded history is a coverage diagnostic. Commit-set and time scopes keep each commit's own delta; `revision_diff` is an endpoint comparison. These are never merged into a fictional patch.
 
