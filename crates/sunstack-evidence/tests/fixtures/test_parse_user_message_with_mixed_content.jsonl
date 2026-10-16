@@ -1,0 +1,1 @@
+{"type":"user","message":{"content":[{"type":"text","text":"Here's what I found:"},{"type":"tool_use","id":"use_1","name":"Search","input":{"query":"test"}},{"type":"tool_result","tool_use_id":"use_1","content":"Search results"},{"type":"text","text":"What do you think?"}]}}
