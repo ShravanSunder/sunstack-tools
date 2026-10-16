@@ -6,8 +6,18 @@ import { reportIssue } from '../core/issues.ts';
  * the layout and arrows to them disappear. `off="name"` starts a layer hidden.
  */
 export class LayersElement extends HTMLElement {
+	private bound = false;
 	connectedCallback(): void {
-		if (this.hasAttribute('prepared')) return;
+		if (this.bound) return;
+		this.bound = true;
+		if (this.hasAttribute('prepared')) {
+			for (const button of this.querySelectorAll<HTMLButtonElement>('button[data-layer]')) {
+				button.addEventListener('click', (): void =>
+					setLayer(button.dataset['layer'] ?? '', button.getAttribute('aria-pressed') !== 'true'),
+				);
+			}
+			return;
+		}
 		this.setAttribute('prepared', '');
 		const names = Array.from(
 			new Set(

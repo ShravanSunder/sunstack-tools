@@ -62,8 +62,11 @@ export class BoardIsland extends HTMLElement {
 		if (this.canvas) return;
 		// Regions are laid out by the board; anything else is the author's own canvas (absolute,
 		// grid or flex), kept exactly as written, with the camera, routes and arrows on top.
-		const free = !this.querySelector(':scope > ex-region');
-		const canvas = document.createElement(free ? 'div' : 'ex-flow');
+		const existingCanvas = this.querySelector<HTMLElement>(':scope > .ex-board-canvas');
+		const free = existingCanvas
+			? existingCanvas.hasAttribute('data-free')
+			: !this.querySelector(':scope > ex-region');
+		const canvas = existingCanvas ?? document.createElement(free ? 'div' : 'ex-flow');
 		canvas.className = 'ex-board-canvas';
 		if (free) canvas.dataset['free'] = '';
 		else {
@@ -71,7 +74,8 @@ export class BoardIsland extends HTMLElement {
 			canvas.setAttribute('cols', String(columns));
 			canvas.dataset['designWidth'] = String(columns * regionWidth + (columns - 1) * 72 + 56);
 		}
-		canvas.append(...Array.from(this.childNodes));
+		if (!existingCanvas) canvas.append(...Array.from(this.childNodes));
+		this.querySelector(':scope > .ex-board-toolbar')?.remove();
 		this.append(this.createToolbar(), canvas);
 		this.canvas = canvas;
 		// The map is the author's deliberate choice (mode="map"); a board otherwise reads like the page.

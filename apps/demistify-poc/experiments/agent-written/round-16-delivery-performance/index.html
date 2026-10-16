@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delivery and loading experiment</title><link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/theme.css"><script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/runtime.js"></script></head><body><ex-document>
+# Delivery and loading experiment
+
+Same Luna-authored review, three independent pages. These openable copies use public shared assets. The measurements used verified identical library bytes under fresh loopback URL roots, with three fresh/reload pairs per variant in an existing Chrome process.
+
+| Review delivery | Fresh ready, median | Reload ready, median | Fresh layout-shift sum, median | First library entity bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Runtime source | 341 ms | 273 ms | 0.676 | 2,528,730 |
+| Explicit outline | 264 ms | 238 ms | 0.669 | 2,528,730 |
+| Prepared Markdown + SVG | 29 ms | 19 ms | 0.035 | 275,401 |
+
+- [Runtime source](baseline.html)
+- [Explicit outline declaration](explicit-outline.html)
+- [Generated prepared islands](prepared.html)
+- [390px source review](narrow-review.html) · [390px prepared review](narrow-prepared.html) · [390px explorer](narrow-explorer.html)
+- [Raw paired samples](browser-samples.json) · [summary and HTTP body ledger](summary.json) · [actual public HTTP requests](hosted-http-samples.json)
+
+Preparation moves work before viewing. The authored Luna page stays 4,924 bytes / 1,099 source tokens. The generated prepared page is 13,920 bytes and uses internal prepared markup; it is not new authoring vocabulary or a smaller source document. This fixed experiment does not establish a general compiler, production default or universal performance gain.
+
+The current full explorer was ready in 79–90 ms fresh / 32–40 ms on reload. Eight real selections took 3.7–9.9 ms synchronously and 13.7–32.2 ms over the library's two-frame settlement measure. These are bounded local observations, not field INP or WAN rendering timings.
+
+Real 390×844 child contexts showed no outer horizontal overflow for the explorer, source review or prepared review. Narrow inspection retained nine main code rows beside its nine copied rows. Keyboard and visible pointer closing preserved the original; the automation locator's tall-frame autoscroll needed a direct visible pointer check.
+
+Public HTTP requests separately measured gzip CSS 12,514 bytes, runtime 23,945, optional engine 506,562 and graph JSON 96,500. Actual native Worker ready and rendered-SVG messages were observed in a separate diagnostic. No new deployment or library default changed.
+
+The frozen reference still matches all 100 node/mode compositions and preserves 1,870 long text values, 714 source anchors and 350 edge identities. The current external original file has since changed. Visual parity remains unverified because browser policy refuses its file URL; opening it in Chrome for the owner does not override that policy.
+
+[Preparation and limitations](README.md)
+</ex-document></body></html>

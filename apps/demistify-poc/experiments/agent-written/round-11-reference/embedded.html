@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Two independent explorer islands</title>
+  <link rel="stylesheet" href="demistify/theme.css">
+  <script type="module" src="demistify/runtime.js"></script>
+  <style>
+    .composition-page { padding: 24px; }
+    .explorer-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .explorer-comparison > section { min-width: 0; }
+    @media (max-width: 850px) { .explorer-comparison { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="composition-page">
+  <header id="layout-heading">
+    <h1>Two independent explorer islands</h1>
+    <p>This composition check uses ordinary HTML grid, one shared content file and two stable island IDs. Select a node in either view, then reload. Each selection should survive independently while the heading fragment stays available.</p>
+    <p><a href="#layout-heading">Heading link</a> · <a href="index.html">Full-width reference page</a></p>
+  </header>
+  <div class="explorer-comparison">
+    <section aria-label="First explorer">
+      <h2>First selection</h2>
+      <ex-explorer id="first-graph" src="planning.json" selected="spec-design" view="proposed"></ex-explorer>
+    </section>
+    <section aria-label="Second explorer">
+      <h2>Second selection</h2>
+      <ex-explorer id="second-graph" src="planning.json" selected="principle-write-tests-that-can-fail" view="proposed"></ex-explorer>
+    </section>
+  </div>
+</body>
+</html>

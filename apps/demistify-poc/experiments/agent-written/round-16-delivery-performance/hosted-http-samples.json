@@ -1,0 +1,233 @@
+{
+  "samples": [
+    {
+      "path": "/demistify/experimental/c96a72e/theme.css",
+      "sample": 1,
+      "status": 200,
+      "dnsMs": 62.534000000000006,
+      "tlsMs": 118.548,
+      "ttfbMs": 214.744,
+      "totalMs": 219.71699999999998,
+      "transferredBodyBytes": 12514,
+      "decodedBytes": 61699,
+      "decodedSha256": "7e258a3ed33044377ec3b66bdf289df36c2772b94ea485c5f2b639cb5c3af8af",
+      "headers": {
+        "content-type": "text/css",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/theme.css",
+      "sample": 2,
+      "status": 200,
+      "dnsMs": 1.772,
+      "tlsMs": 57.847,
+      "ttfbMs": 208.577,
+      "totalMs": 209.089,
+      "transferredBodyBytes": 12514,
+      "decodedBytes": 61699,
+      "decodedSha256": "7e258a3ed33044377ec3b66bdf289df36c2772b94ea485c5f2b639cb5c3af8af",
+      "headers": {
+        "content-type": "text/css",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/theme.css",
+      "sample": 3,
+      "status": 200,
+      "dnsMs": 1.991,
+      "tlsMs": 56.233,
+      "ttfbMs": 132.149,
+      "totalMs": 133.692,
+      "transferredBodyBytes": 12514,
+      "decodedBytes": 61699,
+      "decodedSha256": "7e258a3ed33044377ec3b66bdf289df36c2772b94ea485c5f2b639cb5c3af8af",
+      "headers": {
+        "content-type": "text/css",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/runtime.js",
+      "sample": 1,
+      "status": 200,
+      "dnsMs": 1.776,
+      "tlsMs": 50.746,
+      "ttfbMs": 123.985,
+      "totalMs": 126.717,
+      "transferredBodyBytes": 23945,
+      "decodedBytes": 84294,
+      "decodedSha256": "091a4e850380f08a1bee899fe8a9a55af234aaeeb1d5d05533f381373925663e",
+      "headers": {
+        "content-type": "text/javascript",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/runtime.js",
+      "sample": 2,
+      "status": 200,
+      "dnsMs": 3.869,
+      "tlsMs": 55.279,
+      "ttfbMs": 125.109,
+      "totalMs": 126.33900000000001,
+      "transferredBodyBytes": 23945,
+      "decodedBytes": 84294,
+      "decodedSha256": "091a4e850380f08a1bee899fe8a9a55af234aaeeb1d5d05533f381373925663e",
+      "headers": {
+        "content-type": "text/javascript",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/runtime.js",
+      "sample": 3,
+      "status": 200,
+      "dnsMs": 1.991,
+      "tlsMs": 147.96599999999998,
+      "ttfbMs": 225.349,
+      "totalMs": 234.899,
+      "transferredBodyBytes": 23945,
+      "decodedBytes": 84294,
+      "decodedSha256": "091a4e850380f08a1bee899fe8a9a55af234aaeeb1d5d05533f381373925663e",
+      "headers": {
+        "content-type": "text/javascript",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/chunks/dist-DcDoeHXN.js",
+      "sample": 1,
+      "status": 200,
+      "dnsMs": 1.861,
+      "tlsMs": 64.852,
+      "ttfbMs": 449.051,
+      "totalMs": 501.73599999999993,
+      "transferredBodyBytes": 506562,
+      "decodedBytes": 2195817,
+      "decodedSha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f",
+      "headers": {
+        "content-type": "text/javascript",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/chunks/dist-DcDoeHXN.js",
+      "sample": 2,
+      "status": 200,
+      "dnsMs": 2.005,
+      "tlsMs": 88.617,
+      "ttfbMs": 396.357,
+      "totalMs": 454.141,
+      "transferredBodyBytes": 506562,
+      "decodedBytes": 2195817,
+      "decodedSha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f",
+      "headers": {
+        "content-type": "text/javascript",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/demistify/experimental/c96a72e/chunks/dist-DcDoeHXN.js",
+      "sample": 3,
+      "status": 200,
+      "dnsMs": 4.326,
+      "tlsMs": 56.817,
+      "ttfbMs": 349.536,
+      "totalMs": 526.772,
+      "transferredBodyBytes": 506562,
+      "decodedBytes": 2195817,
+      "decodedSha256": "3c10af20b86abdcc2c06b68835338fe9827b5e111368c5cae2304cb84d90784f",
+      "headers": {
+        "content-type": "text/javascript",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/examples/2026-10-16-sol-luna-v3/planning.json",
+      "sample": 1,
+      "status": 200,
+      "dnsMs": 1.877,
+      "tlsMs": 65.806,
+      "ttfbMs": 156.889,
+      "totalMs": 185.73999999999998,
+      "transferredBodyBytes": 96500,
+      "decodedBytes": 776437,
+      "decodedSha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/examples/2026-10-16-sol-luna-v3/planning.json",
+      "sample": 2,
+      "status": 200,
+      "dnsMs": 2.7169999999999996,
+      "tlsMs": 57.711,
+      "ttfbMs": 118.23899999999999,
+      "totalMs": 260.698,
+      "transferredBodyBytes": 96500,
+      "decodedBytes": 776437,
+      "decodedSha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    },
+    {
+      "path": "/examples/2026-10-16-sol-luna-v3/planning.json",
+      "sample": 3,
+      "status": 200,
+      "dnsMs": 2.28,
+      "tlsMs": 55.364,
+      "ttfbMs": 235.347,
+      "totalMs": 252.71900000000002,
+      "transferredBodyBytes": 96500,
+      "decodedBytes": 776437,
+      "decodedSha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=31536000, immutable",
+        "timing-allow-origin": "*",
+        "content-encoding": "gzip"
+      }
+    }
+  ],
+  "limits": "Three anonymous sequential GETs per URL from this machine using curl compression; independent connections. Not forced edge-cold, browser rendering, multi-region latency or field Core Web Vitals."
+}

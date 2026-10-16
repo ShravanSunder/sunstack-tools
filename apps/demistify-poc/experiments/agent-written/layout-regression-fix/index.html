@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Diagram layout regression</title>
+		<link rel="stylesheet" href="/experiments/islands/theme.css" />
+		<script type="module" src="/experiments/islands/runtime.js"></script>
+	</head>
+	<body>
+		<ex-document>
+			<h1 id="diagram-layout">Diagram layout regression</h1>
+			<p>Compare wide and narrow diagrams, scroll to each end, then open inspection and resize.</p>
+			<h2 id="comparison">Two-column comparison</h2>
+			<ex-tabs columns>
+				<section label="Wide diagram">
+					<ex-mermaid id="wide-diagram" label="Wide comparison">
+						<script type="text/plain">
+							flowchart LR
+							  input["Receive a complete request<br/>with its source and destination"] --> validate["Validate the request<br/>and preserve the original labels"]
+							  validate --> route["Choose the destination<br/>using the current routing rules"]
+							  route --> persist["Store the delivery record<br/>before acknowledging receipt"]
+							  persist --> deliver["Deliver the complete message<br/>without shortening its contents"]
+							  deliver --> finish["Report the observed outcome<br/>and retain the evidence"]
+						</script>
+					</ex-mermaid>
+					<p>The first and last nodes and their connecting arrows must remain reachable.</p>
+				</section>
+				<section label="Narrow diagram">
+					<ex-mermaid id="narrow-diagram" label="Narrow comparison">
+						<script type="text/plain">
+							flowchart TB
+							  start["Start"] --> finish["Finish"]
+						</script>
+					</ex-mermaid>
+					<p>A small diagram stays centered and does not require horizontal scrolling.</p>
+				</section>
+			</ex-tabs>
+			<h2 id="full-width">Full-width diagram</h2>
+			<ex-mermaid id="full-width-diagram" label="Full-width diagram">
+				<script type="text/plain">
+					flowchart LR
+					  start["Left endpoint"] --> read["Read the complete document"]
+					  read --> inspect["Inspect the complete diagram"]
+					  inspect --> resize["Resize the available reading space"]
+					  resize --> finish["Right endpoint"]
+				</script>
+			</ex-mermaid>
+			<h2 id="tree-labels">Tree label wrapping</h2>
+			<ex-grid cols="3">
+				<ex-tree id="tight-labels" title="Short and multiline labels" tone="note">
+					<script type="text/plain">
+						- done: Short label
+						- planned: A deliberately long label must wrap beneath its own first word while its tone icon stays beside the first line of text.
+						  - note: A nested child has the same alignment and remains available after folding its parent.
+						- changed: Keep `inlineCodeBetweenWords` and **emphasized text** in normal text flow beside the icon, followed by a [reading link](#reading).
+					</script>
+				</ex-tree>
+				<ex-tree id="loose-labels" title="Loose paragraphs" tone="note">
+					<script type="text/plain">
+						- done: The first paragraph is long enough to wrap over several lines in a narrow column without dropping below the tone icon.
+
+						  A second paragraph retains its separate paragraph spacing and wraps under the label text, with `inlineCode` preserved.
+
+						- planned: Short second item.
+					</script>
+				</ex-tree>
+				<ex-tree id="map-labels" title="A longer root label also wraps beside its own icon" tone="note" layout="map">
+					<script type="text/plain">
+						- done: A long map label with `inlineCode` keeps its own wrapping within the node boundary.
+						  - planned: Short child
+					</script>
+				</ex-tree>
+			</ex-grid>
+			<h2 id="gesture-inspection">Visual gesture inspection</h2>
+			<ex-zoom id="gesture-canvas" label="Gesture canvas" zoom style="overflow:auto;max-width:100%;height:240px">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1000" viewBox="0 0 1200 1000" role="img" aria-label="Gesture canvas" style="display:block">
+					<rect x="2" y="2" width="1196" height="996" fill="var(--sheet)" stroke="var(--ink)" />
+					<path d="M 80 80 L 1120 920" stroke="var(--accent)" />
+					<text x="40" y="60" fill="var(--ink)">Canvas start</text>
+					<text x="1040" y="960" fill="var(--ink)">Canvas end</text>
+				</svg>
+			</ex-zoom>
+			<h2 id="picture-inspection">Native picture inspection</h2>
+			<figure id="inspection-picture">
+				<img src="inspection-picture.svg" alt="Native inspection picture" width="1600" height="1200" />
+				<figcaption>Native inspection picture</figcaption>
+			</figure>
+			<h2 id="reading">Reading after diagrams</h2>
+			<p>This heading and paragraph must stay in the document while the sidebar is open.</p>
+		</ex-document>
+	</body>
+</html>

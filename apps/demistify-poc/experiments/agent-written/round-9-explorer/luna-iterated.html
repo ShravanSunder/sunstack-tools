@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skill planning explorer</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-explorer id="skill-planning" src="planning.json" selected="spec-design" view="proposed">
+<ex-markdown><script type="text/markdown">
+## How to review the graph
+
+Select a node to inspect its details and incoming consumers in **Used by**. Compare the current and proposed views, then hover over nodes or relationships to trace connections. Click an arrow to open its Connections evidence row. Sources provide quotations and links; they do not prove that a skill executes. This is a dated proposal, so proposed relationships do not mean the implementation has shipped.
+</script></ex-markdown>
+</ex-explorer>
+</body>
+</html>

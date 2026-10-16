@@ -1,6 +1,6 @@
 # Agent-written explainers
 
-Each page was written by a fresh Haiku-class subagent that read only one guide and one fact brief from `apps/demistify-poc/briefs/`, with identical prompts. Pages are kept verbatim (excluded from formatting). After `pnpm build`, open `/experiments/agent-written/<round>/<page>.html` on the lab preview.
+The early rounds were written by fresh Haiku-class subagents that read one guide and one fact brief from `apps/demistify-poc/briefs/`, with identical prompts. Pages are kept verbatim (excluded from formatting). After `pnpm build`, open `/experiments/agent-written/<round>/<page>.html` on the lab preview.
 
 | Round | Guide | Pages |
 | --- | --- | --- |
@@ -19,3 +19,7 @@ Round 4 results (desktop 1400 px; "mixed" = share of islands beside a different 
 | component-deep-dive | 2,338 → 2,328 | 0% → 29% | 5,645 → 5,620 px |
 
 Every treatment page used routes and stat tiles; two used the board; none needed a Markdown wrapper (control: 7–14 per page). One treatment page had one authoring issue (a route step to a missing id), reported by the issues panel. No console errors in any page.
+
+Later measured rounds: [Luna baseline/starter](round-7-luna/README.md), [matched Sol/Luna code review](round-8-sol-luna/README.md), and [full explorer reproduction](round-9-explorer/README.md). Each keeps its own fixed inputs and proof limits.
+
+[Round 10](round-10-guide/README.md) records a fresh Sol/Luna pair after guide clarification, including the initial eight-error Luna review, its repair and the fixture assistance.

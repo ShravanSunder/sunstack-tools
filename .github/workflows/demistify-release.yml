@@ -1,0 +1,171 @@
+name: Demistify
+
+on:
+  pull_request:
+    paths:
+      - packages/demistify/**
+      - apps/demistify-poc/**
+      - .changeset/**
+      - .github/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - tsconfig.json
+      - .oxlintrc.json
+      - .oxfmtrc.json
+  push:
+    branches: [main]
+    paths:
+      - packages/demistify/**
+      - apps/demistify-poc/**
+      - .changeset/**
+      - .github/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - tsconfig.json
+      - .oxlintrc.json
+      - .oxfmtrc.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  WRANGLER_SEND_METRICS: 'false'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.version.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/demistify-setup
+      - run: pnpm check
+      - run: pnpm build
+      - run: pnpm test
+      - name: Install the pinned Chromium for browser regressions
+        run: pnpm --filter @sunstack/demistify-poc exec playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/demistify-chromium
+      - run: pnpm test:browser
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/demistify-chromium
+      - id: intent
+        run: pnpm release:check
+        env:
+          DEMISTIFY_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+      - name: Validate pending changesets before they are consumed
+        if: steps.intent.outputs.version-pr != 'true'
+        run: pnpm changeset status --since "$DEMISTIFY_BASE_REF"
+        env:
+          DEMISTIFY_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+      - name: Compile Cloudflare Worker without credentials or upload
+        run: pnpm exec wrangler deploy --dry-run --autoconfig=false --config packages/demistify/release/wrangler.json --assets packages/demistify/dist --outdir tmp/demistify-worker-dryrun
+      - id: version
+        name: Select supported version changes only
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { readFile, appendFile } from 'node:fs/promises';
+          import { execFileSync } from 'node:child_process';
+          import { versionSchema, versionNumbers } from './packages/demistify/release/release-schema.ts';
+          const current = versionSchema.parse(JSON.parse(await readFile('packages/demistify/package.json', 'utf8')).version);
+          const before = process.env.BEFORE_SHA;
+          const previous = before && /^[a-f0-9]{40}$/.test(before) && !/^0+$/.test(before)
+            ? JSON.parse(execFileSync('git', ['show', `${before}:packages/demistify/package.json`], {encoding:'utf8'})).version
+            : current;
+          const deploy = process.env.GITHUB_REF === 'refs/heads/main'
+            && versionNumbers(current)[0] >= 1
+            && (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' || current !== previous);
+          await appendFile(process.env.GITHUB_OUTPUT, `deploy=${deploy}\n`);
+          console.log(`Package ${current}: ${deploy ? 'supported release selected' : 'checks only; no deployment'}`);
+          JS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: demistify-build-${{ github.sha }}
+          path: |
+            packages/demistify/dist/
+            packages/demistify/skill/
+            tmp/demistify-worker-dryrun/
+          retention-days: 14
+
+  version-pr:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: checks
+    runs-on: ubuntu-latest
+    concurrency:
+      group: demistify-version-pr
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/demistify-setup
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        id: changesets
+        with:
+          version-script: pnpm version-packages
+          pr-title: 'Release Demistify'
+          commit-message: 'chore(demistify): version package and changelog'
+          create-github-releases: false
+          push-git-tags: false
+      # A PR created using GITHUB_TOKEN does not emit another pull_request workflow run.
+      # workflow_dispatch is the supported exception and checks the exact bot branch.
+      - name: Run checks for the generated version PR
+        if: steps.changesets.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PR: ${{ steps.changesets.outputs.pr-number }}
+        run: |
+          release_branch=$(gh pr view "$RELEASE_PR" --json headRefName --jq .headRefName)
+          gh workflow run demistify-release.yml --ref "$release_branch"
+
+  deploy:
+    if: needs.checks.outputs.deploy == 'true' && github.ref == 'refs/heads/main'
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: demistify-cdn
+    concurrency:
+      group: demistify-cloudflare-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/demistify-setup
+      - run: pnpm --filter @sunstack/demistify build
+      - id: origin
+        name: Resolve history origin from the deployment account
+        run: node packages/demistify/release/resolve-release-origin.ts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify and retain every existing major before upload
+        run: pnpm release:prepare
+        env:
+          DEMISTIFY_ASSET_ORIGIN: ${{ steps.origin.outputs.origin }}
+      - uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: 4.151.1
+          packageManager: pnpm
+          command: deploy --autoconfig=false --config packages/demistify/release/wrangler.json
+      - name: Verify new and historical major bytes through public HTTP
+        run: pnpm release:verify
+        env:
+          DEMISTIFY_ASSET_ORIGIN: ${{ steps.origin.outputs.origin }}

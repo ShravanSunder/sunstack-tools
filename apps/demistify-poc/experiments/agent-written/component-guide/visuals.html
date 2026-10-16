@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Visuals and structure · Demistify components</title>
+<link rel="stylesheet" href="/experiments/islands/theme.css">
+<script type="module" src="/experiments/islands/runtime.js">
+</script>
+</head>
+<body>
+<ex-nav for="guide">
+<nav slot="pages" aria-label="Component guide pages">
+<a href="index.html">Start here</a>
+<a href="content.html">Content and decisions</a>
+<a href="layouts.html">Layouts and navigation</a>
+<a href="visuals.html">Visuals and structure</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+</nav>
+<nav slot="presentations" aria-label="Other presentations">
+<a href="../navigation-markdown-fix/index.html">
+<strong>Session design</strong>
+<span>Three named presentations with referenced Markdown and deep links.</span>
+</a>
+<a href="../layout-regression-fix/index.html">
+<strong>Layout stress cases</strong>
+<span>Wide diagrams and long tree labels.</span>
+</a>
+</nav>
+</ex-nav>
+<ex-document id="guide">
+<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
+<a href="index.html">Demistify component guide</a>
+<span aria-current="page">Visuals and structure</span>
+</nav>
+<ex-presentation id="examples" title="Visuals and structure" description="Working components with copyable source and usage guidance.">
+<h1>Visuals and structure</h1>
+<section id="component-ex-mermaid">
+<h2>Mermaid <code>ex-mermaid</code>
+</h2>
+<p>Use a fenced diagram in Markdown or an explicit island. Expand it to try Cmd+scroll zoom, Cmd+drag pan and Reset.</p>
+<ex-mermaid id="diagram-example" label="Reconnect flow">
+<script type="text/plain">flowchart LR
+ Client --> Registry --> Session
+</script>
+</ex-mermaid>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-mermaid usage" lang="html">
+<template>&lt;ex-mermaid id=&quot;diagram-example&quot; label=&quot;Reconnect flow&quot;&gt;&lt;script type=&quot;text/plain&quot;&gt;flowchart LR
+ Client --&gt; Registry --&gt; Session
+&lt;/script&gt;&lt;/ex-mermaid&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-compare">
+<h2>Comparisons <code>ex-compare</code>
+</h2>
+<p>Label both views and compose ordinary content. The slider variant works well with pictures of the same size.</p>
+<ex-compare>
+<section label="Before">
+<ex-callout title="Transport owns state" tone="removed">A disconnect loses the running session.</ex-callout>
+</section>
+<section label="After">
+<ex-callout title="Registry owns state" tone="added">A reconnect finds the same session.</ex-callout>
+</section>
+</ex-compare>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-compare usage" lang="html">
+<template>&lt;ex-compare&gt;&lt;section label=&quot;Before&quot;&gt;&lt;ex-callout title=&quot;Transport owns state&quot; tone=&quot;removed&quot;&gt;A disconnect loses the running session.&lt;/ex-callout&gt;&lt;/section&gt;&lt;section label=&quot;After&quot;&gt;&lt;ex-callout title=&quot;Registry owns state&quot; tone=&quot;added&quot;&gt;A reconnect finds the same session.&lt;/ex-callout&gt;&lt;/section&gt;&lt;/ex-compare&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="pictures">
+<h2>Pictures and picture comparison</h2>
+<p>Pictures use ordinary HTML. Click the figure to inspect it; expand, zoom or pan. The slider compares two equal-size images.</p>
+<figure>
+<img src="session-picture.svg" alt="Client, registry and session linked in order">
+<figcaption>A normal HTML figure uses the shared inspector.</figcaption>
+</figure>
+<ex-compare slider label="Registry revision">
+<figure label="Before">
+<img src="session-picture.svg" alt="Registry before the revision">
+</figure>
+<figure label="After">
+<img src="session-picture-after.svg" alt="Persistent registry after the revision">
+</figure>
+</ex-compare>
+</section>
+<section id="component-ex-tree">
+<h2>Trees <code>ex-tree</code>
+</h2>
+<p>A Markdown list becomes a collapsible tree. Text wraps under the label, preserving inline code and paragraph boundaries.</p>
+<ex-tree title="Delivery work" icon="rocket">
+- done: Read the contract
+- planned: Implement the registry with `SessionId` and a long explanation that wraps naturally beside its icon.
+  - question: Confirm expiry semantics
+  - [ ] Verify reconnection
+- [x] Keep source and rendered views
+</ex-tree>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-tree usage" lang="html">
+<template>&lt;ex-tree title=&quot;Delivery work&quot; icon=&quot;rocket&quot;&gt;
+- done: Read the contract
+- planned: Implement the registry with `SessionId` and a long explanation that wraps naturally beside its icon.
+  - question: Confirm expiry semantics
+  - [ ] Verify reconnection
+- [x] Keep source and rendered views
+&lt;/ex-tree&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-file-tree">
+<h2>File trees <code>ex-file-tree</code>
+</h2>
+<p>Use an inert plain-text tree to explain repository changes without implementing a file browser.</p>
+<ex-file-tree label="Proposed files">
+<script type="text/plain">src/
+├── sessions/
+│   ├── registry.ts
+│   └── resume.ts
+└── transport/
+    └── socket.ts
+</script>
+</ex-file-tree>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-file-tree usage" lang="html">
+<template>&lt;ex-file-tree label=&quot;Proposed files&quot;&gt;&lt;script type=&quot;text/plain&quot;&gt;src/
+├── sessions/
+│   ├── registry.ts
+│   └── resume.ts
+└── transport/
+    └── socket.ts
+&lt;/script&gt;&lt;/ex-file-tree&gt;</template>
+</ex-code>
+</details>
+</section>
+</ex-presentation>
+<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+<ex-markdown id="authoring-notes" src="usage-notes.md">
+</ex-markdown>
+</ex-presentation>
+</ex-document>
+</body>
+</html>

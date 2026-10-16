@@ -1,0 +1,121 @@
+{
+	"fontStatus": "loaded",
+	"loadedFontFaces": [
+		{ "family": "IBM Plex Sans Condensed", "weight": "500" },
+		{ "family": "IBM Plex Sans Condensed", "weight": "600" },
+		{ "family": "IBM Plex Sans Condensed", "weight": "700" },
+		{ "family": "Literata", "weight": "400" },
+		{ "family": "Literata", "weight": "600" },
+		{ "family": "IBM Plex Mono", "weight": "400" },
+		{ "family": "Phosphor", "weight": "normal" }
+	],
+	"resources": [
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/theme.css",
+			"transferBytes": 0,
+			"encodedBytes": 14459,
+			"durationMs": 8.399999976158142
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/runtime.js",
+			"transferBytes": 0,
+			"encodedBytes": 25719,
+			"durationMs": 8.100000023841858
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/chunks/source-text-LCI4h-OT.js",
+			"transferBytes": 0,
+			"encodedBytes": 359,
+			"durationMs": 2.5
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/chunks/icons-BTtd1_Fe.js",
+			"transferBytes": 0,
+			"encodedBytes": 912,
+			"durationMs": 2.600000023841858
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/chunks/diagram-Bf7Lsqv1.js",
+			"transferBytes": 0,
+			"encodedBytes": 1232,
+			"durationMs": 2.600000023841858
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/fonts/literata-400.woff2",
+			"transferBytes": 0,
+			"encodedBytes": 20420,
+			"durationMs": 1.2000000476837158
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-500.woff2",
+			"transferBytes": 0,
+			"encodedBytes": 19952,
+			"durationMs": 3.299999952316284
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/chunks/markdown-content-DJ4Rn4TJ.js",
+			"transferBytes": 0,
+			"encodedBytes": 16480,
+			"durationMs": 4.899999976158142
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/Phosphor.woff2",
+			"transferBytes": 0,
+			"encodedBytes": 6592,
+			"durationMs": 1.5
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-600.woff2",
+			"transferBytes": 0,
+			"encodedBytes": 19816,
+			"durationMs": 1.600000023841858
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/fonts/ibm-plex-mono-400.woff2",
+			"transferBytes": 0,
+			"encodedBytes": 14708,
+			"durationMs": 2.299999952316284
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/chunks/html-text-DKjmYQsC.js",
+			"transferBytes": 0,
+			"encodedBytes": 147,
+			"durationMs": 4.299999952316284
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/diagram-worker.js",
+			"transferBytes": 730,
+			"encodedBytes": 430,
+			"durationMs": 27.300000071525574
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/fonts/ibm-plex-sans-condensed-700.woff2",
+			"transferBytes": 0,
+			"encodedBytes": 19352,
+			"durationMs": 6.700000047683716
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/fonts/literata-600.woff2",
+			"transferBytes": 22160,
+			"encodedBytes": 21860,
+			"durationMs": 53.300000071525574
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/chunks/diagram-Bf7Lsqv1.js",
+			"transferBytes": 0,
+			"encodedBytes": 1232,
+			"durationMs": 0.6999999284744263
+		},
+		{
+			"url": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/chunks/dist-DcDoeHXN.js",
+			"transferBytes": 514512,
+			"encodedBytes": 514212,
+			"durationMs": 198.29999995231628
+		}
+	],
+	"paint": [
+		{ "name": "first-paint", "startTime": 192 },
+		{ "name": "first-contentful-paint", "startTime": 192 }
+	],
+	"navigation": [{ "domContentLoaded": 180.70000004768372, "load": 198.60000002384186 }]
+}

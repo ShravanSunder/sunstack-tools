@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How the job is composed</title>
+<link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/theme.css">
+<script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/runtime.js"></script>
+</head>
+<body>
+<ex-explorer id="planning" src="planning.json" selected="spec-design" view="proposed">
+<ex-markdown><script type="text/markdown">
+## Reading guide
+
+This is a dated proposal for skill composition. The graph compares the current source with the proposed relationships; it does not show a shipped implementation.
+
+- **Select a node** by clicking it or finding it in grouped search. Selection opens its relationships and evidence; use the selection history to return to earlier nodes.
+- **Current / Proposed** switches which relationship set the graph displays. The page starts at **Proposed** with `spec-design` selected.
+- **Hover over or focus a node** to trace nearby connections through the graph. Use this to see how the selected skill relates to the rest of the proposal.
+- **Click an arrow** to select its Connections evidence row. Read that row and its source excerpt together: source quotations document what the source says, not that a relationship executes at runtime or has shipped.
+- **Incoming consumers** show which nodes point to the selected node. Check them when assessing the reach of a proposed change.
+
+The graph is the supplied frozen planning corpus. Its source quotations and links do not prove execution, runtime behavior, or a shipped implementation.
+</script></ex-markdown>
+</ex-explorer>
+</body>
+</html>

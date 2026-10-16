@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Session explainers</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body>
+<ex-nav for="content">
+<nav slot="pages" aria-label="Pages"><a href="index.html">Overview</a><a href="details.html">Implementation detail</a></nav>
+<nav slot="presentations" aria-label="Other presentations"><a href="details.html"><strong>Implementation detail</strong><span>A separate HTML page in the same collection.</span></a></nav>
+</ex-nav>
+<ex-document id="content">
+<nav class="ex-breadcrumbs" aria-label="Breadcrumb"><a href="index.html">Session explainers</a><span aria-current="page">Overview</span></nav>
+<ex-presentation id="architecture" title="Architecture" description="Who owns a session and how reconnect works.">
+# Session architecture
+
+Use **Presentations** to switch complete explainers. Page links remain in the left navigation.
+
+[Open the implementation diagram directly](#plan-diagram) · [Jump into the referenced Markdown](#notes--recovery).
+
+<ex-markdown id="notes" label="Session ownership" src="notes.md"></ex-markdown>
+</ex-presentation>
+<ex-presentation id="plan" title="Implementation plan" description="The proposed path and its two delivery phases.">
+# Implementation plan
+
+Only this presentation is shown when selected. A fragment link opens its containing presentation.
+
+<ex-tabs><section label="Summary">
+## Phases
+
+1. Separate the registry from transport.
+2. Reconnect to the existing session.
+</section><section label="Diagram">
+<ex-mermaid id="plan-diagram"><script type="text/plain">
+flowchart LR
+  Client --> Socket --> Registry --> Session
+</script></ex-mermaid>
+</section></ex-tabs>
+</ex-presentation>
+<ex-presentation id="review" title="Review" description="The decision, its rationale and the remaining risk.">
+# Review
+
+<ex-grid cols="2"><ex-card title="Registry ownership" tone="decision" pick>The registry owns the session lifetime.</ex-card><ex-card title="Transport ownership" tone="removed">Closing a socket ends the session.</ex-card></ex-grid>
+<ex-callout title="Session lifetime" tone="decision">The registry owns session lifetime.</ex-callout>
+
+<ex-markdown id="review-notes"><script type="text/markdown">
+## Reconnection risk
+
+A stale transport must not replace a newer connection.
+</script></ex-markdown>
+</ex-presentation>
+</ex-document></body></html>

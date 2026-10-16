@@ -1,0 +1,63 @@
+{
+	"wranglerVersion": "4.151.0",
+	"variants": [
+		{
+			"variant": "assets",
+			"command": "wrangler deploy --dry-run --autoconfig=false --config EXPERIMENT_CONFIG --outdir PRIVATE_OUTPUT",
+			"exitCode": 0,
+			"workersDev": false,
+			"previewUrls": false,
+			"routes": 0,
+			"artifactFiles": [
+				{
+					"name": "worker.js.map",
+					"bytes": 1527
+				},
+				{
+					"name": "worker.js",
+					"bytes": 930
+				},
+				{
+					"name": "README.md",
+					"bytes": 132
+				}
+			],
+			"uploaded": false,
+			"limits": "CLI configuration and compilation only. No account grant, asset upload, resource creation, private hosted access or deployed cache proof."
+		},
+		{
+			"variant": "r2",
+			"command": "wrangler deploy --dry-run --autoconfig=false --config EXPERIMENT_CONFIG --outdir PRIVATE_OUTPUT",
+			"exitCode": 0,
+			"workersDev": false,
+			"previewUrls": false,
+			"routes": 0,
+			"artifactFiles": [
+				{
+					"name": "worker.js.map",
+					"bytes": 1875
+				},
+				{
+					"name": "worker.js",
+					"bytes": 1131
+				},
+				{
+					"name": "README.md",
+					"bytes": 128
+				}
+			],
+			"uploaded": false,
+			"limits": "CLI configuration and compilation only. No account grant, asset upload, resource creation, private hosted access or deployed cache proof."
+		}
+	],
+	"authentication": {
+		"ownerApprovedLimitedLogin": true,
+		"initialWhoamiExitCode": 1,
+		"initialObservation": "Default CLI session expired and could not refresh. No other named profiles were listed.",
+		"requestedScopes": ["account:read", "user:read", "workers_scripts:write", "offline_access"],
+		"scopeValidation": "All requested scopes matched the owner-approved subset. Refresh access is added by the installed CLI. Its available-scope listing has no workers_r2:write entry, so broader Workers access was not requested.",
+		"loginExitCode": 1,
+		"loginObservation": "Timed out waiting for authorization code at the browser sign-in step. CLI authentication remains unverified."
+	},
+	"privacy": "Raw CLI identity output, OAuth state, account metadata and temporary config paths stay in a user-only temporary directory. No token or credential output is published."
+}

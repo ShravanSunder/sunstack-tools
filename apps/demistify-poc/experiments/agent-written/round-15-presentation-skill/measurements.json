@@ -1,0 +1,162 @@
+{
+  "encoding": "o200k_base",
+  "tokenizer": "js-tiktoken@1.0.21",
+  "notMeasured": [
+    "billed tokens",
+    "isolated task context cost",
+    "cold or warm latency"
+  ],
+  "cases": [
+    {
+      "case": "luna-reference",
+      "initial": {
+        "bytes": 4922,
+        "sourceTokens": 1099,
+        "sha256": "357e69c9d88b8e57f855a7c6897acc182662c1805718cb89065cf4d8ea706683"
+      },
+      "corrected": {
+        "bytes": 4924,
+        "sourceTokens": 1099,
+        "sha256": "f7a0b0c06ab82c2dbf24e01c93917f70e985b31219aa04479786f6c72bfeba8e"
+      },
+      "brief": {
+        "bytes": 1497,
+        "sourceTokens": 293,
+        "sha256": "c8bbcf7904cbca06c9aeed14e1f1d796f3b79fecf828af4b7c06b7c590c70a73"
+      },
+      "reads": [
+        {
+          "path": ".agents/skills/presentation-html/SKILL.md",
+          "bytes": 3722,
+          "sourceTokens": 660,
+          "sha256": "a9721b789c6c46628df5531c2374778b0684d55d62735243f00bcf6645555b58",
+          "fullBytesObservedInToolCalls": [
+            0
+          ]
+        },
+        {
+          "path": ".agents/skills/presentation-html/references/demistify.md",
+          "bytes": 5027,
+          "sourceTokens": 1019,
+          "sha256": "21a4d49e8092ec573dbaa481f12760829df5884f8d4c76dffa3983c3caf6d80d",
+          "fullBytesObservedInToolCalls": [
+            2
+          ]
+        },
+        {
+          "path": "demistify/authoring/SKILL.md",
+          "bytes": 4833,
+          "sourceTokens": 1242,
+          "sha256": "a9e5a4b9bb4bfddb764395141fb4bd92d41d6ba7ccc8c74657d13e6ab8f6c822",
+          "fullBytesObservedInToolCalls": [
+            1
+          ]
+        },
+        {
+          "path": "demistify/authoring/references/code.md",
+          "bytes": 563,
+          "sourceTokens": 160,
+          "sha256": "608fa82d1be524c4c8cc059780b2c2980eece1ac223a88ac1a2e619a5abf0781",
+          "fullBytesObservedInToolCalls": [
+            2
+          ]
+        }
+      ],
+      "firstChecker": {
+        "errors": 2,
+        "warnings": 0
+      },
+      "correctedChecker": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "correctionRuns": 1
+    },
+    {
+      "case": "sol-reference",
+      "initial": {
+        "bytes": 6102,
+        "sourceTokens": 1416,
+        "sha256": "840823a71ab4b40d9b311201f54baceaa74bc04986258bb750704098bef646ff"
+      },
+      "corrected": {
+        "bytes": 6103,
+        "sourceTokens": 1416,
+        "sha256": "b361fa4f0b18ec82af9bb3760c81d0d1a5f0899956e6157e3c00bc47846970bb"
+      },
+      "brief": {
+        "bytes": 1497,
+        "sourceTokens": 293,
+        "sha256": "c8bbcf7904cbca06c9aeed14e1f1d796f3b79fecf828af4b7c06b7c590c70a73"
+      },
+      "reads": [
+        {
+          "path": ".agents/skills/presentation-html/SKILL.md",
+          "bytes": 3722,
+          "sourceTokens": 660,
+          "sha256": "a9721b789c6c46628df5531c2374778b0684d55d62735243f00bcf6645555b58",
+          "fullBytesObservedInToolCalls": [
+            0
+          ]
+        },
+        {
+          "path": ".agents/skills/presentation-html/references/demistify.md",
+          "bytes": 5027,
+          "sourceTokens": 1019,
+          "sha256": "21a4d49e8092ec573dbaa481f12760829df5884f8d4c76dffa3983c3caf6d80d",
+          "fullBytesObservedInToolCalls": [
+            2
+          ]
+        },
+        {
+          "path": "demistify/authoring/SKILL.md",
+          "bytes": 4833,
+          "sourceTokens": 1242,
+          "sha256": "a9e5a4b9bb4bfddb764395141fb4bd92d41d6ba7ccc8c74657d13e6ab8f6c822",
+          "fullBytesObservedInToolCalls": [
+            5
+          ]
+        },
+        {
+          "path": "demistify/authoring/references/code.md",
+          "bytes": 563,
+          "sourceTokens": 160,
+          "sha256": "608fa82d1be524c4c8cc059780b2c2980eece1ac223a88ac1a2e619a5abf0781",
+          "fullBytesObservedInToolCalls": [
+            5
+          ]
+        }
+      ],
+      "firstChecker": {
+        "errors": 0,
+        "warnings": 1
+      },
+      "correctedChecker": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "correctionRuns": 1
+    }
+  ],
+  "adapterContextSnapshots": {
+    "meaning": "Observed protocol used/size snapshots; differing initial harness context and effort; not isolated task cost or billing.",
+    "luna": {
+      "used": [
+        38559,
+        39572,
+        43063,
+        45708
+      ],
+      "size": 731500
+    },
+    "sol": {
+      "used": [
+        32393,
+        33540,
+        34894,
+        38293
+      ],
+      "size": 731500
+    }
+  }
+}

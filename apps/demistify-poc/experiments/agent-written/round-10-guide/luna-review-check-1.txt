@@ -1,0 +1,7 @@
+$EXPERIMENT/luna/review.html:26:10 error missing-id: to="findings" matches no element id.
+$EXPERIMENT/luna/review.html:27:10 error missing-id: to="options" matches no element id.
+$EXPERIMENT/luna/review.html:28:10 error missing-id: to="evidence" matches no element id.
+$EXPERIMENT/luna/review.html:61,62,63,64,65 error note: file="src/session/resume.ts" is not a file in this diff (?).
+1 file: 8 errors, 0 warnings
+
+EXIT_CODE=1

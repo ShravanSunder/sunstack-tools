@@ -1,0 +1,150 @@
+[
+  {
+    "name": "sol-review",
+    "connectionRows": 0,
+    "headings": [
+      [
+        "H1",
+        "Resume sessions after socket drops"
+      ],
+      [
+        "H2",
+        "Exact change"
+      ],
+      [
+        "H2",
+        "Findings"
+      ],
+      [
+        "H2",
+        "Intended resume flow"
+      ],
+      [
+        "H2",
+        "F1 options and tradeoffs"
+      ],
+      [
+        "H2",
+        "Supplied evidence"
+      ],
+      [
+        "H2",
+        "Before merge"
+      ]
+    ],
+    "height": 747,
+    "issues": [],
+    "nodes": 0,
+    "outerOverflow": false,
+    "outline": 7,
+    "width": 1419
+  },
+  {
+    "name": "luna-review",
+    "connectionRows": 0,
+    "headings": [
+      [
+        "H1",
+        "Resume sessions after socket drops"
+      ],
+      [
+        "H2",
+        "Review scope and evidence boundary"
+      ],
+      [
+        "H2",
+        "Intended resume flow"
+      ],
+      [
+        "H2",
+        "Exact change under review"
+      ],
+      [
+        "H2",
+        "Findings"
+      ],
+      [
+        "H2",
+        "Fix options for F1"
+      ],
+      [
+        "H2",
+        "Supplied staging-soak evidence"
+      ],
+      [
+        "H2",
+        "Repository changes listed in the brief"
+      ],
+      [
+        "H2",
+        "Review actions"
+      ]
+    ],
+    "height": 747,
+    "issues": [],
+    "nodes": 0,
+    "outerOverflow": false,
+    "outline": 9,
+    "width": 1419
+  },
+  {
+    "name": "sol-explorer",
+    "connectionRows": 46,
+    "headings": [
+      [
+        "H1",
+        "How the job is composed"
+      ],
+      [
+        "H2",
+        "Reading guide"
+      ],
+      [
+        "H2",
+        "Scope and proof limits"
+      ],
+      [
+        "H2",
+        "Proposed phase decomposition · nine phases"
+      ],
+      [
+        "H2",
+        "spec-design"
+      ]
+    ],
+    "height": 747,
+    "issues": [],
+    "nodes": 22,
+    "outerOverflow": false,
+    "outline": 0,
+    "width": 1419
+  },
+  {
+    "name": "luna-explorer",
+    "connectionRows": 46,
+    "headings": [
+      [
+        "H1",
+        "How the job is composed"
+      ],
+      [
+        "H2",
+        "Reading guide"
+      ],
+      [
+        "H2",
+        "Proposed phase decomposition · nine phases"
+      ],
+      [
+        "H2",
+        "spec-design"
+      ]
+    ],
+    "height": 747,
+    "issues": [],
+    "nodes": 22,
+    "outerOverflow": false,
+    "outline": 0,
+    "width": 1419
+  }
+]

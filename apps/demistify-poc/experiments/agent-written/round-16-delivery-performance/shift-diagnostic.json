@@ -1,0 +1,463 @@
+{
+  "pageReady": 362.7000000476837,
+  "fontsReady": 364.89999997615814,
+  "firstContentfulPaint": 132,
+  "largestContentfulPaint": 132,
+  "layoutShift": 0.6698032975450435,
+  "layoutShiftSources": [
+    {
+      "at": 62.700000047683716,
+      "value": 0.16146062906744996,
+      "sources": [
+        {
+          "tag": "ex-document",
+          "id": "ex-content",
+          "classes": "",
+          "before": {
+            "x": 30.296875,
+            "y": 35.1953125,
+            "width": 1461.90625,
+            "height": 786.8046875,
+            "top": 35.1953125,
+            "right": 1492.203125,
+            "bottom": 822,
+            "left": 30.296875
+          },
+          "after": {
+            "x": 79.1953125,
+            "y": 35.1953125,
+            "width": 1413.0078125,
+            "height": 786.8046875,
+            "top": 35.1953125,
+            "right": 1492.203125,
+            "bottom": 822,
+            "left": 79.1953125
+          }
+        }
+      ]
+    },
+    {
+      "at": 72,
+      "value": 0.0007369947925940281,
+      "sources": [
+        {
+          "before": {
+            "x": 992.0390625,
+            "y": 671.953125,
+            "width": 485.96875,
+            "height": 42.3203125,
+            "top": 671.953125,
+            "right": 1478.0078125,
+            "bottom": 714.2734375,
+            "left": 992.0390625
+          },
+          "after": {
+            "x": 992.0390625,
+            "y": 673.953125,
+            "width": 485.96875,
+            "height": 42.3203125,
+            "top": 673.953125,
+            "right": 1478.0078125,
+            "bottom": 716.2734375,
+            "left": 992.0390625
+          }
+        },
+        {
+          "before": {
+            "x": 845.1796875,
+            "y": 140.375,
+            "width": 327.5234375,
+            "height": 26,
+            "top": 140.375,
+            "right": 1172.703125,
+            "bottom": 166.375,
+            "left": 845.1796875
+          },
+          "after": {
+            "x": 851.59375,
+            "y": 138.375,
+            "width": 347.8671875,
+            "height": 26,
+            "top": 138.375,
+            "right": 1199.4609375,
+            "bottom": 164.375,
+            "left": 851.59375
+          }
+        },
+        {
+          "tag": "strong",
+          "id": "",
+          "classes": "",
+          "before": {
+            "x": 845.1796875,
+            "y": 139.375,
+            "width": 327.5234375,
+            "height": 24.7421875,
+            "top": 139.375,
+            "right": 1172.703125,
+            "bottom": 164.1171875,
+            "left": 845.1796875
+          },
+          "after": {
+            "x": 851.59375,
+            "y": 138.375,
+            "width": 347.8671875,
+            "height": 26,
+            "top": 138.375,
+            "right": 1199.4609375,
+            "bottom": 164.375,
+            "left": 851.59375
+          }
+        },
+        {
+          "tag": "strong",
+          "id": "",
+          "classes": "",
+          "before": {
+            "x": 126.2734375,
+            "y": 442.296875,
+            "width": 275.2265625,
+            "height": 26.3984375,
+            "top": 442.296875,
+            "right": 401.5,
+            "bottom": 468.6953125,
+            "left": 126.2734375
+          },
+          "after": {
+            "x": 132.6875,
+            "y": 442.296875,
+            "width": 298.3046875,
+            "height": 26.3984375,
+            "top": 442.296875,
+            "right": 430.9921875,
+            "bottom": 468.6953125,
+            "left": 132.6875
+          }
+        },
+        {
+          "before": {
+            "x": 127.6796875,
+            "y": 140.375,
+            "width": 230.9921875,
+            "height": 26,
+            "top": 140.375,
+            "right": 358.671875,
+            "bottom": 166.375,
+            "left": 127.6796875
+          },
+          "after": {
+            "x": 134.09375,
+            "y": 138.375,
+            "width": 242.0625,
+            "height": 26,
+            "top": 138.375,
+            "right": 376.15625,
+            "bottom": 164.375,
+            "left": 134.09375
+          }
+        }
+      ]
+    },
+    {
+      "at": 134.39999997615814,
+      "value": 0.5076056736849995,
+      "sources": [
+        {
+          "tag": "ex-grid",
+          "id": "",
+          "classes": "",
+          "before": {
+            "x": 79.1953125,
+            "y": 118.78125,
+            "width": 1413.0078125,
+            "height": 81.5234375,
+            "top": 118.78125,
+            "right": 1492.203125,
+            "bottom": 200.3046875,
+            "left": 79.1953125
+          },
+          "after": {
+            "x": 79.1953125,
+            "y": 514.5390625,
+            "width": 1413.0078125,
+            "height": 244.9765625,
+            "top": 514.5390625,
+            "right": 1492.203125,
+            "bottom": 759.515625,
+            "left": 79.1953125
+          }
+        },
+        {
+          "tag": "ex-code",
+          "id": "",
+          "classes": "ex-inspectable",
+          "before": {
+            "x": 79.1953125,
+            "y": 512.6875,
+            "width": 1413.0078125,
+            "height": 285.5703125,
+            "top": 512.6875,
+            "right": 1492.203125,
+            "bottom": 798.2578125,
+            "left": 79.1953125
+          },
+          "after": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          }
+        },
+        {
+          "tag": "ex-callout",
+          "id": "decision",
+          "classes": "",
+          "before": {
+            "x": 79.1953125,
+            "y": 35.1953125,
+            "width": 1413.0078125,
+            "height": 57.1875,
+            "top": 35.1953125,
+            "right": 1492.203125,
+            "bottom": 92.3828125,
+            "left": 79.1953125
+          },
+          "after": {
+            "x": 79.1953125,
+            "y": 202.0546875,
+            "width": 1413.0078125,
+            "height": 168.9453125,
+            "top": 202.0546875,
+            "right": 1492.203125,
+            "bottom": 371,
+            "left": 79.1953125
+          }
+        },
+        {
+          "tag": "ex-callout",
+          "id": "expiry-finding",
+          "classes": "",
+          "before": {
+            "x": 79.1953125,
+            "y": 429.1015625,
+            "width": 1413.0078125,
+            "height": 57.1875,
+            "top": 429.1015625,
+            "right": 1492.203125,
+            "bottom": 486.2890625,
+            "left": 79.1953125
+          },
+          "after": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          }
+        }
+      ]
+    }
+  ],
+  "longTasks": [],
+  "unsupported": [],
+  "islandReady": [
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 90.89999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 92.29999995231628
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 92.39999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 92.5
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 97.70000004768372
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 98
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 98.20000004768372
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 98.39999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 98.5
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 98.60000002384186
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 99.39999997615814
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 99.70000004768372
+    },
+    {
+      "tag": "ex-markdown",
+      "id": "",
+      "at": 100
+    },
+    {
+      "tag": "ex-mermaid",
+      "id": "sequence",
+      "at": 362.60000002384186
+    }
+  ],
+  "errors": [],
+  "marks": [],
+  "measures": [],
+  "resources": [
+    {
+      "path": "/diagnostic-review/observer.js",
+      "transfer": 3528,
+      "encoded": 3228,
+      "duration": 16.90000009536743
+    },
+    {
+      "path": "/diagnostic-review/lib/theme.css",
+      "transfer": 61999,
+      "encoded": 61699,
+      "duration": 19.200000047683716
+    },
+    {
+      "path": "/diagnostic-review/lib/runtime.js",
+      "transfer": 84594,
+      "encoded": 84294,
+      "duration": 19.300000071525574
+    },
+    {
+      "path": "/diagnostic-review/lib/fonts/literata-400.woff2",
+      "transfer": 20720,
+      "encoded": 20420,
+      "duration": 5.399999976158142
+    },
+    {
+      "path": "/diagnostic-review/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+      "transfer": 20252,
+      "encoded": 19952,
+      "duration": 4.299999952316284
+    },
+    {
+      "path": "/diagnostic-review/lib/chunks/diagram-Bf7Lsqv1.js",
+      "transfer": 2712,
+      "encoded": 2412,
+      "duration": 4.100000023841858
+    },
+    {
+      "path": "/diagnostic-review/lib/chunks/inspection-copy-CbiTBQ-L.js",
+      "transfer": 3985,
+      "encoded": 3685,
+      "duration": 4.200000047683716
+    },
+    {
+      "path": "/diagnostic-review/lib/chunks/source-text-LCI4h-OT.js",
+      "transfer": 911,
+      "encoded": 611,
+      "duration": 4.399999976158142
+    },
+    {
+      "path": "/diagnostic-review/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+      "transfer": 56872,
+      "encoded": 56572,
+      "duration": 4.100000023841858
+    },
+    {
+      "path": "/diagnostic-review/lib/Phosphor.woff2",
+      "transfer": 6892,
+      "encoded": 6592,
+      "duration": 8.300000071525574
+    },
+    {
+      "path": "/diagnostic-review/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+      "transfer": 20116,
+      "encoded": 19816,
+      "duration": 9.300000071525574
+    },
+    {
+      "path": "/diagnostic-review/lib/fonts/ibm-plex-mono-400.woff2",
+      "transfer": 15008,
+      "encoded": 14708,
+      "duration": 8.700000047683716
+    },
+    {
+      "path": "/diagnostic-review/lib/chunks/html-text-DKjmYQsC.js",
+      "transfer": 518,
+      "encoded": 218,
+      "duration": 2.700000047683716
+    },
+    {
+      "path": "/diagnostic-review/lib/diagram-worker.js",
+      "transfer": 1022,
+      "encoded": 722,
+      "duration": 4.200000047683716
+    },
+    {
+      "path": "/diagnostic-review/lib/chunks/diagram-Bf7Lsqv1.js",
+      "transfer": 0,
+      "encoded": 2412,
+      "duration": 2.799999952316284
+    },
+    {
+      "path": "/diagnostic-review/lib/chunks/dist-DcDoeHXN.js",
+      "transfer": 2196117,
+      "encoded": 2195817,
+      "duration": 17.200000047683716
+    },
+    {
+      "path": "/diagnostic-review/lib/fonts/literata-600.woff2",
+      "transfer": 22160,
+      "encoded": 21860,
+      "duration": 4.600000023841858
+    },
+    {
+      "path": "/diagnostic-review/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+      "transfer": 19652,
+      "encoded": 19352,
+      "duration": 5.299999952316284
+    }
+  ],
+  "viewport": {
+    "width": 1398,
+    "height": 747
+  },
+  "outerOverflow": false,
+  "graphNodes": 0,
+  "diagramSvg": 1,
+  "issues": []
+}

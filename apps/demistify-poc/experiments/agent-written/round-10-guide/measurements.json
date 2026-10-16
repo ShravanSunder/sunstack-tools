@@ -1,0 +1,159 @@
+{
+  "encoding": "o200k_base",
+  "models": {
+    "sol": "gpt-6.1-sol medium",
+    "luna": "gpt-6-luna high"
+  },
+  "inputsAvailable": [
+    {
+      "file": "SKILL.md",
+      "bytes": 4833,
+      "tokens": 1242,
+      "sha256": "a9e5a4b9bb4bfddb764395141fb4bd92d41d6ba7ccc8c74657d13e6ab8f6c822"
+    },
+    {
+      "file": "review-brief.md",
+      "bytes": 3455,
+      "tokens": 802,
+      "sha256": "e0fe5a9942a6fa783245a1cf90da3589fb7cbbc67fbae48537d75efef5164d8c"
+    },
+    {
+      "file": "inventory.json",
+      "bytes": 932,
+      "tokens": 318,
+      "sha256": "0e98fefbf3831f659dd37bb400ce1bc38893971d881ae64ee3c93cebd050cc69"
+    },
+    {
+      "file": "references/explorers.md",
+      "bytes": 2170,
+      "tokens": 444,
+      "sha256": "9c6b9ea8f5bff3cf458ceeb689f12ac8aefcb0b3e2f99fd2192cbc342f4f9f97"
+    },
+    {
+      "file": "references/code.md",
+      "bytes": 563,
+      "tokens": 160,
+      "sha256": "608fa82d1be524c4c8cc059780b2c2980eece1ac223a88ac1a2e619a5abf0781"
+    },
+    {
+      "file": "references/trees.md",
+      "bytes": 547,
+      "tokens": 165,
+      "sha256": "acf755065f4e2648ef9b64402ebb86416b4f1cfd95ac6f248ad7022ce225a4a1"
+    }
+  ],
+  "arms": [
+    {
+      "arm": "sol",
+      "outputs": [
+        {
+          "file": "sol-review-initial.html",
+          "bytes": 7840,
+          "tokens": 1872,
+          "sha256": "ac0f4c2db72fb4d22d74f763eefed66444745e0cf071271dc974b04f09460e4e"
+        },
+        {
+          "file": "sol-review.html",
+          "bytes": 7840,
+          "tokens": 1872,
+          "sha256": "ac0f4c2db72fb4d22d74f763eefed66444745e0cf071271dc974b04f09460e4e"
+        },
+        {
+          "file": "sol-explorer-initial.html",
+          "bytes": 2111,
+          "tokens": 459,
+          "sha256": "d8785764d9d0787a72587d3e3234a0caaf67cc26ecda5cf1b4d18088a01e2c60"
+        },
+        {
+          "file": "sol-explorer.html",
+          "bytes": 2111,
+          "tokens": 459,
+          "sha256": "d8785764d9d0787a72587d3e3234a0caaf67cc26ecda5cf1b4d18088a01e2c60"
+        }
+      ],
+      "visibleInstructionFiles": [
+        {
+          "file": "sol/assignment.md (private original; public paths normalized)",
+          "bytes": 2314,
+          "tokens": 466,
+          "sha256": "e2fc47c0756f635c5af39905d8b47ab5f9275c13e88f1492accd9e5d2987d721"
+        },
+        {
+          "file": "sol/spawn-prompt.txt (private original; public paths normalized)",
+          "bytes": 219,
+          "tokens": 49,
+          "sha256": "203029b28c0a83e4f94b3edac7acea2112de6290167d97126b5b8a883045eedf"
+        }
+      ],
+      "additionalFeedback": [],
+      "checkerCalls": {
+        "review": 1,
+        "explorer": 1
+      },
+      "firstReviewErrors": 0
+    },
+    {
+      "arm": "luna",
+      "outputs": [
+        {
+          "file": "luna-review-initial.html",
+          "bytes": 6648,
+          "tokens": 1672,
+          "sha256": "6cecc07c51542c0c9c0b38f997be85565d45021795e2835b1129b5dfb22fb974"
+        },
+        {
+          "file": "luna-review.html",
+          "bytes": 7134,
+          "tokens": 1785,
+          "sha256": "c6358a0d85311c375c4bac00cc8c1f5f5b26779b7cc248be36e565e7ef095ecc"
+        },
+        {
+          "file": "luna-explorer-initial.html",
+          "bytes": 1624,
+          "tokens": 350,
+          "sha256": "2985472b830ad76d3eae033a73f90ce35aa411558c4fcdda4a481eed150bcb73"
+        },
+        {
+          "file": "luna-explorer.html",
+          "bytes": 1624,
+          "tokens": 350,
+          "sha256": "2985472b830ad76d3eae033a73f90ce35aa411558c4fcdda4a481eed150bcb73"
+        }
+      ],
+      "visibleInstructionFiles": [
+        {
+          "file": "luna/assignment.md (private original; public paths normalized)",
+          "bytes": 2315,
+          "tokens": 466,
+          "sha256": "92c0b32af0f30ca78752def69686d2c905579ae3b648b1b9332ac7ae1bdceca8"
+        },
+        {
+          "file": "luna/spawn-prompt.txt (private original; public paths normalized)",
+          "bytes": 220,
+          "tokens": 49,
+          "sha256": "9ff91575bd09d798a21f42f11687f285e920adc7576e51c8582ceafc32a76032"
+        }
+      ],
+      "additionalFeedback": [
+        {
+          "file": "Luna input discovery correction (private original)",
+          "bytes": 451,
+          "tokens": 104,
+          "sha256": "b4923db85eb4c5c1f118825b04b5ae9b37f00ed4b295291bd3df7fd45aedc321"
+        }
+      ],
+      "checkerCalls": {
+        "review": 2,
+        "explorer": 1
+      },
+      "firstReviewErrors": 8
+    }
+  ],
+  "referencedData": {
+    "file": "planning.json",
+    "bytes": 776142,
+    "tokens": 173548,
+    "sha256": "c4086f0a66cd5ea1e46931494458923a2cf4880fb4445421ccbcaf32cae4b57c"
+  },
+  "limits": "Exact saved file payloads, not complete consumed context or billed usage. Complete native tool-action transcript and actual reference retrieval not exposed. Private prompt originals retained; public copies normalize machine paths. No causal improvement or model reliability inference."
+}
