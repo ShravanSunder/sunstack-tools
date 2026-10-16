@@ -1,0 +1,46 @@
+{
+	"page": "apps/demistify-poc/experiments/agent-written/round-11-reference/embedded.html",
+	"sourceSha256": "d4ae7716f6b909ce889fd7de6d53469c66a8531dcdd6ffd4ca060513347f7de5",
+	"browser": "existing unthrottled Chrome process, loopback HTTP",
+	"viewport": [1419, 747],
+	"documentWidth": 1405,
+	"instanceWidths": [659, 659],
+	"narrowContainerNavigation": ["static", "static"],
+	"initial": [
+		{
+			"id": "first-graph",
+			"selection": "spec-design",
+			"nodes": 22
+		},
+		{
+			"id": "second-graph",
+			"selection": "principle-write-tests-that-can-fail",
+			"nodes": 1
+		}
+	],
+	"afterFirstSelect": {
+		"first": "principle-read-ground-truth-first",
+		"second": "principle-write-tests-that-can-fail"
+	},
+	"afterSecondSelect": {
+		"first": "principle-read-ground-truth-first",
+		"second": "practices-research"
+	},
+	"afterReadyReload": [
+		{
+			"id": "first-graph",
+			"selection": "principle-read-ground-truth-first",
+			"historyDisabled": true
+		},
+		{
+			"id": "second-graph",
+			"selection": "practices-research",
+			"historyDisabled": true
+		}
+	],
+	"selectionQuery": "?ex.first-graph=principle-read-ground-truth-first&ex.second-graph=practices-research",
+	"preservedFragment": "#layout-heading",
+	"duplicateIds": [],
+	"reportedAuthoringIssues": [],
+	"limits": "One real two-instance composition and stable-ID reload journey. Multiple generated main landmarks and h1 headings remain an accessibility/design limitation for embedded use. Not a comprehension, exhaustive accessibility, narrow-screen or deployment result."
+}

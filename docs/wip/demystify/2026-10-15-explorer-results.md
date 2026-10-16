@@ -23,6 +23,7 @@ Open each page separately:
 - `/experiments/agent-written/round-10-guide/sol-review.html` and `luna-review.html`
 - `/experiments/agent-written/round-10-guide/sol-explorer.html` and `luna-explorer.html`
 - `/experiments/agent-written/round-11-reference/index.html` (latest Lead-built reference conversion)
+- `/experiments/agent-written/round-11-reference/embedded.html` (independent instances in HTML grid)
 
 Rounds 8–10 preserve initial outputs, accepted outputs, exact input files and normalized receipts; rounds 8 and 9 also preserve a separate authored iteration. Round 11 preserves the latest Lead-built reference conversion. The build copies the complete library beside the usage. The new explorer data contains the supplied public skill-source citations, not account credentials or private deployment metadata. Generated multi-megabyte offline artifacts and raw authentication output stay outside Git.
 
@@ -110,6 +111,10 @@ The native observation attachment failed before returning any tool-action eviden
 
 ![Latest reference graph and navigation](evidence/2026-10-15/latest-reference-graph.jpg)
 
+The separate embedded example puts two full-corpus explorers in ordinary HTML grid. At 1,419 × 747, both actual containers were 659 pixels wide and used their own narrow-container navigation; document width stayed 1,405 pixels. Selecting either island left the other unchanged. Both explicit-ID selection queries survived reload together and preserved `#layout-heading`; no duplicate element IDs or reported authoring issues appeared. The [receipt](evidence/2026-10-15/explorer-embedded-proof.json) records those selections. This closes that named coexistence check. Each explorer currently generates its own main landmark and h1, so a full embedded accessibility contract remains unresolved. The page is a composition check, not a recommendation for two dense explorers side by side. Its first parent check warned on a global body selector used only for padding; moving that layout rule to an authored class cleared the warning without a runtime or checker change.
+
+![Two independently embedded views](evidence/2026-10-15/explorer-embedded.jpg)
+
 ## Loading and interaction samples
 
 The full corpus was loaded from loopback HTTP in an existing unthrottled Chrome process. Three unique URL roots forced real transfers of the same built bytes; each was paired with a same-URL reload. Effective CSS viewport: **1,272 × 818** (requested 1,400 × 900). No WAN, mobile CPU or field Core Web Vitals claim follows.
@@ -140,7 +145,15 @@ Both variants passed five protocol groups: complete exact-version bytes/CORS/imm
 
 Actual cross-origin browser diagrams loaded from both variants through a native Blob module worker. Each observed a ready message, an actual rendered SVG reply and four diagram nodes, with no reported authoring issue. A resource timing entry alone had misleadingly suggested main-thread fallback; the real Worker message probe disproved that diagnosis. With a separate `worker-src 'none'` control, a policy violation occurred and the real four-node diagram still rendered through fallback. Probe wrappers forwarded to the native constructor and were restored afterward.
 
-Both backends pass this local protocol comparison. Static Assets avoids an object-storage publication path; R2 permits object retention independent of Worker deployment but adds publication/cache ownership. Production retention, alias propagation, private access, rollback and cost remain unverified, so this trial does not select a winner. Cloudflare login requires an additional explicit access-scope approval after automatic approval review rejected the requested write scopes. No OAuth grant, remote resource or hosted deployment was created.
+Both backends pass this local protocol comparison. Static Assets avoids an object-storage publication path; R2 permits object retention independent of Worker deployment but adds publication/cache ownership. Production retention, alias propagation, private access, rollback and cost remain unverified, so this trial does not select a winner. The owner subsequently approved limited CLI login scopes, resolving the earlier automatic approval rejection. Wrangler reported that its default session had expired and could not refresh; no other named profile was listed. The CLI renewal requested only account/profile read, Worker-script write and automatically added refresh access. The installed scope list has no separate R2-write entry, so broader access was not requested. Renewal timed out waiting for the browser sign-in callback. An authenticated CLI session and hosted delivery remain unverified.
+
+The real Wrangler CLI also compiled both isolated experimental configs with `deploy --dry-run --autoconfig=false`, exit 0 for each. These copies explicitly set `workers_dev: false`, `preview_urls: false` and an empty routes list. The generated Worker scripts measured 930 bytes for Assets and 1,131 bytes for R2, excluding their source maps. Nothing was uploaded. This validates local config/bundle preparation; it does not prove private hosted access, remote R2 authorization or edge-cache behavior. See [the sanitized CLI receipt](evidence/2026-10-15/cloudflare-cli-dry-run.json).
+
+```sh
+wrangler deploy --dry-run --autoconfig=false --config EXPERIMENT_CONFIG --outdir PRIVATE_OUTPUT
+```
+
+The local harness emits its experiment configs in its private result directory. The dry-run copies keep their real asset/worker paths there; account IDs and credential paths are not added to repository configs. A successful dry run does not authorize replacing it with a real deploy before private access is established.
 
 ## Minimum install and offline tradeoff
 
@@ -174,4 +187,4 @@ The repaired artifact is 3,088,926 bytes at the captured build, with nine embedd
 
 ## Remaining work
 
-Complete the original-versus-new visual comparison through an allowed source view, the remaining required interaction/embedded-layout/accessibility acceptance, and actual guide/reference retrieval observation. The new source oracle closes the named text/relationship-preservation checks; it does not establish every semantic or visual claim. One stable-ID reload journey is now proven, while multiple independent navigators and heading-fragment coexistence still need focused coverage. Keep production delivery behind an explicit private-access design and authorization. No credentials, raw account metadata or public content hosting are needed for local experiments.
+Complete the original-versus-new visual comparison through an allowed source view, the remaining required interaction/embedded-layout/accessibility acceptance, and actual guide/reference retrieval observation. The new source oracle closes the named text/relationship-preservation checks; it does not establish every semantic or visual claim. Single- and two-instance stable-ID reload journeys and heading-fragment coexistence are proven for the captured pages; the embedded landmark/heading structure still needs a settled accessibility design. Keep production delivery behind an explicit private-access design and authorization. No credentials, raw account metadata or public content hosting are needed for local experiments.
