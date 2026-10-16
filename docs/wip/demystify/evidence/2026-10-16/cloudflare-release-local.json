@@ -1,0 +1,84 @@
+{
+	"fixtureOnly": true,
+	"runtime": "Wrangler 4.151.1 / local workerd",
+	"observations": [
+		{
+			"path": "/v1/runtime.js",
+			"initial": 200,
+			"conditional": 304,
+			"conditionalBytes": 0,
+			"conditionalCors": "*",
+			"conditionalCache": "public, max-age=0, must-revalidate",
+			"head": 200,
+			"headBytes": 0
+		},
+		{
+			"path": "/v2/theme.css",
+			"initial": 200,
+			"conditional": 304,
+			"conditionalBytes": 0,
+			"conditionalCors": "*",
+			"conditionalCache": "public, max-age=0, must-revalidate",
+			"head": 200,
+			"headBytes": 0
+		}
+	],
+	"options": 204,
+	"post": 405,
+	"scope": "local protocol fixtures only; package remains 0.1.0; no Cloudflare upload",
+	"major1Files": 24,
+	"major1And2Files": 47,
+	"sourceFiles": {
+		"packages/demistify/release/asset-policy.ts": "d43553af6fe17795809b8f18384f1aaba18bc102419a92ee37eb74dcdad1a531",
+		"packages/demistify/release/check-release-intent.ts": "2c2f0f81a8a9803468cb46743bd7193c53371e7fbd70435351f80e1bef1aba72",
+		"packages/demistify/release/prepare-release.ts": "5bae3ed2e0a4d5d67e93eda85ca20cf932281e463916b1e44fc25ff57b867297",
+		"packages/demistify/release/release-schema.ts": "d69bd925e7d1a57039dbe6dc12a5d4e5dea11bd11a08f5c0ca53fb979a1b4ddb",
+		"packages/demistify/release/resolve-release-origin.ts": "27cdae95ba5d307b18b2cfd7fe0656045798f4044a7c9d8e8d2365a7d192a9f8",
+		"packages/demistify/release/stage-assets.ts": "707f1193b89749e8861ab9446372aa4b696d150742f02ab085591e7af883a166",
+		"packages/demistify/release/verify-release.ts": "5e04695599aea2d707af8587f6e19a897a330d9c0c4ccce64e97a704e7dd179f",
+		"packages/demistify/release/worker.ts": "891f784db0876dc4f4d7b3da35f8592f2124bfa010259f448b86f381d0c1d5c8"
+	},
+	"checks": {
+		"lintFormatTypesExit": 0,
+		"fullBuildExit": 0,
+		"nodeSuiteBeforeSensitivity": {
+			"files": 9,
+			"tests": 36,
+			"exit": 0
+		},
+		"retentionSensitivity": {
+			"mutation": "drop retained in-memory history",
+			"observed": "old lazy chunk missing (ENOENT)",
+			"exit": 1,
+			"sourceRestoredExactly": true
+		},
+		"focusedAfterRestoreAndNewImmutableCase": {
+			"files": 1,
+			"tests": 8,
+			"exit": 0
+		},
+		"finalNodeSuite": {
+			"files": 9,
+			"tests": 37,
+			"exit": 0
+		},
+		"actionlintExit": 0
+	},
+	"versionFlow": {
+		"fixtureOnly": true,
+		"sourcePackageVersion": "0.1.0",
+		"fixtureVersion": "0.2.0",
+		"featureIntentExit": 0,
+		"featureStatusExit": 0,
+		"versionCommandExit": 0,
+		"consumedVersionIntentExit": 0,
+		"consumedVersionStatusExit": 1,
+		"meaning": "Status validates pending declarations; consumed version-only PRs use typed version validation instead.",
+		"strengthenedFeatureIntentExit": 0,
+		"bodyTextFakeDeclarationExit": 1
+	},
+	"unverified": [
+		"Authenticated Cloudflare Workers-subdomain read and hosted deployment require protected environment setup.",
+		"Source package remains 0.1.0; v1/v2 are local protocol fixtures, not published releases."
+	]
+}
