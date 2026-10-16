@@ -98,6 +98,14 @@ export class ExplorerController {
 		this.viewport.className = 'ex-explorer-viewport';
 		this.viewport.tabIndex = 0;
 		this.viewport.setAttribute('aria-label', 'Composition graph');
+		registerInspectionCopy(this.viewport, (): HTMLElement => {
+			const copy = document.createElement('div');
+			copy.className = this.viewport.className;
+			copy.tabIndex = 0;
+			copy.setAttribute('aria-label', 'Composition graph');
+			this.drawGraph(copy, true);
+			return copy;
+		});
 		this.related.className = 'ex-explorer-related';
 		this.tablist.className = 'ex-explorer-tabs';
 		this.tablist.setAttribute('role', 'tablist');
@@ -230,11 +238,17 @@ export class ExplorerController {
 	}
 	private renderGraph(): void {
 		this.graphWidth = this.viewport.clientWidth;
+		this.drawGraph(this.viewport);
+	}
+	private drawGraph(viewport: HTMLElement, inspected = false): void {
 		renderExplorerGraph({
-			viewport: this.viewport,
+			viewport,
 			document: this.graphDocument,
 			view: this.view,
-			onSelect: this.select,
+			onSelect: (id: string): void => {
+				this.select(id);
+				if (inspected) this.drawGraph(viewport, true);
+			},
 			onConnection: (id: string): void => {
 				this.selectedEdge = id;
 				this.activeTab = 'connections';
