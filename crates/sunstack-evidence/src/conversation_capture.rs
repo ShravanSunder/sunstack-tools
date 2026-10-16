@@ -151,6 +151,12 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
         .iter()
         .map(|record| (record.record_id.clone(), record.position))
         .collect();
+    let mut supplement_digest = previous_cursor
+        .as_ref()
+        .and_then(|cursor| cursor.supplement_digest.clone())
+        .filter(|digest| !records.iter().any(|record| {
+            matches!(&record.body, ConversationBody::AssistantMessage { blocks } if content_digest(message_text(blocks).as_bytes()) == *digest)
+        }));
     let supplement = if let Some(final_text) =
         request.final_assistant_text.filter(|text| !text.is_empty())
     {
@@ -158,8 +164,9 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
         if found {
             None
         } else {
-            let record_id =
-                RecordId::new(format!("hook:{}", content_digest(final_text.as_bytes())))?;
+            let digest = content_digest(final_text.as_bytes());
+            supplement_digest = Some(digest.clone());
+            let record_id = RecordId::new(format!("hook:{digest}"))?;
             let record = ConversationRecord {
                 record_id: record_id.clone(),
                 position: committed as u64,
@@ -192,6 +199,7 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
         committed_bytes: committed as u64,
         prefix_digest: content_digest(&bytes[..committed]),
         record_watermarks: watermarks,
+        supplement_digest,
     };
     let source_ref = SourceRef::Transcript {
         path,
