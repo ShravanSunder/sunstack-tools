@@ -1,8 +1,9 @@
 # Milestone 2 executable proof
 
 S4b-2 exposes the accepted native milestone 2 through the existing four-operation
-stdin/stdout executable. CLI production code is unchanged: it already forwards
-native inputs, outcomes and exit policy. New permanent process tests establish
+stdin/stdout executable. S4b-2 needs no new CLI forwarding policy: the existing path already forwards
+native inputs, outcomes and exit policy. The accepted M1 integration below
+brings its evidence-request decoder into that path. New permanent process tests establish
 that connection. Native input repair is limited to rejecting forbidden fields on
 empty variants; valid JSON wire shapes remain unchanged.
 
@@ -11,14 +12,17 @@ connected tables through `410df9d`; reviewed invocation schema `fc754c8`.
 Starting native target: accepted `775f1bf`. Execution trace: Router service
 `0ff962c5-7fa3-4c18-a5ca-1bbe8db09e89`, root
 `01a1446c-0a1b-7c2d-8e3f-4a5b6c7d8e02`. Pre-build plan and paired challenge
-were posted before test edits, activities 7368/7373. All seven refinements were
+were posted before test edits, activities 7368/7373. The accepted M1 merge
+also adopts V2 decision `dc756df` and Evidence/request codes `f259d4b`. All seven refinements were
 adopted. Acceptance and independent observation belong to separate commissions.
 
 No new hosted observation is claimed. Controlled HTTP supplies provider replies;
 Git, filesystem, binary framing, native libraries, signals, child settlement and
 HTTP encoding remain real. Historical phase proof records retain their original
 targets. PreparationFailed wire/exit coverage remains the existing focused native
-enum test; reachable public-stdin production failure was not demonstrated.
+enum test; reachable public-stdin production failure was not demonstrated. Amended V2
+explicitly accepts the serializer/exit seam plus source non-reachability for
+internal-fault-only outcomes; this is not a fabricated process journey.
 
 ## Permanent process claims
 
@@ -77,8 +81,8 @@ Observed behavioral reds before repair:
 
 Lead authorized the native repair: empty struct variants for input Full,
 RevisionHead Worktree and UnitContent WholeUnit, with mechanical consumers.
-EvidenceDiscovery None is an identical temporary M1 fix pending the separately
-owned M1 repair integration. Output-only variants were not changed. All ten
+EvidenceDiscovery None was an identical temporary M1 fix; the accepted M1
+repair is now integrated, retaining the same shape. Output-only variants were not changed. All ten
 schema tests subsequently passed. No compile/setup error counts as behavioral
 red: an accidental output variant constructor edit was immediately restored.
 
@@ -94,7 +98,9 @@ The first fixed-source 20-run CLI campaign preserved two failing runs (7 and 17)
 Run 7 `4df65b96-d9b6-4ce8-813c-be2d508ffb37` failed on the root-positive
 connected test and the zero-dispatch closed-input test. `ControlledServer::next`
 imposed a three-second arrival deadline even inside the background auto-answer
-loop. The root-positive child reached its request after that loop had timed out;
+loop. The root-positive child reported a sent/provider_failure request after the
+loop timed out, consistent with a late request attempt (exact socket arrival
+time was not recorded);
 the zero-dispatch test legitimately never sends a request. Run 17 repeated the
 zero-dispatch timeout. These are harness failures, not product failures.
 
@@ -153,7 +159,68 @@ invocations and exactly 70 observed HTTP requests (`measurement-helper-green.log
 This checks the helper's finish counts, without refreshing hosted or performance
 claims.
 
-Pending: accepted M1 repair merge, final gates and immutable target declaration.
+The accepted M1 pin `095b3f7e2b95ac6132fb0aff06d27446349c3abd` is merged as
+`f973021b72870bb16a94ed2c6350dcb03f9ec718`. Its strict variants and evidence
+request decoder are retained; unknown/duplicate/invalid input now uses the
+accepted request code and schema-owned safe path. The M1 process regressions
+run alongside the M2 cases. No M2 selection policy moved into the CLI.
+
+Seven conflicts were resolved at existing owners: keep M2 chrono schema feature
+plus new serde_path_to_error dependency; keep M2 bounded-document return shape
+with WholeDocument{}; retain ChangeScope solely in change_contracts.rs with
+Full{}; combine M2 diagnostics with M1 request diagnostics; export both M2 and
+new decoder modules; keep ChangeSet selector compatibility with strict input
+variants; preserve the M2 admitted evidence plan and discovery/package forwarding.
+Eight further consumers needed constructor/pattern syntax only, listed in
+`/private/tmp/2026-10-s4b-cli/m1-merge-consumers.txt`. No semantic test assertions
+were weakened. The merge's code tree is the tested source; the final successor
+only completes this proof document.
+
+Commands run from this worktree root with
+`SDKROOT="$(xcrun --show-sdk-path)" CC=/usr/bin/clang CFLAGS="-isysroot $(xcrun --show-sdk-path)"`
+and `CARGO_TARGET_DIR=/private/tmp/2026-10-s4b-rules/target`:
+
+| Cargo arguments | Result |
+| --- | --- |
+| `fmt --all -- --check` | exit 0 |
+| `clippy --locked --workspace --all-targets -- -D warnings` | exit 0, zero warnings |
+| `nextest run --locked --workspace` | exit 0; 322 passed, 0 failed, 7 skipped; 0 LEAK |
+| `build --locked --workspace` | exit 0 |
+| `tree --locked -p <crate> -e normal`, each of the four crates | all exit 0; evidence has no provider/HTTP dependency, decisions no Git/AST/transcript/sibling dependency; rules composes both and CLI all three |
+
+Workspace run `f569a30e-b7bc-480a-8c24-da23d0c28427` contains all 36 local CLI
+cases and ten schema controls, plus native M1/M2 regressions. The seven default
+skips are five hosted cases and two offline CLI workloads, never counted as
+passes. The separately changed offline measurement was observed earlier as
+recorded above; final suite does not refresh that performance measurement.
+
+Logs/commands/exits: `/private/tmp/2026-10-s4b-cli/final-gates/manifest.json`.
+Final real-process evidence comprises 109 child invocations and 42 HTTP/barrier
+observation files; no child stderr contained an unsigned-runner warning.
+`process-artifacts.json` identifies only files created after this gate's log
+started; `process-artifacts.tar.gz` preserves their separate inputs, outputs,
+stderr, CWD, binary paths and exits. Each operation has success and 2/3/4 controls;
+11 protocol-error outcomes have no fabricated operation result. No manual
+repeat was needed: the permanent tests drive the actual runnable boundary.
+
+Author proof supports S4b-2's bounded process/schema obligations at this source.
+Independent target observation, Lead acceptance, M2 verification-skill activation
+and PR readiness remain separate. The merged skill has activated M1 recipes but
+its old target/M2 draft is not treated as current M2 proof authority. Lead has
+already assigned the later upkeep route. No hosted inference, installed-host,
+other-platform, release or artifact-signing qualification is claimed.
+
+Risk: Rust consumers constructing repaired variants must use `{}`; JSON clients
+sending undeclared fields now receive the existing invalid/refused contract.
+External consumers outside this workspace were not built. Concurrency markers
+retain the explicit unknown-cause boundary above; final zero markers do not
+prove the historical signature fixed. No stand-in or unsettled owner decision
+remains within the commissioned implementation scope.
+
+Cleanup: retain the owned Cargo build and raw process artifacts for the pending
+paired observation, along with unmerged worktrees. Their consumers remain open.
+An earlier exact-target cargo clean removed 2.8 GiB of sensitivity build residue;
+proving logs stayed outside it. No worktree or directory was removed here.
 
 ## Mechanical native test adaptations
 
