@@ -18,8 +18,9 @@ warn_unsigned() {
 
 has_debug_identity() {
   local signature
-  signature="$(codesign -dv "$1" 2>&1)" || return 1
+  signature="$(codesign -dvv "$1" 2>&1)" || return 1
   grep -qx "Identifier=$2" <<<"${signature}" &&
+    grep -qx "TeamIdentifier=${DEVELOPER_ID_TEAM}" <<<"${signature}" &&
     codesign --verify "$1" 2>/dev/null
 }
 
