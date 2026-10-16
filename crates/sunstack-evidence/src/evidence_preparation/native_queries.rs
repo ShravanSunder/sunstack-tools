@@ -1,7 +1,7 @@
 use super::*;
 
 impl Preparation {
-    pub(super) async fn native_select(
+    pub(crate) async fn native_select(
         &mut self,
         query: &NativeQuery,
     ) -> EvidenceResult<SelectionReadiness> {

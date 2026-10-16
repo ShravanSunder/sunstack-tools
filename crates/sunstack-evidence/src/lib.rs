@@ -27,3 +27,6 @@ pub use evidence_preparation::*;
 mod evidence_admission;
 pub mod preparation_contracts;
 pub use preparation_contracts::*;
+
+pub mod evidence_session;
+pub use evidence_session::*;

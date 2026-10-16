@@ -51,52 +51,7 @@ pub(crate) fn admission(
         if !ids.insert(&declaration.id) {
             return Err(EvidenceCode::InvalidSelector.into());
         }
-        let source = input
-            .sources
-            .get(&declaration.input)
-            .ok_or(EvidenceCode::InvalidSelector)?;
-        let compatible = matches!(
-            (source, &declaration.select),
-            (
-                SourceSpec::Document { .. },
-                EvidenceSelection::Paragraph { .. }
-                    | EvidenceSelection::WholeDocument
-                    | EvidenceSelection::LiteralText { .. }
-                    | EvidenceSelection::RegexText { .. }
-                    | EvidenceSelection::AstPattern { .. }
-            ) | (
-                SourceSpec::Conversation { .. },
-                EvidenceSelection::Conversation { .. }
-            ) | (
-                SourceSpec::Payload { .. },
-                EvidenceSelection::WholePayload | EvidenceSelection::PayloadField { .. }
-            )
-        );
-        if !compatible {
-            return Err(EvidenceCode::InvalidSelector.into());
-        }
-        if let Some(selection) = declaration.select.conversation() {
-            selection.validate()?;
-        }
-        match &declaration.select {
-            EvidenceSelection::LiteralText { text } if text.is_empty() => {
-                return Err(EvidenceCode::InvalidSelector.into());
-            }
-            EvidenceSelection::RegexText { pattern } => {
-                regex::Regex::new(pattern).map_err(|_| EvidenceCode::InvalidSelector)?;
-            }
-            EvidenceSelection::AstPattern { language, pattern } => {
-                let language: ast_grep_language::SupportLang = language
-                    .parse()
-                    .map_err(|_| EvidenceCode::UnsupportedLanguage)?;
-                ast_grep_core::Pattern::try_new(pattern, language)
-                    .map_err(|_| EvidenceCode::InvalidSelector)?;
-            }
-            EvidenceSelection::PayloadField { pointer } if !valid_pointer(pointer) => {
-                return Err(EvidenceCode::InvalidPointer.into());
-            }
-            _ => {}
-        }
+        admit_declaration(declaration, &input.sources)?;
     }
     let mut cursors = BTreeSet::new();
     for cursor in &input.cursors {
@@ -128,4 +83,56 @@ fn valid_pointer(pointer: &str) -> bool {
         }
     }
     true
+}
+
+pub(crate) fn admit_declaration(
+    declaration: &EvidenceDeclaration,
+    sources: &std::collections::BTreeMap<SourceName, SourceSpec>,
+) -> EvidenceResult<()> {
+    let source = sources
+        .get(&declaration.input)
+        .ok_or(EvidenceCode::InvalidSelector)?;
+    let compatible = matches!(
+        (source, &declaration.select),
+        (
+            SourceSpec::Document { .. },
+            EvidenceSelection::Paragraph { .. }
+                | EvidenceSelection::WholeDocument
+                | EvidenceSelection::LiteralText { .. }
+                | EvidenceSelection::RegexText { .. }
+                | EvidenceSelection::AstPattern { .. }
+        ) | (
+            SourceSpec::Conversation { .. },
+            EvidenceSelection::Conversation { .. }
+        ) | (
+            SourceSpec::Payload { .. },
+            EvidenceSelection::WholePayload | EvidenceSelection::PayloadField { .. }
+        )
+    );
+    if !compatible {
+        return Err(EvidenceCode::InvalidSelector.into());
+    }
+    if let Some(selection) = declaration.select.conversation() {
+        selection.validate()?;
+    }
+    match &declaration.select {
+        EvidenceSelection::LiteralText { text } if text.is_empty() => {
+            return Err(EvidenceCode::InvalidSelector.into());
+        }
+        EvidenceSelection::RegexText { pattern } => {
+            regex::Regex::new(pattern).map_err(|_| EvidenceCode::InvalidSelector)?;
+        }
+        EvidenceSelection::AstPattern { language, pattern } => {
+            let language: ast_grep_language::SupportLang = language
+                .parse()
+                .map_err(|_| EvidenceCode::UnsupportedLanguage)?;
+            ast_grep_core::Pattern::try_new(pattern, language)
+                .map_err(|_| EvidenceCode::InvalidSelector)?;
+        }
+        EvidenceSelection::PayloadField { pointer } if !valid_pointer(pointer) => {
+            return Err(EvidenceCode::InvalidPointer.into());
+        }
+        _ => {}
+    }
+    Ok(())
 }

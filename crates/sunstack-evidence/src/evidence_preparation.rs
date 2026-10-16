@@ -18,26 +18,23 @@ pub enum CapturedSource {
 pub struct SourceSnapshot {
     pub sources: BTreeMap<SourceName, CapturedSource>,
 }
-struct Preparation {
+pub(crate) struct Preparation {
     input: EvidencePlanInput,
     registry: AdapterRegistry,
     cancellation: CancellationToken,
     snapshot: SourceSnapshot,
-    selections: Vec<SelectionResult>,
     captures: Vec<CaptureCoverage>,
     cursors: Vec<ReturnedCursor>,
     measurements: EvidenceMeasurements,
-    diagnostics: DiagnosticList,
     total_read: usize,
     document_cache: BTreeMap<(RepositoryId, PathBuf), Arc<CapturedDocument>>,
 }
-/// One invocation freezes shared captures. Provider configuration is neither accepted nor needed.
+/// Direct evidence calls use the same invocation-local session as native rules callers.
 pub async fn prepare_evidence(
     input: EvidencePlanInput,
     registry: AdapterRegistry,
     cancellation: CancellationToken,
 ) -> EvidencePlanOutcome {
-    let started = Instant::now();
     if cancellation.is_cancelled() {
         return EvidencePlanOutcome::Cancelled {
             progress: EvidenceCancellationProgress::BeforePlanAdmission,
@@ -45,108 +42,119 @@ pub async fn prepare_evidence(
             measurements: EvidenceMeasurements::default(),
         };
     }
-    if let Err(error) = crate::evidence_admission::admission(&input, &registry) {
-        return EvidencePlanOutcome::Refused {
-            diagnostics: error.diagnostics(),
-        };
-    }
-    let mut preparation = Preparation {
-        input,
-        registry,
-        cancellation,
-        snapshot: SourceSnapshot::default(),
-        selections: Vec::new(),
-        captures: Vec::new(),
-        cursors: Vec::new(),
-        measurements: EvidenceMeasurements::default(),
-        diagnostics: DiagnosticList::default(),
-        total_read: 0,
-        document_cache: BTreeMap::new(),
+    let declarations = input.declarations.clone();
+    let queries = input.native_queries.clone();
+    let mut session = match EvidenceSession::open(input, registry, cancellation.clone()).await {
+        Ok(session) => session,
+        Err(error) => {
+            return EvidencePlanOutcome::Refused {
+                diagnostics: error.diagnostics(),
+            };
+        }
     };
-    if let Err(error) = preparation.admit_payloads().await {
-        return EvidencePlanOutcome::Refused {
-            diagnostics: error.diagnostics(),
-        };
-    }
-    for declaration in preparation.input.declarations.clone() {
-        if preparation.cancellation.is_cancelled() {
+    let mut selections = Vec::new();
+    let mut diagnostics = DiagnosticList::default();
+    for declaration in declarations {
+        if cancellation.is_cancelled() {
             break;
         }
-        let result = preparation.select(&declaration).await;
-        match result {
-            Ok(readiness) => preparation.selections.push(SelectionResult {
-                id: declaration.id,
-                readiness,
-            }),
-            Err(error) => {
-                if declaration.requirement == EvidenceRequirement::Required {
-                    preparation.diagnostics.push(error.diagnostic());
-                }
-                preparation.selections.push(SelectionResult {
-                    id: declaration.id,
-                    readiness: SelectionReadiness::Refused {
-                        diagnostics: error.diagnostics(),
-                    },
-                });
-            }
-        }
-    }
-    if !preparation.input.native_queries.is_empty() {
-        // Native file queries use the same captured-source and selector implementations.
-        for query in preparation.input.native_queries.clone() {
-            if preparation.cancellation.is_cancelled() {
-                break;
-            }
-            match preparation.native_select(&query).await {
-                Ok(readiness) => preparation.selections.push(SelectionResult {
-                    id: query.id,
-                    readiness,
-                }),
-                Err(error) => {
-                    preparation.diagnostics.push(error.diagnostic());
-                    preparation.selections.push(SelectionResult {
-                        id: query.id,
-                        readiness: SelectionReadiness::Refused {
-                            diagnostics: error.diagnostics(),
-                        },
-                    });
+        let result = session.select(&declaration).await;
+        if declaration.requirement == EvidenceRequirement::Required {
+            if let SelectionReadiness::Refused {
+                diagnostics: refused,
+            } = &result.readiness
+            {
+                for diagnostic in &refused.items {
+                    diagnostics.push(diagnostic.clone());
                 }
             }
         }
+        selections.push(result);
     }
-    preparation.measurements.local_elapsed_ms =
-        u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
-    if preparation.cancellation.is_cancelled() {
-        return EvidencePlanOutcome::Cancelled {
+    for query in queries {
+        if cancellation.is_cancelled() {
+            break;
+        }
+        let result = session.select_native(&query).await;
+        if let SelectionReadiness::Refused {
+            diagnostics: refused,
+        } = &result.readiness
+        {
+            for diagnostic in &refused.items {
+                diagnostics.push(diagnostic.clone());
+            }
+        }
+        selections.push(result);
+    }
+    let EvidenceSessionSummary {
+        captures,
+        cursors,
+        measurements,
+    } = session.close();
+    if cancellation.is_cancelled() {
+        EvidencePlanOutcome::Cancelled {
             progress: EvidenceCancellationProgress::PlanAdmitted {
                 partial: PartialEvidencePlan {
-                    selections: preparation.selections,
-                    captures: preparation.captures,
-                    cursors: preparation.cursors,
+                    selections,
+                    captures,
+                    cursors,
                 },
             },
-            diagnostics: preparation.diagnostics,
-            measurements: preparation.measurements,
-        };
-    }
-    if preparation.diagnostics.items.is_empty() {
+            diagnostics,
+            measurements,
+        }
+    } else if diagnostics.items.is_empty() {
         EvidencePlanOutcome::Prepared {
-            selections: preparation.selections,
-            captures: preparation.captures,
-            cursors: preparation.cursors,
-            measurements: preparation.measurements,
+            selections,
+            captures,
+            cursors,
+            measurements,
         }
     } else {
         EvidencePlanOutcome::Incomplete {
-            selections: preparation.selections,
-            captures: preparation.captures,
-            cursors: preparation.cursors,
-            measurements: preparation.measurements,
-            diagnostics: preparation.diagnostics,
+            selections,
+            captures,
+            cursors,
+            measurements,
+            diagnostics,
         }
     }
 }
 impl Preparation {
+    pub(crate) async fn open(
+        input: EvidencePlanInput,
+        registry: AdapterRegistry,
+        cancellation: CancellationToken,
+    ) -> EvidenceResult<Self> {
+        crate::evidence_admission::admission(&input, &registry)?;
+        let mut preparation = Self {
+            input,
+            registry,
+            cancellation,
+            snapshot: SourceSnapshot::default(),
+            captures: Vec::new(),
+            cursors: Vec::new(),
+            measurements: EvidenceMeasurements::default(),
+            total_read: 0,
+            document_cache: BTreeMap::new(),
+        };
+        preparation.admit_payloads().await?;
+        Ok(preparation)
+    }
+    pub(crate) fn close(self, started: Instant) -> EvidenceSessionSummary {
+        let mut measurements = self.measurements;
+        measurements.local_elapsed_ms =
+            u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        EvidenceSessionSummary {
+            captures: self.captures,
+            cursors: self.cursors,
+            measurements,
+        }
+    }
+    pub(crate) fn measurements(&self) -> &EvidenceMeasurements {
+        &self.measurements
+    }
+
     async fn admit_payloads(&mut self) -> EvidenceResult<()> {
         let paths = self.input.payload_schemas.clone();
         let catalog = tokio::task::spawn_blocking(move || {
@@ -331,10 +339,14 @@ impl Preparation {
         self.document_cache.insert(cache_key, document.clone());
         Ok(document)
     }
-    async fn select(
+    pub(crate) async fn select(
         &mut self,
         declaration: &EvidenceDeclaration,
     ) -> EvidenceResult<SelectionReadiness> {
+        crate::evidence_admission::admit_declaration(declaration, &self.input.sources)?;
+        if self.cancellation.is_cancelled() {
+            return Err(EvidenceCode::MissingContext.into());
+        }
         let source = self.source(&declaration.input).await?;
         let (content, omissions, coverage) = match source {
             CapturedSource::Document(document) => {
