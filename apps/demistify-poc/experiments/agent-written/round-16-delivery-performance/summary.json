@@ -1,0 +1,490 @@
+{
+  "libraryPin": "c96a72e",
+  "sourceCommit": "c96a72e5835f588d0af738bfd287533f94993ece",
+  "samplesPerPair": 3,
+  "summary": [
+    {
+      "page": "explorer",
+      "state": "fresh-url",
+      "readyMs": [
+        87.5,
+        79.29999995231628,
+        89.79999995231628
+      ],
+      "fcpMs": [
+        68,
+        60,
+        72
+      ],
+      "layoutShift": [
+        0,
+        0.025730501787758462,
+        0.025730501787758462
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        1143140,
+        1143140,
+        1143140
+      ]
+    },
+    {
+      "page": "explorer",
+      "state": "same-url-reload",
+      "readyMs": [
+        39.89999997615814,
+        37.200000047683716,
+        32.300000071525574
+      ],
+      "fcpMs": [
+        32,
+        24,
+        52
+      ],
+      "layoutShift": [
+        0,
+        0,
+        0
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "page": "review",
+      "state": "fresh-url",
+      "readyMs": [
+        341,
+        465.5,
+        259.8000000715256
+      ],
+      "fcpMs": [
+        40,
+        24,
+        20
+      ],
+      "layoutShift": [
+        0.51475834312462,
+        0.6757620957178578,
+        0.6762257926769615
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        2536777,
+        2536777,
+        2536777
+      ]
+    },
+    {
+      "page": "review",
+      "state": "same-url-reload",
+      "readyMs": [
+        273.3000000715256,
+        448.89999997615814,
+        237.89999997615814
+      ],
+      "fcpMs": [
+        28,
+        36,
+        24
+      ],
+      "layoutShift": [
+        0.474925879014426,
+        0.5076056736849995,
+        0.474925879014426
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "page": "early-navigation",
+      "state": "fresh-url",
+      "readyMs": [
+        332.1999999284744,
+        255.19999992847443,
+        264.2999999523163
+      ],
+      "fcpMs": [
+        88,
+        24,
+        28
+      ],
+      "layoutShift": [
+        0.6478589468354081,
+        0.6692775198547314,
+        0.6695734623034666
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        2536813,
+        2536813,
+        2536813
+      ]
+    },
+    {
+      "page": "early-navigation",
+      "state": "same-url-reload",
+      "readyMs": [
+        276.60000002384186,
+        238.39999997615814,
+        237.60000002384186
+      ],
+      "fcpMs": [
+        24,
+        24,
+        24
+      ],
+      "layoutShift": [
+        0.30416185597918616,
+        0.6530426840724504,
+        0.30416185597918616
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "page": "prepared-islands",
+      "state": "fresh-url",
+      "readyMs": [
+        43.299999952316284,
+        26.199999928474426,
+        29.399999976158142
+      ],
+      "fcpMs": [
+        24,
+        24,
+        24
+      ],
+      "layoutShift": [
+        0.03496765119782716,
+        0.04140861481828791,
+        0.03475772200575483
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        282284,
+        282284,
+        282284
+      ]
+    },
+    {
+      "page": "prepared-islands",
+      "state": "same-url-reload",
+      "readyMs": [
+        19.100000023841858,
+        18.700000047683716,
+        20.299999952316284
+      ],
+      "fcpMs": [
+        24,
+        24,
+        24
+      ],
+      "layoutShift": [
+        0.02245830403500021,
+        0.02245830403500021,
+        0.02245830403500021
+      ],
+      "longTasks": [
+        [],
+        [],
+        []
+      ],
+      "windowTransferBytes": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "httpEntityLedger": [
+    {
+      "case": "explorer-1",
+      "state": "fresh-url",
+      "entityBytes": 1139688,
+      "libraryEntityBytes": 358656,
+      "contentEntityBytes": 778085,
+      "probeEntityBytes": 2947,
+      "engineBodyBytes": 0,
+      "requests": 18
+    },
+    {
+      "case": "explorer-1",
+      "state": "same-url-reload",
+      "entityBytes": 1648,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 1648,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "review-1",
+      "state": "fresh-url",
+      "entityBytes": 2536463,
+      "libraryEntityBytes": 2528730,
+      "contentEntityBytes": 4786,
+      "probeEntityBytes": 2947,
+      "engineBodyBytes": 2195817,
+      "requests": 18
+    },
+    {
+      "case": "review-1",
+      "state": "same-url-reload",
+      "entityBytes": 4786,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 4786,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "review-2",
+      "state": "fresh-url",
+      "entityBytes": 2536463,
+      "libraryEntityBytes": 2528730,
+      "contentEntityBytes": 4786,
+      "probeEntityBytes": 2947,
+      "engineBodyBytes": 2195817,
+      "requests": 18
+    },
+    {
+      "case": "review-2",
+      "state": "same-url-reload",
+      "entityBytes": 4786,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 4786,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "explorer-2",
+      "state": "fresh-url",
+      "entityBytes": 1139688,
+      "libraryEntityBytes": 358656,
+      "contentEntityBytes": 778085,
+      "probeEntityBytes": 2947,
+      "engineBodyBytes": 0,
+      "requests": 18
+    },
+    {
+      "case": "explorer-2",
+      "state": "same-url-reload",
+      "entityBytes": 1648,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 1648,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "explorer-3",
+      "state": "fresh-url",
+      "entityBytes": 1139688,
+      "libraryEntityBytes": 358656,
+      "contentEntityBytes": 778085,
+      "probeEntityBytes": 2947,
+      "engineBodyBytes": 0,
+      "requests": 18
+    },
+    {
+      "case": "explorer-3",
+      "state": "same-url-reload",
+      "entityBytes": 1648,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 1648,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "review-3",
+      "state": "fresh-url",
+      "entityBytes": 2536463,
+      "libraryEntityBytes": 2528730,
+      "contentEntityBytes": 4786,
+      "probeEntityBytes": 2947,
+      "engineBodyBytes": 2195817,
+      "requests": 18
+    },
+    {
+      "case": "review-3",
+      "state": "same-url-reload",
+      "entityBytes": 4786,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 4786,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "early-navigation-1",
+      "state": "fresh-url",
+      "entityBytes": 2536550,
+      "libraryEntityBytes": 2528730,
+      "contentEntityBytes": 4837,
+      "probeEntityBytes": 2983,
+      "engineBodyBytes": 2195817,
+      "requests": 18
+    },
+    {
+      "case": "early-navigation-1",
+      "state": "same-url-reload",
+      "entityBytes": 4837,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 4837,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "prepared-islands-1",
+      "state": "fresh-url",
+      "entityBytes": 292168,
+      "libraryEntityBytes": 275401,
+      "contentEntityBytes": 13784,
+      "probeEntityBytes": 2983,
+      "engineBodyBytes": 0,
+      "requests": 14
+    },
+    {
+      "case": "prepared-islands-1",
+      "state": "same-url-reload",
+      "entityBytes": 13784,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 13784,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "prepared-islands-2",
+      "state": "fresh-url",
+      "entityBytes": 292168,
+      "libraryEntityBytes": 275401,
+      "contentEntityBytes": 13784,
+      "probeEntityBytes": 2983,
+      "engineBodyBytes": 0,
+      "requests": 14
+    },
+    {
+      "case": "prepared-islands-2",
+      "state": "same-url-reload",
+      "entityBytes": 13784,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 13784,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "early-navigation-2",
+      "state": "fresh-url",
+      "entityBytes": 2536550,
+      "libraryEntityBytes": 2528730,
+      "contentEntityBytes": 4837,
+      "probeEntityBytes": 2983,
+      "engineBodyBytes": 2195817,
+      "requests": 18
+    },
+    {
+      "case": "early-navigation-2",
+      "state": "same-url-reload",
+      "entityBytes": 4837,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 4837,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "early-navigation-3",
+      "state": "fresh-url",
+      "entityBytes": 2536550,
+      "libraryEntityBytes": 2528730,
+      "contentEntityBytes": 4837,
+      "probeEntityBytes": 2983,
+      "engineBodyBytes": 2195817,
+      "requests": 18
+    },
+    {
+      "case": "early-navigation-3",
+      "state": "same-url-reload",
+      "entityBytes": 4837,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 4837,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    },
+    {
+      "case": "prepared-islands-3",
+      "state": "fresh-url",
+      "entityBytes": 292168,
+      "libraryEntityBytes": 275401,
+      "contentEntityBytes": 13784,
+      "probeEntityBytes": 2983,
+      "engineBodyBytes": 0,
+      "requests": 14
+    },
+    {
+      "case": "prepared-islands-3",
+      "state": "same-url-reload",
+      "entityBytes": 13784,
+      "libraryEntityBytes": 0,
+      "contentEntityBytes": 13784,
+      "probeEntityBytes": 0,
+      "engineBodyBytes": 0,
+      "requests": 1
+    }
+  ],
+  "limits": [
+    "24 load observations in one existing unthrottled Chrome process; loopback HTTP,1398x747 CSS viewport.",
+    "Fresh URL roots force real byte transfers; paired reloads reuse the same URLs. This is not a cold browser process, controlled CPU benchmark or deployed edge-cache test.",
+    "Server entity bytes include HTML/data plus separately identified observer and library payloads, exclude headers and compression.",
+    "FCP/readiness/layout-shift sum and main-thread long tasks are snapshots over this loading window, not field Core Web Vitals or standardized INP.",
+    "A separate native-worker diagnostic verifies actual ready/rendered messages; network entries alone were not treated as execution-location proof.",
+    "Prepared variant is generated output from the same author content, not a smaller authored document or a production default.",
+    "Initial measurement attempt discarded due browser evaluation scope; JSON DOM export used for all recorded pairs."
+  ]
+}

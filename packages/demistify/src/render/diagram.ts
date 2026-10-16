@@ -12,7 +12,7 @@ export function renderThemedDiagram(render: MermaidRenderer, sourceText: string)
 			render(chart.source, {
 				bg: 'var(--sheet)',
 				fg: 'var(--ink)',
-				accent: 'var(--accent)',
+				// Inherit the page accent; assigning --accent to itself makes it invalid.
 				surface: 'var(--accent-soft)',
 				border: 'var(--rule)',
 				font: 'IBM Plex Sans Condensed',

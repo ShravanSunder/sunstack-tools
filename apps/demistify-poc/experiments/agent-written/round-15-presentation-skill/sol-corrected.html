@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session reconnection — proposed decision</title>
+<link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/theme.css">
+<script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+# Session reconnection
+
+Can running work survive a lost connection?
+
+Source: `brief.md`. Audience: engineers deciding whether to accept the proposal.
+Everything below describes supplied design intent and a review finding, not measured or verified behavior.
+
+<ex-callout id="decision" tone="decision" title="Proposed: fix expiry, then run a bounded reconnect experiment">
+Use a process-local Map to separate session and transport lifetimes.
+Validate reconnect behavior before deciding persistence separately.
+This proposal does **not** provide restart durability.
+</ex-callout>
+
+<h2>Ownership change</h2>
+
+<ex-grid cols="2">
+<ex-card id="current" title="Current: socket owns session" tone="removed" icon="plug">
+One transport owns one live WebSocket. The socket also owns its session reference.
+Losing the socket loses that reference.
+</ex-card>
+<ex-card id="proposed" title="Proposed: registry indexes session" tone="planned" icon="stack">
+A process-local Map indexes sessions by stable ID. The session owns running work;
+the transport owns its live WebSocket. Disconnecting a socket should not cancel work.
+</ex-card>
+</ex-grid>
+
+<ex-mermaid id="ownership">
+<script type="text/plain">
+flowchart LR
+  subgraph Before["Current"]
+    oldSocket["Socket"] -->|"owns reference"| oldSession["Session"]
+  end
+  subgraph After["Proposed · one process"]
+    registry["Registry Map"] -->|"stable ID"| session["Session"]
+    session -->|"owns"| work["Running work"]
+    transport["Transport"] -->|"owns"| socket["Live WebSocket"]
+    socket -.->|"attached connection"| session
+  end
+</script>
+</ex-mermaid>
+
+<h2>Reconnect sequence</h2>
+
+<ex-grid cols="2">
+<ex-mermaid id="sequence">
+<script type="text/plain">
+sequenceDiagram
+  participant C as Client
+  participant G as Gateway
+  participant R as Registry Map
+  participant S as Existing session
+  Note over C,S: Socket disconnects; running work should continue
+  C->>G: New socket + stable session ID
+  G->>R: Look up session ID
+  R-->>G: Session or missing
+  alt Missing
+    G-->>C: Reject resume
+  else Expired
+    G->>R: Delete expired entry
+    G-->>C: Reject resume; stop here
+  else Present and unexpired
+    G->>S: Attach new socket
+    G-->>C: Resume existing session
+  end
+</script>
+</ex-mermaid>
+<ex-card id="boundary" title="Reconnect is bounded by process lifetime" tone="risk" icon="cpu">
+The Map helps a client reconnect to an existing session while its process remains alive.
+A process restart loses the Map.
+
+Rejecting a missing or expired session must happen **before attachment**.
+No performance measurements have been supplied.
+</ex-card>
+</ex-grid>
+
+<h2>Expiry review finding</h2>
+
+<ex-grid cols="2">
+<ex-code id="expiry-diff" title="Illustrative proposal from brief.md" lang="diff" start="40">
+<script type="text/plain">
+ export function resume(id: string) {
+-  return sockets.get(id)?.session;
++  const session = registry.get(id);
++  if (!session) return undefined;
++  if (session.expiresAt < Date.now()) {
++    registry.delete(id);
++  }
++  return session.attach(currentSocket());
+ }
+</script>
+<ex-note line="45" tone="risk">
+Deleting the entry does not end execution. The local session reference remains,
+so line 47 still attaches the expired session. Return undefined immediately
+after deletion.
+</ex-note>
+</ex-code>
+
+<ex-card id="expiry-fix" title="Required correction: terminate the expired path" tone="risk" icon="bug">
+The expired branch must delete the entry **and return**.
+Removing an index entry alone does not invalidate the local reference.
+
+The diff uses display rows starting at 40, including the removed row.
+</ex-card>
+</ex-grid>
+
+<ex-code id="corrected-branch" title="Corrected expired branch" lang="typescript">
+<script type="text/plain">
+if (session.expiresAt < Date.now()) {
+  registry.delete(id);
+  return undefined;
+}
+return session.attach(currentSocket());
+</script>
+</ex-code>
+
+<h2>Two options</h2>
+
+<ex-grid cols="2">
+<ex-card id="map-option" title="A · In-memory Map" tone="planned" icon="stack" tag="bounded experiment" pick>
+**Gain:** simple registry and fast local lookup as the design expectation.
+
+**Cost:** no restart survival; registry state lives in one process.
+
+**Decision scope:** validate network reconnection first. Performance remains unmeasured.
+</ex-card>
+<ex-card id="persistent-option" title="B · Persistent shared registry" tone="question" icon="database" tag="separate design decision">
+**Gain:** the proposed registry survives process replacement.
+
+**Cost:** an external dependency and consistency work.
+
+**Open boundary:** persistent registry data alone does not establish that running work
+survives process replacement; that lifecycle needs a separate design and proof.
+</ex-card>
+</ex-grid>
+
+<h2>Proposed acceptance path</h2>
+
+<ex-card id="validation" title="Evidence needed before accepting reconnect behavior" tone="planned" icon="test-tube">
+1. Fix expiry so an expired entry is deleted and never attached.
+2. Disconnect during running work and establish that work continues.
+3. Reconnect with the same stable ID and establish attachment to the existing session.
+4. Establish that missing and expired IDs are rejected.
+5. Confirm the process-local boundary; decide persistence separately.
+
+These are proposed validation steps. No execution results or performance measurements
+were supplied.
+</ex-card>
+
+<ex-callout tone="decision" title="Decision requested">
+Accept Option A as a bounded experiment after the expiry correction.
+Keep persistence as a separate decision informed by reconnect evidence and the required
+process-replacement behavior.
+</ex-callout>
+
+</ex-document>
+</body>
+</html>

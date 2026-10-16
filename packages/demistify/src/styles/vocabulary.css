@@ -124,6 +124,9 @@ ex-flow > ex-arrow {
 :is(ex-grid, ex-flow) > * + * {
 	margin-top: 0;
 }
+:is(ex-grid, ex-flow) > * {
+	min-width: 0;
+}
 /* Spans and sticky columns only hold while the grid itself is wide enough. */
 @container (max-width: 620px) {
 	:is(ex-grid, ex-flow) > [span] {
@@ -188,8 +191,7 @@ ex-card {
 	line-height: 1.25;
 }
 ex-card[pick] {
-	border-color: var(--accent);
-	box-shadow: var(--ring);
+	border-top-color: var(--accent);
 }
 .ex-card-pick {
 	font: 600 var(--text-2xs) var(--display);
@@ -322,11 +324,20 @@ ex-code {
 .ex-code-head {
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-3);
 	border-bottom: 1px solid var(--rule);
 	font: var(--text-sm) var(--mono);
 	padding-right: 76px;
+}
+.ex-code-head strong {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+[data-inspector-content] .ex-code-head,
+[data-inspector-copy] .ex-code-head {
+	padding-right: var(--space-3);
 }
 .ex-code-head span {
 	color: var(--ink-soft);
@@ -354,7 +365,7 @@ ex-code {
 }
 .ex-code-number[data-noted] {
 	color: var(--tone);
-	background: var(--tone-bg);
+	background: var(--keep-bg);
 	font-weight: 600;
 	opacity: 1;
 }
@@ -370,13 +381,15 @@ ex-code {
 	color: var(--ink-soft);
 }
 .ex-code-text[data-noted] {
-	background: var(--tone-bg);
+	background: var(--keep-bg);
 	border-left-color: var(--tone);
 }
 .ex-code-margin {
 	padding: 0 var(--space-3) 0 var(--space-2);
 }
 .ex-code-counts {
+	flex-shrink: 0;
+	white-space: nowrap;
 	margin-left: auto;
 	font: 600 var(--text-2xs) var(--mono);
 }
@@ -403,7 +416,7 @@ ex-note {
 	display: block;
 	font: var(--text-sm)/1.45 var(--display);
 	color: var(--ink);
-	background: var(--tone-bg);
+	background: var(--keep-bg);
 	border-left: 3px solid var(--tone);
 	border-radius: var(--radius-sm);
 	padding: var(--space-1) var(--space-2);
@@ -686,15 +699,6 @@ ex-board[data-mode='map'] ex-region[data-open] {
 	box-shadow: 0 0 0 2px var(--accent);
 }
 
-ex-mermaid.ex-diagram-wide {
-	overflow-x: auto;
-	justify-items: start;
-}
-ex-mermaid.ex-diagram-wide > svg {
-	max-width: none;
-	margin-inline: 0;
-}
-
 /* Drawer: a docked panel that takes space; the page narrows beside it and keeps scrolling. */
 .ex-drawer {
 	position: fixed;
@@ -781,14 +785,25 @@ ex-tree li > ul {
 }
 .ex-tree-node {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
+	align-items: flex-start;
 	gap: 2px var(--space-2);
 	width: fit-content;
+	max-width: 100%;
 	padding: 3px 0;
+}
+.ex-tree-label {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.ex-tree-label > p {
+	margin: 0;
+}
+.ex-tree-label > p + p {
+	margin-top: var(--space-2);
 }
 .ex-tree-node > .ex-tone-icon {
 	font-size: var(--text-md);
+	line-height: inherit;
 }
 /* A branch folds on click. Open, it carries no mark (everything is already in view); folded, it
    shows a caret and how many nodes it hides. */
@@ -932,6 +947,7 @@ ex-document img:not(a img, ex-compare[slider] img) {
 		calc(var(--natural-width, 100000px) * 2)
 	);
 	max-width: none;
+	min-width: 0;
 	height: auto;
 	margin-inline: auto;
 }
@@ -1024,6 +1040,9 @@ ex-compare[slider] > [data-side]:nth-of-type(2)::before {
 .ex-tracing :is(path, polyline, line).ex-traced,
 .ex-tracing .ex-traced > :is(path, line) {
 	stroke: var(--accent);
+}
+/* SVG markers scale with their connector stroke; trace diagrams by colour without inflating tips. */
+:is(.ex-arrow-canvas, .ex-flow-overlay).ex-tracing :is(path, polyline, line).ex-traced {
 	stroke-width: 2.25;
 }
 

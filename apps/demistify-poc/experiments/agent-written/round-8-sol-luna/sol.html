@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session resume review</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+# Session resume review
+
+“Resume sessions after socket drops” · Review date: 2026-10-14 · Illustrative change
+
+<ex-grid cols="3">
+<ex-callout id="verdict" title="Request changes" tone="risk" span="2">
+The change fixes resume after network blips but breaks resume after every deploy: sessions live only in process memory. Two blocking findings must be resolved: restart durability (F1) and expired sessions still attaching (F2).
+
+Fix F2 in this change, decide the F1 storage option, and answer F5 before merge. Reviewers recommend Redis for F1.
+</ex-callout>
+<ex-stat value="0%" label="Resume after deploy" note="After this change; 12% before. Supplied staging soak result." tone="risk"></ex-stat>
+</ex-grid>
+
+<ex-route label="Review in 60 seconds">
+<ex-step to="verdict">Read the merge verdict.</ex-step>
+<ex-step to="f1" open="sidebar">See why every restart loses resumability.</ex-step>
+<ex-step to="f2" open="sidebar">Inspect the expired-session fallthrough.</ex-step>
+<ex-step to="redis">Review the recommended fix and its cost.</ex-step>
+<ex-step to="evidence">Compare the supplied soak results.</ex-step>
+</ex-route>
+
+## Exact change and findings
+
+The displayed diff counts every row, including removed rows: function at 40, removed rows 41–42, additions 43–48, closing brace at 49. Findings use these displayed line numbers.
+
+<ex-grid cols="3">
+<ex-code id="resume-diff" title="src/session/resume.ts · displayed lines 40–49" lang="diff" start="40" span="2">
+<script type="text/plain">
+@@ -40,7 +40,12 @@ export function resume(id: string)
+ export function resume(id: string): Session | undefined {
+-  const socket = sockets.get(id);
+-  return socket?.session;
++  const session = registry.get(id);
++  if (!session) return undefined;
++  if (session.expiresAt < Date.now()) {
++    registry.delete(id);
++  }
++  return session.attach(currentSocket());
+ }
+</script>
+<ex-note line="43" tone="risk">F1 · blocking: the in-memory Map is empty after any deploy or crash; every resume misses.</ex-note>
+<ex-note line="44" tone="question">F3 · nit: log the session id at debug level so silent misses become visible in traces.</ex-note>
+<ex-note line="45" tone="risk">F2 · blocking, lines 45–47: deleting the expired session does not stop execution; line 48 still attaches it. Return undefined after deleting.</ex-note>
+<ex-note line="48" tone="note">F4 · nice: attach centralizes the socket swap, previously scattered across two call sites.</ex-note>
+</ex-code>
+<ex-card id="f1" title="F1 · Restart erases the registry" tone="risk" icon="database" tag="blocking · resume.ts:43" sticky>
+`registry` is an in-memory Map. After any deploy or crash it is empty, so every resume returns `undefined` and clients start new sessions.
+
+The lookup survives socket loss only while the process survives. F1 needs a durability decision; Redis is the reviewers’ recommendation.
+</ex-card>
+</ex-grid>
+
+<ex-grid cols="2">
+<ex-card id="f2" title="F2 · Expired session still attaches" tone="risk" icon="bug" tag="blocking · resume.ts:45–47">
+The expiry branch deletes the session but falls through to `session.attach(currentSocket())` on line 48. The local session reference still exists after the Map entry is deleted.
+
+**Required fix:** return `undefined` immediately after deleting the expired session.
+</ex-card>
+<ex-card id="f3" title="F3 · Make resume misses visible" tone="question" icon="file" tag="nit · resume.ts:44">
+The early return drops the miss silently. Log the session id at debug level so resume misses are visible in traces.
+</ex-card>
+<ex-card id="f4" title="F4 · One owner for socket swapping" tone="note" icon="plug" tag="nice · resume.ts:48">
+`attach` keeps the socket swap in one place. The old code scattered it across two call sites.
+</ex-card>
+<ex-card id="f5" title="F5 · Who controls the grace window?" tone="question" icon="clock" tag="question · registry.ts">
+Is the 5-minute grace window configurable per tenant, or fixed? Answer before merge. No line number was supplied for this finding.
+</ex-card>
+</ex-grid>
+
+## Reconnect flow
+
+The intended flow has four participants: Client, Gateway, Registry and Session. The expired-session path below describes the required behavior; F2 means the current diff does not yet implement it.
+
+<ex-grid cols="3">
+<ex-mermaid id="reconnect-flow" span="2">
+<script type="text/plain">
+sequenceDiagram
+    participant Client
+    participant Gateway
+    participant Registry
+    participant Session
+    Client->>Gateway: Reconnect with session id
+    Gateway->>Gateway: resume(id)
+    Gateway->>Registry: Look up session id
+    Registry-->>Gateway: Session or missing
+    alt Found and not expired
+        Gateway->>Session: attach(new socket)
+        Session-->>Gateway: Attached session
+        Gateway-->>Client: Confirm resumed session
+    else Missing or expired
+        Gateway-->>Client: Start a new session
+    end
+</script>
+</ex-mermaid>
+<ex-callout title="Where the implementation diverges" tone="risk" sticky>
+A missing entry already returns `undefined`. An expired entry is deleted but still attached, so it does not reach the intended “start a new session” outcome.
+
+After a restart, all entries are missing. No reconnect can reach the successful branch until the registry is durable.
+</ex-callout>
+</ex-grid>
+
+## Repository changes
+
+<ex-tree id="repository-changes" title="Files touched" icon="folder">
+- src/
+  - session/
+    - changed: [resume.ts — lookup and attach diff](#resume-diff)
+    - added: [registry.ts — 64 lines; grace-window question](#f5)
+    - changed: socket.ts
+    - removed: legacy-store.ts
+- test/
+  - session/
+    - added: resume.test.ts
+</ex-tree>
+
+The supplied brief identifies these files; it does not include the contents of the registry, socket implementation, deleted store or new tests. Their correctness and test coverage are not independently established here.
+
+## Fix options for F1
+
+<ex-grid cols="3" swipe>
+<ex-card id="memory" title="In-memory registry" tone="risk" icon="cpu" tag="current">
+Fast and simple. Loses every session on restart.
+
+**Tradeoff:** speed over durability. The current option cannot satisfy resume across deploys or crashes.
+</ex-card>
+<ex-card id="redis" title="Redis-backed registry" tone="decision" icon="database" tag="recommended" pick>
+Survives restarts and is shared across instances. Adds Redis to every environment and about **2 ms per resume**.
+
+**Tradeoff:** durability for a dependency. Reviewers recommend this option; the prototype results below support the recommendation, but do not establish a production rollout.
+</ex-card>
+<ex-card id="sticky-sockets" title="Sticky sockets at the load balancer" tone="risk" icon="cloud" tag="alternative">
+No new state. Breaks whenever an instance is replaced, so it does not fix deploys.
+
+**Tradeoff:** no new state but fragile. Routing affinity cannot preserve the state of a replaced instance.
+</ex-card>
+</ex-grid>
+
+## Evidence
+
+<ex-callout id="evidence" title="Network recovery improves; restart recovery remains broken" tone="tldr">
+The supplied staging soak test reports resume success as a percentage of reconnects. This change improves network blips from 35% to 98%, while deploy recovery falls from 12% to 0%. The Redis prototype reports 96% after deploy and 94% after an instance crash.
+
+| Scenario | Before | After this change | With Redis registry (prototype) |
+| --- | ---: | ---: | ---: |
+| Network blip | 35% | 98% | 98% |
+| Deploy | 12% | 0% | 96% |
+| Instance crash | 0% | 0% | 94% |
+
+These are figures supplied in the illustrative brief, not measurements run for this explainer. Sample sizes, test methodology and variability were not supplied. The approximately 2 ms Redis cost is also a supplied claim, with no timing evidence included.
+</ex-callout>
+
+## Next steps before merge
+
+<ex-tree id="next-steps" title="Author and reviewer checklist" icon="git-branch">
+- [ ] [Fix F2 in this change: return undefined after deleting an expired session](#f2)
+- [ ] [Decide the F1 option: reviewers recommend Redis](#redis)
+- [ ] [Answer F5: tenant configuration or a fixed 5-minute grace window?](#f5)
+</ex-tree>
+
+The review remains **request changes**. F3 is a nit and F4 is positive feedback; neither closes the two blocking findings.
+</ex-document>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "sourceRound": "round-10-guide",
+  "newModelRuns": false,
+  "editionOwner": "Lead",
+  "libraryRoot": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2",
+  "librarySourceCommit": "e3a92d2aec1ac7604f05107dae7ac5bb8485d416",
+  "graphSource": "round-11-reference/planning.json",
+  "graphSha256": "8c556fa2f30a1edf23853f7236605da1e057880e0716e7c99c7290492fe93da0",
+  "pages": [
+    {
+      "file": "sol-review.html",
+      "source": "round-10-guide/sol-review.html",
+      "sourceSha256": "ac0f4c2db72fb4d22d74f763eefed66444745e0cf071271dc974b04f09460e4e",
+      "htmlSha256": "a70f9a59894fbf28bc3c1fe96f98a98dc13de8d2db94da13775b601e3bf8ed74",
+      "leadCorrections": []
+    },
+    {
+      "file": "luna-review.html",
+      "source": "round-10-guide/luna-review.html",
+      "sourceSha256": "c6358a0d85311c375c4bac00cc8c1f5f5b26779b7cc248be36e565e7ef095ecc",
+      "htmlSha256": "f56d0f6d6f9c2ba7e05fae77318fbe11cfe870689a1494444a4b29c49db55a49",
+      "leadCorrections": []
+    },
+    {
+      "file": "sol-explorer.html",
+      "source": "round-10-guide/sol-explorer.html",
+      "sourceSha256": "d8785764d9d0787a72587d3e3234a0caaf67cc26ecda5cf1b4d18088a01e2c60",
+      "htmlSha256": "719cc4bd645f539187831c23e974b285023b8484eba5f299767ed1588da38f82",
+      "leadCorrections": [
+        "Node hover/focus traces paths; arrow click opens evidence. Removed unsupported arrow-hover promise.",
+        "Distinguished the proposed shared reference description from skill frontmatter."
+      ]
+    },
+    {
+      "file": "luna-explorer.html",
+      "source": "round-10-guide/luna-explorer.html",
+      "sourceSha256": "2985472b830ad76d3eae033a73f90ce35aa411558c4fcdda4a481eed150bcb73",
+      "htmlSha256": "ee78e3e6be7cd997710d5aae11eac27122604d6124ce30e3f8fb0af33cbdeac1",
+      "leadCorrections": [
+        "Removed unsupported arrow-hover promise; kept node hover/focus and arrow-click evidence behavior."
+      ]
+    }
+  ],
+  "limits": "Public-asset delivery edition, not fresh authoring/model reliability or total consumed-context proof. Original model outputs and ledgers stay unchanged.",
+  "inspectionRevision": {
+    "sourceCommit": "16ac23d39ba1ba657d9035cacd764e7184f3cc81",
+    "description": "Lead asset-pin derivative with shared inspector and neutral note fixes; no new Sol/Luna author run."
+  }
+}

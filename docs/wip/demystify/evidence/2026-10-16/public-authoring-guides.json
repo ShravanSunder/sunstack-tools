@@ -1,0 +1,62 @@
+{
+	"pin": "https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/16ac23d/",
+	"deployVersion": "91658193-9927-4631-9936-73115d7b396c",
+	"files": [
+		{
+			"name": "SKILL.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "a9e5a4b9bb4bfddb764395141fb4bd92d41d6ba7ccc8c74657d13e6ab8f6c822",
+			"mime": "text/markdown",
+			"cors": "*"
+		},
+		{
+			"name": "references/code.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "608fa82d1be524c4c8cc059780b2c2980eece1ac223a88ac1a2e619a5abf0781",
+			"mime": "text/markdown",
+			"cors": "*"
+		},
+		{
+			"name": "references/explorers.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "9c6b9ea8f5bff3cf458ceeb689f12ac8aefcb0b3e2f99fd2192cbc342f4f9f97",
+			"mime": "text/markdown",
+			"cors": "*"
+		},
+		{
+			"name": "references/maps.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "19fbc1d8260639a3cefb780126b757e26b414a8bf95cea8f0a8987179be9e519",
+			"mime": "text/markdown",
+			"cors": "*"
+		},
+		{
+			"name": "references/pictures.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "24e6c0f685506748068fe6a8ac02e914e3bc83aede16bf6cefbb42b6c4497c17",
+			"mime": "text/markdown",
+			"cors": "*"
+		},
+		{
+			"name": "references/tours.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "0100de754652266701fdee45362de880dad755f5f5c826ccebc99b4610824ef6",
+			"mime": "text/markdown",
+			"cors": "*"
+		},
+		{
+			"name": "references/trees.md",
+			"status": 200,
+			"matches": true,
+			"sha256": "acf755065f4e2648ef9b64402ebb86416b4f1cfd95ac6f248ad7022ce225a4a1",
+			"mime": "text/markdown",
+			"cors": "*"
+		}
+	]
+}

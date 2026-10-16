@@ -1,0 +1,67 @@
+/* Presentation selection uses ordinary fragment/page links; the document owns its layouts. */
+ex-presentation {
+	display: block;
+	min-width: 0;
+}
+ex-presentation[hidden],
+ex-presentation > nav[slot='pages'] {
+	display: none;
+}
+ex-presentation > * + * {
+	margin-top: var(--space-6);
+}
+.ex-presentations-trigger {
+	margin-bottom: var(--space-3);
+}
+.ex-heading-panel > .ex-presentations-trigger {
+	display: flex;
+	width: auto;
+	gap: var(--space-2);
+	padding-inline: var(--space-3);
+}
+.ex-heading-panel > .ex-presentations-trigger::after {
+	content: 'Presentations';
+	font: 600 var(--text-md) var(--display);
+}
+.ex-presentations-panel {
+	position: fixed;
+	inset: 24px auto 24px 20px;
+	margin: 0;
+	width: min(360px, calc(100vw - 40px));
+	max-height: calc(100dvh - 48px);
+	overflow: auto;
+	padding: var(--space-4);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--sheet);
+	color: var(--ink);
+	box-shadow: var(--shadow-float);
+}
+.ex-presentations-panel > header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	font-family: var(--display);
+}
+.ex-presentations-panel > a {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	padding: var(--space-3);
+	margin-top: var(--space-2);
+	text-decoration: none;
+	border-left: 2px solid transparent;
+}
+.ex-presentations-panel > a strong {
+	color: var(--ink);
+	font-family: var(--display);
+}
+.ex-presentations-panel > a span {
+	color: var(--ink-soft);
+	font-size: var(--text-sm);
+}
+.ex-presentations-panel > a:is(:hover, :focus-visible, [aria-current]) {
+	background: var(--accent-soft);
+	border-left-color: var(--accent);
+}

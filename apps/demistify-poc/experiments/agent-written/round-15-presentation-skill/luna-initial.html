@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session reconnection proposal</title>
+<link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/theme.css">
+<script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/runtime.js"></script>
+</head>
+<body>
+<ex-document>
+
+# Session reconnection
+
+**Decision brief for engineers:** how should a reconnecting client find its running work, and should that lookup survive a process restart?
+
+<ex-callout id="decision" tone="decision" title="Proposed decision">
+Fix expiry handling first. Then validate reconnect behavior with a process-local registry. Decide separately whether restart survival justifies a persistent shared registry. No performance measurements are supplied.
+</ex-callout>
+
+## Ownership changes
+
+<ex-grid cols="2">
+<ex-card id="current" title="Current: socket owns session" tone="changed" icon="plug" tag="today">
+
+The socket holds the session reference. When the socket is lost, that reference is lost too, so the client cannot resume the existing work through a new connection.
+
+</ex-card>
+<ex-card id="proposed" title="Proposal: separate session from transport" tone="planned" icon="stack" tag="proposed">
+
+- **Session:** owns running work.
+- **Transport:** owns one live WebSocket.
+- **Registry:** indexes sessions by stable ID.
+
+This separates the lifetime of the work from the lifetime of its connection. The proposed registry is a process-local `Map`; a process restart loses it.
+
+</ex-card>
+</ex-grid>
+
+## Reconnect sequence
+
+<ex-mermaid id="sequence">
+<script type="text/plain">
+sequenceDiagram
+    participant C as Client
+    participant G as Gateway
+    participant R as Registry
+    participant S as Existing session
+    C->>G: Reconnect with session ID
+    G->>R: Look up stable ID
+    alt Missing or expired
+        R-->>G: No resumable session
+        G-->>C: Reject reconnect
+    else Present and unexpired
+        R-->>G: Existing session
+        G->>S: Attach new WebSocket
+        Note over S: Running work continues
+        G-->>C: Reconnected
+    end
+    Note over C,S: Socket disconnect alone does not cancel work
+</script>
+</ex-mermaid>
+
+The gateway looks up the supplied ID. A missing or expired session is rejected; a live session is reused and attached to the new socket. Losing a socket should not cancel the work.
+
+## Expiry review finding
+
+<ex-callout id="expiry-finding" tone="risk" title="Expired entry is deleted, then still attached">
+In the illustrative function, the expiry branch deletes the registry entry but falls through and returns that same session. That can attach an expired session. **Return `undefined` immediately after deletion.** The fix belongs before reconnect behavior is validated.
+</ex-callout>
+
+<ex-code title="Illustrative expiry bug" lang="diff" start="40">
+<script type="text/plain">
+ export function resume(id: string) {
+-  return sockets.get(id)?.session;
++  const session = registry.get(id);
++  if (!session) return undefined;
++  if (session.expiresAt < Date.now()) {
++    registry.delete(id);
++  }
++  return session.attach(currentSocket());
+ }
+</script>
+<ex-note line="45" tone="risk">After deleting the expired entry, return `undefined` here; do not continue to attach it.</ex-note>
+</ex-code>
+
+## Two registry options
+
+<ex-grid cols="2" swipe>
+<ex-card id="memory-option" title="Process-local Map" tone="option" icon="cpu" tag="bounded experiment">
+
+**Gains:** simple and fast to try for network reconnects.
+
+**Costs:** entries disappear when the process restarts. It does not provide restart durability.
+
+**Tradeoff:** validates reconnect behavior with less infrastructure, while limiting recovery to the current process lifetime.
+
+</ex-card>
+<ex-card id="persistent-option" title="Persistent shared registry" tone="option" icon="database" tag="durable across replacement">
+
+**Gains:** the registry survives process replacement.
+
+**Costs:** adds an external dependency and consistency work.
+
+**Tradeoff:** supports restart survival, while introducing operational and coordination complexity.
+
+</ex-card>
+</ex-grid>
+
+## Decision and boundary
+
+<ex-callout id="next" tone="planned" title="Fix expiry, validate reconnect, decide persistence separately">
+First correct the expiry path. Then validate that reconnect attaches a new socket to the existing live session and that socket disconnection leaves work running. Use the process-local registry as the bounded reconnect experiment; make the persistence decision separately.
+
+The Map is process-local. **Restart durability is not part of this proposal’s demonstrated behavior.** No performance measurements were supplied, so “fast” is an option’s stated tradeoff, not a measured result.
+</ex-callout>
+
+</ex-document>
+</body>
+</html>

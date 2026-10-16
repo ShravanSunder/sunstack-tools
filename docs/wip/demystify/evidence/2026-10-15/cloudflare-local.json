@@ -1,0 +1,638 @@
+{
+	"runtime": "Wrangler 4.151.0 / local workerd",
+	"assets": {
+		"origin": "http://127.0.0.1:4193",
+		"checks": {
+			"completePinnedRoots": true,
+			"knownMimeTypes": true,
+			"conditional": true,
+			"missing": true,
+			"aliasRedirect": true
+		},
+		"files": [
+			{
+				"name": "0.1.0/Phosphor.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/custom-elements.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.0/diagram-worker.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/html-custom-data.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.0/runtime.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/theme.css",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/css; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/chunks/diagram-Bf7Lsqv1.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/chunks/dist-DcDoeHXN.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/chunks/explorer-controller-CuWroUt3.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/chunks/html-text-DKjmYQsC.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/chunks/icons-BTtd1_Fe.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/chunks/markdown-content-DJ4Rn4TJ.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/chunks/source-text-LCI4h-OT.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-mono-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-sans-condensed-500.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-sans-condensed-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-sans-condensed-700.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/literata-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/literata-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/Phosphor.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/custom-elements.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.1/diagram-worker.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/html-custom-data.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.1/runtime.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/theme.css",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/css; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/chunks/diagram-Bf7Lsqv1.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/chunks/dist-DcDoeHXN.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/chunks/explorer-controller-CuWroUt3.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/chunks/html-text-DKjmYQsC.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/chunks/icons-BTtd1_Fe.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/chunks/markdown-content-DJ4Rn4TJ.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/chunks/source-text-LCI4h-OT.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript; charset=utf-8"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-mono-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-sans-condensed-500.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-sans-condensed-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-sans-condensed-700.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/literata-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/literata-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			}
+		],
+		"pass": true
+	},
+	"r2Worker": {
+		"origin": "http://127.0.0.1:4194",
+		"checks": {
+			"completePinnedRoots": true,
+			"knownMimeTypes": true,
+			"conditional": true,
+			"missing": true,
+			"aliasRedirect": true
+		},
+		"files": [
+			{
+				"name": "0.1.0/Phosphor.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/custom-elements.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.0/diagram-worker.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/html-custom-data.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.0/runtime.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/theme.css",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/css"
+			},
+			{
+				"name": "0.1.0/chunks/diagram-Bf7Lsqv1.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/chunks/dist-DcDoeHXN.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/chunks/explorer-controller-CuWroUt3.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/chunks/html-text-DKjmYQsC.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/chunks/icons-BTtd1_Fe.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/chunks/markdown-content-DJ4Rn4TJ.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/chunks/source-text-LCI4h-OT.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-mono-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-sans-condensed-500.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-sans-condensed-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/ibm-plex-sans-condensed-700.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/literata-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.0/fonts/literata-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/Phosphor.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/custom-elements.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.1/diagram-worker.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/html-custom-data.json",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "application/json"
+			},
+			{
+				"name": "0.1.1/runtime.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/theme.css",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/css"
+			},
+			{
+				"name": "0.1.1/chunks/diagram-Bf7Lsqv1.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/chunks/dist-DcDoeHXN.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/chunks/explorer-controller-CuWroUt3.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/chunks/html-text-DKjmYQsC.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/chunks/icons-BTtd1_Fe.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/chunks/markdown-content-DJ4Rn4TJ.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/chunks/source-text-LCI4h-OT.js",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "text/javascript"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-mono-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-sans-condensed-500.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-sans-condensed-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/ibm-plex-sans-condensed-700.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/literata-400.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			},
+			{
+				"name": "0.1.1/fonts/literata-600.woff2",
+				"status": 200,
+				"exactBytes": true,
+				"cors": true,
+				"immutable": true,
+				"mime": "font/woff2"
+			}
+		],
+		"pass": true
+	},
+	"limits": "No account, credentials, remote resource or deploy. Two named roots contain identical current build bytes. This proves local body/MIME/CORS/cache protocol, not deployed retention, alias updates, edge propagation, performance or cost."
+}

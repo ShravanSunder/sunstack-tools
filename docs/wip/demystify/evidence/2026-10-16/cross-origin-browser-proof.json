@@ -1,0 +1,9 @@
+{
+	"diagramParticipants": ["Client", "Gateway", "Registry", "Session"],
+	"diagramSvgCount": 1,
+	"issues": [],
+	"libraryScripts": [
+		"https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/e3a92d2/runtime.js"
+	],
+	"pageOrigin": "http://127.0.0.1:4180"
+}

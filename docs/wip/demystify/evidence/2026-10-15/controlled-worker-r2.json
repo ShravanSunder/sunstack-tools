@@ -1,0 +1,19 @@
+{
+	"events": [
+		{
+			"kind": "constructed"
+		},
+		{
+			"kind": "ready",
+			"svgBytes": 0
+		},
+		{
+			"kind": "rendered",
+			"svgBytes": 4015
+		}
+	],
+	"nodes": 4,
+	"issues": null,
+	"scriptOrigin": "http://127.0.0.1:4194",
+	"pageOrigin": "http://127.0.0.1:4182"
+}
