@@ -159,6 +159,24 @@ pub fn response(output: &Output, exit: i32) -> Value {
     let wire =
         serde_json::from_slice(&output.stdout).expect("one complete JSON response is required");
     check_diagnostics(&wire);
+    if wire["kind"] == "operation_result" {
+        let outcome = wire["result"]["outcome"].clone();
+        match wire["result"]["operation"].as_str().unwrap() {
+            "prepare_evidence" => {
+                serde_json::from_value::<sunstack_evidence::EvidencePlanOutcome>(outcome).unwrap();
+            }
+            "run_judgments" => {
+                serde_json::from_value::<sunstack_decisions::DecisionRunOutcome>(outcome).unwrap();
+            }
+            "prepare_rules" => {
+                serde_json::from_value::<sunstack_rules::RulePreparationOutcome>(outcome).unwrap();
+            }
+            "evaluate_rules" => {
+                serde_json::from_value::<sunstack_rules::RuleInvocationOutcome>(outcome).unwrap();
+            }
+            other => panic!("unexpected operation {other}"),
+        }
+    }
     wire
 }
 fn check_diagnostics(value: &Value) {

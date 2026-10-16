@@ -8,8 +8,8 @@ fn semantic_group_keeps_frozen_text_and_refuses_whole_unit_overflow() {
     let discovery = discovery(unit.clone());
     let settings = ChunkSettings {
         grouping: ChunkGrouping::SingleGroup,
-        seed_content: UnitContent::WholeUnit,
-        related_content: UnitContent::WholeUnit,
+        seed_content: UnitContent::WholeUnit {},
+        related_content: UnitContent::WholeUnit {},
         max_chunk_bytes: 4096.try_into().unwrap(),
     };
     let groups = build_semantic_groups(&discovery, &settings, 0).unwrap();
@@ -51,8 +51,8 @@ fn group_readiness_preserves_cutoff_unresolved_and_minimum_failures() {
     let mut discovery = discovery(unit.clone());
     let settings = ChunkSettings {
         grouping: ChunkGrouping::SingleGroup,
-        seed_content: UnitContent::WholeUnit,
-        related_content: UnitContent::WholeUnit,
+        seed_content: UnitContent::WholeUnit {},
+        related_content: UnitContent::WholeUnit {},
         max_chunk_bytes: 4096.try_into().unwrap(),
     };
     assert!(

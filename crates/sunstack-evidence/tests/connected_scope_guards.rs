@@ -19,7 +19,7 @@ async fn public_connected_admission_refuses_duplicate_keys_and_canonical_roots()
         input_paths: vec![QueryPath::Glob {
             pattern: "*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let valid = plan(
         vec![first_binding.clone(), second_binding.clone()],
@@ -92,7 +92,7 @@ async fn public_package_discovery_keeps_unmapped_and_excluded_targets_unresolved
             key: RepositoryId::new("provider").unwrap(),
             root: provider.path().into(),
             input_paths: allowed,
-            change_scope: ChangeScope::Full,
+            change_scope: ChangeScope::Full {},
         };
         let mut input = plan(
             vec![

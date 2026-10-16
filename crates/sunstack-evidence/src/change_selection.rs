@@ -92,7 +92,7 @@ fn resolve_scope(
     members: &mut Vec<CapturedChangeMember>,
 ) -> EvidenceResult<()> {
     match scope {
-        ChangeScope::Full => {
+        ChangeScope::Full {} => {
             capture.capture_context()?;
             members.push(CapturedChangeMember {
                 scope_position: 0,
@@ -128,7 +128,7 @@ fn resolve_scope(
                         },
                     )
                 }
-                RevisionHead::Worktree => (
+                RevisionHead::Worktree {} => (
                     CaptureView::Worktree,
                     SourceRevision::Worktree {
                         snapshot: capture.snapshot.clone(),

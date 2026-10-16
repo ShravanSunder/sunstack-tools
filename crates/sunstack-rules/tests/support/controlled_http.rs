@@ -69,6 +69,11 @@ impl ControlledServer {
             task,
         }
     }
+    // Background responders wait until their owner ends the server lifetime.
+    // recv is cancellation-safe when selected against that owner's stop signal.
+    pub async fn receive(&mut self) -> PendingHttpRequest {
+        self.requests.recv().await.expect("server stopped")
+    }
     pub async fn next(&mut self) -> PendingHttpRequest {
         tokio::time::timeout(Duration::from_secs(3), self.requests.recv())
             .await

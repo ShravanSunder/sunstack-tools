@@ -119,6 +119,17 @@ async fn sigterm_after_causal_peer_admission_retains_its_verdict_receipt_and_que
     assert_eq!(report["measurements"]["files_read"], 2);
     assert_eq!(report["measurements"]["model_requests"], 2);
     assert_eq!(report["occurrences"][0]["kind"], "judged");
+    assert_eq!(report["change_selections"], json!([]));
+    assert_eq!(
+        report["occurrences"][0]["selected_by"],
+        json!(["full_scope"])
+    );
+    for occurrence in &report["occurrences"].as_array().unwrap()[1..] {
+        assert_eq!(
+            occurrence["selection"],
+            json!({"kind":"selected","selected_by":["full_scope"]})
+        );
+    }
     assert_eq!(report["occurrences"][1]["kind"], "cancelled");
     assert_eq!(report["occurrences"][2]["kind"], "not_started");
     assert_eq!(report["occurrences"][2]["reason"], "caller_cancelled");

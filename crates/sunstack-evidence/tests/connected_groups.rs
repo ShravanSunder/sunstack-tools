@@ -19,7 +19,7 @@ async fn public_native_per_seed_groups_attribute_shared_related_units_without_re
         input_paths: vec![QueryPath::Glob {
             pattern: "*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let mut input = plan(
         vec![binding],
@@ -53,8 +53,8 @@ async fn public_native_per_seed_groups_attribute_shared_related_units_without_re
             query,
             chunk_settings: ChunkSettings {
                 grouping: ChunkGrouping::PerSeed,
-                seed_content: UnitContent::WholeUnit,
-                related_content: UnitContent::WholeUnit,
+                seed_content: UnitContent::WholeUnit {},
+                related_content: UnitContent::WholeUnit {},
                 max_chunk_bytes: 10000.try_into().unwrap(),
             },
             minimum_related_units: 1,

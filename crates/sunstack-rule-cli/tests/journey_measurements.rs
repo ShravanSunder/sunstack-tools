@@ -92,6 +92,7 @@ async fn fixed_journey_measurements_preserve_scope_and_record_process_local_and_
     }
     let (requests, bodies) = server.finish().await;
     assert_eq!(rows.len(), 40);
+    assert_eq!(requests, 70);
     record_observation(
         "v14-controlled",
         json!({"rows":rows,"summaries":summaries,"total_http_requests":requests,"parsed_http_bodies":bodies,"claim":"descriptive measurements only; no SLA or inferred cold storage/model cache"}),

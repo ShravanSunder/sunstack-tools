@@ -136,7 +136,7 @@ async fn full_scope_is_not_change_tracked_and_capture_limits_refuse_instead_of_p
     fixture.stage("source.md");
     fixture.commit(1000);
     fixture.write("source.md", "U001: new\n");
-    let mut full = session(&fixture, ChangeScope::Full).await;
+    let mut full = session(&fixture, ChangeScope::Full {}).await;
     assert!(matches!(
         full.compare_change_sides(
             ChangeComparisonSubject::Input {
@@ -273,7 +273,7 @@ async fn unavailable_baseline_and_exhausted_history_cannot_prove_irrelevance() {
         &first,
         ChangeScope::RevisionDiff {
             base_revision: "missing-baseline".into(),
-            head: RevisionHead::Worktree,
+            head: RevisionHead::Worktree {},
         },
     )
     .await;

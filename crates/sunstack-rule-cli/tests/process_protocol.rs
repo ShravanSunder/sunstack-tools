@@ -39,6 +39,7 @@ async fn evidence_success_and_required_optional_refusals_use_real_selections_and
     assert_eq!(wire["kind"], "operation_result");
     assert_eq!(wire["result"]["operation"], "prepare_evidence");
     assert_eq!(wire["result"]["outcome"]["kind"], "prepared");
+    assert_eq!(wire["result"]["outcome"]["change_selections"], json!([]));
     assert_eq!(
         wire["result"]["outcome"]["selections"][0]["readiness"]["content"]["text"],
         "U001: SELECTED_PROCESS_SENTINEL"

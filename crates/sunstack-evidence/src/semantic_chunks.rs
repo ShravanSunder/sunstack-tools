@@ -101,7 +101,7 @@ fn build_group(
             &settings.related_content
         };
         let requested = match membership {
-            UnitContent::WholeUnit => selected.text.len(),
+            UnitContent::WholeUnit {} => selected.text.len(),
             UnitContent::BoundedExcerpt { max_bytes } => selected.text.len().min(max_bytes.get()),
         };
         let mut end = requested;

@@ -14,7 +14,7 @@ async fn full_context_reads_plain_directory_without_git_and_preserves_every_sour
         input_paths: vec![QueryPath::Glob {
             pattern: "*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let capture = capture_repository_context(
         ChangeCaptureRequest {

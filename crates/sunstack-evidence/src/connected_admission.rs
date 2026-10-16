@@ -8,14 +8,14 @@ pub(crate) fn admit_connected_plan(input: &EvidencePlanInput) -> EvidenceResult<
     for source in input.sources.values() {
         if let SourceSpec::ChangeSet { repository } = source {
             repository_binding(input, repository)?;
-            if matches!(input.discovery, EvidenceDiscovery::None) {
+            if matches!(input.discovery, EvidenceDiscovery::None {}) {
                 return Err(EvidenceCode::DiscoveryNotEnabled.into());
             }
         }
     }
     for query in &input.native_queries {
         if let EvidenceSelector::RelatedUnits { query, .. } = &query.selector {
-            if matches!(input.discovery, EvidenceDiscovery::None) {
+            if matches!(input.discovery, EvidenceDiscovery::None {}) {
                 return Err(EvidenceCode::DiscoveryNotEnabled.into());
             }
             if !nonempty_unique(&query.repository_ids)

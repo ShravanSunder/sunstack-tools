@@ -65,7 +65,7 @@ async fn reviewed_skill_and_handoff_journeys_prepare_without_dispatch_then_judge
         "controlled-journey-http",
         json!({"requests":count,"parsed_bodies":bodies}),
     );
-    assert!(count >= 2);
+    assert_eq!(count, 2);
 }
 
 #[tokio::test]
@@ -155,5 +155,5 @@ async fn declared_question_budget_comparators_preserve_all_journey_owners_before
             );
         }
     }
-    server.finish().await;
+    assert_eq!(server.finish().await.0, 7);
 }

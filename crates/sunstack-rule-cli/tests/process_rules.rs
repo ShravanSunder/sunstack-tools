@@ -25,6 +25,14 @@ async fn prepare_rules_is_a_real_operation_with_prepared_native_evidence_and_no_
         wire["result"]["outcome"]["preparation"]["planned_requests"][0]["readiness"]["kind"],
         "prepared"
     );
+    assert_eq!(
+        wire["result"]["outcome"]["preparation"]["change_selections"],
+        json!([])
+    );
+    assert_eq!(
+        wire["result"]["outcome"]["preparation"]["occurrences"][0]["status"],
+        json!({"kind":"planned","selection":{"kind":"selected","selected_by":["full_scope"]}})
+    );
     assert_eq!(count, 0);
 }
 
@@ -61,6 +69,14 @@ async fn prepared_rule_requests_do_not_dispatch_and_completed_block_failures_exi
     );
     let evaluated = response(&run(root.path(), "evaluate_rules", input).await, 0);
     assert_eq!(evaluated["result"]["outcome"]["kind"], "complete_report");
+    assert_eq!(
+        evaluated["result"]["outcome"]["report"]["change_selections"],
+        json!([])
+    );
+    assert_eq!(
+        evaluated["result"]["outcome"]["report"]["occurrences"][0]["selected_by"],
+        json!(["full_scope"])
+    );
     let judgment = &evaluated["result"]["outcome"]["report"]["occurrences"][0]["judgment"];
     assert_eq!(judgment["declared_severity"], "block");
     assert_eq!(
@@ -121,6 +137,14 @@ async fn evaluation_provider_failures_and_invalid_answers_never_create_verdicts(
         assert_eq!(wire["result"]["outcome"]["kind"], "incomplete_report");
         let occurrence = &wire["result"]["outcome"]["report"]["occurrences"][0];
         assert_eq!(occurrence["kind"], "evaluation_failed");
+        assert_eq!(
+            occurrence["selection"],
+            json!({"kind":"selected","selected_by":["full_scope"]})
+        );
+        assert_eq!(
+            wire["result"]["outcome"]["report"]["change_selections"],
+            json!([])
+        );
         assert!(occurrence.get("judgment").is_none());
     }
 }

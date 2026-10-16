@@ -12,7 +12,7 @@ async fn real_markdown_paragraph_and_ast_ranges() {
         input_paths: vec![QueryPath::Glob {
             pattern: "**".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let doc = capture_document(
         binding.clone(),
@@ -68,7 +68,7 @@ async fn duplicate_deleted_literal_and_regex_targets_use_frozen_source_ranges() 
         input_paths: vec![QueryPath::Exact {
             path: "skill.md".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let before = capture_document(
         binding.clone(),
@@ -131,7 +131,7 @@ async fn assert_paragraph_case(markdown: &str, target_id: &str, expected: Option
         input_paths: vec![QueryPath::Exact {
             path: "paragraph.md".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let document = capture_document(
         binding,

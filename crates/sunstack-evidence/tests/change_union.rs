@@ -19,7 +19,7 @@ async fn full_union_member_is_context_and_never_fabricates_changed_units() {
     );
     let scope = ChangeScope::Union {
         members: vec![
-            ChangeScope::Full,
+            ChangeScope::Full {},
             ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged],
             },
@@ -47,7 +47,7 @@ async fn full_union_member_is_context_and_never_fabricates_changed_units() {
     assert_eq!(units.len(), 1);
     assert_eq!(units[0].text, "function changed() { newer(); }");
     let full_only = ChangeScope::Union {
-        members: vec![ChangeScope::Full],
+        members: vec![ChangeScope::Full {}],
     };
     assert_eq!(
         capture_change_selection(

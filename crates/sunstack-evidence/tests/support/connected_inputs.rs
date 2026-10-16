@@ -11,8 +11,8 @@ pub fn related(direction: RelationDirection) -> EvidenceSelection {
         requested_hops: 1.try_into().unwrap(),
         chunk_settings: ChunkSettings {
             grouping: ChunkGrouping::SingleGroup,
-            seed_content: UnitContent::WholeUnit,
-            related_content: UnitContent::WholeUnit,
+            seed_content: UnitContent::WholeUnit {},
+            related_content: UnitContent::WholeUnit {},
             max_chunk_bytes: 10000.try_into().unwrap(),
         },
         minimum_related_units: 1,

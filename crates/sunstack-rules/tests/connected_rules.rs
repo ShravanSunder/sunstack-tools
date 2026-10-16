@@ -62,7 +62,7 @@ impl ConnectedFixture {
                 input_paths: vec![QueryPath::Glob {
                     pattern: "*.ts".into()
                 }],
-                change_scope: ChangeScope::Full
+                change_scope: ChangeScope::Full {}
             }
         ]);
         value["discovery"] = serde_json::to_value(changes::discovery()).unwrap();
@@ -175,7 +175,7 @@ async fn missing_mapping_and_disabled_discovery_are_distinct_without_inference()
         let server = controlled::ControlledServer::start().await;
         let mut input = fixture.input(&server.endpoint, false);
         if !enabled {
-            input.discovery = EvidenceDiscovery::None;
+            input.discovery = EvidenceDiscovery::None {};
         }
         let outcome = evaluate_rules(input, context(&server.endpoint)).await;
         if enabled {

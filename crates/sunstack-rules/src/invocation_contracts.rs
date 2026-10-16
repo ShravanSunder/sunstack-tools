@@ -207,5 +207,5 @@ impl InvocationOrigin {
 }
 
 fn no_discovery() -> sunstack_evidence::EvidenceDiscovery {
-    sunstack_evidence::EvidenceDiscovery::None
+    sunstack_evidence::EvidenceDiscovery::None {}
 }

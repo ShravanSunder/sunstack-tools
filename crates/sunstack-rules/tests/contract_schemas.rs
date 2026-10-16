@@ -248,3 +248,265 @@ async fn reviewed_invocations_pass_native_cross_file_admission_and_real_evidence
         assert_eq!(server.finish().await, 0);
     }
 }
+
+fn milestone_two_invocation() -> Value {
+    let mut input: Value = serde_json::from_str(include_str!(
+        "../../../docs/specs/2026-10-12-rust-rule-engine/examples/skill-lint.invocation.json"
+    ))
+    .unwrap();
+    input["discovery"] = json!({"kind":"bounded","limits":{"max_files":100,"max_file_bytes":100000,"max_total_bytes":1000000,"max_matches":1000,"include_ignored":false,"max_unit_visits":1000,"max_relationship_candidates":1000,"max_fan_out":100,"max_history_commits":100,"max_local_time_ms":10000}});
+    input
+}
+async fn native_evidence_admits_invocation_fields(value: &Value) -> bool {
+    let Ok(mut input) = serde_json::from_value::<RuleInvocationInput>(value.clone()) else {
+        return false;
+    };
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    for (position, binding) in input.repositories.iter_mut().enumerate() {
+        binding.root = if position == 0 {
+            first.path().into()
+        } else {
+            second.path().into()
+        };
+    }
+    let evidence = sunstack_evidence::EvidencePlanInput {
+        repositories: input.repositories,
+        sources: BTreeMap::new(),
+        payload_schemas: vec![],
+        cursors: vec![],
+        declarations: vec![],
+        native_queries: vec![],
+        package_bindings: input.package_bindings,
+        limits: input.limits,
+        discovery: input.discovery,
+    };
+    // Admission is real; no selection resolves revisions or reads source content.
+    sunstack_evidence::EvidenceSession::open(
+        evidence,
+        sunstack_evidence::AdapterRegistry::builtins().unwrap(),
+        sunstack_decisions::CancellationToken::new(),
+    )
+    .await
+    .is_ok()
+}
+fn native_scope_shape(value: &Value) -> (bool, bool) {
+    match serde_json::from_value::<RuleInvocationInput>(value.clone()) {
+        Ok(input) => (
+            true,
+            input
+                .repositories
+                .iter()
+                .all(|repository| repository.change_scope.validate().is_ok()),
+        ),
+        Err(_) => (false, false),
+    }
+}
+#[tokio::test]
+async fn milestone_two_scope_variants_agree_across_reviewed_generated_and_native_admission() {
+    let reviewed = reviewed("rule-invocation.schema.json");
+    let generated = generated::<RuleInvocationInput>();
+    let object_id = "a".repeat(40);
+    let long_id = "B".repeat(64);
+    let absolute = json!({"kind":"absolute","since_utc":"2026-10-01T00:00:00Z","until_utc":"2026-10-16T00:00:00Z"});
+    let scopes = vec![
+        json!({"kind":"full"}),
+        json!({"kind":"uncommitted","layers":["staged","unstaged","untracked"]}),
+        json!({"kind":"revision_diff","base_revision":"HEAD~1","head":{"kind":"worktree"}}),
+        json!({"kind":"revision_diff","base_revision":"HEAD~1","head":{"kind":"commit","revision":"HEAD"}}),
+        json!({"kind":"commit_set","commit_ids":[object_id],"parent_policy":"first_parent"}),
+        json!({"kind":"commit_set","commit_ids":[long_id],"parent_policy":"each_parent"}),
+        json!({"kind":"recent_commits","reference":"HEAD","window":{"kind":"lookback","seconds":3600},"parent_policy":"first_parent"}),
+        json!({"kind":"recent_commits","reference":"HEAD","window":absolute,"parent_policy":"each_parent"}),
+        json!({"kind":"recent_uncommitted","layers":["unstaged"],"window":{"kind":"lookback","seconds":3600},"unknown_recency":"include_with_diagnostic"}),
+        json!({"kind":"recent_uncommitted","layers":["untracked"],"window":absolute,"unknown_recency":"exclude_with_omission"}),
+        json!({"kind":"union","members":[{"kind":"uncommitted","layers":["staged"]},{"kind":"revision_diff","base_revision":"HEAD","head":{"kind":"worktree"}}]}),
+    ];
+    for scope in scopes {
+        let mut input = milestone_two_invocation();
+        input["repositories"][0]["change_scope"] = scope.clone();
+        assert!(reviewed.is_valid(&input), "reviewed {scope}");
+        assert!(generated.is_valid(&input), "generated {scope}");
+        assert_eq!(native_scope_shape(&input), (true, true), "native {scope}");
+        assert!(
+            native_evidence_admits_invocation_fields(&input).await,
+            "admission {scope}"
+        );
+    }
+    for discovery in [
+        None,
+        Some(json!({"kind":"none"})),
+        Some(milestone_two_invocation()["discovery"].clone()),
+    ] {
+        let mut input = milestone_two_invocation();
+        if let Some(discovery) = discovery {
+            input["discovery"] = discovery;
+        } else {
+            input.as_object_mut().unwrap().remove("discovery");
+        }
+        input.as_object_mut().unwrap().remove("package_bindings");
+        assert!(reviewed.is_valid(&input));
+        assert!(generated.is_valid(&input));
+        assert_eq!(native_scope_shape(&input), (true, true));
+        assert!(native_evidence_admits_invocation_fields(&input).await);
+    }
+}
+#[tokio::test]
+async fn scope_refusal_matrix_keeps_shape_validation_separate_from_native_semantics() {
+    let reviewed = reviewed("rule-invocation.schema.json");
+    let generated = generated::<RuleInvocationInput>();
+    // Each tuple records reviewed, generated, native deserialize, scope validate, actual admission.
+    let cases = vec![
+        (
+            json!({"kind":"union","members":[{"kind":"union","members":[{"kind":"full"}]}]}),
+            (false, true, true, false, false),
+        ),
+        (
+            json!({"kind":"union","members":[]}),
+            (false, true, true, false, false),
+        ),
+        (
+            json!({"kind":"uncommitted","layers":[]}),
+            (false, true, true, false, false),
+        ),
+        (
+            json!({"kind":"uncommitted","layers":["staged","staged"]}),
+            (false, true, true, false, false),
+        ),
+        (
+            json!({"kind":"revision_diff","base_revision":"  ","head":{"kind":"worktree"}}),
+            (false, true, true, false, false),
+        ),
+        (
+            json!({"kind":"commit_set","commit_ids":["bad-id"],"parent_policy":"first_parent"}),
+            (false, true, false, false, false),
+        ),
+        (
+            json!({"kind":"recent_commits","reference":"HEAD","window":{"kind":"lookback","seconds":0},"parent_policy":"first_parent"}),
+            (false, false, false, false, false),
+        ),
+        (
+            json!({"kind":"recent_commits","reference":"HEAD","window":{"kind":"absolute","since_utc":"2026-10-16T00:00:00Z","until_utc":"2026-10-01T00:00:00Z"},"parent_policy":"first_parent"}),
+            (true, true, true, false, false),
+        ),
+        (
+            json!({"kind":"recent_uncommitted","layers":["unstaged"],"window":{"kind":"lookback","seconds":1}}),
+            (false, false, false, false, false),
+        ),
+    ];
+    for (scope, expected) in cases {
+        let mut input = milestone_two_invocation();
+        input["repositories"][0]["change_scope"] = scope.clone();
+        let (deserialize, validate) = native_scope_shape(&input);
+        let actual = (
+            reviewed.is_valid(&input),
+            generated.is_valid(&input),
+            deserialize,
+            validate,
+            native_evidence_admits_invocation_fields(&input).await,
+        );
+        assert_eq!(actual, expected, "layer matrix for {scope}");
+    }
+    let mut missing_limits = milestone_two_invocation();
+    missing_limits["discovery"] = json!({"kind":"bounded"});
+    assert!(!reviewed.is_valid(&missing_limits));
+    assert!(!generated.is_valid(&missing_limits));
+    assert_eq!(native_scope_shape(&missing_limits), (false, false));
+    assert!(!native_evidence_admits_invocation_fields(&missing_limits).await);
+}
+#[tokio::test]
+async fn closed_empty_scope_head_and_discovery_variants_refuse_extra_fields_at_every_boundary() {
+    let reviewed = reviewed("rule-invocation.schema.json");
+    let generated = generated::<RuleInvocationInput>();
+    let mut cases = vec![];
+    let mut full = milestone_two_invocation();
+    full["repositories"][0]["change_scope"] = json!({"kind":"full","extra_field":true});
+    cases.push(("full", full));
+    let mut head = milestone_two_invocation();
+    head["repositories"][0]["change_scope"] = json!({"kind":"revision_diff","base_revision":"HEAD","head":{"kind":"worktree","extra_field":true}});
+    cases.push(("worktree", head));
+    let mut none = milestone_two_invocation();
+    none["discovery"] = json!({"kind":"none","extra_field":true});
+    cases.push(("none", none));
+    let mut disagreements = vec![];
+    for (label, input) in cases {
+        let (deserialize, validate) = native_scope_shape(&input);
+        let actual = (
+            reviewed.is_valid(&input),
+            generated.is_valid(&input),
+            deserialize,
+            validate,
+            native_evidence_admits_invocation_fields(&input).await,
+        );
+        if actual != (false, false, false, false, false) {
+            disagreements.push(format!(
+                "{label}: reviewed/generated/deserialize/scope/admission={actual:?}"
+            ));
+        }
+    }
+    assert!(disagreements.is_empty(), "{}", disagreements.join("; "));
+}
+#[tokio::test]
+async fn package_binding_schema_agrees_with_real_native_evidence_admission_including_root_prefix() {
+    let reviewed = reviewed("rule-invocation.schema.json");
+    let generated = generated::<RuleInvocationInput>();
+    let baseline = json!({"importing_repository_id":"caller","module_prefix":"@library/","target_repository_id":"library","target_path_prefix":"src","language":"typescript"});
+    let mut cases = vec![(baseline.clone(), true)];
+    for language in ["rust", "typescript", "tsx"] {
+        let mut root = baseline.clone();
+        root["target_path_prefix"] = json!("");
+        root["language"] = json!(language);
+        cases.push((root, true));
+    }
+    for (field, value) in [
+        ("target_path_prefix", json!("/absolute")),
+        ("target_path_prefix", json!("../escape")),
+        ("target_path_prefix", json!("src/../escape")),
+        ("module_prefix", json!(" \t")),
+        ("language", json!("python")),
+    ] {
+        let mut invalid = baseline.clone();
+        invalid[field] = value;
+        cases.push((invalid, false));
+    }
+    let mut missing = baseline.clone();
+    missing
+        .as_object_mut()
+        .unwrap()
+        .remove("target_path_prefix");
+    cases.push((missing, false));
+    let mut extra = baseline;
+    extra["extra_field"] = json!(true);
+    cases.push((extra, false));
+    for (binding, expected) in cases {
+        let mut input = milestone_two_invocation();
+        input["repositories"] = json!([{"key":"caller","root":".","input_paths":[{"kind":"glob","pattern":"**"}],"change_scope":{"kind":"full"}},{"key":"library","root":".","input_paths":[{"kind":"glob","pattern":"**"}],"change_scope":{"kind":"full"}}]);
+        input["package_bindings"] = json!([binding]);
+        assert_eq!(
+            reviewed.is_valid(&input),
+            expected,
+            "reviewed {}",
+            input["package_bindings"]
+        );
+        let actual = native_evidence_admits_invocation_fields(&input).await;
+        assert_eq!(
+            actual, expected,
+            "actual native evidence admission {}",
+            input["package_bindings"]
+        );
+        if expected {
+            assert!(generated.is_valid(&input));
+        }
+    }
+}
+
+#[test]
+fn milestone_two_whole_unit_input_refuses_extra_fields_without_changing_minimal_wire_shape() {
+    let generated = generated::<sunstack_evidence::UnitContent>();
+    let valid = json!({"kind":"whole_unit"});
+    let invalid = json!({"kind":"whole_unit","extra_field":true});
+    assert!(generated.is_valid(&valid));
+    assert!(serde_json::from_value::<sunstack_evidence::UnitContent>(valid).is_ok());
+    assert!(!generated.is_valid(&invalid));
+    assert!(serde_json::from_value::<sunstack_evidence::UnitContent>(invalid).is_err());
+}

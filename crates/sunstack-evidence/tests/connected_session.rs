@@ -176,7 +176,7 @@ async fn unused_non_git_change_scope_is_lazy_and_the_used_scope_is_reported_once
         }],
         change_scope: ChangeScope::RevisionDiff {
             base_revision: "missing-baseline".into(),
-            head: RevisionHead::Worktree,
+            head: RevisionHead::Worktree {},
         },
     });
     input.sources.insert(

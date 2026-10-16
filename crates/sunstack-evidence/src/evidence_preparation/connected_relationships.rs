@@ -245,7 +245,7 @@ fn unavailable_context(
     CapturedChangeSelection {
         repository,
         anchor_utc,
-        scope: ChangeScope::Full,
+        scope: ChangeScope::Full {},
         snapshot,
         members: vec![],
         coverage: DiscoveryCoverage::Unavailable {

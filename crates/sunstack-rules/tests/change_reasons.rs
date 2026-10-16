@@ -80,7 +80,7 @@ async fn unknown_before_sides_conservatively_select_and_judge_the_current_side()
         } else {
             input.repositories[0].change_scope = ChangeScope::RevisionDiff {
                 base_revision: "missing-baseline".into(),
-                head: RevisionHead::Worktree,
+                head: RevisionHead::Worktree {},
             };
         }
         let prepared = prepare_rules(input.clone(), context(&server.endpoint)).await;

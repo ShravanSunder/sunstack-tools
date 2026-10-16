@@ -86,7 +86,7 @@ async fn native_selector_seeds_work_on_full_plain_root_and_changed_seeds_refuse(
                 input_paths: vec![QueryPath::Glob {
                     pattern: "*.ts".into(),
                 }],
-                change_scope: ChangeScope::Full,
+                change_scope: ChangeScope::Full {},
             },
             limits: discovery_limits(),
             anchor_utc: chrono::Utc::now(),

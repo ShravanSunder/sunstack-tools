@@ -118,7 +118,7 @@ async fn real_root_commit_has_only_after_side_and_full_scope_has_no_changed_seed
     assert_eq!(
         capture_change_selection(
             ChangeCaptureRequest {
-                binding: fixture.binding(ChangeScope::Full),
+                binding: fixture.binding(ChangeScope::Full {}),
                 limits: discovery_limits(),
                 anchor_utc: anchor()
             },

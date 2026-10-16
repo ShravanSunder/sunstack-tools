@@ -173,7 +173,7 @@ fn native_plan(root: &std::path::Path, needles: &[&str]) -> EvidencePlanInput {
         input_paths: vec![QueryPath::Glob {
             pattern: "*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let mut input = plan(
         vec![binding],
@@ -209,8 +209,8 @@ fn native_plan(root: &std::path::Path, needles: &[&str]) -> EvidencePlanInput {
                 },
                 chunk_settings: ChunkSettings {
                     grouping: ChunkGrouping::SingleGroup,
-                    seed_content: UnitContent::WholeUnit,
-                    related_content: UnitContent::WholeUnit,
+                    seed_content: UnitContent::WholeUnit {},
+                    related_content: UnitContent::WholeUnit {},
                     max_chunk_bytes: 10000.try_into().unwrap(),
                 },
                 minimum_related_units: 1,

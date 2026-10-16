@@ -75,7 +75,7 @@ pub struct DiscoveryLimits {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceDiscovery {
-    None,
+    None {},
     Bounded { limits: DiscoveryLimits },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

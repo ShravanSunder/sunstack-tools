@@ -178,7 +178,7 @@ fn resolved_bounds(
     anchor: DateTime<Utc>,
 ) -> EvidenceResult<ResolvedChangeBounds> {
     Ok(match scope {
-        ChangeScope::Full => ResolvedChangeBounds::Full,
+        ChangeScope::Full {} => ResolvedChangeBounds::Full,
         ChangeScope::Uncommitted { layers } => ResolvedChangeBounds::Uncommitted {
             layers: layers.clone(),
         },

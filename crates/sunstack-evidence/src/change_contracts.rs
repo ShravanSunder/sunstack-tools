@@ -48,12 +48,12 @@ pub struct ResolvedTimeWindow {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RevisionHead {
     Commit { revision: String },
-    Worktree,
+    Worktree {},
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ChangeScope {
-    Full,
+    Full {},
     Uncommitted {
         layers: Vec<DirtyLayer>,
     },
@@ -82,14 +82,14 @@ pub enum ChangeScope {
 impl ChangeScope {
     pub fn has_change_selection(&self) -> bool {
         match self {
-            Self::Full => false,
+            Self::Full {} => false,
             Self::Union { members } => members.iter().any(Self::has_change_selection),
             _ => true,
         }
     }
     pub fn includes_full_scope(&self) -> bool {
         match self {
-            Self::Full => true,
+            Self::Full {} => true,
             Self::Union { members } => members.iter().any(Self::includes_full_scope),
             _ => false,
         }
@@ -105,7 +105,7 @@ impl ChangeScope {
             return Err(EvidenceCode::InvalidRepositoryBinding.into());
         }
         match self {
-            Self::Full => Ok(()),
+            Self::Full {} => Ok(()),
             Self::Uncommitted { layers } | Self::RecentUncommitted { layers, .. } => {
                 if layers.is_empty()
                     || layers

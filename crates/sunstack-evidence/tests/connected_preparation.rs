@@ -27,7 +27,7 @@ async fn public_prepare_connects_changed_library_to_unchanged_full_scope_caller(
         input_paths: vec![QueryPath::Glob {
             pattern: "**/*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let mut input = plan(
         vec![library_binding, caller_binding],
@@ -107,7 +107,7 @@ async fn public_full_scope_changed_units_refuses_instead_of_fabricating_seeds() 
     let fixture = GitFixture::new();
     fixture.write("source.ts", "function unchanged() {}");
     let input = plan(
-        vec![fixture.binding(ChangeScope::Full)],
+        vec![fixture.binding(ChangeScope::Full {})],
         EvidenceSelection::ChangedUnits {
             languages: vec![SourceLanguage::Typescript],
             unit_kinds: vec![UnitKindFilter::Function],
@@ -149,7 +149,7 @@ async fn public_deleted_before_unit_can_locate_a_current_full_scope_cross_reposi
         input_paths: vec![QueryPath::Glob {
             pattern: "*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let mut selection = related(RelationDirection::Callers);
     if let EvidenceSelection::RelatedUnits { source_sides, .. } = &mut selection {
@@ -249,7 +249,7 @@ async fn public_source_failure_after_admission_keeps_successful_repository_attri
         input_paths: vec![QueryPath::Glob {
             pattern: "*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     let mut input = plan(
         vec![library_binding, caller_binding],

@@ -13,7 +13,7 @@ fn input(root: &Path) -> EvidencePlanInput {
             input_paths: vec![QueryPath::Glob {
                 pattern: "**".into(),
             }],
-            change_scope: ChangeScope::Full,
+            change_scope: ChangeScope::Full {},
         }],
         sources: BTreeMap::from([(
             SourceName::new("skill").unwrap(),
@@ -40,7 +40,7 @@ fn input(root: &Path) -> EvidencePlanInput {
             max_transcript_bytes: positive(10000),
             include_ignored: false,
         },
-        discovery: EvidenceDiscovery::None,
+        discovery: EvidenceDiscovery::None {},
     }
 }
 fn declaration(id: &str, select: EvidenceSelection) -> EvidenceDeclaration {

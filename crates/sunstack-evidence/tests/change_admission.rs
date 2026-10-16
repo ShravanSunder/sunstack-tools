@@ -59,7 +59,7 @@ async fn duplicate_connected_query_fields_are_rejected_at_admission() {
             }
         }
         let input = plan(
-            vec![fixture.binding(ChangeScope::Full)],
+            vec![fixture.binding(ChangeScope::Full {})],
             selection,
             EvidenceRequirement::Required,
         );
@@ -94,7 +94,7 @@ async fn native_connected_query_unique_fields_are_validated_before_capture() {
         let values = value.pointer_mut(pointer).unwrap().as_array_mut().unwrap();
         values.push(values[0].clone());
         let mut input = plan(
-            vec![fixture.binding(ChangeScope::Full)],
+            vec![fixture.binding(ChangeScope::Full {})],
             related(RelationDirection::Callees),
             EvidenceRequirement::Required,
         );
@@ -105,8 +105,8 @@ async fn native_connected_query_unique_fields_are_validated_before_capture() {
                 query: serde_json::from_value(value).unwrap(),
                 chunk_settings: ChunkSettings {
                     grouping: ChunkGrouping::PerSeed,
-                    seed_content: UnitContent::WholeUnit,
-                    related_content: UnitContent::WholeUnit,
+                    seed_content: UnitContent::WholeUnit {},
+                    related_content: UnitContent::WholeUnit {},
                     max_chunk_bytes: 1000.try_into().unwrap(),
                 },
                 minimum_related_units: 0,
@@ -129,11 +129,11 @@ async fn native_connected_query_unique_fields_are_validated_before_capture() {
 async fn disabled_discovery_has_its_own_closed_admission_code() {
     let fixture = GitFixture::new();
     let mut input = plan(
-        vec![fixture.binding(ChangeScope::Full)],
+        vec![fixture.binding(ChangeScope::Full {})],
         related(RelationDirection::Callees),
         EvidenceRequirement::Required,
     );
-    input.discovery = EvidenceDiscovery::None;
+    input.discovery = EvidenceDiscovery::None {};
     let mut native = input.clone();
     native.sources.clear();
     native.declarations.clear();
@@ -144,7 +144,7 @@ async fn disabled_discovery_has_its_own_closed_admission_code() {
                 "source_units": {"seeds": {"kind": "changed_units", "repository_ids": ["fixture"]}, "languages": ["typescript"], "unit_kinds": ["function"], "source_sides": "after_only"},
                 "repository_ids": ["fixture"], "directions": ["callees"], "requested_hops": 1
             })).unwrap(),
-            chunk_settings: ChunkSettings { grouping: ChunkGrouping::SingleGroup, seed_content: UnitContent::WholeUnit, related_content: UnitContent::WholeUnit, max_chunk_bytes: 1000.try_into().unwrap() },
+            chunk_settings: ChunkSettings { grouping: ChunkGrouping::SingleGroup, seed_content: UnitContent::WholeUnit {}, related_content: UnitContent::WholeUnit {}, max_chunk_bytes: 1000.try_into().unwrap() },
             minimum_related_units: 0,
         },
     });

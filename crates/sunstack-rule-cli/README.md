@@ -21,6 +21,29 @@ and await its settlement before publishing the terminal response. The static
 `sunstack-rule: ready` stderr line witnesses signal registration, and
 `sunstack-rule: cancellation observed` witnesses signal consumption.
 
+Milestone 2 uses the same four operations and protocol version. Native inputs
+accept non-Full `change_scope` values (dirty layers, revision ranges, commit lists,
+time windows and unions), bounded discovery, ChangeSet sources and explicit
+package bindings. A relative repository root resolves from this process's CWD.
+For example, select current unstaged changes on a repository binding with:
+
+```json
+{"change_scope":{"kind":"uncommitted","layers":["unstaged"]}}
+```
+
+This is a binding fragment, not a complete invocation. ChangeSet selectors need
+`discovery.kind = "bounded"` with native discovery limits. A package binding's
+empty `target_path_prefix` maps to the target repository root. Use the reviewed
+[invocation schema](../../docs/specs/2026-10-12-rust-rule-engine/schemas/rule-invocation.schema.json)
+for complete inputs.
+
+Preparation and reports expose native `change_selections`; Full-only work has
+an empty list. Rule occurrences retain selection reasons such as
+`target_changed` or `full_scope`, pending comparisons, and outside-scope results.
+Preparing rules sends no model request. A waiting gate leaves target comparison
+pending; evaluation resolves it only when the native gate permits the work.
+The CLI forwards these native outcomes and uses the same exit meanings above.
+
 The Jev backend reads `OPENROUTER_API_KEY` from the process environment, never
 stdin. Rule preparation uses the selected backend for encoding and accounting
 and therefore requires valid backend configuration; it sends no provider
@@ -43,6 +66,7 @@ paid observations; preserve failures and obtain a new campaign decision rather
 than repeating until favorable. The ignored `hosted_request_diagnosis` is an
 offline encoder observation for a preserved failed invocation, with no dispatch.
 
-See [phase 2 proof](tests/PHASE2-PROOF.md) for the observed gates, measurements,
+See [milestone 2 proof](tests/MILESTONE2-PROOF.md) for change-scoped and connected
+process coverage and its proof limits. See [phase 2 proof](tests/PHASE2-PROOF.md) for the observed gates, measurements,
 fixture provenance, failed campaign and proof limits. [Phase 1 proof](tests/PHASE1-PROOF.md)
 is a historical account of the earlier two-operation target.

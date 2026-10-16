@@ -1825,6 +1825,7 @@ dependencies = [
 name = "sunstack-rule-cli"
 version = "0.1.0"
 dependencies = [
+ "git2",
  "rustix",
  "serde",
  "serde_json",

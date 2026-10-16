@@ -135,11 +135,13 @@ pub fn coverage(report: &Value) -> Value {
     }
     let occurrences: Vec<Value> = report["occurrences"].as_array().unwrap().iter().map(|occurrence| {
         assert_eq!(occurrence["kind"], "judged");
-        json!({"key":occurrence["key"],"target":occurrence["judgment"]["target"],"severity":occurrence["judgment"]["declared_severity"],"value":occurrence["judgment"]["verdict"]["value"],"result":occurrence["judgment"]["verdict"]["result"]})
+        assert_eq!(occurrence["selected_by"],json!(["full_scope"]));
+        json!({"key":occurrence["key"],"selected_by":occurrence["selected_by"],"target":occurrence["judgment"]["target"],"severity":occurrence["judgment"]["declared_severity"],"value":occurrence["judgment"]["verdict"]["value"],"result":occurrence["judgment"]["verdict"]["result"]})
     }).collect();
     json!({"occurrences":occurrences,"question_owners":questions})
 }
 pub fn check_journey(report: &Value, handoff: bool) {
+    assert_eq!(report["change_selections"], json!([]));
     let expected = if handoff {
         vec![
             "reviewer.read-required-sources",

@@ -17,6 +17,7 @@ serde_json = { version = "1", features = ["raw_value"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util", "signal", "time"] }
 
 [dev-dependencies]
+git2 = { version = "=0.21.0", default-features = false }
 tempfile = "3"
 rustix = { version = "1", features = ["fs"] }
 tokio = { version = "1", features = ["process", "net", "sync"] }

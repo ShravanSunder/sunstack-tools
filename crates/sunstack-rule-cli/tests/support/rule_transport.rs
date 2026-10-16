@@ -93,7 +93,7 @@ impl AnswerServer {
         let task = tokio::spawn(async move {
             let mut bodies = Vec::new();
             loop {
-                let request = tokio::select! {biased; _ = &mut stopped => break, request = server.next() => request};
+                let request = tokio::select! {biased; _ = &mut stopped => break, request = server.receive() => request};
                 bodies.push(request.body.clone());
                 counter.fetch_add(1, Ordering::SeqCst);
                 match mode {

@@ -72,8 +72,8 @@ async fn real_graph_limits_preserve_frontier_and_semantic_partial_group() {
         );
         let settings = ChunkSettings {
             grouping: ChunkGrouping::SingleGroup,
-            seed_content: UnitContent::WholeUnit,
-            related_content: UnitContent::WholeUnit,
+            seed_content: UnitContent::WholeUnit {},
+            related_content: UnitContent::WholeUnit {},
             max_chunk_bytes: 10000.try_into().unwrap(),
         };
         assert!(matches!(
@@ -99,7 +99,7 @@ async fn real_file_bytes_total_bytes_and_time_have_distinct_cutoffs() {
         input_paths: vec![QueryPath::Glob {
             pattern: "*.ts".into(),
         }],
-        change_scope: ChangeScope::Full,
+        change_scope: ChangeScope::Full {},
     };
     for expected in [
         DiscoveryLimit::FileBytes,
