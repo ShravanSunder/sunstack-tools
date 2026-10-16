@@ -13,6 +13,7 @@ pub fn selection(endpoint: &str) -> BackendSelection {
     BackendSelection::JevOpenrouter {
         endpoint: endpoint.into(),
         model: ModelName::new("jev-latest").unwrap(),
+        context_ceiling_tokens: None,
     }
 }
 pub fn mixed_input(endpoint: &str) -> RunJudgmentsInput {
@@ -33,14 +34,7 @@ pub fn budget() -> RequestBudgetSettings {
     }
 }
 pub fn backend(endpoint: &str) -> JevOpenRouterBackend {
-    JevOpenRouterBackend::new(
-        selection(endpoint),
-        "SENTINEL_CREDENTIAL_987",
-        JevAccountingProfile::EstimatedBytes {
-            context_ceiling_tokens: 262_144,
-        },
-    )
-    .unwrap()
+    JevOpenRouterBackend::new(selection(endpoint), "SENTINEL_CREDENTIAL_987").unwrap()
 }
 pub fn response() -> Value {
     json!({"model":"typesafe/observed-model","answers":{

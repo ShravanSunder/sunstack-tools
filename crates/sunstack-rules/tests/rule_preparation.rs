@@ -146,16 +146,11 @@ async fn preparation_reports_evidence_budget_and_accounting_failures_without_dis
         if failure == "budget" {
             input.request_budget.max_request_bytes = 1;
         }
-        let backend = if failure == "unverifiable" {
-            sunstack_decisions::JevOpenRouterBackend::new(
-                transport::selection(&server.endpoint),
-                "controlled-key",
-                sunstack_decisions::JevAccountingProfile::Unavailable,
-            )
-            .unwrap()
-        } else {
-            transport::backend(&server.endpoint)
-        };
+        if failure == "unverifiable" {
+            input.request_budget.accounting_policy =
+                sunstack_decisions::AccountingPolicy::RequireExact;
+        }
+        let backend = transport::backend(&server.endpoint);
         let outcome = tokio::time::timeout(
             std::time::Duration::from_secs(3),
             prepare_rules(

@@ -139,3 +139,27 @@ fn generated_invocation_shape_refuses_zero_budgets_and_empty_binding_groups() {
         assert!(!generated.is_valid(&case), "generated accepts {pointer}");
     }
 }
+
+#[test]
+fn generated_backend_ceiling_schema_matches_native_optional_positive_only_contract() {
+    let schema = generated::<sunstack_decisions::BackendSelection>();
+    let base = json!({"kind":"jev_openrouter","endpoint":"https://openrouter.ai/api/v1/systemone","model":"jev-latest"});
+    assert!(schema.is_valid(&base));
+    let _: sunstack_decisions::BackendSelection = serde_json::from_value(base.clone()).unwrap();
+    for (value, accepted) in [
+        (json!(1), true),
+        (json!(262144), true),
+        (json!(0), false),
+        (Value::Null, false),
+        (json!(-1), false),
+        (json!(1.5), false),
+    ] {
+        let mut case = base.clone();
+        case["context_ceiling_tokens"] = value;
+        assert_eq!(
+            serde_json::from_value::<sunstack_decisions::BackendSelection>(case.clone()).is_ok(),
+            accepted
+        );
+        assert_eq!(schema.is_valid(&case), accepted, "{case}");
+    }
+}

@@ -7,15 +7,9 @@ async fn pre_aborted_request_records_caller_abort_without_dispatch() {
     let selection = BackendSelection::JevOpenrouter {
         endpoint: "http://127.0.0.1:1/".into(),
         model: ModelName::new("jev-latest").unwrap(),
+        context_ceiling_tokens: None,
     };
-    let backend = JevOpenRouterBackend::new(
-        selection.clone(),
-        "sentinel-key",
-        JevAccountingProfile::EstimatedBytes {
-            context_ceiling_tokens: 262_144,
-        },
-    )
-    .unwrap();
+    let backend = JevOpenRouterBackend::new(selection.clone(), "sentinel-key").unwrap();
     let input: RunJudgmentsInput = serde_json::from_value(json!({
         "request":{"questions":{"check":{"type":"noul","instructions":"test"}},"state":"state"},
         "backend":selection,"attempts":AttemptSettings::default(),
