@@ -4,6 +4,9 @@ use sunstack_decisions::{
     DecisionRunOutcome, RunJudgmentsInput, judgment_validation::decode_run_input,
 };
 use sunstack_evidence::{DiagnosticList, EvidenceCode, EvidencePlanInput, EvidencePlanOutcome};
+use sunstack_rules::{
+    RuleInvocationInput, RuleInvocationOutcome, RulePreparationOutcome, decode_rule_invocation,
+};
 use tokio::io::AsyncReadExt;
 
 pub const MAX_REQUEST_BYTES: u64 = 8_388_608;
@@ -18,6 +21,8 @@ struct RequestEnvelope {
 pub enum OperationInput {
     PrepareEvidence(Box<EvidencePlanInput>),
     RunJudgments(Box<RunJudgmentsInput>),
+    PrepareRules(Box<RuleInvocationInput>),
+    EvaluateRules(Box<RuleInvocationInput>),
     Rejected(OperationResult),
 }
 #[derive(Serialize)]
@@ -25,6 +30,8 @@ pub enum OperationInput {
 pub enum OperationResult {
     PrepareEvidence(EvidencePlanOutcome),
     RunJudgments(DecisionRunOutcome),
+    PrepareRules(Box<RulePreparationOutcome>),
+    EvaluateRules(Box<RuleInvocationOutcome>),
 }
 impl OperationResult {
     pub fn exit_code(&self) -> u8 {
@@ -36,6 +43,8 @@ impl OperationResult {
                 EvidencePlanOutcome::Cancelled { .. } => 4,
             },
             Self::RunJudgments(outcome) => outcome.exit_code(),
+            Self::PrepareRules(outcome) => outcome.exit_code(),
+            Self::EvaluateRules(outcome) => outcome.exit_code(),
         }
     }
 }
@@ -184,7 +193,73 @@ pub fn decode_request(bytes: &[u8]) -> Result<OperationInput, ProtocolCode> {
                 },
             )),
         }),
-        // S3a integration supplies the two rules operations in phase 2.
+        "prepare_rules" => Ok(
+            match decode_rule_invocation(envelope.input.get().as_bytes()) {
+                Ok(input) => OperationInput::PrepareRules(Box::new(input)),
+                Err(diagnostics) => OperationInput::Rejected(OperationResult::PrepareRules(
+                    Box::new(RulePreparationOutcome::Invalid { diagnostics }),
+                )),
+            },
+        ),
+        "evaluate_rules" => Ok(
+            match decode_rule_invocation(envelope.input.get().as_bytes()) {
+                Ok(input) => OperationInput::EvaluateRules(Box::new(input)),
+                Err(diagnostics) => OperationInput::Rejected(OperationResult::EvaluateRules(
+                    Box::new(RuleInvocationOutcome::Invalid { diagnostics }),
+                )),
+            },
+        ),
         _ => Err(ProtocolCode::UnsupportedOperation),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use sunstack_rules::{InvocationMeasurements, RuleDiagnosticCode};
+
+    #[test]
+    fn internal_preparation_failures_keep_native_diagnostics_measurements_and_exit_three() {
+        // These native invariant/fatal outcomes have no public-input fixture.
+        // This checks the serialization boundary, not process reachability.
+        let diagnostics =
+            sunstack_rules::DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError);
+        let measurements = InvocationMeasurements {
+            files_read: 7,
+            ..InvocationMeasurements::default()
+        };
+        for (operation, result) in [
+            (
+                "prepare_rules",
+                OperationResult::PrepareRules(Box::new(
+                    RulePreparationOutcome::PreparationFailed {
+                        diagnostics: diagnostics.clone(),
+                        measurements: measurements.clone(),
+                    },
+                )),
+            ),
+            (
+                "evaluate_rules",
+                OperationResult::EvaluateRules(Box::new(
+                    RuleInvocationOutcome::PreparationFailed {
+                        diagnostics: diagnostics.clone(),
+                        measurements: measurements.clone(),
+                    },
+                )),
+            ),
+        ] {
+            assert_eq!(result.exit_code(), 3);
+            let wire = serde_json::to_value(ProgramResponse::operation_result(result));
+            assert!(wire.is_ok());
+            let expected = json!({
+                "kind":"operation_result", "protocol_version":1,
+                "result":{"operation":operation,"outcome":{
+                    "kind":"preparation_failed", "diagnostics":diagnostics,
+                    "measurements":measurements
+                }}
+            });
+            assert_eq!(wire.ok(), Some(expected));
+        }
     }
 }

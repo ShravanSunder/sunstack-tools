@@ -3,7 +3,7 @@ use serde_json::{Value, json};
 use std::{
     path::{Path, PathBuf},
     process::{Output, Stdio},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tokio::{
     io::AsyncWriteExt,
@@ -18,32 +18,89 @@ pub fn workspace_root() -> PathBuf {
         .unwrap()
         .into()
 }
-pub fn child(root: &Path) -> Child {
-    Command::new(workspace_root().join("scripts/cargo-debug-signing-runner.sh"))
+fn process_command(root: &Path) -> Command {
+    let mut command = Command::new(workspace_root().join("scripts/cargo-debug-signing-runner.sh"));
+    command
         .arg(env!("CARGO_BIN_EXE_sunstack-rule"))
         .current_dir(root)
-        .env("OPENROUTER_API_KEY", "SYNTHETIC_PROCESS_CREDENTIAL")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .kill_on_drop(true)
+        .kill_on_drop(true);
+    command
+}
+pub fn child(root: &Path) -> Child {
+    process_command(root)
+        .env("OPENROUTER_API_KEY", "SYNTHETIC_PROCESS_CREDENTIAL")
         .spawn()
         .unwrap()
 }
-pub async fn run_raw(root: &Path, bytes: &[u8]) -> Output {
-    let mut process = child(root);
+struct ProcessRequest<'request> {
+    root: &'request Path,
+    bytes: &'request [u8],
+    command: Command,
+    deadline: Duration,
+}
+async fn invoke_process(mut request: ProcessRequest<'_>) -> (Output, Duration) {
+    let started = Instant::now();
+    let mut process = request.command.spawn().unwrap();
     let mut stdin = process.stdin.take().unwrap();
-    let write = stdin.write_all(bytes).await;
-    if let Err(error) = write {
+    if let Err(error) = stdin.write_all(request.bytes).await {
         assert_eq!(error.kind(), std::io::ErrorKind::BrokenPipe);
     }
     drop(stdin);
-    let output = tokio::time::timeout(Duration::from_secs(10), process.wait_with_output())
+    let output = tokio::time::timeout(request.deadline, process.wait_with_output())
         .await
         .unwrap()
         .unwrap();
-    record_output(root, bytes, &output);
-    output
+    let elapsed = started.elapsed();
+    // Timings end at owned child/output completion, before artifact I/O.
+    record_output(request.root, request.bytes, &output);
+    (output, elapsed)
+}
+pub async fn run_hosted_timed(root: &Path, operation: &str, input: Value) -> (Output, Duration) {
+    assert!(
+        std::env::var_os("OPENROUTER_API_KEY").is_some(),
+        "hosted credential not supplied"
+    );
+    // Inherit the one-command credential. The controlled helper deliberately
+    // replaces it and must never be used for a genuine hosted observation.
+    let bytes =
+        serde_json::to_vec(&json!({"protocol_version":1,"operation":operation,"input":input}))
+            .unwrap();
+    invoke_process(ProcessRequest {
+        root,
+        bytes: &bytes,
+        command: process_command(root),
+        deadline: Duration::from_secs(420),
+    })
+    .await
+}
+pub async fn run_raw(root: &Path, bytes: &[u8]) -> Output {
+    let mut command = process_command(root);
+    command.env("OPENROUTER_API_KEY", "SYNTHETIC_PROCESS_CREDENTIAL");
+    invoke_process(ProcessRequest {
+        root,
+        bytes,
+        command,
+        deadline: Duration::from_secs(10),
+    })
+    .await
+    .0
+}
+pub async fn run_timed(root: &Path, operation: &str, input: Value) -> (Output, Duration) {
+    let bytes =
+        serde_json::to_vec(&json!({"protocol_version":1,"operation":operation,"input":input}))
+            .unwrap();
+    let mut command = process_command(root);
+    command.env("OPENROUTER_API_KEY", "SYNTHETIC_PROCESS_CREDENTIAL");
+    invoke_process(ProcessRequest {
+        root,
+        bytes: &bytes,
+        command,
+        deadline: Duration::from_secs(10),
+    })
+    .await
 }
 pub fn record_output(root: &Path, input: &[u8], output: &Output) {
     use std::sync::atomic::{AtomicUsize, Ordering};

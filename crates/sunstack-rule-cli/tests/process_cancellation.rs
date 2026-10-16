@@ -4,66 +4,14 @@
 mod decision_fixtures;
 mod support;
 use serde_json::json;
-use std::{io::Write, path::Path, process::Output, time::Duration};
+use std::{io::Write, time::Duration};
 use support::*;
-use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    process::{Child, ChildStderr},
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[path = "support/signal_process.rs"]
+mod signal_process;
+use signal_process::{
+    collect_output as finish, expect_line as line, ready_process as ready, send_signal as signal,
 };
-
-async fn line(stderr: &mut BufReader<ChildStderr>, expected: &str, transcript: &mut Vec<u8>) {
-    let mut received = String::new();
-    tokio::time::timeout(Duration::from_secs(5), stderr.read_line(&mut received))
-        .await
-        .unwrap()
-        .unwrap();
-    transcript.extend_from_slice(received.as_bytes());
-    assert_eq!(received, expected);
-}
-async fn ready(root: &Path) -> (Child, BufReader<ChildStderr>, Vec<u8>) {
-    let mut process = child(root);
-    let mut stderr = BufReader::new(process.stderr.take().unwrap());
-    let mut transcript = vec![];
-    loop {
-        let mut received = String::new();
-        tokio::time::timeout(Duration::from_secs(5), stderr.read_line(&mut received))
-            .await
-            .unwrap()
-            .unwrap();
-        transcript.extend_from_slice(received.as_bytes());
-        assert!(transcript.len() <= 256);
-        if received == "sunstack-rule: ready\n" {
-            break;
-        }
-        // The repository's runner permits this warning and still execs the
-        // binary. It is not the product's handler-registration witness.
-        assert!(received.starts_with("cargo debug runner: sunstack-rule runs unsigned ("));
-    }
-    (process, stderr, transcript)
-}
-async fn signal(process: &Child, signal_name: &str) {
-    assert!(
-        tokio::process::Command::new("/bin/kill")
-            .args([signal_name, &process.id().unwrap().to_string()])
-            .status()
-            .await
-            .unwrap()
-            .success()
-    );
-}
-async fn finish(
-    process: Child,
-    mut stderr: BufReader<ChildStderr>,
-    mut transcript: Vec<u8>,
-) -> Output {
-    let mut output = tokio::time::timeout(Duration::from_secs(5), process.wait_with_output())
-        .await
-        .unwrap()
-        .unwrap();
-    stderr.read_to_end(&mut transcript).await.unwrap();
-    output.stderr = transcript;
-    output
-}
 
 #[tokio::test]
 async fn both_real_signals_are_observed_before_operation_admission_without_dispatch() {
