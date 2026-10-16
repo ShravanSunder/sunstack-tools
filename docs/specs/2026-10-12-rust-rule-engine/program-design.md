@@ -538,6 +538,7 @@ Retained from the reviewed design. The decisions crate does not know about rules
 | Evidence / transcript | **`unknown_transcript_format`**, **`transcript_unavailable`**, **`transcript_discontinuous`**, **`invalid_cursor`**, **`adapter_output_invalid`**, **`transcript_limit`** |
 | Evidence / payload | **`unknown_payload_schema`**, **`payload_schema_mismatch`**, **`payload_schema_invalid`**, **`invalid_pointer`** |
 | Evidence / selection | `invalid_selector`, `unsupported_language`, `selector_limit`, **`empty_projection`** |
+| Evidence / request | **`unknown_field`**, **`duplicate_field`**, **`invalid_request`**. These come from decoding an `EvidencePlanInput`. The location is the path of schema-owned keys only, as the decisions decoder does, never a caller-authored key or value |
 | Rules / definitions | `malformed_json`, `unknown_field`, `duplicate_field`, `unsupported_schema_version`, `duplicate_rule_id`, `duplicate_rule_source`, **`duplicate_rule_set`**, `empty_rule_file`, **`invalid_threshold`**, **`invalid_band`**, **`invalid_composite`**, **`invalid_target`**, **`undeclared_input`**, **`input_kind_mismatch`**, **`invalid_route`**, **`invalid_wiring`** |
 | Rules / bindings | **`unbound_input`**, **`duplicate_binding`**, **`extra_binding`**, **`binding_kind_mismatch`** |
 | Rules / applicability | **`condition_unresolved`**, **`decision_failed`**, **`router_failed`** |
