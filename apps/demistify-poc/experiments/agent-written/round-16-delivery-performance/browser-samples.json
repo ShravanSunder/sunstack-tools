@@ -1,0 +1,3926 @@
+[
+  {
+    "case": "explorer-1",
+    "kind": "fresh-url",
+    "pageReady": 87.5,
+    "fontsReady": 120.09999990463257,
+    "firstContentfulPaint": 68,
+    "largestContentfulPaint": 136,
+    "layoutShift": 0,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 60.09999990463257
+      },
+      {
+        "tag": "ex-explorer",
+        "id": "planning",
+        "at": 87.5
+      }
+    ],
+    "errors": [],
+    "marks": [
+      {
+        "name": "demistify:explorer:planning:ready",
+        "start": 87.5
+      }
+    ],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-explorer-1/observer.js",
+        "transfer": 3247,
+        "encoded": 2947,
+        "duration": 12.5
+      },
+      {
+        "path": "/measured-explorer-1/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 14.899999976158142
+      },
+      {
+        "path": "/measured-explorer-1/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 17.600000023841858
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 2.8000000715255737
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 3.4000000953674316
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 3.700000047683716
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 3.6999999284744263
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/explorer-controller-By8Deyxe.js",
+        "transfer": 26765,
+        "encoded": 26465,
+        "duration": 5.399999976158142
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 2.899999976158142
+      },
+      {
+        "path": "/measured-explorer-1/planning.json",
+        "transfer": 776737,
+        "encoded": 776437,
+        "duration": 6.100000023841858
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 7.799999952316284
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 8.100000023841858
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 7.600000023841858
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 9.100000023841858
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 13
+      },
+      {
+        "path": "/measured-explorer-1/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 12.700000047683716
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 13.200000047683716
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 22,
+    "diagramSvg": 0,
+    "issues": []
+  },
+  {
+    "case": "explorer-1",
+    "kind": "same-url-reload",
+    "pageReady": 39.89999997615814,
+    "fontsReady": 64.89999997615814,
+    "firstContentfulPaint": 32,
+    "largestContentfulPaint": 80,
+    "layoutShift": 0,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.700000047683716
+      },
+      {
+        "tag": "ex-explorer",
+        "id": "planning",
+        "at": 39.799999952316284
+      }
+    ],
+    "errors": [],
+    "marks": [
+      {
+        "name": "demistify:explorer:planning:ready",
+        "start": 39.799999952316284
+      }
+    ],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-explorer-1/observer.js",
+        "transfer": 0,
+        "encoded": 2947,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/explorer-controller-By8Deyxe.js",
+        "transfer": 0,
+        "encoded": 26465,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-1/planning.json",
+        "transfer": 0,
+        "encoded": 776437,
+        "duration": 2.600000023841858
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 22,
+    "diagramSvg": 0,
+    "issues": []
+  },
+  {
+    "case": "review-1",
+    "kind": "fresh-url",
+    "pageReady": 341,
+    "fontsReady": 343.10000002384186,
+    "firstContentfulPaint": 40,
+    "largestContentfulPaint": 88,
+    "layoutShift": 0.51475834312462,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 52.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 52.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 58.39999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 58.60000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 58.800000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 58.89999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 59.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 59.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 59.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 59.89999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 60.10000002384186
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 341
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-review-1/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 7.700000047683716
+      },
+      {
+        "path": "/measured-review-1/observer.js",
+        "transfer": 3247,
+        "encoded": 2947,
+        "duration": 7
+      },
+      {
+        "path": "/measured-review-1/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 9.399999976158142
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 2.4000000953674316
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 2.700000047683716
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 3.100000023841858
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 2.700000047683716
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 10.599999904632568
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 3.3000000715255737
+      },
+      {
+        "path": "/measured-review-1/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 8.100000023841858
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 8.100000023841858
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 7.800000071525574
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 1.7000000476837158
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 4.899999976158142
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 5.200000047683716
+      },
+      {
+        "path": "/measured-review-1/lib/diagram-worker.js",
+        "transfer": 1022,
+        "encoded": 722,
+        "duration": 2.200000047683716
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 2196117,
+        "encoded": 2195817,
+        "duration": 10
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 1.1999999284744263
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "review-1",
+    "kind": "same-url-reload",
+    "pageReady": 273.3000000715256,
+    "fontsReady": 273.89999997615814,
+    "firstContentfulPaint": 28,
+    "largestContentfulPaint": 28,
+    "layoutShift": 0.474925879014426,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.800000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.899999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.899999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.100000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.100000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.399999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.399999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.5
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 273.2000000476837
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-review-1/observer.js",
+        "transfer": 0,
+        "encoded": 2947,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-1/lib/diagram-worker.js",
+        "transfer": 0,
+        "encoded": 722,
+        "duration": 1.7000000476837158
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 0,
+        "encoded": 2195817,
+        "duration": 5.399999976158142
+      },
+      {
+        "path": "/measured-review-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0.6999999284744263
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "review-2",
+    "kind": "fresh-url",
+    "pageReady": 465.5,
+    "fontsReady": 467,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.6757620957178578,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 46.60000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 47.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 47.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 47.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 47.60000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 47.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 48.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 48.40000009536743
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 48.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 48.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 48.800000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 49
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 49.10000002384186
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 465.5
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-review-2/observer.js",
+        "transfer": 3247,
+        "encoded": 2947,
+        "duration": 8.5
+      },
+      {
+        "path": "/measured-review-2/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 10.399999976158142
+      },
+      {
+        "path": "/measured-review-2/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 10.5
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 4.799999952316284
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 9.099999904632568
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 4.5
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 8.899999976158142
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 9
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 2.600000023841858
+      },
+      {
+        "path": "/measured-review-2/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 6.199999928474426
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 6.899999976158142
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 6.800000071525574
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 3.1999999284744263
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 4.600000023841858
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 4.5
+      },
+      {
+        "path": "/measured-review-2/lib/diagram-worker.js",
+        "transfer": 1022,
+        "encoded": 722,
+        "duration": 3
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 2196117,
+        "encoded": 2195817,
+        "duration": 19.600000023841858
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 2.5999999046325684
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "review-2",
+    "kind": "same-url-reload",
+    "pageReady": 448.89999997615814,
+    "fontsReady": 452.39999997615814,
+    "firstContentfulPaint": 36,
+    "largestContentfulPaint": 40,
+    "layoutShift": 0.5076056736849995,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 33.800000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 33.89999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.39999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.39999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.60000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 34.700000047683716
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 448.5
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-review-2/observer.js",
+        "transfer": 0,
+        "encoded": 2947,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-2/lib/diagram-worker.js",
+        "transfer": 0,
+        "encoded": 722,
+        "duration": 3.1999999284744263
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 0,
+        "encoded": 2195817,
+        "duration": 159.20000004768372
+      },
+      {
+        "path": "/measured-review-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0.6999999284744263
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "explorer-2",
+    "kind": "fresh-url",
+    "pageReady": 79.29999995231628,
+    "fontsReady": 151.20000004768372,
+    "firstContentfulPaint": 60,
+    "largestContentfulPaint": 144,
+    "layoutShift": 0.025730501787758462,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 36.10000002384186
+      },
+      {
+        "tag": "ex-explorer",
+        "id": "planning",
+        "at": 79.20000004768372
+      }
+    ],
+    "errors": [],
+    "marks": [
+      {
+        "name": "demistify:explorer:planning:ready",
+        "start": 79.10000002384186
+      }
+    ],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-explorer-2/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 7.299999952316284
+      },
+      {
+        "path": "/measured-explorer-2/observer.js",
+        "transfer": 3247,
+        "encoded": 2947,
+        "duration": 6.899999976158142
+      },
+      {
+        "path": "/measured-explorer-2/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 7.699999928474426
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 2.100000023841858
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 2.6999999284744263
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 2.799999952316284
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 4
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/explorer-controller-By8Deyxe.js",
+        "transfer": 26765,
+        "encoded": 26465,
+        "duration": 4.200000047683716
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 4.700000047683716
+      },
+      {
+        "path": "/measured-explorer-2/planning.json",
+        "transfer": 776737,
+        "encoded": 776437,
+        "duration": 12.299999952316284
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 5.400000095367432
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 5.200000047683716
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 6.100000023841858
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 6
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 31.600000023841858
+      },
+      {
+        "path": "/measured-explorer-2/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 30.100000023841858
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 31.700000047683716
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 22,
+    "diagramSvg": 0,
+    "issues": []
+  },
+  {
+    "case": "explorer-2",
+    "kind": "same-url-reload",
+    "pageReady": 37.200000047683716,
+    "fontsReady": 61.5,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 76,
+    "layoutShift": 0,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 20.300000071525574
+      },
+      {
+        "tag": "ex-explorer",
+        "id": "planning",
+        "at": 37.200000047683716
+      }
+    ],
+    "errors": [],
+    "marks": [
+      {
+        "name": "demistify:explorer:planning:ready",
+        "start": 37.200000047683716
+      }
+    ],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-explorer-2/observer.js",
+        "transfer": 0,
+        "encoded": 2947,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/explorer-controller-By8Deyxe.js",
+        "transfer": 0,
+        "encoded": 26465,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-2/planning.json",
+        "transfer": 0,
+        "encoded": 776437,
+        "duration": 3.5
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 22,
+    "diagramSvg": 0,
+    "issues": []
+  },
+  {
+    "case": "explorer-3",
+    "kind": "fresh-url",
+    "pageReady": 89.79999995231628,
+    "fontsReady": 152.39999997615814,
+    "firstContentfulPaint": 72,
+    "largestContentfulPaint": 148,
+    "layoutShift": 0.025730501787758462,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 47.39999997615814
+      },
+      {
+        "tag": "ex-explorer",
+        "id": "planning",
+        "at": 89.70000004768372
+      }
+    ],
+    "errors": [],
+    "marks": [
+      {
+        "name": "demistify:explorer:planning:ready",
+        "start": 89.60000002384186
+      }
+    ],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-explorer-3/observer.js",
+        "transfer": 3247,
+        "encoded": 2947,
+        "duration": 8.100000023841858
+      },
+      {
+        "path": "/measured-explorer-3/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 11
+      },
+      {
+        "path": "/measured-explorer-3/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 11.099999904632568
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 7
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 7
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 7.399999976158142
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/explorer-controller-By8Deyxe.js",
+        "transfer": 26765,
+        "encoded": 26465,
+        "duration": 4
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 4
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 4.199999928474426
+      },
+      {
+        "path": "/measured-explorer-3/planning.json",
+        "transfer": 776737,
+        "encoded": 776437,
+        "duration": 9.800000071525574
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 7.600000023841858
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 6
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 6.5
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 7.199999928474426
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 35.5
+      },
+      {
+        "path": "/measured-explorer-3/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 35
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 35.60000002384186
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 22,
+    "diagramSvg": 0,
+    "issues": []
+  },
+  {
+    "case": "explorer-3",
+    "kind": "same-url-reload",
+    "pageReady": 32.300000071525574,
+    "fontsReady": 54.5,
+    "firstContentfulPaint": 52,
+    "largestContentfulPaint": 52,
+    "layoutShift": 0,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 18.700000047683716
+      },
+      {
+        "tag": "ex-explorer",
+        "id": "planning",
+        "at": 32.300000071525574
+      }
+    ],
+    "errors": [],
+    "marks": [
+      {
+        "name": "demistify:explorer:planning:ready",
+        "start": 32.200000047683716
+      }
+    ],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-explorer-3/observer.js",
+        "transfer": 0,
+        "encoded": 2947,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/explorer-controller-By8Deyxe.js",
+        "transfer": 0,
+        "encoded": 26465,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/measured-explorer-3/planning.json",
+        "transfer": 0,
+        "encoded": 776437,
+        "duration": 2.6999999284744263
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 22,
+    "diagramSvg": 0,
+    "issues": []
+  },
+  {
+    "case": "review-3",
+    "kind": "fresh-url",
+    "pageReady": 259.8000000715256,
+    "fontsReady": 262.5,
+    "firstContentfulPaint": 20,
+    "largestContentfulPaint": 20,
+    "layoutShift": 0.6762257926769615,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 36.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 37
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 37.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 37.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 37.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 37.800000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.60000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.700000047683716
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 259.7000000476837
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-review-3/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 7.5
+      },
+      {
+        "path": "/measured-review-3/observer.js",
+        "transfer": 3247,
+        "encoded": 2947,
+        "duration": 6.100000023841858
+      },
+      {
+        "path": "/measured-review-3/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 7.700000047683716
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 3.5999999046325684
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 3.5
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 3.700000047683716
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 4.100000023841858
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 4.399999976158142
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 3.1999999284744263
+      },
+      {
+        "path": "/measured-review-3/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 6.200000047683716
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 6.299999952316284
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 6.5
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 2.1999999284744263
+      },
+      {
+        "path": "/measured-review-3/lib/diagram-worker.js",
+        "transfer": 1022,
+        "encoded": 722,
+        "duration": 1.899999976158142
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0.7000000476837158
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 2196117,
+        "encoded": 2195817,
+        "duration": 9.900000095367432
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 6.199999928474426
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 5.799999952316284
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "review-3",
+    "kind": "same-url-reload",
+    "pageReady": 237.89999997615814,
+    "fontsReady": 239.19999992847443,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.474925879014426,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 21.899999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.100000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.199999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.399999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.699999928474426
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 237.89999997615814
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/measured-review-3/observer.js",
+        "transfer": 0,
+        "encoded": 2947,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/measured-review-3/lib/diagram-worker.js",
+        "transfer": 0,
+        "encoded": 722,
+        "duration": 0.6000000238418579
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 1.600000023841858
+      },
+      {
+        "path": "/measured-review-3/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 0,
+        "encoded": 2195817,
+        "duration": 2.600000023841858
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "early-navigation-1",
+    "kind": "fresh-url",
+    "pageReady": 332.1999999284744,
+    "fontsReady": 333.60000002384186,
+    "firstContentfulPaint": 88,
+    "largestContentfulPaint": 88,
+    "layoutShift": 0.6478589468354081,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 103.29999995231628
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 107.69999992847443
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 107.89999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 109.69999992847443
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 109.89999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110.19999992847443
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110.39999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110.39999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110.69999992847443
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 110.69999992847443
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 332.10000002384186
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/early-navigation-1/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 13.100000023841858
+      },
+      {
+        "path": "/early-navigation-1/observer.js",
+        "transfer": 3283,
+        "encoded": 2983,
+        "duration": 12.600000023841858
+      },
+      {
+        "path": "/early-navigation-1/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 13.299999952316284
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 2.899999976158142
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 3
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 3.1999999284744263
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 5.100000023841858
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 4.400000095367432
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 4.400000095367432
+      },
+      {
+        "path": "/early-navigation-1/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 5.5
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 5.899999976158142
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 5.799999952316284
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 3.200000047683716
+      },
+      {
+        "path": "/early-navigation-1/lib/diagram-worker.js",
+        "transfer": 1022,
+        "encoded": 722,
+        "duration": 2
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 1.2000000476837158
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 2196117,
+        "encoded": 2195817,
+        "duration": 11.100000023841858
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 8
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 7.899999976158142
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "early-navigation-1",
+    "kind": "same-url-reload",
+    "pageReady": 276.60000002384186,
+    "fontsReady": 278.1999999284744,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.30416185597918616,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 21.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 21.699999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 21.699999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 21.699999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 21.899999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.199999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.199999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 22.299999952316284
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 276.5
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/early-navigation-1/observer.js",
+        "transfer": 0,
+        "encoded": 2983,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-1/lib/diagram-worker.js",
+        "transfer": 0,
+        "encoded": 722,
+        "duration": 1.2000000476837158
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 0,
+        "encoded": 2195817,
+        "duration": 2.5
+      },
+      {
+        "path": "/early-navigation-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0.7000000476837158
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "prepared-islands-1",
+    "kind": "fresh-url",
+    "pageReady": 43.299999952316284,
+    "fontsReady": 64.60000002384186,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.03496765119782716,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/prepared-islands-1/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 8
+      },
+      {
+        "path": "/prepared-islands-1/observer.js",
+        "transfer": 3283,
+        "encoded": 2983,
+        "duration": 7
+      },
+      {
+        "path": "/prepared-islands-1/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 8.299999952316284
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 22
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 21.700000047683716
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 21.799999952316284
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 21.899999976158142
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 44.299999952316284
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 44.39999997615814
+      },
+      {
+        "path": "/prepared-islands-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 20.200000047683716
+      },
+      {
+        "path": "/prepared-islands-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 20.40000009536743
+      },
+      {
+        "path": "/prepared-islands-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 20.700000047683716
+      },
+      {
+        "path": "/prepared-islands-1/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 17.299999952316284
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "prepared-islands-1",
+    "kind": "same-url-reload",
+    "pageReady": 19.100000023841858,
+    "fontsReady": 22.899999976158142,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.02245830403500021,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/prepared-islands-1/observer.js",
+        "transfer": 0,
+        "encoded": 2983,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-1/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "prepared-islands-2",
+    "kind": "fresh-url",
+    "pageReady": 26.199999928474426,
+    "fontsReady": 41,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.04140861481828791,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/prepared-islands-2/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 8.200000047683716
+      },
+      {
+        "path": "/prepared-islands-2/observer.js",
+        "transfer": 3283,
+        "encoded": 2983,
+        "duration": 6.5
+      },
+      {
+        "path": "/prepared-islands-2/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 8.299999952316284
+      },
+      {
+        "path": "/prepared-islands-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 2.899999976158142
+      },
+      {
+        "path": "/prepared-islands-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 3.6999999284744263
+      },
+      {
+        "path": "/prepared-islands-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 4.199999928474426
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 5
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 7.200000047683716
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 7.399999976158142
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 7.399999976158142
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 7.799999952316284
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 7.5
+      },
+      {
+        "path": "/prepared-islands-2/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 5.600000023841858
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "prepared-islands-2",
+    "kind": "same-url-reload",
+    "pageReady": 18.700000047683716,
+    "fontsReady": 22.899999976158142,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.02245830403500021,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/prepared-islands-2/observer.js",
+        "transfer": 0,
+        "encoded": 2983,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "early-navigation-2",
+    "kind": "fresh-url",
+    "pageReady": 255.19999992847443,
+    "fontsReady": 256.6999999284744,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.6692775198547314,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 37.89999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.699999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 38.89999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 39.09999990463257
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 39.199999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 39.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 39.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 39.699999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 40.09999990463257
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 40.199999928474426
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 40.299999952316284
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 255.19999992847443
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/early-navigation-2/observer.js",
+        "transfer": 3283,
+        "encoded": 2983,
+        "duration": 5.899999976158142
+      },
+      {
+        "path": "/early-navigation-2/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 6.799999952316284
+      },
+      {
+        "path": "/early-navigation-2/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 6.899999976158142
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 4.800000071525574
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 6.100000023841858
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 6.5
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 3.200000047683716
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 3.4000000953674316
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 2.700000047683716
+      },
+      {
+        "path": "/early-navigation-2/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 4.200000047683716
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 4.300000071525574
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 4.399999976158142
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 2.0999999046325684
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 4.299999952316284
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 4.299999952316284
+      },
+      {
+        "path": "/early-navigation-2/lib/diagram-worker.js",
+        "transfer": 1022,
+        "encoded": 722,
+        "duration": 2.799999952316284
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 2196117,
+        "encoded": 2195817,
+        "duration": 9.599999904632568
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 1.2000000476837158
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "early-navigation-2",
+    "kind": "same-url-reload",
+    "pageReady": 238.39999997615814,
+    "fontsReady": 239.60000002384186,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.6530426840724504,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.399999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.799999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.799999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 23.899999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.100000023841858
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 238.29999995231628
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/early-navigation-2/observer.js",
+        "transfer": 0,
+        "encoded": 2983,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-2/lib/diagram-worker.js",
+        "transfer": 0,
+        "encoded": 722,
+        "duration": 1.7000000476837158
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 1.8000000715255737
+      },
+      {
+        "path": "/early-navigation-2/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 0,
+        "encoded": 2195817,
+        "duration": 3.200000047683716
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "early-navigation-3",
+    "kind": "fresh-url",
+    "pageReady": 264.2999999523163,
+    "fontsReady": 267,
+    "firstContentfulPaint": 28,
+    "largestContentfulPaint": 28,
+    "layoutShift": 0.6695734623034666,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 51.39999997615814
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 51.799999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 52
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 52.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 52.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 52.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 52.799999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53.10000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53.299999952316284
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53.5
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53.60000002384186
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 53.799999952316284
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 264.2999999523163
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/early-navigation-3/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 8.399999976158142
+      },
+      {
+        "path": "/early-navigation-3/observer.js",
+        "transfer": 3283,
+        "encoded": 2983,
+        "duration": 7.399999976158142
+      },
+      {
+        "path": "/early-navigation-3/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 10
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 5.399999976158142
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 6.799999952316284
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 6.799999952316284
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 3.399999976158142
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 3.6999999284744263
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 56872,
+        "encoded": 56572,
+        "duration": 2.700000047683716
+      },
+      {
+        "path": "/early-navigation-3/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 3.8000000715255737
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 5.600000023841858
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 5.799999952316284
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 518,
+        "encoded": 218,
+        "duration": 2.399999976158142
+      },
+      {
+        "path": "/early-navigation-3/lib/diagram-worker.js",
+        "transfer": 1022,
+        "encoded": 722,
+        "duration": 2.100000023841858
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 2196117,
+        "encoded": 2195817,
+        "duration": 13.199999928474426
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 1.4000000953674316
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 5.5
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 5.700000047683716
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "early-navigation-3",
+    "kind": "same-url-reload",
+    "pageReady": 237.60000002384186,
+    "fontsReady": 239.10000002384186,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.30416185597918616,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.100000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.200000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.300000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.600000023841858
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.700000047683716
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.800000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.800000071525574
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.899999976158142
+      },
+      {
+        "tag": "ex-markdown",
+        "id": "",
+        "at": 24.899999976158142
+      },
+      {
+        "tag": "ex-mermaid",
+        "id": "sequence",
+        "at": 237.39999997615814
+      }
+    ],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/early-navigation-3/observer.js",
+        "transfer": 0,
+        "encoded": 2983,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/markdown-content-DJ4Rn4TJ.js",
+        "transfer": 0,
+        "encoded": 56572,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/html-text-DKjmYQsC.js",
+        "transfer": 0,
+        "encoded": 218,
+        "duration": 0
+      },
+      {
+        "path": "/early-navigation-3/lib/diagram-worker.js",
+        "transfer": 0,
+        "encoded": 722,
+        "duration": 2
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/dist-DcDoeHXN.js",
+        "transfer": 0,
+        "encoded": 2195817,
+        "duration": 8.199999928474426
+      },
+      {
+        "path": "/early-navigation-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0.6000000238418579
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "prepared-islands-3",
+    "kind": "fresh-url",
+    "pageReady": 29.399999976158142,
+    "fontsReady": 49,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.03475772200575483,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/prepared-islands-3/observer.js",
+        "transfer": 3283,
+        "encoded": 2983,
+        "duration": 6.800000071525574
+      },
+      {
+        "path": "/prepared-islands-3/lib/theme.css",
+        "transfer": 61999,
+        "encoded": 61699,
+        "duration": 7.799999952316284
+      },
+      {
+        "path": "/prepared-islands-3/lib/runtime.js",
+        "transfer": 84594,
+        "encoded": 84294,
+        "duration": 8.799999952316284
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/literata-400.woff2",
+        "transfer": 20720,
+        "encoded": 20420,
+        "duration": 6
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 19652,
+        "encoded": 19352,
+        "duration": 5.5
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/literata-600.woff2",
+        "transfer": 22160,
+        "encoded": 21860,
+        "duration": 6.299999952316284
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 20116,
+        "encoded": 19816,
+        "duration": 7.100000023841858
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 20252,
+        "encoded": 19952,
+        "duration": 7.600000023841858
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 15008,
+        "encoded": 14708,
+        "duration": 7.699999928474426
+      },
+      {
+        "path": "/prepared-islands-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 3985,
+        "encoded": 3685,
+        "duration": 6.399999976158142
+      },
+      {
+        "path": "/prepared-islands-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 911,
+        "encoded": 611,
+        "duration": 6.799999952316284
+      },
+      {
+        "path": "/prepared-islands-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 2712,
+        "encoded": 2412,
+        "duration": 6.899999976158142
+      },
+      {
+        "path": "/prepared-islands-3/lib/Phosphor.woff2",
+        "transfer": 6892,
+        "encoded": 6592,
+        "duration": 4.799999952316284
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  },
+  {
+    "case": "prepared-islands-3",
+    "kind": "same-url-reload",
+    "pageReady": 20.299999952316284,
+    "fontsReady": 24,
+    "firstContentfulPaint": 24,
+    "largestContentfulPaint": 24,
+    "layoutShift": 0.02245830403500021,
+    "longTasks": [],
+    "unsupported": [],
+    "islandReady": [],
+    "errors": [],
+    "marks": [],
+    "measures": [],
+    "resources": [
+      {
+        "path": "/prepared-islands-3/observer.js",
+        "transfer": 0,
+        "encoded": 2983,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/theme.css",
+        "transfer": 0,
+        "encoded": 61699,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/runtime.js",
+        "transfer": 0,
+        "encoded": 84294,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-sans-condensed-500.woff2",
+        "transfer": 0,
+        "encoded": 19952,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-sans-condensed-600.woff2",
+        "transfer": 0,
+        "encoded": 19816,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-sans-condensed-700.woff2",
+        "transfer": 0,
+        "encoded": 19352,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/literata-400.woff2",
+        "transfer": 0,
+        "encoded": 20420,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/literata-600.woff2",
+        "transfer": 0,
+        "encoded": 21860,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/fonts/ibm-plex-mono-400.woff2",
+        "transfer": 0,
+        "encoded": 14708,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/Phosphor.woff2",
+        "transfer": 0,
+        "encoded": 6592,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/chunks/inspection-copy-CbiTBQ-L.js",
+        "transfer": 0,
+        "encoded": 3685,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/chunks/source-text-LCI4h-OT.js",
+        "transfer": 0,
+        "encoded": 611,
+        "duration": 0
+      },
+      {
+        "path": "/prepared-islands-3/lib/chunks/diagram-Bf7Lsqv1.js",
+        "transfer": 0,
+        "encoded": 2412,
+        "duration": 0
+      }
+    ],
+    "viewport": {
+      "width": 1398,
+      "height": 747
+    },
+    "outerOverflow": false,
+    "graphNodes": 0,
+    "diagramSvg": 1,
+    "issues": []
+  }
+]

@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session reconnection proposal</title>
+<link rel="stylesheet" href="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/theme.css">
+<script type="module" src="https://demistify-assets-cli-experiment.askluna.workers.dev/demistify/experimental/c96a72e/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="ex-content"></ex-nav>
+<ex-document id="ex-content"><ex-markdown prepared=""><h1>Session reconnection</h1>
+<p><strong>Decision brief for engineers:</strong> how should a reconnecting client find its running work, and should that lookup survive a process restart?</p>
+</ex-markdown><ex-callout id="decision" tone="decision" title="Proposed decision"><ex-markdown prepared=""><p>Fix expiry handling first. Then validate reconnect behavior with a process-local registry. Decide separately whether restart survival justifies a persistent shared registry. No performance measurements are supplied.</p>
+</ex-markdown></ex-callout><ex-markdown prepared=""><h2>Ownership changes</h2>
+</ex-markdown><ex-grid cols="2">
+<ex-card id="current" title="Current: socket owns session" tone="changed" icon="plug" tag="today"><ex-markdown prepared=""><p>The socket holds the session reference. When the socket is lost, that reference is lost too, so the client cannot resume the existing work through a new connection.</p>
+</ex-markdown></ex-card>
+<ex-card id="proposed" title="Proposal: separate session from transport" tone="planned" icon="stack" tag="proposed"><ex-markdown prepared=""><ul>
+<li><strong>Session:</strong> owns running work.</li>
+<li><strong>Transport:</strong> owns one live WebSocket.</li>
+<li><strong>Registry:</strong> indexes sessions by stable ID.</li>
+</ul>
+<p>This separates the lifetime of the work from the lifetime of its connection. The proposed registry is a process-local <code>Map</code>; a process restart loses it.</p>
+</ex-markdown></ex-card>
+</ex-grid><ex-markdown prepared=""><h2>Reconnect sequence</h2>
+</ex-markdown><ex-mermaid id="sequence" prepared=""><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 613.1899999999999 482" width="613.1899999999999" height="482" style="--bg:var(--sheet);--fg:var(--ink);--accent:var(--accent);--surface:var(--accent-soft);--border:var(--rule)">
+<style>
+  
+  text { font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="seq-arrow" markerWidth="8" markerHeight="5" refX="8" refY="2.5" orient="auto-start-reverse">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)"></polygon>
+  </marker>
+  <marker id="seq-arrow-open" markerWidth="8" markerHeight="5" refX="8" refY="2.5" orient="auto-start-reverse">
+    <polyline points="0 0, 8 2.5, 0 5" fill="none" stroke="var(--_arrow)" stroke-width="1"></polyline>
+  </marker>
+</defs>
+<g class="block" data-type="alt" data-label="Missing or expired">
+  <rect x="30" y="158" width="553.1899999999999" height="259" rx="0" ry="0" fill="none" stroke="var(--_node-stroke)" stroke-width="1"></rect>
+  <rect x="30" y="158" width="136.45000000000002" height="18" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1"></rect>
+  <text x="36" y="167" font-size="11" font-weight="600" fill="var(--_text-sec)" dy="3.8499999999999996">alt [Missing or expired]</text>
+  <line x1="30" y1="274" x2="583.1899999999999" y2="274" stroke="var(--_line)" stroke-width="0.75" stroke-dasharray="6 4"></line>
+  <text x="38" y="288" font-size="11" text-anchor="start" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">[Present and unexpired]</text>
+</g>
+<line class="lifeline" data-actor="C" x1="80" y1="70" x2="80" y2="452" stroke="var(--_line)" stroke-width="0.75" stroke-dasharray="6 4"></line>
+<line class="lifeline" data-actor="G" x1="220" y1="70" x2="220" y2="452" stroke="var(--_line)" stroke-width="0.75" stroke-dasharray="6 4"></line>
+<line class="lifeline" data-actor="R" x1="360" y1="70" x2="360" y2="452" stroke="var(--_line)" stroke-width="0.75" stroke-dasharray="6 4"></line>
+<line class="lifeline" data-actor="S" x1="507.67949999999996" y1="70" x2="507.67949999999996" y2="452" stroke="var(--_line)" stroke-width="0.75" stroke-dasharray="6 4"></line>
+<g class="message" data-from="C" data-to="G" data-label="Reconnect with session ID" data-line-style="solid" data-arrow-head="filled" data-self="false">
+  <line x1="80" y1="90" x2="220" y2="90" stroke="var(--_line)" stroke-width="1" marker-end="url(#seq-arrow)"></line>
+  <text x="150" y="80" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Reconnect with session ID</text>
+</g>
+<g class="message" data-from="G" data-to="R" data-label="Look up stable ID" data-line-style="solid" data-arrow-head="filled" data-self="false">
+  <line x1="220" y1="130" x2="360" y2="130" stroke="var(--_line)" stroke-width="1" marker-end="url(#seq-arrow)"></line>
+  <text x="290" y="120" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Look up stable ID</text>
+</g>
+<g class="message" data-from="R" data-to="G" data-label="No resumable session" data-line-style="dashed" data-arrow-head="filled" data-self="false">
+  <line x1="360" y1="198" x2="220" y2="198" stroke="var(--_line)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#seq-arrow)"></line>
+  <text x="290" y="188" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">No resumable session</text>
+</g>
+<g class="message" data-from="G" data-to="C" data-label="Reject reconnect" data-line-style="dashed" data-arrow-head="filled" data-self="false">
+  <line x1="220" y1="238" x2="80" y2="238" stroke="var(--_line)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#seq-arrow)"></line>
+  <text x="150" y="228" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Reject reconnect</text>
+</g>
+<g class="message" data-from="R" data-to="G" data-label="Existing session" data-line-style="dashed" data-arrow-head="filled" data-self="false">
+  <line x1="360" y1="302" x2="220" y2="302" stroke="var(--_line)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#seq-arrow)"></line>
+  <text x="290" y="292" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Existing session</text>
+</g>
+<g class="message" data-from="G" data-to="S" data-label="Attach new WebSocket" data-line-style="solid" data-arrow-head="filled" data-self="false">
+  <line x1="220" y1="342" x2="507.67949999999996" y2="342" stroke="var(--_line)" stroke-width="1" marker-end="url(#seq-arrow)"></line>
+  <text x="363.83975" y="332" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Attach new WebSocket</text>
+</g>
+<g class="message" data-from="G" data-to="C" data-label="Reconnected" data-line-style="dashed" data-arrow-head="filled" data-self="false">
+  <line x1="220" y1="397" x2="80" y2="397" stroke="var(--_line)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#seq-arrow)"></line>
+  <text x="150" y="387" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Reconnected</text>
+</g>
+<g class="note" data-position="over" data-actors="S">
+  <polygon points="438.42449999999997,350 570.9345,350 576.9345,356 576.9345,373 438.42449999999997,373" fill="var(--bg)" stroke="var(--_node-stroke)" stroke-width="0.75"></polygon>
+  <polygon points="570.9345,350 576.9345,356 570.9345,356" fill="var(--_inner-stroke)" stroke="var(--_node-stroke)" stroke-width="0.75"></polygon>
+  <text x="507.67949999999996" y="361.5" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Running work continues</text>
+</g>
+<g class="note" data-position="over" data-actors="C,S">
+  <polygon points="172.90675,405 408.77275,405 414.77275,411 414.77275,428 172.90675,428" fill="var(--bg)" stroke="var(--_node-stroke)" stroke-width="0.75"></polygon>
+  <polygon points="408.77275,405 414.77275,411 408.77275,411" fill="var(--_inner-stroke)" stroke="var(--_node-stroke)" stroke-width="0.75"></polygon>
+  <text x="293.83975" y="416.5" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">Socket disconnect alone does not cancel work</text>
+</g>
+<g class="actor" data-id="C" data-label="Client" data-type="participant">
+  <rect x="40" y="30" width="80" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1"></rect>
+  <text x="80" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Client</text>
+</g>
+<g class="actor" data-id="G" data-label="Gateway" data-type="participant">
+  <rect x="177.83100000000002" y="30" width="84.338" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1"></rect>
+  <text x="220" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Gateway</text>
+</g>
+<g class="actor" data-id="R" data-label="Registry" data-type="participant">
+  <rect x="317.831" y="30" width="84.338" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1"></rect>
+  <text x="360" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Registry</text>
+</g>
+<g class="actor" data-id="S" data-label="Existing session" data-type="participant">
+  <rect x="442.169" y="30" width="131.021" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1"></rect>
+  <text x="507.67949999999996" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Existing session</text>
+</g>
+</svg></ex-mermaid><ex-markdown prepared=""><p>The gateway looks up the supplied ID. A missing or expired session is rejected; a live session is reused and attached to the new socket. Losing a socket should not cancel the work.</p>
+<h2>Expiry review finding</h2>
+</ex-markdown><ex-callout id="expiry-finding" tone="risk" title="Expired entry is deleted, then still attached"><ex-markdown prepared=""><p>In the illustrative function, the expiry branch deletes the registry entry but falls through and returns that same session. That can attach an expired session. <strong>Return <code>undefined</code> immediately after deletion.</strong> The fix belongs before reconnect behavior is validated.</p>
+</ex-markdown></ex-callout>
+
+<ex-code title="Illustrative expiry bug" lang="diff" start="40">
+<script type="text/plain">
+ export function resume(id: string) {
+-  return sockets.get(id)?.session;
++  const session = registry.get(id);
++  if (!session) return undefined;
++  if (session.expiresAt < Date.now()) {
++    registry.delete(id);
++  }
++  return session.attach(currentSocket());
+ }
+</script>
+<ex-note line="45" tone="risk">After deleting the expired entry, return `undefined` here; do not continue to attach it.</ex-note>
+</ex-code><ex-markdown prepared=""><h2>Two registry options</h2>
+</ex-markdown><ex-grid cols="2" swipe="">
+<ex-card id="memory-option" title="Process-local Map" tone="planned" icon="cpu" tag="bounded experiment"><ex-markdown prepared=""><p><strong>Gains:</strong> simple and fast to try for network reconnects.</p>
+<p><strong>Costs:</strong> entries disappear when the process restarts. It does not provide restart durability.</p>
+<p><strong>Tradeoff:</strong> validates reconnect behavior with less infrastructure, while limiting recovery to the current process lifetime.</p>
+</ex-markdown></ex-card>
+<ex-card id="persistent-option" title="Persistent shared registry" tone="planned" icon="database" tag="durable across replacement"><ex-markdown prepared=""><p><strong>Gains:</strong> the registry survives process replacement.</p>
+<p><strong>Costs:</strong> adds an external dependency and consistency work.</p>
+<p><strong>Tradeoff:</strong> supports restart survival, while introducing operational and coordination complexity.</p>
+</ex-markdown></ex-card>
+</ex-grid><ex-markdown prepared=""><h2>Decision and boundary</h2>
+</ex-markdown><ex-callout id="next" tone="planned" title="Fix expiry, validate reconnect, decide persistence separately"><ex-markdown prepared=""><p>First correct the expiry path. Then validate that reconnect attaches a new socket to the existing live session and that socket disconnection leaves work running. Use the process-local registry as the bounded reconnect experiment; make the persistence decision separately.</p>
+<p>The Map is process-local. <strong>Restart durability is not part of this proposal’s demonstrated behavior.</strong> No performance measurements were supplied, so “fast” is an option’s stated tradeoff, not a measured result.</p>
+</ex-markdown></ex-callout>
+
+</ex-document>
+
+
+</body></html>

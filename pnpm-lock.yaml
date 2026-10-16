@@ -223,6 +223,10 @@ importers:
       zod:
         specifier: 4.4.3
         version: 4.4.3
+    devDependencies:
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
 
   packages/demistify:
     dependencies:

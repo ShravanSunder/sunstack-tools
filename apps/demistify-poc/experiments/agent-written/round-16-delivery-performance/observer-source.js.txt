@@ -1,0 +1,30 @@
+(() => {
+ const result={pageReady:null,fontsReady:null,firstContentfulPaint:null,largestContentfulPaint:null,layoutShift:0,longTasks:[],unsupported:[],islandReady:[],errors:[]};
+ window.__demistifyPerformance=result;
+ const output=document.createElement('script');output.type='application/json';output.id='performance-observation';document.head.append(output);
+ const publish=()=>{output.textContent=JSON.stringify({...result,marks:performance.getEntriesByType('mark').map(entry=>({name:entry.name,start:entry.startTime})),measures:performance.getEntriesByType('measure').map(entry=>({name:entry.name,duration:entry.duration})),resources:performance.getEntriesByType('resource').map(entry=>({path:new URL(entry.name).pathname,transfer:entry.transferSize,encoded:entry.encodedBodySize,duration:entry.duration})),viewport:{width:innerWidth,height:innerHeight},outerOverflow:document.documentElement.scrollWidth>innerWidth,graphNodes:document.querySelectorAll('.ex-explorer-node').length,diagramSvg:document.querySelectorAll('ex-mermaid svg').length,issues:[...document.querySelectorAll('.ex-issues')].map(element=>element.textContent)});};
+ const observe=(type,callback)=>{try{new PerformanceObserver(list=>{list.getEntries().forEach(callback);publish();}).observe({type,buffered:true});}catch(error){result.unsupported.push(type);}};
+ observe('paint',entry=>{if(entry.name==='first-contentful-paint')result.firstContentfulPaint=entry.startTime;});
+ observe('largest-contentful-paint',entry=>{result.largestContentfulPaint=entry.startTime;});
+ observe('layout-shift',entry=>{if(!entry.hadRecentInput)result.layoutShift+=entry.value;});
+ observe('longtask',entry=>result.longTasks.push({start:entry.startTime,duration:entry.duration}));
+ observe('measure',()=>{});
+ observe('resource',()=>{});
+ addEventListener('error',event=>result.errors.push(event.message));
+ addEventListener('unhandledrejection',event=>result.errors.push(String(event.reason)));
+ let settling=false;
+ async function checkReady(){
+  const explorer=document.querySelector('ex-explorer');
+  const markdown=[...document.querySelectorAll('ex-markdown')];
+  const diagrams=[...document.querySelectorAll('ex-mermaid')];
+  if(explorer&&!explorer.hasAttribute('data-ready'))return;
+  if(markdown.some(element=>!element.hasAttribute('prepared')))return;
+  if(diagrams.some(element=>!element.hasAttribute('prepared')))return;
+  if(!document.body||(!explorer&&!diagrams.length)||settling)return;
+  settling=true;result.pageReady=performance.now();
+  await document.fonts.ready;result.fontsReady=performance.now();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{document.documentElement.setAttribute('data-probe-ready','');publish();}));
+ }
+ document.addEventListener('island-ready',event=>{result.islandReady.push({tag:event.target.localName,id:event.target.id,at:performance.now()});void checkReady();});
+ document.addEventListener('DOMContentLoaded',()=>void checkReady());
+})();
