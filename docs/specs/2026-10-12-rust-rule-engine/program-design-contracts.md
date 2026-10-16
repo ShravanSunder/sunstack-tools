@@ -135,7 +135,11 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 - `attempts: AttemptSettings`
 - `request_budget: RequestBudgetSettings`
 
-**`BackendSelection`:** `jev_openrouter { endpoint, model, context_ceiling_tokens }`. `context_ceiling_tokens` is the provider context ceiling the caller declares for that model. Jev's System One surface publishes no tokenizer and no ceiling for `jev-latest`, so the engine never assumes one. The decisions crate derives the backend's accounting from the selection: an estimated byte upper bound, labeled as estimated, admitted only under `accounting_policy: allow_estimated`. The declared ceiling further constrains `max_input_tokens` (Specification C8). `require_exact` with this backend assesses as `unverifiable`. The same `BackendSelection` appears in `RuleInvocationInput`.
+**`BackendSelection`:** `jev_openrouter { endpoint, model, context_ceiling_tokens? }`. This realizes Specification C8's 'a known provider context ceiling further constrains the caller limit'. Jev's System One surface publishes no tokenizer and no ceiling for `jev-latest`, so the engine never assumes one.
+- `context_ceiling_tokens` is optional. When the caller declares it, it further constrains `max_input_tokens`. When it is absent, no provider ceiling is known and the caller's `max_input_tokens` alone bounds the request.
+- The decisions crate derives the backend's accounting from the selection: an estimated byte upper bound, labeled as estimated, admitted only under `accounting_policy: allow_estimated`. `require_exact` with this backend assesses as `unverifiable`.
+- The budget assessment's basis records the accounting as estimated and the provider ceiling as `caller_declared { tokens }` or `not_declared`, so no assessment or report implies a verified model capacity.
+- The same `BackendSelection` appears in `RuleInvocationInput`.
 
 **Outcome `DecisionRunOutcome`:**
 

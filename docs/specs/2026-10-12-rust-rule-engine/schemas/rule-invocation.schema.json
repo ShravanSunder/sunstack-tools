@@ -260,12 +260,12 @@
             "endpoint": { "type": "string", "minLength": 1 },
             "model": { "type": "string", "minLength": 1 },
             "context_ceiling_tokens": {
-              "description": "The provider context ceiling the caller declares for this model. The engine never assumes one; it constrains max_input_tokens.",
+              "description": "Optional. A provider context ceiling the caller declares for this model; when present it further constrains max_input_tokens, and when absent only max_input_tokens applies. The engine never assumes one, and reports record it as caller-declared.",
               "type": "integer",
               "minimum": 1
             }
           },
-          "required": ["kind", "endpoint", "model", "context_ceiling_tokens"],
+          "required": ["kind", "endpoint", "model"],
           "additionalProperties": false
         }
       ]

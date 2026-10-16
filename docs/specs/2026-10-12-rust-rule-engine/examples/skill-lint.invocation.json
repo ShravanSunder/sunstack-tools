@@ -39,7 +39,7 @@
     "max_transcript_bytes": 8388608,
     "include_ignored": false
   },
-  "backend": { "kind": "jev_openrouter", "endpoint": "https://openrouter.ai/api/v1/systemone", "model": "jev-latest", "context_ceiling_tokens": 262144 },
+  "backend": { "kind": "jev_openrouter", "endpoint": "https://openrouter.ai/api/v1/systemone", "model": "jev-latest" },
   "attempts": {
     "attempt_timeout_ms": 10000,
     "retry_count": 0,
