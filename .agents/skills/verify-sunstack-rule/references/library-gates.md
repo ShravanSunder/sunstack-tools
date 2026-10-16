@@ -40,7 +40,7 @@ Take expectations from Specification C1–C5, C8, C11 and V1/V4/V6/V8–V10/V13/
 | `sunstack-evidence/tests/evidence_session.rs` | Original bytes survive later alias selection after mutation/deletion/replacement, one capture/cumulative limits, lazy open, invalid selector before reads and first-capture containment. Session proof does not show rules uses one session. |
 | `sunstack-evidence/tests/acquisition_limits.rs` | Failed UTF-8/adapter admission still consumes acquired file/byte allowances; metadata rejection before reading consumes no content budget. |
 
-The native path is exported `prepare_evidence` → `EvidenceSession::open/select/close` → evidence capture/selection → typed plan; it has no backend. Existing tests are external consumers, with crate unit cases adding controlled adapter observation points. Read `crates/sunstack-evidence/tests/PROOF.md`, `crates/sunstack-evidence/tests/SESSION-PROOF.md` and `crates/sunstack-decisions/PROOF.md` for coverage/sensitivity limits; their historical run summaries are not fresh proof.
+The native path is exported `prepare_evidence` → `EvidenceSession::open/select/close` → evidence capture/selection → typed plan; it has no backend. Existing tests are external consumers, with crate unit cases adding controlled adapter observation points. Read `crates/sunstack-evidence/tests/PROOF.md`, `crates/sunstack-evidence/tests/SESSION-PROOF.md`, `crates/sunstack-evidence/tests/SUPPLEMENT-CURSOR-PROOF.md` (which supersedes the evidence `PROOF.md` late-supplement row), `crates/sunstack-evidence/tests/ACQUISITION-LIMITS-PROOF.md` and `crates/sunstack-decisions/PROOF.md` for coverage/sensitivity limits; their historical run summaries are not fresh proof.
 
 ## Open coverage
 
