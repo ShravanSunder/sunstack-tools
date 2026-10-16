@@ -1,4 +1,5 @@
 use crate::{decision_contracts::*, decision_diagnostics::*};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{num::NonZeroU64, sync::Arc};
 
@@ -52,13 +53,13 @@ pub enum TokenAccounting {
     },
     Unavailable,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ProviderContextCeiling {
     CallerDeclared { tokens: NonZeroU64 },
     NotDeclared,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AccountingBasis {
     Exact {
@@ -68,7 +69,8 @@ pub enum AccountingBasis {
         provider_ceiling: ProviderContextCeiling,
     },
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RequestBudgetCounts {
     pub input_tokens: u64,
     pub request_bytes: usize,

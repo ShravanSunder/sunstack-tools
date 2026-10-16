@@ -42,6 +42,12 @@ pub enum EvidenceCode {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DiagnosticLocation {
     None,
+    Definition {
+        file: std::path::PathBuf,
+        line: usize,
+        column: usize,
+        field_path: Vec<String>,
+    },
     Field {
         field_path: Vec<String>,
     },

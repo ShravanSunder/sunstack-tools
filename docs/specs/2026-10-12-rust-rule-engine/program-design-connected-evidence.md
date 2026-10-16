@@ -19,12 +19,13 @@ A **repository binding** (E17) is the only authority for a root, its allowed pat
 | `TimeWindow` | `lookback { seconds }` or `absolute { since_utc, until_utc }`, resolved once at admission |
 | `CommitParentPolicy` | `first_parent` or `each_parent`. A root commit compares against the empty tree |
 | `UnknownRecencyPolicy` | Required: `include_with_diagnostic` or `exclude_with_omission`. There is no default |
-| `ResolvedChangeMember` | The resolved variant of each scope member, with its changes and coverage. A union returns its members in order |
+| `ResolvedChangeSelection` | Reported once per repository binding whose change selection was actually resolved during the invocation (Specification R21). Resolution is lazy, like any acquisition: an unused change scope is never resolved just to report it, and a full-scope binding used only as context has no entry: `repository`, `anchor_utc` (the one UTC anchor every window resolved against), `members: [ResolvedChangeMember]`, `coverage` |
+| `ResolvedChangeMember` | The resolved variant of each scope member, in scope order (a union returns its members in order): `scope_position`, the resolved bounds (`layers`, comparison endpoints, selected `commit_ids` with their parent policy, resolved `since_utc`/`until_utc`), `changed_paths` with their provenance, and `recency: not_time_based \| commit_time \| approximate_file_time { unknown: none \| included { paths } \| excluded { count } }`. Its nonfatal `diagnostics` (`recency_unknown` for included unknown-recency files, `history_incomplete`) live here, and never make an authorized selection incomplete |
 | `SourceCaptureLimits`, `DiscoveryLimits` | Positive `max_files`, `max_file_bytes`, `max_total_bytes`, `max_matches`, `include_ignored`; and `max_unit_visits`, `max_relationship_candidates`, `max_fan_out`, `max_history_commits`, `max_local_time_ms`. All required |
 
 `git2` resolves tree, index and worktree comparisons. Git work happens once per repository and scope member, never per rule. Renames may be delete plus add.
 
-**Capture.** Selected file bytes are frozen with their content and revision identity. A final verification pass rereads mutable files. If relevant content changed, capture is refused once with `source_changed` and `capture_again` advice, with no hidden retry. Commit-to-commit sources use blob IDs. A unit or chunk never mixes a span from one version with text from a later read. No transaction spans several repositories.
+**Capture.** Selected file bytes are frozen with their content and revision identity. Each capture ends with a verification pass that rereads the mutable files it read, before its selection returns. If relevant content changed during that capture, it is refused once with `source_changed` and `capture_again` advice, with no hidden retry. A change after a capture has returned is a later source change: the frozen bytes stand, as the [evidence session](program-design-contracts.md#prepare_evidence-sunstack-evidence) states. Commit-to-commit sources use blob IDs. A unit or chunk never mixes a span from one version with text from a later read. No transaction spans several repositories.
 
 **Time windows.** One UTC anchor resolves lookback for all repositories. Commit windows walk from the declared references, filter on committer time, and don't stop at the first older commit. Shallow or bounded history is a coverage diagnostic. Commit-set and time scopes keep each commit's own delta; `revision_diff` is an endpoint comparison. These are never merged into a fictional patch.
 
@@ -68,6 +69,8 @@ Both sides of each diff span map to enclosing functions, methods, classes and Ma
 
 **Seeds and scope for a rule.** A rule's `related_units` declaration has no seeds of its own. Admission builds the native query: seeds are the changed units of the bound change-set input's repository binding, and discovery covers every repository binding the invocation supplies, within each binding's allowed paths. So a changed definition in repository B can bring in an unchanged caller from a supplied repository A, and the rule cannot redirect its seed elsewhere.
 
+**Changed units need a change scope.** Changed-unit seeds require a change selection with an admitted before or after side in the seed repository. A repository binding with `change_scope: full` has no delta, so a `changed_units` selection, a rule-authored `related_units` declaration, or a native `SourceUnitSeeds::changed_units` query over it is refused with `no_change_selection`, never answered with every current unit. A full-scope binding can still be discovery context for another binding's changed seeds, and native `selector_units` seeds work in full or change scopes.
+
 **The relationship graph** is invocation-local:
 - Each node is keyed by snapshot, repository, revision, path and range.
 - A visit is deduplicated by node, direction and depth, so cycles stop revisiting.
@@ -101,10 +104,10 @@ Shared excerpts are deduplicated. A giant unit can become an explicitly partial 
 | --- | --- |
 | `SourceUnitQuery` | `seeds`, `languages`, `unit_kinds`, `source_sides` |
 | `SourceUnitKind` | `function { signature }`, `method { signature }`, `class { signature }`, `paragraph`, `section` |
-| `ChunkSettings` | `grouping: single_group \| per_seed` (rules allow `single_group` only; native callers may use `per_seed`), `seed_content`, `related_content`, `max_chunk_bytes` |
+| `ChunkSettings` | `grouping: single_group \| per_seed` (rules allow `single_group` only; native callers may use `per_seed`), `seed_content`, `related_content`, `max_chunk_bytes`. `single_group` yields `related_group`, and `per_seed` yields `related_groups` with one seed-attributed group per located seed unit ([contracts](program-design-contracts.md#prepare_evidence-sunstack-evidence)) |
 | `UnitContent` | `whole_unit` or `bounded_excerpt { max_bytes }` |
 | `ContextGroupOutcome` | `complete { group, coverage }`, `partial { group, coverage, omissions, diagnostics }`, `unavailable { diagnostics }` |
-| `Excerpt` | `unit: SourceUnitKey`, `span: SourceSpan`, `membership: whole_unit \| bounded_excerpt { max_bytes }`, `context: code { enclosing_signature, import_context: [SourceSpan] } \| markdown`, `content_identity` |
+| `Excerpt` | `unit: SourceUnitKey`, `span: SourceSpan`, `text` (the captured bytes of `span`), `membership: whole_unit \| bounded_excerpt { max_bytes }`, `context: code { enclosing_signature, import_context: [SourceSpan] } \| markdown`, `content_identity` |
 | `DiscoveryCoverage` | `complete_within_declared_scope { query_bounds }`, `limited { query_bounds, cutoffs: [{ limit, frontier: [SourceUnitKey] }] }`, `unavailable { diagnostics }` |
 | `PackageSourceBinding` | `importing_repository_id`, `module_prefix`, `target_repository_id`, `target_path_prefix`, `language` |
 
