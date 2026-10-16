@@ -206,6 +206,7 @@ pub struct MonitoringCursor {
     pub committed_bytes: u64,
     pub prefix_digest: String,
     pub record_watermarks: BTreeMap<RecordId, u64>,
+    pub supplement_digest: Option<String>,
 }
 /// The adapter receives immutable committed bytes and identity, never a path or open handle.
 pub struct CapturedTranscript<'capture> {

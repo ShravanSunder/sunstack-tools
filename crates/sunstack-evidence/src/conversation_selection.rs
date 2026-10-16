@@ -64,11 +64,14 @@ pub fn select_conversation(
             .records
             .iter()
             .filter(|record| {
-                record.provenance == RecordProvenance::HookSupplement
-                    || capture.previous_cursor.as_ref().is_none_or(|cursor| {
+                capture.previous_cursor.as_ref().is_none_or(|cursor| {
+                    if record.provenance == RecordProvenance::HookSupplement {
+                        cursor.supplement_digest != capture.cursor.supplement_digest
+                    } else {
                         cursor.record_watermarks.get(&record.record_id)
                             != capture.cursor.record_watermarks.get(&record.record_id)
-                    })
+                    }
+                })
             })
             .map(|record| &record.record_id)
             .collect(),

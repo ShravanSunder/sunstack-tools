@@ -115,41 +115,108 @@ async fn real_append_cursor_returns_whole_streamed_message_and_late_result() {
     );
 }
 #[tokio::test]
-async fn late_supplement_repeats_until_transcript_materializes_it() {
+async fn unchanged_supplement_is_not_replayed_after_its_cursor() {
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("transcript");
     std::fs::write(&path, b"").unwrap();
-    let initial = capture(request(&path)).await;
     let mut next = request(&path);
-    next.cursor = Some(initial.cursor.encode().unwrap());
     next.final_assistant_text = Some("final".into());
-    for _ in 0..2 {
-        let supplemented = capture(next.clone()).await;
-        let delta = select_conversation(&supplemented, &selection()).unwrap();
-        assert_eq!(delta.records.len(), 1);
-        assert_eq!(
-            delta.records[0].provenance,
-            RecordProvenance::HookSupplement
-        );
-        assert_eq!(delta.records[0].injection, InjectionOrigin::NotInjected);
-        assert!(matches!(
-            delta.records[0].body,
-            ConversationBody::AssistantMessage { .. }
-        ));
-        next.cursor = Some(supplemented.cursor.encode().unwrap());
-    }
+    let first = capture(next.clone()).await;
+    let records = select_conversation(&first, &selection()).unwrap().records;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].provenance, RecordProvenance::HookSupplement);
+    assert_eq!(records[0].injection, InjectionOrigin::NotInjected);
+    next.cursor = Some(first.cursor.encode().unwrap());
+    let unchanged = capture(next.clone()).await;
+    assert!(
+        select_conversation(&unchanged, &selection())
+            .unwrap()
+            .records
+            .is_empty()
+    );
+    let mut all = selection();
+    all.turns = TurnWindow::All;
+    assert_eq!(
+        select_conversation(&unchanged, &all).unwrap().records.len(),
+        1,
+        "the supplement stays visible outside incremental selection"
+    );
+    next.cursor = Some(unchanged.cursor.encode().unwrap());
+    next.final_assistant_text = None;
+    let absent = capture(next.clone()).await;
+    assert!(
+        select_conversation(&absent, &selection())
+            .unwrap()
+            .records
+            .is_empty()
+    );
+    next.cursor = Some(absent.cursor.encode().unwrap());
+    next.final_assistant_text = Some("final".into());
+    assert!(
+        select_conversation(&capture(next).await, &selection())
+            .unwrap()
+            .records
+            .is_empty(),
+        "an invocation without supplement text must not forget the previous digest"
+    );
+}
+#[tokio::test]
+async fn changed_supplement_is_returned_once_with_the_whole_new_text() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("transcript");
+    std::fs::write(&path, b"").unwrap();
+    let mut next = request(&path);
+    next.final_assistant_text = Some("first".into());
+    let first = capture(next.clone()).await;
+    next.cursor = Some(first.cursor.encode().unwrap());
+    next.final_assistant_text = Some("changed final".into());
+    let changed = capture(next.clone()).await;
+    let records = select_conversation(&changed, &selection()).unwrap().records;
+    assert_eq!(records.len(), 1);
+    assert!(
+        matches!(&records[0].body, ConversationBody::AssistantMessage { blocks } if blocks == &[MessageBlock::Text { text: "changed final".into() }])
+    );
+    next.cursor = Some(changed.cursor.encode().unwrap());
+    assert!(
+        select_conversation(&capture(next).await, &selection())
+            .unwrap()
+            .records
+            .is_empty()
+    );
+}
+#[tokio::test]
+async fn materialized_supplement_returns_the_committed_record_once_then_clears_its_digest() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("transcript");
+    std::fs::write(&path, b"").unwrap();
+    let mut next = request(&path);
+    next.final_assistant_text = Some("final".into());
+    let first = capture(next.clone()).await;
+    next.cursor = Some(first.cursor.encode().unwrap());
+    next.final_assistant_text = None;
     append(
         &path,
         b"{\"type\":\"assistant\",\"message\":{\"id\":\"final-id\",\"content\":\"final\"}}\n",
     );
-    let materialized = capture(next).await;
-    assert!(materialized.supplement.is_none());
+    let committed = capture(next.clone()).await;
+    assert!(committed.supplement.is_none());
+    let records = select_conversation(&committed, &selection())
+        .unwrap()
+        .records;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].record_id.as_str(), "final-id");
     assert_eq!(
-        select_conversation(&materialized, &selection())
+        serde_json::to_value(&committed.cursor)
+            .unwrap()
+            .get("supplement_digest"),
+        Some(&serde_json::Value::Null)
+    );
+    next.cursor = Some(committed.cursor.encode().unwrap());
+    assert!(
+        select_conversation(&capture(next).await, &selection())
             .unwrap()
             .records
-            .len(),
-        1
+            .is_empty()
     );
 }
 #[tokio::test]
