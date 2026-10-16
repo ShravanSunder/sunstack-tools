@@ -21,8 +21,9 @@ Staging verifies and preserves all prior major directories before deployment. In
 - [x] Add PR CI and gated main deployment with matched guide assets.
 - [x] Exercise release/retention/error scenarios and real local workerd.
 - [x] Check lint/types/format/build and inspect public diff.
-- [ ] Push separate PR; verify CI/comments/mergeability.
-- [ ] Configure CI environment and select/bootstrap the first supported release separately.
+- [x] Push separate PR [#2](https://github.com/ShravanSunder/sunstack-tools/pull/2); source head `21f6961` passed hosted checks and Bugbot, with no comments/threads and conflict-free mergeability.
+- [x] Create `demistify-cdn` and verify its custom deployment policy permits only branch `main`. No credentials were copied.
+- [ ] Supply an approved scoped CI credential, enable bot PR permission, and select/bootstrap the first supported release separately.
 
 Unchecked rows remain unverified; source, hosted CI, deployed delivery and installed skill availability are separate claims.
 
@@ -32,8 +33,16 @@ Unchecked rows remain unverified; source, hosted CI, deployed delivery and insta
 
 Real Changesets fixture: a declared compatible feature passed parser/status; versioning consumed it and produced 0.2.0; typed version-only validation passed while pending-status exited 1. CI preserves pending-status for non-version PRs and validates the consumed version-only phase separately. This is a diagnosed false failure, not a disabled feature declaration check.
 
-GitHub readback: Actions enabled; default workflow permission read; bot PR creation disabled; demistify-cdn environment not found. These are outstanding operator setup, not a claim that CI authentication works. No repository setting or credential has been changed by this branch. First supported version selection remains separate.
+GitHub readback after setup: Actions enabled; default workflow permission read; bot PR permission disabled. The new `demistify-cdn` environment exists, with exactly one allowed deployment ref: branch `main`. Repository secrets are empty; no environment credentials have been installed. No default token permission or Cloudflare resource has changed. First supported version selection remains separate.
 
-Final local Node suite: 37 tests in 9 files, exit 0. Quality gates and actionlint pass. The actual Changesets parser rejects a body-text fake declaration (exit 1); valid feature and consumed version-only flows pass. No browser tests or remote Cloudflare resources were touched by this fork.
+Final local Node suite: 37 tests in 9 files, exit 0. Quality gates and actionlint pass. The actual Changesets parser rejects a body-text fake declaration (exit 1); valid feature and consumed version-only flows pass. No browser tests were run and no Cloudflare resources were changed by this fork.
 
-History origin is derived from the protected Cloudflare account and the Worker configuration using Wrangler’s documented Workers-subdomain endpoint. It is not a separately maintained repository variable. Authentication of that read remains unverified until the protected environment is configured; no token has been read or sent by local proof.
+History origin is derived from the protected Cloudflare account and the Worker configuration using Wrangler’s documented Workers-subdomain endpoint. It is not a separately maintained repository variable. Authentication of that CI read remains unverified until an approved credential is installed. The release protocol fixtures used no authentication. A later local `wrangler whoami --json` succeeded, and the read-only configured-Worker lookup returned provider Worker-not-found code 10007. Identity, account and credential values were suppressed; no Cloudflare resource was created or deployed.
+
+## Source review and integration checkpoint
+
+[PR #2](https://github.com/ShravanSunder/sunstack-tools/pull/2) is the separate deployment workflow on `feat/demistify-cloudflare-release-workflow`. Its code head `21f696124bbef044531fb173e46f675b0231bb41` passed hosted checks in 51 seconds and Cursor Bugbot in 11m49s with no findings. Version-PR and deploy jobs correctly skipped on the pull-request/non-main event. This handoff update changes documentation only; use the live PR checks for the current head. The PR remains draft and has not been merged.
+
+The fixes workstream is separately pushed on `fix/demistify-mermaid-scroll`, latest handback `bda497218b23a6c46d6e9a4ad8903bb76a3b82f0`. Its new components, authoring guide and browser tests are not included in this workflow PR. Integrate and verify that product branch before choosing the first supported release; build runtime, theme, diagram worker, chunks and guide together. Never place a newer guide under the old experimental asset pin. Reported browser proof belongs to that workstream, not this deployment branch.
+
+The remaining credential-selection question is pending with the owner. Existing local CLI login does not establish a durable GitHub CI credential. Do not copy local OAuth credentials or an unidentified broad API credential into CI. The workflow can be reviewed independently; authenticated hosted deployment and release selection remain open.
