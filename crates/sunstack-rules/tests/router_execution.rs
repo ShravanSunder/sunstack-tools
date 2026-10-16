@@ -152,3 +152,85 @@ async fn native_choice_confidence_controls_uncertain_routed_and_no_route_outcome
         assert_eq!(server.finish().await, report.measurements.model_requests);
     }
 }
+
+#[tokio::test]
+async fn same_ruleset_under_two_route_labels_keeps_opposite_wired_gates_separate() {
+    for selected in ["alpha", "beta"] {
+        let root = tempfile::tempdir().unwrap();
+        let mut rule = fixture::rule("one");
+        rule["evidence"]
+            .as_array_mut()
+            .unwrap()
+            .push(fixture::declaration("other", "context"));
+        fixture::write_set(root.path(), &[rule], vec![fixture::decision("subject")]);
+        router(root.path());
+        let path = root.path().join("router.json");
+        let mut definition: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        definition["routes"]["beta"][0]["inputs"] = json!({"subject":"other","other":"subject"});
+        std::fs::write(&path, serde_json::to_vec(&definition).unwrap()).unwrap();
+        let mut server = controlled::ControlledServer::start().await;
+        let mut input =
+            serde_json::to_value(fixture::input(root.path(), &server.endpoint)).unwrap();
+        let group = input["definitions"]["rule_sets"][0]["binding_groups"][0].clone();
+        input["definitions"] =
+            json!({"kind":"router","path":"router.json","binding_groups":[group]});
+        let execution = tokio::spawn(evaluate_rules(
+            serde_json::from_value(input).unwrap(),
+            RuleExecutionContext {
+                backend: Arc::new(transport::backend(&server.endpoint)),
+                adapters: AdapterRegistry::builtins().unwrap(),
+                cancellation: CancellationToken::new(),
+            },
+        ));
+        let first = server.next().await;
+        let second = server.next().await;
+        let (alpha, beta) = if first.body["questions"]
+            .as_object()
+            .unwrap()
+            .values()
+            .any(|question| question["type"] == "choice")
+        {
+            (first, second)
+        } else {
+            (second, first)
+        };
+        beta.noul(0.9);
+        let answers=alpha.body["questions"].as_object().unwrap().iter().map(|(name,question)|{let answer=if question["type"]=="choice"{json!({"type":"choice","choice":selected,"confidence":0.9,"probabilities":{"alpha":0.5,"beta":0.5,"none":0.0}})}else{json!({"type":"noul","noul":if question["instructions"]["owner"].as_str().unwrap().starts_with("rule_set_decision:"){0.1}else{0.9}})};(name.clone(),answer)}).collect::<serde_json::Map<_,_>>();
+        alpha.respond(200,json!({"model":"typesafe/test","answers":answers,"usage":{"input_tokens":10,"output_tokens":3}}));
+        let outcome = tokio::time::timeout(Duration::from_secs(3), execution)
+            .await
+            .unwrap()
+            .unwrap();
+        let RuleInvocationOutcome::CompleteReport { report } = outcome else {
+            panic!("{outcome:?}")
+        };
+        assert_eq!(report.groups.len(), 1);
+        assert_eq!(report.occurrences.len(), 1);
+        let wire = serde_json::to_value(&report).unwrap();
+        assert_eq!(wire["groups"][0]["binding"]["label"], selected);
+        assert_eq!(
+            wire["groups"][0]["entries"][0]["key"]["owner"]["route"],
+            selected
+        );
+        let routes = wire["requests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|request| request["owner"]["route"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(routes, vec!["alpha", "beta"]);
+        if selected == "alpha" {
+            assert!(matches!(
+                report.occurrences[0],
+                RuleOccurrenceResult::NotApplicable { .. }
+            ));
+        } else {
+            assert!(matches!(
+                report.occurrences[0],
+                RuleOccurrenceResult::Judged { .. }
+            ));
+        }
+        assert_eq!(server.finish().await, 2);
+    }
+}

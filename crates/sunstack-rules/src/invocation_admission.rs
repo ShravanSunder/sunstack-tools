@@ -5,7 +5,6 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use sunstack_decisions::ChoiceLabel;
 use sunstack_evidence::{
     AdapterRegistry, EvidenceDiscovery, EvidencePlanInput, SourceName, SourceSpec,
 };
@@ -34,7 +33,6 @@ pub(crate) struct AdmittedGroup {
     pub position: usize,
     pub binding: GroupBinding,
     pub sources: AdmittedSources,
-    pub route_label: Option<ChoiceLabel>,
 }
 pub(crate) struct AdmittedRouter {
     pub definition: RouterDefinition,
@@ -278,7 +276,6 @@ fn load_invocation(
                         position,
                         binding: GroupBinding::Bound,
                         sources: bound,
-                        route_label: None,
                     });
                 }
             }
@@ -329,9 +326,9 @@ fn load_invocation(
                             position,
                             binding: GroupBinding::Routed {
                                 router_group: position,
+                                label: label.clone(),
                             },
                             sources: bound,
-                            route_label: Some(label.clone()),
                         });
                     }
                 }

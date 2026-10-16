@@ -283,8 +283,11 @@ pub(crate) fn definition_topology(
     for admitted in groups {
         let group_index = GroupIndex(plan.groups.len());
         let sources = Arc::new(admitted.sources.clone());
-        let routing = match (&admitted.binding, &admitted.route_label) {
-            (GroupBinding::Routed { router_group }, Some(label)) => plan
+        let routing = match &admitted.binding {
+            GroupBinding::Routed {
+                router_group,
+                label,
+            } => plan
                 .router_entries
                 .get(*router_group)
                 .copied()
@@ -297,6 +300,7 @@ pub(crate) fn definition_topology(
         let owner = EntryOwner::RuleSet {
             path: admitted.set.path.clone(),
             group: admitted.position,
+            route: admitted.binding.route().cloned(),
         };
         let group_entries = append_entries(
             &mut plan,
@@ -316,6 +320,7 @@ pub(crate) fn definition_topology(
             let owner = EntryOwner::Rule {
                 path: admitted.set.path.clone(),
                 group: admitted.position,
+                route: admitted.binding.route().cloned(),
                 rule_id: rule.rule_id.clone(),
             };
             let entries = append_entries(

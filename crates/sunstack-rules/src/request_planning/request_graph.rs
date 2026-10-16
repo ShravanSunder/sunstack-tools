@@ -21,6 +21,14 @@ pub(crate) async fn precompute_conditions(
         let EntryDefinition::Condition(test) = &entry.definition else {
             continue;
         };
+        let leading = !entry.parents.iter().any(|parent| {
+            let parent = &plan.entries[parent.0];
+            parent.key.owner == entry.key.owner
+                && matches!(parent.definition, EntryDefinition::Decision { .. })
+        });
+        if !leading {
+            continue;
+        }
         let scans = matches!(test, ConditionTest::PatternPresent { .. });
         if scans
             && (entry.routing.is_some()
@@ -92,6 +100,7 @@ pub(crate) fn build_request_graph(plan: &mut ExecutionPlan, settings: &Execution
                 owner: RequestOwner::RuleSetGroup {
                     rule_set: admitted.set.path.clone(),
                     group: admitted.position,
+                    route: admitted.binding.route().cloned(),
                 },
                 mode: RequestMode::Rules,
                 units: rules.into_iter().map(UnitKey::Rule).collect(),
@@ -169,6 +178,7 @@ pub(crate) fn build_request_graph(plan: &mut ExecutionPlan, settings: &Execution
                 owner: RequestOwner::RuleSetGroup {
                     rule_set: admitted.set.path.clone(),
                     group: admitted.position,
+                    route: admitted.binding.route().cloned(),
                 },
                 mode: if settings.speculation == Speculation::On {
                     RequestMode::Speculative

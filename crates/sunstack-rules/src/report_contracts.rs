@@ -32,10 +32,14 @@ pub enum EntryOwner {
     RuleSet {
         path: PathBuf,
         group: usize,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        route: Option<ChoiceLabel>,
     },
     Rule {
         path: PathBuf,
         group: usize,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        route: Option<ChoiceLabel>,
         rule_id: RuleId,
     },
 }
@@ -56,7 +60,18 @@ pub struct RuleOccurrenceKey {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum GroupBinding {
     Bound,
-    Routed { router_group: usize },
+    Routed {
+        router_group: usize,
+        label: ChoiceLabel,
+    },
+}
+impl GroupBinding {
+    pub(crate) fn route(&self) -> Option<&ChoiceLabel> {
+        match self {
+            Self::Bound => None,
+            Self::Routed { label, .. } => Some(label),
+        }
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -327,8 +342,15 @@ pub enum RoutingReport {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RequestOwner {
-    Router { group: usize },
-    RuleSetGroup { rule_set: PathBuf, group: usize },
+    Router {
+        group: usize,
+    },
+    RuleSetGroup {
+        rule_set: PathBuf,
+        group: usize,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        route: Option<ChoiceLabel>,
+    },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
