@@ -1,7 +1,8 @@
 use crate::decision_contracts::ProviderFailureClass;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DecisionDiagnosticCode {
     UnknownField,
@@ -35,7 +36,7 @@ pub enum DecisionDiagnosticCode {
     UnexpectedProviderError,
     CallerAborted,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DecisionDiagnosticOrigin {
     Request,
@@ -43,13 +44,13 @@ pub enum DecisionDiagnosticOrigin {
     Provider,
     Execution,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DecisionDiagnosticLocation {
     None,
     Field { field_path: Vec<String> },
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RetryAdvice {
     RetryAfter { milliseconds: u64 },
@@ -61,7 +62,7 @@ pub enum RetryAdvice {
     DoNotRetry,
     Unknown,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}: {guidance}")]
 #[serde(deny_unknown_fields)]
 pub struct DecisionDiagnostic {
@@ -127,7 +128,7 @@ impl DecisionDiagnostic {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiagnosticList {
     pub items: Vec<DecisionDiagnostic>,

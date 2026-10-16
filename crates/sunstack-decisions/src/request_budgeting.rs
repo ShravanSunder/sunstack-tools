@@ -1,4 +1,6 @@
 use crate::{decision_contracts::*, decision_diagnostics::*};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// Opaque, instance-specific backend identity. Clone only for the same backend.
@@ -51,12 +53,14 @@ pub enum TokenAccounting {
     },
     Unavailable,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum AccountingBasis {
     Exact,
     Estimated,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RequestBudgetCounts {
     pub input_tokens: u64,
     pub request_bytes: usize,
