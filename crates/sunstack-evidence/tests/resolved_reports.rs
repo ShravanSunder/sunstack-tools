@@ -279,10 +279,10 @@ async fn public_cancelled_admitted_partial_retains_the_completed_change_report()
         input: SourceName::new("cancel_source").unwrap(),
         requirement: EvidenceRequirement::Optional,
         select: EvidenceSelection::Conversation {
-            turns: TurnWindow::All,
+            turns: TurnWindow::All {},
             user_messages: Inclusion::Included,
             assistant_messages: AssistantSelection::All,
-            tool_use: ToolUseSelection::Excluded,
+            tool_use: ToolUseSelection::Excluded {},
             hook_injected: Inclusion::Excluded,
         },
         max_items: None,

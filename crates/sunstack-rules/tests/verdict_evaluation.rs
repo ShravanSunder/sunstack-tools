@@ -130,7 +130,7 @@ fn composite_normalizes_fractional_scores_and_keeps_each_native_reference() {
 fn verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape() {
     let inputs = std::collections::BTreeMap::from([(
         sunstack_evidence::SourceName::new("subject").unwrap(),
-        InputDeclaration::Document,
+        InputDeclaration::Document {},
     )]);
     let baseline = serde_json::json!({"rule_id":"check","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{"yes":{"type":"noul","instructions":"yes"},"quality":{"type":"score","instructions":"quality","criteria":["low","middle","high"]}},"verdict":{"kind":"composite","dimensions":[{"question":"yes","weight":0.5},{"question":"quality","weight":0.5}],"threshold":0.75},"severity":"block"});
     for case in [

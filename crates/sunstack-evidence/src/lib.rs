@@ -60,3 +60,6 @@ mod connected_admission;
 
 pub mod change_comparison_contracts;
 pub use change_comparison_contracts::*;
+
+mod evidence_plan_decoding;
+pub use evidence_plan_decoding::decode_evidence_plan_input;

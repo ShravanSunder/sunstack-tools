@@ -27,7 +27,7 @@ async fn document_then_worktree_change_set_reuses_one_capture_after_source_delet
         .select(&declaration(
             "doc",
             "document",
-            EvidenceSelection::WholeDocument,
+            EvidenceSelection::WholeDocument {},
         ))
         .await;
     std::fs::remove_file(fixture.directory.path().join("source.ts")).unwrap();
@@ -69,7 +69,7 @@ async fn worktree_change_set_then_document_alias_keeps_frozen_locations_after_re
         .select(&declaration(
             "doc",
             "alias",
-            EvidenceSelection::WholeDocument,
+            EvidenceSelection::WholeDocument {},
         ))
         .await;
     let SelectionReadiness::Ready {
@@ -118,7 +118,7 @@ async fn staged_blob_and_worktree_document_at_one_path_are_distinct_captured_ver
         .select(&declaration(
             "doc",
             "document",
-            EvidenceSelection::WholeDocument,
+            EvidenceSelection::WholeDocument {},
         ))
         .await;
     assert!(
@@ -263,7 +263,7 @@ async fn failed_utf8_acquisition_still_consumes_the_invocation_file_and_byte_bud
                 if source == "changes" {
                     units()
                 } else {
-                    EvidenceSelection::WholeDocument
+                    EvidenceSelection::WholeDocument {}
                 },
             ))
             .await;
@@ -274,7 +274,7 @@ async fn failed_utf8_acquisition_still_consumes_the_invocation_file_and_byte_bud
             .select(&declaration(
                 "later",
                 "later",
-                EvidenceSelection::WholeDocument,
+                EvidenceSelection::WholeDocument {},
             ))
             .await;
         assert!(

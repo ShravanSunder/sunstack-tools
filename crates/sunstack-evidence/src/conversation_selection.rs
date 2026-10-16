@@ -5,7 +5,7 @@ impl ConversationSelection {
     pub fn validate(&self) -> EvidenceResult<()> {
         if self.user_messages == Inclusion::Excluded
             && self.assistant_messages == AssistantSelection::Excluded
-            && matches!(self.tool_use, ToolUseSelection::Excluded)
+            && matches!(self.tool_use, ToolUseSelection::Excluded {})
         {
             return Err(EvidenceCode::EmptyProjection.into());
         }
@@ -48,7 +48,7 @@ pub fn select_conversation(
     selection.validate()?;
     let mut omissions = Vec::new();
     let window: BTreeSet<&RecordId> = match selection.turns {
-        TurnWindow::All => capture
+        TurnWindow::All {} => capture
             .records
             .iter()
             .map(|record| &record.record_id)
@@ -60,7 +60,7 @@ pub fn select_conversation(
             .take(count.get())
             .flat_map(|turn| turn.records.iter())
             .collect(),
-        TurnWindow::SinceCursor => capture
+        TurnWindow::SinceCursor {} => capture
             .records
             .iter()
             .filter(|record| {
@@ -107,9 +107,9 @@ pub fn select_conversation(
                 AssistantSelection::FinalOnly => Some(&record.record_id) == final_assistant,
             },
             ConversationBody::ToolUse(tool) => match &selection.tool_use {
-                ToolUseSelection::Excluded => false,
+                ToolUseSelection::Excluded {} => false,
                 ToolUseSelection::Included { tools, .. } => match tools {
-                    ToolFilter::All => true,
+                    ToolFilter::All {} => true,
                     ToolFilter::Named { names } => names.contains(&tool.tool_name),
                     ToolFilter::Categories { categories } => categories.contains(&tool.category),
                 },

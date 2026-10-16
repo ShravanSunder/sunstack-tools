@@ -205,7 +205,7 @@ pub enum EvidenceSelection {
     Paragraph {
         target_id: TargetId,
     },
-    WholeDocument,
+    WholeDocument {},
     LiteralText {
         text: String,
     },
@@ -223,7 +223,7 @@ pub enum EvidenceSelection {
         tool_use: ToolUseSelection,
         hook_injected: Inclusion,
     },
-    WholePayload,
+    WholePayload {},
     PayloadField {
         pointer: String,
     },

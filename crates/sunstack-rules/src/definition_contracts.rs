@@ -58,9 +58,9 @@ impl From<RuleId> for String {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InputDeclaration {
-    Document,
-    Conversation,
-    ChangeSet,
+    Document {},
+    Conversation {},
+    ChangeSet {},
     Payload { schema: SchemaName },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

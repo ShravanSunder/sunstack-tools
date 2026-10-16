@@ -87,7 +87,7 @@ pub struct ExecutionSettings {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InvocationOrigin {
-    Direct,
+    Direct {},
     Hook {
         host: String,
         event: String,
@@ -105,13 +105,13 @@ pub enum InvocationOrigin {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum OriginAgent {
-    Main,
+    Main {},
     Subagent {
         id: String,
         #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
         agent_type: Option<String>,
     },
-    Unknown,
+    Unknown {},
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -155,7 +155,7 @@ pub enum ReportedOrigin {
 impl From<&InvocationOrigin> for ReportedOrigin {
     fn from(origin: &InvocationOrigin) -> Self {
         match origin {
-            InvocationOrigin::Direct => Self::Direct,
+            InvocationOrigin::Direct {} => Self::Direct,
             InvocationOrigin::Hook {
                 host,
                 event,
@@ -170,12 +170,12 @@ impl From<&InvocationOrigin> for ReportedOrigin {
                 turn: turn.clone().into(),
                 observed_at: (*observed_at).into(),
                 agent: match agent {
-                    Some(OriginAgent::Main) => ReportedAgent::Main,
+                    Some(OriginAgent::Main {}) => ReportedAgent::Main,
                     Some(OriginAgent::Subagent { id, agent_type }) => ReportedAgent::Subagent {
                         id: id.clone(),
                         agent_type: agent_type.clone().into(),
                     },
-                    Some(OriginAgent::Unknown) => ReportedAgent::Unknown,
+                    Some(OriginAgent::Unknown {}) => ReportedAgent::Unknown,
                     None => ReportedAgent::Unavailable,
                 },
             },
@@ -185,16 +185,16 @@ impl From<&InvocationOrigin> for ReportedOrigin {
 impl InvocationOrigin {
     pub fn field(&self, field: OriginField) -> Option<&str> {
         match self {
-            Self::Direct => None,
+            Self::Direct {} => None,
             Self::Hook {
                 host, event, agent, ..
             } => match field {
                 OriginField::Host => Some(host),
                 OriginField::Event => Some(event),
                 OriginField::AgentKind => match agent {
-                    Some(OriginAgent::Main) => Some("main"),
+                    Some(OriginAgent::Main {}) => Some("main"),
                     Some(OriginAgent::Subagent { .. }) => Some("subagent"),
-                    Some(OriginAgent::Unknown) => Some("unknown"),
+                    Some(OriginAgent::Unknown {}) => Some("unknown"),
                     None => None,
                 },
                 OriginField::AgentType => match agent {

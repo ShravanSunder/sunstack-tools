@@ -84,7 +84,7 @@ impl Preparation {
                     id: DeclarationId::new("comparison")?,
                     input,
                     requirement: EvidenceRequirement::Required,
-                    select: EvidenceSelection::WholeDocument,
+                    select: EvidenceSelection::WholeDocument {},
                     max_items: None,
                     max_bytes: None,
                 };
@@ -264,7 +264,7 @@ impl Preparation {
             return Ok(path_result);
         }
         if let Some(declaration) = declaration {
-            if matches!(declaration.select, EvidenceSelection::WholeDocument) {
+            if matches!(declaration.select, EvidenceSelection::WholeDocument {}) {
                 return Ok(path_result);
             }
             if let EvidenceSelection::RelatedUnits {

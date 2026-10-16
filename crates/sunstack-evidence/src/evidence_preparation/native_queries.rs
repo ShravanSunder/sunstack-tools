@@ -20,7 +20,7 @@ impl Preparation {
                             id: query.id.clone(),
                             input: SourceName::new("native_query")?,
                             requirement: EvidenceRequirement::Required,
-                            select: EvidenceSelection::WholeDocument,
+                            select: EvidenceSelection::WholeDocument {},
                             max_items: None,
                             max_bytes: None,
                         },
@@ -48,7 +48,7 @@ impl Preparation {
                 vec![QueryPath::Exact {
                     path: source_path.clone(),
                 }],
-                EvidenceSelection::WholeDocument,
+                EvidenceSelection::WholeDocument {},
             ),
             EvidenceSelector::LiteralText {
                 repository_id,

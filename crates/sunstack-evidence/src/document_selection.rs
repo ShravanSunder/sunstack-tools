@@ -125,7 +125,7 @@ pub(crate) fn select_document_bounded(
         EvidenceSelection::Paragraph { target_id } => {
             return resolve_paragraph(document, target_id).map(|content| (content, false));
         }
-        EvidenceSelection::WholeDocument => {
+        EvidenceSelection::WholeDocument {} => {
             return Ok((
                 SelectionContent::DocumentText {
                     span: source_span(&document.source, text, 0..text.len()),

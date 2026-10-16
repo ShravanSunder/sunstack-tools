@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DiagnosticOrigin {
+    Request,
     Source,
     Transcript,
     InputBinding,
@@ -14,6 +15,9 @@ pub enum DiagnosticOrigin {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceCode {
+    UnknownField,
+    DuplicateField,
+    InvalidRequest,
     SourceUnavailable,
     PathOutsideRoot,
     UnsupportedEncoding,
@@ -132,6 +136,21 @@ impl Diagnostic {
                 DiagnosticOrigin::Selection,
                 "Supply all required context within explicit discovery and chunk bounds.",
                 RetryAdvice::RepairConfiguration,
+            ),
+            UnknownField => (
+                DiagnosticOrigin::Request,
+                "Remove undeclared fields from the evidence request at the indicated location.",
+                RetryAdvice::RepairRequest,
+            ),
+            DuplicateField => (
+                DiagnosticOrigin::Request,
+                "Supply each evidence request field only once.",
+                RetryAdvice::RepairRequest,
+            ),
+            InvalidRequest => (
+                DiagnosticOrigin::Request,
+                "Supply one well-formed evidence request with values matching the declared input types.",
+                RetryAdvice::RepairRequest,
             ),
             UnknownTranscriptFormat => (
                 DiagnosticOrigin::Transcript,

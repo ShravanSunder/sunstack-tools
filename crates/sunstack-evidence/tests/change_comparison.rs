@@ -17,7 +17,7 @@ fn declaration(select: EvidenceSelection) -> EvidenceDeclaration {
 async fn session(fixture: &GitFixture, scope: ChangeScope) -> EvidenceSession {
     let mut input = support::connected_inputs::plan(
         vec![fixture.binding(scope)],
-        EvidenceSelection::WholeDocument,
+        EvidenceSelection::WholeDocument {},
         EvidenceRequirement::Required,
     );
     input.sources = BTreeMap::from([(
@@ -121,7 +121,7 @@ async fn path_comparison_precedes_content_and_reuses_one_frozen_capture_after_li
         ChangeComparison::Unchanged {}
     ));
     let selected = session
-        .select(&declaration(EvidenceSelection::WholeDocument))
+        .select(&declaration(EvidenceSelection::WholeDocument {}))
         .await;
     assert!(
         matches!(selected.readiness,SelectionReadiness::Ready{content:SelectionContent::DocumentText{ref text,..},..} if text=="# Prefix\n\nU001: stable\n")
@@ -154,7 +154,7 @@ async fn full_scope_is_not_change_tracked_and_capture_limits_refuse_instead_of_p
         vec![fixture.binding(ChangeScope::Uncommitted {
             layers: vec![DirtyLayer::Unstaged],
         })],
-        EvidenceSelection::WholeDocument,
+        EvidenceSelection::WholeDocument {},
         EvidenceRequirement::Required,
     );
     input.sources = BTreeMap::from([(
@@ -302,7 +302,7 @@ async fn unavailable_baseline_and_exhausted_history_cannot_prove_irrelevance() {
     other.key = RepositoryId::new("other").unwrap();
     let mut input = support::connected_inputs::plan(
         vec![first.binding(scope), other],
-        EvidenceSelection::WholeDocument,
+        EvidenceSelection::WholeDocument {},
         EvidenceRequirement::Required,
     );
     input.declarations.clear();

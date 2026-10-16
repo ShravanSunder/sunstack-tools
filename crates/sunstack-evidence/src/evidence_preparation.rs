@@ -427,7 +427,7 @@ impl Preparation {
             }
             CapturedSource::Payload(payload) => {
                 let pointer = match &declaration.select {
-                    EvidenceSelection::WholePayload => "",
+                    EvidenceSelection::WholePayload {} => "",
                     EvidenceSelection::PayloadField { pointer } => pointer,
                     _ => return Err(EvidenceCode::InvalidSelector.into()),
                 };

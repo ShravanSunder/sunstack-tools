@@ -98,7 +98,7 @@ pub(crate) fn admit_declaration(
         (
             SourceSpec::Document { .. },
             EvidenceSelection::Paragraph { .. }
-                | EvidenceSelection::WholeDocument
+                | EvidenceSelection::WholeDocument {}
                 | EvidenceSelection::LiteralText { .. }
                 | EvidenceSelection::RegexText { .. }
                 | EvidenceSelection::AstPattern { .. }
@@ -114,7 +114,7 @@ pub(crate) fn admit_declaration(
                 | EvidenceSelection::RelatedUnits { .. }
         ) | (
             SourceSpec::Payload { .. },
-            EvidenceSelection::WholePayload | EvidenceSelection::PayloadField { .. }
+            EvidenceSelection::WholePayload {} | EvidenceSelection::PayloadField { .. }
         )
     );
     if !compatible {

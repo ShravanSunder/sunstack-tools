@@ -142,7 +142,7 @@ pub fn validate_rule_definition(
         target.select,
         EvidenceSelection::Paragraph { .. }
             | EvidenceSelection::Conversation { .. }
-            | EvidenceSelection::WholePayload
+            | EvidenceSelection::WholePayload {}
             | EvidenceSelection::PayloadField { .. }
             | EvidenceSelection::ChangedUnits { .. }
             | EvidenceSelection::RelatedUnits { .. }
@@ -227,20 +227,20 @@ pub(crate) fn validate_evidence(
         let compatible = matches!(
             (input, &declaration.select),
             (
-                InputDeclaration::Document,
+                InputDeclaration::Document {},
                 EvidenceSelection::Paragraph { .. }
-                    | EvidenceSelection::WholeDocument
+                    | EvidenceSelection::WholeDocument {}
                     | EvidenceSelection::LiteralText { .. }
                     | EvidenceSelection::RegexText { .. }
                     | EvidenceSelection::AstPattern { .. }
             ) | (
-                InputDeclaration::Conversation,
+                InputDeclaration::Conversation {},
                 EvidenceSelection::Conversation { .. }
             ) | (
                 InputDeclaration::Payload { .. },
-                EvidenceSelection::WholePayload | EvidenceSelection::PayloadField { .. }
+                EvidenceSelection::WholePayload {} | EvidenceSelection::PayloadField { .. }
             ) | (
-                InputDeclaration::ChangeSet,
+                InputDeclaration::ChangeSet {},
                 EvidenceSelection::ChangeSetLiteralText { .. }
                     | EvidenceSelection::ChangeSetRegexText { .. }
                     | EvidenceSelection::ChangeSetAstPattern { .. }
@@ -325,7 +325,7 @@ pub(crate) fn validate_entries(
                 ConditionTest::PatternPresent { input, pattern, .. } => {
                     if !matches!(
                         inputs.get(input),
-                        Some(InputDeclaration::Document | InputDeclaration::Conversation)
+                        Some(InputDeclaration::Document {} | InputDeclaration::Conversation {})
                     ) {
                         return Err(refusal(if inputs.contains_key(input) {
                             RuleDiagnosticCode::InputKindMismatch
