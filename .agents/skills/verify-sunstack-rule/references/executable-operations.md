@@ -1,6 +1,6 @@
-# Executable operations — milestone 1
+# Executable operations
 
-Drive the real `sunstack-rule` process at product `919ca49712b7aba527bccd6e413ff27f2beb9738`. Oracle: Specification C14/V2/V13 and exact contracts at `a08839b`, read with the main skill's pinned `git show` method. Each cited Specification row is the full checklist; the controls below do not narrow it. V15 artifact integrity is release proof, open unless separately requested.
+Drive the real `sunstack-rule` process at SKILL.md's pinned product target. Oracle: Specification C14/V2/V13 and exact contracts, read with the main skill's pinned `git show` method. Each cited Specification row is the full checklist; the controls below do not narrow it. V15 artifact integrity is release proof, open unless separately requested.
 
 Inputs: declared checkout/build/config/client, explicit CWD, and an authorized evidence directory. Return the run ID, declared binary/readiness result, relative transcript/cursor path control result, actual process stdout/stderr/exits, operation coverage and proof limits. The established route is `crates/sunstack-rule-cli/README.md`, permanent tests and `crates/sunstack-rule-cli/tests/support/mod.rs`; `crates/sunstack-rule-cli/tests/PHASE1-PROOF.md` is historical two-operation proof, while `crates/sunstack-rule-cli/tests/PHASE2-PROOF.md` describes the integrated target.
 
@@ -13,7 +13,7 @@ cargo build -p sunstack-rule-cli
 cargo nextest run -p sunstack-rule-cli
 ```
 
-The default package run executes 23 local cases (22 process tests and one native-enum serializer seam); four CLI cases remain ignored: two hosted journeys, the measurement workload and an offline diagnosis. A current same-target workspace run containing those 23 local passes also confirms this route; do not repeat it just to obtain a package-only receipt. Require exit 0 and preserve failures/LEAK counts under the library-gates interpretation.
+The default package run executes 36 local cases (35 process tests and one native-enum serializer seam); four CLI cases remain ignored: two hosted journeys, the measurement workload and an offline diagnosis. Apply `library-gates.md`'s same-run reuse rule and LEAK interpretation; require exit 0.
 
 The harness starts `CARGO_BIN_EXE_sunstack-rule` through the repository's absolute `scripts/cargo-debug-signing-runner.sh`, with real pipes and explicit child CWD. Local helpers inject a synthetic environment credential and use real loopback HTTP fixtures. They retain the actual binary/library/filesystem/serializer boundaries and await each child/server. They do not dispatch to hosted Jev.
 
@@ -32,9 +32,20 @@ Raw stdin is bounded at **8,388,608 bytes**; the next byte refuses with `input_l
 | `run_judgments` | `completed`, exact correlated native answers/receipt/attempts | `invalid_request`, budget refusal with zero dispatch | `provider_failure` or `invalid_response`, no answers fabricated | `cancelled`, attempts/remote uncertainty retained |
 | `evaluate_rules` | `complete_report`, including failed block verdicts | native `invalid` | real `incomplete_report`; PreparationFailed seam below | `cancelled`, no report before admission or retained partial report afterwards |
 
-Preparation of evidence has no backend. Rule preparation requires valid backend configuration/environment credential for encoding/accounting but makes zero provider calls. It leaves routers/decisions not evaluated, prepares only requests ready before their answers and records deferred requests as `waiting { on }` without acquisition. Use the synthetic local fixture credential, not the owner's key, for those local tests. Milestone 1 intentionally omits the milestone 2 change-scope shapes (`change_selections`, judged `selected_by`, occurrence/preparation `selection`, and `outside_change_scope`); the exact contracts' SelectedReason paragraph states that accepted milestone 1 shapes omit selection. Do not demand those future shapes from this full-scope target.
+Preparation of evidence has no backend. Rule preparation requires valid backend configuration/environment credential for encoding/accounting but makes zero provider calls. It leaves routers/decisions not evaluated, prepares only requests ready before their answers and records deferred requests as `waiting { on }` without acquisition. Use the synthetic local fixture credential, not the owner's key, for those local tests.
 
 **PreparationFailed limit:** both native `preparation_failed` variants have wire tags, native diagnostics/measurements and exit 3 proven through the real CLI serializer/exit seam in `crates/sunstack-rule-cli/src/protocol_boundary.rs`. That seam is the agreed proof method; no reachable public-stdin input has been demonstrated. The V2 runtime cell stays pending with the owner as a proof-gate decision. Do not label the seam as a process journey, treat it as a closed waiver or add a fault flag to force it.
+
+## Milestone 2 shape checks
+
+Exact field definitions belong to `program-design-contracts.md` (EvidencePlan, RulePreparation, RuleReport and SelectedReason sections) and the adopted invocation schema, retrieved through SKILL.md's pins. These are kind-level checks; `milestone-2.md` owns their deciding readbacks, including cancellation.
+
+| Surface | Required kinds |
+| --- | --- |
+| Inputs | Non-Full change scopes, bounded discovery and package mappings with explicit limits. Closed empty Full/Worktree/None and WholeUnit inputs refuse extra fields. |
+| `prepare_evidence` | Prepared/incomplete/refused/cancelled retains resolved change selections and requested connected evidence with source attribution; Full fabricates no delta. |
+| `prepare_rules` | Planned comparison_pending, selected and outside_change_scope occurrence states; deferred requests waiting; resolved selections retained. |
+| `evaluate_rules` | Judged selected_by, outside_change_scope occurrences, selection_failed and not_sent/outside_change_scope requests; cancellation retains admitted selection metadata without inventing selected_by. |
 
 ## Match the observations to their harness
 
@@ -46,6 +57,7 @@ Preparation of evidence has no backend. Rule preparation requires valid backend 
 | `process_cancellation.rs`, `process_rule_cancellation.rs` | Both signals before evidence/judgment admission, SIGTERM before rule admission and in flight; real ready/consumed-signal barriers. Causal completed peer retains judgment/receipt, held second request cancels without retry and third stays not_started/unread; actual HTTP/read counters corroborate. FIFO-held evidence worker cannot publish terminal stdout until it settles. |
 | `process_evidence_paths.rs` | Same relative transcript and cursor source paths in two real CWDs resolve to distinct captures; append/resume returns the new whole record. Payload/author/provider/credential sentinels remain absent from safe diagnostics/stderr. |
 | `process_journeys.rs` | Controlled skill-lint/handoff paths and router outcomes, covered by the milestone 1 recipe as part of this same default run. |
+| `process_change_scopes.rs`, `process_connected_evidence.rs`, `process_change_cancellation.rs` | M2 selection, connected context and scoped cancellation; deciding readbacks are owned by `milestone-2.md`. |
 
 The FIFO's 100 ms no-output observation is bounded and corroborated by source awaits; it is not proof about arbitrary timing. Socket EOF and cancellation do not establish remote inference/billing reversal. The accepted phase 1 report additionally observed in-flight SIGINT outside the permanent suite; reuse only with an explicit unchanged-source/config applicability check, or leave that extra case unobserved in your new run.
 

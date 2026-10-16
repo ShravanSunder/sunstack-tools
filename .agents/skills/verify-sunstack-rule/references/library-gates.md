@@ -14,7 +14,7 @@ cargo nextest run --workspace
 
 Record output and the command's own exit status, preserving it when piping to a log. The default local suite excludes ignored hosted tests. A zero-test run is not a behavioral pass. Do not add `--no-tests pass`, skip failures or weaken leak handling. Cargo Clippy checks compilation/types as well as the workspace lint rules.
 
-At the milestone 1 target the default workspace suite has seven deliberate skips: three native hosted cases, two CLI hosted journeys, the fixed measurement workload and the offline preserved-request diagnosis. A skip leaves its claim unknown unless separately observed or validly reused. A workspace run that includes all 23 CLI local cases can also confirm the executable and controlled-journey recipes; reuse that same run instead of repeating the package/subset command.
+At the pinned target the default workspace suite has seven deliberate skips: three native hosted cases, two CLI hosted journeys, the fixed measurement workload and the offline preserved-request diagnosis. A skip leaves its claim unknown unless separately observed or validly reused. `executable-operations.md` owns the current CLI case count. A same-target workspace run whose pass list contains every test the selected routes name can confirm those routes; reuse that run instead of repeating package/subset commands.
 
 ### Interpret nextest LEAK markers
 
@@ -53,6 +53,6 @@ The native path is exported `prepare_evidence` → `EvidenceSession::open/select
 
 ## Open coverage
 
-The milestone 1 target has real rules and executable implementations. Genuine V22/V34 has the hosted-rules route in `hosted-decisions.md`, selected by the main skill's explicit call; V29/V30 has `milestone-1.md`. Native local tests do not replace either hosted route or process observations. V5/V16–V18, change-scoped V7 and the related-units competing-seed portion of V20 remain milestone 2 drafts until a declared change-selection/discovery target and real fixtures are available. PreparationFailed runtime reachability remains pending an owner proof-gate decision; platform artifact/release proof, installed-host qualification and exact tokenizer agreement also remain open with their respective target/evidence prerequisites. Do not extrapolate the available suite to them.
+The pinned target has real rules and executable implementations. Genuine V22/V34 has the hosted-rules route in `hosted-decisions.md`, selected by the main skill's explicit call; V29/V30 has `milestone-1.md`. Native local tests do not replace either hosted route or process observations. V5/V16–V18, change-scoped V7 and the V20 related-units competing-seed portion use `milestone-2.md`; return its remaining draft prerequisites separately. PreparationFailed runtime reachability remains pending an owner proof-gate decision; platform artifact/release proof, installed-host qualification and exact tokenizer agreement also remain open with their respective target/evidence prerequisites. Do not extrapolate the available suite to them.
 
 Complete when the selected tests' real boundaries and rejection cases match the adopted claims, the gates have preserved results, and all remaining V scope is explicitly observed, reused with applicability, or draft with its prerequisite named. No product edits belong to this route.

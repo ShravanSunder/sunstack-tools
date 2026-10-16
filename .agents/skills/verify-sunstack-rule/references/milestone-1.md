@@ -1,6 +1,6 @@
 # Skill lint and handoff monitor — milestone 1
 
-Run against product `919ca49712b7aba527bccd6e413ff27f2beb9738`. Oracle: Specification C7/C9–C14 and V2/V13/V14/V29/V30 at `a08839b`, read using the main skill's pinned `git show` method. Each cited Specification row is the full checklist; the recipe and control tables do not narrow it. These are executable/contract journeys, not semantic-accuracy or live-hook qualification.
+Run against SKILL.md's pinned product target. Oracle: Specification C7/C9–C14 and V2/V13/V14/V29/V30, read using the main skill's pinned `git show` method. Each cited Specification row is the full checklist; the recipe and control tables do not narrow it. These are executable/contract journeys, not semantic-accuracy or live-hook qualification.
 
 MUST load `executable-operations.md` and return its declared binary/readiness, local process coverage and relative transcript/cursor control result before relying on this route's process claims. Use the same target/run where coverage overlaps. Inputs: SDK setup, declared checkout/config/client/CWD, authorized evidence storage, and separate network/spend/credential authority for the hosted branch. Expected behavior comes from the oracle, not from a favorable previous model answer.
 
