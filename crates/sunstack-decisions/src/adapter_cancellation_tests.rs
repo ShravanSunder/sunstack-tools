@@ -74,18 +74,7 @@ async fn real_adapter_received_body_barrier_then_cancel_prevents_completed_admis
 async fn real_adapter_deadline_is_timeout_and_retries_finitely() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let endpoint = format!("http://{}/v1/systemone", listener.local_addr().unwrap());
-    let server = tokio::spawn(async move {
-        let mut count = 0;
-        for _ in 0..2 {
-            let (mut connection, _) = listener.accept().await.unwrap();
-            let _capture = read_request(&mut connection).await;
-            count += 1;
-            // No response: the configured attempt deadline must terminate IO.
-            let mut byte = [0];
-            assert_eq!(connection.read(&mut byte).await.unwrap(), 0);
-        }
-        count
-    });
+    let server = tokio::spawn(stall_connections_until_peer_close(listener, 2));
     let mut input = mixed_input(&endpoint);
     input.attempts.attempt_timeout_ms = 100;
     input.attempts.retry_count = 1;
@@ -120,7 +109,8 @@ async fn real_adapter_deadline_is_timeout_and_retries_finitely() {
         tokio::time::timeout(Duration::from_secs(2), server)
             .await
             .unwrap()
-            .unwrap(),
+            .unwrap()
+            .len(),
         2
     );
 }
@@ -189,4 +179,39 @@ async fn real_adapter_abort_after_return_does_not_rewrite_completion() {
     assert!(matches!(result, DecisionRunOutcome::Completed { .. }));
     assert_eq!(serde_json::to_value(result).unwrap(), snapshot);
     assert_eq!(server.finish().await, 1);
+}
+
+async fn stall_connections_until_peer_close(
+    listener: TcpListener,
+    expected_connections: usize,
+) -> Vec<usize> {
+    let mut received_bytes = Vec::new();
+    for _ in 0..expected_connections {
+        let (mut connection, _) = listener.accept().await.unwrap();
+        // A deadline can close transport before the HTTP request is written.
+        // Keep the listener alive for the next attempt even after an empty EOF.
+        let mut request_bytes = Vec::new();
+        connection.read_to_end(&mut request_bytes).await.unwrap();
+        received_bytes.push(request_bytes.len());
+    }
+    received_bytes
+}
+
+#[tokio::test]
+async fn deadline_fixture_accepts_peer_close_before_request_bytes() {
+    use tokio::{io::AsyncWriteExt, net::TcpStream};
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(stall_connections_until_peer_close(listener, 2));
+    let first = TcpStream::connect(address).await.unwrap();
+    drop(first);
+    let mut second = TcpStream::connect(address).await.unwrap();
+    let request = b"POST /v1/systemone HTTP/1.1\r\nContent-Length: 0\r\n\r\n";
+    second.write_all(request).await.unwrap();
+    second.shutdown().await.unwrap();
+    let captures = tokio::time::timeout(Duration::from_secs(2), server)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(captures, vec![0, request.len()]);
 }
