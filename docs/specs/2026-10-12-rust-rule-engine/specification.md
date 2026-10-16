@@ -399,6 +399,8 @@ A RuleSet's applicability list, and each rule's own list, holds entries evaluate
 - **Passed:** go on to the next entry.
 - **Did not pass:** stop. The outcome is not applicable, with the entry and its basis.
 - **Unresolved condition** (a missing payload field, an incomplete scan): stop. The outcome is applicability failed. A missing field is never false.
+
+**Payload field tests** resolve their pointer first. A missing field is unresolved. A present field, including one whose value is JSON `null`, is tested as declared: equality and set membership compare the present value, so `null` equals only `null`, and a presence test passes. A presence test therefore never does not pass: it asserts that the field exists.
 - **Failed decision call** (timeout, invalid response, provider failure, budget refusal or unavailable evidence): stop. The outcome is applicability failed, with a diagnostic naming the entry, the failure class and the retry advice. That RuleSet × group's rules do not run, and the report is incomplete.
 
 Entries after a stop are not used, and evidence only they need is not acquired. The exception is a speculative request (C13), where a decision over the same evidence as the rules is answered alongside them and applied afterwards in code. Every evaluated entry is recorded: conditions with their basis, decisions with their native answer, receipt and attempt history. An empty list means always applicable. RuleSet applicability is decided per binding group; rule applicability per rule occurrence.

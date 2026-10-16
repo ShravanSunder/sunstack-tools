@@ -278,7 +278,7 @@ Conditions use the same pointer resolution.
 | --- | --- | --- |
 | `payload_field_equals` | `input`, `pointer`, `value` | Passed if equal. A missing field is unresolved, never false |
 | `payload_field_in` | `input`, `pointer`, `values` | As above |
-| `payload_field_present` | `input`, `pointer` | Passed if the field is present with a non-null value; did not pass if it is present as JSON `null`; a missing field is unresolved, never false (Specification R34) |
+| `payload_field_present` | `input`, `pointer` | Passed if the field is present, including a present JSON `null`; a missing field is unresolved, never false. It has no did-not-pass outcome (Specification C10, R34) |
 | `origin_field_equals` | `field: host \| event \| agent_kind \| agent_type`, `value` | An `unavailable` origin field, or a `direct` origin, is unresolved |
 | `pattern_present` | `input`, `pattern: literal \| regex \| ast`, `max_scan_bytes` | Scans a document, or a conversation's normalized text. An incomplete scan is unresolved |
 
@@ -315,7 +315,7 @@ Planning is pure and deterministic. It runs after admission and after the leadin
 - **Acquisition-free** conditions (origin, payload value, source presence) read only admitted facts. A leading one is evaluated before planning, and if it does not pass, its group gets no rules request.
 - **Scanning** conditions (for example `pattern_present`) acquire their source. A leading one is scanned before planning. A non-leading one acquires its source only when its turn comes, unless that source is already captured for a request that rides, whose bytes it reads.
 
-The router is the first gate of every candidate RuleSet. It does not change which conditions lead, but it bounds acquisition: a candidate's leading scanning condition acquires its source only after the router has settled and selected that candidate, while its acquisition-free leading conditions still run before planning. A candidate whose acquisition-free leading condition fails gets no rules request, and the router rides another qualifying candidate's request or its own.
+The router is the first gate of every candidate RuleSet. It does not change which conditions lead, but it bounds acquisition. A candidate's leading scanning condition over a source in the router's own read set scans those bytes before the router answers, because the router acquires them anyway; so when it passes, the candidate's rules request can still carry the router in one call. A leading scan over a source outside the router's read set waits until the router has settled and selected that candidate. Acquisition-free leading conditions still run before planning. A candidate whose acquisition-free leading condition fails gets no rules request, and the router rides another qualifying candidate's request or its own.
 
 A condition is never a gate. It creates no request, and it does not stage the router or a decision before it: those still ride the same-input rules request. If a non-leading condition does not pass, its occurrences are `not_applicable { entry }` and the speculative answers are discarded with their cost. Reported outcomes follow authored order: an entry reached only after a gate that did not pass, failed or was cancelled is reported `not_evaluated`, even if it was computed.
 
