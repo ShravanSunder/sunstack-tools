@@ -27,7 +27,7 @@ impl Preparation {
                 vec![QueryPath::Exact {
                     path: source_path.clone(),
                 }],
-                EvidenceSelection::WholeDocument,
+                EvidenceSelection::WholeDocument {},
             ),
             EvidenceSelector::LiteralText {
                 repository_id,

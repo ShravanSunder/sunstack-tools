@@ -94,13 +94,13 @@ pub(crate) async fn evaluate_condition(
                 return unresolved();
             };
             let select = match source.spec {
-                SourceSpec::Document { .. } => EvidenceSelection::WholeDocument,
+                SourceSpec::Document { .. } => EvidenceSelection::WholeDocument {},
                 SourceSpec::Conversation { .. } => EvidenceSelection::Conversation {
-                    turns: TurnWindow::All,
+                    turns: TurnWindow::All {},
                     user_messages: Inclusion::Included,
                     assistant_messages: AssistantSelection::All,
                     tool_use: ToolUseSelection::Included {
-                        tools: ToolFilter::All,
+                        tools: ToolFilter::All {},
                         results: Inclusion::Included,
                     },
                     hook_injected: Inclusion::Included,

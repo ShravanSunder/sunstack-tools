@@ -70,7 +70,7 @@ async fn opening_and_refusing_invalid_selection_reads_no_bound_document() {
     .await
     .unwrap();
     let mut invalid = selection("invalid", "first");
-    invalid.select = EvidenceSelection::WholePayload;
+    invalid.select = EvidenceSelection::WholePayload {};
     assert!(
         matches!(session.select(&invalid).await.readiness,SelectionReadiness::Refused{diagnostics} if diagnostics.items[0].code==EvidenceCode::InvalidSelector)
     );
@@ -136,11 +136,11 @@ async fn deleted_transcript_alias_keeps_the_same_frozen_capture() {
     ]);
     let mut first = selection("first_capture", "first");
     first.select = EvidenceSelection::Conversation {
-        turns: TurnWindow::All,
+        turns: TurnWindow::All {},
         user_messages: Inclusion::Included,
         assistant_messages: AssistantSelection::All,
         tool_use: ToolUseSelection::Included {
-            tools: ToolFilter::All,
+            tools: ToolFilter::All {},
             results: Inclusion::Included,
         },
         hook_injected: Inclusion::Included,

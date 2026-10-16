@@ -13,7 +13,7 @@ fn input(root: &Path) -> EvidencePlanInput {
             input_paths: vec![QueryPath::Glob {
                 pattern: "**".into(),
             }],
-            change_scope: ChangeScope::Full,
+            change_scope: ChangeScope::Full {},
         }],
         sources: BTreeMap::from([(
             SourceName::new("skill").unwrap(),
@@ -40,7 +40,7 @@ fn input(root: &Path) -> EvidencePlanInput {
             max_transcript_bytes: positive(10000),
             include_ignored: false,
         },
-        discovery: EvidenceDiscovery::None,
+        discovery: EvidenceDiscovery::None {},
     }
 }
 fn declaration(id: &str, select: EvidenceSelection) -> EvidenceDeclaration {
@@ -60,7 +60,7 @@ async fn native_plan_prepares_real_sources_once_and_serializes_requested_content
     let mut request = input(root.path());
     request
         .declarations
-        .push(declaration("all", EvidenceSelection::WholeDocument));
+        .push(declaration("all", EvidenceSelection::WholeDocument {}));
     let outcome = prepare_evidence(
         request,
         AdapterRegistry::builtins().unwrap(),
@@ -88,10 +88,10 @@ async fn admission_refuses_bad_selectors_before_read_and_required_limits_stay_in
     let root = tempfile::tempdir().unwrap();
     let mut request = input(root.path());
     request.declarations[0].select = EvidenceSelection::Conversation {
-        turns: TurnWindow::All,
+        turns: TurnWindow::All {},
         user_messages: Inclusion::Excluded,
         assistant_messages: AssistantSelection::Excluded,
-        tool_use: ToolUseSelection::Excluded,
+        tool_use: ToolUseSelection::Excluded {},
         hook_injected: Inclusion::Excluded,
     };
     let outcome = prepare_evidence(
@@ -179,7 +179,7 @@ async fn optional_unavailable_is_prepared_but_required_unavailable_is_incomplete
             path: "unreadable.md".into(),
         },
     );
-    let mut optional = declaration("optional_context", EvidenceSelection::WholeDocument);
+    let mut optional = declaration("optional_context", EvidenceSelection::WholeDocument {});
     optional.input = SourceName::new("optional").unwrap();
     optional.requirement = EvidenceRequirement::Optional;
     request.declarations.push(optional);
@@ -219,7 +219,7 @@ async fn normalized_document_aliases_and_native_queries_share_frozen_capture() {
             path: "./skill.md".into(),
         },
     );
-    let mut alias = declaration("alias", EvidenceSelection::WholeDocument);
+    let mut alias = declaration("alias", EvidenceSelection::WholeDocument {});
     alias.input = SourceName::new("alias").unwrap();
     request.declarations.push(alias);
     request.native_queries.push(NativeQuery {
@@ -263,11 +263,11 @@ async fn conversation_aliases_share_capture_and_cursor_through_public_plan() {
         let mut selected = declaration(
             name,
             EvidenceSelection::Conversation {
-                turns: TurnWindow::All,
+                turns: TurnWindow::All {},
                 user_messages: Inclusion::Included,
                 assistant_messages: AssistantSelection::All,
                 tool_use: ToolUseSelection::Included {
-                    tools: ToolFilter::All,
+                    tools: ToolFilter::All {},
                     results: Inclusion::Included,
                 },
                 hook_injected: Inclusion::Excluded,

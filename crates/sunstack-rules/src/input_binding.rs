@@ -72,7 +72,7 @@ pub(crate) fn admit_group(
             .get(name)
             .ok_or_else(|| DiagnosticList::rule(RuleDiagnosticCode::UnboundInput))?;
         let (spec, id) = match (declaration, binding) {
-            (InputDeclaration::Document, InputBinding::Document { repository, path }) => {
+            (InputDeclaration::Document {}, InputBinding::Document { repository, path }) => {
                 let path = normalize_path(path)
                     .filter(|path| !path.is_absolute() && !path.as_os_str().is_empty())
                     .ok_or_else(|| {
@@ -104,7 +104,7 @@ pub(crate) fn admit_group(
                 )
             }
             (
-                InputDeclaration::Conversation,
+                InputDeclaration::Conversation {},
                 InputBinding::Conversation {
                     transcript_path,
                     format,
@@ -148,7 +148,7 @@ pub(crate) fn admit_group(
                     },
                 )
             }
-            (InputDeclaration::ChangeSet, InputBinding::ChangeSet { repository }) => (
+            (InputDeclaration::ChangeSet {}, InputBinding::ChangeSet { repository }) => (
                 SourceSpec::ChangeSet {
                     repository: repository.clone(),
                 },
@@ -195,9 +195,9 @@ pub(crate) fn wire_group(
             .get(router_name)
             .ok_or_else(|| DiagnosticList::rule(RuleDiagnosticCode::InvalidWiring))?;
         let compatible = match (declaration, router_declaration) {
-            (InputDeclaration::Document, InputDeclaration::Document)
-            | (InputDeclaration::Conversation, InputDeclaration::Conversation)
-            | (InputDeclaration::ChangeSet, InputDeclaration::ChangeSet) => true,
+            (InputDeclaration::Document {}, InputDeclaration::Document {})
+            | (InputDeclaration::Conversation {}, InputDeclaration::Conversation {})
+            | (InputDeclaration::ChangeSet {}, InputDeclaration::ChangeSet {}) => true,
             (
                 InputDeclaration::Payload { schema: first },
                 InputDeclaration::Payload { schema: second },

@@ -22,21 +22,21 @@ pub enum AssistantSelection {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TurnWindow {
-    All,
+    All {},
     Last { count: NonZeroUsize },
-    SinceCursor,
+    SinceCursor {},
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ToolFilter {
-    All,
+    All {},
     Named { names: Vec<String> },
     Categories { categories: Vec<ToolCategory> },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ToolUseSelection {
-    Excluded,
+    Excluded {},
     Included {
         tools: ToolFilter,
         results: Inclusion,

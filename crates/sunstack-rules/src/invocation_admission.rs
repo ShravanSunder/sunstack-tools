@@ -221,7 +221,7 @@ pub(crate) async fn admit_invocation(
             native_queries: vec![],
             package_bindings: vec![],
             limits: input.limits.clone(),
-            discovery: EvidenceDiscovery::None,
+            discovery: EvidenceDiscovery::None {},
         },
     })
 }

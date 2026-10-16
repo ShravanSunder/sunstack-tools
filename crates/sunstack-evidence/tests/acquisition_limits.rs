@@ -89,10 +89,10 @@ async fn refused_adapter_output_still_consumes_transcript_bytes() {
         .unwrap();
     let mut declaration = selection("transcript", "transcript");
     declaration.select = EvidenceSelection::Conversation {
-        turns: TurnWindow::All,
+        turns: TurnWindow::All {},
         user_messages: Inclusion::Included,
         assistant_messages: AssistantSelection::All,
-        tool_use: ToolUseSelection::Excluded,
+        tool_use: ToolUseSelection::Excluded {},
         hook_injected: Inclusion::Excluded,
     };
     let failed = session.select(&declaration).await;
@@ -140,7 +140,7 @@ fn selection(id: &str, input: &str) -> EvidenceDeclaration {
         id: DeclarationId::new(id).unwrap(),
         input: SourceName::new(input).unwrap(),
         requirement: EvidenceRequirement::Required,
-        select: EvidenceSelection::WholeDocument,
+        select: EvidenceSelection::WholeDocument {},
         max_items: None,
         max_bytes: None,
     }

@@ -4,11 +4,11 @@ use sunstack_evidence::*;
 use tokio_util::sync::CancellationToken;
 fn selection() -> ConversationSelection {
     ConversationSelection {
-        turns: TurnWindow::SinceCursor,
+        turns: TurnWindow::SinceCursor {},
         user_messages: Inclusion::Included,
         assistant_messages: AssistantSelection::All,
         tool_use: ToolUseSelection::Included {
-            tools: ToolFilter::All,
+            tools: ToolFilter::All {},
             results: Inclusion::Included,
         },
         hook_injected: Inclusion::Excluded,
@@ -135,7 +135,7 @@ async fn unchanged_supplement_is_not_replayed_after_its_cursor() {
             .is_empty()
     );
     let mut all = selection();
-    all.turns = TurnWindow::All;
+    all.turns = TurnWindow::All {};
     assert_eq!(
         select_conversation(&unchanged, &all).unwrap().records.len(),
         1,
@@ -381,11 +381,11 @@ async fn generic_projection_windows_precede_filters_and_preserve_unknown_injecti
             .len(),
         15
     );
-    projection.tool_use = ToolUseSelection::Excluded;
+    projection.tool_use = ToolUseSelection::Excluded {};
     let without_tools = select_conversation(&source, &projection).unwrap();
     assert_eq!(without_tools.records.len(), 10);
     assert_eq!(without_tools.records[0].record_id.as_str(), "u2");
-    projection.turns = TurnWindow::All;
+    projection.turns = TurnWindow::All {};
     projection.assistant_messages = AssistantSelection::Excluded;
     let users = select_conversation(&source, &projection).unwrap();
     assert_eq!(users.records.len(), 6);
@@ -432,7 +432,7 @@ async fn generic_projection_windows_precede_filters_and_preserve_unknown_injecti
             .records
             .is_empty()
     );
-    projection.tool_use = ToolUseSelection::Excluded;
+    projection.tool_use = ToolUseSelection::Excluded {};
     assert_eq!(
         select_conversation(&source, &projection).unwrap_err().code,
         EvidenceCode::EmptyProjection
@@ -505,7 +505,7 @@ async fn category_and_name_filters_exclude_contrasting_tools_and_remove_present_
     std::fs::write(&path, bytes).unwrap();
     let captured = capture(request(&path)).await;
     let mut projection = selection();
-    projection.turns = TurnWindow::All;
+    projection.turns = TurnWindow::All {};
     projection.user_messages = Inclusion::Excluded;
     projection.assistant_messages = AssistantSelection::Excluded;
     let all = select_conversation(&captured, &projection).unwrap();
@@ -540,7 +540,7 @@ async fn category_and_name_filters_exclude_contrasting_tools_and_remove_present_
         assert_eq!(tool.category, expected_category);
     }
     projection.tool_use = ToolUseSelection::Included {
-        tools: ToolFilter::All,
+        tools: ToolFilter::All {},
         results: Inclusion::Excluded,
     };
     let excluded = select_conversation(&captured, &projection).unwrap();

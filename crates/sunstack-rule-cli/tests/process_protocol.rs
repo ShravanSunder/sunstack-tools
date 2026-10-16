@@ -65,3 +65,37 @@ async fn evidence_success_and_required_optional_refusals_use_real_selections_and
     let wire = response(&run(fixture.path(), "prepare_evidence", invalid).await, 2);
     assert_eq!(wire["result"]["outcome"]["kind"], "refused");
 }
+
+#[tokio::test]
+async fn unknown_field_inside_full_scope_is_refused_at_the_real_process_boundary() {
+    let fixture = tempfile::tempdir().unwrap();
+    std::fs::write(
+        fixture.path().join("skill.md"),
+        "U001: STRICT_VARIANT_PROCESS_CONTROL\n",
+    )
+    .unwrap();
+    let valid = evidence_input(fixture.path());
+    let output = run(fixture.path(), "prepare_evidence", valid.clone()).await;
+    let wire = response(&output, 0);
+    assert_eq!(wire["result"]["outcome"]["kind"], "prepared");
+    assert_eq!(
+        wire["result"]["outcome"]["selections"][0]["readiness"]["content"]["text"],
+        "U001: STRICT_VARIANT_PROCESS_CONTROL"
+    );
+    let mut invalid = valid;
+    invalid["repositories"][0]["change_scope"]["unexpected"] = json!(1);
+    let output = run(fixture.path(), "prepare_evidence", invalid).await;
+    let wire = response(&output, 2);
+    assert_eq!(wire["kind"], "operation_result");
+    assert_eq!(wire["result"]["operation"], "prepare_evidence");
+    let outcome = &wire["result"]["outcome"];
+    assert_eq!(outcome["kind"], "refused");
+    assert_eq!(
+        outcome["diagnostics"]["items"][0]["code"],
+        "invalid_selector"
+    );
+    assert!(outcome.get("selections").is_none());
+    assert!(outcome.get("measurements").is_none());
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("STRICT_VARIANT_PROCESS_CONTROL"));
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("unexpected"));
+}

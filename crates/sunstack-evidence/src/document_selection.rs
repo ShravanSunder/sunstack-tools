@@ -106,7 +106,7 @@ pub fn select_document(
         EvidenceSelection::Paragraph { target_id } => {
             return resolve_paragraph(document, target_id);
         }
-        EvidenceSelection::WholeDocument => {
+        EvidenceSelection::WholeDocument {} => {
             return Ok(SelectionContent::DocumentText {
                 span: source_span(&document.source, text, 0..text.len()),
                 text: text.into(),

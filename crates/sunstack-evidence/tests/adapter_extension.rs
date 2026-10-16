@@ -272,11 +272,11 @@ async fn valid_clipped_results_keep_known_and_unknown_sizes_through_capture_and_
         let selected = select_conversation(
             &capture,
             &ConversationSelection {
-                turns: TurnWindow::All,
+                turns: TurnWindow::All {},
                 user_messages: Inclusion::Excluded,
                 assistant_messages: AssistantSelection::Excluded,
                 tool_use: ToolUseSelection::Included {
-                    tools: ToolFilter::All,
+                    tools: ToolFilter::All {},
                     results: Inclusion::Included,
                 },
                 hook_injected: Inclusion::Excluded,

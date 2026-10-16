@@ -128,7 +128,7 @@ pub enum QueryPath {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ChangeScope {
-    Full,
+    Full {},
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -174,7 +174,7 @@ pub enum EvidenceSelection {
     Paragraph {
         target_id: TargetId,
     },
-    WholeDocument,
+    WholeDocument {},
     LiteralText {
         text: String,
     },
@@ -192,7 +192,7 @@ pub enum EvidenceSelection {
         tool_use: ToolUseSelection,
         hook_injected: Inclusion,
     },
-    WholePayload,
+    WholePayload {},
     PayloadField {
         pointer: String,
     },
