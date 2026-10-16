@@ -14,8 +14,8 @@ Write one HTML file. You supply meaning, content and layout; the library supplie
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Session architecture</title>
-<link rel="stylesheet" href="demistify/theme.css">
-<script type="module" src="demistify/runtime.js"></script>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
 </head>
 <body>
 <ex-document>
@@ -25,7 +25,7 @@ Write one HTML file. You supply meaning, content and layout; the library supplie
 </html>
 ```
 
-Use the library path you are given (default `demistify/`). A page with inline/embedded content and public HTTPS library links needs no app server or per-page framework. A CDN-bound file still needs network access; a fully offline file needs the standalone bundle. Follow your browser tool's supported URL/access policy rather than opening more browser instances to work around a denial.
+Use the library path you are given; the public default is `https://demistify.getagentstudio.dev/v1/`. Experimental v1 may have breaking changes until the owner declares the vocabulary stable. For a locally bundled library, use its supplied relative path instead. A page with inline/embedded content and public HTTPS library links needs no app server or per-page framework. A CDN-bound file still needs network access; a fully offline file needs the standalone bundle. Follow your browser tool's supported URL/access policy rather than opening more browser instances to work around a denial.
 
 ## Markdown first
 

@@ -37,6 +37,8 @@ env:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/demistify-chromium
     outputs:
       deploy: ${{ steps.version.outputs.deploy }}
     steps:
@@ -48,6 +50,9 @@ jobs:
       - run: pnpm check
       - run: pnpm build
       - run: pnpm test
+      - name: Install the pinned Chromium for browser regressions
+        run: pnpm --filter @sunstack/demistify-poc exec playwright install --with-deps chromium
+      - run: pnpm test:browser
       - id: intent
         run: pnpm release:check
         env:
