@@ -1,6 +1,6 @@
 # Demistify browser regressions
 
-Ten Vitest Browser Mode scenarios exercise the built native Web Components in headless Chromium. Each case gets a fresh same-origin document. Vite serves copied runtime, theme, font, chunk and worker files as bytes, so the worker resolves beside the runtime just as it does for a plain HTML consumer. Tests do not import the runtime's TypeScript sources. An SVG outcome proves rendering; this suite does not separately assert that the worker, rather than the supported main-thread fallback, did the render.
+Eleven Vitest Browser Mode scenarios exercise the built native Web Components in headless Chromium. Each case gets a fresh same-origin document. Vite serves copied runtime, theme, font, chunk and worker files as bytes, so the worker resolves beside the runtime just as it does for a plain HTML consumer. Tests do not import the runtime's TypeScript sources. An SVG outcome proves rendering; this suite does not separately assert that the worker, rather than the supported main-thread fallback, did the render.
 
 Build the library before testing. During concurrent work, use a frozen copy of the complete library dist directory instead of rebuilding another writer's target. `DEMISTIFY_BROWSER_ASSETS` selects that copy; without it, the harness snapshots `packages/demistify/dist`. The harness prints its private snapshot path and chooses a free loopback port. It does not use the PoC preview port.
 
@@ -24,6 +24,8 @@ Keep the same `PLAYWRIGHT_BROWSERS_PATH` for install and test. This environment 
 | Tree labels                    | Long labels drop below icons, inline code splits flow, or loose paragraphs flatten              | First-line icon/text bounds, inline-code bounds, separated paragraphs and operable nested folding                                     |
 | Inspection retention           | Sidebar moves the original, or fullscreen loses content/focus on close                          | Both rendered views, visible main island, restored original SVG and invoking-control focus after Escape/Close                         |
 | Modifier gestures              | Ordinary wheel zooms, modifier wheel does not enlarge content, or drag does not pan             | Unchanged zoom on ordinary scrolling, larger visual on Cmd-wheel, both scroll axes moving on Cmd-drag and reset restoring 100%/origin |
+
+The compact-navigation case additionally exercises a 390px pointer hover/click, the visible Pages destination and a heading link that dismisses the menu and reveals Recovery. Its final oracle rejects the original frozen runtime at the post-click visibility assertion. The bounded repair associates the trigger with its native popover using the show action.
 
 The two native visual gesture cases use an ordinary figure/image click and the actual rendered `#wide-diagram` sidebar control. They test rendered enlargement, normal wheel without zoom, native modifier pan on an available scrolling axis, reset and retained main content. They add no fixed-size wrapper or product override. The generic SVG case remains a separate both-axis observation.
 

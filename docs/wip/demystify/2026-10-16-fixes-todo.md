@@ -31,12 +31,14 @@ Updated 2026-10-16. Fixes belong to branch `fix/demistify-mermaid-scroll`; Cloud
 ## Verification and review gallery
 
 - [x] Add useful Vitest Browser Mode coverage with an Implementer Sidekick and independent Verifier; preserve Node tests and existing checks.
-- [x] Run 36 Node tests and 10 real Chromium browser scenarios; preserve original native Mermaid pan failure, the bounded CSS correction and later passing results.
+- [x] Run 36 Node tests and 11 real Chromium browser scenarios; preserve original native Mermaid pan failure, the bounded CSS correction and later passing results.
 - [x] Check all six gallery pages and three focused fixtures: zero source-check errors/warnings.
 - [x] Provide examples, descriptions, composition guidance and copyable markup for all 28 registered components across six review pages. Mark earlier vocabulary explicitly.
 - [x] Manually review representative content/card, visuals, layout/navigation and graph-explorer pages using one retained browser tab.
-- [ ] Complete the independent Verifier's frozen-build launch-to-cleanup pass and publish its coverage/limits.
+- [x] Complete the independent Verifier's initial frozen-build launch-to-cleanup pass; preserve its exact ten-case scope and limits separately from the compact-menu correction.
 - [ ] Commit/push the scoped changes and hand the exact revision to the deployment and skill owners.
+
+- [x] Reproduce and repair the compact heading-menu hover/click dismissal; the final regression rejects the old runtime, all 11 current cases pass, and a narrow manual page transition works.
 
 ## Cross-owner integration
 
@@ -44,6 +46,8 @@ Updated 2026-10-16. Fixes belong to branch `fix/demistify-mermaid-scroll`; Cloud
 - [ ] Deployment owner publishes a matching public runtime/theme/guide. The existing `c96a72e` pin does not support these additions.
 - [ ] Skills Lead updates the existing `presentation-html` plugin against that verified public version. Its draft remains on the old pin until then.
 
+Earlier code/source-retention and neutral code-comment background repairs are documented in [the inspection fixes](2026-10-16-inspection-fixes.md); this list tracks the subsequent fixes fork.
+
 ## Explicit proof limits
 
-The 10-case browser suite is a focused regression suite, not an exhaustive audit of every component or browser. Exact pointer-anchor stability, every responsive transition while a drawer is open, loading-state timing, keyboard accessibility across every gallery component, and original private-explorer visual parity are not established. Cmd zoom/pan/reset on real pictures and Mermaid are established. Embedding without a sibling Markdown file was exercised over HTTP; full offline/file-protocol browser operation and Cloudflare/CORS/release behavior are separate, unverified here. The public skill/deployment work remains assigned to its existing owners.
+The focused browser suite is a focused regression suite, not an exhaustive audit of every component or browser. Exact pointer-anchor stability, every responsive transition while a drawer is open, loading-state timing, keyboard accessibility across every gallery component, and original private-explorer visual parity are not established. Cmd zoom/pan/reset on real pictures and Mermaid are established. Embedding without a sibling Markdown file was exercised over HTTP; full offline/file-protocol browser operation and Cloudflare/CORS/release behavior are separate, unverified here. The public skill/deployment work remains assigned to its existing owners.

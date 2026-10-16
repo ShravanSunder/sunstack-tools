@@ -33,9 +33,9 @@ Focused routes:
 
 | Gate                                                                            | Actual result                                                                                                               |
 | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`                                                                    | Exit 0: Oxlint, Oxfmt and TypeScript; 196 formatted source/config files at this run                                         |
+| `pnpm check`                                                                    | Exit 0: Oxlint, Oxfmt and TypeScript; 197 formatted source/config files at the follow-up check                              |
 | Existing Node suite, including local Markdown embedding/preparation regressions | 36 tests in 10 files passed, exit 0                                                                                         |
-| `PLAYWRIGHT_BROWSERS_PATH=<task-browser-cache> pnpm test:browser`               | 10 tests in 3 files passed, exit 0; 2.92 seconds on the final product build                                                 |
+| `PLAYWRIGHT_BROWSERS_PATH=<task-browser-cache> pnpm test:browser`               | 11 tests in 3 files passed, exit 0; 3.20 seconds on the final product build                                                 |
 | Source checker: six component-gallery pages and three focused fixtures          | 0 errors, 0 warnings, exit 0                                                                                                |
 | Actual CLI embed plus output checker                                            | Exit 0; 0 errors, 0 warnings                                                                                                |
 | Standalone transformation                                                       | 9 embedded modules; 3,038,562-byte output; no external runtime/theme or Markdown source reference. Transformation only      |
@@ -46,7 +46,7 @@ The browser suite serves a frozen copy of the complete built library and real au
 
 Original eight forbidden-behavior mutations each produced the expected failed assertion in private asset copies; no product source was changed. A separate handler-disabled copy caused both native visual cases to fail their zoom gate. These are post-fix sensitivity observations, not pre-fix TDD. The genuine native Mermaid pan regression was also preserved: at 201% the SVG grew from 419px to 843.75px, but dragging left its scroll offset at zero. The theme repair then passed both native cases, followed by the complete 10-case suite.
 
-Final tested asset SHA-256:
+Initial committed build (952b2b7) asset SHA-256:
 
 ```text
 runtime.js  7fdfeb4d9d0c7dbb95616bf86d3545feb7d03e99c5ecea8d1d1e4cd38b6a17bf
@@ -55,7 +55,7 @@ theme.css   d330d90d885318e1ef6fda9771f9a6fcae2763127fbd0f8d4c1be7891dd43389
 
 ## Independent verification and limits
 
-The project verification recipe is `.agents/skills/verify-demistify/`, with a relative Claude skill symlink. Its final frozen-build observation is recorded separately before delivery; a draft recipe alone is not proof. The paired Verifier has no product/test-authoring ownership. Different-provider verification was unavailable because the commissioned provider was logged out; the independent Codex Verifier is a separate session.
+The project verification recipe is `.agents/skills/verify-demistify/`, with a relative Claude skill symlink. The independent Verifier ran the real recipe on frozen commit `952b2b7`: 10/10 browser cases, 3 files, exit 0, 3.75 seconds; actual input/output CLI checks, embedding and exact-source readback passed. The complete served snapshot matched the asset manifest, inputs stayed frozen and the API port was closed after teardown. A sandbox startup denial was resolved by exact-command approval before tests loaded. This observation is bound to that initial commit/build. The paired Verifier has no product/test-authoring ownership. Different-provider verification was unavailable because the commissioned provider was logged out; the independent Codex Verifier is a separate session.
 
 This establishes focused behavior in Chromium, not exhaustive compatibility, visual parity with the original private planning explorer, every component interaction, precise pointer-anchor stability or complete accessibility. Loading/error code paths are present; transient loading timing is not observed. Embedded browser rendering ran over HTTP with no sibling Markdown available; full file-protocol/offline browser operation remains unverified. No context/token-efficiency benchmark or hosted performance claim follows from these fixes.
 
@@ -72,3 +72,11 @@ The practical merge risk is a regression in shared scrolling/navigation or packa
 ![Presentations menu, Pages list and routed layout](evidence/2026-10-16-fixes/gallery-navigation.png)
 
 ![Picked cards with thin sides and a single top accent](evidence/2026-10-16-fixes/cards-review.png)
+
+## Compact-navigation follow-up
+
+A separate Lead-controlled 390px review found hover-open then pointer-click dismissing the heading menu; Enter opened it. The permanent regression failed on the original frozen runtime at the expected post-click visibility assertion (one failure, six unselected cases). The existing navigation owner now associates its button with the native popover and uses the show action. The first repaired test reached menu dismissal but its role locator excluded hidden elements; correcting that apparatus lookup produced the complete 11/11 pass above. The finalized oracle was then run against the original frozen build and still rejected the actual post-click failure. No timing sleeps or weakened visibility requirement were added.
+
+The local app was rebuilt; the same retained browser tab confirmed the repaired pointer activation and a real relative page transition at 390px. Viewport override was then reset. This is additional Lead evidence, separate from the Verifier's initial ten-case observation. Final runtime SHA-256 is `907c4a246fd0913a405b2e0784036a4ae81f12e97f1a2ec57b57cc2acc269f97`; theme remains `d330d90d885318e1ef6fda9771f9a6fcae2763127fbd0f8d4c1be7891dd43389`.
+
+![Compact menu remains open after pointer activation](evidence/2026-10-16-fixes/compact-navigation.png)

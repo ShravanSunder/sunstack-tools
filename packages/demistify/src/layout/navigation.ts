@@ -61,6 +61,9 @@ export class HeadingNavigation extends HTMLElement {
 		const menuButton = createIconButton('list', 'Browse page headings', (): void =>
 			this.openPanel(),
 		);
+		// Native invoker ownership prevents a hover-opened popover dismissing on its own button.
+		menuButton.popoverTargetElement = navigationPanel;
+		menuButton.popoverTargetAction = 'show';
 		this.replaceChildren(
 			...(this.presentationsButton ? [this.presentationsButton] : []),
 			menuButton,

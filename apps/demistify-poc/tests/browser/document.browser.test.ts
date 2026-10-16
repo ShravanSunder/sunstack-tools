@@ -225,3 +225,27 @@ test('inspection modifier wheel zooms and modifier drag pans while ordinary whee
 	await drawer.getByRole('button', { name: 'Close', exact: true }).click();
 	expect(canvas.closest('ex-document')).not.toBeNull();
 });
+
+test('compact headings menu stays open after hover then click and reaches a Markdown heading', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('navigation');
+	await expect.element(frame.getByRole('heading', { name: 'Recovery', exact: true })).toBeVisible();
+	const trigger = frame.getByRole('button', { name: 'Browse page headings', exact: true });
+	const menu = frame.getByRole('navigation', {
+		name: 'Page navigation',
+		exact: true,
+		includeHidden: true,
+	});
+	await trigger.hover();
+	await expect.element(menu).toBeVisible();
+	await trigger.click();
+	await expect.element(menu).toBeVisible();
+	await expect
+		.element(menu.getByRole('link', { name: 'Implementation detail', exact: true }))
+		.toBeVisible();
+	await menu.getByRole('link', { name: 'Recovery', exact: true }).click();
+	await expect.element(menu).not.toBeVisible();
+	await expect
+		.poll((): boolean => insideViewport(requiredElement(fixture, '#notes--recovery')))
+		.toBe(true);
+});
