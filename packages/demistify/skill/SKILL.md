@@ -29,7 +29,7 @@ Use the library path you are given (default `demistify/`).
 
 ## Markdown first
 
-Write prose as bare Markdown directly inside `ex-document`, tab sections, cards, callouts and their `<details>`. Headings build the outline. Bare Markdown must not contain `<`; for that, use `<ex-markdown><script type="text/markdown">…</script></ex-markdown>`.
+Write prose as bare Markdown directly inside `ex-document`, tab sections, cards, callouts and their `<details>`. Use section headings (`##` in Markdown or `<h2>` in HTML) to build useful outline navigation. Bare Markdown must not contain `<`; for that, use `<ex-markdown><script type="text/markdown">…</script></ex-markdown>`.
 
 ## Islands
 
@@ -55,7 +55,7 @@ Mermaid: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erD
 | `<ex-grid cols="3">` | side by side; child `span="2"` or `span="all"`; `sticky` keeps a side column in view; `swipe` makes a swipe row on phones |
 | `<ex-tabs>` | child `<section label>` views; `columns` shows them side by side when they fit |
 
-Patterns: a summary row (`tldr` callout `span="2"` + two stats); a diagram `span="2"` beside a `sticky` column of cards; options as cards in `<ex-grid swipe>` with `pick`; a chart beside the callout that states its conclusion. Phones get one column automatically.
+Patterns: a four-column summary row (`<ex-grid cols="4">` with a `tldr` callout `span="2"` + two stats); a diagram `span="2"` beside a `sticky` column of cards; options as cards in `<ex-grid swipe>` with `pick`; a chart beside the callout that states its conclusion. Phones get one column automatically.
 
 ## Routes
 
@@ -77,6 +77,8 @@ Read the matching file in `references/` beside this guide only when the page nee
 - `references/trees.md`: trees that link to islands, mind maps.
 - `references/pictures.md`: images, galleries, before and after.
 - `references/tours.md`: tours across pages, walking a diagram step by step.
+
+IF the page uses a supplied explorer graph document, load `references/explorers.md` and return a page that references it without recreating its data or application code.
 
 ## Check
 

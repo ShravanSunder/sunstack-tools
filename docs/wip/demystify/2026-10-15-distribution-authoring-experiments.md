@@ -1,6 +1,6 @@
 # Distribution and authoring experiments
 
-Status: experiment design and first authoring runs. PR #1 merged the existing library at 49686d9d30cf3290d7a396fb2ae4b4b3a065fcc8. Work branch: feat/demistify-distribution-authoring-experiments. No Cloudflare resources or deployments.
+Historical checkpoint: experiment design and first authoring runs. Later explorer, matched-model and local Cloudflare results are in [the results report](2026-10-15-explorer-results.md). PR #1 merged the existing library at 49686d9d30cf3290d7a396fb2ae4b4b3a065fcc8. Work branch: feat/demistify-distribution-authoring-experiments. No Cloudflare resources or deployments.
 
 ## Decisions already supplied
 
@@ -36,7 +36,7 @@ Agent tools are optional and separate: a version-matched CLI can validate before
 
 Reject any delivery strategy that loses old pinned pages, mixes release assets, or silently serves missing JS as HTML. Prefer the smallest operational setup among passing variants. Reject a validation strategy that passes seeded critical negatives or makes valid pages fail. No domain, account binding, stable URL/version contract, production cache duration or deployment is selected here.
 
-## Final acceptance source
+## First acceptance-source freeze (historical)
 
 The owner selected the current planning-dag.html, titled Sunstack · Skill composition explorer. Frozen SHA-256: 03734753690e789ccb57a9e8cd7d60dc94f6d382a03568cf1818f564ea7785cd; 586,306 UTF-8 bytes, 698 physical lines. Its embedded data names 48 skills, 256 declared edges, 2 proposals, 18 changes, 6 extractions and 2 candidates; it cites 175 inspected source files. This is the current interactive explorer, not the lab's older 25-node planning snapshot.
 

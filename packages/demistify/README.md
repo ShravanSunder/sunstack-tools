@@ -36,7 +36,7 @@ Copy the complete `packages/demistify/dist/` directory to a local/static asset l
 </ex-document>
 ```
 
-Serve that HTML and its assets with any static host. The PoC is a consumer, not a runtime requirement. For an offline single HTML artifact, the Node packaging adapter can pre-render content and embed the theme, fonts and core; see the PoC's packaging example. Browser `file://` and embedded WebView operation have not been verified.
+Serve that HTML and its assets with any static host. The PoC is a consumer, not a runtime requirement. The PoC includes separate offline packaging experiments for fonts, the module graph and explorer data; see [the local results](../../docs/wip/demystify/2026-10-15-explorer-results.md). `bundleStandaloneHtml` at the Node packaging boundary embeds the fixed built module graph, fonts and explicitly resolved explorer JSON. The PoC standalone export and offline CLI share it; arbitrary assets, cyclic module graphs and direct file/WebView behavior remain outside the proven boundary. Browser `file://` and embedded WebView operation have not been verified.
 
 ## Composition vocabulary
 
@@ -57,6 +57,7 @@ The agent-facing guide is [`skill/SKILL.md`](skill/SKILL.md), in skill format: a
 | `ex-arrow`                                                             | A labelled connection; outside a flow it routes orthogonally around every box, in lanes, with labels kept clear                                                            |
 | `ex-route`, `ex-step`                                                  | Guided routes with narration; steps on islands, regions, diagram nodes (step-through) or other pages (tours)                                                               |
 | `ex-layers`                                                            | Switches for `layer="…"` groups readers show or hide                                                                                                                       |
+| `ex-explorer`                                                          | Searchable graph document; selection/history, current/proposed views, tracing, source evidence and related tables (experimental)                                           |
 | `ex-file-tree`                                                         | Plain-text file trees                                                                                                                                                      |
 | `ex-zoom`, `ex-decision`, `ex-diagram-diff`, `ex-timeline`, `ex-layer` | Earlier vocabulary kept for the lab pages; not in the guide                                                                                                                |
 
@@ -139,5 +140,7 @@ src/
 `@sunstack/demistify/packaging` exposes `prepareIslandContent(sourceHtml, diagramDictionary, standalone)`, `localFontStyles` and `localPhosphorStyles`. This experimental Node entry currently exports TypeScript source and targets the lab's Node 26 tooling; it is not a published npm release. Browser consumers use built JavaScript and CSS.
 
 Mermaid `src` references are resolved by the packaging caller's explicit dictionary. Browser-time arbitrary repository fetching is not implemented. Markdown escapes raw HTML; the outer authored HTML remains trusted content. Mermaid rendering uses beautiful-mermaid's supported subset. D2 is excluded from this library. Semantic patches are implemented by the separate flat graph experiment, not by a generic Mermaid diff parser.
+
+The full explorer experiment and source/usage accounting are in [the explorer acceptance notes](../../docs/wip/demystify/2026-10-15-explorer-parity.md).
 
 The detailed intent, experiments, evidence boundaries and next iteration questions are in [the monorepo handoff](../../docs/wip/demystify/2026-10-14-demistify-handoff.md).

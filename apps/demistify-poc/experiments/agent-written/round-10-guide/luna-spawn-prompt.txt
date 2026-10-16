@@ -1,0 +1,1 @@
+Read and carry out $EXPERIMENT/luna/assignment.md. Write only the assigned artifacts in that directory. This is a Complete / Local / Task Worker assignment; no delegation or external providers.

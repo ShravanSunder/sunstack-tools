@@ -1,0 +1,37 @@
+{
+  "normalization": "Machine paths replaced with placeholders; private original receipt retained. Model claims require Lead verification.",
+  "receipt": {
+    "filesRead": [
+      "$EXPERIMENT/luna/final.html",
+      "$EXPERIMENT/inputs/guide.md",
+      "$EXPERIMENT/inputs/brief.md",
+      "$EXPERIMENT/inputs/starter.html",
+      "$EXPERIMENT/inputs/references/code.md",
+      "$EXPERIMENT/inputs/references/trees.md",
+      "$EXPERIMENT/inputs/completion.md"
+    ],
+    "changes": [
+      "Added real h2 section headings for verdict, change and findings, reconnect flow, repository changes, F1 options, staging evidence, and before-merge steps so the generated outline can navigate the review.",
+      "Changed the summary grid from three to four columns so its span-2 verdict and two span-1 stats occupy one row.",
+      "Clarified the reconnect diagram and explanation: the brief's intended missing-or-expired fallback is new-session, while the actual expired-entry code deletes then falls through to attach and return on line 48 (F2)."
+    ],
+    "checkerRuns": [
+      {
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/luna/iterated.html",
+        "exitCode": 0,
+        "outputFile": "$EXPERIMENT/luna/iteration-check-1.txt",
+        "feedback": "1 file: 0 errors, 0 warnings"
+      }
+    ],
+    "unverifiedClaims": [
+      "Browser rendering and interaction were not inspected; the Lead owns that check.",
+      "Review findings, repository changes, staging soak rates, and Redis prototype latency are reproduced from the assigned brief and were not independently verified against source code or test artifacts."
+    ],
+    "preservedOriginalArtifacts": [
+      "$EXPERIMENT/luna/initial.html",
+      "$EXPERIMENT/luna/final.html",
+      "$EXPERIMENT/luna/receipt.json",
+      "$EXPERIMENT/luna/check-1.txt"
+    ]
+  }
+}

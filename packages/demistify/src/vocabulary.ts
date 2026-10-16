@@ -62,6 +62,16 @@ const gridChildren: Readonly<Record<string, AttributeSpec>> = {
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
+	'ex-explorer': {
+		description:
+			'Searchable graph document with shared selection, history, tracing, evidence and related tables.',
+		attributes: {
+			src: text('Relative graph document JSON; alternatively embed an application/json script.'),
+			selected: text('Initial graph node id.'),
+			view: oneOf('Initial relationship view.', ['current', 'proposed']),
+			label,
+		},
+	},
 	'ex-document': {
 		description:
 			'The page body: bare Markdown, islands and layouts; adds outline and theme toggle.',

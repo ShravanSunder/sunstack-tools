@@ -1,0 +1,44 @@
+{
+  "sourceSha256": "619a6b0af4c0d4e46c4ab491060a20849b25d7ba71f0ddecbf79d8a79fd3b961",
+  "sourceBytes": 792811,
+  "sourceCommit": "d9e717b677e2ba32ad5c38896b5e6802ee029ed6",
+  "nodes": 49,
+  "currentEdges": 329,
+  "proposedEdges": 21,
+  "runs": 9,
+  "tables": [
+    {
+      "id": "overview",
+      "rows": 9
+    },
+    {
+      "id": "proposed-changes",
+      "rows": 22
+    },
+    {
+      "id": "authored-changes",
+      "rows": 18
+    },
+    {
+      "id": "extractions",
+      "rows": 6
+    },
+    {
+      "id": "candidates",
+      "rows": 2
+    },
+    {
+      "id": "earlier-proposals",
+      "rows": 6
+    },
+    {
+      "id": "source-inventory",
+      "rows": 173
+    }
+  ],
+  "limitations": [
+    "Original reference visual is not browser-verified here.",
+    "This output is a new component rendering, not a copy of the original application.",
+    "Normalization and full referenced content belong in the token ledger."
+  ]
+}

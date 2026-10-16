@@ -1,0 +1,101 @@
+{
+	"samples": [
+		{
+			"kind": "fresh-url",
+			"index": 0,
+			"cls": 0.010469238139127101,
+			"lcp": 128,
+			"longTasks": [],
+			"fcp": 128,
+			"ready": 91.89999997615814,
+			"transfer": 1040759,
+			"dataTransfer": 776442,
+			"viewport": {
+				"width": 1272,
+				"height": 818
+			},
+			"elements": 1560
+		},
+		{
+			"kind": "same-url-reload",
+			"index": 0,
+			"cls": 0,
+			"lcp": 80,
+			"longTasks": [],
+			"fcp": 80,
+			"ready": 40.800000071525574,
+			"transfer": 0,
+			"dataTransfer": 0,
+			"viewport": {
+				"width": 1272,
+				"height": 818
+			},
+			"elements": 1560
+		},
+		{
+			"kind": "fresh-url",
+			"index": 1,
+			"cls": 0.010469238139127101,
+			"lcp": 84,
+			"longTasks": [],
+			"fcp": 84,
+			"ready": 46,
+			"transfer": 1040759,
+			"dataTransfer": 776442,
+			"viewport": {
+				"width": 1272,
+				"height": 818
+			},
+			"elements": 1560
+		},
+		{
+			"kind": "same-url-reload",
+			"index": 1,
+			"cls": 0,
+			"lcp": 64,
+			"longTasks": [],
+			"fcp": 64,
+			"ready": 33.10000002384186,
+			"transfer": 0,
+			"dataTransfer": 0,
+			"viewport": {
+				"width": 1272,
+				"height": 818
+			},
+			"elements": 1560
+		},
+		{
+			"kind": "fresh-url",
+			"index": 2,
+			"cls": 0.010469238139127101,
+			"lcp": 92,
+			"longTasks": [],
+			"fcp": 92,
+			"ready": 46.200000047683716,
+			"transfer": 1040759,
+			"dataTransfer": 776442,
+			"viewport": {
+				"width": 1272,
+				"height": 818
+			},
+			"elements": 1560
+		},
+		{
+			"kind": "same-url-reload",
+			"index": 2,
+			"cls": 0,
+			"lcp": 72,
+			"longTasks": [],
+			"fcp": 72,
+			"ready": 36.10000002384186,
+			"transfer": 0,
+			"dataTransfer": 0,
+			"viewport": {
+				"width": 1272,
+				"height": 818
+			},
+			"elements": 1560
+		}
+	],
+	"limits": "Three fresh-URL and paired same-URL reloads, same built bytes, requested viewport 1400x900; effective CSS viewport 1272x818, unthrottled loopback in an existing Chrome process. Fresh transfer verified from the data resource, not a cache-disable flag. Not production network/cache or field Core Web Vitals."
+}

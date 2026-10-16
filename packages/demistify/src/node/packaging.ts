@@ -168,3 +168,6 @@ export async function shippedIconCodePoints(): Promise<string> {
 		.map((match): string => String.fromCodePoint(Number.parseInt(match[2] ?? '0', 16)))
 		.join('');
 }
+
+export { bundleStandaloneHtml } from './standalone.ts';
+export type { StandaloneHtmlBundle, StandaloneHtmlOptions } from './standalone.ts';

@@ -1,0 +1,65 @@
+{
+	"samples": [
+		{
+			"arm": "dataurl",
+			"sample": 1,
+			"result": {
+				"result": {
+					"type": "string",
+					"value": "{\"fcp\":928,\"ready\":[895.1000000238419],\"longTasks\":[445,352],\"nodes\":22,\"rows\":46,\"httpResources\":0,\"width\":1419,\"height\":747,\"issues\":0}"
+				}
+			}
+		},
+		{
+			"arm": "flat-blob",
+			"sample": 1,
+			"result": {
+				"result": {
+					"type": "string",
+					"value": "{\"fcp\":180,\"ready\":[138.5],\"longTasks\":[55],\"nodes\":22,\"rows\":46,\"httpResources\":0,\"width\":1419,\"height\":747,\"issues\":0}"
+				}
+			}
+		},
+		{
+			"arm": "flat-blob",
+			"sample": 2,
+			"result": {
+				"result": {
+					"type": "string",
+					"value": "{\"fcp\":124,\"ready\":[88.89999997615814],\"longTasks\":[],\"nodes\":22,\"rows\":46,\"httpResources\":0,\"width\":1419,\"height\":747,\"issues\":0}"
+				}
+			}
+		},
+		{
+			"arm": "dataurl",
+			"sample": 2,
+			"result": {
+				"result": {
+					"type": "string",
+					"value": "{\"fcp\":900,\"ready\":[865.1000000238419],\"longTasks\":[440,334],\"nodes\":22,\"rows\":46,\"httpResources\":0,\"width\":1419,\"height\":747,\"issues\":0}"
+				}
+			}
+		},
+		{
+			"arm": "dataurl",
+			"sample": 3,
+			"result": {
+				"result": {
+					"type": "string",
+					"value": "{\"fcp\":892,\"ready\":[860.1999999284744],\"longTasks\":[437,345],\"nodes\":22,\"rows\":46,\"httpResources\":0,\"width\":1419,\"height\":747,\"issues\":0}"
+				}
+			}
+		},
+		{
+			"arm": "flat-blob",
+			"sample": 3,
+			"result": {
+				"result": {
+					"type": "string",
+					"value": "{\"fcp\":100,\"ready\":[58.299999952316284],\"longTasks\":[],\"nodes\":22,\"rows\":46,\"httpResources\":0,\"width\":1419,\"height\":747,\"issues\":0}"
+				}
+			}
+		}
+	],
+	"limits": "Three matched snapshot pairs; order reversed in pair 2; unthrottled loopback existing Chrome process, new document query URLs. Module graph, theme and embedded JSON equality independently checked. No HTTP subresources; not file protocol, WAN, field or statistical proof."
+}
