@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code review: Resume sessions after socket drops</title>
+<link rel="stylesheet" href="demistify/theme.css">
+<script type="module" src="demistify/runtime.js"></script>
+<style>
+  body { max-width: 1120px; margin: 0 auto; padding: 1.5rem; }
+  ex-grid { margin-block: 1.25rem; }
+  ex-code { display: block; margin-block: 1rem; }
+  ex-route { margin-block: 1rem; }
+</style>
+</head>
+<body>
+<ex-document>
+
+# Code review: Resume sessions after socket drops
+
+Review date: 2026-10-14 · Illustrative change · Audience: the change author and a second reviewer
+
+<ex-callout id="verdict" tone="risk" title="Verdict: request changes">
+The change fixes resume after network blips, but breaks resume after every deploy because sessions live only in process memory. Fix the expired-session path in this change, choose durable registry storage, and answer the grace-window question before merge.
+</ex-callout>
+
+<ex-route label="60-second review tour">
+  <ex-step to="verdict">Start with the request-changes verdict and its deploy failure.</ex-step>
+  <ex-step to="finding-f1">See why the in-memory registry loses sessions.</ex-step>
+  <ex-step to="finding-f2">Check the expired-session return path.</ex-step>
+  <ex-step to="evidence">Compare reconnect success across scenarios.</ex-step>
+  <ex-step to="next-steps">Finish with the requested decisions and fixes.</ex-step>
+</ex-route>
+
+<ex-grid cols="2">
+<ex-card id="change" title="Change under review" tone="changed" icon="code" tag="src/session/resume.ts · starts at line 40">
+The illustrative change replaces a socket lookup with a registry lookup, expiry check, deletion, and socket attachment.
+
+Other files touched: `src/session/registry.ts` (new, 64 lines), `src/session/socket.ts` (modified), `test/session/resume.test.ts` (new), and `src/session/legacy-store.ts` (deleted).
+
+<ex-code title="src/session/resume.ts" lang="ts" start="40">
+<script type="text/plain">export function resume(id: string): Session | undefined {
+  const session = registry.get(id);
+  if (!session) return undefined;
+  if (session.expiresAt < Date.now()) {
+    registry.delete(id);
+  }
+  return session.attach(currentSocket());
+}</script>
+<ex-note line="43" tone="risk">F1 · Blocking: registry lookup uses process-local state, which is empty after a deploy or crash.</ex-note>
+<ex-note line="44" tone="question">F3 · Nit: a miss returns silently; add a debug-level log with the session id so misses appear in traces.</ex-note>
+<ex-note line="45" tone="risk">F2 · Blocking: this branch deletes an expired session but does not return undefined.</ex-note>
+<ex-note line="48" tone="risk">F2 · The expired session still reaches this attach and is returned. F4 · Nice: attach keeps the socket swap in one place instead of scattering it across two call sites.</ex-note>
+</ex-code>
+</ex-card>
+
+<ex-card id="resume-flow" title="Resume flow after the change" tone="note" icon="git-branch">
+1. The client reconnects and sends its session id.
+2. The gateway calls `resume(id)`.
+3. `resume` looks up the id in the registry.
+4. If found and not expired, the session attaches the new socket and the gateway confirms.
+5. Otherwise, the gateway tells the client to start a new session.
+
+Participants: Client, Gateway, Registry, Session.
+</ex-card>
+</ex-grid>
+
+## Findings
+
+<ex-grid cols="2" swipe>
+<ex-card id="finding-f1" title="F1 · Registry is lost on restart" tone="risk" icon="database" tag="blocking · line 43">
+`registry` is an in-memory `Map`. After any deploy or crash it is empty, so every resume returns `undefined` and clients start new sessions. The network-blip improvement does not survive a process replacement.
+</ex-card>
+
+<ex-card id="finding-f2" title="F2 · Expired session is still attached" tone="risk" icon="bug" tag="blocking · lines 45–48">
+The expiry branch deletes the session at line 46, then continues to line 48 and returns `session.attach(currentSocket())`. Return `undefined` after deleting the expired entry.
+</ex-card>
+
+<ex-card id="finding-f3" title="F3 · Resume misses are silent" tone="question" icon="terminal" tag="nit · line 44">
+The early return hides a miss. Log the session id at debug level so resume misses are visible in traces.
+</ex-card>
+
+<ex-card id="finding-f4" title="F4 · Socket swap has one home" tone="note" icon="plug" tag="nice · line 48">
+`attach` keeps the socket swap in one place; the old code scattered it across two call sites.
+</ex-card>
+
+<ex-card id="finding-f5" title="F5 · Grace-window ownership is open" tone="question" icon="clock" tag="question · src/session/registry.ts">
+Is the 5-minute grace window configurable per tenant, or fixed? The brief identifies the file but gives no line number.
+</ex-card>
+</ex-grid>
+
+## Fix options for F1
+
+<ex-grid cols="3" swipe>
+<ex-card id="option-memory" title="In-memory registry" tone="changed" icon="cpu" tag="current">
+Fast and simple. Loses every session on restart. Tradeoff: speed over durability.
+</ex-card>
+
+<ex-card id="option-redis" title="Redis-backed registry" tone="decision" icon="database" tag="recommended" pick>
+Survives restarts and is shared across instances. Adds Redis to every environment and about 2 ms per resume. Tradeoff: durability for a dependency.
+</ex-card>
+
+<ex-card id="option-sticky" title="Sticky sockets at the load balancer" tone="planned" icon="network" tag="not sufficient">
+Adds no new state, but breaks whenever an instance is replaced, so it does not fix deploys. Tradeoff: no new state but fragile.
+</ex-card>
+</ex-grid>
+
+## Evidence
+
+Resume success rate from the staging soak test (percent of reconnects that resumed):
+
+| Scenario | Before | After this change | With Redis registry (prototype) |
+| --- | ---: | ---: | ---: |
+| Network blip | 35 | 98 | 98 |
+| Deploy | 12 | 0 | 96 |
+| Instance crash | 0 | 0 | 94 |
+
+## Next steps
+
+<ex-tree id="next-steps" title="Before merge">
+- [ ] Fix F2 in this change.
+- [ ] Decide the F1 option; the reviewers recommend Redis.
+- [ ] Answer F5 before merge.
+</ex-tree>
+
+</ex-document>
+</body>
+</html>

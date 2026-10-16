@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { gzipSync } from 'node:zlib';
 
+import { bundleStandaloneHtml } from '@sunstack/demistify/packaging';
+
 import { comparisonReport } from '../src/experiment-builders/comparison-report.ts';
 import type {
 	PrototypeMeasurement,
@@ -112,28 +114,18 @@ const fontBytes = new Map(
 		]),
 	),
 );
-const standaloneThemeCss = themeCss
-	.replace("'./Phosphor.woff2'", `'data:font/woff2;base64,${iconFontBytes.toString('base64')}'`)
-	.replaceAll(
-		/'\.\/fonts\/([^']+)'/g,
-		(_reference: string, name: string): string =>
-			`'data:font/woff2;base64,${fontBytes.get(name)?.toString('base64') ?? ''}'`,
-	);
 const runtimeSource = await readFile(`${outputDirectory}/islands/runtime.js`, 'utf8');
 const islandSource = await readFile('experiments/html-islands/planning.html', 'utf8');
 await writeFile(
 	`${outputDirectory}/html-islands-live.html`,
 	prepareIslandContent(islandSource, diagramReferences, false),
 );
-const standaloneIslandHtml = prepareIslandContent(islandSource, diagramReferences, true)
-	.replace(
-		/<link\s+rel="stylesheet"\s+href="islands\/theme.css"\s*\/?\s*>/,
-		`<style>${standaloneThemeCss}</style>`,
-	)
-	.replace(
-		'<script type="module" src="islands/runtime.js"></script>',
-		`<script type="module">${runtimeSource.replaceAll('</script', '<\\/script')}</script>`,
-	);
+const standaloneIslandHtml = (
+	await bundleStandaloneHtml({
+		sourceHtml: prepareIslandContent(islandSource, diagramReferences, true),
+		libraryDirectory,
+	})
+).html;
 const capabilitySource = await readFile('experiments/html-islands/capabilities.html', 'utf8');
 await writeFile(
 	`${outputDirectory}/html-islands-capabilities-live.html`,

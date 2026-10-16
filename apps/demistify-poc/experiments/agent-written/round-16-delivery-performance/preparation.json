@@ -1,0 +1,26 @@
+{
+  "input": "round-15-presentation-skill/luna-corrected.html",
+  "inputSha256": "f7a0b0c06ab82c2dbf24e01c93917f70e985b31219aa04479786f6c72bfeba8e",
+  "preparationMs": 44.64112499999999,
+  "variants": [
+    {
+      "file": "baseline.html",
+      "generated": false,
+      "bytes": 4924,
+      "sha256": "f7a0b0c06ab82c2dbf24e01c93917f70e985b31219aa04479786f6c72bfeba8e"
+    },
+    {
+      "file": "explicit-outline.html",
+      "generated": false,
+      "bytes": 4975,
+      "sha256": "b6169ce1f3fcc2fbd5a112a586d1ac67afebda3d082111f56232359d8baf4848"
+    },
+    {
+      "file": "prepared.html",
+      "generated": true,
+      "bytes": 13920,
+      "sha256": "f4b12d4215aafa0abff953b1394e81cdd25c5c810641c7504ea6cb77abb8be2b"
+    }
+  ],
+  "limits": "One fixed review and its existing component owners. Generated prepared markup is not authoring vocabulary. This does not prepare arbitrary page assets, explorer data or every island."
+}

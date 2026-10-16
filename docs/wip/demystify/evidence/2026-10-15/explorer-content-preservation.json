@@ -1,0 +1,13 @@
+{
+	"sourceSha256": "619a6b0af4c0d4e46c4ab491060a20849b25d7ba71f0ddecbf79d8a79fd3b961",
+	"graphSha256": "c4086f0a66cd5ea1e46931494458923a2cf4880fb4445421ccbcaf32cae4b57c",
+	"proseStrings": 1870,
+	"matchedProseStrings": 1870,
+	"missingProse": [],
+	"sourceAnchorOccurrences": 714,
+	"matchedSourceOccurrences": 714,
+	"missingSources": [],
+	"checkedEdges": 350,
+	"missingEdgeAssociations": [],
+	"limits": "Long textual leaves use whitespace-normalized substring coverage. Source anchors compare the exact revision/line URL and normalized quotation, including via references, both globally and on each corresponding relationship. This proves preservation in validated graph content, not independent factual truth, rendered visibility or complete semantic equivalence."
+}

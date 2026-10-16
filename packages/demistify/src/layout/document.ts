@@ -3,6 +3,7 @@ import { createIconButton } from '../core/icons.ts';
 import { installIslandInspector, openIsland } from '../islands/inspector.ts';
 import { BoardIsland } from './board.ts';
 import { revealLayers } from './layers.ts';
+import { selectPresentationFor } from './presentations.ts';
 
 export class StructuralIsland extends HTMLElement {
 	connectedCallback(): void {
@@ -39,6 +40,26 @@ export class DocumentIsland extends StructuralIsland {
 
 /** Theme toggling and in-page links that reveal their target inside tabs or details. */
 export function installDocumentBehavior(): void {
+	let lastFragmentTarget: Element | undefined;
+	const revealFragment = (): void => {
+		let id: string;
+		try {
+			id = decodeURIComponent(location.hash.slice(1));
+		} catch {
+			return;
+		}
+		const target = id ? document.getElementById(id) : null;
+		if (!target || target === lastFragmentTarget) return;
+		lastFragmentTarget = target;
+		revealElement(target);
+		target.scrollIntoView({ block: 'start' });
+	};
+	window.addEventListener('hashchange', (): void => {
+		lastFragmentTarget = undefined;
+		revealFragment();
+	});
+	document.addEventListener('island-ready', revealFragment);
+	revealFragment();
 	document.addEventListener('click', (event: MouseEvent): void => {
 		if (!(event.target instanceof Element)) return;
 		if (event.target.closest('[data-ex-theme]')) {
@@ -69,6 +90,7 @@ export function installDocumentBehavior(): void {
 
 /** Selects the tab and opens the details that hide an element, so it can be shown. */
 export function revealElement(target: Element): void {
+	selectPresentationFor(target);
 	revealLayers(target);
 	for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
 		if (ancestor.getAttribute('role') === 'tabpanel' && ancestor.hidden) {

@@ -13,30 +13,10 @@ function sizeDiagram(owner: HTMLElement): void {
 	const svg = owner.querySelector(':scope > svg');
 	const width = Number.parseFloat(svg?.getAttribute('width') ?? '');
 	if (!(svg instanceof SVGSVGElement) || !(width > 0)) return;
-	if (width < 720) svg.style.width = `${Math.round(Math.min(width * 1.25, 720))}px`;
-	const available = owner.clientWidth;
-	const readableWidth = width * 0.8;
-	if (available > 0 && available < readableWidth) {
-		svg.style.width = `${Math.round(readableWidth)}px`;
-		owner.classList.add('ex-diagram-wide');
-	}
-}
-
-/**
- * A diagram starts rendering only once visible, but the worker answers later, by which time a
- * reader may have switched its tab away; it is then sized when it is next shown.
- */
-function sizeDiagramWhenShown(owner: HTMLElement): void {
-	if (owner.clientWidth > 0) {
-		sizeDiagram(owner);
-		return;
-	}
-	const observer = new ResizeObserver((): void => {
-		if (owner.clientWidth === 0) return;
-		observer.disconnect();
-		sizeDiagram(owner);
-	});
-	observer.observe(owner);
+	const preferredWidth = width < 720 ? Math.min(width * 1.25, 720) : width;
+	// CSS applies the floor against the current column width, including after a tab or drawer resize.
+	svg.style.setProperty('--diagram-width', `${Math.round(preferredWidth)}px`);
+	svg.style.setProperty('--diagram-readable-width', `${Math.round(width * 0.8)}px`);
 }
 
 function openLinkedElement(target: HTMLElement): void {
@@ -94,6 +74,7 @@ export class MermaidIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('prepared')) {
 			// Pre-rendered by the packager: link and trace the shipped SVG.
+			sizeDiagram(this);
 			linkDiagramNodes(this);
 			const svg = this.querySelector(':scope > svg');
 			if (svg instanceof SVGSVGElement) traceDiagram(svg);
@@ -121,7 +102,7 @@ export class MermaidIsland extends HTMLElement {
 		try {
 			this.innerHTML = await renderDiagramSvg(normalizeIslandText(sourceText));
 			this.setAttribute('prepared', '');
-			sizeDiagramWhenShown(this);
+			sizeDiagram(this);
 			checkDiagram(this, sourceText);
 			linkDiagramNodes(this);
 			const svg = this.querySelector(':scope > svg');

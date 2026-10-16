@@ -1,0 +1,14 @@
+{
+	"point": {
+		"x": 750.4012680053711,
+		"y": 326.94600677490234,
+		"hit": "practices-research",
+		"scroll": 0
+	},
+	"actual": {
+		"traced": 10,
+		"visible": 10
+	},
+	"independentExpected": 10,
+	"earlierProbeLimit": "Earlier coordinates were read during smooth page scrolling; no library patch was based on that sample."
+}

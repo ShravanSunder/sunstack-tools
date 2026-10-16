@@ -1,0 +1,5 @@
+{
+  "cases": 100,
+  "mismatches": [],
+  "oracle": "The exact frozen reference pure composition function, executed without browser/IO. Not a visual or interaction test."
+}

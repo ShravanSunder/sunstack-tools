@@ -1,0 +1,15 @@
+{
+	"hoverTraceProof": {
+		"traced": 0,
+		"visible": 6
+	},
+	"arrowTableProof": {
+		"selectedRows": [
+			{
+				"id": "current-213",
+				"text": "spec-design \u2192 practices-show-me-your-workCURRENT \u00b7 uses method"
+			}
+		],
+		"tab": "Connections \u00b7 46"
+	}
+}

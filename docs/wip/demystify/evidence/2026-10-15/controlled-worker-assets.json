@@ -1,0 +1,19 @@
+{
+	"events": [
+		{
+			"kind": "constructed",
+			"url": "blob:http://127.0.0.1:4182/72b22a36-2355-4593-ab8f-0502104c5527"
+		},
+		{
+			"kind": "ready",
+			"svgBytes": 0
+		},
+		{
+			"kind": "rendered",
+			"svgBytes": 4015
+		}
+	],
+	"heavyMainScripts": ["http://127.0.0.1:4193/0.1.0/chunks/dist-DcDoeHXN.js"],
+	"nodes": 4,
+	"issues": null
+}

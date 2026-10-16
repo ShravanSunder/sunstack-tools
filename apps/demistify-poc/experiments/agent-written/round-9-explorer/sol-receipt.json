@@ -1,0 +1,60 @@
+{
+  "normalization": "Machine paths replaced with placeholders; private original receipt retained. Model claims require Lead verification.",
+  "receipt": {
+    "outcome": "Page authored; static checker passed on first call.",
+    "files_read": [
+      "$EXPERIMENT/explorer-inputs/guide.md",
+      "$EXPERIMENT/explorer-inputs/explorers.md",
+      "$EXPERIMENT/explorer-inputs/brief.md",
+      "$EXPERIMENT/explorer-inputs/inventory.json",
+      "$EXPERIMENT/sol-explorer/check-1.txt"
+    ],
+    "checker_inputs": {
+      "page": "$EXPERIMENT/sol-explorer/final.html",
+      "referenced_document": "$EXPERIMENT/sol-explorer/planning.json",
+      "note": "The prescribed checker reads the referenced document. No direct author read or modification of planning.json or demistify assets occurred. Transitive checker implementation reads were not independently inventoried."
+    },
+    "commands": [
+      {
+        "command": "cat $EXPERIMENT/explorer-inputs/guide.md $EXPERIMENT/explorer-inputs/explorers.md $EXPERIMENT/explorer-inputs/brief.md $EXPERIMENT/explorer-inputs/inventory.json",
+        "exit_code": 0
+      },
+      {
+        "command": "python3 heredoc: write initial.html, then identical final.html before the first checker call",
+        "exit_code": 0
+      },
+      {
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/sol-explorer/final.html",
+        "cwd": "$WORKTREE",
+        "stdout_stderr_capture": "$EXPERIMENT/sol-explorer/check-1.txt",
+        "checker_exit": 0,
+        "output": "1 file: 0 errors, 0 warnings\n",
+        "shell_capture": "checker_exit=$?; output printed from check-1.txt and checker_exit printed separately",
+        "wrapper_exit_code": 0
+      },
+      {
+        "command": "python3 heredoc: write receipt.json",
+        "exit_code": 0
+      }
+    ],
+    "checker_calls": 1,
+    "repairs": [],
+    "initial_final_identical": true,
+    "preserved_references": [
+      "planning.json",
+      "demistify/theme.css",
+      "demistify/runtime.js"
+    ],
+    "initial_selection": {
+      "selected": "spec-design",
+      "view": "proposed"
+    },
+    "unverified_claims": [
+      "No browser or visual validation performed.",
+      "Interactive explorer behavior was not exercised.",
+      "The original reference visual was not inspected.",
+      "Source content and proposal relationships do not prove runtime execution or a shipped release.",
+      "Full referenced-content integrity and token accounting remain with the Lead."
+    ]
+  }
+}

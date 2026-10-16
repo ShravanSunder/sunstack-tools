@@ -2,8 +2,20 @@
 ex-arrow {
 	display: none;
 }
+ex-mermaid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	min-width: 0;
+	max-width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+}
 ex-mermaid > svg {
 	display: block;
+	grid-area: 1 / 1;
+	justify-self: start;
+	width: var(--diagram-width, auto);
+	min-width: var(--diagram-readable-width, 0px);
 	max-width: 100%;
 	height: auto;
 	margin-inline: auto;
@@ -55,6 +67,16 @@ ex-mermaid > svg {
 }
 .ex-inspect-controls[hidden] {
 	display: none;
+}
+/* Share the diagram's cell while staying reachable as its SVG scrolls underneath. */
+ex-mermaid > .ex-inspect-controls {
+	grid-area: 1 / 1;
+	position: sticky;
+	align-self: start;
+	justify-self: end;
+	inset: auto;
+	inset-inline-start: calc(100% - var(--space-16));
+	margin: var(--space-1);
 }
 /* Hidden depth: a plain "More" button under the content, always visible. */
 .ex-inspect-controls.ex-inspect-more {
@@ -153,10 +175,6 @@ ex-mermaid > svg {
 	width: min(78ch, 100%);
 	margin-inline: auto;
 }
-.ex-inspect-body > ex-mermaid {
-	display: grid;
-	justify-items: center;
-}
 .ex-inspect-body .ex-inspect-controls {
 	display: none;
 }
@@ -196,7 +214,6 @@ ex-mermaid > svg {
 }
 ex-document,
 ex-markdown,
-ex-mermaid,
 ex-tabs,
 ex-zoom,
 ex-decision,
@@ -216,7 +233,8 @@ ex-diagram-diff {
 	margin-block: var(--space-6);
 }
 ex-compare > [slot],
-ex-diagram-diff > [slot] {
+ex-diagram-diff > [slot],
+ex-tabs > :is([role='region'], [role='tabpanel']) {
 	min-width: 0;
 }
 .ex-tab-bar,

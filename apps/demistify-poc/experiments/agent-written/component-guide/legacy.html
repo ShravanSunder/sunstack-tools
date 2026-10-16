@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Earlier vocabulary · Demistify components</title>
+<link rel="stylesheet" href="/experiments/islands/theme.css">
+<script type="module" src="/experiments/islands/runtime.js">
+</script>
+</head>
+<body>
+<ex-nav for="guide">
+<nav slot="pages" aria-label="Component guide pages">
+<a href="index.html">Start here</a>
+<a href="content.html">Content and decisions</a>
+<a href="layouts.html">Layouts and navigation</a>
+<a href="visuals.html">Visuals and structure</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+</nav>
+<nav slot="presentations" aria-label="Other presentations">
+<a href="../navigation-markdown-fix/index.html">
+<strong>Session design</strong>
+<span>Three named presentations with referenced Markdown and deep links.</span>
+</a>
+<a href="../layout-regression-fix/index.html">
+<strong>Layout stress cases</strong>
+<span>Wide diagrams and long tree labels.</span>
+</a>
+</nav>
+</ex-nav>
+<ex-document id="guide">
+<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
+<a href="index.html">Demistify component guide</a>
+<span aria-current="page">Earlier vocabulary</span>
+</nav>
+<ex-presentation id="examples" title="Earlier vocabulary" description="Working components with copyable source and usage guidance.">
+<h1>Earlier vocabulary</h1>
+<p>These earlier lab elements remain rendered for existing artifacts. They are separated here so the current small vocabulary stays clear.</p>
+<section id="component-ex-zoom">
+<h2>Inspection wrapper <code>ex-zoom</code>
+</h2>
+<p>Wrap arbitrary HTML and optional detail with the shared inspector. Current content islands supply their own controls.</p>
+<ex-zoom label="Registry detail" zoom>
+<p>The registry retains sessions.</p>
+<p slot="details">Expiry belongs to the same owner.</p>
+</ex-zoom>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-zoom usage" lang="html">
+<template>&lt;ex-zoom label=&quot;Registry detail&quot; zoom&gt;&lt;p&gt;The registry retains sessions.&lt;/p&gt;&lt;p slot=&quot;details&quot;&gt;Expiry belongs to the same owner.&lt;/p&gt;&lt;/ex-zoom&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-decision">
+<h2>Decision record <code>ex-decision</code>
+</h2>
+<p>Earlier decision vocabulary; current examples use a decision-tone callout or card.</p>
+<ex-decision status="proposed" label="Session lifetime">The registry owns the session lifetime.</ex-decision>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-decision usage" lang="html">
+<template>&lt;ex-decision status=&quot;proposed&quot; label=&quot;Session lifetime&quot;&gt;The registry owns the session lifetime.&lt;/ex-decision&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-diagram-diff">
+<h2>Diagram comparison <code>ex-diagram-diff</code>
+</h2>
+<p>Earlier before/after container. Semantic added/removed/changed tones belong to the shared library.</p>
+<ex-diagram-diff label="Ownership change">
+<section slot="before">Socket → Session</section>
+<section slot="after">Socket → Registry → Session</section>
+</ex-diagram-diff>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-diagram-diff usage" lang="html">
+<template>&lt;ex-diagram-diff label=&quot;Ownership change&quot;&gt;&lt;section slot=&quot;before&quot;&gt;Socket → Session&lt;/section&gt;&lt;section slot=&quot;after&quot;&gt;Socket → Registry → Session&lt;/section&gt;&lt;/ex-diagram-diff&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-timeline">
+<h2>Timeline <code>ex-timeline</code>
+</h2>
+<p>Earlier vertical timeline container; compose phases with normal sections.</p>
+<ex-timeline label="Delivery">
+<section>
+<h3>Registry</h3>
+<p>Separate lifetime ownership.</p>
+</section>
+<section>
+<h3>Reconnect</h3>
+<p>Attach a new transport.</p>
+</section>
+</ex-timeline>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-timeline usage" lang="html">
+<template>&lt;ex-timeline label=&quot;Delivery&quot;&gt;&lt;section&gt;&lt;h3&gt;Registry&lt;/h3&gt;&lt;p&gt;Separate lifetime ownership.&lt;/p&gt;&lt;/section&gt;&lt;section&gt;&lt;h3&gt;Reconnect&lt;/h3&gt;&lt;p&gt;Attach a new transport.&lt;/p&gt;&lt;/section&gt;&lt;/ex-timeline&gt;</template>
+</ex-code>
+</details>
+</section>
+<section id="component-ex-layer">
+<h2>Layer band <code>ex-layer</code>
+</h2>
+<p>Earlier architecture band; current layer visibility uses the layer attribute and switches.</p>
+<ex-layer label="Transport">
+<div class="label">Transport</div>
+<div class="body">Carries messages between client and registry.</div>
+</ex-layer>
+<details>
+<summary>Copy the markup</summary>
+<ex-code title="ex-layer usage" lang="html">
+<template>&lt;ex-layer label=&quot;Transport&quot;&gt;&lt;div class=&quot;label&quot;&gt;Transport&lt;/div&gt;&lt;div class=&quot;body&quot;&gt;Carries messages between client and registry.&lt;/div&gt;&lt;/ex-layer&gt;</template>
+</ex-code>
+</details>
+</section>
+</ex-presentation>
+<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+<ex-markdown id="authoring-notes" src="usage-notes.md">
+</ex-markdown>
+</ex-presentation>
+</ex-document>
+</body>
+</html>

@@ -5,7 +5,9 @@
  */
 import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
+import { parseMarkdownSource } from '../core/markdown-source.ts';
 import { normalizeIslandText } from '../core/source-text.ts';
+import { parseGraphDocument } from '../explorer/graph-document.ts';
 import { parseCode } from '../render/code-lines.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
@@ -285,10 +287,67 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			}
 		}
 
+		if (name === 'ex-explorer') {
+			const file = attributes.get('src');
+			const script = element.childNodes
+				.filter(isElement)
+				.find(
+					(child): boolean =>
+						child.tagName === 'script' && attributeMap(child).get('type') === 'application/json',
+				);
+			// oxlint-disable-next-line no-await-in-loop -- external content is checked in page order, once per explorer.
+			const external = file && options.readSource ? await options.readSource(file) : undefined;
+			const content = external ?? (script ? textOf(script) : undefined);
+			if (content === undefined)
+				report(
+					element,
+					'error',
+					'explorer',
+					file
+						? `Cannot read explorer source "${file}"; provide the file next to the page.`
+						: 'ex-explorer needs src or an application/json block.',
+				);
+			else {
+				try {
+					const graph = parseGraphDocument(JSON.parse(content));
+					const selected = attributes.get('selected');
+					if (selected && !graph.nodes.some((node): boolean => node.id === selected))
+						report(
+							element,
+							'error',
+							'explorer',
+							`Unknown initial graph selection: ${selected}.`,
+							'selected',
+						);
+				} catch (error) {
+					report(
+						element,
+						'error',
+						'explorer',
+						error instanceof Error ? error.message : 'Invalid explorer data.',
+					);
+				}
+			}
+		}
+
 		if (name === 'ex-tabs')
 			for (const child of element.childNodes.filter(isElement))
 				if (child.tagName !== 'section' || !attributeMap(child).has('label'))
 					report(child, 'warning', 'tabs', 'Each view in ex-tabs is a <section label="…">.');
+
+		if (name === 'ex-markdown' && attributes.has('src')) {
+			const reference = attributes.get('src') ?? '';
+			// oxlint-disable-next-line no-await-in-loop -- check each referenced source with the caller's resolver.
+			const text = options.readSource ? await options.readSource(reference) : undefined;
+			if (!reference.trim() || (options.readSource && text === undefined))
+				report(
+					element,
+					'error',
+					'markdown-source',
+					`Cannot read Markdown source "${reference}"; provide the file beside the page or embed it.`,
+					'src',
+				);
+		}
 
 		// Island sources: markup inside the text means the browser already broke it into elements.
 		if (spec.source) {
@@ -306,7 +365,13 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 					`<${name}> text was read as HTML (<${stray[0]?.tagName ?? ''}>); put it in <script type="${spec.source}">…</script>.`,
 				);
 			const type = script ? attributeMap(script).get('type') : undefined;
-			if (script && type !== spec.source)
+			if (script && attributeMap(script).has('data-ex-markdown-source') && name === 'ex-markdown') {
+				try {
+					parseMarkdownSource(textOf(script));
+				} catch {
+					report(script, 'error', 'markdown-source', 'Invalid embedded Markdown source.');
+				}
+			} else if (script && type !== spec.source)
 				report(script, 'warning', 'source', `Use <script type="${spec.source}"> inside <${name}>.`);
 		}
 

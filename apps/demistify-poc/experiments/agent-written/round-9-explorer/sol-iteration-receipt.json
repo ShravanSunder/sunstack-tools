@@ -1,0 +1,59 @@
+{
+  "normalization": "Machine paths replaced with placeholders; private original receipt retained. Model claims require Lead verification.",
+  "receipt": {
+    "outcome": "Moved the unchanged reading guide inside the existing explorer; static check passed.",
+    "files_read_by_author": [
+      "$EXPERIMENT/sol-explorer/final.html",
+      "$WORKTREE/packages/demistify/skill/references/explorers.md"
+    ],
+    "check_output_read": "$EXPERIMENT/sol-explorer/iteration-check-1.txt",
+    "extra_reads": [],
+    "checker_inputs": [
+      "$EXPERIMENT/sol-explorer/iterated.html",
+      "$EXPERIMENT/sol-explorer/planning.json"
+    ],
+    "checker_read_limit": "The prescribed checker reads the page and referenced JSON; transitive implementation reads were not independently inventoried.",
+    "files_written": [
+      "$EXPERIMENT/sol-explorer/iterated.html",
+      "$EXPERIMENT/sol-explorer/iteration-check-1.txt",
+      "$EXPERIMENT/sol-explorer/iteration-receipt.json"
+    ],
+    "changes": [
+      "Moved the existing ex-explorer opening tag before the existing ex-markdown reading guide.",
+      "Retained the ex-explorer closing tag after the reading guide, making that guide child introductory content.",
+      "Preserved all prose, metadata, asset links, src=planning.json, id=skill-explorer, selected=spec-design and view=proposed."
+    ],
+    "commands": [
+      {
+        "command": "cat final.html and the exact updated explorers.md reference using their absolute paths",
+        "exit_code": 0
+      },
+      {
+        "command": "python3 heredoc: read final.html and write only iterated.html with the guide nested inside ex-explorer",
+        "exit_code": 0
+      },
+      {
+        "command": "node packages/demistify/bin/demistify.ts check $EXPERIMENT/sol-explorer/iterated.html",
+        "cwd": "$WORKTREE",
+        "checker_exit": 0,
+        "output": "1 file: 0 errors, 0 warnings\n",
+        "output_file": "$EXPERIMENT/sol-explorer/iteration-check-1.txt",
+        "shell_capture": "checker_exit=$?; cat captured output; printf checker_exit",
+        "wrapper_exit_code": 0
+      },
+      {
+        "command": "python3 heredoc: write only iteration-receipt.json",
+        "exit_code": 0
+      }
+    ],
+    "checker_calls": 1,
+    "repairs_after_check": [],
+    "earlier_artifacts": "No writes to initial.html, final.html, receipt.json or earlier check files.",
+    "proof_limits": [
+      "Static validation only; no browser, visual or interaction acceptance claim.",
+      "Title-before-guide rendering follows the updated reference and has not been observed in a browser.",
+      "No direct read or modification of planning.json or library assets.",
+      "Full referenced-content integrity and token accounting remain with the Lead."
+    ]
+  }
+}
