@@ -30,3 +30,5 @@ pub use preparation_contracts::*;
 
 pub mod evidence_session;
 pub use evidence_session::*;
+
+mod acquisition_progress;
