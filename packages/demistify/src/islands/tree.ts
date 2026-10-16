@@ -13,9 +13,14 @@ import { revealElement } from '../layout/document.ts';
  */
 export class TreeIsland extends HTMLElement {
 	private rendering = false;
+	private bound = false;
 
 	connectedCallback(): void {
-		if (this.hasAttribute('prepared') || this.hasAttribute('data-inspector-content')) return;
+		if (this.hasAttribute('data-inspector-content')) return;
+		if (this.hasAttribute('prepared')) {
+			this.bindControls();
+			return;
+		}
 		if (this.rendering) return;
 		this.rendering = true;
 		void this.render();
@@ -52,6 +57,12 @@ export class TreeIsland extends HTMLElement {
 		} else body.append(branches);
 		this.replaceChildren(body);
 		this.setAttribute('prepared', '');
+		this.bindControls();
+	}
+
+	private bindControls(): void {
+		if (this.bound) return;
+		this.bound = true;
 		this.addEventListener('click', (event): void => this.handleClick(event));
 		this.addEventListener('keydown', (event): void => {
 			if (event.key !== 'Enter' && event.key !== ' ') return;

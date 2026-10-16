@@ -1,5 +1,6 @@
 import { createIconButton } from '../core/icons.ts';
 import { openDrawer } from './drawer.ts';
+import { copyInspectionContent } from './inspection-copy.ts';
 
 type InspectionMode = 'modal' | 'sidebar';
 
@@ -83,8 +84,8 @@ interface InspectionContent {
 }
 
 /**
- * Moves an island's real content into an inspection shell with zoom controls, revealing hidden
- * details; restore() puts every node and state back where it was.
+ * A modal temporarily uses the live content; a sidebar gets an independent, interactive copy.
+ * Both reveal details without changing the document’s saved disclosure state.
  */
 function takeContent(
 	owner: HTMLElement,
@@ -94,17 +95,21 @@ function takeContent(
 	reserveWidth: boolean,
 	expand?: () => void,
 ): InspectionContent | undefined {
+	const contentOwner = reserveWidth ? owner : copyInspectionContent(owner);
+	if (!contentOwner) return undefined;
 	const originalStyle = owner.getAttribute('style');
 	const bounds = owner.getBoundingClientRect();
-	const contentNodes = Array.from(owner.childNodes).filter((node): boolean => node !== controls);
+	const contentNodes = Array.from(contentOwner.childNodes).filter(
+		(node): boolean => node !== controls,
+	);
 	const detailStates = Array.from(
-		owner.querySelectorAll<HTMLElement>(':scope > [slot="details"]'),
+		contentOwner.querySelectorAll<HTMLElement>(':scope > [slot="details"]'),
 	).map((element) => ({ element, hidden: element.hidden }));
-	const disclosureStates = Array.from(owner.querySelectorAll('details')).map((element) => ({
+	const disclosureStates = Array.from(contentOwner.querySelectorAll('details')).map((element) => ({
 		element,
 		open: element.open,
 	}));
-	const content = owner.cloneNode(false);
+	const content = reserveWidth ? owner.cloneNode(false) : contentOwner;
 	if (!(content instanceof HTMLElement)) return undefined;
 	content.removeAttribute('id');
 	content.removeAttribute('style');
@@ -113,7 +118,7 @@ function takeContent(
 	content.removeAttribute('span');
 	content.removeAttribute('sticky');
 	content.classList.remove('ex-inspectable', 'ex-route-focus');
-	content.setAttribute('data-inspector-content', '');
+	if (reserveWidth) content.setAttribute('data-inspector-content', '');
 	const header = document.createElement('header');
 	header.className = 'ex-inspect-header';
 	const title = document.createElement('strong');
@@ -148,18 +153,20 @@ function takeContent(
 	const closeButton = addButton('x', 'Close', close);
 	closeButton.autofocus = true;
 	// The island keeps its place on the page while its content is shown elsewhere.
-	if (reserveWidth) owner.style.width = `${bounds.width}px`;
-	owner.style.height = `${bounds.height}px`;
+	if (reserveWidth) {
+		owner.style.width = `${bounds.width}px`;
+		owner.style.height = `${bounds.height}px`;
+	}
 	owner.classList.add('ex-inspected');
 	const placeholder = document.createElement('p');
 	placeholder.className = 'ex-inspect-placeholder';
 	placeholder.textContent = `${label} is open in the panel.`;
-	content.append(...contentNodes);
+	if (reserveWidth) content.append(...contentNodes);
 	for (const visual of content.querySelectorAll<HTMLImageElement | SVGSVGElement>(
 		'img, ex-mermaid > svg[width]',
 	))
 		describeShape(visual);
-	owner.insertBefore(placeholder, controls);
+	if (reserveWidth) owner.insertBefore(placeholder, controls);
 	body.append(content);
 	for (const detail of detailStates) detail.element.hidden = false;
 	for (const disclosure of disclosureStates) disclosure.element.open = true;
@@ -168,6 +175,10 @@ function takeContent(
 		body,
 		restore: (): void => {
 			placeholder.remove();
+			if (!reserveWidth) {
+				owner.classList.remove('ex-inspected');
+				return;
+			}
 			for (const node of contentNodes) owner.insertBefore(node, controls);
 			for (const detail of detailStates) detail.element.hidden = detail.hidden;
 			for (const disclosure of disclosureStates) disclosure.element.open = disclosure.open;
@@ -187,7 +198,13 @@ function openModal(owner: HTMLElement, controls: HTMLElement, mode: InspectionMo
 	dialog.className = 'ex-inspect-dialog';
 	dialog.dataset['mode'] = mode;
 	dialog.setAttribute('aria-label', label);
-	const inspection = takeContent(owner, controls, label, (): void => dialog.close(), true);
+	const inspection = takeContent(
+		owner,
+		controls,
+		label,
+		(): void => dialog.close(),
+		mode !== 'sidebar',
+	);
 	if (!inspection) return;
 	dialog.append(inspection.header, inspection.body);
 	dialog.addEventListener(
@@ -224,7 +241,7 @@ function openInspector(owner: HTMLElement, controls: HTMLElement, mode: Inspecti
 }
 
 /**
- * Opens any island in the side panel or the large view; the real content moves and returns. An
+ * Opens an independent sidebar view or temporarily enlarges the live content in a modal. An
  * island without visible controls (routes and diagram links open plain cards too) gets hidden ones.
  */
 export function openIsland(owner: HTMLElement, mode: InspectionMode): void {
@@ -240,7 +257,11 @@ export function openIsland(owner: HTMLElement, mode: InspectionMode): void {
 
 /** Adds the island's inspection affordance, if it has one (see affordanceFor). */
 export function installIslandInspector(owner: HTMLElement): void {
-	if (owner.hasAttribute('data-inspector-content') || installedInspectors.has(owner)) return;
+	if (
+		owner.closest('[data-inspector-content], [data-inspector-copy]') ||
+		installedInspectors.has(owner)
+	)
+		return;
 	const affordance = affordanceFor(owner);
 	if (!affordance) return;
 	installedInspectors.add(owner);
@@ -275,7 +296,8 @@ export function installIslandInspector(owner: HTMLElement): void {
 export class ZoomIsland extends HTMLElement {
 	connectedCallback(): void {
 		// The inspector's copy shows everything, details included.
-		if (this.hasAttribute('data-inspector-content')) return;
+		if (this.hasAttribute('data-inspector-content') || this.hasAttribute('data-inspector-copy'))
+			return;
 		for (const detail of this.querySelectorAll<HTMLElement>(':scope > [slot="details"]'))
 			detail.hidden = true;
 		installIslandInspector(this);

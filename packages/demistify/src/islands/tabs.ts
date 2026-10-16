@@ -1,20 +1,25 @@
 import { installIslandInspector } from './inspector.ts';
 
 export class TabsIsland extends HTMLElement {
+	private bound = false;
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
-		if (this.querySelector(':scope > .ex-tab-bar')) {
-			installIslandInspector(this);
-			return;
-		}
+		if (this.bound) return;
+		this.bound = true;
+		const existingBar = this.querySelector<HTMLElement>(':scope > .ex-tab-bar');
 		const panels = Array.from(this.children).filter(
-			(element): element is HTMLElement => element instanceof HTMLElement,
+			(element): element is HTMLElement =>
+				element instanceof HTMLElement &&
+				element !== existingBar &&
+				!element.classList.contains('ex-inspect-controls'),
 		);
-		const tabBar = document.createElement('div');
+		const tabBar = existingBar ?? document.createElement('div');
 		tabBar.className = 'ex-tab-bar';
 		tabBar.setAttribute('role', 'tablist');
 		const buttons = panels.map((panel, index): HTMLButtonElement => {
-			const tabButton = document.createElement('button');
+			const tabButton =
+				existingBar?.querySelectorAll<HTMLButtonElement>('button')[index] ??
+				document.createElement('button');
 			tabButton.type = 'button';
 			tabButton.textContent = panel.getAttribute('label') ?? `View ${index + 1}`;
 			tabButton.setAttribute('role', 'tab');
@@ -53,7 +58,12 @@ export class TabsIsland extends HTMLElement {
 		}
 		tabBar.append(...buttons);
 		this.prepend(tabBar);
-		selectPanel(0);
+		selectPanel(
+			Math.max(
+				0,
+				buttons.findIndex((button): boolean => button.getAttribute('aria-selected') === 'true'),
+			),
+		);
 		if (this.hasAttribute('columns')) {
 			let selected = 0;
 			const fitsSideBySide = (): boolean =>

@@ -1,5 +1,6 @@
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
+import { registerInspectionCopy } from '../islands/inspection-copy.ts';
 import { appendSources, connectionTable, supplementaryTable } from './explorer-tables.ts';
 import {
 	compositionView,
@@ -43,6 +44,17 @@ export class ExplorerController {
 	) {
 		owner.id ||= `ex-explorer-${crypto.randomUUID()}`;
 		this.graphDocument = graphDocument;
+		registerInspectionCopy(owner, (): HTMLElement => {
+			const copy = document.createElement('ex-explorer');
+			copy.id = owner.id;
+			copy.setAttribute('selected', this.selection);
+			copy.setAttribute('view', this.mode);
+			const source = document.createElement('script');
+			source.type = 'application/json';
+			source.textContent = JSON.stringify(this.graphDocument);
+			copy.append(source);
+			return copy;
+		});
 		this.nodeById = new Map(graphDocument.nodes.map((node) => [node.id, node]));
 		const requested = owner.getAttribute('selected') ?? graphDocument.nodes[0]?.id ?? '';
 		this.selection = this.nodeById.has(requested) ? requested : (graphDocument.nodes[0]?.id ?? '');
