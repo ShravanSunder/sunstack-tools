@@ -20,7 +20,8 @@ Current UI/public-delivery evidence: [inspection fixes](2026-10-16-inspection-fi
 - [ ] Full planning-explorer acceptance against the original: search, selection/history, graph filters, synchronized tables and presentation parity. Existing source/static checks do not close missing browser comparisons.
 - [ ] Extend Sol/Luna DX/context comparisons across repeated and complex cases. [Round 15](../../../apps/demistify-poc/experiments/agent-written/round-15-presentation-skill/index.html) completes the first bounded skill/reference, correction and screenshot cases: Luna 1,099 / Sol 1,416 authored source tokens, with guidance/data/library costs separate. Automatic installed routing and general reliability remain unverified. Round 16 additionally checks source/prepared/explorer layouts and copied inspection in real390×844 child contexts.
 - [x] Run bounded repeatable first-transfer/reload and interaction measurements for the current pin: round 16 has 24 loading observations, eight real selections, actual transfer ledgers and separate hosted HTTP requests. [Results and limits](2026-10-16-loading-preparation.md). Cold browser process, WAN render, field INP and tail reliability remain unverified.
-- [ ] Compare minimum-install delivery strategies and explain local/offline limitations. Public Cloudflare trial works; production release/retention/alias strategy and standalone checker distribution remain open.
+- [x] Select major-path Cloudflare delivery with a Changesets version PR and retention checks; publish matching experimental v1 assets. [Release handoff](2026-10-16-v1-deployment-handoff.md).
+- [ ] Complete minimum-install/local/offline comparisons and standalone checker distribution. The shared runtime loads from public HTTPS; referenced files and full-offline delivery have separate requirements.
 
 ## Already delivered
 
