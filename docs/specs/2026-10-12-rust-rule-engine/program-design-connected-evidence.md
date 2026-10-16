@@ -103,7 +103,7 @@ Shared excerpts are deduplicated. A giant unit can become an explicitly partial 
 | --- | --- |
 | `SourceUnitQuery` | `seeds`, `languages`, `unit_kinds`, `source_sides` |
 | `SourceUnitKind` | `function { signature }`, `method { signature }`, `class { signature }`, `paragraph`, `section` |
-| `ChunkSettings` | `grouping: single_group \| per_seed` (rules allow `single_group` only; native callers may use `per_seed`), `seed_content`, `related_content`, `max_chunk_bytes` |
+| `ChunkSettings` | `grouping: single_group \| per_seed` (rules allow `single_group` only; native callers may use `per_seed`), `seed_content`, `related_content`, `max_chunk_bytes`. `single_group` yields `related_group`, and `per_seed` yields `related_groups` with one seed-attributed group per located seed unit ([contracts](program-design-contracts.md#prepare_evidence-sunstack-evidence)) |
 | `UnitContent` | `whole_unit` or `bounded_excerpt { max_bytes }` |
 | `ContextGroupOutcome` | `complete { group, coverage }`, `partial { group, coverage, omissions, diagnostics }`, `unavailable { diagnostics }` |
 | `Excerpt` | `unit: SourceUnitKey`, `span: SourceSpan`, `text` (the captured bytes of `span`), `membership: whole_unit \| bounded_excerpt { max_bytes }`, `context: code { enclosing_signature, import_context: [SourceSpan] } \| markdown`, `content_identity` |

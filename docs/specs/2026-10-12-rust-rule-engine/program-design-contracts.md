@@ -89,7 +89,8 @@ Rules never passes its own types down. After admitting an invocation, `sunstack-
 - `conversation_records { source, records: [ConversationRecord] }`
 - `payload_value { input, pointer, value }`
 - `changed_units { units: [{ unit: SourceUnit, text }] }`: `text` is the unit's captured bytes, so no consumer rereads a source that may have changed
-- `related_group { group: ContextGroupOutcome }`
+- `related_group { group: ContextGroupOutcome }`: a `single_group` related query, the only grouping rules use
+- `related_groups { groups: [{ seed: SourceUnitKey, outcome: ContextGroupOutcome }] }`: a native `per_seed` related query. There is one entry per located seed unit, in `SourceUnitKey` order, and each group is self-contained, so a related unit can appear in several groups. It is ready when at least one seed unit is located, with each group's outcome reported as it is. Composing the groups is the native caller's code, as Specification R24 says
 
 **`Omission`:** `{ reason: window | projection | limit | optional_unavailable, count }`.
 
