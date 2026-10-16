@@ -32,7 +32,7 @@ export function verifiedCustomDomainOrigin(target: ReleaseTarget, payload: unkno
 				z.object({
 					hostname: z.string(),
 					service: z.string(),
-					environment: z.string(),
+					environment: z.string().optional(),
 				}),
 			),
 		})
@@ -44,7 +44,7 @@ export function verifiedCustomDomainOrigin(target: ReleaseTarget, payload: unkno
 	if (
 		matches.length !== 1 ||
 		matches[0]?.service !== target.workerName ||
-		matches[0].environment !== 'production'
+		(matches[0].environment !== undefined && matches[0].environment !== 'production')
 	)
 		throw new Error(
 			'The configured custom domain is not attached to this production Worker; no deploy permitted.',
