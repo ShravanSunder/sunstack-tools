@@ -188,9 +188,10 @@ remaining three invocations did not run. Log:
 No further campaign or timeout increase followed. Two real executable calls
 timed out while the one direct Python replay answered quickly; this suggests a
 transport/host path difference and leaves definitive cause unknown. Both
-campaigns remain failed; V29/V30 and genuine hosted first/repeat measurements
-remain open. Total diagnosis/campaign provider attempts so far: two timed-out
-binary attempts plus one successful direct replay, with no hidden retry.
+campaigns remain failed. At partial target 0ccb736, V29/V30 and genuine hosted
+first/repeat measurements remained open. Diagnosis/campaign attempts at that
+checkpoint: two timed-out binary attempts plus one successful direct replay,
+with no hidden retry.
 
 Lead diagnosis `01a145bb-41d2-7c33-a97c-29a8467c5563`: LuLu is active with
 loopback allowed; its rules approve the native test identity but contain no
@@ -203,11 +204,78 @@ leading hypothesis, not an observed drop attributed to LuLu. No firewall rule,
 proxy, signing identity or alternate execution path was changed. The successful
 Python probe is diagnostic evidence only, never V29/V30 proof.
 
-**Blocked: host egress approval for the sunstack-rule identity.** Per Lead
-direction, no further binary hosted calls until the owner approves that
-identity and the Lead authorizes one separately named campaign 3 of the same
-four invocations. If it still times out with approval verified, return to the
-transport/network investigation. This partial target does not close S3b.
+Partial target 0ccb736 was **blocked: host egress approval for the sunstack-rule
+identity**. Lead direction prohibited further binary hosted calls until owner
+approval and separate campaign 3 authorization. The later approval and run are
+recorded below; neither failed campaign is relabeled as successful.
+
+## Campaign 3 after owner egress approval
+
+Lead authorization `01a145c0-0be0-7b40-892c-c96bc721576f` reported owner approval
+and an all-endpoint LuLu allow rule keyed by the CLI signing identity. Own
+read-only preflight found that identity in the updated rules. The final Cargo
+build had left a linker ad-hoc signature; the unchanged official runner's
+--sign-only path restored the intended Developer ID signature without warning.
+Before dispatch, codesign -dv showed `dev.shravansunder.sunstack-rule.debug`
+and the expected team, and codesign --verify exited 0. The harness continued
+to use that same runner. No source/test/settings change, timeout increase,
+alternate identity, proxy or Python substitution was made.
+
+Campaign `cb31f916-9d5a-4931-9961-f8a8fdbfef06` exited 0: two journey tests passed,
+four fixed first/repeat invocations completed, no skips, no signing warning.
+Both members of each pair started new processes/sessions. All four outcomes
+were complete_report/0 with one model request, one completed HTTP 200 attempt
+and a genuine admitted receipt for `typesafe/jev-1.14-20261014`. No retry was
+configured or observed. This is own V29/V30 executable evidence, awaiting the
+Lead's separately commissioned hosted observation and acceptance.
+
+| Journey / order | Wall ms | Native local / provider ms | Input / output tokens | Receipt USD |
+| --- | ---: | ---: | ---: | ---: |
+| Handoff first | 1033.78 | 14 / 355 | 5432 / 209 | 0.000228144 |
+| Handoff repeat | 445.44 | 13 / 338 | 5432 / 209 | 0.000228144 |
+| Skill first | 448.92 | 0 / 352 | 2342 / 139 | 0.000098364 |
+| Skill repeat | 521.65 | 0 / 430 | 2342 / 139 | 0.000098364 |
+
+Campaign 3 receipts total USD 0.000653016. That is only the four admitted
+receipts, not a total including the earlier unknown remote outcomes or the
+separate direct probe. These are single ordered pairs per journey, not a
+population estimate. OS/provider cache state and signing/startup overhead are
+uncontrolled; the first handoff wall value is retained. No speedup, SLA,
+cold-storage state or provider-cache state is inferred.
+
+Handoff routed to review_handback at confidence 0.85 / 0.80. Both reports
+retained the reviewed hook host/event/session/turn/subagent provenance and one
+cursor. The three judgments have block/block/nudge severities and transcript
+record locations: source reads [tool:review-read-0, tool:review-read-1], changes
+[tool:first, tool:review-read-0, tool:review-read-1], handback [message:2571].
+Their observed values were 0.98 / 0.98 / 0.9165 first, and
+0.98 / 0.98 / 0.9145 repeat, all pass. Informational answers resolved to actual
+completed request answers. Their correctness as semantic judgments is not
+measured beyond the executable/contract journey and arithmetic checks.
+
+Skill reports retained U001/U002/U003, byte spans [22,85), [87,190), [192,272)
+in the reviewed SKILL.md and nudge/nudge/block severities. Observed values were
+0.93 / 0.985 / 0.97 first, and 0.92 / 0.9825 / 0.97 repeat, all pass.
+task_kind, specificity and names_file references resolved into the genuine
+answers. The independent arithmetic and source-byte checks passed; favorable
+verdicts were not a precondition of the harness.
+
+Log: `target/cli-phase2-hosted-campaign3.log`. Full reports, native counters,
+receipts and pre/post fixture fingerprints:
+`target/cli-process-observations/31999-hosted-handoff-*.json` and
+`target/cli-process-observations/32116-hosted-skill-*.json`. Raw process evidence:
+`target/cli-process-evidence/31999-{0,1}` and `32116-{0,1}`. Frozen fixture
+fingerprints stayed unchanged. The immediate change from the two 61-second
+timeouts to four successful executable calls after owner approval corroborates
+the egress hypothesis; private firewall flow logs still were not observed.
+
+The observed source/test tree is the frozen local-verification target 0ccb736.
+This proof update is documentation only; that commit remains immutable for the
+paired Verifier's ongoing independent local observation. The full phase 2
+declaration adds this account without claiming independent verification or
+Lead acceptance. V2/V13/V14/V29/V30 have own scoped evidence, with the
+PreparationFailed reachability, cache, semantic accuracy and integration limits
+kept explicit above.
 
 ## Gates and remaining boundaries
 
