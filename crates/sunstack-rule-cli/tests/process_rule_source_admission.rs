@@ -12,6 +12,41 @@ use serde_json::{Value, json};
 use support::*;
 
 #[tokio::test]
+async fn connected_checks_admit_discovery_settings_without_acquiring_reviewed_content() {
+    let (directory, mut input) = source_fixture();
+    let root = directory.path();
+    let mut header: Value =
+        serde_json::from_slice(&std::fs::read(root.join("set.json")).unwrap()).unwrap();
+    header["inputs"]["changes"] = json!({"kind":"change_set"});
+    std::fs::write(root.join("set.json"), serde_json::to_vec(&header).unwrap()).unwrap();
+    std::fs::write(root.join("teaching.rules.json"), serde_json::to_vec_pretty(&json!({"K014":{"name":"connected.valid","target":{"input":"changes","select":{"kind":"changed_units","languages":["typescript"],"unit_kinds":["function"],"source_sides":"after_only"}},"threshold":0.8}})).unwrap()).unwrap();
+    input["definitions"]["rule_sets"][0]["binding_groups"][0]["bindings"]["changes"] =
+        json!({"kind":"change_set","repository":"repo"});
+    input["discovery"] = serde_json::to_value(changes::discovery()).unwrap();
+    assert!(!root.join("missing-reviewed.md").exists());
+    assert!(!root.join(".git").exists());
+    let checked = response(
+        &run_without_credential(root, "check_rules", input.clone()).await,
+        0,
+    );
+    assert_eq!(checked["result"]["outcome"]["checked_rule_count"], 1);
+    assert_eq!(
+        checked["result"]["outcome"]["printed_rules"][0]["definition"]["evidence"][0]["select"]["kind"],
+        "changed_units"
+    );
+    input.as_object_mut().unwrap().remove("discovery");
+    let refused = response(&run_without_credential(root, "check_rules", input).await, 2);
+    let diagnostic = &refused["result"]["outcome"]["diagnostics"]["items"][0];
+    assert_eq!(diagnostic["code"], "discovery_not_enabled");
+    assert_eq!(
+        diagnostic["location"]["file"],
+        json!(root.canonicalize().unwrap().join("teaching.rules.json"))
+    );
+    assert_eq!(diagnostic["location"]["line"], 2);
+    assert_eq!(diagnostic["location"]["column"], 11);
+}
+
+#[tokio::test]
 async fn invalid_connected_entries_skip_locally_but_equivalent_jsonl_remains_strict() {
     for context in [false, true] {
         let server = AnswerServer::start(ReplyMode::Answers {

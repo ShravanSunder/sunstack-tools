@@ -83,7 +83,7 @@ pub async fn check_rules(
             native_queries: vec![],
             package_bindings: vec![],
             limits: input.limits.clone(),
-            discovery: sunstack_evidence::EvidenceDiscovery::None {},
+            discovery: input.discovery.clone(),
         };
         // Opening admits schemas/bindings. No select/compare call can read a reviewed document.
         EvidenceSession::open(plan, registry, cancellation.clone())
@@ -94,7 +94,33 @@ pub async fn check_rules(
     if cancellation.is_cancelled() {
         return cancelled();
     }
-    if let Err(diagnostics) = admitted {
+    if let Err(mut diagnostics) = admitted {
+        if diagnostics.items.iter().any(|diagnostic| {
+            matches!(diagnostic,
+            ReportDiagnostic::Evidence(diagnostic)
+                if diagnostic.code == sunstack_evidence::EvidenceCode::DiscoveryNotEnabled)
+        }) {
+            'location: for group in &groups {
+                for located in &group.set.rules {
+                    if located.definition.evidence.iter().any(|declaration| {
+                        group.sources.get(&declaration.input).is_some_and(|source| {
+                            matches!(source.spec, sunstack_evidence::SourceSpec::ChangeSet { .. })
+                        })
+                    }) {
+                        crate::definition_admission::locate_at(
+                            &mut diagnostics,
+                            &located.source,
+                            located.line,
+                            located
+                                .provenance
+                                .as_ref()
+                                .map_or(1, |source| source.entry_location.column),
+                        );
+                        break 'location;
+                    }
+                }
+            }
+        }
         return refused(diagnostics);
     }
     let mut seen = BTreeSet::new();

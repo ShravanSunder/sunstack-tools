@@ -52,7 +52,10 @@ request. Evidence preparation does not require a backend credential.
 `check_rules` assembles every requested RuleSet and validates its rules without
 constructing a backend, reading reviewed documents or sending model requests.
 Its input contains `definition_root`, `definitions`, `repositories`,
-`payload_schemas`, `limits` and `output` (`diagnostics` or `assembled_rules`).
+`payload_schemas`, `limits`, optional `discovery` and `output` (`diagnostics` or `assembled_rules`).
+Discovery defaults to `none`, as in runtime input. Connected rules need bounded
+discovery settings for admission; check never executes discovery or acquisition.
+Repository-root metadata and declared payload schemas are still validated.
 It accepts no backend, attempt or request-budget settings. A clean check exits 0;
 refusals exit 2 with definition file, line and column. Printed rules are returned
 only after a clean check and include each native definition and its source.

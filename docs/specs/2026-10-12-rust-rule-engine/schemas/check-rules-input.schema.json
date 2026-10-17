@@ -10,6 +10,12 @@
     "definitions": {
       "$ref": "#/$defs/InvocationDefinitions"
     },
+    "discovery": {
+      "$ref": "#/$defs/EvidenceDiscovery",
+      "default": {
+        "kind": "none"
+      }
+    },
     "limits": {
       "$ref": "#/$defs/InvocationLimits"
     },
@@ -253,6 +259,106 @@
         "staged",
         "unstaged",
         "untracked"
+      ]
+    },
+    "DiscoveryLimits": {
+      "type": "object",
+      "properties": {
+        "include_ignored": {
+          "type": "boolean"
+        },
+        "max_fan_out": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_file_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_files": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_history_commits": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_local_time_ms": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_matches": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_relationship_candidates": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_total_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_unit_visits": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "max_files",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_matches",
+        "include_ignored",
+        "max_unit_visits",
+        "max_relationship_candidates",
+        "max_fan_out",
+        "max_history_commits",
+        "max_local_time_ms"
+      ]
+    },
+    "EvidenceDiscovery": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "bounded"
+            },
+            "limits": {
+              "$ref": "#/$defs/DiscoveryLimits"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "limits"
+          ]
+        }
       ]
     },
     "GitObjectId": {
