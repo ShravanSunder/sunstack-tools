@@ -129,6 +129,39 @@ test('tree go-to absolute URLs retain the lower destination at the page clamp', 
 		.toHaveAttribute('aria-current', 'location');
 });
 
+test('a blocked downward page key retains the clamped selection until actual movement', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui');
+	const fixtureWindow = fixture.defaultView;
+	if (!fixtureWindow) throw new Error('Missing fixture window.');
+	const lower = frame
+		.getByRole('navigation', { name: 'Page navigation', exact: true })
+		.getByRole('link', { name: 'Lower last', exact: true });
+	await lower.click();
+	await expect
+		.poll(
+			(): boolean =>
+				Math.abs(
+					fixtureWindow.scrollY -
+						(fixture.documentElement.scrollHeight - fixtureWindow.innerHeight),
+				) < 2,
+		)
+		.toBe(true);
+	await fixtureLocator(frame, requiredElement(fixture, '#lower-last')).click();
+	const clampedPosition = fixtureWindow.scrollY;
+	await userEvent.keyboard('{ArrowDown}');
+	// Give native input and queued visual updates time to paint even when no scroll event fires.
+	await new Promise<void>((resolve): void => {
+		fixtureWindow.requestAnimationFrame((): void => {
+			fixtureWindow.requestAnimationFrame((): void => resolve());
+		});
+	});
+	expect(fixtureWindow.scrollY).toBe(clampedPosition);
+	await expect.element(lower).toHaveAttribute('aria-current', 'location');
+	await userEvent.keyboard('{ArrowUp}');
+	await expect.poll((): number => fixtureWindow.scrollY).toBeLessThan(clampedPosition);
+	await expect.element(lower).not.toHaveAttribute('aria-current', 'location');
+});
+
 test('tabs carry meaningful icons, layer switches expose checked state and Home has its own icon', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const tab = frame.getByRole('tab', { name: 'Current', exact: true });

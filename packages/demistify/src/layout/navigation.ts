@@ -71,6 +71,8 @@ export class HeadingNavigation extends HTMLElement {
 					: element.scrollTop + element.clientHeight < element.scrollHeight - 1;
 			if (canScroll || /contain|none/.test(style.overscrollBehaviorY)) return;
 		}
+		const maximum = document.documentElement.scrollHeight - window.innerHeight;
+		if (direction < 0 ? window.scrollY <= 0 : window.scrollY >= maximum - 1) return;
 		this.requestedHeading = undefined;
 		this.scheduleCurrentSection();
 	}
