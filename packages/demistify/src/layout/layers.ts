@@ -1,3 +1,4 @@
+import { createSwitch } from '../core/controls.ts';
 import { reportIssue } from '../core/issues.ts';
 
 /**
@@ -13,7 +14,7 @@ export class LayersElement extends HTMLElement {
 		if (this.hasAttribute('prepared')) {
 			for (const button of this.querySelectorAll<HTMLButtonElement>('button[data-layer]')) {
 				button.addEventListener('click', (): void =>
-					setLayer(button.dataset['layer'] ?? '', button.getAttribute('aria-pressed') !== 'true'),
+					setLayer(button.dataset['layer'] ?? '', button.getAttribute('aria-checked') !== 'true'),
 				);
 			}
 			return;
@@ -38,13 +39,8 @@ export class LayersElement extends HTMLElement {
 		label.textContent = this.getAttribute('label') ?? 'Show';
 		this.replaceChildren(label);
 		for (const name of names) {
-			const button = document.createElement('button');
-			button.type = 'button';
+			const button = createSwitch(name, !off.has(name), (shown): void => setLayer(name, shown));
 			button.dataset['layer'] = name;
-			button.textContent = name;
-			button.addEventListener('click', (): void =>
-				setLayer(name, button.getAttribute('aria-pressed') !== 'true'),
-			);
 			this.append(button);
 			setLayer(name, !off.has(name));
 		}
@@ -58,7 +54,7 @@ export function setLayer(name: string, shown: boolean): void {
 	for (const button of document.querySelectorAll<HTMLButtonElement>(
 		`ex-layers button[data-layer="${CSS.escape(name)}"]`,
 	))
-		button.setAttribute('aria-pressed', String(shown));
+		button.setAttribute('aria-checked', String(shown));
 }
 
 /** Turns on any layer that hides the element, so a route or link can show it. */

@@ -5,20 +5,20 @@
 <nav slot="presentations" aria-label="Other presentations"><a href="details.html"><strong>Implementation detail</strong><span>A separate HTML page in the same collection.</span></a></nav>
 </ex-nav>
 <ex-document id="content">
-<nav class="ex-breadcrumbs" aria-label="Breadcrumb"><a href="index.html">Session explainers</a><span aria-current="page">Overview</span></nav>
-<ex-presentation id="architecture" title="Architecture" description="Who owns a session and how reconnect works.">
+
+<section id="architecture">
 # Session architecture
 
-Use **Presentations** to switch complete explainers. Page links remain in the left navigation.
+Use **Presentations** to follow a named path through this content. Pages is in the top bar.
 
 [Open the implementation diagram directly](#plan-diagram) · [Jump into the referenced Markdown](#notes--recovery).
 
 <ex-markdown id="notes" label="Session ownership" src="notes.md"></ex-markdown>
-</ex-presentation>
-<ex-presentation id="plan" title="Implementation plan" description="The proposed path and its two delivery phases.">
+</section>
+<section id="plan">
 # Implementation plan
 
-Only this presentation is shown when selected. A fragment link opens its containing presentation.
+Presentations reference this content without hiding the rest of the document. Fragment links reveal their target.
 
 <ex-tabs><section label="Summary">
 ## Phases
@@ -31,8 +31,8 @@ flowchart LR
   Client --> Socket --> Registry --> Session
 </script></ex-mermaid>
 </section></ex-tabs>
-</ex-presentation>
-<ex-presentation id="review" title="Review" description="The decision, its rationale and the remaining risk.">
+</section>
+<section id="review">
 # Review
 
 <ex-grid cols="2"><ex-card title="Registry ownership" tone="decision" pick>The registry owns the session lifetime.</ex-card><ex-card title="Transport ownership" tone="removed">Closing a socket ends the session.</ex-card></ex-grid>
@@ -43,5 +43,8 @@ flowchart LR
 
 A stale transport must not replace a newer connection.
 </script></ex-markdown>
-</ex-presentation>
+</section>
+<ex-presentation id="show-architecture" title="Architecture" description="Who owns a session and how reconnect works."><ex-step to="architecture">Read Architecture.</ex-step></ex-presentation>
+<ex-presentation id="show-plan" title="Implementation plan" description="The proposed path and its two delivery phases."><ex-step to="plan">Read Implementation plan.</ex-step></ex-presentation>
+<ex-presentation id="show-review" title="Review" description="The decision, its rationale and the remaining risk."><ex-step to="review">Read Review.</ex-step></ex-presentation>
 </ex-document></body></html>

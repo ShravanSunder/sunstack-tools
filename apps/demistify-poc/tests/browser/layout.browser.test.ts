@@ -105,8 +105,19 @@ test('tree multiline text stays beside its first-line icon and preserves inline 
 	await frame.getByText('A deliberately long label', { exact: false }).click();
 	await expect
 		.element(frame.getByText('A nested child has the same alignment', { exact: false }))
+		.toBeVisible();
+	const branchLabel = Array.from(tree.querySelectorAll('.ex-tree-label')).find(
+		(element): boolean =>
+			element.textContent?.trim().startsWith('A deliberately long label') ?? false,
+	);
+	const branch = branchLabel?.closest('.ex-tree-node');
+	if (!branch) throw new Error('Missing tree branch.');
+	const disclosure = fixtureLocator(frame, requiredElement(branch, '.ex-tree-disclosure'));
+	await disclosure.click();
+	await expect
+		.element(frame.getByText('A nested child has the same alignment', { exact: false }))
 		.not.toBeVisible();
-	await frame.getByText('A deliberately long label', { exact: false }).click();
+	await disclosure.click();
 	await expect
 		.element(frame.getByText('A nested child has the same alignment', { exact: false }))
 		.toBeVisible();
