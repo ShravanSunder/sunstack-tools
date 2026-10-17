@@ -199,3 +199,28 @@ test('presentation trace cancels a pending diagram hover immediately', (): void 
 	vi.advanceTimersByTime(100);
 	expect(surface.traced()).toEqual(['alpha-beta']);
 });
+
+test.each(['mermaid', 'arrows', 'flow', 'explorer'])(
+	'%s actions resolve a pending hover exit instead of leaving the old trace stuck',
+	(kind): void => {
+		vi.useFakeTimers();
+		const surface = createSurface(kind);
+		point(surface.first, kind, true);
+		vi.advanceTimersByTime(100);
+		expect(surface.traced()).toEqual(['alpha-beta', 'beta-gamma']);
+		if (kind === 'arrows' || kind === 'flow')
+			document.body.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+		else point(surface.first, kind, false);
+		surface.owner.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		expect(surface.traced()).toEqual([]);
+		vi.advanceTimersByTime(100);
+		expect(surface.traced()).toEqual([]);
+		point(surface.first, kind, true);
+		vi.advanceTimersByTime(100);
+		if (kind === 'arrows' || kind === 'flow')
+			document.body.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+		else point(surface.first, kind, false);
+		surface.owner.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(surface.traced()).toEqual([]);
+	},
+);

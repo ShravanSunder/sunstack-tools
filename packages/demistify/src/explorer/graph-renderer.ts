@@ -46,18 +46,24 @@ export function renderExplorerGraph(props: GraphRenderProps): void {
 	const nodeLayer = document.createElement('div');
 	nodeLayer.className = 'ex-explorer-nodes';
 	let hoveredId: string | undefined;
-	const pendingHover = createDebouncedAction((): void => {
+	const paintCurrent = (preferFocus = false): void => {
 		if (!canvas.isConnected) return;
 		const focused = document.activeElement?.closest<HTMLElement>('.ex-explorer-node');
-		paint(
-			hoveredId ?? (focused && nodeLayer.contains(focused) ? focused.dataset['nodeId'] : undefined),
-		);
-	}, 100);
+		const focusedId =
+			focused && nodeLayer.contains(focused) ? focused.dataset['nodeId'] : undefined;
+		paint(preferFocus ? (focusedId ?? hoveredId) : (hoveredId ?? focusedId));
+	};
+	const pendingHover = createDebouncedAction(paintCurrent, 100);
 	const paintImmediately = (nodeId?: string): void => {
 		pendingHover.cancel();
 		paint(nodeId);
 	};
-	canvas.addEventListener('keydown', pendingHover.cancel, true);
+	const settleAction = (): void => {
+		pendingHover.cancel();
+		paintCurrent(true);
+	};
+	canvas.addEventListener('keydown', settleAction, true);
+	canvas.addEventListener('click', settleAction, true);
 	let rows = 1;
 	for (const [column, group] of groups.entries()) {
 		const nodes = view.nodes

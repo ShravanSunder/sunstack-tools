@@ -32,18 +32,26 @@ export function traceDiagram(svg: SVGSVGElement): void {
 	if (!svg.querySelector(traceable) || svg.hasAttribute('data-traced')) return;
 	svg.setAttribute('data-traced', '');
 	let hovered: SVGElement | undefined;
-	const pending = createDebouncedAction((): void => {
+	const paintCurrent = (preferFocus = false): void => {
 		if (!svg.isConnected || (hovered && !hovered.isConnected)) return;
 		const focused = document.activeElement?.closest<SVGElement>('g[data-id]');
 		const fallback =
 			focused && svg.contains(focused)
 				? focused
 				: svg.querySelector<SVGElement>('g[data-id].ex-route-focus');
-		setTrace(svg, hovered?.dataset['id'] ?? fallback?.dataset['id']);
-	}, 100);
+		const id = preferFocus
+			? (fallback?.dataset['id'] ?? hovered?.dataset['id'])
+			: (hovered?.dataset['id'] ?? fallback?.dataset['id']);
+		setTrace(svg, id);
+	};
+	const pending = createDebouncedAction(paintCurrent, 100);
 	pendingDiagramHover.set(svg, pending);
-	svg.addEventListener('click', pending.cancel, true);
-	svg.addEventListener('keydown', pending.cancel, true);
+	const settleAction = (): void => {
+		pending.cancel();
+		paintCurrent(true);
+	};
+	svg.addEventListener('click', settleAction, true);
+	svg.addEventListener('keydown', settleAction, true);
 	for (const node of svg.querySelectorAll<SVGElement>('g[data-id]')) {
 		const id = node.dataset['id'];
 		const show = (): void => setTrace(svg, id);
@@ -81,10 +89,12 @@ function traceArrowsOf(id: string | undefined): void {
 export function installArrowTracing(): void {
 	let hoveredId: string | undefined;
 	let hoveredTarget: Element | undefined;
-	const pending = createDebouncedAction((): void => {
+	const paintCurrent = (preferFocus = false): void => {
 		if (hoveredTarget && !hoveredTarget.isConnected) return;
-		traceArrowsOf(hoveredId ?? endpointOf(document.activeElement));
-	}, 100);
+		const focusedId = endpointOf(document.activeElement);
+		traceArrowsOf(preferFocus ? (focusedId ?? hoveredId) : (hoveredId ?? focusedId));
+	};
+	const pending = createDebouncedAction(paintCurrent, 100);
 	document.addEventListener('pointerover', (event): void => {
 		const id = endpointOf(event.target);
 		if (id === hoveredId) return;
@@ -101,6 +111,15 @@ export function installArrowTracing(): void {
 		pending.cancel();
 		traceArrowsOf(endpointOf(event.target));
 	});
-	for (const event of ['click', 'keydown', 'presentation-change', 'presentation-target'])
+	for (const event of ['click', 'keydown'])
+		document.addEventListener(
+			event,
+			(): void => {
+				pending.cancel();
+				paintCurrent(true);
+			},
+			true,
+		);
+	for (const event of ['presentation-change', 'presentation-target'])
 		document.addEventListener(event, pending.cancel, true);
 }
