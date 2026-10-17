@@ -183,6 +183,12 @@ async fn source_word_cap_uses_default_four_hundred_and_explicit_override() {
             wire["result"]["outcome"]["diagnostics"]["items"][0]["code"],
             "question_too_large"
         );
+        let diagnostic = &wire["result"]["outcome"]["diagnostics"]["items"][0];
+        assert_eq!(diagnostic["location"]["field_path"], json!(["K014"]));
+        assert_eq!(
+            diagnostic["guidance"],
+            "Mark a narrower host, such as a subsection, a paragraph or a list item."
+        );
     }
 }
 
@@ -358,13 +364,37 @@ async fn duplicate_json_keys_are_preserved_until_their_rules_are_refused() {
 
 #[tokio::test]
 async fn consistency_checks_markers_and_entries_in_both_directions() {
-    for text in [
-        "ordinary without marker\n",
-        "# Forbidden<!-- K014 -->\n",
-        "> forbidden<!-- K014 -->\n",
-        "## Spaced <!-- K014 -->\n",
-        "one<!-- K014 -->\n\ntwo<!-- K014 -->\n",
-        "four<!-- K0014 -->\n",
+    for (text, code, guidance) in [
+        (
+            "ordinary without marker\n",
+            "orphaned_rule_entry",
+            "Add the corresponding marker or remove the orphaned rules entry.",
+        ),
+        (
+            "# Forbidden<!-- K014 -->\n",
+            "forbidden_marker_host",
+            "Move the marker to a heading of level 2–6, a paragraph or a list item, outside block quotes, tables and HTML.",
+        ),
+        (
+            "> forbidden<!-- K014 -->\n",
+            "forbidden_marker_host",
+            "Move the marker to a heading of level 2–6, a paragraph or a list item, outside block quotes, tables and HTML.",
+        ),
+        (
+            "## Spaced <!-- K014 -->\n",
+            "spaced_heading_marker",
+            "Remove the space before the heading marker.",
+        ),
+        (
+            "one<!-- K014 -->\n\ntwo<!-- K014 -->\n",
+            "duplicate_marker",
+            "Use each marker ID at most once in a Markdown source.",
+        ),
+        (
+            "four<!-- K0014 -->\n",
+            "orphaned_rule_entry",
+            "Add the corresponding marker or remove the orphaned rules entry.",
+        ),
     ] {
         let (directory, input) = source_fixture();
         std::fs::write(directory.path().join("teaching.md"), text).unwrap();
@@ -374,6 +404,14 @@ async fn consistency_checks_markers_and_entries_in_both_directions() {
         );
         assert_eq!(wire["result"]["outcome"]["kind"], "refused", "{text}");
         assert_eq!(wire["result"]["outcome"]["refused_rule_count"], 1);
+        for diagnostic in wire["result"]["outcome"]["diagnostics"]["items"]
+            .as_array()
+            .unwrap()
+        {
+            assert_eq!(diagnostic["code"], code);
+            assert_eq!(diagnostic["location"]["field_path"], json!(["K014"]));
+            assert_eq!(diagnostic["guidance"], guidance);
+        }
     }
     let (directory, input) = source_fixture();
     std::fs::write(directory.path().join("teaching.rules.json"), "{}").unwrap();
@@ -384,6 +422,12 @@ async fn consistency_checks_markers_and_entries_in_both_directions() {
     assert_eq!(
         wire["result"]["outcome"]["diagnostics"]["items"][0]["code"],
         "missing_rule_entry"
+    );
+    let diagnostic = &wire["result"]["outcome"]["diagnostics"]["items"][0];
+    assert_eq!(diagnostic["location"]["field_path"], json!(["K014"]));
+    assert_eq!(
+        diagnostic["guidance"],
+        "Add a rules entry for this marker ID."
     );
 }
 

@@ -12,7 +12,8 @@ pub enum RuleDiagnosticCode {
     DuplicateRuleSource,
     DuplicateRuleSet,
     EmptyRuleFile,
-    InvalidMarker,
+    ForbiddenMarkerHost,
+    SpacedHeadingMarker,
     DuplicateMarker,
     MissingRuleEntry,
     OrphanedRuleEntry,
@@ -92,6 +93,30 @@ impl RuleDiagnostic {
     pub fn new(code: RuleDiagnosticCode) -> Self {
         use RuleDiagnosticCode::*;
         let (origin, guidance) = match code {
+            ForbiddenMarkerHost => (
+                RuleDiagnosticOrigin::RuleFile,
+                "Move the marker to a heading of level 2–6, a paragraph or a list item, outside block quotes, tables and HTML.",
+            ),
+            SpacedHeadingMarker => (
+                RuleDiagnosticOrigin::RuleFile,
+                "Remove the space before the heading marker.",
+            ),
+            DuplicateMarker => (
+                RuleDiagnosticOrigin::RuleFile,
+                "Use each marker ID at most once in a Markdown source.",
+            ),
+            QuestionTooLarge => (
+                RuleDiagnosticOrigin::RuleFile,
+                "Mark a narrower host, such as a subsection, a paragraph or a list item.",
+            ),
+            MissingRuleEntry => (
+                RuleDiagnosticOrigin::RuleFile,
+                "Add a rules entry for this marker ID.",
+            ),
+            OrphanedRuleEntry => (
+                RuleDiagnosticOrigin::RuleFile,
+                "Add the corresponding marker or remove the orphaned rules entry.",
+            ),
             ConditionUnresolved => (
                 RuleDiagnosticOrigin::Applicability,
                 "Supply the missing field or complete the declared bounded scan.",

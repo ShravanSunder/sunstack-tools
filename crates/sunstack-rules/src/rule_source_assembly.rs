@@ -71,11 +71,16 @@ pub(crate) fn assemble_source(
             for marker in markers {
                 if let MarkdownMarkerBinding::Refused { marker, reason } = marker {
                     let code = match reason {
+                        MarkdownBindingRefusal::ForbiddenHost => {
+                            RuleDiagnosticCode::ForbiddenMarkerHost
+                        }
+                        MarkdownBindingRefusal::SpacedHeading => {
+                            RuleDiagnosticCode::SpacedHeadingMarker
+                        }
                         MarkdownBindingRefusal::DuplicateId => RuleDiagnosticCode::DuplicateMarker,
                         MarkdownBindingRefusal::QuestionTooLarge { .. } => {
                             RuleDiagnosticCode::QuestionTooLarge
                         }
-                        _ => RuleDiagnosticCode::InvalidMarker,
                     };
                     diagnostics.extend(
                         RuleDiagnostic::new(code)
@@ -83,7 +88,7 @@ pub(crate) fn assemble_source(
                                 &source.markdown,
                                 marker.span.start_line,
                                 marker.span.start_column,
-                                vec![],
+                                vec![marker.id.as_str().into()],
                             )
                             .into(),
                     );
@@ -100,7 +105,7 @@ pub(crate) fn assemble_source(
                             &source.markdown,
                             marker.span.start_line,
                             marker.span.start_column,
-                            vec![],
+                            vec![marker.id.as_str().into()],
                         )
                         .into(),
                 );
@@ -120,7 +125,7 @@ pub(crate) fn assemble_source(
                             &source.rules,
                             entry.location.line,
                             entry.location.column,
-                            vec![],
+                            if valid_key { vec![key.clone()] } else { vec![] },
                         )
                         .into(),
                 );
