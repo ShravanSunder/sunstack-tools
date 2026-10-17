@@ -17,9 +17,12 @@ from composition_scenarios import (
     preparation_journey,
     routing_journey,
 )
+from connected_scenarios import connected_journey, hosted_connected
 from cursor_scenarios import cursor_journey
-from handoff_scenario import handoff_journey, hosted_handoff
+from dependency_scenarios import dependency_journey
+from handoff_scenario import handoff_journey
 from hook_scenarios import origin_journey, payload_journey
+from recent_scenarios import recent_journey
 from scenario_runtime import (
     INDEX_VARIABLES,
     REPOSITORY_ROOT,
@@ -28,6 +31,23 @@ from scenario_runtime import (
     checked_source,
     write_object,
 )
+
+
+def skill_status() -> str:
+    return subprocess.run(
+        [
+            "git",
+            "--no-optional-locks",
+            "status",
+            "--short",
+            "--",
+            ".agents/skills/verify-sunstack-rule",
+        ],
+        cwd=REPOSITORY_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
 
 
 def main() -> None:
@@ -89,24 +109,22 @@ def main() -> None:
         "US11": frontier_journey,
         "US12": routing_journey,
         "US02": handoff_journey,
+        "US20": recent_journey,
+        "US21": connected_journey,
+        "US22": dependency_journey,
     }
     assert all(journey in dispatch for journey in selected), (
         "Unknown journey: use the reference inventory"
     )
     if arguments.hosted:
-        assert selected == ["US02"], (
-            "Only the separately authorized US02 slot is available"
+        assert selected == ["US21"], (
+            "Only the separately authorized US21 slot is available; US02 is spent"
         )
     product, head = checked_source()
-    skill_source_status = subprocess.run(
-        ["git", "status", "--short", "--", ".agents/skills/verify-sunstack-rule"],
-        cwd=REPOSITORY_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
     binary = Path(arguments.binary).resolve(strict=True)
     for journey in selected:
+        before = skill_status()
+        binary_digest = hashlib.sha256(binary.read_bytes()).hexdigest()
         context = DriverContext(
             binary=binary,
             evidence=evidence,
@@ -120,8 +138,13 @@ def main() -> None:
         assert not receipt.exists(), (
             "Use a new authorized evidence directory for another local run"
         )
-        (hosted_handoff if arguments.hosted else dispatch[journey])(context)
+        (hosted_connected if arguments.hosted else dispatch[journey])(context)
         assert checked_source() == (product, head), "Target changed during observation"
+        after = skill_status()
+        assert after == before, "Skill source changed during the journey"
+        assert hashlib.sha256(binary.read_bytes()).hexdigest() == binary_digest, (
+            "Binary changed during observation"
+        )
         write_object(
             receipt,
             {
@@ -129,7 +152,8 @@ def main() -> None:
                 "provider": "hosted" if arguments.hosted else "controlled-loopback",
                 "product_commit": product,
                 "source_head": head,
-                "skill_source_status": skill_source_status,
+                "skill_source_status_before": before,
+                "skill_source_status_after": after,
                 "binary": str(binary),
                 "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                 "processes": [
