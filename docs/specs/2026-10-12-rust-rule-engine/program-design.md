@@ -44,9 +44,9 @@ The cost is three public library surfaces and a workspace graph. The gain: a dec
 **Current state.** This repository has no Rust code. It is a pnpm TypeScript workspace (`packages/demistify`, `apps/demistify-poc`). Every engine call path below is proposed, with no predecessor in this repository.
 
 **The predecessor the handoff monitor replaces** is the ai-tools stop-review helper. Its current path:
-1. [`stop-review-hook.sh`](/Users/shravansunder/dev/ai-tools/agent-scripts/stop-review/stop-review-hook.sh) reads the Codex Stop hook JSON from stdin.
-2. [`render_window`](/Users/shravansunder/dev/ai-tools/agent-scripts/stop-review/extract_stop_review_window.py:223) builds the last five user turns with character caps. Text over the cap is cut by [`_truncate_tail`](/Users/shravansunder/dev/ai-tools/agent-scripts/stop-review/extract_stop_review_window.py:145), and hook-injected text is guessed from its wording by [`is_hook_injected_user_text`](/Users/shravansunder/dev/ai-tools/agent-scripts/stop-review/extract_stop_review_window.py:43).
-3. [`call_jev`](/Users/shravansunder/dev/ai-tools/agent-scripts/stop-review/jev_classifier.py:533) asks Jev nouls, and [`compose_decision`](/Users/shravansunder/dev/ai-tools/agent-scripts/stop-review/jev_classifier.py:438) applies a 0.8 threshold.
+1. `stop-review-hook.sh` (`ai-tools/agent-scripts/stop-review/stop-review-hook.sh`, historical source) reads the Codex Stop hook JSON from stdin.
+2. `render_window` (`ai-tools/agent-scripts/stop-review/extract_stop_review_window.py`, historical source) builds the last five user turns with character caps. Text over the cap is cut by `_truncate_tail` (`ai-tools/agent-scripts/stop-review/extract_stop_review_window.py`, historical source), and hook-injected text is guessed from its wording by `is_hook_injected_user_text` (`ai-tools/agent-scripts/stop-review/extract_stop_review_window.py`, historical source).
+3. `call_jev` (`ai-tools/agent-scripts/stop-review/jev_classifier.py`, historical source) asks Jev nouls, and `compose_decision` (`ai-tools/agent-scripts/stop-review/jev_classifier.py`, historical source) applies a 0.8 threshold.
 4. The hook emits allow or block, fails open, and stops after six continues.
 
 That path reads messages only: it cannot see tool use, so it cannot check which files a reviewer read. The engine keeps its useful shape (a bounded window, one combined Jev call, a code-side threshold). It replaces silent truncation with explicit limits and omissions, and wording heuristics with attributed records. The helper stays in ai-tools; migrating it is not part of this work.
@@ -643,11 +643,11 @@ Each milestone ships only after its V rows run through the real library and exec
 ## External sources
 
 - [jsonschema 0.57](https://docs.rs/jsonschema/0.57.0/jsonschema/struct.ValidationOptions.html#method.offline) supports Draft 2020-12, `ValidationOptions::offline` and a closed registry. Its [default features](https://docs.rs/crate/jsonschema/0.57.0/features) include `resolve-http` and `resolve-file`, which the design turns off. Its error text includes instance values, so diagnostics use paths only. The plan pins the exact version.
-- [Transcript adapter experiment](/Users/shravansunder/dev/sunstack-tools/tmp/practices-research/2026-10-15-hook-subjects/transcript-adapter-experiment.md) (2026-10-15, throwaway): trait extension worked without library edits (E0599 for the enum). Its two failed obligations shape the supplement and cursor rules above.
+- Transcript adapter experiment (private research archive) (2026-10-15, throwaway): trait extension worked without library edits (E0599 for the enum). Its two failed obligations shape the supplement and cursor rules above.
 - Claude Agent SDK [parser tests at c10b52c](https://github.com/anthropics/claude-agent-sdk-python/blob/c10b52c674e5c709c7263544b38e8a5dad10e01d/tests/test_message_parser.py#L88) and Codex [rollout tests at 3bae578](https://github.com/openai/codex/blob/3bae578af33e43268e7bc2d6d5d0266f704bb554/codex-rs/rollout/src/tests.rs#L54) are the public fixture sources for V24.
 - [TypeSafe primitives](https://docs.typesafe.ai/primitives/advanced), [confidence](https://docs.typesafe.ai/confidence) and [patterns](https://docs.typesafe.ai/patterns) ground the request and pattern semantics. [OpenRouter Jev](https://openrouter.ai/docs/guides/community/jev) grounds the HTTP surface.
 - [Tokio TaskTracker](https://docs.rs/tokio-util/latest/tokio_util/task/struct.TaskTracker.html) and [reqwest ClientBuilder](https://docs.rs/reqwest/latest/reqwest/struct.ClientBuilder.html) inform cleanup and attempt control.
-- ai-tools [`AgentJobPacket`](/Users/shravansunder/dev/ai-tools.skills-practices-principles/plugins/sunstack-dev/skills/practices-manage-agents/schemas/agent-job-packet.ts) is a Zod discriminated union on `role`, with camelCase fields. Payload values keep their case; Tools does not rename them.
+- ai-tools `AgentJobPacket` (`ai-tools/plugins/sunstack-dev/skills/practices-manage-agents/schemas/agent-job-packet.ts`, historical source) is a Zod discriminated union on `role`, with camelCase fields. Payload values keep their case; Tools does not rename them.
 
 **Remaining unverified:**
 - the installed hosts' current raw transcript formats
