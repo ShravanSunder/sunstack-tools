@@ -115,3 +115,54 @@ fn list_promotion_does_not_bypass_heading_spacing_or_h1_refusals() {
         );
     }
 }
+
+#[test]
+fn later_line_heading_does_not_copy_a_bare_marker_outside_its_span() {
+    let text = "-\n  ## Heading<!-- K014 -->\n\n  body\n\nOutside.\n";
+    let found = bindings(text);
+    assert_eq!(found.len(), 1);
+    let binding = bound(&found[0]);
+    assert_eq!(binding.host, MarkdownHostKind::Section);
+    assert_eq!((binding.span.byte_start, binding.span.byte_end), (4, 37));
+    assert_eq!(
+        &text[binding.span.byte_start..binding.span.byte_end],
+        "## Heading<!-- K014 -->\n\n  body\n\n"
+    );
+    assert_eq!(binding.question_text, "Heading\n\nbody");
+    assert_eq!(binding.filter_text, "Heading\n\nbody");
+}
+
+#[test]
+fn later_line_paragraph_does_not_copy_a_bare_marker_outside_its_span() {
+    let text = "-\n  paragraph<!-- K014 -->\n\nOutside.\n";
+    let found = bindings(text);
+    assert_eq!(found.len(), 1);
+    let binding = bound(&found[0]);
+    assert_eq!(binding.host, MarkdownHostKind::Paragraph);
+    assert_eq!(binding.span.byte_start, 4);
+    assert_eq!(
+        &text[binding.span.byte_start..binding.span.byte_end],
+        "paragraph<!-- K014 -->\n"
+    );
+    assert_eq!(binding.question_text, "paragraph");
+    assert_eq!(binding.filter_text, "paragraph");
+}
+
+#[test]
+fn first_line_paragraph_and_heading_keep_separated_list_prefixes() {
+    for (text, question) in [
+        ("- text<!-- K014 -->\n", "- text"),
+        ("- ## Heading<!-- K014 -->\n", "- Heading"),
+    ] {
+        let found = bindings(text);
+        assert_eq!(found.len(), 1);
+        let binding = bound(&found[0]);
+        assert_eq!(binding.host, MarkdownHostKind::ListItem);
+        assert_eq!(
+            (binding.span.byte_start, binding.span.byte_end),
+            (0, text.len())
+        );
+        assert_eq!(binding.question_text, question);
+        assert_eq!(binding.filter_text, question);
+    }
+}

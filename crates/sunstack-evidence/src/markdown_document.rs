@@ -244,7 +244,10 @@ impl MarkdownDocument {
                 }
             };
             let list_prefix = enclosing_list_item(&node)
-                .filter(|parent| is_first_item_content(parent, &node))
+                .filter(|parent| {
+                    is_first_item_content(parent, &node)
+                        && parent.start_pos().byte_point().0 == node.start_pos().byte_point().0
+                })
                 .and_then(|parent| {
                     parent
                         .children()
