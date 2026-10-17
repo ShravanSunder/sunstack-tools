@@ -110,12 +110,12 @@ async fn full_union_context_does_not_widen_change_set_text_or_ast_queries() {
             CancellationToken::new(),
         )
         .await;
-        let EvidencePlanOutcome::Prepared { selections, .. } = outcome else {
-            panic!("query should be prepared: {outcome:?}")
-        };
         assert!(
-            matches!(&selections[0].readiness, SelectionReadiness::Ready { content: SelectionContent::Matches { matches }, .. } if matches.len() == 1),
-            "Full contributes context, not unchanged query matches: {selections:?}"
+            matches!(&outcome, EvidencePlanOutcome::Prepared { selections, .. }
+                if matches!(&selections[0].readiness, SelectionReadiness::Ready {
+                    content: SelectionContent::Matches { matches }, ..
+                } if matches.len() == 1)),
+            "Full contributes context, not unchanged query matches: {outcome:?}"
         );
     }
 }
