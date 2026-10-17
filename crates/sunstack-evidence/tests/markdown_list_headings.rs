@@ -166,3 +166,59 @@ fn first_line_paragraph_and_heading_keep_separated_list_prefixes() {
         assert_eq!(binding.filter_text, question);
     }
 }
+
+#[test]
+fn section_keeps_bare_unordered_markers_inside_its_span() {
+    let text = "## S<!-- K014 -->\n\n-\n  first\n- second\n";
+    let found = bindings(text);
+    assert_eq!(found.len(), 1);
+    let binding = bound(&found[0]);
+    assert_eq!(binding.host, MarkdownHostKind::Section);
+    assert_eq!(
+        (binding.span.byte_start, binding.span.byte_end),
+        (0, text.len())
+    );
+    assert_eq!(binding.question_text, "S\n\n- first\n- second");
+    assert_eq!(binding.filter_text, binding.question_text);
+}
+
+#[test]
+fn section_keeps_bare_ordered_markers_inside_its_span() {
+    let text = "## S<!-- K014 -->\n\n1.\n   first\n";
+    let found = bindings(text);
+    assert_eq!(found.len(), 1);
+    let binding = bound(&found[0]);
+    assert_eq!(binding.host, MarkdownHostKind::Section);
+    assert_eq!(
+        (binding.span.byte_start, binding.span.byte_end),
+        (0, text.len())
+    );
+    assert_eq!(binding.question_text, "S\n\n1. first");
+    assert_eq!(binding.filter_text, binding.question_text);
+}
+
+#[test]
+fn section_preserves_nested_marker_indentation_with_later_line_content() {
+    let text = "## S<!-- K014 -->\n\n- parent\n\n  -\n    child\n- sibling\n";
+    let found = bindings(text);
+    assert_eq!(found.len(), 1);
+    let binding = bound(&found[0]);
+    assert_eq!(binding.host, MarkdownHostKind::Section);
+    assert_eq!(binding.question_text, "S\n\n- parent\n  - child\n- sibling");
+    assert_eq!(binding.filter_text, binding.question_text);
+}
+
+#[test]
+fn included_markers_use_one_separator_space_after_the_marker_text() {
+    for (text, question) in [
+        ("-   text<!-- K014 -->\n", "- text"),
+        ("1.   text<!-- K014 -->\n", "1. text"),
+    ] {
+        let found = bindings(text);
+        assert_eq!(found.len(), 1);
+        let binding = bound(&found[0]);
+        assert_eq!(binding.host, MarkdownHostKind::ListItem);
+        assert_eq!(binding.question_text, question);
+        assert_eq!(binding.filter_text, question);
+    }
+}

@@ -244,19 +244,17 @@ impl MarkdownDocument {
                 }
             };
             let list_prefix = enclosing_list_item(&node)
-                .filter(|parent| {
-                    is_first_item_content(parent, &node)
-                        && parent.start_pos().byte_point().0 == node.start_pos().byte_point().0
-                })
+                .filter(|parent| is_first_item_content(parent, &node))
                 .and_then(|parent| {
                     parent
                         .children()
                         .find(|child| child.kind().starts_with("list_marker_"))
+                        .filter(|marker| contains_range(&range, &marker.range()))
                         .map(|marker| {
                             format!(
-                                "{}{}",
+                                "{}{} ",
                                 " ".repeat(parent.start_pos().byte_point().1),
-                                marker.text().replace('\r', "")
+                                marker.text().trim_end()
                             )
                         })
                 });
