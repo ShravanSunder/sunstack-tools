@@ -11,30 +11,27 @@
 <body>
 <ex-nav for="guide">
 <nav slot="pages" aria-label="Component guide pages">
-<a href="index.html">Start here</a>
+<a href="index.html">Demistify components</a>
 <a href="content.html">Content and decisions</a>
 <a href="layouts.html">Layouts and navigation</a>
 <a href="visuals.html">Visuals and structure</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Presentations and deep links</a>
 <a href="explorer.html">Graph explorer</a>
 <a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Proof and usage</a>
 </nav>
 <nav slot="presentations" aria-label="Other presentations">
-<a href="../navigation-markdown-fix/index.html">
+<a href="navigation.html#walkthrough">
 <strong>Session design</strong>
 <span>Three named presentations with referenced Markdown and deep links.</span>
 </a>
-<a href="../layout-regression-fix/index.html">
-<strong>Layout stress cases</strong>
-<span>Wide diagrams and long tree labels.</span>
-</a>
+
 </nav>
 </ex-nav>
 <ex-document id="guide">
-<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
-<a href="index.html">Demistify component guide</a>
-<span aria-current="page">Layouts and navigation</span>
-</nav>
-<ex-presentation id="examples" title="Layouts and navigation" description="Working components with copyable source and usage guidance.">
+
+<section id="examples">
 <h1>Layouts and navigation</h1>
 <section id="component-ex-grid">
 <h2>Grid <code>ex-grid</code>
@@ -75,13 +72,13 @@
 </h2>
 <p>Each view is a section with a label. Use columns when both views should be readable side by side.</p>
 <ex-tabs>
-<section label="Current">A socket owns the session.</section>
-<section label="Proposed">The registry owns the session.</section>
+<section label="Current" icon="file">A socket owns the session.</section>
+<section label="Proposed" icon="git-branch">The registry owns the session.</section>
 </ex-tabs>
 <details>
 <summary>Copy the markup</summary>
 <ex-code title="ex-tabs usage" lang="html">
-<template>&lt;ex-tabs&gt;&lt;section label=&quot;Current&quot;&gt;A socket owns the session.&lt;/section&gt;&lt;section label=&quot;Proposed&quot;&gt;The registry owns the session.&lt;/section&gt;&lt;/ex-tabs&gt;</template>
+<template>&lt;ex-tabs&gt;&lt;section label=&quot;Current&quot; icon=&quot;file&quot;&gt;A socket owns the session.&lt;/section&gt;&lt;section label=&quot;Proposed&quot; icon=&quot;git-branch&quot;&gt;The registry owns the session.&lt;/section&gt;&lt;/ex-tabs&gt;</template>
 </ex-code>
 </details>
 </section>
@@ -125,21 +122,25 @@
 </ex-code>
 </details>
 </section>
-<section id="component-ex-route">
-<h2>Guided routes <code>ex-route</code>
+<section id="component-ex-presentation">
+<h2>Presentations <code>ex-presentation</code>
 </h2>
 <h3 id="component-ex-step">Route steps <code>ex-step</code></h3>
 <p>Each step targets a real island, diagram node or another page.</p>
-<p>A route narrates selected islands and can continue onto another page. The player is a small start button.</p>
-<ex-route label="Session ownership tour">
+<p>A named, described presentation is an ordered path through existing content. Choose it from the Presentations menu. Next and Previous move between stops; one stop is valid, and different presentations can reuse a target.</p>
+<ex-presentation id="walk-1" title="Session ownership tour" description="A guided path through the existing explanation.">
 <ex-step to="flow-client">Start with the reconnect request.</ex-step>
 <ex-step to="flow-registry" open="sidebar">Inspect the lifetime owner.</ex-step>
 <ex-step to="content.html#sample-card">Read the decision.</ex-step>
-</ex-route>
+</ex-presentation>
 <details>
 <summary>Copy the markup</summary>
-<ex-code title="ex-route usage" lang="html">
-<template>&lt;ex-route label=&quot;Session ownership tour&quot;&gt;&lt;ex-step to=&quot;flow-client&quot;&gt;Start with the reconnect request.&lt;/ex-step&gt;&lt;ex-step to=&quot;flow-registry&quot; open=&quot;sidebar&quot;&gt;Inspect the lifetime owner.&lt;/ex-step&gt;&lt;ex-step to=&quot;content.html#sample-card&quot;&gt;Read the decision.&lt;/ex-step&gt;&lt;/ex-route&gt;</template>
+<ex-code title="Presentation usage" lang="html">
+<template>&lt;ex-presentation id=&quot;ownership&quot; title=&quot;Session ownership&quot; description=&quot;Request, lifetime owner and decision.&quot;&gt;
+  &lt;ex-step to=&quot;flow-client&quot;&gt;Start with the reconnect request.&lt;/ex-step&gt;
+  &lt;ex-step to=&quot;flow-registry&quot; open=&quot;sidebar&quot;&gt;Inspect the lifetime owner.&lt;/ex-step&gt;
+  &lt;ex-step to=&quot;content.html#sample-card&quot;&gt;Read the decision.&lt;/ex-step&gt;
+&lt;/ex-presentation&gt;</template>
 </ex-code>
 </details>
 </section>
@@ -151,24 +152,19 @@
 <section id="component-ex-nav">
 <h2>Navigation <code>ex-nav</code>
 </h2>
-<p>The left menu is this component’s live example: Presentations selects an explainer, Pages links this collection, and headings form the active outline.</p>
+<p>The compact sticky header contains Pages, with Home first, and generated breadcrumbs. The independently scrolling outline uses this page’s name. Presentations and Theme remain at the bottom of the navigation rail. Declare the collection once as native page links; omit hand-written breadcrumbs.</p>
 <ex-code title="Navigation usage" lang="html">
 <template>&lt;ex-nav for=&quot;content&quot;&gt;&lt;nav slot=&quot;pages&quot; aria-label=&quot;Pages&quot;&gt;&lt;a href=&quot;index.html&quot;&gt;Overview&lt;/a&gt;&lt;/nav&gt;&lt;nav slot=&quot;presentations&quot; aria-label=&quot;Presentations&quot;&gt;&lt;a href=&quot;review.html&quot;&gt;&lt;strong&gt;Review&lt;/strong&gt;&lt;span&gt;Findings and rationale.&lt;/span&gt;&lt;/a&gt;&lt;/nav&gt;&lt;/ex-nav&gt;&lt;ex-document id=&quot;content&quot;&gt;…&lt;/ex-document&gt;</template>
 </ex-code>
 </section>
-<section id="component-ex-presentation">
-<h2>Presentations <code>ex-presentation</code>
-</h2>
-<p>Use the Presentations button to switch between this page’s examples and Authoring notes. Each has a name and description; only the selected presentation is displayed. Deep links select the containing presentation.</p>
-<ex-code title="Presentation usage" lang="html">
-<template>&lt;ex-presentation id=&quot;architecture&quot; title=&quot;Architecture&quot; description=&quot;How services fit together.&quot;&gt;…&lt;/ex-presentation&gt;&lt;ex-presentation id=&quot;plan&quot; title=&quot;Plan&quot; description=&quot;Delivery phases.&quot;&gt;…&lt;/ex-presentation&gt;</template>
-</ex-code>
+<p>See <a href="navigation.html">Presentations and deep links</a> for paths into a file-backed Markdown heading and a particular Mermaid node.</p>
 </section>
-</ex-presentation>
-<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+<section id="authoring">
 <ex-markdown id="authoring-notes" src="usage-notes.md">
 </ex-markdown>
-</ex-presentation>
+</section>
+<ex-presentation id="show-examples" title="Layouts and navigation" description="Working components with copyable source and usage guidance."><ex-step to="examples">Read Layouts and navigation.</ex-step></ex-presentation>
+<ex-presentation id="show-authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance."><ex-step to="authoring">Read Authoring notes.</ex-step></ex-presentation>
 </ex-document>
 </body>
 </html>

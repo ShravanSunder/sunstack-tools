@@ -3,7 +3,6 @@ import { createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { readIslandSource } from '../core/source-text.ts';
 import { createToneIcon, isTone, readTone, type Tone } from '../core/tones.ts';
-import { revealElement } from '../layout/document.ts';
 
 /**
  * A tree written as a Markdown list: a status report, a checklist, a breakdown or a map of a page.
@@ -56,6 +55,23 @@ export class TreeIsland extends HTMLElement {
 			this.setAttribute('label', this.getAttribute('label') ?? title);
 			this.removeAttribute('title');
 		} else body.append(branches);
+		const hasIcons = Boolean(body.querySelector('.ex-tone-icon'));
+		this.classList.toggle('ex-tree-icons', hasIcons);
+		for (const row of body.querySelectorAll('.ex-tree-node')) {
+			const branch = Boolean(row.parentElement?.querySelector(':scope > ul'));
+			if (hasIcons && !row.querySelector('.ex-tone-icon')) {
+				const icon = createPhosphorIcon(branch ? 'folder' : 'file');
+				icon.classList.add('ex-tone-icon', 'ex-tree-subject');
+				row.prepend(icon);
+			}
+			const links = row.querySelectorAll('.ex-tree-go');
+			if (links.length) {
+				const actions = document.createElement('span');
+				actions.className = 'ex-tree-actions';
+				actions.append(...links);
+				row.append(actions);
+			}
+		}
 		this.replaceChildren(body);
 		this.setAttribute('prepared', '');
 		this.bindControls();
@@ -65,30 +81,12 @@ export class TreeIsland extends HTMLElement {
 		if (this.bound) return;
 		this.bound = true;
 		this.addEventListener('click', (event): void => this.handleClick(event));
-		this.addEventListener('keydown', (event): void => {
-			if (event.key !== 'Enter' && event.key !== ' ') return;
-			if (!(event.target instanceof HTMLElement) || !event.target.matches('[aria-expanded]'))
-				return;
-			event.preventDefault();
-			toggle(event.target);
-		});
 	}
 
 	private handleClick(event: MouseEvent): void {
 		if (!(event.target instanceof Element)) return;
-		const link = event.target.closest('a');
-		if (link?.hash && link.origin === location.origin && link.pathname === location.pathname) {
-			const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
-			if (!target) return;
-			event.preventDefault();
-			revealElement(target);
-			target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			target.classList.add('ex-route-focus');
-			window.setTimeout((): void => target.classList.remove('ex-route-focus'), 1600);
-			return;
-		}
-		if (link) return;
-		const node = event.target.closest('[aria-expanded]');
+		if (event.target.closest('a')) return;
+		const node = event.target.closest('button.ex-tree-disclosure');
 		if (node instanceof HTMLElement && this.contains(node)) toggle(node);
 	}
 }
@@ -96,7 +94,7 @@ export class TreeIsland extends HTMLElement {
 function toggle(node: HTMLElement): void {
 	const open = node.getAttribute('aria-expanded') !== 'true';
 	node.setAttribute('aria-expanded', String(open));
-	node.parentElement?.toggleAttribute('data-collapsed', !open);
+	node.closest('li')?.toggleAttribute('data-collapsed', !open);
 }
 
 /** The first text in a node: where a leading tone word sits. */
@@ -139,16 +137,30 @@ function convertList(list: Element): HTMLUListElement {
 			node.setAttribute('tone', tone);
 			label.prepend(createToneIcon(tone));
 		}
+		for (const original of labelContent.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+			const navigation = document.createElement('a');
+			navigation.href = original.href;
+			navigation.className = 'ex-tree-go';
+			navigation.setAttribute('aria-label', `Go to ${original.textContent?.trim() ?? 'target'}`);
+			navigation.title = navigation.getAttribute('aria-label') ?? '';
+			navigation.append(createPhosphorIcon('arrow-up-right'));
+			original.replaceWith(...Array.from(original.childNodes));
+			label.append(navigation);
+		}
 		node.append(label);
 		const nested = children.map(convertList);
 		if (nested.length > 0) {
-			const count = nested.reduce((total, branch): number => total + branch.children.length, 0);
-			label.setAttribute('aria-expanded', 'true');
-			label.tabIndex = 0;
-			const more = document.createElement('span');
-			more.className = 'ex-tree-count';
-			more.textContent = `+${count}`;
-			label.append(createPhosphorIcon('caret-down'), more);
+			const disclosure = document.createElement('button');
+			disclosure.type = 'button';
+			disclosure.className = 'ex-tree-disclosure ex-icon-button';
+			disclosure.setAttribute('aria-expanded', 'true');
+			disclosure.setAttribute(
+				'aria-label',
+				`Toggle ${labelContent.textContent?.trim() ?? 'branch'}`,
+			);
+			disclosure.append(createPhosphorIcon('caret-down'));
+			label.prepend(disclosure);
+
 			node.append(...nested);
 		}
 		branches.append(node);

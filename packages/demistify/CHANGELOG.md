@@ -1,5 +1,17 @@
 # @sunstack/demistify
 
+## 1.2.0
+
+### Minor Changes
+
+- ed5fadc: Align tree, timeline and layer content; simplify gallery and explorer controls; preserve lower-section navigation and literal source through formatting. Add concise icon labels for content views while retaining shared navigation, inspection and external assets.
+
+## 1.1.0
+
+### Minor Changes
+
+- e371886: Add screenshot galleries with review/grid views, metadata filters, keyboard navigation and shared inspection. Standardize compact page navigation, ordered presentations through existing Markdown and Mermaid targets, tree links, literal text drawings and semantic styling. Update the matching authoring guide for small HTML documents importing shared Cloudflare assets, with no reader-local server.
+
 ## 1.0.2
 
 ### Patch Changes

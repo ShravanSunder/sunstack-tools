@@ -1,39 +1,28 @@
 /* Presentation selection uses ordinary fragment/page links; the document owns its layouts. */
-ex-presentation {
-	display: block;
-	min-width: 0;
-}
-ex-presentation[hidden],
-ex-presentation > nav[slot='pages'] {
+ex-presentation,
+ex-step {
 	display: none;
 }
-ex-presentation > * + * {
-	margin-top: var(--space-6);
-}
 .ex-presentations-trigger {
-	margin-bottom: var(--space-3);
-}
-.ex-heading-panel > .ex-presentations-trigger {
-	display: flex;
-	width: auto;
-	gap: var(--space-2);
-	padding-inline: var(--space-3);
-}
-.ex-heading-panel > .ex-presentations-trigger::after {
-	content: 'Presentations';
-	font: 600 var(--text-md) var(--display);
+	position: fixed;
+	left: 16px;
+	bottom: 12px;
+	z-index: 7;
+	margin: 0;
+	background: var(--surface-content);
+	border-radius: var(--radius-md);
 }
 .ex-presentations-panel {
 	position: fixed;
-	inset: 24px auto 24px 20px;
+	inset: auto auto 56px 16px;
 	margin: 0;
 	width: min(360px, calc(100vw - 40px));
-	max-height: calc(100dvh - 48px);
+	max-height: calc(100dvh - 120px);
 	overflow: auto;
 	padding: var(--space-4);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	background: var(--sheet);
+	background: var(--surface-content);
 	color: var(--ink);
 	box-shadow: var(--shadow-float);
 }
@@ -42,7 +31,7 @@ ex-presentation > * + * {
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-3);
-	font-family: var(--display);
+	font-family: var(--font-display);
 }
 .ex-presentations-panel > a {
 	display: flex;
@@ -55,7 +44,7 @@ ex-presentation > * + * {
 }
 .ex-presentations-panel > a strong {
 	color: var(--ink);
-	font-family: var(--display);
+	font-family: var(--font-display);
 }
 .ex-presentations-panel > a span {
 	color: var(--ink-soft);

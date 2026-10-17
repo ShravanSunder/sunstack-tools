@@ -1,14 +1,14 @@
 /* the decision callout */
 .decision {
 	margin-top: var(--space-6);
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
-	border-left: 4px solid var(--accent);
+	border-left: 2px solid var(--accent);
 	padding: var(--space-5) var(--space-6);
 	border-radius: var(--radius-sm);
 }
 .decision .q {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-size: var(--text-2xl);
 	font-weight: 600;
 	line-height: 1.25;
@@ -30,7 +30,7 @@
 	flex-wrap: wrap;
 	gap: var(--space-2) var(--space-4);
 	margin: var(--space-4) 0 var(--space-1);
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-size: var(--text-sm);
 	color: var(--ink-soft);
 }
@@ -38,7 +38,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-1);
-	font-family: var(--mono);
+	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 	padding: 3px var(--space-2);
 	border-radius: var(--radius-pill);
@@ -89,7 +89,7 @@ a.chip:focus-visible {
 	margin-top: var(--space-5);
 }
 .band {
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	display: grid;
@@ -116,19 +116,19 @@ a.chip:focus-visible {
 	}
 }
 .band .lv .code {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-size: var(--text-3xl);
 	font-weight: 700;
 	color: var(--accent);
 	line-height: 1;
 }
 .band .lv .name {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-weight: 600;
 	font-size: var(--text-base);
 }
 .band .lv .kind {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	text-transform: uppercase;
 	letter-spacing: 0.1em;
 	font-size: var(--text-2xs);
@@ -158,7 +158,7 @@ a.chip:focus-visible {
 	border-width: 2px;
 }
 .band.proposed .lv {
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 .band.proposed .lv .code {
 	font-size: var(--text-xl);
@@ -186,7 +186,7 @@ td {
 	border-bottom: 1px solid var(--rule);
 }
 th {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-weight: 600;
 	font-size: var(--text-sm);
 	text-transform: uppercase;
@@ -210,14 +210,14 @@ th {
 	margin-top: var(--space-3);
 }
 .why b {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 	font-size: var(--text-xs);
 	color: var(--accent);
 }
 .src {
-	font-family: var(--mono);
+	font-family: var(--font-mono);
 	font-size: var(--text-2xs);
 	color: var(--ink-soft);
 }
@@ -252,7 +252,7 @@ th {
 	margin-top: var(--space-3);
 }
 .skill {
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	padding: var(--space-4) var(--space-5);
@@ -265,12 +265,12 @@ th {
 	gap: var(--space-2) var(--space-3);
 }
 .skill h4 {
-	font-family: var(--mono);
+	font-family: var(--font-mono);
 	font-weight: 500;
 	font-size: var(--text-base);
 }
 .skill .tag {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-size: var(--text-xs);
 	color: var(--ink-soft);
 }
@@ -286,7 +286,7 @@ th {
 	}
 }
 .skill dt {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 	font-size: var(--text-2xs);
@@ -312,7 +312,7 @@ th {
 	background: var(--accent-soft);
 }
 .note b {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	letter-spacing: 0.04em;
 }
 .principles {
@@ -330,14 +330,14 @@ th {
 	gap: var(--space-2);
 }
 .decisions li {
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-sm);
 	padding: var(--space-3) var(--space-4);
 	max-width: none;
 }
 .decisions li.first {
-	border-left: 4px solid var(--accent);
+	border-left: 2px solid var(--accent);
 }
 .forms {
 	display: grid;
@@ -346,13 +346,13 @@ th {
 	margin-top: var(--space-3);
 }
 .form-card {
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	padding: var(--space-3) var(--space-4);
 }
 .form-card h4 {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-size: var(--text-lg);
 }
 .form-card p {
@@ -360,10 +360,10 @@ th {
 	font-size: var(--text-md);
 }
 pre.flow {
-	font-family: var(--mono);
+	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 	line-height: 1.5;
-	background: var(--sheet);
+	background: var(--surface-content);
 	color: var(--ink);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
@@ -407,7 +407,7 @@ footer {
 	padding-top: var(--space-4);
 }
 :focus-visible {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--focus-color);
 	outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {

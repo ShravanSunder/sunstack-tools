@@ -213,6 +213,23 @@ function openModal(owner: HTMLElement, controls: HTMLElement, mode: InspectionMo
 	);
 	if (!inspection) return;
 	dialog.append(inspection.header, inspection.body);
+	const outsideDialog = (event: MouseEvent): boolean => {
+		const bounds = dialog.getBoundingClientRect();
+		return (
+			event.clientX < bounds.left ||
+			event.clientX > bounds.right ||
+			event.clientY < bounds.top ||
+			event.clientY > bounds.bottom
+		);
+	};
+	let pressedBackdrop = false;
+	dialog.addEventListener('pointerdown', (event: PointerEvent): void => {
+		pressedBackdrop = event.target === dialog && outsideDialog(event);
+	});
+	dialog.addEventListener('click', (event: MouseEvent): void => {
+		if (pressedBackdrop && event.target === dialog && outsideDialog(event)) dialog.close();
+		pressedBackdrop = false;
+	});
 	dialog.addEventListener(
 		'close',
 		(): void => {

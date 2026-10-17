@@ -11,30 +11,27 @@
 <body>
 <ex-nav for="guide">
 <nav slot="pages" aria-label="Component guide pages">
-<a href="index.html">Start here</a>
+<a href="index.html">Demistify components</a>
 <a href="content.html">Content and decisions</a>
 <a href="layouts.html">Layouts and navigation</a>
 <a href="visuals.html">Visuals and structure</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Presentations and deep links</a>
 <a href="explorer.html">Graph explorer</a>
 <a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Proof and usage</a>
 </nav>
 <nav slot="presentations" aria-label="Other presentations">
-<a href="../navigation-markdown-fix/index.html">
+<a href="navigation.html#walkthrough">
 <strong>Session design</strong>
 <span>Three named presentations with referenced Markdown and deep links.</span>
 </a>
-<a href="../layout-regression-fix/index.html">
-<strong>Layout stress cases</strong>
-<span>Wide diagrams and long tree labels.</span>
-</a>
+
 </nav>
 </ex-nav>
 <ex-document id="guide">
-<nav class="ex-breadcrumbs" aria-label="Breadcrumb">
-<a href="index.html">Demistify component guide</a>
-<span aria-current="page">Earlier vocabulary</span>
-</nav>
-<ex-presentation id="examples" title="Earlier vocabulary" description="Working components with copyable source and usage guidance.">
+
+<section id="examples">
 <h1>Earlier vocabulary</h1>
 <p>These earlier lab elements remain rendered for existing artifacts. They are separated here so the current small vocabulary stays clear.</p>
 <section id="component-ex-zoom">
@@ -82,21 +79,18 @@
 <section id="component-ex-timeline">
 <h2>Timeline <code>ex-timeline</code>
 </h2>
-<p>Earlier vertical timeline container; compose phases with normal sections.</p>
+<p>Compose events with ordinary sections, headings and descriptions. The library supplies circular markers, spacing and type hierarchy; use a tone only when its meaning is known.</p>
 <ex-timeline label="Delivery">
-<section>
-<h3>Registry</h3>
-<p>Separate lifetime ownership.</p>
-</section>
-<section>
-<h3>Reconnect</h3>
-<p>Attach a new transport.</p>
-</section>
+<section tone="done"><small>Defined</small><h3>Registry owns lifetime</h3><p>Separate session identity from one connection.</p></section>
+<section tone="planned"><small>Planned</small><h3>Prove reconnection</h3><p>Observe the same session after replacing its transport.</p></section>
 </ex-timeline>
 <details>
 <summary>Copy the markup</summary>
 <ex-code title="ex-timeline usage" lang="html">
-<template>&lt;ex-timeline label=&quot;Delivery&quot;&gt;&lt;section&gt;&lt;h3&gt;Registry&lt;/h3&gt;&lt;p&gt;Separate lifetime ownership.&lt;/p&gt;&lt;/section&gt;&lt;section&gt;&lt;h3&gt;Reconnect&lt;/h3&gt;&lt;p&gt;Attach a new transport.&lt;/p&gt;&lt;/section&gt;&lt;/ex-timeline&gt;</template>
+<template>&lt;ex-timeline label=&quot;Delivery&quot;&gt;
+&lt;section tone=&quot;done&quot;&gt;&lt;small&gt;Defined&lt;/small&gt;&lt;h3&gt;Registry owns lifetime&lt;/h3&gt;&lt;p&gt;Separate session identity from one connection.&lt;/p&gt;&lt;/section&gt;
+&lt;section tone=&quot;planned&quot;&gt;&lt;small&gt;Planned&lt;/small&gt;&lt;h3&gt;Prove reconnection&lt;/h3&gt;&lt;p&gt;Observe the same session after replacing its transport.&lt;/p&gt;&lt;/section&gt;
+&lt;/ex-timeline&gt;</template>
 </ex-code>
 </details>
 </section>
@@ -104,22 +98,21 @@
 <h2>Layer band <code>ex-layer</code>
 </h2>
 <p>Earlier architecture band; current layer visibility uses the layer attribute and switches.</p>
-<ex-layer label="Transport">
-<div class="label">Transport</div>
-<div class="body">Carries messages between client and registry.</div>
-</ex-layer>
+<ex-layer label="Transport"><strong>Transport</strong><p>Carries messages between client and registry.</p></ex-layer>
 <details>
 <summary>Copy the markup</summary>
 <ex-code title="ex-layer usage" lang="html">
-<template>&lt;ex-layer label=&quot;Transport&quot;&gt;&lt;div class=&quot;label&quot;&gt;Transport&lt;/div&gt;&lt;div class=&quot;body&quot;&gt;Carries messages between client and registry.&lt;/div&gt;&lt;/ex-layer&gt;</template>
+<template>&lt;ex-layer label=&quot;Transport&quot;&gt;&lt;strong&gt;Transport&lt;/strong&gt;&lt;p&gt;Carries messages between client and registry.&lt;/p&gt;&lt;/ex-layer&gt;</template>
 </ex-code>
 </details>
 </section>
-</ex-presentation>
-<ex-presentation id="authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance.">
+</section>
+<section id="authoring">
 <ex-markdown id="authoring-notes" src="usage-notes.md">
 </ex-markdown>
-</ex-presentation>
+</section>
+<ex-presentation id="show-examples" title="Earlier vocabulary" description="Working components with copyable source and usage guidance."><ex-step to="examples">Read Earlier vocabulary.</ex-step></ex-presentation>
+<ex-presentation id="show-authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance."><ex-step to="authoring">Read Authoring notes.</ex-step></ex-presentation>
 </ex-document>
 </body>
 </html>

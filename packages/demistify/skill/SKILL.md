@@ -5,7 +5,13 @@ description: "Use when writing, editing, or checking Demistify markup: component
 
 # Demistify explainer
 
-Write one HTML file. You supply meaning, content and layout; the library supplies styling, icons, rendering, outline, theme toggle and route player. Never write colours, borders, fonts or shadows; layout CSS (grid, flex, gaps) is fine.
+Write a small HTML document. You supply content and layout; the shared library supplies styling, icons, rendering, navigation and inspection. Content belongs to islands; a presentation orders stops through existing content. Use library styles rather than authoring colors, borders, fonts or shadows. Layout CSS (grid, flex, gaps) is fine.
+
+Choose matching assets and file delivery, compose the content, add navigation/presentations when useful, then check the markup and inspect the result through its intended opening method.
+
+## Small HTML, no local server
+
+Use the supplied library base; the public default is `https://demistify.getagentstudio.dev/v1/`. Before writing page markup, MUST load `release.json` and `authoring/SKILL.md` relative to that base and return the base, recorded version/source commit, and confirmation that chosen markup is documented there and both imports use that base. Reading this exact matching guide already satisfies its guide read; do not recursively reload it. Experimental v1 may change vocabulary. A source preview must use its matching local build rather than mixing new markup with an older public runtime; when its release metadata is unavailable, name that gap and do not claim a published binding.
 
 ```html
 <!doctype html>
@@ -19,129 +25,139 @@ Write one HTML file. You supply meaning, content and layout; the library supplie
 </head>
 <body>
 <ex-document>
-…
+<h1>Session architecture</h1>
+<ex-card title="Session lifetime" tone="decision">The registry owns the session.</ex-card>
 </ex-document>
 </body>
 </html>
 ```
 
-Use the library path you are given; the public default is `https://demistify.getagentstudio.dev/v1/`. Experimental v1 may have breaking changes until the owner declares the vocabulary stable. For a locally bundled library, use its supplied relative path instead. A page with inline/embedded content and public HTTPS library links needs no app server or per-page framework. A CDN-bound file still needs network access; fully offline delivery needs the source packaging described below. Follow your browser tool's supported URL/access policy rather than opening more browser instances to work around a denial.
+**The reader can double-click the HTML. No Python, Node, Vite or local web server is required.** The browser loads JavaScript, CSS, fonts, renderer chunks and worker from Cloudflare. Keep those assets external; do not inline their bytes or base64 images into each page. Internet access is required for these HTTPS imports. No-server viewing does not mean offline viewing.
 
-## Markdown first
+The same files can optionally be hosted on **any ordinary static HTTP server**. No Demistify-specific routes, backend, framework or per-page application build are needed. A server is useful for live editing and sibling-file fetches, not a reader prerequisite.
 
-Write prose as bare Markdown directly inside `ex-document`, tab sections, cards, callouts and their `<details>`. Use section headings (`##` in Markdown or `<h2>` in HTML) to build useful outline navigation. Bare Markdown must not contain `<`; for that, use `<ex-markdown><script type="text/markdown">…</script></ex-markdown>`.
+| Content | Double-click delivery |
+| --- | --- |
+| Inline Markdown/HTML/Mermaid | Already in the document |
+| Local HTML pages, fragments and images | Ordinary relative links/paths; keep their folder structure |
+| Sibling `.md` fetched by `src` | Embed exact source once while authoring, as below |
+| HTTPS Markdown/JSON | May stay live when that origin allows cross-origin reads |
+| Sibling explorer JSON | Supply inline JSON or an allowed HTTPS URL |
 
-## Existing Markdown files and source
+Complete delivery preparation by inspecting the HTML imports, retained image/page paths and source mode. Follow the browser tool's URL/access policy; a blocked file URL is a named proof gap, not a reason to start another browser instance.
 
-For a page served over HTTP, reference the real file instead of copying or rewriting its prose:
+## Markdown and exact source
+
+Write prose as bare Markdown inside `ex-document`, tab sections, cards and callouts. Bare Markdown must not contain `<`; preserve literal text with a script-backed island:
+
+```html
+<ex-markdown id="notes"><script type="text/markdown">
+## Recovery
+
+The literal `<registry>` remains Markdown source.
+</script></ex-markdown>
+```
+
+An existing Markdown file stays a real source reference when served over HTTP:
 
 ```html
 <ex-markdown id="requirements" label="Requirements" src="./requirements.md"></ex-markdown>
 ```
 
-The URL resolves relative to the HTML page. Markdown links/images resolve relative to the Markdown file. Mermaid fences in that file render diagrams through the same pipeline as inline Markdown. Every Markdown island has a small **Show Markdown source** control: it opens the exact source beside the rendered content. A failed read shows an error, not an empty island.
+`src` resolves relative to the HTML; Markdown images and links resolve relative to that Markdown file. Full Markdown includes tables, fenced code, nested/task lists, links, images and Mermaid fences. **Show Markdown source** opens the exact text beside the rendered content. Failed reads show an error.
 
-Browsers generally block `file://` pages fetching sibling files. For double-click/no-server viewing, embed the referenced file once with the supplied source CLI:
+For double-click viewing, the matching source CLI embeds local Markdown while retaining the shared library links:
 
 ```sh
 node packages/demistify/bin/demistify.ts embed input.html output.html
+node packages/demistify/bin/demistify.ts check output.html
 ```
 
-Run this from a dependency-installed matching sunstack-tools checkout with Node 26. This reads local Markdown files and embeds exact source safely; it retains the shared library links. Rerun after the source `.md` changes. No custom Python generator or application build is needed per page. When runtime/fonts/data must also work offline, the matching source checkout exposes `bundleStandaloneHtml` in `packages/demistify/src/node/standalone.ts`; this is a source API, not a shipped `bundle` command. A live URL reference and an embedded snapshot have different update behavior; name which you produced.
+Run from a dependency-installed matching sunstack-tools checkout with Node 26. Keep the output beside the input or preserve its relative page/image paths. Rerun after `.md` edits. This is an author-time source transform; the reader runs no command. It safely embeds exact source, including text that would otherwise terminate an HTML script. It does not bundle the runtime, fonts or images. Choose live `src` or an embedded snapshot deliberately: only the live source picks up later file edits.
 
-Give an island a stable `id`. A Markdown heading `## Recovery` inside `id="requirements"` has fragment `#requirements--recovery`; repeated headings get suffixes. A link to a Mermaid component uses its island id, for example `#architecture-diagram`. Direct opening and clicking reveal the containing presentation/tab/detail before scrolling to the target. Plain headings outside named Markdown retain generated `heading-…` fragments; use explicit HTML ids for durable authored anchors.
+Check a representative table, literal code, task list, image and Mermaid diagram in the actual output; compare the source sidebar with the original. A plain code block where a Mermaid SVG was expected, a broken relative image or a duplicate task bullet is a failed result.
 
-## Presentation menu, pages and headings
+## Pages, breadcrumbs and headings
 
-A presentation is a complete named explainer with a short description. Several may share one HTML file: selecting one shows only that presentation. The **Presentations** button opens a side menu. Do not replace a presentation with an ordinary section heading.
+For a collection, repeat one native page-link list on every page. The first link is Home. The matching page URL provides its name; the library generates the compact sticky Pages dropdown and breadcrumbs. No separate manifest or handwritten breadcrumb markup is needed.
 
 ```html
 <ex-nav for="content">
   <nav slot="pages" aria-label="Pages">
-    <a href="index.html">Overview</a>
+    <a href="index.html">Session guide</a>
     <a href="details.html">Implementation details</a>
-  </nav>
-  <nav slot="presentations" aria-label="Other presentations">
-    <a href="review.html"><strong>Code review</strong><span>Findings and proposed repairs.</span></a>
   </nav>
 </ex-nav>
 <ex-document id="content">
-  <nav class="ex-breadcrumbs" aria-label="Breadcrumb">
-    <a href="index.html">Explainers</a><span aria-current="page">Session design</span>
-  </nav>
-  <ex-presentation id="architecture" title="Architecture" description="How sessions survive a connection loss.">
-    <ex-markdown id="requirements" src="requirements.md"></ex-markdown>
-    <ex-mermaid id="architecture-diagram"><script type="text/plain">flowchart LR
-      Client --> Registry --> Session
-    </script></ex-mermaid>
-  </ex-presentation>
-  <ex-presentation id="plan" title="Implementation plan" description="Delivery phases and their dependencies.">
-    <ex-markdown><script type="text/markdown"># Implementation plan
-
-1. Separate session ownership.
-2. Add reconnection.
-    </script></ex-markdown>
-  </ex-presentation>
+  <h1>Implementation details</h1>
+  <!-- Content islands and section headings. -->
 </ex-document>
 ```
 
-The library discovers in-page presentations from their `id`, `title` and `description`. `slot="presentations"` adds named/described links to other files or fragments. `slot="pages"` supplies the current collection's page list; a presentation can also contain its own `nav slot="pages"`. Real visible h1–h6 populate the separate page outline automatically. Keep the complete navigation on every page in the collection. Preserve relative page URLs, stable island/heading fragments and breadcrumbs on revision.
+Real h2–h6 sections supply the page-named outline; it scrolls independently when long. Captions stay out of the outline. Keep useful reader names in navigation and stable IDs on content. Follow a page link and a section link to confirm the generated chrome names the right page and leaves controls reachable.
 
-## Islands
+Home receives the built-in house icon. A clicked lower heading remains current even when the page cannot scroll it to the reading line; deliberate page scrolling resumes reading-position tracking. Preserve explicit IDs instead of relying on coincidental heading slugs.
 
-| Element | For |
-|---|---|
-| `<ex-card id title tone icon tag pick>` | one thing (component, entity, step, option, finding); body in Markdown; depth in `<details><summary>…</summary>…</details>`; `pick` marks the chosen option |
-| `<ex-callout tone title>` | TL;DR, decision, risk, gotchas, open questions |
-| `<ex-stat value label note tone>` | one number: `value="143 KiB" label="First load" note="was 443 KiB" tone="done"` |
-| `<ex-mermaid>` | Mermaid in `<script type="text/plain">` |
-| `<ex-code title lang start>` | code or a diff in `<script type="text/plain">`, then `<ex-note line="42" tone="risk">…</ex-note>` |
-| `<ex-tree title>` | a Markdown list as a tree: status reports, checklists (`- [x]`), breakdowns; `- risk: text` gives a node a tone |
+## Presentations reference content
 
-Tones (only these): `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `added` `removed`. Every card and region takes a tone: its icon and colour. Title = the specific thing; tone = its status or kind; `tag` = timing, location or tradeoff (`tone="planned" tag="after implementation"`, not a bold status sentence). Review severity: blocking `risk`, nit `question`, nice `note`.
-
-`icon` = what the thing is: database hard-drives cloud globe cpu stack plug code terminal git-branch package gear bug test-tube user users robot lock key shield-check file folder book-open clock envelope chat-circle bell shopping-cart credit-card truck chart-line rocket.
-
-Mermaid: `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erDiagram`, `xychart-beta` (`x-axis ["A", "B"]`, `bar "Before" [1, 2]`). A node whose id equals a card `id` takes its tone and opens it, so keep node labels short.
-
-## Layout follows the explanation
-
-| Element | Does |
-|---|---|
-| `<ex-grid cols="3">` | side by side; child `span="2"` or `span="all"`; `sticky` keeps a side column in view; `swipe` makes a swipe row on phones |
-| `<ex-tabs>` | child `<section label>` views; `columns` shows them side by side when they fit |
-
-Ordinary HTML flow, grid/flex and absolute-positioned boards are all valid. Choose relationships first; do not force every explainer into the same card grid. Patterns when useful: a four-column summary row (`<ex-grid cols="4">` with a `tldr` callout `span="2"` + two stats); a diagram `span="2"` beside a `sticky` column of cards; options as cards in `<ex-grid swipe>` with `pick`; a chart beside the callout that states its conclusion. Phones get one column automatically.
-
-## Routes
+Several named/described presentations may share a page and the same islands. Each is an ordered path with Next/Previous; one stop is valid. Place the content normally and put only stops in `ex-presentation`:
 
 ```html
-<ex-route label="60-second tour">
-<ex-step to="verdict">Start here.</ex-step>
-<ex-step to="f1" open="sidebar">The blocking bug.</ex-step>
-</ex-route>
+<ex-presentation id="session-review" title="Session review"
+  description="Recovery, the Registry node and the decision.">
+  <ex-step to="requirements--recovery">Read the required behavior.</ex-step>
+  <ex-step to="architecture--Registry">The Registry owns lookup.</ex-step>
+  <ex-step to="lifetime" open="sidebar">Inspect the shared decision.</ex-step>
+</ex-presentation>
 ```
 
-Steps target any island, region or diagram node id. Add a route when a guided reading sequence helps. Picture/Mermaid/visual inspection supports Cmd+scroll to zoom and Cmd+drag to pan (Ctrl also works); ordinary scrolling stays native. Zoom/reset buttons remain available.
+The shared Presentations menu discovers `id`, `title` and `description`. A presentation does not own, copy or hide other content. Use the current `ex-presentation`/`ex-step` form; the earlier `ex-route` and wrapper-selection form are removed.
 
-## When you need more
+Give every destination a stable ID. In Markdown island `requirements`, `## Recovery` becomes `#requirements--recovery` (repeated headings gain suffixes). A whole diagram uses `#architecture`; its Registry node uses `#architecture--Registry`. This scopes repeated node names to their diagram. Explicit HTML IDs remain valid. Fragments and stops reveal containing tabs/details/layers and await content readiness. A missing stop produces a visible error. Cross-page stops use `details.html#target`.
 
-Read the matching file in `references/` beside this guide only when the page needs it:
+IF the page includes a guided presentation or cross-page stops, load `references/tours.md` and return named/described paths whose stops resolve to their intended scoped destinations.
 
-- `references/maps.md`: many things at once (a domain, a system) as a pannable board, arrows between boxes, hand-placed layouts, layers readers switch on and off.
-- `references/code.md`: diffs across several files, line rules for notes.
-- `references/trees.md`: trees that link to islands, mind maps.
-- `references/pictures.md`: images, galleries, before and after.
-- `references/tours.md`: tours across pages, walking a diagram step by step.
+## Islands and layout
 
-IF the page uses a supplied explorer graph document, load `references/explorers.md` and return a page that references it without recreating its data or application code.
+| Element | Use |
+| --- | --- |
+| `<ex-card id title tone icon tag pick>` | One component, option, finding or decision; Markdown body; details for depth; separate Chosen badge with `pick` |
+| `<ex-callout tone title>` | Summary, risk, decision or open question |
+| `<ex-stat value label note tone>` | One number with its meaning and comparison |
+| `<ex-mermaid id>` | Mermaid source in `<script type="text/plain">` |
+| `<ex-code title lang start>` | Literal code/diff script, followed by `<ex-note line="42" tone="risk">…</ex-note>` |
+| `<ex-tree title>` | Hierarchical Markdown, status lists and checklists; separate disclosure and go-to actions |
+| `<ex-pre>` | Exact monospace/TUI drawing in a plain-text script |
+| `<ex-gallery id label>` | Native figures, metadata filters and review/grid views within the shared document system |
+| `<ex-grid cols="3">` | Related content side by side; child `span="2"` or `span="all"`; `sticky` side column; `swipe` row on phones |
+| `<ex-tabs>` | Child `<section label icon>` content views; `columns` for side-by-side reading |
 
-## Check
+Tones: `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `added` `removed`. Tone supplies meaning; `pick` marks a chosen option without recoloring that meaning. `tag` adds timing/location/tradeoff. Review severity: blocking `risk`, nit `question`, nice `note`.
 
-The checker is distributed in source, not as a published standalone CLI or npm package. From a matching sunstack-tools monorepo checkout with Node 26 and its pnpm dependencies installed, run:
+`icon` names the subject: database hard-drives cloud globe cpu stack plug code terminal git-branch package gear bug test-tube user users robot lock key shield-check file folder book-open clock envelope chat-circle bell shopping-cart credit-card truck chart-line rocket.
+
+Mermaid supports flowchart, sequenceDiagram, stateDiagram-v2, classDiagram, erDiagram and xychart-beta. A diagram node whose ID matches a card ID takes its tone and opens that card; keep node labels short. Use qualified island/node IDs for links when diagrams repeat names.
+
+Choose relationships before layout. Native flow, grid/flex and positioned boards are valid; do not force every explanation into a card grid. Keep related controls/content together using the shared spacing and styles. Sidebar inspection preserves the main content; fullscreen, Escape/backdrop dismissal and Cmd/Ctrl+wheel/drag use shared controls.
+
+Use short labels for content tabs and keep the full heading/explanation inside each section. An optional curated `icon` names its subject; otherwise the library supplies a neutral file icon. Tabs use Arrow/Home/End keys and scroll locally when numerous. Exactly-one viewer modes use radio segments; independent visibility uses switches; Sources expands a disclosure. Do not recreate these as rows of large selected buttons.
+
+## Load depth when needed
+
+- IF the page includes screenshot review or comparison, load `references/pictures.md` and return native figures/captions and one shared-system gallery.
+- IF the page includes a tree or literal TUI drawing, load `references/trees.md` and return independent disclosure/navigation or faithful `ex-pre` text.
+- IF the page needs a pannable board, routed arrows or optional layers, load `references/maps.md` and return the chosen reading/map layout with valid endpoints.
+- IF the page includes a multi-file diff or line notes, load `references/code.md` and return notes attached to the displayed file/row.
+- IF the page uses a supplied explorer graph document, load `references/explorers.md` and return a page referencing that data without recreating it or its application code.
+
+## Check and open
+
+The checker ships in source, not as an installed standalone CLI. From the matching dependency-installed checkout:
 
 ```sh
 node packages/demistify/bin/demistify.ts check /absolute/path/to/page.html
 ```
 
-Fix every reported error and warning; `check --fix` repairs mechanical findings. If the source checkout/checker is unavailable, name that gap and still inspect the actual rendered page. A checker pass does not establish content truth, diagram readability or browser interactions.
+Fix every error/warning; `check --fix` repairs mechanical findings. Open the intended artifact and exercise its authored links, controls and loaded content. Check the exact source, external imports and image paths after embedding. Report HTML bytes separately from shared assets and images.
+
+Completion means the requested content and interactions work through the intended delivery path. Name unavailable checker, mismatched runtime or blocked browser access explicitly. A checker pass is not rendered proof; HTTP preview is not direct-file proof; local success is not Cloudflare release proof.

@@ -62,6 +62,21 @@ const gridChildren: Readonly<Record<string, AttributeSpec>> = {
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
+	'ex-pre': {
+		description: 'Literal preformatted text and TUI drawings with shared inspection.',
+		attributes: { label },
+		source: 'text/plain',
+	},
+	'ex-gallery': {
+		description:
+			'Agent-authored figures with shared review/grid views, filters and screenshot inspection.',
+		attributes: {
+			label,
+			filters: text('Space-separated metadata fields for filters.'),
+			view: oneOf('Initial gallery layout.', ['review', 'grid']),
+			selected: text('Initial authored capture id.'),
+		},
+	},
 	'ex-explorer': {
 		description:
 			'Searchable graph document with shared selection, history, tracing, evidence and related tables.',
@@ -78,7 +93,8 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		attributes: {},
 	},
 	'ex-presentation': {
-		description: 'One named explainer in a collection; the presentations menu shows one at a time.',
+		description:
+			'A named/described ordered path through existing targets; content remains in its document.',
 		attributes: {
 			title: text('Presentation name shown in the menu.', true),
 			description: text('Short description shown beneath its name.', true),
@@ -211,13 +227,6 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		childAttributes: { detail: flag('Hidden on the map until the region is opened.') },
 		within: ['ex-board'],
 	},
-	'ex-route': {
-		description: 'A named guided path through the page, with narration.',
-		attributes: {
-			label: text('Route name shown in the player.'),
-			steps: { description: 'Ids to visit, in order.', type: { kind: 'ids' } },
-		},
-	},
 	'ex-step': {
 		description: 'One stop on a route; its text is the narration.',
 		attributes: {
@@ -228,7 +237,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			},
 			open: oneOf('Open the target in the side panel or expanded.', ['sidebar', 'modal']),
 		},
-		within: ['ex-route'],
+		within: ['ex-presentation'],
 	},
 	'ex-layers': {
 		description:

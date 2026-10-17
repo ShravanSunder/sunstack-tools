@@ -26,7 +26,7 @@ There is no new UI screen. Answers and diagnostics are data for an agent, termin
 
 ## Authorized needs
 
-U1–U14 keep the earlier needs, revised by the owner's explicit Rust-first reset: "we have built nothing so we have no priors." U15–U19 cover RuleSets, reusable evidence and crate boundaries. U20–U23 cover time-scoped and connected-repository change evidence. U24–U31 cover hook-invoked monitoring, applicability, severity, conversation evidence, typed inputs and efficient declarative execution patterns. Priorities are unranked by the owner. Activity numbers refer to owner decisions recorded on work root `01a12ca7-621c-71b9-8fc3-0cf055fe6952`.
+U1–U14 keep the earlier needs, revised by the owner's explicit Rust-first reset: "we have built nothing so we have no priors." U15–U19 cover RuleSets, reusable evidence and crate boundaries. U20–U23 cover time-scoped and connected-repository change evidence. U24–U31 cover hook-invoked monitoring, applicability, severity, conversation evidence, typed inputs and efficient declarative execution patterns. Priorities are unranked by the owner. Activity numbers refer to owner decisions recorded on work root `private-coordination-record`.
 
 | ID | Need and reason | Evidence and authority |
 | --- | --- | --- |
@@ -106,7 +106,7 @@ Connected discovery and chunking additionally need known caller and callee examp
 
 ## Source basis and remaining choices
 
-Authority is the owner conversation, recorded on work root `01a12ca7-621c-71b9-8fc3-0cf055fe6952`, plus the supplied AGENTS and language rules. The observational basis is this repository, the ai-tools stop-review helper and `AgentJobPacket` schemas, current host hook documentation, AST-grep source, and Git, Rust, OpenRouter and Decisions documentation cited in Program Design.
+Authority is the owner conversation, recorded on work root `private-coordination-record`, plus the supplied AGENTS and language rules. The observational basis is this repository, the ai-tools stop-review helper and `AgentJobPacket` schemas, current host hook documentation, AST-grep source, and Git, Rust, OpenRouter and Decisions documentation cited in Program Design.
 
 Owner choices that shape the Specification, all settled on 2026-10-15:
 - **Named inputs** (6664): a RuleSet declares named inputs (document, conversation, change set, typed payload); the invocation binds each name to a supplied source; rules refer to inputs by name.

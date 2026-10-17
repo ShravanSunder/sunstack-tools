@@ -1,3 +1,10 @@
+import {
+	bindTabKeyboard,
+	createModeChoices,
+	createSearchField,
+	labelControl,
+} from '../core/controls.ts';
+import { createDebouncedAction } from '../core/debounce.ts';
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { registerInspectionCopy } from '../islands/inspection-copy.ts';
@@ -23,7 +30,9 @@ export class ExplorerController {
 	private activeTab = 'connections';
 	private view: CompositionView;
 	private readonly browser = document.createElement('nav');
-	private readonly search = document.createElement('input');
+	private readonly searchField = createSearchField('Find a node', 'Find a node…');
+	private readonly search = this.searchField.input;
+	private readonly pendingSearch = createDebouncedAction((): void => this.renderBrowser(), 200);
 	private readonly list = document.createElement('div');
 	private readonly main = document.createElement('main');
 	private readonly heading = document.createElement('section');
@@ -65,21 +74,21 @@ export class ExplorerController {
 		this.view = compositionView(graphDocument, this.selection, this.mode);
 		this.browser.className = 'ex-explorer-browser';
 		this.browser.setAttribute('aria-label', 'Explore graph nodes');
-		this.search.type = 'search';
-		this.search.placeholder = 'Find a node…';
-		this.search.setAttribute('aria-label', 'Find a node');
-		this.search.addEventListener('input', (): void => this.renderBrowser());
+		this.search.addEventListener('input', (): void => this.pendingSearch.schedule());
 		const issues = document.createElement('button');
 		issues.type = 'button';
-		issues.textContent = `Composition issues · ${graphDocument.nodes.filter((node): boolean => Boolean(node.issue)).length}`;
-		issues.addEventListener('click', (): void => this.select('__issues'));
-		const themeToggle = createIconButton(
-			'circle-half',
-			'Switch light or dark theme',
-			(): void => {},
+		issues.className = 'ex-explorer-issues';
+		labelControl(
+			issues,
+			'warning',
+			`Composition issues · ${graphDocument.nodes.filter((node): boolean => Boolean(node.issue)).length}`,
 		);
-		themeToggle.dataset['exTheme'] = '';
-		this.browser.append(this.search, issues, this.list, themeToggle);
+		issues.addEventListener('click', (): void => this.select('__issues'));
+		const browserHeader = document.createElement('div');
+		browserHeader.className = 'ex-explorer-browser-header';
+		browserHeader.append(this.searchField.element, issues);
+		this.list.className = 'ex-explorer-node-list';
+		this.browser.append(browserHeader, this.list);
 		const header = document.createElement('header');
 		const title = document.createElement('h1');
 		title.textContent = graphDocument.title;
@@ -146,22 +155,7 @@ export class ExplorerController {
 		this.resizeObserver.observe(this.viewport);
 		this.renderBrowser();
 		this.render();
-		this.tablist.addEventListener('keydown', (event: KeyboardEvent): void => {
-			if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-			const buttons = [...this.tablist.querySelectorAll('button')];
-			const current = buttons.findIndex(
-				(button): boolean => button.getAttribute('aria-selected') === 'true',
-			);
-			const index =
-				event.key === 'Home'
-					? 0
-					: event.key === 'End'
-						? buttons.length - 1
-						: (current + (event.key === 'ArrowLeft' ? -1 : 1) + buttons.length) % buttons.length;
-			event.preventDefault();
-			buttons[index]?.click();
-			this.tablist.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus();
-		});
+		bindTabKeyboard(this.tablist);
 		performance.mark(`demistify:explorer:${owner.id}:ready`);
 		owner.setAttribute('data-ready', '');
 		owner.removeAttribute('aria-busy');
@@ -172,6 +166,7 @@ export class ExplorerController {
 		this.renderGraph();
 	}
 	dispose(): void {
+		this.pendingSearch.cancel();
 		this.resizeObserver.disconnect();
 	}
 	private readonly select = (id: string, pushHistory = true): void => {
@@ -287,26 +282,35 @@ export class ExplorerController {
 		}
 		this.breadcrumb.append(document.createTextNode(node?.label ?? 'Issues'));
 		this.controls.replaceChildren();
-		for (const mode of ['current', 'proposed'] satisfies readonly ExplorerMode[]) {
-			const button = document.createElement('button');
-			button.type = 'button';
-			button.textContent = mode === 'current' ? 'Current' : 'With proposals';
-			button.setAttribute('aria-pressed', String(mode === this.mode));
-			button.addEventListener('click', (): void => {
+		const modes = createModeChoices<ExplorerMode>(
+			'Graph composition',
+			[
+				{ value: 'current', label: 'Current', icon: 'file' },
+				{ value: 'proposed', label: 'With proposals', icon: 'git-branch' },
+			],
+			this.mode,
+			(mode): void => {
 				this.mode = mode;
 				this.select(this.selection, false);
-			});
-			this.controls.append(button);
-		}
+				this.controls.querySelector<HTMLInputElement>('input:checked')?.focus();
+			},
+		);
+		this.controls.append(modes.element);
 		const sourceButton = document.createElement('button');
 		sourceButton.type = 'button';
-		sourceButton.textContent = 'Sources & details';
+		labelControl(sourceButton, 'file', 'Sources & details');
+		this.sources.id = `${this.owner.id}-sources`;
+		sourceButton.setAttribute('aria-controls', this.sources.id);
 		sourceButton.setAttribute('aria-expanded', String(!this.sources.hidden));
 		sourceButton.addEventListener('click', (): void => {
 			this.sources.hidden = !this.sources.hidden;
 			sourceButton.setAttribute('aria-expanded', String(!this.sources.hidden));
 		});
 		this.controls.append(sourceButton);
+		const legend = document.createElement('span');
+		legend.className = 'ex-explorer-legend';
+		legend.innerHTML = '<span>Current connection</span><span>Proposed connection</span>';
+		this.controls.append(legend);
 		this.overview.replaceChildren();
 		for (const table of this.graphDocument.tables.filter(
 			(candidate): boolean => candidate.placement === 'overview',
@@ -339,16 +343,20 @@ export class ExplorerController {
 			(table): boolean => table.placement === 'details',
 		);
 		const tabs = [
-			{ id: 'connections', label: `Connections · ${this.view.edges.length}` },
-			{ id: 'used-by', label: 'Used by' },
-			...tables.map((table) => ({ id: table.id, label: table.title })),
+			{ id: 'connections', label: `Connections · ${this.view.edges.length}`, icon: 'git-branch' },
+			{ id: 'used-by', label: 'Used by', icon: 'plug' },
+			...tables.map((table) => ({
+				id: table.id,
+				label: table.label ?? table.title,
+				icon: table.icon ?? 'file',
+			})),
 		];
 		this.tablist.replaceChildren();
 		this.panel.replaceChildren();
 		for (const tab of tabs) {
 			const button = document.createElement('button');
 			button.type = 'button';
-			button.textContent = tab.label;
+			labelControl(button, tab.icon, tab.label);
 			button.setAttribute('role', 'tab');
 			button.id = `${this.owner.id}-tab-${tab.id}`;
 			button.setAttribute('aria-controls', this.panel.id);

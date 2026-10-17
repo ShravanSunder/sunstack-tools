@@ -1,6 +1,6 @@
 # Captured independent rule-runner review
 
-Captured 2026-10-11 by the Lead from Agent Router operation `01a12cd0-84c0-79e3-a16b-5df0331de165`, terminal `end_turn`, output available. Reviewer: `claude-local/de78a696-0255-417b-bcef-81d5ae849157`; settings `opus`, effort `high`. The provider exposes the alias, not a resolved full model ID; Claude Code documentation maps the normal `opus` route to Opus 5.5.
+Captured 2026-10-11 by the Lead from Agent Router operation `private-coordination-record`, terminal `end_turn`, output available. Reviewer: `the independent Claude reviewer`; settings `opus`, effort `high`. The provider exposes the alias, not a resolved full model ID; Claude Code documentation maps the normal `opus` route to Opus 5.5.
 
 This is the review report for the pre-correction snapshots, not a current design-ready claim:
 
@@ -10,7 +10,7 @@ This is the review report for the pre-correction snapshots, not a current design
 | specification.md | `f103e4f9fe347b31874c89e6e2a1ca96c13c187dcb87be659eb04b5af0664ff2` |
 | program-design.md | `d6f92d74adde2d96f64d0f8aa125adb02d608a6da9a17d6fba2d9de112970bd6` |
 
-Parent dispositions, corrections and current verification belong to work thread `01a12ca7-621c-71b9-8fc3-0cf055fe6952`. The report's line numbers refer to those reviewed snapshots. Its upstream-main SDK reads are distinct from the separately inspected published SDK 0.6.0 declarations. The raw report is preserved below, including its own stated limitations.
+Parent dispositions, corrections and current verification belong to work thread `private-coordination-record`. The report's line numbers refer to those reviewed snapshots. Its upstream-main SDK reads are distinct from the separately inspected published SDK 0.6.0 declarations. The raw report is preserved below, including its own stated limitations.
 
 ---
 
