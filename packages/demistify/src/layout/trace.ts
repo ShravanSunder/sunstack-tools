@@ -121,5 +121,12 @@ export function installArrowTracing(): void {
 			true,
 		);
 	for (const event of ['presentation-change', 'presentation-target'])
-		document.addEventListener(event, pending.cancel, true);
+		document.addEventListener(
+			event,
+			(): void => {
+				pending.cancel();
+				traceArrowsOf(endpointOf(document.activeElement));
+			},
+			true,
+		);
 }

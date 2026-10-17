@@ -224,3 +224,21 @@ test.each(['mermaid', 'arrows', 'flow', 'explorer'])(
 		expect(surface.traced()).toEqual([]);
 	},
 );
+
+test.each(['arrows', 'flow'])(
+	'%s presentation events discard a pending hover without leaving its old trace',
+	(kind): void => {
+		vi.useFakeTimers();
+		const surface = createSurface(kind);
+		point(surface.first, kind, true);
+		vi.advanceTimersByTime(100);
+		expect(surface.traced()).toEqual(['alpha-beta', 'beta-gamma']);
+		document.body.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+		document.dispatchEvent(new Event('presentation-target'));
+		expect(surface.traced()).toEqual([]);
+		point(surface.first, kind, true);
+		document.dispatchEvent(new Event('presentation-change'));
+		vi.advanceTimersByTime(100);
+		expect(surface.traced()).toEqual([]);
+	},
+);
