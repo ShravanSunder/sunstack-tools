@@ -200,15 +200,8 @@ impl MarkdownDocument {
 
     fn project_range(&self, range: Range<usize>) -> (String, String) {
         let root = self.tree.root();
-        let references = root
-            .dfs()
-            .filter(|node| node.kind() == "link_reference_definition")
-            .filter_map(|node| {
-                node.children()
-                    .find(|child| child.kind() == "link_label")
-                    .map(|label| crate::markdown_projection::reference_label(&label.text()))
-            })
-            .collect();
+        let projection =
+            crate::markdown_offset_projection::OffsetProjection::new(self.tree.source());
         let nodes = root.dfs().filter(|node| {
             contains_range(
                 &range,
@@ -217,7 +210,6 @@ impl MarkdownDocument {
                 node.kind().as_ref(),
                 "paragraph"
                     | "atx_heading"
-                    | "setext_heading"
                     | "fenced_code_block"
                     | "indented_code_block"
                     | "pipe_table"
@@ -234,22 +226,22 @@ impl MarkdownDocument {
         for node in nodes {
             let (visible, filter_visible) = match node.kind().as_ref() {
                 "pipe_table" => {
-                    crate::markdown_projection::project_inline(node.text().trim(), &references)
+                    let continuations = node
+                        .dfs()
+                        .filter(|child| child.kind() == "block_continuation")
+                        .map(|child| child.range())
+                        .collect::<Vec<_>>();
+                    projection.table(node.range(), &continuations)
                 }
-                "fenced_code_block" | "indented_code_block" => {
-                    let literal = node
-                        .children()
-                        .find(|child| child.kind() == "code_fence_content")
-                        .map_or_else(
-                            || node.text().trim().to_owned(),
-                            |child| child.text().trim_end().to_owned(),
-                        );
-                    (literal.clone(), literal)
-                }
+                "fenced_code_block" | "indented_code_block" => projection.code(node.range()),
                 _ => {
-                    let inline = node.children().find(|child| child.kind() == "inline");
-                    let raw = inline.map_or_else(String::new, |child| child.text().into_owned());
-                    crate::markdown_projection::project_inline(&raw, &references)
+                    let in_list = node
+                        .ancestors()
+                        .any(|ancestor| ancestor.kind() == "list_item");
+                    let quoted = node
+                        .ancestors()
+                        .any(|ancestor| ancestor.kind() == "block_quote");
+                    projection.prose(node.range(), in_list && !quoted)
                 }
             };
             let list_prefix = node

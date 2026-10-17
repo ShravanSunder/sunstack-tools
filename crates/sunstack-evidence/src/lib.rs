@@ -11,6 +11,7 @@ pub use structured_json::*;
 pub mod document_selection;
 pub mod markdown_contracts;
 pub mod markdown_document;
+mod markdown_offset_projection;
 mod markdown_projection;
 pub use markdown_contracts::*;
 pub use markdown_document::*;

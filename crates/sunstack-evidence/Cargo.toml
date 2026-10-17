@@ -26,7 +26,6 @@ pulldown-cmark = { version = "0.13", default-features = false }
 ast-grep-core = "=0.51.0"
 ast-grep-language = "=0.51.0"
 tree-sitter-md = "=0.5.3"
-html-escape = "=0.2.13"
 jsonschema = { version = "=0.57.0", default-features = false }
 git2 = { version = "=0.21.0", default-features = false }
 
