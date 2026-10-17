@@ -28,6 +28,44 @@ export class HeadingNavigation extends HTMLElement {
 		else this.navigationPanel.popover = 'auto';
 	};
 	private currentHeading: Element | undefined;
+	private requestedHeading: Element | undefined;
+	private readerEvents: AbortController | undefined;
+	private touchY = 0;
+	private readonly requestHeading = (event: MouseEvent): void => {
+		if (!(event.target instanceof Element) || event.metaKey || event.ctrlKey || event.shiftKey)
+			return;
+		const href = event.target.closest('a')?.getAttribute('href');
+		if (!href?.startsWith('#')) return;
+		let fragment: string;
+		try {
+			fragment = decodeURIComponent(href.slice(1));
+		} catch {
+			return;
+		}
+		const target = document.getElementById(fragment);
+		if (!target || !this.headingLinks.has(target)) return;
+		this.requestedHeading = target;
+		this.updateCurrentSection();
+	};
+	private releaseHeading(target: EventTarget | null, direction: number): void {
+		if (!this.requestedHeading) return;
+		for (
+			let element = target instanceof Element ? target : null;
+			element && element !== document.body;
+			element = element.parentElement
+		) {
+			const style = getComputedStyle(element);
+			if (!/(auto|scroll)/.test(style.overflowY) || element.scrollHeight <= element.clientHeight)
+				continue;
+			const canScroll =
+				direction < 0
+					? element.scrollTop > 0
+					: element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+			if (canScroll || /contain|none/.test(style.overscrollBehaviorY)) return;
+		}
+		this.requestedHeading = undefined;
+		this.scheduleCurrentSection();
+	}
 	/** Whether each heading's top is above the reading line (a quarter down the viewport). */
 	private readonly passedHeadings = new WeakMap<Element, boolean>();
 	private headingObserver: IntersectionObserver | undefined;
@@ -133,6 +171,94 @@ export class HeadingNavigation extends HTMLElement {
 
 	private connectObservers(): void {
 		if (!this.contentRoot || !this.contentObserver) return;
+		this.readerEvents?.abort();
+		this.readerEvents = new AbortController();
+		const { signal } = this.readerEvents;
+		document.addEventListener('click', this.requestHeading, { signal });
+		// A large jump can skip the observer's narrow reading window entirely. Reconcile once
+		// when native page scrolling settles, rather than measuring every heading every frame.
+		document.addEventListener(
+			'scrollend',
+			(event): void => {
+				if (event.target !== document) return;
+				const line = window.innerHeight * 0.25;
+				for (const heading of this.headingLinks.keys()) {
+					const bounds = heading.getBoundingClientRect();
+					this.passedHeadings.set(heading, bounds.height > 0 && bounds.top <= line);
+				}
+				if (this.requestedHeading) {
+					const bounds = this.requestedHeading.getBoundingClientRect();
+					const margin =
+						Number.parseFloat(getComputedStyle(this.requestedHeading).scrollMarginTop) || 0;
+					const maximum = document.documentElement.scrollHeight - window.innerHeight;
+					const requestedPosition = Math.max(
+						0,
+						Math.min(maximum, window.scrollY + bounds.top - margin),
+					);
+					// Scrollbar movement has no wheel/key event. Keep the override only at its actual
+					// native anchor position (including bottom clamp), after smooth scrolling settles.
+					if (Math.abs(window.scrollY - requestedPosition) > 2) this.requestedHeading = undefined;
+				}
+				this.updateCurrentSection();
+			},
+			{ signal },
+		);
+		document.addEventListener(
+			'wheel',
+			(event): void => {
+				if (!event.defaultPrevented && event.deltaY)
+					this.releaseHeading(event.target, event.deltaY);
+			},
+			{ signal, passive: true },
+		);
+		document.addEventListener(
+			'touchstart',
+			(event): void => {
+				this.touchY = event.touches[0]?.clientY ?? 0;
+			},
+			{ signal, passive: true },
+		);
+		document.addEventListener(
+			'touchmove',
+			(event): void => {
+				const nextY = event.touches[0]?.clientY ?? this.touchY;
+				if (!event.defaultPrevented && nextY !== this.touchY)
+					this.releaseHeading(event.target, this.touchY - nextY);
+				this.touchY = nextY;
+			},
+			{ signal, passive: true },
+		);
+		document.addEventListener(
+			'keydown',
+			(event): void => {
+				if (
+					event.defaultPrevented ||
+					event.altKey ||
+					event.ctrlKey ||
+					event.metaKey ||
+					(event.target instanceof Element &&
+						event.target.closest(
+							'input,textarea,select,[contenteditable="true"],[role="tab"],[role="radio"]',
+						))
+				)
+					return;
+				if (
+					event.key === ' ' &&
+					event.target instanceof Element &&
+					event.target.closest('button,a')
+				)
+					return;
+				if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key))
+					this.releaseHeading(
+						event.target,
+						['ArrowUp', 'PageUp', 'Home'].includes(event.key) ||
+							(event.key === ' ' && event.shiftKey)
+							? -1
+							: 1,
+					);
+			},
+			{ signal },
+		);
 		this.contentObserver.observe(this.contentRoot, {
 			subtree: true,
 			childList: true,
@@ -145,6 +271,7 @@ export class HeadingNavigation extends HTMLElement {
 	}
 
 	disconnectedCallback(): void {
+		this.readerEvents?.abort();
 		this.contentObserver?.disconnect();
 		this.headingObserver?.disconnect();
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
@@ -265,6 +392,8 @@ export class HeadingNavigation extends HTMLElement {
 		let activeHeading = this.headingLinks.keys().next().value;
 		for (const heading of this.headingLinks.keys())
 			if (this.passedHeadings.get(heading)) activeHeading = heading;
+		if (this.requestedHeading && this.headingLinks.has(this.requestedHeading))
+			activeHeading = this.requestedHeading;
 		// Rewriting every link on every scroll frame restyles the outline; only touch it on a change.
 		if (activeHeading === this.currentHeading) return;
 		this.currentHeading = activeHeading;

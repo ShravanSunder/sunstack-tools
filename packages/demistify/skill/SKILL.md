@@ -96,6 +96,8 @@ For a collection, repeat one native page-link list on every page. The first link
 
 Real h2–h6 sections supply the page-named outline; it scrolls independently when long. Captions stay out of the outline. Keep useful reader names in navigation and stable IDs on content. Follow a page link and a section link to confirm the generated chrome names the right page and leaves controls reachable.
 
+Home receives the built-in house icon. A clicked lower heading remains current even when the page cannot scroll it to the reading line; deliberate page scrolling resumes reading-position tracking. Preserve explicit IDs instead of relying on coincidental heading slugs.
+
 ## Presentations reference content
 
 Several named/described presentations may share a page and the same islands. Each is an ordered path with Next/Previous; one stop is valid. Place the content normally and put only stops in `ex-presentation`:
@@ -128,7 +130,7 @@ IF the page includes a guided presentation or cross-page stops, load `references
 | `<ex-pre>` | Exact monospace/TUI drawing in a plain-text script |
 | `<ex-gallery id label>` | Native figures, metadata filters and review/grid views within the shared document system |
 | `<ex-grid cols="3">` | Related content side by side; child `span="2"` or `span="all"`; `sticky` side column; `swipe` row on phones |
-| `<ex-tabs>` | Child `<section label>` views; `columns` for side-by-side reading |
+| `<ex-tabs>` | Child `<section label icon>` content views; `columns` for side-by-side reading |
 
 Tones: `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `added` `removed`. Tone supplies meaning; `pick` marks a chosen option without recoloring that meaning. `tag` adds timing/location/tradeoff. Review severity: blocking `risk`, nit `question`, nice `note`.
 
@@ -137,6 +139,8 @@ Tones: `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `ad
 Mermaid supports flowchart, sequenceDiagram, stateDiagram-v2, classDiagram, erDiagram and xychart-beta. A diagram node whose ID matches a card ID takes its tone and opens that card; keep node labels short. Use qualified island/node IDs for links when diagrams repeat names.
 
 Choose relationships before layout. Native flow, grid/flex and positioned boards are valid; do not force every explanation into a card grid. Keep related controls/content together using the shared spacing and styles. Sidebar inspection preserves the main content; fullscreen, Escape/backdrop dismissal and Cmd/Ctrl+wheel/drag use shared controls.
+
+Use short labels for content tabs and keep the full heading/explanation inside each section. An optional curated `icon` names its subject; otherwise the library supplies a neutral file icon. Tabs use Arrow/Home/End keys and scroll locally when numerous. Exactly-one viewer modes use radio segments; independent visibility uses switches; Sources expands a disclosure. Do not recreate these as rows of large selected buttons.
 
 ## Load depth when needed
 

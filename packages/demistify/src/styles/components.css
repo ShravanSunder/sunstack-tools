@@ -261,17 +261,6 @@ button[aria-selected='true'] {
 [hidden] {
 	display: none !important;
 }
-.ex-timeline {
-	border-left: 2px solid var(--accent);
-	padding-left: var(--space-6);
-	margin-block: var(--space-6);
-}
-.ex-timeline > section {
-	padding: var(--space-2) 0 var(--space-5);
-}
-.ex-timeline h3 {
-	margin-top: 0;
-}
 .ex-file-tree {
 	font: var(--text-sm) var(--font-mono);
 	white-space: pre-wrap;
@@ -371,5 +360,90 @@ ex-callout[type='risk'] {
 	ex-compare,
 	ex-diagram-diff {
 		grid-template-columns: 1fr;
+	}
+}
+
+/* Authored event headings and descriptions keep one library-owned hierarchy. */
+.ex-timeline {
+	border: 0;
+	padding: 0;
+}
+.ex-timeline > section {
+	position: relative;
+	padding: 0 0 var(--space-8) var(--space-12);
+	font-family: var(--font-display);
+}
+.ex-timeline > section:last-of-type {
+	padding-bottom: 0;
+}
+.ex-timeline > section:not(:last-of-type)::before {
+	content: '';
+	position: absolute;
+	left: 15px;
+	top: 32px;
+	bottom: 4px;
+	border-left: 1px solid var(--rule);
+}
+.ex-timeline-marker {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 32px;
+	height: 32px;
+	display: grid;
+	place-items: center;
+	border: 1px solid var(--rule);
+	border-radius: 50%;
+	background: var(--surface-page);
+	color: var(--accent);
+}
+.ex-timeline-marker > .ex-tone-icon {
+	font-size: var(--text-base);
+}
+.ex-timeline-dot::after {
+	content: '';
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--ink-soft);
+}
+.ex-timeline > section > small {
+	display: block;
+	margin: 0 0 var(--space-1);
+	font: 500 var(--text-xs)/1.4 var(--font-display);
+	color: var(--ink-soft);
+}
+.ex-timeline > section > :is(h2, h3, h4) {
+	margin: 0 0 var(--space-2);
+	font: 600 var(--text-base)/1.35 var(--font-display);
+}
+.ex-timeline > section > p {
+	margin: 0;
+	font: 500 var(--text-md)/1.5 var(--font-display);
+}
+ex-layer.band {
+	grid-template-columns: 150px minmax(0, 1fr);
+	align-items: stretch;
+	overflow: hidden;
+}
+ex-layer.band > :not(.ex-inspect-controls) {
+	display: flex;
+	align-items: center;
+	margin: 0;
+	padding: var(--space-4);
+	min-width: 0;
+	font: 500 var(--text-md)/1.5 var(--font-display);
+}
+ex-layer.band > :first-child {
+	font-weight: 600;
+	border-right: 1px solid var(--rule);
+}
+@media (max-width: 600px) {
+	ex-layer.band {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	ex-layer.band > :first-child {
+		border-right: 0;
+		border-bottom: 1px solid var(--rule);
 	}
 }

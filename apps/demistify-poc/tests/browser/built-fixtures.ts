@@ -32,6 +32,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['layout', 'layout-regression-fix'],
 			['gallery', 'integrated-review'],
 			['explorer', 'round-13-inspection'],
+			['ui', 'review-ui'],
 		].map(async ([name, source]): Promise<void> => {
 			if (!name || !source) throw new Error('Missing fixture name.');
 			await cp(

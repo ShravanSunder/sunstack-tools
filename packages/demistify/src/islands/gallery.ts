@@ -92,6 +92,7 @@ export class GalleryIsland extends HTMLElement {
 		const controls = createGalleryControls(this.id);
 		this.controls = controls;
 		controls.search.value = snapshot?.query ?? '';
+		controls.searchField.sync();
 		this.replaceChildren(
 			source,
 			controls.header,
@@ -127,15 +128,8 @@ export class GalleryIsland extends HTMLElement {
 		controls.search.addEventListener('input', (): void => {
 			this.pendingFilter.schedule();
 		});
-		controls.reviewButton.addEventListener('click', (): void => this.changeView('review'));
-		controls.gridButton.addEventListener('click', (): void => this.changeView('grid'));
-		controls.previous.addEventListener('click', (): void => this.moveCapture(-1));
-		controls.next.addEventListener('click', (): void => this.moveCapture(1));
-		controls.previousViewport.addEventListener('click', (): void => this.moveViewport(-1));
-		controls.nextViewport.addEventListener('click', (): void => this.moveViewport(1));
-		controls.viewport.addEventListener('change', (): void =>
-			this.chooseViewport(controls.viewport.value),
-		);
+		controls.reviewChoice.addEventListener('change', (): void => this.changeView('review'));
+		controls.gridChoice.addEventListener('change', (): void => this.changeView('grid'));
 		controls.fit.addEventListener('click', (): void => {
 			this.zoomMode = 'fit';
 			this.fitImage();
@@ -164,7 +158,7 @@ export class GalleryIsland extends HTMLElement {
 					event.target.closest('input,textarea,select,[contenteditable="true"],[popover]')
 				)
 					return;
-				if (controls.filtersPanel.matches(':popover-open')) return;
+				if (this.querySelector(':popover-open')) return;
 				if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
 					event.preventDefault();
 					this.moveCapture(event.key === 'ArrowUp' ? -1 : 1);
@@ -183,6 +177,7 @@ export class GalleryIsland extends HTMLElement {
 		reset.addEventListener('click', (): void => {
 			this.pendingFilter.cancel();
 			controls.search.value = '';
+			controls.searchField.sync();
 			for (const values of this.filters.values()) values.clear();
 			this.applyFilters();
 		});
@@ -236,8 +231,8 @@ export class GalleryIsland extends HTMLElement {
 			input.checked =
 				this.filters.get(input.dataset['galleryFacet'] ?? '')?.has(input.value) ?? false;
 		this.setAttribute('view', this.view);
-		controls.reviewButton.setAttribute('aria-pressed', String(this.view === 'review'));
-		controls.gridButton.setAttribute('aria-pressed', String(this.view === 'grid'));
+		controls.reviewChoice.checked = this.view === 'review';
+		controls.gridChoice.checked = this.view === 'grid';
 		controls.body.hidden = this.view !== 'review' || !this.visible.length;
 		controls.grid.hidden = this.view !== 'grid' || !this.visible.length;
 		this.dispatchEvent(new Event('gallery-updated', { bubbles: true }));
@@ -456,31 +451,9 @@ export class GalleryIsland extends HTMLElement {
 	private updateNavigation(): void {
 		const controls = this.controls;
 		if (!controls) return;
-		const index = this.visible.findIndex((capture): boolean => capture.id === this.selected);
-		controls.previous.disabled = index <= 0;
-		controls.next.disabled = index < 0 || index >= this.visible.length - 1;
+
 		for (const button of controls.strip.querySelectorAll<HTMLElement>('[data-capture-id]'))
 			button.setAttribute('aria-current', String(button.dataset['captureId'] === this.selected));
-		const values = this.viewportValues();
-		const viewportFilters = this.filters.get('viewport');
-		const multiple = (viewportFilters?.size ?? 0) > 1;
-		const chosen = multiple ? '' : (viewportFilters?.values().next().value ?? '');
-		controls.viewport.replaceChildren(
-			new Option('All viewports', ''),
-			...values.map((value): HTMLOptionElement => new Option(value, value)),
-		);
-		if (multiple) {
-			const option = new Option('Multiple viewports', '');
-			option.disabled = true;
-			controls.viewport.prepend(option);
-			controls.viewport.selectedIndex = 0;
-		} else controls.viewport.value = chosen;
-		const current =
-			chosen ||
-			this.captures.find((capture): boolean => capture.id === this.selected)?.metadata['viewport'];
-		const position = values.findIndex((value): boolean => value === current);
-		controls.previousViewport.disabled = position <= 0;
-		controls.nextViewport.disabled = position < 0 || position >= values.length - 1;
 	}
 
 	/** Fragment resolution can select an authored capture without clearing the reader's filters. */

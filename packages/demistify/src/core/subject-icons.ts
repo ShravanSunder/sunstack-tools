@@ -81,3 +81,11 @@ export const subjectIconAliases: Readonly<Record<string, (typeof subjectIcons)[n
 	module: 'package',
 	secret: 'key',
 };
+
+export function resolveSubjectIcon(requested: string): string | undefined {
+	return (subjectIcons as readonly string[]).includes(requested)
+		? requested
+		: Object.hasOwn(subjectIconAliases, requested)
+			? subjectIconAliases[requested]
+			: undefined;
+}

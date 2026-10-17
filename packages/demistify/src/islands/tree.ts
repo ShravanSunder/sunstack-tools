@@ -55,6 +55,23 @@ export class TreeIsland extends HTMLElement {
 			this.setAttribute('label', this.getAttribute('label') ?? title);
 			this.removeAttribute('title');
 		} else body.append(branches);
+		const hasIcons = Boolean(body.querySelector('.ex-tone-icon'));
+		this.classList.toggle('ex-tree-icons', hasIcons);
+		for (const row of body.querySelectorAll('.ex-tree-node')) {
+			const branch = Boolean(row.parentElement?.querySelector(':scope > ul'));
+			if (hasIcons && !row.querySelector('.ex-tone-icon')) {
+				const icon = createPhosphorIcon(branch ? 'folder' : 'file');
+				icon.classList.add('ex-tone-icon', 'ex-tree-subject');
+				row.prepend(icon);
+			}
+			const links = row.querySelectorAll('.ex-tree-go');
+			if (links.length) {
+				const actions = document.createElement('span');
+				actions.className = 'ex-tree-actions';
+				actions.append(...links);
+				row.append(actions);
+			}
+		}
 		this.replaceChildren(body);
 		this.setAttribute('prepared', '');
 		this.bindControls();

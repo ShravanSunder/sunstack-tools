@@ -1,3 +1,4 @@
+import { createModeChoices, createSearchField, type SearchField } from '../core/controls.ts';
 import { createIconButton } from '../core/icons.ts';
 
 export function galleryElement<TTag extends keyof HTMLElementTagNameMap>(
@@ -14,21 +15,17 @@ export function galleryElement<TTag extends keyof HTMLElementTagNameMap>(
 export interface GalleryControls {
 	readonly header: HTMLElement;
 	readonly search: HTMLInputElement;
+	readonly searchField: SearchField;
 	readonly filtersButton: HTMLButtonElement;
 	readonly filtersPanel: HTMLElement;
 	readonly count: HTMLOutputElement;
-	readonly reviewButton: HTMLButtonElement;
-	readonly gridButton: HTMLButtonElement;
+	readonly reviewChoice: HTMLInputElement;
+	readonly gridChoice: HTMLInputElement;
 	readonly body: HTMLElement;
 	readonly strip: HTMLElement;
 	readonly viewer: HTMLElement;
 	readonly toolbar: HTMLElement;
 	readonly title: HTMLElement;
-	readonly previous: HTMLButtonElement;
-	readonly next: HTMLButtonElement;
-	readonly previousViewport: HTMLButtonElement;
-	readonly nextViewport: HTMLButtonElement;
-	readonly viewport: HTMLSelectElement;
 	readonly fit: HTMLButtonElement;
 	readonly natural: HTMLButtonElement;
 	readonly zoomOut: HTMLButtonElement;
@@ -51,10 +48,8 @@ function controlGroup(label: string, controls: readonly HTMLElement[]): HTMLElem
 
 export function createGalleryControls(prefix: string): GalleryControls {
 	const header = galleryElement('header', 'ex-gallery-header');
-	const search = galleryElement('input');
-	search.type = 'search';
-	search.placeholder = 'Search screenshots';
-	search.setAttribute('aria-label', 'Search screenshots');
+	const searchField = createSearchField('Search screenshots');
+	const search = searchField.input;
 	const filtersButton = createIconButton('funnel-simple', 'Filter screenshots', (): void => {});
 	filtersButton.append('Filters');
 	const filtersPanel = galleryElement('div', 'ex-gallery-filters');
@@ -64,34 +59,26 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	filtersButton.popoverTargetElement = filtersPanel;
 	const count = galleryElement('output', 'ex-gallery-count');
 	count.setAttribute('aria-live', 'polite');
-	const reviewButton = createIconButton('sidebar-simple', 'Review view', (): void => {});
-	const gridButton = createIconButton('squares-four', 'Grid view', (): void => {});
-	header.append(
-		search,
-		filtersButton,
-		count,
-		controlGroup('Gallery layout', [reviewButton, gridButton]),
+	const modes = createModeChoices(
+		'Gallery layout',
+		[
+			{ value: 'review', label: 'Review view', icon: 'sidebar-simple' },
+			{ value: 'grid', label: 'Grid view', icon: 'squares-four' },
+		],
+		'review',
+		(): void => {},
+		true,
 	);
+	const reviewChoice = modes.inputs.get('review');
+	const gridChoice = modes.inputs.get('grid');
+	if (!reviewChoice || !gridChoice) throw new Error('Gallery layout choices are missing.');
+	header.append(searchField.element, filtersButton, count, modes.element);
 	const body = galleryElement('div', 'ex-gallery-body');
 	const strip = galleryElement('aside', 'ex-gallery-strip');
 	strip.setAttribute('aria-label', 'Screenshots');
 	const viewer = galleryElement('section', 'ex-gallery-viewer');
 	const toolbar = galleryElement('div', 'ex-gallery-toolbar');
 	const title = galleryElement('strong', 'ex-gallery-title');
-	const previous = createIconButton('arrow-up', 'Previous screenshot · Up arrow', (): void => {});
-	const next = createIconButton('arrow-down', 'Next screenshot · Down arrow', (): void => {});
-	const previousViewport = createIconButton(
-		'arrow-left',
-		'Previous viewport · Left arrow',
-		(): void => {},
-	);
-	const nextViewport = createIconButton(
-		'arrow-right',
-		'Next viewport · Right arrow',
-		(): void => {},
-	);
-	const viewport = galleryElement('select');
-	viewport.setAttribute('aria-label', 'Viewport category');
 	const fit = createIconButton('corners-out', 'Fit screenshot', (): void => {});
 	fit.append('Fit');
 	const natural = createIconButton('resize', 'Natural size', (): void => {});
@@ -107,12 +94,19 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	original.title = 'Open original image';
 	original.setAttribute('aria-label', 'Open original image');
 	original.innerHTML = '<i class="ph ph-arrow-square-out" aria-hidden="true"></i>';
+	const help = createIconButton('keyboard', 'Keyboard shortcuts', (): void => {});
+	const helpPanel = galleryElement('aside', 'ex-gallery-filters ex-gallery-shortcuts');
+	helpPanel.id = `${prefix}-shortcuts`;
+	helpPanel.popover = 'auto';
+	helpPanel.setAttribute('aria-label', 'Keyboard shortcuts');
+	helpPanel.innerHTML =
+		'<strong>Keyboard shortcuts</strong><dl><dt>Up / Down</dt><dd>Previous / next screenshot</dd><dt>Left / Right</dt><dd>Previous / next viewport category</dd><dt>⌘ / Ctrl + wheel</dt><dd>Zoom</dd><dt>Drag or scroll</dt><dd>Pan</dd><dt>Esc</dt><dd>Close fullscreen or this help</dd></dl>';
+	help.popoverTargetElement = helpPanel;
+	header.append(helpPanel);
 	toolbar.append(
 		title,
-		controlGroup('Screenshot navigation', [previous, next]),
-		controlGroup('Viewport category', [previousViewport, viewport, nextViewport]),
 		controlGroup('Image zoom', [fit, natural, zoomOut, zoom, zoomIn]),
-		controlGroup('Viewing actions', [sidebar, fullscreen, original]),
+		controlGroup('Viewing actions', [sidebar, fullscreen, original, help]),
 	);
 	viewer.append(toolbar);
 	body.append(strip, viewer);
@@ -122,21 +116,17 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	return {
 		header,
 		search,
+		searchField,
 		filtersButton,
 		filtersPanel,
 		count,
-		reviewButton,
-		gridButton,
+		reviewChoice,
+		gridChoice,
 		body,
 		strip,
 		viewer,
 		toolbar,
 		title,
-		previous,
-		next,
-		previousViewport,
-		nextViewport,
-		viewport,
 		fit,
 		natural,
 		zoomOut,

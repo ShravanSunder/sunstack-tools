@@ -173,6 +173,8 @@ tables.push({
 tables.push({
 	id: 'proposed-changes',
 	title: 'Proposed changes',
+	label: 'Proposed',
+	icon: 'git-branch',
 	description:
 		'What leaves the selected phase and what it keeps. These are proposals, not implemented behavior.',
 	placement: 'details',
@@ -202,6 +204,8 @@ tables.push({
 tables.push({
 	id: 'authored-changes',
 	title: 'Authored changes',
+	label: 'Authored',
+	icon: 'file',
 	description: 'Authored in PRs #131 and #132. Testing and behavior evaluation remain deferred.',
 	placement: 'details',
 	filter: 'all',
@@ -236,6 +240,8 @@ tables.push({
 tables.push({
 	id: 'extractions',
 	title: 'Teaching to extract or reuse',
+	label: 'Reuse',
+	icon: 'book-open',
 	description:
 		'Remaining proposals from earlier analysis. Historical phase design is not adopted. PROPOSED does not mean implemented or loaded.',
 	placement: 'details',
@@ -264,6 +270,8 @@ tables.push({
 tables.push({
 	id: 'candidates',
 	title: 'Other building blocks',
+	label: 'Building blocks',
+	icon: 'package',
 	description: 'Candidates under consideration; these are not accepted implementation claims.',
 	placement: 'details',
 	filter: 'all',
@@ -282,6 +290,8 @@ tables.push({
 tables.push({
 	id: 'earlier-proposals',
 	title: 'Earlier proposals',
+	label: 'Earlier',
+	icon: 'clock',
 	description:
 		'Earlier practice-level proposals not yet in source; not drawn as current or latest proposed composition.',
 	placement: 'details',
@@ -301,6 +311,8 @@ tables.push({
 tables.push({
 	id: 'source-inventory',
 	title: 'Source inventory',
+	label: 'Sources',
+	icon: 'folder',
 	description: `Snapshot ${data.commit}. Declared references do not establish runtime loading, installation or behavioral evaluation.`,
 	placement: 'details',
 	filter: 'all',
