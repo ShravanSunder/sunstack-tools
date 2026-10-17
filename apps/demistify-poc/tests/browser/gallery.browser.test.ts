@@ -191,6 +191,9 @@ test.each([
 			})
 			.toBe(true);
 		expect(insideViewport(panel)).toBe(true);
+		expect(panel.getBoundingClientRect().right).toBeLessThanOrEqual(
+			fixture.documentElement.clientWidth,
+		);
 		await userEvent.keyboard('{Escape}');
 	},
 );
