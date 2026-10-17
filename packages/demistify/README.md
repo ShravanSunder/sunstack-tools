@@ -139,6 +139,18 @@ The theme owns colors, fonts, spacing, radii and motion. Semantic roles for tone
 
 Sidebar inspection copies content and preserves the main view. Fullscreen uses the shared native dialog; Escape, Close or a backdrop click dismiss it and restore focus. Cmd/Ctrl+wheel zooms and modifier-drag pans images/diagrams; ordinary scrolling remains native. Controls provide the same actions without gestures. The library subsets actual Phosphor glyphs into the matching build.
 
+## Authoring measurements
+
+Six single-run trials compared the same two-page review authored with raw HTML/CSS/JS and Demistify 1.2.0:
+
+| Profile     | Raw reader-source tokens | Demistify reader-source tokens |
+| ----------- | -----------------------: | -----------------------------: |
+| Sol, medium |                    8,477 |                          3,074 |
+| Luna, high  |                    5,963 |                          3,487 |
+| Luna, xhigh |                   15,947 |                          3,315 |
+
+Total author-session output was lower with Demistify for Sol medium and Luna xhigh, and higher for Luna high. Content errors remained, including exact-text mistakes that structural checks missed. Read the [full measurements and proof limits](../../docs/benchmarks/demistify-authoring-2026-10-17.md) before drawing cost or quality conclusions.
+
 ## Proof and source owners
 
 ```sh

@@ -1,5 +1,7 @@
 # Presentation experiments
 
+For the later matched Sol/Luna raw-HTML versus Demistify trials, including Luna high/xhigh effort, see [authoring measurements](../../docs/benchmarks/demistify-authoring-2026-10-17.md). That study is separate from the five translated-fixture experiments below and reports actual host usage alongside reader-source counts and browser findings.
+
 A local comparison lab comparing five ways to present the same complete engineering explanation. Each prototype has a separate page, inspectable usage input, real rendered output, measured source tokens, separate delivery sizes, and findings. No winner is selected.
 
 The common input is the owner-supplied planning DAG snapshot captured on 2026-10-14: three views, 25 nodes, 24 relationships, and jobs/boundaries. The source file in its other checkout has since changed; the captured copy and provenance remain in `references/`. The Claude Layer Tree CSS is the styling reference for HTML Islands.

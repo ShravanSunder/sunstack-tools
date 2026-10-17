@@ -1,0 +1,224 @@
+{
+	"date": "2026-10-17",
+	"libraryVersion": "1.2.0",
+	"sourceCommit": "58a856f301dc3318d394ee783243c1932de06b85",
+	"sourceTokenizer": "js-tiktoken@1.0.21 / o200k_base",
+	"samplesPerCondition": 1,
+	"artifactScope": "Delivered reader HTML/CSS/JS including generated embedding; common supplied images/source and shared library assets excluded.",
+	"usageScope": "Initial authoring/self-checks plus metadata identity follow-ups; Root/library/review/browser-assessment costs excluded. Reasoning is included in output. Cached input is cumulative across calls.",
+	"timingScope": "Session creation to last authored artifact/note write, excluding metadata follow-ups; not exact handback.",
+	"billingDollars": null,
+	"artifactsPublished": false,
+	"runs": [
+		{
+			"model": "Sol",
+			"effort": "medium",
+			"approach": "raw-html-css-js",
+			"readerSourceTokens": 8477,
+			"readerSourceBytes": 31717,
+			"htmlBytes": 23243,
+			"files": [
+				{
+					"path": "index.html",
+					"bytes": 17050,
+					"tokens": 4422,
+					"sha256": "31a0abd71e02fcdd4922562cd52100da2767b1bca06b67c1a44b403e9cc23007"
+				},
+				{
+					"path": "screenshots.html",
+					"bytes": 6193,
+					"tokens": 1484,
+					"sha256": "a7f7e84e6e3f297255c603fb4741329e9a38ed40b922c888b8cfb93679d30af1"
+				},
+				{
+					"path": "review.css",
+					"bytes": 6442,
+					"tokens": 2125,
+					"sha256": "c766d63c341d91f762481b1d0eb4a78d9ea57012a6323b448a335593b7b929fb"
+				},
+				{
+					"path": "review.js",
+					"bytes": 740,
+					"tokens": 159,
+					"sha256": "b45ac4eab9d2e5955b95d3b459ba85e0dfae4fb8c41c1a145ffe41513d5f5c9c"
+				},
+				{
+					"path": "gallery.js",
+					"bytes": 1292,
+					"tokens": 287,
+					"sha256": "1076c4df54b541e063a318e0bfa654d2f33b77a08b73970ada3a5af35fc37c4e"
+				}
+			],
+			"uncachedInputTokens": 63630,
+			"cachedInputTokens": 558080,
+			"outputTokens": 11983,
+			"reasoningOutputTokens": 541,
+			"secondsToFinalArtifactWrite": 157.952,
+			"metadataIdentityFollowups": 1
+		},
+		{
+			"model": "Luna",
+			"effort": "high",
+			"approach": "raw-html-css-js",
+			"readerSourceTokens": 5963,
+			"readerSourceBytes": 22038,
+			"htmlBytes": 12862,
+			"files": [
+				{
+					"path": "index.html",
+					"bytes": 9718,
+					"tokens": 2627,
+					"sha256": "46313c24131c709d97095475dfaae2c3c4e75665620e3cec5f675b124c5dedff"
+				},
+				{
+					"path": "screenshots.html",
+					"bytes": 3144,
+					"tokens": 768,
+					"sha256": "3176e03095db3dc4b52cc28e1aa87d6d5447e822a971c50eb617408ebf8ebdc0"
+				},
+				{
+					"path": "style.css",
+					"bytes": 5947,
+					"tokens": 1886,
+					"sha256": "8e21373a00628f66aef612b2583b7661d49d78f904b98bbd83d108576d4e064d"
+				},
+				{
+					"path": "gallery.js",
+					"bytes": 3229,
+					"tokens": 682,
+					"sha256": "1a2a845494b9fabe4d430a31b80c416b6860cd543f241bd38e34ebc9bd7a575f"
+				}
+			],
+			"uncachedInputTokens": 65860,
+			"cachedInputTokens": 640640,
+			"outputTokens": 11899,
+			"reasoningOutputTokens": 2155,
+			"secondsToFinalArtifactWrite": 100.25,
+			"metadataIdentityFollowups": 1
+		},
+		{
+			"model": "Sol",
+			"effort": "medium",
+			"approach": "demistify",
+			"readerSourceTokens": 3074,
+			"readerSourceBytes": 13592,
+			"htmlBytes": 13592,
+			"files": [
+				{
+					"path": "index.html",
+					"bytes": 10343,
+					"tokens": 2331,
+					"sha256": "1f080371b948072ec48fa2cb76750a895e6867c6dc475951a23a944893c67708"
+				},
+				{
+					"path": "screenshots.html",
+					"bytes": 3249,
+					"tokens": 743,
+					"sha256": "48e977a073aa9a3720e2c009da1b63e639cca16523e5fc1142cbb898c56ea4bf"
+				}
+			],
+			"uncachedInputTokens": 74549,
+			"cachedInputTokens": 736256,
+			"outputTokens": 6883,
+			"reasoningOutputTokens": 474,
+			"secondsToFinalArtifactWrite": 98.702,
+			"metadataIdentityFollowups": 1
+		},
+		{
+			"model": "Luna",
+			"effort": "high",
+			"approach": "demistify",
+			"readerSourceTokens": 3487,
+			"readerSourceBytes": 14997,
+			"htmlBytes": 14997,
+			"files": [
+				{
+					"path": "index.html",
+					"bytes": 12186,
+					"tokens": 2846,
+					"sha256": "9b51bd2744d891d060be5da1fac266e69735569aa89c2fb75832d0f7ad01c2f1"
+				},
+				{
+					"path": "screenshots.html",
+					"bytes": 2811,
+					"tokens": 641,
+					"sha256": "94a45873e422e775432dfd9bdf1d8505d5d534cc217f21fdd058c3cf1d4959c1"
+				}
+			],
+			"uncachedInputTokens": 59101,
+			"cachedInputTokens": 2103168,
+			"outputTokens": 19230,
+			"reasoningOutputTokens": 8612,
+			"secondsToFinalArtifactWrite": 358.806,
+			"metadataIdentityFollowups": 1
+		},
+		{
+			"model": "Luna",
+			"effort": "xhigh",
+			"approach": "raw-html-css-js",
+			"readerSourceTokens": 15947,
+			"readerSourceBytes": 55590,
+			"htmlBytes": 27866,
+			"files": [
+				{
+					"path": "index.html",
+					"bytes": 20420,
+					"tokens": 5108,
+					"sha256": "4de66c55398cadc1dc7c6ba63da37fa37c861eba7e0e015427eaba5d2f486b40"
+				},
+				{
+					"path": "screenshots.html",
+					"bytes": 7446,
+					"tokens": 1838,
+					"sha256": "fc94091493866058859fe1d1a9d10e411ed3e189cc1418da57a8dc21a686fabf"
+				},
+				{
+					"path": "styles.css",
+					"bytes": 25014,
+					"tokens": 8389,
+					"sha256": "20b4ae1777fc6da6de4359758f7c5344f10a777714123f57f185a07c89b80da4"
+				},
+				{
+					"path": "site.js",
+					"bytes": 2710,
+					"tokens": 612,
+					"sha256": "ef524a873eefaef79bf2d553077b01776d1e6f5d7267d0c44afd849b22d9941e"
+				}
+			],
+			"uncachedInputTokens": 112406,
+			"cachedInputTokens": 1585792,
+			"outputTokens": 59115,
+			"reasoningOutputTokens": 18223,
+			"secondsToFinalArtifactWrite": 562.792,
+			"metadataIdentityFollowups": 1
+		},
+		{
+			"model": "Luna",
+			"effort": "xhigh",
+			"approach": "demistify",
+			"readerSourceTokens": 3315,
+			"readerSourceBytes": 14027,
+			"htmlBytes": 14027,
+			"files": [
+				{
+					"path": "index.html",
+					"bytes": 11391,
+					"tokens": 2689,
+					"sha256": "fe080dfbe141ad489ba130378955143df1c8c2e4ffd4cfc53184fc2a76a2ded1"
+				},
+				{
+					"path": "screenshots.html",
+					"bytes": 2636,
+					"tokens": 626,
+					"sha256": "d3ae5422ee1c26b7ac7247ab9b2a7a3fae196c71fb7510586be615a5ee07755a"
+				}
+			],
+			"uncachedInputTokens": 74008,
+			"cachedInputTokens": 3400192,
+			"outputTokens": 36162,
+			"reasoningOutputTokens": 24062,
+			"secondsToFinalArtifactWrite": 324.003,
+			"metadataIdentityFollowups": 2
+		}
+	]
+}
