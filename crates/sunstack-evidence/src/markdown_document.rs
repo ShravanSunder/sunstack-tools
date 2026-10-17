@@ -58,6 +58,13 @@ impl MarkdownDocument {
                 let candidate = &line[start..line_end];
                 if candidate.len() == 13
                     && candidate.ends_with(" -->")
+                    && line[..start]
+                        .bytes()
+                        .rev()
+                        .take_while(|byte| *byte == b'\\')
+                        .count()
+                        % 2
+                        == 0
                     && let Ok(id) = MarkerId::new(&candidate[5..9])
                     && id.as_str().starts_with(prefix.as_str())
                 {
@@ -129,12 +136,8 @@ impl MarkdownDocument {
         let host = path
             .iter()
             .rev()
-            .find(|node| {
-                matches!(
-                    node.kind().as_ref(),
-                    "atx_heading" | "setext_heading" | "paragraph"
-                )
-            })
+            .find(|node| matches!(node.kind().as_ref(), "atx_heading" | "setext_heading"))
+            .or_else(|| path.iter().rev().find(|node| node.kind() == "paragraph"))
             .ok_or(MarkdownBindingRefusal::ForbiddenHost)?;
         let host = if host.kind() == "paragraph" {
             host.parent()

@@ -198,6 +198,57 @@ fn sections_include_subsections_stop_at_peers_and_nested_markers_overlap() {
 }
 
 #[test]
+fn setext_heading_binds_its_section_through_body_and_stops_at_peer() {
+    let text = "Heading<!-- K014 -->\n---\n\nBody is required.\n\n## Peer\n\nOutside.\n";
+    let found = bindings(text, 400);
+    assert_eq!(found.len(), 1);
+    let binding = bound(&found[0]);
+    assert_eq!(binding.host, MarkdownHostKind::Section);
+    assert_eq!(
+        (binding.span.byte_start, binding.span.byte_end),
+        (0, text.find("## Peer").unwrap())
+    );
+    assert_eq!(binding.question_text, "Heading\n\nBody is required.");
+}
+
+#[test]
+fn setext_heading_requires_an_adjacent_marker() {
+    let found = bindings("Heading <!-- K014 -->\n---\n\nBody.\n", 400);
+    assert_eq!(found.len(), 1);
+    assert!(matches!(
+        &found[0],
+        MarkdownMarkerBinding::Refused {
+            reason: MarkdownBindingRefusal::SpacedHeading,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn setext_h1_marker_is_still_a_forbidden_host() {
+    let found = bindings("Heading<!-- K014 -->\n===\n\nBody.\n", 400);
+    assert_eq!(found.len(), 1);
+    assert!(matches!(
+        &found[0],
+        MarkdownMarkerBinding::Refused {
+            reason: MarkdownBindingRefusal::ForbiddenHost,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn escaped_comment_markers_are_literal_and_do_not_duplicate_a_real_marker() {
+    assert!(bindings("Literal \\<!-- K014 -->\n", 400).is_empty());
+    let found = bindings("Literal \\<!-- K014 -->\n\nActual<!-- K014 -->\n", 400);
+    assert_eq!(found.len(), 1);
+    assert_eq!(bound(&found[0]).question_text, "Actual");
+    let even_escape = bindings("Literal \\\\<!-- K014 -->\n", 400);
+    assert_eq!(even_escape.len(), 1);
+    assert_eq!(bound(&even_escape[0]).question_text, "Literal \\");
+}
+
+#[test]
 fn nested_list_markers_bind_their_own_items_with_overlapping_parent_content() {
     let text = "- parent<!-- K014 -->\n  - child<!-- K015 -->\n- sibling\n";
     let found = bindings(text, 400);
