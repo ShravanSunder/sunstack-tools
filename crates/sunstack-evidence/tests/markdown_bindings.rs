@@ -214,6 +214,21 @@ fn nested_list_markers_bind_their_own_items_with_overlapping_parent_content() {
 }
 
 #[test]
+fn continuation_paragraph_marker_binds_only_its_own_paragraph() {
+    let text = "- first\n\n  second<!-- K014 -->\n";
+    let found = bindings(text, 400);
+    assert_eq!(found.len(), 1);
+    let binding = bound(&found[0]);
+    assert_eq!(binding.host, MarkdownHostKind::Paragraph);
+    assert_eq!(binding.span.byte_start, text.find("second").unwrap());
+    assert_eq!(
+        &text[binding.span.byte_start..binding.span.byte_end],
+        "second<!-- K014 -->\n"
+    );
+    assert_eq!(binding.question_text, "second");
+}
+
+#[test]
 fn question_keeps_visible_words_code_tables_and_alt_text_but_strips_hidden_sources() {
     let text = "## Visible<!-- K014 -->\n\nA *strong* **standard** with `inline code`, [label](https://hidden.example) and ![alt words](secret.png).\n\n<!-- hidden comment -->\n\n<div>hidden block</div>\n\nRaw <span>visible</span>.\n\n[ref]: https://secret.example \"hidden title\"\n\n```rust\nlet answer = 42;\n```\n\n| Field | Value |\n| --- | --- |\n| name | text |\n\n## Stop\n";
     let found = bindings(text, 400);

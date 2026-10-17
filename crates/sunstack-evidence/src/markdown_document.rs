@@ -139,7 +139,9 @@ impl MarkdownDocument {
             .ok_or(MarkdownBindingRefusal::ForbiddenHost)?;
         let host = if host.kind() == "paragraph" {
             host.parent()
-                .filter(|parent| parent.kind() == "list_item")
+                .filter(|parent| {
+                    parent.kind() == "list_item" && is_first_item_content(parent, host)
+                })
                 .unwrap_or_else(|| host.clone())
         } else {
             host.clone()
@@ -251,15 +253,7 @@ impl MarkdownDocument {
             let list_prefix = node
                 .parent()
                 .filter(|parent| parent.kind() == "list_item")
-                .filter(|parent| {
-                    parent
-                        .children()
-                        .find(|child| {
-                            !child.kind().starts_with("list_marker_")
-                                && child.kind() != "block_continuation"
-                        })
-                        .is_some_and(|first| first.range().start == node.range().start)
-                })
+                .filter(|parent| is_first_item_content(parent, &node))
                 .and_then(|parent| {
                     parent
                         .children()
@@ -292,6 +286,14 @@ impl MarkdownDocument {
 
 fn contains_range(outer: &Range<usize>, inner: &Range<usize>) -> bool {
     outer.start <= inner.start && inner.end <= outer.end
+}
+
+fn is_first_item_content(item: &BlockNode<'_>, content: &BlockNode<'_>) -> bool {
+    item.children()
+        .find(|child| {
+            !child.kind().starts_with("list_marker_") && child.kind() != "block_continuation"
+        })
+        .is_some_and(|first| first.range().start == content.range().start)
 }
 
 fn heading_level(node: &BlockNode<'_>) -> Option<u8> {
