@@ -38,7 +38,7 @@ It extends the [Rust rule engine](../2026-10-12-rust-rule-engine/requirements.md
 | U6 | Markers bind only allowed hosts: `##`–`######` headings (the whole section), paragraphs, and list items. H1 and every other node type are refused. A bound text has a size cap. | Owner: "refuse ... like h1", "certain types of markdown types for safety", "sounds good" |
 | U7 | The question contains only what a reader sees in the rendered skill. Hidden content (HTML, comments, link definitions) is stripped. | Owner: "for safety", "sounds good" |
 | U8 | A rule judges each matching section, paragraph, list item or call site of a reviewed skill as its own occurrence, reported at file and line. | Engine customer: "the location of the paragraph to repair"; spike on five real skills |
-| U9 | A mechanical check (a referenced file exists, a pattern is present or absent, a frontmatter field is present) settles without a model call or credential. | Provisional: the Lead's proposal for "more deterministic". The owner hasn't confirmed it on its own. |
+| U9 | A mechanical rule settles locally, with no model call. It uses the same rules file and marker as a judgment rule. The easy cases are written as a `target` plus an `expect` in skill terms. Anything structural is written as a real ast-grep rule, validated at check time. The engine builds no rule language of its own, and a file-existence check stays a separate CI script. | Owner: "its hard to express these mechanical rules no / i dont want to build rules engine. is there an easy one"; "can they be expressed in the same rules schema we have"; "we can make an abstraction on top of ast grep"; "i think b. things to make our life easy, then actual ast grep with validation" |
 | U10 | The engine stays generic. Which standards get markers, their thresholds and severities, and the marker letter are the consumer's content. | Engine U9 (consumer-authored RuleSets) |
 
 ## Non-goals
@@ -50,5 +50,4 @@ It extends the [Rust rule engine](../2026-10-12-rust-rule-engine/requirements.md
 
 ## Open owner decisions
 
-- **U9 as a requirement.**
 - **The job of a standard's good and bad examples.** The engine contract doesn't depend on it.
