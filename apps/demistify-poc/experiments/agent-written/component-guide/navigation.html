@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Presentations and deep links</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Component guide pages">
+<a href="index.html">Demistify components</a>
+<a href="content.html">Content and decisions</a>
+<a href="layouts.html">Layouts and navigation</a>
+<a href="visuals.html">Visuals and structure</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Presentations and deep links</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Proof and usage</a>
+</nav></ex-nav><ex-document id="guide"><h1>Presentations and deep links</h1><p>A presentation is a named path through the content below. Several paths may share the same target.</p><ex-markdown id="requirements" label="Session requirements" src="requirements.md"></ex-markdown><section id="architecture"><h2>Architecture</h2><ex-grid cols="2"><ex-mermaid id="before" label="Before"><script type="text/plain">flowchart LR
+Client --> Registry --> Session</script></ex-mermaid><ex-mermaid id="after" label="After"><script type="text/plain">flowchart LR
+Client --> Registry --> Session</script></ex-mermaid></ex-grid><ex-card id="lifetime" title="Session lifetime" tone="decision" pick>The Registry owns the session. A new transport can reconnect without creating another session.</ex-card></section><ex-tree title="Read the source"><script type="text/markdown">- [Session ownership](#requirements--ownership-table)
+  - [Registry node](#after--Registry)
+  - [Shared decision](#lifetime)
+</script></ex-tree><ex-presentation id="walkthrough" title="Session walkthrough" description="Requirements, the Registry node and the shared decision."><ex-step to="requirements--required-behavior">Start with the required behavior.</ex-step><ex-step to="after--Registry">The Registry owns lookup.</ex-step><ex-step to="lifetime">A transport can reconnect to this session.</ex-step></ex-presentation><ex-presentation id="decision-only" title="Decision only" description="A one-stop presentation using the same decision card."><ex-step to="lifetime">The same card is reused, not copied.</ex-step></ex-presentation></ex-document></body></html>

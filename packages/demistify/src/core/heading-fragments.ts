@@ -24,6 +24,8 @@ export function assignHeadingFragments(root: HTMLElement): void {
 	}
 	for (const link of root.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
 		const fragment = decodeURIComponent(link.hash.slice(1));
+		// Markdown shorthand belongs to its island; page-wide links retain real authored IDs.
+		if (root.localName !== 'ex-markdown' && document.getElementById(fragment)) continue;
 		const target = localFragments.get(fragment);
 		if (target) link.setAttribute('href', `#${target}`);
 	}

@@ -78,6 +78,48 @@ const input = {
 } satisfies GraphDocument;
 
 describe('explorer content and composition contract', (): void => {
+	it.each(['constructor', 'toString', '__proto__'])(
+		'rejects inherited icon key %s',
+		(icon): void => {
+			const table = {
+				id: 'evidence',
+				title: 'Evidence',
+				icon,
+				description: '',
+				placement: 'details',
+				filter: 'all',
+				columns: [],
+				rows: [],
+			};
+			expect((): GraphDocument => parseGraphDocument({ ...input, tables: [table] })).toThrow(
+				'Unknown table icon',
+			);
+		},
+	);
+	it('keeps full evidence titles while validating optional short labels and curated icons', (): void => {
+		const table = {
+			id: 'teaching',
+			title: 'Teaching to extract or reuse',
+			description: '',
+			placement: 'details',
+			filter: 'all',
+			columns: [],
+			rows: [],
+		};
+		const legacy = parseGraphDocument({ ...input, tables: [table] }).tables[0];
+		expect(legacy?.label).toBe(table.title);
+		expect(legacy?.icon).toBe('file');
+		const compact = parseGraphDocument({
+			...input,
+			tables: [{ ...table, label: 'Reuse', icon: 'docs' }],
+		}).tables[0];
+		expect(compact?.title).toBe(table.title);
+		expect(compact?.label).toBe('Reuse');
+		expect(compact?.icon).toBe('book-open');
+		expect((): GraphDocument =>
+			parseGraphDocument({ ...input, tables: [{ ...table, icon: 'invented-icon' }] }),
+		).toThrow('Unknown table icon');
+	});
 	it('distinguishes proposal edges, preserves shared targets and traces only the focused route', (): void => {
 		const document = parseGraphDocument(input);
 		const current = compositionView(document, 'client', 'current');

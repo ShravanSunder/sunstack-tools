@@ -2,7 +2,7 @@
 
 `prepare_evidence` now delegates input decoding to `sunstack_evidence::decode_evidence_plan_input`. Malformed request objects receive Evidence/request diagnostics, with `unknown_field`, `duplicate_field` or `invalid_request`, static repair guidance and a schema-owned path. A malformed repository scope no longer receives selector/projection advice. The operation remains `prepare_evidence/refused`, exit 2; valid preparation and valid JSON stay unchanged.
 
-This is the Lead-commissioned successor to `bc5c722d3779f060857fe6c8e93d02ced9335e21` on `rule-engine/m1-strict-variants`, in `/Users/shravansunder/dev/sunstack-tools.rule-engine-m1-strict-variants`. Authority: Lead direct `01a1464c-6ae5-73a3-aee9-acd530319b9a`; governing design: `f259d4b28f5131478e574e123335904c78b0d347`, Program Design Diagnostics table, Evidence/request row, plus Specification R10/V10 and R19. The Lead accepted the paired Verifier's finding about the pre-existing CLI mapping. The Verifier's complete base observation is `/private/tmp/2026-10-m1-strict-variants-verification-bc5c722/report.md`; its cited raw process refusal and the responsible source were inspected before this correction.
+This is the Lead-commissioned successor to `bc5c722d3779f060857fe6c8e93d02ced9335e21` on `rule-engine/m1-strict-variants`, in `private verification archive`. Authority: Lead direct `private-coordination-record`; governing design: `f259d4b28f5131478e574e123335904c78b0d347`, Program Design Diagnostics table, Evidence/request row, plus Specification R10/V10 and R19. The Lead accepted the paired Verifier's finding about the pre-existing CLI mapping. The Verifier's complete base observation is `private verification archive`; its cited raw process refusal and the responsible source were inspected before this correction.
 
 Risk: clients interpreting malformed evidence input now receive these intentional diagnostic additions and Request origin. The old strict-variant proof in `sunstack-rules/STRICT_VARIANTS_PROOF.md` remains historical evidence for bc5c722; its old invalid_selector process assertion is superseded here. No schema/design files or rules source were changed. Hosted calls remain outside the grant and were not run. Independent successor observation and delivery acceptance are separate from this implementer proof.
 
@@ -42,12 +42,12 @@ Both process cases failed at the extracted baseline on invalid_selector versus u
 
 ## Execution evidence
 
-Every Cargo command ran from the dedicated worktree root. The task gate runner sets the command-local xcrun SDK correction, removes any inherited hosted credential, leaves repository runner/profile configuration unchanged, preserves Cargo's exit code and writes raw logs plus sibling `.exit` files under `/private/tmp/2026-10-m1-strict-variants/`:
+Every Cargo command ran from the dedicated worktree root. The task gate runner sets the command-local xcrun SDK correction, removes any inherited hosted credential, leaves repository runner/profile configuration unchanged, preserves Cargo's exit code and writes raw logs plus sibling `.exit` files under `private verification archive`:
 
 ```sh
 SDKROOT="$(xcrun --show-sdk-path)" CC=/usr/bin/clang \
 CFLAGS="-isysroot $(xcrun --show-sdk-path)" \
-CARGO_TARGET_DIR=/private/tmp/2026-10-m1-strict-variants/build cargo <arguments below>
+CARGO_TARGET_DIR=private verification archive cargo <arguments below>
 ```
 
 | Log stem | Exact Cargo arguments | Observed exit/counts |
@@ -73,6 +73,6 @@ Initial process diagnostic red artifacts: `target/cli-process-evidence/53596-{0,
 
 Walked every changed Rust source/test against domain-rust and global Rust rules. Decoding owns the translation from transport bytes to typed EvidencePlanInput and closed native diagnostics; the CLI remains a caller. The closest separation principle is “Parse once at the boundary”, and the proof follows “Fixed in CI?” by showing the same diagnostic assertions red then green on the real native/process path. Production introduces no Value trees, casts, unwrap/expect/panic allowances, second runtime, unowned task or storage mechanism. Test Value mutations deliberately construct malformed wire cases. The initial large Err warning was fixed without allowing the lint. No language-standard departure is retained; new modules/tests remain below 200 lines.
 
-Own traces and pairing remain on execution root `01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01`, including the successor pre-build plan and red checkpoint. The Verifier adopted feasibility under f259d4b with no oracle disagreement and has Lead authority to extend its base report when the successor is declared. No stand-ins, unresolved design questions or owner decisions block this correction. Hosted behavior, other milestones, historical LEAK root cause and final acceptance are not established by these local tests. Build/process artifacts are held while the separately owned observation is active; nothing was removed.
+Own traces and pairing remain on execution root `private-coordination-record`, including the successor pre-build plan and red checkpoint. The Verifier adopted feasibility under f259d4b with no oracle disagreement and has Lead authority to extend its base report when the successor is declared. No stand-ins, unresolved design questions or owner decisions block this correction. Hosted behavior, other milestones, historical LEAK root cause and final acceptance are not established by these local tests. Build/process artifacts are held while the separately owned observation is active; nothing was removed.
 
 Final checkpoint: the seven deliberate default skips remain five hosted cases, the fixed measurement workload, and offline reconstruction. They are unverified, not counted as passed. No LEAK disposition or rerun was needed on the complete 211-test run. Hold the task build (8.9 GiB) and process artifacts (76 MiB) for independent observation; free space is 84 GiB. No directory removal or integration into a milestone branch was performed.

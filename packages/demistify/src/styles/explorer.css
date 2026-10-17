@@ -20,12 +20,12 @@ ex-explorer[aria-busy='true'] {
 ex-explorer button,
 ex-explorer input {
 	font: inherit;
-	font-family: var(--display);
+	font-family: var(--font-display);
 	color: var(--ink);
 }
 ex-explorer button {
 	cursor: pointer;
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-sm);
 	padding: var(--space-2) var(--space-3);
@@ -44,22 +44,42 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	border-color: var(--accent);
 }
 .ex-explorer-browser {
+	display: flex;
+	flex-direction: column;
 	position: sticky;
 	top: var(--space-5);
 	max-height: calc(100vh - 40px);
-	overflow: auto;
+	overflow: hidden;
 	align-self: start;
 	scrollbar-width: thin;
-	font-family: var(--display);
+	font-family: var(--font-display);
 }
-.ex-explorer-browser input {
-	display: block;
+.ex-explorer-browser-header {
+	flex: 0 0 auto;
+	padding: var(--space-1);
+}
+.ex-explorer-node-list {
+	min-height: 0;
+	overflow: auto;
+	padding: var(--space-1);
+	overscroll-behavior: contain;
+}
+body:has(.ex-document-toolbar) .ex-explorer-browser {
+	top: 56px;
+	max-height: calc(100dvh - 72px);
+}
+.ex-explorer-browser .ex-explorer-issues {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
 	width: 100%;
-	padding: var(--space-3);
-	border: 1px solid var(--rule);
-	border-radius: var(--radius-sm);
-	background: var(--sheet);
-	margin-bottom: var(--space-3);
+	margin-top: var(--space-2);
+	padding: var(--space-2);
+	border: 0;
+	background: transparent;
+	color: var(--ink-soft);
+	text-align: left;
+	font-size: var(--text-sm);
 }
 .ex-explorer-browser details {
 	margin-top: var(--space-4);
@@ -114,12 +134,12 @@ ex-explorer [role='tab'][aria-selected='true'] {
 .ex-explorer-supplement {
 	margin-block: var(--space-5);
 	padding: var(--space-4) var(--space-5);
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 }
 .ex-explorer-heading {
-	border-left: 3px solid var(--accent);
+	border-left: 2px solid var(--accent);
 }
 .ex-explorer-heading p {
 	max-width: 85ch;
@@ -127,7 +147,7 @@ ex-explorer [role='tab'][aria-selected='true'] {
 }
 .ex-explorer-heading small,
 .ex-explorer-caption {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	color: var(--ink-soft);
 	font-size: var(--text-xs);
 }
@@ -142,7 +162,7 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	gap: var(--space-2);
 	align-items: center;
 	margin-block: var(--space-3);
-	font-family: var(--display);
+	font-family: var(--font-display);
 	font-size: var(--text-sm);
 }
 .ex-explorer-history button:not(.ex-icon-button) {
@@ -157,7 +177,7 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	max-height: 72vh;
 	min-height: 275px;
 	border: 1px solid var(--rule);
-	background: var(--sheet);
+	background: var(--surface-content);
 	border-radius: var(--radius-md);
 	scrollbar-width: thin;
 }
@@ -173,7 +193,7 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	top: var(--space-3);
 	border-bottom: 1px solid var(--rule);
 	padding-bottom: var(--space-2);
-	font: 600 var(--text-md) var(--display);
+	font: 600 var(--text-md) var(--font-display);
 	color: var(--ink-soft);
 }
 .ex-explorer-edges,
@@ -183,9 +203,9 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	pointer-events: none;
 }
 .ex-explorer-node {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	color: var(--ink);
-	background: var(--sheet);
+	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-sm);
 	padding: var(--space-3);
@@ -196,7 +216,7 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
-	border-left: 3px solid var(--node-kind, var(--accent));
+	border-left: 2px solid var(--node-kind, var(--accent));
 }
 .ex-explorer-node.ex-explorer-phase {
 	--node-kind: var(--explorer-phase);
@@ -215,10 +235,10 @@ ex-explorer [role='tab'][aria-selected='true'] {
 }
 .ex-explorer-node[aria-pressed='true'] {
 	border-color: var(--node-kind);
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 .ex-explorer-node strong {
-	font: 600 var(--text-lg)/1.15 var(--display);
+	font: 600 var(--text-lg)/1.15 var(--font-display);
 	overflow-wrap: anywhere;
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
@@ -226,7 +246,7 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	overflow: hidden;
 }
 .ex-explorer-node > span {
-	font: var(--text-xs)/1.4 var(--body);
+	font: var(--text-xs)/1.4 var(--font-body);
 	color: var(--ink-soft);
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
@@ -250,7 +270,10 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	stroke-width: 1.6;
 }
 .ex-explorer-edge.is-traced .ex-explorer-line {
-	stroke-width: 2.8;
+	stroke-width: 2.4;
+}
+.ex-explorer-proposed .ex-explorer-line {
+	stroke-dasharray: 5 4;
 }
 .ex-explorer-edge-hit {
 	fill: none;
@@ -259,13 +282,28 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	pointer-events: stroke;
 	cursor: pointer;
 }
-.ex-explorer-proposal-dot {
-	fill: var(--change);
-	stroke: var(--sheet);
-	stroke-width: 1.5;
+.ex-explorer-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	color: var(--ink-soft);
+	font-size: var(--text-xs);
+}
+.ex-explorer-legend > span {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.ex-explorer-legend > span::before {
+	content: '';
+	width: 24px;
+	border-top: 1.5px solid currentColor;
+}
+.ex-explorer-legend > span + span::before {
+	border-top-style: dashed;
 }
 .ex-explorer-related {
-	font-family: var(--display);
+	font-family: var(--font-display);
 	margin-block: var(--space-4);
 }
 .ex-explorer-related summary {
@@ -284,7 +322,7 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	min-width: 680px;
 	border-collapse: collapse;
 	table-layout: fixed;
-	font: var(--text-sm)/1.45 var(--display);
+	font: var(--text-sm)/1.45 var(--font-display);
 }
 .ex-explorer-table-scroll th,
 .ex-explorer-table-scroll td {
@@ -330,7 +368,7 @@ ex-explorer .ex-explorer-link {
 	overflow-wrap: anywhere;
 }
 .ex-explorer-main blockquote {
-	font: var(--text-xs)/1.5 var(--body);
+	font: var(--text-xs)/1.5 var(--font-body);
 	color: var(--ink-soft);
 	border-left: 2px solid var(--rule);
 	margin: var(--space-2) 0;
@@ -340,7 +378,7 @@ ex-explorer .ex-explorer-link {
 	border: 1px solid var(--rule);
 	padding: var(--space-5);
 	margin-block: var(--space-5);
-	background: var(--sheet);
+	background: var(--surface-content);
 }
 @container ex-explorer (max-width: 1050px) {
 	.ex-explorer-shell {

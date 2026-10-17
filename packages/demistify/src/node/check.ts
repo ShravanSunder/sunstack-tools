@@ -3,14 +3,18 @@
  * id references, nesting, island sources, diagrams and styling. Each finding names its line and,
  * when the repair is mechanical, carries the text edit that fixes it.
  */
+import { dirname, join } from 'node:path';
+
 import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
+import { headingSlug } from '../core/heading-fragments.ts';
 import { parseMarkdownSource } from '../core/markdown-source.ts';
 import { normalizeIslandText } from '../core/source-text.ts';
 import { parseGraphDocument } from '../explorer/graph-document.ts';
 import { parseCode } from '../render/code-lines.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
+import { renderMarkdownContent } from '../render/markdown-content.ts';
 import { checkAttributes, closest, taughtElements, vocabulary } from '../vocabulary.ts';
 
 type Element = DefaultTreeAdapterMap['element'];
@@ -41,7 +45,7 @@ const elementAliases: Readonly<Record<string, string>> = {
 	'ex-panel': 'ex-card',
 	'ex-warning': 'ex-callout tone="risk"',
 	'ex-tab': '<section label> inside ex-tabs',
-	'ex-steps': 'ex-route',
+	'ex-steps': 'ex-presentation',
 	'ex-connector': 'ex-arrow',
 	'ex-link': 'ex-arrow',
 };
@@ -89,8 +93,13 @@ function hasAncestor(element: Element, names: readonly string[]): boolean {
 	return false;
 }
 
+function isTemplateElement(element: Element): element is DefaultTreeAdapterMap['template'] {
+	return element.tagName === 'template';
+}
+
 function textOf(element: Element): string {
-	return element.childNodes
+	const children = isTemplateElement(element) ? element.content.childNodes : element.childNodes;
+	return children
 		.map((child): string =>
 			'value' in child && typeof child.value === 'string'
 				? child.value
@@ -146,16 +155,81 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 
 	// Ids outside SVG, and words in diagram sources (route steps may target diagram nodes).
 	const ids = new Map<string, Element>();
-	const diagramWords = new Set<string>();
+	const diagramWords = new Map<string, ReadonlySet<string>>();
 	for (const element of elements) {
-		if (element.tagName === 'ex-mermaid')
-			for (const word of textOf(element).match(/[A-Za-z_][\w-]*/g) ?? []) diagramWords.add(word);
+		if (element.tagName === 'ex-mermaid') {
+			const ownerId = attributeMap(element).get('id');
+			if (ownerId)
+				diagramWords.set(ownerId, new Set(textOf(element).match(/[A-Za-z_][\w-]*/g) ?? []));
+		}
 		const id = attributeMap(element).get('id');
 		if (!id || element.namespaceURI.endsWith('svg') || hasAncestor(element, ['svg'])) continue;
 		if (ids.has(id))
 			report(element, 'error', 'duplicate-id', `Duplicate id "${id}"; ids must be unique.`, 'id');
 		else ids.set(id, element);
 	}
+
+	const markdownTargets = async (
+		pageElements: readonly Element[],
+		relativeTo = '',
+	): Promise<ReadonlySet<string>> => {
+		const targets = new Set<string>();
+		const addDiagramTargets = (diagram: Element, ownerId: string): void => {
+			targets.add(ownerId);
+			for (const word of textOf(diagram).match(/[A-Za-z_][\w-]*/g) ?? [])
+				targets.add(`${ownerId}--${word}`);
+		};
+		for (const diagram of pageElements.filter(
+			(element): boolean => element.tagName === 'ex-mermaid',
+		)) {
+			const ownerId = attributeMap(diagram).get('id');
+			if (ownerId) addDiagramTargets(diagram, ownerId);
+		}
+		const owners = pageElements.filter((element): boolean => element.tagName === 'ex-markdown');
+		const sources = await Promise.all(
+			owners.map((owner): Promise<string | undefined> => {
+				const reference = attributeMap(owner).get('src');
+				return reference && options.readSource
+					? options.readSource(join(relativeTo, reference))
+					: Promise.resolve(undefined);
+			}),
+		);
+		for (const [index, owner] of owners.entries()) {
+			const attrs = attributeMap(owner);
+			const prefix = attrs.get('id');
+			if (!prefix) continue;
+			const sourceElement = owner.childNodes
+				.filter(isElement)
+				.find((child): boolean => child.tagName === 'script');
+			const external = sources[index];
+			const content =
+				external ??
+				(sourceElement && attributeMap(sourceElement).has('data-ex-markdown-source')
+					? parseMarkdownSource(textOf(sourceElement)).text
+					: sourceElement
+						? textOf(sourceElement)
+						: textOf(owner));
+			const rendered = Array.from(walk(parse(renderMarkdownContent(content))));
+			const diagrams = rendered.filter((element): boolean => element.tagName === 'ex-mermaid');
+			for (const [diagramIndex, diagram] of diagrams.entries())
+				addDiagramTargets(diagram, `${prefix}--diagram-${diagramIndex + 1}`);
+			const seen = new Map<string, number>();
+			for (const heading of rendered.filter((element): boolean =>
+				/^h[1-6]$/.test(element.tagName),
+			)) {
+				const slug = headingSlug(textOf(heading));
+				const occurrence = (seen.get(slug) ?? 0) + 1;
+				seen.set(slug, occurrence);
+				targets.add(`${prefix}--${slug}${occurrence > 1 ? `-${occurrence}` : ''}`);
+			}
+		}
+		return targets;
+	};
+	for (const target of await markdownTargets(elements))
+		if (!ids.has(target)) {
+			const owner = elements.find((element): boolean => element.tagName === 'ex-markdown');
+			if (owner) ids.set(target, owner);
+		}
 
 	const engine =
 		options.diagrams !== false &&
@@ -175,7 +249,17 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 						),
 			);
 		}
-		return otherPages.get(file);
+		const targets = otherPages.get(file);
+		if (targets && options.readSource) {
+			const referencedHtml = await options.readSource(file);
+			if (referencedHtml)
+				for (const target of await markdownTargets(
+					Array.from(walk(parse(referencedHtml))),
+					dirname(file),
+				))
+					targets.add(target);
+		}
+		return targets;
 	};
 	let loadsTheme = false;
 	let loadsRuntime = false;
@@ -253,7 +337,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				continue;
 			for (const target of value.split(/\s+/).filter(Boolean)) {
 				// A tour step on another page: the file must exist next to this one, with that id.
-				if ((name === 'ex-step' || name === 'ex-route') && /\.html?($|[?#])/i.test(target)) {
+				if ((name === 'ex-step' || name === 'ex-presentation') && /\.html?($|[?#])/i.test(target)) {
 					const [file = '', hash = ''] = target.split('#');
 					// oxlint-disable-next-line no-await-in-loop -- other pages are read once each, in page order.
 					const otherIds = options.readSource ? await idsOnPage(file) : new Set<string>([hash]);
@@ -275,7 +359,15 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 						);
 					continue;
 				}
-				if (ids.has(target) || (name === 'ex-step' && diagramWords.has(target))) continue;
+				if (
+					ids.has(target) ||
+					(name === 'ex-step' &&
+						target.includes('--') &&
+						diagramWords
+							.get(target.slice(0, target.lastIndexOf('--')))
+							?.has(target.slice(target.lastIndexOf('--') + 2)))
+				)
+					continue;
 				const meant = closest(target, ids.keys());
 				report(
 					element,

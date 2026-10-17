@@ -24,7 +24,7 @@ it('uses the shared semantic theme for additions, removals and modifications in 
 		Array.from(
 			darkTheme.matchAll(/--([\w-]+):\s*(#[\da-f]{6});/gi),
 			(match): readonly [string, string] => [match[1] ?? '', match[2] ?? ''],
-		).filter(([name]) => name === 'ink' || name === 'sheet' || name?.startsWith('diff-')),
+		).filter(([name]) => name === 'ink' || name === 'surface-content' || name?.startsWith('diff-')),
 	);
 	const rendered = await renderD2Sources({
 		changes: graphToD2(overlayGraph(graph, changes), palette, changes),
@@ -33,6 +33,6 @@ it('uses the shared semantic theme for additions, removals and modifications in 
 	expect(themedSvg).toContain('var(--diff-added-bg,');
 	expect(themedSvg).toContain('var(--diff-removed-bg,');
 	expect(themedSvg).toContain('var(--diff-modified-bg,');
-	expect(themedSvg).toContain('var(--sheet,');
+	expect(themedSvg).toContain('var(--surface-content,');
 	expect(themedSvg).not.toContain('var(--codex');
 });

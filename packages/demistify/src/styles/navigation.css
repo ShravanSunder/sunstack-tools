@@ -1,81 +1,97 @@
-/* Opt-in document navigation; island layouts retain their normal HTML owner. */
+/* One document header, one independently scrollable outline and fixed reader controls. */
 body:has(ex-nav) {
-	padding-inline-start: var(--space-16);
+	padding-top: 56px;
 }
 ex-nav {
-	position: fixed;
-	left: var(--space-3);
-	top: 50%;
-	transform: translateY(-50%);
-	width: 36px;
-	z-index: 5;
-}
-ex-nav > .ex-icon-button {
-	background: var(--paper);
-	border-color: transparent;
+	display: none;
 }
 .ex-heading-markers {
-	display: grid;
-	gap: 1px;
-	max-height: 65dvh;
-	overflow-y: auto;
-	scrollbar-width: none;
+	display: none;
 }
-.ex-heading-markers > a {
+.ex-document-toolbar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: var(--ex-drawer-width, 0px);
+	z-index: 6;
 	display: flex;
 	align-items: center;
-	height: 15px;
-	padding-inline: var(--space-1);
+	gap: var(--space-2);
+	height: 44px;
+	padding: var(--space-1) var(--space-3);
+	border-bottom: 1px solid var(--rule);
+	background: var(--surface-page);
+	font: var(--text-sm) var(--font-display);
 }
-.ex-heading-markers > a::before {
-	content: '';
-	width: 22px;
-	height: 2px;
-	background: var(--ink-soft);
-	opacity: 0.4;
+.ex-document-toolbar > .ex-icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-1);
+	width: auto;
+	min-width: 34px;
+	padding-inline: var(--space-2);
+	border-radius: var(--radius-md);
 }
-.ex-heading-markers > a[data-level='2']::before {
-	width: 17px;
+.ex-document-toolbar > [hidden] {
+	display: none;
 }
-.ex-heading-markers > a[data-level='3']::before {
-	width: 11px;
+.ex-document-breadcrumbs {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	color: var(--ink-soft);
 }
-.ex-heading-markers > a:is([data-level='4'], [data-level='5'], [data-level='6'])::before {
-	width: 6px;
+.ex-document-breadcrumbs strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--ink);
 }
-.ex-heading-markers > a:is(:hover, :focus-visible, [aria-current], [data-preview])::before {
-	background: var(--accent);
-	opacity: 1;
-}
+.ex-pages-panel,
 .ex-heading-panel {
 	position: fixed;
-	inset: auto;
-	left: var(--space-12);
-	top: 50%;
-	transform: translateY(-50%);
+	inset: 48px auto auto 12px;
 	margin: 0;
-	width: min(300px, calc(100vw - 68px));
-	max-height: 80dvh;
-	overflow-y: auto;
+	width: min(300px, calc(100vw - 24px));
+	max-height: calc(100dvh - 120px);
+	overflow: auto;
 	padding: var(--space-3);
-	background: var(--sheet);
-	color: var(--ink);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	color: var(--ink);
 	box-shadow: var(--shadow-float);
-	font: var(--text-md)/1.4 var(--display);
+	font: var(--text-md)/1.4 var(--font-display);
 }
+.ex-pages-panel {
+	width: min(260px, calc(100vw - 24px));
+}
+.ex-pages-panel a,
 .ex-heading-panel a {
 	display: block;
 	padding: var(--space-1) var(--space-2);
+	border-left: 2px solid transparent;
+	border-radius: var(--radius-sm);
 	color: var(--ink-soft);
 	text-decoration: none;
-	border-radius: var(--radius-sm);
-	border-left: 2px solid transparent;
 }
-.ex-heading-panel a[data-level='1'] {
-	font-size: var(--text-md);
-	font-weight: 600;
+.ex-pages-panel a {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding-block: var(--space-2);
+	color: var(--ink);
+}
+.ex-pages-panel a:is(:hover, [aria-current]),
+.ex-heading-panel a:is(:hover, [data-preview]) {
+	background: var(--selection-surface);
+	color: var(--accent);
+}
+.ex-heading-panel a[aria-current] {
+	border-left-color: var(--selection-color);
 	color: var(--ink);
 }
 .ex-heading-panel a[data-level='2'] {
@@ -88,79 +104,60 @@ ex-nav > .ex-icon-button {
 .ex-heading-panel a:is([data-level='4'], [data-level='5'], [data-level='6']) {
 	padding-left: var(--space-8);
 }
-.ex-heading-panel a:is(:hover, :focus-visible, [data-preview]) {
-	color: var(--accent);
-	background: var(--accent-soft);
-}
-.ex-heading-panel a[aria-current] {
-	border-left-color: var(--accent);
-	color: var(--ink);
-}
 .ex-navigation-label {
+	position: sticky;
+	top: 0;
 	display: block;
+	margin: 0 0 var(--space-2);
+	padding: var(--space-1) var(--space-2);
+	background: inherit;
 	font-size: var(--text-sm);
-	font-weight: 500;
-	color: var(--ink-soft);
-	margin: var(--space-1) var(--space-2) var(--space-2);
-}
-.ex-heading-pages {
-	border-top: 1px solid var(--rule);
-	padding-top: var(--space-3);
-	margin-top: var(--space-4);
-}
-.ex-heading-panel .ex-page-link {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-2);
-}
-.ex-breadcrumbs {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: var(--space-2);
-	padding: var(--space-4) 0;
-	border-bottom: 1px solid var(--rule);
-	font: var(--text-md) var(--display);
-	color: var(--ink-soft);
-}
-.ex-breadcrumbs > span[aria-current] {
+	font-weight: 600;
 	color: var(--ink);
 }
-.ex-breadcrumbs > span[aria-current]::before {
-	content: '›';
-	margin-right: var(--space-2);
-	color: var(--ink-soft);
+.ex-heading-outline {
+	min-height: 0;
+	max-height: 100%;
+	overflow: auto;
+	overscroll-behavior: contain;
 }
-.ex-breadcrumbs > .ex-icon-button {
-	margin-left: auto;
+.ex-heading-panel[data-empty] {
+	display: none;
+}
+.ex-theme-toggle {
+	position: fixed;
+	left: 60px;
+	bottom: 12px;
+	z-index: 7;
+	background: var(--surface-content);
+	border-radius: var(--radius-md);
+}
+body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle {
+	left: 16px;
 }
 @media (min-width: 1440px) {
-	body:has(ex-nav) {
-		padding-inline-start: 304px;
+	:root[data-outline='true'] body:has(ex-nav) {
+		padding-inline-start: 288px;
 	}
-	/* The rail already reserves a gutter; centering again can add hundreds of blank pixels. */
 	body:has(ex-nav) > ex-document {
 		margin-inline-start: 0;
 	}
-	ex-nav[data-pinned] {
-		display: none;
-	}
 	.ex-heading-panel[data-pinned] {
-		left: var(--space-5);
-		top: 92px;
-		bottom: var(--space-6);
-		transform: none;
-		width: 252px;
-		max-height: calc(100dvh - 116px);
-		padding: 0 var(--space-4) 0 0;
+		inset: 56px auto 64px 16px;
+		width: 248px;
+		max-height: calc(100dvh - 120px);
+		padding: 0 var(--space-3) 0 0;
 		border: 0;
 		border-right: 1px solid var(--rule);
 		border-radius: 0;
+		background: var(--surface-page);
 		box-shadow: none;
-		background: var(--paper);
+		overflow: hidden;
 	}
 }
 :is(h1, h2, h3, h4, h5, h6)[id] {
-	scroll-margin-top: 32px;
+	scroll-margin-top: 56px;
+}
+ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
+	scroll-margin-top: 56px;
 }

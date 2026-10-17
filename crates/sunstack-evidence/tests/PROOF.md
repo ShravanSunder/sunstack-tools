@@ -89,7 +89,7 @@ No open stand-in is used.
 
 ## Correction after independent observation at 77cdde02
 
-The independent report at `/private/tmp/2026-10-s2-verification-77cdde0/report.md`
+The independent report at `private verification archive`
 found an actual V4 defect while all original 20 tests passed. The initial list
 case asserted only `is_ok`; it could not detect truncated text. The Lead accepted
 the finding against unchanged C2 and authorized an additive correction.

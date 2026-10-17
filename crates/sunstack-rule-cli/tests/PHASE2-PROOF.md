@@ -5,7 +5,7 @@ into the CLI through `7c64c1e5dd72b83dbec6a3da89e3b797e11af678`.
 Oracle: Specification C14/V2/V13/V14/V29/V30 at `34bee48`, plus the adopted
 8 MiB, readiness and optional-ceiling corrections `92d6bc6`, `8ac4133`,
 `a32d32f`. Execution trace: Router root
-`01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01`.
+`private-coordination-record`.
 
 The CLI now exposes all four operations. Native decoders own admission and
 diagnostics; native libraries own selection, scheduling, provider accounting,
@@ -56,7 +56,7 @@ checks unchanged diagnostics and measurements. V2 claim for preparation_failed:
 **wire tag and exit mapping proven; no reachable public stdin input found, per
 source-derived judgment (S3a 7302); runtime reachability not demonstrated**.
 The Lead accepted this boundary in direct push
-`01a145b7-1006-78e3-bb33-db24f008a759`. Native preparation returns this variant
+`private-coordination-record`. Native preparation returns this variant
 only for private question-plan invariant failures; evaluation returns it for
 scheduler invariant/worker-fatal failures. Public refusals use the real-process
 exit 3 cases above.
@@ -176,7 +176,7 @@ HTTP 200 in 358.78 ms with an 848-byte response, at the same 60-second deadline.
 The response and direct-replay-result.json are retained beside the failed
 process; no authorization headers or credential values are recorded. This is
 consistent with transient provider latency, not proof of its definitive cause.
-Per Lead conditional authorization `01a145b4-eaf6-7102-836a-862cfcc56c97`, a
+Per Lead conditional authorization `private-coordination-record`, a
 separately named four-invocation campaign follows, preserving this failed one.
 
 Fresh campaign `3ebef280-6144-4d94-9705-f06c9f357a8d` also failed on its first
@@ -193,7 +193,7 @@ first/repeat measurements remained open. Diagnosis/campaign attempts at that
 checkpoint: two timed-out binary attempts plus one successful direct replay,
 with no hidden retry.
 
-Lead diagnosis `01a145bb-41d2-7c33-a97c-29a8467c5563`: LuLu is active with
+Lead diagnosis `private-coordination-record`: LuLu is active with
 loopback allowed; its rules approve the native test identity but contain no
 approval for the CLI identity. Own read-only inspection corroborates that
 target/debug/sunstack-rule is Developer ID signed as
@@ -211,7 +211,7 @@ recorded below; neither failed campaign is relabeled as successful.
 
 ## Campaign 3 after owner egress approval
 
-Lead authorization `01a145c0-0be0-7b40-892c-c96bc721576f` reported owner approval
+Lead authorization `private-coordination-record` reported owner approval
 and an all-endpoint LuLu allow rule keyed by the CLI signing identity. Own
 read-only preflight found that identity in the updated rules. The final Cargo
 build had left a linker ad-hoc signature; the unchanged official runner's

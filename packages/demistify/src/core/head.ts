@@ -1,6 +1,6 @@
 import { createPhosphorIcon } from './icons.ts';
 import { reportIssue } from './issues.ts';
-import { subjectIconAliases, subjectIcons } from './subject-icons.ts';
+import { resolveSubjectIcon, subjectIcons } from './subject-icons.ts';
 import { createToneIcon, type Tone } from './tones.ts';
 
 /**
@@ -20,8 +20,7 @@ export interface HeadParts {
 export function readIcon(owner: HTMLElement): string | undefined {
 	const requested = owner.getAttribute('icon')?.trim();
 	if (!requested) return undefined;
-	if ((subjectIcons as readonly string[]).includes(requested)) return requested;
-	const meant = subjectIconAliases[requested];
+	const meant = resolveSubjectIcon(requested);
 	if (meant) return meant;
 	reportIssue(owner, `Unknown icon "${requested}". Use one of: ${subjectIcons.join(', ')}.`);
 	return undefined;

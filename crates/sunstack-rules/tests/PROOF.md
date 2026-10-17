@@ -6,7 +6,7 @@ This account covers the rules library and its native preparation/evaluation API.
 
 The delivery plan's S3 rows govern the library work, amended by the Lead's S3a/S3b split. Final condition/readiness oracle is design `34bee484935ec4cc8ba42452b527497e9e920256` (including final F6 and null-present F7). Optional backend ceiling oracle is `a32d32f2707a3fbe2e8e2cd80df890dc8687e832`, implemented by accepted upstream `07214f5749b3499276dff6b4f56127d9b9921f31` and merged at `72796df`. Checked additions are the rules crate, schema traits needed by its native contract, and the Lead-approved native diagnostic definition locations. Accepted verification skill files were imported unchanged by the authorized merge; they are not authored here.
 
-The final immutable product commit is declared on execution root `01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01`, on branch `rule-engine/m1-rules`. This file is associated product proof; the development trace remains that board thread.
+The final immutable product commit is declared on execution root `private-coordination-record`, on branch `rule-engine/m1-rules`. This file is associated product proof; the development trace remains that board thread.
 
 ## Original `9aeca1f` routes and results
 

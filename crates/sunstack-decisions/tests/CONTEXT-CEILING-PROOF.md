@@ -3,7 +3,7 @@
 This repair implements the Lead's adopted contract at design
 `a32d32f2707a3fbe2e8e2cd80df890dc8687e832`, superseding `8ac4133`.
 The source base is milestone 1 `9fae2cca7cc4cc87ec364f14806e4950eab7fea9`.
-The execution trace is root `01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01`
+The execution trace is root `private-coordination-record`
 on Router service `0ff962c5-7fa3-4c18-a5ca-1bbe8db09e89`.
 
 `BackendSelection::JevOpenrouter.context_ceiling_tokens` is independently
