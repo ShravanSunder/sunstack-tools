@@ -1,0 +1,10 @@
+flowchart TB
+  BG["E26 Binding group<br/>binds a conversation input to a transcript path"] -->|"path + format"| TF["E38 Transcript format<br/>built-in or injected; unknown refused"]
+  BG -->|"captured once per invocation"| CC["E30 Conversation capture<br/>complete records; incomplete tail and gaps reported"]
+  CC -->|"0..n records"| CR["E31 Conversation record<br/>identity: capture + native id<br/>user message, whole assistant message or tool use"]
+  CR -->|"0..n"| TU["E33 Tool use<br/>call paired with result by call id<br/>outcome: succeeded, failed, status unknown, missing"]
+  CC -->|"0..n turns, some ambiguous"| TN["E32 Turn<br/>opened by a user message"]
+  TN -->|"contains"| CR
+  SEL["E34 Conversation selection<br/>turns, user, assistant, tool use, hook-injected"] -->|"selects from"| CC
+  SEL -->|"returns"| CUR["E35 Monitoring cursor<br/>caller-held; valid or invalid"]
+  CUR -.->|"next invocation: only new or changed records"| SEL

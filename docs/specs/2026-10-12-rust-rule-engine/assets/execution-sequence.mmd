@@ -1,44 +1,42 @@
 sequenceDiagram
-  participant Host as Native or program caller
-  participant Run as Invocation owner
-  participant Src as Evidence owner
-  participant Rules as Rule admission
-  participant Sel as Selection owner
-  participant Judge as Judgment owner
-  participant HTTP as Jev adapter
-  Note over Host,Run: Proposed-only. Caller selects RuleSets and starts this invocation
-  Host->>Run: skill bindings, RuleSet paths, repo scopes, settings and cancellation
-  Run->>Src: capture selected RuleSet JSON bytes
-  Src-->>Run: captured definitions or source failure
-  Run->>Rules: validate RuleSets and resolve explicit JSONL references
-  Rules-->>Run: referenced paths or safe definition diagnostics
-  Run->>Src: capture referenced JSONL and scoped subject/context bytes
-  Src-->>Run: frozen snapshot or source failure
-  Run->>Rules: preflight all captured rule definitions and named questions
-  Rules-->>Run: admitted RuleSets/rules or source-linked diagnostics
-  alt capture failed or definitions invalid
-    Run-->>Host: preparation failure or invalid invocation, no inference
+  participant Hook as Host hook
+  participant CLI as Executable
+  participant Inv as Invocation owner
+  participant Plan as Request planning
+  participant Ev as Evidence
+  participant Dec as Judgment owner
+  participant Jev as Jev / OpenRouter
+  Note over Hook,Jev: Proposed-only. Handoff monitor with a router over message and session
+  Hook->>CLI: evaluate_rules: router path, one group, origin, cursor
+  CLI->>Inv: RuleInvocationInput
+  Inv->>Inv: admit router, routed RuleSets, rule lines, wiring
+  Inv->>Ev: validate payload against agent-job-packet
+  alt invalid definitions, bindings or payload
+    Inv-->>CLI: invalid, no reads or calls (exit 2)
   else admitted
-    Run->>Sel: before/current targets, context, applicability and effective questions
-    Sel->>Src: query frozen sources under caller scope
-    Src-->>Sel: evidence or source diagnostics
-    Sel-->>Run: every occurrence selected, skipped or failed
-    Note over Run,Src: Required evidence must be complete, optional omissions remain attributed
-    Run->>Judge: named questions with RuleSet prefix and captured state
-    Judge->>Judge: validate and assess complete encoded request
-    alt supported and within budget, not aborted
-      Judge->>HTTP: admitted body, finite attempts and cancellation
-      Note over HTTP: External inference may occur, cancellation cannot reverse it
-      HTTP-->>Judge: untrusted body or safe failure and attempt observations
-      alt response admitted and not aborted
-        Judge-->>Run: native answers, receipt and attempts
-        Run->>Run: retain one outcome and correlate authored question references
-      else failure or observed abort
-        Judge-->>Run: typed execution outcome, no completed answer references
+    Inv->>Inv: leading conditions per derived group
+    Inv->>Plan: plan gates and requests
+    Plan-->>Inv: router rides in review-handoff request, commission-completeness waits for router
+    Inv->>Ev: capture transcript once, normalize, select declared projections
+    Ev-->>Inv: labeled selections, gaps, new cursor
+    Inv->>Dec: request: router + verdicts + informational questions
+    Dec->>Dec: encode, assess budget, admit bytes
+    Dec->>Jev: admitted body, bounded attempts
+    alt completed
+      Jev-->>Dec: answers and usage
+      Dec-->>Inv: completed outcome
+      Inv->>Inv: settle router slot, routed label decides waiting requests
+      opt chosen label is commission: review-handoff answers discarded with cost
+        Inv->>Dec: commission-completeness request, sent after the router settled
+        Dec->>Jev: admitted body
+        Jev-->>Dec: answers
+        Dec-->>Inv: completed outcome
       end
-    else invalid, required overflow or refused accounting
-      Judge-->>Run: diagnostic, no inference
+    else provider failure or invalid response
+      Dec-->>Inv: failed outcome, router slot failed, report incomplete
     end
-    Note over Run: Cancellation stops scheduling and joins owned work before terminal return
-    Run-->>Host: source-linked native judgments, coverage, diagnostics and measurements
+    Note over Inv: Cancellation stops new requests, joins owned tasks, then admits the terminal outcome
+    Inv->>Inv: reduce in authored order: router floor, entries, verdicts, bands
+    Inv-->>CLI: report with verdicts, severities, requests, cursor
+    CLI-->>Hook: stdout result, exit 0 complete or 3 incomplete
   end

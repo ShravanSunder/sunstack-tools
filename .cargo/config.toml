@@ -1,0 +1,3 @@
+# Keep one debug identity per executable role so LuLu approvals survive rebuilds.
+[target.aarch64-apple-darwin]
+runner = "scripts/cargo-debug-signing-runner.sh"

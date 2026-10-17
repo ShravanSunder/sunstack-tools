@@ -38,3 +38,7 @@ pnpm --filter @sunstack/demistify-poc preview --port 4174
 Open the local preview to compare all five independent pages. A library consumer needs only the built `runtime.js`, `theme.css` and their shared companion assets; the demo host is optional. See [the library reference](packages/demistify/README.md) and [the iteration handoff](docs/wip/demystify/2026-10-14-demistify-handoff.md).
 
 The pre-existing rule-engine design documents remain under `docs/specs/` and are unrelated to this experiment.
+
+## Authoring measurements
+
+Six exploratory Sol/Luna runs compared Demistify with ordinary HTML/CSS artifacts. Demistify produced smaller reader source in each matched pair; author-session usage and first-handback quality varied. See the [measured counts, browser findings and limitations](docs/benchmarks/demistify-authoring-2026-10-17.md). Source size alone does not establish billed savings or reliability.

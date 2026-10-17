@@ -1,6 +1,6 @@
 flowchart TB
-  C["Executable crate<br/>framing, signals and wiring"] --> R["Rules crate<br/>RuleSets, selection, correlation and reports"]
-  C -->|"direct judgments"| D["Decisions crate<br/>typed primitives, validation and Jev"]
-  C -->|"direct evidence preparation"| E["Evidence crate<br/>sources, changes, related units and chunks"]
-  R -->|"typed snapshots and bundles"| E
+  C["sunstack-rule-cli<br/>process protocol only"] --> R["sunstack-rules<br/>definitions, bindings, planning, verdicts, reports"]
+  C -->|"run_judgments"| D["sunstack-decisions<br/>primitives, validation, budget, Jev"]
+  C -->|"prepare_evidence"| E["sunstack-evidence<br/>documents, conversations, payloads, change sets"]
+  R -->|"captures, selections, cursors"| E
   R -->|"requests and outcomes"| D

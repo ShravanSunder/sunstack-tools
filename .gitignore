@@ -116,5 +116,8 @@ dist
 tmp/
 apps/demistify-poc/public/experiments/
 
+# Rust build artifacts
+target/
+
 # Local Cloudflare development state
 .wrangler/

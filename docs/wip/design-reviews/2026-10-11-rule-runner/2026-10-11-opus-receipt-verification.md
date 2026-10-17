@@ -1,10 +1,10 @@
 # Retained Opus reviewer: native receipt correction
 
-This is a Lead-written summary of the Router-returned source review, not runtime proof or design acceptance. Reviewer: `claude-local/de78a696-0255-417b-bcef-81d5ae849157`, configured `opus` / `high`. Existing review lineage is preserved; no new reviewer.
+This is a Lead-written summary of the Router-returned source review, not runtime proof or design acceptance. Reviewer: `the independent Claude reviewer`, configured `opus` / `high`. Existing review lineage is preserved; no new reviewer.
 
 ## Cost evidence and first verification
 
-Operation `01a12d0b-b7e4-7951-9bf8-25cd32820db9` settled `end_turn`, effect applied, reconciliation confirmed. Reviewed Requirements hash `ba83e9aa2141c26bb20c0e360f0438d763f78d04bcac7a530f96a1da5c2ecb75`, Specification hash `651df5c496700b8b5c09bffdfc0989743e90aee1b044b02165d703d657611bbf`, and Program Design hash `98110bad466c80087b8860d655dda960af3446b6c230decf65a4aa321e0072d4`.
+Operation `private-coordination-record` settled `end_turn`, effect applied, reconciliation confirmed. Reviewed Requirements hash `ba83e9aa2141c26bb20c0e360f0438d763f78d04bcac7a530f96a1da5c2ecb75`, Specification hash `651df5c496700b8b5c09bffdfc0989743e90aee1b044b02165d703d657611bbf`, and Program Design hash `98110bad466c80087b8860d655dda960af3446b6c230decf65a4aa321e0072d4`.
 
 The reviewer independently retrieved OpenRouter's OpenAPI JSON, System One reference markdown and Jev guide markdown (HTTP 200), and inspected the exact upstream TypeSafe SDK commit named in [the research ledger](../../../../tmp/practices-research/2026-10-11-decision-backend-contract/research-ledger.md). The schema defines optional numeric billing cost; the guide identifies USD and says every response includes it. Optionality follows the schema. SDK annotations omit cost, while the parsed body is returned without projection.
 
@@ -19,7 +19,7 @@ G1 meaning and structural-realization confirmation remain owner-controlled. G2â€
 
 ## Final residual verification
 
-Operation `01a12d0e-1ff9-7f46-8fe1-1fe5083cf966` settled `end_turn`, effect applied, reconciliation confirmed. Current Specification hash: `4119f81fd43928fce93383499a413ee3537a0e11e59a776a22e96351c266529e`; Program Design hash: `674a848cb8b069407e78ef622a2160bae69af5972b4b99b5aef026f2e06a6bda`; Requirements unchanged.
+Operation `private-coordination-record` settled `end_turn`, effect applied, reconciliation confirmed. Current Specification hash: `4119f81fd43928fce93383499a413ee3537a0e11e59a776a22e96351c266529e`; Program Design hash: `674a848cb8b069407e78ef622a2160bae69af5972b4b99b5aef026f2e06a6bda`; Requirements unchanged.
 
 The following is the final reviewer output returned by the supported Router operation. An unrelated integration-authorization notice is omitted. Its optional trace wording suggestion is not selected: the binding and V3 case already preserve the proof meaning, so another correction round is unnecessary. The structural proposal remains at Program Design line 252; the reviewer refers to its concluding open-items sentence at line 254.
 

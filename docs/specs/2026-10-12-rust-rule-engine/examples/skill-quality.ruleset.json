@@ -1,9 +1,13 @@
 {
   "schema_version": 1,
   "name": "skill-quality",
-  "description": "Check skill activation, output specificity and verification requirements.",
-  "rule_paths": [
-    "skill-rules.jsonl"
-  ],
-  "instruction_prefix": null
+  "description": "Checks that a skill says when to use it, what it produces, and that its output gets checked.",
+  "inputs": {
+    "skill": { "kind": "document" }
+  },
+  "applicability": [],
+  "common_ruleset_instructions": {
+    "context": "You are reviewing one paragraph of an agent skill. Judge only the paragraph labeled as this rule's target."
+  },
+  "rule_paths": ["skill-rules.jsonl"]
 }

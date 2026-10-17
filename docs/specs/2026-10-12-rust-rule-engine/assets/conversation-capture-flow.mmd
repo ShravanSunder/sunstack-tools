@@ -1,0 +1,15 @@
+flowchart TB
+  Bind["Conversation binding<br/>transcript path, format, optional final text"] --> Reg{"Format in adapter registry?"}
+  Reg -->|"no"| Refuse["unknown_transcript_format<br/>refused at admission"]
+  Reg -->|"yes"| Cap["Capture once per source<br/>complete lines only, prefix digest"]
+  Cur["Caller cursor (optional)"] --> Cont{"Cursor continuous?"}
+  Cap --> Cont
+  Cont -->|"rewritten, truncated or replaced"| Disc["transcript_discontinuous<br/>selections over this source fail"]
+  Cont -->|"continuous or no cursor"| Ad["Adapter normalize<br/>bytes only, no path or handle"]
+  Ad --> Val{"Structural validation<br/>unique IDs, positions, outcomes"}
+  Val -->|"invalid"| Bad["adapter_output_invalid"]
+  Val -->|"valid"| Rec["Records, turns, gaps<br/>whole messages, paired tool use"]
+  Rec --> Sup["Final text not in transcript<br/>becomes a hook supplement"]
+  Sup --> Sel["Selection per declaration<br/>turn window, then projection"]
+  Sel --> Out["Selected records, omissions, gaps"]
+  Sel --> New["New cursor in the report"]

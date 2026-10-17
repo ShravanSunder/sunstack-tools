@@ -2,40 +2,88 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "rule-file.schema.json",
   "title": "Rule definition: one JSONL line",
+  "description": "Admission also checks: target names a declaration of a targetable kind; composite dimensions name this rule's noul or score informational questions; weights sum to 1; a band sits below the threshold and only on a block rule; every input resolves in each RuleSet that loads the line.",
   "$ref": "#/$defs/RuleDefinition",
   "$defs": {
+    "RuleId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
     "RuleDefinition": {
       "type": "object",
       "properties": {
-        "rule_id": {
-          "type": "string",
-          "minLength": 1
+        "rule_id": { "$ref": "#/$defs/RuleId" },
+        "evidence": {
+          "allOf": [
+            { "$ref": "evidence-declaration.schema.json#/$defs/EvidenceDeclarations" },
+            { "minItems": 1 }
+          ]
         },
-        "target_id": {
-          "$ref": "evidence-selector.schema.json#/$defs/TargetId"
+        "target": {
+          "description": "The id of one evidence declaration: what the result points at.",
+          "$ref": "evidence-declaration.schema.json#/$defs/DeclarationId"
         },
-        "applicability": {
-          "$ref": "evidence-selector.schema.json#/$defs/ApplicabilityTest"
-        },
-        "context_selectors": {
-          "type": "array",
-          "items": {
-            "$ref": "evidence-selector.schema.json#/$defs/ContextSelectorDeclaration"
-          },
-          "minItems": 0
-        },
+        "applicability": { "$ref": "applicability.schema.json#/$defs/ApplicabilityList" },
         "questions": {
-          "$ref": "decision-question.schema.json#/$defs/NamedQuestions"
+          "description": "Informational questions. May be empty.",
+          "type": "object",
+          "propertyNames": { "type": "string", "minLength": 1 },
+          "additionalProperties": { "$ref": "decision-question.schema.json#/$defs/JudgmentQuestion" }
+        },
+        "verdict": { "$ref": "#/$defs/Verdict" },
+        "severity": {
+          "description": "Omitted means nudge. Never sent to the model.",
+          "enum": ["block", "nudge"]
         }
       },
-      "required": [
-        "rule_id",
-        "target_id",
-        "applicability",
-        "context_selectors",
-        "questions"
-      ],
+      "required": ["rule_id", "evidence", "target", "applicability", "questions", "verdict"],
       "additionalProperties": false
+    },
+    "Verdict": {
+      "oneOf": [
+        { "$ref": "#/$defs/NoulVerdict" },
+        { "$ref": "#/$defs/CompositeVerdict" }
+      ]
+    },
+    "NoulVerdict": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "noul" },
+        "question": { "$ref": "decision-question.schema.json#/$defs/NoulQuestion" },
+        "threshold": { "$ref": "applicability.schema.json#/$defs/Threshold" },
+        "block_at_or_below": { "$ref": "#/$defs/Band" }
+      },
+      "required": ["kind", "question", "threshold"],
+      "additionalProperties": false
+    },
+    "CompositeVerdict": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "composite" },
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string", "minLength": 1 },
+              "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+            },
+            "required": ["question", "weight"],
+            "additionalProperties": false
+          }
+        },
+        "threshold": { "$ref": "applicability.schema.json#/$defs/Threshold" },
+        "block_at_or_below": { "$ref": "#/$defs/Band" }
+      },
+      "required": ["kind", "dimensions", "threshold"],
+      "additionalProperties": false
+    },
+    "Band": {
+      "description": "Blocks only at or below this value. Must be below the threshold and only on a block rule.",
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMaximum": 1
     }
   }
 }

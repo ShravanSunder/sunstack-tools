@@ -1,0 +1,2 @@
+{"timestamp":"2026-10-15T00:00:00Z","type":"response_item","payload":{"type":"function_call","call_id":"first","namespace":"mcp__codex_apps","name":"user_messaging_send_message","arguments":"{\"text\":\"Continue?\"}"}}
+{"timestamp":"2026-10-15T00:00:00Z","type":"response_item","payload":{"type":"function_call_output","call_id":"first","output":"Sent."}}

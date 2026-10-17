@@ -1,7 +1,0 @@
-{
-  "repository_id": "sunstack",
-  "skill_path": "docs/specs/2026-10-12-rust-rule-engine/examples/SKILL.md",
-  "rule_set_paths": [
-    "docs/specs/2026-10-12-rust-rule-engine/examples/skill-quality.ruleset.json"
-  ]
-}

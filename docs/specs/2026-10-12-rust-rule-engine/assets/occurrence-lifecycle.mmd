@@ -1,0 +1,23 @@
+stateDiagram-v2
+  [*] --> Admitted: definitions and group admitted
+  Admitted --> LeadingConditions
+  LeadingConditions --> NotApplicable: a condition did not pass
+  LeadingConditions --> ApplicabilityFailed: a condition unresolved
+  LeadingConditions --> Planned: all passed
+  Planned --> Waiting: staged prerequisite open
+  Planned --> InFlight: ready, or speculative
+  Waiting --> InFlight: every earlier entry settled and passed
+  Waiting --> NotSent: an earlier entry did not pass, failed or was cancelled
+  InFlight --> Settled: run outcome admitted
+  Settled --> Reduced
+  NotSent --> Reduced
+  Reduced --> Judged: gates pass, run completed
+  Reduced --> NotApplicable: a gate or condition did not pass
+  Reduced --> ApplicabilityFailed: gate call failed or condition unresolved
+  Reduced --> EvaluationFailed: gates pass, rules request failed or refused
+  Reduced --> Cancelled
+  Judged --> [*]
+  NotApplicable --> [*]
+  ApplicabilityFailed --> [*]
+  EvaluationFailed --> [*]
+  Cancelled --> [*]
