@@ -20,11 +20,105 @@ The engine stays generic (U10): it knows markers, hosts and rules files, never w
 | D2 | **Assembly is a front end, not a format.** `rule_sources` produce the same `RuleDefinition` values the JSONL loader produces, and everything after the loader is shared. | No second rule model (U3); admission, topology and reports are reused. |
 | D3 | **Admission has two modes.** Strict mode (check, and every `rule_paths` set as today) refuses on any error. Lenient mode (runtime `rule_sources`) turns per-rule errors into skipped rules, and a bad source file into one source-level skip. It also sets coverage to full, partial or none (R15); completeness no longer passes on an empty occurrence list (today's `report_contracts::is_complete`). RuleSet-header and invocation errors refuse in both modes. | Owner: compile-check flag plus "log ... and ignore rules that fail"; existing JSONL behavior is unchanged (V7). |
 | D4 | **Target identity reaches the request, not only the report.** `RuleOccurrenceKey` gains a target discriminator: the source identity and byte span of the unit, plus the match span in call-site mode. The discriminator is carried through `plan_contracts::unit_label` (today `rule:<id>`), the evidence labels in `request_state` (which today drops a duplicate label), `QuestionOwner`, request/report correlation and settlement. Equal evidence content is deduplicated separately from its attributions. | The spike found today's key {rule set, group, rule} would collapse per-unit occurrences; one list item can hold three calls. |
-| D5 | **Expansion happens after gates.** Units are selected only once a rule's applicability gates allow evidence acquisition, which keeps today's lazy-read behavior for stopped gates. Batching and whole-occurrence budget splitting stay as they are, and one request can carry many occurrences. | Spike: eager expansion would change stopped-gate behavior and cost. |
+| D5 | **Expansion happens when acquisition is allowed.** Units are discovered when the existing acquisition frontier allows it. They're deferred behind staged (different-input) prerequisites. Today's permitted speculative acquisition for same-input carriers is preserved (engine R28, R38, C13), and the gates still govern the final outcomes. Batching and whole-occurrence budget splitting stay as they are, and one request can carry many occurrences. The state and interfaces are in Deferred expansion below. | Spike: eager expansion would change stopped-gate behavior and cost. |
 | D6 | **Mechanical rules settle locally.** `VerdictDeclaration::Mechanical { expect | ast_grep }` gets its own settlement path (`Completed { passed, observations } | Unresolved | Cancelled`), keyed by occurrence, beside request settlement. Its results project into the report and its completeness. `expect` is a few regex and prefix predicates over a unit's visible text. `ast_grep` delegates to ast-grep's rule-config library: one added dependency from the project the engine already links, at the same version. No rule language of our own, no fabricated answer, no receipt and no confidence. | Owner: "i dont want to build rules engine", "B ... then actual ast grep with validation". Confirmed by spike on 2026-10-17 (report kept in memory-logs `skills/authoring/2026-10-17-skill-rules-and-evals/ast-grep-config-spike.md`): `ast-grep-config` 0.51.0 parses the JSON rule object (`SerializableRule` → `DeserializeEnv::<SupportLang>::deserialize_rule`). It matched the CLI in 24 of 24 comparisons, on whole documents and on selected subtrees. It adds 15 registry packages with no version conflict. An unknown key reports line and column; a bad regex reports only a cause chain, so check mode attributes it to the `ast_grep` block's own location in the rules file. ast-grep stays pinned to an exact version (`=0.51.0` today, as in `crates/*/Cargo.toml`). Upgrading it is a deliberate change that reruns check over every rule source: `expect` rules are insulated by our layer, while `ast_grep` escape-hatch rules may need edits, which check mode and V6 surface (owner: "with ast grep version updates ours might change but i guess that's ok"). |
 | D7 | **A backend is built only when model work is reachable.** Check and print never build one. A runtime invocation builds one only if a judgment, a model-based gate or a Router is reachable. Today the CLI builds the backend before either rules operation (`operation_execution.rs:11–26`). | R13; today's CLI builds the backend first. |
 | D9 | **A rule from `rule_sources` has two definition files.** The located definition carries both the Markdown path and the rules path into the existing definition-dependency comparison (`invocation_admission.rs` located source; `change_selection.rs` dependency selection). An edit to either file selects the rule. An unchanged tracked pair can stay outside change scope. When comparison isn't available, selection stays conservative, as engine C3 requires. | Review F4: one stored `source` would let a Markdown-only or config-only edit be pruned. |
 | D8 | **File existence stays outside the engine.** "A referenced file exists" is a small CI script, not an engine rule. | It needs filesystem policy (scopes, symlinks, escapes) that neither `expect` nor ast-grep should carry; owner: no rules engine. |
+
+## Entity bindings
+
+| E | Realized as | Home | Lifetime |
+| --- | --- | --- | --- |
+| E1 Marker | `MarkerId` (one uppercase letter + exactly three digits, its own validator; not `TargetId`, which is looser) plus its `SourceSpan` | `sunstack-evidence` Markdown module | per assembly |
+| E2 Bound text | the host node's raw `SourceSpan`, plus two projections: question text (R6 keeps inline code) and filter text (R14/R16 exclude code spans) | `sunstack-evidence` | per assembly |
+| E3 Rules file | strict JSON object, decoded with the existing duplicate-key-rejecting decoder (`strict_decoding.rs`), keyed by `MarkerId`. Each entry decodes into exactly one of `Judgment { threshold, block_at_or_below }`, `Expect { expect }` or `AstGrep { ast_grep }`; zero or several alternatives are a refusal | `sunstack-rules` | per assembly |
+| E4 Rule source | `RuleSourcePair { markdown, rules }` in `RuleSetDefinition.rule_sources`, beside `rule_paths`, with `marker_prefix: Option<MarkerPrefix>` and `max_question_words` (default 400) | `definition_contracts.rs` | the definition file |
+| E5 Assembled rule | a native `RuleDefinition` (`rule_id` = entry `name`; the target lowers to `EvidenceDeclaration { id: "target", input, select }` with `"target"` reserved; `context` entries are native `EvidenceDeclaration`s) plus `RuleSourceProvenance { markdown, rules, marker_id, marker_span, entry_location }`. Both files are definition dependencies (D9) | `sunstack-rules` loader | per invocation |
+| E6 Skipped rule | `SkippedRule::Entry { rule_set, markdown, rules, key, rule_id: Option<RuleId>, diagnostics }` or `SkippedRule::Source { rule_set, source_file, markdown, rules, diagnostics }`. `key` is the raw key, so a malformed one still reports | report | per report |
+
+## Boundary contracts
+
+New structs and enums follow the engine's conventions: strict `deny_unknown_fields`, `kind`-tagged snake_case enums, `JsonSchema`, and constructor-validated IDs. The research input, with every source anchor, is in memory-logs at `skills/authoring/2026-10-17-skill-rules-and-evals/rules-boundary-shapes.md`.
+
+```text
+Selection (evidence)
+  EvidenceSelection::MarkdownUnits  { mode: unit { units, filter } | call_site { units, filter: StartsWith | Regex } }
+  EvidenceSelection::FrontmatterField { field }
+  MarkdownUnitKind = section | paragraph | list_item
+  SelectionContent::MarkdownUnits { units: [SelectedMarkdownUnit { kind, span, text, visible_text, occurrence }] }
+  SelectionContent::FrontmatterField = Present { source, field, value, span } | Absent { source, field, frontmatter_span }
+  missing or malformed frontmatter block → SelectionReadiness::Refused with an evidence diagnostic
+  TargetLocation::MarkdownUnit { occurrence } | FrontmatterField { source, field, Present{span} | Absent{frontmatter_span} }
+
+Identity (rules)
+  RuleOccurrenceKey { rule_set, group, rule_id, target: Legacy | MarkdownUnit{source, byte range} | CallSite{… + match range} | FrontmatterField{source, field} }
+  RuleEvaluationKey { rule_set, group, rule_id }       one per rule before its targets are known
+  QuestionOwner::Verdict / ::Informational carry the full occurrence key; q000001 names stay transport-only
+
+Mechanical verdict (rules)
+  VerdictDeclaration::Mechanical { explanation, check: Expect{ Matches | NotMatches | StartsWith | Present } | AstGrep{ validated rule } }
+  LocalSettlement = Completed { result, observations } | Unresolved { diagnostics } | Cancelled
+  RuleOccurrenceResult::Checked { key, selected_by, target, declared_severity, explanation, outcome }
+  projected after routing/applicability/evidence and before request_for_unit; excluded from questions and budget;
+  a mechanical occurrence with no settlement is reported as unresolved, never a pass
+
+Check operation (CLI + rules library)
+  operation "check_rules", input CheckRulesInput { definition_root, definitions, repositories, payload_schemas, limits, output: diagnostics | assembled_rules }
+  no backend, attempts or request budget; reviewed documents are not read
+  CheckRulesOutcome = Checked { checked_rule_count, printed_rules } | Refused { diagnostics, checked_rule_count, refused_rule_count }
+                    | CheckFailed { diagnostics, measurements } | Cancelled { diagnostics, measurements }
+  PrintedRule { rule_set, source: Jsonl{file,line} | Markdown{provenance}, definition }   printed only after a fully clean check
+  exits: Checked 0, Refused 2, CheckFailed 3, Cancelled 4
+
+Report (rules)
+  rule_coverage: full | partial | none        from assembly and admission: no skips = full; skips with ≥1 valid rule = partial; no valid rule = none
+  skipped_rules: [SkippedRule]
+  rule_evaluations: [Expanded{key, occurrences} | ZeroMatches{key, input, source} | NotApplicable{key, stopped_at, basis}
+                     | OutsideChangeScope{key, reason} | SelectionFailed{key, diagnostics} | EvaluationFailed{key, cause} | Cancelled{key}]
+  counters: invalid_rule_entries and skipped_rule_sources, separate from today's rules_skipped (not applicable / outside scope)
+  is_complete = coverage ≠ none ∧ every rule evaluation terminal and complete ∧ every occurrence complete ∧ today's router condition
+  (a valid NoRoute, UncertainIntent or zero-match run can still be complete)
+  exits: complete (any coverage but none) 0; coverage none or incomplete 3; cancelled 4
+```
+
+## Deferred expansion
+
+A rule whose target count isn't known until its document is read starts as a `PlannedRuleEvaluation { key: RuleEvaluationKey, rule, group, entries, scope, authored_order }`. That's an explicit record, not a placeholder occurrence. Rules with a fixed target stay immediately concrete, as today.
+
+| Piece | Design |
+| --- | --- |
+| State | `ExpansionState = Waiting | Expanded { children } | ZeroMatches { source } | SelectionFailed { diagnostics } | Stopped { entry } | Failed { cause } | Cancelled`, owned by `ExecutionState` for one invocation |
+| Graph | the initial requests and read sets use the record's native declarations, so gate scope still sees the undiscovered work. `entry_outside_scope`, the group leading scan and `rule_pruned` account for records, and the graph is never rebuilt once a request is in flight |
+| Scheduler | `discover_ready_rules(plan, state, session, cancellation)` runs after `advance_entries` and before model dispatch and budget admission. It uses the same acquisition readiness as the record's carrier request, plus known-stop checks. `install_discovered_occurrences(plan, state, id, selection)` is the scheduler's synchronous mutation: it rechecks cancellation, then appends children without renumbering any existing index. Each child joins its group, its scope and the still-waiting carrier request, inherits the record's applicability entries and routing, and leaves every gate control in place. The existing budget splitter then treats each child as one unsplittable rule block |
+| Carriers | a same-input gate may ride with discovered children (engine R38) and its result later governs them. A different-input staged gate blocks discovery until its frontier passes. When discovery gives zero children, only mechanical children, or a failure, the existing gates stay as a gate-only request with real questions; no empty judgment request is ever sent |
+| Identity and order | child keys come from source identity plus the raw unit or match span (frontmatter: source + field). Children sort by unit range, then match range, inside the authored rule-source and binding-group order. Projection and budgeting use that order, never raw append indices |
+| Prepare output | `PreparedRules.rule_evaluations` adds `WaitingForExpansion { key, on }`. While a staged gate holds, it shows the record and the real gate request, with no invented spans, counts or questions |
+| Termination | the scheduler's progress check includes pending expansions and local settlements. A zero-target discovery is a real transition. A waiting expansion with nothing runnable or in flight is an internal failure, never a success or an endless wait |
+
+| Event | Result |
+| --- | --- |
+| Different-input gate held | one `WaitingForExpansion` on the exact entry keys; no target read, no child keys; unrelated completed peers stay |
+| Gate passes, three calls found | exactly three keys with distinct match spans, installed once, each owner and evidence label naming its own target |
+| Zero matches | `ZeroMatches`, no target occurrences, complete if everything else is |
+| Read or selection fails | `SelectionFailed`, no invented children, incomplete (exit 3) |
+| Gate stops | `NotApplicable` with its entry key and basis, no reads, complete if peers are |
+| Gate fails | `EvaluationFailed`, incomplete |
+| Cancel before or after discovery | discovered keys and completed results kept, the rest cancelled, exit 4 |
+| Same-input carrier says "doesn't apply" after speculative children | the children aren't applicable; their model answers are discarded, as today, and local observations never turn into failures |
+
+## R realization
+
+| R | Realized by |
+| --- | --- |
+| R1–R5 | evidence Markdown module: `MarkerId`, host resolution with outermost-allowed precedence and forbidden ancestors, section binding |
+| R6–R8 | evidence: question-text and filter-text projections; the size cap at assembly |
+| R9–R12 | rules: header fields, `RuleSourcePair` loading, the strict E3 decoder, both-way consistency, lowering to `RuleDefinition`, shared admission |
+| R13 | CLI `check_rules` plus the rules-library check entrypoint (no backend) |
+| R14 | evidence selections and content; rules occurrence keys, `RuleEvaluationKey` and deferred expansion |
+| R15 | lenient admission, `SkippedRule`, coverage and the new counters |
+| R16 | `VerdictDeclaration::Mechanical`, `LocalSettlement`, `RuleOccurrenceResult::Checked`, the ast-grep-config matcher on the original tree |
+| R17 | report additions, `is_complete` and exits, versioned with the CLI and Rust API |
 
 ## Flow
 
