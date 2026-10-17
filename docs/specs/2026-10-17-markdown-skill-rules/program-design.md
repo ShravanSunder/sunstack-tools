@@ -48,8 +48,10 @@ Selection (evidence)
   MarkdownUnitKind = section | paragraph | list_item
   SelectionContent::MarkdownUnits { units: [SelectedMarkdownUnit { kind, span, text, visible_text, occurrence }] }
   SelectionContent::FrontmatterField = Present { source, field, value, span } | Absent { source, field, frontmatter_span }
-  missing or malformed frontmatter block → SelectionReadiness::Refused with an evidence diagnostic
-  TargetLocation::MarkdownUnit { occurrence } | FrontmatterField { source, field, Present{span} | Absent{frontmatter_span} }
+                                     | BlockUnavailable { source, field, reason: missing | malformed, diagnostics }
+  a missing or malformed block is SelectionReadiness::Ready with BlockUnavailable, NOT Refused, so it never projects as SelectionFailed
+  TargetLocation::MarkdownUnit { occurrence } | FrontmatterField { source, field, Present{span} | Absent{frontmatter_span} | BlockUnavailable{reason} }
+  BlockUnavailable carries no field or header span (none exists), and its occurrence key is still FrontmatterField{source, field}
 
 Identity (rules)
   RuleOccurrenceKey { rule_set, group, rule_id, target: Legacy | MarkdownUnit{source, byte range} | CallSite{… + match range} | FrontmatterField{source, field} }
@@ -61,6 +63,8 @@ Mechanical verdict (rules)
   LocalSettlement = Completed { result, observations } | Unresolved { diagnostics } | Cancelled
   RuleOccurrenceResult::Checked { key, selected_by, target, declared_severity, explanation, outcome }
   projected after routing/applicability/evidence and before request_for_unit; excluded from questions and budget;
+  a BlockUnavailable target settles as LocalSettlement::Unresolved { diagnostics } for that occurrence (report: Checked, outcome Unresolved, incomplete);
+  frontmatter_field is a mechanical-only target: admission refuses it on a judgment rule;
   a mechanical occurrence with no settlement is reported as unresolved, never a pass
 
 Check operation (CLI + rules library)
