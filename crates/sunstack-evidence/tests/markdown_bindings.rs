@@ -10,7 +10,7 @@ fn source() -> SourceRef {
 }
 
 fn bindings(text: &str, cap: usize) -> Vec<MarkdownMarkerBinding> {
-    MarkdownDocument::parse(text).bind_markers(&source(), &MarkerPrefix::new("K").unwrap(), cap)
+    MarkdownDocument::parse(text).bind_markers(&MarkerPrefix::new("K").unwrap(), cap)
 }
 
 fn bound(binding: &MarkdownMarkerBinding) -> &BoundMarkdownText {
@@ -135,7 +135,12 @@ fn spaced_heading_and_every_duplicate_occurrence_are_refused_with_marker_locatio
             panic!("{result:?}")
         };
         assert_eq!(marker.span.start_line, 1 + 2 * index);
-        assert_eq!(marker.span.source, source());
+        assert!(
+            serde_json::to_value(&marker.span)
+                .unwrap()
+                .get("source")
+                .is_none()
+        );
     }
 }
 
@@ -324,4 +329,37 @@ fn unicode_and_crlf_markers_keep_source_coordinates_and_raw_bytes() {
         "Élan<!-- K014 -->\r\n"
     );
     assert_eq!(binding.question_text, "Élan");
+    let evidence_span = source_span(
+        &source(),
+        text,
+        binding.marker.span.byte_start..binding.marker.span.byte_end,
+    );
+    assert_eq!(
+        (
+            binding.marker.span.start_line,
+            binding.marker.span.start_column,
+            binding.marker.span.end_line,
+            binding.marker.span.end_column
+        ),
+        (
+            evidence_span.start_line,
+            evidence_span.start_column,
+            evidence_span.end_line,
+            evidence_span.end_column
+        )
+    );
+}
+
+#[test]
+fn definition_binding_spans_carry_coordinates_without_evidence_source_identity() {
+    let found = bindings("ordinary<!-- K014 -->\n", 400);
+    let binding = bound(&found[0]);
+    for value in [
+        serde_json::to_value(&binding.span).unwrap(),
+        serde_json::to_value(&binding.marker.span).unwrap(),
+    ] {
+        assert!(value.get("source").is_none(), "{value}");
+        assert!(value.get("byte_start").is_some());
+        assert!(value.get("start_column").is_some());
+    }
 }

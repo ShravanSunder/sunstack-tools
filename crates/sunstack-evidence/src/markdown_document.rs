@@ -1,5 +1,5 @@
 //! Markdown source ranges and rule bindings share the block and inline grammars.
-use crate::{SourceRef, markdown_contracts::*, source_span};
+use crate::markdown_contracts::*;
 use ast_grep_core::{AstGrep, Node, tree_sitter::StrDoc};
 use ast_grep_language::{LanguageExt, SupportLang};
 use std::{collections::BTreeMap, ops::Range};
@@ -19,7 +19,6 @@ impl MarkdownDocument {
 
     pub fn bind_markers(
         &self,
-        source: &SourceRef,
         prefix: &MarkerPrefix,
         max_question_words: usize,
     ) -> Vec<MarkdownMarkerBinding> {
@@ -34,7 +33,7 @@ impl MarkdownDocument {
             .map(|(id, range)| {
                 let marker = MarkdownMarker {
                     id: id.clone(),
-                    span: source_span(source, text, range.clone()),
+                    span: MarkdownTextSpan::from_range(text, range.clone()),
                 };
                 let result = if counts.get(id).copied().unwrap_or_default() > 1 {
                     Err(MarkdownBindingRefusal::DuplicateId)
@@ -169,7 +168,7 @@ impl MarkdownDocument {
             });
         }
         Ok(BoundMarkdownText {
-            span: source_span(&marker.span.source, text, host_range),
+            span: MarkdownTextSpan::from_range(text, host_range),
             marker,
             host: kind,
             question_text,

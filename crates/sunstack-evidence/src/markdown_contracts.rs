@@ -1,4 +1,4 @@
-use crate::{EvidenceCode, EvidenceResult, SourceSpan, evidence_contracts::validated_name};
+use crate::{EvidenceCode, EvidenceResult, evidence_contracts::validated_name};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -18,9 +18,35 @@ pub enum MarkdownHostKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+pub struct MarkdownTextSpan {
+    pub byte_start: usize,
+    pub byte_end: usize,
+    pub start_line: usize,
+    pub start_column: usize,
+    pub end_line: usize,
+    pub end_column: usize,
+}
+
+impl MarkdownTextSpan {
+    pub(crate) fn from_range(text: &str, range: std::ops::Range<usize>) -> Self {
+        let (start_line, start_column) = crate::source_capture::text_position(text, range.start);
+        let (end_line, end_column) = crate::source_capture::text_position(text, range.end);
+        Self {
+            byte_start: range.start,
+            byte_end: range.end,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct MarkdownMarker {
     pub id: MarkerId,
-    pub span: SourceSpan,
+    pub span: MarkdownTextSpan,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -28,7 +54,7 @@ pub struct MarkdownMarker {
 pub struct BoundMarkdownText {
     pub marker: MarkdownMarker,
     pub host: MarkdownHostKind,
-    pub span: SourceSpan,
+    pub span: MarkdownTextSpan,
     pub question_text: String,
     pub filter_text: String,
 }
