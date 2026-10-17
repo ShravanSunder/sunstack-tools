@@ -46,9 +46,7 @@
 			</p>
 			<ex-callout tone="question" title="Open decisions">
 				<p>
-					<a href="#requirements--open-owner-decisions"
-						>U9 remains provisional; the examples’ job is undecided.</a
-					>
+					<a href="#requirements--open-owner-decisions">The examples’ job is undecided.</a>
 				</p>
 			</ex-callout>
 
@@ -56,6 +54,8 @@
 			<p>
 				<a href="#program--flow">Source: Program Design · Flow</a>. Header errors refuse in both
 				modes; per-rule errors follow the selected admission mode.
+				<a href="#program--deferred-expansion">Deferred expansion</a> defines when gates allow
+				discovery.
 			</p>
 			<ex-mermaid id="rule-flow"
 				><script type="text/plain">
@@ -72,7 +72,7 @@
 					  admission -->|lenient: valid rules| expand["Runtime: topology → gates → expand units"]
 					  skip --> expand
 					  expand --> judgments["Judgments: requests"]
-					  expand --> checks["Checks: local settlement; provisional U9"]
+					  expand --> checks["Mechanical rules: expect or ast_grep → local settlement"]
 					  judgments --> report["Report: spans, verdicts, check results, skipped rules"]
 					  checks --> report
 				</script></ex-mermaid
