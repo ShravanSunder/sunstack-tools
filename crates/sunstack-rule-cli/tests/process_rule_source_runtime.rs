@@ -99,6 +99,16 @@ async fn partial_rule_sources_keep_each_surviving_target_answer_and_verdict() {
     for name in ["alpha", "beta"] {
         assert_eq!(survivors[name], baseline[name]);
     }
+    let mut split_input = input.clone();
+    split_input["request_budget"]["max_questions"] = json!(1);
+    let before_split = server.count();
+    let split = response(&run(root, "evaluate_rules", split_input).await, 0);
+    assert_eq!(server.count() - before_split, 2);
+    assert_eq!(
+        semantic_verdicts(&split["result"]["outcome"]["report"]),
+        survivors
+    );
+    let before_none = server.count();
     std::fs::write(root.join("teaching.md"), MARKDOWN.replace("<!--", "\\<!--")).unwrap();
     let none = response(&run(root, "evaluate_rules", input.clone()).await, 3);
     let report = &none["result"]["outcome"]["report"];
@@ -107,13 +117,14 @@ async fn partial_rule_sources_keep_each_surviving_target_answer_and_verdict() {
     assert_eq!(report["occurrences"], json!([]));
     assert_eq!(report["measurements"]["invalid_rule_entries"], 3);
     assert_eq!(report["measurements"]["model_requests"], 0);
+    assert_eq!(server.count(), before_none);
     let none_prepared = response(&run(root, "prepare_rules", input).await, 3);
     assert_eq!(
         none_prepared["result"]["outcome"]["preparation"]["rule_coverage"],
         "none"
     );
-    let (count, bodies) = server.finish().await;
-    assert_eq!(count, 2);
+    assert_eq!(server.count(), before_none);
+    let (_, bodies) = server.finish().await;
     record_observation(
         "rule-source-survivors",
         json!({"baseline":baseline,"survivors":survivors,"requests":bodies}),
