@@ -10,8 +10,8 @@ The observable contract for [Requirements](requirements.md) U1–U10. Rows marke
 | E2 | Bound text | (source file, host node byte range) | What a marker binds; becomes the question after stripping |
 | E3 | Rules file | path | JSON object keyed by marker ID; one per marked source file. An entry is a judgment rule (`threshold`) or a mechanical rule (`expect` or `ast_grep`). |
 | E4 | Rule source | (Markdown path, rules-file path) | Listed in a RuleSet's `rule_sources` |
-| E5 | Assembled rule | (RuleSet, marker ID) | An in-memory `RuleDefinition`, the same type the JSONL path builds |
-| E6 | Skipped rule | (RuleSet, marker ID or rules-file key) | A rule that failed assembly or admission at runtime |
+| E5 | Assembled rule | (RuleSet, `name`) | An in-memory `RuleDefinition`, the same type the JSONL path builds, keyed by the entry's `name`, which is the native and report rule ID. It keeps its source-qualified marker (Markdown path, rules path, marker ID) as provenance. `a.md:K014` and `b.md:K014` are two rules when their names differ. |
+| E6 | Skipped rule | (RuleSet, source file, marker ID or rules-file key), or (RuleSet, source file) for a source-level skip | A rule that failed assembly or admission at runtime. Two invalid entries stay distinguishable, even when they share an ID across files. |
 
 ## The marker
 
