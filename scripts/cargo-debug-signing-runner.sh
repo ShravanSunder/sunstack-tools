@@ -3,7 +3,22 @@
 # and worktrees. Signing failure must never prevent running the executable.
 set -euo pipefail
 
-readonly DEVELOPER_ID_TEAM="974QD84WVC"
+# Select the local signing team without committing account metadata. Multiple
+# local teams require an explicit command-scoped choice; never pick arbitrarily.
+developer_id_team() {
+  if [[ -n "${SUNSTACK_DEBUG_SIGNING_TEAM:-}" ]]; then
+    printf '%s\n' "${SUNSTACK_DEBUG_SIGNING_TEAM}"
+    return
+  fi
+  security find-identity -v -p codesigning 2>/dev/null |
+    awk '/Developer ID Application/ {
+      sub(/.*\(/, ""); sub(/\).*/, ""); teams[$0] = 1
+    } END {
+      for (team in teams) { selected = team; count++ }
+      if (count == 1) print selected
+    }'
+}
+readonly DEVELOPER_ID_TEAM="$(developer_id_team || true)"
 
 debug_identifier_for() {
   case "$(basename "$1")" in
@@ -40,6 +55,10 @@ sign_with_debug_identity() (
   }
   trap cleanup_signing EXIT
 
+  if [[ -z "${DEVELOPER_ID_TEAM}" ]]; then
+    warn_unsigned "${executable}" "configure SUNSTACK_DEBUG_SIGNING_TEAM when local signing teams are ambiguous or unavailable"
+    return 0
+  fi
   if has_debug_identity "${executable}" "${debug_identifier}"; then
     return 0
   fi

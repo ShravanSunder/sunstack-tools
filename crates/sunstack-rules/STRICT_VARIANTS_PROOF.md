@@ -2,7 +2,7 @@
 
 This repair makes fourteen formerly unit variants reject unknown fields through native Serde deserialization. They are empty struct variants now; canonical valid JSON stays byte-identical. Mechanical Rust constructors and patterns follow that change. No parser, schema file, diagnostic contract, dependency, output-only enum, or CLI production code changes.
 
-Branch: `rule-engine/m1-strict-variants`, based on accepted milestone 1 `d4933678f88fff507c8a630be7e55db65b0470d9`. Dedicated worktree: `/Users/shravansunder/dev/sunstack-tools.rule-engine-m1-strict-variants`. The final commit is declared separately after this note and the tested source are committed together.
+Branch: `rule-engine/m1-strict-variants`, based on accepted milestone 1 `d4933678f88fff507c8a630be7e55db65b0470d9`. Dedicated worktree: `private verification archive`. The final commit is declared separately after this note and the tested source are committed together.
 
 Scope comes from the Lead's repair packet and direct correction: `EvidenceDiscovery::None` exists in milestone 1 and belongs here. `InputDeclaration::ChangeSet` is shape-reachable even though milestone 1 runtime does not implement change-set evaluation. RevisionHead, later ChangeScope variants, and UnitContent are absent at the base. Hosted calls are forbidden for this repair and were not attempted.
 
@@ -60,10 +60,10 @@ Commands execute from the dedicated worktree root with a command-local environme
 ```sh
 SDKROOT="$(xcrun --show-sdk-path)" CC=/usr/bin/clang \
 CFLAGS="-isysroot $(xcrun --show-sdk-path)" \
-CARGO_TARGET_DIR=/private/tmp/2026-10-m1-strict-variants/build cargo <arguments below>
+CARGO_TARGET_DIR=private verification archive cargo <arguments below>
 ```
 
-The local gate runner `/private/tmp/2026-10-m1-strict-variants/run_gate.py` sets those exact values, removes any inherited hosted credential, streams output to a persistent log, and preserves Cargo's exit code. The repository's signing runner and default nextest profile are unchanged. Rust is 1.98.1; nextest is 0.9.137. Logs and sibling `.exit` files live in `/private/tmp/2026-10-m1-strict-variants/`.
+The local gate runner `private verification archive` sets those exact values, removes any inherited hosted credential, streams output to a persistent log, and preserves Cargo's exit code. The repository's signing runner and default nextest profile are unchanged. Rust is 1.98.1; nextest is 0.9.137. Logs and sibling `.exit` files live in `private verification archive`.
 
 | Log stem | Exact Cargo arguments | Exit / observed counts |
 | --- | --- | --- |
@@ -87,4 +87,4 @@ Reviewed the changed Rust files against domain-rust and the repository/global Ru
 
 The closest verification-principle case is “Fixed in CI?”: the same permanent checks were observed failing before and passing after the fix on the isolated target. The reader-principle move is to publish only commands actually run and bind each claim to its log, rather than counting summaries as proof. No stand-ins are used for the repaired parsing behavior; the CLI scenario runs the real boundary. Local checks do not establish hosted-provider behavior or merged milestone behavior. Those are outside this repair's grant. Independent final observation remains unverified until separately commissioned and returned.
 
-Cleanup checkpoint: hold the 5.4 GiB task build and 25 MiB process artifacts while the immutable target observation is pending. The worktree is unmerged and its evidence is an active review input, so removal is premature. Free space after proof is 95 GiB. Raw process artifacts are also copied to `/private/tmp/2026-10-m1-strict-variants/cli-process-evidence/`; no directories were removed.
+Cleanup checkpoint: hold the 5.4 GiB task build and 25 MiB process artifacts while the immutable target observation is pending. The worktree is unmerged and its evidence is an active review input, so removal is premature. Free space after proof is 95 GiB. Raw process artifacts are also copied to `private verification archive`; no directories were removed.

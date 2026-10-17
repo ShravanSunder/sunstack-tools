@@ -369,7 +369,9 @@ def hosted_handoff(context: DriverContext) -> None:
     signature = preflight.read_text()
     assert "runs unsigned" not in signature
     assert "Identifier=dev.shravansunder.sunstack-rule.debug" in signature
-    assert "TeamIdentifier=974QD84WVC" in signature
+    expected_team = os.environ.get("SUNSTACK_DEBUG_SIGNING_TEAM")
+    assert expected_team, "Supply the approved local signing team for hosted proof"
+    assert f"TeamIdentifier={expected_team}" in signature
     # Exclusive durable custody precedes dispatch; any later failure consumes it.
     with slot.open("x") as stream:
         stream.write(

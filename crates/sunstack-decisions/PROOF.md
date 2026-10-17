@@ -14,7 +14,7 @@ current V11 status. The endpoint, model and ignored hosted test stayed unchanged
 The adopted sources are the Rust rule-engine delivery plan, Specification
 C4/C5/C8 and V8/V9/V10/V11/V13/V19, and the attempt-contract correction at design
 commit `7a72d6f`. The execution trace is thread
-`01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01`.
+`private-coordination-record`.
 
 ## Reproduce the local gates
 
@@ -141,7 +141,7 @@ changing that fixture. It does not exercise null instructions, null noul
 criteria or null score criteria. This is evidence for the specific V11
 mixed-primitives call, not model accuracy or a resolution of the earlier 404's
 cause. Raw output, command/exit metadata and signing preflight are retained in
-`/private/tmp/2026-10-m1-proof-refresh/` as `hosted.log`, `hosted-result.json`
+`private verification archive` as `hosted.log`, `hosted-result.json`
 and `signing-preflight.json`.
 
 ## Remaining limits

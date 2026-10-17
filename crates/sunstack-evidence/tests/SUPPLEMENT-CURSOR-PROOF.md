@@ -14,7 +14,7 @@ The three tests were run before production changes. Two failed behaviorally beca
 
 Two separate post-green source mutations were restored after their focused tests failed behaviorally (exit101): dropping the pending digest loses the changed-text delta; retaining the materialized digest fails the cleared-cursor assertion. These are sensitivity observations.
 
-Raw logs and gate receipts: /private/tmp/2026-10-s4a-m1-budget/supplement-*.log. No source mutations remain. Tests use the real filesystem, built-in JSONL adapter, capture, cursor encode/decode and projection. Cursor prefix/source identity, streamed-message and late-tool-result controls remain in the same binary. Automated real-path tests provide runnable library proof; hosted providers, installed host hooks and CLI delivery are unverified by this correction.
+Raw logs and gate receipts: private verification archive No source mutations remain. Tests use the real filesystem, built-in JSONL adapter, capture, cursor encode/decode and projection. Cursor prefix/source identity, streamed-message and late-tool-result controls remain in the same binary. Automated real-path tests provide runnable library proof; hosted providers, installed host hooks and CLI delivery are unverified by this correction.
 
 Required gate commands, from this isolated worktree root with command-local CFLAGS=-isysroot to the xcrun macOS SDK:
 

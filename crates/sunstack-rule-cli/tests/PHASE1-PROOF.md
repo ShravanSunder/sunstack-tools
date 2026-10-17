@@ -4,7 +4,7 @@ Base: accepted milestone 1 `07214f5749b3499276dff6b4f56127d9b9921f31`.
 Oracle: Specification C14/V2/V13 and Program Design at `34bee48`, with
 contracts amended by `92d6bc6` (8 MiB), `8ac4133` (stderr readiness) and
 `a32d32f` (optional provider ceiling). Execution trace:
-`01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01` on Router service
+`private-coordination-record` on Router service
 `0ff962c5-7fa3-4c18-a5ca-1bbe8db09e89`.
 
 This target implements **prepare_evidence and run_judgments only**.
@@ -13,7 +13,7 @@ Lead accepts S3a. This is not completion of all V2 or the milestone journeys.
 
 The executable serializes the accepted milestone 1 EvidencePlanOutcome
 unchanged. `change_selections` is milestone 2 and absent at this target,
-as the Lead explicitly confirmed in push `01a14561-d341-7d70-b719-c1b460ac9caf`.
+as the Lead explicitly confirmed in push `private-coordination-record`.
 No evidence API repair or CLI shape shim was added.
 
 ## Real path and ownership

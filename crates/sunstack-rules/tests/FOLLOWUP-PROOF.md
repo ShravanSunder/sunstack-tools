@@ -1,6 +1,6 @@
 # S3a R37/V20 follow-up proof
 
-This is the single follow-up to frozen target `9aeca1f6fa63b09a105710e2473193032e4f29ee`. The paired Verifier's full observation found only these two gaps, not a native product defect. Lead direct `01a14580-74c1-73f2-ab13-fb5759433994` released the freeze and requested one successor on `rule-engine/m1-rules`, with a bounded R37/V20 recheck and reuse of the other independent observations.
+This is the single follow-up to frozen target `9aeca1f6fa63b09a105710e2473193032e4f29ee`. The paired Verifier's full observation found only these two gaps, not a native product defect. Lead direct `private-coordination-record` released the freeze and requested one successor on `rule-engine/m1-rules`, with a bounded R37/V20 recheck and reuse of the other independent observations.
 
 ## Changed boundary
 
@@ -12,7 +12,7 @@ This is the single follow-up to frozen target `9aeca1f6fa63b09a105710e2473193032
 
 ## V20 isolation and sensitivity chronology
 
-All work was prepared in the authorized separate worktree `/Users/shravansunder/dev/sunstack-tools.rule-engine-m1-rules-v20-followup` on a local branch from exact `9aeca1f`. The original `m1-rules` tree stayed unchanged during its full observation. The temporary source mutation below is author sensitivity, never a production repair or a claim of a pre-existing defect.
+All work was prepared in the authorized separate worktree `private verification archive` on a local branch from exact `9aeca1f`. The original `m1-rules` tree stayed unchanged during its full observation. The temporary source mutation below is author sensitivity, never a production repair or a claim of a pre-existing defect.
 
 1. Deliberately skipped only cached shared-file per-owner validation in the separate worktree. The original broad admission test stayed green: run `cb468de9-ac6c-44a4-a452-dadbb669ea0d`, exit 0, one passed/three filtered. Its second owner's invalid Conversation binding independently caused refusal, demonstrating the mask.
 2. Added the kind-correct binding case and removed the masked subcase, keeping the same deliberate cache bypass. New test failed: run `80f9d3f8-2f9d-4bfd-afa0-02e260b8e643`, exit 100, one failed/four filtered. Instead of Invalid at admission, it reached PreparedWithFailures and read 86 transcript bytes. This is the wrong behavior the isolated control must catch, not a timeout or an unrelated binding error.
@@ -46,4 +46,4 @@ The full gate now contains 59 local rules tests plus the 86 accepted library bas
 
 ## Independent observation and limits
 
-The new target's R37/V20 observation and Lead acceptance are pending. The broader independent `9aeca1f` result is reused, not presented as a new run. Historical S1 LEAK and the separate S3b recurrence remain unattributed here; these zero-marker runs do not close that investigation. No new production stand-in, CLI, model accuracy, tokenizer, M2, deployment or release claim. The root remains `01a1446b-0a1b-7c2d-8e3f-4a5b6c7d8e01`; the exact successor commit is declared there after commit/push.
+The new target's R37/V20 observation and Lead acceptance are pending. The broader independent `9aeca1f` result is reused, not presented as a new run. Historical S1 LEAK and the separate S3b recurrence remain unattributed here; these zero-marker runs do not close that investigation. No new production stand-in, CLI, model accuracy, tokenizer, M2, deployment or release claim. The root remains `private-coordination-record`; the exact successor commit is declared there after commit/push.

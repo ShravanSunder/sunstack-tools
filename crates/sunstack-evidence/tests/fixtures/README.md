@@ -16,7 +16,7 @@ Source: https://github.com/anthropics/claude-agent-sdk-python/blob/c10b52c674e5c
 | `test_parse_user_message_with_tool_result_error.jsonl` | Alone it is an orphan. In the explicitly synthetic preceding-call composition it completes tool_error with failed / File not found |
 
 The mixed count follows Lead disposition, activity 6901 on execution root
-`01a1446c-0a1b-7c2d-8e3f-4a5b6c7d8e02`. The earlier experiment counted text blocks
+`private-coordination-record`. The earlier experiment counted text blocks
 as separate events. That historical count is superseded by whole-message identity.
 
 `codex-public.jsonl` copies the first three raw JSON literals verbatim from
@@ -61,7 +61,7 @@ after the worktree disappeared. The source was read-only throughout.
 Exact original generation command (at the evidence worktree root):
 
 ```sh
-bun -e 'import * as z from "zod@4.6.5"; import { AgentJobPacket } from "/Users/shravansunder/dev/ai-tools.skills-practices-principles/plugins/sunstack-dev/skills/practices-manage-agents/schemas/agent-job-packet.ts"; console.log(JSON.stringify(z.toJSONSchema(AgentJobPacket, { target: "draft-2020-12" }), null, 2));' > crates/sunstack-evidence/tests/fixtures/agent-job-packet.schema.json
+bun -e 'import * as z from "zod@4.6.5"; import { AgentJobPacket } from "private verification archive; console.log(JSON.stringify(z.toJSONSchema(AgentJobPacket, { target: "draft-2020-12" }), null, 2));' > crates/sunstack-evidence/tests/fixtures/agent-job-packet.schema.json
 ```
 
 To reconstruct its source elsewhere, export the entire `schemas/` subtree from
