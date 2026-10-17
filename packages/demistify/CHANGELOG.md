@@ -1,5 +1,12 @@
 # @sunstack/demistify
 
+## 1.2.2
+
+### Patch Changes
+
+- 7f439c6: Settle diagram and explorer hover highlighting after 100ms on entry and exit, cancel stale pointer updates, and keep focus and presentation feedback immediate.
+- ebc0978: Retain gallery keyboard focus when viewport navigation replaces a capture, anchor filters and keyboard help beside their controls, and reduce toolbar glyph size.
+
 ## 1.2.1
 
 ### Patch Changes
