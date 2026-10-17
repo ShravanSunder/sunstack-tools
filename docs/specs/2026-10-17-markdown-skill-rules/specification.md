@@ -15,40 +15,80 @@ The observable contract for [Requirements](requirements.md) U1–U10. Rows marke
 
 ## The marker
 
-| R | Obligation |
-| --- | --- |
-| R1 | A marker is exactly `<!-- ` + the RuleSet's `marker_prefix` letter + three or more digits + ` -->`, and it ends its line, with only trailing whitespace after it. Anything else, including comments with other content, comments mid-line, and comments inside code spans or fenced code, is not a marker and is ignored. |
-| R2 | A marker's host is the syntax-tree node whose line it ends. Allowed hosts: a heading of level 2–6, a paragraph, a list item. Any other host (an H1, a block quote, a table cell, an HTML block, frontmatter, a link definition, a footnote, or a node kind not on this list) is a refusal. |
-| R3 | A heading marker must touch the heading text with no space between (`### Call Grammar<!-- K014 -->`), so the heading's anchor doesn't change. A heading marker with a space before it is a refusal. |
-| R4 | Binding: a heading binds its section, from the heading to the next heading of the same or higher level, nested subsections included. A paragraph binds itself. A list item binds itself and its nested items. Markers may nest, and nested bindings overlap. |
-| R5 | A marker ID appears at most once per source file. A duplicate is a refusal. |
+| R | Serves | Obligation |
+| --- | --- | --- |
+| R1 | U1 | A marker is exactly `<!-- ` + the RuleSet's `marker_prefix` letter + three or more digits + ` -->`, and it ends its line, with only trailing whitespace after it. Anything else, including comments with other content, comments mid-line, and comments inside code spans or fenced code, is not a marker and is ignored. |
+| R2 | U6 | A marker's host is the syntax-tree node whose line it ends. Allowed hosts: a heading of level 2–6, a paragraph, a list item. Any other host (an H1, a block quote, a table cell, an HTML block, frontmatter, a link definition, a footnote, or a node kind not on this list) is a refusal. |
+| R3 | U6 | A heading marker must touch the heading text with no space between (`### Call Grammar<!-- K014 -->`), so the heading's anchor doesn't change. A heading marker with a space before it is a refusal. |
+| R4 | U1, U6 | Binding: a heading binds its section, from the heading to the next heading of the same or higher level, nested subsections included. A paragraph binds itself. A list item binds itself and its nested items. Markers may nest, and nested bindings overlap. |
+| R5 | U4 | A marker ID appears at most once per source file. A duplicate is a refusal. |
 
 ## The question
 
-| R | Obligation |
-| --- | --- |
-| R6 | The question is the bound text as a reader sees it rendered. Kept: heading text, paragraphs, lists, emphasis, inline code, link text, and fenced code and tables as literal text. Stripped: HTML comments (all markers included), raw HTML blocks and inline HTML, link reference definitions, and images (an image's alt text is kept). |
-| R7 | Bound text over the RuleSet's `max_question_words` (default 400) is a refusal that names the marker and suggests a narrower host. |
-| R8 | The same sources always assemble the same question bytes. |
+| R | Serves | Obligation |
+| --- | --- | --- |
+| R6 | U7 | The question is the bound text as a reader sees it rendered. Kept: heading text, paragraphs, lists, emphasis, inline code, link text, and fenced code and tables as literal text. Stripped: HTML comments (all markers included), raw HTML blocks and inline HTML, link reference definitions, and images (an image's alt text is kept). |
+| R7 | U6 | Bound text over the RuleSet's `max_question_words` (default 400) is a refusal that names the marker and suggests a narrower host. |
+| R8 | U3 | The same sources always assemble the same question bytes. |
 
 ## Rules files and rule sources
 
-| R | Obligation |
-| --- | --- |
-| R9 | A RuleSet may list `rule_sources: [{ "markdown": <path>, "rules": <path> }]` beside or instead of `rule_paths`. Paths resolve from `definition_root` under the existing path rules (no `..`). `marker_prefix` (one uppercase letter, required with `rule_sources`) and `max_question_words` (optional) are RuleSet fields. |
-| R10 | A rules file is one JSON object whose keys are marker IDs. Each entry has `name` (the rule ID used in reports, unique across the RuleSet), `target` (an evidence selection, see R14), and either a judgment verdict (`threshold`, optional `block_at_or_below`) or a `check` (R16). It may also have `severity` (`nudge` by default) and `context` (extra sources added to the request as evidence, never followed implicitly). Unknown or duplicate keys are refusals. |
-| R11 | Consistency runs both ways. A marker without a rules entry is a refusal, and so is a rules entry without a marker. |
-| R12 | An assembled rule passes the same admission as a JSONL rule, plus the checks R1–R11. |
+| R | Serves | Obligation |
+| --- | --- | --- |
+| R9 | U2, U3 | A RuleSet may list `rule_sources: [{ "markdown": <path>, "rules": <path> }]` beside or instead of `rule_paths`. Paths resolve from `definition_root` under the existing path rules (no `..`). `marker_prefix` (one uppercase letter, required with `rule_sources`) and `max_question_words` (optional) are RuleSet fields. |
+| R10 | U2 | A rules file is one JSON object whose keys are marker IDs. Each entry has `name` (the rule ID used in reports, unique across the RuleSet), `target` (an evidence selection, see R14), and either a judgment verdict (`threshold`, optional `block_at_or_below`) or a `check` (R16). It may also have `severity` (`nudge` by default) and `context` (extra sources added to the request as evidence, never followed implicitly). Unknown or duplicate keys are refusals. |
+| R11 | U4 | Consistency runs both ways. A marker without a rules entry is a refusal, and so is a rules entry without a marker. |
+| R12 | U3 | An assembled rule passes the same admission as a JSONL rule, plus the checks R1–R11. |
 
 ## Check, print and runtime
 
-| R | Obligation |
-| --- | --- |
-| R13 | `sunstack-rule` accepts a check request (an operation or flag on rule preparation) that assembles every rule in the invocation's RuleSets and runs full admission. It judges nothing, sends no model request, and needs no backend or credential. It exits non-zero listing every refusal with file, line and column, or exits zero. With print, it also returns each assembled rule (name, question bytes, target, verdict or check), so the exact model input can be reviewed. |
-| R14 *(new target)* | `markdown_units` selects units in a reviewed document. `mode: unit` gives one occurrence per selected section, paragraph or list item, and `units` names the kinds. `mode: call_site` gives one occurrence per filter match inside a unit. Optional `starts_with` or `pattern` (a regex over rendered-visible text, code spans excluded) filters. Each occurrence's identity includes its source, byte span and, in call-site mode, the match span, so several calls in one list item stay distinct. Zero matches are reported as zero, not as an empty silence. |
-| R15 | At runtime an invalid rule (any R1–R12 refusal tied to one marker or entry) is logged as a skipped rule in the report, with its diagnostics, and every valid rule still runs. Invocation-level and RuleSet-header errors still refuse the whole invocation, as today. |
-| R16 *(new verdict, provisional per U9)* | A `check` settles locally with no model request: `referenced_path_exists` (each inline-code path in the unit, resolved from the document's folder inside the bound repository scope), `pattern_present` / `pattern_absent` (regex over rendered-visible text), `frontmatter_field_present`. The result is pass, fail, or unresolved; unreadable, out-of-scope and escaping paths are unresolved, never fail. An invocation whose rules are all checks constructs no backend and needs no credential. |
-| R17 | The report keeps today's fields and adds the skipped rules (R15), per-occurrence spans (R14) and check results (R16). Existing consumers of the report keep working. |
+| R | Serves | Obligation |
+| --- | --- | --- |
+| R13 | U4 | `sunstack-rule` accepts a check request (an operation or flag on rule preparation) that assembles every rule in the invocation's RuleSets and runs full admission. It judges nothing, sends no model request, and needs no backend or credential. It exits non-zero listing every refusal with file, line and column, or exits zero. With print, it also returns each assembled rule (name, question bytes, target, verdict or check), so the exact model input can be reviewed. |
+| R14 *(new target)* | U8 | `markdown_units` selects units in a reviewed document. `mode: unit` gives one occurrence per selected section, paragraph or list item, and `units` names the kinds. `mode: call_site` gives one occurrence per filter match inside a unit. Optional `starts_with` or `pattern` (a regex over rendered-visible text, code spans excluded) filters. Each occurrence's identity includes its source, byte span and, in call-site mode, the match span, so several calls in one list item stay distinct. Zero matches are reported as zero, not as an empty silence. |
+| R15 | U5 | At runtime an invalid rule (any R1–R12 refusal tied to one marker or entry) is logged as a skipped rule in the report, with its diagnostics, and every valid rule still runs. Invocation-level and RuleSet-header errors still refuse the whole invocation, as today. |
+| R16 *(new verdict, provisional per U9)* | U9 | A `check` settles locally with no model request: `referenced_path_exists` (each inline-code path in the unit, resolved from the document's folder inside the bound repository scope), `pattern_present` / `pattern_absent` (regex over rendered-visible text), `frontmatter_field_present`. The result is pass, fail, or unresolved; unreadable, out-of-scope and escaping paths are unresolved, never fail. An invocation whose rules are all checks constructs no backend and needs no credential. |
+| R17 | U5, U8, U9 | The report keeps today's fields and adds the skipped rules (R15), per-occurrence spans (R14) and check results (R16). Existing consumers of the report keep working. |
+
+## Worked example
+
+A skill teaching the call standard, as written:
+
+```markdown
+### Call Grammar<!-- K014 -->
+
+A call the agent can't act on sends it away with nothing to bring back. Each form names when to go, where, what to do there, and what to return, and every call site uses exactly one of them.
+
+**Completion criteria.** Test every one twice: can the agent tell done from not-done, and does it demand the legwork? <!-- K015 -->
+```
+
+Its rules file, `rules/SKILL.rules.json`:
+
+```json
+{
+  "K014": {
+    "name": "skill.call.complete",
+    "target": { "kind": "markdown_units", "mode": "call_site", "pattern": "MUST load|IF .*, load" },
+    "threshold": 0.9,
+    "severity": "nudge"
+  },
+  "K015": {
+    "name": "skill.step.completion",
+    "target": { "kind": "markdown_units", "mode": "unit", "units": ["paragraph"], "starts_with": "Completion:" },
+    "threshold": 0.8
+  }
+}
+```
+
+The assembled question for `skill.call.complete` (R6), as the print flag shows it:
+
+```text
+Call Grammar
+
+A call the agent can't act on sends it away with nothing to bring back. Each form names when to go, where, what to do there, and what to return, and every call site uses exactly one of them.
+```
+
+The heading's binding (R4) runs to the next heading of level 3 or higher, so here it covers both paragraphs. K015 binds only its own paragraph, and its marker is stripped from both questions. On a reviewed skill, K014 gives one occurrence per call that matches its pattern (R14), and K015 gives one per paragraph that starts with "Completion:".
 
 ## Proof obligations
 
