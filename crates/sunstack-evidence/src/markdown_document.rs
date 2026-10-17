@@ -139,24 +139,22 @@ impl MarkdownDocument {
             .find(|node| matches!(node.kind().as_ref(), "atx_heading" | "setext_heading"))
             .or_else(|| path.iter().rev().find(|node| node.kind() == "paragraph"))
             .ok_or(MarkdownBindingRefusal::ForbiddenHost)?;
-        let host = if host.kind() == "paragraph" {
-            host.parent()
-                .filter(|parent| {
-                    parent.kind() == "list_item" && is_first_item_content(parent, host)
-                })
-                .unwrap_or_else(|| host.clone())
-        } else {
-            host.clone()
-        };
+        if heading_level(host).is_some()
+            && text[..range.start]
+                .chars()
+                .next_back()
+                .is_some_and(char::is_whitespace)
+        {
+            return Err(MarkdownBindingRefusal::SpacedHeading);
+        }
+        let host = enclosing_list_item(host)
+            .filter(|item| {
+                is_first_item_content(item, host)
+                    && item.start_pos().byte_point().0 == host.start_pos().byte_point().0
+            })
+            .unwrap_or_else(|| host.clone());
         let (kind, host_range) = match host.kind().as_ref() {
             "atx_heading" | "setext_heading" => {
-                if text[..range.start]
-                    .chars()
-                    .next_back()
-                    .is_some_and(char::is_whitespace)
-                {
-                    return Err(MarkdownBindingRefusal::SpacedHeading);
-                }
                 (MarkdownHostKind::Section, self.section_range(&host))
             }
             "list_item" => (MarkdownHostKind::ListItem, host.range()),
@@ -182,19 +180,26 @@ impl MarkdownDocument {
     fn section_range(&self, heading: &BlockNode<'_>) -> Range<usize> {
         let level = heading_level(heading).unwrap_or(6);
         let start = heading.range().start;
+        let item_range = enclosing_list_item(heading).map(|item| item.range());
+        let boundary = item_range
+            .as_ref()
+            .map_or(self.tree.source().len(), |range| range.end);
         let end = self
             .tree
             .root()
             .dfs()
             .filter(|node| {
-                node.range().start > start && heading_level(node).is_some_and(|next| next <= level)
+                node.range().start > start
+                    && node.range().start < boundary
+                    && heading_level(node).is_some_and(|next| next <= level)
             })
             .find(|node| {
                 !node
                     .ancestors()
-                    .any(|ancestor| matches!(ancestor.kind().as_ref(), "block_quote" | "list_item"))
+                    .any(|ancestor| ancestor.kind() == "block_quote")
+                    && enclosing_list_item(node).map(|item| item.range()) == item_range
             })
-            .map_or(self.tree.source().len(), |node| node.range().start);
+            .map_or(boundary, |node| node.range().start);
         start..end
     }
 
@@ -238,9 +243,7 @@ impl MarkdownDocument {
                     projection.prose(node.range(), in_list && !quoted)
                 }
             };
-            let list_prefix = node
-                .parent()
-                .filter(|parent| parent.kind() == "list_item")
+            let list_prefix = enclosing_list_item(&node)
                 .filter(|parent| is_first_item_content(parent, &node))
                 .and_then(|parent| {
                     parent
@@ -282,6 +285,11 @@ fn is_first_item_content(item: &BlockNode<'_>, content: &BlockNode<'_>) -> bool 
             !child.kind().starts_with("list_marker_") && child.kind() != "block_continuation"
         })
         .is_some_and(|first| first.range().start == content.range().start)
+}
+
+fn enclosing_list_item<'tree>(node: &BlockNode<'tree>) -> Option<BlockNode<'tree>> {
+    node.ancestors()
+        .find(|ancestor| ancestor.kind() == "list_item")
 }
 
 fn heading_level(node: &BlockNode<'_>) -> Option<u8> {
