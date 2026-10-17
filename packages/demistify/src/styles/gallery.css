@@ -14,15 +14,9 @@ ex-gallery {
 	margin-bottom: var(--space-3);
 	font-family: var(--font-display);
 }
-.ex-gallery-header > input {
-	min-width: 100px;
-	width: 220px;
-	padding: var(--space-2);
-	border: 1px solid var(--rule);
-	border-radius: var(--radius-md);
-	background: var(--surface-page);
-	color: var(--ink);
-	font: var(--text-sm) var(--font-display);
+.ex-gallery-header > .ex-control-search {
+	flex: 1 1 260px;
+	max-width: 720px;
 }
 .ex-gallery-count {
 	margin-right: auto;
@@ -190,6 +184,53 @@ ex-gallery [aria-pressed='true'] {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 	gap: var(--space-4);
+	grid-auto-rows: max-content;
+	align-content: start;
+	max-height: clamp(400px, 64vh, 760px);
+	overflow: auto;
+}
+.ex-gallery-shortcuts dl {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: var(--space-2) var(--space-4);
+}
+.ex-gallery-shortcuts dt {
+	color: var(--ink);
+}
+.ex-gallery-shortcuts dd {
+	margin: 0;
+	color: var(--ink-soft);
+}
+ex-document.ex-gallery-document {
+	display: flex;
+	flex-direction: column;
+	height: calc(100dvh - 104px);
+	min-height: 400px;
+	margin-block: var(--space-4);
+}
+ex-document.ex-gallery-document > h1 {
+	flex: 0 0 auto;
+	margin: 0;
+}
+.ex-gallery-document > ex-gallery {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 320px;
+	margin-top: var(--space-4);
+}
+.ex-gallery-document > ex-gallery:first-child {
+	margin-top: 0;
+}
+.ex-gallery-document .ex-gallery-body,
+.ex-gallery-document .ex-gallery-grid {
+	flex: 1;
+	height: auto;
+	min-height: 0;
+	max-height: none;
+}
+.ex-gallery-document .ex-gallery-header {
+	flex: 0 0 auto;
 }
 .ex-gallery-grid > figure {
 	border: 1px solid var(--rule);
@@ -254,6 +295,32 @@ ex-gallery [hidden] {
 	display: none !important;
 }
 @media (max-width: 700px) {
+	.ex-gallery-document > ex-gallery[view='review'] {
+		min-height: 560px;
+	}
+	.ex-gallery-toolbar {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+	.ex-gallery-toolbar > .ex-gallery-title {
+		grid-column: 1;
+		grid-row: 1;
+		width: auto;
+	}
+	.ex-gallery-toolbar > [aria-label='Image zoom'] {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+	.ex-gallery-toolbar > [aria-label='Viewing actions'] {
+		grid-column: 2;
+		grid-row: 1;
+		margin-left: 0;
+		padding-left: 0;
+		border-left: 0;
+	}
+	.ex-gallery-header > .ex-control-search {
+		flex-basis: 160px;
+	}
 	.ex-gallery-body {
 		display: flex;
 		flex-direction: column;

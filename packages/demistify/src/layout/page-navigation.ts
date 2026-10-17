@@ -1,4 +1,4 @@
-import { createIconButton } from '../core/icons.ts';
+import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
 
 export interface DocumentToolbar {
 	readonly element: HTMLElement;
@@ -21,6 +21,8 @@ export function createDocumentToolbar(pageLinks: readonly HTMLAnchorElement[]): 
 	const home = document.createElement('a');
 	home.href = homeSource?.href ?? location.href.split('#')[0] ?? location.href;
 	home.textContent = 'Home';
+	home.prepend(createPhosphorIcon('house'));
+	if (new URL(home.href).pathname === location.pathname) home.setAttribute('aria-current', 'page');
 	pagePanel.append(home);
 	for (const original of pageLinks.slice(1)) {
 		const link = original.cloneNode(true);

@@ -27,6 +27,10 @@ Review is the default: a scrollable grouped thumbnail pane beside the selected i
 
 ## Facets and captions
 
+For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Other prose/sections/disclosures make it an embedded gallery in normal page flow. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
+
+Viewport choices live in Filters. The viewer has no repeated capture/viewport arrow buttons or category selector. Its keyboard icon opens shortcut help; Review/Grid are one named radio group. Search uses available width and has a clear action through the same settled query pipeline.
+
 Present `screen`, `viewport` and `state` values become default filter options. Use `filters="screen viewport release"` with `data-release="Candidate"` to choose fields. For a custom field label/icon, supply a small declaration:
 
 ```html

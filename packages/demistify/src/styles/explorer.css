@@ -44,22 +44,42 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	border-color: var(--accent);
 }
 .ex-explorer-browser {
+	display: flex;
+	flex-direction: column;
 	position: sticky;
 	top: var(--space-5);
 	max-height: calc(100vh - 40px);
-	overflow: auto;
+	overflow: hidden;
 	align-self: start;
 	scrollbar-width: thin;
 	font-family: var(--font-display);
 }
-.ex-explorer-browser input {
-	display: block;
+.ex-explorer-browser-header {
+	flex: 0 0 auto;
+	padding: var(--space-1);
+}
+.ex-explorer-node-list {
+	min-height: 0;
+	overflow: auto;
+	padding: var(--space-1);
+	overscroll-behavior: contain;
+}
+body:has(.ex-document-toolbar) .ex-explorer-browser {
+	top: 56px;
+	max-height: calc(100dvh - 72px);
+}
+.ex-explorer-browser .ex-explorer-issues {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
 	width: 100%;
-	padding: var(--space-3);
-	border: 1px solid var(--rule);
-	border-radius: var(--radius-sm);
-	background: var(--surface-content);
-	margin-bottom: var(--space-3);
+	margin-top: var(--space-2);
+	padding: var(--space-2);
+	border: 0;
+	background: transparent;
+	color: var(--ink-soft);
+	text-align: left;
+	font-size: var(--text-sm);
 }
 .ex-explorer-browser details {
 	margin-top: var(--space-4);
@@ -250,7 +270,10 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	stroke-width: 1.6;
 }
 .ex-explorer-edge.is-traced .ex-explorer-line {
-	stroke-width: 2.8;
+	stroke-width: 2.4;
+}
+.ex-explorer-proposed .ex-explorer-line {
+	stroke-dasharray: 5 4;
 }
 .ex-explorer-edge-hit {
 	fill: none;
@@ -259,10 +282,25 @@ ex-explorer [role='tab'][aria-selected='true'] {
 	pointer-events: stroke;
 	cursor: pointer;
 }
-.ex-explorer-proposal-dot {
-	fill: var(--change);
-	stroke: var(--surface-content);
-	stroke-width: 1.5;
+.ex-explorer-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	color: var(--ink-soft);
+	font-size: var(--text-xs);
+}
+.ex-explorer-legend > span {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.ex-explorer-legend > span::before {
+	content: '';
+	width: 24px;
+	border-top: 1.5px solid currentColor;
+}
+.ex-explorer-legend > span + span::before {
+	border-top-style: dashed;
 }
 .ex-explorer-related {
 	font-family: var(--font-display);

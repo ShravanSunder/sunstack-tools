@@ -2,7 +2,7 @@ import { expect } from 'vitest';
 import { page } from 'vitest/browser';
 
 export async function openFixture(
-	name: 'navigation' | 'layout' | 'embedded' | 'gallery',
+	name: 'navigation' | 'layout' | 'embedded' | 'gallery' | 'ui',
 	fragment = '',
 	file = 'index.html',
 ): Promise<{ readonly document: Document; readonly frame: ReturnType<typeof page.frameLocator> }> {

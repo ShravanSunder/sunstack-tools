@@ -1,4 +1,5 @@
 import { escapeHtml } from '../core/html-text.ts';
+import { roundedPath } from '../layout/canvas-router.ts';
 import {
 	tracedEdges,
 	type CompositionView,
@@ -99,6 +100,7 @@ export function renderExplorerGraph(props: GraphRenderProps): void {
 		marker.setAttribute('refY', '4');
 		marker.setAttribute('markerWidth', '8');
 		marker.setAttribute('markerHeight', '8');
+		marker.setAttribute('markerUnits', 'userSpaceOnUse');
 		marker.setAttribute('orient', 'auto');
 		const triangle = document.createElementNS(svgNamespace, 'path');
 		triangle.setAttribute('d', 'M0,0 L8,4 L0,8 Z');
@@ -121,10 +123,21 @@ export function renderExplorerGraph(props: GraphRenderProps): void {
 		const adjacent = target.column === source.column + 1;
 		const pathData = adjacent
 			? `M${startX},${startY} C${startX + 32},${startY} ${endX - 32},${endY} ${endX},${endY}`
-			: `M${startX},${startY} H${startX + 15} V58 H${endX - 15} V${endY} H${endX}`;
+			: roundedPath(
+					[
+						{ x: startX, y: startY },
+						{ x: startX + 15, y: startY },
+						{ x: startX + 15, y: 58 },
+						{ x: endX - 15, y: 58 },
+						{ x: endX - 15, y: endY },
+						{ x: endX, y: endY },
+					],
+					10,
+				);
 		const group = document.createElementNS(svgNamespace, 'g');
 		group.dataset['edgeId'] = edge.id;
 		group.classList.add('ex-explorer-edge');
+		group.classList.toggle('ex-explorer-proposed', edge.status === 'proposed');
 		const path = document.createElementNS(svgNamespace, 'path');
 		path.setAttribute('d', pathData);
 		path.setAttribute('stroke', `var(--explorer-${kind})`);
@@ -136,14 +149,6 @@ export function renderExplorerGraph(props: GraphRenderProps): void {
 		const title = document.createElementNS(svgNamespace, 'title');
 		title.textContent = `${nodeById.get(edge.source)?.label} → ${targetNode?.label} · ${edge.label}${edge.status === 'proposed' ? ' · PROPOSED' : ''}`;
 		group.append(path, hit, title);
-		if (edge.status === 'proposed') {
-			const dot = document.createElementNS(svgNamespace, 'circle');
-			dot.setAttribute('cx', String(endX - 10));
-			dot.setAttribute('cy', String(endY));
-			dot.setAttribute('r', '4');
-			dot.classList.add('ex-explorer-proposal-dot');
-			group.append(dot);
-		}
 		group.addEventListener('click', (): void => onConnection(edge.id));
 		edgeElements.set(edge.id, group);
 		svg.append(group);

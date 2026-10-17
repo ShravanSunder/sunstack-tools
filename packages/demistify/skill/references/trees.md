@@ -16,6 +16,8 @@ A leading tone (`done:`, `risk:`) supplies the item's meaning/icon; `[x]`/`[ ]` 
 
 Inspect every authored link's real destination. Use a stable island ID, scoped Markdown heading or scoped Mermaid node as taught by the main guide. Folding a branch and following its link are independent actions.
 
+Icons are consistent across the entire tree. If any item supplies a tone/checklist or the root supplies an icon, unmarked branches/leaves receive neutral folder/file icons. An entirely plain tree omits the icon column. Neutral icons express structure, never an invented completion state. Authors do not insert spacing or fake status to align rows.
+
 ```html
 <ex-pre id="review-layout" label="Review layout"><script type="text/plain">
 ┌─ Screenshots ──┬─ Selected picture ─────┐
@@ -28,12 +30,13 @@ Inspect every authored link's real destination. Use a stable island ID, scoped M
 The plain-text script preserves whitespace and literal characters except an HTML closing-script delimiter, which terminates the carrier before Demistify reads it. For that input, use the existing template carrier and HTML-escape its text:
 
 ```html
+<!-- prettier-ignore -->
 <ex-pre label="Literal markup"><template>first line
 &lt;/script&gt;
 &lt;widget&gt;&amp; value
 last line</template></ex-pre>
 ```
 
-Escape `&` as `&amp;` and `<` as `&lt;` inside this template; the component reads its decoded text. Use the shared zoom/sidebar/fullscreen inspection rather than custom fonts, borders or controls. Verify the literal delimiter and line breaks in the result.
+Keep the formatter-ignore comment with this literal island: Oxfmt otherwise collapses bare-template line breaks. Preserve hierarchical Markdown in its `text/markdown` script. After formatting, compare decoded literal characters/newlines and Markdown hierarchy with the original. Escape `&` as `&amp;` and `<` as `&lt;` inside this template; the component reads its decoded text. Use the shared zoom/sidebar/fullscreen inspection rather than custom fonts, borders or controls. Verify the literal delimiter and line breaks in the result.
 
 Complete by folding without navigation, following the trailing go-to to the intended target, and checking a long label with inline code and multiple paragraphs. For ex-pre, compare text and line breaks in main and inspector; clipping or changed characters fail the intended faithful drawing.

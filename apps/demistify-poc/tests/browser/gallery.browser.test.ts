@@ -79,14 +79,12 @@ test('gallery switches between review and grid without changing selection or ano
 	const { document: fixture, frame } = await openFixture('gallery');
 	const gallery = requiredElement(fixture, '#proof-gallery');
 	const local = fixtureLocator(frame, gallery);
-	await expect.element(local.getByRole('button', { name: 'Grid view', exact: true })).toBeVisible();
-	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
-	await expect
-		.element(local.getByRole('button', { name: 'Grid view', exact: true }))
-		.toHaveAttribute('aria-pressed', 'true');
+	await expect.element(local.getByRole('radio', { name: 'Grid view', exact: true })).toBeVisible();
+	await local.getByRole('radio', { name: 'Grid view', exact: true }).click();
+	await expect.element(local.getByRole('radio', { name: 'Grid view', exact: true })).toBeChecked();
 	expect(gallery.querySelectorAll('.ex-gallery-grid figure')).toHaveLength(4);
 	expect(requiredElement(fixture, '#second-gallery').getAttribute('view')).toBe('review');
-	await local.getByRole('button', { name: 'Review view', exact: true }).click();
+	await local.getByRole('radio', { name: 'Review view', exact: true }).click();
 	await expect.element(local.getByRole('img', { name: 'Home Mobile', exact: true })).toBeVisible();
 });
 
@@ -112,8 +110,12 @@ test('gallery viewport keys share filter state and leave text fields alone', asy
 	await local.getByRole('button', { name: 'Natural size', exact: true }).click();
 	await userEvent.keyboard('{ArrowRight}');
 	await expect
-		.element(local.getByRole('combobox', { name: 'Viewport category', exact: true }))
-		.toHaveValue('Laptop');
+		.poll(
+			(): boolean =>
+				gallery.querySelector<HTMLInputElement>('input[data-gallery-facet=viewport][value=Laptop]')
+					?.checked ?? false,
+		)
+		.toBe(true);
 	await userEvent.keyboard('{ArrowDown}');
 	await expect
 		.element(local.getByRole('img', { name: 'Settings Laptop', exact: true }))
@@ -126,8 +128,12 @@ test('gallery viewport keys share filter state and leave text fields alone', asy
 	await search.fill('Settings');
 	await userEvent.keyboard('{ArrowRight}');
 	await expect
-		.element(local.getByRole('combobox', { name: 'Viewport category', exact: true }))
-		.toHaveValue('Mobile');
+		.poll(
+			(): boolean =>
+				gallery.querySelector<HTMLInputElement>('input[data-gallery-facet=viewport][value=Mobile]')
+					?.checked ?? false,
+		)
+		.toBe(true);
 	expect(requiredElement(fixture, '#second-gallery .ex-gallery-count').textContent).toBe(
 		'4 screenshots',
 	);

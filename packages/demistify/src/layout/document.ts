@@ -14,6 +14,15 @@ export class GridIsland extends HTMLElement {}
 export class DocumentIsland extends StructuralIsland {
 	override connectedCallback(): void {
 		adoptBareMarkdown(this);
+		const content = Array.from(this.children).filter(
+			(child): boolean => !child.matches('script,template,style,[hidden],.ex-inspect-controls'),
+		);
+		const galleryOnly = content.length === 1 && content[0]?.localName === 'ex-gallery';
+		const titledGallery =
+			content.length === 2 &&
+			content[0]?.localName === 'h1' &&
+			content[1]?.localName === 'ex-gallery';
+		this.classList.toggle('ex-gallery-document', galleryOnly || titledGallery);
 		for (const panel of this.querySelectorAll('section, article')) {
 			if (!panel.closest('ex-gallery, ex-presentation')) adoptBareMarkdown(panel);
 		}

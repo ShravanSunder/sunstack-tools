@@ -1,3 +1,5 @@
+import { resolveSubjectIcon } from '../core/subject-icons.ts';
+
 /** Content contract for the explorer. Presentation and transient selection are library-owned. */
 export interface ExplorerSource {
 	readonly label: string;
@@ -43,6 +45,8 @@ export interface ExplorerRow {
 export interface ExplorerTable {
 	readonly id: string;
 	readonly title: string;
+	readonly label?: string;
+	readonly icon?: string;
 	readonly description: string;
 	readonly placement: 'overview' | 'details';
 	readonly filter: 'all' | 'selection';
@@ -160,6 +164,13 @@ export function parseGraphDocument(input: unknown): GraphDocument {
 	});
 	const tables = arrayOf(document['tables'], 'tables').map((item): ExplorerTable => {
 		const table = recordOf(item, 'table');
+		const title = textOf(table['title'], 'table.title');
+		const label = table['label'] === undefined ? title : textOf(table['label'], 'table.label');
+		const requestedIcon =
+			table['icon'] === undefined ? 'file' : textOf(table['icon'], 'table.icon');
+		const icon = resolveSubjectIcon(requestedIcon);
+		if (!icon)
+			throw new Error(`Unknown table icon "${requestedIcon}". Use a curated subject icon.`);
 		const rows = arrayOf(table['rows'], 'table.rows').map((entry): ExplorerRow => {
 			const row = recordOf(entry, 'row');
 			return {
@@ -177,7 +188,9 @@ export function parseGraphDocument(input: unknown): GraphDocument {
 		});
 		return {
 			id: textOf(table['id'], 'table.id'),
-			title: textOf(table['title'], 'table.title'),
+			title,
+			label,
+			icon,
 			description: textOf(table['description'], 'table.description'),
 			placement: choiceOf(table['placement'], ['overview', 'details'], 'table.placement'),
 			filter: choiceOf(table['filter'], ['all', 'selection'], 'table.filter'),

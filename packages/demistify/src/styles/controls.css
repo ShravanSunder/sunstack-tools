@@ -1,0 +1,140 @@
+/* Tabs change content; radios choose a mode; switches independently show a layer. */
+:is(.ex-tab-bar, .ex-explorer-tabs) {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: var(--space-1);
+	min-width: 0;
+	max-width: 100%;
+	overflow-x: auto;
+	padding: var(--space-1);
+	border-bottom: 1px solid var(--rule);
+	scrollbar-width: thin;
+}
+:is(.ex-tab-bar, .ex-explorer-tabs) > [role='tab'] {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex: 0 0 auto;
+	white-space: nowrap;
+	padding: var(--space-2) var(--space-3);
+	border: 0;
+	border-bottom: 2px solid transparent;
+	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+	background: transparent;
+	font: 600 var(--text-sm)/1.4 var(--font-display);
+}
+:is(.ex-tab-bar, .ex-explorer-tabs) > [role='tab'][aria-selected='true'] {
+	border-bottom-color: var(--selection-color);
+	background: transparent;
+	color: var(--accent);
+}
+.ex-mode-choices {
+	display: inline-flex;
+	flex-shrink: 0;
+	gap: 2px;
+	padding: 2px;
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-page);
+}
+.ex-mode-choices label {
+	position: relative;
+	cursor: pointer;
+}
+.ex-mode-choices input {
+	position: absolute;
+	opacity: 0;
+	width: 1px;
+	height: 1px;
+}
+.ex-mode-choices label > span {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	min-height: 28px;
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	font: 600 var(--text-sm)/1.4 var(--font-display);
+	color: var(--ink-soft);
+}
+.ex-mode-choices input:checked + span {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+.ex-mode-choices input:focus-visible + span {
+	outline: 2px solid var(--focus-color);
+	outline-offset: 2px;
+}
+.ex-control-search {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	box-sizing: border-box;
+	padding: var(--space-1) var(--space-2);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-page);
+	color: var(--ink-soft);
+}
+.ex-control-search:focus-within {
+	outline: 2px solid var(--focus-color);
+	outline-offset: 2px;
+}
+.ex-control-search > input {
+	min-width: 0;
+	width: 100%;
+	padding: var(--space-1) 0;
+	margin: 0;
+	border: 0;
+	outline: 0;
+	box-shadow: none;
+	background: transparent;
+	color: var(--ink);
+	font: var(--text-sm)/1.4 var(--font-display);
+}
+.ex-control-search > input::-webkit-search-cancel-button {
+	display: none;
+}
+.ex-control-search > .ex-icon-button {
+	width: 24px;
+	min-width: 24px;
+	height: 24px;
+	border: 0;
+	padding: 0;
+	background: transparent;
+}
+.ex-switch {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	border: 0;
+	background: transparent;
+	padding: var(--space-1);
+	font: 500 var(--text-sm)/1.4 var(--font-display);
+}
+.ex-switch-track {
+	width: 28px;
+	height: 16px;
+	padding: 2px;
+	border-radius: var(--radius-pill);
+	background: var(--rule);
+	box-sizing: border-box;
+}
+.ex-switch-track::before {
+	content: '';
+	display: block;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--ink-soft);
+	transition: transform var(--motion-fast);
+}
+.ex-switch[aria-checked='true'] .ex-switch-track {
+	background: var(--accent);
+}
+.ex-switch[aria-checked='true'] .ex-switch-track::before {
+	transform: translateX(12px);
+	background: var(--surface-page);
+}

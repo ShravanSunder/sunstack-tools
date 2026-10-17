@@ -73,6 +73,9 @@ const fontFamilies = [
 export const shippedIconNames = [
 	...subjectIcons,
 	'files',
+	'house',
+	'keyboard',
+	'magnifying-glass',
 	'arrow-up',
 	'arrow-down',
 	'arrow-square-out',

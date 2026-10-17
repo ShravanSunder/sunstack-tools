@@ -1,3 +1,5 @@
+import { bindTabKeyboard, labelControl } from '../core/controls.ts';
+import { readIcon } from '../core/head.ts';
 import { installIslandInspector } from './inspector.ts';
 
 export class TabsIsland extends HTMLElement {
@@ -21,7 +23,11 @@ export class TabsIsland extends HTMLElement {
 				existingBar?.querySelectorAll<HTMLButtonElement>('button')[index] ??
 				document.createElement('button');
 			tabButton.type = 'button';
-			tabButton.textContent = panel.getAttribute('label') ?? `View ${index + 1}`;
+			labelControl(
+				tabButton,
+				readIcon(panel) ?? 'file',
+				panel.getAttribute('label') ?? `View ${index + 1}`,
+			);
 			tabButton.setAttribute('role', 'tab');
 			panel.id ||= `ex-panel-${crypto.randomUUID()}`;
 			tabButton.id = `${panel.id}-tab`;
@@ -29,22 +35,7 @@ export class TabsIsland extends HTMLElement {
 			panel.setAttribute('role', 'tabpanel');
 			panel.setAttribute('aria-labelledby', tabButton.id);
 			tabButton.addEventListener('click', (): void => selectPanel(index));
-			tabButton.addEventListener('keydown', (event: KeyboardEvent): void => {
-				const nextIndex =
-					event.key === 'ArrowRight'
-						? (index + 1) % panels.length
-						: event.key === 'ArrowLeft'
-							? (index + panels.length - 1) % panels.length
-							: event.key === 'Home'
-								? 0
-								: event.key === 'End'
-									? panels.length - 1
-									: undefined;
-				if (nextIndex === undefined) return;
-				event.preventDefault();
-				selectPanel(nextIndex);
-				buttons[nextIndex]?.focus();
-			});
+
 			return tabButton;
 		});
 		function selectPanel(selectedIndex: number): void {
@@ -56,6 +47,7 @@ export class TabsIsland extends HTMLElement {
 				button.tabIndex = index === selectedIndex ? 0 : -1;
 			});
 		}
+		bindTabKeyboard(tabBar);
 		tabBar.append(...buttons);
 		this.prepend(tabBar);
 		selectPanel(

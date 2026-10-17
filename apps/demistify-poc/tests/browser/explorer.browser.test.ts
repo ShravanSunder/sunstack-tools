@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'vitest';
+import { page, userEvent } from 'vitest/browser';
 
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
@@ -23,11 +24,13 @@ test('full frozen explorer keeps search, selection/history, graph/table correspo
 		.element(frame.getByRole('heading', { name: 'spec-design', exact: true }))
 		.toBeVisible();
 	await search.fill('');
-	expect(owner.querySelectorAll('.ex-explorer-browser details button')).toHaveLength(49);
-	await frame.getByRole('button', { name: 'Current', exact: true }).click();
-	expect(owner.querySelectorAll('.ex-explorer-proposal-dot')).toHaveLength(0);
-	await frame.getByRole('button', { name: 'With proposals', exact: true }).click();
-	expect(owner.querySelectorAll('.ex-explorer-proposal-dot').length).toBeGreaterThan(0);
+	await expect
+		.poll((): number => owner.querySelectorAll('.ex-explorer-browser details button').length)
+		.toBe(49);
+	await frame.getByRole('radio', { name: 'Current', exact: true }).click();
+	expect(owner.querySelectorAll('.ex-explorer-proposed')).toHaveLength(0);
+	await frame.getByRole('radio', { name: 'With proposals', exact: true }).click();
+	expect(owner.querySelectorAll('.ex-explorer-proposed').length).toBeGreaterThan(0);
 	const node = requiredElement(owner, '[data-node-id="spec-design"]');
 	await fixtureLocator(frame, node).hover();
 	await expect
@@ -51,4 +54,64 @@ test('full frozen explorer keeps search, selection/history, graph/table correspo
 	await expect
 		.poll((): number => owner.querySelectorAll('.ex-explorer-sources a').length)
 		.toBeGreaterThan(0);
+});
+
+test('explorer keeps modest arrowheads, soft routes and a fixed search header above its scrolling list', async (): Promise<void> => {
+	await page.viewport(1600, 1000);
+	const { document: fixture, frame } = await openFixture('gallery', '', 'explorer.html');
+	const owner = requiredElement(fixture, '#planning');
+	await expect.poll((): boolean => owner.hasAttribute('data-ready')).toBe(true);
+	const marker = requiredElement(owner, 'marker');
+	expect(marker.getAttribute('markerUnits')).toBe('userSpaceOnUse');
+	expect(Number(marker.getAttribute('markerWidth'))).toBeLessThanOrEqual(8);
+	expect(
+		[...owner.querySelectorAll('.ex-explorer-line')].some(
+			(path): boolean => path.getAttribute('d')?.includes('Q') ?? false,
+		),
+	).toBe(true);
+	const line = requiredElement(owner, '.ex-explorer-line');
+	const normalWidth = fixture.defaultView?.getComputedStyle(line).strokeWidth;
+	await fixtureLocator(frame, requiredElement(owner, '[data-node-id="spec-design"]')).hover();
+	expect(
+		fixture.defaultView?.getComputedStyle(requiredElement(owner, '.is-traced .ex-explorer-line'))
+			.strokeWidth,
+	).not.toBe(normalWidth);
+	expect(marker.getAttribute('markerUnits')).toBe('userSpaceOnUse');
+	expect(owner.querySelector('.ex-explorer-proposal-dot')).toBeNull();
+	await expect.element(frame.getByText('Proposed connection', { exact: true })).toBeVisible();
+	const list = requiredElement(owner, '.ex-explorer-node-list');
+	expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
+	const search = requiredElement(owner, '.ex-control-search');
+	const searchTop = search.getBoundingClientRect().top;
+	list.scrollTop = list.scrollHeight;
+	expect(search.getBoundingClientRect().top).toBe(searchTop);
+	let lastInput = 0;
+	let settledAfter = 0;
+	owner.addEventListener(
+		'input',
+		(): void => {
+			lastInput = fixture.defaultView?.performance.now() ?? 0;
+		},
+		{ capture: true },
+	);
+	const observer = new MutationObserver((): void => {
+		settledAfter = (fixture.defaultView?.performance.now() ?? 0) - lastInput;
+	});
+	observer.observe(list, { childList: true });
+	await frame.getByRole('searchbox', { name: 'Find a node', exact: true }).fill('program-design');
+	await expect.poll((): number => list.querySelectorAll('details button').length).toBe(1);
+	observer.disconnect();
+	expect(settledAfter).toBeGreaterThanOrEqual(199);
+	await frame.getByRole('radio', { name: 'Current', exact: true }).click();
+	await expect.element(frame.getByRole('radio', { name: 'Current', exact: true })).toBeChecked();
+	expect(
+		requiredElement(owner, '.ex-explorer-browser-header').getBoundingClientRect().top,
+	).toBeGreaterThanOrEqual(
+		requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
+	);
+	await frame.getByRole('tab', { name: 'Used by', exact: true }).click();
+	await userEvent.keyboard('{Home}');
+	await expect
+		.element(frame.getByRole('tab', { name: /^Connections/ }))
+		.toHaveAttribute('aria-selected', 'true');
 });
