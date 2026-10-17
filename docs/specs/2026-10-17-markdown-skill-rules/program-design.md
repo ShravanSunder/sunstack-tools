@@ -70,8 +70,9 @@ Mechanical verdict (rules)
   a mechanical occurrence with no settlement is reported as unresolved, never a pass
 
 Check operation (CLI + rules library)
-  operation "check_rules", input CheckRulesInput { definition_root, definitions, repositories, payload_schemas, limits, output: diagnostics | assembled_rules }
+  operation "check_rules", input CheckRulesInput { definition_root, definitions, repositories, payload_schemas, limits, discovery, output: diagnostics | assembled_rules }
   no backend, attempts or request budget; reviewed documents are not read
+  discovery mirrors the invocation's own setting, so check admits exactly the rules the runtime would (a ChangeSet rule checks clean under bounded discovery and refuses without it); check admits under it but never runs discovery or acquisition (S2 review F2)
   CheckRulesOutcome = Checked { checked_rule_count, printed_rules } | Refused { diagnostics, checked_rule_count, refused_rule_count }
                     | CheckFailed { diagnostics, measurements } | Cancelled { diagnostics, measurements }
   PrintedRule { rule_set, source: Jsonl{file,line} | Markdown{provenance}, definition }   printed only after a fully clean check
