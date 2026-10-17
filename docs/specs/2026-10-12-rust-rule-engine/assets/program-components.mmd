@@ -1,13 +1,34 @@
 flowchart TB
-  N["Native Rust caller"] -->|"typed rule call"| O["Invocation owner in rules crate<br/>preflight, scheduling, report and cleanup"]
-  P["Skill tool or optional TS caller"] -->|"versioned request"| C["Executable boundary<br/>framing and serialization"]
-  C --> O
-  O <-->|"selected definitions or diagnostics"| R["Rule admission owner<br/>RuleSet JSON + JSONL questions"]
-  O <-->|"frozen evidence or source errors"| E["Evidence crate<br/>changes, targets, related sources and chunks"]
-  C -->|"direct evidence operation"| E
-  O <-->|"occurrence selection records"| F["Selection owner<br/>applicability and dependencies"]
-  O <-->|"request / validated outcome"| J["Judgment owner in decisions crate<br/>correlation and safe failures"]
-  J <-->|"body / attempt observations"| B["Jev adapter<br/>HTTP attempts and private credentials"]
-  B <-->|"native JSON / response"| X["OpenRouter System One"]
-  O <-->|"bindings / source-linked answers"| V["Rule result correlation<br/>one canonical execution outcome"]
-  J -.-> A["Future adapter<br/>not implemented in v1"]
+  Hook["Host hook, skill tool or TS caller"] -->|"one JSON request"| CLI["sunstack-rule-cli<br/>framing, signals, exit codes"]
+  Native["Native Rust host"] -->|"typed call"| Inv
+  CLI -->|"prepare_rules, evaluate_rules"| Inv
+  subgraph Rules["sunstack-rules"]
+    direction TB
+    Inv["Invocation owner<br/>admission, scheduler, terminal outcome"]
+    Def["Definition admission<br/>RuleSets, rule lines, routers"]
+    Bind["Input binding<br/>groups, route wiring, origin"]
+    Plan["Request planning<br/>gate slots, staging, splits"]
+    App["Applicability and reduction<br/>conditions in authored order"]
+    Ver["Verdict evaluation<br/>threshold, band, composite"]
+    Rep["Report<br/>occurrences, requests, cursors"]
+    Inv --> Def --> Bind --> Plan -->|"settled requests"| App --> Ver --> Rep
+  end
+  subgraph Evidence["sunstack-evidence"]
+    direction TB
+    Docs["Documents: capture, paragraphs, text and AST"]
+    Conv["Conversations: capture, adapters, selection, cursor"]
+    Pay["Payloads: schema catalog, pointers"]
+    Chg["Change sets: milestone 2"]
+  end
+  subgraph Decisions["sunstack-decisions"]
+    direction TB
+    Judge["Judgment owner<br/>budget, admission, validation"]
+    Jev["Jev adapter<br/>attempts, private credentials"]
+    Judge --> Jev
+  end
+  Bind -->|"validate payloads"| Evidence
+  Plan -->|"owner-labeled selections"| Evidence
+  Plan -->|"requests"| Decisions
+  Jev <-->|"HTTP"| OR["OpenRouter System One"]
+  CLI -.->|"prepare_evidence"| Evidence
+  CLI -.->|"run_judgments"| Decisions

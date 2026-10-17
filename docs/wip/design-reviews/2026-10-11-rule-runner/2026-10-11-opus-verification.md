@@ -1,10 +1,10 @@
 # Retained Opus reviewer: correction verification
 
-Captured 2026-10-11 from the same independent reviewer, `claude-local/de78a696-0255-417b-bcef-81d5ae849157`, configured `opus` / `high`. The initial report is preserved separately in [the original review](2026-10-11-opus-review.md).
+Captured 2026-10-11 from the same independent reviewer, `the independent Claude reviewer`, configured `opus` / `high`. The initial report is preserved separately in [the original review](2026-10-11-opus-review.md).
 
 The first correction verification is for program-design SHA256 `1f80043edeb27ec244d4c4a62d77b51a58d169396a96608592d836a1f9b49e10`. The final verification is for program-design SHA256 `d5cd4d9f85d76249110df2b1b2260bb589e496e98a9d8ed82958ee13bf739f48`, specification `107e71705affb9d504aa48eba9113963a312685d4e6aa99a87ca9724a59d36d1`, and unchanged requirements `ba83e9aa2141c26bb20c0e360f0438d763f78d04bcac7a530f96a1da5c2ecb75`.
 
-Final reviewer result: **decision-needed**, with no open revision findings. This is independent design-source verification, not execution, typecheck or hosted-provider proof. Parent disposition and owner continuation stay on work root `01a12ca7-621c-71b9-8fc3-0cf055fe6952`.
+Final reviewer result: **decision-needed**, with no open revision findings. This is independent design-source verification, not execution, typecheck or hosted-provider proof. Parent disposition and owner continuation stay on work root `private-coordination-record`.
 
 ## First correction verification
 

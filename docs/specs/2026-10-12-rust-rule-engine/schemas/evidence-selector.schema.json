@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "evidence-selector.schema.json",
-  "title": "Evidence selection declarations",
+  "title": "Repository-qualified evidence selectors for native callers and prepare_evidence",
   "$ref": "#/$defs/EvidenceSelector",
   "$defs": {
     "TargetId": {
@@ -13,10 +13,24 @@
       "minLength": 1
     },
     "QueryPath": {
+      "description": "A path inside the repository binding: an exact relative path or a globset pattern. Tagged so the union is valid (R37).",
       "oneOf": [
         {
-          "type": "string",
-          "minLength": 1
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "exact"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "additionalProperties": false
         },
         {
           "type": "object",
@@ -425,90 +439,6 @@
         },
         {
           "$ref": "#/$defs/RelatedUnitsSelector"
-        }
-      ]
-    },
-    "ContextSelectorDeclaration": {
-      "type": "object",
-      "properties": {
-        "selector_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "requirement": {
-          "enum": [
-            "required",
-            "optional"
-          ]
-        },
-        "selector": {
-          "$ref": "#/$defs/EvidenceSelector"
-        },
-        "max_matches": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "max_bytes": {
-          "type": "integer",
-          "minimum": 1
-        }
-      },
-      "required": [
-        "selector_id",
-        "requirement",
-        "selector",
-        "max_matches",
-        "max_bytes"
-      ],
-      "additionalProperties": false
-    },
-    "PresenceSelector": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/LiteralTextSelector"
-        },
-        {
-          "$ref": "#/$defs/RegexTextSelector"
-        },
-        {
-          "$ref": "#/$defs/AstPatternSelector"
-        }
-      ]
-    },
-    "ApplicabilityTest": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "const": "always"
-            }
-          },
-          "required": [
-            "kind"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "const": "presence"
-            },
-            "selector": {
-              "$ref": "#/$defs/PresenceSelector"
-            },
-            "max_scan_bytes": {
-              "type": "integer",
-              "minimum": 1
-            }
-          },
-          "required": [
-            "kind",
-            "selector",
-            "max_scan_bytes"
-          ],
-          "additionalProperties": false
         }
       ]
     }

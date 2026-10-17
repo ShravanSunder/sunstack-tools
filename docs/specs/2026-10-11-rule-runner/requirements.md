@@ -72,6 +72,6 @@ Model accuracy and batching cost comparisons are separate measurements. Expected
 
 ## Source basis and unresolved meaning
 
-The source packet is `/Users/shravansunder/dev/ai-tools.sdlc-learning-coverage/tmp/spec-workflows/2026-10-11-sunstack-tools-rule-runner/spec-handoff.md`; its companion successor prompt and the receiving owner's direct corrections establish current authority. The supplied AGENTS instructions and `/Users/shravansunder/dev/devfiles/shared/language-rules/ts-rules.md` govern craft. The packet's folder tree and execution-contract proposals are advisory, not an approved plan.
+The source packet is the original private handoff packet; its companion successor prompt and the receiving owner's direct corrections establish current authority. The supplied AGENTS instructions and the owner-supplied TypeScript standards govern craft. The packet's folder tree and execution-contract proposals are advisory, not an approved plan.
 
 Owner-controlled meaning still open: the exact additional guarantee intended by “don't pass through”. Library distribution scope, provider capabilities and tool compatibility require explicit structural treatment and evidence; they do not authorize publication or a runtime substitution.

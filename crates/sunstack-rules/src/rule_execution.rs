@@ -1,0 +1,151 @@
+use crate::{invocation_admission::admit_invocation, request_planning::*, *};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use sunstack_decisions::DecisionBackend;
+use sunstack_evidence::{AdapterRegistry, EvidenceMeasurements, EvidenceSession};
+use tokio_util::sync::CancellationToken;
+
+#[derive(Clone)]
+pub struct RuleExecutionContext {
+    pub backend: Arc<dyn DecisionBackend>,
+    pub adapters: AdapterRegistry,
+    pub cancellation: CancellationToken,
+}
+fn cancelled_before(measurements: InvocationMeasurements) -> RuleInvocationOutcome {
+    RuleInvocationOutcome::Cancelled {
+        progress: InvocationCancellationProgress::BeforeReportAdmission,
+        diagnostics: DiagnosticList::rule(RuleDiagnosticCode::CallerAborted),
+        measurements,
+    }
+}
+fn duration_ms(duration: Duration) -> u64 {
+    u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
+}
+pub async fn evaluate_rules(
+    input: RuleInvocationInput,
+    context: RuleExecutionContext,
+) -> RuleInvocationOutcome {
+    let started = Instant::now();
+    let mut measurements = InvocationMeasurements::default();
+    let cancellation = context.cancellation.child_token();
+    // Dropping this invocation signals its owned work without cancelling the caller's token.
+    let _cancellation_guard = cancellation.clone().drop_guard();
+    if cancellation.is_cancelled() {
+        return cancelled_before(measurements);
+    }
+    if input.backend != *context.backend.selection() {
+        return RuleInvocationOutcome::Invalid {
+            diagnostics: DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration),
+        };
+    }
+    let admitted = match admit_invocation(&input, &context.adapters, &cancellation).await {
+        Ok(admitted) => admitted,
+        Err(diagnostics) => {
+            measurements.local_elapsed_ms = duration_ms(started.elapsed());
+            return if cancellation.is_cancelled() {
+                cancelled_before(measurements)
+            } else {
+                RuleInvocationOutcome::Invalid { diagnostics }
+            };
+        }
+    };
+    let mut session = match EvidenceSession::open(
+        admitted.evidence,
+        context.adapters,
+        cancellation.clone(),
+    )
+    .await
+    {
+        Ok(session) => session,
+        Err(error) => {
+            measurements.local_elapsed_ms = duration_ms(started.elapsed());
+            return if cancellation.is_cancelled() {
+                cancelled_before(measurements)
+            } else {
+                RuleInvocationOutcome::Invalid {
+                    diagnostics: error.diagnostics().into(),
+                }
+            };
+        }
+    };
+    let mut plan = definition_topology(admitted.groups, admitted.router);
+    plan_change_selection(&mut plan, &mut session).await;
+    precompute_conditions(
+        &mut plan,
+        &input.origin,
+        &mut session,
+        &cancellation,
+        input.execution.speculation,
+    )
+    .await;
+    build_request_graph(&mut plan, &input.execution);
+    measurements.local_elapsed_ms = duration_ms(started.elapsed());
+    if cancellation.is_cancelled() {
+        copy_evidence_measurements(&mut measurements, session.close().measurements);
+        return cancelled_before(measurements);
+    }
+    // Admission of the report fixes occurrence and request identities before dispatch.
+    let mut state = ExecutionState::new(&plan);
+    let execution = execute_plan(SchedulerInput {
+        plan: &mut plan,
+        state: &mut state,
+        session: &mut session,
+        origin: &input.origin,
+        backend: context.backend,
+        attempts: input.attempts,
+        budget: input.request_budget,
+        max_concurrent_requests: input.execution.max_concurrent_requests.get(),
+        cancellation: cancellation.clone(),
+    })
+    .await;
+    let (scheduler, failure) = match execution {
+        Ok(scheduler) => (scheduler, None),
+        Err((diagnostics, scheduler)) => (scheduler, Some(diagnostics)),
+    };
+    measurements.local_elapsed_ms = measurements
+        .local_elapsed_ms
+        .saturating_add(duration_ms(scheduler.local_elapsed));
+    measurements.provider_elapsed_ms = duration_ms(scheduler.provider_elapsed);
+    measurements.model_requests = scheduler.model_requests;
+    measurements.inference_attempts = scheduler.inference_attempts;
+    let closed = session.close();
+    copy_evidence_measurements(&mut measurements, closed.measurements);
+    if let Some(diagnostics) = failure {
+        return RuleInvocationOutcome::PreparationFailed {
+            diagnostics,
+            measurements,
+        };
+    }
+    let mut report = project_report(&plan, &state, &input.origin, measurements);
+    report.captures = closed.captures;
+    report.change_selections = closed.change_selections;
+    report.cursors = closed.cursors;
+    if cancellation.is_cancelled() {
+        let measurements = report.measurements.clone();
+        RuleInvocationOutcome::Cancelled {
+            progress: InvocationCancellationProgress::ReportAdmitted {
+                partial_report: Box::new(report),
+            },
+            diagnostics: DiagnosticList::rule(RuleDiagnosticCode::CallerAborted),
+            measurements,
+        }
+    } else if report.is_complete() {
+        RuleInvocationOutcome::CompleteReport { report }
+    } else {
+        RuleInvocationOutcome::IncompleteReport { report }
+    }
+}
+pub(crate) fn copy_evidence_measurements(
+    target: &mut InvocationMeasurements,
+    evidence: EvidenceMeasurements,
+) {
+    target.files_considered = evidence.files_considered;
+    target.files_read = evidence.files_read;
+    target.files_parsed = evidence.files_parsed;
+    target.transcript_bytes_read = evidence.transcript_bytes_read;
+    target.transcript_bytes_parsed = evidence.transcript_bytes_parsed;
+    target.bytes_scanned = evidence.bytes_scanned;
+    target.bytes_included = evidence.bytes_included;
+}

@@ -1,0 +1,2240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "readOnly": true,
+  "description": "One commission: role and form, the assignment, its full reads and its grant",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+        },
+        "sources": {
+          "readOnly": true,
+          "description": "Governing sources a fresh agent can use without the commissioner",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pointer",
+                    "description": "The source is reachable at a location"
+                  },
+                  "location": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A path, URL or message link the recipient can reach without the commissioner"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "location",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline",
+                    "description": "The source material is carried in the packet"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The material itself, for anything the recipient could not reach"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "content",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "One governing source the recipient reads"
+          }
+        },
+        "requiredReads": {
+          "type": "object",
+          "properties": {
+            "charter": {
+              "type": "string",
+              "const": "role-lead",
+              "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+            },
+            "practices": {
+              "readOnly": true,
+              "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+              }
+            },
+            "principles": {
+              "readOnly": true,
+              "description": "Job-specific principles to read in full beyond the role skill's own",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+              }
+            }
+          },
+          "required": [
+            "charter",
+            "practices",
+            "principles"
+          ],
+          "additionalProperties": false,
+          "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+        },
+        "limits": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect",
+                  "description": "Read-only access"
+                }
+              },
+              "required": [
+                "access"
+              ],
+              "additionalProperties": false,
+              "description": "Reads only; scratch goes to tmp/ or system temp, and the commissioner checks the worktree is unchanged"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect-and-execute",
+                  "description": "Reads plus the listed commands"
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "The only commands the recipient may run",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Reads plus the listed commands; the commissioner checks every reported command was listed"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "write-and-execute",
+                  "description": "Named writes plus granted commands"
+                },
+                "writePaths": {
+                  "readOnly": true,
+                  "description": "The only paths that may change; an edit outside them is a stop condition",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "Commands the recipient may run",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "writePaths",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Named writes plus granted commands; the commissioner checks the diff stays inside writePaths"
+            }
+          ],
+          "description": "The granted access; the host's own settings enforce it, and packet text establishes no permission"
+        },
+        "stopCondition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the job ends, and when an exception must come back early"
+        },
+        "returnContract": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "owned-result",
+              "description": "An existing phase or method owns the result"
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+            }
+          },
+          "required": [
+            "kind",
+            "owner"
+          ],
+          "additionalProperties": false,
+          "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+        },
+        "role": {
+          "type": "string",
+          "const": "lead",
+          "description": "The Lead: governing design, plan and acceptance"
+        },
+        "executionForm": {
+          "type": "string",
+          "const": "main",
+          "description": "The Lead is the owner's main conversation"
+        },
+        "ownerIntent": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The owner's intent in their words, for the Lead's entry or continuation only"
+        },
+        "governingContext": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The current governing design, plan and decisions"
+        }
+      },
+      "required": [
+        "outcome",
+        "sources",
+        "requiredReads",
+        "limits",
+        "stopCondition",
+        "returnContract",
+        "role",
+        "executionForm",
+        "ownerIntent",
+        "governingContext"
+      ],
+      "additionalProperties": false,
+      "description": "The Lead's own entry or continuation; a helper never appoints a Lead"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+        },
+        "sources": {
+          "readOnly": true,
+          "description": "Governing sources a fresh agent can use without the commissioner",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pointer",
+                    "description": "The source is reachable at a location"
+                  },
+                  "location": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A path, URL or message link the recipient can reach without the commissioner"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "location",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline",
+                    "description": "The source material is carried in the packet"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The material itself, for anything the recipient could not reach"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "content",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "One governing source the recipient reads"
+          }
+        },
+        "requiredReads": {
+          "type": "object",
+          "properties": {
+            "charter": {
+              "type": "string",
+              "const": "role-advisor",
+              "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+            },
+            "practices": {
+              "readOnly": true,
+              "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+              }
+            },
+            "principles": {
+              "readOnly": true,
+              "description": "Job-specific principles to read in full beyond the role skill's own",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+              }
+            }
+          },
+          "required": [
+            "charter",
+            "practices",
+            "principles"
+          ],
+          "additionalProperties": false,
+          "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+        },
+        "limits": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect",
+                  "description": "Read-only access"
+                }
+              },
+              "required": [
+                "access"
+              ],
+              "additionalProperties": false,
+              "description": "Reads only; scratch goes to tmp/ or system temp, and the commissioner checks the worktree is unchanged"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect-and-execute",
+                  "description": "Reads plus the listed commands"
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "The only commands the recipient may run",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Reads plus the listed commands; the commissioner checks every reported command was listed"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "write-and-execute",
+                  "description": "Named writes plus granted commands"
+                },
+                "writePaths": {
+                  "readOnly": true,
+                  "description": "The only paths that may change; an edit outside them is a stop condition",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "Commands the recipient may run",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "writePaths",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Named writes plus granted commands; the commissioner checks the diff stays inside writePaths"
+            }
+          ],
+          "description": "The granted access; the host's own settings enforce it, and packet text establishes no permission"
+        },
+        "stopCondition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the job ends, and when an exception must come back early"
+        },
+        "returnContract": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "owned-result",
+                  "description": "An existing phase or method owns the result"
+                },
+                "owner": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+                }
+              },
+              "required": [
+                "kind",
+                "owner"
+              ],
+              "additionalProperties": false,
+              "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "helper-handback",
+                  "description": "The helper returns its role's handback"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false,
+              "description": "No phase or method owns the result, so the helper returns its role's handback"
+            }
+          ],
+          "description": "The owning phase or method result, or the role's handback when none owns it"
+        },
+        "role": {
+          "type": "string",
+          "const": "advisor",
+          "description": "The Advisor: a competing picture and its tradeoffs"
+        },
+        "executionForm": {
+          "type": "string",
+          "const": "sidekick",
+          "description": "An Advisor always runs as a Sidekick"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The question the owner wants challenged"
+        },
+        "challengedPicture": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The Lead's current model or claim under challenge"
+        }
+      },
+      "required": [
+        "outcome",
+        "sources",
+        "requiredReads",
+        "limits",
+        "stopCondition",
+        "returnContract",
+        "role",
+        "executionForm",
+        "question",
+        "challengedPicture"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+        },
+        "sources": {
+          "readOnly": true,
+          "description": "Governing sources a fresh agent can use without the commissioner",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pointer",
+                    "description": "The source is reachable at a location"
+                  },
+                  "location": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A path, URL or message link the recipient can reach without the commissioner"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "location",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline",
+                    "description": "The source material is carried in the packet"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The material itself, for anything the recipient could not reach"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "content",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "One governing source the recipient reads"
+          }
+        },
+        "requiredReads": {
+          "type": "object",
+          "properties": {
+            "charter": {
+              "type": "string",
+              "const": "role-implementer",
+              "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+            },
+            "practices": {
+              "readOnly": true,
+              "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+              }
+            },
+            "principles": {
+              "readOnly": true,
+              "description": "Job-specific principles to read in full beyond the role skill's own",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+              }
+            }
+          },
+          "required": [
+            "charter",
+            "practices",
+            "principles"
+          ],
+          "additionalProperties": false,
+          "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "access": {
+              "type": "string",
+              "const": "write-and-execute",
+              "description": "Named writes plus granted commands"
+            },
+            "writePaths": {
+              "readOnly": true,
+              "description": "The only paths that may change; an edit outside them is a stop condition",
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "allowedCommands": {
+              "readOnly": true,
+              "description": "Commands the recipient may run",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "access",
+            "writePaths",
+            "allowedCommands"
+          ],
+          "additionalProperties": false,
+          "description": "An Implementer always holds a named write grant"
+        },
+        "stopCondition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the job ends, and when an exception must come back early"
+        },
+        "returnContract": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "owned-result",
+              "description": "An existing phase or method owns the result"
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+            }
+          },
+          "required": [
+            "kind",
+            "owner"
+          ],
+          "additionalProperties": false,
+          "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+        },
+        "role": {
+          "type": "string",
+          "const": "implementer",
+          "description": "The Implementer: assigned changes, product tests and their proof"
+        },
+        "executionForm": {
+          "type": "string",
+          "const": "sidekick",
+          "description": "An Implementer always runs as a Sidekick"
+        },
+        "planSlice": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The plan, and the slice or workstream this commission covers"
+        },
+        "pairedVerifier": {
+          "type": "object",
+          "properties": {
+            "serviceId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The agent-router service id"
+            },
+            "endpointId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The endpoint the session runs on, such as claude-local or codex-local"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The session id agent-router returned when the session was created or found"
+            }
+          },
+          "required": [
+            "serviceId",
+            "endpointId",
+            "sessionId"
+          ],
+          "additionalProperties": false,
+          "description": "The paired Verifier Sidekick's real address"
+        }
+      },
+      "required": [
+        "outcome",
+        "sources",
+        "requiredReads",
+        "limits",
+        "stopCondition",
+        "returnContract",
+        "role",
+        "executionForm",
+        "planSlice",
+        "pairedVerifier"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+        },
+        "sources": {
+          "readOnly": true,
+          "description": "Governing sources a fresh agent can use without the commissioner",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pointer",
+                    "description": "The source is reachable at a location"
+                  },
+                  "location": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A path, URL or message link the recipient can reach without the commissioner"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "location",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline",
+                    "description": "The source material is carried in the packet"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The material itself, for anything the recipient could not reach"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "content",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "One governing source the recipient reads"
+          }
+        },
+        "requiredReads": {
+          "type": "object",
+          "properties": {
+            "charter": {
+              "type": "string",
+              "const": "role-verifier",
+              "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+            },
+            "practices": {
+              "readOnly": true,
+              "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+              }
+            },
+            "principles": {
+              "readOnly": true,
+              "description": "Job-specific principles to read in full beyond the role skill's own",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+              }
+            }
+          },
+          "required": [
+            "charter",
+            "practices",
+            "principles"
+          ],
+          "additionalProperties": false,
+          "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+        },
+        "limits": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect",
+                  "description": "Read-only access"
+                }
+              },
+              "required": [
+                "access"
+              ],
+              "additionalProperties": false,
+              "description": "Reads only; scratch goes to tmp/ or system temp, and the commissioner checks the worktree is unchanged"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect-and-execute",
+                  "description": "Reads plus the listed commands"
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "The only commands the recipient may run",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Reads plus the listed commands; the commissioner checks every reported command was listed"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "write-and-execute",
+                  "description": "Named writes plus granted commands"
+                },
+                "writePaths": {
+                  "readOnly": true,
+                  "description": "The only paths that may change; an edit outside them is a stop condition",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "Commands the recipient may run",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "writePaths",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Named writes plus granted commands; the commissioner checks the diff stays inside writePaths"
+            }
+          ],
+          "description": "The granted access; the host's own settings enforce it, and packet text establishes no permission"
+        },
+        "stopCondition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the job ends, and when an exception must come back early"
+        },
+        "returnContract": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "owned-result",
+              "description": "An existing phase or method owns the result"
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+            }
+          },
+          "required": [
+            "kind",
+            "owner"
+          ],
+          "additionalProperties": false,
+          "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+        },
+        "role": {
+          "type": "string",
+          "const": "verifier",
+          "description": "The Verifier: independent observation of the adopted outcome"
+        },
+        "executionForm": {
+          "type": "string",
+          "const": "sidekick",
+          "description": "A Verifier always runs as a Sidekick"
+        },
+        "adoptedReference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The adopted correctness reference from the governing sources"
+        },
+        "pairedImplementer": {
+          "type": "object",
+          "properties": {
+            "serviceId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The agent-router service id"
+            },
+            "endpointId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The endpoint the session runs on, such as claude-local or codex-local"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The session id agent-router returned when the session was created or found"
+            }
+          },
+          "required": [
+            "serviceId",
+            "endpointId",
+            "sessionId"
+          ],
+          "additionalProperties": false,
+          "description": "The paired Implementer Sidekick's real address"
+        },
+        "work": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "feasibility-challenge",
+                  "description": "Challenge the proof design before the build"
+                },
+                "proposedProof": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The proof design or contract to challenge, before anything is built"
+                }
+              },
+              "required": [
+                "mode",
+                "proposedProof"
+              ],
+              "additionalProperties": false,
+              "description": "Challenge whether the proposed proof can reach the outcome; no build is needed yet"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "delivery-observation",
+                  "description": "Observe the delivered behavior"
+                },
+                "target": {
+                  "type": "object",
+                  "properties": {
+                    "locator": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The build, commit, installed version or URL to observe"
+                    }
+                  },
+                  "required": [
+                    "locator"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The declared target; the report records the identity actually observed"
+                },
+                "observationProcedure": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The project verification procedure to run against the target"
+                }
+              },
+              "required": [
+                "mode",
+                "target",
+                "observationProcedure"
+              ],
+              "additionalProperties": false,
+              "description": "Observe the delivered behavior on a declared target"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "verification-scripts",
+                  "description": "Write or maintain verification scripts and drivers"
+                },
+                "scriptOutcome": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "What the verification script or driver must be able to observe"
+                },
+                "declaredReference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The reference the script is proven against"
+                },
+                "approach": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The plan or approach for the script or driver"
+                },
+                "scriptWritePaths": {
+                  "readOnly": true,
+                  "description": "The only paths the Verifier may write; no feature code or product tests",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "mode",
+                "scriptOutcome",
+                "declaredReference",
+                "approach",
+                "scriptWritePaths"
+              ],
+              "additionalProperties": false,
+              "description": "Write or maintain the assigned verification scripts and drivers"
+            }
+          ],
+          "description": "Exactly one kind of Verifier work"
+        }
+      },
+      "required": [
+        "outcome",
+        "sources",
+        "requiredReads",
+        "limits",
+        "stopCondition",
+        "returnContract",
+        "role",
+        "executionForm",
+        "adoptedReference",
+        "pairedImplementer",
+        "work"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+        },
+        "sources": {
+          "readOnly": true,
+          "description": "Governing sources a fresh agent can use without the commissioner",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pointer",
+                    "description": "The source is reachable at a location"
+                  },
+                  "location": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A path, URL or message link the recipient can reach without the commissioner"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "location",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline",
+                    "description": "The source material is carried in the packet"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The material itself, for anything the recipient could not reach"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "content",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "One governing source the recipient reads"
+          }
+        },
+        "requiredReads": {
+          "type": "object",
+          "properties": {
+            "charter": {
+              "type": "string",
+              "const": "role-reviewer",
+              "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+            },
+            "practices": {
+              "readOnly": true,
+              "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+              }
+            },
+            "principles": {
+              "readOnly": true,
+              "description": "Job-specific principles to read in full beyond the role skill's own",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+              }
+            }
+          },
+          "required": [
+            "charter",
+            "practices",
+            "principles"
+          ],
+          "additionalProperties": false,
+          "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+        },
+        "limits": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect",
+                  "description": "Read-only access"
+                }
+              },
+              "required": [
+                "access"
+              ],
+              "additionalProperties": false,
+              "description": "Reads only; scratch goes to tmp/ or system temp, and the commissioner checks the worktree is unchanged"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect-and-execute",
+                  "description": "Reads plus the listed commands"
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "The only commands the recipient may run",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Reads plus the listed commands; the commissioner checks every reported command was listed"
+            }
+          ],
+          "description": "A Reviewer never holds a write grant"
+        },
+        "stopCondition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the job ends, and when an exception must come back early"
+        },
+        "returnContract": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "owned-result",
+              "description": "An existing phase or method owns the result"
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+            }
+          },
+          "required": [
+            "kind",
+            "owner"
+          ],
+          "additionalProperties": false,
+          "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+        },
+        "role": {
+          "type": "string",
+          "const": "reviewer",
+          "description": "The Reviewer: independent findings on a declared artifact"
+        },
+        "executionForm": {
+          "type": "string",
+          "const": "sidekick",
+          "description": "A Reviewer always runs as a Sidekick"
+        },
+        "reviewTarget": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The declared artifact under review, with its revision"
+        },
+        "procedure": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The review procedure that owns check selection and the report"
+        },
+        "authorHistory": {
+          "type": "string",
+          "const": "none",
+          "description": "The Reviewer starts with no history from the author"
+        }
+      },
+      "required": [
+        "outcome",
+        "sources",
+        "requiredReads",
+        "limits",
+        "stopCondition",
+        "returnContract",
+        "role",
+        "executionForm",
+        "reviewTarget",
+        "procedure",
+        "authorHistory"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "minLength": 1,
+              "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+            },
+            "sources": {
+              "readOnly": true,
+              "description": "Governing sources a fresh agent can use without the commissioner",
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "pointer",
+                        "description": "The source is reachable at a location"
+                      },
+                      "location": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "A path, URL or message link the recipient can reach without the commissioner"
+                      },
+                      "relevance": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Why this source matters to the job"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "location",
+                      "relevance"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "inline",
+                        "description": "The source material is carried in the packet"
+                      },
+                      "content": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The material itself, for anything the recipient could not reach"
+                      },
+                      "relevance": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Why this source matters to the job"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "content",
+                      "relevance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "One governing source the recipient reads"
+              }
+            },
+            "requiredReads": {
+              "type": "object",
+              "properties": {
+                "charter": {
+                  "type": "string",
+                  "const": "role-researcher",
+                  "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+                },
+                "practices": {
+                  "readOnly": true,
+                  "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+                  }
+                },
+                "principles": {
+                  "readOnly": true,
+                  "description": "Job-specific principles to read in full beyond the role skill's own",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+                  }
+                }
+              },
+              "required": [
+                "charter",
+                "practices",
+                "principles"
+              ],
+              "additionalProperties": false,
+              "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+            },
+            "limits": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "const": "inspect",
+                      "description": "Read-only access"
+                    }
+                  },
+                  "required": [
+                    "access"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Reads only; scratch goes to tmp/ or system temp, and the commissioner checks the worktree is unchanged"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "const": "inspect-and-execute",
+                      "description": "Reads plus the listed commands"
+                    },
+                    "allowedCommands": {
+                      "readOnly": true,
+                      "description": "The only commands the recipient may run",
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "access",
+                    "allowedCommands"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Reads plus the listed commands; the commissioner checks every reported command was listed"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "const": "write-and-execute",
+                      "description": "Named writes plus granted commands"
+                    },
+                    "writePaths": {
+                      "readOnly": true,
+                      "description": "The only paths that may change; an edit outside them is a stop condition",
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "allowedCommands": {
+                      "readOnly": true,
+                      "description": "Commands the recipient may run",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "access",
+                    "writePaths",
+                    "allowedCommands"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Named writes plus granted commands; the commissioner checks the diff stays inside writePaths"
+                }
+              ],
+              "description": "The granted access; the host's own settings enforce it, and packet text establishes no permission"
+            },
+            "stopCondition": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Where the job ends, and when an exception must come back early"
+            },
+            "returnContract": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "owned-result",
+                      "description": "An existing phase or method owns the result"
+                    },
+                    "owner": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "owner"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "helper-handback",
+                      "description": "The helper returns its role's handback"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false,
+                  "description": "No phase or method owns the result, so the helper returns its role's handback"
+                }
+              ],
+              "description": "The owning phase or method result, or the role's handback when none owns it"
+            },
+            "role": {
+              "type": "string",
+              "const": "researcher",
+              "description": "The Researcher: a checked answer to a supplied question"
+            },
+            "question": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The question to answer"
+            },
+            "approach": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The supplied approach and its scope"
+            },
+            "executionForm": {
+              "type": "string",
+              "const": "worker",
+              "description": "A native subagent its parent manages"
+            },
+            "investigation": {
+              "type": "string",
+              "const": "bounded-question",
+              "description": "A native Worker answers one bounded question"
+            }
+          },
+          "required": [
+            "outcome",
+            "sources",
+            "requiredReads",
+            "limits",
+            "stopCondition",
+            "returnContract",
+            "role",
+            "question",
+            "approach",
+            "executionForm",
+            "investigation"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "minLength": 1,
+              "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+            },
+            "sources": {
+              "readOnly": true,
+              "description": "Governing sources a fresh agent can use without the commissioner",
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "pointer",
+                        "description": "The source is reachable at a location"
+                      },
+                      "location": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "A path, URL or message link the recipient can reach without the commissioner"
+                      },
+                      "relevance": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Why this source matters to the job"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "location",
+                      "relevance"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "inline",
+                        "description": "The source material is carried in the packet"
+                      },
+                      "content": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The material itself, for anything the recipient could not reach"
+                      },
+                      "relevance": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Why this source matters to the job"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "content",
+                      "relevance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "One governing source the recipient reads"
+              }
+            },
+            "requiredReads": {
+              "type": "object",
+              "properties": {
+                "charter": {
+                  "type": "string",
+                  "const": "role-researcher",
+                  "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+                },
+                "practices": {
+                  "readOnly": true,
+                  "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+                  }
+                },
+                "principles": {
+                  "readOnly": true,
+                  "description": "Job-specific principles to read in full beyond the role skill's own",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+                  }
+                }
+              },
+              "required": [
+                "charter",
+                "practices",
+                "principles"
+              ],
+              "additionalProperties": false,
+              "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+            },
+            "limits": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "const": "inspect",
+                      "description": "Read-only access"
+                    }
+                  },
+                  "required": [
+                    "access"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Reads only; scratch goes to tmp/ or system temp, and the commissioner checks the worktree is unchanged"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "const": "inspect-and-execute",
+                      "description": "Reads plus the listed commands"
+                    },
+                    "allowedCommands": {
+                      "readOnly": true,
+                      "description": "The only commands the recipient may run",
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "access",
+                    "allowedCommands"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Reads plus the listed commands; the commissioner checks every reported command was listed"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "const": "write-and-execute",
+                      "description": "Named writes plus granted commands"
+                    },
+                    "writePaths": {
+                      "readOnly": true,
+                      "description": "The only paths that may change; an edit outside them is a stop condition",
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "allowedCommands": {
+                      "readOnly": true,
+                      "description": "Commands the recipient may run",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "access",
+                    "writePaths",
+                    "allowedCommands"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Named writes plus granted commands; the commissioner checks the diff stays inside writePaths"
+                }
+              ],
+              "description": "The granted access; the host's own settings enforce it, and packet text establishes no permission"
+            },
+            "stopCondition": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Where the job ends, and when an exception must come back early"
+            },
+            "returnContract": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "owned-result",
+                      "description": "An existing phase or method owns the result"
+                    },
+                    "owner": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "owner"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "helper-handback",
+                      "description": "The helper returns its role's handback"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false,
+                  "description": "No phase or method owns the result, so the helper returns its role's handback"
+                }
+              ],
+              "description": "The owning phase or method result, or the role's handback when none owns it"
+            },
+            "role": {
+              "type": "string",
+              "const": "researcher",
+              "description": "The Researcher: a checked answer to a supplied question"
+            },
+            "question": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The question to answer"
+            },
+            "approach": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The supplied approach and its scope"
+            },
+            "executionForm": {
+              "type": "string",
+              "const": "sidekick",
+              "description": "A separately managed session"
+            },
+            "investigation": {
+              "type": "string",
+              "enum": [
+                "bounded-question",
+                "continuing-investigation"
+              ],
+              "description": "A bounded question when the model needs Router; otherwise a continuing investigation"
+            }
+          },
+          "required": [
+            "outcome",
+            "sources",
+            "requiredReads",
+            "limits",
+            "stopCondition",
+            "returnContract",
+            "role",
+            "question",
+            "approach",
+            "executionForm",
+            "investigation"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A Researcher packet in its Worker or Sidekick form"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What done looks like, checkable by the recipient; a result, never an acceptance"
+        },
+        "sources": {
+          "readOnly": true,
+          "description": "Governing sources a fresh agent can use without the commissioner",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pointer",
+                    "description": "The source is reachable at a location"
+                  },
+                  "location": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A path, URL or message link the recipient can reach without the commissioner"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "location",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline",
+                    "description": "The source material is carried in the packet"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The material itself, for anything the recipient could not reach"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Why this source matters to the job"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "content",
+                  "relevance"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "One governing source the recipient reads"
+          }
+        },
+        "requiredReads": {
+          "type": "object",
+          "properties": {
+            "charter": {
+              "type": "string",
+              "const": "role-operator",
+              "description": "The exact selected role skill name, such as role-implementer; it must match the role"
+            },
+            "practices": {
+              "readOnly": true,
+              "description": "Job-specific practices to read in full beyond the role skill's own; often empty",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^practices-[a-z]+(-[a-z]+)*$"
+              }
+            },
+            "principles": {
+              "readOnly": true,
+              "description": "Job-specific principles to read in full beyond the role skill's own",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^principle-[a-z]+(-[a-z]+)*$"
+              }
+            }
+          },
+          "required": [
+            "charter",
+            "practices",
+            "principles"
+          ],
+          "additionalProperties": false,
+          "description": "Full reads: this role's own skill plus job-specific reads beyond it"
+        },
+        "limits": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect",
+                  "description": "Read-only access"
+                }
+              },
+              "required": [
+                "access"
+              ],
+              "additionalProperties": false,
+              "description": "Reads only; scratch goes to tmp/ or system temp, and the commissioner checks the worktree is unchanged"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "inspect-and-execute",
+                  "description": "Reads plus the listed commands"
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "The only commands the recipient may run",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Reads plus the listed commands; the commissioner checks every reported command was listed"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "access": {
+                  "type": "string",
+                  "const": "write-and-execute",
+                  "description": "Named writes plus granted commands"
+                },
+                "writePaths": {
+                  "readOnly": true,
+                  "description": "The only paths that may change; an edit outside them is a stop condition",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "allowedCommands": {
+                  "readOnly": true,
+                  "description": "Commands the recipient may run",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "access",
+                "writePaths",
+                "allowedCommands"
+              ],
+              "additionalProperties": false,
+              "description": "Named writes plus granted commands; the commissioner checks the diff stays inside writePaths"
+            }
+          ],
+          "description": "The granted access; the host's own settings enforce it, and packet text establishes no permission"
+        },
+        "stopCondition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the job ends, and when an exception must come back early"
+        },
+        "returnContract": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "owned-result",
+                  "description": "An existing phase or method owns the result"
+                },
+                "owner": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The phase or method whose result shape the helper returns, such as implement-plan"
+                }
+              },
+              "required": [
+                "kind",
+                "owner"
+              ],
+              "additionalProperties": false,
+              "description": "The result belongs to an existing phase or method, which keeps its own fields and labels"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "helper-handback",
+                  "description": "The helper returns its role's handback"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false,
+              "description": "No phase or method owns the result, so the helper returns its role's handback"
+            }
+          ],
+          "description": "The owning phase or method result, or the role's handback when none owns it"
+        },
+        "role": {
+          "type": "string",
+          "const": "operator",
+          "description": "The Operator: observations from a prescribed procedure or guided collection"
+        },
+        "executionForm": {
+          "type": "string",
+          "enum": [
+            "worker",
+            "sidekick"
+          ],
+          "description": "Worker by default; Sidekick when the job needs a separate session"
+        },
+        "procedure": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "prescribed-steps",
+                  "description": "An exact procedure"
+                },
+                "steps": {
+                  "readOnly": true,
+                  "description": "The procedure, in order",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The exact command, tool action or watch"
+                      },
+                      "expectedObservation": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "What the step should show when it works"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "expectedObservation"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "steps"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "guided-collection",
+                  "description": "Collection or extraction under supplied criteria"
+                },
+                "criteria": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The collection or extraction criteria, including any candidate labels"
+                },
+                "expectedObservations": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "What the collection should return"
+                }
+              },
+              "required": [
+                "kind",
+                "criteria",
+                "expectedObservations"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "The procedure or criteria the Operator follows; it never chooses its own probe"
+        }
+      },
+      "required": [
+        "outcome",
+        "sources",
+        "requiredReads",
+        "limits",
+        "stopCondition",
+        "returnContract",
+        "role",
+        "executionForm",
+        "procedure"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

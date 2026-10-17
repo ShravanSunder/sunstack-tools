@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "name": "commission-completeness",
+  "description": "Checks that a Lead's commission states a checkable outcome.",
+  "inputs": {
+    "commission": { "kind": "payload", "schema": "agent-job-packet" }
+  },
+  "applicability": [],
+  "common_ruleset_instructions": null,
+  "rule_paths": ["commission-rules.jsonl"]
+}

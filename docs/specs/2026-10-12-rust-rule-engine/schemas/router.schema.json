@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "router.schema.json",
+  "title": "Router definition",
+  "description": "Admission also checks: route labels are criteria labels of the question; routed RuleSets are admitted; each wiring binds every routed RuleSet input exactly once to a router input of a compatible kind.",
+  "$ref": "#/$defs/Router",
+  "$defs": {
+    "Router": {
+      "type": "object",
+      "properties": {
+        "schema_version": { "const": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "inputs": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
+          "additionalProperties": { "$ref": "rule-set.schema.json#/$defs/InputDeclaration" }
+        },
+        "evidence": {
+          "allOf": [
+            { "$ref": "evidence-declaration.schema.json#/$defs/EvidenceDeclarations" },
+            { "minItems": 1 }
+          ]
+        },
+        "question": { "$ref": "decision-question.schema.json#/$defs/ChoiceQuestion" },
+        "routes": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "type": "string", "minLength": 1 },
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/RouteTarget" }
+          }
+        },
+        "confidence_floor": {
+          "description": "Compared with the Choice answer's native confidence, never the selected label's probability.",
+          "$ref": "applicability.schema.json#/$defs/Threshold"
+        }
+      },
+      "required": ["schema_version", "name", "description", "inputs", "evidence", "question", "routes", "confidence_floor"],
+      "additionalProperties": false
+    },
+    "RouteTarget": {
+      "type": "object",
+      "properties": {
+        "rule_set": {
+          "description": "Path relative to this router file.",
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "description": "Routed RuleSet input name to router input name.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
+          "additionalProperties": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" }
+        }
+      },
+      "required": ["rule_set", "inputs"],
+      "additionalProperties": false
+    }
+  }
+}

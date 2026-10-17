@@ -1,99 +1,114 @@
-# RuleSet JSON and reusable JSONL rules
+# Worked examples: from files to verdicts
 
-A **RuleSet** is the named definition selected by a caller. It refers to **rule files**, which store one reusable **rule definition** per JSONL line. Each rule contains named noul/choice/score **questions**. [Schema inventory](schema-inventory.md) explains every field and its domain owner.
+Both milestone 1 journeys, traced from authored files to one request and then to results. The files are in [`examples/`](examples/) and validate against [`schemas/`](schemas/). The answers below are illustrative canned values, the kind the V32 equivalence oracle uses, not model output.
 
-![RuleSet, JSONL questions, captured evidence and validated native answers](assets/rule-question-flow.png)
+## Skill lint
 
-[Diagram source](assets/rule-question-flow.mmd)
+**Files:**
+- [`skill-quality.ruleset.json`](examples/skill-quality.ruleset.json): one `document` input named `skill`, no applicability, and common instructions.
+- [`skill-rules.jsonl`](examples/skill-rules.jsonl): three rules over paragraphs U001–U003 of [`SKILL.md`](examples/SKILL.md).
+- [`skill-lint.invocation.json`](examples/skill-lint.invocation.json): binds `skill` to that document in one group, with origin `direct`.
 
-## The RuleSet file
+**Plan.** One RuleSet × one group, no gates, so there is one `rules` request with five questions:
 
-The complete [skill-quality.ruleset.json](examples/skill-quality.ruleset.json) is:
+| Request name | Owner | Kind |
+| --- | --- | --- |
+| `q000001` | verdict of `skill.activation` | noul |
+| `q000002` | informational `skill.activation` / `task_kind` | choice |
+| `q000003` | informational `skill.output.specificity` / `names_file` | noul |
+| `q000004` | informational `skill.output.specificity` / `specificity` | score (0–3) |
+| `q000005` | verdict of `skill.verification.present` | noul |
 
-```json
-{
-  "schema_version": 1,
-  "name": "skill-quality",
-  "description": "Check skill activation, output specificity and verification requirements.",
-  "rule_paths": [
-    "skill-rules.jsonl"
-  ],
-  "instruction_prefix": null
-}
-```
+`skill.output.specificity` has a composite verdict, so it adds no verdict question. Its verdict reads `specificity` and `names_file`.
 
-`name` and `description` identify its purpose to the person/agent selecting it. They do not cause execution or enter the model prompt. `rule_paths` resolves relative to this file. `instruction_prefix: null` means every question supplies its own instructions. A string, object or array can supply common instructions when reuse is useful.
-
-The caller explicitly runs this RuleSet against chosen input. There is no event message, watcher, trigger subscription or engine-maintained scheduling history. The RuleSet groups the selected definitions and returns their native named answers together, as specified in [Specification C6](specification.md#c6--native-judgments-and-result-composition). It does not invent an overall verdict or require a separate aggregation setting.
-
-## A rule line and its questions
-
-The complete [skill-rules.jsonl](examples/skill-rules.jsonl) contains three lines and four questions. This is its first line, expanded for reading:
+Every question's instructions arrive wrapped. Here is `q000005`:
 
 ```json
 {
-  "rule_id": "skill.activation",
-  "target_id": "U001",
-  "applicability": {
-    "kind": "always"
-  },
-  "context_selectors": [],
-  "questions": {
-    "activation": {
-      "type": "choice",
-      "instructions": "Does this paragraph clearly state when to use the skill?",
-      "criteria": {
-        "pass": {
-          "description": "A concrete activating situation is clear.",
-          "examples": [
-            "Use when creating or updating a skill."
-          ]
-        },
-        "fail": "No activating situation is stated.",
-        "review": "An activating situation is suggested but ambiguous."
-      }
-    },
-    "task_kind": {
-      "type": "choice",
-      "instructions": "Which kind of task does this paragraph describe?",
-      "criteria": {
-        "creation": "Creating a skill.",
-        "updating": "Updating a skill.",
-        "both": "Both creating and updating a skill.",
-        "unclear": "No concrete task can be identified."
-      }
-    }
-  }
+  "owner": "rule:skill.verification.present",
+  "reads": ["rule:skill.verification.present/verification_paragraph"],
+  "common_ruleset_instructions": { "context": "You are reviewing one paragraph of an agent skill. Judge only the paragraph labeled as this rule's target." },
+  "question": "Does this paragraph require checking the produced output before it is returned?"
 }
 ```
 
-The physical JSONL file has one complete object per line, with no array, header or wrapper. `rule_id` identifies the check. `target_id` locates the subject paragraph in the bound skill. `questions` holds independent model questions; the first asks for a pass/fail/review classification, while the second classifies task kind. They are not different schema representations of one verdict. The remaining lines demonstrate score and noul questions.
+The state holds three labeled paragraphs (`.../activation_paragraph`, `.../output_paragraph`, `.../verification_paragraph`), each with its text, document and span.
 
-The skill binding associates this RuleSet with the complete teaching subject [SKILL.md](examples/SKILL.md). [skill-binding.json](examples/skill-binding.json) uses repository-relative skill paths and invocation-cwd-relative RuleSet paths; no subject text is repeated in the rule file. The source paragraph and declared context are captured into model `state` at runtime.
+**Reduction** with illustrative answers:
 
-## What reaches Jev
+| Rule | Answers | Verdict | Severity |
+| --- | --- | --- | --- |
+| `skill.activation` | `q000001` yes 0.91 | pass (0.91 ≥ 0.7) | none |
+| `skill.output.specificity` | `specificity` 2.0 of 3 → 0.667; `names_file` yes 0.88 | composite 0.75×0.667 + 0.25×0.88 = 0.72 → pass (≥ 0.67) | none |
+| `skill.verification.present` | `q000005` yes 0.42 | fail (0.42 < 0.8) | block rule, but 0.42 is above the 0.3 band, so it acts as nudge (`nudge_above_band`) |
 
-For a null prefix, `question.instructions` and `question.criteria` are preserved exactly. With a prefix, instructions become `{ "prefix": rule_set.instruction_prefix, "question": question.instructions }`. Both values remain structured; there is no concatenation, merge, override or interpreted path. The two outer labels are the request builder's explicit structure, not extra Jev API fields. Question names correlate responses, while instructions/criteria carry their meaning. [TypeSafe Choice](https://docs.typesafe.ai/primitives/choice)
+The report is complete (exit 0), with one nudge. At 0.25 the same rule would block. Every native answer stays in the report, and `task_kind` is informational: no verdict depends on it.
 
-A model request contains multiple named questions and shared `state`. Runtime model selection and credentials are separate. Applicability and context selectors run locally; they are not model questions. Rule IDs, subject IDs and source spans provide correlation/provenance. Name and description are metadata, not automatic prompt text.
+## Handoff monitor
 
-## Structured question content
+**Files:**
+- [`agent-handoff.router.json`](examples/agent-handoff.router.json): the Specification C13 router.
+- [`review-handoff.ruleset.json`](examples/review-handoff.ruleset.json) and [`review-handoff-rules.jsonl`](examples/review-handoff-rules.jsonl): three reviewer rules.
+- [`commission-completeness.ruleset.json`](examples/commission-completeness.ruleset.json) and [`commission-rules.jsonl`](examples/commission-rules.jsonl): one commission rule.
+- [`handoff-monitor.invocation.json`](examples/handoff-monitor.invocation.json): a Codex Stop hook origin, a reviewer `AgentJobPacket` and a transcript path.
 
-Instructions and all option/level/noul descriptions accept string, object, array or null. Objects and arrays preserve recursive JSON, including nested finite numbers, booleans and null. Root numbers and booleans are outside the documented EntryType. Descriptive keys inside JSON content are author-chosen labels, not instructions to the engine. [TypeSafe advanced structure](https://docs.typesafe.ai/primitives/advanced)
+**Admission:**
+1. The packet validates against `agent-job-packet`.
+2. The router's group binds `message` and `session`.
+3. Wiring derives two groups:
+   - `review-handoff`: `subject ← session`, `commission ← message`
+   - `commission-completeness`: `commission ← message`
+4. `review-handoff`'s leading condition `/role = "reviewer"` passes.
 
-Noul criteria may be omitted, or contain both `true` and `false`; either description may be null. Choice criteria is a nonempty label map. Score criteria is a nonempty ordered rubric. Their tagged question variants enforce these different shapes; no unrelated optional-field bag is used.
+**Planning.** The router reads both sources (`message` and `session`).
+- `review-handoff`'s rules read both, so the router rides in its request.
+- `commission-completeness`'s rule reads only `message`, which does not cover the router's read set, so it waits for the router.
+- `reviewer.handback-addresses-target` has a rule-level decision over `session`, which the rules read, so it rides too.
+- `reviewer.stayed-read-only` has a rule-level condition, `/limits/access = "inspect"`. That passes for this packet, which is evaluated in code.
 
-## Native results and useful failures
+The first request carries:
 
-Choice returns the selected label plus confidence/distribution, so criteria can directly define the desired labels. Noul retains a yes probability. Score retains its fractional rubric position and distribution. A score is not a probability or a percentage of text that is correct. The [answer schema](schemas/decision-answer.schema.json) is owned once by decisions; rule results reference it through correlated execution outcomes.
-
-| Case | Observable result |
+| Request name | Owner |
 | --- | --- |
-| The activation question returns admitted `review` | That native label and its distribution remain available with rule/subject attribution |
-| A consumer wants a thresholded noul result | The consumer deliberately defines that interpretation; no hidden threshold is supplied by transport |
-| U001 is missing, duplicated or deleted | Source diagnostic; no judgment |
-| Required context or the complete request cannot fit | Evidence/budget diagnostic; no silent truncation or pass |
-| Provider returns an unknown label or wrong question kind | Invalid response; no partial completed answer map |
-| Provider fails or cancellation is observed | Typed execution/cancellation outcome, never a pass |
+| `q000001` | router (choice over `review_handback`, `clarifying_question`, `commission`, `other`) |
+| `q000002` | rule decision `reviewer.handback-addresses-target`, entry 0 |
+| `q000003` | verdict `reviewer.read-required-sources` |
+| `q000004` | informational `reviewer.read-required-sources` / `unread_sources` |
+| `q000005` | verdict `reviewer.stayed-read-only` |
+| `q000006` | informational `reviewer.handback-addresses-target` / `coverage` |
+| `q000007` | informational `reviewer.handback-addresses-target` / `has_findings` |
 
-These are teaching examples, not observed model answers, independent evaluation expectations or runtime proof. The schema files and example documents can be validated locally. The Rust engine, source resolver, HTTP adapter, hosted model and production consumers are unimplemented and unverified.
+The transcript is captured once. The state holds deduplicated contents with these labels:
+- `router/commission`, `router/recent_turns`
+- `rule:reviewer.read-required-sources/reviewer_reads`, `.../commission_sources`
+- `rule:reviewer.stayed-read-only/reviewer_changes`
+- `rule:reviewer.handback-addresses-target/handback`, `.../review_target`, `.../final_message`
+
+The final message and the router's last-two-turns selection share content entries where their records overlap.
+
+**Reduction**, case A. The router answers `review_handback`, with confidence 0.82 ≥ 0.6 (routed):
+
+| Rule | Answers | Result |
+| --- | --- | --- |
+| `reviewer.read-required-sources` | verdict yes 0.21; `unread_sources` = `some` | fail; block rule and 0.21 ≤ 0.3, so it **blocks** |
+| `reviewer.stayed-read-only` | verdict yes 0.95 | pass |
+| `reviewer.handback-addresses-target` | decision yes 0.9 ≥ 0.6, applicable; `coverage` 2 of 2 → 1.0; `has_findings` 0.8 | composite 0.94 → pass |
+| `commission.outcome-checkable` | never sent; the router did not choose `commission` | no occurrence |
+
+The report is complete (exit 0). The hook sees one block and can continue the reviewer with that finding.
+
+**Case B.** The router's distribution is [0.45, 0.3, 0.15, 0.1]. Its native confidence is about 0.27, below 0.6:
+- The router outcome is `uncertain_intent`, with that distribution.
+- The router's answer is the controlling answer. The six rule answers from the same request are discarded and reported with the request's cost.
+- There are no rule occurrences. The report is complete (exit 0).
+
+**Case C.** The request fails, for example with a provider timeout:
+- The router slot fails, so the router outcome is `router_failed`.
+- The report is incomplete (exit 3), with the request's diagnostic and attempt records.
+- No verdict exists.
+
+**Case D.** The router answers `commission` with confidence 0.7:
+- The `review-handoff` answers are discarded with their cost.
+- The `commission-completeness` request is sent next, with one verdict question over the `outcome` payload field.
+
+**Next run.** The report returns a cursor for the transcript. The hook passes it back with any selection that uses `since_cursor`, and only new or changed records are selected. These examples use fixed windows, so they don't depend on the cursor.

@@ -1,0 +1,33 @@
+[package]
+name = "sunstack-evidence"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_path_to_error = "0.1"
+schemars = { version = "1.0", features = ["chrono04"] }
+thiserror = "2.0"
+tokio = { version = "1", features = ["rt", "sync"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+sha2 = "0.10"
+base64 = "0.22"
+regex = "1"
+globset = "0.4"
+ignore = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+pulldown-cmark = { version = "0.13", default-features = false }
+ast-grep-core = "=0.51.0"
+ast-grep-language = "=0.51.0"
+jsonschema = { version = "=0.57.0", default-features = false }
+git2 = { version = "=0.21.0", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
