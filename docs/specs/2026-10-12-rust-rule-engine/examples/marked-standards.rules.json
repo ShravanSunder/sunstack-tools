@@ -1,0 +1,10 @@
+{
+  "K014": {
+    "name": "paragraph.clear-result",
+    "target": {
+      "input": "skill",
+      "select": { "kind": "paragraph", "target_id": "U001" }
+    },
+    "threshold": 0.8
+  }
+}

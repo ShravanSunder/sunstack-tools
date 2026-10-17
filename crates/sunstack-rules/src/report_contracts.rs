@@ -9,6 +9,8 @@ use sunstack_evidence::{CaptureCoverage, ReturnedCursor, SourceName, TargetLocat
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InvocationMeasurements {
+    pub invalid_rule_entries: usize,
+    pub skipped_rule_sources: usize,
     pub files_considered: usize,
     pub files_read: usize,
     pub files_parsed: usize,
@@ -423,6 +425,8 @@ pub struct RequestRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleInvocationReport {
+    pub rule_coverage: crate::RuleCoverage,
+    pub skipped_rules: Vec<crate::SkippedRule>,
     pub origin: ReportedOrigin,
     pub routing: RoutingReport,
     pub groups: Vec<GroupResult>,
@@ -436,24 +440,26 @@ pub struct RuleInvocationReport {
 }
 impl RuleInvocationReport {
     pub fn is_complete(&self) -> bool {
-        self.occurrences.iter().all(|result| {
-            matches!(
-                result,
-                RuleOccurrenceResult::Judged { .. }
-                    | RuleOccurrenceResult::NotApplicable { .. }
-                    | RuleOccurrenceResult::OutsideChangeScope { .. }
-            )
-        }) && match &self.routing {
-            RoutingReport::RuleSets => true,
-            RoutingReport::Router { groups } => groups.iter().all(|group| {
+        self.rule_coverage != crate::RuleCoverage::None
+            && self.occurrences.iter().all(|result| {
                 matches!(
-                    group.outcome,
-                    RouterOutcome::Routed { .. }
-                        | RouterOutcome::UncertainIntent { .. }
-                        | RouterOutcome::NoRoute { .. }
+                    result,
+                    RuleOccurrenceResult::Judged { .. }
+                        | RuleOccurrenceResult::NotApplicable { .. }
+                        | RuleOccurrenceResult::OutsideChangeScope { .. }
                 )
-            }),
-        }
+            })
+            && match &self.routing {
+                RoutingReport::RuleSets => true,
+                RoutingReport::Router { groups } => groups.iter().all(|group| {
+                    matches!(
+                        group.outcome,
+                        RouterOutcome::Routed { .. }
+                            | RouterOutcome::UncertainIntent { .. }
+                            | RouterOutcome::NoRoute { .. }
+                    )
+                }),
+            }
     }
     pub fn answer(
         &self,

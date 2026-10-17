@@ -122,6 +122,8 @@ fn safe_field(field: &str) -> bool {
             | "markdown"
             | "rules"
             | "marker_prefix"
+            | "context"
+            | "output"
             | "max_question_words"
             | "rule_id"
             | "evidence"

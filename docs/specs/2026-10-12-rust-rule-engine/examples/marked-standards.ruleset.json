@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "Marked paragraph standards",
+  "description": "An example of questions assembled from marked Markdown.",
+  "inputs": { "skill": { "kind": "document" } },
+  "applicability": [],
+  "common_ruleset_instructions": "Apply each standard to the selected evidence.",
+  "marker_prefix": "K",
+  "rule_sources": [
+    { "markdown": "marked-standards.md", "rules": "marked-standards.rules.json" }
+  ]
+}

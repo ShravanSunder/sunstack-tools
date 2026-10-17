@@ -61,6 +61,9 @@ fn validate_router_definition(router: &RouterDefinition) -> Result<(), Diagnosti
     Ok(())
 }
 pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize) {
+    locate_at(diagnostics, file, line, 1);
+}
+pub(crate) fn locate_at(diagnostics: &mut DiagnosticList, file: &Path, line: usize, column: usize) {
     for diagnostic in &mut diagnostics.items {
         match diagnostic {
             ReportDiagnostic::Rule(diagnostic) => {
@@ -68,7 +71,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                     diagnostic.location = RuleDiagnosticLocation::Definition {
                         file: file.into(),
                         line,
-                        column: 1,
+                        column,
                         field_path: vec![],
                     };
                 }
@@ -89,7 +92,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                 diagnostic.location = sunstack_decisions::DecisionDiagnosticLocation::Definition {
                     file: file.into(),
                     line,
-                    column: 1,
+                    column,
                     field_path,
                 };
             }
@@ -104,7 +107,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                 diagnostic.location = sunstack_evidence::DiagnosticLocation::Definition {
                     file: file.into(),
                     line,
-                    column: 1,
+                    column,
                     field_path,
                 };
             }
