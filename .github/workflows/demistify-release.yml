@@ -93,7 +93,9 @@ jobs:
           import { versionSchema, versionNumbers } from './packages/demistify/release/release-schema.ts';
           const current = versionSchema.parse(JSON.parse(await readFile('packages/demistify/package.json', 'utf8')).version);
           const before = process.env.BEFORE_SHA;
-          const previous = before && /^[a-f0-9]{40}$/.test(before) && !/^0+$/.test(before)
+          const previous = process.env.GITHUB_EVENT_NAME === 'push'
+            && process.env.GITHUB_REF === 'refs/heads/main'
+            && before && /^[a-f0-9]{40}$/.test(before) && !/^0+$/.test(before)
             ? JSON.parse(execFileSync('git', ['show', `${before}:packages/demistify/package.json`], {encoding:'utf8'})).version
             : current;
           const deploy = process.env.GITHUB_REF === 'refs/heads/main'
