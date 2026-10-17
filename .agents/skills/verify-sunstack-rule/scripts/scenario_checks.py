@@ -6,22 +6,19 @@
 
 import argparse
 import copy
-import hashlib
 import importlib.metadata
 import json
 import os
 import subprocess
 import sys
 import threading
-import typing as t
 import urllib.request
 from functools import partial
 from pathlib import Path
 from queue import Queue
 
 from composition_scenarios import request_owner_label, request_router_group
-from connected_scenarios import check_group, connected_checks, connected_fixture
-from dependency_scenarios import SelectionExpectation, check_selection_pair
+from connected_scenarios import connected_checks
 from git_scenario_fixtures import fixture_git_checks
 from handoff_scenario import (
     check_final_record,
@@ -29,7 +26,13 @@ from handoff_scenario import (
     expected_final_blocks,
 )
 from pydantic import ValidationError
-from recent_scenarios import source_checks, window_checks
+from scenario_readback_checks import (
+    assertion_rejects,
+    correction_checks,
+    readback_checks,
+    source_checks,
+    window_checks,
+)
 from scenario_runtime import (
     INDEX_VARIABLES,
     REPOSITORY_ROOT,
@@ -41,14 +44,6 @@ from scenario_runtime import (
     write_object,
 )
 from scenario_transport import ControlledServer, response_body
-
-
-def assertion_rejects(operation: t.Callable[[], object]) -> bool:
-    try:
-        operation()
-    except AssertionError:
-        return True
-    return False
 
 
 def sensitivity_checks(evidence: Path) -> None:
@@ -167,153 +162,6 @@ def pin_reader_checks() -> None:
     assert refused == 4
 
 
-def readback_checks(evidence: Path) -> None:
-    root = evidence / "group-readback-control"
-    connected_fixture(root, "http://127.0.0.1:1/systemone", "positive")
-    excerpts: list[JsonObject] = []
-    for repository, path, start, text, signature in [
-        (
-            "library",
-            "lib.ts",
-            7,
-            "function target() { return 2; }",
-            "function target()",
-        ),
-        (
-            "caller",
-            "caller.ts",
-            48,
-            "function caller() { return alias(); }",
-            "function caller()",
-        ),
-    ]:
-        source: JsonObject = {
-            "repository": repository,
-            "path": path,
-            "revision": {"kind": "worktree", "side": "after"},
-            "content_identity": hashlib.sha256(
-                (root / repository / path).read_bytes()
-            ).hexdigest(),
-        }
-        span: JsonObject = {
-            "source": source,
-            "byte_start": start,
-            "byte_end": start + len(text),
-        }
-        excerpts.append(
-            {
-                "unit": {"repository": repository},
-                "text": text,
-                "span": span,
-                "membership": {"kind": "whole_unit"},
-                "context": {
-                    "enclosing_signature": signature,
-                    "import_context": [
-                        {"byte_start": 0, "byte_end": 47, "source": source}
-                    ]
-                    if repository == "caller"
-                    else [],
-                },
-            }
-        )
-    group: JsonObject = {
-        "excerpts": excerpts,
-        "relationships": [
-            {
-                "kind": "candidate",
-                "source_unit": {"repository": "caller"},
-                "target_unit": {"repository": "library"},
-            }
-        ],
-    }
-    check_group(group, root)
-    refused = 0
-    for mode in ["missing-caller", "wrong-caller-text", "wrong-owner"]:
-        invalid = copy.deepcopy(group)
-        selected = invalid["excerpts"]
-        assert isinstance(selected, list)
-        if mode == "missing-caller":
-            selected.pop()
-        else:
-            caller = selected[1]
-            assert isinstance(caller, dict)
-            if mode == "wrong-caller-text":
-                caller["text"] = "function caller() { return other(); }"
-            else:
-                object_at(caller, "unit")["repository"] = "wrong-root"
-        refused += int(assertion_rejects(partial(check_group, invalid, root)))
-    preparation: JsonObject = {
-        "preparation": {
-            "occurrences": [
-                {
-                    "status": {
-                        "kind": "planned",
-                        "selection": {
-                            "kind": "selected",
-                            "selected_by": ["target_changed"],
-                        },
-                    }
-                },
-                {
-                    "status": {
-                        "kind": "outside_change_scope",
-                        "reason": "no_declared_change",
-                    }
-                },
-            ]
-        }
-    }
-    report: JsonObject = {
-        "occurrences": [
-            {
-                "kind": "judged",
-                "key": {"rule_id": "changed"},
-                "selected_by": ["target_changed"],
-                "judgment": {
-                    "verdict": {
-                        "basis": {"answer": {"request_index": 0, "question_name": "q1"}}
-                    }
-                },
-            },
-            {
-                "kind": "outside_change_scope",
-                "key": {"rule_id": "neighbor"},
-                "reason": "no_declared_change",
-            },
-        ],
-        "requests": [
-            {"status": {"outcome": {"answers": {"q1": {"type": "noul", "noul": 0.9}}}}}
-        ],
-    }
-    expected = SelectionExpectation(
-        kinds=("judged", "outside_change_scope"), reasons=(["target_changed"], [])
-    )
-    check_selection_pair(preparation, report, expected)
-    for mode in ["empty-occurrences", "wrong-reason", "false-outside"]:
-        invalid = copy.deepcopy(report)
-        rows = invalid["occurrences"]
-        assert isinstance(rows, list)
-        if mode == "empty-occurrences":
-            rows.clear()
-        else:
-            row = rows[0]
-            assert isinstance(row, dict)
-            if mode == "wrong-reason":
-                row["selected_by"] = ["full_scope"]
-            else:
-                row["kind"] = "outside_change_scope"
-        refused += int(
-            assertion_rejects(
-                partial(check_selection_pair, preparation, invalid, expected)
-            )
-        )
-    assert refused == 6
-    write_object(
-        evidence / "readback-checks.json",
-        {"malformed_group_and_selection_observations_refused": refused},
-    )
-
-
 def helper_checks(evidence: Path) -> None:
     frame = {
         "kind": "operation_result",
@@ -413,43 +261,47 @@ def main() -> None:
     fixture_git_checks(evidence)
     connected_checks(evidence)
     readback_checks(evidence)
+    correction_checks(evidence)
     window_checks(evidence)
     source_checks(evidence)
     rejection_environment = os.environ.copy()
     rejection_environment.pop("OPENROUTER_API_KEY", None)
-    rejected = subprocess.run(
-        [
-            sys.executable,
-            str(SKILL_ROOT / "scripts/usage_scenarios.py"),
-            "--binary",
-            str(evidence / "not-executed"),
-            "--evidence",
-            str(evidence / "spent-us02-refusal"),
-            "--journey",
-            "US02",
-            "--hosted",
-        ],
-        cwd=REPOSITORY_ROOT,
-        env=rejection_environment,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=15,
-    )
-    assert (
-        rejected.returncode == 1
-        and "Only the separately authorized US21 slot is available" in rejected.stderr
-    )
-    assert "Credential prerequisite" not in rejected.stderr
-    assert not list((evidence / "spent-us02-refusal").rglob("hosted-slot.json"))
-    write_object(
-        evidence / "spent-us02-refusal.json",
-        {
-            "exit": rejected.returncode,
-            "stderr": rejected.stderr,
-            "credential_present": "OPENROUTER_API_KEY" in rejection_environment,
-        },
-    )
+    refusals: list[JsonObject] = []
+    for journey in ["US02", "US21"]:
+        refused_evidence = evidence / f"spent-{journey}"
+        rejected = subprocess.run(
+            [
+                sys.executable,
+                str(SKILL_ROOT / "scripts/usage_scenarios.py"),
+                "--binary",
+                str(evidence / "not-executed"),
+                "--evidence",
+                str(refused_evidence),
+                "--journey",
+                journey,
+                "--hosted",
+            ],
+            cwd=REPOSITORY_ROOT,
+            env=rejection_environment,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=15,
+        )
+        assert (
+            rejected.returncode == 2
+            and "Both genuine slots are spent" in rejected.stderr
+        )
+        assert not refused_evidence.exists()
+        refusals.append(
+            {
+                "journey": journey,
+                "exit": rejected.returncode,
+                "stderr": rejected.stderr,
+                "credential_present": "OPENROUTER_API_KEY" in rejection_environment,
+            }
+        )
+    write_object(evidence / "spent-slot-refusals.json", {"refusals": refusals})
     helper_checks(evidence)
     sensitivity_checks(evidence)
     pin_reader_checks()

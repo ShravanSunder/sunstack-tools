@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, JsonValue, TypeAdapter
 
 type JsonObject = dict[str, JsonValue]
 type OperationName = t.Literal["prepare_evidence", "prepare_rules", "evaluate_rules"]
-type CredentialMode = t.Literal["none", "synthetic", "hosted"]
+type CredentialMode = t.Literal["none", "synthetic"]
 JSON_OBJECT = TypeAdapter(JsonObject)
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 REPOSITORY_ROOT = SKILL_ROOT.parents[2]
@@ -141,20 +141,6 @@ class DriverContext:
             assert endpoint.startswith("http://127.0.0.1:"), (
                 "Local scenarios require owned loopback"
             )
-        elif request.credential == "hosted":
-            key = os.environ.get("OPENROUTER_API_KEY")
-            assert key, "The authorized hosted command needs its in-memory credential"
-            assert object_at(request.input_value, "request_budget")["max_requests"] == 1
-            assert object_at(request.input_value, "attempts")["retry_count"] == 0
-            assert (
-                object_at(request.input_value, "attempts")["attempt_timeout_ms"]
-                == 60000
-            )
-            assert (
-                object_at(request.input_value, "backend")["endpoint"]
-                == "https://openrouter.ai/api/v1/systemone"
-            )
-            environment["OPENROUTER_API_KEY"] = key
         stack = ExitStack()
         try:
             stdin = stack.enter_context((directory / "stdin.json").open("rb"))
@@ -185,7 +171,7 @@ class DriverContext:
             started=started,
             command=command,
             cwd=request.cwd,
-            deadline=90 if request.credential == "hosted" else 15,
+            deadline=15,
         )
 
 

@@ -69,26 +69,31 @@ def recent_repository(
 ) -> tuple[FixtureRepository, JsonObject]:
     repository = FixtureRepository(root=root, evidence=root.parent)
     repository.initialize()
+    label = root.name
     repository.write(
         "recent.ts", "function first() { old(); }\n\nfunction last() { old(); }\n"
     )
     for name in ["future", "deleted", "staged", "events"]:
         repository.write(f"{name}.ts", f"function {name}() {{ return 1; }}\n")
     baseline = repository.commit(timestamp - 5000)
-    repository.write("events.ts", "function event_one() { return 2; }\n")
+    repository.write("events.ts", f'function event_one() {{ return "{label}-two"; }}\n')
     first = repository.commit(timestamp - 20)
-    repository.write("events.ts", "function event_old_parent() { return 3; }\n")
+    repository.write(
+        "events.ts", f'function event_old_parent() {{ return "{label}-three"; }}\n'
+    )
     old_parent = repository.commit(timestamp - 2000)
-    repository.write("events.ts", "function event_last() { return 4; }\n")
+    repository.write(
+        "events.ts", f'function event_last() {{ return "{label}-four"; }}\n'
+    )
     last = repository.commit(timestamp - 10)
     repository.write(
         "recent.ts",
-        "function first() { earlier_edit(); }\n\nfunction last() { old(); }\n",
+        f'function first() {{ earlier_edit("{label}"); }}\n\nfunction last() {{ old(); }}\n',
     )
     os.utime(root / "recent.ts", (timestamp - 4000, timestamp - 4000))
     repository.write(
         "recent.ts",
-        "function first() { earlier_edit(); }\n\nfunction last() { recent_edit(); }\n",
+        f'function first() {{ earlier_edit("{label}"); }}\n\nfunction last() {{ recent_edit("{label}"); }}\n',
     )
     os.utime(root / "recent.ts", (timestamp - 5, timestamp - 5))
     repository.write("future.ts", "function future() { return 2; }\n")
@@ -99,8 +104,21 @@ def recent_repository(
     os.utime(root / "staged.ts", (timestamp - 5, timestamp - 5))
     manifest: JsonObject = {
         "root": str(root),
+        "repository_key": label,
+        "expected_revision_paths": [
+            "events.ts",
+            "recent.ts",
+            "future.ts",
+            "staged.ts",
+            "deleted.ts",
+        ],
+        "unit_texts": [
+            f'function first() {{ earlier_edit("{label}"); }}',
+            f'function last() {{ recent_edit("{label}"); }}',
+        ],
         "baseline": baseline,
         "recent_commit_ids": [first, last],
+        "commit_parents": {first: baseline, last: old_parent},
         "old_parent": old_parent,
         "setup_timestamp": timestamp,
         "recent_mtime": timestamp - 5,
@@ -112,10 +130,40 @@ def recent_repository(
     return repository, manifest
 
 
-def check_sources(report: JsonObject, repository: FixtureRepository, key: str) -> None:
+def check_sources(
+    report: JsonObject, repository: FixtureRepository, manifest: JsonObject
+) -> None:
+    key = as_text(manifest["repository_key"])
     for value in array_at(report, "members"):
         member = as_object(value)
         bounds = object_at(member, "bounds")
+        paths = [as_object(value) for value in array_at(member, "changed_paths")]
+        if bounds["kind"] == "recent_commits":
+            expected_commits = {
+                as_text(value) for value in array_at(manifest, "recent_commit_ids")
+            }
+            assert len(paths) == len(expected_commits)
+            assert all(value["path"] == "events.ts" for value in paths)
+            assert {
+                object_at(value, "provenance")["commit_id"] for value in paths
+            } == expected_commits
+            for changed in paths:
+                provenance = object_at(changed, "provenance")
+                assert provenance["kind"] == "commit"
+                parent = object_at(provenance, "parent")
+                assert parent == {
+                    "kind": "parent",
+                    "commit_id": object_at(manifest, "commit_parents")[
+                        as_text(provenance["commit_id"])
+                    ],
+                    "position": 0,
+                }
+        elif bounds["kind"] == "revision_diff":
+            assert len(paths) == len(array_at(manifest, "expected_revision_paths"))
+            assert {value["path"] for value in paths} == set(
+                array_at(manifest, "expected_revision_paths")
+            )
+            assert bounds["base_revision"] == manifest["baseline"]
         for value in array_at(member, "changed_paths"):
             changed = as_object(value)
             path = as_text(changed["path"])
@@ -148,7 +196,9 @@ def check_sources(report: JsonObject, repository: FixtureRepository, key: str) -
                         expected = (
                             provenance["commit_id"]
                             if side == "after"
-                            else object_at(provenance, "parent")["commit_id"]
+                            else object_at(manifest, "commit_parents")[
+                                as_text(provenance["commit_id"])
+                            ]
                         )
                         assert commit == expected
                     elif bounds["kind"] == "revision_diff":
@@ -183,6 +233,47 @@ def check_sources(report: JsonObject, repository: FixtureRepository, key: str) -
                         "kind": "dirty_layer",
                         "layer": "unstaged",
                     }
+
+
+def check_selections(outcome: JsonObject, manifests: list[JsonObject]) -> None:
+    selections = [as_object(value) for value in array_at(outcome, "selections")]
+    assert len(selections) == len(manifests) == 2
+    assert [value["id"] for value in selections] == [
+        value["repository_key"] for value in manifests
+    ]
+    for selected, manifest in zip(selections, manifests):
+        key = manifest["repository_key"]
+        readiness = object_at(selected, "readiness")
+        assert (
+            readiness["kind"] == "ready"
+            and object_at(readiness, "coverage")["repository"] == key
+        )
+        units = [as_object(value) for value in array_at(readiness, "content", "units")]
+        assert units and all(
+            object_at(unit, "unit", "key")["repository"] == key for unit in units
+        )
+        texts = {value["text"] for value in units}
+        assert all(text in texts for text in array_at(manifest, "unit_texts"))
+
+
+def check_recent_refusal(outcome: JsonObject, case: str) -> None:
+    assert outcome["kind"] == "refused"
+    diagnostics = [
+        as_object(value) for value in array_at(outcome, "diagnostics", "items")
+    ]
+    assert len(diagnostics) == 1
+    expected_code = (
+        "invalid_request" if case == "missing-policy" else "invalid_repository_binding"
+    )
+    expected_location: JsonObject = (
+        {"kind": "field", "field_path": ["repositories", "change_scope"]}
+        if case == "missing-policy"
+        else {"kind": "none"}
+    )
+    assert (
+        diagnostics[0]["code"] == expected_code
+        and diagnostics[0]["location"] == expected_location
+    )
 
 
 def recent_journey(context: DriverContext) -> None:
@@ -288,8 +379,16 @@ def recent_journey(context: DriverContext) -> None:
                 manifests,
             ):
                 key = as_text(report["repository"])
+                if seconds:
+                    anchor = datetime.fromisoformat(as_text(report["anchor_utc"]))
+                    setup = manifest["setup_timestamp"]
+                    assert isinstance(setup, int)
+                    if anchor.timestamp() - setup > seconds - 20:
+                        raise RuntimeError(
+                            "US20 setup gap: fixture commits aged outside their intended window; recreate fixtures in a new run, without widening limits"
+                        )
                 check_sources(
-                    report, FixtureRepository(root=root / key, evidence=root), key
+                    report, FixtureRepository(root=root / key, evidence=root), manifest
                 )
                 members = [as_object(value) for value in array_at(report, "members")]
                 assert [member["scope_position"] for member in members] == [0, 1, 2]
@@ -324,20 +423,7 @@ def recent_journey(context: DriverContext) -> None:
                     object_at(members[2], "bounds")["base_revision"]
                     == manifest["baseline"]
                 )
-            for value in array_at(outcome, "selections"):
-                readiness = object_at(as_object(value), "readiness")
-                assert readiness["kind"] == "ready"
-                repository_key = object_at(readiness, "coverage")["repository"]
-                units = [
-                    as_object(item) for item in array_at(readiness, "content", "units")
-                ]
-                assert all(
-                    object_at(unit, "unit", "key")["repository"] == repository_key
-                    for unit in units
-                )
-                texts = {unit["text"] for unit in units}
-                assert "function first() { earlier_edit(); }" in texts
-                assert "function last() { recent_edit(); }" in texts
+            check_selections(outcome, manifests)
             assert server.count == 0
             if position == 0:
                 for negative in ["missing-policy", "nested-union"]:
@@ -359,7 +445,7 @@ def recent_journey(context: DriverContext) -> None:
                             expected_exit=2,
                         ),
                     )
-                    assert refused["kind"] == "refused" and refused["diagnostics"]
+                    check_recent_refusal(refused, negative)
                     assert server.count == 0
             summaries.append(
                 {
@@ -371,132 +457,3 @@ def recent_journey(context: DriverContext) -> None:
                 }
             )
     write_object(context.directory / "recent-readback.json", {"cases": summaries})
-
-
-def source_checks(evidence: Path) -> None:
-    repository, manifest = recent_repository(
-        evidence / "source-identity-control", int(datetime.now(UTC).timestamp())
-    )
-    baseline = as_text(manifest["baseline"])
-    before: JsonObject = {
-        "kind": "repository_file",
-        "repository": "first",
-        "path": "recent.ts",
-        "revision": {"kind": "commit", "commit_id": baseline, "side": "before"},
-        "content_identity": repository.git("rev-parse", f"{baseline}:recent.ts"),
-    }
-    after: JsonObject = {
-        "kind": "repository_file",
-        "repository": "first",
-        "path": "recent.ts",
-        "revision": {"kind": "worktree", "snapshot": "synthetic", "side": "after"},
-        "content_identity": hashlib.sha256(
-            (repository.root / "recent.ts").read_bytes()
-        ).hexdigest(),
-    }
-    report: JsonObject = {
-        "members": [
-            {
-                "bounds": {"kind": "revision_diff", "base_revision": baseline},
-                "changed_paths": [
-                    {
-                        "path": "recent.ts",
-                        "before": before,
-                        "after": after,
-                        "provenance": {"kind": "revision_diff", "base": baseline},
-                    }
-                ],
-            }
-        ]
-    }
-    check_sources(report, repository, "first")
-    refused = 0
-    for mode in ["repository", "worktree-digest", "git-blob", "source-side"]:
-        invalid = copy.deepcopy(report)
-        changed = as_object(
-            array_at(as_object(array_at(invalid, "members")[0]), "changed_paths")[0]
-        )
-        if mode == "repository":
-            object_at(changed, "after")["repository"] = "wrong-root"
-        elif mode == "worktree-digest":
-            object_at(changed, "after")["content_identity"] = "0" * 64
-        elif mode == "git-blob":
-            object_at(changed, "before")["content_identity"] = "0" * 40
-        else:
-            object_at(changed, "after", "revision")["side"] = "before"
-        try:
-            check_sources(invalid, repository, "first")
-        except AssertionError:
-            refused += 1
-    assert refused == 4
-    write_object(
-        evidence / "source-identity-checks.json",
-        {"malformed_source_identities_refused": refused},
-    )
-
-
-def window_checks(evidence: Path) -> None:
-    anchor = datetime(2026, 1, 1, 0, 1, tzinfo=UTC)
-    bounds: JsonObject = {
-        "kind": "recent_uncommitted",
-        "since_utc": utc_text(anchor - timedelta(seconds=60)),
-        "until_utc": utc_text(anchor),
-    }
-    outcome: JsonObject = {
-        "change_selections": [
-            {
-                "repository": key,
-                "anchor_utc": utc_text(anchor),
-                "members": [{"bounds": bounds}],
-            }
-            for key in ["first", "second"]
-        ]
-    }
-    observation = WindowObservation(
-        outcome=outcome,
-        window={"kind": "lookback", "seconds": 60},
-        launched=anchor - timedelta(seconds=1),
-        finished=anchor + timedelta(seconds=1),
-    )
-    check_windows(observation)
-    refused = 0
-    for mode in ["anchor-mismatch", "duration", "outside-bracket"]:
-        malformed = copy.deepcopy(outcome)
-        if mode == "anchor-mismatch":
-            as_object(array_at(malformed, "change_selections")[1])["anchor_utc"] = (
-                utc_text(anchor + timedelta(seconds=1))
-            )
-        elif mode == "duration":
-            object_at(
-                as_object(
-                    array_at(
-                        as_object(array_at(malformed, "change_selections")[0]),
-                        "members",
-                    )[0]
-                ),
-                "bounds",
-            )["since_utc"] = utc_text(anchor - timedelta(seconds=59))
-        else:
-            for value in array_at(malformed, "change_selections"):
-                as_object(value)["anchor_utc"] = utc_text(
-                    anchor + timedelta(seconds=30)
-                )
-        try:
-            check_windows(
-                WindowObservation(
-                    outcome=malformed,
-                    window=observation.window,
-                    launched=observation.launched,
-                    finished=observation.finished,
-                )
-            )
-        except AssertionError:
-            refused += 1
-    assert refused == 3
-    write_object(
-        evidence / "window-checks.json",
-        {
-            "delayed_launch_control": utc_text(anchor),
-            "malformed_observations_refused": refused,
-        },
-    )

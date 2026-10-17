@@ -1,9 +1,10 @@
 """US22: a required judgment must not disappear behind an unjustified unchanged result."""
 
+import hashlib
 from dataclasses import dataclass
 
 from composition_scenarios import native_answer
-from git_scenario_fixtures import BASE_DOCUMENT, paragraph_fixture
+from git_scenario_fixtures import BASE_DOCUMENT, FixtureRepository, paragraph_fixture
 from scenario_fixtures import bindings, decision
 from scenario_runtime import (
     DriverContext,
@@ -64,6 +65,60 @@ def check_selection_pair(
         else:
             assert kind == "selection_failed" and status["kind"] == "selection_failed"
             assert "selected_by" not in observed[index]
+
+
+def check_deletion(
+    preparation: JsonObject, report: JsonObject, repository: FixtureRepository
+) -> None:
+    key: JsonObject = {
+        "rule_set": str(repository.root / "set.json"),
+        "group": 0,
+        "rule_id": "changed",
+    }
+    before_blob = repository.git("rev-parse", ":source.md")
+    assert repository.git("show", ":source.md") == BASE_DOCUMENT.rstrip()
+    for owner, prepared_side in [
+        (object_at(preparation, "preparation"), True),
+        (report, False),
+    ]:
+        occurrences = [as_object(value) for value in array_at(owner, "occurrences")]
+        deleted = occurrences[0]
+        assert deleted["key"] == key
+        status = object_at(deleted, "status") if prepared_side else deleted
+        assert status["kind"] == "selection_failed"
+        diagnostics = [
+            as_object(value) for value in array_at(status, "diagnostics", "items")
+        ]
+        assert len(diagnostics) == 1 and diagnostics[0]["code"] == "deleted_target"
+        assert diagnostics[0]["origin"] == "source" and diagnostics[0]["location"] == {
+            "kind": "none"
+        }
+        changes = array_at(owner, "change_selections")
+        assert len(changes) == 1 and as_object(changes[0])["repository"] == "repo"
+        members = array_at(as_object(changes[0]), "members")
+        assert len(members) == 1
+        paths = array_at(as_object(members[0]), "changed_paths")
+        assert len(paths) == 1
+        changed = as_object(paths[0])
+        assert changed["path"] == "source.md" and changed["provenance"] == {
+            "kind": "dirty_layer",
+            "layer": "unstaged",
+        }
+        before, after = object_at(changed, "before"), object_at(changed, "after")
+        for source, kind, side in [
+            (before, "index", "before"),
+            (after, "worktree", "after"),
+        ]:
+            assert source["repository"] == "repo" and source["path"] == "source.md"
+            assert (
+                object_at(source, "revision")["kind"] == kind
+                and object_at(source, "revision")["side"] == side
+            )
+        assert before["content_identity"] == before_blob
+        assert (
+            after["content_identity"]
+            == hashlib.sha256((repository.root / "source.md").read_bytes()).hexdigest()
+        )
 
 
 def dependency_journey(context: DriverContext) -> None:
@@ -365,7 +420,29 @@ def dependency_journey(context: DriverContext) -> None:
                     for value in requests
                 )
             if case == "deleted":
-                assert "deleted_target" in str(report["diagnostics"])
+                check_deletion(preparation, report, repository)
+            if case == "applicability":
+                prepared = object_at(preparation, "preparation")
+                assert (
+                    object_at(prepared, "measurements")[
+                        "applicability_entries_evaluated"
+                    ]
+                    == 1
+                )
+                assert (
+                    object_at(report, "measurements")["applicability_entries_evaluated"]
+                    == 1
+                )
+                group = as_object(array_at(report, "groups")[0])
+                assert object_at(group, "applicability")["kind"] == "applicable"
+                entries = array_at(group, "entries")
+                assert len(entries) == 1
+                entry = as_object(entries[0])
+                assert object_at(entry, "key", "owner")["rule_id"] == "changed"
+                assert object_at(entry, "result")["kind"] == "condition"
+                assert object_at(entry, "result", "outcome")["kind"] == "passed"
+                assert object_at(entry, "result", "basis")["kind"] == "pattern_present"
+                assert object_at(entry, "result", "basis")["input"] == "subject"
             if case == "external":
                 assert all(
                     as_object(value)["repository"] != "external"

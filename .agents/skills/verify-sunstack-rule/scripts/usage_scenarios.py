@@ -17,7 +17,7 @@ from composition_scenarios import (
     preparation_journey,
     routing_journey,
 )
-from connected_scenarios import connected_journey, hosted_connected
+from connected_scenarios import connected_journey
 from cursor_scenarios import cursor_journey
 from dependency_scenarios import dependency_journey
 from handoff_scenario import handoff_journey
@@ -28,6 +28,7 @@ from scenario_runtime import (
     REPOSITORY_ROOT,
     SKILL_ROOT,
     DriverContext,
+    JsonObject,
     checked_source,
     write_object,
 )
@@ -50,6 +51,18 @@ def skill_status() -> str:
     ).stdout
 
 
+def skill_snapshot(root: Path) -> JsonObject:
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(root.rglob("*"))
+        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+    }
+
+
+def require_same_sources(before: JsonObject, after: JsonObject) -> None:
+    assert before == after, "Consumed skill contents changed during the journey"
+
+
 def main() -> None:
     if sys.flags.optimize:
         raise SystemExit(
@@ -62,6 +75,8 @@ def main() -> None:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--hosted", action="store_true")
     arguments = parser.parse_args()
+    if arguments.hosted:
+        parser.error("Both genuine slots are spent; hosted execution is disabled")
     assert not any(os.environ.get(name) for name in INDEX_VARIABLES), (
         "Unset index/config overrides before starting uv"
     )
@@ -72,7 +87,7 @@ def main() -> None:
     environment["RUFF_CACHE_DIR"] = str(evidence / "ruff-cache")
     environment["PYTHONDONTWRITEBYTECODE"] = "1"
     if arguments.check:
-        assert not arguments.journey and not arguments.hosted
+        assert not arguments.journey
         subprocess.run(
             [
                 "uv",
@@ -116,14 +131,11 @@ def main() -> None:
     assert all(journey in dispatch for journey in selected), (
         "Unknown journey: use the reference inventory"
     )
-    if arguments.hosted:
-        assert selected == ["US21"], (
-            "Only the separately authorized US21 slot is available; US02 is spent"
-        )
     product, head = checked_source()
     binary = Path(arguments.binary).resolve(strict=True)
     for journey in selected:
         before = skill_status()
+        source_before = skill_snapshot(SKILL_ROOT)
         binary_digest = hashlib.sha256(binary.read_bytes()).hexdigest()
         context = DriverContext(
             binary=binary,
@@ -132,15 +144,15 @@ def main() -> None:
             product_commit=product,
             source_head=head,
         )
-        receipt = context.directory / (
-            "hosted-pass.json" if arguments.hosted else "local-pass.json"
-        )
+        receipt = context.directory / "local-pass.json"
         assert not receipt.exists(), (
             "Use a new authorized evidence directory for another local run"
         )
-        (hosted_connected if arguments.hosted else dispatch[journey])(context)
+        dispatch[journey](context)
         assert checked_source() == (product, head), "Target changed during observation"
         after = skill_status()
+        source_after = skill_snapshot(SKILL_ROOT)
+        require_same_sources(source_before, source_after)
         assert after == before, "Skill source changed during the journey"
         assert hashlib.sha256(binary.read_bytes()).hexdigest() == binary_digest, (
             "Binary changed during observation"
@@ -149,11 +161,13 @@ def main() -> None:
             receipt,
             {
                 "journey": journey,
-                "provider": "hosted" if arguments.hosted else "controlled-loopback",
+                "provider": "controlled-loopback",
                 "product_commit": product,
                 "source_head": head,
                 "skill_source_status_before": before,
                 "skill_source_status_after": after,
+                "skill_source_files_before": source_before,
+                "skill_source_files_after": source_after,
                 "binary": str(binary),
                 "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                 "processes": [

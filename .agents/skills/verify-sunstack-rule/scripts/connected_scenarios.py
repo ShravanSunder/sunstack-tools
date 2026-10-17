@@ -1,9 +1,7 @@
-"""US21: one coherent cross-repository group, then its separately gated genuine edge."""
+"""US21: coherent cross-repository local evidence; the genuine slot is spent."""
 
 import copy
 import hashlib
-import os
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,7 +9,6 @@ from composition_scenarios import native_answer
 from git_scenario_fixtures import FixtureRepository, discovery, related_selection
 from scenario_fixtures import base_invocation, bindings, noul_rule, ruleset
 from scenario_runtime import (
-    REPOSITORY_ROOT,
     DriverContext,
     JsonObject,
     OperationRequest,
@@ -28,7 +25,6 @@ from scenario_transport import ControlledServer
 
 LIBRARY_TEXT = "export function target() { return 2; }"
 CALLER_TEXT = "import { target as alias } from '@library/lib';\nfunction caller() { return alias(); }"
-HOSTED_ENDPOINT = "https://openrouter.ai/api/v1/systemone"
 
 
 def connected_fixture(root: Path, endpoint: str, case: str) -> JsonObject:
@@ -86,9 +82,32 @@ def connected_fixture(root: Path, endpoint: str, case: str) -> JsonObject:
     return invocation
 
 
+def unit_identity(unit: JsonObject) -> tuple[str, str, str, str, int, int]:
+    start, end = unit["byte_start"], unit["byte_end"]
+    assert isinstance(start, int) and isinstance(end, int)
+    return (
+        as_text(unit["repository"]),
+        as_text(unit["path"]),
+        as_text(object_at(unit, "revision")["kind"]),
+        as_text(object_at(unit, "revision")["side"]),
+        start,
+        end,
+    )
+
+
+def check_unit_keys(units: list[JsonObject]) -> None:
+    assert len(units) == 2
+    assert {unit_identity(unit) for unit in units} == {
+        ("library", "lib.ts", "worktree", "after", 7, 38),
+        ("caller", "caller.ts", "worktree", "after", 48, 85),
+    }
+
+
 def check_group(group: JsonObject, root: Path, shadow: bool = False) -> None:
     excerpts = [as_object(value) for value in array_at(group, "excerpts")]
     assert len(excerpts) == 2
+    check_unit_keys([object_at(value, "unit") for value in excerpts])
+    check_unit_keys([as_object(value) for value in array_at(group, "units")])
     assert {object_at(value, "unit")["repository"] for value in excerpts} == {
         "library",
         "caller",
@@ -141,8 +160,10 @@ def check_group(group: JsonObject, root: Path, shadow: bool = False) -> None:
     relationships = [as_object(value) for value in array_at(group, "relationships")]
     assert any(
         value["kind"] == "candidate"
-        and object_at(value, "source_unit")["repository"] == "caller"
-        and object_at(value, "target_unit")["repository"] == "library"
+        and unit_identity(object_at(value, "source_unit"))
+        == ("caller", "caller.ts", "worktree", "after", 48, 85)
+        and unit_identity(object_at(value, "target_unit"))
+        == ("library", "lib.ts", "worktree", "after", 7, 38)
         for value in relationships
     )
     if shadow:
@@ -175,10 +196,12 @@ def check_connected_report(report: JsonObject) -> None:
     assert len(occurrences) == 1 and occurrences[0]["kind"] == "judged"
     assert occurrences[0]["selected_by"] == ["full_scope"]
     assert object_at(occurrences[0], "key")["rule_id"] == "connected"
-    assert {
-        as_object(unit)["repository"]
-        for unit in array_at(occurrences[0], "judgment", "target", "units")
-    } == {"library", "caller"}
+    check_unit_keys(
+        [
+            as_object(unit)
+            for unit in array_at(occurrences[0], "judgment", "target", "units")
+        ]
+    )
     answer = object_at(occurrences[0], "judgment", "verdict", "basis", "answer")
     assert native_answer(report, answer)["type"] == "noul"
     selections = array_at(report, "change_selections")
@@ -224,8 +247,7 @@ def freeze_positive(inputs: FreezeInputs) -> None:
     body = read_object(inputs.http)
     check_h01(body)
     frozen = object_at(read_object(inputs.stdin), "input")
-    object_at(frozen, "backend")["endpoint"] = HOSTED_ENDPOINT
-    write_object(inputs.context.directory / "hosted-frozen.json", frozen)
+    write_object(inputs.context.directory / "local-frozen.json", frozen)
     digest = hashlib.sha256(inputs.http.read_bytes()).hexdigest()
     write_object(
         inputs.context.directory / "h01-readback.json",
@@ -236,7 +258,7 @@ def freeze_positive(inputs: FreezeInputs) -> None:
         },
     )
     write_object(
-        inputs.context.directory / "hosted-manifest.json",
+        inputs.context.directory / "source-manifest.json",
         {
             "root": str(inputs.root),
             "controlled_stdin": str(inputs.stdin),
@@ -251,47 +273,65 @@ def freeze_positive(inputs: FreezeInputs) -> None:
     )
 
 
-def hosted_eligibility(context: DriverContext) -> tuple[JsonObject, Path]:
-    """Read local proof only; auth, signing, slot custody and dispatch are separate."""
-    digest = hashlib.sha256(context.binary.read_bytes()).hexdigest()
-    for journey in ["US20", "US21", "US22"]:
-        receipt = read_object(context.evidence / journey / "local-pass.json")
-        assert (
-            receipt["journey"] == journey
-            and receipt["provider"] == "controlled-loopback"
-        )
-        assert (
-            receipt["product_commit"] == context.product_commit
-            and receipt["binary_sha256"] == digest
-        )
-    manifest = read_object(context.directory / "hosted-manifest.json")
+def check_refusal(preparation: JsonObject, outcome: JsonObject, case: str) -> None:
+    code = (
+        "discovery_not_enabled"
+        if case == "disabled"
+        else "missing_related_context"
+        if case == "missing-mapping"
+        else "required_group_incomplete"
+    )
+    if case == "disabled":
+        for value in [preparation, outcome]:
+            assert value["kind"] == "invalid"
+            assert not any(
+                key in value
+                for key in [
+                    "report",
+                    "preparation",
+                    "requests",
+                    "occurrences",
+                    "measurements",
+                ]
+            )
+            assert any(
+                as_object(item)["code"] == code
+                for item in array_at(value, "diagnostics", "items")
+            )
+        return
     assert (
-        manifest["product_commit"] == context.product_commit
-        and manifest["binary_sha256"] == digest
+        preparation["kind"] == "prepared_with_failures"
+        and outcome["kind"] == "incomplete_report"
     )
-    root = Path(as_text(manifest["root"]))
-    assert root.resolve().is_relative_to(context.directory.resolve())
-    assert source_manifest(root) == manifest["sources"], "Frozen US21 sources changed"
-    original = object_at(
-        read_object(Path(as_text(manifest["controlled_stdin"]))), "input"
-    )
-    object_at(original, "backend")["endpoint"] = HOSTED_ENDPOINT
-    frozen = read_object(context.directory / "hosted-frozen.json")
-    assert frozen == original
-    assert object_at(frozen, "request_budget")["max_requests"] == 1
-    assert object_at(frozen, "attempts")["retry_count"] == 0
-    assert object_at(frozen, "attempts")["attempt_timeout_ms"] == 60000
-    http = Path(as_text(manifest["controlled_http"]))
-    check_h01(read_object(http))
-    readback = read_object(context.directory / "h01-readback.json")
-    assert readback["request_path"] == str(http)
+    prepared = object_at(preparation, "preparation")
+    report = object_at(outcome, "report")
+    for owner, prepared_side in [(prepared, True), (report, False)]:
+        occurrences = [as_object(value) for value in array_at(owner, "occurrences")]
+        assert (
+            len(occurrences) == 1
+            and object_at(occurrences[0], "key")["rule_id"] == "connected"
+        )
+        status = (
+            object_at(occurrences[0], "status") if prepared_side else occurrences[0]
+        )
+        assert status["kind"] == "selection_failed" and "judgment" not in status
+        assert any(
+            as_object(item)["code"] == code
+            for item in array_at(status, "diagnostics", "items")
+        )
+        measurements = object_at(owner, "measurements")
+        assert measurements["model_requests"] == measurements["inference_attempts"] == 0
+    requests = [as_object(value) for value in array_at(report, "requests")]
+    assert len(requests) == 1 and requests[0]["questions"] == []
+    status = object_at(requests[0], "status")
     assert (
-        hashlib.sha256(http.read_bytes()).hexdigest()
-        == manifest["http_sha256"]
-        == readback["sha256"]
+        status["kind"] == "not_sent"
+        and object_at(status, "reason")["kind"] == "evidence_refused"
     )
-    assert readback["questions_checked"] == 1
-    return frozen, root / "definitions"
+    assert any(
+        as_object(item)["code"] == code
+        for item in array_at(status, "reason", "diagnostics", "items")
+    )
 
 
 def connected_journey(context: DriverContext) -> None:
@@ -379,17 +419,7 @@ def connected_journey(context: DriverContext) -> None:
                         )
                 else:
                     outcome = process.finish(exit_code)
-                    expected = (
-                        "discovery_not_enabled"
-                        if case == "disabled"
-                        else "missing_related_context"
-                        if case == "missing-mapping"
-                        else "required_group_incomplete"
-                    )
-                    assert expected in str(preparation) and expected in str(outcome)
-                    assert outcome["kind"] == (
-                        "invalid" if case == "disabled" else "incomplete_report"
-                    )
+                    check_refusal(preparation, outcome, case)
                     assert server.count == 0
             summaries.append(
                 {"case": case, "exit": exit_code, "http_requests": server.count}
@@ -397,81 +427,6 @@ def connected_journey(context: DriverContext) -> None:
     assert freeze is not None
     freeze_positive(freeze)
     write_object(context.directory / "connected-readback.json", {"cases": summaries})
-
-
-def hosted_connected(context: DriverContext) -> None:
-    slot = context.directory / "hosted-slot.json"
-    assert not slot.exists(), "The US21 genuine slot cannot be retried"
-    invocation, cwd = hosted_eligibility(context)
-    assert os.environ.get("OPENROUTER_API_KEY"), (
-        "Credential prerequisite missing; no slot spent"
-    )
-    preflight = context.directory / "signing-preflight.log"
-    commands = [
-        [
-            str(REPOSITORY_ROOT / "scripts/cargo-debug-signing-runner.sh"),
-            "--sign-only",
-            str(context.binary),
-        ],
-        ["codesign", "-dv", str(context.binary)],
-        ["codesign", "--verify", str(context.binary)],
-    ]
-    preflight_environment = os.environ.copy()
-    preflight_environment.pop("OPENROUTER_API_KEY", None)
-    with preflight.open("wb") as stream:
-        for command in commands:
-            result = subprocess.run(
-                command,
-                env=preflight_environment,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=False,
-            )
-            stream.write(result.stdout)
-            stream.flush()
-            assert result.returncode == 0, "Signing preflight failed; no slot spent"
-    signature = preflight.read_text()
-    assert "runs unsigned" not in signature
-    assert "Identifier=dev.shravansunder.sunstack-rule.debug" in signature
-    assert "TeamIdentifier=974QD84WVC" in signature
-    with slot.open("x") as stream:
-        stream.write(
-            '{"journey":"US21","state":"dispatch-authorized-once","max_requests":1,"retry_count":0,"attempt_timeout_ms":60000}\n'
-        )
-    with context.begin(
-        OperationRequest(
-            name="genuine-once",
-            operation="evaluate_rules",
-            input_value=invocation,
-            cwd=cwd,
-            credential="hosted",
-        )
-    ) as process:
-        report = complete_report(process.finish(0))
-    check_connected_report(report)
-    sent = [
-        as_object(value)
-        for value in array_at(report, "requests")
-        if object_at(as_object(value), "status")["kind"] == "sent"
-    ]
-    assert len(sent) == 1
-    outcome = object_at(sent[0], "status", "outcome")
-    assert outcome["kind"] == "completed" and len(array_at(outcome, "attempts")) == 1
-    attempt = object_at(as_object(array_at(outcome, "attempts")[0]), "evidence")
-    assert attempt["kind"] == "completed" and attempt["http_status"] == 200
-    receipt = object_at(outcome, "receipt")
-    assert isinstance(receipt["resolved_model"], str) and receipt["resolved_model"]
-    tokens = object_at(receipt, "usage")["input_tokens"]
-    assert isinstance(tokens, int) and tokens > 0
-    write_object(
-        context.directory / "hosted-readback.json",
-        {
-            "receipt": receipt,
-            "attempts": outcome["attempts"],
-            "occurrences": report["occurrences"],
-            "change_selections": report["change_selections"],
-        },
-    )
 
 
 def connected_checks(evidence: Path) -> None:
@@ -494,69 +449,4 @@ def connected_checks(evidence: Path) -> None:
         null_refused = True
     else:
         raise AssertionError("H01 body refusal was lost")
-    directory = evidence / "eligibility-control"
-    binary = evidence / "binary-not-executable"
-    binary.write_text("ELIGIBILITY ONLY; NEVER EXECUTE")
-    context = DriverContext(
-        binary=binary,
-        evidence=directory,
-        journey="US21",
-        product_commit="a" * 40,
-        source_head="b" * 40,
-    )
-    invocation = connected_fixture(
-        context.directory / "positive", "http://127.0.0.1:1/systemone", "positive"
-    )
-    stdin = context.directory / "synthetic-stdin.json"
-    http = context.directory / "synthetic-http.json"
-    write_object(stdin, {"input": invocation})
-    write_object(http, body)
-    freeze_positive(
-        FreezeInputs(
-            context=context, root=context.directory / "positive", stdin=stdin, http=http
-        )
-    )
-    digest = hashlib.sha256(binary.read_bytes()).hexdigest()
-    for journey in ["US20", "US21", "US22"]:
-        (directory / journey).mkdir(parents=True, exist_ok=True)
-        write_object(
-            directory / journey / "local-pass.json",
-            {
-                "journey": journey,
-                "provider": "controlled-loopback",
-                "product_commit": context.product_commit,
-                "binary_sha256": digest,
-            },
-        )
-    hosted_eligibility(context)
-    refused = 0
-    for journey in ["US20", "US21", "US22"]:
-        path = directory / journey / "local-pass.json"
-        original = path.read_bytes()
-        path.unlink()
-        try:
-            hosted_eligibility(context)
-        except FileNotFoundError:
-            refused += 1
-        finally:
-            path.write_bytes(original)
-        for field in ["product_commit", "binary_sha256"]:
-            invalid = read_object(path)
-            invalid[field] = "mismatch"
-            write_object(path, invalid)
-            try:
-                hosted_eligibility(context)
-            except AssertionError:
-                refused += 1
-            finally:
-                path.write_bytes(original)
-    assert refused == 9 and not (context.directory / "hosted-slot.json").exists()
-    write_object(
-        evidence / "connected-helper-checks.json",
-        {
-            "invalid_receipts_refused": refused,
-            "eligibility_only_binary": str(binary),
-            "slot_exists": (context.directory / "hosted-slot.json").exists(),
-            "h01_null_refused": null_refused,
-        },
-    )
+    write_object(evidence / "h01-checks.json", {"null_body_refused": null_refused})

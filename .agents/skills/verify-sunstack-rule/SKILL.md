@@ -23,7 +23,7 @@ The app is three Rust libraries (`sunstack-evidence`, `sunstack-decisions`, `sun
 | Four executable operations, V2/V13 | `references/executable-operations.md` | Real process suite and adopted V2 serializer/source method |
 | Skill lint and handoff monitor, V14/V29/V30 | `references/milestone-1.md` | Controlled journeys/measurement and credential-gated hosted campaign |
 | Git changes, relationships and chunks | `references/milestone-2.md` | Native Git/filesystem/AST and process recipes; remaining draft/unknown prerequisites are listed in the reference |
-| Commissioned usage scenarios | `references/usage-scenarios.md` | Whole caller journeys with owned fixtures; US21 holds the one available genuine slot, and US02's slot is spent |
+| Commissioned usage scenarios | `references/usage-scenarios.md` | Whole caller journeys with owned fixtures; both genuine slots are spent |
 
 MUST load `references/library-gates.md` and return the scoped commands, results and remaining coverage before relying on library or build claims.
 IF hosted V11 is in scope, load `references/hosted-decisions.md` and return its run identity, validated completion and receipt, or its access/setup gap.
