@@ -8,7 +8,12 @@ import {
 	type GalleryCapture,
 	type GalleryFacet,
 } from './gallery-data.ts';
-import { createGalleryControls, galleryElement, type GalleryControls } from './gallery-view.ts';
+import {
+	anchorGalleryPopover,
+	createGalleryControls,
+	galleryElement,
+	type GalleryControls,
+} from './gallery-view.ts';
 import { registerInspectionCopy } from './inspection-copy.ts';
 import { installInspectionGestures } from './inspection-gestures.ts';
 import { openIsland } from './inspector.ts';
@@ -125,6 +130,12 @@ export class GalleryIsland extends HTMLElement {
 	}
 
 	private installControls(controls: GalleryControls): void {
+		anchorGalleryPopover(
+			controls.filtersButton,
+			controls.filtersPanel,
+			this.eventController.signal,
+		);
+		anchorGalleryPopover(controls.help, controls.helpPanel, this.eventController.signal);
 		controls.search.addEventListener('input', (): void => {
 			this.pendingFilter.schedule();
 		});
@@ -159,12 +170,22 @@ export class GalleryIsland extends HTMLElement {
 				)
 					return;
 				if (this.querySelector(':popover-open')) return;
+				const focused = this.ownerDocument.activeElement;
+				const wasPreview = focused?.closest('.ex-gallery-preview');
 				if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
 					event.preventDefault();
 					this.moveCapture(event.key === 'ArrowUp' ? -1 : 1);
 				} else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
 					event.preventDefault();
 					this.moveViewport(event.key === 'ArrowLeft' ? -1 : 1);
+				}
+				if (focused instanceof HTMLElement && !focused.isConnected) {
+					const replacement = wasPreview
+						? this.imageStage
+						: this.querySelector<HTMLElement>(
+								`[data-capture-id="${CSS.escape(this.selected ?? '')}"]`,
+							);
+					replacement?.focus({ preventScroll: true });
 				}
 			},
 			{ signal: this.eventController.signal },
