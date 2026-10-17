@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'vitest';
 import { commands, page, userEvent } from 'vitest/browser';
 
-import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
+import { fixtureLocator, insideViewport, openFixture, requiredElement } from './fixture-page.ts';
 
 afterEach(async (): Promise<void> => {
 	document.body.replaceChildren();
@@ -138,6 +138,62 @@ test('gallery viewport keys share filter state and leave text fields alone', asy
 		'4 screenshots',
 	);
 });
+
+test.each(['thumbnail', 'preview'])(
+	'gallery keeps keyboard navigation after replacing the focused %s',
+	async (origin): Promise<void> => {
+		const { document: fixture, frame } = await openFixture('gallery');
+		const gallery = requiredElement(fixture, '#proof-gallery');
+		const local = fixtureLocator(frame, gallery);
+		if (origin === 'thumbnail')
+			await local.getByRole('button', { name: 'Home Mobile', exact: true }).click();
+		else {
+			const preview = gallery.querySelector<HTMLElement>('.ex-gallery-preview');
+			if (!preview) throw new Error('Screenshot viewport is missing.');
+			preview.focus();
+		}
+		await userEvent.keyboard('{ArrowDown}{ArrowUp}{ArrowRight}{ArrowDown}');
+		await expect
+			.element(local.getByRole('img', { name: 'Settings Laptop', exact: true }))
+			.toBeVisible();
+		expect(gallery.contains(fixture.activeElement)).toBe(true);
+		await userEvent.keyboard('{ArrowLeft}{ArrowUp}');
+		await expect
+			.element(local.getByRole('img', { name: 'Home Mobile', exact: true }))
+			.toBeVisible();
+		expect(gallery.contains(fixture.activeElement)).toBe(true);
+	},
+);
+
+test.each([
+	{ width: 1600, name: 'Filter screenshots' },
+	{ width: 1600, name: 'Keyboard shortcuts' },
+	{ width: 390, name: 'Filter screenshots' },
+	{ width: 390, name: 'Keyboard shortcuts' },
+])(
+	'gallery $name stays beside its invoker at $width px',
+	async ({ width, name }): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('gallery');
+		const gallery = requiredElement(fixture, '#proof-gallery');
+		const local = fixtureLocator(frame, gallery);
+		const invoker = local.getByRole('button', { name, exact: true });
+		await invoker.click();
+		const panel = requiredElement(gallery, ':popover-open');
+		const button = requiredElement(gallery, `button[aria-label="${name}"]`);
+		await expect
+			.poll((): boolean => {
+				const popup = panel.getBoundingClientRect();
+				const anchor = button.getBoundingClientRect();
+				return (
+					Math.min(Math.abs(popup.top - anchor.bottom), Math.abs(anchor.top - popup.bottom)) <= 12
+				);
+			})
+			.toBe(true);
+		expect(insideViewport(panel)).toBe(true);
+		await userEvent.keyboard('{Escape}');
+	},
+);
 
 test('200ms settled filtering retains the exact selected image node and natural zoom', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('gallery');

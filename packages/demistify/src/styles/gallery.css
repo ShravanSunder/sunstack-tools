@@ -44,6 +44,10 @@ ex-gallery .ex-icon-button {
 	height: 32px;
 	padding: var(--space-1) var(--space-2);
 	border-radius: var(--radius-md);
+	font-size: var(--text-xs);
+}
+ex-gallery .ex-icon-button .ph {
+	font-size: 16px;
 }
 ex-gallery [aria-pressed='true'] {
 	color: var(--accent);
@@ -255,9 +259,9 @@ ex-document.ex-gallery-document > h1 {
 }
 .ex-gallery-filters {
 	position: fixed;
-	inset: 0 0 auto auto;
-	margin: var(--space-6);
-	width: min(320px, calc(100vw - 32px));
+	inset: auto;
+	margin: 0;
+	width: min(320px, calc(100vw - 16px));
 	max-height: 75vh;
 	overflow: auto;
 	padding: var(--space-3);
