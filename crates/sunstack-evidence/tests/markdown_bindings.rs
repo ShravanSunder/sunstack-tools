@@ -153,6 +153,31 @@ fn link_and_footnote_mentions_inside_prose_are_allowed() {
 }
 
 #[test]
+fn leading_bracket_prose_is_not_a_definition_prefix() {
+    for text in [
+        "[first] and [later]: ordinary prose<!-- K014 -->\n",
+        "[^first] and [later]: ordinary prose<!-- K014 -->\n",
+    ] {
+        let found = bindings(text, 400);
+        assert_eq!(found.len(), 1);
+        assert_eq!(bound(&found[0]).host, MarkdownHostKind::Paragraph);
+    }
+}
+
+#[test]
+fn escaped_brackets_in_definition_labels_still_refuse() {
+    let found = bindings("[label\\]tail]: /path <!-- K014 -->\n", 400);
+    assert_eq!(found.len(), 1);
+    assert!(matches!(
+        &found[0],
+        MarkdownMarkerBinding::Refused {
+            reason: MarkdownBindingRefusal::ForbiddenHost,
+            ..
+        }
+    ));
+}
+
+#[test]
 fn sections_include_subsections_stop_at_peers_and_nested_markers_overlap() {
     let text = "## Parent<!-- K014 -->\n\nintro\n\n### Child<!-- K015 -->\n\nchild\n\n## Peer\n\nexcluded\n";
     let found = bindings(text, 400);

@@ -4,6 +4,7 @@ use crate::{
 };
 use ast_grep_core::{Pattern, meta_var::MetaVariable};
 use ast_grep_language::{LanguageExt, SupportLang};
+use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 use std::collections::BTreeMap;
 
 pub fn resolve_paragraph(
@@ -30,7 +31,70 @@ pub fn resolve_paragraph(
 }
 
 pub(crate) fn paragraph_ranges(text: &str) -> Vec<std::ops::Range<usize>> {
-    crate::MarkdownDocument::parse(text).paragraph_ranges()
+    let mut block_stack = Vec::new();
+    let mut paragraph_range: Option<std::ops::Range<usize>> = None;
+    let mut candidates = Vec::new();
+    for (event, range) in Parser::new(text).into_offset_iter() {
+        match &event {
+            Event::Start(tag) if is_block_end(tag.to_end()) => {
+                if let Some(paragraph) = paragraph_range.take() {
+                    candidates.push(paragraph);
+                }
+                block_stack.push(tag.to_end());
+                if matches!(tag, Tag::Paragraph)
+                    && !block_stack
+                        .iter()
+                        .any(|tag| matches!(tag, TagEnd::BlockQuote(_)))
+                {
+                    paragraph_range = Some(range);
+                }
+            }
+            Event::End(tag) if is_block_end(*tag) => {
+                if let Some(paragraph) = paragraph_range.take() {
+                    candidates.push(paragraph);
+                }
+                block_stack.pop();
+            }
+            Event::Rule => {
+                if let Some(paragraph) = paragraph_range.take() {
+                    candidates.push(paragraph);
+                }
+            }
+            _ if matches!(block_stack.last(), Some(TagEnd::Item | TagEnd::Paragraph))
+                && !block_stack
+                    .iter()
+                    .any(|tag| matches!(tag, TagEnd::BlockQuote(_))) =>
+            {
+                // Tight lists omit Paragraph events. Keep the complete inline source range,
+                // including markup delimiters and wrapped lines, until the next block boundary.
+                if let Some(paragraph) = &mut paragraph_range {
+                    paragraph.end = paragraph.end.max(range.end);
+                } else {
+                    paragraph_range = Some(range);
+                }
+            }
+            _ => {}
+        }
+    }
+    candidates
+        .into_iter()
+        .map(|range| {
+            let end = text[range.clone()].trim_end_matches(['\n', '\r']).len() + range.start;
+            range.start..end
+        })
+        .collect()
+}
+fn is_block_end(tag: TagEnd) -> bool {
+    !matches!(
+        tag,
+        TagEnd::Emphasis
+            | TagEnd::Strong
+            | TagEnd::Strikethrough
+            | TagEnd::Superscript
+            | TagEnd::Subscript
+            | TagEnd::Link
+            | TagEnd::Image
+    )
 }
 
 /// Every returned AST match is a syntactic fact. No symbol identity is inferred.

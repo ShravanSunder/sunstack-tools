@@ -49,24 +49,6 @@ impl MarkdownDocument {
             .collect()
     }
 
-    pub(crate) fn paragraph_ranges(&self) -> Vec<Range<usize>> {
-        self.tree
-            .root()
-            .dfs()
-            .filter(|node| {
-                node.kind() == "paragraph"
-                    && !node
-                        .ancestors()
-                        .any(|ancestor| ancestor.kind() == "block_quote")
-            })
-            .filter_map(|node| {
-                node.children()
-                    .find(|child| child.kind() == "inline")
-                    .map(|inline| inline.range())
-            })
-            .collect()
-    }
-
     fn marker_ranges(&self, prefix: &MarkerPrefix) -> Vec<(MarkerId, Range<usize>)> {
         let text = self.tree.source();
         let mut offset = 0;
@@ -329,9 +311,20 @@ fn heading_level(node: &BlockNode<'_>) -> Option<u8> {
 }
 
 fn definition_prefix(text: &str) -> bool {
-    text.strip_prefix('[')
-        .and_then(|tail| tail.split_once("]:"))
-        .is_some_and(|(label, _)| !label.is_empty() && !label.contains(['\n', '\r']))
+    let Some(tail) = text.trim_start().strip_prefix('[') else {
+        return false;
+    };
+    let mut escaped = false;
+    for (offset, character) in tail.char_indices() {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == ']' {
+            return !tail[..offset].trim().is_empty() && tail[offset + 1..].starts_with(':');
+        }
+    }
+    false
 }
 
 fn append_projection(output: &mut String, visible: &str, prefix: Option<&str>, separator: &str) {
