@@ -47,6 +47,8 @@ Selection (evidence)
   EvidenceSelection::FrontmatterField { field }
   MarkdownUnitKind = section | paragraph | list_item
   SelectionContent::MarkdownUnits { units: [SelectedMarkdownUnit { kind, span, text, visible_text, occurrence }] }
+  a unit's span is the block node's raw tree-sitter range, including its terminal newline (as ast-grep reports matches),
+  and ast_grep containment uses those raw ranges; the legacy U001 trimmed paragraph range is unchanged and is never reused for units
   SelectionContent::FrontmatterField = Present { source, field, value, span } | Absent { source, field, frontmatter_span }
                                      | BlockUnavailable { source, field, reason: missing | malformed, diagnostics }
   a missing or malformed block is SelectionReadiness::Ready with BlockUnavailable, NOT Refused, so it never projects as SelectionFailed
