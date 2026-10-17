@@ -64,3 +64,58 @@ async fn full_union_member_is_context_and_never_fabricates_changed_units() {
         EvidenceCode::NoChangeSelection
     );
 }
+
+#[tokio::test]
+async fn full_union_context_does_not_widen_change_set_text_or_ast_queries() {
+    let fixture = GitFixture::new();
+    fixture.write("unchanged.ts", "function marker() {}\n");
+    fixture.write("changed.ts", "function original() {}\n");
+    fixture.stage("unchanged.ts");
+    fixture.stage("changed.ts");
+    fixture.commit(1000);
+    fixture.write("changed.ts", "function marker() {}\n");
+    let scope = ChangeScope::Union {
+        members: vec![
+            ChangeScope::Full {},
+            ChangeScope::Uncommitted {
+                layers: vec![DirtyLayer::Unstaged],
+            },
+        ],
+    };
+    let paths = vec![QueryPath::Glob {
+        pattern: "*.ts".into(),
+    }];
+    for select in [
+        EvidenceSelection::ChangeSetLiteralText {
+            paths: paths.clone(),
+            text: "marker".into(),
+        },
+        EvidenceSelection::ChangeSetRegexText {
+            paths: paths.clone(),
+            pattern: "marker".into(),
+        },
+        EvidenceSelection::ChangeSetAstPattern {
+            paths: paths.clone(),
+            language: "typescript".into(),
+            pattern: "function marker() {}".into(),
+        },
+    ] {
+        let outcome = prepare_evidence(
+            support::connected_inputs::plan(
+                vec![fixture.binding(scope.clone())],
+                select,
+                EvidenceRequirement::Required,
+            ),
+            AdapterRegistry::builtins().unwrap(),
+            CancellationToken::new(),
+        )
+        .await;
+        let EvidencePlanOutcome::Prepared { selections, .. } = outcome else {
+            panic!("query should be prepared: {outcome:?}")
+        };
+        assert!(
+            matches!(&selections[0].readiness, SelectionReadiness::Ready { content: SelectionContent::Matches { matches }, .. } if matches.len() == 1),
+            "Full contributes context, not unchanged query matches: {selections:?}"
+        );
+    }
+}

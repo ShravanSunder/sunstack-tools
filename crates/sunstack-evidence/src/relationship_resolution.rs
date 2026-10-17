@@ -153,16 +153,24 @@ fn module_files<'source>(
     }
     if targets.is_empty() {
         let parent = path.parent().unwrap_or(Path::new(""));
+        let module_directory = if matches!(
+            path.file_name().and_then(|name| name.to_str()),
+            Some("lib.rs" | "main.rs" | "mod.rs")
+        ) {
+            parent.to_path_buf()
+        } else {
+            path.with_extension("")
+        };
         let relative = if rust {
             if let Some(module) = module.strip_prefix("crate::") {
                 Some(PathBuf::from("src").join(module.replace("::", "/")))
             } else if module == "crate" {
                 Some(PathBuf::from("src/lib"))
             } else if let Some(module) = module.strip_prefix("self::") {
-                Some(parent.join(module.replace("::", "/")))
+                Some(module_directory.join(module.replace("::", "/")))
             } else if let Some(module) = module.strip_prefix("super::") {
                 Some(
-                    parent
+                    module_directory
                         .parent()
                         .unwrap_or(Path::new(""))
                         .join(module.replace("::", "/")),

@@ -116,10 +116,12 @@ fn resolve_scope(
             base_revision,
             head,
         } => {
-            let base = resolve_commit(capture.repository, base_revision)?;
+            // The current side must exist even when the baseline is unavailable.
+            // Only a missing before revision may take the conservative fallback.
             let (after, head) = match head {
                 RevisionHead::Commit { revision } => {
-                    let oid = resolve_commit(capture.repository, revision)?;
+                    let oid = resolve_commit(capture.repository, revision)
+                        .map_err(|_| EvidenceCode::SourceUnavailable)?;
                     (
                         CaptureView::Commit(oid),
                         SourceRevision::Commit {
@@ -136,6 +138,7 @@ fn resolve_scope(
                     },
                 ),
             };
+            let base = resolve_commit(capture.repository, base_revision)?;
             members.push(capture.capture_pair(PairCapture {
                 before: CaptureView::Commit(base),
                 after,

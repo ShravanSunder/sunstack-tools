@@ -314,3 +314,55 @@ async fn conditional_rust_modules_are_unresolved_even_when_the_source_file_exist
     assert_eq!(discovery.units.len(), 1);
     assert!(discovery.relationships.iter().any(|relationship| matches!(relationship, RelationshipCandidate::Unresolved { target_hint, .. } if target_hint == "conditional::target")));
 }
+
+#[tokio::test]
+async fn rust_relative_imports_use_the_logical_module_directory() {
+    for module_file in ["src/foo.rs", "src/foo/mod.rs"] {
+        let fixture = GitFixture::new();
+        fixture.write(module_file, "use self::child::target as child_alias; use super::sibling::target as sibling_alias; fn entry() { child_alias(); sibling_alias(); }");
+        fixture.write("src/foo/child.rs", "pub fn target() {}\n");
+        fixture.write("src/sibling.rs", "pub fn target() {}\n");
+        let captured = capture(fixture.binding(ChangeScope::Uncommitted {
+            layers: vec![DirtyLayer::Untracked],
+        }))
+        .await;
+        let seeds = changed_source_units(
+            &captured,
+            &[SourceLanguage::Rust],
+            &[UnitKindFilter::Function],
+            SourceSides::AfterOnly,
+        )
+        .unwrap()
+        .into_iter()
+        .filter(|unit| unit.text.starts_with("fn entry"))
+        .collect::<Vec<_>>();
+        let captures = [captured];
+        let mut query = query(
+            vec![RepositoryId::new("fixture").unwrap()],
+            RelationDirection::Callees,
+        );
+        query.source_units.languages = vec![SourceLanguage::Rust];
+        let discovered = discover_relationships(RelationshipDiscoveryRequest {
+            captures: &captures,
+            seeds: &seeds,
+            query: &query,
+            package_bindings: &[],
+            limits: &discovery_limits(),
+            cancellation: CancellationToken::new(),
+        })
+        .unwrap();
+        let paths = discovered
+            .units
+            .iter()
+            .map(|unit| unit.unit.key.path.to_string_lossy().into_owned())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert!(
+            paths.contains("src/foo/child.rs"),
+            "missing self child for {module_file}: {paths:?}"
+        );
+        assert!(
+            paths.contains("src/sibling.rs"),
+            "missing super sibling for {module_file}: {paths:?}"
+        );
+    }
+}

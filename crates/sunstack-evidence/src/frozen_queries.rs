@@ -303,23 +303,19 @@ pub fn select_change_set(
         ),
         _ => return Err(EvidenceCode::InvalidSelector.into()),
     };
-    let files = if capture.scope.includes_full_scope() {
-        capture.sources.iter().collect::<Vec<_>>()
-    } else {
-        let mut files = Vec::new();
-        for member in &capture.members {
-            for change in &member.changes {
-                for side in [&change.before, &change.after] {
-                    if let CapturedFileSide::Present { file } = side
-                        && !files.contains(&file)
-                    {
-                        files.push(file);
-                    }
+    // A Full union member supplies context, not extra delta matches.
+    let mut files = Vec::new();
+    for member in &capture.members {
+        for change in &member.changes {
+            for side in [&change.before, &change.after] {
+                if let CapturedFileSide::Present { file } = side
+                    && !files.contains(&file)
+                {
+                    files.push(file);
                 }
             }
         }
-        files
-    };
+    }
     let mut all_matches = Vec::new();
     let mut cutoffs = Vec::new();
     let mut files_parsed = 0;

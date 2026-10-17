@@ -377,3 +377,35 @@ fn native_comparison_results_reject_extra_fields_on_empty_outcomes() {
         serde_json::from_value::<ChangeComparison>(serde_json::json!({"kind":"unchanged"})).is_ok()
     );
 }
+
+#[tokio::test]
+async fn unavailable_current_revision_is_refused_even_when_the_baseline_is_missing() {
+    for base_revision in ["HEAD", "missing-baseline"] {
+        let fixture = GitFixture::new();
+        fixture.write("source.md", "U001: current\n");
+        fixture.stage("source.md");
+        fixture.commit(1000);
+        let mut current = session(
+            &fixture,
+            ChangeScope::RevisionDiff {
+                base_revision: base_revision.into(),
+                head: RevisionHead::Commit {
+                    revision: "missing-current".into(),
+                },
+            },
+        )
+        .await;
+        let result = current
+            .compare_change_sides(
+                ChangeComparisonSubject::Input {
+                    input: SourceName::new("document").unwrap(),
+                },
+                ComparisonLevel::Path,
+            )
+            .await;
+        assert!(
+            matches!(result, ChangeComparison::Refused { .. }),
+            "unreadable current side must not become a baseline fallback: {result:?}"
+        );
+    }
+}
