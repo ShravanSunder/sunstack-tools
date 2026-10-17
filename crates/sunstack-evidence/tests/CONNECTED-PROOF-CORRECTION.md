@@ -1,6 +1,6 @@
 # S4a V17/V18 proof correction
 
-Base:88b5631ded13c2ed8a33eab504b2a0e81210be3a. The independent report at /private/tmp/2026-10-s4a-verification-88b5631/report.md supported the tested native paths and left two explicit coverage portions unknown: returned import/signature context and duplicate repository identities/out-of-scope/unmapped package routes. These were adequacy gaps, with no observed product defect or oracle disagreement.
+Base:88b5631ded13c2ed8a33eab504b2a0e81210be3a. The independent report at private verification archive supported the tested native paths and left two explicit coverage portions unknown: returned import/signature context and duplicate repository identities/out-of-scope/unmapped package routes. These were adequacy gaps, with no observed product defect or oracle disagreement.
 
 This correction adds four permanent public-consumer tests and no production/dependency changes or weakened existing assertions. The original target stays unchanged; the correction lives on rule-engine/m2-context-proof in its own worktree. The oracle remains Specification V17/V18 and Program Design connected-evidence Semantic chunks and scoped syntax capability set, adopted through01405fd.
 
@@ -26,13 +26,13 @@ Six separate post-green production mutations were made only in the isolated corr
 
 These are sensitivity observations, not earlier production defects and not independent Verifier mutations. Source diff against88b5631 is empty after restoration. No clock, public hook, driver, fixture seam or product behavior changed.
 
-Raw evidence: /private/tmp/2026-10-s4a-context-proof/{context-first,scope-first,sensitivity-*}.log and sensitivity.json. The initial context/scope tests and the subsequent source mutations are preserved in that order. Full gate logs and immutable correction target are recorded on the execution thread. The signing runner and pinned toolchain remain configured; native C builds use command-local xcrun SDK CFLAGS. Build output is an isolated copy-on-write cache; the original observation worktree and its build output were not modified.
+Raw evidence: private verification archive,scope-first,sensitivity-*}.log and sensitivity.json. The initial context/scope tests and the subsequent source mutations are preserved in that order. Full gate logs and immutable correction target are recorded on the execution thread. The signing runner and pinned toolchain remain configured; native C builds use command-local xcrun SDK CFLAGS. Build output is an isolated copy-on-write cache; the original observation worktree and its build output were not modified.
 
 Broader proof boundaries remain in CONNECTED-EVIDENCE-PROOF.md: syntax candidates do not establish compiler resolution, and this correction does not establish S4b rules/CLI integration, hosted providers, other platforms, CI or release. Independent observation of this correction and Lead acceptance remain separate. No open stand-in.
 
 ## Final correction gates
 
-From the isolated monorepo root, with CARGO_TARGET_DIR=/private/tmp/2026-10-s4a-context-proof/target and command-local SDK CFLAGS:
+From the isolated monorepo root, with CARGO_TARGET_DIR=private verification archive and command-local SDK CFLAGS:
 
 - cargo test --locked -p sunstack-evidence: exit0,105passed/0failed.
 - cargo clippy --locked --workspace --all-targets -- -D warnings: exit0.

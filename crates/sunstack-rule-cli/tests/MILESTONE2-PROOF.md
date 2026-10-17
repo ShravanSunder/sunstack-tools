@@ -11,7 +11,7 @@ Governing sources: Specification C14/V2 at `34bee48`; adopted contracts and
 connected tables through `410df9d`; reviewed invocation schema `fc754c8`.
 Starting native target: accepted `775f1bf`. Execution trace: Router service
 `0ff962c5-7fa3-4c18-a5ca-1bbe8db09e89`, root
-`01a1446c-0a1b-7c2d-8e3f-4a5b6c7d8e02`. Pre-build plan and paired challenge
+`private-coordination-record`. Pre-build plan and paired challenge
 were posted before test edits, activities 7368/7373. The accepted M1 merge
 also adopts V2 decision `dc756df` and Evidence/request codes `f259d4b`. All seven refinements were
 adopted. Acceptance and independent observation belong to separate commissions.
@@ -104,7 +104,7 @@ time was not recorded);
 the zero-dispatch test legitimately never sends a request. Run 17 repeated the
 zero-dispatch timeout. These are harness failures, not product failures.
 
-Lead push `01a14642-9efb` authorized a cancellation-safe receive path for that
+Lead push `private-coordination-record` authorized a cancellation-safe receive path for that
 background loop, whose finish signal owns its lifetime. The causal `next()`
 three-second bound is unchanged. All auto-answer users assert exact counts at
 finish, including zero-dispatch; joined finish also checks captured request and
@@ -143,9 +143,9 @@ sequential periods limit comparison; no statistical equivalence is claimed.
 No leaked descriptor owner or root-cause mechanism was observed. The isolated
 original line-movement case also passed without LEAK. The full per-test table,
 all 60 run IDs/exits and untouched logs are in
-`/private/tmp/2026-10-s4b-cli/cli-leak-report.md` and sibling campaign directories.
+`private verification archive` and sibling campaign directories.
 
-Lead disposition `01a14647-3c61`: CLI-suite process-concurrency signature,
+Lead disposition `private-coordination-record`: CLI-suite process-concurrency signature,
 cause unknown, not test-owned. The higher new-test split may reflect more real
 children per test; that explanation is plausible and unproven. Re-triage if any
 single test reaches three of 20 markers, or a LEAK coincides with an assertion
@@ -172,13 +172,13 @@ Full{}; combine M2 diagnostics with M1 request diagnostics; export both M2 and
 new decoder modules; keep ChangeSet selector compatibility with strict input
 variants; preserve the M2 admitted evidence plan and discovery/package forwarding.
 Eight further consumers needed constructor/pattern syntax only, listed in
-`/private/tmp/2026-10-s4b-cli/m1-merge-consumers.txt`. No semantic test assertions
+`private verification archive`. No semantic test assertions
 were weakened. The merge's code tree is the tested source; the final successor
 only completes this proof document.
 
 Commands run from this worktree root with
 `SDKROOT="$(xcrun --show-sdk-path)" CC=/usr/bin/clang CFLAGS="-isysroot $(xcrun --show-sdk-path)"`
-and `CARGO_TARGET_DIR=/private/tmp/2026-10-s4b-rules/target`:
+and `CARGO_TARGET_DIR=private verification archive`:
 
 | Cargo arguments | Result |
 | --- | --- |
@@ -194,7 +194,7 @@ skips are five hosted cases and two offline CLI workloads, never counted as
 passes. The separately changed offline measurement was observed earlier as
 recorded above; final suite does not refresh that performance measurement.
 
-Logs/commands/exits: `/private/tmp/2026-10-s4b-cli/final-gates/manifest.json`.
+Logs/commands/exits: `private verification archive`.
 Final real-process evidence comprises 109 child invocations and 42 HTTP/barrier
 observation files; no child stderr contained an unsigned-runner warning.
 `process-artifacts.json` identifies only files created after this gate's log

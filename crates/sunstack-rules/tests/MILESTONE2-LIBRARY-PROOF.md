@@ -1,6 +1,6 @@
 # S4b-1 rules library proof
 
-Author evidence for the milestone 2 library slice, governed by Specification34bee48 and the connected-evidence design through410df9d3c6f35b9282b15205907dadc069eb64e1. The work branch integrates accepted evidence33ba680, rules37f4034 and CLI919ca497. The immutable implementation target is declared on execution root01a1446c-0a1b-7c2d-8e3f-4a5b6c7d8e02 after this record is committed. Independent observation and Lead acceptance remain separate.
+Author evidence for the milestone 2 library slice, governed by Specification34bee48 and the connected-evidence design through410df9d3c6f35b9282b15205907dadc069eb64e1. The work branch integrates accepted evidence33ba680, rules37f4034 and CLI919ca497. The immutable implementation target is declared on execution rootprivate-coordination-record after this record is committed. Independent observation and Lead acceptance remain separate.
 
 Rules uses one native EvidenceSession per invocation. It forwards discovery and package mappings, admits ChangeSet selectors, compares dependencies at PATH level before leading conditions, and compares pending content only at the occurrence's acquisition frontier. Unchanged occurrences skip conditions. Unresolved conditions preserve milestone 1's evaluation_failed outcome under both scopes, with the actual step-1 selection. A nonpassing settled gate wins over a speculative comparison refusal. A pending result never fabricates selected reasons.
 
@@ -13,7 +13,7 @@ Run from the repository root. The normal configured signing runner remained enab
 ```sh
 SDKROOT="$(xcrun --show-sdk-path)" CC=/usr/bin/clang \
 CFLAGS="-isysroot $(xcrun --show-sdk-path)" \
-CARGO_TARGET_DIR=/private/tmp/2026-10-s4b-rules/target <cargo command>
+CARGO_TARGET_DIR=private verification archive <cargo command>
 ```
 
 | Command | Observed result |
@@ -115,12 +115,12 @@ No production stand-in remains. Controlled HTTP supplies deterministic replies a
 
 The principal merge risk is incorrect narrowing suppressing a required judgment. Exact owner/reason controls, unchanged neighbors, line movement, missing history, nontracked dependencies, cumulative limits and frozen-source mutation address that risk at the real library boundary. Runtime completion-order claims remain bounded as described above.
 
-Raw author logs, source hashes and the sensitivity driver are under `/private/tmp/2026-10-s4b-rules/`; this temporary location is not durable storage. The permanent tests and this record travel with the branch.
+Raw author logs, source hashes and the sensitivity driver are under `private verification archive`; this temporary location is not durable storage. The permanent tests and this record travel with the branch.
 
 
 ## Async executor correction after ed65ecb
 
-Lead disposition01a1460e-dd05 authorized two bounded offloads after the Rust standards pass found synchronous definition-path canonicalization and changed-unit parsing on the async task. The observation target ed65ecb and its original worktree remain unchanged. The successor was built in the isolated rule-engine/m2-s4b-async-correction worktree.
+Lead dispositionprivate-coordination-record authorized two bounded offloads after the Rust standards pass found synchronous definition-path canonicalization and changed-unit parsing on the async task. The observation target ed65ecb and its original worktree remain unchanged. The successor was built in the isolated rule-engine/m2-s4b-async-correction worktree.
 
 The production delta moves only DefinitionFile binding lookup (canonicalize plus allowed-path matching) and the RelatedUnits changed-unit mapping preflight into awaited `tokio::task::spawn_blocking` closures. The same EvidenceSession owns capture and measurements. No API, JSON, selection, capture ownership or normal dependency changes. Tokio's existing dev-dependency enables its time feature solely for bounded test waits.
 
@@ -144,12 +144,12 @@ The same SDK/compiler prefix and signing runner were used. The final full gate r
 
 ### The 1/263 LEAK triage
 
-The initial correction workspace run reports one LEAK at `async-correction-workspace.log:222`, test `speculative_real_comparison_refusal_is_subordinate_to_the_observed_gate_outcome`, with no assertion failure and nextest exit0. Because this test is new in S4b-1, the Lead's narrowed rule required test-owned triage before reusing the historical harness disposition. Lead01a14615-cf44 accepts the following anchored triage:
+The initial correction workspace run reports one LEAK at `async-correction-workspace.log:222`, test `speculative_real_comparison_refusal_is_subordinate_to_the_observed_gate_outcome`, with no assertion failure and nextest exit0. Because this test is new in S4b-1, the Lead's narrowed rule required test-owned triage before reusing the historical harness disposition. Leadprivate-coordination-record accepts the following anchored triage:
 
 - The [test body](change_selection.rs#L213) and its `scope_fixture.rs`, `change_fixture.rs`, `controlled_http.rs` and `decision_http.rs` support launch no child processes. The Git fixture uses libgit2 directly and the backend uses HTTP.
 - The test awaits evaluate_rules and calls `server.finish()`. [Server shutdown](support/controlled_http.rs#L78) cancels and awaits its task; [the server task](support/controlled_http.rs#L50) drains every connection from its JoinSet before returning.
 - The unchanged named test alone passed1/1, no LEAK, exit0, run039a5e5a-fe4c-4158-8ec6-e4982c1c99d5; raw `async-correction-leak-isolated.log`. This was one diagnostic isolated run, with normal capture and no retry.
-- The observed full-concurrency, exit0, no-assertion signature and1/263 rate fit the prior investigated harness/platform event. The prior report `/private/tmp/2026-10-m1-deadline-leak/report.md` records foreign captured pipes before Rust and15-25markers per8600 tests. No descriptor owner was captured for this new event, so this triage does not claim a new causal FD observation.
+- The observed full-concurrency, exit0, no-assertion signature and1/263 rate fit the prior investigated harness/platform event. The prior report `private verification archive` records foreign captured pipes before Rust and15-25markers per8600 tests. No descriptor owner was captured for this new event, so this triage does not claim a new causal FD observation.
 
 The honest count stays1/263 on that run. No timeout, capture, runner, retry or product/test behavior was changed to suppress it. The paired Verifier can inspect this triage independently.
 
@@ -157,4 +157,4 @@ The honest count stays1/263 on that run. No timeout, capture, runner, retry or p
 
 Fixed the two blocking calls at their existing native owner. Immutable captures cross each closure by Arc; cloned selector values avoid shared mutation. Every blocking task is awaited before returning with existing EvidenceCode boundary errors. No new detached task, lock, production runtime, transport shape, cast or non-exhaustive match. SelectedReasons keeps its validated immutable representation. Test-only unwraps and one explicit test runtime per test follow repository conventions; production panic/unwrap lints remain enabled. Existing positional usize indices remain positional indices, not new domain identities. No changed source module exceeds600lines. No known Rust-standards departure remains in this correction.
 
-The paired Verifier's ed65ecb report is `/private/tmp/2026-10-s4b-1-verification-ed65ecb/report.md`: fresh261passed/7skipped with fmt/clippy/build/tree exit0 and no LEAK. It supports the bounded selection/comparison/connected-evidence/reporting claims and records the two inline sites as contradictions on that frozen SHA. This is its independent observation, not acceptance of the successor. Lead's authorized successor extension remains pending until the new target is declared and checked. The original handback's "seven hosted skips" label is corrected above to five hosted plus two offline CLI workloads.
+The paired Verifier's ed65ecb report is `private verification archive`: fresh261passed/7skipped with fmt/clippy/build/tree exit0 and no LEAK. It supports the bounded selection/comparison/connected-evidence/reporting claims and records the two inline sites as contradictions on that frozen SHA. This is its independent observation, not acceptance of the successor. Lead's authorized successor extension remains pending until the new target is declared and checked. The original handback's "seven hosted skips" label is corrected above to five hosted plus two offline CLI workloads.
