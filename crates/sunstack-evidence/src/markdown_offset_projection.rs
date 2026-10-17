@@ -1,25 +1,66 @@
 use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, TagEnd};
 use std::ops::Range;
 
+pub(crate) struct NormalizedMarkdown {
+    text: String,
+    removed_carriage_returns: Vec<usize>,
+}
+
+impl NormalizedMarkdown {
+    pub(crate) fn new(original: &str) -> Self {
+        let mut text = String::with_capacity(original.len());
+        let mut removed_carriage_returns = Vec::new();
+        let mut characters = original.char_indices().peekable();
+        while let Some((offset, character)) = characters.next() {
+            if character == '\r' {
+                if characters.peek().is_some_and(|(_, next)| *next == '\n') {
+                    removed_carriage_returns.push(offset);
+                } else {
+                    text.push('\n');
+                }
+            } else {
+                text.push(character);
+            }
+        }
+        Self {
+            text,
+            removed_carriage_returns,
+        }
+    }
+
+    fn map_range(&self, original: Range<usize>) -> Range<usize> {
+        let offset = |original| {
+            original
+                - self
+                    .removed_carriage_returns
+                    .partition_point(|removed| *removed < original)
+        };
+        offset(original.start)..offset(original.end)
+    }
+}
+
 pub(crate) struct OffsetProjection<'document> {
-    text: &'document str,
+    source: &'document NormalizedMarkdown,
     events: Vec<(Event<'document>, Range<usize>)>,
 }
 
 impl<'document> OffsetProjection<'document> {
-    pub(crate) fn new(text: &'document str) -> Self {
+    pub(crate) fn new(source: &'document NormalizedMarkdown) -> Self {
         let options = Options::ENABLE_TABLES
             | Options::ENABLE_STRIKETHROUGH
             | Options::ENABLE_TASKLISTS
             | Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
             | Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS;
         Self {
-            text,
-            events: Parser::new_ext(text, options).into_offset_iter().collect(),
+            source,
+            events: Parser::new_ext(&source.text, options)
+                .into_offset_iter()
+                .collect(),
         }
     }
 
     pub(crate) fn prose(&self, range: Range<usize>, list_indent: bool) -> (String, String) {
+        let range = self.source.map_range(range);
         (
             self.visible(range.clone(), true, list_indent),
             self.visible(range, false, list_indent),
@@ -27,6 +68,7 @@ impl<'document> OffsetProjection<'document> {
     }
 
     pub(crate) fn code(&self, range: Range<usize>) -> (String, String) {
+        let range = self.source.map_range(range);
         let text = self.visible(range, true, false);
         let text = text.trim_end().to_owned();
         (text.clone(), text)
@@ -43,24 +85,16 @@ impl<'document> OffsetProjection<'document> {
                 | Event::InlineMath(text)
                 | Event::DisplayMath(text)
                 | Event::FootnoteReference(text) => output.push_str(text),
-                Event::Code(text) if keep_code => {
-                    let source = &self.text[span.clone()];
-                    if source.contains("\r\n") {
-                        // pulldown-cmark 0.13.4 emits two spaces for one CRLF in a code span.
-                        output.push_str(&normalize_code_span(source));
-                    } else {
-                        output.push_str(text);
-                    }
-                }
+                Event::Code(text) if keep_code => output.push_str(text),
                 Event::Code(_) => {}
                 Event::SoftBreak | Event::HardBreak => {
                     output.push('\n');
                     if list_indent {
-                        let next_line = self.text[span.start..]
+                        let next_line = self.source.text[span.start..]
                             .find('\n')
                             .map_or(span.end, |offset| span.start + offset + 1);
                         output.extend(
-                            self.text[next_line..]
+                            self.source.text[next_line..]
                                 .chars()
                                 .take_while(|character| matches!(character, ' ' | '\t')),
                         );
@@ -80,6 +114,7 @@ impl<'document> OffsetProjection<'document> {
     }
 
     pub(crate) fn table(&self, range: Range<usize>) -> (String, String) {
+        let range = self.source.map_range(range);
         let render = |keep_code| {
             let mut output = String::new();
             let mut cells = Vec::new();
@@ -129,19 +164,4 @@ fn append_table_row(output: &mut String, cells: &[String]) {
     output.push_str("| ");
     output.push_str(&cells.join(" | "));
     output.push_str(" |");
-}
-
-fn normalize_code_span(source: &str) -> String {
-    let content = source
-        .trim_matches('`')
-        .replace("\r\n", "\n")
-        .replace(['\r', '\n'], " ");
-    if content.starts_with(' ')
-        && content.ends_with(' ')
-        && content.chars().any(|character| character != ' ')
-    {
-        content[1..content.len() - 1].to_owned()
-    } else {
-        content
-    }
 }

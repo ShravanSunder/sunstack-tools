@@ -200,8 +200,9 @@ impl MarkdownDocument {
 
     fn project_range(&self, range: Range<usize>) -> (String, String) {
         let root = self.tree.root();
-        let projection =
-            crate::markdown_offset_projection::OffsetProjection::new(self.tree.source());
+        let normalized =
+            crate::markdown_offset_projection::NormalizedMarkdown::new(self.tree.source());
+        let projection = crate::markdown_offset_projection::OffsetProjection::new(&normalized);
         let nodes = root.dfs().filter(|node| {
             contains_range(
                 &range,
@@ -249,7 +250,7 @@ impl MarkdownDocument {
                             format!(
                                 "{}{}",
                                 " ".repeat(parent.start_pos().byte_point().1),
-                                marker.text()
+                                marker.text().replace('\r', "")
                             )
                         })
                 });
