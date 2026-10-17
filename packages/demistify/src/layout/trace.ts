@@ -1,10 +1,14 @@
+import { createDebouncedAction, type DebouncedAction } from '../core/debounce.ts';
+
 /**
  * Hover and focus trace connections: pointing at a box lights up its arrows, pointing at a diagram
  * node lights up its edges and neighbours, and everything else in that picture dims.
  */
 const traceable = '[data-from][data-to]';
+const pendingDiagramHover = new WeakMap<Element, DebouncedAction>();
 
 export function setTrace(container: Element, id: string | undefined): void {
+	pendingDiagramHover.get(container)?.cancel();
 	const items = Array.from(container.querySelectorAll<SVGElement | HTMLElement>(traceable));
 	const touching = (item: SVGElement | HTMLElement): boolean =>
 		id !== undefined && (item.dataset['from'] === id || item.dataset['to'] === id);
@@ -27,18 +31,35 @@ export function setTrace(container: Element, id: string | undefined): void {
 export function traceDiagram(svg: SVGSVGElement): void {
 	if (!svg.querySelector(traceable) || svg.hasAttribute('data-traced')) return;
 	svg.setAttribute('data-traced', '');
+	let hovered: SVGElement | undefined;
+	const pending = createDebouncedAction((): void => {
+		if (!svg.isConnected || (hovered && !hovered.isConnected)) return;
+		const focused = document.activeElement?.closest<SVGElement>('g[data-id]');
+		const fallback =
+			focused && svg.contains(focused)
+				? focused
+				: svg.querySelector<SVGElement>('g[data-id].ex-route-focus');
+		setTrace(svg, hovered?.dataset['id'] ?? fallback?.dataset['id']);
+	}, 100);
+	pendingDiagramHover.set(svg, pending);
+	svg.addEventListener('click', pending.cancel, true);
+	svg.addEventListener('keydown', pending.cancel, true);
 	for (const node of svg.querySelectorAll<SVGElement>('g[data-id]')) {
 		const id = node.dataset['id'];
 		const show = (): void => setTrace(svg, id);
 		const clear = (): void => setTrace(svg, undefined);
-		node.addEventListener('pointerenter', show);
-		node.addEventListener('pointerleave', clear);
+		node.addEventListener('pointerenter', (): void => {
+			hovered = node;
+			pending.schedule();
+		});
+		node.addEventListener('pointerleave', (): void => {
+			hovered = undefined;
+			pending.schedule();
+		});
 		node.addEventListener('focus', show);
 		node.addEventListener('blur', clear);
 	}
 }
-
-let tracedId: string | undefined;
 
 /** The arrow endpoint the pointer or focus is in, if any. */
 function endpointOf(target: EventTarget | null): string | undefined {
@@ -52,16 +73,34 @@ function endpointOf(target: EventTarget | null): string | undefined {
 }
 
 function traceArrowsOf(id: string | undefined): void {
-	if (id === tracedId) return;
-	tracedId = id;
 	for (const overlay of document.querySelectorAll('.ex-arrow-canvas, .ex-flow-overlay'))
 		setTrace(overlay, id);
 }
 
 /** Boxes trace the arrows drawn between them, wherever those arrows are drawn. */
 export function installArrowTracing(): void {
-	document.addEventListener('pointerover', (event): void =>
-		traceArrowsOf(endpointOf(event.target)),
-	);
-	document.addEventListener('focusin', (event): void => traceArrowsOf(endpointOf(event.target)));
+	let hoveredId: string | undefined;
+	let hoveredTarget: Element | undefined;
+	const pending = createDebouncedAction((): void => {
+		if (hoveredTarget && !hoveredTarget.isConnected) return;
+		traceArrowsOf(hoveredId ?? endpointOf(document.activeElement));
+	}, 100);
+	document.addEventListener('pointerover', (event): void => {
+		const id = endpointOf(event.target);
+		if (id === hoveredId) return;
+		hoveredId = id;
+		hoveredTarget = event.target instanceof Element ? event.target : undefined;
+		pending.schedule();
+	});
+	document.documentElement.addEventListener('pointerleave', (): void => {
+		hoveredId = undefined;
+		hoveredTarget = undefined;
+		pending.schedule();
+	});
+	document.addEventListener('focusin', (event): void => {
+		pending.cancel();
+		traceArrowsOf(endpointOf(event.target));
+	});
+	for (const event of ['click', 'keydown', 'presentation-change', 'presentation-target'])
+		document.addEventListener(event, pending.cancel, true);
 }
