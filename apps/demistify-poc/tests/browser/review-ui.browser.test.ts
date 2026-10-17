@@ -105,6 +105,30 @@ test('actual page movement releases an explicit section without wheel or keyboar
 		.toBe('Connections');
 });
 
+test('tree go-to absolute URLs retain the lower destination at the page clamp', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui');
+	const tree = fixtureLocator(frame, requiredElement(fixture, '#lower-links'));
+	const destination = tree.getByRole('link', { name: 'Go to Lower last destination', exact: true });
+	await expect.element(destination).toHaveAttribute('href', `${fixture.location.href}#lower-last`);
+	await destination.click();
+	await expect
+		.poll(
+			(): boolean =>
+				Math.abs(
+					(fixture.defaultView?.scrollY ?? 0) -
+						(fixture.documentElement.scrollHeight - (fixture.defaultView?.innerHeight ?? 0)),
+				) < 2,
+		)
+		.toBe(true);
+	await expect
+		.element(
+			frame
+				.getByRole('navigation', { name: 'Page navigation', exact: true })
+				.getByRole('link', { name: 'Lower last', exact: true }),
+		)
+		.toHaveAttribute('aria-current', 'location');
+});
+
 test('tabs carry meaningful icons, layer switches expose checked state and Home has its own icon', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const tab = frame.getByRole('tab', { name: 'Current', exact: true });

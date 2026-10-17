@@ -35,10 +35,18 @@ export class HeadingNavigation extends HTMLElement {
 		if (!(event.target instanceof Element) || event.metaKey || event.ctrlKey || event.shiftKey)
 			return;
 		const href = event.target.closest('a')?.getAttribute('href');
-		if (!href?.startsWith('#')) return;
+		if (!href) return;
 		let fragment: string;
 		try {
-			fragment = decodeURIComponent(href.slice(1));
+			const destination = new URL(href, document.baseURI);
+			if (
+				destination.origin !== location.origin ||
+				destination.pathname !== location.pathname ||
+				destination.search !== location.search ||
+				!destination.hash
+			)
+				return;
+			fragment = decodeURIComponent(destination.hash.slice(1));
 		} catch {
 			return;
 		}
