@@ -41,6 +41,12 @@ macro_rules! validated_name {
                     "TargetId" => {
                         schema.insert("pattern".into(), serde_json::json!("^[A-Za-z][0-9]{3,}$"));
                     }
+                    "MarkerId" => {
+                        schema.insert("pattern".into(), serde_json::json!("^[A-Z][0-9]{3}$"));
+                    }
+                    "MarkerPrefix" => {
+                        schema.insert("pattern".into(), serde_json::json!("^[A-Z]$"));
+                    }
                     "TranscriptFormatName" => {
                         schema.insert("maxLength".into(), serde_json::json!(128));
                     }
