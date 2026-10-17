@@ -11,6 +11,7 @@ pub use rule_diagnostics::*;
 pub mod rule_source_contracts;
 pub use rule_source_contracts::*;
 pub mod rule_checking;
+mod rule_source_admission;
 mod rule_source_assembly;
 mod rule_source_decoding;
 mod rule_source_reporting;

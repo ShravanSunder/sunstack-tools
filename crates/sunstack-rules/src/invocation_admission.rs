@@ -6,7 +6,7 @@ use std::{
 };
 use sunstack_evidence::{AdapterRegistry, EvidencePlanInput, SourceName, SourceSpec};
 use tokio_util::sync::CancellationToken;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct LoadedRuleSet {
     pub path: PathBuf,
     pub definition: RuleSetDefinition,
@@ -217,6 +217,7 @@ pub(crate) fn load_invocation(
             })
         }
     };
+    crate::rule_source_admission::admit_markdown_entries(&mut groups);
     Ok((groups, router, sources))
 }
 
