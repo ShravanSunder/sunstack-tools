@@ -35,8 +35,8 @@ The observable contract for [Requirements](requirements.md) U1–U10. Rows marke
 
 | R | Serves | Obligation |
 | --- | --- | --- |
-| R9 | U2, U3 | A RuleSet may list `rule_sources: [{ "markdown": <path>, "rules": <path> }]` beside or instead of `rule_paths`. Paths resolve from `definition_root` under the existing path rules (no `..`). `marker_prefix` (one uppercase letter, required with `rule_sources`) and `max_question_words` (optional) are RuleSet fields. |
-| R10 | U2 | A rules file is one JSON object whose keys are marker IDs. Each entry has `name` (the rule ID used in reports, unique across the RuleSet), `target` (an evidence selection, see R14), and either a judgment verdict (`threshold`, optional `block_at_or_below`) or a `check` (R16). It may also have `severity` (`nudge` by default) and `context` (extra sources added to the request as evidence, never followed implicitly). Unknown or duplicate keys are refusals. |
+| R9 | U2, U3, U10 | A RuleSet may list `rule_sources: [{ "markdown": <path>, "rules": <path> }]` beside or instead of `rule_paths`. Paths resolve from `definition_root` under the existing path rules (no `..`). `marker_prefix` (one uppercase letter, required with `rule_sources`) and `max_question_words` (optional) are RuleSet fields. |
+| R10 | U2, U10 | A rules file is one JSON object whose keys are marker IDs. Each entry has `name` (the rule ID used in reports, unique across the RuleSet), `target` (an evidence selection, see R14), and either a judgment verdict (`threshold`, optional `block_at_or_below`) or a `check` (R16). It may also have `severity` (`nudge` by default) and `context` (extra sources added to the request as evidence, never followed implicitly). Unknown or duplicate keys are refusals. |
 | R11 | U4 | Consistency runs both ways. A marker without a rules entry is a refusal, and so is a rules entry without a marker. |
 | R12 | U3 | An assembled rule passes the same admission as a JSONL rule, plus the checks R1–R11. |
 
