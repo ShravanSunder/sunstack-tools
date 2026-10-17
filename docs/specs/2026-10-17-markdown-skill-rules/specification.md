@@ -59,6 +59,8 @@ A skill teaching the call standard, as written:
 
 A call the agent can't act on sends it away with nothing to bring back. Each form names when to go, where, what to do there, and what to return, and every call site uses exactly one of them.
 
+### Steering
+
 **Completion criteria.** Test every one twice: can the agent tell done from not-done, and does it demand the legwork? <!-- K015 -->
 ```
 
@@ -88,7 +90,7 @@ Call Grammar
 A call the agent can't act on sends it away with nothing to bring back. Each form names when to go, where, what to do there, and what to return, and every call site uses exactly one of them.
 ```
 
-The heading's binding (R4) runs to the next heading of level 3 or higher, so here it covers both paragraphs. K015 binds only its own paragraph, and its marker is stripped from both questions. On a reviewed skill, K014 gives one occurrence per call that matches its pattern (R14), and K015 gives one per paragraph that starts with "Completion:".
+The heading's binding (R4) runs to the next heading of level 3 or higher, so it stops at `### Steering` and covers only the call paragraph. K015 binds only its own paragraph. On a reviewed skill, K014 gives one occurrence per call that matches its pattern (R14), and K015 gives one per paragraph that starts with "Completion:".
 
 ## Proof obligations
 
