@@ -225,14 +225,7 @@ impl MarkdownDocument {
         let mut previous_list = false;
         for node in nodes {
             let (visible, filter_visible) = match node.kind().as_ref() {
-                "pipe_table" => {
-                    let continuations = node
-                        .dfs()
-                        .filter(|child| child.kind() == "block_continuation")
-                        .map(|child| child.range())
-                        .collect::<Vec<_>>();
-                    projection.table(node.range(), &continuations)
-                }
+                "pipe_table" => projection.table(node.range()),
                 "fenced_code_block" | "indented_code_block" => projection.code(node.range()),
                 _ => {
                     let in_list = node

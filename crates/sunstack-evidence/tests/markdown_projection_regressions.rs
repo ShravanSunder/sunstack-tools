@@ -24,6 +24,32 @@ macro_rules! projection_case {
 }
 
 projection_case!(
+    table_overflow_comment_is_not_rendered,
+    "## Heading<!-- K014 -->\n\n| h |\n| --- |\n| visible | <!-- hidden words --> |\n",
+    "Heading\n\n| h |\n| --- |\n| visible |"
+);
+projection_case!(
+    table_overflow_html_and_attributes_are_not_rendered,
+    "## Heading<!-- K014 -->\n\n| h |\n| --- |\n| visible | <span title=\"hidden attribute\">text</span> |\n",
+    "Heading\n\n| h |\n| --- |\n| visible |"
+);
+projection_case!(
+    table_normal_width_hidden_content_is_stripped,
+    "## Heading<!-- K014 -->\n\n| h |\n| --- |\n| visible <!-- hidden words --> <span title=\"hidden attribute\">text</span> |\n",
+    "Heading\n\n| h |\n| --- |\n| visible  text |"
+);
+projection_case!(
+    table_alignment_comes_from_rendered_columns,
+    "## Heading<!-- K014 -->\n\n| left | right | center | plain |\n| :--- | ---: | :---: | --- |\n| a | b | c | d |\n",
+    "Heading\n\n| left | right | center | plain |\n| :-- | --: | :-: | --- |\n| a | b | c | d |"
+);
+projection_case!(
+    table_escaped_pipe_stays_inside_its_rendered_cell,
+    "## Heading<!-- K014 -->\n\n| h |\n| --- |\n| left\\|right |\n",
+    "Heading\n\n| h |\n| --- |\n| left|right |"
+);
+
+projection_case!(
     unresolved_references_keep_literal_syntax_and_render_emphasis,
     "See [*emphasized*][missing] and ![alt][missing].<!-- K014 -->\n",
     "See [emphasized][missing] and ![alt][missing]."

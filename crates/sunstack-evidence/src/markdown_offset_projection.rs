@@ -1,4 +1,4 @@
-use pulldown_cmark::{Event, Options, Parser, Tag};
+use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, TagEnd};
 use std::ops::Range;
 
 pub(crate) struct OffsetProjection<'document> {
@@ -79,57 +79,56 @@ impl<'document> OffsetProjection<'document> {
         output
     }
 
-    pub(crate) fn table(
-        &self,
-        range: Range<usize>,
-        continuations: &[Range<usize>],
-    ) -> (String, String) {
-        let cells = self
-            .events
-            .iter()
-            .filter_map(|(event, span)| {
-                (matches!(event, Event::Start(Tag::TableCell))
-                    && span.start >= range.start
-                    && span.end <= range.end)
-                    .then_some(span.clone())
-            })
-            .collect::<Vec<_>>();
+    pub(crate) fn table(&self, range: Range<usize>) -> (String, String) {
         let render = |keep_code| {
             let mut output = String::new();
-            let mut cursor = range.start;
-            for cell in &cells {
-                output.push_str(&self.literal_gap(cursor..cell.start, continuations));
-                let raw = &self.text[cell.clone()];
-                let leading = raw.len() - raw.trim_start_matches([' ', '\t']).len();
-                let trailing = raw.len() - raw.trim_end_matches([' ', '\t']).len();
-                if leading == raw.len() {
-                    output.push_str(raw);
-                } else {
-                    output.push_str(&raw[..leading]);
-                    output.push_str(&self.visible(cell.clone(), keep_code, false));
-                    output.push_str(&raw[raw.len() - trailing..]);
+            let mut cells = Vec::new();
+            let mut alignments = Vec::new();
+            for (event, span) in &self.events {
+                if span.start < range.start || span.end > range.end {
+                    continue;
                 }
-                cursor = cell.end;
+                match event {
+                    Event::Start(Tag::Table(columns)) => alignments = columns.clone(),
+                    Event::Start(Tag::TableHead | Tag::TableRow) => cells.clear(),
+                    Event::Start(Tag::TableCell) => {
+                        cells.push(
+                            self.visible(span.clone(), keep_code, false)
+                                .trim()
+                                .to_owned(),
+                        );
+                    }
+                    Event::End(TagEnd::TableHead) => {
+                        append_table_row(&mut output, &cells);
+                        let delimiters = alignments
+                            .iter()
+                            .map(|alignment| match alignment {
+                                Alignment::None => "---",
+                                Alignment::Left => ":--",
+                                Alignment::Right => "--:",
+                                Alignment::Center => ":-:",
+                            })
+                            .map(str::to_owned)
+                            .collect::<Vec<_>>();
+                        append_table_row(&mut output, &delimiters);
+                    }
+                    Event::End(TagEnd::TableRow) => append_table_row(&mut output, &cells),
+                    _ => {}
+                }
             }
-            output.push_str(&self.literal_gap(cursor..range.end, continuations));
-            output.trim().to_owned()
+            output
         };
         (render(true), render(false))
     }
+}
 
-    fn literal_gap(&self, range: Range<usize>, continuations: &[Range<usize>]) -> String {
-        let mut output = String::new();
-        let mut cursor = range.start;
-        for skip in continuations
-            .iter()
-            .filter(|skip| skip.start >= range.start && skip.end <= range.end)
-        {
-            output.push_str(&self.text[cursor..skip.start]);
-            cursor = skip.end;
-        }
-        output.push_str(&self.text[cursor..range.end]);
-        output
+fn append_table_row(output: &mut String, cells: &[String]) {
+    if !output.is_empty() {
+        output.push('\n');
     }
+    output.push_str("| ");
+    output.push_str(&cells.join(" | "));
+    output.push_str(" |");
 }
 
 fn normalize_code_span(source: &str) -> String {
