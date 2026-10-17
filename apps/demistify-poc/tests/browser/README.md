@@ -68,3 +68,9 @@ The full suite now adds two independent galleries, reviewer/grid selection, shar
 The cold Markdown-fence node case opens the actual scoped Registry fragment before lazy rendering; its positive bounds must be on screen. Assigning the diagram's ID before observing visibility lets the shared resolver reveal it. The original runtime leaves the target unresolved and fails this case.
 
 The earlier optional sensitivity script targets the old frozen contracts and is historical apparatus; its selected-wrapper mutation is superseded by ordered paths. It has not been adapted or claimed as current sensitivity evidence. Current suite coverage comes from the permanent assertions described here, not the earlier mutation run.
+
+## Hover settling
+
+The hover DOM cases call the real Mermaid trace, native arrow installer and Explorer renderer in a browser, controlling only the clock. They require no paint at99ms, the latest target at100ms, the same delay on exit, immediate focus/presentation feedback, and no late mutation of a disconnected picture. These are timing-owner integration checks; the existing built-runtime journeys and native browser observation cover wiring and pointer delivery separately. The old immediate handlers fail the entry assertions.
+
+The Explorer stroke/arrowhead case waits for the settled traced state before reading its stroke. It retains the original geometry and theme assertions.

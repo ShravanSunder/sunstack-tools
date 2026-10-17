@@ -1,3 +1,4 @@
+import { createDebouncedAction } from '../core/debounce.ts';
 import { escapeHtml } from '../core/html-text.ts';
 import { roundedPath } from '../layout/canvas-router.ts';
 import {
@@ -44,6 +45,25 @@ export function renderExplorerGraph(props: GraphRenderProps): void {
 	canvas.className = 'ex-explorer-canvas';
 	const nodeLayer = document.createElement('div');
 	nodeLayer.className = 'ex-explorer-nodes';
+	let hoveredId: string | undefined;
+	const paintCurrent = (preferFocus = false): void => {
+		if (!canvas.isConnected) return;
+		const focused = document.activeElement?.closest<HTMLElement>('.ex-explorer-node');
+		const focusedId =
+			focused && nodeLayer.contains(focused) ? focused.dataset['nodeId'] : undefined;
+		paint(preferFocus ? (focusedId ?? hoveredId) : (hoveredId ?? focusedId));
+	};
+	const pendingHover = createDebouncedAction(paintCurrent, 100);
+	const paintImmediately = (nodeId?: string): void => {
+		pendingHover.cancel();
+		paint(nodeId);
+	};
+	const settleAction = (): void => {
+		pendingHover.cancel();
+		paintCurrent(true);
+	};
+	canvas.addEventListener('keydown', settleAction, true);
+	canvas.addEventListener('click', settleAction, true);
 	let rows = 1;
 	for (const [column, group] of groups.entries()) {
 		const nodes = view.nodes
@@ -72,11 +92,20 @@ export function renderExplorerGraph(props: GraphRenderProps): void {
 			button.setAttribute('aria-pressed', String(view.roots.has(node.id)));
 			button.style.cssText = `left:${position.x}px;top:${position.y}px;width:${cardWidth}px;height:148px`;
 			button.innerHTML = `<strong>${escapeHtml(node.label)}</strong><span>${escapeHtml(node.description)}</span><small>${escapeHtml(group.label)}${node.issue ? ' · ISSUE' : ''}${node.status === 'proposed' ? ' · PROPOSED' : ''}</small>`;
-			button.addEventListener('click', (): void => onSelect(node.id));
-			button.addEventListener('pointerenter', (): void => paint(node.id));
-			button.addEventListener('pointerleave', (): void => paint());
-			button.addEventListener('focus', (): void => paint(node.id));
-			button.addEventListener('blur', (): void => paint());
+			button.addEventListener('click', (): void => {
+				pendingHover.cancel();
+				onSelect(node.id);
+			});
+			button.addEventListener('pointerenter', (): void => {
+				hoveredId = node.id;
+				pendingHover.schedule();
+			});
+			button.addEventListener('pointerleave', (): void => {
+				hoveredId = undefined;
+				pendingHover.schedule();
+			});
+			button.addEventListener('focus', (): void => paintImmediately(node.id));
+			button.addEventListener('blur', (): void => paintImmediately());
 			nodeLayer.append(button);
 		}
 	}
@@ -149,7 +178,10 @@ export function renderExplorerGraph(props: GraphRenderProps): void {
 		const title = document.createElementNS(svgNamespace, 'title');
 		title.textContent = `${nodeById.get(edge.source)?.label} → ${targetNode?.label} · ${edge.label}${edge.status === 'proposed' ? ' · PROPOSED' : ''}`;
 		group.append(path, hit, title);
-		group.addEventListener('click', (): void => onConnection(edge.id));
+		group.addEventListener('click', (): void => {
+			pendingHover.cancel();
+			onConnection(edge.id);
+		});
 		edgeElements.set(edge.id, group);
 		svg.append(group);
 	}

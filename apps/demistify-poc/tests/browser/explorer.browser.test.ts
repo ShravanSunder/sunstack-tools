@@ -72,6 +72,7 @@ test('explorer keeps modest arrowheads, soft routes and a fixed search header ab
 	const line = requiredElement(owner, '.ex-explorer-line');
 	const normalWidth = fixture.defaultView?.getComputedStyle(line).strokeWidth;
 	await fixtureLocator(frame, requiredElement(owner, '[data-node-id="spec-design"]')).hover();
+	await expect.poll((): number => owner.querySelectorAll('.is-traced').length).toBeGreaterThan(0);
 	expect(
 		fixture.defaultView?.getComputedStyle(requiredElement(owner, '.is-traced .ex-explorer-line'))
 			.strokeWidth,
