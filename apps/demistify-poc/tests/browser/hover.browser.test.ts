@@ -240,5 +240,8 @@ test.each(['arrows', 'flow'])(
 		document.dispatchEvent(new Event('presentation-change'));
 		vi.advanceTimersByTime(100);
 		expect(surface.traced()).toEqual([]);
+		point(surface.first, kind, true);
+		vi.advanceTimersByTime(100);
+		expect(surface.traced()).toEqual(['alpha-beta', 'beta-gamma']);
 	},
 );

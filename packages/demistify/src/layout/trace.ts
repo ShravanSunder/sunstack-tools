@@ -125,6 +125,8 @@ export function installArrowTracing(): void {
 			event,
 			(): void => {
 				pending.cancel();
+				hoveredId = undefined;
+				hoveredTarget = undefined;
 				traceArrowsOf(endpointOf(document.activeElement));
 			},
 			true,
