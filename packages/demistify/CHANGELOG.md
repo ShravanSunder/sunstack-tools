@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.2.1
+
+### Patch Changes
+
+- 66dfe97: Keep the newly inspected item in view when replacing sidebar content, while returning focus to its trigger when the sidebar closes.
+
 ## 1.2.0
 
 ### Minor Changes
