@@ -163,6 +163,45 @@ test('visual sidebar copies retain main content and fullscreen restores content 
 	expect(diagram.querySelector('svg')?.textContent).toContain('Left endpoint');
 });
 
+test('replacing sidebar content keeps the newly inspected item in view and restores its trigger on close', async (): Promise<void> => {
+	await page.viewport(1600, 650);
+	const { document: fixture, frame } = await openFixture('layout');
+	// Native focus scrolling stays real; immediate scrolling makes a wrong destination deterministic.
+	fixture.documentElement.style.scrollBehavior = 'auto';
+	const first = requiredElement(fixture, '#full-width-diagram');
+	first.scrollIntoView({ block: 'center' });
+	await expect.poll((): boolean => !!first.querySelector('svg')).toBe(true);
+	await fixtureLocator(frame, first).hover();
+	const firstButton = frame.getByRole('button', {
+		name: 'Open Full-width diagram in a sidebar',
+		exact: true,
+	});
+	await firstButton.click();
+	await expect
+		.element(frame.getByRole('complementary', { name: 'Full-width diagram', exact: true }))
+		.toBeVisible();
+
+	const second = requiredElement(fixture, '#gesture-canvas');
+	second.scrollIntoView({ block: 'center', behavior: 'instant' });
+	await fixtureLocator(frame, second).hover();
+	const secondButton = frame.getByRole('button', {
+		name: 'Open Gesture canvas in a sidebar',
+		exact: true,
+	});
+	await secondButton.click();
+	const replacement = frame.getByRole('complementary', { name: 'Gesture canvas', exact: true });
+	await expect.element(replacement).toBeVisible();
+	expect(second.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+	expect(second.getBoundingClientRect().top).toBeLessThan(650);
+	expect(first.querySelector('svg')).not.toBeNull();
+	expect(requiredElement(fixture, '.ex-drawer svg').textContent).toContain('Canvas start');
+	await replacement.getByRole('button', { name: 'Close', exact: true }).click();
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe(
+		'Open Gesture canvas in a sidebar',
+	);
+	expect(second.closest('ex-document')).not.toBeNull();
+});
+
 test('inspection modifier wheel zooms and modifier drag pans while ordinary wheel keeps scrolling', async (): Promise<void> => {
 	await page.viewport(1600, 650);
 	const { document: fixture, frame } = await openFixture('layout');

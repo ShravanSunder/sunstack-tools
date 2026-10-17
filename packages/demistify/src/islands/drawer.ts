@@ -24,7 +24,7 @@ export function closeDrawer(): void {
 	drawer.replaceChildren(drawer.firstElementChild ?? '');
 	delete document.documentElement.dataset['drawer'];
 	restore();
-	returnFocus?.focus();
+	returnFocus?.focus({ preventScroll: true });
 	window.dispatchEvent(new Event('resize'));
 }
 
