@@ -118,7 +118,11 @@ pub fn validate_rule_set(definition: &RuleSetDefinition) -> Result<(), Diagnosti
     if definition.name.is_empty()
         || definition.description.is_empty()
         || definition.inputs.is_empty()
-        || definition.rule_paths.is_empty()
+        || (definition.rule_paths.is_empty() && definition.rule_sources.is_empty())
+        || (!definition.rule_sources.is_empty() && definition.marker_prefix.is_none())
+        || definition.rule_sources.iter().any(|source| {
+            source.markdown.as_os_str().is_empty() || source.rules.as_os_str().is_empty()
+        })
         || definition
             .rule_paths
             .iter()
