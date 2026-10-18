@@ -347,6 +347,30 @@ def observe_invalid_ast(target: JourneyTarget, fixtures: Path) -> str:
     return "invalid-ast"
 
 
+def observe_nested_ast_refusal(target: JourneyTarget, fixtures: Path) -> str:
+    root = fixtures / "nested-unknown-ast"
+    invocation = source_fixture(
+        root, "Reject misspelled relation keys.<!-- K014 -->\n", {}
+    )
+    rules = '{\n  "K014": {\n    "name": "local.nested",\n    "target": {"input":"subject","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"],"starts_with":"nested"}},\n    "ast_grep": {"kind":"paragraph","regex":"MUST","inside":{"kind":"list_item","regex":"outer","stop_by":"end"}}\n  }\n}\n'
+    _ = (root / "source.rules.json").write_text(rules)
+    assert not (root / "reviewed.md").exists()
+    outcome = target.run(
+        "nested-unknown-ast", "check_rules", invocation, expected_exit=2
+    )
+    require_located_refusal(outcome, "source.rules.json", required_lines=frozenset({5}))
+    checked_count = outcome["checked_rule_count"]
+    assert type(checked_count) is int and checked_count == 0
+    diagnostics = as_array(object_at(outcome, "diagnostics")["items"])
+    assert any(
+        as_object(item)["code"] == "unknown_field"
+        and object_at(item, "location")["field_path"]
+        == ["ast_grep", "inside", "stop_by"]
+        for item in diagnostics
+    ), "Nested typo lost its unknown-field cause or JSON path"
+    return "nested-unknown-ast"
+
+
 def scan_environment() -> dict[str, str]:
     return {
         key: os.environ[key]
@@ -529,6 +553,7 @@ def main() -> None:
     passed.extend(observe_frontmatter(target, fixtures))
     passed.extend(observe_decoded_fields(target, fixtures))
     passed.append(observe_invalid_ast(target, fixtures))
+    passed.append(observe_nested_ast_refusal(target, fixtures))
     passed.extend(observe_ast_corpus(target, fixtures))
     target.confirm()
     write_json(
