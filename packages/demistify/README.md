@@ -91,7 +91,7 @@ The **Walkthroughs** chooser uses compact icon/title/description rows. Local pic
 
 ### Reading measure and visual canvas
 
-Use `ex-document class="wide-reading"` for the centered 1600px canvas. Ordinary documents retain 1140px. Paragraphs, lead text, structural list rows and islands use their section width by default, with no text-width class required. Use `class="reading-measure"` on a specific passage or section only when narrower lines are intended. Keep bounded callouts and local scrolling where necessary; remove obsolete authored paragraph caps when migrating an existing document.
+Two shared width standards center in the space remaining beside the outline or inspector. **Reading** is 760px for prose, Markdown, lists, quotes, simple text cards and callouts; their text and headings stay left-aligned. **Canvas** fills the document up to 1600px for tables, images, galleries, code/diffs, diagrams, grids, comparisons, Explorer and rich trees. Ordinary prose/headings use Reading automatically; visual islands keep their own layout. Wrap a whole text-led section in `class="reading-measure"`, or a visual section in `class="wide-reading"` so its heading and explanation follow the component width. A heading immediately before a visual island also follows its canvas. These are author choices, not reader settings. Nested grid/card/island content follows its component, and narrow viewports fit both standards to the available space. Dedicated galleries retain their viewport surface. Remove obsolete per-page width overrides when adopting the standard.
 
 ## Gallery
 

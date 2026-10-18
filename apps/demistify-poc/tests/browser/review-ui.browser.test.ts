@@ -293,17 +293,61 @@ test('the actual formatted guide literal stays exact in the page and sidebar', a
 	expect(drawing.querySelector('pre')?.textContent).toBe(expected);
 });
 
-test('ordinary paragraphs and lead text fill their section unless reading measure is explicit', async (): Promise<void> => {
+test('Reading and Canvas center independently while headings follow their section and nested islands own their layout', async (): Promise<void> => {
 	await page.viewport(1600, 1000);
-	const { document: fixture } = await openFixture('ui', '', 'widths.html');
-	const canvas = requiredElement(fixture, '#width-canvas').getBoundingClientRect();
-	for (const selector of ['#lead-proof', '#ordinary-proof', '#lede-proof']) {
-		const paragraph = requiredElement(fixture, selector).getBoundingClientRect();
-		expect(Math.abs(paragraph.width - canvas.width)).toBeLessThan(1);
+	const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
+	const bounds = (selector: string): DOMRect =>
+		requiredElement(fixture, selector).getBoundingClientRect();
+	const canvas = bounds('#width-canvas');
+	const center = canvas.left + canvas.width / 2;
+	for (const selector of [
+		'#reading-title',
+		'#lead-proof',
+		'#reading-heading',
+		'#ordinary-proof',
+		'#lede-proof',
+		'#reading-section',
+		'#mixed-markdown > p',
+	]) {
+		const block = bounds(selector);
+		expect(block.width).toBeCloseTo(760, 0);
+		expect(Math.abs(block.left + block.width / 2 - center)).toBeLessThan(1);
 	}
-	expect(requiredElement(fixture, '#narrow-proof').getBoundingClientRect().width).toBeLessThan(
-		canvas.width * 0.8,
+	for (const selector of [
+		'#visual-section',
+		'#canvas-heading',
+		'#canvas-description',
+		'#width-code',
+		'#mixed-markdown .ex-table-scroll',
+	]) {
+		expect(Math.abs(bounds(selector).width - canvas.width)).toBeLessThan(1);
+		expect(Math.abs(bounds(selector).left - canvas.left)).toBeLessThan(1);
+	}
+	expect(Math.abs(bounds('#reading-heading').left - bounds('#ordinary-proof').left)).toBeLessThan(
+		1,
 	);
+	expect(bounds('#nested-proof').width).toBeLessThan(760);
+	expect(bounds('#nested-proof').left).toBeLessThan(bounds('#ordinary-proof').left);
+	const local = fixtureLocator(frame, requiredElement(fixture, '#width-code'));
+	await userEvent.hover(local);
+	await local.getByRole('button', { name: 'Open Canvas code in a sidebar', exact: true }).click();
+	await expect
+		.element(frame.getByRole('complementary', { name: 'Canvas code', exact: true }))
+		.toBeVisible();
+	await expect
+		.poll((): number =>
+			Math.abs(
+				bounds('#ordinary-proof').left +
+					bounds('#ordinary-proof').width / 2 -
+					bounds('#width-canvas').left -
+					bounds('#width-canvas').width / 2,
+			),
+		)
+		.toBeLessThan(1);
+	await frame
+		.getByRole('complementary', { name: 'Canvas code', exact: true })
+		.getByRole('button', { name: 'Close', exact: true })
+		.click();
 	await page.viewport(390, 900);
 	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
 });

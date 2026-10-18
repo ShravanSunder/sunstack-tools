@@ -343,12 +343,6 @@ ex-callout[type='risk'] {
 .detail-index p {
 	font-size: var(--text-md);
 }
-.wide-reading {
-	max-width: none;
-}
-.reading-measure {
-	max-width: 68ch;
-}
 .diagram-label {
 	font: 600 var(--text-lg) var(--font-display);
 	margin-block: var(--space-3);

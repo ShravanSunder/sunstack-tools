@@ -47,13 +47,9 @@
 
 ex-document {
 	display: block;
-	max-width: 1140px;
+	max-width: var(--width-canvas);
 	margin: var(--space-4) auto var(--space-16);
 	font-size: var(--text-md);
-}
-/* Wide documents center a visual canvas; text blocks choose their own reading measure. */
-ex-document.wide-reading {
-	max-width: 1600px;
 }
 ex-document > * + * {
 	margin-top: var(--space-6);

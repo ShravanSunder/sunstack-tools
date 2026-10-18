@@ -35,6 +35,10 @@
 	--diff-unchanged: #627185;
 	--diff-unchanged-bg: #eceff3;
 
+	--width-reading: 760px;
+	--width-canvas: 1600px;
+	--document-text-width: var(--width-reading);
+
 	--font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
 	--font-body: 'Literata', Georgia, 'Times New Roman', serif;
 	--font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;

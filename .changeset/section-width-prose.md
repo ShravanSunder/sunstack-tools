@@ -1,5 +1,5 @@
 ---
-'@sunstack/demistify': patch
+'@sunstack/demistify': minor
 ---
 
-Let paragraphs and lead text use their section width by default. Remove the implicit 68ch and 62ch text caps; use reading-measure only for an explicitly narrower passage. Preserve the centered document canvas, bounded callouts and chosen palette.
+Standardize centered Reading (760px) and Canvas (1600px) sections. Keep text and headings left-aligned within their shared section, let visual islands use the canvas, and preserve nested component layouts and dedicated gallery sizing. Document section ownership instead of independent paragraph character caps.
