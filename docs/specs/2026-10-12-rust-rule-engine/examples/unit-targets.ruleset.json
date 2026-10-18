@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "name": "unit-targets",
+  "description": "Judge each paragraph as a separate target.",
+  "inputs": { "skill": { "kind": "document" } },
+  "applicability": [],
+  "common_ruleset_instructions": "Judge only the selected unit.",
+  "rule_paths": ["unit-targets.rules.jsonl"]
+}

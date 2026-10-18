@@ -16,8 +16,10 @@ fn reduction_plan() -> ExecutionPlan {
         rules: vec![LocatedRuleDefinition {
             source: "rules.jsonl".into(),
             line: 1,
+            provenance: None,
             definition: rule,
         }],
+        skipped: vec![],
     });
     let group = AdmittedGroup {
         set,

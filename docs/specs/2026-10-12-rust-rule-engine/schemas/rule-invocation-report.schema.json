@@ -1,0 +1,5403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuleInvocationReport",
+  "type": "object",
+  "properties": {
+    "captures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CaptureCoverage"
+      }
+    },
+    "change_selections": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ResolvedChangeSelection"
+      }
+    },
+    "cursors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReturnedCursor"
+      }
+    },
+    "diagnostics": {
+      "$ref": "#/$defs/DiagnosticList"
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/GroupResult"
+      }
+    },
+    "measurements": {
+      "$ref": "#/$defs/InvocationMeasurements"
+    },
+    "occurrences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RuleOccurrenceResult"
+      }
+    },
+    "origin": {
+      "$ref": "#/$defs/ReportedOrigin"
+    },
+    "requests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RequestRecord"
+      }
+    },
+    "routing": {
+      "$ref": "#/$defs/RoutingReport"
+    },
+    "rule_coverage": {
+      "$ref": "#/$defs/RuleCoverage"
+    },
+    "rule_evaluations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RuleEvaluationResult"
+      }
+    },
+    "skipped_rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SkippedRule"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "rule_evaluations",
+    "rule_coverage",
+    "skipped_rules",
+    "origin",
+    "routing",
+    "groups",
+    "occurrences",
+    "requests",
+    "captures",
+    "change_selections",
+    "cursors",
+    "diagnostics",
+    "measurements"
+  ],
+  "$defs": {
+    "Activation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "nudge"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "block"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "band": {
+              "type": "number",
+              "format": "double"
+            },
+            "kind": {
+              "type": "string",
+              "const": "nudge_above_band"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "band"
+          ]
+        }
+      ]
+    },
+    "AmbiguousReason": {
+      "type": "string",
+      "enum": [
+        "consecutive_user_messages",
+        "unresolved_branch"
+      ]
+    },
+    "ApplicabilityOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "applicable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "basis": {
+              "$ref": "#/$defs/EntryBasis"
+            },
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "not_applicable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entry",
+            "basis"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cause": {
+              "$ref": "#/$defs/Cause"
+            },
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "applicability_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entry",
+            "cause"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "not_evaluated"
+            },
+            "reason": {
+              "$ref": "#/$defs/NotEvaluatedReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "AttemptEvidence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "failure_class": {
+              "$ref": "#/$defs/AttemptFailureClass"
+            },
+            "kind": {
+              "type": "string",
+              "const": "not_dispatched"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "failure_class"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "http_status": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "completed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "http_status"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "failure_class": {
+              "$ref": "#/$defs/AttemptFailureClass"
+            },
+            "http_status": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "remote_outcome_unknown"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "failure_class"
+          ]
+        }
+      ]
+    },
+    "AttemptFailureClass": {
+      "description": "An attempt can end through cancellation or invalid response without the\nwhole run being a provider failure. Kept separate by the adopted contract.",
+      "type": "string",
+      "enum": [
+        "provider_rejected_request",
+        "authentication",
+        "authorization",
+        "insufficient_credits",
+        "provider_resource_unavailable",
+        "request_too_large",
+        "rate_limit",
+        "provider_unavailable",
+        "timeout",
+        "connection",
+        "http_error",
+        "unexpected_provider_error",
+        "invalid_response",
+        "caller_aborted"
+      ]
+    },
+    "CallId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "CaptureCoverage": {
+      "type": "object",
+      "properties": {
+        "bytes_parsed": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "bytes_read": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cursor_basis": {
+          "$ref": "#/$defs/CursorBasis"
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CoverageGap"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "tail": {
+          "$ref": "#/$defs/CaptureTail"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "cursor_basis",
+        "tail",
+        "gaps",
+        "bytes_read",
+        "bytes_parsed"
+      ]
+    },
+    "CaptureTail": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "complete"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bytes": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "incomplete"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "bytes"
+          ]
+        }
+      ]
+    },
+    "Cause": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "request"
+            },
+            "request_index": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "request_index"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "kind": {
+              "type": "string",
+              "const": "evidence"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "kind": {
+              "type": "string",
+              "const": "budget"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "gate"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entry"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostic": {
+              "$ref": "#/$defs/ReportDiagnostic"
+            },
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "condition"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entry",
+            "diagnostic"
+          ]
+        }
+      ]
+    },
+    "ChangeMemberBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "full"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "dirty_layer"
+            },
+            "layer": {
+              "$ref": "#/$defs/DirtyLayer"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "layer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "commit_id": {
+              "$ref": "#/$defs/GitObjectId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit"
+            },
+            "parent": {
+              "$ref": "#/$defs/ParentBasis"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "commit_id",
+            "parent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "base": {
+              "$ref": "#/$defs/GitObjectId"
+            },
+            "head": {
+              "$ref": "#/$defs/SourceRevision"
+            },
+            "kind": {
+              "type": "string",
+              "const": "revision_diff"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "base",
+            "head"
+          ]
+        }
+      ]
+    },
+    "ChangeRecencyBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "not_time_based"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "commit_time"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "approximate_file_time"
+            },
+            "unknown": {
+              "$ref": "#/$defs/UnknownFileRecency"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "unknown"
+          ]
+        }
+      ]
+    },
+    "ChoiceLabel": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "CommitParentPolicy": {
+      "type": "string",
+      "enum": [
+        "first_parent",
+        "each_parent"
+      ]
+    },
+    "ConditionBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload_field_equals"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pointer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload_field_in"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pointer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload_field_present"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pointer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/OriginField"
+            },
+            "kind": {
+              "type": "string",
+              "const": "origin_field_equals"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "pattern_present"
+            },
+            "max_scan_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "pattern_kind": {
+              "$ref": "#/$defs/PatternKind"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pattern_kind",
+            "max_scan_bytes"
+          ]
+        }
+      ]
+    },
+    "ConditionOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "passed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "did_not_pass"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostic": {
+              "$ref": "#/$defs/ReportDiagnostic"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unresolved"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostic"
+          ]
+        }
+      ]
+    },
+    "CoverageGap": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unsupported_record"
+            },
+            "position": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "position"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "malformed_record"
+            },
+            "position": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "position"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "call_id": {
+              "$ref": "#/$defs/CallId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "orphan_result"
+            },
+            "position": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "call_id",
+            "position"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ambiguous_turn"
+            },
+            "position": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "reason": {
+              "$ref": "#/$defs/AmbiguousReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "position",
+            "reason"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown_injection"
+            },
+            "record_id": {
+              "$ref": "#/$defs/RecordId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "record_id"
+          ]
+        }
+      ]
+    },
+    "CursorBasis": {
+      "type": "string",
+      "enum": [
+        "no_cursor_supplied",
+        "continued_from_cursor"
+      ]
+    },
+    "DecisionDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/DecisionDiagnosticCode"
+        },
+        "guidance": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/DecisionDiagnosticLocation"
+        },
+        "origin": {
+          "$ref": "#/$defs/DecisionDiagnosticOrigin"
+        },
+        "retry_advice": {
+          "$ref": "#/$defs/RetryAdvice"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "code",
+        "location",
+        "guidance",
+        "retry_advice"
+      ]
+    },
+    "DecisionDiagnosticCode": {
+      "type": "string",
+      "enum": [
+        "unknown_field",
+        "duplicate_field",
+        "invalid_question",
+        "invalid_state",
+        "unsupported_primitive",
+        "invalid_number",
+        "invalid_rubric",
+        "invalid_configuration",
+        "context_budget_exceeded",
+        "budget_unverifiable",
+        "unsupported_budget_profile",
+        "invalid_body",
+        "missing_answer",
+        "unexpected_answer",
+        "wrong_answer_kind",
+        "invalid_choice",
+        "invalid_receipt",
+        "provider_rejected_request",
+        "authentication",
+        "authorization",
+        "insufficient_credits",
+        "provider_resource_unavailable",
+        "request_too_large",
+        "rate_limit",
+        "provider_unavailable",
+        "timeout",
+        "connection",
+        "http_error",
+        "unexpected_provider_error",
+        "caller_aborted"
+      ]
+    },
+    "DecisionDiagnosticLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "file": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "definition"
+            },
+            "line": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "file",
+            "line",
+            "column",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field_path"
+          ]
+        }
+      ]
+    },
+    "DecisionDiagnosticOrigin": {
+      "type": "string",
+      "enum": [
+        "request",
+        "response",
+        "provider",
+        "execution"
+      ]
+    },
+    "DecisionEntryOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/JudgmentReference"
+            },
+            "kind": {
+              "type": "string",
+              "const": "passed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "answer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/JudgmentReference"
+            },
+            "kind": {
+              "type": "string",
+              "const": "did_not_pass"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "answer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cause": {
+              "$ref": "#/$defs/Cause"
+            },
+            "kind": {
+              "type": "string",
+              "const": "failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "cause"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "DecisionRunOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "answers": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/JudgmentAnswer"
+              }
+            },
+            "attempts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/InferenceAttemptRecord"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "completed"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ExecutionReceipt"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "answers",
+            "receipt",
+            "attempts"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList2"
+            },
+            "kind": {
+              "type": "string",
+              "const": "invalid_request"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attempts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/InferenceAttemptRecord"
+              }
+            },
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList2"
+            },
+            "failure_class": {
+              "$ref": "#/$defs/ProviderFailureClass"
+            },
+            "http_status": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "provider_failure"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "failure_class",
+            "diagnostics",
+            "attempts"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attempts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/InferenceAttemptRecord"
+              }
+            },
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList2"
+            },
+            "kind": {
+              "type": "string",
+              "const": "invalid_response"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics",
+            "attempts"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attempts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/InferenceAttemptRecord"
+              }
+            },
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList2"
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics",
+            "attempts"
+          ]
+        }
+      ]
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/EvidenceCode"
+        },
+        "guidance": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/DiagnosticLocation"
+        },
+        "origin": {
+          "$ref": "#/$defs/DiagnosticOrigin"
+        },
+        "retry_advice": {
+          "$ref": "#/$defs/RetryAdvice2"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "code",
+        "location",
+        "guidance",
+        "retry_advice"
+      ]
+    },
+    "DiagnosticList": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReportDiagnostic"
+          }
+        },
+        "omitted_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "omitted_count"
+      ]
+    },
+    "DiagnosticList2": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionDiagnostic"
+          }
+        },
+        "omitted_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "omitted_count"
+      ]
+    },
+    "DiagnosticList3": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "omitted_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "omitted_count"
+      ]
+    },
+    "DiagnosticLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "file": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "definition"
+            },
+            "line": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "file",
+            "line",
+            "column",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "source"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "span": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceSpan"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "record"
+            },
+            "record_id": {
+              "type": "string"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "record_id"
+          ]
+        }
+      ]
+    },
+    "DiagnosticOrigin": {
+      "type": "string",
+      "enum": [
+        "request",
+        "source",
+        "transcript",
+        "input_binding",
+        "selection",
+        "invocation"
+      ]
+    },
+    "DimensionResult": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "$ref": "#/$defs/JudgmentReference"
+        },
+        "normalized_value": {
+          "type": "number",
+          "format": "double"
+        },
+        "question": {
+          "$ref": "#/$defs/QuestionName"
+        },
+        "weight": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "question",
+        "weight",
+        "normalized_value",
+        "answer"
+      ]
+    },
+    "DirtyLayer": {
+      "type": "string",
+      "enum": [
+        "staged",
+        "unstaged",
+        "untracked"
+      ]
+    },
+    "DiscardReason": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "owner_not_applicable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entry"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "not_routed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "DiscardedAnswer": {
+      "type": "object",
+      "properties": {
+        "question_name": {
+          "$ref": "#/$defs/QuestionName"
+        },
+        "reason": {
+          "$ref": "#/$defs/DiscardReason"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "question_name",
+        "reason"
+      ]
+    },
+    "DiscoveryCoverage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "complete_within_declared_scope"
+            },
+            "query_bounds": {
+              "$ref": "#/$defs/QueryBounds"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "query_bounds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cutoffs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DiscoveryCutoff"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "limited"
+            },
+            "query_bounds": {
+              "$ref": "#/$defs/QueryBounds"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "query_bounds",
+            "cutoffs"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList3"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unavailable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics"
+          ]
+        }
+      ]
+    },
+    "DiscoveryCutoff": {
+      "type": "object",
+      "properties": {
+        "frontier": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceUnitKey"
+          }
+        },
+        "limit": {
+          "$ref": "#/$defs/DiscoveryLimit"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "limit",
+        "frontier"
+      ]
+    },
+    "DiscoveryLimit": {
+      "type": "string",
+      "enum": [
+        "files",
+        "file_bytes",
+        "total_bytes",
+        "matches",
+        "unit_visits",
+        "relationship_candidates",
+        "fan_out",
+        "history_commits",
+        "local_time"
+      ]
+    },
+    "EntryBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "condition"
+            },
+            "test": {
+              "$ref": "#/$defs/ConditionBasis"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "test"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/JudgmentReference"
+            },
+            "kind": {
+              "type": "string",
+              "const": "decision"
+            },
+            "threshold": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "threshold",
+            "answer"
+          ]
+        }
+      ]
+    },
+    "EntryKey": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "$ref": "#/$defs/EntryOwner"
+        },
+        "position": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "position"
+      ]
+    },
+    "EntryOwner": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "router"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "group"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "rule_set"
+            },
+            "path": {
+              "type": "string"
+            },
+            "route": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ChoiceLabel"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "group"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "rule"
+            },
+            "path": {
+              "type": "string"
+            },
+            "route": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ChoiceLabel"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rule_id": {
+              "$ref": "#/$defs/RuleId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "group",
+            "rule_id"
+          ]
+        }
+      ]
+    },
+    "EntryResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "basis": {
+              "$ref": "#/$defs/ConditionBasis"
+            },
+            "kind": {
+              "type": "string",
+              "const": "condition"
+            },
+            "outcome": {
+              "$ref": "#/$defs/ConditionOutcome"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "outcome",
+            "basis"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "decision"
+            },
+            "outcome": {
+              "$ref": "#/$defs/DecisionEntryOutcome"
+            },
+            "threshold": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "threshold",
+            "outcome"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "not_evaluated"
+            },
+            "reason": {
+              "$ref": "#/$defs/NotEvaluatedReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "EvaluatedEntry": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/EntryKey"
+        },
+        "result": {
+          "$ref": "#/$defs/EntryResult"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "result"
+      ]
+    },
+    "EvidenceCode": {
+      "type": "string",
+      "enum": [
+        "frontmatter_unavailable",
+        "unknown_field",
+        "duplicate_field",
+        "invalid_request",
+        "source_unavailable",
+        "path_outside_root",
+        "unsupported_encoding",
+        "source_changed",
+        "missing_target",
+        "duplicate_target",
+        "deleted_target",
+        "evidence_limit",
+        "missing_context",
+        "unknown_transcript_format",
+        "transcript_unavailable",
+        "transcript_discontinuous",
+        "invalid_cursor",
+        "adapter_output_invalid",
+        "transcript_limit",
+        "unknown_payload_schema",
+        "payload_schema_mismatch",
+        "payload_schema_invalid",
+        "invalid_pointer",
+        "invalid_selector",
+        "unsupported_language",
+        "selector_limit",
+        "empty_projection",
+        "revision_unavailable",
+        "invalid_repository_binding",
+        "unknown_repository",
+        "history_incomplete",
+        "recency_unknown",
+        "relationship_unresolved",
+        "discovery_limit",
+        "discovery_not_enabled",
+        "unsupported_relationship_query",
+        "invalid_context_group",
+        "missing_related_context",
+        "required_group_incomplete",
+        "no_change_selection"
+      ]
+    },
+    "ExecutionReceipt": {
+      "type": "object",
+      "properties": {
+        "resolved_model": {
+          "$ref": "#/$defs/ModelName"
+        },
+        "usage": {
+          "$ref": "#/$defs/ExecutionUsage"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "resolved_model",
+        "usage"
+      ]
+    },
+    "ExecutionUsage": {
+      "type": "object",
+      "properties": {
+        "cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "input_tokens": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "input_tokens",
+        "output_tokens"
+      ]
+    },
+    "FrontmatterFieldLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "present"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "span"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "frontmatter_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "kind": {
+              "type": "string",
+              "const": "absent"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "frontmatter_span"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "block_unavailable"
+            },
+            "reason": {
+              "$ref": "#/$defs/FrontmatterUnavailableReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "FrontmatterUnavailableReason": {
+      "type": "string",
+      "enum": [
+        "missing",
+        "malformed"
+      ]
+    },
+    "GitObjectId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "GroupBinding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "bound"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "routed"
+            },
+            "label": {
+              "$ref": "#/$defs/ChoiceLabel"
+            },
+            "router_group": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "router_group",
+            "label"
+          ]
+        }
+      ]
+    },
+    "GroupResult": {
+      "type": "object",
+      "properties": {
+        "applicability": {
+          "$ref": "#/$defs/ApplicabilityOutcome"
+        },
+        "binding": {
+          "$ref": "#/$defs/GroupBinding"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvaluatedEntry"
+          }
+        },
+        "position": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rule_set": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule_set",
+        "position",
+        "binding",
+        "applicability",
+        "entries"
+      ]
+    },
+    "InferenceAttemptRecord": {
+      "type": "object",
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/AttemptEvidence"
+        },
+        "ordinal": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "evidence"
+      ]
+    },
+    "InvocationMeasurements": {
+      "type": "object",
+      "properties": {
+        "applicability_entries_evaluated": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "bytes_included": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "bytes_scanned": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "files_considered": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "files_parsed": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "files_read": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "inference_attempts": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "invalid_rule_entries": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "local_elapsed_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "model_requests": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "provider_elapsed_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "rules_failed": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rules_selected": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rules_skipped": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "skipped_rule_sources": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "transcript_bytes_parsed": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "transcript_bytes_read": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "invalid_rule_entries",
+        "skipped_rule_sources",
+        "files_considered",
+        "files_read",
+        "files_parsed",
+        "transcript_bytes_read",
+        "transcript_bytes_parsed",
+        "bytes_scanned",
+        "bytes_included",
+        "rules_selected",
+        "rules_skipped",
+        "rules_failed",
+        "applicability_entries_evaluated",
+        "local_elapsed_ms",
+        "provider_elapsed_ms",
+        "model_requests",
+        "inference_attempts"
+      ]
+    },
+    "JudgmentAnswer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "noul"
+            },
+            "yes_probability": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "yes_probability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "confidence": {
+              "type": "number",
+              "format": "double"
+            },
+            "probabilities": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "double"
+              }
+            },
+            "selected_label": {
+              "$ref": "#/$defs/ChoiceLabel"
+            },
+            "type": {
+              "type": "string",
+              "const": "choice"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "selected_label",
+            "confidence",
+            "probabilities"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "confidence": {
+              "type": "number",
+              "format": "double"
+            },
+            "legend": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/StructuredEntry"
+              }
+            },
+            "probabilities": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "double"
+              }
+            },
+            "score": {
+              "type": "number",
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "const": "score"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "score",
+            "confidence",
+            "legend",
+            "probabilities"
+          ]
+        }
+      ]
+    },
+    "JudgmentReference": {
+      "type": "object",
+      "properties": {
+        "question_name": {
+          "$ref": "#/$defs/QuestionName"
+        },
+        "request_index": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "request_index",
+        "question_name"
+      ]
+    },
+    "MarkdownByteRange": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "MarkdownOccurrence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unit"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "span"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "call_site"
+            },
+            "match_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "unit_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "visible_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "unit_span",
+            "match_span",
+            "visible_range"
+          ]
+        }
+      ]
+    },
+    "ModelName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "NotEvaluatedReason": {
+      "type": "string",
+      "enum": [
+        "cancelled",
+        "invocation_refused",
+        "earlier_entry_stopped"
+      ]
+    },
+    "NotSentReason": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "no_questions"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "outside_change_scope"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "gate_stopped"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entry"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "kind": {
+              "type": "string",
+              "const": "budget_refused"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "kind": {
+              "type": "string",
+              "const": "evidence_refused"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "request_limit"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "NotStartedReason": {
+      "type": "string",
+      "enum": [
+        "caller_cancelled",
+        "request_limit"
+      ]
+    },
+    "ObservedField": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observed"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unavailable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ObservedField2": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observed"
+            },
+            "value": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unavailable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "OccurrenceSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "selected"
+            },
+            "selected_by": {
+              "$ref": "#/$defs/SelectedReasons"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "selected_by"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "comparison_pending"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "OriginField": {
+      "type": "string",
+      "enum": [
+        "host",
+        "event",
+        "agent_kind",
+        "agent_type"
+      ]
+    },
+    "OutsideChangeReason": {
+      "type": "string",
+      "enum": [
+        "no_declared_change"
+      ]
+    },
+    "ParentBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "root"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "commit_id": {
+              "$ref": "#/$defs/GitObjectId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "parent"
+            },
+            "position": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "commit_id",
+            "position"
+          ]
+        }
+      ]
+    },
+    "PatternKind": {
+      "type": "string",
+      "enum": [
+        "literal",
+        "regex",
+        "ast"
+      ]
+    },
+    "ProviderFailureClass": {
+      "type": "string",
+      "enum": [
+        "provider_rejected_request",
+        "authentication",
+        "authorization",
+        "insufficient_credits",
+        "provider_resource_unavailable",
+        "request_too_large",
+        "rate_limit",
+        "provider_unavailable",
+        "timeout",
+        "connection",
+        "http_error",
+        "unexpected_provider_error"
+      ]
+    },
+    "QueryBounds": {
+      "type": "object",
+      "properties": {
+        "repository_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RepositoryId"
+          }
+        },
+        "requested_hops": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "windows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResolvedTimeWindow"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "repository_ids",
+        "requested_hops",
+        "windows"
+      ]
+    },
+    "QuestionBinding": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "$ref": "#/$defs/QuestionOwner"
+        },
+        "request_name": {
+          "$ref": "#/$defs/QuestionName"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "request_name",
+        "owner"
+      ]
+    },
+    "QuestionName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "QuestionOwner": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "router"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "group"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "rule_set_decision"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entry"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "$ref": "#/$defs/EntryKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "rule_decision"
+            },
+            "rule_id": {
+              "$ref": "#/$defs/RuleId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "rule_id",
+            "entry"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "verdict"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "informational"
+            },
+            "name": {
+              "$ref": "#/$defs/QuestionName"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "name"
+          ]
+        }
+      ]
+    },
+    "RecordId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "ReportDiagnostic": {
+      "description": "Wrapping preserves the boundary owner's closed diagnostic and safe message.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RuleDiagnostic"
+        },
+        {
+          "$ref": "#/$defs/Diagnostic"
+        },
+        {
+          "$ref": "#/$defs/DecisionDiagnostic"
+        }
+      ]
+    },
+    "ReportedAgent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "main"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "subagent"
+            },
+            "type": {
+              "$ref": "#/$defs/ObservedField"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unavailable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ReportedOrigin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "direct"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "agent": {
+              "$ref": "#/$defs/ReportedAgent"
+            },
+            "event": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "hook"
+            },
+            "observed_at": {
+              "$ref": "#/$defs/ObservedField2"
+            },
+            "session": {
+              "$ref": "#/$defs/ObservedField"
+            },
+            "turn": {
+              "$ref": "#/$defs/ObservedField"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "host",
+            "event",
+            "session",
+            "turn",
+            "agent",
+            "observed_at"
+          ]
+        }
+      ]
+    },
+    "RepositoryId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "RequestMode": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rules"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "speculative"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "staged_gate"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "split"
+            },
+            "of": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "part": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "part",
+            "of"
+          ]
+        }
+      ]
+    },
+    "RequestOwner": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "router"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "group"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "rule_set_group"
+            },
+            "route": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ChoiceLabel"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rule_set": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "rule_set",
+            "group"
+          ]
+        }
+      ]
+    },
+    "RequestRecord": {
+      "type": "object",
+      "properties": {
+        "discarded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DiscardedAnswer"
+          }
+        },
+        "index": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "mode": {
+          "$ref": "#/$defs/RequestMode"
+        },
+        "owner": {
+          "$ref": "#/$defs/RequestOwner"
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EntryKey"
+          }
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuestionBinding"
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/RequestStatus"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "owner",
+        "mode",
+        "questions",
+        "prerequisites",
+        "status",
+        "discarded"
+      ]
+    },
+    "RequestStatus": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "sent"
+            },
+            "outcome": {
+              "$ref": "#/$defs/DecisionRunOutcome"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "outcome"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "not_sent"
+            },
+            "reason": {
+              "$ref": "#/$defs/NotSentReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "ResolvedChangeBounds": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "full"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "uncommitted"
+            },
+            "layers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DirtyLayer"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "layers"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "base_revision": {
+              "$ref": "#/$defs/GitObjectId"
+            },
+            "head": {
+              "$ref": "#/$defs/SourceRevision"
+            },
+            "kind": {
+              "type": "string",
+              "const": "revision_diff"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "base_revision",
+            "head"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "commit_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GitObjectId"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit_set"
+            },
+            "parent_policy": {
+              "$ref": "#/$defs/CommitParentPolicy"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "commit_ids",
+            "parent_policy"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "commit_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GitObjectId"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "recent_commits"
+            },
+            "parent_policy": {
+              "$ref": "#/$defs/CommitParentPolicy"
+            },
+            "reference": {
+              "type": "string"
+            },
+            "since_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "until_utc": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reference",
+            "commit_ids",
+            "parent_policy",
+            "since_utc",
+            "until_utc"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "recent_uncommitted"
+            },
+            "layers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DirtyLayer"
+              }
+            },
+            "since_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "unknown_recency": {
+              "$ref": "#/$defs/UnknownRecencyPolicy"
+            },
+            "until_utc": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "layers",
+            "since_utc",
+            "until_utc",
+            "unknown_recency"
+          ]
+        }
+      ]
+    },
+    "ResolvedChangeMember": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/ResolvedChangeBounds"
+        },
+        "changed_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResolvedChangedPath"
+          }
+        },
+        "diagnostics": {
+          "$ref": "#/$defs/DiagnosticList3"
+        },
+        "recency": {
+          "$ref": "#/$defs/ChangeRecencyBasis"
+        },
+        "scope_position": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "scope_position",
+        "bounds",
+        "changed_paths",
+        "recency",
+        "diagnostics"
+      ]
+    },
+    "ResolvedChangeSelection": {
+      "type": "object",
+      "properties": {
+        "anchor_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "coverage": {
+          "$ref": "#/$defs/DiscoveryCoverage"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResolvedChangeMember"
+          }
+        },
+        "repository": {
+          "$ref": "#/$defs/RepositoryId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "anchor_utc",
+        "members",
+        "coverage"
+      ]
+    },
+    "ResolvedChangedPath": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ChangeMemberBasis"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "provenance"
+      ]
+    },
+    "ResolvedTimeWindow": {
+      "type": "object",
+      "properties": {
+        "anchor_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "since_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "until_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "anchor_utc",
+        "since_utc",
+        "until_utc"
+      ]
+    },
+    "RetryAdvice": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry_after"
+            },
+            "milliseconds": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "milliseconds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_request"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_source"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "capture_again"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_configuration"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "restore_provider_access"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "do_not_retry"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "RetryAdvice2": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry_after"
+            },
+            "milliseconds": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "milliseconds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_request"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_source"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "capture_again"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_configuration"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "restore_provider_access"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "do_not_retry"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ReturnedCursor": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/TranscriptFormatName"
+        },
+        "transcript_path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "transcript_path",
+        "format",
+        "cursor"
+      ]
+    },
+    "RouterGroupResult": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/RouterOutcome"
+        },
+        "position": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "position",
+        "outcome"
+      ]
+    },
+    "RouterNotEvaluated": {
+      "type": "string",
+      "enum": [
+        "cancelled"
+      ]
+    },
+    "RouterOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/JudgmentReference"
+            },
+            "confidence": {
+              "type": "number",
+              "format": "double"
+            },
+            "kind": {
+              "type": "string",
+              "const": "routed"
+            },
+            "label": {
+              "$ref": "#/$defs/ChoiceLabel"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "label",
+            "confidence",
+            "answer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/JudgmentReference"
+            },
+            "confidence": {
+              "type": "number",
+              "format": "double"
+            },
+            "distribution": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "double"
+              }
+            },
+            "floor": {
+              "type": "number",
+              "format": "double"
+            },
+            "kind": {
+              "type": "string",
+              "const": "uncertain_intent"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "confidence",
+            "floor",
+            "distribution",
+            "answer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/JudgmentReference"
+            },
+            "confidence": {
+              "type": "number",
+              "format": "double"
+            },
+            "kind": {
+              "type": "string",
+              "const": "no_route"
+            },
+            "label": {
+              "$ref": "#/$defs/ChoiceLabel"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "label",
+            "confidence",
+            "answer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cause": {
+              "$ref": "#/$defs/Cause"
+            },
+            "kind": {
+              "type": "string",
+              "const": "router_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "cause"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "not_evaluated"
+            },
+            "reason": {
+              "$ref": "#/$defs/RouterNotEvaluated"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "RoutingReport": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rule_sets"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "groups": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RouterGroupResult"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "router"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "groups"
+          ]
+        }
+      ]
+    },
+    "RuleCoverage": {
+      "type": "string",
+      "enum": [
+        "full",
+        "partial",
+        "none"
+      ]
+    },
+    "RuleDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/RuleDiagnosticCode"
+        },
+        "guidance": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/RuleDiagnosticLocation"
+        },
+        "origin": {
+          "$ref": "#/$defs/RuleDiagnosticOrigin"
+        },
+        "retry_advice": {
+          "$ref": "#/$defs/RetryAdvice"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "code",
+        "location",
+        "guidance",
+        "retry_advice"
+      ]
+    },
+    "RuleDiagnosticCode": {
+      "type": "string",
+      "enum": [
+        "malformed_json",
+        "unknown_field",
+        "duplicate_field",
+        "unsupported_schema_version",
+        "duplicate_rule_id",
+        "duplicate_rule_source",
+        "duplicate_rule_set",
+        "empty_rule_file",
+        "forbidden_marker_host",
+        "spaced_heading_marker",
+        "duplicate_marker",
+        "missing_rule_entry",
+        "orphaned_rule_entry",
+        "invalid_rule_source_key",
+        "question_too_large",
+        "invalid_threshold",
+        "invalid_band",
+        "invalid_composite",
+        "invalid_target",
+        "undeclared_input",
+        "input_kind_mismatch",
+        "invalid_route",
+        "invalid_wiring",
+        "unbound_input",
+        "duplicate_binding",
+        "extra_binding",
+        "binding_kind_mismatch",
+        "condition_unresolved",
+        "decision_failed",
+        "router_failed",
+        "invalid_configuration",
+        "rule_exceeds_budget",
+        "request_limit",
+        "unexpected_execution_error",
+        "caller_aborted"
+      ]
+    },
+    "RuleDiagnosticLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "file": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "definition"
+            },
+            "line": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "file",
+            "line",
+            "column",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "source"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "span": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceSpan"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "record"
+            },
+            "record_id": {
+              "$ref": "#/$defs/RecordId"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "record_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "answer"
+            },
+            "question_name": {
+              "$ref": "#/$defs/QuestionName"
+            },
+            "request_index": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "request_index",
+            "question_name"
+          ]
+        }
+      ]
+    },
+    "RuleDiagnosticOrigin": {
+      "type": "string",
+      "enum": [
+        "rule_set",
+        "rule_file",
+        "router",
+        "input_binding",
+        "applicability",
+        "request",
+        "execution",
+        "invocation"
+      ]
+    },
+    "RuleEvaluationKey": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rule_id": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "rule_set": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule_set",
+        "group",
+        "rule_id"
+      ]
+    },
+    "RuleEvaluationResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "expanded"
+            },
+            "occurrences": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RuleOccurrenceKey"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "occurrences"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "zero_matches"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "input",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "basis": {
+              "$ref": "#/$defs/EntryBasis"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "not_applicable"
+            },
+            "stopped_at": {
+              "$ref": "#/$defs/EntryKey"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "stopped_at",
+            "basis"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "outside_change_scope"
+            },
+            "reason": {
+              "$ref": "#/$defs/OutsideChangeReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "reason"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "selection_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cause": {
+              "$ref": "#/$defs/Cause"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "evaluation_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "cause"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key"
+          ]
+        }
+      ]
+    },
+    "RuleId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "RuleJudgment": {
+      "type": "object",
+      "properties": {
+        "answers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JudgmentReference"
+          }
+        },
+        "declared_severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "key": {
+          "$ref": "#/$defs/RuleOccurrenceKey"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetLocation"
+        },
+        "verdict": {
+          "$ref": "#/$defs/VerdictOutcome"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "verdict",
+        "declared_severity",
+        "answers",
+        "target"
+      ]
+    },
+    "RuleOccurrenceKey": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rule_id": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "rule_set": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/RuleOccurrenceTarget"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule_set",
+        "group",
+        "rule_id",
+        "target"
+      ]
+    },
+    "RuleOccurrenceResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "judgment": {
+              "$ref": "#/$defs/RuleJudgment"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "judged"
+            },
+            "selected_by": {
+              "$ref": "#/$defs/SelectedReasons"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "judgment",
+            "selected_by"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "basis": {
+              "$ref": "#/$defs/EntryBasis"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "not_applicable"
+            },
+            "stopped_at": {
+              "$ref": "#/$defs/EntryKey"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "stopped_at",
+            "basis"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "outside_change_scope"
+            },
+            "reason": {
+              "$ref": "#/$defs/OutsideChangeReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "reason"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "selection_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cause": {
+              "$ref": "#/$defs/Cause"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "evaluation_failed"
+            },
+            "selection": {
+              "$ref": "#/$defs/OccurrenceSelection"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "cause",
+            "selection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            },
+            "selection": {
+              "$ref": "#/$defs/OccurrenceSelection"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "selection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "not_started"
+            },
+            "reason": {
+              "$ref": "#/$defs/NotStartedReason"
+            },
+            "selection": {
+              "$ref": "#/$defs/OccurrenceSelection"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "reason",
+            "selection"
+          ]
+        }
+      ]
+    },
+    "RuleOccurrenceTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "legacy"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown_unit"
+            },
+            "range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "range"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "call_site"
+            },
+            "match_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "unit_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            },
+            "visible_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "unit_range",
+            "match_range",
+            "visible_range"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "frontmatter_field"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "field"
+          ]
+        }
+      ]
+    },
+    "SelectedReason": {
+      "type": "string",
+      "enum": [
+        "full_scope",
+        "target_changed",
+        "context_changed",
+        "rule_changed",
+        "new_rule",
+        "applicability_changed",
+        "baseline_unavailable",
+        "before_analysis_unknown"
+      ]
+    },
+    "SelectedReasons": {
+      "description": "A selection always explains itself with unique reasons in the contract's order.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SelectedReason"
+      }
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "block",
+        "nudge"
+      ]
+    },
+    "SkippedRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "key": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "entry"
+            },
+            "markdown": {
+              "type": "string"
+            },
+            "rule_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RuleId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rule_set": {
+              "type": "string"
+            },
+            "rules": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "rule_set",
+            "markdown",
+            "rules",
+            "key",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "kind": {
+              "type": "string",
+              "const": "source"
+            },
+            "markdown": {
+              "type": "string"
+            },
+            "rule_set": {
+              "type": "string"
+            },
+            "rules": {
+              "type": "string"
+            },
+            "source_file": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "rule_set",
+            "source_file",
+            "markdown",
+            "rules",
+            "diagnostics"
+          ]
+        }
+      ]
+    },
+    "SnapshotId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "SourceName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "SourceRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "content_identity": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "repository_file"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            },
+            "revision": {
+              "$ref": "#/$defs/SourceRevision"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "repository",
+            "revision",
+            "path",
+            "content_identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content_identity": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "document"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "repository",
+            "path",
+            "content_identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "committed_bytes": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "format": {
+              "$ref": "#/$defs/TranscriptFormatName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "transcript"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "format",
+            "committed_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "group_position": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "group_position",
+            "input"
+          ]
+        }
+      ]
+    },
+    "SourceRevision": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "commit_id": {
+              "$ref": "#/$defs/GitObjectId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit"
+            },
+            "side": {
+              "$ref": "#/$defs/SourceSide"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "commit_id",
+            "side"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content_identity": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "index"
+            },
+            "side": {
+              "$ref": "#/$defs/SourceSide"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "content_identity",
+            "side"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "worktree"
+            },
+            "side": {
+              "$ref": "#/$defs/SourceSide"
+            },
+            "snapshot": {
+              "$ref": "#/$defs/SnapshotId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "snapshot",
+            "side"
+          ]
+        }
+      ]
+    },
+    "SourceSide": {
+      "type": "string",
+      "enum": [
+        "before",
+        "after"
+      ]
+    },
+    "SourceSpan": {
+      "type": "object",
+      "properties": {
+        "byte_end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "byte_start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "end_column": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "end_line": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "start_column": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start_line": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "byte_start",
+        "byte_end",
+        "start_line",
+        "start_column",
+        "end_line",
+        "end_column"
+      ]
+    },
+    "SourceUnitKey": {
+      "type": "object",
+      "properties": {
+        "byte_end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "byte_start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string"
+        },
+        "repository": {
+          "$ref": "#/$defs/RepositoryId"
+        },
+        "revision": {
+          "$ref": "#/$defs/SourceRevision"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "snapshot",
+        "repository",
+        "revision",
+        "path",
+        "byte_start",
+        "byte_end"
+      ]
+    },
+    "StructuredEntry": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        }
+      ]
+    },
+    "StructuredJson": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        }
+      ]
+    },
+    "TargetId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z][0-9]{3,}$"
+    },
+    "TargetLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "frontmatter_field"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "state": {
+              "$ref": "#/$defs/FrontmatterFieldLocation"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "field",
+            "state"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown_unit"
+            },
+            "occurrence": {
+              "$ref": "#/$defs/MarkdownOccurrence"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "occurrence"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "code_units"
+            },
+            "units": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceUnitKey"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "units"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "paragraph"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "target_id": {
+              "$ref": "#/$defs/TargetId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "span",
+            "target_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "conversation_records"
+            },
+            "record_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RecordId"
+              }
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "record_ids"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload_field"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pointer"
+          ]
+        }
+      ]
+    },
+    "TranscriptFormatName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1
+    },
+    "UnknownFileRecency": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "included"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "paths"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "excluded"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "count"
+          ]
+        }
+      ]
+    },
+    "UnknownRecencyPolicy": {
+      "type": "string",
+      "enum": [
+        "include_with_diagnostic",
+        "exclude_with_omission"
+      ]
+    },
+    "VerdictBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/JudgmentReference"
+            },
+            "kind": {
+              "type": "string",
+              "const": "noul"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "answer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "dimensions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DimensionResult"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "composite"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "dimensions"
+          ]
+        }
+      ]
+    },
+    "VerdictOutcome": {
+      "type": "object",
+      "properties": {
+        "basis": {
+          "$ref": "#/$defs/VerdictBasis"
+        },
+        "result": {
+          "$ref": "#/$defs/VerdictResult"
+        },
+        "threshold": {
+          "type": "number",
+          "format": "double"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "value",
+        "threshold",
+        "result"
+      ]
+    },
+    "VerdictResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pass"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "activation": {
+              "$ref": "#/$defs/Activation"
+            },
+            "kind": {
+              "type": "string",
+              "const": "fail"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "activation"
+          ]
+        }
+      ]
+    }
+  },
+  "$id": "rule-invocation-report.schema.json",
+  "$comment": "Generated from the owning sunstack-rules Rust contract with schemars."
+}

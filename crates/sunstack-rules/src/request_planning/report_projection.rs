@@ -79,6 +79,19 @@ pub(crate) fn project_report(
                         }),
                 );
             }
+            for evaluation in &group.evaluations {
+                entries.extend(
+                    plan.evaluations[evaluation.0]
+                        .entries
+                        .iter()
+                        .copied()
+                        .filter(|entry| {
+                            matches!(plan.entries[entry.0].key.owner, EntryOwner::Rule { .. })
+                        }),
+                );
+            }
+            entries.sort();
+            entries.dedup();
             let applicable = if let Some(routing) = &group.routing {
                 match route_state(plan, state, routing) {
                     RouteState::Failed { cause: failure } => {
@@ -234,7 +247,31 @@ pub(crate) fn project_report(
             _ => measurements.rules_failed += 1,
         }
     }
+    let rule_evaluations = project_rule_evaluations(plan, state, &indices);
+    for evaluation in &rule_evaluations {
+        match evaluation {
+            RuleEvaluationResult::NotApplicable { .. }
+            | RuleEvaluationResult::OutsideChangeScope { .. } => measurements.rules_skipped += 1,
+            RuleEvaluationResult::SelectionFailed {
+                diagnostics: reported,
+                ..
+            } => {
+                measurements.rules_failed += 1;
+                diagnostics.extend(reported.clone());
+            }
+            RuleEvaluationResult::EvaluationFailed { .. }
+            | RuleEvaluationResult::Cancelled { .. } => measurements.rules_failed += 1,
+            _ => {}
+        }
+    }
+    let source_summary = crate::rule_source_reporting::source_summary(
+        plan.groups.iter().map(|group| group.admitted.set.as_ref()),
+        &mut measurements,
+    );
     RuleInvocationReport {
+        rule_evaluations,
+        rule_coverage: source_summary.coverage,
+        skipped_rules: source_summary.skipped,
         origin: origin.into(),
         routing,
         groups,

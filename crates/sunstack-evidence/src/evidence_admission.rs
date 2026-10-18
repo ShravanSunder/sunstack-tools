@@ -52,7 +52,7 @@ pub(crate) fn admission(
         if !ids.insert(&declaration.id) {
             return Err(EvidenceCode::InvalidSelector.into());
         }
-        admit_declaration(declaration, &input.sources)?;
+        admit_evidence_declaration(declaration, &input.sources)?;
     }
     let mut cursors = BTreeSet::new();
     for cursor in &input.cursors {
@@ -86,7 +86,8 @@ fn valid_pointer(pointer: &str) -> bool {
     true
 }
 
-pub(crate) fn admit_declaration(
+/// Validate a selector against its bound source without acquiring that source.
+pub fn admit_evidence_declaration(
     declaration: &EvidenceDeclaration,
     sources: &std::collections::BTreeMap<SourceName, SourceSpec>,
 ) -> EvidenceResult<()> {
@@ -98,6 +99,8 @@ pub(crate) fn admit_declaration(
         (
             SourceSpec::Document { .. },
             EvidenceSelection::Paragraph { .. }
+                | EvidenceSelection::MarkdownUnits(_)
+                | EvidenceSelection::FrontmatterField { .. }
                 | EvidenceSelection::WholeDocument {}
                 | EvidenceSelection::LiteralText { .. }
                 | EvidenceSelection::RegexText { .. }
@@ -125,6 +128,10 @@ pub(crate) fn admit_declaration(
         selection.validate()?;
     }
     match &declaration.select {
+        EvidenceSelection::FrontmatterField { field } if field.is_empty() => {
+            return Err(EvidenceCode::InvalidSelector.into());
+        }
+        EvidenceSelection::MarkdownUnits(selection) => selection.validate()?,
         EvidenceSelection::LiteralText { text } if text.is_empty() => {
             return Err(EvidenceCode::InvalidSelector.into());
         }

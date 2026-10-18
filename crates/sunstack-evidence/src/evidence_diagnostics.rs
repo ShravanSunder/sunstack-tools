@@ -15,6 +15,7 @@ pub enum DiagnosticOrigin {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceCode {
+    FrontmatterUnavailable,
     UnknownField,
     DuplicateField,
     InvalidRequest,
@@ -104,6 +105,11 @@ impl Diagnostic {
     pub fn new(code: EvidenceCode) -> Self {
         use EvidenceCode::*;
         let (origin, guidance, retry_advice) = match code {
+            FrontmatterUnavailable => (
+                DiagnosticOrigin::Source,
+                "Supply a well-formed YAML frontmatter mapping at the start of the document.",
+                RetryAdvice::RepairSource,
+            ),
             DiscoveryNotEnabled => (
                 DiagnosticOrigin::Invocation,
                 "Enable bounded discovery for change-set or relationship evidence.",

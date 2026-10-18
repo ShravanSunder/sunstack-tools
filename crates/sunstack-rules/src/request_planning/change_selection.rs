@@ -33,6 +33,45 @@ pub(crate) async fn plan_change_selection(plan: &mut ExecutionPlan, session: &mu
                 .await
                 .unwrap_or_else(|_| ScopeEvaluation::pending());
     }
+    for position in 0..plan.evaluations.len() {
+        let evaluation = &plan.evaluations[position];
+        plan.evaluations[position].scope = compare_rule(
+            plan,
+            &evaluation.rule,
+            evaluation.group,
+            &evaluation.entries,
+            ComparisonLevel::Path,
+            session,
+        )
+        .await
+        .unwrap_or_else(|_| ScopeEvaluation::pending());
+    }
+}
+
+pub(crate) async fn finish_evaluation_scope(
+    plan: &ExecutionPlan,
+    index: EvaluationIndex,
+    session: &mut EvidenceSession,
+) -> Result<ScopeEvaluation, DiagnosticList> {
+    let evaluation = &plan.evaluations[index.0];
+    if matches!(
+        evaluation.scope.disposition,
+        ScopeDisposition::InScope {
+            selection: OccurrenceSelection::ComparisonPending {}
+        }
+    ) {
+        compare_rule(
+            plan,
+            &evaluation.rule,
+            evaluation.group,
+            &evaluation.entries,
+            ComparisonLevel::Content,
+            session,
+        )
+        .await
+    } else {
+        Ok(evaluation.scope.clone())
+    }
 }
 pub(crate) fn effective_scope<'state>(
     plan: &'state ExecutionPlan,
@@ -91,7 +130,27 @@ async fn compare_occurrence(
     level: ComparisonLevel,
     session: &mut EvidenceSession,
 ) -> Result<ScopeEvaluation, DiagnosticList> {
-    let dependencies = dependencies(plan, index)?;
+    let occurrence = &plan.occurrences[index.0];
+    compare_rule(
+        plan,
+        &occurrence.rule,
+        occurrence.group,
+        &occurrence.entries,
+        level,
+        session,
+    )
+    .await
+}
+
+async fn compare_rule(
+    plan: &ExecutionPlan,
+    rule: &RuleDefinition,
+    group: GroupIndex,
+    entries: &[EntryIndex],
+    level: ComparisonLevel,
+    session: &mut EvidenceSession,
+) -> Result<ScopeEvaluation, DiagnosticList> {
+    let dependencies = dependencies(plan, rule, group, entries)?;
     let mut reasons = BTreeSet::new();
     let mut pending = false;
     let mut deferred_refusal = false;
@@ -183,16 +242,17 @@ fn changed_reason(role: DependencyRole, added: bool) -> SelectedReason {
 }
 fn dependencies(
     plan: &ExecutionPlan,
-    index: OccurrenceIndex,
+    rule: &RuleDefinition,
+    group: GroupIndex,
+    entries: &[EntryIndex],
 ) -> Result<Vec<SelectionDependency>, DiagnosticList> {
-    let occurrence = &plan.occurrences[index.0];
-    let group = &plan.groups[occurrence.group.0];
+    let group = &plan.groups[group.0];
     let located = group
         .admitted
         .set
         .rules
         .iter()
-        .find(|rule| rule.definition.rule_id == occurrence.rule.rule_id)
+        .find(|located| located.definition.rule_id == rule.rule_id)
         .ok_or_else(|| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))?;
     let mut dependencies = vec![
         SelectionDependency {
@@ -208,8 +268,20 @@ fn dependencies(
             }),
         },
     ];
-    for declaration in &occurrence.rule.evidence {
-        let role = if declaration.id == occurrence.rule.target {
+    if let Some(provenance) = &located.provenance {
+        for path in [&provenance.markdown, &provenance.rules] {
+            if path != &located.source {
+                dependencies.push(SelectionDependency {
+                    role: DependencyRole::Definition,
+                    subject: DependencySubject::Evidence(ChangeComparisonSubject::DefinitionFile {
+                        path: path.clone(),
+                    }),
+                });
+            }
+        }
+    }
+    for declaration in &rule.evidence {
+        let role = if declaration.id == rule.target {
             DependencyRole::Target
         } else {
             DependencyRole::Context
@@ -221,7 +293,7 @@ fn dependencies(
             &group.admitted.sources,
         )?;
     }
-    for entry_index in &occurrence.entries {
+    for entry_index in entries {
         let entry = &plan.entries[entry_index.0];
         match &entry.definition {
             EntryDefinition::Decision { evidence, .. } => {

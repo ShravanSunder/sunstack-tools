@@ -7,7 +7,8 @@ use sunstack_evidence::{
     DiagnosticList, EvidencePlanInput, EvidencePlanOutcome, decode_evidence_plan_input,
 };
 use sunstack_rules::{
-    RuleInvocationInput, RuleInvocationOutcome, RulePreparationOutcome, decode_rule_invocation,
+    CheckRulesInput, CheckRulesOutcome, RuleInvocationInput, RuleInvocationOutcome,
+    RulePreparationOutcome, decode_check_rules, decode_rule_invocation,
 };
 use tokio::io::AsyncReadExt;
 
@@ -25,6 +26,7 @@ pub enum OperationInput {
     RunJudgments(Box<RunJudgmentsInput>),
     PrepareRules(Box<RuleInvocationInput>),
     EvaluateRules(Box<RuleInvocationInput>),
+    CheckRules(Box<CheckRulesInput>),
     Rejected(OperationResult),
 }
 #[derive(Serialize)]
@@ -34,6 +36,7 @@ pub enum OperationResult {
     RunJudgments(DecisionRunOutcome),
     PrepareRules(Box<RulePreparationOutcome>),
     EvaluateRules(Box<RuleInvocationOutcome>),
+    CheckRules(Box<CheckRulesOutcome>),
 }
 impl OperationResult {
     pub fn exit_code(&self) -> u8 {
@@ -47,6 +50,7 @@ impl OperationResult {
             Self::RunJudgments(outcome) => outcome.exit_code(),
             Self::PrepareRules(outcome) => outcome.exit_code(),
             Self::EvaluateRules(outcome) => outcome.exit_code(),
+            Self::CheckRules(outcome) => outcome.exit_code(),
         }
     }
 }
@@ -200,6 +204,16 @@ pub fn decode_request(bytes: &[u8]) -> Result<OperationInput, ProtocolCode> {
                 },
             )),
         }),
+        "check_rules" => Ok(match decode_check_rules(envelope.input.get().as_bytes()) {
+            Ok(input) => OperationInput::CheckRules(Box::new(input)),
+            Err(diagnostics) => OperationInput::Rejected(OperationResult::CheckRules(Box::new(
+                CheckRulesOutcome::Refused {
+                    diagnostics,
+                    checked_rule_count: 0,
+                    refused_rule_count: 0,
+                },
+            ))),
+        }),
         "prepare_rules" => Ok(
             match decode_rule_invocation(envelope.input.get().as_bytes()) {
                 Ok(input) => OperationInput::PrepareRules(Box::new(input)),
@@ -225,6 +239,32 @@ mod tests {
     use super::*;
     use serde_json::json;
     use sunstack_rules::{InvocationMeasurements, RuleDiagnosticCode};
+
+    #[test]
+    fn internal_check_failure_keeps_native_diagnostics_measurements_and_exit_three()
+    -> serde_json::Result<()> {
+        // The owned blocking task failure has no public-input fixture; this is boundary proof only.
+        let outcome = CheckRulesOutcome::CheckFailed {
+            diagnostics: sunstack_rules::DiagnosticList::rule(
+                RuleDiagnosticCode::UnexpectedExecutionError,
+            ),
+            measurements: InvocationMeasurements {
+                files_read: 7,
+                ..InvocationMeasurements::default()
+            },
+        };
+        let result = OperationResult::CheckRules(Box::new(outcome));
+        assert_eq!(result.exit_code(), 3);
+        let wire = serde_json::to_value(ProgramResponse::operation_result(result))?;
+        assert_eq!(wire["result"]["operation"], "check_rules");
+        assert_eq!(wire["result"]["outcome"]["kind"], "check_failed");
+        assert_eq!(wire["result"]["outcome"]["measurements"]["files_read"], 7);
+        assert_eq!(
+            wire["result"]["outcome"]["diagnostics"]["items"][0]["code"],
+            "unexpected_execution_error"
+        );
+        Ok(())
+    }
 
     #[test]
     fn internal_preparation_failures_keep_native_diagnostics_measurements_and_exit_three() {

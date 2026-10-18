@@ -1,0 +1,767 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckRulesInput",
+  "type": "object",
+  "properties": {
+    "definition_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "definitions": {
+      "$ref": "#/$defs/InvocationDefinitions"
+    },
+    "discovery": {
+      "$ref": "#/$defs/EvidenceDiscovery",
+      "default": {
+        "kind": "none"
+      }
+    },
+    "limits": {
+      "$ref": "#/$defs/InvocationLimits"
+    },
+    "output": {
+      "$ref": "#/$defs/CheckRulesOutput"
+    },
+    "payload_schemas": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PayloadSchemaPath"
+      }
+    },
+    "repositories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RepositoryBinding"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "definition_root",
+    "definitions",
+    "repositories",
+    "payload_schemas",
+    "limits",
+    "output"
+  ],
+  "$defs": {
+    "BindingGroup": {
+      "type": "object",
+      "properties": {
+        "bindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}$": {
+              "$ref": "#/$defs/InputBinding"
+            }
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bindings"
+      ]
+    },
+    "BoundRuleSet": {
+      "type": "object",
+      "properties": {
+        "binding_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BindingGroup"
+          },
+          "minItems": 1
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "binding_groups"
+      ]
+    },
+    "ChangeScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "full"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "uncommitted"
+            },
+            "layers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DirtyLayer"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "layers"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "base_revision": {
+              "type": "string"
+            },
+            "head": {
+              "$ref": "#/$defs/RevisionHead"
+            },
+            "kind": {
+              "type": "string",
+              "const": "revision_diff"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "base_revision",
+            "head"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "commit_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GitObjectId"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit_set"
+            },
+            "parent_policy": {
+              "$ref": "#/$defs/CommitParentPolicy"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "commit_ids",
+            "parent_policy"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "recent_commits"
+            },
+            "parent_policy": {
+              "$ref": "#/$defs/CommitParentPolicy"
+            },
+            "reference": {
+              "type": "string"
+            },
+            "window": {
+              "$ref": "#/$defs/TimeWindow"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reference",
+            "window",
+            "parent_policy"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "recent_uncommitted"
+            },
+            "layers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DirtyLayer"
+              }
+            },
+            "unknown_recency": {
+              "$ref": "#/$defs/UnknownRecencyPolicy"
+            },
+            "window": {
+              "$ref": "#/$defs/TimeWindow"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "layers",
+            "window",
+            "unknown_recency"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "union"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ChangeScope"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "members"
+          ]
+        }
+      ]
+    },
+    "CheckRulesOutput": {
+      "type": "string",
+      "enum": [
+        "diagnostics",
+        "assembled_rules"
+      ]
+    },
+    "CommitParentPolicy": {
+      "type": "string",
+      "enum": [
+        "first_parent",
+        "each_parent"
+      ]
+    },
+    "DirtyLayer": {
+      "type": "string",
+      "enum": [
+        "staged",
+        "unstaged",
+        "untracked"
+      ]
+    },
+    "DiscoveryLimits": {
+      "type": "object",
+      "properties": {
+        "include_ignored": {
+          "type": "boolean"
+        },
+        "max_fan_out": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_file_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_files": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_history_commits": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_local_time_ms": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_matches": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_relationship_candidates": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_total_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_unit_visits": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "max_files",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_matches",
+        "include_ignored",
+        "max_unit_visits",
+        "max_relationship_candidates",
+        "max_fan_out",
+        "max_history_commits",
+        "max_local_time_ms"
+      ]
+    },
+    "EvidenceDiscovery": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "bounded"
+            },
+            "limits": {
+              "$ref": "#/$defs/DiscoveryLimits"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "limits"
+          ]
+        }
+      ]
+    },
+    "GitObjectId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "InputBinding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "document"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "repository",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "final_assistant_text": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "format": {
+              "$ref": "#/$defs/TranscriptFormatName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "conversation"
+            },
+            "transcript_path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "transcript_path",
+            "format"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "payload"
+            },
+            "value": {
+              "$ref": "#/$defs/StructuredJson"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_set"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "repository"
+          ]
+        }
+      ]
+    },
+    "InvocationDefinitions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "binding_groups": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/BindingGroup"
+              },
+              "minItems": 1
+            },
+            "kind": {
+              "type": "string",
+              "const": "router"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "binding_groups"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rule_sets"
+            },
+            "rule_sets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/BoundRuleSet"
+              },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "rule_sets"
+          ]
+        }
+      ]
+    },
+    "InvocationLimits": {
+      "type": "object",
+      "properties": {
+        "include_ignored": {
+          "type": "boolean"
+        },
+        "max_file_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_files": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_matches": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_total_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_transcript_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "max_files",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_matches",
+        "max_transcript_bytes",
+        "include_ignored"
+      ]
+    },
+    "PayloadSchemaPath": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/SchemaName"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "path"
+      ]
+    },
+    "QueryPath": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exact"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "glob"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pattern"
+          ]
+        }
+      ]
+    },
+    "RepositoryBinding": {
+      "type": "object",
+      "properties": {
+        "change_scope": {
+          "$ref": "#/$defs/ChangeScope"
+        },
+        "input_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QueryPath"
+          }
+        },
+        "key": {
+          "$ref": "#/$defs/RepositoryId"
+        },
+        "root": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "root",
+        "input_paths",
+        "change_scope"
+      ]
+    },
+    "RepositoryId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "RevisionHead": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "commit"
+            },
+            "revision": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "revision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "worktree"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "SchemaName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "StructuredJson": {
+      "description": "Recursive JSON content. This is data, never a declaration or an executable expression.",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        }
+      ]
+    },
+    "TimeWindow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "lookback"
+            },
+            "seconds": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "seconds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "absolute"
+            },
+            "since_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "until_utc": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "since_utc",
+            "until_utc"
+          ]
+        }
+      ]
+    },
+    "TranscriptFormatName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1
+    },
+    "UnknownRecencyPolicy": {
+      "type": "string",
+      "enum": [
+        "include_with_diagnostic",
+        "exclude_with_omission"
+      ]
+    }
+  },
+  "$id": "check-rules-input.schema.json",
+  "$comment": "Generated from the owning sunstack-rules Rust contract with schemars."
+}

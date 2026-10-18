@@ -90,6 +90,91 @@ async fn content_comparison_ignores_locations_and_detects_added_deleted_and_chan
         );
     }
 }
+
+#[tokio::test]
+async fn markdown_occurrence_fingerprints_ignore_location_but_keep_multiplicity_and_content() {
+    for (before, after, expected) in [
+        ("Use stable.\n", "# Prefix\n\nUse stable.\n", "unchanged"),
+        ("Use old.\n", "Use new.\n", "changed"),
+        ("Use stable.\n", "Use stable.\n\nUse stable.\n", "changed"),
+        ("Nothing.\n", "Use new.\n", "added"),
+        ("Use old.\n", "Nothing.\n", "deleted"),
+    ] {
+        let fixture = GitFixture::new();
+        fixture.write("source.md", before);
+        fixture.stage("source.md");
+        fixture.commit(1000);
+        fixture.write("source.md", after);
+        let mut session = session(
+            &fixture,
+            ChangeScope::Uncommitted {
+                layers: vec![DirtyLayer::Unstaged],
+            },
+        )
+        .await;
+        let select=serde_json::from_value(serde_json::json!({"kind":"markdown_units","mode":"call_site","units":["paragraph"],"pattern":"Use"})).unwrap();
+        let result = session
+            .compare_change_sides(
+                ChangeComparisonSubject::Declaration {
+                    declaration: declaration(select),
+                },
+                ComparisonLevel::Content,
+            )
+            .await;
+        assert_eq!(
+            serde_json::to_value(result).unwrap()["kind"],
+            expected,
+            "{before:?} -> {after:?}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn frontmatter_fingerprints_use_decoded_values_and_stay_conservative_for_bad_blocks() {
+    for (before, after, expected) in [
+        (
+            "---\nname: stable\n---\nOld body\n",
+            "---\nname: 'stable'\n---\nNew body\n",
+            "unchanged",
+        ),
+        ("---\nname: old\n---\n", "---\nname: new\n---\n", "changed"),
+        ("---\nother: true\n---\n", "---\nname: new\n---\n", "added"),
+        (
+            "---\nname: old\n---\n",
+            "---\nother: true\n---\n",
+            "deleted",
+        ),
+        ("---\nname: [\n---\n", "---\nname: {\n---\n", "changed"),
+    ] {
+        let fixture = GitFixture::new();
+        fixture.write("source.md", before);
+        fixture.stage("source.md");
+        fixture.commit(1000);
+        fixture.write("source.md", after);
+        let mut session = session(
+            &fixture,
+            ChangeScope::Uncommitted {
+                layers: vec![DirtyLayer::Unstaged],
+            },
+        )
+        .await;
+        let result = session
+            .compare_change_sides(
+                ChangeComparisonSubject::Declaration {
+                    declaration: declaration(EvidenceSelection::FrontmatterField {
+                        field: "name".into(),
+                    }),
+                },
+                ComparisonLevel::Content,
+            )
+            .await;
+        assert_eq!(
+            serde_json::to_value(result).unwrap()["kind"],
+            expected,
+            "{before:?} -> {after:?}"
+        );
+    }
+}
 #[tokio::test]
 async fn path_comparison_precedes_content_and_reuses_one_frozen_capture_after_live_mutation() {
     let fixture = GitFixture::new();

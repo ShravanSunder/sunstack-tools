@@ -32,6 +32,9 @@ pub async fn execute_operation(
 ) -> OperationResult {
     match input {
         OperationInput::Rejected(result) => result,
+        OperationInput::CheckRules(input) => OperationResult::CheckRules(Box::new(
+            sunstack_rules::check_rules(*input, cancellation.clone()).await,
+        )),
         OperationInput::PrepareEvidence(input) => {
             OperationResult::PrepareEvidence(match AdapterRegistry::builtins() {
                 Ok(registry) => {

@@ -8,41 +8,9 @@ fn examples() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../docs/specs/2026-10-12-rust-rule-engine/examples")
 }
-fn generated<T: JsonSchema>() -> jsonschema::Validator {
-    let schema = serde_json::to_value(schemars::schema_for!(T)).unwrap();
-    jsonschema::options()
-        .with_draft(jsonschema::Draft::Draft202012)
-        .offline()
-        .build(&schema)
-        .unwrap()
-}
-fn reviewed(name: &str) -> jsonschema::Validator {
-    let directory = examples().parent().unwrap().join("schemas");
-    let mut registry = jsonschema::Registry::new();
-    let mut resources = BTreeMap::new();
-    for entry in std::fs::read_dir(directory).unwrap() {
-        let path = entry.unwrap().path();
-        if path
-            .extension()
-            .is_some_and(|extension| extension == "json")
-        {
-            let name = path.file_name().unwrap().to_str().unwrap().to_owned();
-            let mut value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-            value["$id"] = json!(format!("https://schemas.test/{name}"));
-            registry = registry
-                .add(format!("https://schemas.test/{name}"), value.clone())
-                .unwrap();
-            resources.insert(name, value);
-        }
-    }
-    let registry = registry.prepare().unwrap();
-    jsonschema::options()
-        .with_draft(jsonschema::Draft::Draft202012)
-        .with_registry(&registry)
-        .offline()
-        .build(&resources[name])
-        .unwrap()
-}
+#[path = "support/contract_schemas.rs"]
+mod schema_support;
+use schema_support::{generated, reviewed};
 fn admit_shape<T: JsonSchema + DeserializeOwned>(path: &Path) {
     let raw = std::fs::read(path).unwrap();
     let _: T = serde_json::from_slice(&raw).unwrap();
@@ -84,12 +52,82 @@ fn every_reviewed_milestone_one_definition_and_invocation_deserializes_and_valid
                     generated::<RuleDefinition>().is_valid(&serde_json::from_str(line).unwrap())
                 );
             }
+        } else if name.ends_with(".rules.json") {
+            let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            let _: BTreeMap<sunstack_evidence::MarkerId, RuleSourceEntry> =
+                serde_json::from_value(value.clone()).unwrap();
+            assert!(reviewed("rule-source.schema.json").is_valid(&value));
+        } else if name.ends_with(".check.request.json") {
+            let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            assert_eq!(value["protocol_version"], 1);
+            assert_eq!(value["operation"], "check_rules");
+            assert_eq!(value.as_object().unwrap().len(), 3);
+            decode_check_rules(&serde_json::to_vec(&value["input"]).unwrap()).unwrap();
+            assert!(generated::<CheckRulesInput>().is_valid(&value["input"]));
+            assert!(reviewed("check-rules-input.schema.json").is_valid(&value["input"]));
+        } else if name == "marked-standards.md" {
+            let text = std::fs::read_to_string(&path).unwrap();
+            let bindings = sunstack_evidence::MarkdownDocument::parse(&text)
+                .bind_markers(&sunstack_evidence::MarkerPrefix::new("K").unwrap(), 400);
+            assert_eq!(bindings.len(), 1);
+            assert!(
+                matches!(&bindings[0],sunstack_evidence::MarkdownMarkerBinding::Bound { binding } if binding.question_text=="Clear result\n\nThe selected paragraph states a clear result.")
+            );
         } else {
             assert_eq!(name, "SKILL.md");
             assert!(std::fs::read_to_string(path).unwrap().contains("U001:"));
         }
     }
 }
+#[tokio::test]
+async fn reviewed_marked_standard_example_checks_and_prints_through_the_native_api() {
+    let request: Value = serde_json::from_slice(
+        &std::fs::read(examples().join("marked-standards.check.request.json")).unwrap(),
+    )
+    .unwrap();
+    let mut input = decode_check_rules(&serde_json::to_vec(&request["input"]).unwrap()).unwrap();
+    let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+    input.definition_root = workspace.join(&input.definition_root);
+    for repository in &mut input.repositories {
+        repository.root = workspace.join(&repository.root);
+    }
+    let outcome = check_rules(input, sunstack_decisions::CancellationToken::new()).await;
+    let wire = serde_json::to_value(&outcome).unwrap();
+    assert!(reviewed("check-rules-outcome.schema.json").is_valid(&wire));
+    let CheckRulesOutcome::Checked {
+        checked_rule_count,
+        printed_rules,
+    } = outcome
+    else {
+        panic!("{wire}")
+    };
+    assert_eq!(checked_rule_count, 1);
+    assert_eq!(printed_rules.len(), 1);
+    assert_eq!(
+        printed_rules[0].definition.rule_id.as_str(),
+        "paragraph.clear-result"
+    );
+    let VerdictDeclaration::Noul {
+        question:
+            sunstack_decisions::JudgmentQuestion::Noul {
+                instructions: sunstack_decisions::StructuredEntry::Text(text),
+                ..
+            },
+        ..
+    } = &printed_rules[0].definition.verdict
+    else {
+        panic!("judgment shape")
+    };
+    assert_eq!(
+        text,
+        "Clear result\n\nThe selected paragraph states a clear result."
+    );
+}
+
 #[test]
 fn generated_and_reviewed_rule_shapes_agree_on_shape_refusal_controls() {
     let baseline: Value = serde_json::from_str(

@@ -7,7 +7,9 @@
     "RuleSet": {
       "type": "object",
       "properties": {
-        "schema_version": { "const": 1 },
+        "schema_version": {
+          "const": 1
+        },
         "name": {
           "description": "For people and agents choosing RuleSets. Never model instructions or an execution condition.",
           "type": "string",
@@ -21,10 +23,16 @@
         "inputs": {
           "type": "object",
           "minProperties": 1,
-          "propertyNames": { "$ref": "evidence-declaration.schema.json#/$defs/InputName" },
-          "additionalProperties": { "$ref": "#/$defs/InputDeclaration" }
+          "propertyNames": {
+            "$ref": "evidence-declaration.schema.json#/$defs/InputName"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/InputDeclaration"
+          }
         },
-        "applicability": { "$ref": "applicability.schema.json#/$defs/ApplicabilityList" },
+        "applicability": {
+          "$ref": "applicability.schema.json#/$defs/ApplicabilityList"
+        },
         "common_ruleset_instructions": {
           "description": "Applied to this RuleSet's rule questions and noul verdicts only. Null adds nothing.",
           "$ref": "decision-question.schema.json#/$defs/StructuredEntry"
@@ -32,47 +40,156 @@
         "rule_paths": {
           "description": "Ordered JSONL files, relative to this RuleSet file. Duplicate normalized paths are refused at admission.",
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
-          "minItems": 1
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rule_sources": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RuleSourcePair"
+          }
+        },
+        "marker_prefix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarkerPrefix"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_question_words": {
+          "type": "integer",
+          "format": "uint",
+          "default": 400,
+          "minimum": 0
         }
       },
-      "required": ["schema_version", "name", "description", "inputs", "applicability", "common_ruleset_instructions", "rule_paths"],
-      "additionalProperties": false
+      "required": [
+        "schema_version",
+        "name",
+        "description",
+        "inputs",
+        "applicability",
+        "common_ruleset_instructions"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "rule_paths": {
+              "minItems": 1
+            },
+            "rule_sources": {
+              "maxItems": 0
+            }
+          },
+          "required": [
+            "rule_paths"
+          ]
+        },
+        {
+          "properties": {
+            "marker_prefix": {
+              "type": "string"
+            },
+            "rule_sources": {
+              "minItems": 1
+            }
+          },
+          "required": [
+            "rule_sources",
+            "marker_prefix"
+          ]
+        }
+      ]
     },
     "InputDeclaration": {
       "oneOf": [
         {
           "type": "object",
-          "properties": { "kind": { "const": "document" } },
-          "required": ["kind"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": { "kind": { "const": "conversation" } },
-          "required": ["kind"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": { "kind": { "const": "change_set" } },
-          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "const": "document"
+            }
+          },
+          "required": [
+            "kind"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "kind": { "const": "payload" },
+            "kind": {
+              "const": "conversation"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "change_set"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "payload"
+            },
             "schema": {
               "description": "A name in the invocation's payload schema catalog. This declaration's schema governs; a binding cannot substitute another.",
               "type": "string",
               "minLength": 1
             }
           },
-          "required": ["kind", "schema"],
+          "required": [
+            "kind",
+            "schema"
+          ],
           "additionalProperties": false
         }
       ]
+    },
+    "RuleSourcePair": {
+      "type": "object",
+      "properties": {
+        "markdown": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rules": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "markdown",
+        "rules"
+      ]
+    },
+    "MarkerPrefix": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Z]$"
     }
   }
 }

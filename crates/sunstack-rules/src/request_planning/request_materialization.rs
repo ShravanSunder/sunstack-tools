@@ -68,6 +68,8 @@ pub(crate) async fn prepare_units(
                             let group = &plan.groups[occurrence.group.0];
                             let evidence = select_rule_evidence(
                                 &occurrence.rule,
+                                &occurrence.key,
+                                occurrence.target_selection.as_ref(),
                                 &group.admitted.sources,
                                 group.admitted.position,
                                 session,
@@ -217,7 +219,7 @@ pub(crate) fn describe_questions<'plan>(
                     add(
                         question,
                         QuestionOwner::Verdict {
-                            rule_id: rule.rule_id.clone(),
+                            key: occurrence.key.clone(),
                         },
                         common,
                     )?;
@@ -226,7 +228,7 @@ pub(crate) fn describe_questions<'plan>(
                     add(
                         question,
                         QuestionOwner::Informational {
-                            rule_id: rule.rule_id.clone(),
+                            key: occurrence.key.clone(),
                             name: name.clone(),
                         },
                         common,

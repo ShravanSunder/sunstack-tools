@@ -61,6 +61,9 @@ fn validate_router_definition(router: &RouterDefinition) -> Result<(), Diagnosti
     Ok(())
 }
 pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize) {
+    locate_at(diagnostics, file, line, 1);
+}
+pub(crate) fn locate_at(diagnostics: &mut DiagnosticList, file: &Path, line: usize, column: usize) {
     for diagnostic in &mut diagnostics.items {
         match diagnostic {
             ReportDiagnostic::Rule(diagnostic) => {
@@ -68,7 +71,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                     diagnostic.location = RuleDiagnosticLocation::Definition {
                         file: file.into(),
                         line,
-                        column: 1,
+                        column,
                         field_path: vec![],
                     };
                 }
@@ -89,7 +92,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                 diagnostic.location = sunstack_decisions::DecisionDiagnosticLocation::Definition {
                     file: file.into(),
                     line,
-                    column: 1,
+                    column,
                     field_path,
                 };
             }
@@ -104,7 +107,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                 diagnostic.location = sunstack_evidence::DiagnosticLocation::Definition {
                     file: file.into(),
                     line,
-                    column: 1,
+                    column,
                     field_path,
                 };
             }
@@ -118,7 +121,11 @@ pub fn validate_rule_set(definition: &RuleSetDefinition) -> Result<(), Diagnosti
     if definition.name.is_empty()
         || definition.description.is_empty()
         || definition.inputs.is_empty()
-        || definition.rule_paths.is_empty()
+        || (definition.rule_paths.is_empty() && definition.rule_sources.is_empty())
+        || (!definition.rule_sources.is_empty() && definition.marker_prefix.is_none())
+        || definition.rule_sources.iter().any(|source| {
+            source.markdown.as_os_str().is_empty() || source.rules.as_os_str().is_empty()
+        })
         || definition
             .rule_paths
             .iter()
@@ -141,6 +148,7 @@ pub fn validate_rule_definition(
     if !matches!(
         target.select,
         EvidenceSelection::Paragraph { .. }
+            | EvidenceSelection::MarkdownUnits(_)
             | EvidenceSelection::Conversation { .. }
             | EvidenceSelection::WholePayload {}
             | EvidenceSelection::PayloadField { .. }
@@ -229,6 +237,8 @@ pub(crate) fn validate_evidence(
             (
                 InputDeclaration::Document {},
                 EvidenceSelection::Paragraph { .. }
+                    | EvidenceSelection::MarkdownUnits(_)
+                    | EvidenceSelection::FrontmatterField { .. }
                     | EvidenceSelection::WholeDocument {}
                     | EvidenceSelection::LiteralText { .. }
                     | EvidenceSelection::RegexText { .. }
