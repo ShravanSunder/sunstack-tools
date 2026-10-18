@@ -118,3 +118,20 @@ test('typing and native editing retain keys; Option hints and Escape restore the
 	await expect.poll((): boolean => !fixture.querySelector('dialog')?.open).toBe(true);
 	expect(fixture.defaultView?.location.pathname).toBe('/__demistify/search/index.html');
 });
+
+test('query-bearing documents keep live headings searchable and open them without reloading', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('search', '?review=planned');
+	await frame.getByRole('button', { name: 'Browse pages', exact: true }).click();
+	await userEvent.keyboard('{Escape}{Control>}k{/Control}');
+	const dialog = frame.getByRole('dialog', { name: 'Search documents', exact: true });
+	await dialog.getByRole('combobox').fill('retries summary');
+	await expect
+		.element(dialog.getByRole('option', { name: 'Queue design › Retries › Summary', exact: true }))
+		.toBeVisible();
+	await userEvent.keyboard('{Enter}');
+	await expect
+		.poll((): string | undefined => fixture.defaultView?.location.hash)
+		.toBe('#heading-summary-2');
+	expect(fixture.defaultView?.location.search).toBe('?review=planned');
+	expect(document.querySelector('iframe')?.contentDocument).toBe(fixture);
+});

@@ -2,6 +2,12 @@ import { documentSearchIndexSchema, type SearchDestination } from '../core/docum
 import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { reportIssue } from '../core/issues.ts';
 
+/** Static collection documents keep one identity when walkthrough or review queries change. */
+function documentAddress(href: string): string {
+	const url = new URL(href, document.baseURI);
+	return `${url.protocol}//${url.host}${url.pathname}`;
+}
+
 /** A picture-only local path keeps the images glyph, including prepared gallery sources. */
 function picturedPath(presentation: Element): boolean {
 	const steps = Array.from(presentation.querySelectorAll(':scope > ex-step'));
@@ -42,14 +48,13 @@ export function collectSearchDestinations(props: {
 	assignHeadingFragments(contentRoot);
 	const here = new URL(location.href);
 	here.hash = '';
-	here.search = '';
 	const entries = new Map<string, SearchDestination>();
 	const authoredWalkthroughs: SearchDestination[] = [];
 	const add = (entry: SearchDestination): void => {
 		const url = new URL(entry.href, document.baseURI);
 		const key =
 			entry.kind === 'page'
-				? `${entry.kind}:${url.origin}${url.pathname}${url.search}`
+				? `${entry.kind}:${documentAddress(entry.href)}`
 				: `${entry.kind}:${url.href}`;
 		entries.set(key, entry);
 	};
@@ -75,9 +80,7 @@ export function collectSearchDestinations(props: {
 			}
 	}
 	for (const entry of indexed) {
-		const url = new URL(entry.href, document.baseURI);
-		url.hash = '';
-		if (url.href !== here.href) add(entry);
+		if (documentAddress(entry.href) !== documentAddress(here.href)) add(entry);
 	}
 	add({ kind: 'page', title: pageTitle, pageTitle, ancestors: [], href: here.href });
 	const parents: { level: number; title: string }[] = [];
@@ -112,19 +115,16 @@ export function collectSearchDestinations(props: {
 	const headingsByPage = new Map<string, SearchDestination[]>();
 	for (const entry of values) {
 		if (entry.kind !== 'heading') continue;
-		const url = new URL(entry.href, document.baseURI);
-		url.hash = '';
-		const headings = headingsByPage.get(url.href) ?? [];
+		const address = documentAddress(entry.href);
+		const headings = headingsByPage.get(address) ?? [];
 		headings.push(entry);
-		headingsByPage.set(url.href, headings);
+		headingsByPage.set(address, headings);
 	}
 	return [
 		...values
 			.filter((entry): boolean => entry.kind === 'page')
 			.flatMap((entry): SearchDestination[] => {
-				const url = new URL(entry.href, document.baseURI);
-				url.hash = '';
-				return [entry].concat(headingsByPage.get(url.href) ?? []);
+				return [entry].concat(headingsByPage.get(documentAddress(entry.href)) ?? []);
 			}),
 		...values.filter((entry): boolean => entry.kind === 'walkthrough' || entry.kind === 'journey'),
 	];
