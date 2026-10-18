@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.3.0
+
+### Minor Changes
+
+- 596018b: Center reading documents in the available canvas and let dedicated galleries use its full width. Refine heading hierarchy, section spacing, soft outline selection, bounded callouts, semantic accents, diff notes, icon controls, connectors and thin scrollbars while retaining existing HTML and interactions.
+
 ## 1.2.2
 
 ### Patch Changes
