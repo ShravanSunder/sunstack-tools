@@ -64,6 +64,12 @@ def refusal_cases() -> list[RefusalCase]:
     cases.extend(
         [
             RefusalCase(
+                name="empty-source-pair",
+                markdown="# No marked standards\n",
+                rules={},
+                file="source.rules.json",
+            ),
+            RefusalCase(
                 name="missing-entry", markdown="prose<!-- K014 -->\n", rules={}
             ),
             RefusalCase(
@@ -299,6 +305,14 @@ def main() -> None:
             )
         outcome = target.run(case.name, "check_rules", invocation, expected_exit=2)
         require_located_refusal(outcome, case.file)
+        if case.name == "empty-source-pair":
+            diagnostics = as_array(object_at(outcome, "diagnostics")["items"])
+            assert len(diagnostics) == 1
+            diagnostic = as_object(diagnostics[0])
+            assert diagnostic["code"] == "empty_rule_file"
+            location = object_at(diagnostic, "location")
+            assert location["line"] == 1 and location["column"] == 1
+            assert outcome["checked_rule_count"] == 0
         code = CASE_MARKER_CODES.get(case.name)
         if code is not None:
             require_marker_details(outcome, code, frozenset({"K014"}))
