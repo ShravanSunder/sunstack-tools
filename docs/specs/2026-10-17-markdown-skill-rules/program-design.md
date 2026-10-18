@@ -49,8 +49,15 @@ Selection (evidence)
   SelectionContent::MarkdownUnits { units: [SelectedMarkdownUnit { kind, span, text, visible_text, occurrence }] }
   a unit's span is the block node's raw tree-sitter range, including its terminal newline (as ast-grep reports matches),
   and ast_grep containment uses those raw ranges; the legacy U001 trimmed paragraph range is unchanged and is never reused for units
+  unit mode selects every block of a requested kind (and, with a filter, every such block whose visible text matches); requested kinds may overlap,
+  so a section and a paragraph inside it are two occurrences when both kinds are requested
+  call_site mode gives each filter match exactly one owner: the innermost block of a requested kind that contains it, where a list item
+  owns the paragraphs inside it (as R2 does for markers); this is the spike's rule behind the 34-calls-in-31-units baseline (S3 question 1)
   SelectionContent::FrontmatterField = Present { source, field, value, span } | Absent { source, field, frontmatter_span }
                                      | BlockUnavailable { source, field, reason: missing | malformed, diagnostics }
+  frontmatter is a YAML `---` block at the very start of the document; `field` names a top-level mapping key; the block is decoded with a
+  maintained YAML decoder (not hand-written scalar parsing) and `value` is the field's decoded value as JSON; any other start of document
+  (including a `+++` block) is `missing`; text matching over the value belongs to S4's expect forms (S3 question 2)
   a missing or malformed block is SelectionReadiness::Ready with BlockUnavailable, NOT Refused, so it never projects as SelectionFailed
   TargetLocation::MarkdownUnit { occurrence } | FrontmatterField { source, field, Present{span} | Absent{frontmatter_span} | BlockUnavailable{reason} }
   BlockUnavailable carries no field or header span (none exists), and its occurrence key is still FrontmatterField{source, field}
