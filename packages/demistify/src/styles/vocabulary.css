@@ -54,7 +54,8 @@ ex-document {
 ex-document > * + * {
 	margin-top: var(--space-6);
 }
-ex-document h2:not(ex-explorer h2, ex-card h2, ex-callout h2, ex-tabs h2, ex-compare h2) {
+/* Reading wrappers carry section rhythm; other islands keep their own heading layout. */
+ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2) {
 	border-top: 1px solid var(--rule);
 	padding-top: calc(var(--space-10) * 1.25);
 	margin-top: var(--space-12);
