@@ -2,6 +2,7 @@ import { reportStructuralIssues } from './core/issues.ts';
 import { CalloutIsland, CardIsland } from './islands/card.ts';
 import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
 import { CompareIsland, DiagramDiffIsland } from './islands/compare.ts';
+import { EvidenceTraceIsland } from './islands/evidence-trace.ts';
 import { ExplorerIsland } from './islands/explorer.ts';
 import { FileTreeIsland } from './islands/file-tree.ts';
 import { GalleryIsland } from './islands/gallery.ts';
@@ -26,6 +27,7 @@ import { installArrowTracing } from './layout/trace.ts';
 for (const [tagName, constructor] of [
 	['ex-board', BoardIsland],
 	['ex-region', RegionIsland],
+	['ex-trace', EvidenceTraceIsland],
 	['ex-markdown', MarkdownIsland],
 	['ex-mermaid', MermaidIsland],
 	['ex-arrow', ArrowIsland],

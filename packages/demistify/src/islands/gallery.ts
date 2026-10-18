@@ -1,5 +1,6 @@
 import { createDebouncedAction } from '../core/debounce.ts';
 import { reportIssue } from '../core/issues.ts';
+import { anchorPopover } from '../core/popover-position.ts';
 import {
 	filterGalleryCaptures,
 	galleryScreenKey,
@@ -9,13 +10,12 @@ import {
 	type GalleryFacet,
 } from './gallery-data.ts';
 import {
-	anchorGalleryPopover,
 	createGalleryControls,
 	renderGalleryFacetControls,
 	galleryElement,
 	type GalleryControls,
 } from './gallery-view.ts';
-import { registerInspectionCopy } from './inspection-copy.ts';
+import { copyInspectionContent, registerInspectionCopy } from './inspection-copy.ts';
 import { installInspectionGestures } from './inspection-gestures.ts';
 import { openIsland } from './inspector.ts';
 
@@ -53,6 +53,7 @@ export class GalleryIsland extends HTMLElement {
 	private zoomMode: ZoomMode = 'fit';
 	private resizeObserver: ResizeObserver | undefined;
 	private initialSnapshot: GallerySnapshot | undefined;
+	private inspectionSource: GalleryIsland | undefined;
 	private eventController = new AbortController();
 	private readonly pendingFilter = createDebouncedAction((): void => this.applyFilters(), 200);
 
@@ -65,6 +66,8 @@ export class GalleryIsland extends HTMLElement {
 	}
 
 	disconnectedCallback(): void {
+		if (GalleryIsland.activeGallery === this && this.inspectionSource?.isConnected)
+			GalleryIsland.activeGallery = this.inspectionSource;
 		this.pendingFilter.cancel();
 		this.resizeObserver?.disconnect();
 		this.eventController.abort();
@@ -142,20 +145,31 @@ export class GalleryIsland extends HTMLElement {
 			const copy = document.createElement('ex-gallery');
 			if (!(copy instanceof GalleryIsland)) throw new Error('Gallery is not registered.');
 			copy.setAttribute('label', this.getAttribute('label') ?? 'Screenshot gallery');
-			copy.initialSnapshot = this.browseSnapshot();
-			copy.append(source.cloneNode(true));
+			copy.inspectionSource = this;
+			// Capture IDs live inside an inert template, outside the outer copy's normal ID walk.
+			const frame = document.createElement('div');
+			frame.append(source.content.cloneNode(true));
+			const content = copyInspectionContent(frame);
+			if (!content) throw new Error('Gallery source could not be copied.');
+			const captures = readGalleryCaptures(content, `gallery-copy-${crypto.randomUUID()}`);
+			for (const capture of captures) capture.source.id = capture.id;
+			const copiedState = this.browseSnapshot();
+			const selectedIndex = this.captures.findIndex(
+				(capture): boolean => capture.id === copiedState.selected,
+			);
+			copy.initialSnapshot = { ...copiedState, selected: captures[selectedIndex]?.id };
+			const template = document.createElement('template');
+			template.dataset['gallerySource'] = '';
+			template.content.append(...content.childNodes);
+			copy.append(template);
 			return copy;
 		});
 		this.dispatchEvent(new Event('island-ready', { bubbles: true }));
 	}
 
 	private installControls(controls: GalleryControls): void {
-		anchorGalleryPopover(
-			controls.filtersButton,
-			controls.filtersPanel,
-			this.eventController.signal,
-		);
-		anchorGalleryPopover(controls.help, controls.helpPanel, this.eventController.signal);
+		anchorPopover(controls.filtersButton, controls.filtersPanel, this.eventController.signal);
+		anchorPopover(controls.help, controls.helpPanel, this.eventController.signal);
 		controls.search.addEventListener('input', (): void => {
 			this.pendingFilter.schedule();
 		});

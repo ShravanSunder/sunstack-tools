@@ -5,9 +5,11 @@ interface PresentationMenu {
 	readonly panel: HTMLElement;
 }
 
-/** Local picture targets get a gallery glyph; document and cross-page paths use a path glyph. */
+/** A local picture-only journey gets the gallery glyph; mixed or cross-page paths keep the path glyph. */
 function walkthroughIcon(presentation: HTMLElement): 'images' | 'path' {
-	for (const step of presentation.querySelectorAll(':scope > ex-step')) {
+	const steps = presentation.querySelectorAll(':scope > ex-step');
+	if (steps.length === 0) return 'path';
+	for (const step of steps) {
 		const reference = step.getAttribute('to') ?? '';
 		let target: Element | null = document.getElementById(reference);
 		if (!target) {
@@ -20,10 +22,10 @@ function walkthroughIcon(presentation: HTMLElement): 'images' | 'path' {
 				}
 			}
 		}
-		if (target?.matches('img, figure, ex-gallery') || target?.closest('ex-gallery'))
-			return 'images';
+		if (!(target?.matches('img, figure, ex-gallery') || target?.closest('ex-gallery')))
+			return 'path';
 	}
-	return 'path';
+	return 'images';
 }
 
 /** Named explainers may be local presentations or ordinary relative links to other documents. */

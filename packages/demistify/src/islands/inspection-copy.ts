@@ -51,6 +51,7 @@ export function copyInspectionContent(owner: HTMLElement): HTMLElement | undefin
 		for (const attribute of Array.from(element.attributes)) {
 			let value = attribute.value;
 			if (
+				(element.localName === 'ex-compare' && attribute.name === 'selected') ||
 				['for', 'aria-controls', 'aria-labelledby', 'aria-describedby', 'from', 'to'].includes(
 					attribute.name,
 				)

@@ -6,6 +6,8 @@ import { revealLayers } from './layers.ts';
 export function revealElement(target: Element): void {
 	revealLayers(target);
 	for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
+		if (ancestor.classList.contains('ex-comparison-option'))
+			ancestor.dispatchEvent(new Event('comparison-reveal', { bubbles: true }));
 		if (ancestor.getAttribute('role') === 'tabpanel' && ancestor.hidden)
 			ancestor.parentElement
 				?.querySelector<HTMLButtonElement>(`button[aria-controls="${CSS.escape(ancestor.id)}"]`)

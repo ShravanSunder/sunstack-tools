@@ -38,9 +38,13 @@ Use IDs exactly, including case. Qualify Mermaid nodes when names repeat: a bare
 
 The shared resolver reveals containing tabs, details and layers, then waits for Markdown or diagrams to render. Missing destinations produce a visible player error. The player carries the path when navigating between HTML pages, so normal cross-file continuation does not require fetching sibling HTML. Keep ordinary page/fragment links too. Use the current ex-presentation/ex-step contract; do not wrap content or recreate the old ex-route form.
 
-The Walkthroughs menu uses an image icon for paths through gallery figures and a path icon for other explanations. The player has an icon-only close action, Left/Right for steps and Escape to leave. Keep narration concise and tied to what the reader can inspect.
+**Walkthrough** is the general name: it may span pages and mix text, diagrams and gallery pictures. **Gallery Journey** describes a picture-only walkthrough over gallery figures, using the same player. It may reference more than one gallery or page; it is not a separate route engine or a restriction on what a general walkthrough may contain.
 
-## Screenshot journeys
+The menu lists the paths declared on the loaded page and authored presentation links; it does not automatically discover every file in a package. Declare the shared reading path at its source page and link to it from the collection. Cross-page continuation carries that path to its destination.
+
+The Walkthroughs menu uses an image icon when all targets are local pictures/gallery content, and a path icon for mixed, ordinary or cross-page explanations. Keep the title and description concise; no type column is needed. The player has an icon-only close action, Left/Right for steps and Escape to leave.
+
+## Gallery Journeys
 
 Reference gallery figures directly, keeping their original captions and one shared player:
 

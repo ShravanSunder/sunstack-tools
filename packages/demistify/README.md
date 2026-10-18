@@ -87,7 +87,7 @@ Declare one native page-link list on each file. Its first link is Home; the matc
 
 A presentation is an ordered path, not a content container. Several paths can reuse any existing island or inner anchor; one stop is valid. `ex-route` and wrapper-selection semantics are removed in this integrated vocabulary. Use `#requirements--recovery` for a Markdown heading, `#architecture--Registry` for a node in Mermaid island `architecture`, and `other.html#target` for a cross-page stop. Missing targets show a visible player error. Native fragment links, tree go-to links and presentation stops share target readiness/revelation behavior.
 
-The **Walkthroughs** chooser uses compact icon/title/description rows. Local picture or gallery stops use the images icon; document and cross-page paths use the path icon. No extra type column or visible close text is needed. Existing `ex-presentation`/`ex-step` markup and native navigation remain.
+The **Walkthroughs** chooser uses compact icon/title/description rows. A Walkthrough may span pages and mix text, diagrams and pictures. A **Gallery Journey** is a pictured sequence using the same player. Local picture-only journeys use the images icon; mixed, document and cross-page paths use the path icon. No extra type column or visible close text is needed. Existing `ex-presentation`/`ex-step` markup and native navigation remain.
 
 ### Reading measure and visual canvas
 
@@ -128,6 +128,10 @@ For a pictured journey, target gallery figure IDs from the existing `ex-presenta
 
 ## Composition vocabulary
 
+Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Grid tracks, missing topics are explicit, and cells may contain any island. The author chooses columns or tabs and the whole component's Reading/Canvas width. Optional `choose` selects two live alternatives; `scroll` provides a bounded shared surface with sticky headings. See the [comparison reference](skill/references/comparisons.md).
+
+`ex-trace` is an ordered sequence of native disclosures with status and arbitrary rich attachments. Tree remains the hierarchy/navigation view. The [Trace reference](skill/references/traces.md) shows its syntax; [source-derived call paths](skill/references/call-paths.md) compose it with comparison while keeping branches distinct from call frames and runtime evidence.
+
 | Elements                                                               | Use                                                                                          |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `ex-document`, `ex-nav`                                                | Document and collection navigation                                                           |
@@ -136,7 +140,8 @@ For a pictured journey, target gallery figure IDs from the existing `ex-presenta
 | `ex-code`, `ex-note`                                                   | Code/unified diffs with neutral margin comments beside colored changes                       |
 | `ex-tree`                                                              | Collapsible Markdown tree; plain labels, separate leading disclosure and trailing go-to icon |
 | `ex-pre`, `ex-file-tree`                                               | Literal text/TUI drawings and plain file trees                                               |
-| `ex-gallery`, `ex-compare`                                             | Screenshot review/grid and before/after comparison                                           |
+| `ex-gallery`                                                           | Screenshot review and grid views over one collection                                         |
+| `ex-compare`, `ex-trace`                                               | Aligned arbitrary alternatives and ordered expandable evidence                               |
 | `ex-grid`, `ex-flow`, `ex-arrow`                                       | Native composition and labelled connections                                                  |
 | `ex-tabs`, `ex-board`, `ex-layers`                                     | Alternative views, boards and optional layers                                                |
 | `ex-presentation`, `ex-step`                                           | Named/described ordered stops through existing content                                       |

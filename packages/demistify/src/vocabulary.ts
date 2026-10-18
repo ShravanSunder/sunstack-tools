@@ -194,6 +194,12 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			label,
 		},
 	},
+	'ex-trace': {
+		description:
+			'Ordered native disclosures with rich evidence attachments, distinct from a hierarchy tree.',
+		attributes: { title: text('Name of this evidence sequence.'), tone, icon, label },
+		childAttributes: { tone, icon, tag: text('Short source or observation status on a step.') },
+	},
 	'ex-grid': {
 		description: 'Children side by side; wraps when narrow, one column on phones.',
 		attributes: { cols: columns, swipe: flag('A sideways swipe row on phones.') },
@@ -273,9 +279,22 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-compare': {
 		description:
-			'Before and after: two children side by side, or overlaid with a draggable divider (`slider`).',
-		attributes: { slider: flag('Overlay the two sides with a divider.'), label },
-		childAttributes: { label: text('Name of this side (default Before / After).') },
+			'Alternatives with arbitrary islands: corresponding topic rows align, or one detailed view appears in tabs. A slider overlays two same-size pictures.',
+		attributes: {
+			slider: flag('Overlay two image sides with a divider.'),
+			view: oneOf('Authored content presentation; readers do not configure layout.', [
+				'columns',
+				'tabs',
+			]),
+			choose: flag('Let readers choose a pair of alternatives.'),
+			selected: {
+				description: 'Initial child alternative IDs, in display order.',
+				type: { kind: 'ids' },
+			},
+			scroll: flag('Bound the shared scroll surface and keep its headings visible.'),
+			label,
+		},
+		childAttributes: { label: text('Name of this alternative (default Before / After).'), icon },
 	},
 	'ex-diagram-diff': {
 		description: 'Before and after diagrams.',
