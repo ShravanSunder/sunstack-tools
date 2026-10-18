@@ -114,6 +114,8 @@ Regenerate after changing headings or paths. The command reads local Markdown so
 
 Several named/described presentations may share a page and the same islands. Each is an ordered path with Next/Previous; one stop is valid. Place the content normally and put only stops in `ex-presentation`:
 
+Include `<ex-nav></ex-nav>` on every page that offers a Walkthrough or Gallery Journey, including a single-page, single-path example. It creates the visible Walkthroughs launcher; `ex-presentation` defines the path but is itself hidden. A collection adds its Pages links inside that same `ex-nav`. Confirm a reader can start the path from the page before checking its stops.
+
 ```html
 <ex-presentation id="session-review" title="Session review"
   description="Recovery, the Registry node and the decision.">

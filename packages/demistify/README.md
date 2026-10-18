@@ -89,6 +89,8 @@ A presentation is an ordered path, not a content container. Several paths can re
 
 The **Walkthroughs** chooser uses compact icon/title/description rows. A Walkthrough may span pages and mix text, diagrams and pictures. A **Gallery Journey** is a pictured sequence using the same player. Local picture-only journeys use the images icon; mixed, document and cross-page paths use the path icon. No extra type column or visible close text is needed. Existing `ex-presentation`/`ex-step` markup and native navigation remain.
 
+Keep `ex-nav` on a single-page, single-path example too: it supplies the visible launcher for the hidden `ex-presentation` declaration.
+
 ### Reading measure and visual canvas
 
 Typography uses regular 18px Source Sans 3 prose, Source Sans 3 controls, Archivo headings, and IBM Plex Mono for code. Tree roots use 20px/600, branches 17px/500 and leaves 17px/400.
