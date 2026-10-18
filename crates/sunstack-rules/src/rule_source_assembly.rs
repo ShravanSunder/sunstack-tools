@@ -194,5 +194,10 @@ pub(crate) fn assemble_source(
             diagnostics,
         });
     }
+    if result.rules.is_empty() && result.skipped.is_empty() {
+        return Err(RuleDiagnostic::new(RuleDiagnosticCode::EmptyRuleFile)
+            .definition(&source.rules, 1, 1, vec![])
+            .into());
+    }
     Ok(result)
 }
