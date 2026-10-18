@@ -91,7 +91,7 @@ The **Walkthroughs** chooser uses compact icon/title/description rows. Local pic
 
 ### Reading measure and visual canvas
 
-Use `ex-document class="wide-reading"` for the centered 1600px canvas. Ordinary documents retain 1140px. Narrative paragraphs keep their reading measure; structural list rows and islands follow their parent. For short structured proof text, `class="wide-reading"` on a paragraph or section allows that paragraph or the section's direct paragraphs to fill its width. Components such as code, diagrams, comparisons, tables and Tree should not inherit a prose cap. Retain local scrolling where necessary and remove obsolete authored caps when migrating an existing document.
+Use `ex-document class="wide-reading"` for the centered 1600px canvas. Ordinary documents retain 1140px. Paragraphs, lead text, structural list rows and islands use their section width by default, with no text-width class required. Use `class="reading-measure"` on a specific passage or section only when narrower lines are intended. Keep bounded callouts and local scrolling where necessary; remove obsolete authored paragraph caps when migrating an existing document.
 
 ## Gallery
 

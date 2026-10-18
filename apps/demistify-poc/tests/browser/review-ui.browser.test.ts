@@ -292,3 +292,18 @@ test('the actual formatted guide literal stays exact in the page and sidebar', a
 	expect(requiredElement(fixture, '.ex-drawer pre').textContent).toBe(expected);
 	expect(drawing.querySelector('pre')?.textContent).toBe(expected);
 });
+
+test('ordinary paragraphs and lead text fill their section unless reading measure is explicit', async (): Promise<void> => {
+	await page.viewport(1600, 1000);
+	const { document: fixture } = await openFixture('ui', '', 'widths.html');
+	const canvas = requiredElement(fixture, '#width-canvas').getBoundingClientRect();
+	for (const selector of ['#lead-proof', '#ordinary-proof', '#lede-proof']) {
+		const paragraph = requiredElement(fixture, selector).getBoundingClientRect();
+		expect(Math.abs(paragraph.width - canvas.width)).toBeLessThan(1);
+	}
+	expect(requiredElement(fixture, '#narrow-proof').getBoundingClientRect().width).toBeLessThan(
+		canvas.width * 0.8,
+	);
+	await page.viewport(390, 900);
+	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+});

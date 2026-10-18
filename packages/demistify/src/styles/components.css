@@ -294,7 +294,6 @@ ex-markdown ex-mermaid svg {
 ex-document h1 + p {
 	font-size: var(--text-lg);
 	line-height: 1.55;
-	max-width: 62ch;
 }
 ex-markdown pre code {
 	background: none;
@@ -344,10 +343,11 @@ ex-callout[type='risk'] {
 .detail-index p {
 	font-size: var(--text-md);
 }
-.wide-reading,
-.wide-reading:not(ex-document) > p,
-.wide-reading:not(ex-document) > blockquote {
+.wide-reading {
 	max-width: none;
+}
+.reading-measure {
+	max-width: 68ch;
 }
 .diagram-label {
 	font: 600 var(--text-lg) var(--font-display);
