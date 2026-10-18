@@ -13,6 +13,13 @@ struct RemovedCarriageReturn {
 }
 
 impl NormalizedMarkdown {
+    pub(crate) fn as_str(&self) -> &str {
+        &self.text
+    }
+
+    pub(crate) fn original_range(&self, normalized: Range<usize>) -> Range<usize> {
+        self.original_offset(normalized.start)..self.original_offset(normalized.end)
+    }
     pub(crate) fn new(original: &str) -> Self {
         let mut text = String::with_capacity(original.len());
         let mut removed_carriage_returns = Vec::new();

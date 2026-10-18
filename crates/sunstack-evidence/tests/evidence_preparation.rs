@@ -99,6 +99,63 @@ async fn markdown_occurrence_item_limits_count_each_call_without_extra_acquisiti
         }
     }
 }
+
+#[tokio::test]
+async fn unavailable_frontmatter_is_ready_evidence_with_a_named_reason_and_no_fake_span() {
+    let root = tempfile::tempdir().unwrap();
+    for (text, reason) in [
+        ("Body\n", FrontmatterUnavailableReason::Missing),
+        (
+            "---\nname: [\n---\n",
+            FrontmatterUnavailableReason::Malformed,
+        ),
+    ] {
+        std::fs::write(root.path().join("skill.md"), text).unwrap();
+        let mut request = input(root.path());
+        request.declarations[0].select = EvidenceSelection::FrontmatterField {
+            field: "name".into(),
+        };
+        let outcome = prepare_evidence(
+            request,
+            AdapterRegistry::builtins().unwrap(),
+            CancellationToken::new(),
+        )
+        .await;
+        let EvidencePlanOutcome::Prepared {
+            selections,
+            measurements,
+            ..
+        } = outcome
+        else {
+            panic!("{outcome:?}")
+        };
+        assert_eq!(measurements.files_read, 1);
+        let SelectionReadiness::Ready {
+            content: SelectionContent::FrontmatterField { result },
+            ..
+        } = &selections[0].readiness
+        else {
+            panic!("expected ready selected block-unavailable data")
+        };
+        let FrontmatterFieldContent::BlockUnavailable {
+            reason: actual,
+            diagnostics,
+            ..
+        } = result.as_ref()
+        else {
+            panic!("expected unavailable block")
+        };
+        assert_eq!(*actual, reason);
+        assert_eq!(
+            diagnostics.items[0].code,
+            EvidenceCode::FrontmatterUnavailable
+        );
+        assert!(matches!(
+            diagnostics.items[0].location,
+            DiagnosticLocation::Source { span: None, .. }
+        ));
+    }
+}
 #[tokio::test]
 async fn native_plan_prepares_real_sources_once_and_serializes_requested_content() {
     let root = tempfile::tempdir().unwrap();

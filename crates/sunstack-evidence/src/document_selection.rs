@@ -122,6 +122,10 @@ pub(crate) fn select_document_bounded(
         captures,
     };
     let mut matches = match selection {
+        EvidenceSelection::FrontmatterField { field } => {
+            return crate::markdown_frontmatter::select_frontmatter(document, field)
+                .map(|content| (content, false));
+        }
         EvidenceSelection::MarkdownUnits(selection) => {
             let (units, limited) = MarkdownDocument::parse(text).select_units(
                 &document.source,

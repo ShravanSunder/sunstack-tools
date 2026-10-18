@@ -182,6 +182,11 @@ struct EvidenceAttribution {
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum AttributedEvidence {
+    FrontmatterField {
+        #[serde(flatten)]
+        attribution: EvidenceAttribution,
+        result: Box<sunstack_evidence::FrontmatterFieldContent>,
+    },
     MarkdownUnits {
         #[serde(flatten)]
         attribution: EvidenceAttribution,
@@ -226,6 +231,7 @@ enum AttributedEvidence {
 #[derive(Clone, Serialize)]
 #[serde(untagged)]
 enum ContentValue {
+    FrontmatterField(FrontmatterValue),
     MarkdownUnits(Vec<MarkdownUnitText>),
     Text(String),
     Matches(Vec<sunstack_evidence::EvidenceMatch>),
@@ -233,6 +239,18 @@ enum ContentValue {
     Payload(sunstack_evidence::StructuredJson),
     ChangedUnits(Vec<sunstack_evidence::SelectedSourceUnit>),
     RelatedGroup(Box<sunstack_evidence::ContextGroupOutcome>),
+}
+
+#[derive(Clone, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum FrontmatterValue {
+    Present {
+        value: sunstack_evidence::StructuredJson,
+    },
+    Absent,
+    BlockUnavailable {
+        reason: sunstack_evidence::FrontmatterUnavailableReason,
+    },
 }
 
 #[derive(Clone, Serialize)]
@@ -269,6 +287,22 @@ pub(crate) fn build_request_state(
                 coverage,
             } if !(optional && omit_optional) => {
                 let value = match &content {
+                    SelectionContent::FrontmatterField { result } => {
+                        ContentValue::FrontmatterField(match result.as_ref() {
+                            sunstack_evidence::FrontmatterFieldContent::Present {
+                                value, ..
+                            } => FrontmatterValue::Present {
+                                value: value.clone(),
+                            },
+                            sunstack_evidence::FrontmatterFieldContent::Absent { .. } => {
+                                FrontmatterValue::Absent
+                            }
+                            sunstack_evidence::FrontmatterFieldContent::BlockUnavailable {
+                                reason,
+                                ..
+                            } => FrontmatterValue::BlockUnavailable { reason: *reason },
+                        })
+                    }
                     SelectionContent::MarkdownUnits { units } => ContentValue::MarkdownUnits(
                         units
                             .iter()
@@ -318,6 +352,12 @@ pub(crate) fn build_request_state(
                     coverage: *coverage,
                 };
                 match content {
+                    SelectionContent::FrontmatterField { result } => {
+                        AttributedEvidence::FrontmatterField {
+                            attribution,
+                            result,
+                        }
+                    }
                     SelectionContent::MarkdownUnits { units } => {
                         AttributedEvidence::MarkdownUnits {
                             attribution,
