@@ -53,6 +53,9 @@ Selection (evidence)
   so a section and a paragraph inside it are two occurrences when both kinds are requested
   call_site mode gives each filter match exactly one owner: the innermost block of a requested kind that contains it, where a list item
   owns the paragraphs inside it (as R2 does for markers); this is the spike's rule behind the 34-calls-in-31-units baseline (S3 question 1)
+  "contains" is decided in visible text, not raw ranges: the owner is the innermost requested unit whose own visible text holds the
+  match's visible characters, so a match made only of generated text between child units (a joining separator) belongs to the
+  enclosing requested unit; raw ranges are only the repair location (S3 review F1)
   SelectionContent::FrontmatterField = Present { source, field, value, span } | Absent { source, field, frontmatter_span }
                                      | BlockUnavailable { source, field, reason: missing | malformed, diagnostics }
   frontmatter is a YAML `---` block at the very start of the document; `field` names a top-level mapping key; the block is decoded with a
