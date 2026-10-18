@@ -68,7 +68,8 @@ Identity (rules)
   the call-site key carries the match's visible-text range beside its raw range: one HTML entity can decode to several visible
   characters, so two distinct visible matches can map to the same raw span; the raw range stays the repair location (S3 finding)
   a match's raw range is the smallest original byte range covering every source lexeme behind its visible characters: a whole CRLF
-  line ending, a whole entity or escape, or the bytes between two blocks behind a joining separator (S3 Verifier prebuild)
+  line ending, a whole entity or escape, the bytes between two blocks behind a joining separator, or the source row or delimiter
+  line behind generated table framing; a match made only of generated text still gets a real raw range this way (S3 Verifier prebuild)
   QuestionOwner::Verdict / ::Informational carry the full occurrence key; q000001 names stay transport-only
 
 Mechanical verdict (rules)
