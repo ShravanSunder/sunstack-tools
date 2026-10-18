@@ -150,6 +150,22 @@ Choose relationships before layout. Native flow, grid/flex and positioned boards
 
 Use short labels for content tabs and keep the full heading/explanation inside each section. An optional curated `icon` names its subject; otherwise the library supplies a neutral file icon. Tabs use Arrow/Home/End keys and scroll locally when numerous. Exactly-one viewer modes use compact button groups; independent visibility uses switches; Sources expands a disclosure. Use the shared controls rather than radio inputs or per-page selected-button styles.
 
+Choose the reader's task before choosing a control:
+
+| Reader needs | Use |
+| --- | --- |
+| Another document | A Pages link to its HTML file |
+| A peer alternative in the same place | Tabs |
+| Optional detail beneath the current explanation | Native `details`/`summary` disclosure; a chevron expands it locally |
+| A guided sequence through selected existing targets | A Walkthrough with Previous/Next stops; it may cross pages |
+| A pictured UI flow with captions | A Gallery Journey over the same walkthrough player |
+
+Progressive disclosure reveals optional depth in place; it does not require a guided path. Keep ordinary page and heading navigation available without starting a walkthrough. Use a rich Trace when the ordered evidence itself helps explain the subject.
+
+A card groups one option, component or finding. A callout emphasizes a consequential proposal, decision, risk, open question or unverified outcome. Give it a short explicit label and a relevant supported subject icon; loose status emoji alone do not explain the claim. A recommendation remains a recommendation until the owner selects it, and a supplied source change remains separate from runtime proof. Keep ordinary explanatory prose in document flow.
+
+Where Reading meets Canvas, wide documents add a larger gap between those blocks; consecutive prose or wide blocks keep their ordinary spacing. Narrow layouts retain their compact rhythm. Diagram labels keep a 16px rendered text floor and use the shared readable text colours; a diagram that needs more room scrolls locally rather than shrinking its labels.
+
 ## Load depth when needed
 
 - IF the page includes screenshot review or comparison, load `references/pictures.md` and return native figures/captions and one shared-system gallery.

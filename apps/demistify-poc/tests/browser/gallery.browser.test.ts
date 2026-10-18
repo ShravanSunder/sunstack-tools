@@ -90,6 +90,8 @@ test('cross-page walkthrough arrives at a deep stop without an animated page swe
 	const { frame } = await openFixture('ui', '#narration', 'narration.html');
 	const iframe = document.querySelector<HTMLIFrameElement>('iframe');
 	if (!iframe) throw new Error('Missing walkthrough frame.');
+	const readings: { top: number; scroll: number; height: number; player: number; fonts: string }[] =
+		[];
 	const landing = new Promise<readonly DOMRect[]>((resolve, reject): void => {
 		iframe.addEventListener(
 			'load',
@@ -101,9 +103,21 @@ test('cross-page walkthrough arrives at a deep stop without an animated page swe
 					return;
 				}
 				const target = requiredElement(destination, '#finish');
+				const recordLanding = (): void => {
+					readings.push({
+						top: target.getBoundingClientRect().top,
+						scroll: view.scrollY,
+						height: destination.documentElement.scrollHeight,
+						player:
+							destination.querySelector('.ex-route-player')?.getBoundingClientRect().height ?? 0,
+						fonts: destination.fonts.status,
+					});
+				};
 				view.requestAnimationFrame((): void => {
+					recordLanding();
 					const first = target.getBoundingClientRect();
 					view.requestAnimationFrame((): void => {
+						recordLanding();
 						resolve([first, target.getBoundingClientRect()]);
 					});
 				});
@@ -116,7 +130,7 @@ test('cross-page walkthrough arrives at a deep stop without an animated page swe
 	if (!first || !second) throw new Error('No destination frames observed.');
 	expect(first.top).toBeGreaterThanOrEqual(0);
 	expect(first.bottom).toBeLessThan(1000);
-	expect(Math.abs(second.top - first.top)).toBeLessThanOrEqual(1);
+	expect(Math.abs(second.top - first.top), JSON.stringify(readings)).toBeLessThanOrEqual(1);
 	await expect.element(frame.getByText('Inspect the evidence', { exact: true })).toBeVisible();
 });
 

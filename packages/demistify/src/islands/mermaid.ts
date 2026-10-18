@@ -15,9 +15,18 @@ function sizeDiagram(owner: HTMLElement): void {
 	const width = Number.parseFloat(svg?.getAttribute('width') ?? '');
 	if (!(svg instanceof SVGSVGElement) || !(width > 0)) return;
 	const preferredWidth = width < 720 ? Math.min(width * 1.25, 720) : width;
+	let minimumTextSize = 16;
+	for (const label of svg.querySelectorAll('text')) {
+		const fontSize = Number.parseFloat(label.getAttribute('font-size') ?? '');
+		if (fontSize > 0) minimumTextSize = Math.min(minimumTextSize, fontSize);
+	}
+	const readableWidth = Math.ceil(width * (16 / minimumTextSize));
 	// CSS applies the floor against the current column width, including after a tab or drawer resize.
-	svg.style.setProperty('--diagram-width', `${Math.round(preferredWidth)}px`);
-	svg.style.setProperty('--diagram-readable-width', `${Math.round(width * 0.8)}px`);
+	svg.style.setProperty(
+		'--diagram-width',
+		`${Math.max(Math.round(preferredWidth), readableWidth)}px`,
+	);
+	svg.style.setProperty('--diagram-readable-width', `${readableWidth}px`);
 }
 
 function openLinkedElement(target: HTMLElement): void {
