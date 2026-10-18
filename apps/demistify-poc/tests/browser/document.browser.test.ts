@@ -83,11 +83,11 @@ test('presentation menu starts a named path while existing content and outline r
 		.element(frame.getByRole('heading', { name: 'Session ownership', exact: true }))
 		.toBeVisible();
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
-	const menu = frame.getByRole('navigation', { name: 'Walkthroughs', exact: true });
+	const menu = frame.getByRole('dialog', { name: 'Search documents', exact: true });
 	await expect
 		.element(menu.getByText('The proposed path and its two delivery phases.', { exact: true }))
 		.toBeVisible();
-	await menu.getByRole('link', { name: /Implementation plan/ }).click();
+	await menu.getByRole('option', { name: /Implementation plan/ }).click();
 	await expect
 		.poll((): boolean => requiredElement(fixture, '#plan').classList.contains('ex-route-focus'))
 		.toBe(true);
@@ -267,10 +267,14 @@ test('compact headings menu stays open after hover then click and reaches a Mark
 	await expect
 		.element(
 			frame
-				.getByRole('navigation', { name: 'Pages', exact: true })
-				.getByRole('link', { name: 'Implementation detail', exact: true }),
+				.getByRole('dialog', { name: 'Search documents', exact: true })
+				.getByRole('option', { name: 'Implementation detail', exact: true }),
 		)
 		.toBeVisible();
+	await frame
+		.getByRole('dialog', { name: 'Search documents', exact: true })
+		.getByRole('button', { name: 'Close search', exact: true })
+		.click();
 	await frame.getByRole('button', { name: 'Browse page headings', exact: true }).click();
 	await menu.getByRole('link', { name: 'Recovery', exact: true }).click();
 	await expect.element(menu).not.toBeVisible();

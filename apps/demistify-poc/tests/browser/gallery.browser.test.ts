@@ -630,7 +630,7 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
 	await frame
-		.getByRole('link', {
+		.getByRole('option', {
 			name: 'Review screens Three logical screens with optional size variations.',
 			exact: true,
 		})
@@ -662,7 +662,7 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 		.toBeCloseTo(filledWidth, 0);
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
 	await frame
-		.getByRole('link', {
+		.getByRole('option', {
 			name: 'Fixed screens Use the authored captures without variation switching.',
 			exact: true,
 		})

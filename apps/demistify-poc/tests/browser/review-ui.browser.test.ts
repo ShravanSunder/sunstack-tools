@@ -178,8 +178,8 @@ test('tabs carry meaningful icons, layer switches expose checked state and Home 
 		.element(frame.getByText('Recovery needs identity evidence.', { exact: true }))
 		.toBeVisible();
 	await frame.getByRole('button', { name: 'Browse pages', exact: true }).click();
-	expect(fixture.querySelector('.ex-pages-panel a .ph-house')).not.toBeNull();
-	const home = requiredElement(fixture, '.ex-pages-panel a');
+	expect(fixture.querySelector('.ex-command-results a .ph-files')).not.toBeNull();
+	const home = requiredElement(fixture, '.ex-command-results a');
 	expect(home.getAttribute('aria-current')).toBe('page');
 	expect(home.getAttribute('href')).toBe(new URL('index.html', fixture.location.href).href);
 });
