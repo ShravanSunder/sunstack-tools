@@ -12,6 +12,8 @@ export function renderThemedDiagram(render: MermaidRenderer, sourceText: string)
 			render(chart.source, {
 				bg: 'var(--surface-content)',
 				fg: 'var(--ink)',
+				muted: 'var(--ink-soft)',
+				line: 'var(--ink-soft)',
 				// Inherit the page accent; assigning --accent to itself makes it invalid.
 				surface: 'var(--accent-soft)',
 				border: 'var(--rule)',

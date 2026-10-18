@@ -14,6 +14,52 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('sequence messages remain readable in both themes and on a narrow screen', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('ui', '', 'sequence-readability.html');
+	const diagram = requiredElement(fixture, '#sequence');
+	await expect.poll((): boolean => diagram.hasAttribute('prepared')).toBe(true);
+	await fixture.fonts.ready;
+	const message = Array.from(diagram.querySelectorAll<SVGTextElement>('text')).find(
+		(text): boolean => text.textContent === 'return the same identity',
+	);
+	const view = fixture.defaultView;
+	if (!message || !view) throw new Error('Missing rendered sequence message.');
+	const canvas = fixture.createElement('canvas');
+	const context = canvas.getContext('2d');
+	if (!context) throw new Error('Missing colour measurement context.');
+	const luminance = (colour: string): number => {
+		context.clearRect(0, 0, 1, 1);
+		context.fillStyle = colour;
+		context.fillRect(0, 0, 1, 1);
+		const channels = context.getImageData(0, 0, 1, 1).data;
+		return [0.2126, 0.7152, 0.0722].reduce((total, weight, index): number => {
+			const channel = (channels[index] ?? 0) / 255;
+			return (
+				total + weight * (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+			);
+		}, 0);
+	};
+	for (const theme of ['dark', 'light']) {
+		fixture.documentElement.dataset['theme'] = theme;
+		const foreground = luminance(view.getComputedStyle(message).fill);
+		const background = luminance(
+			view.getComputedStyle(fixture.documentElement).getPropertyValue('--surface-page'),
+		);
+		expect
+			.soft((Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05))
+			.toBeGreaterThanOrEqual(4.5);
+	}
+	const verifyViewport = async (width: number): Promise<void> => {
+		await page.viewport(width, 1000);
+		const renderedSize =
+			Number.parseFloat(view.getComputedStyle(message).fontSize) * (message.getScreenCTM()?.a ?? 0);
+		expect.soft(renderedSize).toBeGreaterThanOrEqual(15.9);
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width + 1);
+	};
+	await verifyViewport(1600);
+	await verifyViewport(390);
+});
+
 async function verifyDiagramWidth(width: number): Promise<void> {
 	await page.viewport(width, 1000);
 	const { document: fixture, frame } = await openFixture('layout');

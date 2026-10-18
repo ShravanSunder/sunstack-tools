@@ -128,12 +128,7 @@ class RoutePlayer {
 		controls.append(this.title, previous, this.counter, next, close);
 		this.bar.append(controls, this.narration);
 		document.body.append(this.bar, this.marker);
-		new ResizeObserver((): void => {
-			document.documentElement.style.setProperty(
-				'--ex-route-player-height',
-				`${Math.ceil(this.bar.getBoundingClientRect().height)}px`,
-			);
-		}).observe(this.bar);
+		new ResizeObserver((): void => this.measurePlayerHeight()).observe(this.bar);
 		document.addEventListener('keydown', (event: KeyboardEvent): void => {
 			if (
 				this.bar.hidden ||
@@ -213,6 +208,13 @@ class RoutePlayer {
 		if (!dialog) return;
 		document.body.append(this.bar);
 		dialog.close();
+	}
+
+	private measurePlayerHeight(): void {
+		document.documentElement.style.setProperty(
+			'--ex-route-player-height',
+			`${Math.ceil(this.bar.getBoundingClientRect().height)}px`,
+		);
 	}
 
 	private async renderNarration(step: RouteStep, home: string, signal: AbortSignal): Promise<void> {
@@ -314,6 +316,8 @@ class RoutePlayer {
 			}
 			target.classList.add('ex-route-focus');
 			this.focused = target;
+			// Reserve the actual gutter before bottom-clamped positioning, not on the next resize tick.
+			this.measurePlayerHeight();
 			// A step on a diagram node lights the node and its connections: a walk through the diagram.
 			if (this.tracedDiagram) setTrace(this.tracedDiagram, undefined);
 			this.tracedDiagram = undefined;
