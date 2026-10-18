@@ -260,26 +260,32 @@ async fn ancestor_outside_the_selected_paragraph_remains_visible_but_a_sibling_m
     let root = tempfile::tempdir().unwrap();
     let mut selected = rule("local.inside", "paragraph", &oracle.rules["inside_list"]);
     selected["evidence"][0]["select"]["starts_with"] = json!("Target");
-    fixture::write_set(root.path(), &[selected], vec![]);
+    let mut context_free = rule("local.call", "paragraph", &oracle.rules["call_paragraph"]);
+    context_free["evidence"][0]["select"]["starts_with"] = json!("Target");
+    fixture::write_set(root.path(), &[context_free, selected], vec![]);
     std::fs::write(root.path().join("source.md"), &text).unwrap();
     let report = evaluate(root.path()).await;
-    assert_eq!(report.occurrences.len(), 1);
-    let RuleOccurrenceResult::Checked { key, outcome, .. } = &report.occurrences[0] else {
-        panic!("expected checked")
-    };
-    let RuleOccurrenceTarget::MarkdownUnit { range, .. } = key.target.as_ref() else {
-        panic!("expected paragraph")
-    };
-    assert_eq!((range.start, range.end), (2, text.find('\n').unwrap() + 1));
-    let LocalSettlement::Completed {
-        result: MechanicalResult::Fail,
-        observations,
-    } = outcome
-    else {
-        panic!("{outcome:?}")
-    };
-    assert_eq!(observations.len(), 1);
-    let LocalObservation::AstMatch { span } = &observations[0];
-    assert_eq!((span.byte_start, span.byte_end), (range.start, range.end));
-    assert!(!text[span.byte_start..span.byte_end].contains("Sibling"));
+    assert_eq!(report.occurrences.len(), 2);
+    // The context-free counterpart checks the identical range first. A unit-
+    // reparse fault must preserve that match while losing only the ancestor.
+    for occurrence in &report.occurrences {
+        let RuleOccurrenceResult::Checked { key, outcome, .. } = occurrence else {
+            panic!("expected checked")
+        };
+        let RuleOccurrenceTarget::MarkdownUnit { range, .. } = key.target.as_ref() else {
+            panic!("expected paragraph")
+        };
+        assert_eq!((range.start, range.end), (2, text.find('\n').unwrap() + 1));
+        let LocalSettlement::Completed {
+            result: MechanicalResult::Fail,
+            observations,
+        } = outcome
+        else {
+            panic!("{outcome:?}")
+        };
+        assert_eq!(observations.len(), 1);
+        let LocalObservation::AstMatch { span } = &observations[0];
+        assert_eq!((span.byte_start, span.byte_end), (range.start, range.end));
+        assert!(!text[span.byte_start..span.byte_end].contains("Sibling"));
+    }
 }
