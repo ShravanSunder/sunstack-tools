@@ -2,6 +2,18 @@ import { expect, test } from 'vitest';
 
 import { checkHtml } from './check.ts';
 
+test('the checker accepts the two shared widths and rejects misspelled widths on native wrappers too', async (): Promise<void> => {
+	const source =
+		'<ex-document><ex-tabs data-width="reading"><section label="Text">First.</section></ex-tabs><ex-code data-width="canvas">code</ex-code><section data-width="narrow">Unknown width.</section></ex-document>';
+	const findings = await checkHtml(source, { diagrams: false });
+	const widths = findings.filter(
+		(finding): boolean => finding.rule === 'attribute' && finding.message.includes('data-width'),
+	);
+
+	expect(widths).toHaveLength(1);
+	expect(widths[0]?.message).toContain('reading, canvas');
+});
+
 test('a qualified diagram target must name a node in that diagram', async (): Promise<void> => {
 	const source =
 		'<ex-mermaid id="before"><script type="text/plain">flowchart LR\nClient --> Alpha</script></ex-mermaid><ex-mermaid id="after"><script type="text/plain">flowchart LR\nClient --> Beta</script></ex-mermaid><ex-presentation id="walk" title="Walk" description="The intended node"><ex-step to="before--Beta"></ex-step><ex-step to="after--Beta"></ex-step></ex-presentation>';

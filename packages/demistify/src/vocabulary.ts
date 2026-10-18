@@ -61,6 +61,13 @@ const gridChildren: Readonly<Record<string, AttributeSpec>> = {
 	sticky: flag('Keeps this column in view while the rest scrolls.'),
 };
 
+export const layoutAttributes: Readonly<Record<string, AttributeSpec>> = {
+	'data-width': oneOf('Centered width of this entire component or layout wrapper.', [
+		'reading',
+		'canvas',
+	]),
+};
+
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	'ex-pre': {
 		description: 'Literal preformatted text and TUI drawings with shared inspection.',
@@ -229,7 +236,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		within: ['ex-board'],
 	},
 	'ex-step': {
-		description: 'One stop on a route; its text is the narration.',
+		description: 'One stop on a route; its text is focused Markdown narration.',
 		attributes: {
 			to: {
 				description: 'Id of the island, region or diagram node; or another page, page.html#id.',
@@ -237,7 +244,9 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 				required: true,
 			},
 			open: oneOf('Open the target in the side panel or expanded.', ['sidebar', 'modal']),
+			icon,
 		},
+		source: 'text/markdown',
 		within: ['ex-presentation'],
 	},
 	'ex-layers': {
@@ -417,10 +426,17 @@ export function checkAttributes(
 							: `<${element}> should have ${name}="…".`,
 				});
 	for (const [name, value] of attributes) {
-		if (globalAttributes.has(name) || name.startsWith('data-') || name.startsWith('aria-'))
+		if (
+			globalAttributes.has(name) ||
+			(name.startsWith('data-') && !layoutAttributes[name]) ||
+			name.startsWith('aria-')
+		)
 			continue;
 		const known =
-			granted?.[name] ?? spec?.attributes[name] ?? (spec ? islandAttributes[name] : undefined);
+			layoutAttributes[name] ??
+			granted?.[name] ??
+			spec?.attributes[name] ??
+			(spec ? islandAttributes[name] : undefined);
 		if (known) {
 			// The legacy free-form callout type stays valid; only a tone written as type is moved.
 			if (element === 'ex-callout' && name === 'type') {
@@ -437,7 +453,7 @@ export function checkAttributes(
 			if (problem) problems.push(problem);
 			continue;
 		}
-		if (!spec && !granted) continue;
+		if (!spec) continue;
 		const names = [...Object.keys(spec?.attributes ?? {}), ...Object.keys(granted ?? {})];
 		const alias = attributeAliases[name];
 		const meant = alias && names.includes(alias) ? alias : closest(name, names);

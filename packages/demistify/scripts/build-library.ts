@@ -11,7 +11,7 @@ import {
 	localPhosphorStyles,
 	shippedIconCodePoints,
 } from '../src/node/packaging.ts';
-import { vocabulary } from '../src/vocabulary.ts';
+import { layoutAttributes, vocabulary } from '../src/vocabulary.ts';
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const outputDirectory = resolve(packageRoot, 'dist');
@@ -85,11 +85,13 @@ const declarations = Object.entries(vocabulary).map(([tagName, spec]) => {
 		tagName,
 		customElement: true,
 		description: spec.description,
-		attributes: Object.entries(spec.attributes).map(([name, attribute]) => ({
-			name,
-			description: attribute.description,
-			type: { text: valuesOf(attribute.type) },
-		})),
+		attributes: Object.entries({ ...layoutAttributes, ...spec.attributes }).map(
+			([name, attribute]) => ({
+				name,
+				description: attribute.description,
+				type: { text: valuesOf(attribute.type) },
+			}),
+		),
 	};
 	if (spec.legacy) declaration['deprecated'] = 'Earlier lab vocabulary; still rendered.';
 	return declaration;
@@ -97,16 +99,18 @@ const declarations = Object.entries(vocabulary).map(([tagName, spec]) => {
 const customData = Object.entries(vocabulary).map(([name, spec]) => ({
 	name,
 	description: spec.description,
-	attributes: Object.entries(spec.attributes).map(([attributeName, attribute]) => {
-		const entry: Record<string, unknown> = {
-			name: attributeName,
-			description: attribute.description,
-		};
-		if (attribute.type.kind === 'enum')
-			entry['values'] = attribute.type.values.map((value) => ({ name: value }));
-		if (attribute.type.kind === 'flag') entry['valueSet'] = 'v';
-		return entry;
-	}),
+	attributes: Object.entries({ ...layoutAttributes, ...spec.attributes }).map(
+		([attributeName, attribute]) => {
+			const entry: Record<string, unknown> = {
+				name: attributeName,
+				description: attribute.description,
+			};
+			if (attribute.type.kind === 'enum')
+				entry['values'] = attribute.type.values.map((value) => ({ name: value }));
+			if (attribute.type.kind === 'flag') entry['valueSet'] = 'v';
+			return entry;
+		},
+	),
 }));
 const json = (value: unknown): string => `${JSON.stringify(value, null, '\t')}\n`;
 await writeFile(

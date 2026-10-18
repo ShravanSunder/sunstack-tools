@@ -287,20 +287,6 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 					`style sets ${property}; keep only layout CSS (grid, flex, gaps, positions, sizes).`,
 					'style',
 				);
-		if (!name.startsWith('ex-')) continue;
-
-		const spec = vocabulary[name];
-		if (!spec) {
-			const meant = elementAliases[name] ?? closest(name, taughtElements);
-			report(
-				element,
-				'error',
-				'unknown-element',
-				`Unknown element <${name}>.${meant ? ` Use ${meant}.` : ` Known: ${taughtElements.join(', ')}.`}`,
-			);
-			continue;
-		}
-
 		const parent = parentElement(element);
 		for (const problem of checkAttributes(name, attributes, parent?.tagName)) {
 			const location = element.sourceCodeLocation?.attrs?.[problem.attribute];
@@ -320,6 +306,19 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				location ? problem.attribute : undefined,
 				edit,
 			);
+		}
+		if (!name.startsWith('ex-')) continue;
+
+		const spec = vocabulary[name];
+		if (!spec) {
+			const meant = elementAliases[name] ?? closest(name, taughtElements);
+			report(
+				element,
+				'error',
+				'unknown-element',
+				`Unknown element <${name}>.${meant ? ` Use ${meant}.` : ` Known: ${taughtElements.join(', ')}.`}`,
+			);
+			continue;
 		}
 
 		if (spec.within && !hasAncestor(element, spec.within))

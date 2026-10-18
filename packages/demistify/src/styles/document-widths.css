@@ -26,6 +26,19 @@ ex-document .reading-measure {
 	max-width: var(--width-reading);
 	margin-inline: auto;
 }
+/* One author-selected width applies to the whole component, including tabs and their panels. */
+[data-width='reading'] {
+	box-sizing: border-box;
+	width: min(100%, var(--width-reading));
+	max-width: var(--width-reading);
+	margin-inline: auto;
+}
+[data-width='canvas'] {
+	box-sizing: border-box;
+	width: min(100%, var(--width-canvas));
+	max-width: var(--width-canvas);
+	margin-inline: auto;
+}
 /* Markdown images live in paragraph wrappers; those wrappers belong to Canvas, not prose. */
 ex-document p:has(> img):not(ex-document :not(section, article, main, div, ex-markdown) *) {
 	width: 100%;
