@@ -1,4 +1,7 @@
-import { createIconButton } from '../core/icons.ts';
+import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
+import { reportIssue } from '../core/issues.ts';
+import { readIslandSource } from '../core/source-text.ts';
+import { resolveSubjectIcon } from '../core/subject-icons.ts';
 import { closeDrawer, isDrawerOpen } from '../islands/drawer.ts';
 import { GalleryWalkthrough } from '../islands/gallery-walkthrough.ts';
 import { GalleryIsland } from '../islands/gallery.ts';
@@ -16,6 +19,7 @@ interface RouteStep {
 	readonly targetId: string;
 	readonly narration: string;
 	readonly open: OpenMode | undefined;
+	readonly icon: string | undefined;
 }
 
 interface Route {
@@ -47,14 +51,18 @@ function readRouteSteps(route: Element, home: URL): RouteStep[] {
 			targetId: decodeURIComponent(url.hash.slice(1)),
 		};
 	};
-	const children = Array.from(route.querySelectorAll(':scope > ex-step'), (step): RouteStep => {
-		const open = step.getAttribute('open');
-		return {
-			...resolve(step.getAttribute('to') ?? ''),
-			narration: step.textContent?.trim() ?? '',
-			open: open === 'sidebar' || open === 'modal' ? open : undefined,
-		};
-	});
+	const children = Array.from(
+		route.querySelectorAll<HTMLElement>(':scope > ex-step'),
+		(step): RouteStep => {
+			const open = step.getAttribute('open');
+			return {
+				...resolve(step.getAttribute('to') ?? ''),
+				narration: readIslandSource(step)?.trim() ?? step.textContent?.trim() ?? '',
+				open: open === 'sidebar' || open === 'modal' ? open : undefined,
+				icon: resolveSubjectIcon(step.getAttribute('icon') ?? ''),
+			};
+		},
+	);
 	return children;
 }
 
@@ -80,7 +88,7 @@ class RoutePlayer {
 	private readonly bar = document.createElement('div');
 	private readonly title = document.createElement('strong');
 	private readonly counter = document.createElement('span');
-	private readonly narration = document.createElement('p');
+	private readonly narration = document.createElement('div');
 	private readonly marker = document.createElement('span');
 	private pendingTarget: AbortController | undefined;
 	private routeIndex = 0;
@@ -120,6 +128,12 @@ class RoutePlayer {
 		controls.append(this.title, previous, this.counter, next, close);
 		this.bar.append(controls, this.narration);
 		document.body.append(this.bar, this.marker);
+		new ResizeObserver((): void => {
+			document.documentElement.style.setProperty(
+				'--ex-route-player-height',
+				`${Math.ceil(this.bar.getBoundingClientRect().height)}px`,
+			);
+		}).observe(this.bar);
 		document.addEventListener('keydown', (event: KeyboardEvent): void => {
 			if (
 				this.bar.hidden ||
@@ -201,6 +215,24 @@ class RoutePlayer {
 		dialog.close();
 	}
 
+	private async renderNarration(step: RouteStep, home: string, signal: AbortSignal): Promise<void> {
+		this.narration.textContent = step.narration;
+		this.narration.hidden = step.narration === '';
+		if (!step.narration) return;
+		const { renderNarrationContent } = await import('../render/markdown-content.ts');
+		if (signal.aborted) return;
+		this.narration.innerHTML = renderNarrationContent(step.narration, home);
+		if (step.icon) {
+			const lead = this.narration.querySelector('p');
+			if (lead) {
+				const content = document.createElement('span');
+				content.append(...lead.childNodes);
+				lead.classList.add('ex-route-lead');
+				lead.replaceChildren(createPhosphorIcon(step.icon), content);
+			}
+		}
+	}
+
 	private step(direction: number): void {
 		const steps = this.routes[this.routeIndex]?.steps ?? [];
 		const index = Math.min(steps.length - 1, Math.max(0, this.stepIndex + direction));
@@ -233,8 +265,10 @@ class RoutePlayer {
 		const pending = new AbortController();
 		this.pendingTarget = pending;
 		this.counter.textContent = `${index + 1} / ${steps.length}`;
-		this.narration.textContent = step.narration;
-		this.narration.hidden = step.narration === '';
+		void this.renderNarration(step, route.home, pending.signal).catch((error: unknown): void => {
+			if (!pending.signal.aborted)
+				reportIssue(this.bar, `Walkthrough narration could not render: ${String(error)}`);
+		});
 		const address = new URL(location.href);
 		address.searchParams.set('ex-tour', route.home);
 		address.searchParams.set('ex-route', route.id);
@@ -273,6 +307,7 @@ class RoutePlayer {
 		).then((target): void => {
 			if (pending.signal.aborted) return;
 			if (!target) {
+				pending.abort();
 				this.narration.hidden = false;
 				this.narration.textContent = `Target unavailable: ${step.targetId}`;
 				return;
@@ -306,7 +341,13 @@ class RoutePlayer {
  * A tour carries its own route in the address when it moves between pages, so the next page can
  * continue without fetching anything (file:// pages cannot fetch each other).
  */
-type EncodedStep = [page: string | null, targetId: string, narration: string, open: OpenMode | 0];
+type EncodedStep = [
+	page: string | null,
+	targetId: string,
+	narration: string,
+	open: OpenMode | 0,
+	icon: string | null,
+];
 
 function encodeRoute(route: Route): string {
 	const here = location.href.split(/[?#]/)[0] ?? location.href;
@@ -315,6 +356,7 @@ function encodeRoute(route: Route): string {
 		step.targetId,
 		step.narration,
 		step.open ?? 0,
+		step.icon ?? null,
 	]);
 	const bytes = new TextEncoder().encode(JSON.stringify(steps));
 	return btoa(String.fromCodePoint(...bytes))
@@ -334,13 +376,14 @@ function decodeRoute(encoded: string): RouteStep[] | undefined {
 		const here = pageOf(new URL(location.href));
 		return steps.map((entry: unknown): RouteStep => {
 			const fields: readonly unknown[] = Array.isArray(entry) ? (entry as readonly unknown[]) : [];
-			const [page, targetId, narration, open] = fields;
+			const [page, targetId, narration, open, icon] = fields;
 			const pageUrl = typeof page === 'string' ? page : undefined;
 			return {
 				page: pageUrl === undefined || pageOf(new URL(pageUrl)) === here ? undefined : pageUrl,
 				targetId: typeof targetId === 'string' ? targetId : '',
 				narration: typeof narration === 'string' ? narration : '',
 				open: open === 'sidebar' ? 'sidebar' : open === 'modal' ? 'modal' : undefined,
+				icon: typeof icon === 'string' ? resolveSubjectIcon(icon) : undefined,
 			};
 		});
 	} catch {

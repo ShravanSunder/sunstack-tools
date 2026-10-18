@@ -13,6 +13,7 @@ export const subjectIcons = [
 	'code',
 	'terminal',
 	'git-branch',
+	'path',
 	'package',
 	'gear',
 	'bug',

@@ -293,6 +293,29 @@ test('the actual formatted guide literal stays exact in the page and sidebar', a
 	expect(drawing.querySelector('pre')?.textContent).toBe(expected);
 });
 
+test('author width applies to the complete tab set and remains contained on narrow screens', async (): Promise<void> => {
+	await page.viewport(1600, 1000);
+	const { document: fixture, frame } = await openFixture('ui', '', 'component-widths.html');
+	const reading = requiredElement(fixture, '#reading-tabs');
+	const canvas = requiredElement(fixture, '#canvas-tabs');
+	await expect.poll((): number => reading.querySelectorAll('[role="tab"]').length).toBe(2);
+	expect(reading.getBoundingClientRect().width).toBeCloseTo(760, 0);
+	expect(requiredElement(fixture, '#reading-wrapper').getBoundingClientRect().width).toBeCloseTo(
+		760,
+		0,
+	);
+	expect(canvas.getBoundingClientRect().width).toBeGreaterThan(1100);
+	const tabBar = requiredElement(reading, '[role="tablist"]').getBoundingClientRect();
+	expect(tabBar.left).toBeGreaterThanOrEqual(reading.getBoundingClientRect().left);
+	expect(tabBar.right).toBeLessThanOrEqual(reading.getBoundingClientRect().right + 1);
+	await fixtureLocator(frame, reading).getByRole('tab', { name: 'Second', exact: true }).click();
+	await expect.element(frame.getByText('Another reading example.', { exact: true })).toBeVisible();
+	await page.viewport(390, 900);
+	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+	expect(reading.getBoundingClientRect().width).toBeLessThan(390);
+	expect(canvas.getBoundingClientRect().width).toBeLessThan(390);
+});
+
 test('document headings align with Reading prose while visual components keep the wider centered Canvas', async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 	const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');

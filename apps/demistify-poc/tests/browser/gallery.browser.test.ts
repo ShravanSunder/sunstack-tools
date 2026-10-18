@@ -50,6 +50,33 @@ test('cross-page gallery walkthrough retains the chosen variation', async (): Pr
 	await expect.poll(selectedImage).toBe('One Desktop');
 });
 
+test('walkthrough Markdown, subject icons and source-relative links survive a cross-page step', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui', '#narration', 'narration.html');
+	const expectedLink = new URL('narration.html#summary', fixture.URL).href;
+	const player = frame.getByRole('region', { name: 'Walkthrough player', exact: true });
+	await expect
+		.element(player.getByText('Why there are two MCP levels', { exact: true }))
+		.toBeVisible();
+	expect(fixture.querySelectorAll('.ex-route-narration li')).toHaveLength(2);
+	expect(fixture.querySelector('.ex-route-narration code')?.textContent).toBe('SessionId');
+	expect(fixture.querySelector('.ex-route-lead > .ph-path')).not.toBeNull();
+	expect(fixture.querySelector('.ex-route-narration h1')).toBeNull();
+	await player.getByRole('button', { name: 'Next step', exact: true }).click();
+	await expect
+		.element(frame.getByRole('heading', { name: 'Narration evidence', exact: true }))
+		.toBeVisible();
+	await expect.element(player.getByText('Inspect the evidence', { exact: true })).toBeVisible();
+	await expect
+		.element(player.getByRole('link', { name: 'original explanation', exact: true }))
+		.toHaveAttribute('href', expectedLink);
+	const nextDocument = document.querySelector<HTMLIFrameElement>('iframe')?.contentDocument;
+	expect(nextDocument?.querySelector('.ex-route-lead > .ph-code')).not.toBeNull();
+	await player.getByRole('button', { name: 'Previous step', exact: true }).click();
+	await expect
+		.element(player.getByText('Why there are two MCP levels', { exact: true }))
+		.toBeVisible();
+});
+
 test('presentation crosses files, returns to its home and reports an unavailable stop visibly', async (): Promise<void> => {
 	const { frame } = await openFixture('gallery', '#cross-page', 'navigation.html');
 	await expect

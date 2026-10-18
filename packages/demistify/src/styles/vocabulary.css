@@ -516,7 +516,9 @@ ex-step {
 	bottom: var(--space-4);
 	transform: translateX(-50%);
 	z-index: 20;
-	width: min(640px, calc(100vw - 24px));
+	width: min(var(--width-reading), calc(100vw - 24px));
+	max-height: min(65dvh, 640px);
+	overflow-y: auto;
 	background: var(--surface-content);
 	color: var(--ink);
 	border: 1px solid var(--rule);
@@ -550,8 +552,29 @@ ex-step {
 }
 .ex-route-narration {
 	margin: var(--space-2) 2px 2px;
-	font: var(--text-base)/1.45 var(--font-body);
+	font: 400 var(--text-lg)/1.5 var(--font-body);
 	max-width: none;
+}
+.ex-route-narration :is(p, ul, ol, blockquote) {
+	font: inherit;
+	margin-block: var(--space-3);
+}
+.ex-route-narration li {
+	margin-block: var(--space-2);
+}
+.ex-route-narration code {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.ex-route-lead {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	align-items: baseline;
+	gap: var(--space-2);
+}
+.ex-route-lead > .ph {
+	color: var(--accent);
+	font-size: 20px;
 }
 .ex-inspect-dialog > .ex-route-player {
 	position: static;
@@ -561,9 +584,15 @@ ex-step {
 	box-shadow: none;
 }
 :root[data-route] ex-document {
-	padding-bottom: 180px;
+	padding-bottom: calc(var(--ex-route-player-height, 160px) + var(--space-8));
 }
 @media (max-width: 760px) {
+	.ex-route-controls {
+		flex-wrap: wrap;
+	}
+	.ex-route-controls > strong {
+		flex-basis: 100%;
+	}
 	.ex-route-player {
 		bottom: 0;
 		width: 100vw;

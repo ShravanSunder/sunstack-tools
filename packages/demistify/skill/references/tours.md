@@ -14,6 +14,21 @@ Inspect the existing content before writing a path: island IDs, Markdown heading
 
 Each path needs a stable ID, reader-facing title and short description. One step is valid; multiple paths may reuse the same destination. Steps use `open="sidebar"` or `open="modal"` only when inspection helps. Keep narration about the destination, not implementation details.
 
+Step narration supports focused Markdown: a bold lead, paragraphs, short lists, emphasis, links and inline code. Use an optional curated `icon` to name the step's subject. The player uses regular 18px prose and reserves space for its measured height. Keep document headings, images, tables, diagrams and large code in the target; narration does not create another document hierarchy. Authored HTML remains literal text, and executable link protocols are not enabled.
+
+```html
+<ex-step to="composition" icon="path"><script type="text/markdown">
+**Why there are two MCP levels**
+
+- The **cloud entry** connects providers and protected services.
+- Each **computer service** exposes its configured tools.
+
+Collaboration remains independently governed. Inspect `SessionId` before continuing.
+</script></ex-step>
+```
+
+Relative narration links resolve from the page that declares the path, including after cross-page continuation. Plain sentences remain valid narration.
+
 - Whole island: `architecture`.
 - Heading `## Recovery` inside Markdown island `requirements`: `requirements--recovery`.
 - Node Registry inside Mermaid island `after`: `after--Registry`.
