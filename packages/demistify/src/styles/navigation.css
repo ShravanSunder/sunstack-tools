@@ -16,7 +16,7 @@ ex-nav {
 	z-index: 6;
 	display: flex;
 	align-items: center;
-	gap: var(--space-2);
+	gap: var(--space-4);
 	height: 44px;
 	padding: var(--space-1) var(--space-3);
 	border-bottom: 1px solid var(--rule);
@@ -78,6 +78,12 @@ ex-nav {
 	color: var(--ink-soft);
 	text-decoration: none;
 }
+.ex-heading-panel a {
+	position: relative;
+	padding-inline-start: 22px;
+	font-size: var(--text-sm);
+	font-weight: 400;
+}
 .ex-pages-panel a {
 	display: flex;
 	align-items: center;
@@ -91,18 +97,31 @@ ex-nav {
 	color: var(--accent);
 }
 .ex-heading-panel a[aria-current] {
-	border-left-color: var(--selection-color);
+	background: color-mix(in srgb, var(--accent) 8%, transparent);
 	color: var(--ink);
+	font-weight: 500;
 }
-.ex-heading-panel a[data-level='2'] {
-	font-weight: 600;
-	color: var(--ink);
+.ex-heading-panel a[aria-current]::before {
+	content: '';
+	position: absolute;
+	left: 8px;
+	top: calc(0.7em + 1.5px);
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--selection-color);
 }
 .ex-heading-panel a[data-level='3'] {
-	padding-left: var(--space-5);
+	padding-left: 38px;
 }
 .ex-heading-panel a:is([data-level='4'], [data-level='5'], [data-level='6']) {
-	padding-left: var(--space-8);
+	padding-left: 54px;
+}
+.ex-heading-panel a[data-level='3'][aria-current]::before {
+	left: 24px;
+}
+.ex-heading-panel a:is([data-level='4'], [data-level='5'], [data-level='6'])[aria-current]::before {
+	left: 40px;
 }
 .ex-navigation-label {
 	position: sticky;
@@ -140,7 +159,7 @@ body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle {
 		padding-inline-start: 288px;
 	}
 	body:has(ex-nav) > ex-document {
-		margin-inline-start: 0;
+		margin-inline: auto;
 	}
 	.ex-heading-panel[data-pinned] {
 		inset: 56px auto 64px 16px;

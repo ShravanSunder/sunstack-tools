@@ -11,6 +11,7 @@
 	scrollbar-width: thin;
 }
 :is(.ex-tab-bar, .ex-explorer-tabs) > [role='tab'] {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -24,9 +25,20 @@
 	font: 600 var(--text-sm)/1.4 var(--font-display);
 }
 :is(.ex-tab-bar, .ex-explorer-tabs) > [role='tab'][aria-selected='true'] {
-	border-bottom-color: var(--selection-color);
+	border-bottom-color: transparent;
 	background: transparent;
 	color: var(--accent);
+}
+:is(.ex-tab-bar, .ex-explorer-tabs) > [role='tab'][aria-selected='true']::after {
+	content: '';
+	position: absolute;
+	inset-inline: var(--space-3);
+	bottom: 0;
+	height: 2px;
+	background: var(--selection-color);
+}
+:is(.ex-tab-bar, .ex-explorer-tabs) > [role='tab'][aria-selected='true']:has(.ph)::after {
+	inset-inline-start: calc(var(--space-3) + 1em + var(--space-2));
 }
 .ex-mode-choices {
 	display: inline-flex;

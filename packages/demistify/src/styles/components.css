@@ -195,7 +195,7 @@ ex-mermaid > .ex-inspect-controls {
 .ex-arrow-line {
 	fill: none;
 	stroke: currentColor;
-	stroke-width: 1.8;
+	stroke-width: 1.1;
 }
 .ex-arrow-label {
 	fill: var(--ink);
@@ -292,7 +292,7 @@ ex-markdown ex-mermaid svg {
 	margin-block: var(--space-5);
 }
 ex-document h1 + p {
-	font-size: var(--text-xl);
+	font-size: var(--text-lg);
 	line-height: 1.55;
 	max-width: 62ch;
 }
@@ -304,7 +304,8 @@ ex-decision[status='accepted'] {
 	border-left-color: var(--codex);
 }
 ex-callout[type='risk'] {
-	background: var(--missing-bg);
+	--tone: var(--missing);
+	background: color-mix(in srgb, var(--missing) 5%, var(--surface-page));
 	border-left: 2px solid var(--missing);
 }
 [data-change='added'] {

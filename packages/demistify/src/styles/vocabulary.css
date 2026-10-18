@@ -47,11 +47,25 @@
 
 ex-document {
 	display: block;
-	max-width: 1440px;
+	max-width: 1140px;
 	margin: var(--space-4) auto var(--space-16);
+	font-size: var(--text-md);
 }
 ex-document > * + * {
 	margin-top: var(--space-6);
+}
+ex-document h2:not(ex-explorer h2, ex-card h2, ex-callout h2, ex-tabs h2, ex-compare h2) {
+	border-top: 1px solid var(--rule);
+	padding-top: calc(var(--space-10) * 1.25);
+	margin-top: var(--space-12);
+	margin-bottom: var(--space-6);
+}
+ex-document :is(p, li, dd, td) code:not(.ex-code-text, pre code) {
+	color: var(--patch);
+	background: color-mix(in srgb, var(--patch) 9%, var(--surface-page));
+}
+ex-document summary {
+	color: var(--accent);
 }
 
 ex-grid,
@@ -162,13 +176,16 @@ ex-flow > ex-arrow {
 
 ex-card {
 	display: block;
-	background: var(--surface-content);
+	background: color-mix(in srgb, var(--surface-content) 35%, var(--surface-page));
 	border: 1px solid var(--rule);
 	border-top: 2px solid var(--tone, var(--rule));
 	border-radius: var(--radius-md);
 	padding: var(--space-4) var(--space-5);
 	font-size: var(--text-md);
 	line-height: 1.55;
+}
+ex-card .eyebrow {
+	color: var(--tone, var(--accent));
 }
 .ex-card-head,
 .ex-callout-head {
@@ -215,10 +232,15 @@ ex-card > :last-child {
 
 ex-callout {
 	display: block;
-	background: var(--tone-bg, var(--accent-soft));
+	max-width: 74ch;
+	background: color-mix(in srgb, var(--tone, var(--accent)) 5%, var(--surface-page));
+	border: 1px solid color-mix(in srgb, var(--tone, var(--accent)) 45%, var(--rule));
 	border-left: 2px solid var(--tone, var(--accent));
 	border-radius: var(--radius-sm);
 	padding: var(--space-3) var(--space-4);
+}
+ex-callout :is(p, li) {
+	max-width: none;
 }
 ex-callout:not(:has(> .ex-callout-head strong)) {
 	position: relative;
@@ -302,6 +324,8 @@ ex-callout > :is(p, ul, ol) {
 }
 
 ex-code {
+	--diff-added-bg: color-mix(in srgb, var(--diff-added) 14%, var(--surface-page));
+	--diff-removed-bg: color-mix(in srgb, var(--diff-removed) 14%, var(--surface-page));
 	display: block;
 	container-type: inline-size;
 	background: var(--surface-content);
@@ -345,6 +369,7 @@ ex-code {
 	user-select: none;
 }
 .ex-code-text {
+	align-self: start;
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 	background: none;
@@ -404,8 +429,7 @@ ex-note {
 	display: block;
 	font: var(--text-sm)/1.45 var(--font-display);
 	color: var(--ink);
-	background: var(--comment-surface);
-	border-left: 2px solid var(--tone);
+	background: transparent;
 	border-radius: var(--radius-sm);
 	padding: var(--space-1) var(--space-2);
 	margin: 1px 0 var(--space-1);
@@ -420,11 +444,19 @@ ex-note .ex-tone-icon {
 		grid-template-columns: auto minmax(0, 1fr);
 	}
 	.ex-code-margin {
-		grid-column: 1 / -1;
+		grid-column: 2 / -1;
 		padding-left: var(--space-3);
 	}
 	.ex-code-margin:not([data-noted]) {
 		display: none;
+	}
+}
+@media (max-width: 600px) {
+	ex-document h1 {
+		font-size: var(--text-section);
+	}
+	ex-document h2 {
+		font-size: calc(var(--text-subheading) + 7px);
 	}
 }
 
