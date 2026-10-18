@@ -1,6 +1,6 @@
 {
 	"name": "@sunstack/demistify",
-	"version": "1.6.0",
+	"version": "1.7.0",
 	"private": true,
 	"description": "Composable visual documents using native Web Components",
 	"bin": {
