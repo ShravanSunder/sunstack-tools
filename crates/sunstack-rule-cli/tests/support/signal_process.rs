@@ -1,5 +1,5 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::panic)]
-use crate::support::child;
+use crate::support::{child, child_without_credential};
 use std::{path::Path, process::Output, time::Duration};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
@@ -19,7 +19,14 @@ pub async fn expect_line(
     assert_eq!(received, expected);
 }
 pub async fn ready_process(root: &Path) -> (Child, BufReader<ChildStderr>, Vec<u8>) {
-    let mut process = child(root);
+    observe_ready(child(root)).await
+}
+pub async fn ready_process_without_credential(
+    root: &Path,
+) -> (Child, BufReader<ChildStderr>, Vec<u8>) {
+    observe_ready(child_without_credential(root)).await
+}
+async fn observe_ready(mut process: Child) -> (Child, BufReader<ChildStderr>, Vec<u8>) {
     let mut stderr = BufReader::new(process.stderr.take().unwrap());
     let mut transcript = vec![];
     loop {

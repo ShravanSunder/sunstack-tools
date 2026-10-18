@@ -61,6 +61,9 @@ fn validate_router_definition(router: &RouterDefinition) -> Result<(), Diagnosti
     Ok(())
 }
 pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize) {
+    locate_at(diagnostics, file, line, 1);
+}
+pub(crate) fn locate_at(diagnostics: &mut DiagnosticList, file: &Path, line: usize, column: usize) {
     for diagnostic in &mut diagnostics.items {
         match diagnostic {
             ReportDiagnostic::Rule(diagnostic) => {
@@ -68,7 +71,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                     diagnostic.location = RuleDiagnosticLocation::Definition {
                         file: file.into(),
                         line,
-                        column: 1,
+                        column,
                         field_path: vec![],
                     };
                 }
@@ -89,7 +92,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                 diagnostic.location = sunstack_decisions::DecisionDiagnosticLocation::Definition {
                     file: file.into(),
                     line,
-                    column: 1,
+                    column,
                     field_path,
                 };
             }
@@ -104,7 +107,7 @@ pub(crate) fn locate(diagnostics: &mut DiagnosticList, file: &Path, line: usize)
                 diagnostic.location = sunstack_evidence::DiagnosticLocation::Definition {
                     file: file.into(),
                     line,
-                    column: 1,
+                    column,
                     field_path,
                 };
             }
@@ -118,7 +121,11 @@ pub fn validate_rule_set(definition: &RuleSetDefinition) -> Result<(), Diagnosti
     if definition.name.is_empty()
         || definition.description.is_empty()
         || definition.inputs.is_empty()
-        || definition.rule_paths.is_empty()
+        || (definition.rule_paths.is_empty() && definition.rule_sources.is_empty())
+        || (!definition.rule_sources.is_empty() && definition.marker_prefix.is_none())
+        || definition.rule_sources.iter().any(|source| {
+            source.markdown.as_os_str().is_empty() || source.rules.as_os_str().is_empty()
+        })
         || definition
             .rule_paths
             .iter()
@@ -138,9 +145,35 @@ pub fn validate_rule_definition(
         .iter()
         .find(|declaration| declaration.id == rule.target)
         .ok_or_else(|| refusal(RuleDiagnosticCode::InvalidTarget))?;
+    if let VerdictDeclaration::Mechanical { explanation, check } = &rule.verdict {
+        if explanation.is_empty() || !rule.questions.is_empty() {
+            return Err(refusal(RuleDiagnosticCode::InvalidMechanicalCheck));
+        }
+        if !matches!(
+            target.select,
+            EvidenceSelection::MarkdownUnits(_) | EvidenceSelection::FrontmatterField { .. }
+        ) || matches!(
+            (&target.select, check),
+            (
+                EvidenceSelection::FrontmatterField { .. },
+                crate::MechanicalCheck::AstGrep { .. }
+            )
+        ) || matches!(
+            check,
+            crate::MechanicalCheck::Expect {
+                expect: crate::ExpectPredicate::Present { .. }
+            }
+        ) && !matches!(target.select, EvidenceSelection::FrontmatterField { .. })
+        {
+            return Err(refusal(RuleDiagnosticCode::InvalidTarget));
+        }
+        validate_entries(&rule.applicability, inputs)?;
+        return check.validate();
+    }
     if !matches!(
         target.select,
         EvidenceSelection::Paragraph { .. }
+            | EvidenceSelection::MarkdownUnits(_)
             | EvidenceSelection::Conversation { .. }
             | EvidenceSelection::WholePayload {}
             | EvidenceSelection::PayloadField { .. }
@@ -153,7 +186,10 @@ pub fn validate_rule_definition(
     for question in rule.questions.values() {
         validate_question(question)?
     }
-    let threshold = rule.verdict.threshold();
+    let threshold = rule
+        .verdict
+        .threshold()
+        .ok_or_else(|| refusal(RuleDiagnosticCode::InvalidThreshold))?;
     if !threshold_valid(threshold) {
         return Err(refusal(RuleDiagnosticCode::InvalidThreshold));
     }
@@ -163,6 +199,9 @@ pub fn validate_rule_definition(
         return Err(refusal(RuleDiagnosticCode::InvalidBand));
     }
     match &rule.verdict {
+        VerdictDeclaration::Mechanical { .. } => {
+            return Err(refusal(RuleDiagnosticCode::InvalidMechanicalCheck));
+        }
         VerdictDeclaration::Noul { question, .. } => {
             if !matches!(question, JudgmentQuestion::Noul { .. }) {
                 return Err(refusal(RuleDiagnosticCode::InvalidComposite));
@@ -229,6 +268,8 @@ pub(crate) fn validate_evidence(
             (
                 InputDeclaration::Document {},
                 EvidenceSelection::Paragraph { .. }
+                    | EvidenceSelection::MarkdownUnits(_)
+                    | EvidenceSelection::FrontmatterField { .. }
                     | EvidenceSelection::WholeDocument {}
                     | EvidenceSelection::LiteralText { .. }
                     | EvidenceSelection::RegexText { .. }

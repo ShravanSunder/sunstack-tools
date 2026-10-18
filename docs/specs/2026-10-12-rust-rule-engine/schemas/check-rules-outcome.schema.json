@@ -1,0 +1,3364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckRulesOutcome",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "checked_rule_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "const": "checked"
+        },
+        "printed_rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PrintedRule"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "checked_rule_count",
+        "printed_rules"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "checked_rule_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "diagnostics": {
+          "$ref": "#/$defs/DiagnosticList"
+        },
+        "kind": {
+          "type": "string",
+          "const": "refused"
+        },
+        "refused_rule_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "diagnostics",
+        "checked_rule_count",
+        "refused_rule_count"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "diagnostics": {
+          "$ref": "#/$defs/DiagnosticList"
+        },
+        "kind": {
+          "type": "string",
+          "const": "check_failed"
+        },
+        "measurements": {
+          "$ref": "#/$defs/InvocationMeasurements"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "diagnostics",
+        "measurements"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "diagnostics": {
+          "$ref": "#/$defs/DiagnosticList"
+        },
+        "kind": {
+          "type": "string",
+          "const": "cancelled"
+        },
+        "measurements": {
+          "$ref": "#/$defs/InvocationMeasurements"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "diagnostics",
+        "measurements"
+      ]
+    }
+  ],
+  "$defs": {
+    "ApplicabilityEntry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "condition"
+            },
+            "test": {
+              "$ref": "#/$defs/ConditionTest"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "test"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/EvidenceDeclaration"
+              },
+              "minItems": 1
+            },
+            "kind": {
+              "type": "string",
+              "const": "decision"
+            },
+            "question": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/JudgmentQuestion"
+                },
+                {
+                  "properties": {
+                    "type": {
+                      "const": "noul"
+                    }
+                  }
+                }
+              ]
+            },
+            "threshold": {
+              "type": "number",
+              "format": "double",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "question",
+            "evidence",
+            "threshold"
+          ]
+        }
+      ]
+    },
+    "AssistantSelection": {
+      "type": "string",
+      "enum": [
+        "excluded",
+        "all",
+        "final_only"
+      ]
+    },
+    "ChunkGrouping": {
+      "type": "string",
+      "enum": [
+        "single_group",
+        "per_seed"
+      ]
+    },
+    "ChunkSettings": {
+      "type": "object",
+      "properties": {
+        "grouping": {
+          "$ref": "#/$defs/ChunkGrouping"
+        },
+        "max_chunk_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "related_content": {
+          "$ref": "#/$defs/UnitContent"
+        },
+        "seed_content": {
+          "$ref": "#/$defs/UnitContent"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "grouping",
+        "seed_content",
+        "related_content",
+        "max_chunk_bytes"
+      ]
+    },
+    "CompositeDimension": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "$ref": "#/$defs/QuestionName"
+        },
+        "weight": {
+          "type": "number",
+          "format": "double",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "question",
+        "weight"
+      ]
+    },
+    "ConditionTest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload_field_equals"
+            },
+            "pointer": {
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/StructuredJson"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pointer",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload_field_in"
+            },
+            "pointer": {
+              "type": "string"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/StructuredJson"
+              },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pointer",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload_field_present"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pointer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/OriginField"
+            },
+            "kind": {
+              "type": "string",
+              "const": "origin_field_equals"
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "pattern_present"
+            },
+            "max_scan_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            },
+            "pattern": {
+              "$ref": "#/$defs/PresencePattern"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "input",
+            "pattern",
+            "max_scan_bytes"
+          ]
+        }
+      ]
+    },
+    "DecisionDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/DecisionDiagnosticCode"
+        },
+        "guidance": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/DecisionDiagnosticLocation"
+        },
+        "origin": {
+          "$ref": "#/$defs/DecisionDiagnosticOrigin"
+        },
+        "retry_advice": {
+          "$ref": "#/$defs/RetryAdvice"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "code",
+        "location",
+        "guidance",
+        "retry_advice"
+      ]
+    },
+    "DecisionDiagnosticCode": {
+      "type": "string",
+      "enum": [
+        "unknown_field",
+        "duplicate_field",
+        "invalid_question",
+        "invalid_state",
+        "unsupported_primitive",
+        "invalid_number",
+        "invalid_rubric",
+        "invalid_configuration",
+        "context_budget_exceeded",
+        "budget_unverifiable",
+        "unsupported_budget_profile",
+        "invalid_body",
+        "missing_answer",
+        "unexpected_answer",
+        "wrong_answer_kind",
+        "invalid_choice",
+        "invalid_receipt",
+        "provider_rejected_request",
+        "authentication",
+        "authorization",
+        "insufficient_credits",
+        "provider_resource_unavailable",
+        "request_too_large",
+        "rate_limit",
+        "provider_unavailable",
+        "timeout",
+        "connection",
+        "http_error",
+        "unexpected_provider_error",
+        "caller_aborted"
+      ]
+    },
+    "DecisionDiagnosticLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "file": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "definition"
+            },
+            "line": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "file",
+            "line",
+            "column",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field_path"
+          ]
+        }
+      ]
+    },
+    "DecisionDiagnosticOrigin": {
+      "type": "string",
+      "enum": [
+        "request",
+        "response",
+        "provider",
+        "execution"
+      ]
+    },
+    "DeclarationId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "DefinitionEntryLocation": {
+      "type": "object",
+      "properties": {
+        "column": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "line",
+        "column"
+      ]
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/EvidenceCode"
+        },
+        "guidance": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/DiagnosticLocation"
+        },
+        "origin": {
+          "$ref": "#/$defs/DiagnosticOrigin"
+        },
+        "retry_advice": {
+          "$ref": "#/$defs/RetryAdvice2"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "code",
+        "location",
+        "guidance",
+        "retry_advice"
+      ]
+    },
+    "DiagnosticList": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReportDiagnostic"
+          }
+        },
+        "omitted_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "omitted_count"
+      ]
+    },
+    "DiagnosticLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "file": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "definition"
+            },
+            "line": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "file",
+            "line",
+            "column",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "source"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "span": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceSpan"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "record"
+            },
+            "record_id": {
+              "type": "string"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "record_id"
+          ]
+        }
+      ]
+    },
+    "DiagnosticOrigin": {
+      "type": "string",
+      "enum": [
+        "request",
+        "source",
+        "transcript",
+        "input_binding",
+        "selection",
+        "invocation"
+      ]
+    },
+    "EvidenceCode": {
+      "type": "string",
+      "enum": [
+        "frontmatter_unavailable",
+        "unknown_field",
+        "duplicate_field",
+        "invalid_request",
+        "source_unavailable",
+        "path_outside_root",
+        "unsupported_encoding",
+        "source_changed",
+        "missing_target",
+        "duplicate_target",
+        "deleted_target",
+        "evidence_limit",
+        "missing_context",
+        "unknown_transcript_format",
+        "transcript_unavailable",
+        "transcript_discontinuous",
+        "invalid_cursor",
+        "adapter_output_invalid",
+        "transcript_limit",
+        "unknown_payload_schema",
+        "payload_schema_mismatch",
+        "payload_schema_invalid",
+        "invalid_pointer",
+        "invalid_selector",
+        "unsupported_language",
+        "selector_limit",
+        "empty_projection",
+        "revision_unavailable",
+        "invalid_repository_binding",
+        "unknown_repository",
+        "history_incomplete",
+        "recency_unknown",
+        "relationship_unresolved",
+        "discovery_limit",
+        "discovery_not_enabled",
+        "unsupported_relationship_query",
+        "invalid_context_group",
+        "missing_related_context",
+        "required_group_incomplete",
+        "no_change_selection"
+      ]
+    },
+    "EvidenceDeclaration": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/DeclarationId"
+        },
+        "input": {
+          "$ref": "#/$defs/SourceName"
+        },
+        "max_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_items": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 1
+        },
+        "requirement": {
+          "$ref": "#/$defs/EvidenceRequirement",
+          "default": "required"
+        },
+        "select": {
+          "$ref": "#/$defs/EvidenceSelection"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "input",
+        "select"
+      ]
+    },
+    "EvidenceRequirement": {
+      "type": "string",
+      "enum": [
+        "required",
+        "optional"
+      ]
+    },
+    "EvidenceSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "frontmatter_field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown_units"
+            }
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/UnitOnly"
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/SelectionMode"
+                },
+                "starts_with": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units",
+                "starts_with"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/SelectionMode"
+                },
+                "pattern": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units",
+                "pattern"
+              ]
+            }
+          ],
+          "not": {
+            "required": [
+              "starts_with",
+              "pattern"
+            ]
+          },
+          "required": [
+            "kind"
+          ],
+          "unevaluatedProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_set_literal_text"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/QueryPath"
+              }
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "paths",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_set_regex_text"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/QueryPath"
+              }
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "paths",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_set_ast_pattern"
+            },
+            "language": {
+              "type": "string"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/QueryPath"
+              }
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "paths",
+            "language",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "changed_units"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceLanguage"
+              }
+            },
+            "source_sides": {
+              "$ref": "#/$defs/SourceSides"
+            },
+            "unit_kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/UnitKindFilter"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "languages",
+            "unit_kinds",
+            "source_sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "chunk_settings": {
+              "$ref": "#/$defs/ChunkSettings"
+            },
+            "directions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RelationDirection"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "related_units"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GraphLanguage"
+              }
+            },
+            "minimum_related_units": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "requested_hops": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            },
+            "source_sides": {
+              "$ref": "#/$defs/SourceSides"
+            },
+            "unit_kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/UnitKindFilter"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "languages",
+            "unit_kinds",
+            "source_sides",
+            "directions",
+            "requested_hops",
+            "chunk_settings",
+            "minimum_related_units"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "paragraph"
+            },
+            "target_id": {
+              "$ref": "#/$defs/TargetId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "target_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "whole_document"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "literal_text"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "regex_text"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ast_pattern"
+            },
+            "language": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "language",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "assistant_messages": {
+              "$ref": "#/$defs/AssistantSelection"
+            },
+            "hook_injected": {
+              "$ref": "#/$defs/Inclusion"
+            },
+            "kind": {
+              "type": "string",
+              "const": "conversation"
+            },
+            "tool_use": {
+              "$ref": "#/$defs/ToolUseSelection"
+            },
+            "turns": {
+              "$ref": "#/$defs/TurnWindow"
+            },
+            "user_messages": {
+              "$ref": "#/$defs/Inclusion"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "turns",
+            "user_messages",
+            "assistant_messages",
+            "tool_use",
+            "hook_injected"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "whole_payload"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "payload_field"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pointer"
+          ]
+        }
+      ]
+    },
+    "ExpectPredicate": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "matches": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "matches"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "not_matches": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "not_matches"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "starts_with": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "starts_with"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "present": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "present"
+          ]
+        }
+      ]
+    },
+    "GitObjectId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "GraphLanguage": {
+      "type": "string",
+      "enum": [
+        "rust",
+        "typescript",
+        "tsx"
+      ]
+    },
+    "Inclusion": {
+      "type": "string",
+      "enum": [
+        "included",
+        "excluded"
+      ]
+    },
+    "InvocationMeasurements": {
+      "type": "object",
+      "properties": {
+        "applicability_entries_evaluated": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "bytes_included": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "bytes_scanned": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "files_considered": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "files_parsed": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "files_read": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "inference_attempts": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "invalid_rule_entries": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "local_elapsed_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "model_requests": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "provider_elapsed_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "rules_failed": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rules_selected": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rules_skipped": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "skipped_rule_sources": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "transcript_bytes_parsed": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "transcript_bytes_read": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "invalid_rule_entries",
+        "skipped_rule_sources",
+        "files_considered",
+        "files_read",
+        "files_parsed",
+        "transcript_bytes_read",
+        "transcript_bytes_parsed",
+        "bytes_scanned",
+        "bytes_included",
+        "rules_selected",
+        "rules_skipped",
+        "rules_failed",
+        "applicability_entries_evaluated",
+        "local_elapsed_ms",
+        "provider_elapsed_ms",
+        "model_requests",
+        "inference_attempts"
+      ]
+    },
+    "JudgmentQuestion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "criteria": {
+              "$ref": "#/$defs/NoulDescriptions"
+            },
+            "instructions": {
+              "$ref": "#/$defs/StructuredEntry"
+            },
+            "type": {
+              "type": "string",
+              "const": "noul"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "instructions"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "criteria": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/StructuredEntry"
+              },
+              "minProperties": 1
+            },
+            "instructions": {
+              "$ref": "#/$defs/StructuredEntry"
+            },
+            "type": {
+              "type": "string",
+              "const": "choice"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "instructions",
+            "criteria"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "criteria": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/StructuredEntry"
+              },
+              "minItems": 1
+            },
+            "instructions": {
+              "$ref": "#/$defs/StructuredEntry"
+            },
+            "type": {
+              "type": "string",
+              "const": "score"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "instructions",
+            "criteria"
+          ]
+        }
+      ]
+    },
+    "MarkdownTextSpan": {
+      "type": "object",
+      "properties": {
+        "byte_end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "byte_start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "end_column": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "end_line": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start_column": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start_line": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "byte_start",
+        "byte_end",
+        "start_line",
+        "start_column",
+        "end_line",
+        "end_column"
+      ]
+    },
+    "MarkdownUnitKind": {
+      "type": "string",
+      "enum": [
+        "section",
+        "paragraph",
+        "list_item"
+      ]
+    },
+    "MarkerId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Z][0-9]{3}$"
+    },
+    "MechanicalCheck": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "expect": {
+              "$ref": "#/$defs/ExpectPredicate"
+            },
+            "kind": {
+              "type": "string",
+              "const": "expect"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "expect"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ast_grep": {
+              "$ref": "#/$defs/SerializableRule"
+            },
+            "kind": {
+              "type": "string",
+              "const": "ast_grep"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "ast_grep"
+          ]
+        }
+      ]
+    },
+    "NoulDescriptions": {
+      "type": "object",
+      "properties": {
+        "false": {
+          "$ref": "#/$defs/StructuredEntry"
+        },
+        "true": {
+          "$ref": "#/$defs/StructuredEntry"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "true",
+        "false"
+      ]
+    },
+    "NthChildSimple": {
+      "description": "A string or number describing the indices of matching nodes in a list of siblings.",
+      "anyOf": [
+        {
+          "description": "A number indicating the precise element index",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        {
+          "description": "Functional notation like CSS's An + B",
+          "type": "string"
+        }
+      ]
+    },
+    "OriginField": {
+      "type": "string",
+      "enum": [
+        "host",
+        "event",
+        "agent_kind",
+        "agent_type"
+      ]
+    },
+    "PatternStyle": {
+      "description": "A String pattern will match one single AST node according to pattern syntax.\nOr an object with field `context`, `selector` and optionally `strictness`.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "context": {
+              "description": "The surrounding code that helps to resolve any ambiguity in the syntax.",
+              "type": "string"
+            },
+            "selector": {
+              "description": "The sub-syntax node kind that is the actual matcher of the pattern.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "strictness": {
+              "description": "Strictness of the pattern. More strict pattern matches fewer nodes.",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Strictness"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "context"
+          ]
+        }
+      ]
+    },
+    "PresencePattern": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "literal"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "regex"
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ast"
+            },
+            "language": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "language",
+            "pattern"
+          ]
+        }
+      ]
+    },
+    "PrintedRule": {
+      "type": "object",
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/RuleDefinition"
+        },
+        "rule_set": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/PrintedRuleSource"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule_set",
+        "source",
+        "definition"
+      ]
+    },
+    "PrintedRuleSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "jsonl"
+            },
+            "line": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "file",
+            "line"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown"
+            },
+            "provenance": {
+              "$ref": "#/$defs/RuleSourceProvenance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "provenance"
+          ]
+        }
+      ]
+    },
+    "QueryPath": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exact"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "glob"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pattern"
+          ]
+        }
+      ]
+    },
+    "QuestionName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "RecordId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "Relation": {
+      "description": "A relational rule object, which is a Rule object with two additional fields stopBy and field.",
+      "type": "object",
+      "properties": {
+        "all": {
+          "description": "A list of sub rules and matches a node if all of sub rules match.\nThe meta variables of the matched node contain all variables from the sub-rules.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SerializableRule"
+          }
+        },
+        "any": {
+          "description": "A list of sub rules and matches a node if any of sub rules match.\nThe meta variables of the matched node only contain those of the matched sub-rule.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SerializableRule"
+          }
+        },
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "follows": {
+          "description": "`follows` accepts a relational rule object.\nthe target node must appear after another node matching the `follows` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "has": {
+          "description": "`has` accepts a relational rule object.\nthe target node must has a descendant node matching the `has` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "inside": {
+          "description": "`inside` accepts a relational rule object.\nthe target node must appear inside of another node matching the `inside` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "kind": {
+          "description": "The kind name of the node to match. You can look up code's kind names in playground.",
+          "type": "string"
+        },
+        "matches": {
+          "description": "A utility rule id or parameterized utility call object.\nWhen multiple utility calls are present, they are combined with logical `all`.",
+          "$ref": "#/$defs/SerializableMatches"
+        },
+        "not": {
+          "description": "A single sub-rule and matches a node if the sub rule does not match.",
+          "$ref": "#/$defs/SerializableRule"
+        },
+        "nthChild": {
+          "description": "`nth_child` accepts number, string or object.\nIt specifies the position in nodes' sibling list.",
+          "$ref": "#/$defs/SerializableNthChild"
+        },
+        "pattern": {
+          "description": "A pattern string or a pattern object.",
+          "$ref": "#/$defs/PatternStyle"
+        },
+        "precedes": {
+          "description": "`precedes` accepts a relational rule object.\nthe target node must appear before another node matching the `precedes` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "range": {
+          "description": "`range` accepts a range object.\nthe target node must exactly appear in the range.",
+          "$ref": "#/$defs/SerializableRange"
+        },
+        "regex": {
+          "description": "A Rust regular expression to match the node's text. https://docs.rs/regex/latest/regex/#syntax",
+          "type": "string"
+        },
+        "stopBy": {
+          "$ref": "#/$defs/SerializableStopBy",
+          "default": "neighbor"
+        }
+      }
+    },
+    "RelationDirection": {
+      "type": "string",
+      "enum": [
+        "callers",
+        "callees",
+        "imports",
+        "imported_by"
+      ]
+    },
+    "ReportDiagnostic": {
+      "description": "Wrapping preserves the boundary owner's closed diagnostic and safe message.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RuleDiagnostic"
+        },
+        {
+          "$ref": "#/$defs/Diagnostic"
+        },
+        {
+          "$ref": "#/$defs/DecisionDiagnostic"
+        }
+      ]
+    },
+    "RepositoryId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "RetryAdvice": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry_after"
+            },
+            "milliseconds": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "milliseconds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_request"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_source"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "capture_again"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_configuration"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "restore_provider_access"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "do_not_retry"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "RetryAdvice2": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry_after"
+            },
+            "milliseconds": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "milliseconds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_request"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_source"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "capture_again"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "repair_configuration"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "restore_provider_access"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "do_not_retry"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "RuleDefinition": {
+      "type": "object",
+      "properties": {
+        "applicability": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ApplicabilityEntry"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceDeclaration"
+          },
+          "minItems": 1
+        },
+        "questions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JudgmentQuestion"
+          }
+        },
+        "rule_id": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity",
+          "default": "nudge"
+        },
+        "target": {
+          "$ref": "#/$defs/DeclarationId"
+        },
+        "verdict": {
+          "$ref": "#/$defs/VerdictDeclaration"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "evidence",
+        "target",
+        "applicability",
+        "questions",
+        "verdict"
+      ]
+    },
+    "RuleDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/RuleDiagnosticCode"
+        },
+        "guidance": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/RuleDiagnosticLocation"
+        },
+        "origin": {
+          "$ref": "#/$defs/RuleDiagnosticOrigin"
+        },
+        "retry_advice": {
+          "$ref": "#/$defs/RetryAdvice"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "code",
+        "location",
+        "guidance",
+        "retry_advice"
+      ]
+    },
+    "RuleDiagnosticCode": {
+      "type": "string",
+      "enum": [
+        "malformed_json",
+        "unknown_field",
+        "duplicate_field",
+        "unsupported_schema_version",
+        "duplicate_rule_id",
+        "duplicate_rule_source",
+        "duplicate_rule_set",
+        "empty_rule_file",
+        "forbidden_marker_host",
+        "spaced_heading_marker",
+        "duplicate_marker",
+        "missing_rule_entry",
+        "orphaned_rule_entry",
+        "invalid_rule_source_key",
+        "question_too_large",
+        "invalid_threshold",
+        "invalid_band",
+        "invalid_composite",
+        "invalid_mechanical_check",
+        "invalid_target",
+        "undeclared_input",
+        "input_kind_mismatch",
+        "invalid_route",
+        "invalid_wiring",
+        "unbound_input",
+        "duplicate_binding",
+        "extra_binding",
+        "binding_kind_mismatch",
+        "condition_unresolved",
+        "decision_failed",
+        "router_failed",
+        "invalid_configuration",
+        "rule_exceeds_budget",
+        "request_limit",
+        "unexpected_execution_error",
+        "caller_aborted"
+      ]
+    },
+    "RuleDiagnosticLocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "file": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "definition"
+            },
+            "line": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "file",
+            "line",
+            "column",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field_path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field_path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "source"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "span": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceSpan"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "record"
+            },
+            "record_id": {
+              "$ref": "#/$defs/RecordId"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "record_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "answer"
+            },
+            "question_name": {
+              "$ref": "#/$defs/QuestionName"
+            },
+            "request_index": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "request_index",
+            "question_name"
+          ]
+        }
+      ]
+    },
+    "RuleDiagnosticOrigin": {
+      "type": "string",
+      "enum": [
+        "rule_set",
+        "rule_file",
+        "router",
+        "input_binding",
+        "applicability",
+        "request",
+        "execution",
+        "invocation"
+      ]
+    },
+    "RuleId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "RuleSourceProvenance": {
+      "type": "object",
+      "properties": {
+        "entry_location": {
+          "$ref": "#/$defs/DefinitionEntryLocation"
+        },
+        "markdown": {
+          "type": "string"
+        },
+        "marker_id": {
+          "$ref": "#/$defs/MarkerId"
+        },
+        "marker_span": {
+          "$ref": "#/$defs/MarkdownTextSpan"
+        },
+        "rules": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "markdown",
+        "rules",
+        "marker_id",
+        "marker_span",
+        "entry_location"
+      ]
+    },
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "unit",
+        "call_site"
+      ]
+    },
+    "SerializableMatches": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/SerializableRule"
+            }
+          }
+        }
+      ]
+    },
+    "SerializableNthChild": {
+      "description": "`nthChild` accepts either a number, a string or an object.",
+      "anyOf": [
+        {
+          "description": "Simple syntax",
+          "$ref": "#/$defs/NthChildSimple"
+        },
+        {
+          "description": "Object style syntax",
+          "type": "object",
+          "properties": {
+            "ofRule": {
+              "description": "select the nth node that matches the rule, like CSS's of syntax",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SerializableRule"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "position": {
+              "description": "nth-child syntax",
+              "$ref": "#/$defs/NthChildSimple"
+            },
+            "reverse": {
+              "description": "matches from the end instead like CSS's nth-last-child",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "position"
+          ]
+        }
+      ]
+    },
+    "SerializablePosition": {
+      "description": "Represents a zero-based character-wise position in a document",
+      "type": "object",
+      "properties": {
+        "column": {
+          "description": "0-based column number in the source code",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0
+        },
+        "line": {
+          "description": "0-based line number in the source code",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "line"
+      ]
+    },
+    "SerializableRange": {
+      "description": "Represents a position in source code using 0-based line and column numbers",
+      "type": "object",
+      "properties": {
+        "end": {
+          "description": "end position in the source code",
+          "$ref": "#/$defs/SerializablePosition"
+        },
+        "start": {
+          "description": "start position in the source code",
+          "$ref": "#/$defs/SerializablePosition"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "SerializableRule": {
+      "description": "A rule object to find matching AST nodes. We have three categories of rules in ast-grep.\n\n* Atomic: the most basic rule to match AST. We have two variants: Pattern and Kind.\n\n* Relational: filter matched target according to their position relative to other nodes.\n\n* Composite: use logic operation all/any/not to compose the above rules to larger rules.\n\nEvery rule has it's unique name so we can combine several rules in one object.",
+      "type": "object",
+      "properties": {
+        "all": {
+          "description": "A list of sub rules and matches a node if all of sub rules match.\nThe meta variables of the matched node contain all variables from the sub-rules.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SerializableRule"
+          }
+        },
+        "any": {
+          "description": "A list of sub rules and matches a node if any of sub rules match.\nThe meta variables of the matched node only contain those of the matched sub-rule.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SerializableRule"
+          }
+        },
+        "follows": {
+          "description": "`follows` accepts a relational rule object.\nthe target node must appear after another node matching the `follows` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "has": {
+          "description": "`has` accepts a relational rule object.\nthe target node must has a descendant node matching the `has` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "inside": {
+          "description": "`inside` accepts a relational rule object.\nthe target node must appear inside of another node matching the `inside` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "kind": {
+          "description": "The kind name of the node to match. You can look up code's kind names in playground.",
+          "type": "string"
+        },
+        "matches": {
+          "description": "A utility rule id or parameterized utility call object.\nWhen multiple utility calls are present, they are combined with logical `all`.",
+          "$ref": "#/$defs/SerializableMatches"
+        },
+        "not": {
+          "description": "A single sub-rule and matches a node if the sub rule does not match.",
+          "$ref": "#/$defs/SerializableRule"
+        },
+        "nthChild": {
+          "description": "`nth_child` accepts number, string or object.\nIt specifies the position in nodes' sibling list.",
+          "$ref": "#/$defs/SerializableNthChild"
+        },
+        "pattern": {
+          "description": "A pattern string or a pattern object.",
+          "$ref": "#/$defs/PatternStyle"
+        },
+        "precedes": {
+          "description": "`precedes` accepts a relational rule object.\nthe target node must appear before another node matching the `precedes` sub-rule.",
+          "$ref": "#/$defs/Relation"
+        },
+        "range": {
+          "description": "`range` accepts a range object.\nthe target node must exactly appear in the range.",
+          "$ref": "#/$defs/SerializableRange"
+        },
+        "regex": {
+          "description": "A Rust regular expression to match the node's text. https://docs.rs/regex/latest/regex/#syntax",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SerializableStopBy": {
+      "description": "Control how the relational rule search should stop",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "neighbor",
+            "end"
+          ]
+        },
+        {
+          "$ref": "#/$defs/SerializableRule"
+        }
+      ]
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "block",
+        "nudge"
+      ]
+    },
+    "SnapshotId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1
+    },
+    "SourceLanguage": {
+      "type": "string",
+      "enum": [
+        "rust",
+        "typescript",
+        "tsx",
+        "markdown"
+      ]
+    },
+    "SourceName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "SourceRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "content_identity": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "repository_file"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            },
+            "revision": {
+              "$ref": "#/$defs/SourceRevision"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "repository",
+            "revision",
+            "path",
+            "content_identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content_identity": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "document"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "repository",
+            "path",
+            "content_identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "committed_bytes": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "format": {
+              "$ref": "#/$defs/TranscriptFormatName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "transcript"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "format",
+            "committed_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "group_position": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "type": "string",
+              "const": "payload"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "group_position",
+            "input"
+          ]
+        }
+      ]
+    },
+    "SourceRevision": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "commit_id": {
+              "$ref": "#/$defs/GitObjectId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit"
+            },
+            "side": {
+              "$ref": "#/$defs/SourceSide"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "commit_id",
+            "side"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content_identity": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "index"
+            },
+            "side": {
+              "$ref": "#/$defs/SourceSide"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "content_identity",
+            "side"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "worktree"
+            },
+            "side": {
+              "$ref": "#/$defs/SourceSide"
+            },
+            "snapshot": {
+              "$ref": "#/$defs/SnapshotId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "snapshot",
+            "side"
+          ]
+        }
+      ]
+    },
+    "SourceSide": {
+      "type": "string",
+      "enum": [
+        "before",
+        "after"
+      ]
+    },
+    "SourceSides": {
+      "type": "string",
+      "enum": [
+        "after_only",
+        "before_only",
+        "both_available",
+        "paired_required"
+      ]
+    },
+    "SourceSpan": {
+      "type": "object",
+      "properties": {
+        "byte_end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "byte_start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "end_column": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "end_line": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "start_column": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start_line": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "byte_start",
+        "byte_end",
+        "start_line",
+        "start_column",
+        "end_line",
+        "end_column"
+      ]
+    },
+    "Strictness": {
+      "oneOf": [
+        {
+          "description": "all nodes are matched",
+          "type": "string",
+          "const": "cst"
+        },
+        {
+          "description": "all nodes except source trivial nodes are matched.",
+          "type": "string",
+          "const": "smart"
+        },
+        {
+          "description": "only ast nodes are matched",
+          "type": "string",
+          "const": "ast"
+        },
+        {
+          "description": "ast-nodes excluding comments are matched",
+          "type": "string",
+          "const": "relaxed"
+        },
+        {
+          "description": "ast-nodes excluding comments, without text",
+          "type": "string",
+          "const": "signature"
+        },
+        {
+          "description": "similar to smart, but node kinds are ignored, only text is matched.",
+          "type": "string",
+          "const": "template"
+        }
+      ]
+    },
+    "StructuredEntry": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StructuredJson2"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson2"
+          }
+        }
+      ]
+    },
+    "StructuredJson": {
+      "description": "Recursive JSON content. This is data, never a declaration or an executable expression.",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          }
+        }
+      ]
+    },
+    "StructuredJson2": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StructuredJson2"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson2"
+          }
+        }
+      ]
+    },
+    "TargetId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z][0-9]{3,}$"
+    },
+    "ToolCategory": {
+      "type": "string",
+      "enum": [
+        "read_file",
+        "edit_file",
+        "shell",
+        "search",
+        "web",
+        "mcp",
+        "other",
+        "unknown"
+      ]
+    },
+    "ToolFilter": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "named"
+            },
+            "names": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "names"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "categories": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ToolCategory"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "categories"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "categories"
+          ]
+        }
+      ]
+    },
+    "ToolUseSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "excluded"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "included"
+            },
+            "results": {
+              "$ref": "#/$defs/Inclusion"
+            },
+            "tools": {
+              "$ref": "#/$defs/ToolFilter"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tools",
+            "results"
+          ]
+        }
+      ]
+    },
+    "TranscriptFormatName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1
+    },
+    "TurnWindow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            },
+            "kind": {
+              "type": "string",
+              "const": "last"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "count"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "since_cursor"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "UnitContent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "whole_unit"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "bounded_excerpt"
+            },
+            "max_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "max_bytes"
+          ]
+        }
+      ]
+    },
+    "UnitKindFilter": {
+      "type": "string",
+      "enum": [
+        "function",
+        "method",
+        "class",
+        "paragraph",
+        "section"
+      ]
+    },
+    "UnitOnly": {
+      "type": "string",
+      "enum": [
+        "unit"
+      ]
+    },
+    "VerdictDeclaration": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "check": {
+              "$ref": "#/$defs/MechanicalCheck"
+            },
+            "explanation": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "mechanical"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "explanation",
+            "check"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "block_at_or_below": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "exclusiveMaximum": 1,
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "noul"
+            },
+            "question": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/JudgmentQuestion"
+                },
+                {
+                  "properties": {
+                    "type": {
+                      "const": "noul"
+                    }
+                  }
+                }
+              ]
+            },
+            "threshold": {
+              "type": "number",
+              "format": "double",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "question",
+            "threshold"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "block_at_or_below": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "exclusiveMaximum": 1,
+              "minimum": 0
+            },
+            "dimensions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CompositeDimension"
+              },
+              "minItems": 1
+            },
+            "kind": {
+              "type": "string",
+              "const": "composite"
+            },
+            "threshold": {
+              "type": "number",
+              "format": "double",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "dimensions",
+            "threshold"
+          ]
+        }
+      ]
+    }
+  },
+  "$id": "check-rules-outcome.schema.json",
+  "$comment": "Generated from the owning sunstack-rules Rust contract with schemars."
+}

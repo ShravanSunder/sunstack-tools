@@ -9,6 +9,18 @@ pub use evidence_contracts::*;
 pub use evidence_diagnostics::*;
 pub use structured_json::*;
 pub mod document_selection;
+pub mod markdown_contracts;
+pub mod markdown_document;
+pub mod markdown_selection_contracts;
+pub use markdown_selection_contracts::*;
+pub mod frontmatter_contracts;
+pub use frontmatter_contracts::*;
+mod markdown_frontmatter;
+mod markdown_mapped_text;
+mod markdown_offset_projection;
+mod markdown_projection;
+pub use markdown_contracts::*;
+pub use markdown_document::*;
 pub mod payload_inputs;
 pub mod source_capture;
 pub use document_selection::*;
@@ -25,6 +37,7 @@ pub mod evidence_preparation;
 pub use evidence_preparation::*;
 
 mod evidence_admission;
+pub use evidence_admission::admit_evidence_declaration;
 pub mod preparation_contracts;
 pub use preparation_contracts::*;
 

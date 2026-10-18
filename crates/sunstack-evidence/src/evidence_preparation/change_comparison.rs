@@ -64,7 +64,10 @@ impl Preparation {
                 };
             }
             ChangeComparisonSubject::Declaration { declaration } => {
-                crate::evidence_admission::admit_declaration(&declaration, &self.input.sources)?;
+                crate::evidence_admission::admit_evidence_declaration(
+                    &declaration,
+                    &self.input.sources,
+                )?;
                 let source = self
                     .input
                     .sources
@@ -407,6 +410,51 @@ fn selected_fingerprint(
         return Err(EvidenceCode::SelectorLimit.into());
     }
     let (content, matches_considered) = match content {
+        SelectionContent::MarkdownUnits { units } => {
+            let count = units.len();
+            if declaration
+                .max_items
+                .is_some_and(|limit| count > limit.get())
+            {
+                return Err(EvidenceCode::SelectorLimit.into());
+            }
+            let mut values = Vec::new();
+            for unit in units {
+                let matched = match &unit.occurrence {
+                    MarkdownOccurrence::Unit { .. } => None,
+                    MarkdownOccurrence::CallSite { visible_range, .. } => Some(
+                        unit.visible_text
+                            .get(visible_range.start..visible_range.end)
+                            .ok_or(EvidenceCode::InvalidSelector)?,
+                    ),
+                };
+                values.push(
+                    serde_json::to_string(&(unit.kind, &unit.text, &unit.visible_text, matched))
+                        .map_err(|_| EvidenceCode::InvalidSelector)?,
+                );
+            }
+            values.sort();
+            ((!values.is_empty()).then_some(values), count)
+        }
+        SelectionContent::FrontmatterField { result } => {
+            if remaining == 0 {
+                return Err(EvidenceCode::SelectorLimit.into());
+            }
+            let value = match result.as_ref() {
+                FrontmatterFieldContent::Present { value, .. } => Some(
+                    serde_json::to_string(&("present", value))
+                        .map_err(|_| EvidenceCode::InvalidSelector)?,
+                ),
+                FrontmatterFieldContent::Absent { .. } => None,
+                // No decoded field can establish unchanged content here. Keep
+                // the whole frozen source as the conservative comparison fact.
+                FrontmatterFieldContent::BlockUnavailable { reason, .. } => Some(
+                    serde_json::to_string(&("block_unavailable", reason, &file.text))
+                        .map_err(|_| EvidenceCode::InvalidSelector)?,
+                ),
+            };
+            (value.map(|value| vec![value]), 1)
+        }
         SelectionContent::Paragraph { text, .. } | SelectionContent::DocumentText { text, .. } => {
             (Some(vec![text]), 0)
         }
@@ -454,6 +502,8 @@ fn selected_fingerprint(
 }
 fn content_nonempty(content: &SelectionContent) -> bool {
     match content {
+        SelectionContent::FrontmatterField { .. } => true,
+        SelectionContent::MarkdownUnits { units } => !units.is_empty(),
         SelectionContent::Matches { matches } => !matches.is_empty(),
         SelectionContent::ChangedUnits { units } => !units.is_empty(),
         SelectionContent::RelatedGroup { group } => match group.as_ref() {

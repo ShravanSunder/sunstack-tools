@@ -9,6 +9,8 @@ use sunstack_evidence::{CaptureCoverage, ReturnedCursor, SourceName, TargetLocat
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InvocationMeasurements {
+    pub invalid_rule_entries: usize,
+    pub skipped_rule_sources: usize,
     pub files_considered: usize,
     pub files_read: usize,
     pub files_parsed: usize,
@@ -57,6 +59,7 @@ pub struct RuleOccurrenceKey {
     pub rule_set: PathBuf,
     pub group: usize,
     pub rule_id: RuleId,
+    pub target: Box<crate::RuleOccurrenceTarget>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -206,9 +209,17 @@ pub struct JudgmentReference {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RuleOccurrenceResult {
+    Checked {
+        key: RuleOccurrenceKey,
+        selected_by: SelectedReasons,
+        target: TargetLocation,
+        declared_severity: Severity,
+        explanation: String,
+        outcome: crate::LocalSettlement,
+    },
     Judged {
         key: RuleOccurrenceKey,
-        judgment: RuleJudgment,
+        judgment: Box<RuleJudgment>,
         selected_by: SelectedReasons,
     },
     NotApplicable {
@@ -243,6 +254,7 @@ impl RuleOccurrenceResult {
     pub fn key(&self) -> &RuleOccurrenceKey {
         match self {
             Self::Judged { key, .. }
+            | Self::Checked { key, .. }
             | Self::NotApplicable { key, .. }
             | Self::OutsideChangeScope { key, .. }
             | Self::SelectionFailed { key, .. }
@@ -369,11 +381,23 @@ pub enum RequestMode {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum QuestionOwner {
-    Router { group: usize },
-    RuleSetDecision { entry: EntryKey },
-    RuleDecision { rule_id: RuleId, entry: EntryKey },
-    Verdict { rule_id: RuleId },
-    Informational { rule_id: RuleId, name: QuestionName },
+    Router {
+        group: usize,
+    },
+    RuleSetDecision {
+        entry: EntryKey,
+    },
+    RuleDecision {
+        rule_id: RuleId,
+        entry: EntryKey,
+    },
+    Verdict {
+        key: RuleOccurrenceKey,
+    },
+    Informational {
+        key: RuleOccurrenceKey,
+        name: QuestionName,
+    },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -390,6 +414,7 @@ pub enum RequestStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NotSentReason {
+    NoQuestions,
     OutsideChangeScope,
     GateStopped { entry: EntryKey },
     Cancelled,
@@ -423,6 +448,9 @@ pub struct RequestRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleInvocationReport {
+    pub rule_evaluations: Vec<crate::RuleEvaluationResult>,
+    pub rule_coverage: crate::RuleCoverage,
+    pub skipped_rules: Vec<crate::SkippedRule>,
     pub origin: ReportedOrigin,
     pub routing: RoutingReport,
     pub groups: Vec<GroupResult>,
@@ -436,24 +464,48 @@ pub struct RuleInvocationReport {
 }
 impl RuleInvocationReport {
     pub fn is_complete(&self) -> bool {
-        self.occurrences.iter().all(|result| {
-            matches!(
-                result,
-                RuleOccurrenceResult::Judged { .. }
-                    | RuleOccurrenceResult::NotApplicable { .. }
-                    | RuleOccurrenceResult::OutsideChangeScope { .. }
-            )
-        }) && match &self.routing {
-            RoutingReport::RuleSets => true,
-            RoutingReport::Router { groups } => groups.iter().all(|group| {
+        self.rule_coverage != crate::RuleCoverage::None
+            && self
+                .rule_evaluations
+                .iter()
+                .all(crate::RuleEvaluationResult::is_complete)
+            && self
+                .rule_evaluations
+                .iter()
+                .all(|evaluation| match evaluation {
+                    crate::RuleEvaluationResult::Expanded { occurrences, .. } => {
+                        occurrences.iter().all(|key| {
+                            self.occurrences
+                                .iter()
+                                .filter(|occurrence| occurrence.key() == key)
+                                .count()
+                                == 1
+                        })
+                    }
+                    _ => true,
+                })
+            && self.occurrences.iter().all(|result| {
+                if let RuleOccurrenceResult::Checked { outcome, .. } = result {
+                    return outcome.is_complete();
+                }
                 matches!(
-                    group.outcome,
-                    RouterOutcome::Routed { .. }
-                        | RouterOutcome::UncertainIntent { .. }
-                        | RouterOutcome::NoRoute { .. }
+                    result,
+                    RuleOccurrenceResult::Judged { .. }
+                        | RuleOccurrenceResult::NotApplicable { .. }
+                        | RuleOccurrenceResult::OutsideChangeScope { .. }
                 )
-            }),
-        }
+            })
+            && match &self.routing {
+                RoutingReport::RuleSets => true,
+                RoutingReport::Router { groups } => groups.iter().all(|group| {
+                    matches!(
+                        group.outcome,
+                        RouterOutcome::Routed { .. }
+                            | RouterOutcome::UncertainIntent { .. }
+                            | RouterOutcome::NoRoute { .. }
+                    )
+                }),
+            }
     }
     pub fn answer(
         &self,

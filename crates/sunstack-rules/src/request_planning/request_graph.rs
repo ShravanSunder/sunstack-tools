@@ -1,3 +1,4 @@
+use super::expansion_contracts::*;
 use super::plan_contracts::*;
 use crate::{
     applicability_evaluation::{ConditionContext, evaluate_condition},
@@ -48,6 +49,12 @@ pub(crate) fn group_waits_for_leading_scan(plan: &ExecutionPlan, group: GroupInd
                 .iter()
                 .flat_map(|index| plan.occurrences[index.0].entries.iter().copied()),
         )
+        .chain(
+            group
+                .evaluations
+                .iter()
+                .flat_map(|index| plan.evaluations[index.0].entries.iter().copied()),
+        )
         .any(|index| {
             condition_is_leading(plan, index)
                 && scan_waits_for_routing(plan, index, Speculation::On)
@@ -59,6 +66,13 @@ pub(crate) fn entry_outside_scope(plan: &ExecutionPlan, index: EntryIndex) -> bo
             occurrence.entries.contains(&index)
                 && !matches!(
                     occurrence.scope.disposition,
+                    ScopeDisposition::OutsideChangeScope
+                )
+        })
+        && !plan.evaluations.iter().any(|evaluation| {
+            evaluation.entries.contains(&index)
+                && !matches!(
+                    evaluation.scope.disposition,
                     ScopeDisposition::OutsideChangeScope
                 )
         })
@@ -121,6 +135,18 @@ pub(crate) fn rule_pruned(plan: &ExecutionPlan, index: OccurrenceIndex) -> bool 
             .is_some_and(|outcome| !matches!(outcome, ConditionOutcome::Passed))
     })
 }
+
+pub(crate) fn evaluation_pruned(plan: &ExecutionPlan, index: EvaluationIndex) -> bool {
+    let evaluation = &plan.evaluations[index.0];
+    matches!(
+        evaluation.scope.disposition,
+        ScopeDisposition::OutsideChangeScope
+    ) || evaluation.entries.iter().any(|entry| {
+        plan.precomputed
+            .get(entry)
+            .is_some_and(|outcome| !matches!(outcome, ConditionOutcome::Passed))
+    })
+}
 fn push_request(plan: &mut ExecutionPlan, mut request: PlannedRequest) -> RequestId {
     let id = RequestId(plan.requests.len());
     request.id = id;
@@ -139,14 +165,26 @@ pub(crate) fn build_request_graph(plan: &mut ExecutionPlan, settings: &Execution
             .filter(|index| !rule_pruned(plan, *index))
             .collect::<Vec<_>>();
         let mut read_set = BTreeSet::new();
+        let evaluations = plan.groups[group_position]
+            .evaluations
+            .iter()
+            .copied()
+            .filter(|index| !evaluation_pruned(plan, *index))
+            .collect::<Vec<_>>();
         for rule in &rules {
             read_set.extend(selection_read_set(
                 &plan.occurrences[rule.0].rule.evidence,
                 &plan.groups[group_position].admitted.sources,
             ));
         }
+        for evaluation in &evaluations {
+            read_set.extend(selection_read_set(
+                &plan.evaluations[evaluation.0].rule.evidence,
+                &plan.groups[group_position].admitted.sources,
+            ));
+        }
         plan.groups[group_position].read_set = read_set;
-        if rules.is_empty() {
+        if rules.is_empty() && evaluations.is_empty() {
             continue;
         }
         let admitted = &plan.groups[group_position].admitted;
@@ -357,6 +395,12 @@ impl ExecutionState {
             }
         }
         Self {
+            local_settlements: BTreeMap::new(),
+            expansions: plan
+                .evaluations
+                .iter()
+                .map(|_| ExpansionState::Waiting)
+                .collect(),
             entries: plan
                 .entries
                 .iter()

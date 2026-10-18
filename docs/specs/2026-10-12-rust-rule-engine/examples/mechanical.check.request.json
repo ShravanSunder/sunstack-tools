@@ -1,0 +1,51 @@
+{
+  "protocol_version": 1,
+  "operation": "check_rules",
+  "input": {
+    "definition_root": "docs/specs/2026-10-12-rust-rule-engine/examples",
+    "definitions": {
+      "kind": "rule_sets",
+      "rule_sets": [
+        {
+          "path": "mechanical.ruleset.json",
+          "binding_groups": [
+            {
+              "bindings": {
+                "skill": {
+                  "kind": "document",
+                  "repository": "sunstack-tools",
+                  "path": "docs/specs/2026-10-12-rust-rule-engine/examples/mechanical-skill.md"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "repositories": [
+      {
+        "key": "sunstack-tools",
+        "root": ".",
+        "input_paths": [
+          {
+            "kind": "exact",
+            "path": "docs/specs/2026-10-12-rust-rule-engine/examples/mechanical-skill.md"
+          }
+        ],
+        "change_scope": {
+          "kind": "full"
+        }
+      }
+    ],
+    "payload_schemas": [],
+    "limits": {
+      "max_files": 16,
+      "max_file_bytes": 262144,
+      "max_total_bytes": 1048576,
+      "max_matches": 64,
+      "max_transcript_bytes": 8388608,
+      "include_ignored": false
+    },
+    "output": "assembled_rules"
+  }
+}

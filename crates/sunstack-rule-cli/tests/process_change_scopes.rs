@@ -116,7 +116,7 @@ async fn mixed_process_scope_preserves_exact_selection_reasons_and_http_owner() 
     );
     assert_eq!(
         preparation["planned_requests"][0]["questions"],
-        json!([{"request_name":"q000001","owner":{"kind":"verdict","rule_id":"changed"}}])
+        json!([{"request_name":"q000001","owner":{"kind":"verdict","key":{"rule_set":root.canonicalize().unwrap().join("set.json"),"group":0,"rule_id":"changed","target":{"kind":"legacy"}}}}])
     );
     assert_eq!(server.count(), 0);
     let wire = response(&run(root, "evaluate_rules", input).await, 0);
@@ -127,7 +127,7 @@ async fn mixed_process_scope_preserves_exact_selection_reasons_and_http_owner() 
     );
     assert_eq!(
         report["occurrences"][1],
-        json!({"kind":"outside_change_scope","key":{"rule_set":root.canonicalize().unwrap().join("set.json"),"group":0,"rule_id":"neighbor"},"reason":"no_declared_change"})
+        json!({"kind":"outside_change_scope","key":{"rule_set":root.canonicalize().unwrap().join("set.json"),"group":0,"rule_id":"neighbor","target":{"kind":"legacy"}},"reason":"no_declared_change"})
     );
     let source = &report["occurrences"][0]["judgment"]["target"]["span"]["source"];
     let after = &report["change_selections"][0]["members"][0]["changed_paths"][0]["after"];

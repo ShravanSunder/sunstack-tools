@@ -1,3 +1,4 @@
+use super::expansion_contracts::*;
 use crate::{
     input_binding::{AdmittedSources, SourceId},
     invocation_admission::{AdmittedGroup, AdmittedRouter},
@@ -60,6 +61,7 @@ pub(crate) struct PlannedGroup {
     pub admitted: AdmittedGroup,
     pub entries: Vec<EntryIndex>,
     pub occurrences: Vec<OccurrenceIndex>,
+    pub evaluations: Vec<EvaluationIndex>,
     pub routing: Option<RouteDependency>,
     pub read_set: BTreeSet<SourceId>,
 }
@@ -70,6 +72,8 @@ pub(crate) struct PlannedOccurrence {
     pub rule: Arc<RuleDefinition>,
     pub group: GroupIndex,
     pub entries: Vec<EntryIndex>,
+    pub authored_order: usize,
+    pub target_selection: Option<crate::request_state::LabeledSelection>,
 }
 #[derive(Debug, Clone)]
 pub(crate) enum RequestPurpose {
@@ -90,6 +94,7 @@ pub(crate) struct PlannedRequest {
 pub(crate) struct ExecutionPlan {
     pub groups: Vec<PlannedGroup>,
     pub occurrences: Vec<PlannedOccurrence>,
+    pub evaluations: Vec<PlannedRuleEvaluation>,
     pub entries: Vec<PlannedEntry>,
     pub requests: Vec<PlannedRequest>,
     pub router_entries: Vec<EntryIndex>,
@@ -197,6 +202,8 @@ pub(crate) enum RequestSettlement {
     },
 }
 pub(crate) struct ExecutionState {
+    pub local_settlements: BTreeMap<OccurrenceIndex, LocalSettlement>,
+    pub expansions: Vec<ExpansionState>,
     pub entries: Vec<EntrySettlement>,
     pub gates: BTreeMap<EntryIndex, GateSettlement>,
     pub routers: BTreeMap<EntryIndex, RouterSettlement>,
@@ -219,6 +226,9 @@ pub(crate) fn selection_read_set(
         .collect()
 }
 impl ExecutionPlan {
+    pub fn unit_is_mechanical(&self, unit: UnitKey) -> bool {
+        matches!(unit, UnitKey::Rule(index) if matches!(self.occurrences[index.0].rule.verdict, VerdictDeclaration::Mechanical { .. }))
+    }
     pub fn entry_evidence(&self, index: EntryIndex) -> &[EvidenceDeclaration] {
         match &self.entries[index.0].definition {
             EntryDefinition::Decision { evidence, .. } => evidence,
@@ -231,9 +241,7 @@ impl ExecutionPlan {
     }
     pub fn unit_label(&self, unit: UnitKey) -> String {
         match unit {
-            UnitKey::Rule(index) => {
-                format!("rule:{}", self.occurrences[index.0].key.rule_id.as_str())
-            }
+            UnitKey::Rule(index) => self.occurrences[index.0].key.evidence_label(),
             UnitKey::Gate(index) => match &self.entries[index.0].key.owner {
                 EntryOwner::Router { .. } => "router".into(),
                 EntryOwner::RuleSet { .. } => {
@@ -256,6 +264,7 @@ pub(crate) fn definition_topology(
     let mut plan = ExecutionPlan {
         groups: vec![],
         occurrences: vec![],
+        evaluations: vec![],
         entries: vec![],
         requests: vec![],
         router_entries: vec![],
@@ -315,11 +324,11 @@ pub(crate) fn definition_topology(
             group_index,
         );
         let mut occurrence_indices = Vec::new();
+        let mut evaluation_indices = Vec::new();
         let mut read_set = BTreeSet::new();
-        for located in &admitted.set.rules {
+        for (authored_order, located) in admitted.set.rules.iter().enumerate() {
             let rule = &located.definition;
             let occurrence_index = OccurrenceIndex(plan.occurrences.len());
-            occurrence_indices.push(occurrence_index);
             let owner = EntryOwner::Rule {
                 path: admitted.set.path.clone(),
                 group: admitted.position,
@@ -338,22 +347,51 @@ pub(crate) fn definition_topology(
             let mut all_entries = group_entries.clone();
             all_entries.extend(entries);
             read_set.extend(selection_read_set(&rule.evidence, &sources));
+            if rule.evidence.iter().any(|declaration| {
+                declaration.id == rule.target
+                    && matches!(
+                        declaration.select,
+                        sunstack_evidence::EvidenceSelection::MarkdownUnits(_)
+                            | sunstack_evidence::EvidenceSelection::FrontmatterField { .. }
+                    )
+            }) {
+                let index = EvaluationIndex(plan.evaluations.len());
+                evaluation_indices.push(index);
+                plan.evaluations.push(PlannedRuleEvaluation {
+                    key: RuleEvaluationKey {
+                        rule_set: admitted.set.path.clone(),
+                        group: admitted.position,
+                        rule_id: rule.rule_id.clone(),
+                    },
+                    rule: rule.clone(),
+                    group: group_index,
+                    entries: all_entries,
+                    scope: ScopeEvaluation::full_scope(),
+                    authored_order,
+                });
+                continue;
+            }
+            occurrence_indices.push(occurrence_index);
             plan.occurrences.push(PlannedOccurrence {
                 scope: ScopeEvaluation::full_scope(),
                 key: RuleOccurrenceKey {
                     rule_set: admitted.set.path.clone(),
                     group: admitted.position,
                     rule_id: rule.rule_id.clone(),
+                    target: Box::new(RuleOccurrenceTarget::Legacy),
                 },
                 rule: rule.clone(),
                 group: group_index,
                 entries: all_entries,
+                authored_order,
+                target_selection: None,
             });
         }
         plan.groups.push(PlannedGroup {
             admitted,
             entries: group_entries,
             occurrences: occurrence_indices,
+            evaluations: evaluation_indices,
             routing,
             read_set,
         });

@@ -53,6 +53,109 @@ fn declaration(id: &str, select: EvidenceSelection) -> EvidenceDeclaration {
         max_bytes: None,
     }
 }
+
+#[tokio::test]
+async fn markdown_occurrence_item_limits_count_each_call_without_extra_acquisitions() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("skill.md"),
+        "- Use one; Use two; Use three.\n",
+    )
+    .unwrap();
+    for limit in [2, 3] {
+        let mut request = input(root.path());
+        request.declarations[0].select = serde_json::from_value(serde_json::json!({"kind":"markdown_units","mode":"call_site","units":["list_item"],"pattern":"Use"})).unwrap();
+        request.declarations[0].max_items = Some(positive(limit));
+        let outcome = prepare_evidence(
+            request,
+            AdapterRegistry::builtins().unwrap(),
+            CancellationToken::new(),
+        )
+        .await;
+        if limit == 2 {
+            let EvidencePlanOutcome::Incomplete {
+                measurements,
+                diagnostics,
+                ..
+            } = outcome
+            else {
+                panic!("{outcome:?}")
+            };
+            assert_eq!(measurements.files_read, 1);
+            assert_eq!(diagnostics.items[0].code, EvidenceCode::SelectorLimit);
+        } else {
+            let EvidencePlanOutcome::Prepared {
+                selections,
+                measurements,
+                ..
+            } = outcome
+            else {
+                panic!("{outcome:?}")
+            };
+            assert_eq!(measurements.files_read, 1);
+            assert!(
+                matches!(&selections[0].readiness, SelectionReadiness::Ready { content: SelectionContent::MarkdownUnits { units }, .. } if units.len()==3)
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn unavailable_frontmatter_is_ready_evidence_with_a_named_reason_and_no_fake_span() {
+    let root = tempfile::tempdir().unwrap();
+    for (text, reason) in [
+        ("Body\n", FrontmatterUnavailableReason::Missing),
+        (
+            "---\nname: [\n---\n",
+            FrontmatterUnavailableReason::Malformed,
+        ),
+    ] {
+        std::fs::write(root.path().join("skill.md"), text).unwrap();
+        let mut request = input(root.path());
+        request.declarations[0].select = EvidenceSelection::FrontmatterField {
+            field: "name".into(),
+        };
+        let outcome = prepare_evidence(
+            request,
+            AdapterRegistry::builtins().unwrap(),
+            CancellationToken::new(),
+        )
+        .await;
+        let EvidencePlanOutcome::Prepared {
+            selections,
+            measurements,
+            ..
+        } = outcome
+        else {
+            panic!("{outcome:?}")
+        };
+        assert_eq!(measurements.files_read, 1);
+        let SelectionReadiness::Ready {
+            content: SelectionContent::FrontmatterField { result },
+            ..
+        } = &selections[0].readiness
+        else {
+            panic!("expected ready selected block-unavailable data")
+        };
+        let FrontmatterFieldContent::BlockUnavailable {
+            reason: actual,
+            diagnostics,
+            ..
+        } = result.as_ref()
+        else {
+            panic!("expected unavailable block")
+        };
+        assert_eq!(*actual, reason);
+        assert_eq!(
+            diagnostics.items[0].code,
+            EvidenceCode::FrontmatterUnavailable
+        );
+        assert!(matches!(
+            diagnostics.items[0].location,
+            DiagnosticLocation::Source { span: None, .. }
+        ));
+    }
+}
 #[tokio::test]
 async fn native_plan_prepares_real_sources_once_and_serializes_requested_content() {
     let root = tempfile::tempdir().unwrap();

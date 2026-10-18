@@ -100,6 +100,44 @@ pub(crate) fn occurrence_result(
             diagnostics: diagnostics.clone(),
         };
     }
+    if let VerdictDeclaration::Mechanical { explanation, .. } = &occurrence.rule.verdict {
+        let target = match state.preparation.get(&unit) {
+            Some(OwnerPreparation::Ready {
+                target: OwnerTarget::Rule(target),
+                ..
+            }) => Some(target.clone()),
+            _ => occurrence
+                .target_selection
+                .as_ref()
+                .and_then(crate::request_state::resolve_target),
+        };
+        let Some(target) = target else {
+            return RuleOccurrenceResult::SelectionFailed {
+                key,
+                diagnostics: DiagnosticList::rule(RuleDiagnosticCode::InvalidTarget),
+            };
+        };
+        let Some(selected_by) = selection.selected_reasons() else {
+            return RuleOccurrenceResult::SelectionFailed {
+                key,
+                diagnostics: DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError),
+            };
+        };
+        return RuleOccurrenceResult::Checked {
+            key,
+            selected_by: selected_by.clone(),
+            target,
+            declared_severity: occurrence.rule.severity,
+            explanation: explanation.clone(),
+            outcome: state
+                .local_settlements
+                .get(&index)
+                .cloned()
+                .unwrap_or_else(|| LocalSettlement::Unresolved {
+                    diagnostics: DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError),
+                }),
+        };
+    }
     if let Some(diagnostics) = state.budget_refusals.get(&unit) {
         return RuleOccurrenceResult::EvaluationFailed {
             selection: selection.clone(),
@@ -239,13 +277,13 @@ pub(crate) fn occurrence_result(
             RuleOccurrenceResult::Judged {
                 selected_by: selected_by.clone(),
                 key: key.clone(),
-                judgment: RuleJudgment {
+                judgment: Box::new(RuleJudgment {
                     key,
                     verdict,
                     declared_severity: occurrence.rule.severity,
                     answers: informational,
                     target: target.clone(),
-                },
+                }),
             }
         }
         Err(_) => RuleOccurrenceResult::EvaluationFailed {

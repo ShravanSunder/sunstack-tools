@@ -85,13 +85,27 @@ pub async fn prepare_rules(
     )
     .await;
     let mut records = BTreeMap::new();
+    discover_ready_rules(&mut plan, &mut state, &mut session, &cancellation).await;
+    finish_empty_carriers(&plan, &mut state);
     let mut diagnostics = DiagnosticList::default();
     let mut omitted = BTreeSet::new();
     let mut encoded_parts = BTreeMap::new();
     let mut position = 0;
+    let mut backend_session = crate::rule_backend_factory::RuleBackendSession::new(context.backend);
     while position < plan.requests.len() {
         let request = plan.requests[position].clone();
         position += 1;
+        if matches!(
+            state.requests.get(&request.id),
+            Some(RequestSettlement::Settled {
+                status: RequestStatus::NotSent {
+                    reason: NotSentReason::NoQuestions
+                },
+                ..
+            })
+        ) {
+            continue;
+        }
         if cancellation.is_cancelled() {
             break;
         }
@@ -163,6 +177,18 @@ pub async fn prepare_rules(
             continue;
         }
         let units = prepare_units(&plan, &mut state, &request, &mut session, &cancellation).await;
+        finish_empty_carriers(&plan, &mut state);
+        if matches!(
+            state.requests.get(&request.id),
+            Some(RequestSettlement::Settled {
+                status: RequestStatus::NotSent {
+                    reason: NotSentReason::NoQuestions
+                },
+                ..
+            })
+        ) {
+            continue;
+        }
         if cancellation.is_cancelled() {
             break;
         }
@@ -188,13 +214,17 @@ pub async fn prepare_rules(
             continue;
         }
         let mut omit_optional = omitted.contains(&request.id);
+        let backend = match backend_session.resolve() {
+            Ok(backend) => backend,
+            Err(diagnostics) => return RulePreparationOutcome::Invalid { diagnostics },
+        };
         let mut admission = encoded_parts.remove(&request.id).unwrap_or_else(|| {
             encode_units(
                 &plan,
                 &state,
                 &units,
                 omit_optional,
-                context.backend.as_ref(),
+                backend.as_ref(),
                 &input.request_budget,
             )
         });
@@ -208,7 +238,7 @@ pub async fn prepare_rules(
                 &state,
                 &units,
                 true,
-                context.backend.as_ref(),
+                backend.as_ref(),
                 &input.request_budget,
             );
         }
@@ -221,7 +251,7 @@ pub async fn prepare_rules(
                 &state,
                 &units,
                 omit_optional,
-                context.backend.as_ref(),
+                backend.as_ref(),
                 &input.request_budget,
             );
             let admitted = install_budget_parts(&mut plan, &mut state, &request, parts);
@@ -298,6 +328,17 @@ pub async fn prepare_rules(
             diagnostics: DiagnosticList::rule(RuleDiagnosticCode::CallerAborted),
             measurements,
         }
+    } else if preparation.rule_coverage == RuleCoverage::None {
+        for skipped in &preparation.skipped_rules {
+            diagnostics.extend(skipped.diagnostics().clone());
+        }
+        if diagnostics.is_empty() {
+            diagnostics.extend(DiagnosticList::rule(RuleDiagnosticCode::EmptyRuleFile));
+        }
+        RulePreparationOutcome::PreparedWithFailures {
+            preparation,
+            diagnostics,
+        }
     } else if diagnostics.is_empty() {
         RulePreparationOutcome::Prepared { preparation }
     } else {
@@ -346,7 +387,7 @@ fn gate_frontier(
     }
     entry.definition.is_gate().then_some(index)
 }
-fn waiting_on(
+pub(crate) fn waiting_on(
     plan: &ExecutionPlan,
     state: &ExecutionState,
     request: &PlannedRequest,

@@ -1,0 +1,23 @@
+Call Grammar
+
+A call the agent cannot act on sends it away with nothing to bring back. Each load or dispatch form names when to go, where, what to do there, and what to return. Every call site uses exactly one form: load, dispatch, or citation.
+
+Reference
+  MUST load `<reference>` and return `<result>`.
+  IF `<predicate>`, load `<reference>` and return `<result>`.
+  ...add `to <requested work>` when the result alone does not say what to do there.
+
+Prescribed procedure
+  MUST dispatch `<procedure>` to a helper agent using `<prescribed steps>`; return `<observed result>`.
+  IF `<predicate>`, dispatch `<procedure>` to a helper agent using `<prescribed steps>`; return `<observed result>`.
+
+The caller names the exact procedure, allowed commands or transformation, execution boundary, and result to return. The helper reports observations and exceptions; the calling agent judges them. A known check skipped under pressure cannot become a dispatched procedure because it is independent. Load its reference and perform it as a step.
+
+Principle
+  <moment>, <action in plain words> ([<the principle's judgment in plain words>](<relative path to the principle's SKILL.md>)).
+
+  strong  Before relying on a handback, match each claim to the commit, target and output you opened, or name it as a gap ([verify before accepting](../verify-before-accepting/SKILL.md)).
+  weak    Before relying on a handback, verify it before you accept it ([verify before accepting](../verify-before-accepting/SKILL.md)).
+  load    MUST load `references/handback-checks.md` and return each claim matched to its commit, target and output.
+
+A principle is defined in references/glossary.md. It ships in the same plugin as the citing file, and its first body line after the title is its read rule: "Read this principle in full before applying it; your own full read earlier this session counts." So the citing skill writes no loader line. A principle is only cited, never loaded; a reference or procedure is loaded or dispatched, never cited. The sentence carries the moment and the action, and the link carries the depth; steps and narrative prose use the same form. The moment is an observable point or condition in the work, held to the branch-predicate test in step 4. The action names what to produce or check at that moment, in words other than the link text. A bare name such as "apply X" or "(see X)" states no action, and neither does an action that restates the link text; either leaves the citation incomplete. Cite a principle only where its judgment changes how this action is done. The path resolves from the file that holds the citation; from references/, add one ../. A citation never replaces a load call for this skill's own procedure depth. Cite a principle once per decision. The skills this one uses at a step are those it names or loads there; when one of them already cites the principle for that decision, rely on that citation and do not repeat it here.

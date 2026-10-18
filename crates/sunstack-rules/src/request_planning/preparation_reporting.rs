@@ -88,8 +88,16 @@ pub(crate) fn project_preparation(
                         .filter(|entry| {
                             matches!(plan.entries[entry.0].key.owner, EntryOwner::Rule { .. })
                         })
-                }));
+                }))
+                .chain(
+                    group
+                        .evaluations
+                        .iter()
+                        .flat_map(|index| plan.evaluations[index.0].entries.iter().copied()),
+                )
+                .collect::<BTreeSet<_>>();
             let leading_entries = indices
+                .into_iter()
                 .filter_map(|index| {
                     let outcome = plan.precomputed.get(&index)?;
                     let EntryDefinition::Condition(test) = &plan.entries[index.0].definition else {
@@ -132,10 +140,12 @@ pub(crate) fn project_preparation(
         })
         .collect();
     let occurrences = plan
-        .occurrences
+        .groups
         .iter()
-        .enumerate()
-        .map(|(position, occurrence)| {
+        .flat_map(|group| group.occurrences.iter().copied())
+        .map(|index| {
+            let position = index.0;
+            let occurrence = &plan.occurrences[position];
             let status = if matches!(
                 effective_scope(plan, state, OccurrenceIndex(position)).disposition,
                 ScopeDisposition::OutsideChangeScope
@@ -216,7 +226,45 @@ pub(crate) fn project_preparation(
         }
     }
     measurements.applicability_entries_evaluated = plan.precomputed.len();
+    let rule_evaluations = project_prepared_evaluations(plan, state);
+    for evaluation in &rule_evaluations {
+        match evaluation {
+            PreparedRuleEvaluation::NotApplicable { .. }
+            | PreparedRuleEvaluation::OutsideChangeScope { .. } => measurements.rules_skipped += 1,
+            PreparedRuleEvaluation::SelectionFailed {
+                diagnostics: reported,
+                ..
+            } => {
+                measurements.rules_failed += 1;
+                diagnostics.extend(reported.clone());
+            }
+            PreparedRuleEvaluation::EvaluationFailed { cause, .. } => {
+                measurements.rules_failed += 1;
+                match cause {
+                    Cause::Evidence {
+                        diagnostics: reported,
+                    }
+                    | Cause::Budget {
+                        diagnostics: reported,
+                    } => diagnostics.extend(reported.clone()),
+                    Cause::Condition { diagnostic, .. } => diagnostics.push(diagnostic.clone()),
+                    _ => diagnostics.extend(DiagnosticList::rule(
+                        RuleDiagnosticCode::UnexpectedExecutionError,
+                    )),
+                }
+            }
+            PreparedRuleEvaluation::Cancelled { .. } => measurements.rules_failed += 1,
+            _ => {}
+        }
+    }
+    let source_summary = crate::rule_source_reporting::source_summary(
+        plan.groups.iter().map(|group| group.admitted.set.as_ref()),
+        &mut measurements,
+    );
     PreparedRules {
+        rule_evaluations,
+        rule_coverage: source_summary.coverage,
+        skipped_rules: source_summary.skipped,
         origin: origin.into(),
         routing,
         groups,

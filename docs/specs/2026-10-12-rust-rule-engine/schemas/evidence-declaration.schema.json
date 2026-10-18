@@ -93,6 +93,12 @@
         },
         {
           "$ref": "#/$defs/RelatedUnitsSelection"
+        },
+        {
+          "$ref": "#/$defs/MarkdownUnitsSelection"
+        },
+        {
+          "$ref": "#/$defs/FrontmatterFieldSelection"
         }
       ]
     },
@@ -624,6 +630,132 @@
         "minimum_related_units"
       ],
       "additionalProperties": false
+    },
+    "UnitOnly": {
+      "type": "string",
+      "enum": [
+        "unit"
+      ]
+    },
+    "MarkdownUnitKind": {
+      "type": "string",
+      "enum": [
+        "section",
+        "paragraph",
+        "list_item"
+      ]
+    },
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "unit",
+        "call_site"
+      ]
+    },
+    "MarkdownUnitsSelection": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "markdown_units"
+        }
+      },
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "$ref": "#/$defs/UnitOnly"
+            },
+            "units": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownUnitKind"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "mode",
+            "units"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "$ref": "#/$defs/SelectionMode"
+            },
+            "starts_with": {
+              "type": "string",
+              "minLength": 1
+            },
+            "units": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownUnitKind"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "mode",
+            "units",
+            "starts_with"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "$ref": "#/$defs/SelectionMode"
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            },
+            "units": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownUnitKind"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "mode",
+            "units",
+            "pattern"
+          ]
+        }
+      ],
+      "not": {
+        "required": [
+          "starts_with",
+          "pattern"
+        ]
+      },
+      "required": [
+        "kind"
+      ],
+      "unevaluatedProperties": false
+    },
+    "FrontmatterFieldSelection": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "frontmatter_field"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "field"
+      ]
     }
   }
 }

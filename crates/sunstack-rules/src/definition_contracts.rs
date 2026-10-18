@@ -5,7 +5,7 @@ use sunstack_decisions::{
     ChoiceLabel, JudgmentQuestion, NamedQuestionMap, QuestionName, StructuredEntry,
 };
 use sunstack_evidence::{
-    DeclarationId, EvidenceDeclaration, SchemaName, SourceName, StructuredJson,
+    DeclarationId, EvidenceDeclaration, MarkerPrefix, SchemaName, SourceName, StructuredJson,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -65,6 +65,10 @@ pub enum InputDeclaration {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+#[schemars(extend("anyOf" = [
+    {"required":["rule_paths"],"properties":{"rule_paths":{"minItems":1},"rule_sources":{"maxItems":0}}},
+    {"required":["rule_sources","marker_prefix"],"properties":{"rule_sources":{"minItems":1},"marker_prefix":{"type":"string"}}}
+]))]
 pub struct RuleSetDefinition {
     #[schemars(range(min = 1, max = 1))]
     pub schema_version: u32,
@@ -76,8 +80,27 @@ pub struct RuleSetDefinition {
     pub inputs: BTreeMap<SourceName, InputDeclaration>,
     pub applicability: Vec<ApplicabilityEntry>,
     pub common_ruleset_instructions: StructuredEntry,
-    #[schemars(length(min = 1))]
+    #[serde(default)]
     pub rule_paths: Vec<PathBuf>,
+    #[serde(default)]
+    pub rule_sources: Vec<RuleSourcePair>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker_prefix: Option<MarkerPrefix>,
+    #[serde(default = "default_max_question_words")]
+    pub max_question_words: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RuleSourcePair {
+    #[schemars(length(min = 1))]
+    pub markdown: PathBuf,
+    #[schemars(length(min = 1))]
+    pub rules: PathBuf,
+}
+
+fn default_max_question_words() -> usize {
+    400
 }
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -102,6 +125,10 @@ pub struct RuleDefinition {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum VerdictDeclaration {
+    Mechanical {
+        explanation: String,
+        check: crate::MechanicalCheck,
+    },
     Noul {
         #[schemars(schema_with = "noul_schema")]
         question: JudgmentQuestion,
@@ -122,13 +149,15 @@ pub enum VerdictDeclaration {
     },
 }
 impl VerdictDeclaration {
-    pub fn threshold(&self) -> f64 {
+    pub fn threshold(&self) -> Option<f64> {
         match self {
-            Self::Noul { threshold, .. } | Self::Composite { threshold, .. } => *threshold,
+            Self::Noul { threshold, .. } | Self::Composite { threshold, .. } => Some(*threshold),
+            Self::Mechanical { .. } => None,
         }
     }
     pub fn band(&self) -> Option<f64> {
         match self {
+            Self::Mechanical { .. } => None,
             Self::Noul {
                 block_at_or_below, ..
             }

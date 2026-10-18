@@ -20,16 +20,19 @@ pub(crate) struct PreparedRuleEvidence {
 }
 pub(crate) async fn select_rule_evidence(
     rule: &RuleDefinition,
+    key: &RuleOccurrenceKey,
+    target_selection: Option<&LabeledSelection>,
     sources: &AdmittedSources,
     group: usize,
     session: &mut EvidenceSession,
 ) -> PreparedRuleEvidence {
-    let selections = select_owner_evidence(
-        &format!("rule:{}", rule.rule_id.as_str()),
+    let selections = select_owner_evidence_with_target(
+        &key.evidence_label(),
         &rule.evidence,
         sources,
         group,
         session,
+        target_selection,
     )
     .await;
     let mut refused = DiagnosticList::default();
@@ -62,10 +65,25 @@ pub(crate) async fn select_owner_evidence(
     group: usize,
     session: &mut EvidenceSession,
 ) -> Vec<LabeledSelection> {
+    select_owner_evidence_with_target(owner, declarations, sources, group, session, None).await
+}
+
+async fn select_owner_evidence_with_target(
+    owner: &str,
+    declarations: &[EvidenceDeclaration],
+    sources: &AdmittedSources,
+    group: usize,
+    session: &mut EvidenceSession,
+    target_selection: Option<&LabeledSelection>,
+) -> Vec<LabeledSelection> {
     let mut selections = Vec::new();
     for declaration in declarations {
         let mut mapped = declaration.clone();
-        let result = if let Some(source) = sources.get(&declaration.input) {
+        let result = if let Some(selected) =
+            target_selection.filter(|selection| selection.declaration.id == declaration.id)
+        {
+            selected.result.clone()
+        } else if let Some(source) = sources.get(&declaration.input) {
             mapped.input = source.name.clone();
             let mut result = session.select(&mapped).await;
             if let SelectionReadiness::Ready {
@@ -104,11 +122,57 @@ pub(crate) async fn select_owner_evidence(
     }
     selections
 }
-fn resolve_target(selection: &LabeledSelection) -> Option<sunstack_evidence::TargetLocation> {
+pub(crate) fn resolve_target(
+    selection: &LabeledSelection,
+) -> Option<sunstack_evidence::TargetLocation> {
     let SelectionReadiness::Ready { content, .. } = &selection.result.readiness else {
         return None;
     };
     match (content, &selection.declaration.select) {
+        (SelectionContent::MarkdownUnits { units }, _) if units.len() == 1 => {
+            Some(sunstack_evidence::TargetLocation::MarkdownUnit {
+                occurrence: Box::new(units[0].occurrence.clone()),
+            })
+        }
+        (SelectionContent::FrontmatterField { result }, _) => {
+            use sunstack_evidence::{
+                FrontmatterFieldContent as Content, FrontmatterFieldLocation as Location,
+            };
+            let (source, field, state) = match result.as_ref() {
+                Content::Present {
+                    source,
+                    field,
+                    span,
+                    ..
+                } => (source, field, Location::Present { span: span.clone() }),
+                Content::Absent {
+                    source,
+                    field,
+                    frontmatter_span,
+                } => (
+                    source,
+                    field,
+                    Location::Absent {
+                        frontmatter_span: frontmatter_span.clone(),
+                    },
+                ),
+                Content::BlockUnavailable {
+                    source,
+                    field,
+                    reason,
+                    ..
+                } => (
+                    source,
+                    field,
+                    Location::BlockUnavailable { reason: *reason },
+                ),
+            };
+            Some(sunstack_evidence::TargetLocation::FrontmatterField {
+                source: source.clone(),
+                field: field.clone(),
+                state: Box::new(state),
+            })
+        }
         (SelectionContent::Paragraph { span, .. }, EvidenceSelection::Paragraph { target_id }) => {
             Some(sunstack_evidence::TargetLocation::Paragraph {
                 span: span.clone(),
@@ -182,6 +246,16 @@ struct EvidenceAttribution {
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum AttributedEvidence {
+    FrontmatterField {
+        #[serde(flatten)]
+        attribution: EvidenceAttribution,
+        result: Box<sunstack_evidence::FrontmatterFieldContent>,
+    },
+    MarkdownUnits {
+        #[serde(flatten)]
+        attribution: EvidenceAttribution,
+        units: Vec<MarkdownUnitAttribution>,
+    },
     Paragraph {
         #[serde(flatten)]
         attribution: EvidenceAttribution,
@@ -221,12 +295,39 @@ enum AttributedEvidence {
 #[derive(Clone, Serialize)]
 #[serde(untagged)]
 enum ContentValue {
+    FrontmatterField(FrontmatterValue),
+    MarkdownUnits(Vec<MarkdownUnitText>),
     Text(String),
     Matches(Vec<sunstack_evidence::EvidenceMatch>),
     Records(Vec<sunstack_evidence::ConversationRecord>),
     Payload(sunstack_evidence::StructuredJson),
     ChangedUnits(Vec<sunstack_evidence::SelectedSourceUnit>),
     RelatedGroup(Box<sunstack_evidence::ContextGroupOutcome>),
+}
+
+#[derive(Clone, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum FrontmatterValue {
+    Present {
+        value: sunstack_evidence::StructuredJson,
+    },
+    Absent,
+    BlockUnavailable {
+        reason: sunstack_evidence::FrontmatterUnavailableReason,
+    },
+}
+
+#[derive(Clone, Serialize)]
+struct MarkdownUnitText {
+    text: String,
+    visible_text: String,
+}
+
+#[derive(Clone, Serialize)]
+struct MarkdownUnitAttribution {
+    kind: sunstack_evidence::MarkdownUnitKind,
+    span: SourceSpan,
+    occurrence: sunstack_evidence::MarkdownOccurrence,
 }
 pub(crate) fn build_request_state(
     selections: impl Iterator<Item = LabeledSelection>,
@@ -250,6 +351,31 @@ pub(crate) fn build_request_state(
                 coverage,
             } if !(optional && omit_optional) => {
                 let value = match &content {
+                    SelectionContent::FrontmatterField { result } => {
+                        ContentValue::FrontmatterField(match result.as_ref() {
+                            sunstack_evidence::FrontmatterFieldContent::Present {
+                                value, ..
+                            } => FrontmatterValue::Present {
+                                value: value.clone(),
+                            },
+                            sunstack_evidence::FrontmatterFieldContent::Absent { .. } => {
+                                FrontmatterValue::Absent
+                            }
+                            sunstack_evidence::FrontmatterFieldContent::BlockUnavailable {
+                                reason,
+                                ..
+                            } => FrontmatterValue::BlockUnavailable { reason: *reason },
+                        })
+                    }
+                    SelectionContent::MarkdownUnits { units } => ContentValue::MarkdownUnits(
+                        units
+                            .iter()
+                            .map(|unit| MarkdownUnitText {
+                                text: unit.text.clone(),
+                                visible_text: unit.visible_text.clone(),
+                            })
+                            .collect(),
+                    ),
                     SelectionContent::Paragraph { text, .. }
                     | SelectionContent::DocumentText { text, .. } => {
                         ContentValue::Text(text.clone())
@@ -290,6 +416,25 @@ pub(crate) fn build_request_state(
                     coverage: *coverage,
                 };
                 match content {
+                    SelectionContent::FrontmatterField { result } => {
+                        AttributedEvidence::FrontmatterField {
+                            attribution,
+                            result,
+                        }
+                    }
+                    SelectionContent::MarkdownUnits { units } => {
+                        AttributedEvidence::MarkdownUnits {
+                            attribution,
+                            units: units
+                                .into_iter()
+                                .map(|unit| MarkdownUnitAttribution {
+                                    kind: unit.kind,
+                                    span: unit.span,
+                                    occurrence: unit.occurrence,
+                                })
+                                .collect(),
+                        }
+                    }
                     SelectionContent::Paragraph { span, .. } => {
                         AttributedEvidence::Paragraph { attribution, span }
                     }

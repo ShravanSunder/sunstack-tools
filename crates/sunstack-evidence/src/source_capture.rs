@@ -17,19 +17,19 @@ pub struct CapturedDocument {
 pub fn content_digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
+pub(crate) fn text_position(text: &str, offset: usize) -> (usize, usize) {
+    let prefix = &text[..offset];
+    (
+        prefix.bytes().filter(|byte| *byte == b'\n').count() + 1,
+        prefix
+            .rsplit('\n')
+            .next()
+            .map_or(1, |line| line.chars().count() + 1),
+    )
+}
 pub fn source_span(source: &SourceRef, text: &str, range: std::ops::Range<usize>) -> SourceSpan {
-    let position = |offset: usize| {
-        let prefix = &text[..offset];
-        (
-            prefix.bytes().filter(|byte| *byte == b'\n').count() + 1,
-            prefix
-                .rsplit('\n')
-                .next()
-                .map_or(1, |line| line.chars().count() + 1),
-        )
-    };
-    let (start_line, start_column) = position(range.start);
-    let (end_line, end_column) = position(range.end);
+    let (start_line, start_column) = text_position(text, range.start);
+    let (end_line, end_column) = text_position(text, range.end);
     SourceSpan {
         source: source.clone(),
         byte_start: range.start,

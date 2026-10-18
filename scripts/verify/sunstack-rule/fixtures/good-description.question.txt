@@ -1,0 +1,13 @@
+Good Description
+
+A good description:
+
+- starts with Use when unless the platform requires another shape;
+- names the situation, symptom, user request, repo event, or failure that should trigger the skill;
+- uses searchable words the user, codebase, docs, or logs actually use;
+- includes a succinct why only when it improves routing;
+- names adjacent boundaries only when another skill is easy to confuse with it;
+- stays compact because this text is always-visible context;
+- avoids workflow steps, tool lists, implementation detail, and generic virtue.
+
+The description should survive both true and near-miss prompts. If it loads for everything, it is not a trigger. If the human must remember too much to invoke it, the cognitive load is too high.

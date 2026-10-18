@@ -1,4 +1,10 @@
+mod expansion_contracts;
 mod plan_contracts;
+pub(crate) use expansion_contracts::*;
+mod deferred_expansion;
+pub(crate) use deferred_expansion::*;
+mod rule_evaluation_reporting;
+pub(crate) use rule_evaluation_reporting::*;
 mod request_graph;
 pub(crate) use plan_contracts::*;
 pub(crate) use request_graph::*;
@@ -30,3 +36,5 @@ pub(crate) use change_selection::*;
 
 #[cfg(test)]
 mod comparison_gate_order_tests;
+#[cfg(test)]
+mod local_reporting_tests;

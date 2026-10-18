@@ -18,6 +18,7 @@ pub fn evaluate_verdict(
 ) -> Result<VerdictOutcome, DiagnosticList> {
     let invalid = || DiagnosticList::rule(RuleDiagnosticCode::InvalidComposite);
     let (value, basis) = match &rule.verdict {
+        VerdictDeclaration::Mechanical { .. } => return Err(invalid()),
         VerdictDeclaration::Noul { .. } => {
             let answer = answers.noul_verdict.as_ref().ok_or_else(invalid)?;
             let JudgmentAnswer::Noul { yes_probability } = &answer.answer else {
@@ -72,7 +73,7 @@ pub fn evaluate_verdict(
     if !value.is_finite() || !(0.0..=1.0).contains(&value) {
         return Err(invalid());
     }
-    let threshold = rule.verdict.threshold();
+    let threshold = rule.verdict.threshold().ok_or_else(invalid)?;
     let result = if value >= threshold {
         VerdictResult::Pass
     } else {

@@ -6,8 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 use sunstack_decisions::{
-    AttemptSettings, DecisionBackend, DecisionRunOutcome, RequestBudgetSettings,
-    run_admitted_judgments,
+    AttemptSettings, DecisionRunOutcome, RequestBudgetSettings, run_admitted_judgments,
 };
 use sunstack_evidence::EvidenceSession;
 use tokio::{sync::Semaphore, task::JoinSet};
@@ -24,11 +23,15 @@ pub(crate) struct SchedulerInput<'invocation> {
     pub state: &'invocation mut ExecutionState,
     pub session: &'invocation mut EvidenceSession,
     pub origin: &'invocation InvocationOrigin,
-    pub backend: Arc<dyn DecisionBackend>,
+    pub backend: Arc<dyn RuleBackendFactory>,
     pub attempts: AttemptSettings,
     pub budget: RequestBudgetSettings,
     pub max_concurrent_requests: usize,
     pub cancellation: CancellationToken,
+}
+pub(crate) enum SchedulerFailure {
+    Backend { diagnostics: DiagnosticList },
+    Execution { diagnostics: DiagnosticList },
 }
 struct RequestCompletion {
     id: RequestId,
@@ -49,7 +52,7 @@ fn attempt_count(outcome: &DecisionRunOutcome) -> usize {
 /// One scheduler owns mutable plan state. Worker futures own only immutable admitted bytes and the backend.
 pub(crate) async fn execute_plan(
     input: SchedulerInput<'_>,
-) -> Result<SchedulerMeasurements, (DiagnosticList, SchedulerMeasurements)> {
+) -> Result<SchedulerMeasurements, (SchedulerFailure, SchedulerMeasurements)> {
     let SchedulerInput {
         plan,
         state,
@@ -68,9 +71,12 @@ pub(crate) async fn execute_plan(
     let mut fatal = None;
     let mut split_encodings = BTreeMap::<RequestId, (Vec<UnitKey>, EncodedRequest)>::new();
     let mut omitted_optionals = BTreeSet::new();
-    loop {
+    let mut backend_session = crate::rule_backend_factory::RuleBackendSession::new(backend);
+    'scheduler: loop {
         let local_started = Instant::now();
         let mut changed = advance_entries(plan, state, origin, session, &cancellation).await;
+        changed |= discover_ready_rules(plan, state, session, &cancellation).await;
+        finish_empty_carriers(plan, state);
         for position in 0..plan.requests.len() {
             let request = plan.requests[position].clone();
             if !matches!(
@@ -93,13 +99,35 @@ pub(crate) async fn execute_plan(
                 }
                 RequestReadiness::Ready => {}
             }
+            // Local checks consume neither a model slot nor a request budget.
+            // Keep legacy judgment acquisition behind those same boundaries.
+            let mut local_request = request.clone();
+            local_request
+                .units
+                .retain(|unit| plan.unit_is_mechanical(*unit));
+            if !local_request.units.is_empty() {
+                prepare_units(plan, state, &local_request, session, &cancellation).await;
+            }
+            finish_empty_carriers(plan, state);
+            if matches!(
+                state.requests.get(&request.id),
+                Some(RequestSettlement::Settled {
+                    status: RequestStatus::NotSent {
+                        reason: NotSentReason::NoQuestions
+                    },
+                    ..
+                })
+            ) {
+                changed = true;
+                continue;
+            }
             if measurements.model_requests >= budget.max_requests {
                 mark_not_sent(plan, state, &request, RequestRefusal::Limit);
                 changed = true;
                 continue;
             }
             let Ok(permit) = semaphore.clone().try_acquire_owned() else {
-                break;
+                continue;
             };
             let units = prepare_units(plan, state, &request, session, &cancellation).await;
             if cancellation.is_cancelled() {
@@ -124,6 +152,14 @@ pub(crate) async fn execute_plan(
                 changed = true;
                 continue;
             }
+            let backend = match backend_session.resolve() {
+                Ok(backend) => backend,
+                Err(diagnostics) => {
+                    fatal = Some(SchedulerFailure::Backend { diagnostics });
+                    drop(permit);
+                    break 'scheduler;
+                }
+            };
             let mut omit_optional = omitted_optionals.contains(&request.id);
             let mut admission = match split_encodings.remove(&request.id) {
                 Some((prepared_units, encoded)) if prepared_units == units => {
@@ -218,9 +254,13 @@ pub(crate) async fn execute_plan(
             .local_elapsed
             .saturating_add(local_started.elapsed());
         let waiting = state
-            .requests
-            .values()
-            .any(|request| matches!(request, RequestSettlement::Waiting));
+            .expansions
+            .iter()
+            .any(|expansion| matches!(expansion, ExpansionState::Waiting))
+            || state
+                .requests
+                .values()
+                .any(|request| matches!(request, RequestSettlement::Waiting));
         if tasks.is_empty() {
             if !waiting {
                 break;
@@ -228,9 +268,9 @@ pub(crate) async fn execute_plan(
             if changed {
                 continue;
             }
-            fatal = Some(DiagnosticList::rule(
-                RuleDiagnosticCode::UnexpectedExecutionError,
-            ));
+            fatal = Some(SchedulerFailure::Execution {
+                diagnostics: DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError),
+            });
             break;
         }
         if changed && waiting && semaphore.available_permits() > 0 {
@@ -257,9 +297,9 @@ pub(crate) async fn execute_plan(
                 );
             }
             Some(Err(_)) => {
-                fatal = Some(DiagnosticList::rule(
-                    RuleDiagnosticCode::UnexpectedExecutionError,
-                ));
+                fatal = Some(SchedulerFailure::Execution {
+                    diagnostics: DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError),
+                });
                 cancellation.cancel();
             }
             None => {}
@@ -283,15 +323,16 @@ pub(crate) async fn execute_plan(
                 );
             }
             Err(_) => {
-                fatal = Some(DiagnosticList::rule(
-                    RuleDiagnosticCode::UnexpectedExecutionError,
-                ));
+                fatal = Some(SchedulerFailure::Execution {
+                    diagnostics: DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError),
+                });
             }
         }
     }
     tracker.wait().await;
     let started = Instant::now();
     advance_entries(plan, state, origin, session, &cancellation).await;
+    discover_ready_rules(plan, state, session, &cancellation).await;
     measurements.local_elapsed = measurements.local_elapsed.saturating_add(started.elapsed());
     match fatal {
         Some(diagnostics) => Err((diagnostics, measurements)),

@@ -3,13 +3,12 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use sunstack_decisions::DecisionBackend;
 use sunstack_evidence::{AdapterRegistry, EvidenceMeasurements, EvidenceSession};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]
 pub struct RuleExecutionContext {
-    pub backend: Arc<dyn DecisionBackend>,
+    pub backend: Arc<dyn RuleBackendFactory>,
     pub adapters: AdapterRegistry,
     pub cancellation: CancellationToken,
 }
@@ -113,9 +112,16 @@ pub async fn evaluate_rules(
     let closed = session.close();
     copy_evidence_measurements(&mut measurements, closed.measurements);
     if let Some(diagnostics) = failure {
-        return RuleInvocationOutcome::PreparationFailed {
-            diagnostics,
-            measurements,
+        return match diagnostics {
+            SchedulerFailure::Backend { diagnostics } => {
+                RuleInvocationOutcome::Invalid { diagnostics }
+            }
+            SchedulerFailure::Execution { diagnostics } => {
+                RuleInvocationOutcome::PreparationFailed {
+                    diagnostics,
+                    measurements,
+                }
+            }
         };
     }
     let mut report = project_report(&plan, &state, &input.origin, measurements);

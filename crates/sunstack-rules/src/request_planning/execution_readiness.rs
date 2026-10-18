@@ -292,6 +292,15 @@ pub(crate) fn unit_stopped(
             plan.entries[index.0].routing.as_ref(),
         ),
     };
+    stopped_by_entries(plan, state, parents, routing)
+}
+
+pub(crate) fn stopped_by_entries(
+    plan: &ExecutionPlan,
+    state: &ExecutionState,
+    parents: &[EntryIndex],
+    routing: Option<&RouteDependency>,
+) -> Option<EntryIndex> {
     if let Some(routing) = routing
         && matches!(
             route_state(plan, state, routing),

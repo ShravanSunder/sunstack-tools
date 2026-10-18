@@ -206,6 +206,6 @@ impl InvocationOrigin {
     }
 }
 
-fn no_discovery() -> sunstack_evidence::EvidenceDiscovery {
+pub(crate) fn no_discovery() -> sunstack_evidence::EvidenceDiscovery {
     sunstack_evidence::EvidenceDiscovery::None {}
 }

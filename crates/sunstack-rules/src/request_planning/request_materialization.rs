@@ -68,6 +68,8 @@ pub(crate) async fn prepare_units(
                             let group = &plan.groups[occurrence.group.0];
                             let evidence = select_rule_evidence(
                                 &occurrence.rule,
+                                &occurrence.key,
+                                occurrence.target_selection.as_ref(),
                                 &group.admitted.sources,
                                 group.admitted.position,
                                 session,
@@ -165,6 +167,49 @@ pub(crate) async fn prepare_units(
             state.preparation.get(unit),
             Some(OwnerPreparation::Ready { .. })
         ) {
+            if let UnitKey::Rule(index) = *unit
+                && let VerdictDeclaration::Mechanical { check, .. } =
+                    &plan.occurrences[index.0].rule.verdict
+            {
+                if !state.local_settlements.contains_key(&index) {
+                    let settlement = match state.preparation.get(unit) {
+                        Some(OwnerPreparation::Ready { selections, .. }) => {
+                            match selections.iter().find(|selected| {
+                                selected.declaration.id == plan.occurrences[index.0].rule.target
+                            }) {
+                                Some(selected) => match &selected.result.readiness {
+                                    SelectionReadiness::Ready { content, .. } => {
+                                        crate::local_check_evaluation::settle_mechanical(
+                                            check,
+                                            content,
+                                            session,
+                                            cancellation,
+                                        )
+                                        .await
+                                    }
+                                    SelectionReadiness::Refused { diagnostics } => {
+                                        LocalSettlement::Unresolved {
+                                            diagnostics: diagnostics.clone().into(),
+                                        }
+                                    }
+                                },
+                                None => LocalSettlement::Unresolved {
+                                    diagnostics: DiagnosticList::rule(
+                                        RuleDiagnosticCode::InvalidTarget,
+                                    ),
+                                },
+                            }
+                        }
+                        _ => LocalSettlement::Unresolved {
+                            diagnostics: DiagnosticList::rule(
+                                RuleDiagnosticCode::UnexpectedExecutionError,
+                            ),
+                        },
+                    };
+                    state.local_settlements.insert(index, settlement);
+                }
+                continue;
+            }
             ready.push(*unit);
         }
     }
@@ -206,6 +251,9 @@ pub(crate) fn describe_questions<'plan>(
             UnitKey::Rule(index) => {
                 let occurrence = &plan.occurrences[index.0];
                 let rule = &occurrence.rule;
+                if matches!(rule.verdict, VerdictDeclaration::Mechanical { .. }) {
+                    continue;
+                }
                 let common = Some(
                     &plan.groups[occurrence.group.0]
                         .admitted
@@ -217,7 +265,7 @@ pub(crate) fn describe_questions<'plan>(
                     add(
                         question,
                         QuestionOwner::Verdict {
-                            rule_id: rule.rule_id.clone(),
+                            key: occurrence.key.clone(),
                         },
                         common,
                     )?;
@@ -226,7 +274,7 @@ pub(crate) fn describe_questions<'plan>(
                     add(
                         question,
                         QuestionOwner::Informational {
-                            rule_id: rule.rule_id.clone(),
+                            key: occurrence.key.clone(),
                             name: name.clone(),
                         },
                         common,
