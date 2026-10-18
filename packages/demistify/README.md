@@ -130,7 +130,7 @@ For a pictured journey, target gallery figure IDs from the existing `ex-presenta
 
 ## Composition vocabulary
 
-Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Grid tracks, missing topics are explicit, and cells may contain any island. The author chooses columns or tabs and the whole component's Reading/Canvas width. Optional `choose` selects two live alternatives; `scroll` provides a bounded shared surface with sticky headings. See the [comparison reference](skill/references/comparisons.md).
+Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Grid tracks, missing topics are explicit, and cells may contain any island. The author chooses columns or tabs and the whole component's Reading/Canvas width. Optional `choose` selects two live alternatives. Comparisons grow with their content and keep their headings sticky during page scrolling. See the [comparison reference](skill/references/comparisons.md).
 
 `ex-trace` is an ordered sequence of native disclosures with status and arbitrary rich attachments. Tree remains the hierarchy/navigation view. The [Trace reference](skill/references/traces.md) shows its syntax; [source-derived call paths](skill/references/call-paths.md) compose it with comparison while keeping branches distinct from call frames and runtime evidence.
 

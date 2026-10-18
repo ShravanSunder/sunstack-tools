@@ -144,7 +144,7 @@ IF the page includes a guided presentation or cross-page stops, load `references
 | `<ex-code title lang start>` | Literal code/diff script, followed by `<ex-note line="42" tone="risk">…</ex-note>` |
 | `<ex-tree title>` | Hierarchical Markdown, status lists and checklists; separate disclosure and go-to actions |
 | `<ex-trace title>` | Ordered native disclosures with status and arbitrary rich evidence attachments |
-| `<ex-compare label view choose selected scroll>` | Aligned topic rows across arbitrary alternatives, or one detailed content tab at a time |
+| `<ex-compare label view choose selected>` | Aligned topic rows across arbitrary alternatives, or one detailed content tab at a time |
 | `<ex-pre>` | Exact monospace/TUI drawing in a plain-text script |
 | `<ex-gallery id label>` | Native figures, metadata filters and review/grid views within the shared document system |
 | `<ex-grid cols="3">` | Related content side by side; child `span="2"` or `span="all"`; `sticky` side column; `swipe` row on phones |

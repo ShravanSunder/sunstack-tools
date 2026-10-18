@@ -23,6 +23,7 @@ type GalleryView = 'review' | 'grid';
 type ZoomMode = 'fit' | 'fill' | 'manual';
 export interface GallerySnapshot {
 	readonly view: GalleryView;
+	readonly thumbnailsVisible: boolean;
 	readonly selected: string | undefined;
 	readonly query: string;
 	readonly zoomMode: ZoomMode;
@@ -42,6 +43,7 @@ export class GalleryIsland extends HTMLElement {
 	private filters = new Map<string, Set<string>>();
 	private selected: string | undefined;
 	private view: GalleryView = 'review';
+	private thumbnailsVisible = true;
 	private controls: GalleryControls | undefined;
 	private activeFigure: HTMLElement | undefined;
 	private missingView: HTMLElement | undefined;
@@ -99,6 +101,7 @@ export class GalleryIsland extends HTMLElement {
 		);
 		const snapshot = this.initialSnapshot;
 		this.view = snapshot?.view ?? (this.getAttribute('view') === 'grid' ? 'grid' : 'review');
+		this.thumbnailsVisible = snapshot?.thumbnailsVisible ?? this.thumbnailsVisible;
 		this.selected =
 			snapshot?.selected ?? this.selected ?? this.getAttribute('selected') ?? this.captures[0]?.id;
 		if (snapshot)
@@ -172,6 +175,10 @@ export class GalleryIsland extends HTMLElement {
 		anchorPopover(controls.help, controls.helpPanel, this.eventController.signal);
 		controls.search.addEventListener('input', (): void => {
 			this.pendingFilter.schedule();
+		});
+		controls.thumbnails.addEventListener('click', (): void => {
+			this.thumbnailsVisible = !this.thumbnailsVisible;
+			this.applyFilters();
 		});
 		controls.reviewChoice.addEventListener('click', (): void => this.changeView('review'));
 		controls.gridChoice.addEventListener('click', (): void => this.changeView('grid'));
@@ -276,6 +283,13 @@ export class GalleryIsland extends HTMLElement {
 		controls.gridChoice.tabIndex = this.view === 'grid' ? 0 : -1;
 		controls.body.hidden = this.view !== 'review' || !this.visible.length;
 		controls.grid.hidden = this.view !== 'grid' || !this.visible.length;
+		controls.thumbnails.hidden = this.view !== 'review' || !this.visible.length;
+		controls.thumbnails.setAttribute('aria-expanded', String(this.thumbnailsVisible));
+		const thumbnailsLabel = this.thumbnailsVisible ? 'Hide thumbnails' : 'Show thumbnails';
+		controls.thumbnails.setAttribute('aria-label', thumbnailsLabel);
+		controls.thumbnails.title = thumbnailsLabel;
+		controls.strip.hidden = !this.thumbnailsVisible;
+		controls.body.classList.toggle('ex-gallery-without-thumbnails', !this.thumbnailsVisible);
 		this.dispatchEvent(new Event('gallery-updated', { bubbles: true }));
 	}
 
@@ -486,6 +500,7 @@ export class GalleryIsland extends HTMLElement {
 	browseSnapshot(): GallerySnapshot {
 		return {
 			view: this.view,
+			thumbnailsVisible: this.thumbnailsVisible,
 			selected: this.selected,
 			query: this.controls?.search.value ?? '',
 			filters: new Map([...this.filters].map(([field, values]) => [field, new Set(values)])),
@@ -499,6 +514,7 @@ export class GalleryIsland extends HTMLElement {
 	restoreBrowseSnapshot(snapshot: GallerySnapshot): void {
 		this.pendingFilter.cancel();
 		this.view = snapshot.view;
+		this.thumbnailsVisible = snapshot.thumbnailsVisible;
 		this.selected = snapshot.selected;
 		this.filters = new Map(
 			[...snapshot.filters].map(([field, values]) => [field, new Set(values)]),

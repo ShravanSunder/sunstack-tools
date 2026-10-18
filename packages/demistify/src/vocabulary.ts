@@ -291,7 +291,6 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 				description: 'Initial child alternative IDs, in display order.',
 				type: { kind: 'ids' },
 			},
-			scroll: flag('Bound the shared scroll surface and keep its headings visible.'),
 			label,
 		},
 		childAttributes: { label: text('Name of this alternative (default Before / After).'), icon },

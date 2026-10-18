@@ -57,7 +57,6 @@ export class ComparisonViews {
 					? candidates.slice(0, 2)
 					: this.options.map((_option, index): number => index);
 		this.viewport.className = 'ex-comparison-viewport';
-		this.viewport.classList.toggle('ex-comparison-scroll', owner.hasAttribute('scroll'));
 		this.canvas.className = 'ex-comparison-canvas';
 		this.canvas.dataset['view'] = this.view;
 		owner.classList.add('ex-comparison');
