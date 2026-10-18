@@ -63,8 +63,10 @@ Selection (evidence)
   BlockUnavailable carries no field or header span (none exists), and its occurrence key is still FrontmatterField{source, field}
 
 Identity (rules)
-  RuleOccurrenceKey { rule_set, group, rule_id, target: Legacy | MarkdownUnit{source, byte range} | CallSite{… + match range} | FrontmatterField{source, field} }
+  RuleOccurrenceKey { rule_set, group, rule_id, target: Legacy | MarkdownUnit{source, byte range} | CallSite{source, unit raw range, match raw range, match visible range} | FrontmatterField{source, field} }
   RuleEvaluationKey { rule_set, group, rule_id }       one per rule before its targets are known
+  the call-site key carries the match's visible-text range beside its raw range: one HTML entity can decode to several visible
+  characters, so two distinct visible matches can map to the same raw span; the raw range stays the repair location (S3 finding)
   QuestionOwner::Verdict / ::Informational carry the full occurrence key; q000001 names stay transport-only
 
 Mechanical verdict (rules)
