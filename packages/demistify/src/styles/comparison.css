@@ -38,6 +38,14 @@
 .ex-comparison.ex-inspectable .ex-comparison-header:last-of-type {
 	padding-inline-end: var(--space-18);
 }
+.ex-comparison.ex-inspectable .ex-comparison-canvas[data-stacked] > .ex-comparison-header {
+	padding-inline-end: 0;
+}
+.ex-comparison.ex-inspectable
+	.ex-comparison-canvas[data-stacked]
+	> .ex-comparison-header:first-of-type {
+	padding-inline-end: var(--space-18);
+}
 .ex-comparison-option {
 	min-width: 0;
 	grid-column: var(--comparison-column);

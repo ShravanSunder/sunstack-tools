@@ -257,6 +257,46 @@ test('the image slider still moves its actual reveal mask through native range k
 	expect(requiredElement(owner, '[data-side="After"]')).toBe(after);
 });
 
+test.each(['#alternative', '#second-tab'])(
+	'a direct alternative fragment %s reveals the option itself',
+	async (fragment: string): Promise<void> => {
+		const { document: fixture, frame } = await openFixture('ui', fragment, 'comparison-views.html');
+		if (fragment === '#alternative') {
+			await expect
+				.element(frame.getByRole('button', { name: 'Choose right comparison', exact: true }))
+				.toHaveTextContent('Retain lookup');
+			expect(requiredElement(fixture, '#alternative').hasAttribute('hidden')).toBe(false);
+		} else {
+			await expect
+				.element(frame.getByRole('tab', { name: 'Second', exact: true }))
+				.toHaveAttribute('aria-selected', 'true');
+			expect(requiredElement(fixture, '#second-tab').hasAttribute('hidden')).toBe(false);
+		}
+	},
+);
+
+test('stacked comparison inspection controls leave the first content choice reachable', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('ui', '', 'comparison-views.html');
+	const owner = requiredElement(fixture, '#models');
+	owner.scrollIntoView({ block: 'start' });
+	await fixtureLocator(frame, owner).hover();
+	const choice = requiredElement(fixture, '#models .ex-comparison-header:first-of-type > button');
+	const bounds = choice.getBoundingClientRect();
+	const controls = [...fixture.querySelectorAll('#models > .ex-inspect-controls > button')];
+	expect(controls).toHaveLength(2);
+	for (const control of controls) {
+		const button = control.getBoundingClientRect();
+		const overlapWidth = Math.min(bounds.right, button.right) - Math.max(bounds.left, button.left);
+		const overlapHeight = Math.min(bounds.bottom, button.bottom) - Math.max(bounds.top, button.top);
+		expect(overlapWidth > 0 && overlapHeight > 0).toBe(false);
+	}
+	await fixtureLocator(frame, choice).click();
+	await expect
+		.element(frame.getByRole('button', { name: 'Retain lookup', exact: true }))
+		.toBeVisible();
+});
+
 test('expanding a source call keeps the next comparison topic aligned and return branches remain separate', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui', '', 'call-paths.html');
 	const proposed = fixtureLocator(frame, requiredElement(fixture, '#new-calls'));
