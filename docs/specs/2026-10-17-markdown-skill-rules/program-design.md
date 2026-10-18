@@ -58,6 +58,8 @@ Selection (evidence)
   frontmatter is a YAML `---` block at the very start of the document; `field` names a top-level mapping key; the block is decoded with a
   maintained YAML decoder (not hand-written scalar parsing) and `value` is the field's decoded value as JSON; any other start of document
   (including a `+++` block) is `missing`; text matching over the value belongs to S4's expect forms (S3 question 2)
+  expect over a frontmatter value: a JSON string matches as its text; any other value (number, boolean, null, array, object) matches
+  against its canonical serde_json text; `present` is true for any present field, null included; an absent field fails every form
   a missing or malformed block is SelectionReadiness::Ready with BlockUnavailable, NOT Refused, so it never projects as SelectionFailed
   TargetLocation::MarkdownUnit { occurrence } | FrontmatterField { source, field, Present{span} | Absent{frontmatter_span} | BlockUnavailable{reason} }
   BlockUnavailable carries no field or header span (none exists), and its occurrence key is still FrontmatterField{source, field}
