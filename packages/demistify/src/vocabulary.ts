@@ -97,6 +97,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			'A named/described ordered path through existing targets; content remains in its document.',
 		attributes: {
 			title: text('Presentation name shown in the menu.', true),
+			variations: flag('Allow same-screen viewport variations with buttons and Up/Down keys.'),
 			description: text('Short description shown beneath its name.', true),
 		},
 	},

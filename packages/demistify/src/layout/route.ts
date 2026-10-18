@@ -1,5 +1,7 @@
 import { createIconButton } from '../core/icons.ts';
 import { closeDrawer, isDrawerOpen } from '../islands/drawer.ts';
+import { GalleryWalkthrough } from '../islands/gallery-walkthrough.ts';
+import { GalleryIsland } from '../islands/gallery.ts';
 import { openIsland } from '../islands/inspector.ts';
 import { BoardIsland } from './board.ts';
 import { resolveTarget } from './target-resolution.ts';
@@ -23,6 +25,7 @@ interface Route {
 	/** The page that declares the route; tours on other pages read it from there. */
 	readonly home: string;
 	readonly steps: readonly RouteStep[];
+	readonly variations: boolean;
 }
 
 /** A page's address without search or hash, for telling pages apart. */
@@ -75,7 +78,7 @@ function settleIntoView(target: Element): void {
 /** Floating previous/next player that walks a route, spotlighting and optionally opening each island. */
 class RoutePlayer {
 	private readonly bar = document.createElement('div');
-	private readonly picker = document.createElement('select');
+	private readonly title = document.createElement('strong');
 	private readonly counter = document.createElement('span');
 	private readonly narration = document.createElement('p');
 	private readonly marker = document.createElement('span');
@@ -84,11 +87,12 @@ class RoutePlayer {
 	private stepIndex = -1;
 	private focused: Element | undefined;
 	private tracedDiagram: Element | undefined;
+	private galleryWalkthrough: GalleryWalkthrough | undefined;
 
 	constructor(private readonly routes: readonly Route[]) {
 		this.bar.className = 'ex-route-player';
 		this.bar.setAttribute('role', 'region');
-		this.bar.setAttribute('aria-label', 'Presentation player');
+		this.bar.setAttribute('aria-label', 'Walkthrough player');
 		this.marker.className = 'ex-presentation-marker';
 		this.marker.setAttribute('aria-hidden', 'true');
 		this.marker.hidden = true;
@@ -104,14 +108,7 @@ class RoutePlayer {
 		window.addEventListener('resize', positionMarker);
 		document.addEventListener('presentation-target', positionMarker);
 		this.bar.hidden = true;
-		for (const [index, route] of routes.entries())
-			this.picker.add(new Option(route.label, String(index)));
-		this.picker.setAttribute('aria-label', 'Presentation');
-		this.picker.hidden = routes.length < 2;
-		this.picker.addEventListener('change', (): void => this.start(Number(this.picker.value)));
-		const title = document.createElement('strong');
-		title.textContent = routes[0]?.label ?? '';
-		title.hidden = routes.length > 1;
+		this.title.textContent = routes[0]?.label ?? '';
 		this.counter.className = 'ex-route-count';
 		this.narration.className = 'ex-route-narration';
 		this.narration.setAttribute('aria-live', 'polite');
@@ -120,7 +117,7 @@ class RoutePlayer {
 		const close = createIconButton('x', 'Close walkthrough', (): void => this.stop());
 		const controls = document.createElement('div');
 		controls.className = 'ex-route-controls';
-		controls.append(this.picker, title, previous, this.counter, next, close);
+		controls.append(this.title, previous, this.counter, next, close);
 		this.bar.append(controls, this.narration);
 		document.body.append(this.bar, this.marker);
 		document.addEventListener('keydown', (event: KeyboardEvent): void => {
@@ -131,19 +128,35 @@ class RoutePlayer {
 				event.metaKey ||
 				event.altKey ||
 				(event.target instanceof Element &&
-					event.target.closest('input,select,textarea,[contenteditable="true"]'))
+					event.target.closest(
+						'input,select,textarea,[contenteditable="true"],[popover],[role="tab"],[role="menuitem"],[role="separator"],.ex-drawer,dialog',
+					))
 			)
 				return;
-			if (event.key === 'ArrowRight') this.step(1);
-			else if (event.key === 'ArrowLeft') this.step(-1);
-			else if (event.key === 'Escape' && !document.querySelector('dialog[open]') && !isDrawerOpen())
+			if (document.querySelector(':popover-open')) return;
+			if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+				event.preventDefault();
+				this.step(event.key === 'ArrowRight' ? 1 : -1);
+			} else if (
+				this.galleryWalkthrough &&
+				(event.key === 'ArrowUp' || event.key === 'ArrowDown')
+			) {
+				if (this.galleryWalkthrough.moveVariation(event.key === 'ArrowUp' ? -1 : 1))
+					event.preventDefault();
+			} else if (
+				event.key === 'Escape' &&
+				!document.querySelector('dialog[open]') &&
+				!isDrawerOpen()
+			)
 				this.stop();
 		});
 	}
 
 	start(routeIndex: number, stepIndex = 0): void {
+		this.galleryWalkthrough?.dispose();
+		this.galleryWalkthrough = undefined;
 		this.routeIndex = routeIndex;
-		this.picker.value = String(routeIndex);
+		this.title.textContent = this.routes[routeIndex]?.label ?? '';
 		this.stepIndex = stepIndex - 1;
 		this.bar.hidden = false;
 		document.documentElement.dataset['route'] = '';
@@ -154,6 +167,8 @@ class RoutePlayer {
 
 	stop(): void {
 		this.pendingTarget?.abort();
+		this.galleryWalkthrough?.dispose();
+		this.galleryWalkthrough = undefined;
 		this.marker.hidden = true;
 		delete document.documentElement.dataset['presentation'];
 		document.dispatchEvent(new Event('presentation-change'));
@@ -165,7 +180,15 @@ class RoutePlayer {
 		this.bar.hidden = true;
 		delete document.documentElement.dataset['route'];
 		const address = new URL(location.href);
-		for (const key of ['ex-tour', 'ex-route', 'ex-name', 'ex-step', 'ex-path'])
+		for (const key of [
+			'ex-tour',
+			'ex-route',
+			'ex-name',
+			'ex-step',
+			'ex-path',
+			'ex-variation',
+			'ex-variations',
+		])
 			address.searchParams.delete(key);
 		history.replaceState(null, '', address);
 	}
@@ -192,6 +215,11 @@ class RoutePlayer {
 			next.searchParams.set('ex-name', route.label);
 			next.searchParams.set('ex-step', String(index));
 			next.searchParams.set('ex-path', encodeRoute(route));
+			if (route.variations) {
+				next.searchParams.set('ex-variations', 'true');
+				const variation = new URL(location.href).searchParams.get('ex-variation');
+				if (variation) next.searchParams.set('ex-variation', variation);
+			}
 			next.hash = step.targetId;
 			location.assign(next.href);
 			return;
@@ -214,8 +242,34 @@ class RoutePlayer {
 		address.searchParams.set('ex-step', String(index));
 		address.hash = step.targetId;
 		if (address.href !== location.href) history.pushState(null, '', address);
+		const gallery = [...document.querySelectorAll('ex-gallery')].find(
+			(owner): owner is GalleryIsland =>
+				owner instanceof GalleryIsland &&
+				owner.walkthroughCaptures().some((capture): boolean => capture.id === step.targetId),
+		);
+		if (this.galleryWalkthrough?.gallery !== gallery) {
+			this.galleryWalkthrough?.dispose();
+			this.galleryWalkthrough = gallery
+				? new GalleryWalkthrough({
+						gallery,
+						player: this.bar,
+						variationsEnabled: route.variations,
+						onTarget: (target): void => {
+							this.focused?.classList.remove('ex-route-focus');
+							this.focused = target;
+							target.classList.add('ex-route-focus');
+							document.dispatchEvent(new Event('presentation-target'));
+						},
+					})
+				: undefined;
+		}
+		const galleryTarget = this.galleryWalkthrough?.show(step.targetId);
 		void (
-			step.targetId ? resolveTarget(step.targetId, pending.signal) : Promise.resolve(document.body)
+			galleryTarget
+				? Promise.resolve(galleryTarget)
+				: step.targetId
+					? resolveTarget(step.targetId, pending.signal)
+					: Promise.resolve(document.body)
 		).then((target): void => {
 			if (pending.signal.aborted) return;
 			if (!target) {
@@ -237,8 +291,9 @@ class RoutePlayer {
 			if (board instanceof BoardIsland && board.isMap()) {
 				board.focusOn(target);
 				settleIntoView(board);
-			} else settleIntoView(target);
-			if (step.open && target instanceof HTMLElement) {
+			} else if (gallery) gallery.scrollIntoView({ block: 'start' });
+			else settleIntoView(target);
+			if (step.open && !gallery && target instanceof HTMLElement) {
 				openIsland(target, step.open);
 				document.querySelector('dialog.ex-inspect-dialog[open]')?.append(this.bar);
 			}
@@ -326,7 +381,14 @@ async function resumeTour(
 	const carried = decodeRoute(params.get('ex-path') ?? '');
 	if (carried) {
 		new RoutePlayer([
-			{ id: label, label: params.get('ex-name') ?? label, description: '', home, steps: carried },
+			{
+				id: label,
+				label: params.get('ex-name') ?? label,
+				description: '',
+				home,
+				steps: carried,
+				variations: params.get('ex-variations') === 'true',
+			},
 		]).start(0, stepIndex);
 		return;
 	}
@@ -344,6 +406,7 @@ async function resumeTour(
 				description: element.getAttribute('description') ?? '',
 				home,
 				steps: readRouteSteps(element, new URL(home)),
+				variations: element.hasAttribute('variations'),
 			},
 		]).start(0, stepIndex);
 	} catch {
@@ -361,6 +424,7 @@ export function installRoutes(): void {
 		description: element.getAttribute('description') ?? '',
 		home: location.href.split(/[?#]/)[0] ?? location.href,
 		steps: element.readSteps(),
+		variations: element.hasAttribute('variations'),
 	}));
 	const player = routes.length ? new RoutePlayer(routes) : undefined;
 	for (const [index, element] of elements.entries())

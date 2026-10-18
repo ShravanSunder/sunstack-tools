@@ -12,7 +12,7 @@ ex-nav {
 	position: fixed;
 	top: 0;
 	left: 0;
-	right: var(--ex-drawer-width, 0px);
+	right: var(--ex-drawer-used-width, 0px);
 	z-index: 6;
 	display: flex;
 	align-items: center;

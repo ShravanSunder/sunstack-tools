@@ -146,7 +146,7 @@ Two shared width standards center in the space remaining beside the outline or i
 
 Choose relationships before layout. Native flow, grid/flex and positioned boards are valid; do not force every explanation into a card grid. Keep related controls/content together using the shared spacing and styles. Sidebar inspection preserves the main content; fullscreen, Escape/backdrop dismissal and Cmd/Ctrl+wheel/drag use shared controls.
 
-Use short labels for content tabs and keep the full heading/explanation inside each section. An optional curated `icon` names its subject; otherwise the library supplies a neutral file icon. Tabs use Arrow/Home/End keys and scroll locally when numerous. Exactly-one viewer modes use radio segments; independent visibility uses switches; Sources expands a disclosure. Do not recreate these as rows of large selected buttons.
+Use short labels for content tabs and keep the full heading/explanation inside each section. An optional curated `icon` names its subject; otherwise the library supplies a neutral file icon. Tabs use Arrow/Home/End keys and scroll locally when numerous. Exactly-one viewer modes use compact button groups; independent visibility uses switches; Sources expands a disclosure. Use the shared controls rather than radio inputs or per-page selected-button styles.
 
 ## Load depth when needed
 

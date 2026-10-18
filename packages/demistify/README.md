@@ -118,9 +118,11 @@ Use one `ex-gallery` among other content or as the whole page. Review and grid a
 </ex-gallery>
 ```
 
-`data-screen`, `data-viewport`, `data-state` provide default facets when present. Viewport names are authored strings, not inferred device claims. Add your own `data-…` fields and `filters="screen viewport release"`, or a small `script type="application/json" data-gallery-filters` array of `{ "field": "release", "label": "Release", "icon": "package" }`. Values derive from the figures. Icons use the curated subject list in `src/core/subject-icons.ts`.
+`data-screen`, `data-viewport` and `data-state` group navigation. Viewport names are authored strings, not inferred device claims. Use comma-separated `data-tags="Journey, Account"` for default content filters. Explicit extra facets use `filters="tags release"`, or a small `script type="application/json" data-gallery-filters` array of `{ "field": "release", "label": "Release", "icon": "package" }`. Values derive from the figures. Icons use the curated subject list in `src/core/subject-icons.ts`.
 
-Up/Down selects screenshots; Left/Right switches viewport categories while retaining related screen context when possible. Text fields keep normal editing keys. Search/facets share a 200ms trailing debounce; reset and direct navigation are immediate. An unchanged selected capture retains its image and zoom. Captions are native HTML or a Markdown island, with the same content in the shared inspector. Avoid putting a second application inside a caption.
+Left/Right changes logical screens/states; Up/Down changes variations of the same screen. Text fields, popovers and inspectors keep their normal keys. Search/facets share a 200ms trailing debounce; reset and direct navigation are immediate. An unchanged selected capture retains its image and zoom. Fit, Fill and minus/plus replace numeric percentage controls. Review/Grid are a button group. Captions are native HTML or a Markdown island, with the same content in the shared inspector. Avoid putting a second application inside a caption.
+
+For a pictured journey, target gallery figure IDs from the existing `ex-presentation`/`ex-step` path. Its player floats below the viewer with a reserved bottom gutter. Add the optional `variations` flag to enable a size button group and Up/Down switching; otherwise each step uses its authored capture. Missing variations remain visible gaps on the same step. Leaving restores the previous gallery search, filters, view, selection and zoom.
 
 ## Composition vocabulary
 
@@ -147,7 +149,7 @@ The theme owns colors, fonts, spacing, radii and motion. Semantic roles for tone
 
 Reading documents center in the space available beside the outline or inspection drawer. Prose stays measured; grids, code and diagrams can use the document canvas. A document containing only a gallery, optionally preceded by its h1, uses the available page width and height. Keep extra introduction text in a separate reading section when it would turn that dedicated viewer back into normal document flow. Explicit author CSS can still choose another layout.
 
-The shared reading scale uses a 15px body, 46px title, 36px section heading and 22px subheading, with smaller headings on narrow screens. Callouts have a bounded reading width and restrained semantic border/wash; their text fills that width. Use the existing `eyebrow` class for a short optional label: inside a card it takes the card's tone. Inline code and disclosure summaries use the matching shared accents. Do not repeat these defaults as per-page CSS.
+The shared reading scale uses 18px regular paragraphs, 46px title, 36px section heading and 22px subheading, with smaller headings on narrow screens. Callouts have a bounded reading width and restrained semantic border/wash; their text fills that width. Use the existing `eyebrow` class for a short optional label: inside a card it takes the card's tone. Inline code and disclosure summaries use the matching shared accents. Do not repeat these defaults as per-page CSS.
 
 For two or three short alternatives with the same criteria, show columns so matching topics are visible together. Use tabs when each alternative needs a longer explanation or diagram. HTML and islands remain the content of either layout. The author chooses the presentation; readers should not have to configure column counts or layout before they can understand the options.
 

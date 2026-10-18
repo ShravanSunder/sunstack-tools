@@ -27,9 +27,9 @@ test('full frozen explorer keeps search, selection/history, graph/table correspo
 	await expect
 		.poll((): number => owner.querySelectorAll('.ex-explorer-browser details button').length)
 		.toBe(49);
-	await frame.getByRole('radio', { name: 'Current', exact: true }).click();
+	await frame.getByRole('button', { name: 'Current', exact: true }).click();
 	expect(owner.querySelectorAll('.ex-explorer-proposed')).toHaveLength(0);
-	await frame.getByRole('radio', { name: 'With proposals', exact: true }).click();
+	await frame.getByRole('button', { name: 'With proposals', exact: true }).click();
 	expect(owner.querySelectorAll('.ex-explorer-proposed').length).toBeGreaterThan(0);
 	const node = requiredElement(owner, '[data-node-id="spec-design"]');
 	await fixtureLocator(frame, node).hover();
@@ -103,8 +103,10 @@ test('explorer keeps modest arrowheads, soft routes and a fixed search header ab
 	await expect.poll((): number => list.querySelectorAll('details button').length).toBe(1);
 	observer.disconnect();
 	expect(settledAfter).toBeGreaterThanOrEqual(199);
-	await frame.getByRole('radio', { name: 'Current', exact: true }).click();
-	await expect.element(frame.getByRole('radio', { name: 'Current', exact: true })).toBeChecked();
+	await frame.getByRole('button', { name: 'Current', exact: true }).click();
+	await expect
+		.element(frame.getByRole('button', { name: 'Current', exact: true }))
+		.toHaveAttribute('aria-pressed', 'true');
 	expect(
 		requiredElement(owner, '.ex-explorer-browser-header').getBoundingClientRect().top,
 	).toBeGreaterThanOrEqual(
