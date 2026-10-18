@@ -41,6 +41,7 @@ const styles = await Promise.all(
 		'reference.css',
 		'components.css',
 		'navigation.css',
+		'command-search.css',
 		'presentations.css',
 		'inspection-gestures.css',
 		'vocabulary.css',

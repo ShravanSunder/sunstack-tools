@@ -1,40 +1,26 @@
-import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
+import { createIconButton } from '../core/icons.ts';
 
 export interface DocumentToolbar {
 	readonly element: HTMLElement;
-	readonly pagePanel: HTMLElement;
+	readonly pagesButton: HTMLButtonElement;
 	readonly updateTitle: (title: string) => void;
 }
 
 /** One native page-link list supplies Pages, Home, current title and breadcrumbs. No fetch needed. */
-export function createDocumentToolbar(pageLinks: readonly HTMLAnchorElement[]): DocumentToolbar {
+export function createDocumentToolbar(
+	pageLinks: readonly HTMLAnchorElement[],
+	openPages: () => void,
+): DocumentToolbar {
 	const element = document.createElement('header');
 	element.className = 'ex-document-toolbar';
-	const pagePanel = document.createElement('nav');
-	pagePanel.className = 'ex-pages-panel';
-	pagePanel.popover = 'auto';
-	pagePanel.setAttribute('aria-label', 'Pages');
-	const pagesButton = createIconButton('files', 'Browse pages', (): void => {});
+	const pagesButton = createIconButton('files', 'Browse pages', openPages);
+	pagesButton.classList.add('ex-pages-trigger');
 	pagesButton.append('Pages');
-	pagesButton.popoverTargetElement = pagePanel;
+	const hint = document.createElement('kbd');
+	hint.className = 'ex-shortcut-hint';
+	hint.textContent = 'P';
+	pagesButton.append(hint);
 	const homeSource = pageLinks[0];
-	const home = document.createElement('a');
-	home.href = homeSource?.href ?? location.href.split('#')[0] ?? location.href;
-	home.textContent = 'Home';
-	home.prepend(createPhosphorIcon('house'));
-	if (new URL(home.href).pathname === location.pathname) home.setAttribute('aria-current', 'page');
-	pagePanel.append(home);
-	for (const original of pageLinks.slice(1)) {
-		const link = original.cloneNode(true);
-		if (link instanceof HTMLAnchorElement) {
-			if (new URL(link.href).pathname === location.pathname)
-				link.setAttribute('aria-current', 'page');
-			pagePanel.append(link);
-		}
-	}
-	pagePanel.addEventListener('click', (event: MouseEvent): void => {
-		if (event.target instanceof Element && event.target.closest('a')) pagePanel.hidePopover();
-	});
 	const breadcrumbs = document.createElement('nav');
 	breadcrumbs.className = 'ex-document-breadcrumbs';
 	breadcrumbs.setAttribute('aria-label', 'Breadcrumb');
@@ -51,10 +37,10 @@ export function createDocumentToolbar(pageLinks: readonly HTMLAnchorElement[]): 
 	current.setAttribute('aria-current', 'page');
 	breadcrumbs.append(current);
 	element.append(pagesButton, breadcrumbs);
-	document.body.append(element, pagePanel);
+	document.body.append(element);
 	return {
 		element,
-		pagePanel,
+		pagesButton,
 		updateTitle: (title: string): void => {
 			current.textContent = title;
 		},

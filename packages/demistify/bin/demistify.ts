@@ -11,6 +11,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 
 import { applyEdits, type CheckOptions, checkHtml, formatFindings } from '../src/node/check.ts';
+import { indexCollectionSearch, type SearchPageSource } from '../src/node/collection-search.ts';
 import { embedMarkdownFiles, markdownFileReferences } from '../src/node/markdown-files.ts';
 import { renderCheck } from '../src/node/render-check.ts';
 
@@ -40,6 +41,37 @@ async function readHookFile(): Promise<string | undefined> {
 
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
+	if (command === 'index') {
+		if (rest.length === 0 || rest.some((file): boolean => !file.endsWith('.html'))) {
+			write('Usage: demistify index <page.html …>');
+			return 1;
+		}
+		const sources = await Promise.all(
+			rest.map(async (filePath): Promise<SearchPageSource> => {
+				const html = await readFile(filePath, 'utf8');
+				const markdownFiles: Record<string, string> = {};
+				await Promise.all(
+					markdownFileReferences(html).map(async (reference): Promise<void> => {
+						if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(reference))
+							throw new Error('index reads local Markdown files only.');
+						markdownFiles[reference] = await readFile(
+							resolve(dirname(filePath), reference),
+							'utf8',
+						);
+					}),
+				);
+				return { filePath, html, markdownFiles };
+			}),
+		);
+		const indexed = indexCollectionSearch(sources);
+		await Promise.all(
+			indexed.map(async (page): Promise<void> => writeFile(page.filePath, page.html)),
+		);
+		write(
+			`Indexed ${indexed.length} pages and ${indexed[0]?.destinations.length ?? 0} destinations. Regenerate after changing headings or walkthroughs.`,
+		);
+		return 0;
+	}
 	if (command === 'embed') {
 		const [input, output] = rest;
 		if (!input || !output || rest.length !== 2) {

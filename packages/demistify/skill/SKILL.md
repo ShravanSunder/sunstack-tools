@@ -79,7 +79,7 @@ Check a representative table, literal code, task list, image and Mermaid diagram
 
 ## Pages, breadcrumbs and headings
 
-For a collection, repeat one native page-link list on every page. The first link is Home. The matching page URL provides its name; the library generates the compact sticky Pages dropdown and breadcrumbs. No separate manifest or handwritten breadcrumb markup is needed.
+For a collection, repeat one native page-link list on every page. The first link is Home. The matching page URL provides its name; the library generates the compact sticky Pages trigger and breadcrumbs. The same command bar supplies Pages, Walkthroughs and heading search; no handwritten breadcrumb markup is needed.
 
 ```html
 <ex-nav for="content">
@@ -98,6 +98,18 @@ Real h2–h6 sections supply the page-named outline; it scrolls independently wh
 
 Home receives the built-in house icon. A clicked lower heading remains current even when the page cannot scroll it to the reading line; deliberate page scrolling resumes reading-position tracking. Preserve explicit IDs instead of relying on coincidental heading slugs.
 
+### Search and shortcuts
+
+Cmd/Ctrl-K opens one command bar for pages and headings. P opens its Pages scope; W opens Walkthroughs. These shortcuts leave inputs, editable content, open dialogs/popovers and modified browser commands alone. In an empty Pages or Walkthroughs search, 1–9 immediately opens that entry; use arrows and ↵ for later entries. Escape closes and restores the trigger. Holding Option reveals P/W hints beside the controls; browser/OS ownership still applies outside document focus.
+
+Search results show the page and ancestor headings above the matching title. The current page’s live headings and authored Pages links work without an index. To include other pages’ headings, generate a small embedded collection index from explicit local inputs:
+
+```sh
+demistify index index.html specification.html verification.html
+```
+
+Regenerate after changing headings or paths. The command reads local Markdown sources and prepares every page before writing outputs; it never fetches sibling HTML at runtime. Give each searchable Markdown island a stable `id`; wrap bare Markdown headings in that island before indexing. The generator preserves authored heading IDs and assigns stable native heading IDs. Existing documents without the generated data do not automatically gain cross-page heading search. Search uses titles and heading ancestry, not whole-page text or fuzzy matching. Same titles remain distinct by page and fragment.
+
 ## Walkthroughs reference content
 
 Several named/described presentations may share a page and the same islands. Each is an ordered path with Next/Previous; one stop is valid. Place the content normally and put only stops in `ex-presentation`:
@@ -111,9 +123,9 @@ Several named/described presentations may share a page and the same islands. Eac
 </ex-presentation>
 ```
 
-The menu is called **Walkthroughs**. A Walkthrough may span pages and mix text, diagrams and gallery pictures. **Gallery Journey** describes a pictured sequence over the same player. Compact rows show a picture icon for local picture-only journeys and a path icon for mixed, ordinary or cross-page explanations; no separate type column. Keep the title short and the description to one concise sentence. The underlying authoring tags remain `ex-presentation` and `ex-step`.
+The command bar’s guided-path scope is called **Walkthroughs**. A Walkthrough may span pages and mix text, diagrams and gallery pictures. **Gallery Journey** describes a pictured sequence over the same player. Compact rows show a picture icon for local picture-only journeys and a path icon for mixed, ordinary or cross-page explanations; no separate type column. Keep the title short and the description to one concise sentence. The underlying authoring tags remain `ex-presentation` and `ex-step`.
 
-The shared Walkthroughs menu discovers `id`, `title` and `description`. A presentation does not own, copy or hide other content. Use the current `ex-presentation`/`ex-step` form; the earlier `ex-route` and wrapper-selection form are removed.
+The shared Walkthroughs scope discovers `id`, `title` and `description`. A presentation does not own, copy or hide other content. Use the current `ex-presentation`/`ex-step` form; the earlier `ex-route` and wrapper-selection form are removed.
 
 Give every destination a stable ID. In Markdown island `requirements`, `## Recovery` becomes `#requirements--recovery` (repeated headings gain suffixes). A whole diagram uses `#architecture`; its Registry node uses `#architecture--Registry`. This scopes repeated node names to their diagram. Explicit HTML IDs remain valid. Fragments and stops reveal containing tabs/details/layers and await content readiness. A missing stop produces a visible error. Cross-page stops use `details.html#target`.
 

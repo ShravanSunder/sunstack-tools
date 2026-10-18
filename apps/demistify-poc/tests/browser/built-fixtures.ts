@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { Plugin } from 'vite';
 
+import { indexCollectionSearch } from '../../../../packages/demistify/src/node/collection-search.ts';
 import { embedMarkdownFiles } from '../../../../packages/demistify/src/node/markdown-files.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -33,6 +34,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['gallery', 'integrated-review'],
 			['explorer', 'round-13-inspection'],
 			['ui', 'review-ui'],
+			['search', 'command-search'],
 		].map(async ([name, source]): Promise<void> => {
 			if (!name || !source) throw new Error('Missing fixture name.');
 			await cp(
@@ -55,6 +57,18 @@ export async function builtFixtures(): Promise<Plugin> {
 					}),
 			);
 		}),
+	);
+	const searchPages = await Promise.all(
+		['index.html', 'evidence.html'].map(async (name) => ({
+			filePath: join(snapshot, 'search', name),
+			html: await readFile(join(snapshot, 'search', name), 'utf8'),
+			markdownFiles: {},
+		})),
+	);
+	await Promise.all(
+		indexCollectionSearch(searchPages).map(async (page): Promise<void> =>
+			writeFile(page.filePath, page.html),
+		),
 	);
 	const navigationHtml = await readFile(join(snapshot, 'navigation/index.html'), 'utf8');
 	const notesSource = await readFile(join(snapshot, 'navigation/notes.md'), 'utf8');

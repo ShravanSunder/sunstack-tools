@@ -1,7 +1,8 @@
 import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { createIconButton } from '../core/icons.ts';
+import { DocumentSearch } from './command-search.ts';
 import { createDocumentToolbar, type DocumentToolbar } from './page-navigation.ts';
-import { createPresentationMenu } from './presentations.ts';
+import { collectSearchDestinations, readSearchIndex } from './search-destinations.ts';
 
 export class HeadingNavigation extends HTMLElement {
 	private contentObserver: MutationObserver | undefined;
@@ -11,6 +12,7 @@ export class HeadingNavigation extends HTMLElement {
 	private contentRoot: HTMLElement | undefined;
 	private pageLinks: readonly HTMLAnchorElement[] = [];
 	private presentationsButton: HTMLButtonElement | undefined;
+	private documentSearch: DocumentSearch | undefined;
 	private documentToolbar: DocumentToolbar | undefined;
 	private headingButton: HTMLButtonElement | undefined;
 	private readonly headingLinks = new Map<Element, readonly HTMLAnchorElement[]>();
@@ -90,8 +92,8 @@ export class HeadingNavigation extends HTMLElement {
 	connectedCallback(): void {
 		if (this.navigationPanel) {
 			document.body.append(this.navigationPanel);
-			if (this.documentToolbar)
-				document.body.append(this.documentToolbar.element, this.documentToolbar.pagePanel);
+			if (this.documentToolbar) document.body.append(this.documentToolbar.element);
+			this.documentSearch?.connect();
 			if (this.presentationsButton) document.body.append(this.presentationsButton);
 			this.connectObservers();
 			return;
@@ -103,9 +105,37 @@ export class HeadingNavigation extends HTMLElement {
 		this.pageLinks = Array.from(this.querySelectorAll<HTMLAnchorElement>('a[href]')).filter(
 			(link): boolean => !link.closest('[slot="presentations"]'),
 		);
-		this.presentationsButton = createPresentationMenu(this)?.button;
-		if (this.presentationsButton) document.body.append(this.presentationsButton);
-		this.documentToolbar = createDocumentToolbar(this.pageLinks);
+		const indexed = readSearchIndex();
+		const searchLinks = [
+			...this.pageLinks,
+			...this.querySelectorAll<HTMLAnchorElement>('[slot="presentations"] a[href]'),
+		];
+		this.documentSearch = new DocumentSearch(() =>
+			collectSearchDestinations({
+				contentRoot: this.contentRoot ?? document.body,
+				links: searchLinks,
+				indexed,
+				pageTitle: this.pageName(),
+			}),
+		);
+		this.documentSearch.connect();
+		if (
+			document.querySelector('ex-presentation[id]') ||
+			this.querySelector('[slot="presentations"] a')
+		) {
+			this.presentationsButton = createIconButton('path', 'Browse walkthroughs', (): void =>
+				this.documentSearch?.open('walkthroughs', this.presentationsButton),
+			);
+			this.presentationsButton.classList.add('ex-presentations-trigger');
+			const hint = document.createElement('kbd');
+			hint.className = 'ex-shortcut-hint';
+			hint.textContent = 'W';
+			this.presentationsButton.append(hint);
+			document.body.append(this.presentationsButton);
+		}
+		this.documentToolbar = createDocumentToolbar(this.pageLinks, (): void =>
+			this.documentSearch?.open('pages', this.documentToolbar?.pagesButton),
+		);
 		const navigationPanel = document.createElement('nav');
 		navigationPanel.className = 'ex-heading-panel';
 		navigationPanel.popover = 'auto';
@@ -287,7 +317,7 @@ export class HeadingNavigation extends HTMLElement {
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
 		this.navigationPanel?.remove();
 		this.documentToolbar?.element.remove();
-		this.documentToolbar?.pagePanel.remove();
+		this.documentSearch?.disconnect();
 		this.presentationsButton?.remove();
 		if (this.scheduledFrame !== undefined) cancelAnimationFrame(this.scheduledFrame);
 		this.scheduledFrame = undefined;

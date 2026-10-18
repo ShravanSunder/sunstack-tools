@@ -50,7 +50,6 @@ ex-nav {
 	text-overflow: ellipsis;
 	color: var(--ink);
 }
-.ex-pages-panel,
 .ex-heading-panel {
 	position: fixed;
 	inset: 48px auto auto 12px;
@@ -66,10 +65,6 @@ ex-nav {
 	box-shadow: var(--shadow-float);
 	font: var(--text-md)/1.4 var(--font-display);
 }
-.ex-pages-panel {
-	width: min(260px, calc(100vw - 24px));
-}
-.ex-pages-panel a,
 .ex-heading-panel a {
 	display: block;
 	padding: var(--space-1) var(--space-2);
@@ -84,14 +79,6 @@ ex-nav {
 	font-size: var(--text-sm);
 	font-weight: 400;
 }
-.ex-pages-panel a {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	padding-block: var(--space-2);
-	color: var(--ink);
-}
-.ex-pages-panel a:is(:hover, [aria-current]),
 .ex-heading-panel a:is(:hover, [data-preview]) {
 	background: var(--selection-surface);
 	color: var(--accent);
