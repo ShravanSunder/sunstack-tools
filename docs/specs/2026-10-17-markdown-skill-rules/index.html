@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Markdown skill rules · design set</title>
+		<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css" />
+		<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+		<style>
+			.anatomy {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 1rem;
+			}
+			.anatomy > * {
+				min-width: 0;
+			}
+			.trace-scroll {
+				overflow-x: auto;
+			}
+			.trace-table {
+				width: 100%;
+			}
+			.trace-table details {
+				min-width: 13rem;
+			}
+			@media (max-width: 760px) {
+				.anatomy {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<ex-nav for="content"></ex-nav>
+		<ex-document id="content">
+			<h1>Markdown skill rules</h1>
+			<p>
+				Skill rules are marked in the skill text with <code>&lt;!-- K014 --&gt;</code>, assembled at
+				runtime from that text plus a rules file, checked strictly in CI, and logged and skipped
+				when invalid at runtime.
+			</p>
+			<p>
+				Design proposal · <a href="#documents">four source documents</a> · proof is planned, not
+				observed.
+			</p>
+			<ex-callout tone="question" title="Open decisions">
+				<p>
+					<a href="#requirements--open-owner-decisions">The examples’ job is undecided.</a>
+				</p>
+			</ex-callout>
+
+			<h2 id="flow">Assembly, check and runtime</h2>
+			<p>
+				<a href="#program--flow">Source: Program Design · Flow</a>. Header errors refuse in both
+				modes; per-rule errors follow the selected admission mode.
+				<a href="#program--deferred-expansion">Deferred expansion</a> defines when gates allow
+				discovery.
+			</p>
+			<ex-mermaid id="rule-flow"
+				><script type="text/plain">
+					flowchart TD
+					  header["Load RuleSet header"] --> parse["For each rule source: parse Markdown"]
+					  header -->|header error, both modes| refuse["Refuse invocation"]
+					  parse --> markers["Markers → hosts R2–R3 → bindings R4"]
+					  markers --> question["Question text R6–R7"]
+					  question --> consistency["Read rules file → consistency both ways R11"]
+					  consistency --> admission["Build RuleDefinition → admission"]
+					  admission -->|strict: any error| diagnostics["Refuse with file:line:col"]
+					  admission -->|lenient: per-rule error| skip["Record skipped rule; keep going"]
+					  admission -->|strict: check succeeds| print["OK + printed rules → exit; no backend"]
+					  admission -->|lenient: valid rules| expand["Runtime: topology → gates → expand units"]
+					  skip --> expand
+					  expand --> judgments["Judgments: requests"]
+					  expand --> checks["Mechanical rules: expect or ast_grep → local settlement"]
+					  judgments --> report["Report: spans, verdicts, check results, skipped rules"]
+					  checks --> report
+				</script></ex-mermaid
+			>
+
+			<h2 id="anatomy">Marker anatomy</h2>
+			<p>
+				<a href="#specification--the-marker">R1–R4</a>,
+				<a href="#specification--the-question">R6–R8</a> and
+				<a href="#specification--rules-files-and-rule-sources">R9–R10</a> define the shape below.
+				The three panes read the <a href="#specification--worked-example">worked example</a> from
+				the Specification.
+			</p>
+			<div class="anatomy">
+				<section>
+					<h3 id="marked-heading">Skill Markdown</h3>
+					<div id="marked-example">Loading source example…</div>
+				</section>
+				<section>
+					<h3 id="rules-entry">Rules entry</h3>
+					<div id="entry-example">Loading source example…</div>
+				</section>
+				<section>
+					<h3 id="visible-question">Visible question</h3>
+					<div id="question-example">Loading source example…</div>
+				</section>
+			</div>
+
+			<h2 id="allowlists">The two allowlists</h2>
+			<ul>
+				<li>
+					<a href="#specification--r2">Marker hosts · R2</a> and
+					<a href="#specification--r4">bindings · R4</a>
+				</li>
+				<li><a href="#specification--r6">Question keep-or-strip contract · R6</a></li>
+			</ul>
+
+			<h2 id="trace">From need to proof</h2>
+			<p>
+				Each need links to its source row. R links come from the Specification’s “Serves” column;
+				proof, journeys and lifetimes come from the Verification Design. Missing mappings are shown
+				as gaps.
+			</p>
+			<div class="trace-scroll">
+				<table class="trace-table">
+					<thead>
+						<tr>
+							<th>Need</th>
+							<th>Specification · serves</th>
+							<th>Proven by / target and journey</th>
+							<th>Lifetime</th>
+						</tr>
+					</thead>
+					<tbody id="trace-rows">
+						<tr>
+							<td colspan="4">Loading source-linked proof map…</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<h2 id="documents">The four documents</h2>
+			<p>
+				The Markdown files own the text. Use each island’s source control to inspect the exact
+				Markdown.
+			</p>
+			<ex-tabs>
+				<section label="Requirements">
+					<ex-markdown id="requirements" label="Requirements" src="./requirements.md"></ex-markdown>
+				</section>
+				<section label="Specification">
+					<ex-markdown
+						id="specification"
+						label="Specification"
+						src="./specification.md"
+					></ex-markdown>
+				</section>
+				<section label="Program design">
+					<ex-markdown id="program" label="Program design" src="./program-design.md"></ex-markdown>
+				</section>
+				<section label="Verification">
+					<ex-markdown
+						id="verification"
+						label="Verification design"
+						src="./verification-design.md"
+					></ex-markdown>
+				</section>
+			</ex-tabs>
+		</ex-document>
+		<script type="module">
+			// Derive the navigation view from the rendered source; keep no second prose copy.
+			const sourceIslands = ['requirements', 'specification', 'verification'];
+			const sourceObserver = new MutationObserver(buildProofMap);
+			sourceObserver.observe(document.getElementById('content'), {
+				childList: true,
+				subtree: true,
+			});
+			buildProofMap();
+
+			function appendSourceLink(container, destination, label) {
+				const sourceLink = document.createElement('a');
+				sourceLink.href = destination;
+				sourceLink.textContent = label;
+				container.append(sourceLink);
+			}
+
+			function buildProofMap() {
+				if (!sourceIslands.every((islandId) => document.querySelector(`#${islandId} tbody tr`)))
+					return;
+				const requirementRows = [...document.querySelectorAll('#requirements tbody tr')].filter(
+					(sourceRow) => /^U\d+$/.test(sourceRow.cells[0]?.textContent.trim()),
+				);
+				const verificationRows = [...document.querySelectorAll('#verification tbody tr')];
+				const exampleBlocks = [...document.querySelectorAll('#specification pre code')];
+				if (
+					requirementRows.length !== 10 ||
+					verificationRows.length !== 8 ||
+					exampleBlocks.length !== 3
+				)
+					return;
+				sourceObserver.disconnect();
+				const rulesExample = JSON.parse(exampleBlocks[1].textContent);
+				const examples = [
+					[
+						'marked-example',
+						'Marked section · R3–R4',
+						'markdown',
+						exampleBlocks[0].textContent.split('### Steering')[0].trim(),
+					],
+					[
+						'entry-example',
+						'K014 entry · R10',
+						'json',
+						JSON.stringify({ K014: rulesExample.K014 }, null, 2),
+					],
+					[
+						'question-example',
+						'Assembled question · R6',
+						'text',
+						exampleBlocks[2].textContent.trim(),
+					],
+				];
+				for (const [destinationId, title, language, sourceText] of examples) {
+					const codeIsland = document.createElement('ex-code');
+					codeIsland.setAttribute('title', title);
+					codeIsland.setAttribute('lang', language);
+					const codeSource = document.createElement('script');
+					codeSource.type = 'text/plain';
+					codeSource.textContent = sourceText;
+					codeIsland.append(codeSource);
+					document.getElementById(destinationId).replaceChildren(codeIsland);
+				}
+				for (const sourceRow of document.querySelectorAll('#specification tbody tr')) {
+					const ruleId = sourceRow.cells[0]?.textContent.trim().match(/^(R\d+|V\d+)\b/)?.[1];
+					if (ruleId) sourceRow.id = `specification--${ruleId.toLowerCase()}`;
+				}
+				const proofBody = document.getElementById('trace-rows');
+				proofBody.replaceChildren();
+				for (const sourceRow of requirementRows) {
+					const needId = sourceRow.cells[0].textContent.trim();
+					sourceRow.id = `requirements--${needId.toLowerCase()}`;
+					const proofRow = verificationRows.find((candidate) =>
+						candidate.cells[0].textContent.match(/U\d+/g)?.includes(needId),
+					);
+					const viewRow = proofBody.insertRow();
+					appendSourceLink(viewRow.insertCell(), `#${sourceRow.id}`, needId);
+					if (!proofRow) {
+						viewRow.insertCell().textContent = 'Gap: no explicit verification row';
+						continue;
+					}
+					proofRow.id = `verification--${proofRow.cells[0].textContent.match(/U\d+/g).join('-').toLowerCase()}`;
+					const referenceCell = viewRow.insertCell();
+					const mappedRules = [...document.querySelectorAll('#specification tbody tr')].filter(
+						(candidate) =>
+							/^R\d+\b/.test(candidate.cells[0]?.textContent.trim()) &&
+							candidate.cells[1]?.textContent.match(/U\d+/g)?.includes(needId),
+					);
+					if (!mappedRules.length) referenceCell.textContent = 'Gap: no R row maps this need';
+					for (const [ruleIndex, ruleRow] of mappedRules.entries()) {
+						if (ruleIndex) referenceCell.append(' · ');
+						appendSourceLink(
+							referenceCell,
+							`#${ruleRow.id}`,
+							ruleRow.cells[0].textContent.match(/^R\d+/)[0],
+						);
+					}
+					const proofCell = viewRow.insertCell();
+					const proofDetails = document.createElement('details');
+					const proofSummary = document.createElement('summary');
+					proofSummary.textContent = 'Proven by / journey';
+					proofDetails.append(proofSummary);
+					for (const columnIndex of [1, 2, 3]) {
+						const proofParagraph = document.createElement('p');
+						for (const contentNode of proofRow.cells[columnIndex].childNodes)
+							proofParagraph.append(contentNode.cloneNode(true));
+						proofDetails.append(proofParagraph);
+					}
+					appendSourceLink(proofDetails, `#${proofRow.id}`, 'Open verification row');
+					proofCell.append(proofDetails);
+					const lifetimeCell = viewRow.insertCell();
+					for (const contentNode of proofRow.cells[6].childNodes)
+						lifetimeCell.append(contentNode.cloneNode(true));
+				}
+			}
+		</script>
+	</body>
+</html>
