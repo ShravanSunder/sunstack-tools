@@ -13,7 +13,7 @@ test('presentation crosses files, returns to its home and reports an unavailable
 	await expect
 		.element(
 			frame
-				.getByRole('region', { name: 'Presentation player', exact: true })
+				.getByRole('region', { name: 'Walkthrough player', exact: true })
 				.getByText('The shared decision.', { exact: true }),
 		)
 		.toBeVisible();
@@ -441,4 +441,127 @@ test('Fit contains the picture and Fill covers the viewport, with no percentage 
 	expect(filled.height).toBeGreaterThanOrEqual(innerHeight - 1);
 	expect(gallery.querySelector('input[type="radio"]')).toBeNull();
 	expect(gallery.querySelector('.ex-gallery-zoom')).toBeNull();
+});
+
+test('gallery walkthrough uses one floating player, two-axis keys and an explicit missing variation', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui', '#journey', 'journey.html');
+	const gallery = requiredElement(fixture, '#journey-gallery');
+	const local = fixtureLocator(frame, gallery);
+	const player = frame.getByRole('region', {
+		name: 'Walkthrough player',
+		exact: true,
+		includeHidden: true,
+	});
+	await expect.element(player.getByRole('button', { name: 'Desktop', exact: true })).toBeVisible();
+	await player.getByRole('button', { name: 'Desktop', exact: true }).click();
+	await expect.element(local.getByRole('img', { name: 'One Desktop', exact: true })).toBeVisible();
+	expect(requiredElement(fixture, '.ex-route-count').textContent).toBe('1 / 3');
+	await userEvent.keyboard('{ArrowRight}');
+	await expect.element(local.getByRole('img', { name: 'Two Desktop', exact: true })).toBeVisible();
+	await userEvent.keyboard('{ArrowRight}{ArrowUp}');
+	await expect
+		.element(local.getByRole('status', { name: 'Mobile capture is unavailable', exact: true }))
+		.toBeVisible();
+	expect(requiredElement(fixture, '.ex-route-count').textContent).toBe('3 / 3');
+	expect(requiredElement(gallery, '.ex-gallery-picture').hasAttribute('hidden')).toBe(true);
+	expect(fixture.querySelector('.ex-drawer')).toBeNull();
+	await player.getByRole('button', { name: 'Desktop', exact: true }).click();
+	await expect
+		.element(local.getByRole('img', { name: 'Three Desktop', exact: true }))
+		.toBeVisible();
+	expect(fixture.querySelectorAll('.ex-route-player')).toHaveLength(1);
+	await expect
+		.poll((): boolean => {
+			const caption = requiredElement(
+				gallery,
+				'.ex-gallery-picture > figcaption',
+			).getBoundingClientRect();
+			const bar = requiredElement(fixture, '.ex-route-player').getBoundingClientRect();
+			return (
+				bar.top - caption.bottom >= 12 && bar.width >= gallery.getBoundingClientRect().width - 2
+			);
+		})
+		.toBe(true);
+	await page.viewport(390, 900);
+	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+	await expect
+		.poll(
+			(): number =>
+				requiredElement(fixture, '.ex-route-player').getBoundingClientRect().top -
+				requiredElement(gallery, '.ex-gallery-picture > figcaption').getBoundingClientRect().bottom,
+		)
+		.toBeGreaterThanOrEqual(12);
+	await player.getByRole('button', { name: 'Close walkthrough', exact: true }).click();
+	await expect
+		.element(local.getByRole('searchbox', { name: 'Search screenshots', exact: true }))
+		.toBeVisible();
+});
+
+test('gallery walkthrough restores browse filters, selection and zoom; variation switching can be omitted', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui', '', 'journey.html');
+	const gallery = requiredElement(fixture, '#journey-gallery');
+	const local = fixtureLocator(frame, gallery);
+	await local.getByRole('searchbox', { name: 'Search screenshots', exact: true }).fill('One');
+	await expect
+		.poll((): string => requiredElement(gallery, '.ex-gallery-count').textContent ?? '')
+		.toBe('2 screenshots');
+	await local.getByRole('button', { name: 'One Desktop', exact: true }).click();
+	await local.getByRole('button', { name: 'Fill screenshot', exact: true }).click();
+	await expect
+		.poll(
+			(): number =>
+				gallery.querySelector<HTMLImageElement>('.ex-gallery-preview img')?.naturalWidth ?? 0,
+		)
+		.toBe(1000);
+	const filledWidth = requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect()
+		.width;
+	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
+	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
+	await frame
+		.getByRole('link', {
+			name: 'Review screens Three logical screens with optional size variations.',
+			exact: true,
+		})
+		.click();
+	const player = frame.getByRole('region', {
+		name: 'Walkthrough player',
+		exact: true,
+		includeHidden: true,
+	});
+	await expect.element(local.getByRole('img', { name: 'One Mobile', exact: true })).toBeVisible();
+	await player.getByRole('button', { name: 'Close walkthrough', exact: true }).click();
+	await expect
+		.element(local.getByRole('button', { name: 'Grid view', exact: true }))
+		.toHaveAttribute('aria-pressed', 'true');
+	expect(gallery.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe('One');
+	expect(
+		requiredElement(gallery, '[data-capture-id="one-desktop"]').getAttribute('aria-current'),
+	).toBe('true');
+	await local.getByRole('button', { name: 'Review view', exact: true }).click();
+	await expect.element(local.getByRole('img', { name: 'One Desktop', exact: true })).toBeVisible();
+	await expect
+		.element(local.getByRole('button', { name: 'Fill screenshot', exact: true }))
+		.toHaveAttribute('aria-pressed', 'true');
+	await expect
+		.poll(
+			(): number =>
+				requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect().width,
+		)
+		.toBeCloseTo(filledWidth, 0);
+	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
+	await frame
+		.getByRole('link', {
+			name: 'Fixed screens Use the authored captures without variation switching.',
+			exact: true,
+		})
+		.click();
+	await expect
+		.element(player.getByRole('group', { name: 'Screen variation', exact: true }))
+		.not.toBeInTheDocument();
+	await player.getByRole('button', { name: 'Next step', exact: true }).click();
+	await userEvent.keyboard('{ArrowUp}');
+	await expect.element(local.getByRole('img', { name: 'Two Mobile', exact: true })).toBeVisible();
+	expect(requiredElement(fixture, '.ex-route-count').textContent).toBe('2 / 2');
+	await userEvent.keyboard('{Escape}');
+	await expect.element(player).not.toBeVisible();
 });

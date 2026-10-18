@@ -1,5 +1,6 @@
 import { createModeChoices, createSearchField, type SearchField } from '../core/controls.ts';
-import { createIconButton } from '../core/icons.ts';
+import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
+import { galleryFacetValues, type GalleryCapture, type GalleryFacet } from './gallery-data.ts';
 
 export function galleryElement<TTag extends keyof HTMLElementTagNameMap>(
 	tag: TTag,
@@ -173,4 +174,40 @@ export function createGalleryControls(prefix: string): GalleryControls {
 		grid,
 		message,
 	};
+}
+
+interface GalleryFacetControlsOptions {
+	readonly controls: GalleryControls;
+	readonly captures: readonly GalleryCapture[];
+	readonly facets: readonly GalleryFacet[];
+	readonly reset: () => void;
+	readonly change: (field: string, value: string, checked: boolean) => void;
+}
+
+export function renderGalleryFacetControls(options: GalleryFacetControlsOptions): void {
+	const { controls, captures, facets, reset, change } = options;
+	const resetButton = galleryElement('button', '', 'Reset filters');
+	resetButton.type = 'button';
+	resetButton.addEventListener('click', reset);
+	controls.filtersButton.hidden = facets.length === 0;
+	controls.filtersPanel.append(resetButton);
+	for (const facet of facets) {
+		const group = galleryElement('fieldset');
+		const legend = galleryElement('legend', '', facet.label);
+		if (facet.icon) legend.prepend(createPhosphorIcon(facet.icon));
+		group.append(legend);
+		for (const value of new Set(
+			captures.flatMap((capture): readonly string[] => galleryFacetValues(capture, facet.field)),
+		)) {
+			const label = galleryElement('label');
+			const input = galleryElement('input');
+			input.type = 'checkbox';
+			input.value = value;
+			input.dataset['galleryFacet'] = facet.field;
+			input.addEventListener('change', (): void => change(facet.field, value, input.checked));
+			label.append(input, value);
+			group.append(label);
+		}
+		controls.filtersPanel.append(group);
+	}
 }

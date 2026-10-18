@@ -1,4 +1,4 @@
-# Ordered presentations and targets
+# Ordered walkthroughs and targets
 
 Inspect the existing content before writing a path: island IDs, Markdown headings, diagram-local node names and any containing tab/detail/layer. Content lives there once; presentations only reference it.
 
@@ -23,4 +23,19 @@ Use IDs exactly, including case. Qualify Mermaid nodes when names repeat: a bare
 
 The shared resolver reveals containing tabs, details and layers, then waits for Markdown or diagrams to render. Missing destinations produce a visible player error. The player carries the path when navigating between HTML pages, so normal cross-file continuation does not require fetching sibling HTML. Keep ordinary page/fragment links too. Use the current ex-presentation/ex-step contract; do not wrap content or recreate the old ex-route form.
 
-Complete by opening a cold heading/node fragment, starting the named path, checking every Next/Previous destination and trying Back/Forward. For a cross-page stop, verify continuation and the return to its source page using the intended delivery method. A target in the wrong repeated diagram, an unresolved stop or a local-server-only result for a promised double-click artifact is not complete.
+The Walkthroughs menu uses an image icon for paths through gallery figures and a path icon for other explanations. The player has an icon-only close action, Left/Right for steps and Escape to leave. Keep narration concise and tied to what the reader can inspect.
+
+## Screenshot journeys
+
+Reference gallery figures directly, keeping their original captions and one shared player:
+
+```html
+<ex-presentation id="checkout" title="Complete checkout" variations>
+  <ex-step to="cart-mobile">Review the cart before continuing.</ex-step>
+  <ex-step to="payment-mobile">Choose a payment method.</ex-step>
+</ex-presentation>
+```
+
+`data-screen` and `data-state` identify a logical screen; `data-viewport` names its variations. The optional `variations` flag enables a button group and Up/Down switching while Left/Right continues between steps. Omit it for an exact pictured sequence. If the chosen variation is missing or ambiguous, show the gap on that step rather than substituting another picture. The floating player reserves a bottom gutter so it does not cover the picture or caption. Leaving restores the gallery's search, filters, selection, view and zoom.
+
+Complete by opening a cold heading/node fragment, starting the named path, checking every Next/Previous destination and trying Back/Forward. For pictured journeys, check optional variations, missing captures, narrow-screen gutters and restored browse state after closing. For a cross-page stop, verify continuation and the return to its source page using the intended delivery method. A target in the wrong repeated diagram, an unresolved stop or a local-server-only result for a promised double-click artifact is not complete.

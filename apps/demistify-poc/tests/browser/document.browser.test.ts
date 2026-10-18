@@ -94,7 +94,7 @@ test('presentation menu starts a named path while existing content and outline r
 	expect(requiredElement(fixture, '#architecture').hasAttribute('hidden')).toBe(false);
 	expect(requiredElement(fixture, '#review').hasAttribute('hidden')).toBe(false);
 	await expect
-		.element(frame.getByRole('region', { name: 'Presentation player', exact: true }))
+		.element(frame.getByRole('region', { name: 'Walkthrough player', exact: true }))
 		.toBeVisible();
 });
 

@@ -1,9 +1,7 @@
 import { createDebouncedAction } from '../core/debounce.ts';
-import { createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import {
 	filterGalleryCaptures,
-	galleryFacetValues,
 	galleryScreenKey,
 	readGalleryCaptures,
 	readGalleryFacets,
@@ -13,6 +11,7 @@ import {
 import {
 	anchorGalleryPopover,
 	createGalleryControls,
+	renderGalleryFacetControls,
 	galleryElement,
 	type GalleryControls,
 } from './gallery-view.ts';
@@ -22,10 +21,14 @@ import { openIsland } from './inspector.ts';
 
 type GalleryView = 'review' | 'grid';
 type ZoomMode = 'fit' | 'fill' | 'manual';
-interface GallerySnapshot {
+export interface GallerySnapshot {
 	readonly view: GalleryView;
 	readonly selected: string | undefined;
 	readonly query: string;
+	readonly zoomMode: ZoomMode;
+	readonly scale: number;
+	readonly scrollLeft: number;
+	readonly scrollTop: number;
 	readonly filters: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
@@ -41,6 +44,7 @@ export class GalleryIsland extends HTMLElement {
 	private view: GalleryView = 'review';
 	private controls: GalleryControls | undefined;
 	private activeFigure: HTMLElement | undefined;
+	private missingView: HTMLElement | undefined;
 	private activeImage: HTMLImageElement | undefined;
 	private imageStage: HTMLElement | undefined;
 	private renderedSelection: string | undefined;
@@ -112,20 +116,33 @@ export class GalleryIsland extends HTMLElement {
 		this.setAttribute('aria-label', this.getAttribute('label') ?? 'Screenshot gallery');
 		if (!GalleryIsland.activeGallery?.isConnected) GalleryIsland.activeGallery = this;
 		this.installControls(controls);
-		this.renderFacetControls(controls);
+		renderGalleryFacetControls({
+			controls,
+			captures: this.captures,
+			facets: this.facets,
+			reset: (): void => {
+				this.pendingFilter.cancel();
+				controls.search.value = '';
+				controls.searchField.sync();
+				for (const values of this.filters.values()) values.clear();
+				this.applyFilters();
+			},
+			change: (field, value, checked): void => {
+				const chosen = this.filters.get(field);
+				if (checked) chosen?.add(value);
+				else chosen?.delete(value);
+				this.pendingFilter.schedule();
+			},
+		});
 		this.renderedSelection = undefined;
 		this.renderedList = '';
 		this.applyFilters();
+		if (snapshot) this.restoreBrowseSnapshot(snapshot);
 		registerInspectionCopy(this, (): HTMLElement => {
 			const copy = document.createElement('ex-gallery');
 			if (!(copy instanceof GalleryIsland)) throw new Error('Gallery is not registered.');
 			copy.setAttribute('label', this.getAttribute('label') ?? 'Screenshot gallery');
-			copy.initialSnapshot = {
-				view: this.view,
-				selected: this.selected,
-				query: controls.search.value,
-				filters: this.filters,
-			};
+			copy.initialSnapshot = this.browseSnapshot();
 			copy.append(source.cloneNode(true));
 			return copy;
 		});
@@ -214,46 +231,6 @@ export class GalleryIsland extends HTMLElement {
 			},
 			{ signal: this.eventController.signal },
 		);
-	}
-
-	private renderFacetControls(controls: GalleryControls): void {
-		const reset = galleryElement('button', '', 'Reset filters');
-		reset.type = 'button';
-		reset.addEventListener('click', (): void => {
-			this.pendingFilter.cancel();
-			controls.search.value = '';
-			controls.searchField.sync();
-			for (const values of this.filters.values()) values.clear();
-			this.applyFilters();
-		});
-		controls.filtersButton.hidden = this.facets.length === 0;
-		controls.filtersPanel.append(reset);
-		for (const facet of this.facets) {
-			const group = galleryElement('fieldset');
-			const legend = galleryElement('legend', '', facet.label);
-			if (facet.icon) legend.prepend(createPhosphorIcon(facet.icon));
-			group.append(legend);
-			for (const value of new Set(
-				this.captures.flatMap((capture): readonly string[] =>
-					galleryFacetValues(capture, facet.field),
-				),
-			)) {
-				const label = galleryElement('label');
-				const input = galleryElement('input');
-				input.type = 'checkbox';
-				input.value = value;
-				input.dataset['galleryFacet'] = facet.field;
-				input.addEventListener('change', (): void => {
-					const chosen = this.filters.get(facet.field);
-					if (input.checked) chosen?.add(value);
-					else chosen?.delete(value);
-					this.pendingFilter.schedule();
-				});
-				label.append(input, value);
-				group.append(label);
-			}
-			controls.filtersPanel.append(group);
-		}
 	}
 
 	private applyFilters(): void {
@@ -354,6 +331,10 @@ export class GalleryIsland extends HTMLElement {
 		const controls = this.controls;
 		const capture = this.visible.find((item): boolean => item.id === this.selected);
 		if (!controls || !capture || this.view !== 'review') return;
+		this.missingView?.remove();
+		if (this.activeFigure) this.activeFigure.hidden = false;
+		for (const group of controls.toolbar.querySelectorAll<HTMLElement>('.ex-gallery-control-group'))
+			group.inert = false;
 		controls.title.textContent = capture.title;
 		controls.original.href = capture.source.querySelector<HTMLImageElement>('img')?.src ?? '';
 		if (this.renderedSelection === capture.id) return;
@@ -484,6 +465,81 @@ export class GalleryIsland extends HTMLElement {
 
 		for (const button of controls.strip.querySelectorAll<HTMLElement>('[data-capture-id]'))
 			button.setAttribute('aria-current', String(button.dataset['captureId'] === this.selected));
+	}
+
+	/** Playback borrows the gallery; the gallery remains the owner of browse and zoom state. */
+	browseSnapshot(): GallerySnapshot {
+		return {
+			view: this.view,
+			selected: this.selected,
+			query: this.controls?.search.value ?? '',
+			filters: new Map([...this.filters].map(([field, values]) => [field, new Set(values)])),
+			zoomMode: this.zoomMode,
+			scale: this.scale,
+			scrollLeft: this.imageStage?.scrollLeft ?? 0,
+			scrollTop: this.imageStage?.scrollTop ?? 0,
+		};
+	}
+
+	restoreBrowseSnapshot(snapshot: GallerySnapshot): void {
+		this.pendingFilter.cancel();
+		this.view = snapshot.view;
+		this.selected = snapshot.selected;
+		this.filters = new Map(
+			[...snapshot.filters].map(([field, values]) => [field, new Set(values)]),
+		);
+		this.zoomMode = snapshot.zoomMode;
+		this.scale = snapshot.scale;
+		if (this.controls) {
+			this.controls.search.value = snapshot.query;
+			this.controls.searchField.sync();
+		}
+		this.renderedSelection = undefined;
+		this.applyFilters();
+		const stage = this.imageStage;
+		const image = this.activeImage;
+		const restoreScroll = (): void => stage?.scrollTo(snapshot.scrollLeft, snapshot.scrollTop);
+		if (image?.complete) restoreScroll();
+		else image?.addEventListener('load', restoreScroll, { once: true });
+	}
+
+	prepareWalkthrough(): GallerySnapshot {
+		const snapshot = this.browseSnapshot();
+		this.restoreBrowseSnapshot({
+			...snapshot,
+			view: 'review',
+			query: '',
+			filters: new Map(),
+			zoomMode: 'fit',
+			scale: 1,
+			scrollLeft: 0,
+			scrollTop: 0,
+		});
+		return snapshot;
+	}
+
+	walkthroughCaptures(): readonly GalleryCapture[] {
+		return this.captures;
+	}
+
+	showUnavailableCapture(title: string, description: string): HTMLElement {
+		this.missingView ??= galleryElement('section', 'ex-gallery-gap');
+		this.missingView.setAttribute('role', 'status');
+		this.missingView.setAttribute('aria-label', title);
+		this.missingView.replaceChildren(
+			galleryElement('strong', '', title),
+			galleryElement('p', '', description),
+		);
+		if (this.activeFigure) this.activeFigure.hidden = true;
+		if (this.controls) {
+			this.controls.title.textContent = title;
+			this.controls.viewer.append(this.missingView);
+			for (const group of this.controls.toolbar.querySelectorAll<HTMLElement>(
+				'.ex-gallery-control-group',
+			))
+				group.inert = true;
+		}
+		return this.missingView;
 	}
 
 	/** Fragment resolution can select an authored capture without clearing the reader's filters. */

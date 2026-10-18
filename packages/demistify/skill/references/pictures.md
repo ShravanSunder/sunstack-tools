@@ -29,14 +29,13 @@ Review is the default: a scrollable grouped thumbnail pane beside the selected i
 
 For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Other prose/sections/disclosures make it an embedded gallery in normal page flow. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
 
-Viewport choices live in Filters. The viewer has no repeated capture/viewport arrow buttons or category selector. Its keyboard icon opens shortcut help; Review/Grid are one named radio group. Search uses available width and has a clear action through the same settled query pipeline.
+Use tags for useful content groupings, such as `data-tags="Account, Journey"`. Tags become the default filter choices when present. Screen and viewport metadata group navigation; they are not repeated as automatic picture filters. The keyboard icon opens shortcut help; Review/Grid use one named button group. Search uses available width and has a clear action through the same settled query pipeline.
 
-Present `screen`, `viewport` and `state` values become default filter options. Use `filters="screen viewport release"` with `data-release="Candidate"` to choose fields. For a custom field label/icon, supply a small declaration:
+Authors can explicitly request other facets using `filters="tags release"` with `data-release="Candidate"`. For a custom field label/icon, supply a small declaration:
 
 ```html
 <script type="application/json" data-gallery-filters>
-[{"field":"screen","label":"Screen","icon":"file"},
- {"field":"viewport","label":"Viewport","icon":"terminal"},
+[{"field":"tags","label":"Tags","icon":"file"},
  {"field":"release","label":"Release","icon":"package"}]
 </script>
 ```
@@ -45,7 +44,9 @@ Present `screen`, `viewport` and `state` values become default filter options. U
 
 A caption is native HTML or a Markdown island inside `figcaption`. Use normal paragraphs, emphasis, links, lists or code as the evidence needs; headings stay out of the page outline. Keep it about the picture rather than rebuilding a second viewer or application. A Markdown-file caption follows the main guide's live/embedded source rules. Images remain ordinary relative paths or HTTPS URLs, including in Markdown captions.
 
-Up/Down selects screenshots. Left/Right switches viewport categories and retains the related screen when available; absent variants are not invented. Editing fields keep their normal arrow keys. Fit/100%, zoom, sidebar, fullscreen and original-image actions are divided control groups. Cmd/Ctrl+wheel zooms; modifier-drag pans. Normal scrolling remains native.
+Left/Right moves between logical screens/states and preserves the viewport category when available. Up/Down changes variations of the current screen/state. With multiple galleries, keys follow the focused or last active gallery. Editing fields, popovers and inspectors retain their own keys. Fit contains the whole picture; Fill covers the viewer, with minus/plus for manual zoom. The toolbar omits numeric percentages. Cmd/Ctrl+wheel zooms; modifier-drag pans. Normal scrolling remains native.
+
+For a captioned user journey, target the existing figure IDs from `ex-presentation`/`ex-step`; see [ordered walkthroughs](tours.md). The existing player floats beneath the gallery with reserved space. Add the `variations` flag only when readers should switch sizes through a button group or Up/Down. Without it, each authored step uses its exact capture. A missing variation stays on its step and displays the gap. Closing restores the gallery's previous browse state.
 
 `ex-compare` is for two before/after children with `label`; `slider` overlays same-size images with a draggable divider. Use it instead of a gallery when the comparison itself is the whole task.
 
