@@ -296,6 +296,10 @@ test('the actual formatted guide literal stays exact in the page and sidebar', a
 test('Reading and Canvas center independently while headings follow their section and nested islands own their layout', async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 	const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
+	await expect
+		.poll((): boolean => requiredElement(fixture, '#mixed-markdown').hasAttribute('prepared'))
+		.toBe(true);
+	await fixture.fonts.ready;
 	const bounds = (selector: string): DOMRect =>
 		requiredElement(fixture, selector).getBoundingClientRect();
 	const canvas = bounds('#width-canvas');
