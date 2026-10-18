@@ -44,6 +44,23 @@ struct Candidate {
     visible: crate::markdown_mapped_text::MappedMarkdownText,
 }
 
+impl Candidate {
+    fn selected(
+        &self,
+        source: &SourceRef,
+        text: &str,
+        occurrence: MarkdownOccurrence,
+    ) -> SelectedMarkdownUnit {
+        SelectedMarkdownUnit {
+            kind: self.kind,
+            span: source_span(source, text, self.range.clone()),
+            text: text[self.range.clone()].into(),
+            visible_text: self.visible.text.clone(),
+            occurrence,
+        }
+    }
+}
+
 impl MarkdownDocument {
     pub(crate) fn select_units(
         &self,
@@ -90,6 +107,7 @@ impl MarkdownDocument {
             _ => None,
         };
         let mut selected = Vec::new();
+        let mut emitted = std::collections::BTreeSet::new();
         for (index, candidate) in candidates.iter().enumerate() {
             let mut visible_ranges: Box<dyn Iterator<Item = Range<usize>> + '_> = match filter {
                 None => Box::new(std::iter::empty()),
@@ -110,44 +128,59 @@ impl MarkdownDocument {
                 ),
             };
             let span = source_span(source, text, candidate.range.clone());
-            let make_unit = |occurrence| SelectedMarkdownUnit {
-                kind: candidate.kind,
-                span: span.clone(),
-                text: text[candidate.range.clone()].into(),
-                visible_text: candidate.visible.text.clone(),
-                occurrence,
-            };
             if matches!(selection, MarkdownUnitSelection::Unit { .. }) {
                 if filter.is_none() || visible_ranges.next().is_some() {
-                    selected.push(make_unit(MarkdownOccurrence::Unit { span: span.clone() }));
+                    selected.push(candidate.selected(
+                        source,
+                        text,
+                        MarkdownOccurrence::Unit { span },
+                    ));
                 }
             } else {
                 for visible_range in visible_ranges {
                     let Some(raw) = candidate.visible.raw_range(visible_range.clone()) else {
                         return Err(EvidenceCode::InvalidSelector.into());
                     };
-                    let owner = candidates
+                    let owners = candidates
                         .iter()
                         .enumerate()
                         .filter(|(_, owner)| contains_range(&owner.range, &raw))
-                        .filter(|(_, owner)| {
+                        .filter_map(|(position, owner)| {
+                            let range = if position == index {
+                                Some(visible_range.clone())
+                            } else {
+                                owner
+                                    .visible
+                                    .corresponding_range(&candidate.visible, visible_range.clone())
+                            }?;
+                            Some((position, owner, range))
+                        })
+                        .collect::<Vec<_>>();
+                    let owner = owners
+                        .iter()
+                        .filter(|(_, owner, _)| {
                             !(owner.kind == MarkdownUnitKind::Paragraph
-                                && candidates.iter().any(|item| {
+                                && owners.iter().any(|(_, item, _)| {
                                     item.kind == MarkdownUnitKind::ListItem
                                         && contains_range(&item.range, &owner.range)
                                 }))
                         })
-                        .min_by_key(|(position, owner)| (owner.range.len(), *position))
-                        .map(|(position, _)| position);
-                    if owner == Some(index) {
-                        selected.push(make_unit(MarkdownOccurrence::CallSite {
-                            unit_span: span.clone(),
-                            match_span: source_span(source, text, raw),
-                            visible_range: MarkdownByteRange {
-                                start: visible_range.start,
-                                end: visible_range.end,
+                        .min_by_key(|(position, owner, _)| (owner.range.len(), *position));
+                    if let Some((position, owner, owner_visible)) = owner
+                        && emitted.insert((*position, owner_visible.start, owner_visible.end))
+                    {
+                        selected.push(owner.selected(
+                            source,
+                            text,
+                            MarkdownOccurrence::CallSite {
+                                unit_span: source_span(source, text, owner.range.clone()),
+                                match_span: source_span(source, text, raw),
+                                visible_range: MarkdownByteRange {
+                                    start: owner_visible.start,
+                                    end: owner_visible.end,
+                                },
                             },
-                        }));
+                        ));
                     }
                     if selected.len() > max_matches {
                         break;
@@ -160,6 +193,20 @@ impl MarkdownDocument {
         }
         let limited = selected.len() > max_matches;
         selected.truncate(max_matches);
+        if matches!(selection, MarkdownUnitSelection::CallSite { .. }) {
+            selected.sort_by_key(|unit| match &unit.occurrence {
+                MarkdownOccurrence::CallSite {
+                    match_span,
+                    visible_range,
+                    ..
+                } => (
+                    unit.span.byte_start,
+                    match_span.byte_start,
+                    visible_range.start,
+                ),
+                _ => (unit.span.byte_start, 0, 0),
+            });
+        }
         Ok((selected, limited))
     }
 }
