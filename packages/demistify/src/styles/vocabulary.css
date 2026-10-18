@@ -49,7 +49,7 @@ ex-document {
 	display: block;
 	max-width: var(--width-canvas);
 	margin: var(--space-4) auto var(--space-16);
-	font-size: var(--text-md);
+	font-size: var(--text-lg);
 }
 ex-document > * + * {
 	margin-top: var(--space-6);
@@ -182,7 +182,7 @@ ex-card {
 	border-top: 2px solid var(--tone, var(--rule));
 	border-radius: var(--radius-md);
 	padding: var(--space-4) var(--space-5);
-	font-size: var(--text-md);
+	font-size: var(--text-lg);
 	line-height: 1.55;
 }
 ex-card .eyebrow {
@@ -768,7 +768,7 @@ ex-board[data-mode='map'] ex-region[data-open] {
 ex-tree {
 	display: block;
 	container-type: inline-size;
-	font: var(--text-md) / 1.45 var(--font-display);
+	font: 400 var(--text-base) / 1.5 var(--font-display);
 }
 ex-tree ul {
 	margin: 0;
@@ -855,8 +855,13 @@ ex-tree li[data-collapsed] > ul,
 ex-tree[layout='map'] li[data-collapsed] > ul {
 	display: none;
 }
+ex-tree li:has(> ul) > .ex-tree-node .ex-tree-label {
+	font-weight: 500;
+}
+.ex-tree-root > .ex-tree-node .ex-tree-label,
 .ex-tree-root > .ex-tree-node strong {
-	font-size: var(--text-lg);
+	font-size: var(--text-tree-root);
+	font-weight: 600;
 }
 .ex-tree-node a {
 	color: var(--accent);

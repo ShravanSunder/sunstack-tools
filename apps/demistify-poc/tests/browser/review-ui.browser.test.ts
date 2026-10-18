@@ -302,6 +302,29 @@ test('Reading and Canvas center independently while headings follow their sectio
 	await fixture.fonts.ready;
 	const bounds = (selector: string): DOMRect =>
 		requiredElement(fixture, selector).getBoundingClientRect();
+	const view = fixture.defaultView;
+	if (!view) throw new Error('Missing fixture window.');
+	const proseStyle = view.getComputedStyle(requiredElement(fixture, '#ordinary-proof'));
+	expect(proseStyle.fontFamily).toContain('Source Sans 3');
+	expect(proseStyle.fontSize).toBe('18px');
+	expect(proseStyle.fontWeight).toBe('400');
+	expect(view.getComputedStyle(requiredElement(fixture, '#reading-heading')).fontFamily).toContain(
+		'Archivo',
+	);
+	await expect
+		.poll((): number => fixture.querySelectorAll('#type-tree .ex-tree-label').length)
+		.toBe(3);
+	expect(
+		[...fixture.querySelectorAll('#type-tree .ex-tree-label')].map(
+			(label): string => view.getComputedStyle(label).fontWeight,
+		),
+	).toEqual(['600', '500', '400']);
+	for (const selector of ['#reading-heading', '#canvas-heading']) {
+		const divider = view.getComputedStyle(requiredElement(fixture, selector), '::before');
+		expect(Number.parseFloat(divider.width)).toBeCloseTo(760, 0);
+		expect(view.getComputedStyle(requiredElement(fixture, selector)).borderTopWidth).toBe('0px');
+	}
+	expect(bounds('#reading-divider').width).toBeCloseTo(760, 0);
 	const canvas = bounds('#width-canvas');
 	const center = canvas.left + canvas.width / 2;
 	for (const selector of [
@@ -323,6 +346,10 @@ test('Reading and Canvas center independently while headings follow their sectio
 		'#canvas-description',
 		'#width-code',
 		'#mixed-markdown .ex-table-scroll',
+		'#mixed-markdown > p:has(> img)',
+		'#mixed-markdown > h3',
+		'#mixed-markdown > h3 + pre',
+		'#tabs-heading',
 	]) {
 		expect(Math.abs(bounds(selector).width - canvas.width)).toBeLessThan(1);
 		expect(Math.abs(bounds(selector).left - canvas.left)).toBeLessThan(1);
