@@ -1,5 +1,19 @@
 # @sunstack/demistify
 
+## 1.6.0
+
+### Minor Changes
+
+- 8ad68dd: Use button groups for shared mode choices. Navigate gallery screens with Left/Right and same-screen variations with Up/Down from gallery or page-body focus. Filter by authored tags and simplify zoom to Fit, Fill, minus and plus without numeric percentages.
+
+  Keep the open inspector and reserved document/header space within the current viewport after a window resize, and restore full header width when the inspector closes.
+
+  Reuse the native walkthrough player for gallery journeys, with a floating full-gallery surface, reserved bottom gutter, optional variation buttons and Up/Down shortcuts, explicit missing captures, and restored browse/filter/zoom state on exit.
+
+- 8b7fe29: Render focused Markdown walkthrough narration with optional subject icons, regular 18px text and a measured floating player. Keep headings out of the narration hierarchy, escape authored HTML and reject executable link protocols. Carry narration and icons through cross-page walkthroughs; reserve space using the actual player height.
+
+  Add the shared author-selected data-width="reading|canvas" convention to components and layout wrappers, with checker/editor metadata. The entire tab set, including its tab bar, follows the selected centered width.
+
 ## 1.5.1
 
 ### Patch Changes
