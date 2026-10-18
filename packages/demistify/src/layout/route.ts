@@ -117,7 +117,7 @@ class RoutePlayer {
 		this.narration.setAttribute('aria-live', 'polite');
 		const previous = createIconButton('arrow-left', 'Previous step', (): void => this.step(-1));
 		const next = createIconButton('arrow-right', 'Next step', (): void => this.step(1));
-		const close = createIconButton('x', 'Leave presentation', (): void => this.stop());
+		const close = createIconButton('x', 'Close walkthrough', (): void => this.stop());
 		const controls = document.createElement('div');
 		controls.className = 'ex-route-controls';
 		controls.append(this.picker, title, previous, this.counter, next, close);
