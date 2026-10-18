@@ -15,7 +15,7 @@ export function renderThemedDiagram(render: MermaidRenderer, sourceText: string)
 				// Inherit the page accent; assigning --accent to itself makes it invalid.
 				surface: 'var(--accent-soft)',
 				border: 'var(--rule)',
-				font: 'IBM Plex Sans Condensed',
+				font: 'Source Sans 3',
 				transparent: true,
 			}),
 		),

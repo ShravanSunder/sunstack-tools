@@ -30,6 +30,9 @@ async function verifyMarkdownRendering(variant: 'navigation' | 'embedded'): Prom
 	const diagram = requiredElement(fixture, '#notes ex-mermaid svg');
 	expect(diagram.textContent).toContain('Client');
 	expect(diagram.textContent).toContain('Session');
+	expect(
+		fixture.defaultView?.getComputedStyle(requiredElement(diagram, 'text')).fontFamily,
+	).toContain('Source Sans 3');
 	expect(diagram.querySelector('path, polyline')?.getBoundingClientRect().width).toBeGreaterThan(0);
 	if (variant === 'embedded') {
 		const requests = fixture.defaultView?.performance.getEntriesByType('resource') ?? [];
