@@ -1,5 +1,12 @@
 # @sunstack/demistify
 
+## 1.7.1
+
+### Patch Changes
+
+- ac9ad9d: Clarify the picture guide's two-image slider limit and link rich, multi-option comparisons to their canonical guide.
+- 79ebaea: Give Reading/Canvas transitions more space on wide documents, and keep diagram labels at a readable size and contrast in both themes. Clarify pages, tabs, disclosure and walkthrough selection in the authoring guide.
+
 ## 1.7.0
 
 ### Minor Changes
