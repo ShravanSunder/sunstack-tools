@@ -1,5 +1,15 @@
 # @sunstack/demistify
 
+## 1.8.0
+
+### Minor Changes
+
+- e7eb984: Search pages and heading ancestry from one command bar. Use Cmd/Ctrl-K for document search, P/W for Pages/Walkthroughs, numbered scoped choices and Option-held hints. Generate a small embedded collection index with `demistify index` for cross-page heading search without runtime sibling-page fetches.
+
+### Patch Changes
+
+- a73490f: Explain that a single Walkthrough or Gallery Journey also needs document navigation to expose its visible launch control.
+
 ## 1.7.1
 
 ### Patch Changes
