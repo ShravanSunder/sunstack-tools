@@ -23,7 +23,7 @@ Keep related figures adjacent and their category names consistent:
 </ex-gallery>
 ```
 
-Review is the default: a scrollable grouped thumbnail pane beside the selected image. The grid icon switches the same gallery to a contact sheet; the review icon returns with selection and filters retained. `view="grid"` chooses the initial view; `selected="menu-laptop"` chooses an initial figure.
+Review is the default: a scrollable grouped thumbnail pane beside the selected image. The list icon toggles thumbnails and gives the viewer their space; it remains reachable by keyboard and touch. This visibility choice is retained across Review/Grid, inspection copies and Gallery Journeys. The grid icon switches the same gallery to a contact sheet; the review icon returns with selection and filters retained. `view="grid"` chooses the initial view; `selected="menu-laptop"` chooses an initial figure.
 
 ## Facets and captions
 

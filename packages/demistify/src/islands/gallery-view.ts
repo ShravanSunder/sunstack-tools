@@ -24,6 +24,7 @@ export interface GalleryControls {
 	readonly count: HTMLOutputElement;
 	readonly reviewChoice: HTMLButtonElement;
 	readonly gridChoice: HTMLButtonElement;
+	readonly thumbnails: HTMLButtonElement;
 	readonly body: HTMLElement;
 	readonly strip: HTMLElement;
 	readonly viewer: HTMLElement;
@@ -74,9 +75,12 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	const reviewChoice = modes.buttons.get('review');
 	const gridChoice = modes.buttons.get('grid');
 	if (!reviewChoice || !gridChoice) throw new Error('Gallery layout choices are missing.');
-	header.append(searchField.element, filtersButton, count, modes.element);
+	const thumbnails = createIconButton('list', 'Hide thumbnails', (): void => {});
+	thumbnails.setAttribute('aria-controls', `${prefix}-thumbnails`);
+	header.append(searchField.element, filtersButton, count, thumbnails, modes.element);
 	const body = galleryElement('div', 'ex-gallery-body');
 	const strip = galleryElement('aside', 'ex-gallery-strip');
+	strip.id = `${prefix}-thumbnails`;
 	strip.setAttribute('aria-label', 'Screenshots');
 	const viewer = galleryElement('section', 'ex-gallery-viewer');
 	const toolbar = galleryElement('div', 'ex-gallery-toolbar');
@@ -125,6 +129,7 @@ export function createGalleryControls(prefix: string): GalleryControls {
 		count,
 		reviewChoice,
 		gridChoice,
+		thumbnails,
 		body,
 		strip,
 		viewer,

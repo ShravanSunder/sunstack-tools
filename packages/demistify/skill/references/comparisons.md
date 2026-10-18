@@ -21,7 +21,7 @@ Choose columns for two or three short alternatives. Use `view="tabs"` when each 
 
 For a larger set, add `choose` to show two content selectors, anchored like gallery Filters. Optional `selected="current proposed"` names the initial child IDs in display order. Selecting the other pane's current alternative swaps the pair; it never duplicates a live island. This is content selection, not a reader-facing layout or column-count setting.
 
-Add `scroll` when a tall comparison benefits from one bounded scroll surface with sticky column headings. Omit it for natural document flow. Narrow layouts stack alternatives and retain their topic order. A heading, fragment or walkthrough target inside a hidden alternative reveals that alternative and updates its selector/tab.
+Comparisons grow to fit their content in normal document flow; the page owns vertical scrolling and column headings stay sticky. Nested viewers such as code and galleries keep their own local controls. Narrow layouts stack alternatives and retain their topic order. A heading, fragment or walkthrough target inside a hidden alternative reveals that alternative and updates its selector/tab.
 
 Sidebar inspection is an independent interactive copy; fullscreen uses the live content and returns it. Exercise nested state, choice, deep links, narrow containment and inspection for the actual composition being authored. A source comparison does not establish that either implementation ran.
 

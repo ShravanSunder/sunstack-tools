@@ -32,6 +32,46 @@ test('clicking the already-selected gallery view retains the image and its pan',
 	expect(viewport.scrollTop).toBe(pan.top);
 });
 
+test.each([1600, 390])(
+	'gallery thumbnails can be hidden and restored at %ipx without replacing the selected picture',
+	async (width: number): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('gallery');
+		const gallery = requiredElement(fixture, '#proof-gallery');
+		const local = fixtureLocator(frame, gallery);
+		await expect
+			.element(local.getByRole('button', { name: 'Hide thumbnails', exact: true }))
+			.toBeVisible();
+		const strip = requiredElement(gallery, '.ex-gallery-strip');
+		const image = requiredElement(gallery, '.ex-gallery-preview img');
+		const viewer = requiredElement(gallery, '.ex-gallery-viewer');
+		const before = viewer.getBoundingClientRect();
+		await local.getByRole('button', { name: 'Hide thumbnails', exact: true }).click();
+		await expect.element(fixtureLocator(frame, strip)).not.toBeVisible();
+		await expect
+			.element(local.getByRole('button', { name: 'Show thumbnails', exact: true }))
+			.toHaveAttribute('aria-expanded', 'false');
+		const after = viewer.getBoundingClientRect();
+		expect(width > 700 ? after.width - before.width : after.height - before.height).toBeGreaterThan(
+			80,
+		);
+		expect(requiredElement(gallery, '.ex-gallery-preview img')).toBe(image);
+		await local.getByRole('button', { name: 'Grid view', exact: true }).click();
+		await local.getByRole('button', { name: 'Review view', exact: true }).click();
+		await expect.element(fixtureLocator(frame, strip)).not.toBeVisible();
+		const show = local.getByRole('button', { name: 'Show thumbnails', exact: true });
+		await show.click();
+		await userEvent.keyboard('{Enter}');
+		await expect.element(fixtureLocator(frame, strip)).not.toBeVisible();
+		await userEvent.keyboard('{Enter}');
+		await expect.element(fixtureLocator(frame, strip)).toBeVisible();
+		await expect
+			.element(local.getByRole('button', { name: 'Hide thumbnails', exact: true }))
+			.toHaveAttribute('aria-expanded', 'true');
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+	},
+);
+
 test('cross-page gallery walkthrough retains the chosen variation', async (): Promise<void> => {
 	const { frame } = await openFixture('ui', '#cross-journey', 'journey.html');
 	const iframeElement = document.querySelector<HTMLIFrameElement>('iframe');
@@ -639,6 +679,17 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 				gallery.querySelector<HTMLImageElement>('.ex-gallery-preview img')?.naturalWidth ?? 0,
 		)
 		.toBe(1000);
+	const widthWithThumbnails = requiredElement(
+		gallery,
+		'.ex-gallery-preview img',
+	).getBoundingClientRect().width;
+	await local.getByRole('button', { name: 'Hide thumbnails', exact: true }).click();
+	await expect
+		.poll(
+			(): number =>
+				requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect().width,
+		)
+		.toBeGreaterThan(widthWithThumbnails);
 	const filledWidth = requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect()
 		.width;
 	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
@@ -665,6 +716,9 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 	).toBe('true');
 	await local.getByRole('button', { name: 'Review view', exact: true }).click();
 	await expect.element(local.getByRole('img', { name: 'One Desktop', exact: true })).toBeVisible();
+	await expect
+		.element(local.getByRole('button', { name: 'Show thumbnails', exact: true }))
+		.toHaveAttribute('aria-expanded', 'false');
 	await expect
 		.element(local.getByRole('button', { name: 'Fill screenshot', exact: true }))
 		.toHaveAttribute('aria-pressed', 'true');

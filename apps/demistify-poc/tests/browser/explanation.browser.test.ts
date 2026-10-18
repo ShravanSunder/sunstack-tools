@@ -80,7 +80,7 @@ test('a cold Trace attachment fragment reveals its row and remains contained on 
 	expect(requiredElement(fixture, '#source-step')).toBe(source);
 });
 
-test('comparison aligns unequal topic rows, keeps a sticky header, and makes a missing topic explicit', async (): Promise<void> => {
+test('comparison grows with its content, aligns topic rows and keeps page-scroll headings sticky', async (): Promise<void> => {
 	await page.viewport(1600, 650);
 	const { document: fixture, frame } = await openFixture('ui', '', 'comparison-views.html');
 	await expect
@@ -98,13 +98,15 @@ test('comparison aligns unequal topic rows, keeps a sticky header, and makes a m
 	expect(Math.abs(left.getBoundingClientRect().top - gap.getBoundingClientRect().top)).toBeLessThan(
 		1,
 	);
+	// The fixture retains its former scroll attribute: existing HTML must also grow naturally.
 	const viewport = requiredElement(fixture, '#models .ex-comparison-viewport');
+	expect(viewport.clientHeight).toBeGreaterThanOrEqual(viewport.scrollHeight - 1);
 	viewport.scrollTop = 200;
-	await expect.poll((): number => viewport.scrollTop).toBeGreaterThan(0);
+	expect(viewport.scrollTop).toBe(0);
+	viewport.scrollIntoView({ block: 'start', behavior: 'instant' });
+	fixture.defaultView?.scrollBy({ top: 200, behavior: 'instant' });
 	const header = requiredElement(fixture, '#models .ex-comparison-header:not([hidden])');
-	expect(
-		Math.abs(header.getBoundingClientRect().top - viewport.getBoundingClientRect().top),
-	).toBeLessThan(2);
+	expect(Math.abs(header.getBoundingClientRect().top - 56)).toBeLessThan(2);
 });
 
 test('comparison fullscreen retains live nested gallery, tabs and input state and returns the same nodes', async (): Promise<void> => {
@@ -213,6 +215,8 @@ test('comparison sidebar choices are independent and closing a nested gallery co
 	const owner = requiredElement(fixture, '#models');
 	const input = requiredElement(fixture, '#working-note');
 	await fixtureLocator(frame, input).fill('Main note');
+	const originalGallery = fixtureLocator(frame, requiredElement(fixture, '#nested-gallery'));
+	await originalGallery.getByRole('button', { name: 'Hide thumbnails', exact: true }).click();
 	owner.scrollIntoView({ block: 'start' });
 	await fixtureLocator(frame, owner).hover();
 	await frame
@@ -220,6 +224,13 @@ test('comparison sidebar choices are independent and closing a nested gallery co
 		.click();
 	const drawer = frame.getByRole('complementary', { name: 'Session models', exact: true });
 	await expect.element(drawer).toBeVisible();
+	await expect
+		.element(drawer.getByRole('button', { name: 'Show thumbnails', exact: true }))
+		.toHaveAttribute('aria-expanded', 'false');
+	await drawer.getByRole('button', { name: 'Show thumbnails', exact: true }).click();
+	await expect
+		.element(originalGallery.getByRole('button', { name: 'Show thumbnails', exact: true }))
+		.toHaveAttribute('aria-expanded', 'false');
 	await drawer.getByLabelText('Working note', { exact: true }).fill('Copy note');
 	await expect.element(fixtureLocator(frame, input)).toHaveValue('Main note');
 	await drawer.getByRole('button', { name: 'Choose right comparison', exact: true }).click();
