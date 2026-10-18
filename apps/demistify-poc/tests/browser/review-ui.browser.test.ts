@@ -386,6 +386,9 @@ test('document headings align with Reading prose while visual components keep th
 			),
 		)
 		.toBeLessThan(1);
+	await page.viewport(390, 900);
+	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+	expect(bounds('.ex-drawer').width).toBeLessThanOrEqual(274);
 	await frame
 		.getByRole('complementary', { name: 'Canvas code', exact: true })
 		.getByRole('button', { name: 'Close', exact: true })

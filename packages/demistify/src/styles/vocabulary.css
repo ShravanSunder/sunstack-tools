@@ -700,13 +700,20 @@ ex-board[data-mode='map'] ex-region[data-open] {
 }
 
 /* Drawer: a docked panel that takes space; the page narrows beside it and keeps scrolling. */
+:root {
+	--ex-drawer-used-width: 0px;
+}
+:root[data-drawer] {
+	--ex-drawer-used-width: min(var(--ex-drawer-width, 460px), 70vw);
+}
+
 .ex-drawer {
 	position: fixed;
 	top: 0;
 	right: 0;
 	bottom: 0;
 	z-index: 15;
-	width: var(--ex-drawer-width, 460px);
+	width: var(--ex-drawer-used-width);
 	display: flex;
 	flex-direction: column;
 	background: var(--surface-content);
@@ -739,14 +746,14 @@ ex-board[data-mode='map'] ex-region[data-open] {
 	outline: none;
 }
 :root[data-drawer] body {
-	padding-inline-end: calc(var(--ex-drawer-width, 460px) + 20px);
+	padding-inline-end: calc(var(--ex-drawer-used-width) + 20px);
 }
 :root[data-drawer] .ex-issues {
-	right: calc(var(--ex-drawer-width, 460px) + 12px);
+	right: calc(var(--ex-drawer-used-width) + 12px);
 }
 :root[data-drawer] .ex-route-player {
-	left: calc((100vw - var(--ex-drawer-width, 460px)) / 2);
-	width: min(640px, calc(100vw - var(--ex-drawer-width, 460px) - 24px));
+	left: calc((100vw - var(--ex-drawer-used-width)) / 2);
+	width: min(640px, calc(100vw - var(--ex-drawer-used-width) - 24px));
 }
 :root[data-resizing] {
 	cursor: col-resize;
