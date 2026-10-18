@@ -59,3 +59,35 @@ impl MechanicalCheck {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MechanicalResult {
+    Pass,
+    Fail,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum LocalObservation {
+    AstMatch { span: sunstack_evidence::SourceSpan },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum LocalSettlement {
+    Completed {
+        result: MechanicalResult,
+        observations: Vec<LocalObservation>,
+    },
+    Unresolved {
+        diagnostics: DiagnosticList,
+    },
+    Cancelled,
+}
+
+impl LocalSettlement {
+    pub fn is_complete(&self) -> bool {
+        matches!(self, Self::Completed { .. })
+    }
+}

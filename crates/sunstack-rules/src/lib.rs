@@ -32,6 +32,9 @@ pub mod rule_evaluation_contracts;
 pub use rule_evaluation_contracts::*;
 pub mod mechanical_contracts;
 pub use mechanical_contracts::*;
+mod local_check_evaluation;
+pub mod rule_backend_factory;
+pub use rule_backend_factory::RuleBackendFactory;
 pub mod verdict_evaluation;
 pub use verdict_evaluation::*;
 

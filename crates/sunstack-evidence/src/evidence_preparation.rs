@@ -1,6 +1,7 @@
 mod change_comparison;
 mod connected_relationships;
 mod connected_sources;
+mod markdown_match_query;
 mod native_queries;
 use crate::*;
 use std::{

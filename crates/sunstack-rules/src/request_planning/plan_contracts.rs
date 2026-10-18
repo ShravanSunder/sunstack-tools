@@ -202,6 +202,7 @@ pub(crate) enum RequestSettlement {
     },
 }
 pub(crate) struct ExecutionState {
+    pub local_settlements: BTreeMap<OccurrenceIndex, LocalSettlement>,
     pub expansions: Vec<ExpansionState>,
     pub entries: Vec<EntrySettlement>,
     pub gates: BTreeMap<EntryIndex, GateSettlement>,
@@ -225,6 +226,9 @@ pub(crate) fn selection_read_set(
         .collect()
 }
 impl ExecutionPlan {
+    pub fn unit_is_mechanical(&self, unit: UnitKey) -> bool {
+        matches!(unit, UnitKey::Rule(index) if matches!(self.occurrences[index.0].rule.verdict, VerdictDeclaration::Mechanical { .. }))
+    }
     pub fn entry_evidence(&self, index: EntryIndex) -> &[EvidenceDeclaration] {
         match &self.entries[index.0].definition {
             EntryDefinition::Decision { evidence, .. } => evidence,

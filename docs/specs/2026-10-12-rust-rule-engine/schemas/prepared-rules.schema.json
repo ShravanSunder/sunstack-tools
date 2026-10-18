@@ -4320,6 +4320,7 @@
         "invalid_threshold",
         "invalid_band",
         "invalid_composite",
+        "invalid_mechanical_check",
         "invalid_target",
         "undeclared_input",
         "input_kind_mismatch",

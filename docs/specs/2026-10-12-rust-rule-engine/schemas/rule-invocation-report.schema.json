@@ -2335,6 +2335,85 @@
         "question_name"
       ]
     },
+    "LocalObservation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ast_match"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "span"
+          ]
+        }
+      ]
+    },
+    "LocalSettlement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "completed"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LocalObservation"
+              }
+            },
+            "result": {
+              "$ref": "#/$defs/MechanicalResult"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "result",
+            "observations"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unresolved"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
     "MarkdownByteRange": {
       "type": "object",
       "properties": {
@@ -2399,6 +2478,13 @@
             "visible_range"
           ]
         }
+      ]
+    },
+    "MechanicalResult": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail"
       ]
     },
     "ModelName": {
@@ -3979,6 +4065,7 @@
         "invalid_threshold",
         "invalid_band",
         "invalid_composite",
+        "invalid_mechanical_check",
         "invalid_target",
         "undeclared_input",
         "input_kind_mismatch",
@@ -4398,6 +4485,43 @@
     },
     "RuleOccurrenceResult": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "declared_severity": {
+              "$ref": "#/$defs/Severity"
+            },
+            "explanation": {
+              "type": "string"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "checked"
+            },
+            "outcome": {
+              "$ref": "#/$defs/LocalSettlement"
+            },
+            "selected_by": {
+              "$ref": "#/$defs/SelectedReasons"
+            },
+            "target": {
+              "$ref": "#/$defs/TargetLocation"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "selected_by",
+            "target",
+            "declared_severity",
+            "explanation",
+            "outcome"
+          ]
+        },
         {
           "type": "object",
           "properties": {

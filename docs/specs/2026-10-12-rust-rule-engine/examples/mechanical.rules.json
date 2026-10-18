@@ -1,0 +1,13 @@
+{
+  "K014": {
+    "name": "skill.description",
+    "target": { "input": "skill", "select": { "kind": "frontmatter_field", "field": "description" } },
+    "expect": { "starts_with": "Use when" },
+    "severity": "block"
+  },
+  "K015": {
+    "name": "skill.load-result",
+    "target": { "input": "skill", "select": { "kind": "markdown_units", "mode": "unit", "units": ["paragraph"], "starts_with": "MUST" } },
+    "ast_grep": { "kind": "paragraph", "regex": "\\bMUST\\s+load\\b", "not": { "regex": "\\breturn\\b" } }
+  }
+}
