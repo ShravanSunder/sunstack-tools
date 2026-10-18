@@ -42,33 +42,60 @@ export function createModeChoices<TValue extends string>(
 	selected: TValue,
 	onChange: (value: TValue) => void,
 	iconsOnly = false,
-): { readonly element: HTMLElement; readonly inputs: ReadonlyMap<TValue, HTMLInputElement> } {
+): {
+	readonly element: HTMLElement;
+	readonly buttons: ReadonlyMap<TValue, HTMLButtonElement>;
+	readonly select: (value: TValue) => void;
+} {
 	const element = document.createElement('div');
 	element.className = 'ex-mode-choices';
-	element.setAttribute('role', 'radiogroup');
+	element.setAttribute('role', 'group');
 	element.setAttribute('aria-label', label);
-	const name = `ex-mode-${crypto.randomUUID()}`;
-	const inputs = new Map<TValue, HTMLInputElement>();
+	const buttons = new Map<TValue, HTMLButtonElement>();
+	const select = (value: TValue): void => {
+		for (const [key, button] of buttons) {
+			button.setAttribute('aria-pressed', String(key === value));
+			button.tabIndex = key === value ? 0 : -1;
+		}
+	};
 	for (const option of options) {
-		const choice = document.createElement('label');
-		choice.title = option.label;
-		const input = document.createElement('input');
-		input.type = 'radio';
-		input.name = name;
-		input.value = option.value;
-		input.checked = option.value === selected;
-		input.setAttribute('aria-label', option.label);
-		input.addEventListener('change', (): void => {
-			if (input.checked) onChange(option.value);
+		const button = document.createElement('button');
+		button.type = 'button';
+		button.value = option.value;
+		button.title = option.label;
+		button.setAttribute('aria-label', option.label);
+		button.append(createPhosphorIcon(option.icon));
+		if (!iconsOnly) button.append(option.label);
+		button.addEventListener('click', (): void => {
+			select(option.value);
+			onChange(option.value);
 		});
-		const face = document.createElement('span');
-		face.append(createPhosphorIcon(option.icon));
-		if (!iconsOnly) face.append(option.label);
-		choice.append(input, face);
-		element.append(choice);
-		inputs.set(option.value, input);
+		button.addEventListener('keydown', (event: KeyboardEvent): void => {
+			if (event.altKey || event.ctrlKey || event.metaKey) return;
+			const index = options.indexOf(option);
+			const next =
+				event.key === 'ArrowRight'
+					? (index + 1) % options.length
+					: event.key === 'ArrowLeft'
+						? (index + options.length - 1) % options.length
+						: event.key === 'Home'
+							? 0
+							: event.key === 'End'
+								? options.length - 1
+								: undefined;
+			if (next === undefined) return;
+			event.preventDefault();
+			const value = options[next]?.value;
+			if (value !== undefined) {
+				buttons.get(value)?.click();
+				buttons.get(value)?.focus();
+			}
+		});
+		element.append(button);
+		buttons.set(option.value, button);
 	}
-	return { element, inputs };
+	select(selected);
+	return { element, buttons, select };
 }
 
 export interface SearchField {

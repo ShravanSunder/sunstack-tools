@@ -21,18 +21,17 @@ export interface GalleryControls {
 	readonly help: HTMLButtonElement;
 	readonly helpPanel: HTMLElement;
 	readonly count: HTMLOutputElement;
-	readonly reviewChoice: HTMLInputElement;
-	readonly gridChoice: HTMLInputElement;
+	readonly reviewChoice: HTMLButtonElement;
+	readonly gridChoice: HTMLButtonElement;
 	readonly body: HTMLElement;
 	readonly strip: HTMLElement;
 	readonly viewer: HTMLElement;
 	readonly toolbar: HTMLElement;
 	readonly title: HTMLElement;
 	readonly fit: HTMLButtonElement;
-	readonly natural: HTMLButtonElement;
+	readonly fill: HTMLButtonElement;
 	readonly zoomOut: HTMLButtonElement;
 	readonly zoomIn: HTMLButtonElement;
-	readonly zoom: HTMLOutputElement;
 	readonly sidebar: HTMLButtonElement;
 	readonly fullscreen: HTMLButtonElement;
 	readonly original: HTMLAnchorElement;
@@ -105,8 +104,8 @@ export function createGalleryControls(prefix: string): GalleryControls {
 		(): void => {},
 		true,
 	);
-	const reviewChoice = modes.inputs.get('review');
-	const gridChoice = modes.inputs.get('grid');
+	const reviewChoice = modes.buttons.get('review');
+	const gridChoice = modes.buttons.get('grid');
 	if (!reviewChoice || !gridChoice) throw new Error('Gallery layout choices are missing.');
 	header.append(searchField.element, filtersButton, count, modes.element);
 	const body = galleryElement('div', 'ex-gallery-body');
@@ -117,11 +116,10 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	const title = galleryElement('strong', 'ex-gallery-title');
 	const fit = createIconButton('corners-out', 'Fit screenshot', (): void => {});
 	fit.append('Fit');
-	const natural = createIconButton('resize', 'Natural size', (): void => {});
-	natural.append('100%');
+	const fill = createIconButton('resize', 'Fill screenshot', (): void => {});
+	fill.append('Fill');
 	const zoomOut = createIconButton('magnifying-glass-minus', 'Zoom out', (): void => {});
 	const zoomIn = createIconButton('magnifying-glass-plus', 'Zoom in', (): void => {});
-	const zoom = galleryElement('output', 'ex-gallery-zoom');
 	const sidebar = createIconButton('sidebar-simple', 'Open screenshot in sidebar', (): void => {});
 	const fullscreen = createIconButton('arrows-out', 'Expand screenshot', (): void => {});
 	const original = galleryElement('a', 'ex-icon-button');
@@ -136,12 +134,12 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	helpPanel.popover = 'auto';
 	helpPanel.setAttribute('aria-label', 'Keyboard shortcuts');
 	helpPanel.innerHTML =
-		'<strong>Keyboard shortcuts</strong><dl><dt>Up / Down</dt><dd>Previous / next screenshot</dd><dt>Left / Right</dt><dd>Previous / next viewport category</dd><dt>⌘ / Ctrl + wheel</dt><dd>Zoom</dd><dt>Drag or scroll</dt><dd>Pan</dd><dt>Esc</dt><dd>Close fullscreen or this help</dd></dl>';
+		'<strong>Keyboard shortcuts</strong><dl><dt>Left / Right</dt><dd>Previous / next screen</dd><dt>Up / Down</dt><dd>Previous / next variation of this screen</dd><dt>⌘ / Ctrl + wheel</dt><dd>Zoom</dd><dt>Drag or scroll</dt><dd>Pan</dd><dt>Esc</dt><dd>Close fullscreen or this help</dd></dl>';
 	help.popoverTargetElement = helpPanel;
 	header.append(helpPanel);
 	toolbar.append(
 		title,
-		controlGroup('Image zoom', [fit, natural, zoomOut, zoom, zoomIn]),
+		controlGroup('Image zoom', [fit, fill, zoomOut, zoomIn]),
 		controlGroup('Viewing actions', [sidebar, fullscreen, original, help]),
 	);
 	viewer.append(toolbar);
@@ -166,10 +164,9 @@ export function createGalleryControls(prefix: string): GalleryControls {
 		toolbar,
 		title,
 		fit,
-		natural,
+		fill,
 		zoomOut,
 		zoomIn,
-		zoom,
 		sidebar,
 		fullscreen,
 		original,

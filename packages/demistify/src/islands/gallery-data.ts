@@ -68,11 +68,7 @@ export function readGalleryFacets(
 	captures: readonly GalleryCapture[],
 ): readonly GalleryFacet[] {
 	const declaration = owner.querySelector('script[data-gallery-filters]');
-	const fields = owner.getAttribute('filters')?.split(/\s+/).filter(Boolean) ?? [
-		'screen',
-		'viewport',
-		'state',
-	];
+	const fields = owner.getAttribute('filters')?.split(/\s+/).filter(Boolean) ?? ['tags'];
 	const defaults = fields.filter((field): boolean =>
 		captures.some((capture): boolean => !!capture.metadata[field]),
 	);
@@ -96,7 +92,28 @@ export function filterGalleryCaptures(
 			(!normalized || capture.searchText.includes(normalized)) &&
 			Array.from(facets).every(
 				([field, values]): boolean =>
-					values.size === 0 || values.has(capture.metadata[field] ?? ''),
+					values.size === 0 ||
+					galleryFacetValues(capture, field).some((value): boolean => values.has(value)),
 			),
 	);
+}
+
+/** Tags are comma-separated labels; ordinary metadata facets contain one value. */
+export function galleryFacetValues(capture: GalleryCapture, field: string): readonly string[] {
+	const value = capture.metadata[field] ?? '';
+	return field === 'tags'
+		? value
+				.split(',')
+				.map((tag): string => tag.trim())
+				.filter(Boolean)
+		: value
+			? [value]
+			: [];
+}
+/** A logical screen/state is one step; viewport captures are its variations. */
+export function galleryScreenKey(capture: GalleryCapture): string {
+	return JSON.stringify([
+		capture.source.dataset['screen'] ?? capture.id,
+		capture.metadata['state'] ?? '',
+	]);
 }

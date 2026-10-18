@@ -292,7 +292,7 @@ export class ExplorerController {
 			(mode): void => {
 				this.mode = mode;
 				this.select(this.selection, false);
-				this.controls.querySelector<HTMLInputElement>('input:checked')?.focus();
+				this.controls.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
 			},
 		);
 		this.controls.append(modes.element);

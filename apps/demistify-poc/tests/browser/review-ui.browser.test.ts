@@ -244,7 +244,7 @@ test('dedicated gallery fills available space and its short grid scrolls without
 	expect(
 		requiredElement(gallery, '.ex-gallery-preview').getBoundingClientRect().height,
 	).toBeGreaterThanOrEqual(140);
-	await local.getByRole('radio', { name: 'Grid view', exact: true }).click();
+	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
 	const grid = requiredElement(gallery, '.ex-gallery-grid');
 	await expect.poll((): boolean => grid.scrollHeight > grid.clientHeight).toBe(true);
 	expect(requiredElement(grid, 'figure').getBoundingClientRect().height).toBeGreaterThan(190);

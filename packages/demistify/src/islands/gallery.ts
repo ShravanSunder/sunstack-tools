@@ -3,6 +3,8 @@ import { createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import {
 	filterGalleryCaptures,
+	galleryFacetValues,
+	galleryScreenKey,
 	readGalleryCaptures,
 	readGalleryFacets,
 	type GalleryCapture,
@@ -19,7 +21,7 @@ import { installInspectionGestures } from './inspection-gestures.ts';
 import { openIsland } from './inspector.ts';
 
 type GalleryView = 'review' | 'grid';
-type ZoomMode = 'fit' | 'natural' | 'manual';
+type ZoomMode = 'fit' | 'fill' | 'manual';
 interface GallerySnapshot {
 	readonly view: GalleryView;
 	readonly selected: string | undefined;
@@ -29,6 +31,7 @@ interface GallerySnapshot {
 
 /** Agent-authored evidence; document chrome and inspection remain owned by the shared library. */
 export class GalleryIsland extends HTMLElement {
+	private static activeGallery: GalleryIsland | undefined;
 	private sourceTemplate: HTMLTemplateElement | undefined;
 	private captures: readonly GalleryCapture[] = [];
 	private facets: readonly GalleryFacet[] = [];
@@ -87,7 +90,6 @@ export class GalleryIsland extends HTMLElement {
 		this.filters = new Map(
 			this.facets.map((facet): [string, Set<string>] => [facet.field, new Set()]),
 		);
-		if (!this.filters.has('viewport')) this.filters.set('viewport', new Set());
 		const snapshot = this.initialSnapshot;
 		this.view = snapshot?.view ?? (this.getAttribute('view') === 'grid' ? 'grid' : 'review');
 		this.selected =
@@ -108,6 +110,7 @@ export class GalleryIsland extends HTMLElement {
 		);
 		this.setAttribute('role', 'region');
 		this.setAttribute('aria-label', this.getAttribute('label') ?? 'Screenshot gallery');
+		if (!GalleryIsland.activeGallery?.isConnected) GalleryIsland.activeGallery = this;
 		this.installControls(controls);
 		this.renderFacetControls(controls);
 		this.renderedSelection = undefined;
@@ -139,13 +142,16 @@ export class GalleryIsland extends HTMLElement {
 		controls.search.addEventListener('input', (): void => {
 			this.pendingFilter.schedule();
 		});
-		controls.reviewChoice.addEventListener('change', (): void => this.changeView('review'));
-		controls.gridChoice.addEventListener('change', (): void => this.changeView('grid'));
+		controls.reviewChoice.addEventListener('click', (): void => this.changeView('review'));
+		controls.gridChoice.addEventListener('click', (): void => this.changeView('grid'));
 		controls.fit.addEventListener('click', (): void => {
 			this.zoomMode = 'fit';
 			this.fitImage();
 		});
-		controls.natural.addEventListener('click', (): void => this.changeScale(1, 'natural'));
+		controls.fill.addEventListener('click', (): void => {
+			this.zoomMode = 'fill';
+			this.fitImage();
+		});
 		controls.zoomOut.addEventListener('click', (): void =>
 			this.changeScale(this.scale / 1.25, 'manual'),
 		);
@@ -158,26 +164,44 @@ export class GalleryIsland extends HTMLElement {
 		controls.fullscreen.addEventListener('click', (): void => {
 			this.inspectSelected('modal');
 		});
-		this.addEventListener(
+		const activate = (): void => {
+			GalleryIsland.activeGallery = this;
+		};
+		this.addEventListener('focusin', activate, { signal: this.eventController.signal });
+		this.addEventListener('pointerdown', activate, { signal: this.eventController.signal });
+		document.addEventListener(
 			'keydown',
 			(event: KeyboardEvent): void => {
 				if (
+					GalleryIsland.activeGallery !== this ||
+					event.defaultPrevented ||
+					document.documentElement.hasAttribute('data-presentation') ||
 					event.ctrlKey ||
 					event.metaKey ||
 					event.altKey ||
 					!(event.target instanceof Element) ||
-					event.target.closest('input,textarea,select,[contenteditable="true"],[popover]')
+					event.target.closest(
+						'input,textarea,select,[contenteditable="true"],[popover],dialog,.ex-drawer,[role="tab"],[role="separator"]',
+					)
 				)
 					return;
-				if (this.querySelector(':popover-open')) return;
+				if (document.querySelector(':popover-open')) return;
+				if (
+					!(
+						event.target === document.body ||
+						event.target === document.documentElement ||
+						this.contains(event.target)
+					)
+				)
+					return;
 				const focused = this.ownerDocument.activeElement;
 				const wasPreview = focused?.closest('.ex-gallery-preview');
-				if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+				if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
 					event.preventDefault();
-					this.moveCapture(event.key === 'ArrowUp' ? -1 : 1);
-				} else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+					this.moveCapture(event.key === 'ArrowLeft' ? -1 : 1);
+				} else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
 					event.preventDefault();
-					this.moveViewport(event.key === 'ArrowLeft' ? -1 : 1);
+					this.moveViewport(event.key === 'ArrowUp' ? -1 : 1);
 				}
 				if (focused instanceof HTMLElement && !focused.isConnected) {
 					const replacement = wasPreview
@@ -202,6 +226,7 @@ export class GalleryIsland extends HTMLElement {
 			for (const values of this.filters.values()) values.clear();
 			this.applyFilters();
 		});
+		controls.filtersButton.hidden = this.facets.length === 0;
 		controls.filtersPanel.append(reset);
 		for (const facet of this.facets) {
 			const group = galleryElement('fieldset');
@@ -209,7 +234,9 @@ export class GalleryIsland extends HTMLElement {
 			if (facet.icon) legend.prepend(createPhosphorIcon(facet.icon));
 			group.append(legend);
 			for (const value of new Set(
-				this.captures.map((capture): string => capture.metadata[facet.field] ?? '').filter(Boolean),
+				this.captures.flatMap((capture): readonly string[] =>
+					galleryFacetValues(capture, facet.field),
+				),
 			)) {
 				const label = galleryElement('label');
 				const input = galleryElement('input');
@@ -252,8 +279,10 @@ export class GalleryIsland extends HTMLElement {
 			input.checked =
 				this.filters.get(input.dataset['galleryFacet'] ?? '')?.has(input.value) ?? false;
 		this.setAttribute('view', this.view);
-		controls.reviewChoice.checked = this.view === 'review';
-		controls.gridChoice.checked = this.view === 'grid';
+		controls.reviewChoice.setAttribute('aria-pressed', String(this.view === 'review'));
+		controls.reviewChoice.tabIndex = this.view === 'review' ? 0 : -1;
+		controls.gridChoice.setAttribute('aria-pressed', String(this.view === 'grid'));
+		controls.gridChoice.tabIndex = this.view === 'grid' ? 0 : -1;
 		controls.body.hidden = this.view !== 'review' || !this.visible.length;
 		controls.grid.hidden = this.view !== 'grid' || !this.visible.length;
 		this.dispatchEvent(new Event('gallery-updated', { bubbles: true }));
@@ -349,7 +378,7 @@ export class GalleryIsland extends HTMLElement {
 		this.imageStage = stage;
 		controls.viewer.append(figure);
 		image.addEventListener('load', (): void =>
-			this.zoomMode === 'fit' ? this.fitImage() : this.changeScale(this.scale, this.zoomMode),
+			this.zoomMode !== 'manual' ? this.fitImage() : this.changeScale(this.scale, this.zoomMode),
 		);
 		image.addEventListener('error', (): void => {
 			controls.message.textContent =
@@ -360,11 +389,11 @@ export class GalleryIsland extends HTMLElement {
 			setScale: (scale: number): void => this.changeScale(scale, 'manual'),
 		});
 		this.resizeObserver = new ResizeObserver((): void => {
-			if (this.zoomMode === 'fit') this.fitImage();
+			if (this.zoomMode !== 'manual') this.fitImage();
 		});
 		this.resizeObserver.observe(stage);
 		if (image.complete && image.naturalWidth > 0) {
-			if (this.zoomMode === 'fit') this.fitImage();
+			if (this.zoomMode !== 'manual') this.fitImage();
 			else this.changeScale(this.scale, this.zoomMode);
 		}
 	}
@@ -381,14 +410,14 @@ export class GalleryIsland extends HTMLElement {
 			Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
 		const verticalPadding =
 			Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
-		const scale = Math.min(
-			1,
-			(this.imageStage.clientWidth - horizontalPadding) / this.activeImage.naturalWidth,
+		const widthRatio =
+			(this.imageStage.clientWidth - horizontalPadding) / this.activeImage.naturalWidth;
+		const heightRatio =
 			(Math.floor(this.imageStage.getBoundingClientRect().height) - verticalPadding) /
-				this.activeImage.naturalHeight,
-		);
-
-		this.changeScale(Math.max(0.02, scale), 'fit');
+			this.activeImage.naturalHeight;
+		const fill = this.zoomMode === 'fill';
+		const scale = fill ? Math.max(widthRatio, heightRatio) : Math.min(1, widthRatio, heightRatio);
+		this.changeScale(Math.max(0.02, scale), fill ? 'fill' : 'fit');
 	}
 
 	private changeScale(scale: number, mode: ZoomMode): void {
@@ -399,9 +428,8 @@ export class GalleryIsland extends HTMLElement {
 			this.activeImage.style.height = `${this.activeImage.naturalHeight * this.scale}px`;
 		}
 		if (this.controls) {
-			this.controls.zoom.textContent = `${Math.round(this.scale * 100)}%`;
 			this.controls.fit.setAttribute('aria-pressed', String(mode === 'fit'));
-			this.controls.natural.setAttribute('aria-pressed', String(mode === 'natural'));
+			this.controls.fill.setAttribute('aria-pressed', String(mode === 'fill'));
 		}
 	}
 
@@ -421,52 +449,33 @@ export class GalleryIsland extends HTMLElement {
 	}
 
 	private moveCapture(direction: number): void {
-		const index = this.visible.findIndex((capture): boolean => capture.id === this.selected);
-		const next = this.visible[index + direction];
-		if (!next) return;
-		this.selectCapture(next.id);
+		const current = this.visible.find((capture): boolean => capture.id === this.selected);
+		if (!current) return;
+		const keys = [...new Set(this.visible.map(galleryScreenKey))];
+		const next = keys[keys.indexOf(galleryScreenKey(current)) + direction];
+		if (next === undefined) return;
+		const candidates = this.visible.filter(
+			(capture): boolean => galleryScreenKey(capture) === next,
+		);
+		const chosen =
+			candidates.find(
+				(capture): boolean => capture.metadata['viewport'] === current.metadata['viewport'],
+			) ?? candidates[0];
+		if (!chosen) return;
+		this.selectCapture(chosen.id);
 		this.controls?.strip
-			.querySelector(`[data-capture-id="${CSS.escape(next.id)}"]`)
+			.querySelector(`[data-capture-id="${CSS.escape(chosen.id)}"]`)
 			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 	}
 
-	private viewportValues(): readonly string[] {
-		const filters = new Map(this.filters);
-		filters.delete('viewport');
-		return Array.from(
-			new Set(
-				filterGalleryCaptures(this.captures, this.controls?.search.value ?? '', filters)
-					.map((capture): string => capture.metadata['viewport'] ?? '')
-					.filter(Boolean),
-			),
-		);
-	}
-
-	private chooseViewport(value: string): void {
-		this.pendingFilter.cancel();
-		const screen = this.captures.find((capture): boolean => capture.id === this.selected)?.metadata[
-			'screen'
-		];
-		this.filters.set('viewport', new Set(value ? [value] : []));
-		const candidates = filterGalleryCaptures(
-			this.captures,
-			this.controls?.search.value ?? '',
-			this.filters,
-		);
-		this.selected =
-			candidates.find((capture): boolean => capture.metadata['screen'] === screen)?.id ??
-			candidates[0]?.id;
-		this.applyFilters();
-	}
-
 	private moveViewport(direction: number): void {
-		const values = this.viewportValues();
-		const current =
-			this.filters.get('viewport')?.values().next().value ??
-			this.captures.find((capture): boolean => capture.id === this.selected)?.metadata['viewport'];
-		const index = values.findIndex((value): boolean => value === current);
-		const next = values[index + direction];
-		if (next !== undefined) this.chooseViewport(next);
+		const current = this.visible.find((capture): boolean => capture.id === this.selected);
+		if (!current) return;
+		const candidates = this.visible.filter(
+			(capture): boolean => galleryScreenKey(capture) === galleryScreenKey(current),
+		);
+		const next = candidates[candidates.indexOf(current) + direction];
+		if (next) this.selectCapture(next.id);
 	}
 
 	private updateNavigation(): void {

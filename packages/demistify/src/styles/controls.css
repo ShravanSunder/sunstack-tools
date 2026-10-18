@@ -1,4 +1,4 @@
-/* Tabs change content; radios choose a mode; switches independently show a layer. */
+/* Tabs change content; button groups choose a mode; switches independently show a layer. */
 :is(.ex-tab-bar, .ex-explorer-tabs) {
 	display: flex;
 	flex-wrap: nowrap;
@@ -49,32 +49,24 @@
 	border-radius: var(--radius-md);
 	background: var(--surface-page);
 }
-.ex-mode-choices label {
-	position: relative;
-	cursor: pointer;
-}
-.ex-mode-choices input {
-	position: absolute;
-	opacity: 0;
-	width: 1px;
-	height: 1px;
-}
-.ex-mode-choices label > span {
+.ex-mode-choices > button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
 	min-height: 28px;
 	padding: var(--space-1) var(--space-2);
+	border: 0;
 	border-radius: var(--radius-sm);
-	font: 600 var(--text-sm)/1.4 var(--font-display);
+	background: transparent;
+	font: 500 var(--text-sm)/1.4 var(--font-display);
 	color: var(--ink-soft);
 }
-.ex-mode-choices input:checked + span {
+.ex-mode-choices > button[aria-pressed='true'] {
 	background: var(--accent-soft);
 	color: var(--accent);
 }
-.ex-mode-choices input:focus-visible + span {
+.ex-mode-choices > button:focus-visible {
 	outline: 2px solid var(--focus-color);
 	outline-offset: 2px;
 }

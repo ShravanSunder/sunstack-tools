@@ -79,12 +79,14 @@ test('gallery switches between review and grid without changing selection or ano
 	const { document: fixture, frame } = await openFixture('gallery');
 	const gallery = requiredElement(fixture, '#proof-gallery');
 	const local = fixtureLocator(frame, gallery);
-	await expect.element(local.getByRole('radio', { name: 'Grid view', exact: true })).toBeVisible();
-	await local.getByRole('radio', { name: 'Grid view', exact: true }).click();
-	await expect.element(local.getByRole('radio', { name: 'Grid view', exact: true })).toBeChecked();
+	await expect.element(local.getByRole('button', { name: 'Grid view', exact: true })).toBeVisible();
+	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
+	await expect
+		.element(local.getByRole('button', { name: 'Grid view', exact: true }))
+		.toHaveAttribute('aria-pressed', 'true');
 	expect(gallery.querySelectorAll('.ex-gallery-grid figure')).toHaveLength(4);
 	expect(requiredElement(fixture, '#second-gallery').getAttribute('view')).toBe('review');
-	await local.getByRole('radio', { name: 'Review view', exact: true }).click();
+	await local.getByRole('button', { name: 'Review view', exact: true }).click();
 	await expect.element(local.getByRole('img', { name: 'Home Mobile', exact: true })).toBeVisible();
 });
 
@@ -103,37 +105,27 @@ test('gallery uses existing sidebar inspection while its main image and caption 
 	expect(gallery.querySelectorAll('dialog')).toHaveLength(0);
 });
 
-test('gallery viewport keys share filter state and leave text fields alone', async (): Promise<void> => {
+test('gallery arrows change screens and same-screen variations from body focus, while search keeps its keys', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('gallery');
 	const gallery = requiredElement(fixture, '#proof-gallery');
 	const local = fixtureLocator(frame, gallery);
-	await local.getByRole('button', { name: 'Natural size', exact: true }).click();
-	await userEvent.keyboard('{ArrowRight}');
-	await expect
-		.poll(
-			(): boolean =>
-				gallery.querySelector<HTMLInputElement>('input[data-gallery-facet=viewport][value=Laptop]')
-					?.checked ?? false,
-		)
-		.toBe(true);
+	await frame.getByRole('heading', { name: 'Integrated component review', exact: true }).click();
 	await userEvent.keyboard('{ArrowDown}');
+	await expect.element(local.getByRole('img', { name: 'Home Laptop', exact: true })).toBeVisible();
+	await userEvent.keyboard('{ArrowRight}');
 	await expect
 		.element(local.getByRole('img', { name: 'Settings Laptop', exact: true }))
 		.toBeVisible();
-	await userEvent.keyboard('{ArrowLeft}');
+	await userEvent.keyboard('{ArrowUp}');
 	await expect
 		.element(local.getByRole('img', { name: 'Settings Mobile', exact: true }))
 		.toBeVisible();
 	const search = local.getByRole('searchbox', { name: 'Search screenshots', exact: true });
 	await search.fill('Settings');
-	await userEvent.keyboard('{ArrowRight}');
+	await userEvent.keyboard('{ArrowLeft}');
 	await expect
-		.poll(
-			(): boolean =>
-				gallery.querySelector<HTMLInputElement>('input[data-gallery-facet=viewport][value=Mobile]')
-					?.checked ?? false,
-		)
-		.toBe(true);
+		.element(local.getByRole('img', { name: 'Settings Mobile', exact: true }))
+		.toBeVisible();
 	expect(requiredElement(fixture, '#second-gallery .ex-gallery-count').textContent).toBe(
 		'4 screenshots',
 	);
@@ -198,7 +190,7 @@ test.each([
 	},
 );
 
-test('200ms settled filtering retains the exact selected image node and natural zoom', async (): Promise<void> => {
+test('200ms settled filtering retains the exact selected image node and Fill sizing', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('gallery');
 	const gallery = requiredElement(fixture, '#proof-gallery');
 	const local = fixtureLocator(frame, gallery);
@@ -208,8 +200,9 @@ test('200ms settled filtering retains the exact selected image node and natural 
 				gallery.querySelector<HTMLImageElement>('.ex-gallery-preview img')?.naturalWidth ?? 0,
 		)
 		.toBe(1000);
-	await local.getByRole('button', { name: 'Natural size', exact: true }).click();
+	await local.getByRole('button', { name: 'Fill screenshot', exact: true }).click();
 	const image = requiredElement(gallery, '.ex-gallery-preview img');
+	const filledWidth = image.getBoundingClientRect().width;
 	let lastInput = 0;
 	let settledAfter = 0;
 	gallery.addEventListener(
@@ -233,7 +226,11 @@ test('200ms settled filtering retains the exact selected image node and natural 
 			.toBe(1);
 		expect(settledAfter).toBeGreaterThanOrEqual(199);
 		expect(requiredElement(gallery, '.ex-gallery-preview img')).toBe(image);
-		expect(requiredElement(gallery, '.ex-gallery-zoom').textContent).toBe('100%');
+		expect(
+			requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect().width,
+		).toBeCloseTo(filledWidth, 0);
+		expect(gallery.querySelector('.ex-gallery-zoom')).toBeNull();
+		expect(requiredElement(gallery, '[aria-label="Image zoom"]').textContent).not.toContain('%');
 	} finally {
 		observer.disconnect();
 	}
@@ -397,4 +394,51 @@ test('template-backed literal text preserves closing-script content in main and 
 	await expect.element(panel).toBeVisible();
 	expect(requiredElement(fixture, '.ex-drawer pre').textContent).toBe(expected);
 	expect(drawing.querySelector('pre')?.textContent).toBe(expected);
+});
+
+test('tag filters group many pictures without turning picture titles into choices', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('gallery');
+	const gallery = requiredElement(fixture, '#proof-gallery');
+	const local = fixtureLocator(frame, gallery);
+	await local.getByRole('button', { name: 'Filter screenshots', exact: true }).click();
+	expect(gallery.querySelectorAll('[data-gallery-facet="screen"]')).toHaveLength(0);
+	await local.getByRole('checkbox', { name: 'Account', exact: true }).click();
+	await expect
+		.poll((): string => requiredElement(gallery, '.ex-gallery-count').textContent ?? '')
+		.toBe('2 screenshots');
+	await expect.element(local.getByRole('checkbox', { name: 'Journey', exact: true })).toBeVisible();
+});
+
+test('Fit contains the picture and Fill covers the viewport, with no percentage control', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('gallery');
+	const gallery = requiredElement(fixture, '#proof-gallery');
+	const local = fixtureLocator(frame, gallery);
+	await expect
+		.poll(
+			(): number =>
+				gallery.querySelector<HTMLImageElement>('.ex-gallery-preview img')?.naturalWidth ?? 0,
+		)
+		.toBe(1000);
+	await local.getByRole('button', { name: 'Fit screenshot', exact: true }).click();
+	const fitted = requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect();
+	await local.getByRole('button', { name: 'Fill screenshot', exact: true }).click();
+	const filled = requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect();
+	const stage = requiredElement(gallery, '.ex-gallery-preview');
+	const view = fixture.defaultView;
+	if (!view) throw new Error('Missing fixture window.');
+	const style = view.getComputedStyle(stage);
+	const innerWidth =
+		stage.clientWidth -
+		Number.parseFloat(style.paddingLeft) -
+		Number.parseFloat(style.paddingRight);
+	const innerHeight =
+		stage.clientHeight -
+		Number.parseFloat(style.paddingTop) -
+		Number.parseFloat(style.paddingBottom);
+	expect(fitted.width).toBeLessThanOrEqual(innerWidth + 1);
+	expect(fitted.height).toBeLessThanOrEqual(innerHeight + 1);
+	expect(filled.width).toBeGreaterThanOrEqual(innerWidth - 1);
+	expect(filled.height).toBeGreaterThanOrEqual(innerHeight - 1);
+	expect(gallery.querySelector('input[type="radio"]')).toBeNull();
+	expect(gallery.querySelector('.ex-gallery-zoom')).toBeNull();
 });
