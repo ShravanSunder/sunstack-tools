@@ -48,6 +48,6 @@ Left/Right moves between logical screens/states and preserves the viewport categ
 
 For a captioned user journey, target the existing figure IDs from `ex-presentation`/`ex-step`; see [ordered walkthroughs](tours.md). The existing player floats beneath the gallery with reserved space. Add the `variations` flag only when readers should switch sizes through a button group or Up/Down. Without it, each authored step uses its exact capture. A missing variation stays on its step and displays the gap. Closing restores the gallery's previous browse state.
 
-`ex-compare` is for two before/after children with `label`; `slider` overlays same-size images with a draggable divider. Use it instead of a gallery when the comparison itself is the whole task.
+For two same-size pictures, `ex-compare slider` overlays its two labeled children with a draggable divider. Use it instead of a gallery when before/after reveal is the whole task. For rich alternatives, shared topic rows or a larger set with pair selection, use [content comparisons](comparisons.md); that form supports any number of alternative sections.
 
 Complete by decoding every image, checking actual facet-to-figure matches, switching review/grid, using both key directions, and comparing the authored caption in main/sidebar/fullscreen. A missing image, invented variant, lost selection or per-gallery navigation/theme fork is a failed result.
