@@ -27,6 +27,97 @@ fn entry(check: Value) -> Value {
 }
 
 #[tokio::test]
+async fn nested_ast_grep_unknown_keys_refuse_with_the_block_location_and_full_field_path() {
+    for (rule, path) in [
+        (
+            json!({"kind":"paragraph","inside":{"kind":"list_item","typo":true}}),
+            json!(["ast_grep", "inside", "typo"]),
+        ),
+        (
+            json!({"kind":"paragraph","inside":{"kind":"list_item","stop_by":"end"}}),
+            json!(["ast_grep", "inside", "stop_by"]),
+        ),
+        (
+            json!({"all":[{"kind":"paragraph"},{"inside":{"kind":"list_item","inside":{"kind":"list","typo":true}}}]}),
+            json!(["ast_grep", "all", "1", "inside", "inside", "typo"]),
+        ),
+        (
+            json!({"kind":"paragraph","inside":{"kind":"list_item","stopBy":{"inside":{"kind":"document","typo":true}}}}),
+            json!(["ast_grep", "inside", "stopBy", "inside", "typo"]),
+        ),
+    ] {
+        let directory = tempfile::tempdir().unwrap();
+        let mut source = entry(json!({"ast_grep":rule.clone()}));
+        source.as_object_mut().unwrap().remove("ast_grep");
+        let mut text = serde_json::to_string_pretty(&json!({"K014":source})).unwrap();
+        let insertion = text.find("    \"name\"").unwrap();
+        text.insert_str(
+            insertion,
+            &format!(
+                "    \"ast_grep\": {},\n",
+                serde_json::to_string(&rule).unwrap()
+            ),
+        );
+        let expected_line = text
+            .lines()
+            .position(|line| line.contains("\"ast_grep\""))
+            .unwrap()
+            + 1;
+        write_source(directory.path(), &text);
+        let outcome = check_rules(check_input(directory.path()), CancellationToken::new()).await;
+        assert_eq!(outcome.exit_code(), 2, "{rule}: {outcome:?}");
+        let wire = serde_json::to_value(outcome).unwrap();
+        assert!(
+            wire["diagnostics"]["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["code"] == "unknown_field"
+                    && item["location"]["line"] == expected_line
+                    && item["location"]["column"]
+                        .as_u64()
+                        .is_some_and(|column| column > 0)
+                    && item["location"]["file"]
+                        .as_str()
+                        .unwrap()
+                        .ends_with("standards.rules.json")
+                    && item["location"]["field_path"] == path),
+            "{wire}"
+        );
+        assert!(serde_json::from_value::<AstGrepRule>(rule).is_err());
+    }
+}
+
+#[tokio::test]
+async fn vendor_relation_options_remain_admitted_without_a_local_key_list() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "fixtures/mechanical-ast/relation-options-oracle.json"
+    ))
+    .unwrap();
+    for case in oracle["cases"].as_array().unwrap() {
+        let directory = tempfile::tempdir().unwrap();
+        write_source(
+            directory.path(),
+            &serde_json::to_string(&json!({"K014":entry(json!({"ast_grep":case["rule"]}))}))
+                .unwrap(),
+        );
+        let outcome = check_rules(check_input(directory.path()), CancellationToken::new()).await;
+        let CheckRulesOutcome::Checked {
+            checked_rule_count,
+            printed_rules,
+        } = outcome
+        else {
+            panic!("{case}: {outcome:?}")
+        };
+        assert_eq!(checked_rule_count, 1);
+        let wire = serde_json::to_value(&printed_rules[0].definition).unwrap();
+        assert!(schema_support::reviewed("rule-file.schema.json").is_valid(&wire));
+        assert!(serde_json::from_value::<RuleDefinition>(wire).is_ok());
+        assert!(!directory.path().join("unread.md").exists());
+    }
+}
+
+#[tokio::test]
 async fn check_lowers_each_mechanical_form_without_reading_a_target_or_making_a_question() {
     for check in [
         json!({"expect":{"matches":"MUST"}}),

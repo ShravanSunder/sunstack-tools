@@ -24,3 +24,11 @@ process exit. Raw CLI output and exact command receipts are retained with the
 S4 implementation evidence. The permanent suite uses the frozen independent
 reference, so it requires no extra CLI installation. The paired U9 journey
 performs its own declared-target comparison.
+
+`relation-options-oracle.json` adds five full-document CLI 0.51.0 references
+for `relation-options.md`: `stopBy: end`, nested relations, a composite with
+`not`, a rule-valued stop condition, and the real `heading_content` field.
+Every case has positive literal matches. Native source admission retains these
+vendor options, and runtime section checks compare their original byte ranges
+and text with this separate reference. Nested unknown keys are refused by
+vendor JSON round-trip key preservation, without a maintained field list.

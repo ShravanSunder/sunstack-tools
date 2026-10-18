@@ -13,9 +13,49 @@ pub enum ExpectPredicate {
     Present { present: bool },
 }
 
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Serialize, JsonSchema)]
 #[serde(transparent)]
 pub struct AstGrepRule(pub SerializableRule);
+
+impl<'de> Deserialize<'de> for AstGrepRule {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let input = serde_json::Value::deserialize(deserializer)?;
+        let rule = SerializableRule::deserialize(&input).map_err(serde::de::Error::custom)?;
+        let output = serde_json::to_value(&rule).map_err(serde::de::Error::custom)?;
+        if missing_input_key(&input, &output).is_some() {
+            return Err(serde::de::Error::custom("unknown field in ast_grep rule"));
+        }
+        Ok(Self(rule))
+    }
+}
+
+// The vendor owns accepted fields, including flattened relations. Compare only
+// key paths: serialization may normalize values or add defaults legitimately.
+fn missing_input_key(input: &serde_json::Value, output: &serde_json::Value) -> Option<Vec<String>> {
+    match input {
+        serde_json::Value::Object(fields) => {
+            for (key, value) in fields {
+                let Some(retained) = output.get(key) else {
+                    return Some(vec![key.clone()]);
+                };
+                if let Some(mut path) = missing_input_key(value, retained) {
+                    path.insert(0, key.clone());
+                    return Some(path);
+                }
+            }
+        }
+        serde_json::Value::Array(values) => {
+            for (index, value) in values.iter().enumerate() {
+                if let Some(mut path) = missing_input_key(value, &output[index]) {
+                    path.insert(0, index.to_string());
+                    return Some(path);
+                }
+            }
+        }
+        _ => {}
+    }
+    None
+}
 
 impl std::fmt::Debug for AstGrepRule {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -25,6 +65,12 @@ impl std::fmt::Debug for AstGrepRule {
     }
 }
 impl AstGrepRule {
+    pub(crate) fn dropped_key(
+        input: &serde_json::Value,
+    ) -> Result<Option<Vec<String>>, serde_json::Error> {
+        let rule = SerializableRule::deserialize(input)?;
+        Ok(missing_input_key(input, &serde_json::to_value(rule)?))
+    }
     pub(crate) fn compile(&self) -> Result<ast_grep_config::Rule, DiagnosticList> {
         DeserializeEnv::new(SupportLang::Markdown)
             .deserialize_rule(self.0.clone())

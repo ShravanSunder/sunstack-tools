@@ -289,3 +289,80 @@ async fn ancestor_outside_the_selected_paragraph_remains_visible_but_a_sibling_m
         assert!(!text[span.byte_start..span.byte_end].contains("Sibling"));
     }
 }
+
+#[tokio::test]
+async fn valid_relation_fields_nested_composites_and_stop_rules_equal_full_document_scan() {
+    #[derive(Deserialize)]
+    struct RelationCase {
+        name: String,
+        rule: Value,
+        matches: Vec<ScanMatch>,
+    }
+    #[derive(Deserialize)]
+    struct RelationOracle {
+        cli_version: String,
+        source: String,
+        sha256: String,
+        cases: Vec<RelationCase>,
+    }
+    let oracle: RelationOracle = serde_json::from_str(include_str!(
+        "fixtures/mechanical-ast/relation-options-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle.cli_version, "ast-grep 0.51.0");
+    let text = std::fs::read_to_string(workspace().join(&oracle.source)).unwrap();
+    assert_eq!(content_digest(text.as_bytes()), oracle.sha256);
+    let root = tempfile::tempdir().unwrap();
+    let rules = oracle
+        .cases
+        .iter()
+        .map(|case| rule(&format!("local.{}", case.name), "section", &case.rule))
+        .collect::<Vec<_>>();
+    fixture::write_set(root.path(), &rules, vec![]);
+    std::fs::write(root.path().join("source.md"), &text).unwrap();
+    let report = evaluate(root.path()).await;
+    assert!(report.is_complete());
+    assert_eq!(report.measurements.model_requests, 0);
+    assert_eq!(report.occurrences.len(), oracle.cases.len());
+    for case in oracle.cases {
+        assert!(
+            !case.matches.is_empty(),
+            "{} needs a positive oracle",
+            case.name
+        );
+        let occurrence = report.occurrences.iter().find(|value| matches!(value, RuleOccurrenceResult::Checked { key, .. } if key.rule_id.as_str() == format!("local.{}", case.name))).unwrap();
+        let RuleOccurrenceResult::Checked {
+            key,
+            outcome:
+                LocalSettlement::Completed {
+                    result: MechanicalResult::Fail,
+                    observations,
+                },
+            ..
+        } = occurrence
+        else {
+            panic!("{}: {occurrence:?}", case.name)
+        };
+        let RuleOccurrenceTarget::MarkdownUnit { range, .. } = key.target.as_ref() else {
+            panic!("expected section")
+        };
+        let actual = observations
+            .iter()
+            .map(|observation| {
+                let LocalObservation::AstMatch { span } = observation;
+                ScanMatch {
+                    start: span.byte_start,
+                    end: span.byte_end,
+                    text: text[span.byte_start..span.byte_end].into(),
+                }
+            })
+            .collect::<Vec<_>>();
+        let expected = case
+            .matches
+            .into_iter()
+            .filter(|found| found.start >= range.start && found.end <= range.end)
+            .collect::<Vec<_>>();
+        assert!(!expected.is_empty());
+        assert_eq!(actual, expected, "{}", case.name);
+    }
+}

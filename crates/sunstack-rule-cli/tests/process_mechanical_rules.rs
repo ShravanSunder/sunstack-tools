@@ -16,6 +16,53 @@ fn write_rules(root: &std::path::Path) {
         "K015":{"name":"local.peer","target":{"input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},"expect":{"starts_with":"Use"}}
     })).unwrap()).unwrap();
 }
+
+#[tokio::test]
+async fn a_nested_ast_grep_typo_is_skipped_while_a_valid_local_peer_still_runs() {
+    let (directory, input) = source_fixture::source_fixture();
+    let root = directory.path();
+    write_rules(root);
+    let mut rules: Value =
+        serde_json::from_slice(&std::fs::read(root.join("teaching.rules.json")).unwrap()).unwrap();
+    rules["K014"].as_object_mut().unwrap().remove("expect");
+    rules["K014"]["target"]["select"] =
+        json!({"kind":"markdown_units","mode":"unit","units":["paragraph"]});
+    rules["K014"]["ast_grep"] =
+        json!({"kind":"paragraph","inside":{"kind":"list_item","stop_by":"end"}});
+    std::fs::write(
+        root.join("teaching.rules.json"),
+        serde_json::to_vec_pretty(&rules).unwrap(),
+    )
+    .unwrap();
+    std::fs::write(root.join("missing-reviewed.md"), "Use the valid peer.\n").unwrap();
+    let wire = response(
+        &run_without_credential(
+            root,
+            "evaluate_rules",
+            source_fixture::runtime_input(input, "not-a-url"),
+        )
+        .await,
+        0,
+    );
+    let report = &wire["result"]["outcome"]["report"];
+    assert_eq!(report["rule_coverage"], "partial");
+    assert_eq!(report["skipped_rules"].as_array().unwrap().len(), 1);
+    let skipped = &report["skipped_rules"][0];
+    assert_eq!(skipped["kind"], "entry");
+    assert_eq!(skipped["key"], "K014");
+    assert!(
+        skipped["diagnostics"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["code"] == "unknown_field"
+                && item["location"]["field_path"] == json!(["ast_grep", "inside", "stop_by"]))
+    );
+    assert_eq!(report["occurrences"].as_array().unwrap().len(), 1);
+    assert_eq!(report["occurrences"][0]["key"]["rule_id"], "local.peer");
+    assert_eq!(report["occurrences"][0]["outcome"]["result"], "pass");
+    assert_eq!(report["measurements"]["model_requests"], 0);
+}
 #[tokio::test]
 async fn real_process_checks_and_prints_then_settles_frontmatter_without_credentials_or_a_constructible_backend()
  {
