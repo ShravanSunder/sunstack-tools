@@ -10,7 +10,7 @@ import typing as t
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, JsonValue, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 type JsonObject = dict[str, JsonValue]
 JSON_OBJECT = TypeAdapter(JsonObject)
@@ -69,7 +69,7 @@ class OperationResult(BaseModel):
 class OperationFrame(BaseModel):
     model_config: t.ClassVar[ConfigDict] = ConfigDict(extra="forbid", frozen=True)
     kind: t.Literal["operation_result"]
-    protocol_version: t.Literal[1]
+    protocol_version: t.Annotated[int, Field(strict=True, ge=1, le=1)]
     result: OperationResult
 
 

@@ -1,6 +1,7 @@
 """Reject false-green observations without invoking or changing the product."""
 
 import copy
+import json
 
 import pytest
 from assemble_and_print_rule_sources import QUESTION_FILES, require_questions  # pyright: ignore[reportImplicitRelativeImport]
@@ -22,14 +23,21 @@ def test_protocol_errors_and_wrong_versions_cannot_count_as_operation_completion
         "protocol_version": 1,
         "result": {"operation": "check_rules", "outcome": {"kind": "checked"}},
     }
-    assert OperationFrame.model_validate(valid).result.operation == "check_rules"
+    frame = OperationFrame.model_validate_json(json.dumps(valid))
+    assert frame.result.operation == "check_rules"
+    assert type(frame.protocol_version) is int and frame.protocol_version == 1
     for invalid in [
+        {**valid, "protocol_version": True},
+        {**valid, "protocol_version": False},
+        {**valid, "protocol_version": 1.0},
+        {**valid, "protocol_version": "1"},
+        {**valid, "protocol_version": 0},
         {**valid, "protocol_version": 2},
         {**valid, "extra": True},
         {"kind": "protocol_error"},
     ]:
         with pytest.raises(ValidationError):
-            _ = OperationFrame.model_validate(invalid)
+            _ = OperationFrame.model_validate_json(json.dumps(invalid))
 
 
 def test_refusal_requires_actual_expected_source_and_positive_coordinates() -> None:
