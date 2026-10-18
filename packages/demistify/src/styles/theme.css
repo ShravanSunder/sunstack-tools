@@ -248,8 +248,7 @@ h4 {
 	font-size: var(--text-lg);
 	font-weight: 600;
 }
-p,
-li {
+p {
 	max-width: 68ch;
 }
 p {

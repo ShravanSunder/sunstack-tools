@@ -63,7 +63,7 @@ Markdown islands render GFM tables, fenced code, nested/task lists, links, image
 
 ## Pages, breadcrumbs and presentations
 
-Declare one native page-link list on each file. Its first link is Home; the matching URL supplies the current page name. The library derives the compact sticky header, Pages dropdown and breadcrumbs. Real headings populate the page-named, independently scrolling outline. Captions do not add outline entries. Presentations and Theme use the same navigation system.
+Declare one native page-link list on each file. Its first link is Home; the matching URL supplies the current page name. The library derives the compact sticky header, Pages dropdown and breadcrumbs. Real headings populate the page-named, independently scrolling outline. Captions do not add outline entries. Walkthroughs and Theme use the same navigation system.
 
 ```html
 <ex-nav for="content"
@@ -86,6 +86,12 @@ Declare one native page-link list on each file. Its first link is Home; the matc
 ```
 
 A presentation is an ordered path, not a content container. Several paths can reuse any existing island or inner anchor; one stop is valid. `ex-route` and wrapper-selection semantics are removed in this integrated vocabulary. Use `#requirements--recovery` for a Markdown heading, `#architecture--Registry` for a node in Mermaid island `architecture`, and `other.html#target` for a cross-page stop. Missing targets show a visible player error. Native fragment links, tree go-to links and presentation stops share target readiness/revelation behavior.
+
+The **Walkthroughs** chooser uses compact icon/title/description rows. Local picture or gallery stops use the images icon; document and cross-page paths use the path icon. No extra type column or visible close text is needed. Existing `ex-presentation`/`ex-step` markup and native navigation remain.
+
+### Reading measure and visual canvas
+
+Use `ex-document class="wide-reading"` for the centered 1600px canvas. Ordinary documents retain 1140px. Narrative paragraphs keep their reading measure; structural list rows and islands follow their parent. For short structured proof text, `class="wide-reading"` on a paragraph or section allows that paragraph or the section's direct paragraphs to fill its width. Components such as code, diagrams, comparisons, tables and Tree should not inherit a prose cap. Retain local scrolling where necessary and remove obsolete authored caps when migrating an existing document.
 
 ## Gallery
 

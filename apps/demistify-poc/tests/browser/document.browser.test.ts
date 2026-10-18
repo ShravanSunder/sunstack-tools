@@ -79,8 +79,8 @@ test('presentation menu starts a named path while existing content and outline r
 	await expect
 		.element(frame.getByRole('heading', { name: 'Session ownership', exact: true }))
 		.toBeVisible();
-	await frame.getByRole('button', { name: 'Browse presentations', exact: true }).click();
-	const menu = frame.getByRole('navigation', { name: 'Presentations', exact: true });
+	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
+	const menu = frame.getByRole('navigation', { name: 'Walkthroughs', exact: true });
 	await expect
 		.element(menu.getByText('The proposed path and its two delivery phases.', { exact: true }))
 		.toBeVisible();

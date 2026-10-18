@@ -98,7 +98,7 @@ Real h2–h6 sections supply the page-named outline; it scrolls independently wh
 
 Home receives the built-in house icon. A clicked lower heading remains current even when the page cannot scroll it to the reading line; deliberate page scrolling resumes reading-position tracking. Preserve explicit IDs instead of relying on coincidental heading slugs.
 
-## Presentations reference content
+## Walkthroughs reference content
 
 Several named/described presentations may share a page and the same islands. Each is an ordered path with Next/Previous; one stop is valid. Place the content normally and put only stops in `ex-presentation`:
 
@@ -111,7 +111,9 @@ Several named/described presentations may share a page and the same islands. Eac
 </ex-presentation>
 ```
 
-The shared Presentations menu discovers `id`, `title` and `description`. A presentation does not own, copy or hide other content. Use the current `ex-presentation`/`ex-step` form; the earlier `ex-route` and wrapper-selection form are removed.
+The menu is called **Walkthroughs**. Compact rows show a picture icon for local picture/gallery stops and a path icon for ordinary or cross-page explanations; no separate type column. Keep the title short and the description to one concise sentence. The underlying authoring tags remain `ex-presentation` and `ex-step`.
+
+The shared Walkthroughs menu discovers `id`, `title` and `description`. A presentation does not own, copy or hide other content. Use the current `ex-presentation`/`ex-step` form; the earlier `ex-route` and wrapper-selection form are removed.
 
 Give every destination a stable ID. In Markdown island `requirements`, `## Recovery` becomes `#requirements--recovery` (repeated headings gain suffixes). A whole diagram uses `#architecture`; its Registry node uses `#architecture--Registry`. This scopes repeated node names to their diagram. Explicit HTML IDs remain valid. Fragments and stops reveal containing tabs/details/layers and await content readiness. A missing stop produces a visible error. Cross-page stops use `details.html#target`.
 
@@ -137,6 +139,8 @@ Tones: `note` `tldr` `decision` `risk` `question` `done` `planned` `changed` `ad
 `icon` names the subject: database hard-drives cloud globe cpu stack plug code terminal git-branch package gear bug test-tube user users robot lock key shield-check file folder book-open clock envelope chat-circle bell shopping-cart credit-card truck chart-line rocket.
 
 Mermaid supports flowchart, sequenceDiagram, stateDiagram-v2, classDiagram, erDiagram and xychart-beta. A diagram node whose ID matches a card ID takes its tone and opens that card; keep node labels short. Use qualified island/node IDs for links when diagrams repeat names.
+
+A normal document uses a centered 1140px reading canvas. Put `class="wide-reading"` on `ex-document` for a centered 1600px visual canvas. Components and structural list rows use their container width; ordinary paragraphs keep their reading measure. Put `class="wide-reading"` on a short proof paragraph or a section whose direct paragraphs should use its width. This is an author choice: do not expose a width setting to the reader or apply paragraph caps to every descendant list item. A nested code block, Tree, comparison or diagram must be allowed its own width. Existing authored max-width rules still win where their specificity is higher; remove obsolete local clamps when adopting the shared layout.
 
 Choose relationships before layout. Native flow, grid/flex and positioned boards are valid; do not force every explanation into a card grid. Keep related controls/content together using the shared spacing and styles. Sidebar inspection preserves the main content; fullscreen, Escape/backdrop dismissal and Cmd/Ctrl+wheel/drag use shared controls.
 

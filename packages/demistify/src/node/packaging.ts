@@ -73,6 +73,8 @@ const fontFamilies = [
 export const shippedIconNames = [
 	...subjectIcons,
 	'files',
+	'images',
+	'path',
 	'house',
 	'keyboard',
 	'magnifying-glass',
