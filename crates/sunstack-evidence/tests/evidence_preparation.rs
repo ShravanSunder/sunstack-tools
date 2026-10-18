@@ -53,6 +53,52 @@ fn declaration(id: &str, select: EvidenceSelection) -> EvidenceDeclaration {
         max_bytes: None,
     }
 }
+
+#[tokio::test]
+async fn markdown_occurrence_item_limits_count_each_call_without_extra_acquisitions() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("skill.md"),
+        "- Use one; Use two; Use three.\n",
+    )
+    .unwrap();
+    for limit in [2, 3] {
+        let mut request = input(root.path());
+        request.declarations[0].select = serde_json::from_value(serde_json::json!({"kind":"markdown_units","mode":"call_site","units":["list_item"],"pattern":"Use"})).unwrap();
+        request.declarations[0].max_items = Some(positive(limit));
+        let outcome = prepare_evidence(
+            request,
+            AdapterRegistry::builtins().unwrap(),
+            CancellationToken::new(),
+        )
+        .await;
+        if limit == 2 {
+            let EvidencePlanOutcome::Incomplete {
+                measurements,
+                diagnostics,
+                ..
+            } = outcome
+            else {
+                panic!("{outcome:?}")
+            };
+            assert_eq!(measurements.files_read, 1);
+            assert_eq!(diagnostics.items[0].code, EvidenceCode::SelectorLimit);
+        } else {
+            let EvidencePlanOutcome::Prepared {
+                selections,
+                measurements,
+                ..
+            } = outcome
+            else {
+                panic!("{outcome:?}")
+            };
+            assert_eq!(measurements.files_read, 1);
+            assert!(
+                matches!(&selections[0].readiness, SelectionReadiness::Ready { content: SelectionContent::MarkdownUnits { units }, .. } if units.len()==3)
+            );
+        }
+    }
+}
 #[tokio::test]
 async fn native_plan_prepares_real_sources_once_and_serializes_requested_content() {
     let root = tempfile::tempdir().unwrap();

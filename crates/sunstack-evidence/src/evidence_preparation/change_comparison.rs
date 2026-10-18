@@ -441,7 +441,8 @@ fn selected_fingerprint(
             values.sort();
             ((!values.is_empty()).then_some(values), count)
         }
-        SelectionContent::ConversationRecords { .. }
+        SelectionContent::MarkdownUnits { .. }
+        | SelectionContent::ConversationRecords { .. }
         | SelectionContent::PayloadValue { .. }
         | SelectionContent::ChangedUnits { .. }
         | SelectionContent::RelatedGroup { .. }
@@ -457,6 +458,7 @@ fn selected_fingerprint(
 }
 fn content_nonempty(content: &SelectionContent) -> bool {
     match content {
+        SelectionContent::MarkdownUnits { units } => !units.is_empty(),
         SelectionContent::Matches { matches } => !matches.is_empty(),
         SelectionContent::ChangedUnits { units } => !units.is_empty(),
         SelectionContent::RelatedGroup { group } => match group.as_ref() {

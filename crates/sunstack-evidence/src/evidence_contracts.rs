@@ -181,6 +181,10 @@ pub struct EvidenceDeclaration {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceSelection {
+    // Schemars relaxes nested untagged alternatives when adding the kind tag.
+    // Restore the same closed, mutually exclusive filter wire as Serde.
+    #[schemars(extend("unevaluatedProperties" = false, "not" = {"required": ["starts_with", "pattern"]}))]
+    MarkdownUnits(crate::MarkdownUnitSelection),
     ChangeSetLiteralText {
         paths: Vec<QueryPath>,
         text: String,
@@ -309,6 +313,9 @@ pub struct EvidenceMatch {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SelectionContent {
+    MarkdownUnits {
+        units: Vec<crate::SelectedMarkdownUnit>,
+    },
     RelatedGroups {
         groups: Vec<crate::SeedContextGroup>,
     },
@@ -360,6 +367,9 @@ pub struct SelectionResult {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetLocation {
+    MarkdownUnit {
+        occurrence: Box<crate::MarkdownOccurrence>,
+    },
     CodeUnits {
         units: Vec<crate::SourceUnitKey>,
     },

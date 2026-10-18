@@ -182,6 +182,11 @@ struct EvidenceAttribution {
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum AttributedEvidence {
+    MarkdownUnits {
+        #[serde(flatten)]
+        attribution: EvidenceAttribution,
+        units: Vec<MarkdownUnitAttribution>,
+    },
     Paragraph {
         #[serde(flatten)]
         attribution: EvidenceAttribution,
@@ -221,12 +226,26 @@ enum AttributedEvidence {
 #[derive(Clone, Serialize)]
 #[serde(untagged)]
 enum ContentValue {
+    MarkdownUnits(Vec<MarkdownUnitText>),
     Text(String),
     Matches(Vec<sunstack_evidence::EvidenceMatch>),
     Records(Vec<sunstack_evidence::ConversationRecord>),
     Payload(sunstack_evidence::StructuredJson),
     ChangedUnits(Vec<sunstack_evidence::SelectedSourceUnit>),
     RelatedGroup(Box<sunstack_evidence::ContextGroupOutcome>),
+}
+
+#[derive(Clone, Serialize)]
+struct MarkdownUnitText {
+    text: String,
+    visible_text: String,
+}
+
+#[derive(Clone, Serialize)]
+struct MarkdownUnitAttribution {
+    kind: sunstack_evidence::MarkdownUnitKind,
+    span: SourceSpan,
+    occurrence: sunstack_evidence::MarkdownOccurrence,
 }
 pub(crate) fn build_request_state(
     selections: impl Iterator<Item = LabeledSelection>,
@@ -250,6 +269,15 @@ pub(crate) fn build_request_state(
                 coverage,
             } if !(optional && omit_optional) => {
                 let value = match &content {
+                    SelectionContent::MarkdownUnits { units } => ContentValue::MarkdownUnits(
+                        units
+                            .iter()
+                            .map(|unit| MarkdownUnitText {
+                                text: unit.text.clone(),
+                                visible_text: unit.visible_text.clone(),
+                            })
+                            .collect(),
+                    ),
                     SelectionContent::Paragraph { text, .. }
                     | SelectionContent::DocumentText { text, .. } => {
                         ContentValue::Text(text.clone())
@@ -290,6 +318,19 @@ pub(crate) fn build_request_state(
                     coverage: *coverage,
                 };
                 match content {
+                    SelectionContent::MarkdownUnits { units } => {
+                        AttributedEvidence::MarkdownUnits {
+                            attribution,
+                            units: units
+                                .into_iter()
+                                .map(|unit| MarkdownUnitAttribution {
+                                    kind: unit.kind,
+                                    span: unit.span,
+                                    occurrence: unit.occurrence,
+                                })
+                                .collect(),
+                        }
+                    }
                     SelectionContent::Paragraph { span, .. } => {
                         AttributedEvidence::Paragraph { attribution, span }
                     }
