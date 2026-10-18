@@ -37,7 +37,7 @@ function targetElement(reference: string): Element | undefined {
 	const owner = document.getElementById(reference.slice(0, divider));
 	if (owner?.localName !== 'ex-mermaid') return undefined;
 	revealElement(owner);
-	owner.scrollIntoView({ block: 'center' });
+	owner.scrollIntoView({ behavior: 'instant', block: 'center' });
 	return (
 		owner.querySelector(`g.node[data-id="${CSS.escape(reference.slice(divider + 2))}"]`) ??
 		undefined
@@ -69,7 +69,7 @@ export function resolveTarget(
 					'ex-mermaid:not([prepared]),ex-markdown:not([prepared]),ex-tree:not([prepared])',
 				)
 			) {
-				target.scrollIntoView({ block: 'center' });
+				target.scrollIntoView({ behavior: 'instant', block: 'center' });
 				return;
 			}
 			finish(target);

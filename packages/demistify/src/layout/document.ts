@@ -64,11 +64,13 @@ export function installDocumentBehavior(): void {
 		if (!reference || document.getElementById(reference)?.localName === 'ex-presentation') return;
 		const signal = pending.signal;
 		void resolveTarget(reference, signal).then((target): void => {
-			if (target && !signal.aborted) target.scrollIntoView({ block: 'start' });
+			if (target && !signal.aborted) target.scrollIntoView({ behavior: 'instant', block: 'start' });
 		});
 	};
 	window.addEventListener('hashchange', revealFragment);
-	revealFragment();
+	// The resumed player owns the initial target; later ordinary fragment links still reveal theirs.
+	const params = new URLSearchParams(location.search);
+	if (!params.has('ex-tour') || !params.has('ex-route')) revealFragment();
 	document.addEventListener('click', (event: MouseEvent): void => {
 		if (!(event.target instanceof Element)) return;
 		if (event.target.closest('[data-ex-theme]')) {

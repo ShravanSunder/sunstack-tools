@@ -27,7 +27,7 @@ Collaboration remains independently governed. Inspect `SessionId` before continu
 </script></ex-step>
 ```
 
-Relative narration links resolve from the page that declares the path, including after cross-page continuation. Plain sentences remain valid narration.
+Relative narration links resolve from the page that declares the path, including after cross-page continuation. Plain sentences remain valid narration. The player title is larger than its regular narration. Stops position immediately, including cross-page continuation, rather than animating a long scroll from the top.
 
 - Whole island: `architecture`.
 - Heading `## Recovery` inside Markdown island `requirements`: `requirements--recovery`.
