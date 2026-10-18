@@ -1,0 +1,9 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Readable sequence labels</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body><ex-document><h1>Read every step</h1><p>The supplied source describes a call sequence, not runtime evidence.</p><ex-mermaid id="sequence"><script type="text/plain">
+sequenceDiagram
+  participant C as Client
+  participant R as Registry
+  participant S as Session
+  C->>R: reconnect through a stable identity
+  R->>S: retain the original running work
+  S-->>C: return the same identity
+</script></ex-mermaid></ex-document></body></html>

@@ -66,3 +66,90 @@ ex-document hr:not(ex-document :not(section, article, main, div, ex-markdown) *)
 	width: min(100%, var(--width-reading));
 	margin-inline: auto;
 }
+
+ex-document:not(.ex-gallery-document) {
+	container: document-widths / inline-size;
+}
+/* Separate a change of measure; consecutive prose or visual blocks keep their normal rhythm. */
+@container document-widths (min-width: 880px) {
+	ex-document
+		:is(
+			h1,
+			h2,
+			h3,
+			h4,
+			h5,
+			h6,
+			p:not(:has(> img)),
+			ul,
+			ol,
+			blockquote,
+			ex-card,
+			ex-callout,
+			[data-width='reading'],
+			.reading-measure
+		):not([data-width='canvas'])
+		+ :is(
+			ex-grid,
+			ex-flow,
+			ex-board,
+			ex-tabs,
+			ex-compare,
+			ex-mermaid,
+			ex-code,
+			ex-tree,
+			ex-file-tree,
+			ex-pre,
+			ex-explorer,
+			ex-gallery,
+			ex-trace,
+			figure,
+			table,
+			.ex-table-scroll,
+			pre,
+			p:has(> img),
+			[data-width='canvas']
+		):not([data-width='reading'], .reading-measure):not(
+			ex-document :not(section, article, main, div, ex-markdown) *
+		),
+	ex-document
+		:is(
+			ex-grid,
+			ex-flow,
+			ex-board,
+			ex-tabs,
+			ex-compare,
+			ex-mermaid,
+			ex-code,
+			ex-tree,
+			ex-file-tree,
+			ex-pre,
+			ex-explorer,
+			ex-gallery,
+			ex-trace,
+			figure,
+			table,
+			.ex-table-scroll,
+			pre,
+			p:has(> img),
+			[data-width='canvas']
+		):not([data-width='reading'], .reading-measure)
+		+ :is(
+			h1,
+			h2,
+			h3,
+			h4,
+			h5,
+			h6,
+			p:not(:has(> img)),
+			ul,
+			ol,
+			blockquote,
+			ex-card,
+			ex-callout,
+			[data-width='reading'],
+			.reading-measure
+		):not([data-width='canvas']):not(ex-document :not(section, article, main, div, ex-markdown) *) {
+		margin-top: var(--space-12);
+	}
+}

@@ -316,6 +316,29 @@ test('author width applies to the complete tab set and remains contained on narr
 	expect(canvas.getBoundingClientRect().width).toBeLessThan(390);
 });
 
+test('width transitions gain space without padding consecutive wide blocks or narrow layouts', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('ui', '', 'widths.html');
+	await expect
+		.poll((): boolean => requiredElement(fixture, '#mixed-markdown').hasAttribute('prepared'))
+		.toBe(true);
+	const gap = (before: string, after: string): number =>
+		requiredElement(fixture, after).getBoundingClientRect().top -
+		requiredElement(fixture, before).getBoundingClientRect().bottom;
+	expect(gap('#canvas-description', '#visual-section > ex-grid')).toBeGreaterThanOrEqual(44);
+	expect(gap('#visual-section > ex-grid', '#width-code')).toBeLessThan(40);
+	expect(gap('#mixed-markdown > h3', '#mixed-markdown .ex-table-scroll')).toBeGreaterThanOrEqual(
+		44,
+	);
+	expect(
+		gap('#mixed-markdown .ex-table-scroll', '#mixed-markdown .ex-table-scroll + h3'),
+	).toBeGreaterThanOrEqual(44);
+	await page.viewport(390, 900);
+	await expect
+		.poll((): number => gap('#canvas-description', '#visual-section > ex-grid'))
+		.toBeLessThan(40);
+	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+});
+
 test('document headings align with Reading prose while visual components keep the wider centered Canvas', async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 	const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
