@@ -2,6 +2,8 @@
 
 Inspect the existing content before writing a path: island IDs, Markdown headings, diagram-local node names and any containing tab/detail/layer. Content lives there once; presentations only reference it.
 
+Keep `<ex-nav></ex-nav>` on the page even when it has only one path and no collection links. It supplies the visible Walkthroughs launcher; the path declaration below stays hidden. Use the launch control to start the path during verification.
+
 ```html
 <ex-presentation id="review" title="Session review"
   description="Requirements, the Registry node and the shared decision.">
