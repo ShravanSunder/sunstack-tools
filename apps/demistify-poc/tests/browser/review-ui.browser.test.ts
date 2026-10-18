@@ -293,7 +293,7 @@ test('the actual formatted guide literal stays exact in the page and sidebar', a
 	expect(drawing.querySelector('pre')?.textContent).toBe(expected);
 });
 
-test('Reading and Canvas center independently while headings follow their section and nested islands own their layout', async (): Promise<void> => {
+test('document headings align with Reading prose while visual components keep the wider centered Canvas', async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 	const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
 	await expect
@@ -308,6 +308,8 @@ test('Reading and Canvas center independently while headings follow their sectio
 	expect(proseStyle.fontFamily).toContain('Source Sans 3');
 	expect(proseStyle.fontSize).toBe('18px');
 	expect(proseStyle.fontWeight).toBe('400');
+	expect(fixture.fonts.check('400 18px "Source Sans 3"')).toBe(true);
+	expect(fixture.fonts.check('600 36px Archivo')).toBe(true);
 	expect(view.getComputedStyle(requiredElement(fixture, '#reading-heading')).fontFamily).toContain(
 		'Archivo',
 	);
@@ -322,7 +324,6 @@ test('Reading and Canvas center independently while headings follow their sectio
 	for (const selector of ['#reading-heading', '#canvas-heading']) {
 		const divider = view.getComputedStyle(requiredElement(fixture, selector), '::before');
 		expect(Number.parseFloat(divider.width)).toBeCloseTo(760, 0);
-		expect(view.getComputedStyle(requiredElement(fixture, selector)).borderTopWidth).toBe('0px');
 	}
 	expect(bounds('#reading-divider').width).toBeCloseTo(760, 0);
 	const canvas = bounds('#width-canvas');
@@ -335,6 +336,11 @@ test('Reading and Canvas center independently while headings follow their sectio
 		'#lede-proof',
 		'#reading-section',
 		'#mixed-markdown > p',
+		'#canvas-heading',
+		'#canvas-description',
+		'#mixed-markdown > h3',
+		'#tabs-heading',
+		'#nested-reading',
 	]) {
 		const block = bounds(selector);
 		expect(block.width).toBeCloseTo(760, 0);
@@ -342,20 +348,25 @@ test('Reading and Canvas center independently while headings follow their sectio
 	}
 	for (const selector of [
 		'#visual-section',
-		'#canvas-heading',
-		'#canvas-description',
 		'#width-code',
 		'#mixed-markdown .ex-table-scroll',
 		'#mixed-markdown > p:has(> img)',
-		'#mixed-markdown > h3',
 		'#mixed-markdown > h3 + pre',
-		'#tabs-heading',
 	]) {
 		expect(Math.abs(bounds(selector).width - canvas.width)).toBeLessThan(1);
 		expect(Math.abs(bounds(selector).left - canvas.left)).toBeLessThan(1);
 	}
 	expect(Math.abs(bounds('#reading-heading').left - bounds('#ordinary-proof').left)).toBeLessThan(
 		1,
+	);
+	expect(
+		Math.abs(bounds('#canvas-heading').left - bounds('#canvas-description').left),
+	).toBeLessThan(1);
+	expect(
+		Math.abs(bounds('#mixed-markdown > h3').left - bounds('#mixed-markdown > p').left),
+	).toBeLessThan(1);
+	expect(bounds('#mixed-markdown .ex-table-scroll').width).toBeGreaterThan(
+		bounds('#mixed-markdown > p').width + 200,
 	);
 	expect(bounds('#nested-proof').width).toBeLessThan(760);
 	expect(bounds('#nested-proof').left).toBeLessThan(bounds('#ordinary-proof').left);

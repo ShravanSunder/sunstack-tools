@@ -7,51 +7,24 @@ ex-document
 	:is(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, ex-callout, ex-card):not(
 		ex-document :not(section, article, main, div, ex-markdown) *
 	) {
-	width: min(100%, var(--document-text-width));
+	width: min(100%, var(--width-reading));
 	max-width: none;
 	margin-inline: auto;
 	text-align: start;
 }
-/* A section carries its heading and content together; the document itself remains a canvas. */
-ex-document .wide-reading:not(ex-document :not(section, article, main, div, ex-markdown) *) {
-	--document-text-width: 100%;
+/* Canvas wrappers leave room for visual islands; their document text still uses Reading. */
+ex-document
+	:is(section, article, main, div, ex-markdown).wide-reading:not(
+		ex-document :not(section, article, main, div, ex-markdown) *
+	) {
 	width: min(100%, var(--width-canvas));
 	max-width: var(--width-canvas);
 	margin-inline: auto;
 }
-ex-document .reading-measure:not(ex-document :not(section, article, main, div, ex-markdown) *) {
-	--document-text-width: var(--width-reading);
+ex-document .reading-measure {
 	width: min(100%, var(--width-reading));
 	max-width: var(--width-reading);
 	margin-inline: auto;
-}
-/* An immediately paired visual heading uses the same canvas even without a section wrapper. */
-ex-document
-	:is(h1, h2, h3):has(
-		+ :is(
-			table,
-			.ex-table-scroll,
-			pre,
-			ex-tabs,
-			ex-zoom,
-			ex-timeline,
-			ex-file-tree,
-			p:has(> img),
-			figure,
-			ex-code,
-			ex-pre,
-			ex-mermaid,
-			ex-tree,
-			ex-gallery,
-			ex-compare,
-			ex-diagram-diff,
-			ex-grid,
-			ex-flow,
-			ex-board,
-			ex-explorer
-		)
-	):not(ex-document :not(section, article, main, div, ex-markdown) *) {
-	width: 100%;
 }
 /* Markdown images live in paragraph wrappers; those wrappers belong to Canvas, not prose. */
 ex-document p:has(> img):not(ex-document :not(section, article, main, div, ex-markdown) *) {

@@ -183,7 +183,13 @@ td {
 	text-align: left;
 	vertical-align: top;
 	padding: var(--space-2) var(--space-3);
+}
+thead,
+tbody > tr:first-child:has(th):not(:has(td)) {
 	border-bottom: 1px solid var(--rule);
+}
+tbody > tr:nth-child(even) {
+	background: color-mix(in srgb, var(--ink) 3%, var(--surface-page));
 }
 th {
 	font-family: var(--font-display);

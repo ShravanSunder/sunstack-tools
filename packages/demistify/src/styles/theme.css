@@ -37,7 +37,6 @@
 
 	--width-reading: 760px;
 	--width-canvas: 1600px;
-	--document-text-width: var(--width-reading);
 
 	--font-display: 'Source Sans 3', system-ui, sans-serif;
 	--font-heading: 'Archivo', system-ui, sans-serif;
