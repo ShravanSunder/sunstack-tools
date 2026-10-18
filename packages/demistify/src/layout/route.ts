@@ -215,7 +215,11 @@ class RoutePlayer {
 			next.searchParams.set('ex-name', route.label);
 			next.searchParams.set('ex-step', String(index));
 			next.searchParams.set('ex-path', encodeRoute(route));
-			if (route.variations) next.searchParams.set('ex-variations', 'true');
+			if (route.variations) {
+				next.searchParams.set('ex-variations', 'true');
+				const variation = new URL(location.href).searchParams.get('ex-variation');
+				if (variation) next.searchParams.set('ex-variation', variation);
+			}
 			next.hash = step.targetId;
 			location.assign(next.href);
 			return;

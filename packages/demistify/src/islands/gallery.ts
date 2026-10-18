@@ -415,6 +415,7 @@ export class GalleryIsland extends HTMLElement {
 	}
 
 	private changeView(view: GalleryView): void {
+		if (view === this.view) return;
 		this.pendingFilter.cancel();
 		this.view = view;
 		this.renderedSelection = undefined;

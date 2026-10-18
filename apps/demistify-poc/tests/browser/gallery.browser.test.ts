@@ -8,6 +8,48 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('clicking the already-selected gallery view retains the image and its pan', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('gallery');
+	const gallery = requiredElement(fixture, '#proof-gallery');
+	const local = fixtureLocator(frame, gallery);
+	await expect
+		.poll(
+			(): number =>
+				gallery.querySelector<HTMLImageElement>('.ex-gallery-preview img')?.naturalWidth ?? 0,
+		)
+		.toBe(1000);
+	await local.getByRole('button', { name: 'Zoom in', exact: true }).click();
+	await local.getByRole('button', { name: 'Zoom in', exact: true }).click();
+	const image = requiredElement(gallery, '.ex-gallery-preview img');
+	const viewport = requiredElement(gallery, '.ex-gallery-preview');
+	viewport.scrollLeft = 48;
+	viewport.scrollTop = 36;
+	const pan = { left: viewport.scrollLeft, top: viewport.scrollTop };
+	expect(pan.left + pan.top).toBeGreaterThan(0);
+	await local.getByRole('button', { name: 'Review view', exact: true }).click();
+	expect(requiredElement(gallery, '.ex-gallery-preview img')).toBe(image);
+	expect(viewport.scrollLeft).toBe(pan.left);
+	expect(viewport.scrollTop).toBe(pan.top);
+});
+
+test('cross-page gallery walkthrough retains the chosen variation', async (): Promise<void> => {
+	const { frame } = await openFixture('ui', '#cross-journey', 'journey.html');
+	const iframeElement = document.querySelector<HTMLIFrameElement>('iframe');
+	const selectedImage = (): string =>
+		iframeElement?.contentDocument?.querySelector<HTMLImageElement>('.ex-gallery-preview img')
+			?.alt ?? '';
+	const player = frame.getByRole('region', { name: 'Walkthrough player', exact: true });
+	await player.getByRole('button', { name: 'Desktop', exact: true }).click();
+	await expect.poll(selectedImage).toBe('One Desktop');
+	await player.getByRole('button', { name: 'Next step', exact: true }).click();
+	await expect.poll(selectedImage).toBe('Next Desktop');
+	await expect
+		.element(player.getByRole('button', { name: 'Desktop', exact: true }))
+		.toHaveAttribute('aria-pressed', 'true');
+	await player.getByRole('button', { name: 'Previous step', exact: true }).click();
+	await expect.poll(selectedImage).toBe('One Desktop');
+});
+
 test('presentation crosses files, returns to its home and reports an unavailable stop visibly', async (): Promise<void> => {
 	const { frame } = await openFixture('gallery', '#cross-page', 'navigation.html');
 	await expect
