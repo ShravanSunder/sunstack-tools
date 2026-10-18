@@ -20,6 +20,10 @@ pub enum ReplyMode {
         probability: f64,
         router: RouterReply,
     },
+    AnswersByQuestion {
+        answers: &'static [(&'static str, f64)],
+        router: RouterReply,
+    },
     ProviderFailure {
         status: u16,
     },
@@ -97,6 +101,21 @@ impl AnswerServer {
                 bodies.push(request.body.clone());
                 counter.fetch_add(1, Ordering::SeqCst);
                 match mode {
+                    ReplyMode::AnswersByQuestion { answers, router } => {
+                        let mut body = response_body(&request.body, 0.5, router);
+                        for (name, question) in request.body["questions"].as_object().unwrap() {
+                            if question["type"] == "noul" {
+                                let text = question["instructions"]["question"].as_str().unwrap();
+                                let probability = answers
+                                    .iter()
+                                    .find(|(expected, _)| *expected == text)
+                                    .unwrap()
+                                    .1;
+                                body["answers"][name]["noul"] = json!(probability);
+                            }
+                        }
+                        request.respond(200, body);
+                    }
                     ReplyMode::Answers {
                         probability,
                         router,

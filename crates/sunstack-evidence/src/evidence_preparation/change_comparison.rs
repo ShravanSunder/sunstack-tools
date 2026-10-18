@@ -64,7 +64,10 @@ impl Preparation {
                 };
             }
             ChangeComparisonSubject::Declaration { declaration } => {
-                crate::evidence_admission::admit_declaration(&declaration, &self.input.sources)?;
+                crate::evidence_admission::admit_evidence_declaration(
+                    &declaration,
+                    &self.input.sources,
+                )?;
                 let source = self
                     .input
                     .sources

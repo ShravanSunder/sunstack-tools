@@ -35,6 +35,12 @@ pub fn child(root: &Path) -> Child {
         .spawn()
         .unwrap()
 }
+pub fn child_without_credential(root: &Path) -> Child {
+    process_command(root)
+        .env_remove("OPENROUTER_API_KEY")
+        .spawn()
+        .unwrap()
+}
 struct ProcessRequest<'request> {
     root: &'request Path,
     bytes: &'request [u8],
@@ -82,6 +88,21 @@ pub async fn run_raw(root: &Path, bytes: &[u8]) -> Output {
     invoke_process(ProcessRequest {
         root,
         bytes,
+        command,
+        deadline: Duration::from_secs(10),
+    })
+    .await
+    .0
+}
+pub async fn run_without_credential(root: &Path, operation: &str, input: Value) -> Output {
+    let bytes =
+        serde_json::to_vec(&json!({"protocol_version":1,"operation":operation,"input":input}))
+            .unwrap();
+    let mut command = process_command(root);
+    command.env_remove("OPENROUTER_API_KEY");
+    invoke_process(ProcessRequest {
+        root,
+        bytes: &bytes,
         command,
         deadline: Duration::from_secs(10),
     })
@@ -173,6 +194,9 @@ pub fn response(output: &Output, exit: i32) -> Value {
             }
             "evaluate_rules" => {
                 serde_json::from_value::<sunstack_rules::RuleInvocationOutcome>(outcome).unwrap();
+            }
+            "check_rules" => {
+                serde_json::from_value::<sunstack_rules::CheckRulesOutcome>(outcome).unwrap();
             }
             other => panic!("unexpected operation {other}"),
         }

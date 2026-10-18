@@ -378,7 +378,7 @@ impl Preparation {
         &mut self,
         declaration: &EvidenceDeclaration,
     ) -> EvidenceResult<SelectionReadiness> {
-        crate::evidence_admission::admit_declaration(declaration, &self.input.sources)?;
+        crate::evidence_admission::admit_evidence_declaration(declaration, &self.input.sources)?;
         if self.cancellation.is_cancelled() {
             return Err(EvidenceCode::MissingContext.into());
         }

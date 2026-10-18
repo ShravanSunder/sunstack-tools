@@ -1,0 +1,797 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Map_from_MarkerId_to_RuleSourceEntry",
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^[A-Z][0-9]{3}$": {
+      "$ref": "#/$defs/RuleSourceEntry"
+    }
+  },
+  "$defs": {
+    "AssistantSelection": {
+      "type": "string",
+      "enum": [
+        "excluded",
+        "all",
+        "final_only"
+      ]
+    },
+    "ChunkGrouping": {
+      "type": "string",
+      "enum": [
+        "single_group",
+        "per_seed"
+      ]
+    },
+    "ChunkSettings": {
+      "type": "object",
+      "properties": {
+        "grouping": {
+          "$ref": "#/$defs/ChunkGrouping"
+        },
+        "max_chunk_bytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1
+        },
+        "related_content": {
+          "$ref": "#/$defs/UnitContent"
+        },
+        "seed_content": {
+          "$ref": "#/$defs/UnitContent"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "grouping",
+        "seed_content",
+        "related_content",
+        "max_chunk_bytes"
+      ]
+    },
+    "DeclarationId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "EvidenceDeclaration": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/DeclarationId"
+        },
+        "input": {
+          "$ref": "#/$defs/SourceName"
+        },
+        "max_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 1
+        },
+        "max_items": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 1
+        },
+        "requirement": {
+          "$ref": "#/$defs/EvidenceRequirement",
+          "default": "required"
+        },
+        "select": {
+          "$ref": "#/$defs/EvidenceSelection"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "input",
+        "select"
+      ]
+    },
+    "EvidenceRequirement": {
+      "type": "string",
+      "enum": [
+        "required",
+        "optional"
+      ]
+    },
+    "EvidenceSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_set_literal_text"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/QueryPath"
+              }
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "paths",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_set_regex_text"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/QueryPath"
+              }
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "paths",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_set_ast_pattern"
+            },
+            "language": {
+              "type": "string"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/QueryPath"
+              }
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "paths",
+            "language",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "changed_units"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceLanguage"
+              }
+            },
+            "source_sides": {
+              "$ref": "#/$defs/SourceSides"
+            },
+            "unit_kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/UnitKindFilter"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "languages",
+            "unit_kinds",
+            "source_sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "chunk_settings": {
+              "$ref": "#/$defs/ChunkSettings"
+            },
+            "directions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RelationDirection"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "related_units"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GraphLanguage"
+              }
+            },
+            "minimum_related_units": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "requested_hops": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            },
+            "source_sides": {
+              "$ref": "#/$defs/SourceSides"
+            },
+            "unit_kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/UnitKindFilter"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "languages",
+            "unit_kinds",
+            "source_sides",
+            "directions",
+            "requested_hops",
+            "chunk_settings",
+            "minimum_related_units"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "paragraph"
+            },
+            "target_id": {
+              "$ref": "#/$defs/TargetId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "target_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "whole_document"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "literal_text"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "regex_text"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ast_pattern"
+            },
+            "language": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "language",
+            "pattern"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "assistant_messages": {
+              "$ref": "#/$defs/AssistantSelection"
+            },
+            "hook_injected": {
+              "$ref": "#/$defs/Inclusion"
+            },
+            "kind": {
+              "type": "string",
+              "const": "conversation"
+            },
+            "tool_use": {
+              "$ref": "#/$defs/ToolUseSelection"
+            },
+            "turns": {
+              "$ref": "#/$defs/TurnWindow"
+            },
+            "user_messages": {
+              "$ref": "#/$defs/Inclusion"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "turns",
+            "user_messages",
+            "assistant_messages",
+            "tool_use",
+            "hook_injected"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "whole_payload"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "payload_field"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pointer"
+          ]
+        }
+      ]
+    },
+    "GraphLanguage": {
+      "type": "string",
+      "enum": [
+        "rust",
+        "typescript",
+        "tsx"
+      ]
+    },
+    "Inclusion": {
+      "type": "string",
+      "enum": [
+        "included",
+        "excluded"
+      ]
+    },
+    "QueryPath": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exact"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "glob"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pattern"
+          ]
+        }
+      ]
+    },
+    "RelationDirection": {
+      "type": "string",
+      "enum": [
+        "callers",
+        "callees",
+        "imports",
+        "imported_by"
+      ]
+    },
+    "RuleId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "RuleSourceEntry": {
+      "type": "object",
+      "properties": {
+        "block_at_or_below": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "exclusiveMaximum": 1,
+          "minimum": 0
+        },
+        "context": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EvidenceDeclaration"
+          }
+        },
+        "name": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity",
+          "default": "nudge"
+        },
+        "target": {
+          "$ref": "#/$defs/RuleSourceTarget"
+        },
+        "threshold": {
+          "type": "number",
+          "format": "double",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "target",
+        "threshold"
+      ]
+    },
+    "RuleSourceTarget": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/SourceName"
+        },
+        "select": {
+          "$ref": "#/$defs/EvidenceSelection"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "select"
+      ]
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "block",
+        "nudge"
+      ]
+    },
+    "SourceLanguage": {
+      "type": "string",
+      "enum": [
+        "rust",
+        "typescript",
+        "tsx",
+        "markdown"
+      ]
+    },
+    "SourceName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "SourceSides": {
+      "type": "string",
+      "enum": [
+        "after_only",
+        "before_only",
+        "both_available",
+        "paired_required"
+      ]
+    },
+    "TargetId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "string",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z][0-9]{3,}$"
+    },
+    "ToolCategory": {
+      "type": "string",
+      "enum": [
+        "read_file",
+        "edit_file",
+        "shell",
+        "search",
+        "web",
+        "mcp",
+        "other",
+        "unknown"
+      ]
+    },
+    "ToolFilter": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "named"
+            },
+            "names": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "names"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "categories": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ToolCategory"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "categories"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "categories"
+          ]
+        }
+      ]
+    },
+    "ToolUseSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "excluded"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "included"
+            },
+            "results": {
+              "$ref": "#/$defs/Inclusion"
+            },
+            "tools": {
+              "$ref": "#/$defs/ToolFilter"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tools",
+            "results"
+          ]
+        }
+      ]
+    },
+    "TurnWindow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            },
+            "kind": {
+              "type": "string",
+              "const": "last"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "count"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "since_cursor"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "UnitContent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "whole_unit"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "bounded_excerpt"
+            },
+            "max_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "max_bytes"
+          ]
+        }
+      ]
+    },
+    "UnitKindFilter": {
+      "type": "string",
+      "enum": [
+        "function",
+        "method",
+        "class",
+        "paragraph",
+        "section"
+      ]
+    }
+  },
+  "$id": "rule-source.schema.json",
+  "$comment": "Generated from Rust entry contracts with schemars; property names use the native MarkerId contract.",
+  "propertyNames": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "string",
+    "type": "string",
+    "minLength": 1,
+    "pattern": "^[A-Z][0-9]{3}$"
+  }
+}

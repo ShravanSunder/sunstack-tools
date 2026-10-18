@@ -234,7 +234,13 @@ pub(crate) fn project_report(
             _ => measurements.rules_failed += 1,
         }
     }
+    let source_summary = crate::rule_source_reporting::source_summary(
+        plan.groups.iter().map(|group| group.admitted.set.as_ref()),
+        &mut measurements,
+    );
     RuleInvocationReport {
+        rule_coverage: source_summary.coverage,
+        skipped_rules: source_summary.skipped,
         origin: origin.into(),
         routing,
         groups,

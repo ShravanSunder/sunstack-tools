@@ -298,6 +298,17 @@ pub async fn prepare_rules(
             diagnostics: DiagnosticList::rule(RuleDiagnosticCode::CallerAborted),
             measurements,
         }
+    } else if preparation.rule_coverage == RuleCoverage::None {
+        for skipped in &preparation.skipped_rules {
+            diagnostics.extend(skipped.diagnostics().clone());
+        }
+        if diagnostics.is_empty() {
+            diagnostics.extend(DiagnosticList::rule(RuleDiagnosticCode::EmptyRuleFile));
+        }
+        RulePreparationOutcome::PreparedWithFailures {
+            preparation,
+            diagnostics,
+        }
     } else if diagnostics.is_empty() {
         RulePreparationOutcome::Prepared { preparation }
     } else {

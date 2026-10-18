@@ -216,7 +216,13 @@ pub(crate) fn project_preparation(
         }
     }
     measurements.applicability_entries_evaluated = plan.precomputed.len();
+    let source_summary = crate::rule_source_reporting::source_summary(
+        plan.groups.iter().map(|group| group.admitted.set.as_ref()),
+        &mut measurements,
+    );
     PreparedRules {
+        rule_coverage: source_summary.coverage,
+        skipped_rules: source_summary.skipped,
         origin: origin.into(),
         routing,
         groups,
