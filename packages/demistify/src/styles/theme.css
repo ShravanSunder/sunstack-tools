@@ -35,8 +35,13 @@
 	--diff-unchanged: #627185;
 	--diff-unchanged-bg: #eceff3;
 
-	--font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
-	--font-body: 'Literata', Georgia, 'Times New Roman', serif;
+	--width-reading: 760px;
+	--width-canvas: 1600px;
+	--document-text-width: var(--width-reading);
+
+	--font-display: 'Source Sans 3', system-ui, sans-serif;
+	--font-heading: 'Archivo', system-ui, sans-serif;
+	--font-body: 'Source Sans 3', system-ui, sans-serif;
 	--font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 	/* Design scales: every spacing, type size, radius and motion value in the library uses these. */
 	--space-1: 4px;
@@ -60,6 +65,7 @@
 	--text-2xl: 24px;
 	--text-3xl: 30px;
 	--text-4xl: 44px;
+	--text-tree-root: 20px;
 	--text-title: 46px;
 	--text-section: 36px;
 	--text-subheading: 22px;
@@ -223,7 +229,7 @@ h1,
 h2,
 h3,
 h4 {
-	font-family: var(--font-display);
+	font-family: var(--font-heading);
 	line-height: 1.15;
 	text-wrap: balance;
 	margin: 0;
@@ -247,9 +253,6 @@ h3 {
 h4 {
 	font-size: var(--text-lg);
 	font-weight: 600;
-}
-p {
-	max-width: 68ch;
 }
 p {
 	margin: var(--space-3) 0;
@@ -291,7 +294,6 @@ a {
 .lede {
 	font-size: var(--text-lg);
 	line-height: 1.55;
-	max-width: 62ch;
 	margin-top: var(--space-4);
 }
 

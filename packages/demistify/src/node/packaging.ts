@@ -64,8 +64,8 @@ export function prepareIslandContent(
 	);
 }
 const fontFamilies = [
-	{ slug: 'ibm-plex-sans-condensed', family: 'IBM Plex Sans Condensed', weights: [500, 600, 700] },
-	{ slug: 'literata', family: 'Literata', weights: [400, 600] },
+	{ slug: 'source-sans-3', family: 'Source Sans 3', weights: [400, 500, 600, 700] },
+	{ slug: 'archivo', family: 'Archivo', weights: [500, 600, 700] },
 	{ slug: 'ibm-plex-mono', family: 'IBM Plex Mono', weights: [400] },
 ] as const;
 

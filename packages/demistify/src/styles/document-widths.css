@@ -1,0 +1,82 @@
+/* Two section widths. HTML and nested islands retain ownership of their own layout. */
+ex-document {
+	max-width: var(--width-canvas);
+}
+/* Only document flow participates: structural wrappers are transparent, other islands stop it. */
+ex-document
+	:is(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, ex-callout, ex-card):not(
+		ex-document :not(section, article, main, div, ex-markdown) *
+	) {
+	width: min(100%, var(--document-text-width));
+	max-width: none;
+	margin-inline: auto;
+	text-align: start;
+}
+/* A section carries its heading and content together; the document itself remains a canvas. */
+ex-document .wide-reading:not(ex-document :not(section, article, main, div, ex-markdown) *) {
+	--document-text-width: 100%;
+	width: min(100%, var(--width-canvas));
+	max-width: var(--width-canvas);
+	margin-inline: auto;
+}
+ex-document .reading-measure:not(ex-document :not(section, article, main, div, ex-markdown) *) {
+	--document-text-width: var(--width-reading);
+	width: min(100%, var(--width-reading));
+	max-width: var(--width-reading);
+	margin-inline: auto;
+}
+/* An immediately paired visual heading uses the same canvas even without a section wrapper. */
+ex-document
+	:is(h1, h2, h3):has(
+		+ :is(
+			table,
+			.ex-table-scroll,
+			pre,
+			ex-tabs,
+			ex-zoom,
+			ex-timeline,
+			ex-file-tree,
+			p:has(> img),
+			figure,
+			ex-code,
+			ex-pre,
+			ex-mermaid,
+			ex-tree,
+			ex-gallery,
+			ex-compare,
+			ex-diagram-diff,
+			ex-grid,
+			ex-flow,
+			ex-board,
+			ex-explorer
+		)
+	):not(ex-document :not(section, article, main, div, ex-markdown) *) {
+	width: 100%;
+}
+/* Markdown images live in paragraph wrappers; those wrappers belong to Canvas, not prose. */
+ex-document p:has(> img):not(ex-document :not(section, article, main, div, ex-markdown) *) {
+	width: 100%;
+}
+/* A dedicated gallery is a viewport surface, rather than a bounded document section. */
+ex-document.ex-gallery-document {
+	max-width: none;
+}
+
+/* Dividers always keep the Reading measure, independently of the following section's width. */
+ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2) {
+	position: relative;
+	border-top: 0;
+}
+ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2)::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 50%;
+	width: min(100%, var(--width-reading));
+	transform: translateX(-50%);
+	border-top: 1px solid var(--rule);
+}
+ex-document hr:not(ex-document :not(section, article, main, div, ex-markdown) *) {
+	width: min(100%, var(--width-reading));
+	margin-inline: auto;
+}

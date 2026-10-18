@@ -245,15 +245,15 @@ importers:
 
   packages/demistify:
     dependencies:
+      '@fontsource/archivo':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/ibm-plex-mono':
         specifier: ^5.3.0
         version: 5.3.0
-      '@fontsource/ibm-plex-sans-condensed':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@fontsource/literata':
-        specifier: ^5.3.0
-        version: 5.3.0
+      '@fontsource/source-sans-3':
+        specifier: 5.3.1
+        version: 5.3.1
       '@phosphor-icons/web':
         specifier: 2.1.2
         version: 2.1.2
@@ -570,14 +570,14 @@ packages:
   '@expressive-code/plugin-text-markers@0.43.1':
     resolution: {integrity: sha512-JWf8wdbZSNoGY4TFv3lmt3/NNDaCP7iYL6rRYD05g8YYjKL62hKUHLl5+B47+v0+bqbuMhXDN7qz2wywFUvMkg==}
 
+  '@fontsource/archivo@5.3.0':
+    resolution: {integrity: sha512-5DIMgPVJRi62OqdOVoogCFxP73EkNM/E0YVTSDIQlDEJfDbxqZduwM/YoNZwC9Sx1CDgpKinqf8ckRY1QNIecw==}
+
   '@fontsource/ibm-plex-mono@5.3.0':
     resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
 
-  '@fontsource/ibm-plex-sans-condensed@5.3.0':
-    resolution: {integrity: sha512-fQyBpwbkguP4azjq7Cw8h/J3C/d8MFAzXOiSoFxyKCUK4x0XKrWEh3tGdTxhDM0HctVRQilQo1zGoyxDHLm5jQ==}
-
-  '@fontsource/literata@5.3.0':
-    resolution: {integrity: sha512-9JGMT5+YfBK49thoMq9ASaMRJErHT4V4QuMhAEwKHRLreOsIMP2xP6ZRLhPJ0e6YlET+kjWTJuN7LAxt9/gWGQ==}
+  '@fontsource/source-sans-3@5.3.1':
+    resolution: {integrity: sha512-O3YxvbotUOgYI2Zx0bBcEMNjnwitRf9P2+9pd54sMoux1NHrdXnMwZusw2P78lFhEzOPN4glOEQmX0ASaS68uA==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -3177,11 +3177,11 @@ snapshots:
     dependencies:
       '@expressive-code/core': 0.43.1
 
+  '@fontsource/archivo@5.3.0': {}
+
   '@fontsource/ibm-plex-mono@5.3.0': {}
 
-  '@fontsource/ibm-plex-sans-condensed@5.3.0': {}
-
-  '@fontsource/literata@5.3.0': {}
+  '@fontsource/source-sans-3@5.3.1': {}
 
   '@img/colour@1.1.0': {}
 
