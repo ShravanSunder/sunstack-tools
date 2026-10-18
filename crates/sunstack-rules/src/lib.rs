@@ -14,6 +14,7 @@ pub mod rule_checking;
 mod rule_source_admission;
 mod rule_source_assembly;
 mod rule_source_decoding;
+mod rule_source_entry_wire;
 mod rule_source_reporting;
 pub use rule_checking::{check_rules, decode_check_rules};
 pub use strict_decoding::decode_rule_invocation;
@@ -29,6 +30,8 @@ pub use report_contracts::*;
 pub use rule_identity::*;
 pub mod rule_evaluation_contracts;
 pub use rule_evaluation_contracts::*;
+pub mod mechanical_contracts;
+pub use mechanical_contracts::*;
 pub mod verdict_evaluation;
 pub use verdict_evaluation::*;
 
