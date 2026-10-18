@@ -14,6 +14,27 @@ pub struct MarkdownDocument {
 }
 
 impl MarkdownDocument {
+    /// Match the whole original tree, then retain facts contained in this raw unit.
+    pub fn matching_spans<M: ast_grep_core::Matcher>(
+        &self,
+        matcher: M,
+        unit: &crate::MarkdownByteRange,
+        max_matches: usize,
+    ) -> (Vec<MarkdownTextSpan>, bool) {
+        let text = self.tree.source();
+        let mut spans = self
+            .tree
+            .root()
+            .find_all(matcher)
+            .filter(|found| found.range().start >= unit.start && found.range().end <= unit.end)
+            .take(max_matches.saturating_add(1))
+            .map(|found| MarkdownTextSpan::from_range(text, found.range()))
+            .collect::<Vec<_>>();
+        let limited = spans.len() > max_matches;
+        spans.truncate(max_matches);
+        (spans, limited)
+    }
+
     pub fn parse(text: &str) -> Self {
         Self {
             tree: SupportLang::Markdown.ast_grep(text),

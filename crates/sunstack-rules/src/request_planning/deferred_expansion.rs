@@ -284,7 +284,13 @@ fn install_discovered_occurrences(
 
 pub(crate) fn finish_empty_carriers(plan: &ExecutionPlan, state: &mut ExecutionState) {
     for request in &plan.requests {
-        if request.units.is_empty()
+        let no_questions = request.units.is_empty()
+            || request.units.iter().any(|unit| plan.unit_is_mechanical(*unit))
+                && request.units.iter().all(|unit| {
+                    unit_stopped(plan,state,*unit).is_some()
+                        || matches!(unit,UnitKey::Rule(index) if plan.unit_is_mechanical(*unit) && state.local_settlements.contains_key(index))
+                });
+        if no_questions
             && matches!(
                 state.requests.get(&request.id),
                 Some(RequestSettlement::Waiting)

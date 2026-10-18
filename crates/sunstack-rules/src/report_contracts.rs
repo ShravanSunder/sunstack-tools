@@ -209,6 +209,14 @@ pub struct JudgmentReference {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RuleOccurrenceResult {
+    Checked {
+        key: RuleOccurrenceKey,
+        selected_by: SelectedReasons,
+        target: TargetLocation,
+        declared_severity: Severity,
+        explanation: String,
+        outcome: crate::LocalSettlement,
+    },
     Judged {
         key: RuleOccurrenceKey,
         judgment: Box<RuleJudgment>,
@@ -246,6 +254,7 @@ impl RuleOccurrenceResult {
     pub fn key(&self) -> &RuleOccurrenceKey {
         match self {
             Self::Judged { key, .. }
+            | Self::Checked { key, .. }
             | Self::NotApplicable { key, .. }
             | Self::OutsideChangeScope { key, .. }
             | Self::SelectionFailed { key, .. }
@@ -476,6 +485,9 @@ impl RuleInvocationReport {
                     _ => true,
                 })
             && self.occurrences.iter().all(|result| {
+                if let RuleOccurrenceResult::Checked { outcome, .. } = result {
+                    return outcome.is_complete();
+                }
                 matches!(
                     result,
                     RuleOccurrenceResult::Judged { .. }

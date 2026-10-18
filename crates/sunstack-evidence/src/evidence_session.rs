@@ -57,6 +57,17 @@ impl EvidenceSession {
     ) -> ChangeComparison {
         self.preparation.compare_change_sides(subject, level).await
     }
+    /// Inspect a selected raw unit on its already captured full Markdown tree.
+    pub async fn markdown_matches<M: ast_grep_core::Matcher + Send + 'static>(
+        &mut self,
+        source: &SourceRef,
+        unit: MarkdownByteRange,
+        matcher: M,
+    ) -> EvidenceResult<Vec<SourceSpan>> {
+        self.preparation
+            .markdown_matches(source, unit, matcher)
+            .await
+    }
     pub fn measurements(&self) -> &EvidenceMeasurements {
         self.preparation.measurements()
     }

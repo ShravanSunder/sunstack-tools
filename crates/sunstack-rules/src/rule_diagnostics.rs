@@ -22,6 +22,7 @@ pub enum RuleDiagnosticCode {
     InvalidThreshold,
     InvalidBand,
     InvalidComposite,
+    InvalidMechanicalCheck,
     InvalidTarget,
     UndeclaredInput,
     InputKindMismatch,
@@ -140,6 +141,10 @@ impl RuleDiagnostic {
             InvalidComposite => (
                 RuleDiagnosticOrigin::RuleFile,
                 "Use this rule's noul or multi-level score questions with positive weights summing to one.",
+            ),
+            InvalidMechanicalCheck => (
+                RuleDiagnosticOrigin::RuleFile,
+                "Use exactly one supported expect predicate or a valid Markdown ast-grep rule.",
             ),
             RuleExceedsBudget | RequestLimit => (
                 RuleDiagnosticOrigin::Request,

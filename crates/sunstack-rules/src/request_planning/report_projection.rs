@@ -242,6 +242,16 @@ pub(crate) fn project_report(
     for occurrence in &occurrences {
         match occurrence {
             RuleOccurrenceResult::Judged { .. } => measurements.rules_selected += 1,
+            RuleOccurrenceResult::Checked { outcome, .. } => match outcome {
+                LocalSettlement::Completed { .. } => measurements.rules_selected += 1,
+                LocalSettlement::Unresolved {
+                    diagnostics: reported,
+                } => {
+                    measurements.rules_failed += 1;
+                    diagnostics.extend(reported.clone());
+                }
+                LocalSettlement::Cancelled => measurements.rules_failed += 1,
+            },
             RuleOccurrenceResult::NotApplicable { .. }
             | RuleOccurrenceResult::OutsideChangeScope { .. } => measurements.rules_skipped += 1,
             _ => measurements.rules_failed += 1,

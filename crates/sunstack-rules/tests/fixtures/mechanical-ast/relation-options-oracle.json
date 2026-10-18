@@ -1,0 +1,129 @@
+{
+  "cli_version": "ast-grep 0.51.0",
+  "source": "crates/sunstack-rules/tests/fixtures/mechanical-ast/relation-options.md",
+  "sha256": "b4296799bd80632d8ea01d9bb9ed5d5c9a8d41ce72a1518d9246d4e10cc7a0a1",
+  "cases": [
+    {
+      "name": "stopby",
+      "rule": {
+        "kind": "paragraph",
+        "regex": "MUST",
+        "inside": {
+          "kind": "list_item",
+          "stopBy": "end"
+        }
+      },
+      "matches": [
+        {
+          "start": 18,
+          "end": 43,
+          "text": "Target MUST load `a.md`.\n"
+        },
+        {
+          "start": 46,
+          "end": 72,
+          "text": "Sibling MUST load `b.md`.\n"
+        }
+      ]
+    },
+    {
+      "name": "nested",
+      "rule": {
+        "kind": "paragraph",
+        "regex": "MUST",
+        "inside": {
+          "kind": "list_item",
+          "inside": {
+            "kind": "list",
+            "stopBy": "end"
+          },
+          "stopBy": "end"
+        }
+      },
+      "matches": [
+        {
+          "start": 18,
+          "end": 43,
+          "text": "Target MUST load `a.md`.\n"
+        },
+        {
+          "start": 46,
+          "end": 72,
+          "text": "Sibling MUST load `b.md`.\n"
+        }
+      ]
+    },
+    {
+      "name": "composite",
+      "rule": {
+        "all": [
+          {
+            "kind": "paragraph"
+          },
+          {
+            "regex": "MUST"
+          },
+          {
+            "inside": {
+              "kind": "list_item",
+              "stopBy": "end"
+            }
+          }
+        ],
+        "not": {
+          "regex": "Sibling"
+        }
+      },
+      "matches": [
+        {
+          "start": 18,
+          "end": 43,
+          "text": "Target MUST load `a.md`.\n"
+        }
+      ]
+    },
+    {
+      "name": "stoprule",
+      "rule": {
+        "kind": "paragraph",
+        "regex": "MUST",
+        "inside": {
+          "kind": "list_item",
+          "stopBy": {
+            "kind": "list"
+          }
+        }
+      },
+      "matches": [
+        {
+          "start": 18,
+          "end": 43,
+          "text": "Target MUST load `a.md`.\n"
+        },
+        {
+          "start": 46,
+          "end": 72,
+          "text": "Sibling MUST load `b.md`.\n"
+        }
+      ]
+    },
+    {
+      "name": "field",
+      "rule": {
+        "kind": "paragraph",
+        "inside": {
+          "kind": "setext_heading",
+          "field": "heading_content",
+          "stopBy": "end"
+        }
+      },
+      "matches": [
+        {
+          "start": 0,
+          "end": 8,
+          "text": "Section\n"
+        }
+      ]
+    }
+  ]
+}

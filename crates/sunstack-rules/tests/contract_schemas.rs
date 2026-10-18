@@ -73,6 +73,21 @@ fn every_reviewed_milestone_one_definition_and_invocation_deserializes_and_valid
             assert!(
                 matches!(&bindings[0],sunstack_evidence::MarkdownMarkerBinding::Bound { binding } if binding.question_text=="Clear result\n\nThe selected paragraph states a clear result.")
             );
+        } else if name == "mechanical-standards.md" {
+            let text = std::fs::read_to_string(path).unwrap();
+            let bindings = sunstack_evidence::MarkdownDocument::parse(&text)
+                .bind_markers(&sunstack_evidence::MarkerPrefix::new("K").unwrap(), 400);
+            assert_eq!(bindings.len(), 2);
+            assert!(bindings.iter().all(|binding| matches!(
+                binding,
+                sunstack_evidence::MarkdownMarkerBinding::Bound { .. }
+            )));
+        } else if name == "mechanical-skill.md" {
+            assert!(
+                std::fs::read_to_string(path)
+                    .unwrap()
+                    .contains("description: Use when")
+            );
         } else {
             assert_eq!(name, "SKILL.md");
             assert!(std::fs::read_to_string(path).unwrap().contains("U001:"));

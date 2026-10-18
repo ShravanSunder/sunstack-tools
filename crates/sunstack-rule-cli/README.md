@@ -46,8 +46,10 @@ The CLI forwards these native outcomes and uses the same exit meanings above.
 
 The Jev backend reads `OPENROUTER_API_KEY` from the process environment, never
 stdin. Rule preparation uses the selected backend for encoding and accounting
-and therefore requires valid backend configuration; it sends no provider
-request. Evidence preparation does not require a backend credential.
+when model work is reachable; it sends no provider request. Local-only rule
+preparation and evaluation construct no backend and need no credential. A
+model-based judgment, applicability gate or Router still requires valid backend
+configuration when it becomes reachable. Evidence preparation needs no credential.
 
 `check_rules` assembles every requested RuleSet and validates its rules without
 constructing a backend, reading reviewed documents or sending model requests.
@@ -122,6 +124,42 @@ The evidence library also supports `frontmatter_field` with a literal top-level
 `field`. An initial YAML `---` block yields a decoded JSON value or an absent
 field. Missing or malformed blocks yield explicit unavailable data without an
 invented span. Noul and composite rules reject this mechanical-only target.
+
+A rules entry can replace its judgment threshold with one local check:
+
+```json
+{"name":"skill.description","target":{"input":"skill","select":{"kind":"frontmatter_field","field":"description"}},"expect":{"starts_with":"Use when"},"severity":"block"}
+```
+
+`expect` accepts exactly one of `matches`, `not_matches`, `starts_with` or
+`present: true`. Text predicates use the unit's rendered-visible text, excluding
+inline code. A frontmatter string uses its decoded text; other values use
+canonical JSON text. Null is present. Every predicate fails on an absent field;
+a missing or malformed header is unresolved.
+
+`ast_grep` accepts a native rule object validated by ast-grep-config 0.51.0.
+It sees the full original Markdown syntax tree, including ancestors outside
+the unit. A match fully contained in the target unit is a failure; sibling
+matches outside it are excluded. Frontmatter fields use `expect`; runtime unit
+kinds do not select the metadata block. The marked standard becomes the local
+result's explanation and is not sent to a model.
+
+Reports use `checked` occurrences with `completed` pass/fail, `unresolved` or
+`cancelled` local outcomes. A failed check retains its declared severity and
+can complete with exit 0. Unresolved checks make the report incomplete. Local
+checks create no model answers, references, receipts or confidence and consume
+no model question/request budget. Applicability and routing still govern them.
+
+The [mechanical invocation](../../docs/specs/2026-10-12-rust-rule-engine/examples/mechanical.invocation.json)
+checks a description and a load instruction without a credential. Wrap that
+native input in the usual `evaluate_rules` protocol frame. The companion
+[check request](../../docs/specs/2026-10-12-rust-rule-engine/examples/mechanical.check.request.json)
+validates and prints both standards without reading the reviewed skill.
+
+Rust callers supply `RuleBackendFactory` in `RuleExecutionContext`. Selection
+is credential-free; the invocation calls `prepare` once when its first model
+request reaches encoding and caches the result. Concrete built backends already
+implement the factory trait and can still be passed with `Arc::new(backend)`.
 
 The backend-free
 [unit-target check request](../../docs/specs/2026-10-12-rust-rule-engine/examples/unit-targets.check.request.json)

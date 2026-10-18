@@ -10,6 +10,32 @@ use serde_json::value::RawValue;
 use std::{collections::BTreeMap, fmt, path::Path};
 
 struct RawEntries<'document>(Vec<(String, &'document RawValue)>);
+#[derive(Deserialize)]
+struct CheckBlocks<'a> {
+    #[serde(borrow)]
+    expect: Option<&'a RawValue>,
+    #[serde(borrow)]
+    ast_grep: Option<&'a RawValue>,
+}
+
+fn block_position(bytes: &[u8], block: &RawValue) -> Result<(usize, usize), DiagnosticList> {
+    let start = block
+        .get()
+        .as_ptr()
+        .addr()
+        .checked_sub(bytes.as_ptr().addr())
+        .filter(|start| *start <= bytes.len())
+        .ok_or_else(|| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))?;
+    let prefix = std::str::from_utf8(&bytes[..start])
+        .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::MalformedJson))?;
+    Ok((
+        prefix.bytes().filter(|byte| *byte == b'\n').count() + 1,
+        prefix
+            .rsplit('\n')
+            .next()
+            .map_or(1, |tail| tail.chars().count() + 1),
+    ))
+}
 impl<'de> Deserialize<'de> for RawEntries<'de> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct EntriesVisitor;
@@ -89,6 +115,52 @@ pub(crate) fn decode_source_entries(
                 }
                 diagnostics
             });
+        // Preserve the strict typed decoder's refusal, but recover the complete
+        // dropped-key path from the original block for a located source error.
+        if value.as_ref().err().is_some_and(|diagnostics| diagnostics.items.iter().any(|item|
+            matches!(item, ReportDiagnostic::Rule(diagnostic) if diagnostic.code == RuleDiagnosticCode::UnknownField))) {
+            let blocks: CheckBlocks<'_> = serde_json::from_str(raw.get()).map_err(malformed)?;
+            if let Some(block) = blocks.ast_grep {
+                let input = serde_json::from_str(block.get()).map_err(malformed)?;
+                if let Ok(Some(mut path)) = crate::AstGrepRule::dropped_key(&input) {
+                    path.insert(0, "ast_grep".into());
+                    let (block_line, block_column) = block_position(bytes, block)?;
+                    value = Err(RuleDiagnostic::new(RuleDiagnosticCode::UnknownField)
+                        .definition(file, block_line, block_column, path).into());
+                }
+            }
+        }
+        if let Ok(entry) = &value {
+            let check = match &entry.verdict {
+                crate::RuleSourceVerdict::Expect { expect } => {
+                    Some(crate::MechanicalCheck::Expect {
+                        expect: expect.clone(),
+                    })
+                }
+                crate::RuleSourceVerdict::AstGrep { ast_grep } => {
+                    Some(crate::MechanicalCheck::AstGrep {
+                        ast_grep: ast_grep.clone(),
+                    })
+                }
+                _ => None,
+            };
+            if let Some(check) = check
+                && let Err(mut diagnostics) = check.validate()
+            {
+                let blocks: CheckBlocks<'_> = serde_json::from_str(raw.get()).map_err(malformed)?;
+                let block = blocks.ast_grep.or(blocks.expect).ok_or_else(|| {
+                    DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError)
+                })?;
+                let (block_line, block_column) = block_position(bytes, block)?;
+                crate::definition_admission::locate_at(
+                    &mut diagnostics,
+                    file,
+                    block_line,
+                    block_column,
+                );
+                value = Err(diagnostics);
+            }
+        }
         if counts.get(key).copied().unwrap_or_default() > 1 {
             let mut diagnostics = value.err().unwrap_or_default();
             diagnostics.extend(

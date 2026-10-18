@@ -24,7 +24,7 @@ The app is three Rust libraries (`sunstack-evidence`, `sunstack-decisions`, `sun
 | Skill lint and handoff monitor, V14/V29/V30 | `references/milestone-1.md` | Controlled journeys/measurement and credential-gated hosted campaign |
 | Git changes, relationships and chunks | `references/milestone-2.md` | Native Git/filesystem/AST and process recipes; remaining draft/unknown prerequisites are listed in the reference |
 | Commissioned usage scenarios | `references/usage-scenarios.md` | Whole caller journeys with owned fixtures; both genuine slots are spent |
-| Markdown rule sources: assemble/print, refusals and mechanical rules, U1–U9 | `references/markdown-skill-rules.md` | Assembly/refusal drivers observed at S2 `7c529b4b`; each run needs its declared target; mechanical driver needs S4 |
+| Markdown rule sources: assemble/print, refusals and mechanical rules, U1–U9 | `references/markdown-skill-rules.md` | Assembly/refusal drivers observed at S2 `7c529b4b`; mechanical CLI at declared S4 plus native matcher/factory/gate proof; each run needs its declared target |
 
 MUST load `references/library-gates.md` and return the scoped commands, results and remaining coverage before relying on library or build claims.
 IF hosted V11 is in scope, load `references/hosted-decisions.md` and return its run identity, validated completion and receipt, or its access/setup gap.

@@ -5,6 +5,11 @@ import json
 
 import pytest
 from assemble_and_print_rule_sources import QUESTION_FILES, require_questions  # pyright: ignore[reportImplicitRelativeImport]
+from check_mechanical_rules import (  # pyright: ignore[reportImplicitRelativeImport]
+    contained_matches,
+    local_report,
+    require_completed,
+)
 from check_rule_refusals import (  # pyright: ignore[reportImplicitRelativeImport]
     MARKER_GUIDANCE,
     require_located_refusal,
@@ -178,3 +183,81 @@ def test_marker_refusal_cannot_lose_cause_identity_or_repair_guidance() -> None:
             require_marker_details(
                 outcome(invalid), "question_too_large", frozenset({"K014"})
             )
+
+
+def test_local_report_rejects_fake_model_fields_skips_counters_and_duplicate_keys() -> (
+    None
+):
+    occurrence: JsonObject = {
+        "kind": "checked",
+        "key": {"rule_id": "local.one"},
+        "outcome": {"kind": "completed", "result": "pass", "observations": []},
+    }
+    report: JsonObject = {
+        "rule_coverage": "full",
+        "skipped_rules": [],
+        "measurements": {"model_requests": 0, "inference_attempts": 0},
+        "occurrences": [occurrence],
+        "requests": [],
+    }
+    valid: JsonObject = {"kind": "complete_report", "report": report}
+    assert local_report(valid, complete=True) == report
+    invalid_reports: list[JsonObject] = [
+        {**report, "rule_coverage": "partial"},
+        {**report, "skipped_rules": [{"kind": "source"}]},
+        {**report, "measurements": {"model_requests": False, "inference_attempts": 0}},
+        {**report, "measurements": {"model_requests": 1, "inference_attempts": 0}},
+        {**report, "occurrences": []},
+        {**report, "occurrences": [occurrence, occurrence]},
+        {
+            **report,
+            "occurrences": [
+                {
+                    **occurrence,
+                    "outcome": {"kind": "completed", "result": "pass", "receipt": {}},
+                }
+            ],
+        },
+        {
+            **report,
+            "requests": [
+                {
+                    "questions": ["fabricated"],
+                    "status": {"kind": "not_sent", "reason": {"kind": "no_questions"}},
+                }
+            ],
+        },
+    ]
+    for invalid in invalid_reports:
+        with pytest.raises(AssertionError):
+            _ = local_report(
+                {"kind": "complete_report", "report": invalid}, complete=True
+            )
+    with pytest.raises(AssertionError):
+        _ = local_report(valid, complete=False)
+
+
+def test_local_completion_cannot_count_unresolved_or_opposite_result_as_pass() -> None:
+    require_completed({"outcome": {"kind": "completed", "result": "pass"}}, "pass")
+    outcomes: list[JsonObject] = [
+        {"kind": "unresolved"},
+        {"kind": "completed", "result": "fail"},
+    ]
+    for outcome in outcomes:
+        with pytest.raises(AssertionError):
+            require_completed({"outcome": outcome}, "pass")
+
+
+def test_ast_reference_containment_excludes_outside_siblings_and_crossing_matches() -> (
+    None
+):
+    inside: JsonObject = {"start": 2, "end": 4, "text": "in"}
+    matches: list[JsonObject] = [
+        {"start": 0, "end": 3, "text": "cross-start"},
+        inside,
+        {"start": 3, "end": 6, "text": "cross-end"},
+        {"start": 8, "end": 9, "text": "sibling"},
+    ]
+    assert contained_matches(matches, {"start": 2, "end": 5}) == [inside]
+    with pytest.raises(AssertionError):
+        _ = contained_matches(matches, {"start": True, "end": 5})

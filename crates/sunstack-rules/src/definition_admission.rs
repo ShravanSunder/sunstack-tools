@@ -145,6 +145,31 @@ pub fn validate_rule_definition(
         .iter()
         .find(|declaration| declaration.id == rule.target)
         .ok_or_else(|| refusal(RuleDiagnosticCode::InvalidTarget))?;
+    if let VerdictDeclaration::Mechanical { explanation, check } = &rule.verdict {
+        if explanation.is_empty() || !rule.questions.is_empty() {
+            return Err(refusal(RuleDiagnosticCode::InvalidMechanicalCheck));
+        }
+        if !matches!(
+            target.select,
+            EvidenceSelection::MarkdownUnits(_) | EvidenceSelection::FrontmatterField { .. }
+        ) || matches!(
+            (&target.select, check),
+            (
+                EvidenceSelection::FrontmatterField { .. },
+                crate::MechanicalCheck::AstGrep { .. }
+            )
+        ) || matches!(
+            check,
+            crate::MechanicalCheck::Expect {
+                expect: crate::ExpectPredicate::Present { .. }
+            }
+        ) && !matches!(target.select, EvidenceSelection::FrontmatterField { .. })
+        {
+            return Err(refusal(RuleDiagnosticCode::InvalidTarget));
+        }
+        validate_entries(&rule.applicability, inputs)?;
+        return check.validate();
+    }
     if !matches!(
         target.select,
         EvidenceSelection::Paragraph { .. }
@@ -161,7 +186,10 @@ pub fn validate_rule_definition(
     for question in rule.questions.values() {
         validate_question(question)?
     }
-    let threshold = rule.verdict.threshold();
+    let threshold = rule
+        .verdict
+        .threshold()
+        .ok_or_else(|| refusal(RuleDiagnosticCode::InvalidThreshold))?;
     if !threshold_valid(threshold) {
         return Err(refusal(RuleDiagnosticCode::InvalidThreshold));
     }
@@ -171,6 +199,9 @@ pub fn validate_rule_definition(
         return Err(refusal(RuleDiagnosticCode::InvalidBand));
     }
     match &rule.verdict {
+        VerdictDeclaration::Mechanical { .. } => {
+            return Err(refusal(RuleDiagnosticCode::InvalidMechanicalCheck));
+        }
         VerdictDeclaration::Noul { question, .. } => {
             if !matches!(question, JudgmentQuestion::Noul { .. }) {
                 return Err(refusal(RuleDiagnosticCode::InvalidComposite));

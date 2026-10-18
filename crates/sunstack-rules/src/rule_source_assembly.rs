@@ -153,13 +153,26 @@ pub(crate) fn assemble_source(
                     .map_err(|error| DiagnosticList::from(error.diagnostics()))?,
                 applicability: vec![],
                 questions: BTreeMap::new(),
-                verdict: VerdictDeclaration::Noul {
-                    question: JudgmentQuestion::Noul {
-                        instructions: StructuredEntry::Text(binding.question_text.clone()),
-                        criteria: None,
+                verdict: match entry.verdict {
+                    RuleSourceVerdict::Judgment {
+                        threshold,
+                        block_at_or_below,
+                    } => VerdictDeclaration::Noul {
+                        question: JudgmentQuestion::Noul {
+                            instructions: StructuredEntry::Text(binding.question_text.clone()),
+                            criteria: None,
+                        },
+                        threshold,
+                        block_at_or_below,
                     },
-                    threshold: entry.threshold,
-                    block_at_or_below: entry.block_at_or_below,
+                    RuleSourceVerdict::Expect { expect } => VerdictDeclaration::Mechanical {
+                        explanation: binding.question_text.clone(),
+                        check: MechanicalCheck::Expect { expect },
+                    },
+                    RuleSourceVerdict::AstGrep { ast_grep } => VerdictDeclaration::Mechanical {
+                        explanation: binding.question_text.clone(),
+                        check: MechanicalCheck::AstGrep { ast_grep },
+                    },
                 },
                 severity: entry.severity,
             };

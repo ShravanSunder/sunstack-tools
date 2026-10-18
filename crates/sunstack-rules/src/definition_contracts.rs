@@ -125,6 +125,10 @@ pub struct RuleDefinition {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum VerdictDeclaration {
+    Mechanical {
+        explanation: String,
+        check: crate::MechanicalCheck,
+    },
     Noul {
         #[schemars(schema_with = "noul_schema")]
         question: JudgmentQuestion,
@@ -145,13 +149,15 @@ pub enum VerdictDeclaration {
     },
 }
 impl VerdictDeclaration {
-    pub fn threshold(&self) -> f64 {
+    pub fn threshold(&self) -> Option<f64> {
         match self {
-            Self::Noul { threshold, .. } | Self::Composite { threshold, .. } => *threshold,
+            Self::Noul { threshold, .. } | Self::Composite { threshold, .. } => Some(*threshold),
+            Self::Mechanical { .. } => None,
         }
     }
     pub fn band(&self) -> Option<f64> {
         match self {
+            Self::Mechanical { .. } => None,
             Self::Noul {
                 block_at_or_below, ..
             }

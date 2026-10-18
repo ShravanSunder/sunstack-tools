@@ -17,19 +17,32 @@ pub struct RuleSourceTarget {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
+#[serde(
+    try_from = "crate::rule_source_entry_wire::SourceEntryWire",
+    into = "crate::rule_source_entry_wire::SourceEntryWire"
+)]
 pub struct RuleSourceEntry {
     pub name: RuleId,
     pub target: RuleSourceTarget,
     #[serde(default)]
     pub context: Vec<EvidenceDeclaration>,
-    #[schemars(extend("exclusiveMinimum"=0,"maximum"=1))]
-    pub threshold: f64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(extend("minimum"=0,"exclusiveMaximum"=1))]
-    pub block_at_or_below: Option<f64>,
+    pub verdict: RuleSourceVerdict,
     #[serde(default)]
     pub severity: Severity,
+}
+
+#[derive(Debug, Clone)]
+pub enum RuleSourceVerdict {
+    Judgment {
+        threshold: f64,
+        block_at_or_below: Option<f64>,
+    },
+    Expect {
+        expect: crate::ExpectPredicate,
+    },
+    AstGrep {
+        ast_grep: Box<crate::AstGrepRule>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

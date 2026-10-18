@@ -395,6 +395,7 @@ impl ExecutionState {
             }
         }
         Self {
+            local_settlements: BTreeMap::new(),
             expansions: plan
                 .evaluations
                 .iter()

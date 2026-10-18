@@ -5,22 +5,38 @@ use sunstack_decisions::{
 };
 use sunstack_evidence::{AdapterRegistry, EvidencePlanOutcome};
 use sunstack_rules::{
-    RuleExecutionContext, RuleInvocationInput, RuleInvocationOutcome, RulePreparationOutcome,
+    RuleBackendFactory, RuleExecutionContext, RuleInvocationInput, RuleInvocationOutcome,
+    RulePreparationOutcome,
 };
+
+struct JevRuleBackendFactory {
+    selection: sunstack_decisions::BackendSelection,
+}
+impl RuleBackendFactory for JevRuleBackendFactory {
+    fn selection(&self) -> &sunstack_decisions::BackendSelection {
+        &self.selection
+    }
+    fn prepare(
+        self: Arc<Self>,
+    ) -> Result<Arc<dyn sunstack_decisions::DecisionBackend>, sunstack_rules::DiagnosticList> {
+        let credential = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();
+        match JevOpenRouterBackend::prepare(self.selection.clone(), &credential) {
+            BackendPreparation::Ready { backend } => Ok(Arc::new(backend)),
+            BackendPreparation::Refused { diagnostics } => Err(diagnostics.into()),
+        }
+    }
+}
 
 fn rule_context(
     input: &RuleInvocationInput,
     cancellation: &CancellationToken,
 ) -> Result<RuleExecutionContext, sunstack_rules::DiagnosticList> {
-    let credential = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();
-    let backend = match JevOpenRouterBackend::prepare(input.backend.clone(), &credential) {
-        BackendPreparation::Ready { backend } => backend,
-        BackendPreparation::Refused { diagnostics } => return Err(diagnostics.into()),
-    };
     let adapters = AdapterRegistry::builtins()
         .map_err(|error| sunstack_rules::DiagnosticList::from(error.diagnostics()))?;
     Ok(RuleExecutionContext {
-        backend: Arc::new(backend),
+        backend: Arc::new(JevRuleBackendFactory {
+            selection: input.backend.clone(),
+        }),
         adapters,
         cancellation: cancellation.clone(),
     })

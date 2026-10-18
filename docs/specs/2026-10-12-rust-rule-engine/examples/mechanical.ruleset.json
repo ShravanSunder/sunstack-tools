@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "name": "mechanical-skill",
+  "description": "Check skill text locally without a model.",
+  "inputs": { "skill": { "kind": "document" } },
+  "applicability": [],
+  "common_ruleset_instructions": null,
+  "rule_sources": [{ "markdown": "mechanical-standards.md", "rules": "mechanical.rules.json" }],
+  "marker_prefix": "K"
+}
