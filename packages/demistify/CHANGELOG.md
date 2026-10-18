@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.9.0
+
+### Minor Changes
+
+- 7f9e8c0: Let rich comparisons grow with their content instead of using a height-capped scroll surface. Add an accessible gallery thumbnail toggle that retains the selected image and browse state across views and inspection.
+
 ## 1.8.0
 
 ### Minor Changes
