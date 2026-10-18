@@ -67,9 +67,10 @@ Identity (rules)
   RuleEvaluationKey { rule_set, group, rule_id }       one per rule before its targets are known
   the call-site key carries the match's visible-text range beside its raw range: one HTML entity can decode to several visible
   characters, so two distinct visible matches can map to the same raw span; the raw range stays the repair location (S3 finding)
-  a match's raw range is the smallest original byte range covering every source lexeme behind its visible characters: a whole CRLF
-  line ending, a whole entity or escape, the bytes between two blocks behind a joining separator, or the source row or delimiter
-  line behind generated table framing; a match made only of generated text still gets a real raw range this way (S3 Verifier prebuild)
+  a match's raw range is the smallest original byte range covering the authored lexemes behind its visible characters (a whole CRLF
+  line ending, a whole entity or escape); generated text (joining separators, list and table framing) has no authored bytes, so a
+  match made only of generated text gets a zero-width raw range at the adjacent authored boundary, and its visible range keeps it
+  distinct (S3 Verifier prebuild and Implementer convention)
   QuestionOwner::Verdict / ::Informational carry the full occurrence key; q000001 names stay transport-only
 
 Mechanical verdict (rules)
