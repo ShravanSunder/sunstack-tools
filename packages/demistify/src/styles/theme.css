@@ -60,6 +60,9 @@
 	--text-2xl: 24px;
 	--text-3xl: 30px;
 	--text-4xl: 44px;
+	--text-title: 46px;
+	--text-section: 36px;
+	--text-subheading: 22px;
 	--radius-sm: 4px;
 	--radius-md: 8px;
 	--radius-lg: 12px;
@@ -149,6 +152,7 @@
 }
 * {
 	box-sizing: border-box;
+	scrollbar-width: thin;
 }
 body {
 	background: var(--surface-page);
@@ -225,18 +229,18 @@ h4 {
 	margin: 0;
 }
 h1 {
-	font-size: var(--text-4xl);
+	font-size: var(--text-title);
 	font-weight: 700;
 	letter-spacing: -0.01em;
 }
 h2 {
-	font-size: var(--text-3xl);
+	font-size: var(--text-section);
 	font-weight: 600;
 	margin-top: var(--space-16);
 	padding-top: var(--space-2);
 }
 h3 {
-	font-size: var(--text-xl);
+	font-size: var(--text-subheading);
 	font-weight: 600;
 	margin-top: var(--space-8);
 }
@@ -286,7 +290,7 @@ a {
 	margin-top: var(--space-2);
 }
 .lede {
-	font-size: var(--text-xl);
+	font-size: var(--text-lg);
 	line-height: 1.55;
 	max-width: 62ch;
 	margin-top: var(--space-4);

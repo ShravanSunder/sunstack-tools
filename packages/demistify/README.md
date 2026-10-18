@@ -137,6 +137,14 @@ Up/Down selects screenshots; Left/Right switches viewport categories while retai
 
 The theme owns colors, fonts, spacing, radii and motion. Semantic roles for tone, selection, keyboard focus, links, presentation position, comments and diffs are distinct. Related items use 16px gaps; neutral boundaries are 1px, semantic accents 2px. Chosen is a separate badge and does not recolor a card's meaning. A small slow marker sits outside the current presentation target; reduced motion leaves it static.
 
+Reading documents center in the space available beside the outline or inspection drawer. Prose stays measured; grids, code and diagrams can use the document canvas. A document containing only a gallery, optionally preceded by its h1, uses the available page width and height. Keep extra introduction text in a separate reading section when it would turn that dedicated viewer back into normal document flow. Explicit author CSS can still choose another layout.
+
+The shared reading scale uses a 15px body, 46px title, 36px section heading and 22px subheading, with smaller headings on narrow screens. Callouts have a bounded reading width and restrained semantic border/wash; their text fills that width. Use the existing `eyebrow` class for a short optional label: inside a card it takes the card's tone. Inline code and disclosure summaries use the matching shared accents. Do not repeat these defaults as per-page CSS.
+
+For two or three short alternatives with the same criteria, show columns so matching topics are visible together. Use tabs when each alternative needs a longer explanation or diagram. HTML and islands remain the content of either layout. The author chooses the presentation; readers should not have to configure column counts or layout before they can understand the options.
+
+Existing HTML that imports the shared `/v1/` theme receives compatible appearance updates after deployment and refresh. An embedded/frozen stylesheet or an explicit author override keeps its own appearance. A shared style update does not add newly authored content or interactions to an older page.
+
 Sidebar inspection copies content and preserves the main view. Fullscreen uses the shared native dialog; Escape, Close or a backdrop click dismiss it and restore focus. Cmd/Ctrl+wheel zooms and modifier-drag pans images/diagrams; ordinary scrolling remains native. Controls provide the same actions without gestures. The library subsets actual Phosphor glyphs into the matching build.
 
 ## Authoring measurements
