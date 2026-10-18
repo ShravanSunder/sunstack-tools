@@ -1820,6 +1820,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-util",
+ "tree-sitter-md",
 ]
 
 [[package]]
