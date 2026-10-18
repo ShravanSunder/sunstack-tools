@@ -78,7 +78,7 @@ validated_name!(TargetId, |value: &str| value.len() >= 4
     && value.as_bytes()[0].is_ascii_alphabetic()
     && value.as_bytes()[1..].iter().all(u8::is_ascii_digit));
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceRef {
     RepositoryFile {

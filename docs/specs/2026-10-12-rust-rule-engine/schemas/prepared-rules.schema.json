@@ -51,6 +51,12 @@
     "rule_coverage": {
       "$ref": "#/$defs/RuleCoverage"
     },
+    "rule_evaluations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PreparedRuleEvaluation"
+      }
+    },
     "skipped_rules": {
       "type": "array",
       "items": {
@@ -60,6 +66,7 @@
   },
   "additionalProperties": false,
   "required": [
+    "rule_evaluations",
     "rule_coverage",
     "skipped_rules",
     "origin",
@@ -1647,6 +1654,7 @@
     "EvidenceCode": {
       "type": "string",
       "enum": [
+        "frontmatter_unavailable",
         "unknown_field",
         "duplicate_field",
         "invalid_request",
@@ -1782,6 +1790,101 @@
             "kind"
           ]
         }
+      ]
+    },
+    "FrontmatterFieldContent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "present"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "span": {
+              "description": "The YAML decoder's reference span, mapped to the original document.",
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "value": {
+              "$ref": "#/$defs/StructuredJson"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "field",
+            "value",
+            "span"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "frontmatter_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "kind": {
+              "type": "string",
+              "const": "absent"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "field",
+            "frontmatter_span"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList2"
+            },
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "block_unavailable"
+            },
+            "reason": {
+              "$ref": "#/$defs/FrontmatterUnavailableReason"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "field",
+            "reason",
+            "diagnostics"
+          ]
+        }
+      ]
+    },
+    "FrontmatterUnavailableReason": {
+      "type": "string",
+      "enum": [
+        "missing",
+        "malformed"
       ]
     },
     "GitObjectId": {
@@ -1964,6 +2067,80 @@
       "required": [
         "request_index",
         "question_name"
+      ]
+    },
+    "MarkdownByteRange": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "MarkdownOccurrence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unit"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "span"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "call_site"
+            },
+            "match_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "unit_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "visible_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "unit_span",
+            "match_span",
+            "visible_range"
+          ]
+        }
+      ]
+    },
+    "MarkdownUnitKind": {
+      "type": "string",
+      "enum": [
+        "section",
+        "paragraph",
+        "list_item"
       ]
     },
     "MessageBlock": {
@@ -2612,6 +2789,188 @@
         }
       ]
     },
+    "PreparedRuleEvaluation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "waiting_for_expansion"
+            },
+            "on": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/EntryKey"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "on"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "expanded"
+            },
+            "occurrences": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RuleOccurrenceKey"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "occurrences"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "zero_matches"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "input",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "basis": {
+              "$ref": "#/$defs/EntryBasis"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "not_applicable"
+            },
+            "stopped_at": {
+              "$ref": "#/$defs/EntryKey"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "stopped_at",
+            "basis"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "outside_change_scope"
+            },
+            "reason": {
+              "$ref": "#/$defs/OutsideChangeReason"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "reason"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "selection_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "diagnostics"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cause": {
+              "$ref": "#/$defs/Cause"
+            },
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "evaluation_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key",
+            "cause"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleEvaluationKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "key"
+          ]
+        }
+      ]
+    },
     "ProviderContextCeiling": {
       "oneOf": [
         {
@@ -2760,38 +3119,38 @@
         {
           "type": "object",
           "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
             "kind": {
               "type": "string",
               "const": "verdict"
-            },
-            "rule_id": {
-              "$ref": "#/$defs/RuleId"
             }
           },
           "additionalProperties": false,
           "required": [
             "kind",
-            "rule_id"
+            "key"
           ]
         },
         {
           "type": "object",
           "properties": {
+            "key": {
+              "$ref": "#/$defs/RuleOccurrenceKey"
+            },
             "kind": {
               "type": "string",
               "const": "informational"
             },
             "name": {
               "$ref": "#/$defs/QuestionName"
-            },
-            "rule_id": {
-              "$ref": "#/$defs/RuleId"
             }
           },
           "additionalProperties": false,
           "required": [
             "kind",
-            "rule_id",
+            "key",
             "name"
           ]
         }
@@ -4137,11 +4496,7 @@
         "invocation"
       ]
     },
-    "RuleId": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
-    },
-    "RuleOccurrenceKey": {
+    "RuleEvaluationKey": {
       "type": "object",
       "properties": {
         "group": {
@@ -4163,6 +4518,124 @@
         "rule_id"
       ]
     },
+    "RuleId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "RuleOccurrenceKey": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "rule_id": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "rule_set": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/RuleOccurrenceTarget"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule_set",
+        "group",
+        "rule_id",
+        "target"
+      ]
+    },
+    "RuleOccurrenceTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "legacy"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown_unit"
+            },
+            "range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "range"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "call_site"
+            },
+            "match_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "unit_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            },
+            "visible_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "unit_range",
+            "match_range",
+            "visible_range"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "frontmatter_field"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "source",
+            "field"
+          ]
+        }
+      ]
+    },
     "SeedContextGroup": {
       "type": "object",
       "properties": {
@@ -4177,6 +4650,34 @@
       "required": [
         "seed",
         "outcome"
+      ]
+    },
+    "SelectedMarkdownUnit": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/MarkdownUnitKind"
+        },
+        "occurrence": {
+          "$ref": "#/$defs/MarkdownOccurrence"
+        },
+        "span": {
+          "$ref": "#/$defs/SourceSpan"
+        },
+        "text": {
+          "type": "string"
+        },
+        "visible_text": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "span",
+        "text",
+        "visible_text",
+        "occurrence"
       ]
     },
     "SelectedReason": {
@@ -4217,6 +4718,43 @@
     },
     "SelectionContent": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "frontmatter_field"
+            },
+            "result": {
+              "$ref": "#/$defs/FrontmatterFieldContent"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "result"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown_units"
+            },
+            "units": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SelectedMarkdownUnit"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "units"
+          ]
+        },
         {
           "type": "object",
           "properties": {

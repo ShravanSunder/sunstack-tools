@@ -713,6 +713,7 @@
     "EvidenceCode": {
       "type": "string",
       "enum": [
+        "frontmatter_unavailable",
         "unknown_field",
         "duplicate_field",
         "invalid_request",
@@ -803,6 +804,111 @@
     },
     "EvidenceSelection": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "frontmatter_field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown_units"
+            }
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/UnitOnly"
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/SelectionMode"
+                },
+                "starts_with": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units",
+                "starts_with"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/SelectionMode"
+                },
+                "pattern": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units",
+                "pattern"
+              ]
+            }
+          ],
+          "not": {
+            "required": [
+              "starts_with",
+              "pattern"
+            ]
+          },
+          "required": [
+            "kind"
+          ],
+          "unevaluatedProperties": false
+        },
         {
           "type": "object",
           "properties": {
@@ -1361,6 +1467,14 @@
         "start_column",
         "end_line",
         "end_column"
+      ]
+    },
+    "MarkdownUnitKind": {
+      "type": "string",
+      "enum": [
+        "section",
+        "paragraph",
+        "list_item"
       ]
     },
     "MarkerId": {
@@ -2132,6 +2246,13 @@
         "entry_location"
       ]
     },
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "unit",
+        "call_site"
+      ]
+    },
     "Severity": {
       "type": "string",
       "enum": [
@@ -2694,6 +2815,12 @@
         "class",
         "paragraph",
         "section"
+      ]
+    },
+    "UnitOnly": {
+      "type": "string",
+      "enum": [
+        "unit"
       ]
     },
     "VerdictDeclaration": {

@@ -1,0 +1,1 @@
+{"rule_id":"unit.clarity","evidence":[{"id":"target","input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}}],"target":"target","applicability":[],"questions":{},"verdict":{"kind":"noul","question":{"type":"noul","instructions":"Does this unit state a clear instruction?"},"threshold":0.8}}

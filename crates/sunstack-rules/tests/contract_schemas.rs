@@ -57,7 +57,7 @@ fn every_reviewed_milestone_one_definition_and_invocation_deserializes_and_valid
             let _: BTreeMap<sunstack_evidence::MarkerId, RuleSourceEntry> =
                 serde_json::from_value(value.clone()).unwrap();
             assert!(reviewed("rule-source.schema.json").is_valid(&value));
-        } else if name == "marked-standards.check.request.json" {
+        } else if name.ends_with(".check.request.json") {
             let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
             assert_eq!(value["protocol_version"], 1);
             assert_eq!(value["operation"], "check_rules");

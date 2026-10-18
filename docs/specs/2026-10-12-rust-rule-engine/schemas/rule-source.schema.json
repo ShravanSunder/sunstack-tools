@@ -109,6 +109,111 @@
         {
           "type": "object",
           "properties": {
+            "field": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "frontmatter_field"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "field"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "markdown_units"
+            }
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/UnitOnly"
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/SelectionMode"
+                },
+                "starts_with": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units",
+                "starts_with"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/SelectionMode"
+                },
+                "pattern": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/MarkdownUnitKind"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "mode",
+                "units",
+                "pattern"
+              ]
+            }
+          ],
+          "not": {
+            "required": [
+              "starts_with",
+              "pattern"
+            ]
+          },
+          "required": [
+            "kind"
+          ],
+          "unevaluatedProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "type": "string",
               "const": "change_set_literal_text"
@@ -432,6 +537,14 @@
         "excluded"
       ]
     },
+    "MarkdownUnitKind": {
+      "type": "string",
+      "enum": [
+        "section",
+        "paragraph",
+        "list_item"
+      ]
+    },
     "QueryPath": {
       "oneOf": [
         {
@@ -540,6 +653,13 @@
       "required": [
         "input",
         "select"
+      ]
+    },
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "unit",
+        "call_site"
       ]
     },
     "Severity": {
@@ -783,15 +903,14 @@
         "paragraph",
         "section"
       ]
+    },
+    "UnitOnly": {
+      "type": "string",
+      "enum": [
+        "unit"
+      ]
     }
   },
   "$id": "rule-source.schema.json",
-  "$comment": "Generated from Rust entry contracts with schemars; property names use the native MarkerId contract.",
-  "propertyNames": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "string",
-    "type": "string",
-    "minLength": 1,
-    "pattern": "^[A-Z][0-9]{3}$"
-  }
+  "$comment": "Generated from Rust entry contracts with schemars; property names use the native MarkerId contract."
 }

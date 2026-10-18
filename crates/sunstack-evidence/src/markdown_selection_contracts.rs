@@ -39,16 +39,21 @@ pub enum MarkdownUnitSelection {
 enum SelectionWire {
     Unfiltered {
         mode: UnitOnly,
+        #[schemars(length(min = 1))]
         units: Vec<MarkdownUnitKind>,
     },
     StartsWith {
         mode: SelectionMode,
+        #[schemars(length(min = 1))]
         units: Vec<MarkdownUnitKind>,
+        #[schemars(length(min = 1))]
         starts_with: String,
     },
     Regex {
         mode: SelectionMode,
+        #[schemars(length(min = 1))]
         units: Vec<MarkdownUnitKind>,
+        #[schemars(length(min = 1))]
         pattern: String,
     },
 }
