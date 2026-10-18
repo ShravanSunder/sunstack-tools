@@ -141,6 +141,7 @@ export class DocumentSearch {
 	private render(): void {
 		this.matches = searchDocumentDestinations(this.destinations, this.input.value, this.scope);
 		this.results.replaceChildren();
+		const home = this.destinations.find((entry): boolean => entry.kind === 'page');
 		for (const [index, entry] of this.matches.entries()) {
 			const row = document.createElement('a');
 			row.href = new URL(entry.href, document.baseURI).href;
@@ -158,7 +159,9 @@ export class DocumentSearch {
 			row.append(
 				createPhosphorIcon(
 					entry.kind === 'page'
-						? 'files'
+						? entry === home
+							? 'house'
+							: 'files'
 						: entry.kind === 'journey'
 							? 'images'
 							: entry.kind === 'walkthrough'

@@ -63,7 +63,7 @@ Markdown islands render GFM tables, fenced code, nested/task lists, links, image
 
 ## Pages, breadcrumbs and presentations
 
-Declare one native page-link list on each file. Its first link is Home; the matching URL supplies the current page name. The library derives the compact sticky header, Pages dropdown and breadcrumbs. Real headings populate the page-named, independently scrolling outline. Captions do not add outline entries. Walkthroughs and Theme use the same navigation system.
+Declare one native page-link list on each file. Its first link is Home; the matching URL supplies the current page name. The library derives the compact sticky header, Pages command bar and breadcrumbs. Real headings populate the page-named, independently scrolling outline. Captions do not add outline entries. Walkthroughs and Theme use the same navigation system.
 
 ```html
 <ex-nav for="content"

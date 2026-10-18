@@ -106,10 +106,14 @@ export class HeadingNavigation extends HTMLElement {
 			(link): boolean => !link.closest('[slot="presentations"]'),
 		);
 		const indexed = readSearchIndex();
+		const searchLinks = [
+			...this.pageLinks,
+			...this.querySelectorAll<HTMLAnchorElement>('[slot="presentations"] a[href]'),
+		];
 		this.documentSearch = new DocumentSearch(() =>
 			collectSearchDestinations({
 				contentRoot: this.contentRoot ?? document.body,
-				navigation: this,
+				links: searchLinks,
 				indexed,
 				pageTitle: this.pageName(),
 			}),

@@ -34,15 +34,17 @@ export function readSearchIndex(): readonly SearchDestination[] {
 /** Live headings replace this page's generated entries after Markdown and other islands render. */
 export function collectSearchDestinations(props: {
 	readonly contentRoot: HTMLElement;
-	readonly navigation: HTMLElement;
+	readonly links: readonly HTMLAnchorElement[];
 	readonly indexed: readonly SearchDestination[];
 	readonly pageTitle: string;
 }): readonly SearchDestination[] {
-	const { contentRoot, navigation, indexed, pageTitle } = props;
+	const { contentRoot, links, indexed, pageTitle } = props;
 	assignHeadingFragments(contentRoot);
 	const here = new URL(location.href);
 	here.hash = '';
+	here.search = '';
 	const entries = new Map<string, SearchDestination>();
+	const authoredWalkthroughs: SearchDestination[] = [];
 	const add = (entry: SearchDestination): void => {
 		const url = new URL(entry.href, document.baseURI);
 		const key =
@@ -51,7 +53,7 @@ export function collectSearchDestinations(props: {
 				: `${entry.kind}:${url.href}`;
 		entries.set(key, entry);
 	};
-	for (const link of navigation.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+	for (const link of links) {
 		const title =
 			link.querySelector('strong')?.textContent?.trim() ?? link.textContent?.trim() ?? '';
 		if (!title) continue;
@@ -66,7 +68,11 @@ export function collectSearchDestinations(props: {
 				description: link.querySelector('span')?.textContent?.trim(),
 			},
 		]);
-		if (parsed.success) for (const entry of parsed.data) add(entry);
+		if (parsed.success)
+			for (const entry of parsed.data) {
+				if (entry.kind === 'walkthrough') authoredWalkthroughs.push(entry);
+				else add(entry);
+			}
 	}
 	for (const entry of indexed) {
 		const url = new URL(entry.href, document.baseURI);
@@ -101,5 +107,25 @@ export function collectSearchDestinations(props: {
 			href: `#${encodeURIComponent(presentation.id)}`,
 			description: presentation.getAttribute('description') ?? '',
 		});
-	return [...entries.values()];
+	for (const entry of authoredWalkthroughs) add(entry);
+	const values = [...entries.values()];
+	const headingsByPage = new Map<string, SearchDestination[]>();
+	for (const entry of values) {
+		if (entry.kind !== 'heading') continue;
+		const url = new URL(entry.href, document.baseURI);
+		url.hash = '';
+		const headings = headingsByPage.get(url.href) ?? [];
+		headings.push(entry);
+		headingsByPage.set(url.href, headings);
+	}
+	return [
+		...values
+			.filter((entry): boolean => entry.kind === 'page')
+			.flatMap((entry): SearchDestination[] => {
+				const url = new URL(entry.href, document.baseURI);
+				url.hash = '';
+				return [entry].concat(headingsByPage.get(url.href) ?? []);
+			}),
+		...values.filter((entry): boolean => entry.kind === 'walkthrough' || entry.kind === 'journey'),
+	];
 }
