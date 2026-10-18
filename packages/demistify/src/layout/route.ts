@@ -80,7 +80,7 @@ export class RouteElement extends HTMLElement {
 }
 
 function settleIntoView(target: Element): void {
-	target.scrollIntoView({ block: 'center' });
+	target.scrollIntoView({ behavior: 'instant', block: 'center' });
 }
 
 /** Floating previous/next player that walks a route, spotlighting and optionally opening each island. */
@@ -326,7 +326,7 @@ class RoutePlayer {
 			if (board instanceof BoardIsland && board.isMap()) {
 				board.focusOn(target);
 				settleIntoView(board);
-			} else if (gallery) gallery.scrollIntoView({ block: 'start' });
+			} else if (gallery) gallery.scrollIntoView({ behavior: 'instant', block: 'start' });
 			else settleIntoView(target);
 			if (step.open && !gallery && target instanceof HTMLElement) {
 				openIsland(target, step.open);

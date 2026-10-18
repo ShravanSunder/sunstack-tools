@@ -1,15 +1,38 @@
+import { ComparisonViews } from './comparison-views.ts';
 import { installIslandInspector } from './inspector.ts';
 
 /**
- * Two views of one thing: before and after. Side by side by default; with `slider` the two overlay
- * and a divider (drag it, or use the arrow keys) reveals one over the other, which suits screenshots
- * and generated pictures of the same size. A child's `label` names its side.
+ * Named alternatives use shared topic rows or authored content tabs. The image-only `slider`
+ * overlays two same-size pictures with a native range reveal. A child's `label` names its view.
  */
 export class CompareIsland extends HTMLElement {
 	private sliderBound = false;
+	private comparison: ComparisonViews | undefined;
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
 		this.classList.add('ex-compare');
+		if (!this.hasAttribute('slider')) {
+			if (!this.comparison) {
+				const sides = Array.from(this.children).filter(
+					(child): child is HTMLElement =>
+						child instanceof HTMLElement && !child.classList.contains('ex-inspect-controls'),
+				);
+				for (const side of sides)
+					if (side.localName === 'img') {
+						const frame = document.createElement('div');
+						const label = side.getAttribute('label');
+						if (label) frame.setAttribute('label', label);
+						side.before(frame);
+						frame.append(side);
+						sides[sides.indexOf(side)] = frame;
+					}
+				this.comparison = new ComparisonViews(this, sides);
+				this.setAttribute('prepared', '');
+			}
+			this.comparison.connect();
+			installIslandInspector(this);
+			return;
+		}
 		if (!this.hasAttribute('prepared')) {
 			// A bare picture gets a frame, so its side can carry a label.
 			const sides = Array.from(this.children)
@@ -39,6 +62,9 @@ export class CompareIsland extends HTMLElement {
 				range,
 			);
 		installIslandInspector(this);
+	}
+	disconnectedCallback(): void {
+		this.comparison?.disconnect();
 	}
 
 	private installSlider(

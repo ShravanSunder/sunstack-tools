@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Source-derived call changes</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body><ex-document><h1>Calls and outcomes change differently.</h1><p>These paths are derived from the supplied example patch below. They are not captured runtime stacks. The callers of these entry functions and the identity observations remain unknown.</p>
+<ex-compare label="Call-path changes" data-width="canvas">
+<section id="old-calls" label="Current source" icon="code">
+<section data-compare-row="disconnect"><h3>Disconnect calls</h3><ex-trace><details icon="code" tag="Declared entry · transport.ts:12" open><summary><code>disconnected(transport)</code></summary><p>The source declares this entry. Its caller is not supplied.</p></details><details icon="code" tone="removed" tag="Call · transport.ts:13"><summary><code>registry.delete(transport.sessionId)</code></summary><p>The old call removes the lookup entry.</p></details></ex-trace></section>
+<section data-compare-row="lookup"><h3>Reconnect lookup</h3><ex-trace><details icon="code" tag="Declared entry · registry.ts:40"><summary><code>reconnect(id)</code></summary><p>The source accepts a known identity.</p></details><details icon="database" tag="Call · registry.ts:41"><summary><code>sessions.get(id)</code></summary><p>The lookup call is unchanged by this patch.</p></details></ex-trace></section>
+<section data-compare-row="outcomes"><h3>Return branches</h3><ul><li>Missing lookup returns <code>undefined</code>.</li><li>A found Session returns <code>attached</code>.</li></ul><p>These are outcomes inside the reconnect frame, not extra function calls.</p></section>
+</section>
+<section id="new-calls" label="Proposed source" icon="git-branch">
+<section data-compare-row="disconnect"><h3>Disconnect calls</h3><ex-trace><details icon="code" tag="Declared entry · transport.ts:12" open><summary><code>disconnected(transport)</code></summary><p>The declared entry is unchanged.</p></details><details icon="code" tone="added" tag="Call · transport.ts:13"><summary><code>transport.close()</code></summary><p>The replacement call closes this connection. The supplied patch no longer deletes its lookup here.</p></details></ex-trace></section>
+<section data-compare-row="lookup"><h3>Reconnect lookup</h3><ex-trace><details icon="code" tag="Declared entry · registry.ts:40"><summary><code>reconnect(id)</code></summary><p>The signature is unchanged.</p></details><details icon="database" tag="Call · registry.ts:41"><summary><code>sessions.get(id)</code></summary><p>The same lookup precedes the new guards.</p></details></ex-trace></section>
+<section data-compare-row="outcomes"><h3>Return branches</h3><ul><li>Missing lookup returns <code>missing</code>.</li><li>An expired Session returns <code>expired</code>.</li><li>A found, unexpired Session returns <code>attached</code>.</li></ul><p>No tenant check is supplied. The patch does not establish continuity of a running Session.</p></section>
+</section></ex-compare>
+<h2 id="supplied-source">Supplied example patch</h2><ex-code id="call-source" title="Source basis" lang="diff" data-width="canvas"><script type="text/plain">diff --git a/registry.ts b/registry.ts
+--- a/registry.ts
++++ b/registry.ts
+@@ -40,5 +40,6 @@
+ export function reconnect(id: string) {
+   const session = sessions.get(id);
+-  if (!session) return undefined;
++  if (!session) return { kind: 'missing' };
++  if (session.expired) return { kind: 'expired' };
+   return { kind: 'attached', session };
+ }
+diff --git a/transport.ts b/transport.ts
+--- a/transport.ts
++++ b/transport.ts
+@@ -12,3 +12,3 @@
+ export function disconnected(transport: Transport) {
+-  registry.delete(transport.sessionId);
++  transport.close();
+ }</script></ex-code>
+<h2 id="runtime-gaps">What still needs observation</h2><p>Observe the original durable identity, disconnect, reconnect through the real caller and compare identity again. Refusal and cross-tenant isolation need their own observations. No execution is claimed here.</p></ex-document></body></html>

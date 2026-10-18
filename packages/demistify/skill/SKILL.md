@@ -111,7 +111,7 @@ Several named/described presentations may share a page and the same islands. Eac
 </ex-presentation>
 ```
 
-The menu is called **Walkthroughs**. Compact rows show a picture icon for local picture/gallery stops and a path icon for ordinary or cross-page explanations; no separate type column. Keep the title short and the description to one concise sentence. The underlying authoring tags remain `ex-presentation` and `ex-step`.
+The menu is called **Walkthroughs**. A Walkthrough may span pages and mix text, diagrams and gallery pictures. **Gallery Journey** describes a pictured sequence over the same player. Compact rows show a picture icon for local picture-only journeys and a path icon for mixed, ordinary or cross-page explanations; no separate type column. Keep the title short and the description to one concise sentence. The underlying authoring tags remain `ex-presentation` and `ex-step`.
 
 The shared Walkthroughs menu discovers `id`, `title` and `description`. A presentation does not own, copy or hide other content. Use the current `ex-presentation`/`ex-step` form; the earlier `ex-route` and wrapper-selection form are removed.
 
@@ -129,6 +129,8 @@ IF the page includes a guided presentation or cross-page stops, load `references
 | `<ex-mermaid id>` | Mermaid source in `<script type="text/plain">` |
 | `<ex-code title lang start>` | Literal code/diff script, followed by `<ex-note line="42" tone="risk">…</ex-note>` |
 | `<ex-tree title>` | Hierarchical Markdown, status lists and checklists; separate disclosure and go-to actions |
+| `<ex-trace title>` | Ordered native disclosures with status and arbitrary rich evidence attachments |
+| `<ex-compare label view choose selected scroll>` | Aligned topic rows across arbitrary alternatives, or one detailed content tab at a time |
 | `<ex-pre>` | Exact monospace/TUI drawing in a plain-text script |
 | `<ex-gallery id label>` | Native figures, metadata filters and review/grid views within the shared document system |
 | `<ex-grid cols="3">` | Related content side by side; child `span="2"` or `span="all"`; `sticky` side column; `swipe` row on phones |
@@ -152,6 +154,9 @@ Use short labels for content tabs and keep the full heading/explanation inside e
 
 - IF the page includes screenshot review or comparison, load `references/pictures.md` and return native figures/captions and one shared-system gallery.
 - IF the page includes a tree or literal TUI drawing, load `references/trees.md` and return independent disclosure/navigation or faithful `ex-pre` text.
+- IF the page compares alternatives on corresponding topics, load `references/comparisons.md` and return authored layout/width and consistent topic keys; readers choose content rather than layout.
+- IF the page uses ordered steps with rich evidence, load `references/traces.md` and return native disclosures with precise source/observation status.
+- IF the page explains call-path changes, load `references/call-paths.md` and return a source-derived composition with calls, branches and unknown runtime evidence kept distinct.
 - IF the page needs a pannable board, routed arrows or optional layers, load `references/maps.md` and return the chosen reading/map layout with valid endpoints.
 - IF the page includes a multi-file diff or line notes, load `references/code.md` and return notes attached to the displayed file/row.
 - IF the page uses a supplied explorer graph document, load `references/explorers.md` and return a page referencing that data without recreating it or its application code.

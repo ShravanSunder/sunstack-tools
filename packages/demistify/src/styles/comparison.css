@@ -1,0 +1,124 @@
+.ex-comparison {
+	display: block;
+	min-width: 0;
+	max-width: 100%;
+}
+.ex-comparison-viewport {
+	min-width: 0;
+}
+.ex-comparison-scroll {
+	max-height: min(70dvh, 720px);
+	overflow: auto;
+	overscroll-behavior: contain;
+	scrollbar-gutter: stable;
+}
+.ex-comparison-canvas {
+	display: grid;
+	grid-template-columns: repeat(var(--comparison-columns), minmax(0, 1fr));
+	grid-template-rows: auto repeat(var(--comparison-rows), auto);
+	gap: var(--space-6) var(--space-8);
+	min-width: 0;
+}
+.ex-comparison-header {
+	position: sticky;
+	top: 56px;
+	z-index: 2;
+	grid-row: 1;
+	grid-column: var(--comparison-column);
+	align-self: start;
+	min-width: 0;
+	padding-block: var(--space-3);
+	background: var(--surface-page);
+	font: 600 var(--text-xl)/1.4 var(--font-display);
+}
+.ex-comparison-scroll .ex-comparison-header,
+.ex-inspect-body .ex-comparison-header {
+	top: 0;
+}
+.ex-comparison.ex-inspectable .ex-comparison-header:last-of-type {
+	padding-inline-end: var(--space-18);
+}
+.ex-comparison.ex-inspectable .ex-comparison-canvas[data-stacked] > .ex-comparison-header {
+	padding-inline-end: 0;
+}
+.ex-comparison.ex-inspectable
+	.ex-comparison-canvas[data-stacked]
+	> .ex-comparison-header:first-of-type {
+	padding-inline-end: var(--space-18);
+}
+.ex-comparison-option {
+	min-width: 0;
+	grid-column: var(--comparison-column);
+	grid-row: 2 / span var(--comparison-rows);
+}
+.ex-comparison-canvas[data-aligned] > .ex-comparison-option {
+	display: grid;
+	grid-template-rows: subgrid;
+}
+.ex-comparison-option > [data-compare-row] {
+	min-width: 0;
+	grid-row: var(--comparison-topic-row, auto);
+}
+.ex-comparison-option > [data-compare-row] > :first-child,
+.ex-comparison-option > :first-child {
+	margin-top: 0;
+}
+.ex-comparison-gap {
+	color: var(--ink-soft);
+	font: 400 var(--text-lg)/1.55 var(--font-body);
+}
+.ex-comparison-canvas[data-stacked] {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: none;
+}
+.ex-comparison-canvas[data-stacked] > .ex-comparison-header {
+	position: static;
+	grid-column: 1;
+	grid-row: var(--comparison-stack-row);
+}
+.ex-comparison-canvas[data-stacked] > .ex-comparison-option {
+	grid-column: 1;
+	grid-row: var(--comparison-stack-row) / span var(--comparison-rows);
+}
+.ex-comparison-canvas[data-view='tabs'] {
+	display: block;
+}
+.ex-comparison-choice {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	text-align: start;
+	font: 500 var(--text-lg)/1.4 var(--font-display);
+}
+.ex-comparison-choice > .ph:last-child {
+	margin-inline-start: auto;
+}
+.ex-comparison-choices {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	box-sizing: border-box;
+	width: min(320px, calc(100vw - 16px));
+	overflow: auto;
+	padding: var(--space-2);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	color: var(--ink);
+	box-shadow: var(--shadow-float);
+}
+.ex-comparison-choices > button {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	text-align: start;
+	border: 0;
+	background: none;
+	font: 400 var(--text-base)/1.5 var(--font-display);
+}
+.ex-comparison-choices > button:is(:hover, :focus-visible, [aria-pressed='true']) {
+	background: var(--selection-surface);
+	color: var(--accent);
+}

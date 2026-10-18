@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rich explanation components</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body><ex-document><h1>Source, explanation and planned proof</h1><p>The patch is supplied example source. These views do not establish runtime execution.</p>
+<ex-trace id="evidence-trace" title="Inspect the evidence" label="Evidence trace" data-width="canvas" zoom>
+<details id="source-step" icon="code" tone="done" tag="Supplied source"><summary>Read the exact reconnect changes</summary><ex-code id="trace-code" title="Supplied patch" lang="diff"><script type="text/plain">diff --git a/registry.ts b/registry.ts
+--- a/registry.ts
++++ b/registry.ts
+@@ -40,5 +40,6 @@
+ export function reconnect(id: string) {
+   const session = sessions.get(id);
+-  if (!session) return undefined;
++  if (!session) return { kind: 'missing' };
++  if (session.expired) return { kind: 'expired' };
+   return { kind: 'attached', session };
+ }
+diff --git a/transport.ts b/transport.ts
+--- a/transport.ts
++++ b/transport.ts
+@@ -12,3 +12,3 @@
+ export function disconnected(transport: Transport) {
+-  registry.delete(transport.sessionId);
++  transport.close();
+ }</script></ex-code><p>The supplied expiry guard is visible. No tenant check is supplied.</p></details>
+<details id="proof-step" icon="test-tube" tone="planned" tag="Not executed"><summary>Observe identity before and after reconnect</summary><ex-markdown id="trace-notes"><script type="text/markdown">
+## Expected identity
+
+Observe **the same Session**, not merely a successful attachment response.
+</script></ex-markdown><ex-mermaid id="trace-diagram"><script type="text/plain">flowchart LR
+  Original[Original Session] --> Reconnected[Reconnected Session]</script></ex-mermaid><ex-tree title="Observation plan"><script type="text/markdown">
+- planned: Record the original identity
+- planned: Compare the reconnected identity
+</script></ex-tree></details>
+</ex-trace></ex-document></body></html>

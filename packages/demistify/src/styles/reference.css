@@ -422,5 +422,6 @@ footer {
 	}
 }
 html {
-	scroll-behavior: smooth;
+	/* A cross-page fragment lands directly instead of sweeping down from the page top. */
+	scroll-behavior: auto;
 }

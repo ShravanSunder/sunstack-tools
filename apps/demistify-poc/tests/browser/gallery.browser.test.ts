@@ -61,6 +61,15 @@ test('walkthrough Markdown, subject icons and source-relative links survive a cr
 	expect(fixture.querySelector('.ex-route-narration code')?.textContent).toBe('SessionId');
 	expect(fixture.querySelector('.ex-route-lead > .ph-path')).not.toBeNull();
 	expect(fixture.querySelector('.ex-route-narration h1')).toBeNull();
+	const titleStyle = fixture.defaultView?.getComputedStyle(
+		requiredElement(fixture, '.ex-route-controls > strong'),
+	);
+	const narrationStyle = fixture.defaultView?.getComputedStyle(
+		requiredElement(fixture, '.ex-route-narration p'),
+	);
+	expect(Number.parseFloat(titleStyle?.fontSize ?? '0')).toBeGreaterThan(
+		Number.parseFloat(narrationStyle?.fontSize ?? '0'),
+	);
 	await player.getByRole('button', { name: 'Next step', exact: true }).click();
 	await expect
 		.element(frame.getByRole('heading', { name: 'Narration evidence', exact: true }))
@@ -75,6 +84,40 @@ test('walkthrough Markdown, subject icons and source-relative links survive a cr
 	await expect
 		.element(player.getByText('Why there are two MCP levels', { exact: true }))
 		.toBeVisible();
+});
+
+test('cross-page walkthrough arrives at a deep stop without an animated page sweep', async (): Promise<void> => {
+	const { frame } = await openFixture('ui', '#narration', 'narration.html');
+	const iframe = document.querySelector<HTMLIFrameElement>('iframe');
+	if (!iframe) throw new Error('Missing walkthrough frame.');
+	const landing = new Promise<readonly DOMRect[]>((resolve, reject): void => {
+		iframe.addEventListener(
+			'load',
+			(): void => {
+				const destination = iframe.contentDocument;
+				const view = destination?.defaultView;
+				if (!destination || !view) {
+					reject(new Error('Destination did not load.'));
+					return;
+				}
+				const target = requiredElement(destination, '#finish');
+				view.requestAnimationFrame((): void => {
+					const first = target.getBoundingClientRect();
+					view.requestAnimationFrame((): void => {
+						resolve([first, target.getBoundingClientRect()]);
+					});
+				});
+			},
+			{ once: true },
+		);
+	});
+	await frame.getByRole('button', { name: 'Next step', exact: true }).click();
+	const [first, second] = await landing;
+	if (!first || !second) throw new Error('No destination frames observed.');
+	expect(first.top).toBeGreaterThanOrEqual(0);
+	expect(first.bottom).toBeLessThan(1000);
+	expect(Math.abs(second.top - first.top)).toBeLessThanOrEqual(1);
+	await expect.element(frame.getByText('Inspect the evidence', { exact: true })).toBeVisible();
 });
 
 test('presentation crosses files, returns to its home and reports an unavailable stop visibly', async (): Promise<void> => {

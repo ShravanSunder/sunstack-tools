@@ -5,7 +5,15 @@ import { revealLayers } from './layers.ts';
 /** All links and presentation stops reveal the same containing UI before selecting a target. */
 export function revealElement(target: Element): void {
 	revealLayers(target);
-	for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
+	for (
+		let ancestor = target instanceof HTMLElement ? target : target.parentElement;
+		ancestor;
+		ancestor = ancestor.parentElement
+	) {
+		if (ancestor.classList.contains('ex-comparison-option'))
+			ancestor.dispatchEvent(new Event('comparison-reveal', { bubbles: true }));
+		// An alternative may itself be the destination; the other actions reveal its containers.
+		if (ancestor === target) continue;
 		if (ancestor.getAttribute('role') === 'tabpanel' && ancestor.hidden)
 			ancestor.parentElement
 				?.querySelector<HTMLButtonElement>(`button[aria-controls="${CSS.escape(ancestor.id)}"]`)
@@ -29,7 +37,7 @@ function targetElement(reference: string): Element | undefined {
 	const owner = document.getElementById(reference.slice(0, divider));
 	if (owner?.localName !== 'ex-mermaid') return undefined;
 	revealElement(owner);
-	owner.scrollIntoView({ block: 'center' });
+	owner.scrollIntoView({ behavior: 'instant', block: 'center' });
 	return (
 		owner.querySelector(`g.node[data-id="${CSS.escape(reference.slice(divider + 2))}"]`) ??
 		undefined
@@ -61,7 +69,7 @@ export function resolveTarget(
 					'ex-mermaid:not([prepared]),ex-markdown:not([prepared]),ex-tree:not([prepared])',
 				)
 			) {
-				target.scrollIntoView({ block: 'center' });
+				target.scrollIntoView({ behavior: 'instant', block: 'center' });
 				return;
 			}
 			finish(target);

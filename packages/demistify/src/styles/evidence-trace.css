@@ -1,0 +1,107 @@
+ex-trace {
+	display: block;
+	min-width: 0;
+	max-width: 100%;
+	margin-block: var(--space-6);
+	font: 400 var(--text-lg)/1.55 var(--font-body);
+	container-type: inline-size;
+}
+.ex-trace-head {
+	margin-bottom: var(--space-4);
+	font: 600 var(--text-tree-root)/1.4 var(--font-display);
+}
+.ex-trace-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.ex-trace-list > li {
+	position: relative;
+	min-width: 0;
+	margin: 0;
+	padding-bottom: var(--space-3);
+}
+.ex-trace-list > li:not(:last-child)::before {
+	content: '';
+	position: absolute;
+	left: 18px;
+	top: var(--space-10);
+	bottom: 0;
+	border-left: 1px solid var(--rule);
+}
+.ex-trace-summary {
+	color: var(--ink);
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr) auto 16px;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-2);
+	list-style: none;
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+.ex-trace-summary::-webkit-details-marker {
+	display: none;
+}
+.ex-trace-summary:hover {
+	background: var(--selection-surface);
+}
+.ex-trace-summary:focus-visible {
+	outline: 2px solid var(--focus-color);
+	outline-offset: 2px;
+}
+.ex-trace-title {
+	grid-column: 2;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	font: 600 var(--text-lg)/1.45 var(--font-display);
+}
+.ex-trace-summary > .ex-tone-icon {
+	grid-column: 1;
+	font-size: var(--text-xl);
+}
+.ex-trace-summary > .ex-head-tag {
+	grid-column: 3;
+	font: 400 var(--text-sm)/1.4 var(--font-display);
+	background: none;
+	padding: 0;
+}
+.ex-trace-chevron {
+	grid-column: 4;
+	grid-row: 1;
+	color: var(--ink-soft);
+	font-size: var(--text-md);
+	line-height: 1;
+}
+.ex-trace-list > li > details[open] > .ex-trace-summary > .ex-trace-chevron {
+	transform: rotate(90deg);
+}
+.ex-trace-dot {
+	justify-self: center;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--ink-soft);
+}
+.ex-trace-body {
+	min-width: 0;
+	margin: 0 var(--space-2) var(--space-3) var(--space-10);
+}
+.ex-trace-body > :first-child {
+	margin-top: 0;
+}
+.ex-trace-body > :last-child {
+	margin-bottom: 0;
+}
+@container (max-width: 520px) {
+	.ex-trace-summary {
+		gap: var(--space-1) var(--space-2);
+	}
+	.ex-trace-summary > .ex-head-tag {
+		grid-column: 2;
+		grid-row: 2;
+	}
+	.ex-trace-body {
+		margin-inline-start: var(--space-6);
+	}
+}
