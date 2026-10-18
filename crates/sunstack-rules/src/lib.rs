@@ -22,9 +22,13 @@ mod definition_loading;
 pub mod input_binding;
 mod invocation_admission;
 pub mod report_contracts;
+pub mod rule_identity;
 pub use definition_loading::{LocatedRuleDefinition, ValidatedRuleFile};
 pub use input_binding::{AdmittedSource, SourceId};
 pub use report_contracts::*;
+pub use rule_identity::*;
+pub mod rule_evaluation_contracts;
+pub use rule_evaluation_contracts::*;
 pub mod verdict_evaluation;
 pub use verdict_evaluation::*;
 

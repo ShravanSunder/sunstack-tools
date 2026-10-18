@@ -85,6 +85,8 @@ pub async fn prepare_rules(
     )
     .await;
     let mut records = BTreeMap::new();
+    discover_ready_rules(&mut plan, &mut state, &mut session, &cancellation).await;
+    finish_empty_carriers(&plan, &mut state);
     let mut diagnostics = DiagnosticList::default();
     let mut omitted = BTreeSet::new();
     let mut encoded_parts = BTreeMap::new();
@@ -92,6 +94,17 @@ pub async fn prepare_rules(
     while position < plan.requests.len() {
         let request = plan.requests[position].clone();
         position += 1;
+        if matches!(
+            state.requests.get(&request.id),
+            Some(RequestSettlement::Settled {
+                status: RequestStatus::NotSent {
+                    reason: NotSentReason::NoQuestions
+                },
+                ..
+            })
+        ) {
+            continue;
+        }
         if cancellation.is_cancelled() {
             break;
         }
@@ -357,7 +370,7 @@ fn gate_frontier(
     }
     entry.definition.is_gate().then_some(index)
 }
-fn waiting_on(
+pub(crate) fn waiting_on(
     plan: &ExecutionPlan,
     state: &ExecutionState,
     request: &PlannedRequest,

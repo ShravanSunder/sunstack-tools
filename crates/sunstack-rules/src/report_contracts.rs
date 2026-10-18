@@ -59,6 +59,7 @@ pub struct RuleOccurrenceKey {
     pub rule_set: PathBuf,
     pub group: usize,
     pub rule_id: RuleId,
+    pub target: Box<crate::RuleOccurrenceTarget>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -210,7 +211,7 @@ pub struct JudgmentReference {
 pub enum RuleOccurrenceResult {
     Judged {
         key: RuleOccurrenceKey,
-        judgment: RuleJudgment,
+        judgment: Box<RuleJudgment>,
         selected_by: SelectedReasons,
     },
     NotApplicable {
@@ -371,11 +372,23 @@ pub enum RequestMode {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum QuestionOwner {
-    Router { group: usize },
-    RuleSetDecision { entry: EntryKey },
-    RuleDecision { rule_id: RuleId, entry: EntryKey },
-    Verdict { rule_id: RuleId },
-    Informational { rule_id: RuleId, name: QuestionName },
+    Router {
+        group: usize,
+    },
+    RuleSetDecision {
+        entry: EntryKey,
+    },
+    RuleDecision {
+        rule_id: RuleId,
+        entry: EntryKey,
+    },
+    Verdict {
+        key: RuleOccurrenceKey,
+    },
+    Informational {
+        key: RuleOccurrenceKey,
+        name: QuestionName,
+    },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -392,6 +405,7 @@ pub enum RequestStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NotSentReason {
+    NoQuestions,
     OutsideChangeScope,
     GateStopped { entry: EntryKey },
     Cancelled,
@@ -425,6 +439,7 @@ pub struct RequestRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleInvocationReport {
+    pub rule_evaluations: Vec<crate::RuleEvaluationResult>,
     pub rule_coverage: crate::RuleCoverage,
     pub skipped_rules: Vec<crate::SkippedRule>,
     pub origin: ReportedOrigin,
@@ -441,6 +456,25 @@ pub struct RuleInvocationReport {
 impl RuleInvocationReport {
     pub fn is_complete(&self) -> bool {
         self.rule_coverage != crate::RuleCoverage::None
+            && self
+                .rule_evaluations
+                .iter()
+                .all(crate::RuleEvaluationResult::is_complete)
+            && self
+                .rule_evaluations
+                .iter()
+                .all(|evaluation| match evaluation {
+                    crate::RuleEvaluationResult::Expanded { occurrences, .. } => {
+                        occurrences.iter().all(|key| {
+                            self.occurrences
+                                .iter()
+                                .filter(|occurrence| occurrence.key() == key)
+                                .count()
+                                == 1
+                        })
+                    }
+                    _ => true,
+                })
             && self.occurrences.iter().all(|result| {
                 matches!(
                     result,

@@ -459,6 +459,7 @@ impl Preparation {
         declaration: &EvidenceDeclaration,
     ) -> EvidenceResult<SelectionReadiness> {
         let items = match &content {
+            SelectionContent::MarkdownUnits { units } => units.len(),
             SelectionContent::Matches { matches } => matches.len(),
             SelectionContent::ConversationRecords { records, .. } => records.len(),
             _ => 1,

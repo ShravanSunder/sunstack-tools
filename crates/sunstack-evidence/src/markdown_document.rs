@@ -6,6 +6,9 @@ use std::{collections::BTreeMap, ops::Range};
 
 type BlockNode<'tree> = Node<'tree, StrDoc<SupportLang>>;
 
+#[path = "markdown_unit_selection.rs"]
+mod unit_selection;
+
 pub struct MarkdownDocument {
     tree: AstGrep<StrDoc<SupportLang>>,
 }
@@ -204,10 +207,26 @@ impl MarkdownDocument {
     }
 
     fn project_range(&self, range: Range<usize>) -> (String, String) {
-        let root = self.tree.root();
+        let (question, filter) = self.project_mapped_range(range);
+        (question, filter.text)
+    }
+
+    fn project_mapped_range(
+        &self,
+        range: Range<usize>,
+    ) -> (String, crate::markdown_mapped_text::MappedMarkdownText) {
         let normalized =
             crate::markdown_offset_projection::NormalizedMarkdown::new(self.tree.source());
         let projection = crate::markdown_offset_projection::OffsetProjection::new(&normalized);
+        self.project_with_offsets(range, &projection)
+    }
+
+    fn project_with_offsets(
+        &self,
+        range: Range<usize>,
+        projection: &crate::markdown_offset_projection::OffsetProjection<'_>,
+    ) -> (String, crate::markdown_mapped_text::MappedMarkdownText) {
+        let root = self.tree.root();
         let nodes = root.dfs().filter(|node| {
             contains_range(
                 &range,
@@ -227,12 +246,18 @@ impl MarkdownDocument {
             })
         });
         let mut question = String::new();
-        let mut filter = String::new();
+        let mut filter = crate::markdown_mapped_text::MappedMarkdownText::default();
         let mut previous_list = false;
         for node in nodes {
-            let (visible, filter_visible) = match node.kind().as_ref() {
-                "pipe_table" => projection.table(node.range()),
-                "fenced_code_block" | "indented_code_block" => projection.code(node.range()),
+            let (visible, mut filter_visible) = match node.kind().as_ref() {
+                "pipe_table" => (
+                    projection.table(node.range()).0,
+                    projection.mapped_table(node.range(), false),
+                ),
+                "fenced_code_block" | "indented_code_block" => (
+                    projection.code(node.range()).0,
+                    projection.mapped_code(node.range()),
+                ),
                 _ => {
                     let in_list = node
                         .ancestors()
@@ -240,7 +265,10 @@ impl MarkdownDocument {
                     let quoted = node
                         .ancestors()
                         .any(|ancestor| ancestor.kind() == "block_quote");
-                    projection.prose(node.range(), in_list && !quoted)
+                    (
+                        projection.prose(node.range(), in_list && !quoted).0,
+                        projection.mapped_prose(node.range(), false, in_list && !quoted),
+                    )
                 }
             };
             let list_prefix = enclosing_list_item(&node)
@@ -264,12 +292,17 @@ impl MarkdownDocument {
                 "\n\n"
             };
             append_projection(&mut question, &visible, list_prefix.as_deref(), separator);
-            append_projection(
-                &mut filter,
-                &filter_visible,
-                list_prefix.as_deref(),
-                separator,
-            );
+            filter_visible.trim_end();
+            if !filter_visible.text.trim().is_empty() {
+                let anchor = node.range().start;
+                if !filter.text.is_empty() {
+                    filter.push(separator, anchor..anchor, false);
+                }
+                if let Some(prefix) = list_prefix.as_deref() {
+                    filter.push(prefix, anchor..anchor, false);
+                }
+                filter.append(filter_visible);
+            }
             previous_list = list_prefix.is_some();
         }
         (question, filter)

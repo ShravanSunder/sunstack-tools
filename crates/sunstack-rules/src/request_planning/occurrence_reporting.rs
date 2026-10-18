@@ -239,13 +239,13 @@ pub(crate) fn occurrence_result(
             RuleOccurrenceResult::Judged {
                 selected_by: selected_by.clone(),
                 key: key.clone(),
-                judgment: RuleJudgment {
+                judgment: Box::new(RuleJudgment {
                     key,
                     verdict,
                     declared_severity: occurrence.rule.severity,
                     answers: informational,
                     target: target.clone(),
-                },
+                }),
             }
         }
         Err(_) => RuleOccurrenceResult::EvaluationFailed {

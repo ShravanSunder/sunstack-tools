@@ -148,6 +148,7 @@ pub fn validate_rule_definition(
     if !matches!(
         target.select,
         EvidenceSelection::Paragraph { .. }
+            | EvidenceSelection::MarkdownUnits(_)
             | EvidenceSelection::Conversation { .. }
             | EvidenceSelection::WholePayload {}
             | EvidenceSelection::PayloadField { .. }
@@ -236,6 +237,8 @@ pub(crate) fn validate_evidence(
             (
                 InputDeclaration::Document {},
                 EvidenceSelection::Paragraph { .. }
+                    | EvidenceSelection::MarkdownUnits(_)
+                    | EvidenceSelection::FrontmatterField { .. }
                     | EvidenceSelection::WholeDocument {}
                     | EvidenceSelection::LiteralText { .. }
                     | EvidenceSelection::RegexText { .. }

@@ -88,7 +88,45 @@ scripts/cargo-debug-signing-runner.sh target/debug/sunstack-rule \
 The [check input schema](../../docs/specs/2026-10-12-rust-rule-engine/schemas/check-rules-input.schema.json)
 and [rules-object schema](../../docs/specs/2026-10-12-rust-rule-engine/schemas/rule-source.schema.json)
 describe these boundaries. Preparation and evaluation reports now require coverage,
-skipped rules and their counters; older strict report consumers must update together.
+rule evaluations, skipped rules and their counters; strict report consumers must
+update together.
+
+Document targets can select Markdown units independently:
+
+```json
+{"kind":"markdown_units","mode":"call_site","units":["paragraph","list_item"],"pattern":"\\bMUST\\s+load\\b"}
+```
+
+`mode: unit` produces one occurrence per requested section, paragraph or list
+item, with an optional `starts_with` or `pattern` filter. Requested unit kinds
+can overlap. `mode: call_site` requires exactly one nonempty filter and produces
+one occurrence per match, owned by the innermost requested unit; list items own
+their contained paragraphs. Regexes that can match empty text are refused.
+Filters use visible text with inline code excluded; fenced content remains.
+
+Occurrence keys include source identity, raw unit ranges, and call-site raw and
+visible match ranges. Raw spans use original document bytes and character
+coordinates. Several visible matches may share a raw entity span; generated-only
+matches use zero-width raw boundary anchors. Question owners carry the full key,
+so budget splitting preserves each target's evidence and answer references.
+
+Preparation exposes `rule_evaluations`, including `waiting_for_expansion` behind
+a staged different-input gate. No child keys or target selections are invented
+while it waits. Evaluation reports `expanded`, `zero_matches`, stopped, failed
+or cancelled work explicitly. Zero matches is complete when other work completes;
+it is never a passed verdict. Same-input speculative carriers remain permitted.
+Existing change-scope repository snapshots may already hold the reviewed bytes;
+canonical target selection and expansion still wait for their gate frontier.
+
+The evidence library also supports `frontmatter_field` with a literal top-level
+`field`. An initial YAML `---` block yields a decoded JSON value or an absent
+field. Missing or malformed blocks yield explicit unavailable data without an
+invented span. Noul and composite rules reject this mechanical-only target.
+
+The backend-free
+[unit-target check request](../../docs/specs/2026-10-12-rust-rule-engine/examples/unit-targets.check.request.json)
+checks a rule that selects every paragraph of the existing example document.
+Like other checks, it validates the rule without reading that document.
 
 Build with the pinned root toolchain and the SDK environment described in the
 project verification skill. For a local development invocation, pass a request

@@ -7,6 +7,7 @@ use sunstack_evidence::{CaptureCoverage, ReturnedCursor, SelectionResult};
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PreparedRules {
+    pub rule_evaluations: Vec<PreparedRuleEvaluation>,
     pub rule_coverage: RuleCoverage,
     pub skipped_rules: Vec<SkippedRule>,
     pub origin: ReportedOrigin,

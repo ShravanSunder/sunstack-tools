@@ -71,6 +71,8 @@ pub(crate) async fn execute_plan(
     loop {
         let local_started = Instant::now();
         let mut changed = advance_entries(plan, state, origin, session, &cancellation).await;
+        changed |= discover_ready_rules(plan, state, session, &cancellation).await;
+        finish_empty_carriers(plan, state);
         for position in 0..plan.requests.len() {
             let request = plan.requests[position].clone();
             if !matches!(
@@ -218,9 +220,13 @@ pub(crate) async fn execute_plan(
             .local_elapsed
             .saturating_add(local_started.elapsed());
         let waiting = state
-            .requests
-            .values()
-            .any(|request| matches!(request, RequestSettlement::Waiting));
+            .expansions
+            .iter()
+            .any(|expansion| matches!(expansion, ExpansionState::Waiting))
+            || state
+                .requests
+                .values()
+                .any(|request| matches!(request, RequestSettlement::Waiting));
         if tasks.is_empty() {
             if !waiting {
                 break;
@@ -292,6 +298,7 @@ pub(crate) async fn execute_plan(
     tracker.wait().await;
     let started = Instant::now();
     advance_entries(plan, state, origin, session, &cancellation).await;
+    discover_ready_rules(plan, state, session, &cancellation).await;
     measurements.local_elapsed = measurements.local_elapsed.saturating_add(started.elapsed());
     match fatal {
         Some(diagnostics) => Err((diagnostics, measurements)),

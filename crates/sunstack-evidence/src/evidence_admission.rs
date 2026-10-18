@@ -99,6 +99,8 @@ pub fn admit_evidence_declaration(
         (
             SourceSpec::Document { .. },
             EvidenceSelection::Paragraph { .. }
+                | EvidenceSelection::MarkdownUnits(_)
+                | EvidenceSelection::FrontmatterField { .. }
                 | EvidenceSelection::WholeDocument {}
                 | EvidenceSelection::LiteralText { .. }
                 | EvidenceSelection::RegexText { .. }
@@ -126,6 +128,10 @@ pub fn admit_evidence_declaration(
         selection.validate()?;
     }
     match &declaration.select {
+        EvidenceSelection::FrontmatterField { field } if field.is_empty() => {
+            return Err(EvidenceCode::InvalidSelector.into());
+        }
+        EvidenceSelection::MarkdownUnits(selection) => selection.validate()?,
         EvidenceSelection::LiteralText { text } if text.is_empty() => {
             return Err(EvidenceCode::InvalidSelector.into());
         }

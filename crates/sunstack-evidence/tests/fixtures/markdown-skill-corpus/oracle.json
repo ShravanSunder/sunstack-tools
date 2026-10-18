@@ -1,0 +1,551 @@
+{
+  "source_commit": "13e45138a87fb3bb16d3c5387c716115244040f9",
+  "sha256": {
+    "orchestrator-design.md": "0d063e7cab8c249741b54b67d323c8593978470dfc7c1710c182c05f9fafafc5",
+    "practices-verification.md": "c1c422b5334f983c7b6a81463559eda98bf46a4a31ad17df5c1de2f92054087c",
+    "presentation-html.md": "a72b68bb690575de3dc4d960f7a2e3e6e44af199b5ba4982ead507aae6befd65",
+    "spec-design.md": "35c90912a903dfad9cc900270b415eff6f124680ea5ebd0c2a0b67d97d0b9bb3",
+    "practices-manage-agents.md": "8ec53678e8030a8c1714880dc35ac12186ee62ff229bee2465ed004256be0b86"
+  },
+  "sections": [
+    {
+      "file": "orchestrator-design.md",
+      "start": 295,
+      "end": 13309
+    },
+    {
+      "file": "orchestrator-design.md",
+      "start": 2295,
+      "end": 7424
+    },
+    {
+      "file": "orchestrator-design.md",
+      "start": 7424,
+      "end": 8774
+    },
+    {
+      "file": "orchestrator-design.md",
+      "start": 8774,
+      "end": 9006
+    },
+    {
+      "file": "orchestrator-design.md",
+      "start": 9006,
+      "end": 10016
+    },
+    {
+      "file": "orchestrator-design.md",
+      "start": 10016,
+      "end": 13309
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 469,
+      "end": 12625
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 1051,
+      "end": 3780
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 1064,
+      "end": 1752
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 1752,
+      "end": 2130
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 2130,
+      "end": 2866
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 2866,
+      "end": 3637
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 3637,
+      "end": 3780
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 3780,
+      "end": 6983
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 6983,
+      "end": 10701
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 7885,
+      "end": 8129
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 8129,
+      "end": 8814
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 8814,
+      "end": 9347
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 9347,
+      "end": 9675
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 9675,
+      "end": 10339
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 10339,
+      "end": 10622
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 10622,
+      "end": 10701
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 10701,
+      "end": 12237
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 10913,
+      "end": 11042
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 11042,
+      "end": 12062
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 12062,
+      "end": 12237
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 12237,
+      "end": 12404
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "start": 12404,
+      "end": 12625
+    },
+    {
+      "file": "practices-verification.md",
+      "start": 337,
+      "end": 12190
+    },
+    {
+      "file": "practices-verification.md",
+      "start": 2228,
+      "end": 11521
+    },
+    {
+      "file": "practices-verification.md",
+      "start": 11521,
+      "end": 11882
+    },
+    {
+      "file": "practices-verification.md",
+      "start": 11882,
+      "end": 12190
+    },
+    {
+      "file": "presentation-html.md",
+      "start": 273,
+      "end": 5340
+    },
+    {
+      "file": "presentation-html.md",
+      "start": 528,
+      "end": 5340
+    },
+    {
+      "file": "spec-design.md",
+      "start": 273,
+      "end": 36167
+    },
+    {
+      "file": "spec-design.md",
+      "start": 2701,
+      "end": 4716
+    },
+    {
+      "file": "spec-design.md",
+      "start": 4716,
+      "end": 8004
+    },
+    {
+      "file": "spec-design.md",
+      "start": 8004,
+      "end": 29327
+    },
+    {
+      "file": "spec-design.md",
+      "start": 8017,
+      "end": 13083
+    },
+    {
+      "file": "spec-design.md",
+      "start": 13083,
+      "end": 17991
+    },
+    {
+      "file": "spec-design.md",
+      "start": 17991,
+      "end": 18500
+    },
+    {
+      "file": "spec-design.md",
+      "start": 18500,
+      "end": 19091
+    },
+    {
+      "file": "spec-design.md",
+      "start": 19091,
+      "end": 20612
+    },
+    {
+      "file": "spec-design.md",
+      "start": 20612,
+      "end": 21014
+    },
+    {
+      "file": "spec-design.md",
+      "start": 21014,
+      "end": 21612
+    },
+    {
+      "file": "spec-design.md",
+      "start": 21612,
+      "end": 22071
+    },
+    {
+      "file": "spec-design.md",
+      "start": 22071,
+      "end": 26259
+    },
+    {
+      "file": "spec-design.md",
+      "start": 26259,
+      "end": 27111
+    },
+    {
+      "file": "spec-design.md",
+      "start": 27111,
+      "end": 28351
+    },
+    {
+      "file": "spec-design.md",
+      "start": 28351,
+      "end": 29327
+    },
+    {
+      "file": "spec-design.md",
+      "start": 29327,
+      "end": 31396
+    },
+    {
+      "file": "spec-design.md",
+      "start": 31396,
+      "end": 32125
+    },
+    {
+      "file": "spec-design.md",
+      "start": 32125,
+      "end": 36167
+    }
+  ],
+  "calls": [
+    {
+      "file": "orchestrator-design.md",
+      "kind": "paragraph",
+      "unit_start": 1124,
+      "unit_end": 1304,
+      "match_start": 1124,
+      "match_end": 1133
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "paragraph",
+      "unit_start": 1305,
+      "unit_end": 1831,
+      "match_start": 1305,
+      "match_end": 1314
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "paragraph",
+      "unit_start": 1832,
+      "unit_end": 1949,
+      "match_start": 1832,
+      "match_end": 1841
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "list_item",
+      "unit_start": 2559,
+      "unit_end": 2923,
+      "match_start": 2562,
+      "match_end": 2611
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "list_item",
+      "unit_start": 4962,
+      "unit_end": 5710,
+      "match_start": 5237,
+      "match_end": 5246
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "paragraph",
+      "unit_start": 7457,
+      "unit_end": 7831,
+      "match_start": 7694,
+      "match_end": 7738
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "list_item",
+      "unit_start": 7963,
+      "unit_end": 8175,
+      "match_start": 7965,
+      "match_end": 8026
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "paragraph",
+      "unit_start": 11375,
+      "unit_end": 12788,
+      "match_start": 11453,
+      "match_end": 11462
+    },
+    {
+      "file": "orchestrator-design.md",
+      "kind": "paragraph",
+      "unit_start": 11375,
+      "unit_end": 12788,
+      "match_start": 11647,
+      "match_end": 11656
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "kind": "paragraph",
+      "unit_start": 10925,
+      "unit_end": 11041,
+      "match_start": 10925,
+      "match_end": 10934
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "kind": "list_item",
+      "unit_start": 11100,
+      "unit_end": 11312,
+      "match_start": 11103,
+      "match_end": 11112
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "kind": "list_item",
+      "unit_start": 11312,
+      "unit_end": 11550,
+      "match_start": 11315,
+      "match_end": 11324
+    },
+    {
+      "file": "practices-manage-agents.md",
+      "kind": "paragraph",
+      "unit_start": 12250,
+      "unit_end": 12403,
+      "match_start": 12250,
+      "match_end": 12259
+    },
+    {
+      "file": "practices-verification.md",
+      "kind": "paragraph",
+      "unit_start": 1963,
+      "unit_end": 2227,
+      "match_start": 1995,
+      "match_end": 2073
+    },
+    {
+      "file": "practices-verification.md",
+      "kind": "list_item",
+      "unit_start": 3292,
+      "unit_end": 5248,
+      "match_start": 3362,
+      "match_end": 3371
+    },
+    {
+      "file": "practices-verification.md",
+      "kind": "list_item",
+      "unit_start": 7182,
+      "unit_end": 7368,
+      "match_start": 7184,
+      "match_end": 7228
+    },
+    {
+      "file": "practices-verification.md",
+      "kind": "list_item",
+      "unit_start": 7368,
+      "unit_end": 7573,
+      "match_start": 7370,
+      "match_end": 7417
+    },
+    {
+      "file": "practices-verification.md",
+      "kind": "list_item",
+      "unit_start": 7573,
+      "unit_end": 7738,
+      "match_start": 7575,
+      "match_end": 7615
+    },
+    {
+      "file": "practices-verification.md",
+      "kind": "list_item",
+      "unit_start": 7738,
+      "unit_end": 7963,
+      "match_start": 7740,
+      "match_end": 7811
+    },
+    {
+      "file": "practices-verification.md",
+      "kind": "list_item",
+      "unit_start": 7963,
+      "unit_end": 8327,
+      "match_start": 7965,
+      "match_end": 8108
+    },
+    {
+      "file": "presentation-html.md",
+      "kind": "list_item",
+      "unit_start": 1340,
+      "unit_end": 1828,
+      "match_start": 1343,
+      "match_end": 1352
+    },
+    {
+      "file": "presentation-html.md",
+      "kind": "list_item",
+      "unit_start": 1828,
+      "unit_end": 3675,
+      "match_start": 1868,
+      "match_end": 1877
+    },
+    {
+      "file": "presentation-html.md",
+      "kind": "list_item",
+      "unit_start": 1828,
+      "unit_end": 3675,
+      "match_start": 2104,
+      "match_end": 2178
+    },
+    {
+      "file": "presentation-html.md",
+      "kind": "list_item",
+      "unit_start": 1828,
+      "unit_end": 3675,
+      "match_start": 2719,
+      "match_end": 2761
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 5344,
+      "unit_end": 6278,
+      "match_start": 5620,
+      "match_end": 5629
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "list_item",
+      "unit_start": 6422,
+      "unit_end": 6723,
+      "match_start": 6614,
+      "match_end": 6650
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 8551,
+      "unit_end": 8783,
+      "match_start": 8551,
+      "match_end": 8560
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 8784,
+      "unit_end": 9208,
+      "match_start": 8784,
+      "match_end": 8793
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 13693,
+      "unit_end": 14925,
+      "match_start": 13693,
+      "match_end": 13702
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 19129,
+      "unit_end": 19429,
+      "match_start": 19129,
+      "match_end": 19138
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 20668,
+      "unit_end": 20860,
+      "match_start": 20668,
+      "match_end": 20677
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 21645,
+      "unit_end": 21804,
+      "match_start": 21645,
+      "match_end": 21654
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 22117,
+      "unit_end": 22934,
+      "match_start": 22456,
+      "match_end": 22593
+    },
+    {
+      "file": "spec-design.md",
+      "kind": "paragraph",
+      "unit_start": 24672,
+      "unit_end": 25045,
+      "match_start": 24672,
+      "match_end": 24681
+    }
+  ]
+}
