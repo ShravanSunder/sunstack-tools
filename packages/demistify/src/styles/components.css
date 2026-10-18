@@ -345,8 +345,8 @@ ex-callout[type='risk'] {
 	font-size: var(--text-md);
 }
 .wide-reading,
-.wide-reading > p,
-.wide-reading > blockquote {
+.wide-reading:not(ex-document) > p,
+.wide-reading:not(ex-document) > blockquote {
 	max-width: none;
 }
 .diagram-label {
