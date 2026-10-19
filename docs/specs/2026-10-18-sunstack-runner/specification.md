@@ -21,7 +21,7 @@ The path from need to proof is [Requirements](requirements.md) → this Specific
 flowchart LR
   person["You or an agent at a terminal"] -->|"sunstack lint"| S(["sunstack"])
   ci["CI job"] -->|"sunstack lint --format github or sarif"| S
-  node["Node / TS caller"] -->|"npx sunstack lint --format json"| S
+  node["Node / TS caller"] -->|"npm bin: sunstack lint --format json"| S
   rust["Rust caller"] -->|"library call, same report"| S
   prog["Program using the protocol"] -->|"sunstack exec (JSON in, JSON out)"| S
   S -->|"reads"| cfg[("sunstack.lint.json and rule-set files")]
@@ -65,7 +65,7 @@ Today the engine runs only from a hand-written JSON request on standard input (`
 | R4 | With no paths and no scope flag, lint covers uncommitted work (staged, unstaged and untracked) and says so in its output. `--all` covers every configured target. `--since <rev>` covers changes between `<rev>` and the working tree. Named paths are linted fully unless a scope flag is also given. A target whose rule, rule set or context changed is linted even if the target itself did not change; when `sunstack.lint.json` itself changed, every configured target is linted and the report says why. Outside a Git repository, the default scope exits 2 and suggests `--all`; `--all` works without Git. | U1, U7 |
 | R5 | `sunstack lint --check` validates the config and every rule set it names without reading targets, needing a key or making a model request. `--rules` lists each rule with its entry, source location, kind (mechanical or judged), authored severity and configured severity; `--rules <file>` shows the effective severity for that file and which setting decided it. `--init` writes a skeleton `sunstack.lint.json` with no rules, and refuses to overwrite an existing file. | U1, U5 |
 | R6 | `sunstack exec` keeps today's JSON protocol: one request on standard input, one response on standard output, exit codes 0, 2, 3 and 4 with today's meanings. Only the severity words change (R14). | U3 |
-| R7 | The same lint is callable from Node through the npm package (`npx sunstack lint --format json`) and from Rust as a library call that returns the same report as `--format json`. The npm package installs and launches the command; it offers no TypeScript API. | U2 |
+| R7 | The same lint is callable from Node through the npm package's `sunstack` bin (`sunstack lint --format json` from an npm script, or `node_modules/.bin/sunstack`) and from Rust as a library call that returns the same report as `--format json`. The npm package installs and launches the command; it offers no TypeScript API. | U2 |
 
 ### C1. Commands
 
@@ -159,7 +159,7 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | R19 | Each release publishes, for every target, an archive and its checksum on GitHub Releases. Archives extract with `tar` and `gzip`, which minimal Linux and macOS systems have. | U10, U11 |
 | R20 | `brew install shravansunder/taps/sunstack` installs the release build on macOS (arm64, x64) and Linux (x64, arm64). | U10 |
 | R21 | A one-line shell installer installs the release build on macOS and Linux, and can pin a version. | U10, U11 |
-| R22 | `npm i -D sunstack` followed by `npx sunstack …` runs the release build, passes its exit code through, and forwards Ctrl-C to it. The package fetches the build at install time; the README states that this needs network access to GitHub, writes into the installed package, and may need build approval under pnpm. | U2, U10 |
+| R22 | `npm i -D sunstack` puts a `sunstack` bin in `node_modules/.bin`. Running that bin runs the release build and passes its exit code through. Run directly, the bin forwards SIGINT (Ctrl-C), SIGTERM and SIGHUP to the release build. From an npm script written `exec sunstack …`, npm passes on SIGINT and SIGTERM. Either way, stopping the caller with those signals stops the run and leaves nothing running. `npx` is not a supported way to run it, because npm sits between the caller and the bin and does not pass on a stop sent to npm alone. The package fetches the build at install time; the README states that this needs network access to GitHub, writes into the installed package, and may need build approval under pnpm. | U2, U10 |
 | R23 | `sunstack --version` reports the release version, which equals the Git tag and the version on every channel. | U10, U11 |
 
 ## Cross-cutting obligations
@@ -194,7 +194,7 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | V3 | R4 | In a scripted Git history, the default scope, `--since` and `--all` select the expected targets; an unchanged target whose rule changed is selected; a changed config selects every target; the default outside Git exits 2 | an unchanged, unaffected file is linted, an affected one is missed, or a scope falls back silently |
 | V4 | R5 | `--check` makes no model request and reads no target, and catches each invalid-config case; `--rules` lists every loaded rule, including rules turned `off`, with its entry, source location, kind, authored severity and configured severity, and `--rules <file>` names the effective severity and the setting that decided it for a file covered by an override; `--init` in an empty directory creates a skeleton with the expected content (the `$schema` line and an empty `rule_sets`), and refuses to overwrite an existing file; once a fixture adds a valid rule-set entry to that skeleton, `--check` accepts it, while the bare skeleton is refused for having no rule sets | a model request is made, an invalid config passes, a listed field is missing or wrong, an `off` rule is left out of the list, the deciding setting is misreported, or `--init` creates nothing, writes other content, or overwrites |
 | V5 | R6 | The engine's existing protocol tests pass through `sunstack exec` with only the severity words changed | any other protocol change |
-| V6 | R7 | `npx sunstack lint --format json` and the Rust library call return the same report as the CLI for the same fixture | reports differ |
+| V6 | R7 | The installed npm bin (`node_modules/.bin/sunstack lint --format json`) and the Rust library call return the same report as the CLI for the same fixture | reports differ |
 | V7 | R8, R9 | Discovery picks the nearest config; each invalid config exits 2 with file, line and column | the wrong config is used, or an error lacks its location |
 | V8 | R10 | A table of severity cases (authored default, wildcard, exact, override blocks in order, `off`, an `error` override on a rule with a confidence band) gives the expected severity per file, and a rule `off` for every target makes no model request | any case differs, or an `off` rule is paid for |
 | V9 | R11, R12 | A non-document rule set is refused by `--check`; files matching `ignore_patterns` and Git-ignored files are never targets, even when an entry's glob matches them | any is not the case |

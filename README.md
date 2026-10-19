@@ -80,15 +80,27 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-
 # Pin a version by downloading that release's installer:
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack-installer.sh | sh
 npm i -D sunstack
-npx sunstack --version
+node_modules/.bin/sunstack --version
 ```
 
 Archives use `.tar.gz`, and extract with standard `tar` and `gzip`. Compare their
 SHA256s with the release checksums. The npm package downloads the matching archive
 from GitHub during installation and writes the executable inside the installed
 package. This requires network access; pnpm may require `pnpm approve-builds`.
-The package launches the command, passes its exit code through and forwards signals.
 It has no TypeScript API.
+
+From Node, run the installed bin directly or from an npm script, and write the script
+with `exec` so that stopping npm stops the run:
+
+```json
+{ "scripts": { "lint": "exec sunstack lint" } }
+```
+
+The bin passes the exit code through, including 4 when a run is cancelled. Run
+directly, it forwards Ctrl-C (SIGINT), SIGTERM and SIGHUP to the native process. Through
+an `exec` script, npm passes on SIGINT and SIGTERM. Without `exec`, Linux runs npm
+scripts through `sh`, which keeps a stop sent to npm from reaching the run. `npx` has
+the same gap, so don't use it to run lint from tools or CI.
 
 ### Configure and run lint
 
