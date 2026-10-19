@@ -134,7 +134,7 @@ def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
                         )
                         require_format(text.decode(), report, format_name, root)
             elif case.mode == "rules":
-                require_rules(stdout.decode(), case)
+                require_rules(stdout.decode(), case, root)
             executed.append(case.name)
         target.confirm()
         write_json(

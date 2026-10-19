@@ -149,8 +149,11 @@ def write_fixture(
 
 
 def expected_finding(
-    severity: str = "error", rule: str = "standard", file: str = "docs/one.md"
+    severity: str = "error",
+    rule: str = "standard",
+    file: str = "docs/one.md",
+    kind: str = "mechanical",
 ) -> FixtureFinding:
     return FixtureFinding.model_validate(
-        {"rule": f"docs/{rule}", "file": file, "severity": severity}
+        {"rule": f"docs/{rule}", "file": file, "severity": severity, "kind": kind}
     )

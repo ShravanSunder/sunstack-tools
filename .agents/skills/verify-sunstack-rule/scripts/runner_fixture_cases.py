@@ -368,6 +368,9 @@ def build_fixtures(
             findings=[],
             rules_file=file,
             rules_setting="warn" if file else "off",
+            rules_rule="docs/standard",
+            rules_source_file="rules/rules.jsonl",
+            rules_source_line=1,
             rules_origin={"kind": "override", "index": 0} if file else None,
             wrong_build="--rules omits off rules or misreports deciding override",
         )
@@ -423,7 +426,9 @@ def build_fixtures(
             rules=[judged_rule(severity, band)],
             credential=kind in ("answer", "cancel"),
             requests=1 if kind in ("answer", "cancel") else 0,
-            findings=[expected_finding(effective).model_dump(mode="json")]
+            findings=[
+                expected_finding(effective, kind="judged").model_dump(mode="json")
+            ]
             if selected
             else [],
             probability=probability,
@@ -552,7 +557,7 @@ def build_fixtures(
         requests=1,
         findings=[
             expected_finding().model_dump(mode="json"),
-            expected_finding(rule="judgment").model_dump(mode="json"),
+            expected_finding(rule="judgment", kind="judged").model_dump(mode="json"),
         ],
         wrong_build="One output format drops a mechanical or judged finding",
     )

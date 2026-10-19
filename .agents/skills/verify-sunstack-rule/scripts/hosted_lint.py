@@ -212,7 +212,7 @@ def main() -> None:
         report = read_object(evidence / "stdout.json")
         case = FixtureCase(
             name="hosted-known-false",
-            findings=[expected_finding()],
+            findings=[expected_finding(kind="judged")],
             requests=1,
             credential=True,
             cost=False,

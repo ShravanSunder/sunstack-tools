@@ -12,7 +12,12 @@ from pathlib import Path
 import pytest
 from container_matrix import IMAGES, container_command
 from hosted_lint import read_credential
-from lint_observations import check_report, require_diagnostic, require_format
+from lint_observations import (
+    check_report,
+    require_diagnostic,
+    require_format,
+    require_rules,
+)
 from release_assets import read_member
 from runner_contracts import (
     FixtureCase,
@@ -99,7 +104,7 @@ def test_literal_comparison_accepts_additive_fields_and_rejects_wrong_observatio
 def test_judged_report_needs_values_exact_evidence_reference_and_absent_cost() -> None:
     expected = FixtureCase(
         name="judged",
-        findings=[expected_finding()],
+        findings=[expected_finding(kind="judged")],
         requests=1,
         cost=False,
         wrong_build="Answer/evidence lost or absent cost fabricated",
@@ -419,3 +424,209 @@ def test_each_output_format_must_keep_the_same_finding_message() -> None:
     require_format(json.dumps(sarif), report, "sarif", root)
     with pytest.raises(ValueError, match="message"):
         require_format(json.dumps(sarif).replace("Use MUST", ""), report, "sarif", root)
+
+
+@pytest.mark.parametrize("mixed", [False, True])
+@pytest.mark.parametrize("missing", ["absent", "null"])
+def test_judged_identity_requires_the_whole_payload_in_judged_and_mixed_reports(
+    mixed: bool, missing: str
+) -> None:
+    report = literal_report()
+    report["new_additive_field"] = {"allowed": True}
+    as_object(report["usage"]).update(model_requests=1, input_tokens=20)
+    state: JsonObject = {"contents": {"c1": "Known fixture"}, "evidence": {}}
+    report["evidence_seen"] = {"0": state}
+    judged = as_object(as_array(report["findings"])[0])
+    judged["judgment"] = {
+        "request_index": 0,
+        "answers": [
+            {"question": "q1", "answer": {"type": "noul", "yes_probability": 0.1}}
+        ],
+    }
+    expected_findings = [expected_finding(kind="judged")]
+    if mixed:
+        local = copy.deepcopy(judged)
+        local.pop("judgment")
+        local["rule"] = "docs/local"
+        as_array(report["findings"]).append(local)
+        expected_findings.append(expected_finding(rule="local", kind="mechanical"))
+        as_object(report["counts"])["error"] = 2
+    case = FixtureCase(
+        name="required-judgment",
+        findings=expected_findings,
+        requests=1,
+        cost=False,
+        wrong_build="A known judged result drops its whole judgment",
+    )
+    check_report(report, case, Path("/fixture"), [state])
+    if missing == "absent":
+        judged.pop("judgment")
+    else:
+        judged["judgment"] = None
+    with pytest.raises(ValueError):
+        check_report(report, case, Path("/fixture"), [state])
+
+
+@pytest.mark.parametrize(
+    "format_name,wrong",
+    [
+        ("default", "docs/one.md:1:99: error [docs/standard] Use MUST"),
+        ("default", "docs/one.md:1: error [docs/standard] Use MUST"),
+        ("default", "docs/one.md:2:1: error [docs/standard] Use MUST"),
+        (
+            "default",
+            "docs/one.md:1:1: error [docs/standard] Use MUST\ndocs/two.md:8:2: warn [docs/extra] Unexpected finding",
+        ),
+        ("github", "::error file=docs/one.md,line=10,col=1::[docs/standard] Use MUST"),
+        ("github", "::error file=docs/one.md,line=1,col=10::[docs/standard] Use MUST"),
+        ("github", "::error file=docs/one.md,line=1::[docs/standard] Use MUST"),
+        (
+            "github",
+            "::error file=docs/one.md,line=1,col=1::[docs/standard] Use MUST\n::warning file=docs/two.md,line=8,col=2::[docs/extra] Unexpected finding",
+        ),
+    ],
+)
+def test_text_formats_compare_all_record_coordinates_and_unknown_extra_findings(
+    format_name: str, wrong: str
+) -> None:
+    report = literal_report()
+    good = (
+        "Scope: all configured targets\ndocs/one.md:1:1: error [docs/standard] Use MUST\nLint findings: 1 error(s), 0 warning(s)"
+        if format_name == "default"
+        else "::error file=docs/one.md,line=1,col=1,endLine=1,endColumn=9::[docs/standard] Use MUST\n::notice::Lint findings; scope: all configured targets"
+    )
+    require_format(good, report, format_name, Path("/fixture"))
+    with pytest.raises(ValueError):
+        require_format(wrong, report, format_name, Path("/fixture"))
+
+
+def rules_case() -> FixtureCase:
+    return FixtureCase(
+        name="rule-listing",
+        mode="rules",
+        exit_code=0,
+        findings=[],
+        rules_file="docs/one.md",
+        rules_rule="docs/standard",
+        rules_source_file="rules/rules.jsonl",
+        rules_source_line=1,
+        rules_setting="warn",
+        rules_origin={"kind": "override", "index": 0},
+        wrong_build="Wrong rule/source/deciding setting passes listing gate",
+    )
+
+
+def literal_listing() -> JsonObject:
+    return {
+        "rule": "docs/standard",
+        "source": {"file": "rules/rules.jsonl", "line": 1},
+        "kind": "mechanical",
+        "authored": "error",
+        "configured": "off",
+        "for_file": {"setting": "warn", "decided_by": {"kind": "override", "index": 0}},
+        "allowed_extra_field": True,
+    }
+
+
+def readable_listing(item: JsonObject) -> str:
+    source = as_object(item["source"])
+    effective = as_object(item["for_file"])
+    origin = as_object(effective["decided_by"])
+    return f"Loaded rules:\n{item['rule']} source={source['file']}:{source['line']} kind={item['kind']} authored={item['authored']} configured={item['configured']} effective={effective['setting']} origin={origin['kind']} index={origin['index']}\nFinished listing."
+
+
+@pytest.mark.parametrize("readable", [False, True])
+@pytest.mark.parametrize(
+    "failure",
+    ["rule", "source-file", "source-line", "setting", "origin-kind", "origin-index"],
+)
+def test_rule_listing_compares_literal_identity_source_and_deciding_values(
+    readable: bool, failure: str
+) -> None:
+    case = rules_case()
+    listing = literal_listing()
+    good = readable_listing(listing) if readable else json.dumps([listing])
+    require_rules(good, case)
+    if failure == "rule":
+        listing["rule"] = "docs/OTHER"
+    elif failure == "source-file":
+        as_object(listing["source"])["file"] = "other/rules.jsonl"
+    elif failure == "source-line":
+        as_object(listing["source"])["line"] = 10
+    elif failure == "setting":
+        as_object(listing["for_file"])["setting"] = "off"
+    elif failure == "origin-kind":
+        as_object(as_object(listing["for_file"])["decided_by"])["kind"] = "exact_rule"
+    else:
+        as_object(as_object(listing["for_file"])["decided_by"])["index"] = 10
+    wrong = readable_listing(listing) if readable else json.dumps([listing])
+    with pytest.raises(ValueError):
+        require_rules(wrong, case)
+
+
+def test_rule_listing_accepts_tagged_kind_absolute_source_and_additive_origin_fields() -> (
+    None
+):
+    listing = literal_listing()
+    listing["kind"] = {"kind": "mechanical"}
+    as_object(listing["source"])["file"] = "/fixture/rules/rules.jsonl"
+    as_object(as_object(listing["for_file"])["decided_by"])["future_additive_field"] = (
+        True
+    )
+    require_rules(json.dumps([listing]), rules_case(), Path("/fixture"))
+
+
+def test_text_format_locations_cannot_swap_distinct_line_and_column_values() -> None:
+    report = literal_report()
+    as_object(as_object(as_array(report["findings"])[0])["span"]).update(
+        start_line=2, start_column=7
+    )
+    require_format(
+        "docs/one.md:2:7: error [docs/standard] Use MUST",
+        report,
+        "default",
+        Path("/fixture"),
+    )
+    with pytest.raises(ValueError):
+        require_format(
+            "docs/one.md:7:2: error [docs/standard] Use MUST",
+            report,
+            "default",
+            Path("/fixture"),
+        )
+
+
+@pytest.mark.parametrize("format_name", ["default", "github"])
+def test_text_format_missing_finding_fails_but_incidental_prose_is_allowed(
+    format_name: str,
+) -> None:
+    report = literal_report()
+    finding = (
+        "docs/one.md:1:1: error [docs/standard] Use MUST"
+        if format_name == "default"
+        else "::error file=docs/one.md,line=1,col=1::[docs/standard] Use MUST"
+    )
+    require_format(
+        "Information for the reader.\n" + finding + "\nFinished with findings.",
+        report,
+        format_name,
+        Path("/fixture"),
+    )
+    with pytest.raises(ValueError):
+        require_format(
+            "Information for the reader.\nFinished with findings.",
+            report,
+            format_name,
+            Path("/fixture"),
+        )
+
+
+def test_github_finding_message_decodes_transport_escaping_once() -> None:
+    report = literal_report()
+    as_object(as_array(report["findings"])[0])["message"] = "Use 100% MUST\nSecond line"
+    require_format(
+        "::error file=docs/one.md,line=1,col=1::[docs/standard] Use 100%25 MUST%0ASecond line",
+        report,
+        "github",
+        Path("/fixture"),
+    )

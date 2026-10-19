@@ -19,6 +19,7 @@ class FixtureFinding(BaseModel):
     line: int = 1
     column: int = 1
     severity: Severity
+    kind: t.Literal["mechanical", "judged"] = "mechanical"
 
 
 class FixtureCase(BaseModel):
@@ -46,6 +47,9 @@ class FixtureCase(BaseModel):
     unreadable: str | None = None
     rules_file: str | None = None
     rules_setting: str | None = None
+    rules_rule: str | None = None
+    rules_source_file: str | None = None
+    rules_source_line: int | None = None
     rules_origin: JsonValue = None
     wrong_build: str
     source: str = "runner Specification R1–R15; Verification Design S1"
@@ -105,6 +109,9 @@ def report_findings(report: JsonObject, root: Path) -> list[FixtureFinding]:
                     "line": span["start_line"],
                     "column": span["start_column"],
                     "severity": item["severity"],
+                    "kind": "judged"
+                    if item.get("judgment") is not None
+                    else "mechanical",
                 }
             )
         )
@@ -157,22 +164,36 @@ def compare_report(report: JsonObject, expected: FixtureCase, root: Path) -> Non
         evidence = as_object(report["evidence_seen"])
         if len(evidence) != expected.requests:
             raise ValueError("Request evidence is missing")
-        for raw in as_array(report["findings"]):
-            item = as_object(raw)
-            if item.get("judgment") is None:
-                continue
-            judgment = as_object(item["judgment"])
-            answers = as_array(judgment["answers"])
-            if not answers or any(
-                "answer" not in as_object(answer) for answer in answers
-            ):
-                raise ValueError("Typed answers were replaced by references")
-            if str(judgment["request_index"]) not in evidence:
-                raise ValueError("Judgment does not point at request evidence")
         if expected.cost and not isinstance(usage.get("cost_usd"), (int, float)):
             raise ValueError("Reported cost was dropped")
         if not expected.cost and usage.get("cost_usd") is not None:
             raise ValueError("Missing cost fabricated as zero")
+    judged_rules = {finding.rule for finding in wanted if finding.kind == "judged"}
+    for raw in as_array(report["findings"]):
+        item = as_object(raw)
+        if selector_name(item["rule"]) not in judged_rules:
+            continue
+        payload = item.get("judgment")
+        if payload is None:
+            raise ValueError("Expected judged finding lost its resolved judgment")
+        judgment = as_object(payload)
+        answers_value = judgment.get("answers")
+        if answers_value is None:
+            raise ValueError("Expected judged finding lost its resolved answers")
+        answers = as_array(answers_value)
+        if not answers:
+            raise ValueError("Expected judged finding lost its resolved answers")
+        for raw_answer in answers:
+            answer = as_object(raw_answer).get("answer")
+            if answer is None:
+                raise ValueError("Typed answers were replaced by references or null")
+            if not isinstance(as_object(answer).get("type"), str):
+                raise TypeError("Resolved answer lacks its native type")
+        request_index = judgment.get("request_index")
+        if type(request_index) is not int or request_index < 0:
+            raise ValueError("Judgment lost its numeric request index")
+        if str(request_index) not in as_object(report["evidence_seen"]):
+            raise ValueError("Judgment does not point at request evidence")
     if expected.exclusion and as_object(report["exclusions"])[expected.exclusion] == 0:
         raise ValueError(f"Missing {expected.exclusion} exclusion")
     if expected.widened and not as_object(report["scope"]).get("widened"):
