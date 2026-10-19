@@ -57,7 +57,8 @@ ex-gallery .ex-gallery-control-group[inert] {
 		margin-right: 0;
 		min-width: 0;
 	}
-	:root[data-gallery-walkthrough] :is(.ex-theme-toggle, .ex-presentations-trigger) {
+	:root[data-gallery-walkthrough]
+		:is(.ex-theme-toggle, .ex-presentations-trigger, .ex-search-trigger) {
 		display: none;
 	}
 }

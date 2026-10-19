@@ -19,7 +19,10 @@ export interface IndexedSearchPage {
 	readonly html: string;
 	readonly destinations: readonly SearchDestination[];
 }
-interface LocalDestination extends Pick<SearchDestination, 'kind' | 'title' | 'ancestors'> {
+interface LocalDestination extends Pick<
+	SearchDestination,
+	'kind' | 'title' | 'ancestors' | 'description'
+> {
 	readonly fragment: string;
 }
 
@@ -178,6 +181,7 @@ function pageOutline(source: SearchPageSource): {
 		destinations.push({
 			kind: pictured ? 'journey' : 'walkthrough',
 			title: attribute(presentation, 'title') || fragment,
+			description: attribute(presentation, 'description'),
 			ancestors: [],
 			fragment,
 		});
@@ -203,6 +207,7 @@ export function indexCollectionSearch(
 				return other.destinations.map((entry): SearchDestination => ({
 					kind: entry.kind,
 					title: entry.title,
+					...(entry.description === undefined ? {} : { description: entry.description }),
 					pageTitle: other.pageTitle,
 					ancestors: entry.ancestors,
 					href: `${file}${entry.fragment ? `#${encodeURIComponent(entry.fragment)}` : ''}`,

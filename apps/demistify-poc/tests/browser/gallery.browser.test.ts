@@ -696,7 +696,7 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
 	await frame
 		.getByRole('option', {
-			name: 'Review screens Three logical screens with optional size variations.',
+			name: 'Screen journey review › Review screens Three logical screens with optional size variations.',
 			exact: true,
 		})
 		.click();
@@ -731,7 +731,7 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
 	await frame
 		.getByRole('option', {
-			name: 'Fixed screens Use the authored captures without variation switching.',
+			name: 'Screen journey review › Fixed screens Use the authored captures without variation switching.',
 			exact: true,
 		})
 		.click();

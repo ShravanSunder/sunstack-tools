@@ -110,7 +110,20 @@ export function collectSearchDestinations(props: {
 			href: `#${encodeURIComponent(presentation.id)}`,
 			description: presentation.getAttribute('description') ?? '',
 		});
-	for (const entry of authoredWalkthroughs) add(entry);
+	for (const entry of authoredWalkthroughs) {
+		const known = [...entries.values()].find(
+			(candidate): boolean =>
+				(candidate.kind === 'walkthrough' || candidate.kind === 'journey') &&
+				new URL(candidate.href, document.baseURI).href === entry.href,
+		);
+		add({
+			...entry,
+			...known,
+			title: entry.title,
+			description:
+				entry.description === '' ? known?.description : (entry.description ?? known?.description),
+		});
+	}
 	const values = [...entries.values()];
 	const headingsByPage = new Map<string, SearchDestination[]>();
 	for (const entry of values) {

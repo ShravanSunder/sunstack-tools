@@ -79,7 +79,7 @@ Check a representative table, literal code, task list, image and Mermaid diagram
 
 ## Pages, breadcrumbs and headings
 
-For a collection, repeat one native page-link list on every page. The first link is Home. The matching page URL provides its name; the library generates the compact sticky Pages trigger and breadcrumbs. The same command bar supplies Pages, Walkthroughs and heading search; no handwritten breadcrumb markup is needed.
+For a collection, repeat one native page-link list on every page. The first link is Home. The matching page URL provides its name; the library generates the compact sticky Pages trigger and breadcrumbs. Pages stays a dropdown of native links at the top. A separate search button beside the bottom theme control opens the command bar; no handwritten breadcrumb markup is needed.
 
 ```html
 <ex-nav for="content">
@@ -100,15 +100,15 @@ Home receives the built-in house icon. A clicked lower heading remains current e
 
 ### Search and shortcuts
 
-Cmd/Ctrl-K opens one command bar for pages and headings. P opens its Pages scope; W opens Walkthroughs. These shortcuts leave inputs, editable content, open dialogs/popovers and modified browser commands alone. In an empty Pages or Walkthroughs search, 1–9 immediately opens that entry; use arrows and ↵ for later entries. Escape closes and restores the trigger. Holding Option reveals P/W hints beside the controls; browser/OS ownership still applies outside document focus.
+Cmd/Ctrl-K or the bottom search button opens one command bar for pages and headings. The button shows ⌘K on Mac and Ctrl-K elsewhere. P opens the top Pages dropdown; W opens the command bar’s Walkthroughs scope. These shortcuts leave inputs, editable content, open dialogs/popovers and modified browser commands alone. In the Pages dropdown or an empty Walkthroughs search, 1–9 immediately opens that entry; use arrows and ↵ for later entries. Escape closes and restores the trigger. Holding Option reveals P/W hints beside the controls; browser/OS ownership still applies outside document focus.
 
-Search results show the page and ancestor headings above the matching title. The current page’s live headings and authored Pages links work without an index. To include other pages’ headings, generate a small embedded collection index from explicit local inputs:
+Heading search results show the page and ancestor headings above the matching title. Walkthrough rows show their source page as an eyebrow, the title, a concise authored description underneath, and a path or images icon. The current page’s live headings and authored Pages links work without an index. To include other pages’ headings, generate a small embedded collection index from explicit local inputs:
 
 ```sh
 demistify index index.html specification.html verification.html
 ```
 
-Regenerate after changing headings or paths. The command reads local Markdown sources and prepares every page before writing outputs; it never fetches sibling HTML at runtime. Give each searchable Markdown island a stable `id`; wrap bare Markdown headings in that island before indexing. The generator preserves authored heading IDs and assigns stable native heading IDs. Existing documents without the generated data do not automatically gain cross-page heading search. Search uses titles and heading ancestry, not whole-page text or fuzzy matching. Same titles remain distinct by page and fragment.
+Regenerate after changing headings, paths or walkthrough descriptions; an older embedded index cannot supply newly authored cross-page explanations. The command reads local Markdown sources and prepares every page before writing outputs; it never fetches sibling HTML at runtime. Give each searchable Markdown island a stable `id`; wrap bare Markdown headings in that island before indexing. The generator preserves authored heading IDs and assigns stable native heading IDs. Existing documents without the generated data do not automatically gain cross-page heading search. Search uses titles and heading ancestry, not whole-page text or fuzzy matching. Same titles remain distinct by page and fragment.
 
 ## Walkthroughs reference content
 
