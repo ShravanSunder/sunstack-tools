@@ -146,7 +146,7 @@ IF the page includes a guided presentation or cross-page stops, load `references
 | `<ex-trace title>` | Ordered native disclosures with status and arbitrary rich evidence attachments |
 | `<ex-compare label view choose selected>` | Aligned topic rows across arbitrary alternatives, or one detailed content tab at a time |
 | `<ex-pre>` | Exact monospace/TUI drawing in a plain-text script |
-| `<ex-gallery id label>` | Native figures, metadata filters and review/grid views within the shared document system |
+| `<ex-gallery id label>` | Dedicated Gallery page: one gallery, optional h1, native figures, filters and review/grid views |
 | `<ex-grid cols="3">` | Related content side by side; child `span="2"` or `span="all"`; `sticky` side column; `swipe` row on phones |
 | `<ex-tabs>` | Child `<section label icon>` content views; `columns` for side-by-side reading |
 
@@ -182,7 +182,7 @@ Where Reading meets Canvas, wide documents add a larger gap between those blocks
 
 ## Load depth when needed
 
-- IF the page includes screenshot review or comparison, load `references/pictures.md` and return native figures/captions and one shared-system gallery.
+- IF the page includes screenshot review or comparison, load `references/pictures.md` and return native figures/captions and a dedicated Gallery page when browsing is needed. Use ordinary figures in prose or comparisons; link to the Gallery instead of embedding it.
 - IF the page includes a tree or literal TUI drawing, load `references/trees.md` and return independent disclosure/navigation or faithful `ex-pre` text.
 - IF the page compares alternatives on corresponding topics, load `references/comparisons.md` and return authored layout/width and consistent topic keys; readers choose content rather than layout.
 - IF the page uses ordered steps with rich evidence, load `references/traces.md` and return native disclosures with precise source/observation status.

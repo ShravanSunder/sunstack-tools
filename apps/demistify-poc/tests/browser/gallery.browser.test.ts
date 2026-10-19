@@ -735,7 +735,9 @@ test('gallery walkthrough uses one floating player, two-axis keys and an explici
 			).getBoundingClientRect();
 			const bar = requiredElement(fixture, '.ex-route-player').getBoundingClientRect();
 			return (
-				bar.top - caption.bottom >= 12 && bar.width >= gallery.getBoundingClientRect().width - 2
+				bar.top - caption.bottom >= 12 &&
+				bar.width <= 760 &&
+				Math.abs(bar.left + bar.width / 2 - (fixture.defaultView?.innerWidth ?? 0) / 2) < 2
 			);
 		})
 		.toBe(true);
@@ -775,6 +777,9 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 		'.ex-gallery-preview img',
 	).getBoundingClientRect().width;
 	await local.getByRole('button', { name: 'Hide thumbnails', exact: true }).click();
+	await expect
+		.element(fixtureLocator(frame, requiredElement(gallery, '.ex-gallery-strip')))
+		.not.toBeVisible();
 	await expect
 		.poll(
 			(): number =>

@@ -11,6 +11,7 @@ ex-document:not(.ex-gallery-document) ex-gallery[data-walkthrough] .ex-gallery-b
 }
 ex-gallery[data-walkthrough] .ex-gallery-body {
 	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: minmax(0, 1fr);
 }
 :root[data-gallery-walkthrough] ex-document.ex-gallery-document {
 	height: calc(100dvh - 104px - var(--ex-gallery-player-height, 150px));
@@ -23,19 +24,6 @@ ex-gallery[data-walkthrough] .ex-gallery-body {
 :root[data-gallery-walkthrough] .ex-gallery-document > h1,
 :root[data-gallery-walkthrough] .ex-presentation-marker {
 	display: none;
-}
-.ex-route-player[data-gallery] {
-	transform: none;
-	bottom: var(--space-4);
-	max-width: var(--width-canvas);
-	border-radius: var(--radius-lg);
-}
-.ex-route-player[data-gallery] .ex-route-controls {
-	flex-wrap: wrap;
-}
-.ex-route-player[data-gallery] .ex-route-controls > strong {
-	flex: 1;
-	min-width: 120px;
 }
 .ex-gallery-variations {
 	margin-top: var(--space-2);
@@ -52,11 +40,6 @@ ex-gallery .ex-gallery-control-group[inert] {
 	opacity: 0.45;
 }
 @media (max-width: 640px) {
-	.ex-route-player[data-gallery] .ex-route-controls > strong {
-		flex-basis: 100%;
-		margin-right: 0;
-		min-width: 0;
-	}
 	:root[data-gallery-walkthrough]
 		:is(.ex-theme-toggle, .ex-presentations-trigger, .ex-search-trigger) {
 		display: none;
