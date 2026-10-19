@@ -2112,6 +2112,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "sunstack-lint"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "git2",
+ "globset",
+ "ignore",
+ "jsonschema",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "sunstack-decisions",
+ "sunstack-evidence",
+ "sunstack-rules",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "sunstack-rules"
 version = "0.1.0"
 dependencies = [
