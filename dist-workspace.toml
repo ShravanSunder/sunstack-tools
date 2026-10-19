@@ -1,0 +1,32 @@
+[workspace]
+members = ["cargo:."]
+
+# Config for 'dist'
+[dist]
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.32.0"
+# CI backends to support
+ci = "github"
+# The installers to generate for each app
+installers = ["shell", "homebrew", "npm"]
+# A GitHub repo to push Homebrew formulas to
+tap = "ShravanSunder/homebrew-tap"
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl"]
+# The archive format to use for non-windows builds (defaults .tar.xz)
+unix-archive = ".tar.gz"
+# Path that installers should place binaries in
+install-path = "CARGO_HOME"
+# Which actions to run on pull requests
+pr-run-mode = "plan"
+# This workflow adds an archive linkage gate after cargo-dist's build step.
+allow-dirty = ["ci"]
+publish-jobs = ["homebrew"]
+
+[dist.github-custom-runners]
+aarch64-apple-darwin = "macos-14"
+x86_64-apple-darwin = "macos-14"
+
+[[dist.extra-artifacts]]
+build = ["sh", "scripts/release/export-lint-schema.sh"]
+artifacts = ["target/sunstack.lint.schema.json"]

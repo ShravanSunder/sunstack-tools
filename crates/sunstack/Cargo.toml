@@ -1,9 +1,22 @@
 [package]
 name = "sunstack"
+description = "Lint repository documents and execute native Sunstack checks"
+repository = "https://github.com/ShravanSunder/sunstack-tools"
+homepage = "https://github.com/ShravanSunder/sunstack-tools"
+license = "MIT"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
+
+# Config for 'dist'
+[package.metadata.dist]
+# Customize the Homebrew formula name
+formula = "sunstack"
+# Whether to consider the binaries in a package for distribution (defaults true)
+dist = true
+# The npm package should have this name
+npm-package = "sunstack"
 
 [lints]
 workspace = true
