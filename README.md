@@ -71,6 +71,8 @@ The [release workflow](.github/workflows/release.yml) starts from cargo-dist 0.3
 generated workflow and is maintained by hand (`allow-dirty = ["ci"]`). When upgrading
 cargo-dist, re-diff its generated workflow and retain the archive linkage and install
 verification steps.
+The `fresh-install-smoke` job runs after publishing; it detects installation and
+runtime failures after the release assets are available.
 
 ```sh
 brew install shravansunder/tap/sunstack
