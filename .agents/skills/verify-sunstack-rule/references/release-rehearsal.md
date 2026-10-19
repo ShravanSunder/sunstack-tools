@@ -1,16 +1,26 @@
 # S4 — install the exact private release
 
-Observe two real generated releases through Homebrew, shell and npm. Expected outcome: runner R7/R16/R19–R23 and VD U2/U8/U10/U11/S4 at SKILL.md's oracle. The release workflow is product-owned; this recipe observes its outputs and owns only verification fixtures/mirror/inspection. Run only against separately commissioned releases. An artifact preflight is not installation proof.
+Observe two real generated releases through Homebrew, shell and npm. Exact bytes establish what was installed; the invocation determines which process receives a signal. Observe both separately. Expected outcome: runner R7/R16/R19–R23 and VD U2/U8/U10/U11/S4, with adopted B′ signal/install revision `e010a45cf19c376b7bad820fb761c54d9eec025b`. The release workflow is product-owned; this recipe owns verification fixtures, mirrors and inspection. Artifact preflight never proves installation.
 
-Use only the authorized private repositories `ShravanSunder/sunstack-release-rehearsal` and `ShravanSunder/homebrew-sunstack-rehearsal`. Check `gh repo view <repository> --json visibility,nameWithOwner` for each before any later remote mutation. Stop if either is public or differs from the declared destination. This preparation commission does not create repositories, push, tag, publish or spend on hosted work. A later rehearsal commission must name those effects. Never publish to the real tap or npm registry.
+## Admit the source and private effects
 
-## Declare and download both releases
+The commission names the adopted package/alias contract, exact product source, two tags, expected npm package identity and authorized effects. Keep the `sunstack` bin distinct from its package name. An unsettled package/alias decision or missing successor SHA holds all tag pushes; continue independent preparation. Never infer expected identity from the artifact under test or choose alias behavior. Historical observations retain their original target and oracle.
 
-The Implementer supplies two tags (`v0.0.1-rehearsal.1` and `v0.0.1-rehearsal.2` in the plan), exact source/workflow revisions, successful workflow IDs and release metadata. The older and newer workspace/package versions must equal their tags. Run the real generated workflow twice; a hand-built archive does not satisfy this seam. Watch each declared run with `gh run watch <id> --repo ShravanSunder/sunstack-release-rehearsal --exit-status --interval 240`, retain its raw jobs/artifact evidence, and distinguish workflow completion from all-channel proof.
+Use only `ShravanSunder/sunstack-release-rehearsal` and `ShravanSunder/homebrew-sunstack-rehearsal`. Before **each remote mutation**, check both with `gh repo view <repository> --json visibility,nameWithOwner`; stop on another destination or non-PRIVATE result. Preparation authorizes no push, tag, publication or paid call; the execution commission must grant them. Never write the production tap or real npm registry.
 
-Download each tag's files with authenticated `gh release download <tag> --repo ShravanSunder/sunstack-release-rehearsal --dir <new-tag-directory>`. The mirror must never receive a token or auth header. Require, per tag:
+Before an authorized tag push, independently confirm every source correction, including a post-merge head when requested. Check **names only** with `gh secret list --repo ShravanSunder/sunstack-release-rehearsal --json name`: require `HOMEBREW_TAP_DEPLOY_KEY`, never its value. Preserve product deploy-key checkout, launcher replacement, checksum gates and npm prerelease guard. Private copies may change only declared destination/version inputs, `publish-prereleases = true`, and separate verification jobs. Retain each source-to-private-copy diff and commit.
 
-- `sunstack-<target>.tar.gz` and matching `.sha256` for macOS arm64/x64 and Linux musl arm64/x64;
+Run two sequential prerelease tags from the same original source, with distinct matching workspace/package versions. Watch each with `gh run watch <id> --repo ShravanSunder/sunstack-release-rehearsal --exit-status --interval 240`. Require successful `publish-homebrew-formula` and its actual private-tap commit per tag. `publish-npm` must be **skipped**, even though `publish-prereleases` enables Homebrew. A skipped tap job leaves publication unknown; an executed public npm job violates the rehearsal boundary. Retain every job conclusion; keep verification jobs separate from product release jobs.
+
+## Capture both tap commits and downloads
+
+After the older run, independently read back the exact private-tap commit and `Formula/sunstack.rb` **before** the newer tag can replace it. Repeat for the newer run. Keep commit/parent, version, run/job identity, pushed formula bytes/SHA256 and its link to the deploy-key publish job. Product brew-style formatting may change the release formula; retain the diff and test the pushed bytes.
+
+Access the private formula through the authorized CI deploy-key checkout or an authenticated host read of that exact commit. A host read may supply retained formula/provenance bytes to the private verification job; require that job to verify their hash before installing. This bridge carries no credentials. A release asset or hand-authored formula alone does not prove installation from the CI push.
+
+Download each tag with authenticated `gh release download <tag> --repo ShravanSunder/sunstack-release-rehearsal --dir <new-tag-directory>`. The mirror receives no token or auth header. Require, per tag:
+
+- `sunstack-<target>.tar.gz` plus matching `.sha256`, for macOS arm64/x64 and Linux musl arm64/x64;
 - `sunstack-installer.sh`, `sunstack.rb`, `sunstack-npm-package.tar.gz` and `sunstack.lint.schema.json`.
 
 From the monorepo root, use the main skill's clean uv environment:
@@ -18,39 +28,54 @@ From the monorepo root, use the main skill's clean uv environment:
 ```sh
 uv run --no-config --no-env-file --no-python-downloads --default-index https://pypi.org/simple --script \
   .agents/skills/verify-sunstack-rule/scripts/release_assets.py \
-  --older <older-download> --older-version 0.0.1-rehearsal.1 \
-  --newer <newer-download> --newer-version 0.0.1-rehearsal.2 --evidence <new-evidence>
+  --older <older-download> --older-version <older-version-without-v> \
+  --newer <newer-download> --newer-version <newer-version-without-v> --evidence <new-evidence>
 ```
 
-The helper checks every archive checksum, finds exactly one regular bounded `sunstack` member without extracting arbitrary archive paths, retains its exact bytes/hashes, checks static Linux linkage, and checks formula/npm/installer versions and formula checksums. Both versions must have different binary bytes, so an older/newer comparison can fail. `s4-artifacts.json` explicitly leaves installations unobserved. Missing files or a checksum mismatch stops before installs; never rewrite a checksum to match.
+The helper currently checks historical npm identity `sunstack`. If the commission adopts another name, hold dependent preflight until its strict expected-name input/caller are updated and checked against that settled contract. Never accept arbitrary actual names or derive the expected name from the package itself. Update installed package paths consistently while preserving the declared bin map.
 
-## Mirror without replacing bytes
+The helper checks archive checksums, reads exactly one bounded regular `sunstack` member without extracting arbitrary paths, retains native bytes/hashes, checks static Linux linkage and formula/npm/installer metadata. Older/newer native hashes must differ so version pinning can fail. `s4-artifacts.json` leaves installation unobserved. Missing assets or checksum/metadata mismatch stops before installs; never rewrite checksums.
 
-Serve only the authenticated download directories from a loopback HTTP server whose PID/port you record, with one immutable path per version and both versions simultaneously available. Keep archive bytes unchanged. Verify every served archive by SHA256 against the preflight receipt. On GitHub runners the mirror lives on that runner; a container uses its own authorized connection to that local mirror. Do not expose it publicly.
+## Mirror without replacing product behavior
 
-Adapt only download locations in a retained copy of the generated formula/npm package:
+Serve only authenticated download directories on loopback, with owned PID/port and immutable paths for both versions. Verify served archive hashes against preflight. A hosted runner uses its own mirror; a container uses its declared connection to that mirror. No public exposure.
 
-- Formula: change only `url`/`mirror` bases to that tag's loopback directory. Keep `version`, target names and every real checksum unchanged. Retain original, adapted copy and diff. Current Homebrew requires formulae to belong to a tap and requires explicit trust for non-official formulae. On the disposable fresh runner only, create a local tap with `brew tap-new --no-git verifier/<owned-tap>`, locate it with `brew --repo verifier/<owned-tap>`, and copy the adapted bytes unchanged to its `Formula/sunstack.rb`. Set `XDG_CONFIG_HOME` to an owned empty directory for every Homebrew command, run `brew trust --formula verifier/<owned-tap>/sunstack`, then `brew install --formula <tap-path>/Formula/sunstack.rb`. This grants trust to that formula only; checksum validation remains required. Keep the installed version/hash/report/signal proof and uninstall that owned formula before the next version. Do not replace an existing user installation or modify the local Mac's Homebrew state.
-- Shell: use the **older tag's own** generated installer while the newer release is available. cargo-dist 0.32.0 embeds `APP_VERSION` in each installer; version pinning selects the older release URL/installer, rather than inventing a `VERSION` flag. `INSTALLER_DOWNLOAD_URL=<older-mirror-directory>` redirects the archive base. Read that generated installer's supported unmanaged/install-directory variable before setting it to an owned empty install directory; never modify the real home or shell profile. Keep the unmodified installer and archive request log, and compare installed bytes with the older receipt.
-- Npm: unpack the generated npm artifact in scratch, change only `package.json`'s `artifactDownloadUrls` to the tag's mirror base, and `npm pack <adapted-package-directory> --pack-destination <scratch>`. Keep package name/version, platform map, launcher and postinstall code unchanged. Retain the diff, then `npm i -D <packed-tarball>` and `npx --no-install sunstack …` in an empty consumer directory. No registry publication or substitute binary is allowed. Install-time GitHub access/write-into-package/pnpm approval limits remain product README obligations.
+Adapt download locations only, retaining originals and diffs:
 
-This is a mirror stand-in: it preserves the downloaded release bytes while avoiding authentication requirements the generated installers cannot meet. It proves those channels against those bytes; public URLs remain unverified until the first public release. If generated artifacts lack a supported mirror seam, return that concrete gap to the Lead instead of adding installer behavior.
+- **Homebrew:** start with the exact CI-pushed formula. Change only `url`/`mirror` bases to that tag's loopback directory; retain version, targets and real checksums. On the disposable fresh runner, create `brew tap-new --no-git verifier/<owned-tap>`, locate it with `brew --repo verifier/<owned-tap>`, and copy adapted bytes unchanged to `Formula/sunstack.rb`. Use an owned empty `XDG_CONFIG_HOME` for every Homebrew command. Run `brew trust --formula verifier/<owned-tap>/sunstack`, then `brew install --formula <tap-path>/Formula/sunstack.rb`. Trust only that formula and retain checksum validation. Uninstall the owned installation before the next version. Never overwrite another installation or mutate the local Mac's Homebrew state.
+- **Shell:** use each tag's unmodified installer; test the **older** installer while newer release bytes are available. cargo-dist 0.32.0 embeds `APP_VERSION`; selecting that older installer/URL pins its version. `INSTALLER_DOWNLOAD_URL=<older-mirror-directory>` redirects archive downloads. Read its supported unmanaged/install-directory variable before choosing an owned empty directory. Keep archive requests, installed hash and unchanged home/profile evidence; invent no version flag.
+- **Npm:** unpack the generated artifact in scratch, change only `package.json.artifactDownloadUrls`, then `npm pack <adapted-package-directory> --pack-destination <scratch>`. Keep file hashes/diff proving name/version/bin map, launcher and postinstall code unchanged. Run `npm i -D <packed-tarball>` in an empty consumer. Resolve the package from its **declared expected identity** and `node_modules/.bin/sunstack` from its bin map; prove the link reaches the unchanged launcher and the native hash matches preflight. Drive that installed bin directly and an npm script `"lint": "exec sunstack lint"`. Installation-time GitHub access, package writes and pnpm approval remain README obligations.
 
-## Drive all installation cells
+The mirror stands in for authenticated download locations while preserving release native bytes and installer behavior. Public URLs remain unverified. If a supported mirror seam is missing, return the gap instead of modifying product installers or substituting a binary/launcher/package.
 
-Run Homebrew on fresh GitHub-hosted macOS and Linux runners; shell installs on macOS and local Linux containers; npm in a clean digest-pinned Node container and the fresh runners. Retain Node image/platform/digest and tool versions. Package-manager setup may use runner tools; product execution must use absolute installed paths under `env -i PATH=/usr/bin:/bin HOME=<new-empty-home>`, with no `DYLD_*` variables. Do not add Homebrew/Node paths to the product's minimal environment. Npm's launcher needs Node; invoke its declared absolute Node/launcher paths while retaining the same minimal environment, then check the native installed binary independently under that environment too.
+## Drive fresh platforms and the npm matrix
 
-Each cell for each version records:
+Run Homebrew and shell on fresh GitHub-hosted macOS/Linux, and npm on both plus a clean digest-pinned Node container. Retain platform, image/digest and Node/npm/shell versions. Native commands use absolute installed paths under `env -i PATH=/usr/bin:/bin HOME=<new-empty-home>`, without `DYLD_*`. Invoke the installed bin with absolute Node and bin paths under that environment. Npm scripts additionally need the declared Node/npm directory in PATH; record that exception instead of claiming OS-only PATH. Setup may use runner tools; product execution never inherits download credentials.
 
-1. Installed binary hash equals the matching extracted release bytes and `--version` is exactly `sunstack <tag-without-v>`. Formula/package versions equal the same tag. A channel that installs newer bytes for the older request fails.
-2. The S1 valid fixture's `lint --check` exits 0; its mechanical error lint exits 1 with the exact finding; a clean fixture exits 0. Run the same fixture through the native binary and npm launcher with `--format json`, parse both and compare every field, including config/version/findings/evidence/usage/exit. Compare on the same directory/state, not separately rooted copies whose paths differ.
-3. Ctrl-C reaches running work and every owned child settles, including npm. Use the S1 controlled server to hold an admitted request before signaling the owned foreground process group; capture the launcher and native child PIDs, exit, complete cancelled JSON and socket settlement. Readiness comes from the held request, not a sleep or a process list. Require the prescribed exit 4 and absence of surviving children; signal acknowledgement alone is insufficient. Do not call the real provider for this control.
-4. Fresh hosted macOS/Linux jobs retain all evidence above after teardown. x64 macOS executes under Rosetta on the fresh Apple silicon runner, and arm64 also runs natively on the local Mac with a new empty HOME. S2 owns Linux Alpine/Debian and linkage; join its exact-archive proof, never a different dev build.
+For each version × channel × platform:
 
-Build the verification job in the private rehearsal checkout under the later execution grant; it downloads with its workflow token, stops using that token before serving the mirror, installs the exact assets, runs the commands above under the minimal environment and uploads only safe verification evidence to that private run. Do not copy any key or raw credential location into workflow YAML or logs. Require actual successful fresh macOS and Linux jobs; a local equivalent cannot close that claim. Reuse the generated product release workflow unchanged except declared private destination/version inputs; keep any verification job separate.
+1. Installed native SHA256 equals the matching extracted release; `--version` equals `sunstack <tag-without-v>`. Formula/npm versions match the tag. An older request installing newer bytes fails.
+2. `lint --check` exits 0; mechanical error lint exits 1 with the exact finding; clean lint exits 0. Direct-bin output/exits 0–3 match native, including invalid input and a real incomplete case. Compare parsed native/bin JSON on **identical fixture paths/state**, every field including config/version/findings/evidence/usage. Join installed-bin → CLI equality to the real Rust CLI → library equality only after checking the actual test boundary/assertions and source/dependency/config applicability; a producer claim alone is insufficient.
+3. Use a held synthetic HTTP request to establish readiness before signaling; no genuine provider call is needed. Drive every supported cell below.
 
-## Completion and cleanup
+| Invocation and signal destination | Required result |
+| --- | --- |
+| Installed bin, SIGINT to whole foreground group | exit 4, full cancelled JSON, no owned survivors |
+| Installed bin PID alone, SIGINT | exit 4, full cancelled JSON, no owned survivors |
+| Installed bin PID alone, SIGTERM | exit 4, full cancelled JSON, no owned survivors |
+| Installed bin PID alone, SIGHUP | native ends; launcher ends **by SIGHUP**, no owned survivors; no exit-4/cancelled-JSON requirement |
+| `exec sunstack lint` npm script, SIGINT to whole group | exit 4, full cancelled JSON, no owned survivors |
+| `exec sunstack lint` npm script, SIGINT to npm PID alone | exit 4, full cancelled JSON, no owned survivors |
+| `exec sunstack lint` npm script, SIGTERM to npm PID alone | exit 4, full cancelled JSON, no owned survivors |
 
-Keep two tag/source/workflow IDs, original asset hashes, mirror request logs, URL-only adaptation diffs, installed hashes/versions, actual command exits, native/npm JSON comparisons, cancellation/child evidence and fresh-runner logs. Report a matrix with each version × channel × platform observed/reused/unreachable and its reason; empty or missing cells remain unknown. An artifact-only receipt does not close S4.
+Capture root/launcher/native PIDs and group, admitted request, signal destination, command/environment, actual exit **and signal**, full report where promised, socket closure and owned survivors **before cleanup**. A sleep/process list is not readiness; acknowledgement is not settlement. A cleanup kill never turns a survivor into a pass. Afterwards stop only remaining owned processes and retain both observations.
 
-Stop only owned mirror/container/process IDs after their consumers settle, leave the private repos/tags/releases intact unless cleanup is separately authorized, and reopen retained evidence. Return supported/unsupported/unknown per U row and all gaps. Public release addresses, public publishing, Intel Mac hardware, other distributions, Windows and private CAs stay unverified. The Lead owns acceptance.
+Record these **known limits** apart from supported cells: Linux plain `"sunstack lint"` script with SIGTERM to npm alone; SIGHUP to npm alone through the `exec` script; and npx. Retain bounded limit observations or applicable prior evidence with environment/cleanup, without applying the supported contract to those routes. **npx is unsupported; do not execute it as a promised route.** Preserve old npx failures at their original contract.
+
+Fresh macOS/Linux jobs retain evidence after teardown. x64 macOS executes under Rosetta on fresh Apple silicon; arm64 also runs natively on the local Mac with a new empty HOME. Join S2's exact-archive Linux/linkage proof when applicable, never a different dev build. A local equivalent cannot close a fresh-hosted-job claim.
+
+## Return and clean up
+
+Return source SHA, adopted oracle/package contract, both tags/private-copy commits, release run IDs, **every job conclusion** including skipped `publish-npm`, each CI-pushed tap commit/formula hash, original/downloaded/installed hashes, URL-only diffs, mirror requests, report/exit comparisons, per-signal process/report/socket evidence and equality-test applicability. Mark each cell observed/reused/failed/limit/unknown with its reason; missing/empty cells remain unknown. Unsupported limits are never passing support claims.
+
+Stop only owned mirror/container/process IDs after consumers settle; verify no owned survivors and reopen evidence. Leave private repos/tags/releases intact unless cleanup is separately authorized. Public URLs/publishing, Intel Mac hardware, other distributions, Windows and private CAs remain unverified. Return supported/unsupported/unknown per commissioned U row; the Lead owns acceptance.
