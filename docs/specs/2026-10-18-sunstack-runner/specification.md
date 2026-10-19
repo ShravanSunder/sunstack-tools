@@ -157,7 +157,7 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | ID | Requirement | From |
 | --- | --- | --- |
 | R19 | Each release publishes, for every target, an archive and its checksum on GitHub Releases. Archives extract with `tar` and `gzip`, which minimal Linux and macOS systems have. | U10, U11 |
-| R20 | `brew install shravansunder/tap/sunstack` installs the release build on macOS (arm64, x64) and Linux (x64, arm64). | U10 |
+| R20 | `brew install shravansunder/taps/sunstack` installs the release build on macOS (arm64, x64) and Linux (x64, arm64). | U10 |
 | R21 | A one-line shell installer installs the release build on macOS and Linux, and can pin a version. | U10, U11 |
 | R22 | `npm i -D sunstack` followed by `npx sunstack …` runs the release build, passes its exit code through, and forwards Ctrl-C to it. The package fetches the build at install time; the README states that this needs network access to GitHub, writes into the installed package, and may need build approval under pnpm. | U2, U10 |
 | R23 | `sunstack --version` reports the release version, which equals the Git tag and the version on every channel. | U10, U11 |

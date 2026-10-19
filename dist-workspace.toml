@@ -10,7 +10,7 @@ ci = "github"
 # The installers to generate for each app
 installers = ["shell", "homebrew", "npm"]
 # A GitHub repo to push Homebrew formulas to
-tap = "ShravanSunder/homebrew-tap"
+tap = "ShravanSunder/homebrew-taps"
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl"]
 # The archive format to use for non-windows builds (defaults .tar.xz)
@@ -19,7 +19,8 @@ unix-archive = ".tar.gz"
 install-path = "CARGO_HOME"
 # Which actions to run on pull requests
 pr-run-mode = "plan"
-# This workflow adds an archive linkage gate after cargo-dist's build step.
+# This workflow adds an archive linkage gate after cargo-dist's build step,
+# and pushes the formula with a deploy key instead of a token.
 allow-dirty = ["ci"]
 publish-jobs = ["homebrew"]
 

@@ -64,8 +64,8 @@ See [the executable protocol](crates/sunstack/README.md) for request framing, na
 The release workflow builds macOS arm64/x64 and static Linux arm64/x64 archives,
 checksums, a shell installer, a Homebrew formula, an npm package and the config schema.
 Public release publication is a separate step; the commands below require a published release.
-Before the first public release, create the production `ShravanSunder/homebrew-tap`
-repository and configure a `HOMEBREW_TAP_TOKEN` release secret that can push its formula.
+The formula is pushed to `ShravanSunder/homebrew-taps` with a write deploy key whose
+private half is the `HOMEBREW_TAP_DEPLOY_KEY` release secret.
 
 The [release workflow](.github/workflows/release.yml) starts from cargo-dist 0.32.0's
 generated workflow and is maintained by hand (`allow-dirty = ["ci"]`). When upgrading
@@ -75,7 +75,7 @@ The `fresh-install-smoke` job runs after publishing; it detects installation and
 runtime failures after the release assets are available.
 
 ```sh
-brew install shravansunder/tap/sunstack
+brew install shravansunder/taps/sunstack
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/latest/download/sunstack-installer.sh | sh
 # Pin a version by downloading that release's installer:
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack-installer.sh | sh
