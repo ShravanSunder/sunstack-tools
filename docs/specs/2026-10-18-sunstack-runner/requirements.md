@@ -73,7 +73,7 @@ flowchart LR
 - **Capabilities:** runner, config, portable-builds and install, as listed above.
 - **Existing foundation, reused as it is:** the engine crates (`sunstack-evidence`, `sunstack-rules`, `sunstack-decisions`), the rule-set and rule-file formats, the Jev/OpenRouter backend, change scopes, and today's JSON request protocol.
 - **Missing:** lint commands, the `sunstack.lint.json` config, exit codes from severity, output formats, standalone builds for Linux and macOS, the `sunstack` name, and the release channels.
-- **May change:** `sunstack-tools` (the CLI crate, its name and commands, the git2 build feature, the severity words, the release workflow); a new Homebrew tap repository; the `sunstack` npm package.
+- **May change:** `sunstack-tools` (the CLI crate, its name and commands, the git2 build feature, the severity words, the release workflow); the formula in the existing Homebrew tap `ShravanSunder/homebrew-taps`; the `@sunstack/cli` npm package, and the plain npm name `sunstack` as a deprecated placeholder pointing to it.
 - **Must not change:** what rules mean and how they are judged, and Demistify's release.
 - **Not now:** oxlint or SwiftLint integration; a Node addon or Swift SDK; built-in rule sets; a local decision model; Windows; homebrew-core; crates.io; macOS notarization; a custom npm package per platform; pipelines in which one decision feeds another.
 - **Done means:** on clean macOS and Linux, `brew install` and the shell installer give a working `sunstack` that lints a repository from its config with the right exit codes. The npm package works after a release from a private test repository. The owner: "you should  impelment and get it fuly tested adn verified".

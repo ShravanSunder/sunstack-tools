@@ -62,7 +62,7 @@ flowchart TB
 | E8 Backend selection | engine (`sunstack-decisions`) | existing: `BackendSelection` | Config `BackendConfig::{JevOpenrouter { model: ModelName, endpoint: Option<String> }}` maps to `BackendSelection::JevOpenrouter`; default endpoint `https://openrouter.ai/api/v1/systemone`; key read from `OPENROUTER_API_KEY` by the existing factory | persisted (config) | engine `BackendSelection` |
 | E9 Release | release workflow | new: `dist-workspace.toml`, `.github/workflows/release.yml` | Git tag `v<semver>`; version from the workspace `Cargo.toml` | persisted (tags, release) | cargo-dist |
 | E10 Platform build | release workflow | new | `sunstack-<target>.tar.gz` plus `.sha256`, targets `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl` | persisted | cargo-dist naming |
-| E11 Install channel | release workflow, tap repository, npm registry | new | Homebrew formula `sunstack.rb` in the existing `ShravanSunder/homebrew-taps`, pushed with a write deploy key; installer `sunstack-installer.sh`; npm package `@sunstack/cli` (bin `sunstack`), published through npm trusted publishing; the plain name `sunstack` is a deprecated placeholder that was published once by hand | persisted | cargo-dist generated |
+| E11 Install channel | release workflow, tap repository, npm registry | new | Homebrew formula `sunstack.rb` in the existing `ShravanSunder/homebrew-taps`, pushed with a write deploy key; installer `sunstack-installer.sh`; npm package `@sunstack/cli` (bin `sunstack`), published through npm trusted publishing; the plain name `sunstack` is a deprecated placeholder, published once by hand outside the release | persisted | cargo-dist generated |
 
 ## Components and interfaces
 
