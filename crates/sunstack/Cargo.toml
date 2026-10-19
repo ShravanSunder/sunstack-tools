@@ -15,8 +15,9 @@ publish.workspace = true
 formula = "sunstack"
 # Whether to consider the binaries in a package for distribution (defaults true)
 dist = true
-# The npm package should have this name
-npm-package = "sunstack"
+# The npm identity is separate from the installed sunstack command.
+npm-scope = "@sunstack"
+npm-package = "cli"
 
 [lints]
 workspace = true
