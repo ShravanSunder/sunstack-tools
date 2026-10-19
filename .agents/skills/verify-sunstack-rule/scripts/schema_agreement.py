@@ -28,6 +28,7 @@ from runner_process import RunnerTarget, run_case
 from scenario_transport import ControlledServer
 
 SEMANTIC_REFUSALS = {
+    "bad-glob",  # Specification R15/V12 at 59b12d3: glob grammar is binary-only.
     "missing-ruleset",
     "same-ruleset",
     "unknown-selector",
@@ -36,8 +37,24 @@ SEMANTIC_REFUSALS = {
     "old-nudge",
     "old-band-field",
 }
-STRUCTURAL_REFUSALS = {"unknown-field", "bad-glob"}
+STRUCTURAL_REFUSALS = {
+    "unknown-field",
+    "limit-zero",
+    "limit-fractional",
+    "limit-u32-overflow",
+    "limit-u64-overflow",
+}
 PARSER_REFUSALS = {"syntax", "duplicate-key", "duplicate-entry"}
+
+
+def config_check_expectation(name: str) -> tuple[str, bool | None, int]:
+    if name in PARSER_REFUSALS:
+        return "parser", None, 2
+    if name in SEMANTIC_REFUSALS:
+        return "semantic", True, 2
+    if name in STRUCTURAL_REFUSALS:
+        return "structural", False, 2
+    return "structural", True, 0
 
 
 def unique_object(pairs: list[tuple[str, JsonValue]]) -> JsonObject:
@@ -109,20 +126,8 @@ def observe_schema(
                 }
             )
             continue
-        category = (
-            "parser"
-            if original.name in PARSER_REFUSALS
-            else "semantic"
-            if original.name in SEMANTIC_REFUSALS
-            else "structural"
-        )
-        expected_schema = (
-            None if category == "parser" else original.name not in STRUCTURAL_REFUSALS
-        )
-        expected_exit = (
-            2
-            if category == "parser" or category == "semantic" or not expected_schema
-            else 0
+        category, expected_schema, expected_exit = config_check_expectation(
+            original.name
         )
         cases.append(
             (
@@ -181,9 +186,7 @@ def observe_schema(
                     wrong_build="Config limit disagrees with its native nonzero integer type",
                 ),
                 fixture,
-                "structural",
-                False,
-                2,
+                *config_check_expectation(name),
             )
         )
     for original, fixture, category, expected_schema, expected_exit in cases:

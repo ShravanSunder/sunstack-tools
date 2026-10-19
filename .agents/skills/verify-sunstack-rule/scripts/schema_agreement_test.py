@@ -4,6 +4,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from schema_agreement import (
     compare_acceptance,
+    config_check_expectation,
     config_instance,
     reject_external_references,
 )
@@ -50,3 +51,13 @@ def test_offline_schema_check_refuses_remote_references_but_accepts_draft_metada
             reject_external_references(
                 {"properties": {"x": {keyword: "https://example.invalid/remote"}}}
             )
+
+
+def test_glob_grammar_is_binary_only_while_numeric_ranges_remain_structural() -> None:
+    category, schema_accepts, binary_exit = config_check_expectation("bad-glob")
+    assert (category, schema_accepts, binary_exit) == ("semantic", True, 2)
+    assert compare_acceptance(category, schema_accepts, binary_exit, True, 2)
+    assert not compare_acceptance(category, schema_accepts, binary_exit, True, 0)
+    assert config_check_expectation("unknown-field") == ("structural", False, 2)
+    for name in ("limit-u32-overflow", "limit-u64-overflow"):
+        assert config_check_expectation(name) == ("structural", False, 2)

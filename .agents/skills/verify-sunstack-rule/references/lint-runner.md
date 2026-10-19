@@ -30,7 +30,7 @@ Every no-call command uses network `none`, so its configured control endpoint is
 
 Run `scripts/schema_agreement.py --help` through its inline pinned dependencies. Supply `--schema <exact-release-schema>`, `--fixtures <completed-S1-fixtures>`, `--binary`, `--source-root`, `--commit`, a new `--evidence`, and the same container options when checking Linux. It records the schema hash, refuses external `$ref` fetching, and compares each config with a real no-key `--check` command. It also checks C4 and nonzero integer limit boundaries.
 
-Structural cases must agree on acceptance/refusal. Filesystem/loaded-rule semantic cases must pass the schema and be refused by the binary. Duplicate JSON names and syntax are parser refusals, recorded separately; a missing config has no schema input. The full per-case table and any mismatches survive a failing aggregate exit. A changed or overpermissive schema cannot turn a binary refusal into agreement.
+Structural cases must agree on acceptance/refusal. Filesystem/loaded-rule semantic cases and malformed glob syntax must pass the schema and be refused by the binary (Specification R15/V12 at `59b12d3`). Numeric limits must carry their full minimum and maximum; values above the native u32/u64 range must be refused by both. Duplicate JSON names and syntax are parser refusals, recorded separately; a missing config has no schema input. The full per-case table and any mismatches survive a failing aggregate exit. A changed or overpermissive schema cannot turn a binary refusal into agreement.
 
 ## What must agree
 
