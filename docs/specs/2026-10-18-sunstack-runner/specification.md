@@ -62,18 +62,18 @@ Today the engine runs only from a hand-written JSON request on standard input (`
 | R1 | `sunstack lint [paths…]` loads the governing config (E1), runs every enabled rule over the files its rule-set entries select, limited to `paths` when given, and reports findings (E7) with rule, file, location, severity and message. | U1 |
 | R2 | The exit code of a lint run reflects its outcome, as set out in [C2](#c2-exit-codes). | U1 |
 | R3 | `--format` selects `default` (for people), `json` (stable, for agents and Node), `github` (workflow annotations) or `sarif` (SARIF 2.1.0, for code review). Every format carries the same findings. | U1, U2 |
-| R4 | `--changed` limits a run to files with uncommitted changes, and `--since <rev>` to files changed since a revision. Without either, the run covers every selected file. | U1 |
-| R5 | `sunstack lint --check` validates the config and every rule set it names without running a rule or making a model request. `--rules` lists each rule with its entry, kind (mechanical or judged) and effective default severity. `--init` writes a starter `sunstack.lint.json` and refuses to overwrite an existing one. | U1, U5 |
+| R4 | With no paths and no scope flag, lint covers uncommitted work (staged, unstaged and untracked) and says so in its output. `--all` covers every configured target. `--since <rev>` covers changes between `<rev>` and the working tree. Named paths are linted fully unless a scope flag is also given. A target whose rule, rule set or context changed is linted even if the target itself did not change; when `sunstack.lint.json` itself changed, every configured target is linted and the report says why. Outside a Git repository, the default scope exits 2 and suggests `--all`; `--all` works without Git. | U1, U7 |
+| R5 | `sunstack lint --check` validates the config and every rule set it names without reading targets, needing a key or making a model request. `--rules` lists each rule with its entry, source location, kind (mechanical or judged), authored severity and configured severity; `--rules <file>` shows the effective severity for that file and which setting decided it. `--init` writes a skeleton `sunstack.lint.json` with no rules, and refuses to overwrite an existing file. | U1, U5 |
 | R6 | `sunstack exec` keeps today's JSON protocol: one request on standard input, one response on standard output, exit codes 0, 2, 3 and 4 with today's meanings. Only the severity words change (R14). | U3 |
-| R7 | The same lint is callable from Node through the npm package (`npx sunstack lint --format json`) and from Rust as a library call that returns the same report as `--format json`. | U2 |
+| R7 | The same lint is callable from Node through the npm package (`npx sunstack lint --format json`) and from Rust as a library call that returns the same report as `--format json`. The npm package installs and launches the command; it offers no TypeScript API. | U2 |
 
 ### C1. Commands
 
 ```text
-sunstack lint [paths…] [--config <file>] [--changed | --since <rev>]
+sunstack lint [paths…] [--config <file>] [--all | --since <rev>]
               [--format default|json|github|sarif] [--max-warnings <n>]
 sunstack lint --check  [--config <file>]
-sunstack lint --rules  [--config <file>]
+sunstack lint --rules [file] [--config <file>]
 sunstack lint --init
 sunstack exec
 sunstack --version | --help
@@ -85,13 +85,13 @@ sunstack --version | --help
 
 | Code | Meaning | Precedence |
 | --- | --- | --- |
-| 2 | Invalid input: bad flags, no config found, invalid config or rule set, a judged rule enabled with no usable backend or key | highest |
+| 2 | Invalid input: bad flags, no config found, invalid config or rule set, an unknown rule or entry name, a named path that does not exist, a judged rule enabled with no usable backend or key, or the default scope outside Git | highest |
 | 4 | Cancelled by the caller (Ctrl-C or SIGTERM) | |
+| 3 | Incomplete: some enabled rule could not be evaluated on a selected target (selection failed, evaluation failed, not started, a backend or request-limit failure), or rule coverage was not full | |
 | 1 | At least one `error` finding, or more `warn` findings than `--max-warnings` | |
-| 3 | Incomplete: some enabled rule could not be evaluated on a selected file (selection failed, evaluation failed, not started), a rule set was skipped, or rule coverage was not full | |
-| 0 | Clean: none of the above | lowest |
+| 0 | Clean: everything selected was evaluated and nothing exceeded the limits | lowest |
 
-A run with both an `error` finding and an incomplete part exits 1, and its report still lists what was incomplete. `not_applicable`, `outside_change_scope` and a rule that matched nothing are not incomplete.
+An incomplete run exits 3 even when it also has `error` findings; the report lists both, so a run that skipped work never reads as "only lint findings". A rule turned `off`, an ignored target, a not-applicable rule, a target outside the change scope and a rule that matched nothing are intentional or valid outcomes, counted in the report, and are not incomplete. When nothing was selected, the run exits 0 and says "No checks selected", never "Passed".
 
 ### C3. Report
 
@@ -102,12 +102,12 @@ The `json` report contains: the config path; the version; each finding (rule, fi
 | ID | Requirement | From |
 | --- | --- | --- |
 | R8 | Without `--config`, lint uses the nearest `sunstack.lint.json` walking up from the current directory. If none is found, it exits 2 and names the file it looked for. | U6 |
-| R9 | The config follows [C4](#c4-sunstacklintjson). An unknown field, a missing rule-set file, a duplicate entry name or a bad glob exits 2 with the file, line and column. | U5, U6 |
-| R10 | A rule's effective severity for a file is its default from the rule file, then the config's `rules`, then each matching override in order, the last one winning. Within one `rules` map, an exact rule ID wins over `<entry>/*`. | U4, U5 |
+| R9 | The config follows [C4](#c4-sunstacklintjson). An unknown field, a missing rule-set file, a duplicate entry name, two entries naming the same rule-set file, an unknown rule ID in `rules` or `overrides`, or a bad glob exits 2 with the file, line and column. | U5, U6 |
+| R10 | A rule's effective severity for a file is decided in this order, later steps winning: its authored default from the rule file, `<entry>/*` in `rules`, the exact rule ID in `rules`, then each matching override block in list order, where an exact rule ID wins over `<entry>/*` within the block. The effective policy is fixed per rule set and file before any model request, so a rule that is `off` for a file costs nothing there. A rule's authored confidence band still applies: an effective `error` whose failed verdict falls inside the band is reported as `warn`, and an effective `warn` never makes the run exit 1 on its own. | U4, U5 |
 | R11 | A rule-set entry may only name a rule set with exactly one `document` input. `--check` refuses any other rule set and names its input kinds. | U5 |
-| R12 | Lint skips files that match `ignorePatterns` or that Git ignores. | U1 |
+| R12 | Lint never targets files that match `ignorePatterns` or that Git ignores. These exclusions apply to targets only; context a rule declares is still available to it. Paths given on the command line resolve from the current directory; paths in the config resolve from the config's directory. | U1 |
 | R13 | A config whose enabled rules are all mechanical runs with no backend and no key. If any enabled rule is judged, lint needs `backend` in the config and `OPENROUTER_API_KEY` in the environment, and exits 2 before any model request when either is missing. The key is never written to output. | U7 |
-| R14 | Rule files use `error` or `warn` for severity, and a rule without one is `warn`. `block` and `nudge` are refused with a message naming the replacement. Reports, schemas and documentation use the same words. | U4 |
+| R14 | Rule files use `error` or `warn` for severity, and a rule without one is `warn`. `block` and `nudge` are refused with a message naming the replacement. Reports, schemas, `exec` responses and documentation use the same words, including the outcome for a failed verdict inside the confidence band. | U4 |
 | R15 | Each release publishes the JSON schema of `sunstack.lint.json` at a versioned URL, and the binary validates configs against the same definition. | U5 |
 
 ### C4. sunstack.lint.json
@@ -154,10 +154,10 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 
 | ID | Requirement | From |
 | --- | --- | --- |
-| R19 | Each release publishes, for every target, an archive and its checksum on GitHub Releases. | U10, U11 |
+| R19 | Each release publishes, for every target, an archive and its checksum on GitHub Releases. Archives extract with `tar` and `gzip`, which minimal Linux and macOS systems have. | U10, U11 |
 | R20 | `brew install shravansunder/tap/sunstack` installs the release build on macOS (arm64, x64) and Linux (x64, arm64). | U10 |
 | R21 | A one-line shell installer installs the release build on macOS and Linux, and can pin a version. | U10, U11 |
-| R22 | `npm i -D sunstack` followed by `npx sunstack …` runs the release build. The package fetches the build at install time; the README states that this needs network access to GitHub and that pnpm may need build approval. | U2, U10 |
+| R22 | `npm i -D sunstack` followed by `npx sunstack …` runs the release build, passes its exit code through, and forwards Ctrl-C to it. The package fetches the build at install time; the README states that this needs network access to GitHub, writes into the installed package, and may need build approval under pnpm. | U2, U10 |
 | R23 | `sunstack --version` reports the release version, which equals the Git tag and the version on every channel. | U10, U11 |
 
 ## Cross-cutting obligations
@@ -174,6 +174,9 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 
 ## Not in this Specification
 
+- No TypeScript API in the npm package; Node callers run the command.
+- No routers in `lint`; rule sets are offered directly.
+
 - No automatic fixes, watch mode or editor integration.
 - No writes to the repository during a lint run.
 - No telemetry, and no network use except the configured backend for judged rules.
@@ -186,15 +189,15 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | --- | --- | --- | --- |
 | V1 | R1, R3 | A config with one mechanical and one judged rule set lints a fixture repository, and every format lists the same findings with rule, file, location, severity and message | a finding is missing, or formats disagree |
 | V2 | R2 | Fixtures produce each exit code 0–4, and a run with both an error and an incomplete part exits 1 and lists both | any outcome maps to a different code |
-| V3 | R4 | `--changed` and `--since` select exactly the files changed in a scripted Git history | an unchanged file is linted, or a changed one is missed |
+| V3 | R4 | In a scripted Git history, the default scope, `--since` and `--all` select the expected targets; an unchanged target whose rule changed is selected; a changed config selects every target; the default outside Git exits 2 | an unchanged, unaffected file is linted, an affected one is missed, or a scope falls back silently |
 | V4 | R5 | `--check` makes no model request, catches each invalid-config case, and `--init` refuses to overwrite | a model request is made, or an invalid config passes |
 | V5 | R6 | The engine's existing protocol tests pass through `sunstack exec` with only the severity words changed | any other protocol change |
 | V6 | R7 | `npx sunstack lint --format json` and the Rust library call return the same report as the CLI for the same fixture | reports differ |
 | V7 | R8, R9 | Discovery picks the nearest config; each invalid config exits 2 with file, line and column | the wrong config is used, or an error lacks its location |
-| V8 | R10 | A table of severity cases (default, `rules`, wildcard, exact, overrides in order, `off`) gives the expected severity for each file | any case differs |
+| V8 | R10 | A table of severity cases (authored default, wildcard, exact, override blocks in order, `off`, an `error` override on a rule with a confidence band) gives the expected severity per file, and a rule `off` for every target makes no model request | any case differs, or an `off` rule is paid for |
 | V9 | R11, R12 | A non-document rule set is refused by `--check`; ignored files are never read | either is not the case |
 | V10 | R13, R17 | A mechanical-only config runs with no key; a judged config without a key exits 2 before any request; a real Jev judgment completes from a static Linux build with no CA bundle | any is not the case |
 | V11 | R14 | Rule files with `block` or `nudge` are refused with the replacement named; reports use `error` and `warn` | old words are accepted or appear |
 | V12 | R15 | The published schema rejects and accepts the same configs as the binary | they disagree |
 | V13 | R16, R18 | Each release build loads only the allowed libraries, and runs `--version`, `lint --check` and a lint run on clean macOS, Alpine and Debian | an extra library is loaded, or a run fails |
-| V14 | R19–R23 | In a private test repository, a test release produces the archives and checksums, then `brew install`, the shell installer and `npm i` each install a binary that reports the release version and lints a fixture | any channel fails or reports another version |
+| V14 | R19–R23 | In a private test repository, the generated release workflow builds all four targets and produces archives, checksums, the Homebrew formula and the npm package. Installing those exact bytes through each channel, from a local mirror of the release, gives a binary that reports the release version, lints a fixture with the right exit codes, and stops on Ctrl-C, including through the npm launcher. Installing from the public release URLs is proven at the first public release, outside this work | any channel fails, reports another version, or loses an exit code or signal |
