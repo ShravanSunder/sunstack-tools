@@ -41,6 +41,8 @@ pub use verdict_evaluation::*;
 mod request_state;
 pub mod rule_execution;
 pub use rule_execution::*;
+mod rule_policy;
+pub use rule_policy::*;
 mod applicability_evaluation;
 mod request_planning;
 

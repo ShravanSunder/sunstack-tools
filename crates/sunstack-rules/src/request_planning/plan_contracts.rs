@@ -202,6 +202,7 @@ pub(crate) enum RequestSettlement {
     },
 }
 pub(crate) struct ExecutionState {
+    pub request_evidence: BTreeMap<RequestId, sunstack_decisions::SharedEvidenceState>,
     pub local_settlements: BTreeMap<OccurrenceIndex, LocalSettlement>,
     pub expansions: Vec<ExpansionState>,
     pub entries: Vec<EntrySettlement>,
@@ -261,6 +262,13 @@ pub(crate) fn definition_topology(
     groups: Vec<AdmittedGroup>,
     router: Option<AdmittedRouter>,
 ) -> ExecutionPlan {
+    definition_topology_with_policy(groups, router, &RulePolicy::default())
+}
+pub(crate) fn definition_topology_with_policy(
+    groups: Vec<AdmittedGroup>,
+    router: Option<AdmittedRouter>,
+    policy: &RulePolicy,
+) -> ExecutionPlan {
     let mut plan = ExecutionPlan {
         groups: vec![],
         occurrences: vec![],
@@ -314,19 +322,36 @@ pub(crate) fn definition_topology(
             group: admitted.position,
             route: admitted.binding.route().cloned(),
         };
-        let group_entries = append_entries(
-            &mut plan,
-            &admitted.set.definition.applicability,
-            owner,
-            sources.clone(),
-            vec![],
-            routing.clone(),
-            group_index,
-        );
+        let enabled_rules = admitted
+            .set
+            .rules
+            .iter()
+            .enumerate()
+            .filter(|(_, rule)| {
+                !policy.is_off(
+                    &admitted.set.path,
+                    admitted.position,
+                    &rule.definition.rule_id,
+                )
+            })
+            .collect::<Vec<_>>();
+        let group_entries = if enabled_rules.is_empty() && !admitted.set.rules.is_empty() {
+            vec![]
+        } else {
+            append_entries(
+                &mut plan,
+                &admitted.set.definition.applicability,
+                owner,
+                sources.clone(),
+                vec![],
+                routing.clone(),
+                group_index,
+            )
+        };
         let mut occurrence_indices = Vec::new();
         let mut evaluation_indices = Vec::new();
         let mut read_set = BTreeSet::new();
-        for (authored_order, located) in admitted.set.rules.iter().enumerate() {
+        for (authored_order, located) in enabled_rules {
             let rule = &located.definition;
             let occurrence_index = OccurrenceIndex(plan.occurrences.len());
             let owner = EntryOwner::Rule {

@@ -227,6 +227,10 @@ pub(crate) async fn execute_plan(
             let attempts = attempts.clone();
             let cancellation = cancellation.clone();
             let id = request.id;
+            // Capture the final admitted state, after optional omission and splitting.
+            state
+                .request_evidence
+                .insert(id, encoded.request.state.clone());
             state.requests.insert(id, RequestSettlement::InFlight);
             tasks.spawn(tracker.track_future(async move {
                 let started = Instant::now();
