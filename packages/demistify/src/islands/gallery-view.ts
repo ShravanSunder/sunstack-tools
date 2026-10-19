@@ -40,6 +40,22 @@ export interface GalleryControls {
 	readonly message: HTMLElement;
 }
 
+export function renderGalleryTitle(title: HTMLElement, capture: GalleryCapture): void {
+	title.replaceChildren(galleryElement('strong', '', capture.title));
+	for (const tag of galleryFacetValues(capture, 'tags'))
+		title.append(galleryElement('span', 'ex-gallery-title-tag', ` · #${tag}`));
+}
+
+export function createCaptureFigure(capture: GalleryCapture): HTMLElement {
+	const figure = capture.source.cloneNode(true);
+	if (!(figure instanceof HTMLElement)) throw new Error('Invalid gallery figure.');
+	for (const controls of figure.querySelectorAll('.ex-inspect-controls')) controls.remove();
+	figure.id = capture.id;
+	figure.classList.add('ex-gallery-picture');
+	figure.setAttribute('label', capture.title);
+	return figure;
+}
+
 function controlGroup(label: string, controls: readonly HTMLElement[]): HTMLElement {
 	const group = galleryElement('div', 'ex-gallery-control-group');
 	group.setAttribute('role', 'group');
@@ -83,7 +99,7 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	strip.setAttribute('aria-label', 'Screenshots');
 	const viewer = galleryElement('section', 'ex-gallery-viewer');
 	const toolbar = galleryElement('div', 'ex-gallery-toolbar');
-	const title = galleryElement('strong', 'ex-gallery-title');
+	const title = galleryElement('div', 'ex-gallery-title');
 	const fit = createIconButton('corners-out', 'Fit screenshot', (): void => {});
 	fit.append('Fit');
 	const fill = createIconButton('resize', 'Fill screenshot', (): void => {});

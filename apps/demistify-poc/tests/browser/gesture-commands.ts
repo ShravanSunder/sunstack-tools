@@ -26,8 +26,19 @@ declare module 'vitest/browser' {
 	interface BrowserCommands {
 		panInspection: () => Promise<void>;
 		clickInspectionBackdrop: () => Promise<void>;
+		setReducedMotion: (preference: 'reduce' | 'no-preference') => Promise<void>;
 	}
 }
+
+/** Set the real browser preference so motion checks exercise the CSS media query. */
+export const setReducedMotion: BrowserCommand<['reduce' | 'no-preference'], void> = async (
+	context,
+	preference,
+): Promise<void> => {
+	if (context.provider.name !== 'playwright')
+		throw new Error('Motion preference needs Playwright.');
+	await context.page.emulateMedia({ reducedMotion: preference });
+};
 
 /** A real click outside the native dialog, rather than dispatching a synthetic close event. */
 export const clickInspectionBackdrop: BrowserCommand = async (context): Promise<void> => {

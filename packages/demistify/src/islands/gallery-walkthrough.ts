@@ -63,10 +63,6 @@ export class GalleryWalkthrough {
 			if (this.choices.children.length > 1) player.append(this.choices);
 		}
 		const position = (): void => {
-			const bounds = gallery.getBoundingClientRect();
-			const left = Math.max(12, bounds.left);
-			player.style.left = `${left}px`;
-			player.style.width = `${Math.max(0, Math.min(bounds.right, innerWidth - 12) - left)}px`;
 			document.documentElement.style.setProperty(
 				'--ex-gallery-player-height',
 				`${Math.ceil(player.getBoundingClientRect().height)}px`,
@@ -151,8 +147,6 @@ export class GalleryWalkthrough {
 		this.gallery.style.removeProperty('--ex-gallery-viewport-height');
 		this.gallery.removeAttribute('data-walkthrough');
 		this.player.removeAttribute('data-gallery');
-		this.player.style.removeProperty('left');
-		this.player.style.removeProperty('width');
 		document.documentElement.removeAttribute('data-gallery-walkthrough');
 		document.documentElement.style.removeProperty('--ex-gallery-player-height');
 		this.gallery.restoreBrowseSnapshot(this.snapshot);
