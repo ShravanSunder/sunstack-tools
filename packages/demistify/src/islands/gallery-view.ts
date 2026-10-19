@@ -34,7 +34,6 @@ export interface GalleryControls {
 	readonly fill: HTMLButtonElement;
 	readonly zoomOut: HTMLButtonElement;
 	readonly zoomIn: HTMLButtonElement;
-	readonly sidebar: HTMLButtonElement;
 	readonly fullscreen: HTMLButtonElement;
 	readonly original: HTMLAnchorElement;
 	readonly grid: HTMLElement;
@@ -91,8 +90,7 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	fill.append('Fill');
 	const zoomOut = createIconButton('magnifying-glass-minus', 'Zoom out', (): void => {});
 	const zoomIn = createIconButton('magnifying-glass-plus', 'Zoom in', (): void => {});
-	const sidebar = createIconButton('sidebar-simple', 'Open screenshot in sidebar', (): void => {});
-	const fullscreen = createIconButton('arrows-out', 'Expand screenshot', (): void => {});
+	const fullscreen = createIconButton('arrows-out', 'View screenshot fullscreen', (): void => {});
 	const original = galleryElement('a', 'ex-icon-button');
 	original.target = '_blank';
 	original.rel = 'noopener';
@@ -111,7 +109,7 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	toolbar.append(
 		title,
 		controlGroup('Image zoom', [fit, fill, zoomOut, zoomIn]),
-		controlGroup('Viewing actions', [sidebar, fullscreen, original, help]),
+		controlGroup('Viewing actions', [fullscreen, original, help]),
 	);
 	viewer.append(toolbar);
 	body.append(strip, viewer);
@@ -139,7 +137,6 @@ export function createGalleryControls(prefix: string): GalleryControls {
 		fill,
 		zoomOut,
 		zoomIn,
-		sidebar,
 		fullscreen,
 		original,
 		grid,

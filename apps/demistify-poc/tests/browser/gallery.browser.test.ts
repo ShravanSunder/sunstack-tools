@@ -207,13 +207,13 @@ test('screenshot modal dismisses through backdrop and Escape without losing main
 	const { document: fixture, frame } = await openFixture('gallery');
 	const gallery = requiredElement(fixture, '#proof-gallery');
 	const local = fixtureLocator(frame, gallery);
-	const expand = local.getByRole('button', { name: 'Expand screenshot', exact: true });
+	const expand = local.getByRole('button', { name: 'View screenshot fullscreen', exact: true });
 	await expand.click();
 	const dialog = frame.getByRole('dialog', { name: 'Home Mobile', exact: true });
 	await expect.element(dialog).toBeVisible();
 	await commands.clickInspectionBackdrop();
 	await expect.element(dialog).not.toBeInTheDocument();
-	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Expand screenshot');
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('View screenshot fullscreen');
 	await expand.click();
 	await userEvent.keyboard('{Escape}');
 	await expect.element(dialog).not.toBeInTheDocument();
@@ -256,20 +256,36 @@ test('gallery switches between review and grid without changing selection or ano
 	await expect.element(local.getByRole('img', { name: 'Home Mobile', exact: true })).toBeVisible();
 });
 
-test('gallery uses existing sidebar inspection while its main image and caption remain', async (): Promise<void> => {
-	const { document: fixture, frame } = await openFixture('gallery');
-	const gallery = requiredElement(fixture, '#proof-gallery');
-	const local = fixtureLocator(frame, gallery);
-	await local.getByRole('button', { name: 'Open screenshot in sidebar', exact: true }).click();
-	const panel = frame.getByRole('complementary', { name: 'Home Mobile', exact: true });
-	await expect.element(panel).toBeVisible();
-	await expect.element(panel.getByRole('img', { name: 'Home Mobile', exact: true })).toBeVisible();
-	expect(gallery.querySelector('.ex-gallery-preview img')).not.toBeNull();
-	expect(gallery.querySelector('.ex-inspect-placeholder')).toBeNull();
-	await expect.element(local.getByText('SessionId', { exact: true })).toBeVisible();
-	expect(fixture.querySelectorAll('button[data-ex-theme]')).toHaveLength(1);
-	expect(gallery.querySelectorAll('dialog')).toHaveLength(0);
-});
+test.each(['review', 'grid'])(
+	'gallery %s image opens fullscreen without a screenshot sidebar action',
+	async (view: string): Promise<void> => {
+		const { document: fixture, frame } = await openFixture('gallery');
+		const gallery = requiredElement(fixture, '#proof-gallery');
+		const local = fixtureLocator(frame, gallery);
+		await expect
+			.element(local.getByRole('button', { name: 'Open screenshot in sidebar', exact: true }))
+			.not.toBeInTheDocument();
+		if (view === 'grid') {
+			await local.getByRole('button', { name: 'Grid view', exact: true }).click();
+			await local.getByRole('button', { name: 'View Home Mobile fullscreen', exact: true }).click();
+		} else {
+			await local.getByRole('img', { name: 'Home Mobile', exact: true }).click();
+		}
+		const dialog = frame.getByRole('dialog', { name: 'Home Mobile', exact: true });
+		await expect.element(dialog).toBeVisible();
+		await expect
+			.element(dialog.getByRole('img', { name: 'Home Mobile', exact: true }))
+			.toBeVisible();
+		await expect.element(dialog.getByText('SessionId', { exact: true })).toBeVisible();
+		expect(fixture.querySelector('.ex-drawer')).toBeNull();
+		await userEvent.keyboard('{Escape}');
+		await expect.element(dialog).not.toBeInTheDocument();
+		expect(gallery.getAttribute('view')).toBe(view);
+		expect(
+			requiredElement(gallery, '[data-capture-id="home-mobile"]').getAttribute('aria-current'),
+		).toBe('true');
+	},
+);
 
 test('gallery arrows change screens and same-screen variations from body focus, while search keeps its keys', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('gallery');

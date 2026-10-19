@@ -196,11 +196,8 @@ export class GalleryIsland extends HTMLElement {
 		controls.zoomIn.addEventListener('click', (): void =>
 			this.changeScale(this.scale * 1.25, 'manual'),
 		);
-		controls.sidebar.addEventListener('click', (): void => {
-			this.inspectSelected('sidebar');
-		});
 		controls.fullscreen.addEventListener('click', (): void => {
-			this.inspectSelected('modal');
+			this.inspectSelected();
 		});
 		const activate = (): void => {
 			GalleryIsland.activeGallery = this;
@@ -329,7 +326,7 @@ export class GalleryIsland extends HTMLElement {
 				const gridImage = figure.querySelector('img');
 				const open = galleryElement('button', 'ex-gallery-grid-open');
 				open.type = 'button';
-				open.setAttribute('aria-label', `Inspect ${capture.title}`);
+				open.setAttribute('aria-label', `View ${capture.title} fullscreen`);
 				if (gridImage) {
 					gridImage.replaceWith(open);
 					open.append(gridImage);
@@ -337,7 +334,7 @@ export class GalleryIsland extends HTMLElement {
 				open.addEventListener('click', (event: MouseEvent): void => {
 					event.stopPropagation();
 					this.selected = capture.id;
-					openIsland(this.captureFigure(capture), 'sidebar');
+					openIsland(this.captureFigure(capture), 'modal');
 					this.updateNavigation();
 				});
 				controls.grid.append(figure);
@@ -380,7 +377,7 @@ export class GalleryIsland extends HTMLElement {
 		image.loading = 'eager';
 		image.addEventListener('click', (event: MouseEvent): void => {
 			event.stopPropagation();
-			this.inspectSelected('sidebar');
+			this.inspectSelected();
 		});
 		this.activeFigure = figure;
 		this.activeImage = image;
@@ -407,9 +404,9 @@ export class GalleryIsland extends HTMLElement {
 		}
 	}
 
-	private inspectSelected(mode: 'sidebar' | 'modal'): void {
+	private inspectSelected(): void {
 		const capture = this.captures.find((item): boolean => item.id === this.selected);
-		if (capture) openIsland(this.captureFigure(capture), mode);
+		if (capture) openIsland(this.captureFigure(capture), 'modal');
 	}
 
 	private fitImage(): void {
