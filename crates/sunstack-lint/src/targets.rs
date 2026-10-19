@@ -8,7 +8,23 @@ pub(crate) struct TargetSelection {
     pub entries: Vec<Vec<PathBuf>>,
     pub ignored: u32,
 }
-pub(crate) fn relative_path(base: &Path, path: &Path) -> PathBuf {
+/// Express an absolute path relative to an absolute base directory.
+pub fn relative_path(base: &Path, path: &Path) -> PathBuf {
+    fn normalized(path: &Path) -> PathBuf {
+        let mut result = PathBuf::new();
+        for component in path.components() {
+            match component {
+                std::path::Component::CurDir => {}
+                std::path::Component::ParentDir => {
+                    result.pop();
+                }
+                component => result.push(component.as_os_str()),
+            }
+        }
+        result
+    }
+    let base = normalized(base);
+    let path = normalized(path);
     let base_parts = base.components().collect::<Vec<_>>();
     let path_parts = path.components().collect::<Vec<_>>();
     let shared = base_parts

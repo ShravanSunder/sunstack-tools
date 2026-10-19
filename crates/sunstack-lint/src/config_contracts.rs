@@ -262,11 +262,7 @@ pub struct LintInvalid {
     pub message: String,
 }
 impl LintInvalid {
-    pub(crate) fn at(
-        file: impl Into<PathBuf>,
-        code: LintInvalidCode,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn at(file: impl Into<PathBuf>, code: LintInvalidCode, message: impl Into<String>) -> Self {
         Self {
             file: file.into(),
             line: Some(1),

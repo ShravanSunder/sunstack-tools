@@ -2063,6 +2063,7 @@ dependencies = [
  "serde_json",
  "sunstack-decisions",
  "sunstack-evidence",
+ "sunstack-lint",
  "sunstack-rules",
  "tempfile",
  "tokio",
