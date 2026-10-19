@@ -206,7 +206,7 @@ pub struct RuleListing {
 }
 ```
 
-The `json` format serializes `LintReport` with snake_case field names and `kind`-tagged enums, as the engine does. Its field names are stable within a major version, and fields may be added.
+The `json` format serializes `LintReport` with snake_case field names and `kind`-tagged enums, as the engine does. The one exception is `RuleSelector` (E3), which always serializes as its written string, `<entry>/<rule>` or `<entry>/*`: as a key in the config's `rules` and `overrides` maps, and as `rule` in findings, listings and incomplete parts. The config and the report therefore share one selector form, and a tagged object, which can't be a JSON key, never appears. Its field names are stable within a major version, and fields may be added.
 
 ## The lint call path
 
