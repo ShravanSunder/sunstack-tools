@@ -42,6 +42,13 @@ test.each([1600, 390])(
 		await expect
 			.element(local.getByRole('button', { name: 'Hide thumbnails', exact: true }))
 			.toBeVisible();
+		const hamburgerBounds = requiredElement(
+			gallery,
+			'button[aria-label="Hide thumbnails"]',
+		).getBoundingClientRect();
+		const searchBounds = requiredElement(gallery, '.ex-control-search').getBoundingClientRect();
+		expect(hamburgerBounds.right).toBeLessThanOrEqual(searchBounds.left);
+		expect(Math.abs(hamburgerBounds.top - searchBounds.top)).toBeLessThan(5);
 		const strip = requiredElement(gallery, '.ex-gallery-strip');
 		const image = requiredElement(gallery, '.ex-gallery-preview img');
 		const viewer = requiredElement(gallery, '.ex-gallery-viewer');
@@ -219,6 +226,57 @@ test('screenshot modal dismisses through backdrop and Escape without losing main
 	await expect.element(dialog).not.toBeInTheDocument();
 	await expect.element(local.getByRole('img', { name: 'Home Mobile', exact: true })).toBeVisible();
 });
+
+test.each(['#proof-gallery', '#second-gallery'])(
+	'fullscreen arrows stay with embedded gallery %s without replacing the dialog',
+	async (galleryId): Promise<void> => {
+		const { document: fixture, frame } = await openFixture('gallery');
+		const gallery = requiredElement(fixture, galleryId);
+		const otherGallery = requiredElement(
+			fixture,
+			galleryId === '#proof-gallery' ? '#second-gallery' : '#proof-gallery',
+		);
+		const local = fixtureLocator(frame, gallery);
+		await local.getByRole('button', { name: 'View screenshot fullscreen', exact: true }).click();
+		const originalDialog = requiredElement(fixture, '.ex-inspect-dialog');
+		await userEvent.keyboard('{ArrowDown}');
+		await expect
+			.element(frame.getByRole('dialog', { name: 'Home Laptop', exact: true }))
+			.toBeVisible();
+		await expect
+			.element(
+				frame
+					.getByRole('dialog', { name: 'Home Laptop', exact: true })
+					.getByRole('img', { name: 'Home Laptop', exact: true }),
+			)
+			.toBeVisible();
+		await userEvent.keyboard('{ArrowRight}');
+		const settings = frame.getByRole('dialog', { name: 'Settings Laptop', exact: true });
+		await expect.element(settings).toBeVisible();
+		await expect.element(settings.getByText('Settings Laptop.', { exact: true })).toBeVisible();
+		expect(requiredElement(otherGallery, '.ex-gallery-preview img').getAttribute('alt')).toBe(
+			'Home Mobile',
+		);
+		await userEvent.keyboard('{ArrowUp}');
+		await expect
+			.element(frame.getByRole('dialog', { name: 'Settings Mobile', exact: true }))
+			.toBeVisible();
+		expect(requiredElement(fixture, '.ex-inspect-dialog')).toBe(originalDialog);
+		expect(fixture.querySelectorAll('.ex-inspect-dialog')).toHaveLength(1);
+		await userEvent.keyboard('{ArrowLeft}');
+		await expect
+			.element(frame.getByRole('dialog', { name: 'Home Mobile', exact: true }))
+			.toBeVisible();
+		await userEvent.keyboard('{Escape}');
+		await expect
+			.element(frame.getByRole('dialog', { name: 'Home Mobile', exact: true }))
+			.not.toBeInTheDocument();
+		await expect
+			.element(local.getByRole('img', { name: 'Home Mobile', exact: true }))
+			.toBeVisible();
+		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('View screenshot fullscreen');
+	},
+);
 
 test('narrow gallery contains its toolbar and scrolling thumbnails within the page', async (): Promise<void> => {
 	await page.viewport(390, 900);

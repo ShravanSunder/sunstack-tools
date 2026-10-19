@@ -76,7 +76,7 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	if (!reviewChoice || !gridChoice) throw new Error('Gallery layout choices are missing.');
 	const thumbnails = createIconButton('list', 'Hide thumbnails', (): void => {});
 	thumbnails.setAttribute('aria-controls', `${prefix}-thumbnails`);
-	header.append(searchField.element, filtersButton, count, thumbnails, modes.element);
+	header.append(thumbnails, searchField.element, filtersButton, count, modes.element);
 	const body = galleryElement('div', 'ex-gallery-body');
 	const strip = galleryElement('aside', 'ex-gallery-strip');
 	strip.id = `${prefix}-thumbnails`;

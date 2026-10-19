@@ -4,6 +4,22 @@ import { copyInspectionContent } from './inspection-copy.ts';
 import { installInspectionGestures } from './inspection-gestures.ts';
 
 type InspectionMode = 'modal' | 'sidebar';
+type InspectionNavigation = (key: string) => HTMLElement | undefined;
+interface InspectionRequest {
+	readonly mode: InspectionMode;
+	readonly navigate?: InspectionNavigation;
+}
+
+function inspectionControls(owner: HTMLElement): HTMLElement {
+	let controls = owner.querySelector<HTMLElement>(':scope > .ex-inspect-controls');
+	if (!controls) {
+		controls = document.createElement('span');
+		controls.className = 'ex-inspect-controls';
+		controls.hidden = true;
+		owner.append(controls);
+	}
+	return controls;
+}
 
 const installedInspectors = new WeakSet<HTMLElement>();
 
@@ -197,14 +213,15 @@ function takeContent(
 }
 
 /** The large centred view: a modal dialog over the page. */
-function openModal(owner: HTMLElement, controls: HTMLElement, mode: InspectionMode): void {
+function openModal(owner: HTMLElement, controls: HTMLElement, request: InspectionRequest): void {
+	const { mode, navigate } = request;
 	const label = inspectionLabel(owner);
 	const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	const dialog = document.createElement('dialog');
 	dialog.className = 'ex-inspect-dialog';
 	dialog.dataset['mode'] = mode;
 	dialog.setAttribute('aria-label', label);
-	const inspection = takeContent(
+	let inspection = takeContent(
 		owner,
 		controls,
 		label,
@@ -213,6 +230,46 @@ function openModal(owner: HTMLElement, controls: HTMLElement, mode: InspectionMo
 	);
 	if (!inspection) return;
 	dialog.append(inspection.header, inspection.body);
+	dialog.addEventListener('keydown', (event: KeyboardEvent): void => {
+		if (
+			!navigate ||
+			event.defaultPrevented ||
+			event.isComposing ||
+			event.altKey ||
+			event.ctrlKey ||
+			event.metaKey ||
+			event.shiftKey ||
+			!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) ||
+			(event.target instanceof Element &&
+				event.target.closest(
+					'input,textarea,select,[contenteditable="true"],[role="tab"],[role="separator"],[popover]',
+				))
+		)
+			return;
+		event.preventDefault();
+		const nextOwner = navigate(event.key);
+		if (!nextOwner) return;
+		const focusedLabel = document.activeElement?.getAttribute('aria-label');
+		const nextLabel = inspectionLabel(nextOwner);
+		const next = takeContent(
+			nextOwner,
+			inspectionControls(nextOwner),
+			nextLabel,
+			(): void => dialog.close(),
+			true,
+		);
+		if (!next) return;
+		inspection?.restore();
+		inspection = next;
+		dialog.setAttribute('aria-label', nextLabel);
+		dialog.replaceChildren(next.header, next.body);
+		const focus = focusedLabel
+			? dialog.querySelector<HTMLElement>(`button[aria-label="${CSS.escape(focusedLabel)}"]`)
+			: null;
+		(focus ?? dialog.querySelector<HTMLElement>('button[aria-label="Close"]'))?.focus({
+			preventScroll: true,
+		});
+	});
 	const outsideDialog = (event: MouseEvent): boolean => {
 		const bounds = dialog.getBoundingClientRect();
 		return (
@@ -233,7 +290,7 @@ function openModal(owner: HTMLElement, controls: HTMLElement, mode: InspectionMo
 	dialog.addEventListener(
 		'close',
 		(): void => {
-			inspection.restore();
+			inspection?.restore();
 			dialog.remove();
 			returnFocus?.focus();
 		},
@@ -246,36 +303,37 @@ function openModal(owner: HTMLElement, controls: HTMLElement, mode: InspectionMo
 /** The right drawer on wide screens; a full-width sheet over the page on narrow ones. */
 function openSidebar(owner: HTMLElement, controls: HTMLElement): void {
 	if (window.innerWidth < 900) {
-		openModal(owner, controls, 'sidebar');
+		openModal(owner, controls, { mode: 'sidebar' });
 		return;
 	}
 	const label = inspectionLabel(owner);
 	openDrawer(label, (close): InspectionContent | undefined =>
 		takeContent(owner, controls, label, close, false, (): void => {
 			close();
-			openModal(owner, controls, 'modal');
+			openModal(owner, controls, { mode: 'modal' });
 		}),
 	);
 }
 
-function openInspector(owner: HTMLElement, controls: HTMLElement, mode: InspectionMode): void {
-	if (mode === 'sidebar') openSidebar(owner, controls);
-	else openModal(owner, controls, mode);
+function openInspector(
+	owner: HTMLElement,
+	controls: HTMLElement,
+	request: InspectionRequest,
+): void {
+	if (request.mode === 'sidebar') openSidebar(owner, controls);
+	else openModal(owner, controls, request);
 }
 
 /**
  * Opens an independent sidebar view or temporarily enlarges the live content in a modal. An
  * island without visible controls (routes and diagram links open plain cards too) gets hidden ones.
  */
-export function openIsland(owner: HTMLElement, mode: InspectionMode): void {
-	let controls = owner.querySelector<HTMLElement>(':scope > .ex-inspect-controls');
-	if (!controls) {
-		controls = document.createElement('span');
-		controls.className = 'ex-inspect-controls';
-		controls.hidden = true;
-		owner.append(controls);
-	}
-	openInspector(owner, controls, mode);
+export function openIsland(
+	owner: HTMLElement,
+	mode: InspectionMode,
+	navigate?: InspectionNavigation,
+): void {
+	openInspector(owner, inspectionControls(owner), { mode, ...(navigate ? { navigate } : {}) });
 }
 
 /** Adds the island's inspection affordance, if it has one (see affordanceFor). */
@@ -296,7 +354,7 @@ export function installIslandInspector(owner: HTMLElement): void {
 	if (affordance === 'more') {
 		controls.classList.add('ex-inspect-more');
 		const more = createIconButton('caret-right', `More about ${label}`, (): void =>
-			openInspector(owner, controls, 'sidebar'),
+			openInspector(owner, controls, { mode: 'sidebar' }),
 		);
 		more.prepend('More');
 		controls.append(more);
@@ -305,10 +363,10 @@ export function installIslandInspector(owner: HTMLElement): void {
 	}
 	owner.classList.add('ex-inspectable');
 	const sidebar = createIconButton('sidebar-simple', `Open ${label} in a sidebar`, (): void =>
-		openInspector(owner, controls, 'sidebar'),
+		openInspector(owner, controls, { mode: 'sidebar' }),
 	);
 	const expand = createIconButton('arrows-out', `Expand ${label}`, (): void =>
-		openInspector(owner, controls, 'modal'),
+		openInspector(owner, controls, { mode: 'modal' }),
 	);
 	sidebar.classList.add('ex-inspect-trigger');
 	expand.classList.add('ex-inspect-trigger');
