@@ -65,7 +65,10 @@ The release workflow builds macOS arm64/x64 and static Linux arm64/x64 archives,
 checksums, a shell installer, a Homebrew formula, an npm package and the config schema.
 Public release publication is a separate step; the commands below require a published release.
 The formula is pushed to `ShravanSunder/homebrew-taps` with a write deploy key whose
-private half is the `HOMEBREW_TAP_DEPLOY_KEY` release secret.
+private half is the `HOMEBREW_TAP_DEPLOY_KEY` release secret. The npm package
+`@sunstack/cli` is published through npm trusted publishing (GitHub OIDC), so no npm
+token is stored. The plain name `sunstack` on npm is a deprecated placeholder that
+points to `@sunstack/cli`.
 
 The [release workflow](.github/workflows/release.yml) starts from cargo-dist 0.32.0's
 generated workflow and is maintained by hand (`allow-dirty = ["ci"]`). When upgrading
@@ -79,7 +82,7 @@ brew install shravansunder/taps/sunstack
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/latest/download/sunstack-installer.sh | sh
 # Pin a version by downloading that release's installer:
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack-installer.sh | sh
-npm i -D sunstack
+npm i -D @sunstack/cli
 node_modules/.bin/sunstack --version
 ```
 

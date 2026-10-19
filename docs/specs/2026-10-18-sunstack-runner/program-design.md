@@ -62,7 +62,7 @@ flowchart TB
 | E8 Backend selection | engine (`sunstack-decisions`) | existing: `BackendSelection` | Config `BackendConfig::{JevOpenrouter { model: ModelName, endpoint: Option<String> }}` maps to `BackendSelection::JevOpenrouter`; default endpoint `https://openrouter.ai/api/v1/systemone`; key read from `OPENROUTER_API_KEY` by the existing factory | persisted (config) | engine `BackendSelection` |
 | E9 Release | release workflow | new: `dist-workspace.toml`, `.github/workflows/release.yml` | Git tag `v<semver>`; version from the workspace `Cargo.toml` | persisted (tags, release) | cargo-dist |
 | E10 Platform build | release workflow | new | `sunstack-<target>.tar.gz` plus `.sha256`, targets `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl` | persisted | cargo-dist naming |
-| E11 Install channel | release workflow, tap repository, npm registry | new | Homebrew formula `sunstack.rb` in the existing `ShravanSunder/homebrew-taps`, pushed with a write deploy key; installer `sunstack-installer.sh`; npm package `sunstack` | persisted | cargo-dist generated |
+| E11 Install channel | release workflow, tap repository, npm registry | new | Homebrew formula `sunstack.rb` in the existing `ShravanSunder/homebrew-taps`, pushed with a write deploy key; installer `sunstack-installer.sh`; npm package `@sunstack/cli` (bin `sunstack`), published through npm trusted publishing; the plain name `sunstack` is a deprecated placeholder that was published once by hand | persisted | cargo-dist generated |
 
 ## Components and interfaces
 
@@ -283,7 +283,7 @@ flowchart LR
   wf --> b4["ubuntu-arm: aarch64-unknown-linux-musl"]
   b1 & b2 & b3 & b4 --> rel["GitHub Release: .tar.gz + .sha256, installer.sh, schema"]
   rel --> tap["ShravanSunder/homebrew-taps: sunstack.rb with checksums"]
-  rel --> npm["npm: sunstack (fetches the archive at install)"]
+  rel --> npm["npm: @sunstack/cli (fetches the archive at install)"]
 ```
 
 The three crates that use `git2` turn on `vendored-libgit2` and keep default features off. cargo-dist is configured with `unix-archive = ".tar.gz"` so minimal systems need no `xz`. A release check in the workflow inspects each binary's dynamic dependencies (`otool -L`, ELF headers) and fails on anything but operating-system libraries. The config schema is generated from `LintConfig` by `config_schema()` and attached to the release.
@@ -341,5 +341,5 @@ The three crates that use `git2` turn on `vendored-libgit2` and keep default fea
 | U10, U11 | R19 archives and checksums | E9, E10 | release workflow | GitHub Release | `.tar.gz`, `.sha256` | release | partial publish is resumed, never rewritten | release rehearsal (V14) |
 | U10 | R20 Homebrew | E11 | release workflow + tap repository | `brew install shravansunder/taps/sunstack` | `sunstack.rb` | tap commit | — | release rehearsal (V14) |
 | U10, U11 | R21 shell installer | E11 | release workflow | `sunstack-installer.sh` | release asset | — | — | release rehearsal (V14) |
-| U2, U10 | R22 npm | E11 | cargo-dist npm package with our launcher | `node_modules/.bin/sunstack`; npm script `exec sunstack …` | npm `sunstack` | installed package | install needs GitHub; `npx` and scripts without `exec` don't pass on a stop sent to npm | release rehearsal (V14) |
+| U2, U10 | R22 npm | E11 | cargo-dist npm package with our launcher | `node_modules/.bin/sunstack`; npm script `exec sunstack …` | npm `@sunstack/cli` | installed package | install needs GitHub; `npx` and scripts without `exec` don't pass on a stop sent to npm | release rehearsal (V14) |
 | U10, U11 | R23 one version | E9 | workspace version | `--version` | `Cargo.toml` `[workspace.package] version` | tag | mismatch fails the release | release rehearsal (V14) |
