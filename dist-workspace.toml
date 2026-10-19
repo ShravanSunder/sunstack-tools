@@ -22,7 +22,7 @@ pr-run-mode = "plan"
 # This workflow adds an archive linkage gate after cargo-dist's build step,
 # and pushes the formula with a deploy key instead of a token.
 allow-dirty = ["ci"]
-publish-jobs = ["homebrew"]
+publish-jobs = ["homebrew", "npm"]
 
 [dist.github-custom-runners]
 aarch64-apple-darwin = "macos-14"
