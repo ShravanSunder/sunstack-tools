@@ -407,15 +407,18 @@ export class GalleryIsland extends HTMLElement {
 	private inspectSelected(): void {
 		const capture = this.captures.find((item): boolean => item.id === this.selected);
 		if (!capture) return;
-		openIsland(this.captureFigure(capture), 'modal', (key: string): HTMLElement | undefined => {
-			const previous = this.selected;
-			if (key === 'ArrowLeft' || key === 'ArrowRight')
-				this.moveCapture(key === 'ArrowLeft' ? -1 : 1);
-			else if (key === 'ArrowUp' || key === 'ArrowDown')
-				this.moveViewport(key === 'ArrowUp' ? -1 : 1);
-			if (previous === this.selected) return undefined;
-			const next = this.visible.find((item): boolean => item.id === this.selected);
-			return next ? this.captureFigure(next) : undefined;
+		openIsland(this.captureFigure(capture), 'modal', {
+			focusTarget: (): HTMLElement | undefined => this.imageStage,
+			move: (key: string): HTMLElement | undefined => {
+				const previous = this.selected;
+				if (key === 'ArrowLeft' || key === 'ArrowRight')
+					this.moveCapture(key === 'ArrowLeft' ? -1 : 1);
+				else if (key === 'ArrowUp' || key === 'ArrowDown')
+					this.moveViewport(key === 'ArrowUp' ? -1 : 1);
+				if (previous === this.selected) return undefined;
+				const next = this.visible.find((item): boolean => item.id === this.selected);
+				return next ? this.captureFigure(next) : undefined;
+			},
 		});
 	}
 

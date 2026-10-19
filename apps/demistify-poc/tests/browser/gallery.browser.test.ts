@@ -278,6 +278,23 @@ test.each(['#proof-gallery', '#second-gallery'])(
 	},
 );
 
+test('fullscreen picture navigation returns focus to the current gallery viewport', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('gallery');
+	const gallery = requiredElement(fixture, '#proof-gallery');
+	const local = fixtureLocator(frame, gallery);
+	await local.getByRole('img', { name: 'Home Mobile', exact: true }).click();
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Home Mobile', exact: true }))
+		.toBeVisible();
+	await userEvent.keyboard('{ArrowDown}{Escape}');
+	await expect.element(local.getByRole('img', { name: 'Home Laptop', exact: true })).toBeVisible();
+	expect(fixture.activeElement).toBe(requiredElement(gallery, '.ex-gallery-preview'));
+	await userEvent.keyboard('{ArrowRight}');
+	await expect
+		.element(local.getByRole('img', { name: 'Settings Laptop', exact: true }))
+		.toBeVisible();
+});
+
 test('narrow gallery contains its toolbar and scrolling thumbnails within the page', async (): Promise<void> => {
 	await page.viewport(390, 900);
 	const { document: fixture, frame } = await openFixture('gallery');

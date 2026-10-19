@@ -4,10 +4,13 @@ import { copyInspectionContent } from './inspection-copy.ts';
 import { installInspectionGestures } from './inspection-gestures.ts';
 
 type InspectionMode = 'modal' | 'sidebar';
-type InspectionNavigation = (key: string) => HTMLElement | undefined;
+interface InspectionNavigation {
+	readonly move: (key: string) => HTMLElement | undefined;
+	readonly focusTarget: () => HTMLElement | undefined;
+}
 interface InspectionRequest {
 	readonly mode: InspectionMode;
-	readonly navigate?: InspectionNavigation;
+	readonly navigation?: InspectionNavigation;
 }
 
 function inspectionControls(owner: HTMLElement): HTMLElement {
@@ -214,7 +217,7 @@ function takeContent(
 
 /** The large centred view: a modal dialog over the page. */
 function openModal(owner: HTMLElement, controls: HTMLElement, request: InspectionRequest): void {
-	const { mode, navigate } = request;
+	const { mode, navigation } = request;
 	const label = inspectionLabel(owner);
 	const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	const dialog = document.createElement('dialog');
@@ -232,7 +235,7 @@ function openModal(owner: HTMLElement, controls: HTMLElement, request: Inspectio
 	dialog.append(inspection.header, inspection.body);
 	dialog.addEventListener('keydown', (event: KeyboardEvent): void => {
 		if (
-			!navigate ||
+			!navigation ||
 			event.defaultPrevented ||
 			event.isComposing ||
 			event.altKey ||
@@ -247,7 +250,7 @@ function openModal(owner: HTMLElement, controls: HTMLElement, request: Inspectio
 		)
 			return;
 		event.preventDefault();
-		const nextOwner = navigate(event.key);
+		const nextOwner = navigation.move(event.key);
 		if (!nextOwner) return;
 		const focusedLabel = document.activeElement?.getAttribute('aria-label');
 		const nextLabel = inspectionLabel(nextOwner);
@@ -292,7 +295,7 @@ function openModal(owner: HTMLElement, controls: HTMLElement, request: Inspectio
 		(): void => {
 			inspection?.restore();
 			dialog.remove();
-			returnFocus?.focus();
+			(returnFocus?.isConnected ? returnFocus : navigation?.focusTarget())?.focus();
 		},
 		{ once: true },
 	);
@@ -331,9 +334,9 @@ function openInspector(
 export function openIsland(
 	owner: HTMLElement,
 	mode: InspectionMode,
-	navigate?: InspectionNavigation,
+	navigation?: InspectionNavigation,
 ): void {
-	openInspector(owner, inspectionControls(owner), { mode, ...(navigate ? { navigate } : {}) });
+	openInspector(owner, inspectionControls(owner), { mode, ...(navigation ? { navigation } : {}) });
 }
 
 /** Adds the island's inspection affordance, if it has one (see affordanceFor). */
