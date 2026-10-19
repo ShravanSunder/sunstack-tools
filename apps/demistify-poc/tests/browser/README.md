@@ -1,6 +1,6 @@
 # Demistify browser regressions
 
-The Vitest Browser Mode scenarios exercise the built native Web Components in headless Chromium. Each case gets a fresh same-origin document. Vite serves copied runtime, theme, font, chunk and worker files as bytes, so the worker resolves beside the runtime just as it does for a plain HTML consumer. Tests do not import the runtime's TypeScript sources. An SVG outcome proves rendering; this suite does not separately assert that the worker, rather than the supported main-thread fallback, did the render.
+Twenty-three Vitest Browser Mode scenarios exercise the built native Web Components in headless Chromium. Each case gets a fresh same-origin document. Vite serves copied runtime, theme, font, chunk and worker files as bytes, so the worker resolves beside the runtime just as it does for a plain HTML consumer. Tests do not import the runtime's TypeScript sources. An SVG outcome proves rendering; this suite does not separately assert that the worker, rather than the supported main-thread fallback, did the render.
 
 Build the library before testing. During concurrent work, use a frozen copy of the complete library dist directory instead of rebuilding another writer's target. `DEMISTIFY_BROWSER_ASSETS` selects that copy; without it, the harness snapshots `packages/demistify/dist`. The harness prints its private snapshot path and chooses a free loopback port. It does not use the PoC preview port.
 
@@ -74,9 +74,3 @@ The earlier optional sensitivity script targets the old frozen contracts and is 
 The hover DOM cases call the real Mermaid trace, native arrow installer and Explorer renderer in a browser, controlling only the clock. They require no paint at99ms, the latest target at100ms, the same delay on exit, immediate focus/presentation feedback, and no late mutation of a disconnected picture. These are timing-owner integration checks; the existing built-runtime journeys and native browser observation cover wiring and pointer delivery separately. The old immediate handlers fail the entry assertions.
 
 The Explorer stroke/arrowhead case waits for the settled traced state before reading its stroke. It retains the original geometry and theme assertions.
-
-## Gallery authoring and adversarial fixtures
-
-The authoring checker requires a dedicated Gallery page: one direct ex-gallery in ex-document, with an optional h1. Human-facing examples follow that contract. The internal integrated-review and rich comparison fixtures deliberately retain nested/multiple galleries to stress selection isolation, inspection and state retention on arbitrary DOM. They are robustness inputs, not valid authoring examples or instructions to embed a Gallery in prose. The checker has separate accepted and rejected cases for the dedicated-page contract.
-
-Gallery controls also exercise real CSS layout interpolation at desktop/phone widths, real reduced-motion emulation, selected title/tag replacement, and equal Gallery Journey/Walkthrough player geometry and rich Markdown. The motion test pauses actual browser-created transitions at an intermediate position rather than sleeping or asserting a CSS duration string.
