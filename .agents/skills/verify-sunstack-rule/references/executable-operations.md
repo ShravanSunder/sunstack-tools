@@ -1,5 +1,7 @@
 # Executable operations
 
+**Historical replay.** Use only the product/oracle pins in SKILL.md. The old binary and severity words below match that contract; they are retained verbatim and establish no current-runner behavior. Current targets use the S1–S4 routes and their own process-suite evidence.
+
 Drive the real `sunstack-rule` process at SKILL.md's pinned product target. Oracle: Specification C14/V2/V13 and exact contracts, read with the main skill's pinned `git show` method. Each cited Specification row is the full checklist; the controls below do not narrow it. V15 artifact integrity is release proof, open unless separately requested.
 
 Inputs: declared checkout/build/config/client, explicit CWD, and an authorized evidence directory. Return the run ID, declared binary/readiness result, relative transcript/cursor path control result, actual process stdout/stderr/exits, operation coverage and proof limits. The established route is `crates/sunstack-rule-cli/README.md`, permanent tests and `crates/sunstack-rule-cli/tests/support/mod.rs`. `crates/sunstack-rule-cli/tests/PHASE1-PROOF.md` and `crates/sunstack-rule-cli/tests/PHASE2-PROOF.md` are historical proof accounts; `crates/sunstack-rule-cli/tests/MILESTONE2-PROOF.md` maps the pinned M2 process coverage and limits.
