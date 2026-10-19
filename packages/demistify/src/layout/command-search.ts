@@ -9,6 +9,9 @@ import { resolveTarget } from './target-resolution.ts';
 /** One native dialog owns search interaction; existing document targets own navigation. */
 export class DocumentSearch {
 	readonly dialog = document.createElement('dialog');
+	readonly trigger = createIconButton('magnifying-glass', 'Search pages and headings', (): void =>
+		this.open('all', this.trigger),
+	);
 	private readonly input = document.createElement('input');
 	private readonly results = document.createElement('div');
 	private readonly status = document.createElement('span');
@@ -20,6 +23,11 @@ export class DocumentSearch {
 	private restoreFocus: HTMLElement | undefined;
 
 	constructor(private readonly entries: () => readonly SearchDestination[]) {
+		this.trigger.classList.add('ex-search-trigger');
+		const shortcut = document.createElement('kbd');
+		shortcut.textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl-K';
+		shortcut.setAttribute('aria-hidden', 'true');
+		this.trigger.append(shortcut);
 		this.dialog.className = 'ex-command-dialog';
 		this.dialog.setAttribute('aria-label', 'Search documents');
 		this.input.type = 'search';
@@ -56,7 +64,7 @@ export class DocumentSearch {
 	connect(): void {
 		this.events.abort();
 		this.events = new AbortController();
-		document.body.append(this.dialog);
+		document.body.append(this.trigger, this.dialog);
 		const { signal } = this.events;
 		document.addEventListener('keydown', (event): void => this.handleShortcut(event), { signal });
 		document.addEventListener(
@@ -71,6 +79,7 @@ export class DocumentSearch {
 
 	disconnect(): void {
 		this.events.abort();
+		this.trigger.remove();
 		this.dialog.remove();
 	}
 
@@ -111,9 +120,17 @@ export class DocumentSearch {
 		const key = !event.metaKey && !event.ctrlKey ? event.key.toLowerCase() : '';
 		if (!command && key !== 'p' && key !== 'w') return;
 		event.preventDefault();
-		const scope = command ? 'all' : key === 'p' ? 'pages' : 'walkthroughs';
+		if (key === 'p') {
+			const pages = document.querySelector('.ex-pages-trigger');
+			if (pages instanceof HTMLButtonElement) {
+				pages.focus({ preventScroll: true });
+				pages.click();
+			}
+			return;
+		}
+		const scope = command ? 'all' : 'walkthroughs';
 		const trigger = document.querySelector(
-			scope === 'walkthroughs' ? '.ex-presentations-trigger' : '.ex-pages-trigger',
+			scope === 'walkthroughs' ? '.ex-presentations-trigger' : '.ex-search-trigger',
 		);
 		this.open(scope, trigger instanceof HTMLElement ? trigger : undefined);
 	}
@@ -149,8 +166,10 @@ export class DocumentSearch {
 			row.setAttribute('role', 'option');
 			row.setAttribute(
 				'aria-label',
-				entry.kind === 'heading'
-					? [entry.pageTitle, ...entry.ancestors, entry.title].join(' › ')
+				entry.kind !== 'page'
+					? [[entry.pageTitle, ...entry.ancestors, entry.title].join(' › '), entry.description]
+							.filter(Boolean)
+							.join(' ')
 					: [entry.title, entry.description].filter(Boolean).join(' '),
 			);
 			row.tabIndex = -1;
@@ -170,12 +189,12 @@ export class DocumentSearch {
 				),
 			);
 			const copy = document.createElement('div');
-			if (entry.kind === 'heading') {
+			if (entry.kind !== 'page') {
 				const context = document.createElement('span');
 				context.className = 'ex-command-context';
 				context.textContent = [entry.pageTitle, ...entry.ancestors].join(' › ');
 				copy.append(context);
-				if (!this.input.value)
+				if (entry.kind === 'heading' && !this.input.value)
 					row.style.setProperty('--heading-depth', String(entry.ancestors.length));
 			}
 			const title = document.createElement('strong');

@@ -1,5 +1,17 @@
 # @sunstack/demistify
 
+## 1.9.2
+
+### Patch Changes
+
+- 304d10e: Remove gallery screenshot sidebar inspection. The explicit fullscreen action and picture clicks in Review/Grid open the shared large dialog, keeping the current browse state on return. Fullscreen arrows retain screen/variation navigation without reopening the dialog. The thumbnail hamburger sits to the left of search. Clarify gallery navigation, fullscreen and Gallery Journey authoring guidance.
+
+## 1.9.1
+
+### Patch Changes
+
+- 8be94a2: Restore the top Pages dropdown and add a separate search button beside the bottom theme control, with a visible platform shortcut. Preserve page context, authored descriptions and path/image icons in local and indexed walkthrough results.
+
 ## 1.9.0
 
 ### Minor Changes

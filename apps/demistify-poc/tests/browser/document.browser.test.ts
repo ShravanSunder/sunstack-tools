@@ -267,14 +267,11 @@ test('compact headings menu stays open after hover then click and reaches a Mark
 	await expect
 		.element(
 			frame
-				.getByRole('dialog', { name: 'Search documents', exact: true })
-				.getByRole('option', { name: 'Implementation detail', exact: true }),
+				.getByRole('navigation', { name: 'Pages', exact: true })
+				.getByRole('link', { name: 'Implementation detail', exact: true }),
 		)
 		.toBeVisible();
-	await frame
-		.getByRole('dialog', { name: 'Search documents', exact: true })
-		.getByRole('button', { name: 'Close search', exact: true })
-		.click();
+	await userEvent.keyboard('{Escape}');
 	await frame.getByRole('button', { name: 'Browse page headings', exact: true }).click();
 	await menu.getByRole('link', { name: 'Recovery', exact: true }).click();
 	await expect.element(menu).not.toBeVisible();
