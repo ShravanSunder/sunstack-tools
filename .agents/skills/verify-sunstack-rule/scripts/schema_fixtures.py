@@ -66,9 +66,9 @@ def structural_config_negatives() -> list[StructuralConfigCase]:
                 anchor=anchor,
             )
         )
-    invalid_fields: list[tuple[str, str, JsonValue, str, bool]] = [
+    invalid_fields: list[tuple[str, str, JsonValue, str | None, bool]] = [
         ("integer-leaf", "limits", {"max_files": "2"}, "max_files", False),
-        ("enum-severity", "rules", {"docs/standard": "fatal"}, "docs/standard", False),
+        ("enum-severity", "rules", {"docs/standard": "fatal"}, "rules", True),
         (
             "enum-backend",
             "backend",
@@ -81,7 +81,7 @@ def structural_config_negatives() -> list[StructuralConfigCase]:
             "required-backend-model",
             "backend",
             {"kind": "jev_openrouter"},
-            "backend",
+            None,
             True,
         ),
     ]
@@ -117,6 +117,8 @@ def structural_config_negatives() -> list[StructuralConfigCase]:
 def authored_location(case: StructuralConfigCase, text: str) -> tuple[int, int, int]:
     lines = text.splitlines()
     if case.anchor is None:
+        if case.closing_object:
+            return len(lines), 1, len(lines[-1])
         return 1, 1, len(lines[0])
     index, element = next(
         (index, line) for index, line in enumerate(lines) if f'"{case.anchor}"' in line

@@ -86,3 +86,22 @@ def test_independent_structural_negatives_are_invalid_and_have_authored_location
         line, first, last = authored_location(case, text)
         assert 1 <= line <= len(text.splitlines())
         assert 1 <= first <= last <= len(text.splitlines()[line - 1])
+
+
+@pytest.mark.parametrize(
+    ("case_name", "expected_span"),
+    [
+        ("schema-enum-severity", (12, 3, 3)),
+        ("schema-required-backend-model", (13, 1, 1)),
+    ],
+)
+def test_deferred_deserialization_errors_use_containing_object_delimiters(
+    case_name: str, expected_span: tuple[int, int, int]
+) -> None:
+    case = next(
+        case for case in structural_config_negatives() if case.name == case_name
+    )
+    text = json.dumps(case.config, indent=2) + "\n"
+    assert authored_location(case, text) == expected_span
+    line, first, last = expected_span
+    assert text.splitlines()[line - 1][first - 1 : last] == "}"
