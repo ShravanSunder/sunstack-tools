@@ -2,7 +2,7 @@
 
 Use a plain `<figure><img src="…" alt="…"><figcaption>…</figcaption></figure>` for one picture. It opens through the shared inspector beside the text; fullscreen uses the same dialog as other islands.
 
-Use `ex-gallery` when readers need to scroll screenshots, compare viewport variants or filter evidence. It can be one island among prose or the main island on a page. The document still owns Pages, outline, theme and presentations. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
+Use `ex-gallery` when readers need to browse screenshots, compare viewport variants or filter evidence. It can be one island among prose or the main island on a page. A Gallery is the browsable picture collection; a Gallery Journey is an optional ordered path through its existing figures. The document still owns Pages, outline, theme and walkthrough selection. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
 
 ## Group the actual evidence
 
@@ -23,11 +23,15 @@ Keep related figures adjacent and their category names consistent:
 </ex-gallery>
 ```
 
-Review is the default: a scrollable grouped thumbnail pane beside the selected image. The list icon toggles thumbnails and gives the viewer their space; it remains reachable by keyboard and touch. This visibility choice is retained across Review/Grid, inspection copies and Gallery Journeys. The grid icon switches the same gallery to a contact sheet; the review icon returns with selection and filters retained. `view="grid"` chooses the initial view; `selected="menu-laptop"` chooses an initial figure.
+Review is the default: a scrollable grouped thumbnail pane beside the selected image. The list icon to the left of search toggles thumbnails and gives the viewer their space; it remains reachable by keyboard and touch. This visibility choice is retained across Review/Grid, inspection copies and Gallery Journeys. The grid icon switches the same gallery to a contact sheet; the review icon returns with selection and filters retained. `view="grid"` chooses the initial view; `selected="menu-laptop"` chooses an initial figure.
+
+The arrows-out button is **View screenshot fullscreen**. Clicking a picture in Review or Grid opens that same large shared dialog with its authored caption. Its arrow keys keep the gallery’s navigation: Left/Right changes logical screens, and Up/Down changes the current screen’s variations. The dialog stays open while picture, title and caption change together. Escape or the close action returns to the current gallery selection, filters and view. Gallery screenshots do not open a second inspection sidebar; ordinary standalone pictures can still use the document’s inspector.
+
+Keep the three controls distinct: the gallery’s list icon shows or hides screenshot thumbnails; Pages navigates between HTML documents; the document outline navigates headings. Do not add a second navigation engine or build another gallery around the same pictures.
 
 ## Facets and captions
 
-For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Other prose/sections/disclosures make it an embedded gallery in normal page flow. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
+For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Include the normal `ex-nav` construct for Pages and the Walkthroughs launcher; hiding gallery thumbnails does not hide those document controls. Other prose/sections/disclosures make it an embedded gallery in normal page flow. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
 
 Use tags for useful content groupings, such as `data-tags="Account, Journey"`. Tags become the default filter choices when present. Screen and viewport metadata group navigation; they are not repeated as automatic picture filters. The keyboard icon opens shortcut help; Review/Grid use one named button group. Search uses available width and has a clear action through the same settled query pipeline.
 
@@ -44,10 +48,10 @@ Authors can explicitly request other facets using `filters="tags release"` with 
 
 A caption is native HTML or a Markdown island inside `figcaption`. Use normal paragraphs, emphasis, links, lists or code as the evidence needs; headings stay out of the page outline. Keep it about the picture rather than rebuilding a second viewer or application. A Markdown-file caption follows the main guide's live/embedded source rules. Images remain ordinary relative paths or HTTPS URLs, including in Markdown captions.
 
-Left/Right moves between logical screens/states and preserves the viewport category when available. Up/Down changes variations of the current screen/state. With multiple galleries, keys follow the focused or last active gallery. Editing fields, popovers and inspectors retain their own keys. Fit contains the whole picture; Fill covers the viewer, with minus/plus for manual zoom. The toolbar omits numeric percentages. Cmd/Ctrl+wheel zooms; modifier-drag pans. Normal scrolling remains native.
+Left/Right moves between logical screens/states and preserves the viewport category when available. Up/Down changes variations of the current screen/state; without a matching variation it stays put. Embedded and full-page galleries use the same keys. With multiple galleries, click or tab into one to make it active; keys follow the focused or last active gallery. A fullscreen screenshot keeps the keys attached to the gallery that opened it. Editing fields, popovers and other inspectors retain their own keys. Fit contains the whole picture; Fill covers the viewer, with minus/plus for manual zoom. The toolbar omits numeric percentages. Cmd/Ctrl+wheel zooms; modifier-drag pans. Normal scrolling remains native.
 
 For a captioned user journey, target the existing figure IDs from `ex-presentation`/`ex-step`; see [ordered walkthroughs](tours.md). The existing player floats beneath the gallery with reserved space. Add the `variations` flag only when readers should switch sizes through a button group or Up/Down. Without it, each authored step uses its exact capture. A missing variation stays on its step and displays the gap. Closing restores the gallery's previous browse state.
 
 For two same-size pictures, `ex-compare slider` overlays its two labeled children with a draggable divider. Use it instead of a gallery when before/after reveal is the whole task. For rich alternatives, shared topic rows or a larger set with pair selection, use [content comparisons](comparisons.md); that form supports any number of alternative sections.
 
-Complete by decoding every image, checking actual facet-to-figure matches, switching review/grid, using both key directions, and comparing the authored caption in main/sidebar/fullscreen. A missing image, invented variant, lost selection or per-gallery navigation/theme fork is a failed result.
+Complete by decoding every image, checking actual facet-to-figure matches, switching review/grid, using both key directions, and comparing the authored caption in the gallery and fullscreen dialog, then closing to confirm selection and filters remain. Check the thumbnail show/hide action separately from Pages and heading navigation. A missing image, invented variant, lost selection or per-gallery navigation/theme fork is a failed result.
