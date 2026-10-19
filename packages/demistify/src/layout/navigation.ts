@@ -1,5 +1,6 @@
 import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { createIconButton } from '../core/icons.ts';
+import { anchorPopover } from '../core/popover-position.ts';
 import { DocumentSearch } from './command-search.ts';
 import { createDocumentToolbar, type DocumentToolbar } from './page-navigation.ts';
 import { collectSearchDestinations, readSearchIndex } from './search-destinations.ts';
@@ -92,7 +93,8 @@ export class HeadingNavigation extends HTMLElement {
 	connectedCallback(): void {
 		if (this.navigationPanel) {
 			document.body.append(this.navigationPanel);
-			if (this.documentToolbar) document.body.append(this.documentToolbar.element);
+			if (this.documentToolbar)
+				document.body.append(this.documentToolbar.element, this.documentToolbar.pagePanel);
 			this.documentSearch?.connect();
 			if (this.presentationsButton) document.body.append(this.presentationsButton);
 			this.connectObservers();
@@ -133,9 +135,7 @@ export class HeadingNavigation extends HTMLElement {
 			this.presentationsButton.append(hint);
 			document.body.append(this.presentationsButton);
 		}
-		this.documentToolbar = createDocumentToolbar(this.pageLinks, (): void =>
-			this.documentSearch?.open('pages', this.documentToolbar?.pagesButton),
-		);
+		this.documentToolbar = createDocumentToolbar(this.pageLinks);
 		const navigationPanel = document.createElement('nav');
 		navigationPanel.className = 'ex-heading-panel';
 		navigationPanel.popover = 'auto';
@@ -214,6 +214,8 @@ export class HeadingNavigation extends HTMLElement {
 		this.readerEvents?.abort();
 		this.readerEvents = new AbortController();
 		const { signal } = this.readerEvents;
+		if (this.documentToolbar)
+			anchorPopover(this.documentToolbar.pagesButton, this.documentToolbar.pagePanel, signal);
 		document.addEventListener('click', this.requestHeading, { signal });
 		// A large jump can skip the observer's narrow reading window entirely. Reconcile once
 		// when native page scrolling settles, rather than measuring every heading every frame.
@@ -317,6 +319,7 @@ export class HeadingNavigation extends HTMLElement {
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
 		this.navigationPanel?.remove();
 		this.documentToolbar?.element.remove();
+		this.documentToolbar?.pagePanel.remove();
 		this.documentSearch?.disconnect();
 		this.presentationsButton?.remove();
 		if (this.scheduledFrame !== undefined) cancelAnimationFrame(this.scheduledFrame);

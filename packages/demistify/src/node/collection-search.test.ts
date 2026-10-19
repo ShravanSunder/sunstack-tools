@@ -80,3 +80,36 @@ it('rejects missing source or unstable and ambiguous heading targets before retu
 		]),
 	).toThrow('Ambiguous heading');
 });
+
+it('retains walkthrough and gallery journey explanations in the cross-page index', (): void => {
+	const result = indexCollectionSearch([
+		...pages,
+		{
+			filePath: '/collection/captures.html',
+			markdownFiles: {},
+			html: '<title>Captures</title><figure id="one"></figure><ex-presentation id="pictures" title="Inspect captures" description="Review the archived views."><ex-step to="one">Look at this view.</ex-step></ex-presentation><ex-presentation id="guide" title="Review evidence" description="Follow the source into the proof plan."><ex-step to="elsewhere.html#proof">Read the proof plan.</ex-step></ex-presentation>',
+		},
+	]);
+	expect(
+		result[0]?.destinations.filter(
+			(entry): boolean => entry.kind === 'walkthrough' || entry.kind === 'journey',
+		),
+	).toEqual([
+		{
+			kind: 'journey',
+			title: 'Inspect captures',
+			pageTitle: 'Captures',
+			ancestors: [],
+			href: 'captures.html#pictures',
+			description: 'Review the archived views.',
+		},
+		{
+			kind: 'walkthrough',
+			title: 'Review evidence',
+			pageTitle: 'Captures',
+			ancestors: [],
+			href: 'captures.html#guide',
+			description: 'Follow the source into the proof plan.',
+		},
+	]);
+});

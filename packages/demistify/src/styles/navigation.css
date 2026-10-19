@@ -50,6 +50,7 @@ ex-nav {
 	text-overflow: ellipsis;
 	color: var(--ink);
 }
+.ex-pages-panel,
 .ex-heading-panel {
 	position: fixed;
 	inset: 48px auto auto 12px;
@@ -65,6 +66,7 @@ ex-nav {
 	box-shadow: var(--shadow-float);
 	font: var(--text-md)/1.4 var(--font-display);
 }
+.ex-pages-panel a,
 .ex-heading-panel a {
 	display: block;
 	padding: var(--space-1) var(--space-2);
@@ -79,6 +81,7 @@ ex-nav {
 	font-size: var(--text-sm);
 	font-weight: 400;
 }
+.ex-pages-panel a:is(:hover, [aria-current]),
 .ex-heading-panel a:is(:hover, [data-preview]) {
 	background: var(--selection-surface);
 	color: var(--accent);
@@ -166,4 +169,42 @@ body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle {
 }
 ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	scroll-margin-top: 56px;
+}
+
+.ex-pages-panel {
+	width: min(320px, calc(100vw - 16px));
+	box-sizing: border-box;
+	overscroll-behavior: contain;
+}
+.ex-pages-panel a {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding-block: var(--space-2);
+	color: var(--ink);
+}
+.ex-pages-panel kbd {
+	margin-left: auto;
+	color: var(--ink-soft);
+	font: 400 13px/1 var(--font-body);
+}
+.ex-search-trigger {
+	position: fixed;
+	left: 104px;
+	bottom: 12px;
+	z-index: 7;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: auto;
+	padding-inline: var(--space-2);
+	background: var(--surface-content);
+	border-radius: var(--radius-md);
+}
+.ex-search-trigger kbd {
+	color: var(--ink-soft);
+	font: 400 13px/1 var(--font-body);
+}
+body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
+	left: 60px;
 }
