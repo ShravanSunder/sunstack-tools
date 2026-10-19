@@ -65,6 +65,11 @@ The release workflow builds macOS arm64/x64 and static Linux arm64/x64 archives,
 checksums, a shell installer, a Homebrew formula, an npm package and the config schema.
 Public release publication is a separate step; the commands below require a published release.
 
+The [release workflow](.github/workflows/release.yml) starts from cargo-dist 0.32.0's
+generated workflow and is maintained by hand (`allow-dirty = ["ci"]`). When upgrading
+cargo-dist, re-diff its generated workflow and retain the archive linkage and install
+verification steps.
+
 ```sh
 brew install shravansunder/tap/sunstack
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/latest/download/sunstack-installer.sh | sh

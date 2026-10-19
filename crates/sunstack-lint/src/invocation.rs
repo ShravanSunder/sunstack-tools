@@ -221,7 +221,7 @@ pub(crate) async fn prepare_invocation(
     for (entry, files) in entries.iter().zip(selection.entries) {
         let mut binding_groups = Vec::new();
         for file in files {
-            let relative = relative_path(&directory, &file);
+            let config_relative = relative_path(&directory, &file);
             let settings = entry
                 .rules
                 .iter()
@@ -233,7 +233,7 @@ pub(crate) async fn prepare_invocation(
                             &entry.name,
                             &rule.definition.rule_id,
                             rule.definition.severity,
-                            Some(&relative),
+                            Some(&config_relative),
                         ),
                     )
                 })
@@ -270,7 +270,7 @@ pub(crate) async fn prepare_invocation(
                 key,
                 TargetSettings {
                     entry: entry.name.clone(),
-                    file: relative,
+                    file: relative_path(&root, &file),
                     rules: settings,
                 },
             );

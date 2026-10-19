@@ -82,6 +82,85 @@ async fn real_cli_json_equals_the_library_and_each_format_preserves_the_finding(
 }
 
 #[tokio::test]
+async fn nested_config_reports_binding_root_paths_in_every_format_and_incomplete_parts() {
+    let root = tempfile::tempdir().unwrap();
+    let nested = root.path().join("config");
+    std::fs::create_dir_all(&nested).unwrap();
+    let mut config = fixture::write(&nested);
+    std::fs::rename(nested.join("docs"), root.path().join("docs")).unwrap();
+    config["rule_sets"]["docs"]["files"] = json!(["../docs/*.md"]);
+    // Policy still matches paths relative to the governing config.
+    config["rules"] = json!({"docs/*":"off"});
+    config["overrides"] = json!([{"files":["../docs/*.md"],"rules":{"docs/*":"error"}}]);
+    fixture::config_file(&nested, &config);
+    fixture::commit(root.path(), "nested governing config");
+    let json = report(&nested, &["--all"], 1).await;
+    assert_eq!(json["findings"][0]["file"], "docs/one.md");
+    assert_eq!(json["findings"][0]["severity_origin"]["kind"], "override");
+    let human = String::from_utf8(invoke(&nested, &["--all"], 1).await.stdout).unwrap();
+    assert!(human.contains("docs/one.md:2:14: error"));
+    assert!(!human.contains("../docs/one.md"));
+    let github = String::from_utf8(
+        invoke(&nested, &["--all", "--format", "github"], 1)
+            .await
+            .stdout,
+    )
+    .unwrap();
+    assert!(github.contains("file=docs/one.md,line=2,col=14,"));
+    let sarif: Value = serde_json::from_slice(
+        &invoke(&nested, &["--all", "--format", "sarif"], 1)
+            .await
+            .stdout,
+    )
+    .unwrap();
+    assert_eq!(
+        sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"],
+        "docs/one.md"
+    );
+    let mut server = controlled::ControlledServer::start().await;
+    let rules = nested.join("rules.jsonl");
+    let mut rule: Value = serde_json::from_slice(&std::fs::read(&rules).unwrap()).unwrap();
+    rule["evidence"][0]["select"] = json!({"kind":"paragraph","target_id":"U001"});
+    rule["verdict"] = json!({"kind":"noul","question":{"type":"noul","instructions":"Does it comply?"},"threshold":0.8});
+    std::fs::write(rules, serde_json::to_vec(&rule).unwrap()).unwrap();
+    std::fs::write(root.path().join("docs/one.md"), "U001: failing text.\n").unwrap();
+    config["backend"] =
+        json!({"kind":"jev_openrouter","model":"jev-latest","endpoint":server.endpoint});
+    fixture::config_file(&nested, &config);
+    let operation = command(&nested)
+        .args(["--all", "--format", "json"])
+        .env("OPENROUTER_API_KEY", "SYNTHETIC_CLI_CREDENTIAL")
+        .output();
+    let task = tokio::spawn(operation);
+    server
+        .next()
+        .await
+        .respond(400, json!({"error":"fixture refusal"}));
+    let result = tokio::time::timeout(Duration::from_secs(10), task)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(3));
+    let incomplete: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert!(
+        incomplete["incomplete"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|part| part["file"] == "docs/one.md")
+    );
+    assert!(
+        !incomplete["incomplete"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|part| part["file"] == "../docs/one.md")
+    );
+    assert_eq!(server.finish().await, 1);
+}
+
+#[tokio::test]
 async fn clean_named_paths_history_and_warning_limit_keep_exit_and_selection_semantics() {
     let root = tempfile::tempdir().unwrap();
     let mut config = fixture::write(root.path());
