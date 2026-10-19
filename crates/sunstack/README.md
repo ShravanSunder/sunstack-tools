@@ -1,5 +1,6 @@
-# sunstack-rule
+# sunstack exec
 
+Run `sunstack exec` (or `cargo run -p sunstack -- exec` from the repository root).
 One process consumes one JSON request on stdin and writes one JSON response on
 stdout. Relative input paths resolve from the process working directory. Run
 from the repository root when using the reviewed examples.
@@ -18,7 +19,7 @@ Exit 0 means the operation completed, including an unfavorable rule verdict.
 Exit 2 means invalid input or protocol refusal; 3 means failed or incomplete
 execution; 4 means caller cancellation. SIGINT and SIGTERM cancel owned work
 and await its settlement before publishing the terminal response. The static
-`sunstack-rule: ready` stderr line witnesses signal registration, and
+`sunstack: ready` stderr line witnesses signal registration, and
 `sunstack-rule: cancellation observed` witnesses signal consumption.
 
 Change-scoped work retains the same protocol version. Native inputs
@@ -175,7 +176,7 @@ The handoff example contains illustrative transcript/schema paths; the permanent
 journey fixture supplies the accepted generated schema and a documented Codex
 transcript composition.
 
-Run `cargo nextest run -p sunstack-rule-cli` for local process checks.
+Run `cargo nextest run -p sunstack` for local process checks.
 The explicitly ignored `journey_measurements` test runs the fixed 40-process
 controlled workload. The two ignored `hosted_journeys` cases make four genuine
 provider invocations and require a command-local credential. They are deliberate

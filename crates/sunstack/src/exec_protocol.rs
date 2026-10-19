@@ -1,17 +1,13 @@
-mod operation_execution;
-mod process_signals;
-mod protocol_boundary;
-
-use process_signals::{ProcessSignals, operational_message};
-use protocol_boundary::ProgramResponse;
+use crate::process_signals::{ProcessSignals, operational_message};
+use crate::protocol_boundary::ProgramResponse;
+use crate::{operation_execution, protocol_boundary};
 use std::{
     io::{self, Write},
     process::ExitCode,
 };
 use sunstack_decisions::CancellationToken;
 
-#[tokio::main]
-async fn main() -> ExitCode {
+pub async fn run() -> ExitCode {
     let mut signals = match ProcessSignals::install() {
         Ok(signals) => signals,
         Err(_) => {
@@ -19,7 +15,7 @@ async fn main() -> ExitCode {
             return ExitCode::from(3);
         }
     };
-    operational_message(b"sunstack-rule: ready\n");
+    operational_message(b"sunstack: ready\n");
     let cancellation = CancellationToken::new();
     let request = signals
         .drive(protocol_boundary::read_frame(), &cancellation)

@@ -21,7 +21,8 @@ pub fn workspace_root() -> PathBuf {
 fn process_command(root: &Path) -> Command {
     let mut command = Command::new(workspace_root().join("scripts/cargo-debug-signing-runner.sh"));
     command
-        .arg(env!("CARGO_BIN_EXE_sunstack-rule"))
+        .arg(env!("CARGO_BIN_EXE_sunstack"))
+        .arg("exec")
         .current_dir(root)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -137,7 +138,7 @@ pub fn record_output(root: &Path, input: &[u8], output: &Output) {
     std::fs::write(directory.join("stdin.json"), input).unwrap();
     std::fs::write(directory.join("stdout.json"), &output.stdout).unwrap();
     std::fs::write(directory.join("stderr.log"), &output.stderr).unwrap();
-    std::fs::write(directory.join("result.json"), serde_json::to_vec_pretty(&json!({"cwd":root,"binary":env!("CARGO_BIN_EXE_sunstack-rule"),"exit":output.status.code(),"stdin_bytes":input.len()})).unwrap()).unwrap();
+    std::fs::write(directory.join("result.json"), serde_json::to_vec_pretty(&json!({"cwd":root,"binary":env!("CARGO_BIN_EXE_sunstack"),"exit":output.status.code(),"stdin_bytes":input.len()})).unwrap()).unwrap();
 }
 pub fn record_observation(name: &str, value: Value) {
     let directory = workspace_root().join("target/cli-process-observations");

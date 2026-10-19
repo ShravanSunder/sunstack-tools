@@ -3,7 +3,7 @@ members = [
     "crates/sunstack-evidence",
     "crates/sunstack-decisions",
     "crates/sunstack-rules",
-    "crates/sunstack-rule-cli",
+    "crates/sunstack",
 ]
 resolver = "3"
 

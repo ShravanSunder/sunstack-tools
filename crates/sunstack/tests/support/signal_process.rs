@@ -37,7 +37,7 @@ async fn observe_ready(mut process: Child) -> (Child, BufReader<ChildStderr>, Ve
             .unwrap();
         transcript.extend_from_slice(received.as_bytes());
         assert!(transcript.len() <= 256);
-        if received == "sunstack-rule: ready\n" {
+        if received == "sunstack: ready\n" {
             break;
         }
         assert!(received.starts_with("cargo debug runner: sunstack-rule runs unsigned ("));

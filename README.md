@@ -42,3 +42,15 @@ The pre-existing rule-engine design documents remain under `docs/specs/` and are
 ## Authoring measurements
 
 Six exploratory Sol/Luna runs compared Demistify with ordinary HTML/CSS artifacts. Demistify produced smaller reader source in each matched pair; author-session usage and first-handback quality varied. See the [measured counts, browser findings and limitations](docs/benchmarks/demistify-authoring-2026-10-17.md). Source size alone does not establish billed savings or reliability.
+
+## Sunstack rule engine
+
+The `sunstack` binary exposes the native JSON protocol through `sunstack exec`.
+Build it from this repository with the pinned Rust toolchain:
+
+```sh
+cargo run -p sunstack -- --version
+cargo run -p sunstack -- exec < request.json
+```
+
+See [the executable protocol](crates/sunstack/README.md) for request framing, native operations and exit codes.
