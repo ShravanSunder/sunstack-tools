@@ -250,6 +250,11 @@ def build_fixtures(
             diagnostic=diagnostic,
             wrong_build="Invalid config is accepted or loses file/line/column",
         )
+        if name == "bad-glob":
+            # Keep the invalid array on one authored line, so parser cursor
+            # conventions can vary inside its span without changing the line.
+            path = destination / name / "sunstack.lint.json"
+            path.write_text(json.dumps(json.loads(path.read_text())) + "\n")
     for word, replacement in (("block", "error"), ("nudge", "warn")):
         keep(
             f"old-{word}",
@@ -271,7 +276,7 @@ def build_fixtures(
     )
     (root / "sunstack.lint.json").write_text('{\n  "rule_sets": [\n}\n')
     root = keep(
-        "duplicate-key",
+        "duplicate-entry",
         arguments=["lint", "--check"],
         mode="check",
         exit_code=2,
@@ -280,6 +285,17 @@ def build_fixtures(
     )
     (root / "sunstack.lint.json").write_text(
         '{"rule_sets":{"docs":{"path":"rules/set.json","files":["docs/*"]},"docs":{"path":"rules/set.json","files":["docs/*"]}}}\n'
+    )
+    root = keep(
+        "duplicate-key",
+        arguments=["lint", "--check"],
+        mode="check",
+        exit_code=2,
+        findings=[],
+        diagnostic="duplicate_key",
+    )
+    (root / "sunstack.lint.json").write_text(
+        '{"rule_sets":{"docs":{"path":"rules/set.json","files":["docs/*"]}},"rules":{},"rules":{}}\n'
     )
     root = keep(
         "unsupported-input",
@@ -434,7 +450,17 @@ def build_fixtures(
             probability=probability,
             cost=name != "judged-no-cost",
             cancel=kind == "cancel",
-            incomplete=False,
+            status="cancelled" if kind == "cancel" else None,
+            incomplete=kind == "cancel",
+            incomplete_parts=[
+                {
+                    "rule": "docs/standard",
+                    "file": "docs/one.md",
+                    "reason": "not_started",
+                }
+            ]
+            if kind == "cancel"
+            else None,
             exit_code=4
             if kind == "cancel"
             else 2
@@ -568,6 +594,100 @@ def build_fixtures(
             destination / case.name / "expected-results.json",
             case.model_dump(mode="json"),
         )
+    # Authored fixture locations: entry/selector starts or JSON decoder cursors.
+    # Codes belong to structured diagnostics; readable checks use message terms.
+    invalid_locations = {
+        "unknown-field": ("sunstack.lint.json", 16, "unknown_field", ["unknown"]),
+        "missing-ruleset": (
+            "sunstack.lint.json",
+            4,
+            "missing_rule_set",
+            ["missing.json"],
+        ),
+        "same-ruleset": (
+            "sunstack.lint.json",
+            10,
+            "same_rule_set_twice",
+            ["same rule-set"],
+        ),
+        "unknown-selector": (
+            "sunstack.lint.json",
+            17,
+            "unknown_selector",
+            ["unknown rule"],
+        ),
+        "bad-glob": ("sunstack.lint.json", 1, "bad_glob", ["glob"]),
+        "syntax": ("sunstack.lint.json", 3, "syntax", ["expected value"]),
+        "duplicate-entry": (
+            "sunstack.lint.json",
+            1,
+            "duplicate_entry",
+            ["duplicate key"],
+        ),
+        "duplicate-key": ("sunstack.lint.json", 1, "duplicate_key", ["duplicate key"]),
+        "unsupported-input": (
+            "sunstack.lint.json",
+            4,
+            "unsupported_inputs",
+            ["document"],
+        ),
+        "old-block": ("rules/rules.jsonl", 1, "old_severity_word", ["error"]),
+        "old-nudge": ("rules/rules.jsonl", 1, "old_severity_word", ["warn"]),
+        "old-band-field": (
+            "rules/rules.jsonl",
+            1,
+            "old_severity_word",
+            ["error_at_or_below"],
+        ),
+    }
+    for index, case in enumerate(cases):
+        if case.name in invalid_locations:
+            file, line, code, terms = invalid_locations[case.name]
+            cases[index] = case.model_copy(
+                update={
+                    "diagnostic_file": file,
+                    "diagnostic_line": line,
+                    "diagnostic": code,
+                    "includes": terms,
+                }
+            )
+            authored_line = (
+                (destination / case.name / file).read_text().splitlines()[line - 1]
+            )
+            tokens = {
+                "unknown-field": '"unknown"',
+                "missing-ruleset": '"docs"',
+                "same-ruleset": '"other"',
+                "unknown-selector": '"docs/unknown"',
+                "bad-glob": '["["]',
+                "syntax": "}",
+                "unsupported-input": '"docs"',
+                "old-band-field": '"block_at_or_below": 0.3}',
+            }
+            token = tokens.get(case.name)
+            if case.name in ("duplicate-key", "duplicate-entry"):
+                key = '"docs"' if case.name == "duplicate-entry" else '"rules"'
+                first = authored_line.index(key)
+                start = authored_line.index(key, first + 1) + 1
+                end = start + len(key) - 1
+            elif case.name in ("old-block", "old-nudge"):
+                start = authored_line.index('"severity"') + 1
+                end = len(authored_line)
+            else:
+                if token is None:
+                    raise ValueError("Invalid fixture has no authored location span")
+                start = authored_line.index(token) + 1
+                end = start + len(token) - 1
+            cases[index] = cases[index].model_copy(
+                update={
+                    "diagnostic_column": start,
+                    "diagnostic_column_end": end,
+                }
+            )
+            write_json(
+                destination / case.name / "expected-results.json",
+                cases[index].model_dump(mode="json"),
+            )
     manifest = FixtureManifest(
         cases=cases,
         gaps=[

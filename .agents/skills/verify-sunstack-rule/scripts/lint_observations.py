@@ -19,37 +19,79 @@ from runner_contracts import (
 )
 
 
-def has_location(value: JsonValue) -> bool:
-    if isinstance(value, dict):
-        if (
-            isinstance(value.get("file"), str)
-            and value["file"]
-            and type(value.get("line")) is int
-            and type(value.get("column")) is int
-            and int(str(value["line"])) > 0
-            and int(str(value["column"])) > 0
-        ):
-            return True
-        return any(has_location(child) for child in value.values())
-    if isinstance(value, list):
-        return any(has_location(child) for child in value)
-    return False
+def require_diagnostic_location(
+    file: JsonValue,
+    line: JsonValue,
+    column: JsonValue,
+    case: FixtureCase,
+    root: Path | None,
+) -> None:
+    if (
+        case.diagnostic_file is None
+        or case.diagnostic_line is None
+        or case.diagnostic_column is None
+        or case.diagnostic_column_end is None
+    ):
+        raise ValueError("Invalid check fixture lacks authored diagnostic location")
+    if (
+        normalized_file(file, root) != case.diagnostic_file
+        or type(line) is not int
+        or line != case.diagnostic_line
+        or type(column) is not int
+        or not case.diagnostic_column <= column <= case.diagnostic_column_end
+    ):
+        raise ValueError("Diagnostic differs from authored file/line/column span")
 
 
-def require_diagnostic(stdout: str, case: FixtureCase, stderr: str = "") -> None:
+def require_invalid_report(
+    report: JsonObject, case: FixtureCase, root: Path | None
+) -> None:
+    if as_object(report["status"])["kind"] != "invalid":
+        raise ValueError("Invalid input lost its structured invalid status")
+    diagnostics = as_array(report["diagnostics"])
+    if len(diagnostics) != 1:
+        raise ValueError("Invalid fixture requires its one exact diagnostic")
+    diagnostic = as_object(diagnostics[0])
+    if diagnostic.get("code") != case.diagnostic:
+        raise ValueError("Structured diagnostic has the wrong closed code")
+    if case.diagnostic_file is not None:
+        require_diagnostic_location(
+            diagnostic.get("file"),
+            diagnostic.get("line"),
+            diagnostic.get("column"),
+            case,
+            root,
+        )
+    message = diagnostic.get("message")
+    if not isinstance(message, str) or any(
+        term not in message for term in case.includes
+    ):
+        raise ValueError("Structured diagnostic lost the offending name/category")
+
+
+def require_diagnostic(
+    stdout: str, case: FixtureCase, stderr: str = "", root: Path | None = None
+) -> None:
     output = stdout + stderr
-    if case.diagnostic and case.diagnostic not in output:
-        raise ValueError(f"{case.name}: diagnostic {case.diagnostic!r} is missing")
     for required in case.includes:
         if required not in output:
             raise ValueError(f"{case.name}: missing {required!r}")
     if case.mode == "check" and case.exit_code == 2:
-        try:
-            located = has_location(JSON_VALUE.validate_json(stdout))
-        except ValueError:
-            located = re.search(r":[1-9]\d*:[1-9]\d*", output) is not None
-        if not located:
-            raise ValueError("Invalid config/rules lost positive file/line/column")
+        records = [
+            match
+            for text in output.splitlines()
+            if (match := re.fullmatch(r"(.+?):([1-9]\d*):([1-9]\d*):\s*(.+)", text))
+        ]
+        if len(records) != 1:
+            raise ValueError(
+                "Invalid check requires its one readable located diagnostic"
+            )
+        file, line, column, message = records[0].groups()
+        require_diagnostic_location(file, int(line), int(column), case, root)
+        if any(term not in message for term in case.includes):
+            raise ValueError("Readable diagnostic lost the offending name/category")
+    elif case.diagnostic:
+        require_invalid_report(JSON_OBJECT.validate_json(stdout), case, root)
 
 
 def normalized_file(value: JsonValue, root: Path | None) -> str:

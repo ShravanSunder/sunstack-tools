@@ -16,10 +16,12 @@ from lint_observations import (
     check_report,
     require_diagnostic,
     require_format,
+    require_invalid_report,
     require_rules,
 )
 from release_assets import read_member
 from runner_contracts import (
+    JSON_VALUE,
     FixtureCase,
     JsonObject,
     as_array,
@@ -367,26 +369,90 @@ def test_owned_process_observation_rejects_wrong_exit_and_keeps_raw_evidence(
     assert (tmp_path / "rejected/stdout.log").is_file()
 
 
-def test_invalid_diagnostic_cannot_replace_coordinates_with_null_or_zero() -> None:
+@pytest.mark.parametrize("line,column", [(12, 3), (2, 13), (3, 2), (0, 3)])
+def test_readable_invalid_diagnostic_uses_exact_location_without_wire_code(
+    line: int, column: int
+) -> None:
     case = FixtureCase(
         name="invalid-location",
         mode="check",
         exit_code=2,
-        diagnostic="syntax",
-        wrong_build="Diagnostic labels exist but positions are absent",
+        diagnostic="unknown_field",
+        diagnostic_file="sunstack.lint.json",
+        diagnostic_line=2,
+        diagnostic_column=3,
+        diagnostic_column_end=5,
+        includes=["unknown"],
+        wrong_build="Readable location changes while code-like prose remains",
     )
-    valid: JsonObject = {
+    require_diagnostic(
+        "",
+        case,
+        "/fixture/sunstack.lint.json:2:3: unknown field `unknown`",
+        Path("/fixture"),
+    )
+    require_diagnostic(
+        "",
+        case,
+        "/fixture/sunstack.lint.json:2:5: unknown field `unknown`",
+        Path("/fixture"),
+    )
+    with pytest.raises(ValueError):
+        require_diagnostic(
+            "",
+            case,
+            f"/fixture/sunstack.lint.json:{line}:{column}: unknown field `unknown` unknown_field",
+            Path("/fixture"),
+        )
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("code", "syntax"),
+        ("line", 12),
+        ("column", 13),
+        ("file", "OTHER.json"),
+        ("column", None),
+        ("line", True),
+    ],
+)
+def test_structured_invalid_diagnostic_compares_code_and_exact_location(
+    field: str, value: object
+) -> None:
+    case = FixtureCase(
+        name="structured-invalid",
+        mode="check",
+        exit_code=2,
+        diagnostic="unknown_field",
+        diagnostic_file="sunstack.lint.json",
+        diagnostic_line=2,
+        diagnostic_column=3,
+        diagnostic_column_end=5,
+        includes=["unknown"],
+        wrong_build="Wire code or coordinates disappear behind matching message prose",
+    )
+    report: JsonObject = {
+        "status": {"kind": "invalid"},
         "diagnostics": [
-            {"code": "syntax", "file": "sunstack.lint.json", "line": 2, "column": 3}
-        ]
+            {
+                "code": "unknown_field",
+                "file": "/fixture/sunstack.lint.json",
+                "line": 2,
+                "column": 3,
+                "message": "unknown field `unknown`",
+            }
+        ],
     }
-    require_diagnostic(json.dumps(valid), case, "sunstack: ready\n")
-    require_diagnostic("syntax sunstack.lint.json:2:3", case)
-    for field, value in (("line", None), ("column", 0), ("file", None), ("line", True)):
-        invalid = copy.deepcopy(valid)
-        as_object(as_array(invalid["diagnostics"])[0])[field] = value
-        with pytest.raises(ValueError, match="positive"):
-            require_diagnostic(json.dumps(invalid), case)
+    require_invalid_report(report, case, Path("/fixture"))
+    broken = copy.deepcopy(report)
+    diagnostic = as_object(as_array(broken["diagnostics"])[0])
+    diagnostic[field] = JSON_VALUE.validate_python(value)
+    diagnostic["message"] = (
+        "unknown field `unknown`; unknown_field /fixture/sunstack.lint.json:2:3"
+    )
+    with pytest.raises((ValueError, TypeError)):
+        require_invalid_report(broken, case, Path("/fixture"))
 
 
 def test_each_output_format_must_keep_the_same_finding_message() -> None:
@@ -630,3 +696,41 @@ def test_github_finding_message_decodes_transport_escaping_once() -> None:
         "github",
         Path("/fixture"),
     )
+
+
+def test_cancel_fixture_requires_cancelled_status_and_unresolved_incomplete_parts(
+    tmp_path: Path,
+) -> None:
+    manifest = build_fixtures(tmp_path / "cancellation-fixtures")
+    case = next(item for item in manifest.cases if item.name == "cancel")
+    assert case.status == "cancelled"
+    assert case.incomplete
+    report = literal_report()
+    report.update(
+        findings=[],
+        status={"kind": "cancelled"},
+        counts={"error": 0, "warn": 0},
+        incomplete=[
+            {
+                "rule": "docs/standard",
+                "file": "docs/one.md",
+                "reason": {"kind": "not_started"},
+            }
+        ],
+    )
+    as_object(report["usage"])["model_requests"] = 1
+    compare_report(report, case, Path("/fixture"))
+    for field, value in (
+        ("rule", "docs/OTHER"),
+        ("file", "docs/OTHER.md"),
+        ("reason", {"kind": "provider_failure"}),
+    ):
+        wrong = copy.deepcopy(report)
+        as_object(as_array(wrong["incomplete"])[0])[field] = JSON_VALUE.validate_python(
+            value
+        )
+        with pytest.raises(ValueError, match="incomplete"):
+            compare_report(wrong, case, Path("/fixture"))
+    report["incomplete"] = []
+    with pytest.raises(ValueError, match="incomplete"):
+        compare_report(report, case, Path("/fixture"))

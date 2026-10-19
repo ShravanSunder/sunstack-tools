@@ -19,6 +19,7 @@ from lint_observations import (
     check_report,
     require_diagnostic,
     require_format,
+    require_invalid_report,
     require_rules,
 )
 from runner_contracts import JSON_OBJECT, FixtureCase, as_object, write_json
@@ -90,7 +91,28 @@ def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
             _, stdout, stderr = run_case(
                 target, root, evidence / "processes" / case.name, case, server
             )
-            require_diagnostic(stdout.decode(), case, stderr.decode())
+            require_diagnostic(stdout.decode(), case, stderr.decode(), root)
+            if case.mode == "check" and case.exit_code == 2:
+                structured_case = case.model_copy(
+                    update={
+                        "name": f"{case.name}-json-diagnostic",
+                        "arguments": [
+                            word for word in case.arguments if word != "--check"
+                        ]
+                        + ["--all", "--format", "json"],
+                        "mode": "report",
+                    }
+                )
+                _, structured, _ = run_case(
+                    target,
+                    root,
+                    evidence / "processes" / structured_case.name,
+                    structured_case,
+                    server,
+                )
+                require_invalid_report(
+                    JSON_OBJECT.validate_json(structured), case, root
+                )
             if case.mode == "report":
                 report = JSON_OBJECT.validate_json(stdout)
                 states = [

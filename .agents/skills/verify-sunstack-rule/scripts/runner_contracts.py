@@ -22,6 +22,13 @@ class FixtureFinding(BaseModel):
     kind: t.Literal["mechanical", "judged"] = "mechanical"
 
 
+class FixtureIncompletePart(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+    rule: str
+    file: str
+    reason: str
+
+
 class FixtureCase(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
     name: str
@@ -39,7 +46,12 @@ class FixtureCase(BaseModel):
     cancel: bool = False
     cost: bool = True
     incomplete: bool = False
+    incomplete_parts: list[FixtureIncompletePart] | None = None
     diagnostic: str | None = None
+    diagnostic_file: str | None = None
+    diagnostic_line: int | None = None
+    diagnostic_column: int | None = None
+    diagnostic_column_end: int | None = None
     includes: list[str] = Field(default_factory=list)
     exclusion: str | None = None
     widened: bool = False
@@ -154,6 +166,25 @@ def compare_report(report: JsonObject, expected: FixtureCase, root: Path) -> Non
         )
     if bool(as_array(report["incomplete"])) != expected.incomplete:
         raise ValueError(f"{expected.name}: incomplete parts mismatch")
+    if expected.incomplete_parts is not None:
+        actual_parts: list[FixtureIncompletePart] = []
+        for raw in as_array(report["incomplete"]):
+            part = as_object(raw)
+            file = str(part["file"])
+            path = Path(file)
+            if path.is_absolute():
+                file = path.relative_to(root).as_posix()
+            actual_parts.append(
+                FixtureIncompletePart(
+                    rule=selector_name(part["rule"]),
+                    file=file,
+                    reason=str(as_object(part["reason"])["kind"]),
+                )
+            )
+        if actual_parts != expected.incomplete_parts:
+            raise ValueError(
+                "Cancelled report lost its expected unresolved incomplete parts"
+            )
     usage = as_object(report["usage"])
     if (
         type(usage["model_requests"]) is not int

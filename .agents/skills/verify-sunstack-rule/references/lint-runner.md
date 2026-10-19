@@ -30,6 +30,8 @@ The docs-only history keeps rules outside target globs. Confirm the baseline blo
 
 Controlled judged runs compare `evidence_seen` with the exact states received by the loopback server and resolve native typed answers, not answer references. Missing provider cost remains absent, never zero. For formats, compare default/GitHub/SARIF with the same JSON finding tuples; inspect user-visible messages as well. A format that drops a finding fails even when exit 1 survives.
 
+Invalid `--check` cases compare the readable diagnostic with the authored fixture file, line and column span and its offending name or category. The same fixture then runs `lint --all --format json`, where the structured diagnostic must have its exact closed code and location; prose containing a code cannot substitute for that field. Cancellation must retain the expected unresolved rule/file and `not_started` reason, with status `cancelled` and exit 4.
+
 `--init` must create only the `$schema`/empty `rule_sets` skeleton, refuse a second write without changing bytes, refuse the empty skeleton on `--check`, and accept it once a valid entry is added. `--rules` includes off rules, source/entry/kind/authored/configured settings; file-specific output identifies the deciding override.
 
 ## Join native proof and name limits
