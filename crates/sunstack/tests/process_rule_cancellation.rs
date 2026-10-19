@@ -34,7 +34,7 @@ async fn rules_cancellation_before_admission_never_fabricates_preparation_or_rep
         send_signal(&process, "-TERM").await;
         expect_line(
             &mut stderr,
-            "sunstack-rule: cancellation observed\n",
+            "sunstack: cancellation observed\n",
             &mut transcript,
         )
         .await;
@@ -105,7 +105,7 @@ async fn sigterm_after_causal_peer_admission_retains_its_verdict_receipt_and_que
     send_signal(&process, "-TERM").await;
     expect_line(
         &mut stderr,
-        "sunstack-rule: cancellation observed\n",
+        "sunstack: cancellation observed\n",
         &mut transcript,
     )
     .await;

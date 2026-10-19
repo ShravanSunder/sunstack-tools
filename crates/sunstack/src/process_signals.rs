@@ -35,7 +35,7 @@ impl ProcessSignals {
 fn observe_cancellation(cancellation: &CancellationToken) {
     if !cancellation.is_cancelled() {
         cancellation.cancel();
-        operational_message(b"sunstack-rule: cancellation observed\n");
+        operational_message(b"sunstack: cancellation observed\n");
     }
 }
 pub fn operational_message(message: &'static [u8]) {

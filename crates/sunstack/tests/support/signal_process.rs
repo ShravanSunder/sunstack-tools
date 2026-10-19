@@ -40,7 +40,7 @@ async fn observe_ready(mut process: Child) -> (Child, BufReader<ChildStderr>, Ve
         if received == "sunstack: ready\n" {
             break;
         }
-        assert!(received.starts_with("cargo debug runner: sunstack-rule runs unsigned ("));
+        assert!(received.starts_with("cargo debug runner: sunstack runs unsigned ("));
     }
     (process, stderr, transcript)
 }

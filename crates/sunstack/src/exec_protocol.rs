@@ -11,7 +11,7 @@ pub async fn run() -> ExitCode {
     let mut signals = match ProcessSignals::install() {
         Ok(signals) => signals,
         Err(_) => {
-            operational_message(b"sunstack-rule: signal setup failed\n");
+            operational_message(b"sunstack: signal setup failed\n");
             return ExitCode::from(3);
         }
     };
@@ -41,7 +41,7 @@ pub async fn run() -> ExitCode {
         || stdout.write_all(b"\n").is_err()
         || stdout.flush().is_err()
     {
-        operational_message(b"sunstack-rule: output unavailable\n");
+        operational_message(b"sunstack: output unavailable\n");
         return ExitCode::from(3);
     }
     ExitCode::from(exit)

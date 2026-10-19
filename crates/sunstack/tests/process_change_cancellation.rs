@@ -40,7 +40,7 @@ async fn consumed_sigterm_at_a_received_change_scoped_gate_retains_pending_and_r
     send_signal(&child, "-TERM").await;
     expect_line(
         &mut stderr,
-        "sunstack-rule: cancellation observed\n",
+        "sunstack: cancellation observed\n",
         &mut transcript,
     )
     .await;

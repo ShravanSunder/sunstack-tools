@@ -20,7 +20,7 @@ Exit 2 means invalid input or protocol refusal; 3 means failed or incomplete
 execution; 4 means caller cancellation. SIGINT and SIGTERM cancel owned work
 and await its settlement before publishing the terminal response. The static
 `sunstack: ready` stderr line witnesses signal registration, and
-`sunstack-rule: cancellation observed` witnesses signal consumption.
+`sunstack: cancellation observed` witnesses signal consumption.
 
 Change-scoped work retains the same protocol version. Native inputs
 accept non-Full `change_scope` values (dirty layers, revision ranges, commit lists,
@@ -84,7 +84,7 @@ their strict refusal behavior.
 Run the complete credential-free check/print example from the repository root:
 
 ```sh
-scripts/cargo-debug-signing-runner.sh target/debug/sunstack-rule \
+scripts/cargo-debug-signing-runner.sh target/debug/sunstack exec \
   < docs/specs/2026-10-12-rust-rule-engine/examples/marked-standards.check.request.json
 ```
 
@@ -169,7 +169,7 @@ Like other checks, it validates the rule without reading that document.
 
 Build with the pinned root toolchain and the SDK environment described in the
 project verification skill. For a local development invocation, pass a request
-file to `scripts/cargo-debug-signing-runner.sh target/debug/sunstack-rule`.
+file to `scripts/cargo-debug-signing-runner.sh target/debug/sunstack exec`.
 The reviewed skill-lint input lives in
 `docs/specs/2026-10-12-rust-rule-engine/examples/skill-lint.invocation.json`.
 The handoff example contains illustrative transcript/schema paths; the permanent

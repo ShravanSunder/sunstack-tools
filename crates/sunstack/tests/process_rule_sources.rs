@@ -21,7 +21,7 @@ async fn check_returns_native_cancelled_exit_after_observed_signal_without_a_cre
     send_signal(&process, "-TERM").await;
     expect_line(
         &mut stderr,
-        "sunstack-rule: cancellation observed\n",
+        "sunstack: cancellation observed\n",
         &mut transcript,
     )
     .await;

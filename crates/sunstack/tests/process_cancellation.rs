@@ -24,7 +24,7 @@ async fn both_real_signals_are_observed_before_operation_admission_without_dispa
             // A successful kill syscall is not observation of cancellation.
             line(
                 &mut stderr,
-                "sunstack-rule: cancellation observed\n",
+                "sunstack: cancellation observed\n",
                 &mut transcript,
             )
             .await;
@@ -98,7 +98,7 @@ async fn in_flight_sigterm_keeps_remote_uncertainty_and_starts_no_retry() {
     signal(&process, "-TERM").await;
     line(
         &mut stderr,
-        "sunstack-rule: cancellation observed\n",
+        "sunstack: cancellation observed\n",
         &mut transcript,
     )
     .await;
@@ -179,7 +179,7 @@ async fn evidence_worker_settles_before_terminal_stdout_after_sigterm() {
     signal(&process, "-TERM").await;
     line(
         &mut stderr,
-        "sunstack-rule: cancellation observed\n",
+        "sunstack: cancellation observed\n",
         &mut transcript,
     )
     .await;
