@@ -135,7 +135,7 @@ Lint builds one `RepositoryBinding`:
 
 - `root` is the Git work-tree root that contains the config. Under `--all` outside Git, it is the config's directory.
 - `input_paths` is `[Glob { pattern: "**" }]`. That way the targets, every rule-set file, its rule files and Markdown sources, and any context a rule declares are admitted and change-tracked. The engine's dependency selection then finds unchanged targets whose definition or context changed, and unrelated edits select nothing (design review MC5).
-- Targets never include Git-ignored files: lint's own target selection drops them, together with `ignore_patterns`. Declared context is read through the engine's explicit document capture, which admits any in-scope document without applying Git-ignore. A rule therefore still receives an ignored file it declares as context (R12). `include_ignored: false` only affects the engine's catalogue walk.
+- Targets never include Git-ignored files: lint's own target selection drops them, together with `ignore_patterns`. A document rule set's evidence declarations can only select inside the bound document (the engine's input-kind check in `definition_admission.rs`), so a lint rule has no context outside its target, and the exclusions need no exception for context (R12). `include_ignored: false` only affects the engine's catalogue walk.
 - `change_scope` comes from `ScopeChoice` and the command-line paths:
   - no paths and no scope flag: `uncommitted`, with the staged, unstaged and untracked layers;
   - named paths and no scope flag: `full`, so a clean, tracked named file is checked (R4);
