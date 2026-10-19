@@ -48,7 +48,7 @@ The Walkthroughs chooser, opened by W or the path button, shows the source page 
 
 ## Gallery Journeys
 
-A Gallery is a dedicated page, not a component inside prose or comparisons. Reference its figures directly, keeping their original captions. Gallery Journeys use the exact same centered Reading-width player, shadow, hierarchy and focused Markdown renderer as general Walkthroughs; do not make a wider or plain-text gallery player:
+Reference gallery figures directly, keeping their original captions and one shared player:
 
 ```html
 <ex-presentation id="checkout" title="Complete checkout" variations>
