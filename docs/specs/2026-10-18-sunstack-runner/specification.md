@@ -103,11 +103,11 @@ The `json` report contains: the config path; the version; each finding (rule, fi
 | --- | --- | --- |
 | R8 | Without `--config`, lint uses the nearest `sunstack.lint.json` walking up from the current directory. If none is found, it exits 2 and names the file it looked for. | U6 |
 | R9 | The config follows [C4](#c4-sunstacklintjson). An unknown field, a missing rule-set file, a duplicate entry name, two entries naming the same rule-set file, an unknown rule ID in `rules` or `overrides`, or a bad glob exits 2 with the file, line and column. | U5, U6 |
-| R10 | A rule's effective severity for a file is decided in this order, later steps winning: its authored default from the rule file, `<entry>/*` in `rules`, the exact rule ID in `rules`, then each matching override block in list order, where an exact rule ID wins over `<entry>/*` within the block. The effective policy is fixed per rule set and file before any model request, so a rule that is `off` for a file costs nothing there. A rule's authored confidence band still applies: an effective `error` whose failed verdict falls inside the band is reported as `warn`, and an effective `warn` never makes the run exit 1 on its own. | U4, U5 |
+| R10 | A rule's effective severity for a file is decided in this order, later steps winning: its authored default from the rule file, `<entry>/*` in `rules`, the exact rule ID in `rules`, then each matching override block in list order, where an exact rule ID wins over `<entry>/*` within the block. The effective policy is fixed per rule set and file before any model request, so a rule that is `off` for a file costs nothing there. A rule's authored confidence band still applies to a judged verdict with value `v`, threshold `t` and band `b`: `v ≥ t` passes; for an effective `error`, `v ≤ b` is an `error` finding and `b < v < t` is a `warn` finding; for an effective `warn`, any `v < t` is a `warn` finding. An effective `warn` never makes the run exit 1 on its own. | U4, U5 |
 | R11 | A rule-set entry may only name a rule set with exactly one `document` input. `--check` refuses any other rule set and names its input kinds. | U5 |
 | R12 | Lint never targets files that match `ignore_patterns` or that Git ignores. These exclusions apply to targets only; context a rule declares is still available to it. Paths given on the command line resolve from the current directory; paths in the config resolve from the config's directory. | U1 |
-| R13 | A config whose enabled rules are all mechanical runs with no backend and no key. If any enabled rule is judged, lint needs `backend` in the config and `OPENROUTER_API_KEY` in the environment, and exits 2 before any model request when either is missing. The key is never written to output. | U7 |
-| R14 | Rule files use `error` or `warn` for severity, and a rule without one is `warn`. `block` and `nudge` are refused with a message naming the replacement. Reports, schemas, `exec` responses and documentation use the same words, including the outcome for a failed verdict inside the confidence band. | U4 |
+| R13 | Lint needs `backend` in the config and `OPENROUTER_API_KEY` in the environment only when the run reaches model work: a judged rule, or a model-based applicability decision, for a selected target. When model work is reachable and either is missing, lint exits 2 before any model request. Runs that reach no model work, including `--check`, `--rules` and a run with nothing selected, need neither. The key is never written to output. | U7 |
+| R14 | Rule files use `error` or `warn` for severity, and a rule without one is `warn`. `block` and `nudge` are refused with a message naming the replacement. Reports, schemas, `exec` responses and documentation use the same words, including the outcome for a failed verdict above the confidence band. | U4 |
 | R15 | Each release publishes the JSON schema of `sunstack.lint.json` at a versioned URL, and the binary validates configs against the same definition. | U5 |
 
 ### C4. sunstack.lint.json
@@ -138,9 +138,9 @@ Field names are snake_case, as in rule-set and rule files.
 | `rule_sets` | yes | Entry name → rule-set file path and the globs whose files bind to its one document input |
 | `rules` | no | `<entry>/<rule id>` or `<entry>/*` → `error`, `warn` or `off` |
 | `overrides` | no | Ordered list of file globs plus a `rules` map, applied to matching files |
-| `ignore_patterns` | no | Globs lint never reads |
+| `ignore_patterns` | no | Globs lint never targets; a rule may still read such a file as declared context |
 | `backend` | when a judged rule is enabled | `kind` (`jev_openrouter` now), `model`, optional `endpoint`; later kinds, such as a local model, are added beside it without changing rule files |
-| `limits` | no | Caps on files read and model requests per run; the engine's defaults apply otherwise |
+| `limits` | no | Caps on files read, bytes, matches and model requests per run. When omitted, lint uses its own documented defaults, which the README lists and the `json` report records. A run that reaches a cap is incomplete. |
 
 A rule turned `off` everywhere is not run at all and costs no model request. A rule turned `off` for some files produces no finding on them.
 
@@ -190,15 +190,15 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | ID | For | Passes when | Fails when |
 | --- | --- | --- | --- |
 | V1 | R1, R3 | A config with one mechanical and one judged rule set lints a fixture repository, and every format lists the same findings with rule, file, location, severity and message | a finding is missing, or formats disagree |
-| V2 | R2 | Fixtures produce each exit code 0–4, and a run with both an error and an incomplete part exits 1 and lists both | any outcome maps to a different code |
+| V2 | R2 | Fixtures produce each exit code 0–4; a run with both an `error` finding and an incomplete part exits 3 and lists both; a run with nothing selected exits 0 and says "No checks selected" | any outcome maps to a different code |
 | V3 | R4 | In a scripted Git history, the default scope, `--since` and `--all` select the expected targets; an unchanged target whose rule changed is selected; a changed config selects every target; the default outside Git exits 2 | an unchanged, unaffected file is linted, an affected one is missed, or a scope falls back silently |
 | V4 | R5 | `--check` makes no model request, catches each invalid-config case, and `--init` refuses to overwrite | a model request is made, or an invalid config passes |
 | V5 | R6 | The engine's existing protocol tests pass through `sunstack exec` with only the severity words changed | any other protocol change |
 | V6 | R7 | `npx sunstack lint --format json` and the Rust library call return the same report as the CLI for the same fixture | reports differ |
 | V7 | R8, R9 | Discovery picks the nearest config; each invalid config exits 2 with file, line and column | the wrong config is used, or an error lacks its location |
 | V8 | R10 | A table of severity cases (authored default, wildcard, exact, override blocks in order, `off`, an `error` override on a rule with a confidence band) gives the expected severity per file, and a rule `off` for every target makes no model request | any case differs, or an `off` rule is paid for |
-| V9 | R11, R12 | A non-document rule set is refused by `--check`; ignored files are never read | either is not the case |
-| V10 | R13, R17 | A mechanical-only config runs with no key; a judged config without a key exits 2 before any request; a real Jev judgment completes from a static Linux build with no CA bundle | any is not the case |
+| V9 | R11, R12 | A non-document rule set is refused by `--check`; ignored and Git-ignored files are never targets, while a rule that declares one as context still receives it | any is not the case |
+| V10 | R13, R17 | A config with no reachable model work runs with no key, including mechanical rules behind a deterministic gate and a run with nothing selected; reachable model work (a judged rule or a model-based gate) without a key exits 2 before any request; a real Jev judgment completes from a static Linux build with no CA bundle | any is not the case |
 | V11 | R14 | Rule files with `block` or `nudge` are refused with the replacement named; reports use `error` and `warn` | old words are accepted or appear |
 | V12 | R15 | The published schema rejects and accepts the same configs as the binary | they disagree |
 | V13 | R16, R18 | Each release build loads only the allowed libraries, and runs `--version`, `lint --check` and a lint run on clean macOS, Alpine and Debian | an extra library is loaded, or a run fails |
