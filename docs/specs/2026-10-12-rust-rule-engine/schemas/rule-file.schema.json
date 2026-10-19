@@ -89,7 +89,7 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
-        "block_at_or_below": {
+        "error_at_or_below": {
           "$ref": "#/$defs/Band"
         }
       },
@@ -132,7 +132,7 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
-        "block_at_or_below": {
+        "error_at_or_below": {
           "$ref": "#/$defs/Band"
         }
       },

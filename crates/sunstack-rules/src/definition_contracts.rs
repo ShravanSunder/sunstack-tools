@@ -155,7 +155,7 @@ pub enum VerdictDeclaration {
         threshold: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[schemars(extend("minimum" = 0, "exclusiveMaximum" = 1))]
-        block_at_or_below: Option<f64>,
+        error_at_or_below: Option<f64>,
     },
     Composite {
         #[schemars(length(min = 1))]
@@ -164,7 +164,7 @@ pub enum VerdictDeclaration {
         threshold: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[schemars(extend("minimum" = 0, "exclusiveMaximum" = 1))]
-        block_at_or_below: Option<f64>,
+        error_at_or_below: Option<f64>,
     },
 }
 impl VerdictDeclaration {
@@ -178,11 +178,11 @@ impl VerdictDeclaration {
         match self {
             Self::Mechanical { .. } => None,
             Self::Noul {
-                block_at_or_below, ..
+                error_at_or_below, ..
             }
             | Self::Composite {
-                block_at_or_below, ..
-            } => *block_at_or_below,
+                error_at_or_below, ..
+            } => *error_at_or_below,
         }
     }
 }

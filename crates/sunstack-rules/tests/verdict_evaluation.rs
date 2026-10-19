@@ -179,7 +179,7 @@ fn verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape() 
         let mut raw = baseline.clone();
         raw["verdict"] = serde_json::json!({"kind":"noul","question":{"type":"noul","instructions":"judge"},"threshold":0.8});
         raw["severity"] = serde_json::json!(severity);
-        raw["verdict"]["block_at_or_below"] = serde_json::json!(band);
+        raw["verdict"]["error_at_or_below"] = serde_json::json!(band);
         let rule = decode_rule_definition(
             &serde_json::to_vec(&raw).unwrap(),
             "rules.jsonl".as_ref(),

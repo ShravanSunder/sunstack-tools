@@ -40,9 +40,9 @@ The state holds three labeled paragraphs (`.../activation_paragraph`, `.../outpu
 | --- | --- | --- | --- |
 | `skill.activation` | `q000001` yes 0.91 | pass (0.91 ≥ 0.7) | none |
 | `skill.output.specificity` | `specificity` 2.0 of 3 → 0.667; `names_file` yes 0.88 | composite 0.75×0.667 + 0.25×0.88 = 0.72 → pass (≥ 0.67) | none |
-| `skill.verification.present` | `q000005` yes 0.42 | fail (0.42 < 0.8) | block rule, but 0.42 is above the 0.3 band, so it acts as nudge (`nudge_above_band`) |
+| `skill.verification.present` | `q000005` yes 0.42 | fail (0.42 < 0.8) | error rule, but 0.42 is above the 0.3 band, so it acts as warn (`warn_above_band`) |
 
-The report is complete (exit 0), with one nudge. At 0.25 the same rule would block. Every native answer stays in the report, and `task_kind` is informational: no verdict depends on it.
+The report is complete (exit 0), with one warn. At 0.25 the same rule would yield an error. Every native answer stays in the report, and `task_kind` is informational: no verdict depends on it.
 
 ## Handoff monitor
 
@@ -90,12 +90,12 @@ The final message and the router's last-two-turns selection share content entrie
 
 | Rule | Answers | Result |
 | --- | --- | --- |
-| `reviewer.read-required-sources` | verdict yes 0.21; `unread_sources` = `some` | fail; block rule and 0.21 ≤ 0.3, so it **blocks** |
+| `reviewer.read-required-sources` | verdict yes 0.21; `unread_sources` = `some` | fail; error rule and 0.21 ≤ 0.3, so it yields an **error** |
 | `reviewer.stayed-read-only` | verdict yes 0.95 | pass |
 | `reviewer.handback-addresses-target` | decision yes 0.9 ≥ 0.6, applicable; `coverage` 2 of 2 → 1.0; `has_findings` 0.8 | composite 0.94 → pass |
 | `commission.outcome-checkable` | never sent; the router did not choose `commission` | no occurrence |
 
-The report is complete (exit 0). The hook sees one block and can continue the reviewer with that finding.
+The report is complete (exit 0). The hook sees one error and can continue the reviewer with that finding.
 
 **Case B.** The router's distribution is [0.45, 0.3, 0.15, 0.1]. Its native confidence is about 0.27, below 0.6:
 - The router outcome is `uncertain_intent`, with that distribution.

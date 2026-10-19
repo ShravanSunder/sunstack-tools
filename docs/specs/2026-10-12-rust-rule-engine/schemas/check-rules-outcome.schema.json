@@ -3278,7 +3278,7 @@
         {
           "type": "object",
           "properties": {
-            "block_at_or_below": {
+            "error_at_or_below": {
               "type": [
                 "number",
                 "null"
@@ -3322,7 +3322,7 @@
         {
           "type": "object",
           "properties": {
-            "block_at_or_below": {
+            "error_at_or_below": {
               "type": [
                 "number",
                 "null"

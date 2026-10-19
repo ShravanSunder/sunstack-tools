@@ -35,7 +35,7 @@ pub struct RuleSourceEntry {
 pub enum RuleSourceVerdict {
     Judgment {
         threshold: f64,
-        block_at_or_below: Option<f64>,
+        error_at_or_below: Option<f64>,
     },
     Expect {
         expect: crate::ExpectPredicate,

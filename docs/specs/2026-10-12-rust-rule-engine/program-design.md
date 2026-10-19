@@ -1,6 +1,6 @@
 # Rust rule engine: one core, inputs to verdicts
 
-Severity vocabulary follows [runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config): `error` and `warn`. The confidence-band field `block_at_or_below` keeps its existing name and meaning.
+Severity vocabulary follows [runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config): `error` and `warn`. The confidence-band field is `error_at_or_below`; its inequalities are unchanged.
 
 The [Specification](specification.md) fixes behavior, and [Requirements](requirements.md) supplies its authority and boundaries. This document says how the Rust code satisfies them. It covers each entity's home and shape, who owns each truth, how a request reaches Jev and comes back, what happens on failure, and where proof observes it.
 
@@ -106,7 +106,7 @@ Deserialization admits shape. Constructors and request-relative validators admit
 | E26 Binding group | Binding admission | `sunstack-rules/input_binding` | Wire: `{ bindings: map<InputName, InputBinding> }`. Native: `AdmittedBindingGroup { owner, position, binding: bound \| routed { router_group, label }, sources: map<SourceName, AdmittedSource { id: SourceId, spec: SourceSpec }> }`. Each admitted binding is mapped to the evidence-owned `SourceSpec` here, so evidence never sees a rules type | Per invocation |
 | E27 Applicability entry | Definition admission | `sunstack-rules/definition_contracts` | `ApplicabilityEntry`: `condition { test: ConditionTest }` or `decision { question, evidence, threshold }` | Immutable |
 | E28 Applicability outcome | Applicability evaluation | `sunstack-rules/report_contracts` | `ApplicabilityOutcome`: `applicable`, `not_applicable { entry, basis }`, `applicability_failed { entry, cause }`, `not_evaluated { reason }` | Report value |
-| E29 Verdict | Verdict evaluation | `sunstack-rules/definition_contracts` and `verdict_evaluation` | Declared `VerdictDeclaration`: `noul { question, threshold, block_at_or_below? }` or `composite { dimensions: [{ question, weight }], threshold, block_at_or_below? }`; evaluated `VerdictOutcome` | Immutable / report |
+| E29 Verdict | Verdict evaluation | `sunstack-rules/definition_contracts` and `verdict_evaluation` | Declared `VerdictDeclaration`: `noul { question, threshold, error_at_or_below? }` or `composite { dimensions: [{ question, weight }], threshold, error_at_or_below? }`; evaluated `VerdictOutcome` | Immutable / report |
 | E30 Conversation capture | Evidence | `sunstack-evidence/conversation_capture` | `ConversationCapture { source: TranscriptSource, format, committed_bytes, records, turns, tail: complete \| incomplete { bytes }, gaps, supplement }` | Shared by groups binding the same source |
 | E31 Conversation record | Transcript adapter, validated by evidence | `sunstack-evidence/conversation_contracts` | `ConversationRecord { record_id, position, body: user_message \| assistant_message { blocks } \| tool_use(ToolUse), provenance: transcript \| hook_supplement, injection: known_injected \| not_injected \| unknown }` | Per capture |
 | E32 Turn | Evidence normalization | `sunstack-evidence/conversation_contracts` | `ConversationTurn { opening: user_message { record_id } \| capture_start, records, boundary: clear \| ambiguous { reason } }` | Per capture |

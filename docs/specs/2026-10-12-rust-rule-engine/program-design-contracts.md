@@ -1,6 +1,6 @@
 # Public contracts: exact shapes
 
-Severity vocabulary follows [runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config): `error` and `warn`. The confidence-band field `block_at_or_below` keeps its existing name and meaning.
+Severity vocabulary follows [runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config): `error` and `warn`. The confidence-band field is `error_at_or_below`; its inequalities are unchanged.
 
 This companion to the [Program Design](program-design.md) gives the complete fields of every public input and output: the four program operations, their outcomes, reports, diagnostics and progress. A caller can build each request and decode each result from this page alone. Authored definitions (RuleSets, rule lines, routers, declarations, applicability, invocation input) are in [`schemas/`](schemas/) and the [schema inventory](schema-inventory.md).
 

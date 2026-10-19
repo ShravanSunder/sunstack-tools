@@ -62,7 +62,7 @@ pub(crate) fn decode_definition<T: serde::de::DeserializeOwned>(
     file: &Path,
     line: usize,
 ) -> Result<T, DiagnosticList> {
-    let diagnostic = |error: &serde_json::Error, path: Vec<String>| -> DiagnosticList {
+    let diagnostic = |error: &serde_json::Error, mut path: Vec<String>| -> DiagnosticList {
         let message = error.to_string();
         let code = if message.starts_with("duplicate field") {
             RuleDiagnosticCode::DuplicateField
@@ -77,6 +77,10 @@ pub(crate) fn decode_definition<T: serde::de::DeserializeOwned>(
             diagnostic.guidance = "Use severity `error`; the old severity word is refused.".into();
         } else if message.starts_with("severity `nudge` was renamed to `warn`") {
             diagnostic.guidance = "Use severity `warn`; the old severity word is refused.".into();
+        } else if message.starts_with("unknown field `block_at_or_below`") {
+            diagnostic.guidance =
+                "Use `error_at_or_below`; the old confidence-band field is refused.".into();
+            path.push("block_at_or_below".into());
         }
         diagnostic
             .definition(
@@ -141,7 +145,7 @@ fn safe_field(field: &str) -> bool {
             | "kind"
             | "type"
             | "threshold"
-            | "block_at_or_below"
+            | "error_at_or_below"
             | "dimensions"
             | "weight"
             | "question"

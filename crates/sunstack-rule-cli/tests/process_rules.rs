@@ -37,11 +37,11 @@ async fn prepare_rules_is_a_real_operation_with_prepared_native_evidence_and_no_
 }
 
 #[tokio::test]
-async fn prepared_rule_requests_do_not_dispatch_and_completed_block_failures_exit_zero() {
+async fn prepared_rule_requests_do_not_dispatch_and_completed_error_failures_exit_zero() {
     let root = tempfile::tempdir().unwrap();
-    let mut rule = rule_fixture::rule("blocked");
+    let mut rule = rule_fixture::rule("error-rule");
     rule["severity"] = json!("error");
-    rule["verdict"]["block_at_or_below"] = json!(0.3);
+    rule["verdict"]["error_at_or_below"] = json!(0.3);
     rule_fixture::write_set(root.path(), &[rule], vec![]);
     let server = AnswerServer::start(ReplyMode::Answers {
         probability: 0.1,

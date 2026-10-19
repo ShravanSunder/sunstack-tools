@@ -90,11 +90,11 @@ async fn mixed_jsonl_and_markdown_sources_print_together_but_jsonl_errors_stay_s
 }
 
 #[tokio::test]
-async fn source_context_and_block_band_lower_through_native_admission() {
+async fn source_context_and_error_band_lower_through_native_admission() {
     let (directory, input) = source_fixture();
     write_entry(
         directory.path(),
-        json!({"name":"standard.visible","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U001"}},"context":[{"id":"background","input":"skill","select":{"kind":"whole_document"}}],"threshold":0.8,"severity":"error","block_at_or_below":0.2}),
+        json!({"name":"standard.visible","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U001"}},"context":[{"id":"background","input":"skill","select":{"kind":"whole_document"}}],"threshold":0.8,"severity":"error","error_at_or_below":0.2}),
     );
     let wire = response(
         &run_without_credential(directory.path(), "check_rules", input).await,
@@ -102,7 +102,7 @@ async fn source_context_and_block_band_lower_through_native_admission() {
     );
     let definition = &wire["result"]["outcome"]["printed_rules"][0]["definition"];
     assert_eq!(definition["severity"], "error");
-    assert_eq!(definition["verdict"]["block_at_or_below"], 0.2);
+    assert_eq!(definition["verdict"]["error_at_or_below"], 0.2);
     assert_eq!(definition["evidence"].as_array().unwrap().len(), 2);
     assert_eq!(definition["evidence"][1]["id"], "background");
     assert_eq!(
@@ -238,7 +238,7 @@ async fn check_collects_both_marker_and_entry_refusals_without_printing_partial_
     )
     .unwrap();
     let rules = json!({"K014":{"name":"first","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U001"}},"threshold":0},
-        "K015":{"name":"second","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U002"}},"threshold":0.8,"block_at_or_below":0.9}});
+        "K015":{"name":"second","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U002"}},"threshold":0.8,"error_at_or_below":0.9}});
     std::fs::write(
         directory.path().join("teaching.rules.json"),
         serde_json::to_vec_pretty(&rules).unwrap(),
@@ -290,7 +290,7 @@ async fn strict_source_check_refuses_each_invalid_entry_without_losing_its_locat
             }
             "unknown_field" => entry["AUTHOR_SECRET_KEY"] = json!("PAYLOAD_SECRET_SENTINEL"),
             "bad_threshold" => entry["threshold"] = json!(1.1),
-            "bad_band" => entry["block_at_or_below"] = json!(0.2),
+            "bad_band" => entry["error_at_or_below"] = json!(0.2),
             "reserved_context" => {
                 entry["context"] = json!([{"id":"target","input":"skill","select":{"kind":"paragraph","target_id":"U001"}}])
             }

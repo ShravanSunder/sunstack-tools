@@ -226,10 +226,10 @@ fn mechanical_source_shape_is_exclusive_even_when_an_extra_verdict_field_is_null
     for (check, shape) in [
         (json!({"expect":{"matches":"ok"}}), true),
         (json!({"ast_grep":{"kind":"paragraph"}}), true),
-        (json!({"threshold":0.8,"block_at_or_below":null}), true),
+        (json!({"threshold":0.8,"error_at_or_below":null}), true),
         (json!({"expect":{"matches":"ok"},"threshold":null}), false),
         (
-            json!({"expect":{"matches":"ok"},"block_at_or_below":null}),
+            json!({"expect":{"matches":"ok"},"error_at_or_below":null}),
             false,
         ),
         (json!({"expect":null}), false),
