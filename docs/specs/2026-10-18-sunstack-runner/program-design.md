@@ -129,10 +129,16 @@ Lint builds one `RepositoryBinding`:
 
 - `root` is the Git work-tree root that contains the config. Under `--all` outside Git, it is the config's directory.
 - `input_paths` is `[Glob { pattern: "**" }]`. That way the targets, every rule-set file, its rule files and Markdown sources, and any context a rule declares are admitted and change-tracked. The engine's dependency selection then finds unchanged targets whose definition or context changed, and unrelated edits select nothing (design review MC5).
-- Git-ignored files stay out of evidence through `include_ignored: false`.
-- `change_scope` comes from `ScopeChoice`: Default is `uncommitted` with the staged, unstaged and untracked layers; All is `full`; and Since is a revision diff from `rev` to the working tree. When the config file itself is in the changed set, lint uses `full` and records why.
+- Targets never include Git-ignored files: lint's own target selection drops them, together with `ignore_patterns`. Declared context is read through the engine's explicit document capture, which admits any in-scope document without applying Git-ignore. A rule therefore still receives an ignored file it declares as context (R12). `include_ignored: false` only affects the engine's catalogue walk.
+- `change_scope` comes from `ScopeChoice` and the command-line paths:
+  - no paths and no scope flag: `uncommitted`, with the staged, unstaged and untracked layers;
+  - named paths and no scope flag: `full`, so a clean, tracked named file is checked (R4);
+  - `--all`: `full`;
+  - `--since <rev>`: a revision diff from `rev` to the working tree, whether or not paths are named.
 
-Lint's own target selection (entry globs, minus `ignore_patterns`, limited to command-line paths) decides the binding groups. When it produces no binding group at all, lint returns `NothingSelected` without calling the engine, which refuses an empty binding list. Reopen this binding if cataloguing `**` is slow on large repositories.
+  When the config file itself is in the changed set, lint uses `full` and records why. Change capture needs `EvidenceDiscovery::Bounded`, so lint supplies the engine's existing bounded discovery settings.
+
+Lint's own target selection (entry globs, minus `ignore_patterns` and Git-ignored files, limited to command-line paths) decides the binding groups. When it produces no binding group at all, lint returns `NothingSelected` without calling the engine, which refuses an empty binding list. Reopen this binding if cataloguing `**` is slow on large repositories.
 
 ### Public shapes
 
@@ -156,7 +162,7 @@ pub struct LintReport {
     pub counts: SeverityCounts,               // { error: u32, warn: u32 }
     pub exclusions: ExclusionCounts,          // { off, ignored, not_applicable, outside_change_scope, zero_matches }: u32
     pub incomplete: Vec<IncompletePart>,      // { rule: Option<RuleSelector>, file: Option<PathBuf>, reason: IncompleteReason }
-    pub usage: Option<UsageSummary>,          // { model_requests, input_tokens, output_tokens }, from engine measurements
+    pub usage: UsageSummary,                  // see below; zero requests when no model work ran
     pub limits: EffectiveLimits,              // every LintLimits field, resolved to its applied value
     pub diagnostics: Vec<LintDiagnostic>,     // { file: Option<PathBuf>, line, column: Option<u32>, code, message }
 }
@@ -164,7 +170,18 @@ pub enum IncompleteReason {
     SelectionFailed, EvaluationFailed, NotStarted, PreparationFailed,
     CoveragePartial, CoverageNone, ProviderFailure, RequestLimitReached,
 }
-pub struct JudgmentSummary { pub value: f64, pub threshold: f64, pub answer: String, pub evidence: Vec<EvidenceRef> } // EvidenceRef { file, span }
+pub struct UsageSummary {
+    pub model_requests: u32,                  // InvocationMeasurements request count
+    pub input_tokens: Option<u64>,            // sum of decision receipts (ExecutionUsage); None when no receipt reported it
+    pub output_tokens: Option<u64>,
+    pub cost: Option<ReportedCost>,           // sum of receipt-reported cost; None means unavailable, never zero
+}
+pub struct JudgmentSummary {
+    pub verdict: VerdictOutcome,              // native: basis (noul | composite), result, threshold, value
+    pub answers: Vec<DimensionResult>,        // native: question, answer, normalized_value, weight
+    pub evidence: Vec<EvidenceExcerpt>,       // the selection the model saw, copied from the report's captures
+}
+pub struct EvidenceExcerpt { pub file: PathBuf, pub span: Option<SourceSpan>, pub content_identity: String, pub text: String }
 pub enum SettingOrigin { Authored, EntryWildcard, ExactRule, Override { index: u32 } }
 pub enum CheckResult { Valid { rules: Vec<RuleListing> }, Invalid { diagnostics: Vec<LintDiagnostic> } }
 pub struct RuleListing {
@@ -217,6 +234,7 @@ sequenceDiagram
 | `PreparationFailed`; `IncompleteReport`; `rule_coverage` not `full`; any occurrence `selection_failed`, `evaluation_failed` or `not_started`; a request-limit or provider failure | `Incomplete`, keeping completed findings | 3 |
 | Any finding classified `error`, or `warn` findings above `--max-warnings` | `Findings` | 1 |
 | No binding group produced (the engine is not called) | `NothingSelected`, printed as "No checks selected" | 0 |
+| Engine report with no selected work: every occurrence is `outside_change_scope`, `not_applicable` or `zero_matches`, none is checked or judged, and nothing is incomplete | `NothingSelected`, with the exclusion counts | 0 |
 | Otherwise | `Clean` | 0 |
 
 Rules turned `off` (counted by lint), `not_applicable`, `outside_change_scope` and `zero_matches` are exclusions, never incomplete.
