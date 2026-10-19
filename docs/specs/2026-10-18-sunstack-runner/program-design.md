@@ -320,7 +320,7 @@ The three crates that use `git2` turn on `vendored-libgit2` and keep default fea
 | U5, U6 | R9 validation | E1, E2, E5 | `sunstack-lint::config` | `load_config` | `LintConfig` (with `$schema` admitted), `LintInvalid` | none | each `LintInvalidCode` | config cases (V7) |
 | U4, U5 | R10 effective severity | E3, E4, E5 | `sunstack-lint::policy` and `::outcome`; `sunstack-rules` for `off` | `RulePolicy`; finding classification | `RulePolicy` in `sunstack-rules`; classification in `sunstack-lint::outcome` | none | unknown rule → `Invalid` | severity table, classification and engine policy tests (V8) |
 | U5 | R11 document-input rule sets only | E2 | `sunstack-lint::config` (after `check_rules`) | `check` | `UnsupportedInputs` | none | refused at check | process test (V9) |
-| U1 | R12 targets and paths | E2, E6 | `sunstack-lint::targets` | target enumeration | `Vec<PathBuf>` per entry | none | `PathNotFound` | ignore and context cases (V9) |
+| U1 | R12 targets and paths | E2, E6 | `sunstack-lint::targets` | target enumeration | `Vec<PathBuf>` per entry | none | `PathNotFound` | ignore cases (V9) |
 | U7 | R13 backend only when reached | E8 | `sunstack-decisions` factory (lazy) with lint's pre-check | `BackendConfig` → `BackendSelection` | engine `BackendSelection` | none | `BackendMissing`, `CredentialMissing` → exit 2 | key and no-key runs (V10) |
 | U4 | R14 one vocabulary | E4 | `sunstack-rules` | serde of `Severity`, `Activation` | `"error"`, `"warn"`, `"warn_above_band"` | rule files | `OldSeverityWord` | fixture sweep (V11) |
 | U5 | R15 published schema | E1 | `sunstack-lint::config` + release workflow | `config_schema()` | `sunstack.lint.schema.json` release asset | release asset | — | schema vs binary cases (V12) |
