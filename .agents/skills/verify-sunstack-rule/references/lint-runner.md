@@ -20,6 +20,18 @@ For a commissioned observation, omit `--prepare` and supply `--binary <declared-
 
 Readiness is a successful valid-fixture `lint --check`, then a `mechanical-error` run returning its actual finding and exit 1. Missing binary, stale/dirty source, unsupported lint or invalid fixture is a setup/observation failure, never a product pass. The process has 30 seconds to settle. Cancellation waits until an owned HTTP request is in flight, then sends SIGINT to only the owned process group; a killed or truncated process cannot satisfy exit 4.
 
+## Linux release target
+
+The same S1 driver accepts `--container-image <adopted-Alpine-digest>` and `--container-control-host <declared-hostname>`. Read its `--help`; both options are required together. It checks cached image architecture and static ELF identity, then drives the same fixtures and comparisons through Docker. `runner_containers.py` owns the shared pins and launch settings; `runner_process.py` owns each child, signal and timeout.
+
+Every no-call command uses network `none`, so its configured control endpoint is unreachable. Judged cases use the declared route from the container to this run's loopback server, with synthetic authorization only. A separate HTTP probe establishes that route; it proves connectivity, not product readiness or Jev behavior. Product commands use a read-only root/binary/fixture, minimal environment and an empty tmpfs HOME. Only `--init` create/refuse commands receive a writable fixture, because their observed outcome is creating/refusing the config. Cancellation signals the exact owned container; timeout cleanup names only that container. Comparisons translate `/fixture` as the container namespace and keep literal finding identities unchanged.
+
+## Released config schema
+
+Run `scripts/schema_agreement.py --help` through its inline pinned dependencies. Supply `--schema <exact-release-schema>`, `--fixtures <completed-S1-fixtures>`, `--binary`, `--source-root`, `--commit`, a new `--evidence`, and the same container options when checking Linux. It records the schema hash, refuses external `$ref` fetching, and compares each config with a real no-key `--check` command. It also checks C4 and nonzero integer limit boundaries.
+
+Structural cases must agree on acceptance/refusal. Filesystem/loaded-rule semantic cases must pass the schema and be refused by the binary. Duplicate JSON names and syntax are parser refusals, recorded separately; a missing config has no schema input. The full per-case table and any mismatches survive a failing aggregate exit. A changed or overpermissive schema cannot turn a binary refusal into agreement.
+
 ## What must agree
 
 The fixture manifest names each wrong build. Compare every expected finding's rule, file, line, column and severity, reject extra/missing findings, compare severity counts, status, incomplete parts, model-request counts and actual exits. Do not regenerate expected results from product output. Additive report fields and incidental prose may differ; required identity and evidence cannot.

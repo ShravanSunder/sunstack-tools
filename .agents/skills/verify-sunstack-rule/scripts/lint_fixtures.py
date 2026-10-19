@@ -9,9 +9,13 @@ builds fixtures without a product. Omit --prepare and add --binary, --source-roo
 and full --commit for a commissioned observation. No genuine provider request
 is made: HTTP stays on an owned loopback server with synthetic authorization.
 Success receipts cover only executed cases; reference lists native-proof gaps.
+Container mode adds --container-image (adopted Alpine digest) and
+--container-control-host (declared route to the owned loopback server).
+No-call children have network none; only init can write its fixture.
 """
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -22,6 +26,7 @@ from lint_observations import (
     require_invalid_report,
     require_rules,
 )
+from runner_containers import ContainerRuntime
 from runner_contracts import JSON_OBJECT, FixtureCase, as_object, write_json
 from runner_fixture_cases import build_fixtures
 from runner_fixture_setup import write_fixture
@@ -71,7 +76,11 @@ def observe_init(
 def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
     with ControlledServer(evidence / "http") as server:
         fixtures = evidence / "fixtures"
-        manifest = build_fixtures(fixtures, server.endpoint)
+        endpoint = server.endpoint
+        if target.container:
+            endpoint = target.container.control_endpoint(endpoint)
+            target.container.confirm_control(endpoint, evidence)
+        manifest = build_fixtures(fixtures, endpoint)
         names = {case.name for case in manifest.cases}
         if set(selected) - names:
             raise ValueError(f"Unknown cases: {set(selected) - names}")
@@ -83,6 +92,7 @@ def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
         executed: list[str] = []
         for case in cases:
             root = fixtures / case.name
+            comparison_root = target.comparison_root(root)
             if case.mode == "init":
                 observe_init(target, root, evidence / "processes", case, server)
                 executed.append(case.name)
@@ -91,7 +101,7 @@ def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
             _, stdout, stderr = run_case(
                 target, root, evidence / "processes" / case.name, case, server
             )
-            require_diagnostic(stdout.decode(), case, stderr.decode(), root)
+            require_diagnostic(stdout.decode(), case, stderr.decode(), comparison_root)
             if case.mode == "check" and case.exit_code == 2:
                 structured_case = case.model_copy(
                     update={
@@ -111,7 +121,7 @@ def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
                     server,
                 )
                 require_invalid_report(
-                    JSON_OBJECT.validate_json(structured), case, root
+                    JSON_OBJECT.validate_json(structured), case, comparison_root
                 )
             if case.mode == "report":
                 report = JSON_OBJECT.validate_json(stdout)
@@ -119,7 +129,7 @@ def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
                     as_object(pending.body["state"])
                     for pending in server.received[initial_requests:]
                 ]
-                check_report(report, case, root, states)
+                check_report(report, case, comparison_root, states)
                 if case.status == "nothing_selected":
                     text_case = case.model_copy(
                         update={
@@ -154,9 +164,11 @@ def observe(target: RunnerTarget, evidence: Path, selected: list[str]) -> None:
                             format_case,
                             server,
                         )
-                        require_format(text.decode(), report, format_name, root)
+                        require_format(
+                            text.decode(), report, format_name, comparison_root
+                        )
             elif case.mode == "rules":
-                require_rules(stdout.decode(), case, root)
+                require_rules(stdout.decode(), case, comparison_root)
             executed.append(case.name)
         target.confirm()
         write_json(
@@ -184,8 +196,20 @@ def main() -> None:
     parser.add_argument("--binary", type=Path)
     parser.add_argument("--source-root", type=Path, default=Path.cwd())
     parser.add_argument("--commit")
+    parser.add_argument(
+        "--container-image",
+        help="Adopted pinned Alpine digest; needs --container-control-host",
+    )
+    parser.add_argument(
+        "--container-control-host",
+        help="Declared route from containers to this run's loopback server",
+    )
     parser.add_argument("--case", action="append", default=[])
     arguments = parser.parse_args()
+    if bool(arguments.container_image) != bool(arguments.container_control_host):
+        parser.error(
+            "Container mode requires both --container-image and --container-control-host"
+        )
     if sys.flags.optimize:
         parser.error("Unset PYTHONOPTIMIZE and omit -O/-OO")
     if not arguments.prepare and (arguments.binary is None or arguments.commit is None):
@@ -201,10 +225,18 @@ def main() -> None:
                 source=arguments.source_root.resolve(),
                 commit=arguments.commit,
                 digest=binary_digest(arguments.binary),
+                container=ContainerRuntime(
+                    image=arguments.container_image,
+                    control_host=arguments.container_control_host,
+                )
+                if arguments.container_image
+                else None,
             )
         )
         if target:
             target.confirm()
+            if target.container:
+                target.container.confirm_image()
         evidence = arguments.evidence.resolve()
         evidence.mkdir(parents=True, exist_ok=False)
         if arguments.prepare:
@@ -226,7 +258,13 @@ def main() -> None:
             print(
                 f"S1 selected cases passed; see {evidence}; native/hosted gaps remain named"
             )
-    except (ValueError, TypeError, OSError, TimeoutError) as error:
+    except (
+        ValueError,
+        TypeError,
+        OSError,
+        TimeoutError,
+        subprocess.SubprocessError,
+    ) as error:
         parser.exit(2, f"S1 setup/observation failed: {error}\n")
 
 

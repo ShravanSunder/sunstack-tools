@@ -6,11 +6,14 @@ import re
 import signal
 import subprocess
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from queue import Empty
 
+from runner_containers import ContainerRuntime, docker_client_environment
 from runner_contracts import FixtureCase, write_json
+from runner_linkage import inspect_elf
 from scenario_transport import ControlledServer, response_body
 
 
@@ -26,6 +29,10 @@ class RunnerTarget:
     source: Path
     commit: str
     digest: str
+    container: ContainerRuntime | None = None
+
+    def comparison_root(self, fixture: Path) -> Path:
+        return Path("/fixture") if self.container else fixture
 
     def confirm(self) -> None:
         if not re.fullmatch(r"[0-9a-f]{40}", self.commit):
@@ -58,6 +65,8 @@ class RunnerTarget:
         ).stdout
         if head != self.commit or status:
             raise ValueError("Declared product source changed or is dirty")
+        if self.container:
+            inspect_elf(self.binary.read_bytes(), self.container.architecture)
         if binary_digest(self.binary) != self.digest:
             raise ValueError("Declared binary bytes changed")
 
@@ -90,6 +99,11 @@ def run_case(
     (directory / "home").mkdir()
     if case.credential:
         environment["OPENROUTER_API_KEY"] = "SYNTHETIC_RUNNER_CONTROL_NOT_A_SECRET"
+    container_name = None
+    if target.container:
+        container_name = f"sunstack-s1-{uuid.uuid4().hex}"
+        command = target.container.command(target.binary, root, case, container_name)
+        environment = docker_client_environment()
     unreadable = root / case.unreadable if case.unreadable else None
     before = fixture_snapshot(root)
     if unreadable:
@@ -97,6 +111,7 @@ def run_case(
     initial_requests = server.count
     started = time.monotonic()
     pending_requests = 0
+    signals: list[dict[str, object]] = []
     try:
         with (
             (directory / "stdout.log").open("wb") as stdout,
@@ -122,7 +137,29 @@ def run_case(
                         continue
                     pending_requests += 1
                     if case.cancel:
-                        os.killpg(process.pid, signal.SIGINT)
+                        if container_name:
+                            signal_command = [
+                                "docker",
+                                "kill",
+                                "--signal=SIGINT",
+                                container_name,
+                            ]
+                            delivered = subprocess.run(
+                                signal_command,
+                                check=False,
+                                capture_output=True,
+                                timeout=10,
+                            )
+                            signals.append(
+                                {
+                                    "command": signal_command,
+                                    "exit_code": delivered.returncode,
+                                }
+                            )
+                            if delivered.returncode:
+                                raise ValueError("Owned container signal failed")
+                        else:
+                            os.killpg(process.pid, signal.SIGINT)
                     else:
                         response = response_body(pending.body, case.probability, "none")
                         response["model"] = "fixture/runner-control"
@@ -134,7 +171,18 @@ def run_case(
                 exit_code = process.wait(timeout=5)
             finally:
                 if process.poll() is None:
-                    os.killpg(process.pid, signal.SIGKILL)
+                    if container_name:
+                        cleanup = subprocess.run(
+                            ["docker", "rm", "--force", container_name],
+                            check=False,
+                            capture_output=True,
+                            timeout=15,
+                        )
+                        (directory / "cleanup.log").write_bytes(
+                            cleanup.stdout + cleanup.stderr
+                        )
+                    else:
+                        os.killpg(process.pid, signal.SIGKILL)
                     process.wait(timeout=5)
         write_json(
             directory / "process.json",
@@ -148,6 +196,9 @@ def run_case(
                 "elapsed_ms": round((time.monotonic() - started) * 1000),
                 "http_requests": server.count - initial_requests,
                 "credential": "synthetic" if case.credential else "absent",
+                "container": container_name,
+                "fixture_readonly": bool(target.container and case.mode != "init"),
+                "signals": signals,
             },
         )
     finally:

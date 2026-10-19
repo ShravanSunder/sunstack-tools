@@ -18,6 +18,7 @@ import sys
 import uuid
 from pathlib import Path
 
+from runner_containers import IMAGES
 from runner_contracts import (
     FixtureCase,
     compare_report,
@@ -27,17 +28,6 @@ from runner_contracts import (
 from runner_fixture_setup import expected_finding, write_fixture
 from runner_linkage import inspect_elf, inspect_macos
 from runner_process import binary_digest
-
-IMAGES = {
-    "amd64": {
-        "alpine": "alpine@sha256:d56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395",
-        "debian": "debian@sha256:d405c1e1d9eecbf30022d23766a0eea235e7f499aa33e357dfd29271a839f82a",
-    },
-    "arm64": {
-        "alpine": "alpine@sha256:260479a1cfaf304c4c20da7f8405d3ce313513dcd534bb743257bdd2fe0f3e2d",
-        "debian": "debian@sha256:698c1aab9c6357a151053fae10191cc95f605a3eeba33999e6f7ed7a64c91f9e",
-    },
-}
 
 
 def container_command(
