@@ -78,7 +78,7 @@ def check_release(directory: Path, version: str, evidence: Path) -> JsonObject:
     package = JSON_OBJECT.validate_json(
         read_member(directory / "sunstack-npm-package.tar.gz", "package.json")
     )
-    if package["name"] != "sunstack" or package["version"] != version:
+    if package["name"] != "@sunstack/cli" or package["version"] != version:
         raise ValueError("Npm metadata differs from release")
     if not package["artifactDownloadUrls"]:
         raise ValueError("Npm release is in demo mode")

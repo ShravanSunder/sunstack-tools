@@ -32,7 +32,7 @@ uv run --no-config --no-env-file --no-python-downloads --default-index https://p
   --newer <newer-download> --newer-version <newer-version-without-v> --evidence <new-evidence>
 ```
 
-The helper currently checks historical npm identity `sunstack`. If the commission adopts another name, hold dependent preflight until its strict expected-name input/caller are updated and checked against that settled contract. Never accept arbitrary actual names or derive the expected name from the package itself. Update installed package paths consistently while preserving the declared bin map.
+The helper requires npm identity `@sunstack/cli` exactly and the caller-declared tag version. The artifact remains `sunstack-npm-package.tar.gz`; the bin remains `sunstack`, with `node_modules/.bin/sunstack` pointing to `../@sunstack/cli/run-sunstack.js`. The unscoped npm name is an owner-managed deprecated signpost outside release ownership, with no alias journey. Never accept arbitrary actual names or derive the expected name from the package itself.
 
 The helper checks archive checksums, reads exactly one bounded regular `sunstack` member without extracting arbitrary paths, retains native bytes/hashes, checks static Linux linkage and formula/npm/installer metadata. Older/newer native hashes must differ so version pinning can fail. `s4-artifacts.json` leaves installation unobserved. Missing assets or checksum/metadata mismatch stops before installs; never rewrite checksums.
 
