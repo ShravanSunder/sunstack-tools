@@ -105,7 +105,7 @@ The `json` report contains: the config path; the version; each finding (rule, fi
 | R9 | The config follows [C4](#c4-sunstacklintjson). An unknown field, a missing rule-set file, a duplicate entry name, two entries naming the same rule-set file, an unknown rule ID in `rules` or `overrides`, or a bad glob exits 2 with the file, line and column. | U5, U6 |
 | R10 | A rule's effective severity for a file is decided in this order, later steps winning: its authored default from the rule file, `<entry>/*` in `rules`, the exact rule ID in `rules`, then each matching override block in list order, where an exact rule ID wins over `<entry>/*` within the block. The effective policy is fixed per rule set and file before any model request, so a rule that is `off` for a file costs nothing there. A rule's authored confidence band still applies: an effective `error` whose failed verdict falls inside the band is reported as `warn`, and an effective `warn` never makes the run exit 1 on its own. | U4, U5 |
 | R11 | A rule-set entry may only name a rule set with exactly one `document` input. `--check` refuses any other rule set and names its input kinds. | U5 |
-| R12 | Lint never targets files that match `ignorePatterns` or that Git ignores. These exclusions apply to targets only; context a rule declares is still available to it. Paths given on the command line resolve from the current directory; paths in the config resolve from the config's directory. | U1 |
+| R12 | Lint never targets files that match `ignore_patterns` or that Git ignores. These exclusions apply to targets only; context a rule declares is still available to it. Paths given on the command line resolve from the current directory; paths in the config resolve from the config's directory. | U1 |
 | R13 | A config whose enabled rules are all mechanical runs with no backend and no key. If any enabled rule is judged, lint needs `backend` in the config and `OPENROUTER_API_KEY` in the environment, and exits 2 before any model request when either is missing. The key is never written to output. | U7 |
 | R14 | Rule files use `error` or `warn` for severity, and a rule without one is `warn`. `block` and `nudge` are refused with a message naming the replacement. Reports, schemas, `exec` responses and documentation use the same words, including the outcome for a failed verdict inside the confidence band. | U4 |
 | R15 | Each release publishes the JSON schema of `sunstack.lint.json` at a versioned URL, and the binary validates configs against the same definition. | U5 |
@@ -115,7 +115,7 @@ The `json` report contains: the config path; the version; each finding (rule, fi
 ```json
 {
   "$schema": "https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack.lint.schema.json",
-  "ruleSets": {
+  "rule_sets": {
     "skills": { "path": "rules/skill-standards.ruleset.json", "files": ["plugins/**/SKILL.md"] }
   },
   "rules": {
@@ -125,18 +125,20 @@ The `json` report contains: the config path; the version; each finding (rule, fi
   "overrides": [
     { "files": ["plugins/**/retired-skills/**"], "rules": { "skills/*": "off" } }
   ],
-  "ignorePatterns": ["tmp/**"],
+  "ignore_patterns": ["tmp/**"],
   "backend": { "kind": "jev_openrouter", "model": "jev-latest" }
 }
 ```
 
+Field names are snake_case, as in rule-set and rule files.
+
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `$schema` | no | Schema URL for editor completion; not used for validation |
-| `ruleSets` | yes | Entry name → rule-set file path and the globs whose files bind to its one document input |
+| `rule_sets` | yes | Entry name → rule-set file path and the globs whose files bind to its one document input |
 | `rules` | no | `<entry>/<rule id>` or `<entry>/*` → `error`, `warn` or `off` |
 | `overrides` | no | Ordered list of file globs plus a `rules` map, applied to matching files |
-| `ignorePatterns` | no | Globs lint never reads |
+| `ignore_patterns` | no | Globs lint never reads |
 | `backend` | when a judged rule is enabled | `kind` (`jev_openrouter` now), `model`, optional `endpoint`; later kinds, such as a local model, are added beside it without changing rule files |
 | `limits` | no | Caps on files read and model requests per run; the engine's defaults apply otherwise |
 
