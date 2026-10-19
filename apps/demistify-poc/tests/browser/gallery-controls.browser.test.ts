@@ -105,9 +105,9 @@ test('gallery journey and walkthrough share player width, elevation and rich Mar
 	expect(style?.boxShadow).toBe(expected.shadow);
 	expect(style?.backgroundColor).toBe(expected.background);
 	expect(style?.borderRadius).toBe(expected.radius);
-	expect(player.querySelectorAll('.ex-route-narration li')).toHaveLength(2);
-	expect(player.querySelector('.ex-route-narration code')?.textContent).toBe('SessionId');
 	await expect
 		.element(journey.frame.getByText('Inspect the screen', { exact: true }))
 		.toBeVisible();
+	expect(player.querySelectorAll('.ex-route-narration li')).toHaveLength(2);
+	expect(player.querySelector('.ex-route-narration code')?.textContent).toBe('SessionId');
 });
