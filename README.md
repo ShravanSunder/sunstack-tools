@@ -67,8 +67,11 @@ Public release publication is a separate step; the commands below require a publ
 The formula is pushed to `ShravanSunder/homebrew-taps` with a write deploy key whose
 private half is the `HOMEBREW_TAP_DEPLOY_KEY` release secret. The npm package
 `@sunstack/cli` is published through npm trusted publishing (GitHub OIDC), so no npm
-token is stored. The plain name `sunstack` on npm is a deprecated placeholder that
-points to `@sunstack/cli`.
+token is stored. The npm publish job runs only when the repository variable
+`NPM_TRUSTED_PUBLISHING` is `true`; set it once the package's trusted publisher is
+configured on npmjs.com. Until then, releases publish every other channel and skip npm.
+The plain name `sunstack` on npm is a deprecated placeholder that points to
+`@sunstack/cli`.
 
 The [release workflow](.github/workflows/release.yml) starts from cargo-dist 0.32.0's
 generated workflow and is maintained by hand (`allow-dirty = ["ci"]`). When upgrading
@@ -92,18 +95,36 @@ from GitHub during installation and writes the executable inside the installed
 package. This requires network access; pnpm may require `pnpm approve-builds`.
 It has no TypeScript API.
 
-From Node, run the installed bin directly or from an npm script, and write the script
-with `exec` so that stopping npm stops the run:
+From Node, any of these runs the same release build:
+
+```sh
+npm i -D @sunstack/cli && node_modules/.bin/sunstack lint   # or an npm script
+npm i -g @sunstack/cli && sunstack lint
+npx @sunstack/cli lint
+pnpm dlx @sunstack/cli lint
+```
+
+Each route passes the exit code (0–3) and the output through unchanged. In npm
+scripts, write `exec` so that stopping npm stops the run:
 
 ```json
 { "scripts": { "lint": "exec sunstack lint" } }
 ```
 
-The bin passes the exit code through, including 4 when a run is cancelled. Run
-directly, it forwards Ctrl-C (SIGINT), SIGTERM and SIGHUP to the native process. Through
-an `exec` script, npm passes on SIGINT and SIGTERM. Without `exec`, Linux runs npm
-scripts through `sh`, which keeps a stop sent to npm from reaching the run. `npx` has
-the same gap, so don't use it to run lint from tools or CI.
+Stopping a run depends on what sits in front of the bin. "4" means the run cancels,
+prints its full report and exits 4. "Not passed on" means the stop never reaches the
+run, so signal the whole process group instead.
+
+| Route | Ctrl-C at a terminal | SIGINT or SIGTERM to that process only | SIGHUP to that process only |
+| --- | --- | --- | --- |
+| The bin run directly, or `sunstack` after `npm i -g` | 4 | 4 | the run ends by SIGHUP |
+| npm script written `exec sunstack …` | 4 | 4 | not passed on |
+| npm script without `exec`, on Linux | the run cancels; npm reports the signal | not passed on | not passed on |
+| `pnpm dlx @sunstack/cli …` | 4 | 4 | the run ends |
+| `npx @sunstack/cli …` on macOS | 4 | 4 | not passed on |
+| `npx @sunstack/cli …` on Linux | the run cancels; npx exits 130, not 4 | not passed on | not passed on |
+
+For tools and CI that stop runs by signal, use the bin, an `exec` script or `pnpm dlx`.
 
 ### Configure and run lint
 

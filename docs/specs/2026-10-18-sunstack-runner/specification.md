@@ -159,8 +159,21 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | R19 | Each release publishes, for every target, an archive and its checksum on GitHub Releases. Archives extract with `tar` and `gzip`, which minimal Linux and macOS systems have. | U10, U11 |
 | R20 | `brew install shravansunder/taps/sunstack` installs the release build on macOS (arm64, x64) and Linux (x64, arm64). | U10 |
 | R21 | A one-line shell installer installs the release build on macOS and Linux, and can pin a version. | U10, U11 |
-| R22 | `npm i -D @sunstack/cli` puts a `sunstack` bin in `node_modules/.bin`. The plain npm name `sunstack` is only a deprecated placeholder pointing to `@sunstack/cli`, and releases don't publish it. Running that bin runs the release build and passes its exit code through. Run directly, the bin forwards SIGINT (Ctrl-C), SIGTERM and SIGHUP to the release build. From an npm script written `exec sunstack …`, npm passes on SIGINT and SIGTERM. Either way, stopping the caller with those signals stops the run and leaves nothing running. `npx` is not a supported way to run it, because npm sits between the caller and the bin and does not pass on a stop sent to npm alone. The package fetches the build at install time; the README states that this needs network access to GitHub, writes into the installed package, and may need build approval under pnpm. | U2, U10 |
+| R22 | The npm package `@sunstack/cli` provides a `sunstack` bin. Five routes run it: `npm i -D @sunstack/cli` followed by `node_modules/.bin/sunstack`; an npm script; `npm i -g @sunstack/cli` followed by `sunstack`; `npx @sunstack/cli …`; and `pnpm dlx @sunstack/cli …`. Every route runs the release build and passes its exit code (0–3) and its output through unchanged. Stopping a run behaves as the table below states for each route. The plain npm name `sunstack` is only a deprecated placeholder pointing to `@sunstack/cli`, and releases don't publish it. The package fetches the build from GitHub on first use; the README states that this needs network access to GitHub, writes into the installed package, and may need build approval under pnpm. | U2, U10 |
 | R23 | `sunstack --version` reports the release version, which equals the Git tag and the version on every channel. | U10, U11 |
+
+How each npm route behaves when a run is stopped (R22). "4" means the run cancels, prints its full cancelled report and the caller exits 4. "Not passed on" means the stop never reaches the run; signal the process group instead, or use a route that passes it on.
+
+| Route | Ctrl-C at a terminal | SIGINT or SIGTERM to the caller only | SIGHUP to the caller only |
+| --- | --- | --- | --- |
+| The bin run directly: `node_modules/.bin/sunstack`, or `sunstack` after `npm i -g` | 4 | 4 | the run ends, and the caller ends by SIGHUP |
+| npm script written `exec sunstack …` | 4 | 4 | not passed on |
+| npm script without `exec`, on Linux | the run cancels; npm reports the signal | not passed on | not passed on |
+| `pnpm dlx @sunstack/cli …` | 4 | 4 | the run ends |
+| `npx @sunstack/cli …` on macOS | 4 | 4 | not passed on |
+| `npx @sunstack/cli …` on Linux | the run cancels and prints its report; npx ends by SIGINT (130), not 4 | not passed on | not passed on |
+
+No route leaves a run going after Ctrl-C at a terminal.
 
 ## Cross-cutting obligations
 
