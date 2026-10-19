@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.9.1
+
+### Patch Changes
+
+- 8be94a2: Restore the top Pages dropdown and add a separate search button beside the bottom theme control, with a visible platform shortcut. Preserve page context, authored descriptions and path/image icons in local and indexed walkthrough results.
+
 ## 1.9.0
 
 ### Minor Changes
