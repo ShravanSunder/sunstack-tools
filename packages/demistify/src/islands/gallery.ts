@@ -566,7 +566,7 @@ export class GalleryIsland extends HTMLElement {
 		);
 		if (this.activeFigure) this.activeFigure.hidden = true;
 		if (this.controls) {
-			this.controls.title.textContent = title;
+			this.controls.title.replaceChildren(galleryElement('strong', '', title));
 			this.controls.viewer.append(this.missingView);
 			for (const group of this.controls.toolbar.querySelectorAll<HTMLElement>(
 				'.ex-gallery-control-group',
