@@ -20,7 +20,7 @@ flowchart TB
     fmt["formats: default · json · github · sarif"]
   end
   subgraph engine["engine crates (existing)"]
-    rules["sunstack-rules (modified: per-group policy, error/warn)"]
+    rules["sunstack-rules (modified: native off-rule policy, error/warn)"]
     evid["sunstack-evidence"]
     dec["sunstack-decisions (Jev / OpenRouter)"]
   end
@@ -34,14 +34,15 @@ flowchart TB
   npm["npm launcher"] --> args
 ```
 
-`lint` turns a config into the engine's existing invocation, adding one optional field per binding group, then reads the engine's report back as lint findings. `exec` keeps today's protocol. Nothing else in the engine changes except the severity words.
+`lint` turns a config into the engine's existing invocation, passes a native off-rule policy beside it, then reads the engine's report back as lint findings with each finding's effective severity. `exec` keeps today's protocol byte for byte, apart from the severity words.
 
 ## Selected structure
 
 | Choice | Selected | Alternatives considered | Why this one | Cost and who pays | Reopen if |
 | --- | --- | --- | --- | --- | --- |
 | Where lint lives | A new library crate, `sunstack-lint`, called by the binary | Lint code inside the binary crate | R7 needs Rust callers to get the same report without depending on a binary. A library also keeps the binary thin. | One more crate to version (maintainer) | Lint stays CLI-only after a year with no Rust caller |
-| Turning a rule `off` and overriding severity | An optional `policy` on each engine binding group, applied before requests are planned and when a verdict is activated | (a) Post-filter the report; (b) write temporary filtered rule-set files; (c) one invocation per file | (a) pays for off rules; (b) breaks source locations and provenance; (c) loses request batching. The engine refuses the same rule set twice, so splitting files into groups by policy is impossible without this field. | An additive field in the `exec` protocol (protocol users ignore it) | Policies turn out to need per-rule-set rather than per-target granularity |
+| Turning a rule `off` | A native-only `RulePolicy` argument to the engine's evaluation entry, keyed by rule set and binding group, applied before work is registered. It is not part of the invocation's wire format. | (a) Post-filter the report; (b) write temporary filtered rule-set files; (c) one invocation per file; (d) a serialized `policy` field on each binding group | (a) pays for off rules; (b) breaks source locations and provenance; (c) loses request batching; (d) changes `exec`'s accepted input and result variants, against R6 (design review MC2). The engine refuses the same rule set twice, so per-target policy has to be native. | A second native entry point beside `evaluate_rules` | Policies need to cross the `exec` protocol |
+| Overriding severity | Lint computes each finding's effective severity from the engine's result and its own policy | The engine applies severity overrides | Severity never reaches the model (U26), and the engine already reports what lint needs: a mechanical result's declared severity, and a judged result's activation. Keeping overrides in lint leaves the engine and `exec` unchanged. | Lint owns one mapping table | A later use needs overrides inside the engine |
 | Change scope | The engine's existing change selection, given every configured target | Lint prefilters targets to changed files | The engine already selects unchanged targets whose rule, rule set or context changed; prefiltering would drop them. | Each run enumerates all configured targets (cheap, local) | Target enumeration becomes slow on very large repositories |
 | Config error locations | `serde_json` plus `serde_path_to_error`, with duplicate keys refused, as the engine does for rule files; semantic errors locate their key in the source text | A spanned JSON parser | Same behaviour and dependencies as the engine; no new parser | Locating keys by text search is approximate when a key appears twice (refused anyway) | Configs gain comments or JSONC |
 | Release | cargo-dist: one workflow builds four targets once and publishes archives, a shell installer, a Homebrew tap formula and its own npm package | Hand-written workflows; a custom npm package per platform | Least maintenance (research report); the experiment showed it generates every channel | npm installs need GitHub at install time (documented) | A repository needs offline or script-free npm installs |
@@ -51,13 +52,13 @@ flowchart TB
 
 | E | Semantic owner | Home | Shape at boundaries | Kind | Convention |
 | --- | --- | --- | --- | --- | --- |
-| E1 Lint config | `sunstack-lint` config module | new: `sunstack-lint` | File: JSON per Specification C4, snake_case. In Rust: `LintConfig { rule_sets: BTreeMap<EntryName, RuleSetEntry>, rules: BTreeMap<RuleSelector, SeveritySetting>, overrides: Vec<OverrideBlock>, ignore_patterns: Vec<GlobPattern>, backend: Option<BackendConfig>, limits: Option<LintLimits> }`, `#[serde(deny_unknown_fields)]`, `JsonSchema` | persisted (file) | engine: serde + schemars + `deny_unknown_fields` |
+| E1 Lint config | `sunstack-lint` config module | new: `sunstack-lint` | File: JSON per Specification C4, snake_case. In Rust: `LintConfig { schema: Option<String> /* serde rename "$schema", editor hint only, never validated against */, rule_sets: BTreeMap<EntryName, RuleSetEntry>, rules: BTreeMap<RuleSelector, SeveritySetting>, overrides: Vec<OverrideBlock>, ignore_patterns: Vec<GlobPattern>, backend: Option<BackendConfig>, limits: Option<LintLimits> }`, `#[serde(deny_unknown_fields)]`, `JsonSchema`. `LintLimits` is defined under Public shapes below. | persisted (file) | engine: serde + schemars + `deny_unknown_fields` |
 | E2 Rule-set entry | `sunstack-lint` config module | new | `RuleSetEntry { path: PathBuf, files: Vec<GlobPattern> }`; `EntryName` is a validated newtype (no `/`) | persisted | engine newtype IDs |
 | E3 Rule | engine (`sunstack-rules` rule identity) | existing: `RuleId` | Config selector `RuleSelector::{Exact { entry, rule: RuleId }, AllInEntry { entry }}`, written `<entry>/<rule>` or `<entry>/*`; native `RuleId` unchanged | derived | engine `RuleId` |
-| E4 Severity | engine (`sunstack-rules` definition contracts) | modified: `Severity` | `Severity::{Error, Warn}` (serde `"error"`, `"warn"`, default `Warn`); config `SeveritySetting::{Error, Warn, Off}` | persisted (rule files, config) | engine closed enums |
+| E4 Severity | authored: engine (`sunstack-rules` definition contracts); effective: `sunstack-lint::policy` | modified: `Severity` | `Severity::{Error, Warn}` (serde `"error"`, `"warn"`, default `Warn`); config `SeveritySetting::{Error, Warn, Off}`; effective severity per finding from the classification table below | persisted (rule files, config) | engine closed enums |
 | E5 Override | `sunstack-lint` config module | new | `OverrideBlock { files: Vec<GlobPattern>, rules: BTreeMap<RuleSelector, SeveritySetting> }` | persisted | — |
-| E6 Lint run | `sunstack-lint` run module | new | In: `LintRequest { config_path: Option<PathBuf>, paths: Vec<PathBuf>, scope: ScopeChoice, format: OutputFormat, max_warnings: Option<u32> }`, `ScopeChoice::{Default, All, Since { rev }}`. Out: `LintReport` (E7 list, exclusions, incomplete parts, counts, usage) and `LintStatus::{Clean, NothingSelected, Findings, Incomplete, Invalid, Cancelled}` | derived | closed variants |
-| E7 Finding | `sunstack-lint` outcome module | new | `Finding { rule: RuleSelector, file: PathBuf, span: Option<SourceSpan>, severity: Severity, message: String, judgment: Option<JudgmentSummary> }` | derived | engine `SourceSpan` |
+| E6 Lint run | `sunstack-lint` run module | new | In: `LintRequest { config_path: Option<PathBuf>, paths: Vec<PathBuf>, scope: ScopeChoice, max_warnings: Option<u32> }`, `ScopeChoice::{Default, All, Since { rev: String }}`. Out: `LintReport` and `LintStatus::{Clean, NothingSelected, Findings, Incomplete, Invalid, Cancelled}`, both under Public shapes | derived | closed variants |
+| E7 Finding | `sunstack-lint` outcome module | new | `Finding { rule: RuleSelector, file: PathBuf, span: Option<SourceSpan>, severity: Severity, severity_origin: SettingOrigin, message: String, judgment: Option<JudgmentSummary> }` | derived | engine `SourceSpan` |
 | E8 Backend selection | engine (`sunstack-decisions`) | existing: `BackendSelection` | Config `BackendConfig::{JevOpenrouter { model: ModelName, endpoint: Option<String> }}` maps to `BackendSelection::JevOpenrouter`; default endpoint `https://openrouter.ai/api/v1/systemone`; key read from `OPENROUTER_API_KEY` by the existing factory | persisted (config) | engine `BackendSelection` |
 | E9 Release | release workflow | new: `dist-workspace.toml`, `.github/workflows/release.yml` | Git tag `v<semver>`; version from the workspace `Cargo.toml` | persisted (tags, release) | cargo-dist |
 | E10 Platform build | release workflow | new | `sunstack-<target>.tar.gz` plus `.sha256`, targets `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl` | persisted | cargo-dist naming |
@@ -75,7 +76,7 @@ flowchart TB
 | `sunstack-lint::invocation` | Build the engine's `RuleInvocationInput`: one `BoundRuleSet` per entry, one binding group per target with its policy, the repository binding with change scope, limits and backend | lint run | scope translation; config-changed rule; default limits |
 | `sunstack-lint::outcome` | Turn the engine outcome into findings, exclusions, incomplete parts and `LintStatus` | formats, Rust callers | lint status (C2); "No checks selected" |
 | `sunstack-lint::formats` | Render a `LintReport` as default, json, github or sarif | binary | output shapes (C3) |
-| `sunstack-rules` (modified) | Apply per-group policy: skip `off` rules when expanding work, use the effective severity when activating a verdict; rename severity words | lint, exec | policy application; `Activation` |
+| `sunstack-rules` (modified) | Skip `off` rules named by a native `RulePolicy` before registering work; rename severity words | lint, exec | off-rule exclusion; `Activation` words |
 | release workflow | Build four targets once, attach archives and checksums, publish installer, formula and npm package | maintainers | E9–E11 |
 
 Public library entry points of `sunstack-lint`:
@@ -92,21 +93,88 @@ pub fn config_schema() -> schemars::Schema;
 
 `LintInvalid` carries `{ file: PathBuf, line: Option<u32>, column: Option<u32>, json_path: Vec<String>, code: LintInvalidCode, message: String }`; `LintInvalidCode` is a closed enum (`NoConfigFound`, `Syntax`, `UnknownField`, `DuplicateKey`, `DuplicateEntry`, `SameRuleSetTwice`, `UnknownSelector`, `BadGlob`, `MissingRuleSet`, `UnsupportedInputs`, `OldSeverityWord`, `PathNotFound`, `NoGitForDefaultScope`, `BackendMissing`, `CredentialMissing`).
 
-The engine change, as an additive field on `BindingGroup`:
+The engine change is a native argument, not a wire field:
 
 ```rust
-pub struct BindingGroup {
-    pub bindings: BTreeMap<SourceName, InputBinding>,
-    #[serde(default, skip_serializing_if = "GroupPolicy::is_empty")]
-    pub policy: GroupPolicy,
+pub struct RulePolicy {
+    pub off: BTreeMap<GroupKey, BTreeSet<RuleId>>, // GroupKey = rule-set path + binding-group position
 }
-pub struct GroupPolicy {
-    pub off: BTreeSet<RuleId>,                 // never expanded, never requested
-    pub severity: BTreeMap<RuleId, Severity>,  // replaces the authored default at activation
+pub async fn evaluate_rules_with_policy(
+    input: RuleInvocationInput,
+    policy: RulePolicy,
+    context: RuleExecutionContext,
+) -> RuleInvocationOutcome;
+// evaluate_rules(input, context) is evaluate_rules_with_policy(input, RulePolicy::default(), context)
+```
+
+A rule that is `off` for a group is never registered there: no occurrence, no request, and no applicability gate run on its behalf, while gates that enabled peers need still run, in both the legacy and deferred expansion paths. It is left out of that group's rule-coverage count, so turning a rule off never makes coverage partial, and it does not appear in the report. Lint counts it as an exclusion from its own policy. An unknown `RuleId` in a policy makes the outcome `Invalid` with a diagnostic naming the rule-set path and group. `exec` always passes the empty policy, so its input, result variants and bytes are unchanged apart from the severity words.
+
+### Finding classification
+
+Lint turns each failed occurrence into a finding. `override` is the effective setting from `sunstack-lint::policy` (R10) for that rule and file, or none.
+
+| Engine result | Effective severity |
+| --- | --- |
+| mechanical `Checked { declared_severity, outcome: fail }` | the override when present, otherwise `declared_severity` |
+| judged, `Activation::Error` (a failed verdict at or below the band, or with no band) | `warn` if overridden to `warn`, otherwise `error` |
+| judged, `Activation::WarnAboveBand` (authored `error`, above the band, below the threshold) | `warn`, even when overridden to `error`: the authored band keeps its meaning |
+| judged, `Activation::Warn` (authored `warn`, no band) | `error` if overridden to `error`, otherwise `warn` |
+| any passed result | no finding |
+
+Unresolved, cancelled and failed local or judged outcomes are never findings. They are incomplete parts, as in Run outcome.
+
+### Repository binding
+
+Lint builds one `RepositoryBinding`:
+
+- `root` is the Git work-tree root that contains the config. Under `--all` outside Git, it is the config's directory.
+- `input_paths` is `[Glob { pattern: "**" }]`. That way the targets, every rule-set file, its rule files and Markdown sources, and any context a rule declares are admitted and change-tracked. The engine's dependency selection then finds unchanged targets whose definition or context changed, and unrelated edits select nothing (design review MC5).
+- Git-ignored files stay out of evidence through `include_ignored: false`.
+- `change_scope` comes from `ScopeChoice`: Default is `uncommitted` with the staged, unstaged and untracked layers; All is `full`; and Since is a revision diff from `rev` to the working tree. When the config file itself is in the changed set, lint uses `full` and records why.
+
+Lint's own target selection (entry globs, minus `ignore_patterns`, limited to command-line paths) decides the binding groups. When it produces no binding group at all, lint returns `NothingSelected` without calling the engine, which refuses an empty binding list. Reopen this binding if cataloguing `**` is slow on large repositories.
+
+### Public shapes
+
+```rust
+pub struct LintLimits {                       // config `limits`; every field optional
+    pub max_files: Option<NonZeroU32>,        // → InvocationLimits.max_files
+    pub max_file_bytes: Option<NonZeroU64>,   // → InvocationLimits.max_file_bytes
+    pub max_total_bytes: Option<NonZeroU64>,  // → InvocationLimits.max_total_bytes
+    pub max_matches: Option<NonZeroU32>,      // → InvocationLimits.max_matches
+    pub max_model_requests: Option<NonZeroU32>,      // → RequestBudgetSettings.max_requests
+    pub max_input_tokens_per_request: Option<NonZeroU32>, // → RequestBudgetSettings.max_input_tokens
+    pub attempt_timeout_seconds: Option<NonZeroU32>, // → AttemptSettings.attempt_timeout_ms
+    pub max_concurrent_requests: Option<NonZeroU32>, // → ExecutionSettings.max_concurrent_requests
+}
+pub struct LintReport {
+    pub version: String,
+    pub config: PathBuf,
+    pub scope: ScopeReport,                   // { kind: Default | All | Since { rev }, widened: Option<WidenedReason::ConfigChanged> }
+    pub status: LintStatus,
+    pub findings: Vec<Finding>,
+    pub counts: SeverityCounts,               // { error: u32, warn: u32 }
+    pub exclusions: ExclusionCounts,          // { off, ignored, not_applicable, outside_change_scope, zero_matches }: u32
+    pub incomplete: Vec<IncompletePart>,      // { rule: Option<RuleSelector>, file: Option<PathBuf>, reason: IncompleteReason }
+    pub usage: Option<UsageSummary>,          // { model_requests, input_tokens, output_tokens }, from engine measurements
+    pub limits: EffectiveLimits,              // every LintLimits field, resolved to its applied value
+    pub diagnostics: Vec<LintDiagnostic>,     // { file: Option<PathBuf>, line, column: Option<u32>, code, message }
+}
+pub enum IncompleteReason {
+    SelectionFailed, EvaluationFailed, NotStarted, PreparationFailed,
+    CoveragePartial, CoverageNone, ProviderFailure, RequestLimitReached,
+}
+pub struct JudgmentSummary { pub value: f64, pub threshold: f64, pub answer: String, pub evidence: Vec<EvidenceRef> } // EvidenceRef { file, span }
+pub enum SettingOrigin { Authored, EntryWildcard, ExactRule, Override { index: u32 } }
+pub enum CheckResult { Valid { rules: Vec<RuleListing> }, Invalid { diagnostics: Vec<LintDiagnostic> } }
+pub struct RuleListing {
+    pub rule: RuleSelector, pub source: SourceLocation /* file, line */, pub kind: RuleKind /* Mechanical | Judged */,
+    pub authored: Severity, pub configured: SeveritySetting,
+    pub for_file: Option<EffectiveSetting>,   // with --rules <file>: { setting: SeveritySetting, decided_by: SettingOrigin }
 }
 ```
 
-An unknown `RuleId` in a policy is refused by invocation admission with the rule-set path and group position. A rule `off` in a group produces one rule-evaluation result `disabled_by_policy` for that group, so `exec` callers see it.
+The `json` format serializes `LintReport` with snake_case field names and `kind`-tagged enums, as the engine does. Its field names are stable within a major version, and fields may be added.
 
 ## The lint call path
 
@@ -128,9 +196,9 @@ sequenceDiagram
   B->>R: check_rules on every entry (no targets, no key)
   R-->>B: assembled rules or refusal (exit 2)
   B->>T: enumerate targets; effective policy per target
-  T-->>I: entries x targets with GroupPolicy (targets with every rule off are dropped)
+  T-->>I: entries x targets, off rules per group (targets with every rule off are dropped)
   I->>I: scope: Default (uncommitted) / All / Since(rev); config changed → All, recorded
-  I->>R: evaluate_rules(RuleInvocationInput)
+  I->>R: evaluate_rules_with_policy(input, RulePolicy)
   R->>D: only reachable judged rules and model gates (key read lazily)
   D-->>R: answers or provider failure
   R-->>O: RuleInvocationOutcome
@@ -138,7 +206,7 @@ sequenceDiagram
   B-->>U: rendered report, exit code
 ```
 
-`exec` keeps its current path: `main` → `protocol_boundary::read_frame` → `decode_request` → `operation_execution::execute_operation` → library → response. The only edge that changes is that `main` now dispatches on the command line first.
+`exec` keeps its current path: `main` → `protocol_boundary::read_frame` → `decode_request` → `operation_execution::execute_operation` → library → response, with the empty `RulePolicy`. The only edge that changes is that `main` now dispatches on the command line first.
 
 ## Run outcome
 
@@ -147,11 +215,11 @@ sequenceDiagram
 | `LintInvalid` before the engine runs; engine `Invalid` | `Invalid` with located diagnostics | 2 |
 | `Cancelled` | `Cancelled`, keeping completed findings | 4 |
 | `PreparationFailed`; `IncompleteReport`; `rule_coverage` not `full`; any occurrence `selection_failed`, `evaluation_failed` or `not_started`; a request-limit or provider failure | `Incomplete`, keeping completed findings | 3 |
-| Any `Activation::Error`, or warn findings above `--max-warnings` | `Findings` | 1 |
-| No targets selected for any entry | `NothingSelected`, printed as "No checks selected" | 0 |
+| Any finding classified `error`, or `warn` findings above `--max-warnings` | `Findings` | 1 |
+| No binding group produced (the engine is not called) | `NothingSelected`, printed as "No checks selected" | 0 |
 | Otherwise | `Clean` | 0 |
 
-`disabled_by_policy`, `not_applicable`, `outside_change_scope` and `zero_matches` are counted as exclusions, never as incomplete.
+Rules turned `off` (counted by lint), `not_applicable`, `outside_change_scope` and `zero_matches` are exclusions, never incomplete.
 
 Default limits when `limits` is omitted (tunable with evidence; listed in the README and recorded in every `json` report): files 2000; bytes per file 1 MiB; total bytes 64 MiB; matches 10,000; transcript bytes 8 MiB; Git-ignored files excluded; model requests per run 200; input tokens per request 32,000; request bytes 256 KiB; questions per request 32; attempt timeout 60 s; 2 retries with 0.5–8 s backoff; response bytes 1 MiB; 4 concurrent requests; speculation off.
 
@@ -191,7 +259,8 @@ The three crates that use `git2` turn on `vendored-libgit2` and keep default fea
 | Seam | Real | Stand-in | Observes |
 | --- | --- | --- | --- |
 | Process tests of `sunstack` with fixture repositories | binary, engine, files, Git | an unreachable backend endpoint for runs that must not call a model | exit codes, all four formats, scope selection, severity policy, cancellation |
-| Engine tests of `GroupPolicy` | `sunstack-rules` | a recording backend (existing test pattern) | an `off` rule makes no request; severity override and band activation |
+| Engine tests of `RulePolicy` | `sunstack-rules` | a recording backend (existing test pattern) | an `off` rule makes no request, including an off-only model gate, while gates enabled peers need still run; coverage stays full |
+| Lint classification tests | `sunstack-lint::outcome` | engine results built in the test | the classification table: mechanical and judged, each severity override, the band |
 | Hosted run | Jev on OpenRouter with the owner's key | none | one real judged rule from the static Linux build with no CA bundle |
 | Container matrix | release builds in clean Alpine and Debian (x64, arm64) | none | no shared libraries; `--version`, `lint --check`, a lint run |
 | Release rehearsal | a private test repository running the generated workflow | a local mirror serving those exact release bytes to the installers | archives, checksums, formula, npm package; installs and exits through each channel |
@@ -205,7 +274,7 @@ The three crates that use `git2` turn on `vendored-libgit2` and keep default fea
 | U1 | R1 lint a repository from its config | E1, E2, E6, E7 | `sunstack-lint::run` | `run(LintRequest)` | `LintReport` in `sunstack-lint` | none persisted | `LintInvalid` → exit 2 | process tests (V1) |
 | U1 | R2 exit codes (C2) | E6 | binary + `sunstack-lint::outcome` | `LintStatus` → `ExitCode` | closed `LintStatus` | none | each row of Run outcome | process tests (V2) |
 | U1, U2 | R3 formats | E7 | `sunstack-lint::formats` | `render(report, format)` | default text, json (`LintReport`), GitHub annotations, SARIF 2.1.0 | none | — | format comparison (V1) |
-| U1, U7 | R4 change scope | E6 | `sunstack-lint::invocation` | `ScopeChoice` → engine `ChangeScope` | `RepositoryBinding.change_scope` | none | outside Git with default scope → `NoGitForDefaultScope` | scripted Git history (V3) |
+| U1, U7 | R4 change scope | E6 | `sunstack-lint::invocation` | `ScopeChoice` → engine `ChangeScope`; repository binding with `**` | `RepositoryBinding` | none | outside Git with default scope → `NoGitForDefaultScope` | scripted Git history with docs-only targets and rules elsewhere (V3) |
 | U1, U5 | R5 `--check`, `--rules`, `--init` | E1, E3 | `sunstack-lint::config`, `::policy` | `check`, `list_rules`, init writer | `CheckResult`, `RuleListing` | `--init` writes one file | overwrite refused | process tests (V4) |
 | U3 | R6 `exec` unchanged | — none: protocol | binary `exec` module | stdin/stdout JSON | engine wire contracts | none | existing protocol errors | existing protocol tests (V5) |
 | U2 | R7 Node and Rust | E6 | npm launcher; `sunstack-lint` library | `npx sunstack`; `run()` | same `LintReport` | none | — | npm and library comparison (V6) |
@@ -215,8 +284,8 @@ The three crates that use `git2` turn on `vendored-libgit2` and keep default fea
 | U | R | E | Owner | Interface | Shape and home | State | Failure | Proof |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | U6 | R8 discovery | E1 | `sunstack-lint::config` | `discover_config` | `ConfigLocation` | none | `NoConfigFound` | process tests (V7) |
-| U5, U6 | R9 validation | E1, E2, E5 | `sunstack-lint::config` | `load_config` | `LintConfig`, `LintInvalid` | none | each `LintInvalidCode` | config cases (V7) |
-| U4, U5 | R10 effective severity | E3, E4, E5 | `sunstack-lint::policy` → `sunstack-rules` activation | `GroupPolicy` | `GroupPolicy` in `sunstack-rules::invocation_contracts` | none | unknown rule → admission refusal | severity table and engine policy tests (V8) |
+| U5, U6 | R9 validation | E1, E2, E5 | `sunstack-lint::config` | `load_config` | `LintConfig` (with `$schema` admitted), `LintInvalid` | none | each `LintInvalidCode` | config cases (V7) |
+| U4, U5 | R10 effective severity | E3, E4, E5 | `sunstack-lint::policy` and `::outcome`; `sunstack-rules` for `off` | `RulePolicy`; finding classification | `RulePolicy` in `sunstack-rules`; classification in `sunstack-lint::outcome` | none | unknown rule → `Invalid` | severity table, classification and engine policy tests (V8) |
 | U5 | R11 document-input rule sets only | E2 | `sunstack-lint::config` (after `check_rules`) | `check` | `UnsupportedInputs` | none | refused at check | process test (V9) |
 | U1 | R12 targets and paths | E2, E6 | `sunstack-lint::targets` | target enumeration | `Vec<PathBuf>` per entry | none | `PathNotFound` | ignore and context cases (V9) |
 | U7 | R13 backend only when reached | E8 | `sunstack-decisions` factory (lazy) with lint's pre-check | `BackendConfig` → `BackendSelection` | engine `BackendSelection` | none | `BackendMissing`, `CredentialMissing` → exit 2 | key and no-key runs (V10) |
