@@ -61,3 +61,14 @@ def test_glob_grammar_is_binary_only_while_numeric_ranges_remain_structural() ->
     assert config_check_expectation("unknown-field") == ("structural", False, 2)
     for name in ("limit-u32-overflow", "limit-u64-overflow"):
         assert config_check_expectation(name) == ("structural", False, 2)
+
+
+def test_integral_decimal_spelling_is_refused_only_by_the_binary() -> None:
+    schema = Draft202012Validator(
+        {"type": "integer", "minimum": 1, "maximum": 4294967295}
+    )
+    assert schema.is_valid(config_instance('{"max_files":1.0}')["max_files"])
+    category, accepted, exit_code = config_check_expectation("limit-integral-decimal")
+    assert (category, accepted, exit_code) == ("semantic", True, 2)
+    assert compare_acceptance(category, accepted, exit_code, True, 2)
+    assert not compare_acceptance(category, accepted, exit_code, True, 0)

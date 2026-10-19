@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
+from lint_observations import require_diagnostic
 from runner_containers import ContainerRuntime
 from runner_contracts import (
     JSON_OBJECT,
@@ -29,6 +30,7 @@ from scenario_transport import ControlledServer
 
 SEMANTIC_REFUSALS = {
     "bad-glob",  # Specification R15/V12 at 59b12d3: glob grammar is binary-only.
+    "limit-integral-decimal",  # R15 at 26122bf: numeric spelling is binary-only.
     "missing-ruleset",
     "same-ruleset",
     "unknown-selector",
@@ -172,6 +174,7 @@ def observe_schema(
     for name, field, value in (
         ("limit-zero", "max_files", 0),
         ("limit-fractional", "max_files", 1.5),
+        ("limit-integral-decimal", "max_files", 1.0),
         ("limit-u32-overflow", "max_files", 2**32),
         ("limit-u64-overflow", "max_total_bytes", 2**64),
     ):
@@ -179,12 +182,21 @@ def observe_schema(
         limit_config = copy.deepcopy(base_config())
         limit_config["limits"] = {field: value}
         write_fixture(fixture, config=limit_config)
+        authored = (fixture / "sunstack.lint.json").read_text().splitlines()
+        line_index, element = next(
+            (index, text) for index, text in enumerate(authored) if f'"{field}"' in text
+        )
+        original = FixtureCase(
+            name=name,
+            diagnostic_file="sunstack.lint.json",
+            diagnostic_line=line_index + 1,
+            diagnostic_column=element.index(f'"{field}"') + 1,
+            diagnostic_column_end=len(element),
+            wrong_build="Config limit disagrees with its native nonzero integer type or written form",
+        )
         cases.append(
             (
-                FixtureCase(
-                    name=name,
-                    wrong_build="Config limit disagrees with its native nonzero integer type",
-                ),
+                original,
                 fixture,
                 *config_check_expectation(name),
             )
@@ -227,8 +239,21 @@ def observe_schema(
                 raise ValueError(
                     "Schema observation lost its actual process exit"
                 ) from None
-        matched = compare_acceptance(
-            category, expected_schema, expected_exit, accepts, exit_code
+        if expected_exit == 2 and exit_code == 2 and check.diagnostic_file:
+            try:
+                require_diagnostic(
+                    "",
+                    check,
+                    (directory / "stderr.log").read_text(),
+                    target.comparison_root(fixture),
+                )
+            except ValueError as error:
+                process_error = str(error)
+        matched = (
+            compare_acceptance(
+                category, expected_schema, expected_exit, accepts, exit_code
+            )
+            and process_error is None
         )
         rows.append(
             {
