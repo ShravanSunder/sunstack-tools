@@ -191,13 +191,21 @@ pub enum BackendConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LintLimits {
+    #[schemars(extend("maximum" = u32::MAX))]
     pub max_files: Option<NonZeroU32>,
+    #[schemars(extend("maximum" = u64::MAX))]
     pub max_file_bytes: Option<NonZeroU64>,
+    #[schemars(extend("maximum" = u64::MAX))]
     pub max_total_bytes: Option<NonZeroU64>,
+    #[schemars(extend("maximum" = u32::MAX))]
     pub max_matches: Option<NonZeroU32>,
+    #[schemars(extend("maximum" = u32::MAX))]
     pub max_model_requests: Option<NonZeroU32>,
+    #[schemars(extend("maximum" = u32::MAX))]
     pub max_input_tokens_per_request: Option<NonZeroU32>,
+    #[schemars(extend("maximum" = u32::MAX))]
     pub attempt_timeout_seconds: Option<NonZeroU32>,
+    #[schemars(extend("maximum" = u32::MAX))]
     pub max_concurrent_requests: Option<NonZeroU32>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

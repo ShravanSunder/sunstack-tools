@@ -82,6 +82,28 @@ async fn real_cli_json_equals_the_library_and_each_format_preserves_the_finding(
 }
 
 #[tokio::test]
+async fn config_check_admits_integer_type_maxima_and_refuses_the_next_integers() {
+    let root = tempfile::tempdir().unwrap();
+    let baseline = fixture::write(root.path());
+    for (field, maximum, overflow) in [
+        ("max_files", u64::from(u32::MAX), "4294967296"),
+        ("max_file_bytes", u64::MAX, "18446744073709551616"),
+        ("max_total_bytes", u64::MAX, "18446744073709551616"),
+    ] {
+        let mut config = baseline.clone();
+        config["limits"] = json!({field: maximum});
+        fixture::config_file(root.path(), &config);
+        invoke(root.path(), &["--check"], 0).await;
+        let raw = format!(
+            "{{\"rule_sets\":{},\"limits\":{{\"{field}\":{overflow}}}}}",
+            baseline["rule_sets"]
+        );
+        std::fs::write(root.path().join("sunstack.lint.json"), raw).unwrap();
+        invoke(root.path(), &["--check"], 2).await;
+    }
+}
+
+#[tokio::test]
 async fn nested_config_reports_binding_root_paths_in_every_format_and_incomplete_parts() {
     let root = tempfile::tempdir().unwrap();
     let nested = root.path().join("config");

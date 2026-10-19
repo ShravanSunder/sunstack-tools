@@ -9,6 +9,66 @@ use sunstack_decisions::{
 use sunstack_lint::*;
 use sunstack_rules::*;
 
+#[tokio::test]
+async fn every_numeric_limit_accepts_its_exact_maximum_and_rejects_the_next_integer() {
+    let root = tempfile::tempdir().unwrap();
+    let baseline = fixture::write(root.path());
+    let schema = serde_json::to_value(config_schema()).unwrap();
+    let validator = jsonschema::options().offline().build(&schema).unwrap();
+    for (field, maximum, overflow) in [
+        ("max_files", u64::from(u32::MAX), "4294967296"),
+        ("max_file_bytes", u64::MAX, "18446744073709551616"),
+        ("max_total_bytes", u64::MAX, "18446744073709551616"),
+        ("max_matches", u64::from(u32::MAX), "4294967296"),
+        ("max_model_requests", u64::from(u32::MAX), "4294967296"),
+        (
+            "max_input_tokens_per_request",
+            u64::from(u32::MAX),
+            "4294967296",
+        ),
+        ("attempt_timeout_seconds", u64::from(u32::MAX), "4294967296"),
+        ("max_concurrent_requests", u64::from(u32::MAX), "4294967296"),
+    ] {
+        let mut admitted = baseline.clone();
+        admitted["limits"] = json!({field: maximum});
+        assert!(
+            validator.is_valid(&admitted),
+            "schema refused {field}'s maximum"
+        );
+        fixture::config_file(root.path(), &admitted);
+        let location = discover_config(root.path(), None).unwrap();
+        let config = load_config(&location).unwrap();
+        assert!(
+            matches!(
+                check(&config, CancellationToken::new()).await,
+                CheckResult::Valid { .. }
+            ),
+            "native check refused {field}'s maximum"
+        );
+
+        // Preserve the overflow's authored decimal token for the native decoder.
+        let raw = format!(
+            "{{\"rule_sets\":{},\"limits\":{{\"{field}\":{overflow}}}}}",
+            baseline["rule_sets"]
+        );
+        let refused: Value = serde_json::from_str(&raw).unwrap();
+        assert!(
+            !validator.is_valid(&refused),
+            "schema accepted {field} above its range"
+        );
+        std::fs::write(&location.file, &raw).unwrap();
+        assert!(
+            load_config(&location).is_err(),
+            "native decoder accepted {field} above its range"
+        );
+        assert_eq!(
+            schema["$defs"]["LintLimits"]["properties"][field]["maximum"].as_u64(),
+            Some(maximum),
+            "schema rounded or omitted {field}'s maximum"
+        );
+    }
+}
+
 #[test]
 fn all_limit_overrides_reach_their_native_settings_and_defaults_match_the_adopted_table() {
     let authored:LintLimits=serde_json::from_value(json!({"max_files":3,"max_file_bytes":17,"max_total_bytes":57,"max_matches":7,"max_model_requests":11,"max_input_tokens_per_request":123,"attempt_timeout_seconds":4,"max_concurrent_requests":2})).unwrap();
@@ -175,12 +235,13 @@ async fn schema_and_binary_agree_on_structure_but_loaded_reference_checks_stay_n
         let location = discover_config(root.path(), None).unwrap();
         assert!(load_config(&location).is_err(), "decoder accepted {case}");
     }
-    for case in ["missing_file", "same_file", "unknown_rule"] {
+    for case in ["missing_file", "same_file", "unknown_rule", "bad_glob"] {
         let mut raw = baseline.clone();
         match case {
             "missing_file" => raw["rule_sets"]["docs"]["path"] = json!("absent.json"),
             "same_file" => raw["rule_sets"]["other"] = json!({"path":"./set.json","files":["**"]}),
             "unknown_rule" => raw["rules"] = json!({"docs/missing":"warn"}),
+            "bad_glob" => raw["rule_sets"]["docs"]["files"] = json!(["["]),
             _ => panic!("case"),
         }
         assert!(
@@ -189,7 +250,13 @@ async fn schema_and_binary_agree_on_structure_but_loaded_reference_checks_stay_n
         );
         fixture::config_file(root.path(), &raw);
         let location = discover_config(root.path(), None).unwrap();
-        let config = load_config(&location).unwrap();
+        let config = match load_config(&location) {
+            Err(error) if case == "bad_glob" => {
+                assert_eq!(error.code, LintInvalidCode::BadGlob);
+                continue;
+            }
+            loaded => loaded.unwrap(),
+        };
         assert!(
             matches!(
                 check(&config, CancellationToken::new()).await,
