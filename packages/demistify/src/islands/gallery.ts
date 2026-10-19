@@ -11,7 +11,9 @@ import {
 } from './gallery-data.ts';
 import {
 	createGalleryControls,
+	createCaptureFigure,
 	renderGalleryFacetControls,
+	renderGalleryTitle,
 	galleryElement,
 	type GalleryControls,
 } from './gallery-view.ts';
@@ -285,7 +287,8 @@ export class GalleryIsland extends HTMLElement {
 		const thumbnailsLabel = this.thumbnailsVisible ? 'Hide thumbnails' : 'Show thumbnails';
 		controls.thumbnails.setAttribute('aria-label', thumbnailsLabel);
 		controls.thumbnails.title = thumbnailsLabel;
-		controls.strip.hidden = !this.thumbnailsVisible;
+		controls.strip.inert = !this.thumbnailsVisible;
+		controls.strip.setAttribute('aria-hidden', String(!this.thumbnailsVisible));
 		controls.body.classList.toggle('ex-gallery-without-thumbnails', !this.thumbnailsVisible);
 		this.dispatchEvent(new Event('gallery-updated', { bubbles: true }));
 	}
@@ -322,7 +325,7 @@ export class GalleryIsland extends HTMLElement {
 			});
 			controls.strip.append(button);
 			if (this.view === 'grid') {
-				const figure = this.captureFigure(capture);
+				const figure = createCaptureFigure(capture);
 				const gridImage = figure.querySelector('img');
 				const open = galleryElement('button', 'ex-gallery-grid-open');
 				open.type = 'button';
@@ -342,16 +345,6 @@ export class GalleryIsland extends HTMLElement {
 		}
 	}
 
-	private captureFigure(capture: GalleryCapture): HTMLElement {
-		const figure = capture.source.cloneNode(true);
-		if (!(figure instanceof HTMLElement)) throw new Error('Invalid gallery figure.');
-		for (const controls of figure.querySelectorAll('.ex-inspect-controls')) controls.remove();
-		figure.id = capture.id;
-		figure.classList.add('ex-gallery-picture');
-		figure.setAttribute('label', capture.title);
-		return figure;
-	}
-
 	private renderPreview(): void {
 		const controls = this.controls;
 		const capture = this.visible.find((item): boolean => item.id === this.selected);
@@ -360,13 +353,13 @@ export class GalleryIsland extends HTMLElement {
 		if (this.activeFigure) this.activeFigure.hidden = false;
 		for (const group of controls.toolbar.querySelectorAll<HTMLElement>('.ex-gallery-control-group'))
 			group.inert = false;
-		controls.title.textContent = capture.title;
+		renderGalleryTitle(controls.title, capture);
 		controls.original.href = capture.source.querySelector<HTMLImageElement>('img')?.src ?? '';
 		if (this.renderedSelection === capture.id) return;
 		this.renderedSelection = capture.id;
 		this.activeFigure?.remove();
 		this.resizeObserver?.disconnect();
-		const figure = this.captureFigure(capture);
+		const figure = createCaptureFigure(capture);
 		const image = figure.querySelector<HTMLImageElement>('img');
 		if (!image) return;
 		const stage = galleryElement('div', 'ex-gallery-preview');
@@ -407,7 +400,7 @@ export class GalleryIsland extends HTMLElement {
 	private inspectSelected(): void {
 		const capture = this.captures.find((item): boolean => item.id === this.selected);
 		if (!capture) return;
-		openIsland(this.captureFigure(capture), 'modal', {
+		openIsland(createCaptureFigure(capture), 'modal', {
 			focusTarget: (): HTMLElement | undefined => this.imageStage,
 			move: (key: string): HTMLElement | undefined => {
 				const previous = this.selected;
@@ -417,7 +410,7 @@ export class GalleryIsland extends HTMLElement {
 					this.moveViewport(key === 'ArrowUp' ? -1 : 1);
 				if (previous === this.selected) return undefined;
 				const next = this.visible.find((item): boolean => item.id === this.selected);
-				return next ? this.captureFigure(next) : undefined;
+				return next ? createCaptureFigure(next) : undefined;
 			},
 		});
 	}
@@ -573,7 +566,7 @@ export class GalleryIsland extends HTMLElement {
 		);
 		if (this.activeFigure) this.activeFigure.hidden = true;
 		if (this.controls) {
-			this.controls.title.textContent = title;
+			this.controls.title.replaceChildren(galleryElement('strong', '', title));
 			this.controls.viewer.append(this.missingView);
 			for (const group of this.controls.toolbar.querySelectorAll<HTMLElement>(
 				'.ex-gallery-control-group',
