@@ -103,11 +103,17 @@ pub async fn evaluate_rules_with_policy(
     input: RuleInvocationInput,
     policy: RulePolicy,
     context: RuleExecutionContext,
-) -> RuleInvocationOutcome;
-// evaluate_rules(input, context) is evaluate_rules_with_policy(input, RulePolicy::default(), context)
+) -> PolicyEvaluation;
+pub struct PolicyEvaluation {
+    pub outcome: RuleInvocationOutcome,
+    // the exact evidence state of each sent judgment request, kept from request materialization;
+    // keyed by the same request index the report's JudgmentReference uses
+    pub request_evidence: BTreeMap<usize, sunstack_decisions::SharedEvidenceState>,
+}
+// evaluate_rules(input, context) is evaluate_rules_with_policy(input, RulePolicy::default(), context).outcome
 ```
 
-A rule that is `off` for a group is never registered there: no occurrence, no request, and no applicability gate run on its behalf, while gates that enabled peers need still run, in both the legacy and deferred expansion paths. It is left out of that group's rule-coverage count, so turning a rule off never makes coverage partial, and it does not appear in the report. Lint counts it as an exclusion from its own policy. An unknown `RuleId` in a policy makes the outcome `Invalid` with a diagnostic naming the rule-set path and group. `exec` always passes the empty policy, so its input, result variants and bytes are unchanged apart from the severity words.
+A rule that is `off` for a group is never registered there: no occurrence, no request, and no applicability gate run on its behalf, while gates that enabled peers need still run, in both the legacy and deferred expansion paths. It is left out of that group's rule-coverage count, so turning a rule off never makes coverage partial, and it does not appear in the report. Lint counts it as an exclusion from its own policy. An unknown `RuleId` in a policy makes the outcome `Invalid` with a diagnostic naming the rule-set path and group. `exec` always passes the empty policy and serializes only `outcome`, so its input, result variants and bytes are unchanged apart from the severity words. `request_evidence` exists only in Rust: the request materializer already builds each `StructuredJudgmentRequest { questions, state }`, and the policy entry keeps a copy of each sent request's `state`. It is bounded by the request byte limit that already applies.
 
 ### Finding classification
 
@@ -163,6 +169,7 @@ pub struct LintReport {
     pub exclusions: ExclusionCounts,          // { off, ignored, not_applicable, outside_change_scope, zero_matches }: u32
     pub incomplete: Vec<IncompletePart>,      // { rule: Option<RuleSelector>, file: Option<PathBuf>, reason: IncompleteReason }
     pub usage: UsageSummary,                  // see below; zero requests when no model work ran
+    pub evidence_seen: BTreeMap<usize, SharedEvidenceState>, // per sent request, from PolicyEvaluation.request_evidence; findings refer to it by request index
     pub limits: EffectiveLimits,              // every LintLimits field, resolved to its applied value
     pub diagnostics: Vec<LintDiagnostic>,     // { file: Option<PathBuf>, line, column: Option<u32>, code, message }
 }
@@ -172,16 +179,24 @@ pub enum IncompleteReason {
 }
 pub struct UsageSummary {
     pub model_requests: u32,                  // InvocationMeasurements request count
-    pub input_tokens: Option<u64>,            // sum of decision receipts (ExecutionUsage); None when no receipt reported it
+    pub input_tokens: Option<u64>,            // sum over completed requests' ExecutionUsage; None when no receipt reported tokens
     pub output_tokens: Option<u64>,
-    pub cost: Option<ReportedCost>,           // sum of receipt-reported cost; None means unavailable, never zero
+    pub cost_usd: Option<f64>,                // sum of ExecutionUsage.cost_usd that were reported; None when none was
+    pub cost_reported_requests: u32,          // completed requests whose receipt carried a cost
+    pub cost_missing_requests: u32,           // completed requests whose receipt did not; absence is never counted as zero
 }
 pub struct JudgmentSummary {
-    pub verdict: VerdictOutcome,              // native: basis (noul | composite), result, threshold, value
-    pub answers: Vec<DimensionResult>,        // native: question, answer, normalized_value, weight
-    pub evidence: Vec<EvidenceExcerpt>,       // the selection the model saw, copied from the report's captures
+    pub request_index: usize,                 // key into LintReport.evidence_seen
+    pub basis: VerdictBasis,                  // native: noul | composite
+    pub result: VerdictResult,                // native: pass | fail
+    pub value: f64,
+    pub threshold: f64,
+    pub answers: Vec<ResolvedAnswer>,         // every question of this rule in that request, resolved below
 }
-pub struct EvidenceExcerpt { pub file: PathBuf, pub span: Option<SourceSpan>, pub content_identity: String, pub text: String }
+pub struct ResolvedAnswer {
+    pub question: QuestionName,
+    pub answer: sunstack_decisions::JudgmentAnswer, // the typed value (noul, choice, score, informational) from RuleInvocationReport::answer(reference)
+}
 pub enum SettingOrigin { Authored, EntryWildcard, ExactRule, Override { index: u32 } }
 pub enum CheckResult { Valid { rules: Vec<RuleListing> }, Invalid { diagnostics: Vec<LintDiagnostic> } }
 pub struct RuleListing {
