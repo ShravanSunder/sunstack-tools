@@ -23,7 +23,7 @@ enum ExecutionLayout {
 enum SemanticOccurrence {
     NotApplicable,
     Pass,
-    FailNudge,
+    FailWarn,
 }
 fn semantic_results(report: &RuleInvocationReport) -> Vec<SemanticOccurrence> {
     report
@@ -34,8 +34,8 @@ fn semantic_results(report: &RuleInvocationReport) -> Vec<SemanticOccurrence> {
             RuleOccurrenceResult::Judged { judgment, .. } => match judgment.verdict.result {
                 VerdictResult::Pass => SemanticOccurrence::Pass,
                 VerdictResult::Fail {
-                    activation: Activation::Nudge,
-                } => SemanticOccurrence::FailNudge,
+                    activation: Activation::Warn,
+                } => SemanticOccurrence::FailWarn,
                 _ => panic!("unexpected severity"),
             },
             _ => panic!("completed-answer fixture produced {occurrence:?}"),
@@ -173,11 +173,11 @@ async fn handwritten_fixed_completed_answer_oracles_hold_for_staged_speculative_
         ),
         (
             [0.6, 0.79, 0.8],
-            vec![SemanticOccurrence::FailNudge, SemanticOccurrence::Pass],
+            vec![SemanticOccurrence::FailWarn, SemanticOccurrence::Pass],
         ),
         (
             [0.9, 0.0, 1.0],
-            vec![SemanticOccurrence::FailNudge, SemanticOccurrence::Pass],
+            vec![SemanticOccurrence::FailWarn, SemanticOccurrence::Pass],
         ),
     ];
     for (probabilities, expected) in cases {
@@ -226,7 +226,7 @@ fn random_completed_answers_and_actual_admission_orders_match_an_independent_sta
                             if probability >= 800 {
                                 SemanticOccurrence::Pass
                             } else {
-                                SemanticOccurrence::FailNudge
+                                SemanticOccurrence::FailWarn
                             }
                         })
                         .collect()

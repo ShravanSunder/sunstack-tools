@@ -29,3 +29,36 @@ fn raw_duplicate_fields_refuse_before_typed_maps_erase_them() {
     let diagnostics = decode_rule_set(duplicate.as_bytes(), "rules.json".as_ref()).unwrap_err();
     assert!(format!("{diagnostics:?}").contains("DuplicateField"));
 }
+
+#[test]
+fn severity_cutover_accepts_current_words_and_refuses_old_words_with_replacements() {
+    // R14 forbids aliases: old severities must fail at the typed definition boundary.
+    let baseline = serde_json::json!({"rule_id":"current-severity","evidence":[],"target":"target","applicability":[],"questions":{},"verdict":{"kind":"noul","question":{"type":"noul","instructions":"judge"},"threshold":0.8}});
+    for current in ["error", "warn"] {
+        let mut rule = baseline.clone();
+        rule["severity"] = serde_json::json!(current);
+        let decoded = decode_rule_definition(
+            &serde_json::to_vec(&rule).unwrap(),
+            "rules.jsonl".as_ref(),
+            7,
+        )
+        .unwrap();
+        assert_eq!(serde_json::to_value(decoded.severity).unwrap(), current);
+    }
+    for (retired, replacement) in [("block", "error"), ("nudge", "warn")] {
+        let mut rule = baseline.clone();
+        rule["severity"] = serde_json::json!(retired);
+        let diagnostics = decode_rule_definition(
+            &serde_json::to_vec(&rule).unwrap(),
+            "rules.jsonl".as_ref(),
+            7,
+        )
+        .unwrap_err();
+        assert!(diagnostics.items.iter().any(|item| matches!(item,
+            ReportDiagnostic::Rule(diagnostic)
+                if diagnostic.guidance.contains(replacement)
+                && matches!(&diagnostic.location, RuleDiagnosticLocation::Definition { file, line: 7, field_path, .. }
+                    if file == std::path::Path::new("rules.jsonl") && field_path == &["severity"])
+        )), "{diagnostics:?}");
+    }
+}

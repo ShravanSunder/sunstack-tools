@@ -1,5 +1,7 @@
 # Public contracts: exact shapes
 
+Severity vocabulary follows [runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config): `error` and `warn`. The confidence-band field `block_at_or_below` keeps its existing name and meaning.
+
 This companion to the [Program Design](program-design.md) gives the complete fields of every public input and output: the four program operations, their outcomes, reports, diagnostics and progress. A caller can build each request and decode each result from this page alone. Authored definitions (RuleSets, rule lines, routers, declarations, applicability, invocation input) are in [`schemas/`](schemas/) and the [schema inventory](schema-inventory.md).
 
 **Notation:**
@@ -200,8 +202,8 @@ Conversation records use the E31–E33 shapes in the main design's binding table
 | `OccurrenceSelection` | `selected { selected_by: [SelectedReason] }` or `comparison_pending`: a tracked source path changed, and the content comparison waits for the occurrence's acquisition frontier ([connected evidence](program-design-connected-evidence.md#how-change-scope-selects)) |
 | `SelectedReason` | Why a selected occurrence is in scope (Specification E15). Closed and ordered: `full_scope`, `target_changed`, `context_changed`, `rule_changed`, `new_rule`, `applicability_changed`, `baseline_unavailable`, `before_analysis_unknown`. `selected_by` is nonempty and unique, in this order, and lists every reason found in the step that settled selection. Under full scope it is exactly `[full_scope]`. Milestone 1 admits only full scope and its accepted shapes omit the selection; milestone 2 adds it in one cutover |
 | `Cause` | `request { request_index }`, `evidence { diagnostics }`, `budget { diagnostics }`, `gate { entry: EntryKey }`, `condition { entry: EntryKey, diagnostic }` |
-| `RuleJudgment` | `key`, `verdict: VerdictOutcome`, `declared_severity: block \| nudge`, `answers: map<QuestionName, JudgmentReference>`, `target: TargetLocation` |
-| `VerdictOutcome` | `basis: noul { answer: JudgmentReference } \| composite { dimensions: [{ question, weight, normalized_value, answer: JudgmentReference }] }`, `value`, `threshold`, `result: pass \| fail { activation: nudge \| block \| nudge_above_band { band } }` |
+| `RuleJudgment` | `key`, `verdict: VerdictOutcome`, `declared_severity: error \| warn`, `answers: map<QuestionName, JudgmentReference>`, `target: TargetLocation` |
+| `VerdictOutcome` | `basis: noul { answer: JudgmentReference } \| composite { dimensions: [{ question, weight, normalized_value, answer: JudgmentReference }] }`, `value`, `threshold`, `result: pass \| fail { activation: warn \| error \| warn_above_band { band } }` |
 | `JudgmentReference` | `request_index`, `question_name` (the request-local name, such as `q000003`) |
 | `RouterOutcome` | `routed { label, confidence, answer }`, `uncertain_intent { confidence, floor, distribution: map<label, number>, answer }`, `no_route { label, confidence, answer }`, `router_failed { cause: Cause }`, `not_evaluated { reason: cancelled }` |
 | `RequestRecord` | `index`, `owner: RequestOwner`, `mode: RequestMode`, `questions: [QuestionBinding]`, `prerequisites: [EntryKey]`, `status: sent { outcome: DecisionRunOutcome } \| not_sent { reason: gate_stopped { entry } \| cancelled \| budget_refused { diagnostics } \| evidence_refused { diagnostics } \| outside_change_scope \| request_limit }` (`evidence_refused`: every question's owner lost required evidence when the request became ready; see Program Design scheduling. `outside_change_scope`, milestone 2: every question's owner compared unchanged by content when the request became ready), `discarded: [{ question_name, reason: owner_not_applicable { entry } \| not_routed }]` |

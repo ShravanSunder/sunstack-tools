@@ -128,7 +128,7 @@ invented span. Noul and composite rules reject this mechanical-only target.
 A rules entry can replace its judgment threshold with one local check:
 
 ```json
-{"name":"skill.description","target":{"input":"skill","select":{"kind":"frontmatter_field","field":"description"}},"expect":{"starts_with":"Use when"},"severity":"block"}
+{"name":"skill.description","target":{"input":"skill","select":{"kind":"frontmatter_field","field":"description"}},"expect":{"starts_with":"Use when"},"severity":"error"}
 ```
 
 `expect` accepts exactly one of `matches`, `not_matches`, `starts_with` or

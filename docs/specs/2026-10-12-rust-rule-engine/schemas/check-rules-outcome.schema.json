@@ -2188,7 +2188,7 @@
         },
         "severity": {
           "$ref": "#/$defs/Severity",
-          "default": "nudge"
+          "default": "warn"
         },
         "target": {
           "$ref": "#/$defs/DeclarationId"
@@ -2651,8 +2651,8 @@
     "Severity": {
       "type": "string",
       "enum": [
-        "block",
-        "nudge"
+        "error",
+        "warn"
       ]
     },
     "SnapshotId": {

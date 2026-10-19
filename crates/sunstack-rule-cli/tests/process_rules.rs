@@ -40,7 +40,7 @@ async fn prepare_rules_is_a_real_operation_with_prepared_native_evidence_and_no_
 async fn prepared_rule_requests_do_not_dispatch_and_completed_block_failures_exit_zero() {
     let root = tempfile::tempdir().unwrap();
     let mut rule = rule_fixture::rule("blocked");
-    rule["severity"] = json!("block");
+    rule["severity"] = json!("error");
     rule["verdict"]["block_at_or_below"] = json!(0.3);
     rule_fixture::write_set(root.path(), &[rule], vec![]);
     let server = AnswerServer::start(ReplyMode::Answers {
@@ -78,15 +78,15 @@ async fn prepared_rule_requests_do_not_dispatch_and_completed_block_failures_exi
         json!(["full_scope"])
     );
     let judgment = &evaluated["result"]["outcome"]["report"]["occurrences"][0]["judgment"];
-    assert_eq!(judgment["declared_severity"], "block");
+    assert_eq!(judgment["declared_severity"], "error");
     assert_eq!(
         judgment["verdict"]["result"],
-        json!({"kind":"fail","activation":{"kind":"block"}})
+        json!({"kind":"fail","activation":{"kind":"error"}})
     );
     let (count, bodies) = server.finish().await;
     assert_eq!(count, 2);
     record_observation(
-        "rules-block-failure",
+        "rules-error-failure",
         json!({"http_requests":count,"bodies":bodies,"report":evaluated}),
     );
 }

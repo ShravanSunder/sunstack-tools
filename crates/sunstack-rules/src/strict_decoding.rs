@@ -71,7 +71,14 @@ pub(crate) fn decode_definition<T: serde::de::DeserializeOwned>(
         } else {
             RuleDiagnosticCode::MalformedJson
         };
-        RuleDiagnostic::new(code)
+        let mut diagnostic = RuleDiagnostic::new(code);
+        // Only these fixed migration messages may cross the diagnostic privacy boundary.
+        if message.starts_with("severity `block` was renamed to `error`") {
+            diagnostic.guidance = "Use severity `error`; the old severity word is refused.".into();
+        } else if message.starts_with("severity `nudge` was renamed to `warn`") {
+            diagnostic.guidance = "Use severity `warn`; the old severity word is refused.".into();
+        }
+        diagnostic
             .definition(
                 file,
                 line.saturating_add(error.line()).saturating_sub(1),

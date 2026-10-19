@@ -181,7 +181,7 @@ pub fn check_journey(report: &Value, handoff: bool) {
         );
         assert!(matches!(
             judgment["declared_severity"].as_str(),
-            Some("block" | "nudge")
+            Some("error" | "warn")
         ));
         assert!(!judgment["target"].is_null());
         for reference in judgment["answers"].as_object().unwrap().values() {
@@ -237,7 +237,8 @@ fn native_answer<'report>(report: &'report Value, reference: &Value) -> &'report
 fn check_verdict_arithmetic(report: &Value, occurrence: &Value) {
     let judgment = &occurrence["judgment"];
     let verdict = &judgment["verdict"];
-    let (expected, threshold, block, band) = match occurrence["key"]["rule_id"].as_str().unwrap() {
+    let (expected, threshold, is_error, band) = match occurrence["key"]["rule_id"].as_str().unwrap()
+    {
         "skill.output.specificity" => {
             let score = native_answer(report, &judgment["answers"]["specificity"])["score"]
                 .as_f64()
@@ -274,19 +275,19 @@ fn check_verdict_arithmetic(report: &Value, occurrence: &Value) {
     assert!((verdict["value"].as_f64().unwrap() - expected).abs() < 1e-12);
     assert_eq!(
         judgment["declared_severity"],
-        if block { "block" } else { "nudge" }
+        if is_error { "error" } else { "warn" }
     );
     assert_eq!(verdict["threshold"], threshold);
     if expected >= threshold {
         assert_eq!(verdict["result"]["kind"], "pass");
     } else {
         assert_eq!(verdict["result"]["kind"], "fail");
-        let activation = if !block {
-            "nudge"
+        let activation = if !is_error {
+            "warn"
         } else if band.is_some_and(|band| expected > band) {
-            "nudge_above_band"
+            "warn_above_band"
         } else {
-            "block"
+            "error"
         };
         assert_eq!(verdict["result"]["activation"]["kind"], activation);
     }

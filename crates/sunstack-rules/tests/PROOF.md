@@ -248,10 +248,10 @@ Layer: Pure native contract/logic.
 
 | Test | Wrong behavior and independent oracle |
 | --- | --- |
-| `blocking_band_table_preserves_inclusive_threshold_and_native_basis` | Threshold/band boundaries are exclusive or fabricated confidence is used; exact V33 .30/.31/.79/.80 table expects block/nudge/nudge/pass and native answer references. |
+| `error_band_table_preserves_inclusive_threshold_and_native_basis` | Threshold/band boundaries are exclusive or fabricated confidence is used; exact V33 .30/.31/.79/.80 table expects error/warn/warn/pass and native answer references. |
 | `composite_normalizes_fractional_scores_and_keeps_each_native_reference` | Composite normalization loses fractional score/native references; literal 1.5/3 and .8 with fixed weights require .575, no noul confidence, and failure when dimensions are unavailable. |
-| `verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape` | Invalid bands/dimensions slip through admission; literal missing/wrong-kind/single-level/nonpositive/nonunit-sum cases and band-at/above-threshold/nudge cases must refuse. |
-| `composite_threshold_equality_and_default_nudge_use_native_values_without_fabricated_confidence` | Composite equality fails, nudge is not the default, or severity activates on pass; literal .75/.7499 values and omitted-severity decoding check those boundaries. |
+| `verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape` | Invalid bands/dimensions slip through admission; literal missing/wrong-kind/single-level/nonpositive/nonunit-sum cases and band-at/above-threshold/warn cases must refuse. |
+| `composite_threshold_equality_and_default_warn_use_native_values_without_fabricated_confidence` | Composite equality fails, warn is not the default, or severity activates on pass; literal .75/.7499 values and omitted-severity decoding check those boundaries. |
 
 ## Observed reds and sensitivity
 

@@ -310,9 +310,9 @@ pub enum VerdictResult {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Activation {
-    Nudge,
-    Block,
-    NudgeAboveBand { band: f64 },
+    Warn,
+    Error,
+    WarnAboveBand { band: f64 },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]

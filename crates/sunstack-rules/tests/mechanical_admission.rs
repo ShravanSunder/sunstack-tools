@@ -18,7 +18,7 @@ fn write_source(root: &std::path::Path, entry: &str) {
     std::fs::write(root.join("standards.rules.json"), entry).unwrap();
 }
 fn entry(check: Value) -> Value {
-    let mut entry = json!({"name":"mechanical.one","target":{"input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},"severity":"block"});
+    let mut entry = json!({"name":"mechanical.one","target":{"input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},"severity":"error"});
     entry
         .as_object_mut()
         .unwrap()

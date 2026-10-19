@@ -1,5 +1,7 @@
 # Executable phase 2 proof
 
+Historical observations below retain the severity vocabulary and commands of their original target. Current severity values are `error` and `warn`; these records are not new runner proof.
+
 Accepted native base: S3a `37f4034b3bcd526ca0d6d6b11fdc3c922eca8585`, merged
 into the CLI through `7c64c1e5dd72b83dbec6a3da89e3b797e11af678`.
 Oracle: Specification C14/V2/V13/V14/V29/V30 at `34bee48`, plus the adopted

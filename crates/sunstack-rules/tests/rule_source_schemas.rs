@@ -84,7 +84,7 @@ async fn source_entry_schemas_preserve_shape_and_native_cross_field_refusals() {
         cases.push((invalid, false, false));
     }
     let mut band = entry();
-    band["severity"] = json!("block");
+    band["severity"] = json!("error");
     band["block_at_or_below"] = json!(0.2);
     cases.push((band, true, true));
     let mut reserved = entry();

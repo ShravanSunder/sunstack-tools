@@ -12,7 +12,7 @@ fn write_rules(root: &std::path::Path) {
     )
     .unwrap();
     std::fs::write(root.join("teaching.rules.json"),serde_json::to_vec(&json!({
-        "K014":{"name":"local.description","target":{"input":"skill","select":{"kind":"frontmatter_field","field":"description"}},"expect":{"present":true},"severity":"block"},
+        "K014":{"name":"local.description","target":{"input":"skill","select":{"kind":"frontmatter_field","field":"description"}},"expect":{"present":true},"severity":"error"},
         "K015":{"name":"local.peer","target":{"input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},"expect":{"starts_with":"Use"}}
     })).unwrap()).unwrap();
 }
@@ -116,7 +116,7 @@ async fn real_process_checks_and_prints_then_settles_frontmatter_without_credent
             .find(|result| result["key"]["rule_id"] == "local.description")
             .unwrap();
         assert_eq!(field["kind"], "checked");
-        assert_eq!(field["declared_severity"], "block");
+        assert_eq!(field["declared_severity"], "error");
         assert_eq!(field["outcome"]["kind"], state);
         if let Some(result) = result {
             assert_eq!(field["outcome"]["result"], result);

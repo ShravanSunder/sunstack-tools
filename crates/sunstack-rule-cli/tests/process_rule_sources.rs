@@ -94,14 +94,14 @@ async fn source_context_and_block_band_lower_through_native_admission() {
     let (directory, input) = source_fixture();
     write_entry(
         directory.path(),
-        json!({"name":"standard.visible","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U001"}},"context":[{"id":"background","input":"skill","select":{"kind":"whole_document"}}],"threshold":0.8,"severity":"block","block_at_or_below":0.2}),
+        json!({"name":"standard.visible","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U001"}},"context":[{"id":"background","input":"skill","select":{"kind":"whole_document"}}],"threshold":0.8,"severity":"error","block_at_or_below":0.2}),
     );
     let wire = response(
         &run_without_credential(directory.path(), "check_rules", input).await,
         0,
     );
     let definition = &wire["result"]["outcome"]["printed_rules"][0]["definition"];
-    assert_eq!(definition["severity"], "block");
+    assert_eq!(definition["severity"], "error");
     assert_eq!(definition["verdict"]["block_at_or_below"], 0.2);
     assert_eq!(definition["evidence"].as_array().unwrap().len(), 2);
     assert_eq!(definition["evidence"][1]["id"], "background");
@@ -214,7 +214,7 @@ async fn check_prints_exact_lowered_rule_without_credential_or_reviewed_document
         "Standard\n\nKeep visible words and code."
     );
     assert_eq!(printed["definition"]["verdict"]["threshold"], 0.8);
-    assert_eq!(printed["definition"]["severity"], "nudge");
+    assert_eq!(printed["definition"]["severity"], "warn");
     assert_eq!(printed["definition"]["target"], "target");
     assert_eq!(printed["definition"]["evidence"][0]["input"], "skill");
     assert_eq!(printed["source"]["kind"], "markdown");
