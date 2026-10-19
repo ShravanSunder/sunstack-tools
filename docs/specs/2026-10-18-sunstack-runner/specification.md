@@ -8,12 +8,12 @@ Which obligations belong to each confirmed capability? Names and purposes re-ren
 
 | Key | Capability | Purpose | Home obligations | Also serves |
 | --- | --- | --- | --- | --- |
-| `runner` | The runner | One `sunstack` command for lint now and other uses later, from a terminal, Node and Rust | [R1–R7](#runner) | — |
-| `config` | The config | One file per use: what to run, at what severity, on which files, with which backend | [R8–R15](#config) | R14 also serves `runner` |
+| `runner` | The runner | One `sunstack` command for lint now and other uses later, from a terminal, Node and Rust | [R1–R7](#runner) | R4 also serves `config` |
+| `config` | The config | One file per use: what to run, at what severity, on which files, with which backend | [R8–R15](#config) | R12 and R14 also serve `runner` |
 | `portable-builds` | Runs anywhere | Binaries that run on Linux and macOS with nothing else installed | [R16–R18](#portable-builds) | — |
-| `install` | Install it the usual way | Homebrew or whatever people normally use | [R19–R23](#install) | — |
+| `install` | Install it the usual way | Homebrew or whatever people normally use | [R19–R23](#install) | R22 also serves `runner` |
 
-The path from need to proof is [Requirements](requirements.md) → this Specification → Program Design (not yet authored) → Verification Design (not yet authored).
+The path from need to proof is [Requirements](requirements.md) → this Specification → [Program Design](program-design.md) → [Verification Design](verification-design.md).
 
 ## Who uses which surface
 
@@ -108,7 +108,7 @@ The `json` report contains: the config path; the version; each finding (rule, fi
 | R12 | Lint never targets files that match `ignore_patterns` or that Git ignores. These exclusions apply to targets only; context a rule declares is still available to it. Paths given on the command line resolve from the current directory; paths in the config resolve from the config's directory. | U1 |
 | R13 | Lint needs `backend` in the config and `OPENROUTER_API_KEY` in the environment only when the run reaches model work: a judged rule, or a model-based applicability decision, for a selected target. When model work is reachable and either is missing, lint exits 2 before any model request. Runs that reach no model work, including `--check`, `--rules` and a run with nothing selected, need neither. The key is never written to output. | U7 |
 | R14 | Rule files use `error` or `warn` for severity, and a rule without one is `warn`. `block` and `nudge` are refused with a message naming the replacement. Reports, schemas, `exec` responses and documentation use the same words, including the outcome for a failed verdict above the confidence band. | U4 |
-| R15 | Each release publishes the JSON schema of `sunstack.lint.json` at a versioned URL, and the binary validates configs against the same definition. | U5 |
+| R15 | Each release publishes the JSON schema of `sunstack.lint.json` at a versioned URL. The schema and the binary agree on the config's structure: field names, types, required fields and allowed values. Checks that need the filesystem or the loaded rules (a missing rule-set file, two entries naming the same file, an unknown rule ID) belong to the binary alone and are not in the schema. | U5 |
 
 ### C4. sunstack.lint.json
 
@@ -168,7 +168,7 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | --- | --- |
 | Security | The OpenRouter key comes only from the environment, is never written to output, a report or a config, and is sent only to the configured backend. |
 | Privacy | Text selected for a judged rule is sent to OpenRouter. Mechanical rules send nothing. The README says this. |
-| Cost | Judged rules cost money per request. `--changed`, `--since`, `limits` and `off` are the controls, and the report shows requests, tokens and cost. |
+| Cost | Judged rules cost money per request. the default uncommitted scope, `--since`, `limits` and `off` are the controls, and the report shows requests, tokens and cost. |
 | Reliability | A model or network failure makes the run incomplete (exit 3), never clean. |
 | Compatibility | `exec` keeps its protocol apart from the severity words. `sunstack.lint.json` is versioned by its schema URL; a breaking change needs a new major version. |
 | Performance | Not specified: the owner set no threshold. |
@@ -192,7 +192,7 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | V1 | R1, R3 | A config with one mechanical and one judged rule set lints a fixture repository, and every format lists the same findings with rule, file, location, severity and message | a finding is missing, or formats disagree |
 | V2 | R2 | Fixtures produce each exit code 0–4; a run with both an `error` finding and an incomplete part exits 3 and lists both; a run with nothing selected exits 0 and says "No checks selected" | any outcome maps to a different code |
 | V3 | R4 | In a scripted Git history, the default scope, `--since` and `--all` select the expected targets; an unchanged target whose rule changed is selected; a changed config selects every target; the default outside Git exits 2 | an unchanged, unaffected file is linted, an affected one is missed, or a scope falls back silently |
-| V4 | R5 | `--check` makes no model request, catches each invalid-config case, and `--init` refuses to overwrite | a model request is made, or an invalid config passes |
+| V4 | R5 | `--check` makes no model request and reads no target, and catches each invalid-config case; `--rules` lists every enabled rule with its entry, source location, kind, authored severity and configured severity, and `--rules <file>` names the effective severity and the setting that decided it for a file covered by an override; `--init` in an empty directory creates a skeleton that `--check` accepts, and refuses to overwrite an existing file | a model request is made, an invalid config passes, a listed field is missing or wrong, the deciding setting is misreported, or `--init` creates nothing or overwrites |
 | V5 | R6 | The engine's existing protocol tests pass through `sunstack exec` with only the severity words changed | any other protocol change |
 | V6 | R7 | `npx sunstack lint --format json` and the Rust library call return the same report as the CLI for the same fixture | reports differ |
 | V7 | R8, R9 | Discovery picks the nearest config; each invalid config exits 2 with file, line and column | the wrong config is used, or an error lacks its location |
@@ -200,6 +200,6 @@ A rule turned `off` everywhere is not run at all and costs no model request. A r
 | V9 | R11, R12 | A non-document rule set is refused by `--check`; ignored and Git-ignored files are never targets, while a rule that declares one as context still receives it | any is not the case |
 | V10 | R13, R17 | A config with no reachable model work runs with no key, including mechanical rules behind a deterministic gate and a run with nothing selected; reachable model work (a judged rule or a model-based gate) without a key exits 2 before any request; a real Jev judgment completes from a static Linux build with no CA bundle | any is not the case |
 | V11 | R14 | Rule files with `block` or `nudge` are refused with the replacement named; reports use `error` and `warn` | old words are accepted or appear |
-| V12 | R15 | The published schema rejects and accepts the same configs as the binary | they disagree |
+| V12 | R15 | For configs that differ only in structure, the published schema and the binary accept and reject the same ones; separately, configs that are structurally valid but reference a missing rule-set file, the same file twice or an unknown rule ID pass the schema and are refused by the binary | the schema and the binary disagree on a structural case, or a semantic case is accepted by the binary |
 | V13 | R16, R18 | Each release build loads only the allowed libraries, and runs `--version`, `lint --check` and a lint run on clean macOS, Alpine and Debian | an extra library is loaded, or a run fails |
-| V14 | R19–R23 | In a private test repository, the generated release workflow builds all four targets and produces archives, checksums, the Homebrew formula and the npm package. Installing those exact bytes through each channel, from a local mirror of the release, gives a binary that reports the release version, lints a fixture with the right exit codes, and stops on Ctrl-C, including through the npm launcher. Installing from the public release URLs is proven at the first public release, outside this work | any channel fails, reports another version, or loses an exit code or signal |
+| V14 | R19–R23 | In a private test repository, the generated release workflow builds all four targets for two test versions, and produces archives, checksums, the Homebrew formula and the npm package for each. Installing those exact bytes through each channel, from a local mirror of the releases, gives a binary that reports its release version, lints a fixture with the right exit codes, and stops on Ctrl-C, including through the npm launcher. The shell installer, asked for the older version while the newer one is available, downloads and installs the older version's bytes. Installing from the public release URLs is proven at the first public release, outside this work | any channel fails, reports another version, installs the newer version when the older was requested, or loses an exit code or signal |
