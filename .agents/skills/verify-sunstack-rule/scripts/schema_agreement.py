@@ -27,6 +27,11 @@ from runner_contracts import (
 from runner_fixture_setup import base_config, mechanical_rule, write_fixture
 from runner_process import RunnerTarget, run_case
 from scenario_transport import ControlledServer
+from schema_fixtures import (
+    authored_location,
+    structural_config_negatives,
+    weakened_schema_sensitivity,
+)
 
 SEMANTIC_REFUSALS = {
     "bad-glob",  # Specification R15/V12 at 59b12d3: glob grammar is binary-only.
@@ -201,6 +206,30 @@ def observe_schema(
                 *config_check_expectation(name),
             )
         )
+    structural_cases = structural_config_negatives()
+    sensitivity = weakened_schema_sensitivity(schema, structural_cases)
+    write_json(
+        evidence / "sensitivity.json",
+        {
+            "changed_verdicts": sensitivity,
+            "all_axes_sensitive": all(sensitivity.values()),
+        },
+    )
+    for negative in structural_cases:
+        fixture = evidence / negative.name
+        write_fixture(fixture, config=negative.config)
+        line, first, last = authored_location(
+            negative, (fixture / "sunstack.lint.json").read_text()
+        )
+        original = FixtureCase(
+            name=negative.name,
+            diagnostic_file="sunstack.lint.json",
+            diagnostic_line=line,
+            diagnostic_column=first,
+            diagnostic_column_end=last,
+            wrong_build="Config structure is accepted or loses its authored location",
+        )
+        cases.append((original, fixture, "structural", False, 2))
     for original, fixture, category, expected_schema, expected_exit in cases:
         config_file = fixture / original.selected_config
         raw = config_file.read_text()
@@ -284,11 +313,12 @@ def observe_schema(
             "cases": len(rows),
             "mismatches": mismatches,
             "parser_note": "Duplicate names/syntax are parser refusals, not JSON Schema assertions",
+            "sensitivity": sensitivity,
         },
     )
-    if mismatches:
+    if mismatches or not all(sensitivity.values()):
         raise ValueError(
-            f"Released-schema agreement failed: {mismatches}; inspect {evidence}"
+            f"Released-schema agreement failed: {mismatches}; insensitive axes: {[name for name, changed in sensitivity.items() if not changed]}; inspect {evidence}"
         )
 
 
