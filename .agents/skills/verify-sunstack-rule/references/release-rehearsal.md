@@ -56,7 +56,9 @@ For each version × channel × platform:
 
 1. Installed native SHA256 equals the matching extracted release; `--version` equals `sunstack <tag-without-v>`. Formula/npm versions match the tag. An older request installing newer bytes fails.
 2. `lint --check` exits 0; mechanical error lint exits 1 with the exact finding; clean lint exits 0. Direct-bin output/exits 0–3 match native, including invalid input and a real incomplete case. Compare parsed native/bin JSON on **identical fixture paths/state**, every field including config/version/findings/evidence/usage. Join installed-bin → CLI equality to the real Rust CLI → library equality only after checking the actual test boundary/assertions and source/dependency/config applicability; a producer claim alone is insufficient.
-3. Use a held synthetic HTTP request to establish readiness before signaling; no genuine provider call is needed. Drive every supported cell below.
+3. For every Homebrew and shell installation, run its installed native binary under the minimal environment above. After a held synthetic HTTP request establishes readiness, send SIGINT to its owned foreground process group. Require exit 4, the full cancelled JSON report, a closed request socket and no surviving owned processes **before cleanup**. No genuine provider call is needed.
+
+For npm, drive every additional supported cell below with the same held-request readiness and pre-cleanup settlement checks.
 
 | Invocation and signal destination | Required result |
 | --- | --- |
