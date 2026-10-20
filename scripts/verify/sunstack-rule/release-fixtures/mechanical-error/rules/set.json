@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "Runner fixture",
+  "description": "Literal S1 oracle",
+  "inputs": {
+    "subject": {
+      "kind": "document"
+    }
+  },
+  "applicability": [],
+  "common_ruleset_instructions": "Read only the supplied synthetic text.",
+  "rule_paths": [
+    "rules.jsonl"
+  ]
+}

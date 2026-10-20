@@ -164,7 +164,13 @@ def main() -> None:
             result = subprocess.run(
                 command, env=environment, capture_output=True, timeout=240, check=False
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as error:
+            partial_stdout = error.stdout or b""
+            partial_stderr = error.stderr or b""
+            leaked = (
+                secret.encode() in partial_stdout or secret.encode() in partial_stderr
+            )
+            del secret
             cleanup = subprocess.run(
                 ["docker", "rm", "--force", name],
                 capture_output=True,
@@ -177,8 +183,21 @@ def main() -> None:
                     "remote_outcome": "unknown",
                     "container_cleanup_exit": cleanup.returncode,
                     "retry_performed": False,
+                    "output_partial": True,
+                    "raw_output_retained": not leaked,
                 },
             )
+            if leaked:
+                write_json(
+                    evidence / "credential-leak.json",
+                    {"observed": True, "raw_output_retained": False},
+                )
+                raise ValueError(
+                    "Credential appeared in partial output; raw output withheld; "
+                    "remote billing/outcome unknown; do not retry"
+                ) from None
+            (evidence / "stdout.partial.log").write_bytes(partial_stdout)
+            (evidence / "stderr.partial.log").write_bytes(partial_stderr)
             raise ValueError(
                 "Hosted command timed out; remote billing/outcome unknown; do not retry"
             ) from None
