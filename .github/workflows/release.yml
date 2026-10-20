@@ -365,8 +365,8 @@ jobs:
       id-token: write
     env:
       PLAN: ${{ needs.plan.outputs.val }}
-    # Rehearsal prereleases never publish to the real npm registry.
-    if: ${{ needs.plan.outputs.publishing == 'true' && !fromJson(needs.plan.outputs.val).announcement_is_prerelease }}
+    # npm waits until the owner configures trusted publishing and enables this variable.
+    if: ${{ vars.NPM_TRUSTED_PUBLISHING == 'true' && needs.plan.outputs.publishing == 'true' && !fromJson(needs.plan.outputs.val).announcement_is_prerelease }}
     steps:
       - name: Fetch npm packages
         uses: actions/download-artifact@v8
