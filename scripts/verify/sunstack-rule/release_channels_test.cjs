@@ -359,3 +359,89 @@ const request=http.request(config.backend.endpoint,{method:'POST',headers:{'cont
 	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', configPath), 'pass');
 	assert.deepEqual(result.observation.admitted_request.state, state);
 });
+
+test('an owned native in a separate process group is admitted without widening the signal destination', async () => {
+	const root = fileSystem.mkdtempSync(
+		path.join(operatingSystem.tmpdir(), 'sunstack-s4-detached-control-'),
+	);
+	const configPath = path.join(root, 'sunstack.lint.json');
+	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
+	const state = { contents: { content1: 'detached native held state' } };
+	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
+	const binary = path.join(root, 'sunstack');
+	const source = `const fs=require('node:fs'),http=require('node:http');
+process.on('SIGINT',()=>process.stdout.write(JSON.stringify({...${JSON.stringify(reference)},version:'0.0.6',config:${JSON.stringify(configPath)}})+'\\n',()=>process.exit(4)));
+const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).backend.endpoint;
+const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});request.end(JSON.stringify({state:${JSON.stringify(state)},questions:{question1:{question:'held'}}}));`;
+	fileSystem.writeFileSync(binary, source);
+	const wrapper = `const {spawn}=require('node:child_process');
+const child=spawn(process.execPath,[${JSON.stringify(binary)}],{detached:true,stdio:['ignore',process.stdout,process.stderr]});
+process.on('SIGINT',()=>child.kill('SIGINT'));
+child.on('close',(code)=>process.exit(code));`;
+	const result = await captureProcess({
+		command: [process.execPath, '-e', wrapper],
+		cwd: root,
+		environment: { PATH: '/usr/bin:/bin', HOME: root },
+		stem: path.join(root, 'capture'),
+		stop: { signal: 'SIGINT', destination: 'group', expectation: 'cancel4' },
+		expectedNativeSha: sha256(Buffer.from(source)),
+	});
+	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', configPath), 'pass');
+	assert.equal(result.observation.stop.destination, 'group');
+	assert.ok(
+		result.observation.owned_tree_at_readiness.some(
+			(member) => member.group !== result.observation.pid,
+		),
+	);
+	assert.ok(
+		result.observation.native_identity_at_readiness.every(
+			(member) => member.pid !== result.observation.pid,
+		),
+	);
+});
+
+test('an unrelated native with matching bytes cannot authorize a held request from another process', async (testContext) => {
+	const { spawn } = require('node:child_process');
+	const root = fileSystem.mkdtempSync(
+		path.join(operatingSystem.tmpdir(), 'sunstack-s4-unrelated-control-'),
+	);
+	const configPath = path.join(root, 'sunstack.lint.json');
+	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
+	const binary = path.join(root, 'sunstack');
+	const source = "process.stdout.write('decoy ready');setInterval(()=>{},1000);";
+	fileSystem.writeFileSync(binary, source);
+	const decoy = spawn(process.execPath, [binary], {
+		detached: true,
+		stdio: ['ignore', 'pipe', 'pipe'],
+	});
+	const closed = new Promise((resolve) => decoy.once('close', resolve));
+	testContext.after(async () => {
+		try {
+			process.kill(-decoy.pid, 'SIGKILL');
+		} catch (error) {
+			if (error.code !== 'ESRCH') throw error;
+		}
+		await closed;
+	});
+	await new Promise((resolve, reject) => {
+		decoy.stdout.once('data', resolve);
+		decoy.once('error', reject);
+	});
+	const stranger = `const fs=require('node:fs'),http=require('node:http');
+const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).backend.endpoint;
+const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});request.end(JSON.stringify({state:{contents:{}},questions:{question1:{question:'held'}}}));`;
+	const result = await captureProcess({
+		command: [process.execPath, '-e', stranger],
+		cwd: root,
+		environment: { PATH: '/usr/bin:/bin', HOME: root },
+		stem: path.join(root, 'refused'),
+		stop: { signal: 'SIGINT', destination: 'group', expectation: 'cancel4' },
+		expectedNativeSha: sha256(Buffer.from(source)),
+	});
+	assert.match(result.observation.error, /owned by the installed/);
+	assert.equal(result.observation.signal_at_ms, null);
+	assert.doesNotThrow(
+		() => process.kill(decoy.pid, 0),
+		'unrelated native must not be cleaned by the observer',
+	);
+});

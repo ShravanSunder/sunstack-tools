@@ -7,10 +7,11 @@ const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const { sha256, save } = require('./release_registry.cjs');
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const noOwnedProcesses = () => [];
 
-function groupMembers(group) {
+function processMembers() {
 	if (process.platform === 'darwin') {
-		const result = spawnSync('/bin/ps', ['-axo', 'pid=,ppid=,pgid=,stat=,command='], {
+		const result = spawnSync('/bin/ps', ['-axo', 'pid=,ppid=,pgid=,stat=,lstart=,command='], {
 			encoding: 'utf8',
 		});
 		assert.equal(
@@ -20,14 +21,15 @@ function groupMembers(group) {
 		);
 		return result.stdout.split('\n').flatMap((line) => {
 			const fields = line.trim().split(/\s+/);
-			return +fields[2] === group
+			return fields.length >= 10 && /^\d+$/.test(fields[0])
 				? [
 						{
 							pid: +fields[0],
 							parent: +fields[1],
 							group: +fields[2],
 							state: fields[3],
-							command: fields.slice(4).join(' '),
+							started: fields.slice(4, 9).join(' '),
+							command: fields.slice(9).join(' '),
 						},
 					]
 				: [];
@@ -40,24 +42,65 @@ function groupMembers(group) {
 			try {
 				const stat = fileSystem.readFileSync('/proc/' + name + '/stat', 'utf8');
 				const fields = stat.slice(stat.lastIndexOf(')') + 2).split(' ');
-				return +fields[2] === group
-					? [
-							{
-								pid: +name,
-								parent: +fields[1],
-								group: +fields[2],
-								state: fields[0],
-								command: fileSystem
-									.readFileSync('/proc/' + name + '/cmdline', 'utf8')
-									.replaceAll('\0', ' '),
-							},
-						]
-					: [];
+				return [
+					{
+						pid: +name,
+						parent: +fields[1],
+						group: +fields[2],
+						state: fields[0],
+						started: fields[19],
+						command: fileSystem
+							.readFileSync('/proc/' + name + '/cmdline', 'utf8')
+							.replaceAll('\0', ' '),
+					},
+				];
 			} catch (error) {
 				if (error.code === 'ENOENT' || error.code === 'ESRCH') return [];
 				throw error;
 			}
 		});
+}
+
+function groupMembers(group) {
+	return processMembers().filter((member) => member.group === group);
+}
+
+function trackOwnedTree(rootPid) {
+	const knownStarts = new Map();
+	let initialized = false;
+	return () => {
+		const members = processMembers();
+		const root = members.find((member) => member.pid === rootPid);
+		if (!initialized) {
+			initialized = true;
+			if (root && root.parent === process.pid) knownStarts.set(root.pid, root.started);
+		}
+		const owned = new Set(
+			members
+				.filter(
+					(member) => knownStarts.has(member.pid) && knownStarts.get(member.pid) === member.started,
+				)
+				.map((member) => member.pid),
+		);
+		for (let index = 0; index < members.length; index++) {
+			for (const member of members) {
+				if (owned.has(member.parent)) {
+					knownStarts.set(member.pid, member.started);
+					owned.add(member.pid);
+				}
+			}
+		}
+		return members.filter((member) => owned.has(member.pid));
+	};
+}
+
+async function settleOwnedTree(observe) {
+	let members = observe();
+	for (let attempt = 0; attempt < 100 && members.length; attempt++) {
+		await delay(30);
+		members = observe();
+	}
+	return members;
 }
 
 async function settleGroup(group) {
@@ -69,12 +112,16 @@ async function settleGroup(group) {
 	return members;
 }
 
-function ownedKill(group, signal) {
+function signalOwnedTarget(targetPid, signal) {
 	try {
-		process.kill(-group, signal);
+		process.kill(targetPid, signal);
 	} catch (error) {
 		if (error.code !== 'ESRCH') throw error;
 	}
+}
+
+function ownedKill(group, signal) {
+	signalOwnedTarget(-group, signal);
 }
 
 async function captureProcess({
@@ -119,6 +166,7 @@ async function captureProcess({
 		readyResolve = resolve;
 	});
 	let configBefore;
+	let observeOwned = noOwnedProcesses;
 	const configPath = path.join(cwd, 'sunstack.lint.json');
 	if (stop) {
 		server = http.createServer((request) => {
@@ -139,7 +187,7 @@ async function captureProcess({
 							Object.keys(admitted.questions).length > 0,
 					);
 					assert.ok(admitted.state);
-					readyGroup = groupMembers(child.pid);
+					readyGroup = observeOwned();
 					nativeIdentity = [];
 					for (const member of readyGroup) {
 						for (const token of member.command.split(/\s+/)) {
@@ -195,6 +243,10 @@ async function captureProcess({
 			detached: true,
 			stdio: ['ignore', 'pipe', 'pipe'],
 		});
+		if (child.pid) {
+			observeOwned = trackOwnedTree(child.pid);
+			observeOwned();
+		}
 		child.stdout.on('data', (chunk) => stdout.push(chunk));
 		child.stderr.on('data', (chunk) => stderr.push(chunk));
 		let closedResolve, failedResolve;
@@ -233,7 +285,7 @@ async function captureProcess({
 						after_signal_ms: elapsed() - signalAt,
 						exit: rootExit,
 						close: rootClose,
-						group: groupMembers(child.pid),
+						owned_tree: observeOwned(),
 						sockets: sockets.size,
 					});
 				}
@@ -251,8 +303,8 @@ async function captureProcess({
 	} finally {
 		const before = child?.pid
 			? stop?.expectation === 'no-cancelled-report'
-				? groupMembers(child.pid)
-				: await settleGroup(child.pid)
+				? observeOwned()
+				: await settleOwnedTree(observeOwned)
 			: [];
 		if (stop && stop.expectation !== 'no-cancelled-report' && sockets.size > 0) {
 			await Promise.race([socketsClosed, deadline(3000, false)]);
@@ -270,7 +322,7 @@ async function captureProcess({
 			admitted_request: admitted || null,
 			signal_at_ms: signalAt ?? null,
 			stop: stop || null,
-			group_at_readiness: readyGroup || [],
+			owned_tree_at_readiness: readyGroup || [],
 			native_identity_at_readiness: nativeIdentity || [],
 			timeline,
 			survivors_before_cleanup: before,
@@ -281,13 +333,15 @@ async function captureProcess({
 		save(stem + '.process.json', observation);
 		let after = [];
 		if (child?.pid) {
-			if (groupMembers(child.pid).length) {
+			if (observeOwned().length) {
 				ownedKill(child.pid, 'SIGINT');
-				after = await settleGroup(child.pid);
+				after = await settleOwnedTree(observeOwned);
 			}
 			if (after.length) {
-				ownedKill(child.pid, 'SIGKILL');
-				after = await settleGroup(child.pid);
+				for (const member of observeOwned()) {
+					signalOwnedTarget(member.pid, 'SIGKILL');
+				}
+				after = await settleOwnedTree(observeOwned);
 			}
 		}
 		for (const socket of sockets) socket.destroy();
