@@ -1,3 +1,7 @@
+import { reportIssue } from '../core/issues.ts';
+import type { Box as LabelBox } from './canvas-router.ts';
+import { flowLabelBounds, positionFlowLabel } from './flow-label-position.ts';
+
 interface Point {
 	readonly x: number;
 	readonly y: number;
@@ -261,10 +265,18 @@ export class FlowIsland extends HTMLElement {
 			});
 		}
 		const fragment = document.createDocumentFragment();
-		for (const route of routes) {
+		const routedPoints: Point[][] = [];
+		const captions: {
+			readonly arrow: Element;
+			readonly element: SVGTextElement;
+			readonly points: readonly Point[];
+			readonly routeIndex: number;
+		}[] = [];
+		for (const [routeIndex, route] of routes.entries()) {
 			const start = sidePoint(route.source, route.exit.side, route.exit.port.position);
 			const end = sidePoint(route.target, route.entry.side, route.entry.port.position);
 			const points = this.connect(route, start, end, boundaryY, boundaryX, lane);
+			routedPoints.push(points);
 			const path = document.createElementNS(svgNamespace, 'path');
 			path.classList.add('ex-arrow-line');
 			path.setAttribute('d', roundedPath(points));
@@ -279,21 +291,54 @@ export class FlowIsland extends HTMLElement {
 			if (labelText) {
 				const label = document.createElementNS(svgNamespace, 'text');
 				label.classList.add('ex-arrow-label');
-				const last = points.at(-1) ?? end;
-				const beforeLast = points.at(-2) ?? start;
-				const middle =
-					points.length > 2
-						? { x: (last.x + beforeLast.x) / 2, y: (last.y + beforeLast.y) / 2 + 4 }
-						: { x: (last.x + beforeLast.x) / 2, y: (last.y + beforeLast.y) / 2 - 6 };
-				label.setAttribute('x', String(middle.x));
-				label.setAttribute('y', String(middle.y));
+				label.setAttribute('dominant-baseline', 'central');
 				label.textContent = labelText;
 				Object.assign(label.dataset, ends);
 				fragment.append(label);
+				captions.push({ arrow: route.arrow, element: label, points, routeIndex });
 			}
 		}
 		overlay.querySelectorAll(':scope > :not(defs)').forEach((node): void => node.remove());
 		overlay.append(fragment);
+		const occupied = Array.from(boxes.values());
+		const placed: LabelBox[] = [];
+		const lineBounds = routedPoints.map((points): LabelBox[] =>
+			points.slice(1).map((after, index): LabelBox => {
+				const before = points[index] ?? after;
+				return {
+					left: Math.min(before.x, after.x) - 1,
+					right: Math.max(before.x, after.x) + 1,
+					top: Math.min(before.y, after.y) - 1,
+					bottom: Math.max(before.y, after.y) + 1,
+				};
+			}),
+		);
+		for (const caption of captions) {
+			// Measure attached SVG text in the actual theme/font; loadingdone schedules another pass.
+			const measured = caption.element.getBBox();
+			const position = positionFlowLabel({
+				points: caption.points,
+				width: measured.width,
+				height: measured.height,
+				bounds: { left: 0, top: 0, right: origin.width, bottom: origin.height },
+				obstacles: [
+					...occupied,
+					...lineBounds.filter((_, index): boolean => index !== caption.routeIndex).flat(),
+				],
+				placed,
+			});
+			if (!position) {
+				caption.element.remove();
+				reportIssue(
+					caption.arrow,
+					`No clear space for arrow label "${caption.element.textContent ?? ''}". Leave more room or use a shorter label and explain its detail in prose.`,
+				);
+				continue;
+			}
+			caption.element.setAttribute('x', String(position.x));
+			caption.element.setAttribute('y', String(position.y));
+			placed.push(flowLabelBounds(position, measured.width, measured.height));
+		}
 	}
 
 	private connect(
