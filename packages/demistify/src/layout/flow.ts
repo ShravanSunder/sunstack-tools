@@ -1,6 +1,12 @@
 import { reportIssue } from '../core/issues.ts';
 import type { Box as LabelBox } from './canvas-router.ts';
-import { flowLabelBounds, positionFlowLabel } from './flow-label-position.ts';
+import {
+	type FlowCaptionLayout,
+	alignFacingFlowPorts,
+	flowCaptionBounds,
+	layoutFlowCaption,
+	positionFlowCaption,
+} from './flow-connector-layout.ts';
 
 interface Point {
 	readonly x: number;
@@ -161,6 +167,7 @@ export class FlowIsland extends HTMLElement {
 	private route(): void {
 		const overlay = this.overlay;
 		if (!overlay || !this.checkVisibility()) return;
+		const captionLayouts = this.prepareCaptions(overlay);
 		// Work in the flow's own units so routing stays correct when a camera or zoom scales it.
 		const screen = this.getBoundingClientRect();
 		const scale = this.offsetWidth > 0 ? screen.width / this.offsetWidth : 1;
@@ -269,6 +276,8 @@ export class FlowIsland extends HTMLElement {
 		const captions: {
 			readonly arrow: Element;
 			readonly element: SVGTextElement;
+			readonly background: SVGRectElement;
+			readonly layout: FlowCaptionLayout;
 			readonly points: readonly Point[];
 			readonly routeIndex: number;
 		}[] = [];
@@ -288,14 +297,23 @@ export class FlowIsland extends HTMLElement {
 			Object.assign(path.dataset, ends);
 			fragment.append(path);
 			const labelText = route.arrow.getAttribute('label');
-			if (labelText) {
+			const layout = captionLayouts.get(route.arrow);
+			if (labelText && layout) {
 				const label = document.createElementNS(svgNamespace, 'text');
 				label.classList.add('ex-arrow-label');
 				label.setAttribute('dominant-baseline', 'central');
-				label.textContent = labelText;
 				Object.assign(label.dataset, ends);
-				fragment.append(label);
-				captions.push({ arrow: route.arrow, element: label, points, routeIndex });
+				const background = document.createElementNS(svgNamespace, 'rect');
+				background.classList.add('ex-flow-label-background');
+				fragment.append(background, label);
+				captions.push({
+					arrow: route.arrow,
+					element: label,
+					background,
+					layout,
+					points,
+					routeIndex,
+				});
 			}
 		}
 		overlay.querySelectorAll(':scope > :not(defs)').forEach((node): void => node.remove());
@@ -314,12 +332,10 @@ export class FlowIsland extends HTMLElement {
 			}),
 		);
 		for (const caption of captions) {
-			// Measure attached SVG text in the actual theme/font; loadingdone schedules another pass.
-			const measured = caption.element.getBBox();
-			const position = positionFlowLabel({
+			const position = positionFlowCaption({
 				points: caption.points,
-				width: measured.width,
-				height: measured.height,
+				width: caption.layout.width,
+				height: caption.layout.height,
 				bounds: { left: 0, top: 0, right: origin.width, bottom: origin.height },
 				obstacles: [
 					...occupied,
@@ -329,16 +345,68 @@ export class FlowIsland extends HTMLElement {
 			});
 			if (!position) {
 				caption.element.remove();
+				caption.background.remove();
 				reportIssue(
 					caption.arrow,
-					`No clear space for arrow label "${caption.element.textContent ?? ''}". Leave more room or use a shorter label and explain its detail in prose.`,
+					`No clear space for arrow label "${caption.arrow.getAttribute('label') ?? ''}" after wrapping. Leave more room around the connected cards.`,
 				);
 				continue;
 			}
-			caption.element.setAttribute('x', String(position.x));
-			caption.element.setAttribute('y', String(position.y));
-			placed.push(flowLabelBounds(position, measured.width, measured.height));
+			const bounds = flowCaptionBounds(position, caption.layout.width, caption.layout.height);
+			caption.background.setAttribute('x', String(bounds.left));
+			caption.background.setAttribute('y', String(bounds.top));
+			caption.background.setAttribute('width', String(bounds.right - bounds.left));
+			caption.background.setAttribute('height', String(bounds.bottom - bounds.top));
+			for (const [index, line] of caption.layout.lines.entries()) {
+				const span = document.createElementNS(svgNamespace, 'tspan');
+				span.setAttribute('x', String(position.x));
+				span.setAttribute(
+					'y',
+					String(
+						position.y +
+							(index - (caption.layout.lines.length - 1) / 2) * caption.layout.lineHeight,
+					),
+				);
+				span.textContent = line;
+				caption.element.append(span);
+			}
+			placed.push(bounds);
 		}
+	}
+
+	private prepareCaptions(overlay: SVGSVGElement): ReadonlyMap<Element, FlowCaptionLayout> {
+		const measurement = document.createElementNS(svgNamespace, 'text');
+		measurement.classList.add('ex-arrow-label');
+		measurement.setAttribute('visibility', 'hidden');
+		overlay.append(measurement);
+		const measureText = (text: string): number => {
+			measurement.textContent = text;
+			return measurement.getComputedTextLength();
+		};
+		const lineHeight = Math.ceil(
+			(Number.parseFloat(getComputedStyle(measurement).fontSize) || 14) * 1.35,
+		);
+		const captions = new Map<Element, FlowCaptionLayout>();
+		for (const arrow of this.querySelectorAll(':scope > ex-arrow')) {
+			const text = arrow.getAttribute('label')?.trim();
+			if (text) captions.set(arrow, layoutFlowCaption({ text, measureText, lineHeight }));
+		}
+		measurement.remove();
+		if (captions.size > 0) {
+			const layouts = [...captions.values()];
+			this.style.setProperty(
+				'--flow-label-column-gap',
+				`${Math.max(...layouts.map((layout): number => layout.columnGap))}px`,
+			);
+			this.style.setProperty(
+				'--flow-label-row-gap',
+				`${Math.max(...layouts.map((layout): number => layout.rowGap))}px`,
+			);
+		} else {
+			this.style.removeProperty('--flow-label-column-gap');
+			this.style.removeProperty('--flow-label-row-gap');
+		}
+		return captions;
 	}
 
 	private connect(
@@ -351,6 +419,14 @@ export class FlowIsland extends HTMLElement {
 	): Point[] {
 		const { source, target } = route;
 		if (route.exit.side === 'right' || route.exit.side === 'left') {
+			const aligned = alignFacingFlowPorts({
+				source,
+				target,
+				start,
+				end,
+				orientation: 'horizontal',
+			});
+			if (aligned) return [...aligned];
 			const y = Math.abs(start.y - end.y) < 24 ? (start.y + end.y) / 2 : start.y;
 			const middleX = (start.x + end.x) / 2;
 			return y === start.y && Math.abs(start.y - end.y) >= 24
@@ -360,13 +436,16 @@ export class FlowIsland extends HTMLElement {
 						{ x: end.x, y },
 					];
 		}
-		if (source.column === target.column && Math.abs(source.row - target.row) === 1)
+		if (source.column === target.column && Math.abs(source.row - target.row) === 1) {
+			const aligned = alignFacingFlowPorts({ source, target, start, end, orientation: 'vertical' });
+			if (aligned) return [...aligned];
 			return [
 				start,
 				{ x: start.x, y: (start.y + end.y) / 2 },
 				{ x: end.x, y: (start.y + end.y) / 2 },
 				end,
 			];
+		}
 		const exitBoundary = route.exit.side === 'bottom' ? source.row + 1 : source.row;
 		const entryBoundary = route.entry.side === 'top' ? target.row : target.row + 1;
 		const exitY = boundaryY(exitBoundary) + lane(`row-${exitBoundary}`);
