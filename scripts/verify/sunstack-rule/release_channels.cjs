@@ -9,11 +9,21 @@ const { captureProcess } = require('./release_process.cjs');
 const { installHomebrew } = require('./release_homebrew.cjs');
 const writeLine = (message) => process.stdout.write(message + '\n');
 const writeError = (error) => process.stderr.write((error.stack || String(error)) + '\n');
+const npmRoutes = ['local-bin', 'exec-script', 'global', 'npx', 'exec-npx', 'pnpm-dlx'];
+const expectedCellCount = (channel) => 2 * (channel === 'npm' ? npmRoutes.length : 1) * 11;
+
+function channelCommand(route, launch, words) {
+	if (route === 'exec-npx') {
+		const quoted = words.map((word) => "'" + word.replaceAll("'", "'\\''") + "'").join(' ');
+		return [...launch, 'exec sunstack ' + quoted];
+	}
+	return [...launch, ...(route === 'exec-script' && words[0] === 'lint' ? words.slice(1) : words)];
+}
 
 function argumentsFrom(argv) {
 	if (argv.includes('--help')) {
 		writeLine(
-			'S4 private installs: --commit DECLARED_PRODUCT_SHA --assets DIR (older/newer plus s4-artifacts.json) --native-root DIR (preflight older/newer/TARGET/sunstack) --fixtures DIR --evidence NEW_DIR --dependency-tar detect-libc-2.1.2.tgz --channel npm|shell|brew [--pnpm PATH]. npm runs local-bin, exec-script, global, npx and pnpm-dlx. No registry credentials or public publication.',
+			'S4 private installs: --commit DECLARED_PRODUCT_SHA --assets DIR (older/newer plus s4-artifacts.json) --native-root DIR (preflight older/newer/TARGET/sunstack) --fixtures DIR --evidence NEW_DIR --dependency-tar detect-libc-2.1.2.tgz --channel npm|shell|brew [--pnpm PATH]. npm runs local-bin, exec-script, global, npx, exec-npx and pnpm-dlx. No registry credentials or public publication.',
 		);
 		return null;
 	}
@@ -51,7 +61,7 @@ function stopExpectation(route, signal, destination, platform = process.platform
 		return route === 'npx' && platform === 'linux' ? 'cancelled-native/npx-int' : 'cancel4';
 	if (
 		(route === 'npx' && platform === 'linux') ||
-		(signal === 'SIGHUP' && ['exec-script', 'npx'].includes(route))
+		(signal === 'SIGHUP' && ['exec-script', 'npx', 'exec-npx'].includes(route))
 	)
 		return 'no-cancelled-report';
 	if (signal === 'SIGHUP')
@@ -191,10 +201,7 @@ async function observeChannels(options) {
 				sha256(Buffer.from(await served.arrayBuffer())),
 				declaration[label].archive_sha256[target],
 			);
-			const routes =
-				options.channel === 'npm'
-					? ['local-bin', 'exec-script', 'global', 'npx', 'pnpm-dlx']
-					: [options.channel];
+			const routes = options.channel === 'npm' ? npmRoutes : [options.channel];
 			for (const route of routes) {
 				const cell = path.join(options.evidence, label, route);
 				fileSystem.mkdirSync(cell, { recursive: true });
@@ -310,6 +317,8 @@ async function observeChannels(options) {
 							);
 							launch = [path.join(env.npm_config_prefix, 'bin/sunstack')];
 						} else if (route === 'npx') launch = [process.execPath, npx, '--yes', spec];
+						else if (route === 'exec-npx')
+							launch = [process.execPath, npx, '--yes', '--package=' + spec, '-c'];
 						else if (route === 'pnpm-dlx')
 							launch = [
 								options.pnpm,
@@ -361,9 +370,9 @@ async function observeChannels(options) {
 							launch = [installedBinary];
 							channelCleanup = homebrewInstallation.cleanup;
 						}
-						if (['npx', 'pnpm-dlx'].includes(route)) {
+						if (['npx', 'exec-npx', 'pnpm-dlx'].includes(route)) {
 							const cold = await raw(
-								[...launch, '--version'],
+								channelCommand(route, launch, ['--version']),
 								consumer,
 								env,
 								path.join(cell, 'install'),
@@ -373,12 +382,11 @@ async function observeChannels(options) {
 					});
 					if (!installed) continue;
 					const executionEnv = ['shell', 'brew'].includes(route) ? minimal : env;
-					const args = (words) =>
-						route === 'exec-script' && words[0] === 'lint' ? words.slice(1) : words;
+					const commandFor = (words) => channelCommand(route, launch, words);
 					const versionCommand =
 						route === 'exec-script'
 							? [process.execPath, npm, 'run', '--silent', 'version']
-							: [...launch, '--version'];
+							: commandFor(['--version']);
 					const versionOK = await one('version', async () => {
 						const result = await raw(
 							versionCommand,
@@ -432,7 +440,7 @@ async function observeChannels(options) {
 					await one('check', async () => {
 						const fixture = copyFixture('check', 'clean');
 						await raw(
-							[...launch, ...args(['lint', '--check'])],
+							commandFor(['lint', '--check']),
 							fixture,
 							executionEnv,
 							path.join(cell, 'check'),
@@ -456,7 +464,7 @@ async function observeChannels(options) {
 								stem: path.join(cell, name + '-native'),
 							});
 							const result = await captureProcess({
-								command: [...launch, ...args(words)],
+								command: commandFor(words),
 								cwd: fixture,
 								environment: executionEnv,
 								stem: path.join(cell, name),
@@ -491,7 +499,7 @@ async function observeChannels(options) {
 							const fixture = copyFixture(name, 'cancel');
 							const expectation = stopExpectation(route, signal, destination);
 							const result = await captureProcess({
-								command: [...launch, ...args(['lint', '--all', '--format', 'json'])],
+								command: commandFor(['lint', '--all', '--format', 'json']),
 								cwd: fixture,
 								environment: executionEnv,
 								stem: path.join(cell, name),
@@ -523,7 +531,7 @@ async function observeChannels(options) {
 		await registry.close();
 		recordRows();
 	}
-	const expectedCells = 2 * (options.channel === 'npm' ? 5 : 1) * 11;
+	const expectedCells = expectedCellCount(options.channel);
 	if (rows.length !== expectedCells)
 		errors.push({ matrix: 'incomplete', expected: expectedCells, actual: rows.length });
 	recordRows();
@@ -555,4 +563,12 @@ if (require.main === module) {
 		process.exitCode = 2;
 	}
 }
-module.exports = { stopExpectation, gradeStop, argumentsFrom, observeChannels };
+module.exports = {
+	stopExpectation,
+	gradeStop,
+	argumentsFrom,
+	observeChannels,
+	channelCommand,
+	npmRoutes,
+	expectedCellCount,
+};

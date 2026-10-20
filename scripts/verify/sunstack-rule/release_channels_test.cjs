@@ -15,7 +15,68 @@ const {
 	save,
 } = require('./release_registry.cjs');
 const { captureProcess } = require('./release_process.cjs');
-const { stopExpectation, gradeStop, argumentsFrom } = require('./release_channels.cjs');
+const {
+	stopExpectation,
+	gradeStop,
+	argumentsFrom,
+	channelCommand,
+	npmRoutes,
+	expectedCellCount,
+} = require('./release_channels.cjs');
+const { spawnSync } = require('node:child_process');
+
+test('exec npx preserves literal arguments through the actual inner shell and keeps every invocation', () => {
+	const root = fileSystem.mkdtempSync(path.join(operatingSystem.tmpdir(), 'sunstack-s4-exec-npx-'));
+	const binary = path.join(root, 'sunstack');
+	fileSystem.writeFileSync(
+		binary,
+		'#!' + process.execPath + '\nprocess.stdout.write(JSON.stringify(process.argv.slice(2)));\n',
+		{ mode: 0o755 },
+	);
+	const words = [
+		'lint',
+		'--config',
+		"space ' quote $HOME $(touch forbidden) `touch forbidden` ; literal",
+		'--format',
+		'json',
+		'',
+	];
+	const prefix = ['/node', '/npx-cli.js', '--yes', '--package=@sunstack/cli@0.0.6', '-c'];
+	const command = channelCommand('exec-npx', prefix, words);
+	assert.deepEqual(command.slice(0, -1), prefix);
+	assert.match(command.at(-1), /^exec sunstack /);
+	const result = spawnSync('/bin/sh', ['-c', command.at(-1)], {
+		cwd: root,
+		env: { PATH: root + ':/usr/bin:/bin' },
+		encoding: 'utf8',
+	});
+	assert.equal(result.status, 0, result.stderr);
+	assert.deepEqual(JSON.parse(result.stdout), words);
+	assert.equal(fileSystem.existsSync(path.join(root, 'forbidden')), false);
+	assert.deepEqual(
+		channelCommand('npx', ['/node', '/npx-cli.js', '--yes', '@sunstack/cli@0.0.6'], words),
+		['/node', '/npx-cli.js', '--yes', '@sunstack/cli@0.0.6', ...words],
+	);
+	assert.deepEqual(npmRoutes, [
+		'local-bin',
+		'exec-script',
+		'global',
+		'npx',
+		'exec-npx',
+		'pnpm-dlx',
+	]);
+	assert.equal(expectedCellCount('npm'), 132);
+	assert.equal(expectedCellCount('shell'), 22);
+	for (const platform of ['linux', 'darwin']) {
+		for (const [signal, destination] of [
+			['SIGINT', 'group'],
+			['SIGINT', 'pid'],
+			['SIGTERM', 'pid'],
+		])
+			assert.equal(stopExpectation('exec-npx', signal, destination, platform), 'cancel4');
+		assert.equal(stopExpectation('exec-npx', 'SIGHUP', 'pid', platform), 'no-cancelled-report');
+	}
+});
 
 function archiveFrom(entries) {
 	const pieces = [];
