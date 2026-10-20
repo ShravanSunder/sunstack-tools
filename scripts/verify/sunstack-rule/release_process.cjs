@@ -67,13 +67,21 @@ function groupMembers(group) {
 
 function trackOwnedTree(rootPid) {
 	const knownStarts = new Map();
-	let initialized = false;
-	return () => {
+	let initialCensus;
+	const observe = () => {
 		const members = processMembers();
 		const root = members.find((member) => member.pid === rootPid);
-		if (!initialized) {
-			initialized = true;
-			if (root && root.parent === process.pid) knownStarts.set(root.pid, root.started);
+		if (!initialCensus) {
+			const established = root?.parent === process.pid;
+			const seeds = established ? [root] : members.filter((member) => member.group === rootPid);
+			initialCensus = {
+				kind: established ? 'established' : 'unestablished',
+				initial_root: root || null,
+				initial_group_members: members.filter((member) => member.group === rootPid),
+			};
+			// A missed root is never proof of absence. Its still-existing group
+			// supplies cleanup candidates, but does not establish the missing tree.
+			for (const member of seeds) knownStarts.set(member.pid, member.started);
 		}
 		const owned = new Set(
 			members
@@ -92,6 +100,9 @@ function trackOwnedTree(rootPid) {
 		}
 		return members.filter((member) => owned.has(member.pid));
 	};
+	observe.ownership = () =>
+		initialCensus || { kind: 'unestablished', initial_root: null, initial_group_members: [] };
+	return observe;
 }
 
 async function settleOwnedTree(observe) {
@@ -309,6 +320,15 @@ async function captureProcess({
 		if (stop && stop.expectation !== 'no-cancelled-report' && sockets.size > 0) {
 			await Promise.race([socketsClosed, deadline(3000, false)]);
 		}
+		const ownership = observeOwned.ownership?.() || {
+			kind: 'unestablished',
+			initial_root: null,
+			initial_group_members: [],
+		};
+		if (ownership.kind !== 'established')
+			errorText =
+				'ownership unestablished: root absent from initial census' +
+				(errorText ? '\n' + errorText : '');
 		frozenStdout = Buffer.concat(stdout);
 		frozenStderr = Buffer.concat(stderr);
 		observation = {
@@ -325,7 +345,9 @@ async function captureProcess({
 			owned_tree_at_readiness: readyGroup || [],
 			native_identity_at_readiness: nativeIdentity || [],
 			timeline,
-			survivors_before_cleanup: before,
+			ownership,
+			survivors_before_cleanup: ownership.kind === 'established' ? before : null,
+			unestablished_group_members_before_cleanup: ownership.kind === 'established' ? null : before,
 			sockets_before_cleanup: sockets.size,
 		};
 		fileSystem.writeFileSync(stem + '.stdout.log', frozenStdout);
@@ -363,4 +385,4 @@ async function captureProcess({
 	return { stdout: frozenStdout, stderr: frozenStderr, observation };
 }
 
-module.exports = { captureProcess, groupMembers, settleGroup };
+module.exports = { captureProcess, groupMembers, settleGroup, trackOwnedTree };

@@ -14,7 +14,7 @@ const {
 	integrity,
 	save,
 } = require('./release_registry.cjs');
-const { captureProcess } = require('./release_process.cjs');
+const { captureProcess, groupMembers, trackOwnedTree } = require('./release_process.cjs');
 const {
 	stopExpectation,
 	gradeStop,
@@ -313,6 +313,7 @@ test('real child capture retains streams and exit; timeout records live group be
 	assert.equal(completed.stdout.toString(), 'exact stdout\n');
 	assert.equal(completed.stderr.toString(), 'exact stderr\n');
 	assert.equal(completed.observation.root_close.code, 3);
+	assert.equal(completed.observation.ownership.kind, 'established');
 	assert.deepEqual(completed.observation.survivors_before_cleanup, []);
 	const timedOut = await captureProcess({
 		command: [process.execPath, '-e', "console.log('partial sentinel');setInterval(()=>{},1000)"],
@@ -456,4 +457,53 @@ const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});
 		() => process.kill(decoy.pid, 0),
 		'unrelated native must not be cleaned by the observer',
 	);
+});
+
+test('ownership census after root exit retains its live same-group child and refuses proven absence', async (testContext) => {
+	const { spawn } = require('node:child_process');
+	const root = fileSystem.mkdtempSync(
+		path.join(operatingSystem.tmpdir(), 'sunstack-s4-missed-root-'),
+	);
+	const childPidPath = path.join(root, 'child.pid');
+	const childSource = `require('node:fs').writeFileSync(${JSON.stringify(childPidPath)},String(process.pid));process.send('ready');setInterval(()=>{},1000);`;
+	const wrapperSource = `const child=require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(childSource)}],{stdio:['ignore','ignore','ignore','ipc']});child.once('message',()=>{console.log('exact completed output');process.exit(0);});`;
+	const wrapper = spawn(process.execPath, ['-e', wrapperSource], {
+		detached: true,
+		stdio: ['ignore', 'pipe', 'pipe'],
+	});
+	testContext.after(() => {
+		try {
+			process.kill(-wrapper.pid, 'SIGKILL');
+		} catch (error) {
+			if (error.code !== 'ESRCH') throw error;
+		}
+	});
+	let output = '';
+	wrapper.stdout.on('data', (chunk) => {
+		output += chunk;
+	});
+	const ending = await new Promise((resolve, reject) => {
+		wrapper.once('close', (code, signal) => resolve({ code, signal }));
+		wrapper.once('error', reject);
+	});
+	assert.deepEqual(ending, { code: 0, signal: null });
+	assert.equal(output, 'exact completed output\n');
+	const childPid = Number(fileSystem.readFileSync(childPidPath, 'utf8'));
+	const actualGroup = groupMembers(wrapper.pid);
+	assert.ok(
+		!actualGroup.some((member) => member.pid === wrapper.pid),
+		'root has exited and been reaped before the first ownership census',
+	);
+	assert.ok(
+		actualGroup.some((member) => member.pid === childPid),
+		'synchronized child remains in caller group',
+	);
+	const observe = trackOwnedTree(wrapper.pid);
+	const members = observe();
+	assert.ok(
+		members.some((member) => member.pid === childPid),
+		'missed root must not conceal its surviving caller-group child',
+	);
+	assert.equal(observe.ownership().kind, 'unestablished');
+	assert.equal(observe.ownership().initial_root, null);
 });
