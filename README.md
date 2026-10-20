@@ -104,8 +104,11 @@ npx @sunstack/cli lint
 pnpm dlx @sunstack/cli lint
 ```
 
-Each route passes the exit code (0–3) and the output through unchanged. In npm
-scripts, write `exec` so that stopping npm stops the run:
+Each route passes on the exit code (0–3) and stdout, the report included, unchanged.
+npm, npx and pnpm may add their own lines to stderr, such as install messages. When
+you need stdout exact from an npm script, run it as `npm run --silent lint`, because
+a plain `npm run` first prints its own header. In npm scripts, write `exec` so that
+stopping npm stops the run:
 
 ```json
 { "scripts": { "lint": "exec sunstack lint" } }
@@ -113,7 +116,7 @@ scripts, write `exec` so that stopping npm stops the run:
 
 Stopping a run depends on what sits in front of the bin. "4" means the run cancels,
 prints its full report and exits 4. "Not passed on" means the stop never reaches the
-run, so signal the whole process group instead.
+run, and the run may keep going, so signal the whole process group instead.
 
 | Route | Ctrl-C at a terminal | SIGINT or SIGTERM to that process only | SIGHUP to that process only |
 | --- | --- | --- | --- |
