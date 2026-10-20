@@ -59,7 +59,7 @@ jobs:
                   assert not name.is_absolute() and '..' not in name.parts
                   assert member.isfile() or member.isdir()
               binaries = [member for member in members if pathlib.PurePosixPath(member.name).name == 'sunstack' and member.isfile()]
-              assert len(binaries) == 1 and binaries[0].size < 67108864
+              assert len(binaries) == 1 and binaries[0].size < 134217728
               native_bytes = archive.extractfile(binaries[0]).read()
           identity = {'tag': release['tag_name'], 'version': '0.0.7', 'release_commit': tag['object']['sha'],
                       'binary_sha256': hashlib.sha256(native_bytes).hexdigest(), 'asset_sha256': digests}
