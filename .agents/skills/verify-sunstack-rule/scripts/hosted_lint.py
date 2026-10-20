@@ -23,6 +23,7 @@ from pathlib import Path
 from container_matrix import IMAGES
 from runner_contracts import (
     FixtureCase,
+    JsonObject,
     as_array,
     as_object,
     compare_report,
@@ -171,33 +172,48 @@ def main() -> None:
                 secret.encode() in partial_stdout or secret.encode() in partial_stderr
             )
             del secret
-            cleanup = subprocess.run(
-                ["docker", "rm", "--force", name],
-                capture_output=True,
-                timeout=15,
-                check=False,
-            )
+            timeout_receipt: JsonObject = {
+                "remote_outcome": "unknown",
+                "container_cleanup_exit": None,
+                "container_cleanup_status": "unknown",
+                "retry_performed": False,
+                "output_partial": True,
+                "raw_output_retained": not leaked,
+            }
             write_json(
                 evidence / "s3-timeout.json",
-                {
-                    "remote_outcome": "unknown",
-                    "container_cleanup_exit": cleanup.returncode,
-                    "retry_performed": False,
-                    "output_partial": True,
-                    "raw_output_retained": not leaked,
-                },
+                timeout_receipt,
             )
             if leaked:
                 write_json(
                     evidence / "credential-leak.json",
                     {"observed": True, "raw_output_retained": False},
                 )
+            else:
+                (evidence / "stdout.partial.log").write_bytes(partial_stdout)
+                (evidence / "stderr.partial.log").write_bytes(partial_stderr)
+            # Safe evidence already exists if owned cleanup cannot complete.
+            try:
+                cleanup = subprocess.run(
+                    ["docker", "rm", "--force", name],
+                    capture_output=True,
+                    timeout=15,
+                    check=False,
+                )
+                timeout_receipt["container_cleanup_exit"] = cleanup.returncode
+                timeout_receipt["container_cleanup_status"] = (
+                    "completed" if cleanup.returncode == 0 else "failed"
+                )
+            except subprocess.TimeoutExpired:
+                timeout_receipt["container_cleanup_status"] = "timed_out"
+            except OSError:
+                timeout_receipt["container_cleanup_status"] = "launch_failed"
+            write_json(evidence / "s3-timeout.json", timeout_receipt)
+            if leaked:
                 raise ValueError(
                     "Credential appeared in partial output; raw output withheld; "
                     "remote billing/outcome unknown; do not retry"
                 ) from None
-            (evidence / "stdout.partial.log").write_bytes(partial_stdout)
-            (evidence / "stderr.partial.log").write_bytes(partial_stderr)
             raise ValueError(
                 "Hosted command timed out; remote billing/outcome unknown; do not retry"
             ) from None

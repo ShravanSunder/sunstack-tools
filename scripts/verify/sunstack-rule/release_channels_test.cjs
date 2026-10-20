@@ -25,6 +25,51 @@ const {
 } = require('./release_channels.cjs');
 const { spawnSync } = require('node:child_process');
 
+test('ordinary stream grading keeps native stderr lines whole and ordered with only manager extras', () => {
+	const { compareStreams } = require('./release_streams.cjs');
+	const native = {
+		stdout: Buffer.from('literal output\n'),
+		stderr: Buffer.from('native first\nnative second\n'),
+	};
+	const channel = (stderr) => ({
+		stdout: Buffer.from(native.stdout),
+		stderr: Buffer.from(stderr),
+	});
+	const comparison = compareStreams(
+		native,
+		channel('npm notice manager message\nnative first\nnative second\n'),
+		'npx',
+	);
+	assert.deepEqual(comparison.native_line_positions, [1, 2]);
+	assert.deepEqual(comparison.manager_extra_lines, ['npm notice manager message']);
+	assert.doesNotThrow(() =>
+		compareStreams(
+			native,
+			channel('native first\nDone in 0.8s using pnpm v12.14.0\nnative second\n'),
+			'pnpm-dlx',
+		),
+	);
+	for (const stderr of [
+		'wrapped: native first extra\nnative second\n',
+		'native first extra\nnative second\n',
+		'native second\n',
+		'native second\nnative first\n',
+		'native first\nunattributed extra\nnative second\n',
+	])
+		assert.throws(() => compareStreams(native, channel(stderr), 'npx'));
+	assert.throws(() =>
+		compareStreams(
+			native,
+			channel('npm notice manager message\nnative first\nnative second\n'),
+			'shell',
+		),
+	);
+	assert.throws(
+		() => compareStreams(native, { stdout: Buffer.from('changed'), stderr: native.stderr }, 'npx'),
+		/stdout bytes/,
+	);
+});
+
 test('exec npx preserves literal arguments through the actual inner shell and keeps every invocation', () => {
 	const root = fileSystem.mkdtempSync(path.join(operatingSystem.tmpdir(), 'sunstack-s4-exec-npx-'));
 	const binary = path.join(root, 'sunstack');

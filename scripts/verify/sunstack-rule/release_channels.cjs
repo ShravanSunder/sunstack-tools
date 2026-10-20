@@ -7,6 +7,7 @@ const path = require('node:path');
 const { sha256, save, startRegistry } = require('./release_registry.cjs');
 const { captureProcess } = require('./release_process.cjs');
 const { installHomebrew } = require('./release_homebrew.cjs');
+const { compareStreams } = require('./release_streams.cjs');
 const writeLine = (message) => process.stdout.write(message + '\n');
 const writeError = (error) => process.stderr.write((error.stack || String(error)) + '\n');
 const npmRoutes = ['local-bin', 'exec-script', 'global', 'npx', 'exec-npx', 'pnpm-dlx'];
@@ -473,9 +474,10 @@ async function observeChannels(options) {
 							assert.equal(native.observation.error, null);
 							assert.equal(native.observation.root_close?.code, exit);
 							assert.equal(result.observation.root_close?.code, exit);
-							assert.deepEqual(result.stdout, native.stdout, 'stdout bytes differ from native');
-							for (const line of native.stderr.toString().split('\n').filter(Boolean))
-								assert.ok(result.stderr.toString().includes(line), 'native stderr line missing');
+							save(
+								path.join(cell, name + '-stream-comparison.json'),
+								compareStreams(native, result, route),
+							);
 							assert.deepEqual(result.observation.survivors_before_cleanup, []);
 							if (name === 'invalid') {
 								assert.equal(JSON.parse(native.stdout).status.kind, 'invalid');

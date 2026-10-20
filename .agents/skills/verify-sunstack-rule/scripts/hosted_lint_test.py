@@ -14,19 +14,27 @@ from pytest_mock import MockerFixture
 
 
 @pytest.mark.parametrize(
-    ("leak_stream", "times_out"),
+    ("leak_stream", "times_out", "cleanup_failure"),
     [
-        ("none", True),
-        ("stdout", True),
-        ("stderr", True),
-        ("empty", True),
-        ("none", False),
-        ("stdout", False),
-        ("stderr", False),
+        ("none", True, "none"),
+        ("stdout", True, "none"),
+        ("stderr", True, "none"),
+        ("empty", True, "none"),
+        ("none", False, "none"),
+        ("stdout", False, "none"),
+        ("stderr", False, "none"),
+        ("none", True, "timeout"),
+        ("stdout", True, "timeout"),
+        ("none", True, "launch"),
+        ("stdout", True, "launch"),
     ],
 )
 def test_command_output_is_safe_on_timeout_and_completion(
-    tmp_path: Path, mocker: MockerFixture, leak_stream: str, times_out: bool
+    tmp_path: Path,
+    mocker: MockerFixture,
+    leak_stream: str,
+    times_out: bool,
+    cleanup_failure: str,
 ) -> None:
     # Arrange a harmless static-ELF input and a fake Docker executable. The
     # subject's real subprocess capture times out on a real hung local child.
@@ -52,7 +60,13 @@ def test_command_output_is_safe_on_timeout_and_completion(
         "import os, signal, sys\n"
         "from pathlib import Path\n"
         "if sys.argv[1] == 'image': raise SystemExit(0)\n"
-        f"if sys.argv[1] == 'rm': Path({str(cleanup)!r}).write_text('owned cleanup'); raise SystemExit(0)\n"
+        "if sys.argv[1] == 'rm':\n"
+        f" Path({str(cleanup)!r}).write_text('owned cleanup')\n"
+        + (
+            " signal.pause()\n"
+            if cleanup_failure == "timeout"
+            else " raise SystemExit(0)\n"
+        )
         + (
             "print('PARTIAL_STDOUT_SENTINEL', flush=True)\n"
             "print('PARTIAL_STDERR_SENTINEL', file=sys.stderr, flush=True)\n"
@@ -65,6 +79,7 @@ def test_command_output_is_safe_on_timeout_and_completion(
             if leak_stream in ("stdout", "stderr")
             else ""
         )
+        + ("os.unlink(sys.argv[0])\n" if cleanup_failure == "launch" else "")
         + ("signal.pause()\n" if times_out else "raise SystemExit(1)\n")
     )
     fake_docker.chmod(0o755)
@@ -90,6 +105,7 @@ def test_command_output_is_safe_on_timeout_and_completion(
         ],
     )
     real_run = subprocess.run
+    run_environment: dict[str, str] | None = None
 
     def bounded_run(
         command: list[str],
@@ -99,15 +115,21 @@ def test_command_output_is_safe_on_timeout_and_completion(
         timeout: float = 15,
         check: bool = False,
     ) -> subprocess.CompletedProcess[bytes]:
+        nonlocal run_environment
+        if command[:2] == ["docker", "run"]:
+            run_environment = env
+            timeout = 1
+        elif command[:2] == ["docker", "rm"] and cleanup_failure == "timeout":
+            timeout = 0.5
         return real_run(
             command,
             env=env,
             capture_output=capture_output,
-            timeout=1 if command[:2] == ["docker", "run"] else timeout,
+            timeout=timeout,
             check=check,
         )
 
-    mocker.patch.object(hosted_lint.subprocess, "run", side_effect=bounded_run)
+    calls = mocker.patch.object(hosted_lint.subprocess, "run", side_effect=bounded_run)
 
     # Act through the real main/capture/timeout/output policy. Only the outside
     # Docker executable and the long timeout duration are substituted.
@@ -116,12 +138,35 @@ def test_command_output_is_safe_on_timeout_and_completion(
 
     # Assert the output policy, unknown outcome, no retry and owned cleanup.
     assert stopped.value.code == 2
+    assert run_environment is not None and "OPENROUTER_API_KEY" not in run_environment
+    assert (
+        sum(call.args[0][:2] == ["docker", "run"] for call in calls.call_args_list) == 1
+    )
     if times_out:
         timeout_receipt = json.loads((evidence / "s3-timeout.json").read_text())
         assert timeout_receipt["remote_outcome"] == "unknown"
         assert timeout_receipt["retry_performed"] is False
         assert timeout_receipt["output_partial"] is True
-        assert cleanup.read_text() == "owned cleanup"
+        assert (
+            timeout_receipt["container_cleanup_status"]
+            == {
+                "none": "completed",
+                "timeout": "timed_out",
+                "launch": "launch_failed",
+            }[cleanup_failure]
+        )
+        assert timeout_receipt["container_cleanup_exit"] == (
+            0 if cleanup_failure == "none" else None
+        )
+        assert (
+            sum(call.args[0][:2] == ["docker", "rm"] for call in calls.call_args_list)
+            == 1
+        )
+        if cleanup_failure == "launch":
+            assert not cleanup.exists()
+            assert not fake_docker.exists()
+        else:
+            assert cleanup.read_text() == "owned cleanup"
     else:
         assert not (evidence / "s3-timeout.json").exists()
         assert not cleanup.exists()
