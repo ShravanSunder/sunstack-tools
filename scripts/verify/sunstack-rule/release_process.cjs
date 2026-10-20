@@ -367,6 +367,7 @@ async function captureProcess({
 			}
 		}
 		for (const socket of sockets) socket.destroy();
+		if (sockets.size > 0) await Promise.race([socketsClosed, deadline(3000, false)]);
 		if (server) {
 			server.closeAllConnections();
 			await new Promise((resolve) => server.close(resolve));
@@ -380,6 +381,7 @@ async function captureProcess({
 			sockets_after_cleanup: sockets.size,
 		});
 		assert.deepEqual(after, [], 'owned process cleanup failed');
+		assert.equal(sockets.size, 0, 'owned socket cleanup failed');
 		for (const timer of deadlines) clearTimeout(timer);
 	}
 	return { stdout: frozenStdout, stderr: frozenStderr, observation };
