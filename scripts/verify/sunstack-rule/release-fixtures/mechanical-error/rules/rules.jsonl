@@ -1,0 +1,1 @@
+{"rule_id": "standard", "target": "target", "applicability": [], "questions": {}, "evidence": [{"id": "target", "input": "subject", "select": {"kind": "markdown_units", "mode": "unit", "units": ["paragraph"]}}], "verdict": {"kind": "mechanical", "explanation": "Use MUST in each paragraph.", "check": {"kind": "expect", "expect": {"matches": "MUST"}}}, "severity": "error"}

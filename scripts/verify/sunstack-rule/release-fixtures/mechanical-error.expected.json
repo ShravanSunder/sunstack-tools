@@ -1,0 +1,76 @@
+{
+  "version": "0.1.0",
+  "config": "/private/tmp/2026-10-sunstack-runner-verification/final-26122bf/s1-mac-release/fixtures/mechanical-error/sunstack.lint.json",
+  "scope": {
+    "kind": "all",
+    "widened": null
+  },
+  "status": {
+    "kind": "findings"
+  },
+  "findings": [
+    {
+      "rule": "docs/standard",
+      "file": "docs/one.md",
+      "span": {
+        "source": {
+          "kind": "document",
+          "repository": "lint",
+          "path": "docs/one.md",
+          "content_identity": "da244278b455a51da5f06aeb7440518cb927ee28c231be465f52dd193306104e"
+        },
+        "byte_start": 0,
+        "byte_end": 28,
+        "start_line": 1,
+        "start_column": 1,
+        "end_line": 2,
+        "end_column": 1
+      },
+      "severity": "error",
+      "severity_origin": {
+        "kind": "authored"
+      },
+      "message": "Use MUST in each paragraph.",
+      "judgment": null
+    }
+  ],
+  "counts": {
+    "error": 1,
+    "warn": 0
+  },
+  "exclusions": {
+    "off": 0,
+    "ignored": 0,
+    "not_applicable": 0,
+    "outside_change_scope": 0,
+    "zero_matches": 0
+  },
+  "incomplete": [],
+  "usage": {
+    "model_requests": 0,
+    "input_tokens": null,
+    "output_tokens": null,
+    "cost_usd": null,
+    "cost_reported_requests": 0,
+    "cost_missing_requests": 0
+  },
+  "evidence_seen": {},
+  "limits": {
+    "max_files": 2000,
+    "max_file_bytes": 1048576,
+    "max_total_bytes": 67108864,
+    "max_matches": 10000,
+    "max_model_requests": 200,
+    "max_input_tokens_per_request": 32000,
+    "attempt_timeout_seconds": 60,
+    "max_concurrent_requests": 4,
+    "max_transcript_bytes": 8388608,
+    "max_request_bytes": 262144,
+    "max_questions_per_request": 32,
+    "retry_count": 2,
+    "initial_backoff_ms": 500,
+    "max_backoff_ms": 8000,
+    "max_response_bytes": 1048576
+  },
+  "diagnostics": []
+}

@@ -1,0 +1,1 @@
+{"rule_id": "standard", "target": "target", "applicability": [], "questions": {}, "evidence": [{"id": "target", "input": "subject", "select": {"kind": "paragraph", "target_id": "U001"}}], "verdict": {"kind": "noul", "question": {"type": "noul", "instructions": "Is the statement in the supplied paragraph true?"}, "threshold": 0.8}, "severity": "error"}
