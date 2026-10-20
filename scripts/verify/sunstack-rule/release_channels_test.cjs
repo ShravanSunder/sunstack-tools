@@ -378,15 +378,27 @@ const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});
 const child=spawn(process.execPath,[${JSON.stringify(binary)}],{detached:true,stdio:['ignore',process.stdout,process.stderr]});
 process.on('SIGINT',()=>child.kill('SIGINT'));
 child.on('close',(code)=>process.exit(code));`;
-	const result = await captureProcess({
-		command: [process.execPath, '-e', wrapper],
-		cwd: root,
-		environment: { PATH: '/usr/bin:/bin', HOME: root },
-		stem: path.join(root, 'capture'),
-		stop: { signal: 'SIGINT', destination: 'group', expectation: 'cancel4' },
-		expectedNativeSha: sha256(Buffer.from(source)),
-	});
+	const realKill = process.kill;
+	const signalTargets = [];
+	let result;
+	process.kill = (targetPid, signal) => {
+		signalTargets.push({ targetPid, signal });
+		return realKill(targetPid, signal);
+	};
+	try {
+		result = await captureProcess({
+			command: [process.execPath, '-e', wrapper],
+			cwd: root,
+			environment: { PATH: '/usr/bin:/bin', HOME: root },
+			stem: path.join(root, 'capture'),
+			stop: { signal: 'SIGINT', destination: 'group', expectation: 'cancel4' },
+			expectedNativeSha: sha256(Buffer.from(source)),
+		});
+	} finally {
+		process.kill = realKill;
+	}
 	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', configPath), 'pass');
+	assert.deepEqual(signalTargets, [{ targetPid: -result.observation.pid, signal: 'SIGINT' }]);
 	assert.equal(result.observation.stop.destination, 'group');
 	assert.ok(
 		result.observation.owned_tree_at_readiness.some(
