@@ -126,8 +126,22 @@ run, and the run may keep going, so signal the whole process group instead.
 | `pnpm dlx @sunstack/cli …` | 4 | 4 | the run ends |
 | `npx @sunstack/cli …` on macOS | 4 | 4 | not passed on |
 | `npx @sunstack/cli …` on Linux | the run cancels; npx exits 130, not 4 | not passed on | not passed on |
+| `npx --package=@sunstack/cli -c 'exec sunstack …'` | 4 | 4 | not passed on |
 
-For tools and CI that stop runs by signal, use the bin, an `exec` script or `pnpm dlx`.
+For tools and CI that stop runs by signal, use the bin, an `exec` script, `pnpm dlx`,
+or write npx with `-c 'exec …'` as in the last row. On Linux, plain `npx` runs the bin
+through Debian's `sh`, which stays in the middle and keeps the stop from reaching it.
+
+GitHub Actions cancels a step by sending SIGINT, then SIGTERM, to the step's own shell
+([GitHub's cancellation reference](https://docs.github.com/en/actions/reference/workflow-cancellation-reference)).
+To let a cancelled job print its cancelled report, make `sunstack` the step's last command
+with `exec`:
+
+```yaml
+- run: exec sunstack lint
+# or through npm
+- run: exec npx --package=@sunstack/cli -c 'exec sunstack lint'
+```
 
 ### Configure and run lint
 

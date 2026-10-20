@@ -172,8 +172,9 @@ How each npm route behaves when a run is stopped (R22). "4" means the run cancel
 | `pnpm dlx @sunstack/cli …` | 4 | 4 | the run ends |
 | `npx @sunstack/cli …` on macOS | 4 | 4 | not passed on |
 | `npx @sunstack/cli …` on Linux | the run cancels and prints its report; npx ends by SIGINT (130), not 4 | not passed on | not passed on |
+| npx written `npx --package=@sunstack/cli -c 'exec sunstack …'`, on macOS and Linux | 4 | 4 | not passed on |
 
-No route leaves a run going after Ctrl-C at a terminal.
+No route leaves a run going after Ctrl-C at a terminal. The README shows, for CI that stops runs by signal, how to run `sunstack` so the stop reaches it: through a route that passes it on, and in GitHub Actions as the step's last command, with `exec`.
 
 ## Cross-cutting obligations
 
