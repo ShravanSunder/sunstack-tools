@@ -496,3 +496,26 @@ test('phone headings keep their order and toolbar controls clear an open drawer'
 		expect(control.right).toBeLessThanOrEqual(drawer.left);
 	}
 });
+
+for (const component of ['gallery', 'explorer']) {
+	test(`a failed ${component} explains the missing content without a developer panel`, async (): Promise<void> => {
+		const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
+		const probe = fixture.createElement(`ex-${component}`);
+		probe.id = `reader-failure-${component}`;
+		if (component === 'gallery') {
+			probe.innerHTML = '<figure><figcaption>Unavailable capture</figcaption></figure>';
+		} else {
+			const source = fixture.createElement('script');
+			source.type = 'application/json';
+			source.textContent = '{';
+			probe.append(source);
+		}
+		requiredElement(fixture, 'ex-document').append(probe);
+		await expect
+			.element(fixtureLocator(frame, probe))
+			.toHaveText(`${component === 'gallery' ? 'Gallery' : 'Explorer'} could not load.`);
+		expect(probe.hasAttribute('aria-busy')).toBe(false);
+		expect(Number(fixture.documentElement.dataset['exIssues'] ?? '0')).toBeGreaterThan(0);
+		expect(fixture.querySelector('.ex-issues')).toBeNull();
+	});
+}
