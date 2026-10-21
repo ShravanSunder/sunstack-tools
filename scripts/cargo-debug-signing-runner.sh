@@ -22,7 +22,7 @@ readonly DEVELOPER_ID_TEAM="$(developer_id_team || true)"
 
 debug_identifier_for() {
   case "$(basename "$1")" in
-    sunstack-rule) echo "dev.shravansunder.sunstack-rule.debug" ;;
+    sunstack) echo "dev.shravansunder.sunstack-rule.debug" ;;
     *) echo "dev.shravansunder.sunstack-tools-tests.debug" ;;
   esac
 }

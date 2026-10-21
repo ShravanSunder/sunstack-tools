@@ -110,7 +110,7 @@ async fn lint_and_eval_consumers_share_definitions_but_keep_independent_expectat
                     panic!("{judgment:?}")
                 };
                 assert!(report.answer(answer).is_some());
-                assert_eq!(judgment.declared_severity, Severity::Nudge);
+                assert_eq!(judgment.declared_severity, Severity::Warn);
                 assert!(
                     serde_json::to_string(&judgment.target)
                         .unwrap()

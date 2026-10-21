@@ -102,12 +102,31 @@ pub struct RuleSourcePair {
 fn default_max_question_words() -> usize {
     400
 }
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Severity {
-    Block,
+    Error,
     #[default]
-    Nudge,
+    Warn,
+}
+impl<'de> Deserialize<'de> for Severity {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = String::deserialize(deserializer)?;
+        match value.as_str() {
+            "error" => Ok(Self::Error),
+            "warn" => Ok(Self::Warn),
+            "block" => Err(serde::de::Error::custom(
+                "severity `block` was renamed to `error`",
+            )),
+            "nudge" => Err(serde::de::Error::custom(
+                "severity `nudge` was renamed to `warn`",
+            )),
+            _ => Err(serde::de::Error::unknown_variant(
+                &value,
+                &["error", "warn"],
+            )),
+        }
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -136,7 +155,7 @@ pub enum VerdictDeclaration {
         threshold: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[schemars(extend("minimum" = 0, "exclusiveMaximum" = 1))]
-        block_at_or_below: Option<f64>,
+        error_at_or_below: Option<f64>,
     },
     Composite {
         #[schemars(length(min = 1))]
@@ -145,7 +164,7 @@ pub enum VerdictDeclaration {
         threshold: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[schemars(extend("minimum" = 0, "exclusiveMaximum" = 1))]
-        block_at_or_below: Option<f64>,
+        error_at_or_below: Option<f64>,
     },
 }
 impl VerdictDeclaration {
@@ -159,11 +178,11 @@ impl VerdictDeclaration {
         match self {
             Self::Mechanical { .. } => None,
             Self::Noul {
-                block_at_or_below, ..
+                error_at_or_below, ..
             }
             | Self::Composite {
-                block_at_or_below, ..
-            } => *block_at_or_below,
+                error_at_or_below, ..
+            } => *error_at_or_below,
         }
     }
 }

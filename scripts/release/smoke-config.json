@@ -1,0 +1,8 @@
+{
+	"rule_sets": {
+		"mechanical": {
+			"path": "mechanical.ruleset.json",
+			"files": ["mechanical-skill.md"]
+		}
+	}
+}

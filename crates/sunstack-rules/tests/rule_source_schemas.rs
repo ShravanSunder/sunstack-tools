@@ -77,23 +77,23 @@ async fn source_entry_schemas_preserve_shape_and_native_cross_field_refusals() {
         ("name", json!("Invalid_Name")),
         ("AUTHOR_SECRET_KEY", json!(true)),
         ("expect", json!({"present":true})),
-        ("block_at_or_below", json!(-0.1)),
+        ("error_at_or_below", json!(-0.1)),
     ] {
         let mut invalid = entry();
         invalid[field] = value;
         cases.push((invalid, false, false));
     }
     let mut band = entry();
-    band["severity"] = json!("block");
-    band["block_at_or_below"] = json!(0.2);
+    band["severity"] = json!("error");
+    band["error_at_or_below"] = json!(0.2);
     cases.push((band, true, true));
     let mut reserved = entry();
     reserved["context"] =
         json!([{"id":"target","input":"skill","select":{"kind":"paragraph","target_id":"U001"}}]);
     cases.push((reserved, true, false));
-    let mut nudge_band = entry();
-    nudge_band["block_at_or_below"] = json!(0.2);
-    cases.push((nudge_band, true, false));
+    let mut warn_band = entry();
+    warn_band["error_at_or_below"] = json!(0.2);
+    cases.push((warn_band, true, false));
     for (value, shape, accepted) in cases {
         assert_eq!(generated.is_valid(&value), shape, "generated {value}");
         assert_eq!(

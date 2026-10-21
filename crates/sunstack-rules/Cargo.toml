@@ -25,7 +25,7 @@ ast-grep-language = "=0.51.0"
 ast-grep-config = "=0.51.0"
 
 [dev-dependencies]
-git2 = { version = "=0.21.0", default-features = false }
+git2 = { version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
 tempfile = "3"
 proptest = "1"
 jsonschema = { version = "=0.57.0", default-features = false }

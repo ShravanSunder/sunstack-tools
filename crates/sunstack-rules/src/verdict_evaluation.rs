@@ -78,9 +78,9 @@ pub fn evaluate_verdict(
         VerdictResult::Pass
     } else {
         let activation = match (rule.severity, rule.verdict.band()) {
-            (Severity::Nudge, _) => Activation::Nudge,
-            (Severity::Block, Some(band)) if value > band => Activation::NudgeAboveBand { band },
-            (Severity::Block, _) => Activation::Block,
+            (Severity::Warn, _) => Activation::Warn,
+            (Severity::Error, Some(band)) if value > band => Activation::WarnAboveBand { band },
+            (Severity::Error, _) => Activation::Error,
         };
         VerdictResult::Fail { activation }
     };

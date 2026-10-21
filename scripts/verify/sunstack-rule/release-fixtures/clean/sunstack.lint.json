@@ -1,0 +1,16 @@
+{
+  "$schema": "https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack.lint.schema.json",
+  "rule_sets": {
+    "docs": {
+      "path": "rules/set.json",
+      "files": [
+        "docs/*.md"
+      ]
+    }
+  },
+  "backend": {
+    "kind": "jev_openrouter",
+    "model": "jev-latest",
+    "endpoint": "http://127.0.0.1:64966/systemone"
+  }
+}

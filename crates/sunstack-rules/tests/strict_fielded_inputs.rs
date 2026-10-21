@@ -151,6 +151,6 @@ fn plain_string_enums_and_author_json_keep_their_existing_wire() {
     string_wire!(evidence::Inclusion, r#""included""#);
     string_wire!(evidence::AssistantSelection, r#""final_only""#);
     string_wire!(decisions::AccountingPolicy, r#""allow_estimated""#);
-    string_wire!(rules::Severity, r#""nudge""#);
+    string_wire!(rules::Severity, r#""warn""#);
     string_wire!(rules::Speculation, r#""off""#);
 }

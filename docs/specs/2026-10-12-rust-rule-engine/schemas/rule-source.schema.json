@@ -781,7 +781,7 @@
         {
           "type": "object",
           "properties": {
-            "block_at_or_below": {
+            "error_at_or_below": {
               "type": [
                 "number",
                 "null"
@@ -802,7 +802,7 @@
             },
             "severity": {
               "$ref": "#/$defs/Severity",
-              "default": "nudge"
+              "default": "warn"
             },
             "target": {
               "$ref": "#/$defs/RuleSourceTarget"
@@ -839,7 +839,7 @@
             },
             "severity": {
               "$ref": "#/$defs/Severity",
-              "default": "nudge"
+              "default": "warn"
             },
             "target": {
               "$ref": "#/$defs/RuleSourceTarget"
@@ -870,7 +870,7 @@
             },
             "severity": {
               "$ref": "#/$defs/Severity",
-              "default": "nudge"
+              "default": "warn"
             },
             "target": {
               "$ref": "#/$defs/RuleSourceTarget"
@@ -1087,8 +1087,8 @@
     "Severity": {
       "type": "string",
       "enum": [
-        "block",
-        "nudge"
+        "error",
+        "warn"
       ]
     },
     "SourceLanguage": {

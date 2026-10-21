@@ -1,5 +1,7 @@
 # Rust rule engine: one core, inputs to verdicts
 
+Severity vocabulary follows [runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config): `error` and `warn`. The confidence-band field is `error_at_or_below`; its inequalities are unchanged.
+
 The [Specification](specification.md) fixes behavior, and [Requirements](requirements.md) supplies its authority and boundaries. This document says how the Rust code satisfies them. It covers each entity's home and shape, who owns each truth, how a request reaches Jev and comes back, what happens on failure, and where proof observes it.
 
 The target is one implementation in four crates: three libraries (evidence, decisions, rules) and one thin executable. A Rust host calls the libraries. A hook, a skill tool or an optional TS caller runs the executable with one JSON request. There is no daemon, JS addon, persistent store or second engine.
@@ -20,7 +22,7 @@ Read it top-down:
 5. **Verdict evaluation** applies thresholds, bands and composites in code.
 6. The **report** keeps one record per request and per rule occurrence.
 
-Rule meaning stays Sunstack content: questions, applicability, routers, schemas and expectations. Tools admits declarations, reads the bound sources, asks Jev, and returns native answers with verdicts. Hosts decide what block and nudge mean.
+Rule meaning stays Sunstack content: questions, applicability, routers, schemas and expectations. Tools admits declarations, reads the bound sources, asks Jev, and returns native answers with verdicts. Hosts decide what error and warn mean.
 
 ## Crates and dependency direction
 
@@ -104,7 +106,7 @@ Deserialization admits shape. Constructors and request-relative validators admit
 | E26 Binding group | Binding admission | `sunstack-rules/input_binding` | Wire: `{ bindings: map<InputName, InputBinding> }`. Native: `AdmittedBindingGroup { owner, position, binding: bound \| routed { router_group, label }, sources: map<SourceName, AdmittedSource { id: SourceId, spec: SourceSpec }> }`. Each admitted binding is mapped to the evidence-owned `SourceSpec` here, so evidence never sees a rules type | Per invocation |
 | E27 Applicability entry | Definition admission | `sunstack-rules/definition_contracts` | `ApplicabilityEntry`: `condition { test: ConditionTest }` or `decision { question, evidence, threshold }` | Immutable |
 | E28 Applicability outcome | Applicability evaluation | `sunstack-rules/report_contracts` | `ApplicabilityOutcome`: `applicable`, `not_applicable { entry, basis }`, `applicability_failed { entry, cause }`, `not_evaluated { reason }` | Report value |
-| E29 Verdict | Verdict evaluation | `sunstack-rules/definition_contracts` and `verdict_evaluation` | Declared `VerdictDeclaration`: `noul { question, threshold, block_at_or_below? }` or `composite { dimensions: [{ question, weight }], threshold, block_at_or_below? }`; evaluated `VerdictOutcome` | Immutable / report |
+| E29 Verdict | Verdict evaluation | `sunstack-rules/definition_contracts` and `verdict_evaluation` | Declared `VerdictDeclaration`: `noul { question, threshold, error_at_or_below? }` or `composite { dimensions: [{ question, weight }], threshold, error_at_or_below? }`; evaluated `VerdictOutcome` | Immutable / report |
 | E30 Conversation capture | Evidence | `sunstack-evidence/conversation_capture` | `ConversationCapture { source: TranscriptSource, format, committed_bytes, records, turns, tail: complete \| incomplete { bytes }, gaps, supplement }` | Shared by groups binding the same source |
 | E31 Conversation record | Transcript adapter, validated by evidence | `sunstack-evidence/conversation_contracts` | `ConversationRecord { record_id, position, body: user_message \| assistant_message { blocks } \| tool_use(ToolUse), provenance: transcript \| hook_supplement, injection: known_injected \| not_injected \| unknown }` | Per capture |
 | E32 Turn | Evidence normalization | `sunstack-evidence/conversation_contracts` | `ConversationTurn { opening: user_message { record_id } \| capture_start, records, boundary: clear \| ambiguous { reason } }` | Per capture |
@@ -141,7 +143,7 @@ Authors write three file kinds. The [schema inventory](schema-inventory.md) list
 - `applicability`: ordered, may be empty
 - `questions`: informational questions; may be `{}`
 - `verdict`
-- `severity`: `block` or `nudge`, nudge when omitted
+- `severity`: `error` or `warn`, warn when omitted
 
 **Router JSON** ([schema](schemas/router.schema.json)): `inputs`, `evidence`, one `choice` question, `routes` and `confidence_floor`, as in Specification C13.
 
@@ -158,7 +160,7 @@ A declaration ID is unique within its owner: a rule, a decision entry or the rou
 
 **Admission order** (all before any source read or inference):
 1. Strictly decode each file: duplicate keys and unknown fields are refused, and arbitrary keys inside instructions and criteria stay data.
-2. Validate each declaration's own rules: thresholds and floors in (0, 1]; bands below the threshold and only on block rules; composite weights positive and summing to 1, naming noul or score informational questions; a single-level score rubric refused in a composite.
+2. Validate each declaration's own rules: thresholds and floors in (0, 1]; bands below the threshold and only on error rules; composite weights positive and summing to 1, naming noul or score informational questions; a single-level score rubric refused in a composite.
 3. Check cross-file rules: unique rule IDs per RuleSet, input references resolving with compatible kinds in every RuleSet that loads a rule, route labels inside the choice criteria, routed RuleSets admitted, and wiring that is complete and kind-compatible. A RuleSet is one normalized path within an invocation (Specification E24), so a path appears at most once in `definitions.rule_sets`, and a caller puts all of its groups in that one entry; a repeat is refused with `duplicate_rule_set`. Within one route label a normalized RuleSet path appears at most once, and a repeat is refused with `invalid_route`. The same path under different labels is valid, because only one label runs. Otherwise two occurrences would share one RuleSet, rule ID and group position. Until routing settles, though, each label's route is a separate candidate with its own wiring, so its derived group, gates and requests carry its route label (see [Gates and their controlling answers](#gates-and-their-controlling-answers)).
 4. Admit bindings.
 
@@ -417,9 +419,9 @@ Answers from requests whose occurrences are not applicable are listed in `Reques
 - **Composite value:** the weighted sum of noul yes probabilities and score positions divided by their last rubric index.
 - **Pass** when value ≥ threshold. **Fail** otherwise.
 - **On fail**, `activation` is one of:
-  - `nudge`
-  - `block`, for a block rule with no band, or a value ≤ its band
-  - `nudge_above_band { band }`, for a block rule whose value is above its band
+  - `warn`
+  - `error`, for an error rule with no band, or a value ≤ its band
+  - `warn_above_band { band }`, for an error rule whose value is above its band
 
 `VerdictOutcome` records the basis (noul answer reference, or every composite dimension's normalized value and weight), value, threshold and result. Execution failure never reaches this function.
 
@@ -452,7 +454,7 @@ The handoff monitor, milestone 1 journey 2. The current predecessor is the stop-
 5. Evidence captures the transcript once, normalizes it through the Codex adapter, and selects the declared projections.
 6. The judgment owner encodes, budgets and sends the request. Jev returns one answer map.
 7. Reduction applies the router floor, any decision thresholds, then each rule's verdict and band.
-8. The report goes to stdout with a new cursor. Exit 0 means a complete report, whatever its verdicts. The hook maps `block` and `nudge` to its own action.
+8. The report goes to stdout with a new cursor. Exit 0 means a complete report, whatever its verdicts. The hook maps `error` and `warn` to its own action.
 
 The sequence diagram above shows this path with its failure branches.
 
@@ -577,7 +579,7 @@ Messages are written by the boundary owner, never copied from library, SDK, HTTP
 - **Canned answer maps** drive the equivalence oracle (V32): the same answers under staged, speculative and split plans must reduce to equal results.
 - **Genuine Jev calls** close the hosted gap (V11, V22, V29, V30, V34).
 - **Invalid states and their enforcement:**
-  - Unrepresentable: union payloads, a band on a nudge rule, results without a completed run.
+  - Unrepresentable: union payloads, a band on a warn rule, results without a completed run.
   - Refused by constructors: thresholds, IDs, nonempty collections, weights.
   - Refused at admission: references and wiring.
   - Refused at response admission: answer correlation.

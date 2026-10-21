@@ -34,8 +34,7 @@ pub(crate) fn project_report(
     origin: &InvocationOrigin,
     mut measurements: InvocationMeasurements,
 ) -> RuleInvocationReport {
-    let mut ordered = plan.requests.iter().collect::<Vec<_>>();
-    ordered.sort_by_key(|request| report_order(plan, request));
+    let ordered = ordered_requests(plan);
     let indices = ordered
         .iter()
         .enumerate()
@@ -293,4 +292,26 @@ pub(crate) fn project_report(
         diagnostics,
         measurements,
     }
+}
+
+fn ordered_requests(plan: &ExecutionPlan) -> Vec<&PlannedRequest> {
+    let mut ordered = plan.requests.iter().collect::<Vec<_>>();
+    ordered.sort_by_key(|request| report_order(plan, request));
+    ordered
+}
+
+pub(crate) fn project_request_evidence(
+    plan: &ExecutionPlan,
+    state: &ExecutionState,
+) -> BTreeMap<usize, sunstack_decisions::SharedEvidenceState> {
+    ordered_requests(plan)
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, request)| {
+            state
+                .request_evidence
+                .get(&request.id)
+                .map(|evidence| (index, evidence.clone()))
+        })
+        .collect()
 }

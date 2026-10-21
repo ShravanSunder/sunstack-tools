@@ -1,5 +1,7 @@
 # Commissioned caller usage scenarios
 
+**Historical replay.** Use only the product/oracle pins in SKILL.md. The old binary and severity words below match that contract; they are retained verbatim and establish no current-runner behavior. Current targets use the S1–S4 routes and their own process-suite evidence.
+
 Use the main skill's selector command with the requested ID from the inventory below. Each local run constructs its complete synthetic fixtures under the supplied evidence directory, drives fresh processes of the declared binary and joins its owned HTTP server and children. No retained exercise directory is a prerequisite. Main SKILL.md owns product/oracle pins, common evidence/cleanup and return fields; each US claim below is bounded to its composition and does not replace the full V route.
 
 ## Prerequisites and driver checks

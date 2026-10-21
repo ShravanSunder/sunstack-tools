@@ -194,7 +194,7 @@ pub fn validate_rule_definition(
         return Err(refusal(RuleDiagnosticCode::InvalidThreshold));
     }
     if rule.verdict.band().is_some_and(|band| {
-        !band.is_finite() || band < 0.0 || band >= threshold || rule.severity != Severity::Block
+        !band.is_finite() || band < 0.0 || band >= threshold || rule.severity != Severity::Error
     }) {
         return Err(refusal(RuleDiagnosticCode::InvalidBand));
     }

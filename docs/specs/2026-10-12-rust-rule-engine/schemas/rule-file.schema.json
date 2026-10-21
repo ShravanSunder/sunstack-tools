@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "rule-file.schema.json",
   "title": "Rule definition: one JSONL line",
-  "description": "Admission also checks: target names a declaration of a targetable kind; composite dimensions name this rule's noul or score informational questions; weights sum to 1; a band sits below the threshold and only on a block rule; every input resolves in each RuleSet that loads the line.",
+  "description": "Admission also checks: target names a declaration of a targetable kind; composite dimensions name this rule's noul or score informational questions; weights sum to 1; a band sits below the threshold and only on an error rule; every input resolves in each RuleSet that loads the line.",
   "$ref": "#/$defs/RuleDefinition",
   "$defs": {
     "RuleId": {
@@ -47,10 +47,10 @@
           "$ref": "#/$defs/Verdict"
         },
         "severity": {
-          "description": "Omitted means nudge. Never sent to the model.",
+          "description": "Omitted means warn. Never sent to the model.",
           "enum": [
-            "block",
-            "nudge"
+            "error",
+            "warn"
           ]
         }
       },
@@ -89,7 +89,7 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
-        "block_at_or_below": {
+        "error_at_or_below": {
           "$ref": "#/$defs/Band"
         }
       },
@@ -132,7 +132,7 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
-        "block_at_or_below": {
+        "error_at_or_below": {
           "$ref": "#/$defs/Band"
         }
       },
@@ -144,7 +144,7 @@
       "additionalProperties": false
     },
     "Band": {
-      "description": "Blocks only at or below this value. Must be below the threshold and only on a block rule.",
+      "description": "Errors only at or below this value. Must be below the threshold and only on an error rule.",
       "type": "number",
       "minimum": 0,
       "exclusiveMaximum": 1

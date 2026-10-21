@@ -15,7 +15,7 @@ async fn real_rules_evidence_and_http_preserve_owner_labels_verdict_collision_an
     )
     .unwrap();
     std::fs::write(root.path().join("set.json"),r#"{"schema_version":1,"name":"checks","description":"not model instructions","inputs":{"subject":{"kind":"document"}},"applicability":[],"common_ruleset_instructions":{"context":"own common instructions"},"rule_paths":["rules.jsonl"]}"#).unwrap();
-    std::fs::write(root.path().join("rules.jsonl"),r#"{"rule_id":"check","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{"verdict":{"type":"noul","instructions":"informational native question"}},"verdict":{"kind":"noul","question":{"type":"noul","instructions":"own verdict"},"threshold":0.8,"block_at_or_below":0.3},"severity":"block"}"#).unwrap();
+    std::fs::write(root.path().join("rules.jsonl"),r#"{"rule_id":"check","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{"verdict":{"type":"noul","instructions":"informational native question"}},"verdict":{"kind":"noul","question":{"type":"noul","instructions":"own verdict"},"threshold":0.8,"error_at_or_below":0.3},"severity":"error"}"#).unwrap();
     let mut server=support::TestServer::start(vec![support::HttpReply::json(json!({"model":"typesafe/test-model","answers":{"q000001":{"type":"noul","noul":0.25},"q000002":{"type":"noul","noul":0.9}},"usage":{"input_tokens":50,"output_tokens":8,"cost":0.002}}))]).await;
     let input:RuleInvocationInput=serde_json::from_value(json!({
         "definition_root":root.path(),"definitions":{"kind":"rule_sets","rule_sets":[{"path":"set.json","binding_groups":[{"bindings":{"subject":{"kind":"document","repository":"repo","path":"source.md"}}}]}]},
@@ -41,7 +41,7 @@ async fn real_rules_evidence_and_http_preserve_owner_labels_verdict_collision_an
     assert!(matches!(
         judgment.verdict.result,
         VerdictResult::Fail {
-            activation: Activation::Block
+            activation: Activation::Error
         }
     ));
     assert!(
@@ -82,7 +82,7 @@ async fn real_rules_evidence_and_http_preserve_owner_labels_verdict_collision_an
     );
     for policy in [
         "threshold",
-        "block_at_or_below",
+        "error_at_or_below",
         "weight",
         "severity",
         "routes",
