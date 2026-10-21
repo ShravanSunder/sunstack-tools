@@ -4,7 +4,7 @@ Sidebar inspection keeps the main explanation available. Fullscreen gives a larg
 
 ## Defaults and explicit choice
 
-Diagrams, code, file trees and content comparisons normally offer sidebar/expand controls. Plain prose, cards and stats do not need automatic enlargement. Containers arrange their children rather than inheriting a second set of inspection controls. A bare `zoom` requests inspection for a meaningful whole island; `zoom="none"` removes its controls.
+Diagrams, code, file trees and content comparisons normally offer sidebar/expand controls. On components that install the shared inspector, such as Card, Callout, Tabs, Trace and Pre, bare `zoom` requests whole-island controls and `zoom="none"` removes them. Grid and Flow arrange their children and do not install whole-container inspection buttons, even when a `zoom` attribute parses; use the supported child island's controls. Plain prose and stats need no enlargement.
 
 ```html
 <ex-card id="recovery-contract" title="Recovery contract" label="Recovery contract" tone="note" icon="database" zoom>
@@ -13,7 +13,7 @@ Diagrams, code, file trees and content comparisons normally offer sidebar/expand
 </ex-card>
 ```
 
-Use `label` for a useful inspector name when the visual alone has no clear title. `zoom="true"` is not the flag syntax; write bare `zoom`. Native `details` remain a local disclosure, not an inspector or a guided path. Give a whole grid/Flow/Tabs an explicit inspection affordance only when inspecting the complete composition serves a different question from its children's controls.
+Use `label` for a useful inspector name when the visual alone has no clear title. `zoom="true"` is not the flag syntax; write bare `zoom` on a supported owner. Native `details` remain a local disclosure, not an inspector or a guided path. Whole Tabs inspection can serve a different question from its children's controls; Grid/Flow authors inspect supported children rather than adding a container affordance.
 
 An ordinary figure opens through document inspection, with its image and caption together. Gallery screenshots use their own fullscreen action and Gallery arrow navigation; they do not open a screenshot inspection sidebar. `pictures.md` owns that branch. Markdown's source button opens the retained source, which is different from enlarging its rendered view.
 

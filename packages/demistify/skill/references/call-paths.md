@@ -1,6 +1,6 @@
 # Source-derived call-path changes
 
-This recipe composes existing components; it adds no stack-capture API. Read `comparisons.md` and `traces.md` when constructing the view, and `code.md` for exact supplied patches and displayed-row notes.
+This recipe composes existing components; it adds no stack-capture API. When constructing the view, load `comparisons.md` and `traces.md` and return the corresponding topic keys and expandable source-call steps. For a supplied patch or line notes, load `code.md` and return the preserved source and correct displayed file/row addresses.
 
 Use aligned `ex-compare` topic rows with rich `ex-trace` steps to explain a changed call path. The comparison supplies corresponding topics and the Trace supplies expandable source/context. A separate stack-capture component is not required for source explanation.
 

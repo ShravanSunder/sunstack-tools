@@ -2,6 +2,23 @@ import { expect, test } from 'vitest';
 
 import { checkHtml } from './check.ts';
 
+test.each([
+	'<script type="text/plain">first\nsecond\nlast</script>',
+	'<template>first\n&lt;/script&gt;\nlast</template>',
+])('code notes use the actual source carrier rows', async (carrier): Promise<void> => {
+	// Arrange: row 2 exists in both carriers; row 9 exists in neither.
+	const source = `<ex-code lang="text">${carrier}<ex-note line="2">Second row.</ex-note><ex-note line="9">Missing row.</ex-note></ex-code>`;
+
+	// Act: validate the authored source through the real checker.
+	const findings = await checkHtml(source, { diagrams: false });
+
+	// Assert: faithful template text can carry the same valid notes as script text.
+	const notes = findings.filter((finding): boolean => finding.rule === 'note');
+	expect(notes).toHaveLength(1);
+	expect(notes[0]?.message).toContain('line="9"');
+	expect(notes[0]?.message).toContain('rows are 1–3');
+});
+
 test('the checker accepts the two shared widths and rejects misspelled widths on native wrappers too', async (): Promise<void> => {
 	const source =
 		'<ex-document><ex-tabs data-width="reading"><section label="Text">First.</section></ex-tabs><ex-code data-width="canvas">code</ex-code><section data-width="narrow">Unknown width.</section></ex-document>';

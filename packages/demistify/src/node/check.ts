@@ -469,8 +469,10 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		// Notes must name a row of their code (and, in a multi-file diff, a file).
 		if (name === 'ex-code') {
 			const children = element.childNodes.filter(isElement);
-			const script = children.find((child): boolean => child.tagName === 'script');
-			const lines = normalizeIslandText(script ? textOf(script) : '').split('\n');
+			const carrier = children.find(
+				(child): boolean => child.tagName === 'script' || child.tagName === 'template',
+			);
+			const lines = normalizeIslandText(carrier ? textOf(carrier) : '').split('\n');
 			const diff =
 				attributes.get('lang') === 'diff' || lines.some((line): boolean => line.startsWith('@@'));
 			const files = parseCode(

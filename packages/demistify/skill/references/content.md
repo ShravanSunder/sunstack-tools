@@ -17,7 +17,7 @@ The literal `<registry>` is documentation, not an HTML element.
 </script></ex-markdown>
 ```
 
-The body supports headings, paragraphs, emphasis, links, nested/task lists, tables, fenced code, images and Mermaid fences. A Mermaid fence uses the same diagram renderer as `ex-mermaid`; load `diagrams.md` for that branch. Keep a blank line after headings and each list item on its own line. HTML formatters can join bare Markdown text even when the result still parses.
+The body supports headings, paragraphs, emphasis, links, nested/task lists, tables, fenced code, images and Mermaid fences. A Mermaid fence uses the same diagram renderer as `ex-mermaid`; load `diagrams.md` for that branch and return the supported family, safe source and resolving targets. Keep a blank line after headings and each list item on its own line. HTML formatters can join bare Markdown text even when the result still parses.
 
 Use `src` when a real file owns the prose:
 

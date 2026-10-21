@@ -56,7 +56,7 @@ When a tab or comparison already groups the option, use explanation and its Flow
 
 Keep long explanations and Gain/Cost sections in ordinary flow, with normal spacing after the view. Use an ordinary picture or link to a dedicated Gallery instead of making a card into a screenshot-browsing application. Reading/Canvas applies to the whole chosen surface; its internal text follows that surface's component layout.
 
-Plain cards do not get inspection buttons automatically. Bare `zoom` requests them; `zoom="none"` removes them. Native disclosures remain their own local control. Apply `inspection.md` when inspection is part of the composition.
+Plain cards do not get inspection buttons automatically. Bare `zoom` requests them; `zoom="none"` removes them. Native disclosures remain their own local control. When inspection is part of the composition, load `inspection.md` and return the supported opening choice and state-restoration observations, or the exact access gap.
 
 ## Subject icons and chips
 

@@ -59,4 +59,4 @@ Tabs are selected by click or Arrow/Home/End, with local tab-bar overflow when n
 
 Use `ex-compare` instead when corresponding topics must align across alternatives; use a disclosure for optional depth beneath the current explanation. Keep sequential documents as Pages when that is their actual relationship.
 
-Finish on wide and narrow views: bar/panels share one width, related controls travel with their content, DOM order still reads well, document prose keeps its measure, and fixed heights or overflow clipping hide nothing. For retained interaction in sidebar/fullscreen, apply `inspection.md` too.
+Finish on wide and narrow views: bar/panels share one width, related controls travel with their content, DOM order still reads well, document prose keeps its measure, and fixed heights or overflow clipping hide nothing. For retained interaction in sidebar/fullscreen, load `inspection.md` and return the supported inspection choice and state-restoration observations, or the exact access gap.
