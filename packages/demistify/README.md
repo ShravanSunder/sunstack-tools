@@ -101,7 +101,7 @@ Two shared width standards center in the space remaining beside the outline or i
 
 Walkthrough narration uses focused Markdown and optional `ex-step icon="path"` subject icons. Use a bold lead, short paragraphs/lists, links and inline code; keep full diagrams and evidence in the targeted content. See the matching [walkthrough guide](skill/references/tours.md).
 
-Use one `ex-gallery` among other content or as the whole page. Review and grid are two views of the same selection and filters. Authors supply evidence; readers do not upload it.
+Use one `ex-gallery` directly inside `ex-document` on its own page, optionally preceded by one h1. Put explanation on a linking page and use an ordinary figure for an inline picture. Review and grid are two views of the same selection and filters. Authors supply evidence; readers do not upload it.
 
 ```html
 <ex-gallery id="evidence" label="UI evidence">

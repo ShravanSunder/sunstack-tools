@@ -48,7 +48,7 @@ The Walkthroughs chooser, opened by W or the path button, shows the source page 
 
 ## Gallery Journeys
 
-Reference gallery figures directly, keeping their original captions and one shared player:
+Author the picture collection on its own Gallery page: one direct `ex-gallery` in `ex-document`, optionally after one h1. Put the hidden path declaration beside the document and keep explanatory sections on the linking page. Reference existing figure IDs directly, keeping their original captions and one shared player:
 
 ```html
 <ex-presentation id="checkout" title="Complete checkout" variations>

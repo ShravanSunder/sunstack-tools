@@ -2,7 +2,7 @@
 
 Use a plain `<figure><img src="…" alt="…"><figcaption>…</figcaption></figure>` for one picture. It opens through the shared inspector beside the text; fullscreen uses the same dialog as other islands.
 
-Use `ex-gallery` when readers need to browse screenshots, compare viewport variants or filter evidence. It can be one island among prose or the main island on a page. A Gallery is the browsable picture collection; a Gallery Journey is an optional ordered path through its existing figures. The document still owns Pages, outline, theme and walkthrough selection. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
+Use `ex-gallery` when readers need to browse screenshots, compare viewport variants or filter evidence. Put one Gallery directly inside `ex-document` on its own page, optionally preceded by one h1. Put `ex-nav` and hidden path declarations beside the document. Keep explanation on a linking page; use an ordinary figure for one inline picture. The authoring checker reports `gallery-page` for embedded or multiple galleries; inert template data does not count as displayed content. A Gallery is the browsable picture collection; a Gallery Journey is an optional ordered path through its existing figures. The document still owns Pages, outline, theme and walkthrough selection. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
 
 ## Group the actual evidence
 
@@ -31,7 +31,7 @@ Keep the three controls distinct: the gallery’s list icon shows or hides scree
 
 ## Facets and captions
 
-For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Include the normal `ex-nav` construct for Pages and the Walkthroughs launcher; hiding gallery thumbnails does not hide those document controls. Other prose/sections/disclosures make it an embedded gallery in normal page flow. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
+For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Include the normal `ex-nav` construct for Pages and the Walkthroughs launcher; hiding gallery thumbnails does not hide those document controls. Move other prose, sections and disclosures to the linking page. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
 
 Use tags for useful content groupings, such as `data-tags="Account, Journey"`. Tags become the default filter choices when present. Screen and viewport metadata group navigation; they are not repeated as automatic picture filters. The keyboard icon opens shortcut help; Review/Grid use one named button group. Search uses available width and has a clear action through the same settled query pipeline.
 
