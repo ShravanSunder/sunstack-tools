@@ -514,7 +514,7 @@ for (const component of ['gallery', 'explorer']) {
 		}
 		requiredElement(fixture, 'ex-document').append(probe);
 		await expect
-			.element(fixtureLocator(frame, probe))
+			.element(fixtureLocator(frame, probe).getByRole('status'))
 			.toHaveTextContent(`${component === 'gallery' ? 'Gallery' : 'Explorer'} could not load.`);
 		expect(probe.hasAttribute('aria-busy')).toBe(false);
 		if (inlineSource) {
@@ -525,8 +525,18 @@ for (const component of ['gallery', 'explorer']) {
 				title: 'Recovered Explorer',
 				description: 'The inline source remains available for another load.',
 				note: '',
-				groups: [],
-				nodes: [],
+				groups: [{ id: 'services', label: 'Services', kind: 'role' }],
+				nodes: [
+					{
+						id: 'registry',
+						label: 'Registry',
+						description: 'Retains the original request.',
+						group: 'services',
+						issue: '',
+						status: 'current',
+						sources: [],
+					},
+				],
 				edges: [],
 				tables: [],
 			});
