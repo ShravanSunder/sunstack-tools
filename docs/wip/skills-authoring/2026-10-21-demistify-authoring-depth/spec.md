@@ -26,7 +26,7 @@ The main file must show the whole route in one scan:
 
 Keep the mental model near the start: the document owns the explanation; components provide reusable views; Pages move between documents; local disclosures reveal optional detail; Walkthroughs guide stops through existing content; Gallery Journeys guide picture-only stops.
 
-Keep the two width standards visible in the main file. Reading centers explanatory text with left-aligned headings and paragraphs. Canvas gives visual material more room. The detailed reference owns the dimensions and examples; the main file keeps the rule that whole components include their controls, while document headings and dividers follow Reading.
+Keep the two width standards visible in the main file. Reading holds explanatory text at 760px with left-aligned headings and paragraphs; from Demistify 1.10.0 ([#63](https://github.com/ShravanSunder/sunstack-tools/pull/63), owner-approved after a rendered before/after comparison) Reading and Canvas share one left edge instead of centering Reading inside Canvas. Teach whichever the bound release ships. Canvas gives visual material more room. The detailed reference owns the dimensions and examples; the main file keeps the rule that whole components include their controls, while document headings and dividers follow Reading.
 
 Replace dense mixed-purpose paragraphs with a component chooser. Each choice leads to one named reference and says what the agent must bring back. The chooser covers every supported authoring component family, including the basic components whose current documentation is thin.
 
@@ -105,6 +105,27 @@ References return a usable decision or authored result. A reference that merely 
 **Optional depth and connectors.** A short disclosure has one concise summary and ordinary body text; it does not need another document-sized heading and section gap immediately inside it. A rich wide disclosure may use the selected shared surface treatment once that proposal is chosen. Flow connectors need room for their complete captions, multiline wrapping where needed, and alignment appropriate to the facing cards. Moving a label away from its arrow is not a substitute for sufficient connector space.
 
 The package README keeps its quickstart and examples consistent with these homes and links readers to their detail. It does not become another full manual.
+
+## Evidence status of this proposal
+
+Each part of this spec carries one label. **measured**: observed in the 2026-10-20 authoring pyramid (13 fresh agents, each on a different subject, guide at 1.9.3; `docs/wip/demystify/2026-10-20-agent-authoring-pyramid.md`, [#63](https://github.com/ShravanSunder/sunstack-tools/pull/63)). **owner**: an owner decision. **release**: product behavior already shipped or pending. **intent**: not yet observed in any run.
+
+| Part | Label | Evidence |
+| --- | --- | --- |
+| Main file too dense; selection, syntax, widths and controls mixed in paragraphs | measured | Every Sonnet/Opus agent called the route heavy; five agents skipped MUST loads to stay in budget |
+| Code and map references too short to author from | measured | Agents probed `ex-note` diff numbering (H3), `ex-code` languages (H4), Flow label placement (H2, O2) |
+| Comparison topic headings flood the outline; `comparisons.md` example uses `<h3>` | measured (L1) | S2 audit 6 duplicates; PoC pages; O1, O2, H4 worked around it |
+| Callout `icon`, `path` icon, `<ex-mermaid id>` disagree between guide, checker data and skill | measured (friction 1) | custom data vs guide island table |
+| Undocumented facts agents had to probe: slug rule, cross-page scoped stop IDs, `index` edits in place, script-assigned IDs, tone optionality | measured (friction 6) | O1, S1, S3 |
+| Walkthrough `ex-nav` launcher rule stated in three places | measured | presentation-html step 3, guide, `tours.md` |
+| Literal `<` in bare Markdown corrupts layout; Markdown in a plain `div` renders literally; `## Heading {#id}` renders literally | measured (L2, L3, L11) | repro page R1, R3, R7 |
+| `xychart-beta` legend "Bar 1 / Line 1" and smoothed lines | measured (L7) | repro R10 |
+| Table neutral gray header and rounded corners | release 1.9.4 | shipped |
+| Shared left edge; author-only issue panel (`?ex-check`, `data-ex-issues`); stat at Reading width; phone toolbar | release 1.10.0 pending (#63) | owner-approved layout; browser tests |
+| Flow labels fall back and report to the author only | owner | 20 October decision |
+| New reference homes (`content`, `layouts`, `cards-and-callouts`, `navigation`, `inspection`, `diagrams`) | intent | allocation not yet tried by an agent |
+| Gallery dedicated-page direction, narration player, chips vs tags, card composition, comparison height | intent | owner direction; no fresh authoring run yet |
+| Fresh authoring tasks as proof | intent | planned; the 2026-10-21 presentation-html Haiku experiments exercise this guide at 1.9.4 and their results will be linked here |
 
 ## How we will know this teaching is useful
 
