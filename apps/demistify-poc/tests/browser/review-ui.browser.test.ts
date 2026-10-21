@@ -502,6 +502,7 @@ for (const component of ['gallery', 'explorer']) {
 		const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
 		const probe = fixture.createElement(`ex-${component}`);
 		probe.id = `reader-failure-${component}`;
+		let inlineSource: HTMLScriptElement | undefined;
 		if (component === 'gallery') {
 			probe.innerHTML = '<figure><figcaption>Unavailable capture</figcaption></figure>';
 		} else {
@@ -509,12 +510,14 @@ for (const component of ['gallery', 'explorer']) {
 			source.type = 'application/json';
 			source.textContent = '{';
 			probe.append(source);
+			inlineSource = source;
 		}
 		requiredElement(fixture, 'ex-document').append(probe);
 		await expect
 			.element(fixtureLocator(frame, probe))
 			.toHaveTextContent(`${component === 'gallery' ? 'Gallery' : 'Explorer'} could not load.`);
 		expect(probe.hasAttribute('aria-busy')).toBe(false);
+		if (inlineSource) expect(probe.querySelector('script')).toBe(inlineSource);
 		expect(Number(fixture.documentElement.dataset['exIssues'] ?? '0')).toBeGreaterThan(0);
 		expect(fixture.querySelector('.ex-issues')).toBeNull();
 	});
