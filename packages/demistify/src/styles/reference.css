@@ -169,6 +169,12 @@ a.chip:focus-visible {
 }
 
 /* tables */
+.tbl,
+.ex-table-scroll,
+.ex-explorer-table-scroll {
+	border: 1px solid var(--table-border);
+	border-radius: var(--radius-md);
+}
 .tbl {
 	overflow-x: auto;
 	margin: var(--space-3) 0;
@@ -186,7 +192,8 @@ td {
 }
 thead,
 tbody > tr:first-child:has(th):not(:has(td)) {
-	border-bottom: 1px solid var(--rule);
+	background: var(--table-header-background);
+	border-bottom: 1px solid var(--table-border);
 }
 tbody > tr:nth-child(even) {
 	background: color-mix(in srgb, var(--ink) 3%, var(--surface-page));
@@ -197,7 +204,7 @@ th {
 	font-size: var(--text-sm);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
-	color: var(--ink-soft);
+	color: var(--table-header-foreground);
 }
 
 /* lessons */
