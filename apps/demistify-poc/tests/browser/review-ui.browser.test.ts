@@ -341,7 +341,7 @@ test('width transitions gain space without padding consecutive wide blocks or na
 	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
 });
 
-test('document headings align with Reading prose while visual components keep the wider centered Canvas', async (): Promise<void> => {
+test('document headings and Reading prose share the left edge of the wider Canvas', async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 	const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
 	await expect
@@ -357,7 +357,7 @@ test('document headings align with Reading prose while visual components keep th
 	expect(proseStyle.fontSize).toBe('18px');
 	expect(proseStyle.fontWeight).toBe('400');
 	expect(fixture.fonts.check('400 18px "Source Sans 3"')).toBe(true);
-	expect(fixture.fonts.check('600 36px Archivo')).toBe(true);
+	expect(fixture.fonts.check('600 28px Archivo')).toBe(true);
 	expect(view.getComputedStyle(requiredElement(fixture, '#reading-heading')).fontFamily).toContain(
 		'Archivo',
 	);
@@ -375,7 +375,6 @@ test('document headings align with Reading prose while visual components keep th
 	}
 	expect(bounds('#reading-divider').width).toBeCloseTo(760, 0);
 	const canvas = bounds('#width-canvas');
-	const center = canvas.left + canvas.width / 2;
 	for (const selector of [
 		'#reading-title',
 		'#lead-proof',
@@ -392,7 +391,7 @@ test('document headings align with Reading prose while visual components keep th
 	]) {
 		const block = bounds(selector);
 		expect(block.width).toBeCloseTo(760, 0);
-		expect(Math.abs(block.left + block.width / 2 - center)).toBeLessThan(1);
+		expect(Math.abs(block.left - canvas.left)).toBeLessThan(1);
 	}
 	for (const selector of [
 		'#visual-section',
@@ -417,7 +416,10 @@ test('document headings align with Reading prose while visual components keep th
 		bounds('#mixed-markdown > p').width + 200,
 	);
 	expect(bounds('#nested-proof').width).toBeLessThan(760);
-	expect(bounds('#nested-proof').left).toBeLessThan(bounds('#ordinary-proof').left);
+	const nestedCard = requiredElement(fixture, '#nested-proof').closest('ex-card');
+	if (!nestedCard) throw new Error('Missing nested card.');
+	expect(bounds('#nested-proof').left).toBeGreaterThan(nestedCard.getBoundingClientRect().left);
+	expect(bounds('#nested-proof').right).toBeLessThan(nestedCard.getBoundingClientRect().right);
 	const local = fixtureLocator(frame, requiredElement(fixture, '#width-code'));
 	await userEvent.hover(local);
 	await local.getByRole('button', { name: 'Open Canvas code in a sidebar', exact: true }).click();
@@ -425,14 +427,7 @@ test('document headings align with Reading prose while visual components keep th
 		.element(frame.getByRole('complementary', { name: 'Canvas code', exact: true }))
 		.toBeVisible();
 	await expect
-		.poll((): number =>
-			Math.abs(
-				bounds('#ordinary-proof').left +
-					bounds('#ordinary-proof').width / 2 -
-					bounds('#width-canvas').left -
-					bounds('#width-canvas').width / 2,
-			),
-		)
+		.poll((): number => Math.abs(bounds('#ordinary-proof').left - bounds('#width-canvas').left))
 		.toBeLessThan(1);
 	await page.viewport(390, 900);
 	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
@@ -443,4 +438,34 @@ test('document headings align with Reading prose while visual components keep th
 		.click();
 	await page.viewport(390, 900);
 	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+});
+
+test('authoring issues reach agents without covering the reader page', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('ui', '', 'widths.html');
+	const probe = fixture.createElement('ex-card');
+	probe.setAttribute('tone', 'not-a-tone');
+	probe.textContent = 'Issue probe';
+	requiredElement(fixture, 'ex-document').append(probe);
+	await expect
+		.poll((): number => Number(fixture.documentElement.dataset['exIssues'] ?? '0'))
+		.toBeGreaterThan(0);
+	await new Promise((resolve): void => {
+		requestAnimationFrame(resolve);
+	});
+	expect(fixture.querySelector('.ex-issues')).toBeNull();
+	expect(fixture.documentElement.hasAttribute('data-ex-check')).toBe(false);
+	expect(fixture.defaultView?.getComputedStyle(probe).outlineStyle).toBe('none');
+});
+
+test('?ex-check lists authoring issues on the page for the author', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui', '?ex-check', 'widths.html');
+	const probe = fixture.createElement('ex-card');
+	probe.setAttribute('tone', 'not-a-tone');
+	probe.textContent = 'Issue probe';
+	requiredElement(fixture, 'ex-document').append(probe);
+	await expect
+		.element(frame.getByRole('status', { name: 'Authoring issues', exact: true }))
+		.toBeVisible();
+	expect(fixture.documentElement.hasAttribute('data-ex-check')).toBe(true);
+	expect(fixture.defaultView?.getComputedStyle(probe).outlineStyle).not.toBe('none');
 });
