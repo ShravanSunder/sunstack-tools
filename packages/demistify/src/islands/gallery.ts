@@ -65,6 +65,8 @@ export class GalleryIsland extends HTMLElement {
 		try {
 			this.initialize();
 		} catch (error) {
+			this.textContent = 'Gallery could not load.';
+			this.setAttribute('role', 'status');
 			reportIssue(this, `Gallery could not initialize: ${String(error)}`);
 		}
 	}

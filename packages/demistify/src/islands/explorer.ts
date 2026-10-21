@@ -19,6 +19,8 @@ export class ExplorerIsland extends HTMLElement {
 			})
 			.catch((error: unknown): void => {
 				this.removeAttribute('aria-busy');
+				this.textContent = 'Explorer could not load.';
+				this.setAttribute('role', 'status');
 				reportIssue(this, error instanceof Error ? error.message : 'Explorer failed to load.');
 			})
 			.finally((): void => {
