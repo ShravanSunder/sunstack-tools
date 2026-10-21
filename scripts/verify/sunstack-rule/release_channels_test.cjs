@@ -16,6 +16,7 @@ const {
 } = require('./release_registry.cjs');
 const { captureProcess, groupMembers, trackOwnedTree } = require('./release_process.cjs');
 const {
+	assertReportMatches,
 	stopExpectation,
 	gradeStop,
 	argumentsFrom,
@@ -279,8 +280,9 @@ test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report i
 	assert.equal(gradeStop(result, 'no-cancelled-report', {}, '0.0.6', '/fixture'), 'limit');
 	const state = { contents: { content1: 'literal' } };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
+	const literalConfig = fileSystem.realpathSync(__filename);
 	const mismatchedState = {
-		stdout: Buffer.from(JSON.stringify({ ...reference, version: '0.0.6', config: '/fixture' })),
+		stdout: Buffer.from(JSON.stringify({ ...reference, version: '0.0.6', config: literalConfig })),
 		observation: {
 			error: null,
 			survivors_before_cleanup: [],
@@ -290,7 +292,7 @@ test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report i
 		},
 	};
 	assert.throws(
-		() => gradeStop(mismatchedState, 'cancel4', reference, '0.0.6', '/fixture'),
+		() => gradeStop(mismatchedState, 'cancel4', reference, '0.0.6', literalConfig),
 		/actual sent state/,
 	);
 });
@@ -336,7 +338,7 @@ test('a real held request with a question map admits cancellation and retains it
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-held-control-'),
 	);
-	const configPath = path.join(root, 'sunstack.lint.json');
+	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
 	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
 	const state = { contents: { content1: 'synthetic held state' }, evidence: {}, state_version: 1 };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
@@ -365,7 +367,7 @@ test('an owned native in a separate process group is admitted without widening t
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-detached-control-'),
 	);
-	const configPath = path.join(root, 'sunstack.lint.json');
+	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
 	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
 	const state = { contents: { content1: 'detached native held state' } };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
@@ -418,7 +420,7 @@ test('an unrelated native with matching bytes cannot authorize a held request fr
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-unrelated-control-'),
 	);
-	const configPath = path.join(root, 'sunstack.lint.json');
+	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
 	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
 	const binary = path.join(root, 'sunstack');
 	const source = "process.stdout.write('decoy ready');setInterval(()=>{},1000);";
@@ -506,4 +508,46 @@ test('ownership census after root exit retains its live same-group child and ref
 	);
 	assert.equal(observe.ownership().kind, 'unestablished');
 	assert.equal(observe.ownership().initial_root, null);
+});
+
+test('report comparison accepts canonical config paths behind a symlinked fixture directory', () => {
+	const root = fileSystem.mkdtempSync(
+		path.join(operatingSystem.tmpdir(), 'sunstack-s4-config-alias-'),
+	);
+	const physical = path.join(fileSystem.realpathSync(root), 'physical');
+	fileSystem.mkdirSync(physical);
+	const canonicalConfig = path.join(physical, 'sunstack.lint.json');
+	save(canonicalConfig, {});
+	const alias = path.join(root, 'alias');
+	fileSystem.symlinkSync(physical, alias, 'dir');
+	const aliasConfig = path.join(alias, 'sunstack.lint.json');
+	assert.notEqual(aliasConfig, canonicalConfig);
+	for (const kind of ['clean', 'findings', 'incomplete']) {
+		const reference = { status: { kind }, findings: [], counts: { error: 0, warn: 0 } };
+		const actual = { ...reference, version: '0.0.6', config: canonicalConfig };
+		assertReportMatches(actual, reference, '0.0.6', aliasConfig);
+		assert.throws(() =>
+			assertReportMatches(
+				{ ...actual, config: path.join(physical, 'wrong.json') },
+				reference,
+				'0.0.6',
+				aliasConfig,
+			),
+		);
+	}
+	const state = { contents: { content001: 'literal held state' } };
+	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
+	const result = {
+		stdout: Buffer.from(
+			JSON.stringify({ ...reference, version: '0.0.6', config: canonicalConfig }),
+		),
+		observation: {
+			error: null,
+			survivors_before_cleanup: [],
+			sockets_before_cleanup: 0,
+			root_close: { code: 4, signal: null },
+			admitted_request: { state },
+		},
+	};
+	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', aliasConfig), 'pass');
 });

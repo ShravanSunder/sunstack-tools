@@ -44,6 +44,7 @@ test('self-cancel admission rejects the wrong repository, run, head, workflow an
 });
 
 async function controllerCase(mode, testContext) {
+	if (mode === 'late') testContext.mock.timers.enable({ apis: ['setTimeout'] });
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-actions-control-'),
 	);
@@ -77,10 +78,11 @@ process.stdout.write(${JSON.stringify(mode)}==='leak'?process.env.GH_TOKEN:'canc
 		target,
 		token: 'synthetic-controller-token',
 		ghCommand: [process.execPath, fake],
-		bounds: [0, 100, 500],
+		bounds: mode === 'late' ? [] : [0, 100, 500],
 	});
 	let child;
 	testContext.after(async () => {
+		if (mode === 'late') testContext.mock.timers.reset();
 		if (child) {
 			try {
 				process.kill(-child.pid, 'SIGKILL');
@@ -104,12 +106,24 @@ process.stdout.write(${JSON.stringify(mode)}==='leak'?process.env.GH_TOKEN:'canc
 			false,
 		);
 		await assert.rejects(controller.finish(), /before frozen/);
+		let lateRequestReceived, timedOutObservation;
+		if (mode === 'late') {
+			testContext.mock.timers.tick(120000);
+			assert.match(controller.observation.error, /no admitted real request/);
+			timedOutObservation = fileSystem.readFileSync(path.join(root, 'observation.json'));
+			lateRequestReceived = new Promise((resolve) =>
+				controller.server.once('request', (request) => {
+					request.once('end', resolve);
+					request.resume();
+				}),
+			);
+		}
 		const source = `const http=require('node:http'),fs=require('node:fs');
 if(process.env.GH_TOKEN)throw Error('controller token inherited');
 process.on('SIGINT',()=>process.stdout.write('cancelled-control\\n',()=>process.exit(4)));
 const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(path.join(root, 'fixture/sunstack.lint.json'))})).backend.endpoint;
 const body=JSON.stringify({state:{contents:{content001:'synthetic actual HTTP state'}},questions:{q1:{question:'held'}}});
-setTimeout(()=>{const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});request.end(body);},50);`;
+setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{if(${JSON.stringify(mode)}==='late')process.stdout.write('late-refused:'+response.statusCode+'\\n',()=>process.exit(0));});request.on('error',()=>{});request.end(body);},50);`;
 		child = spawn(binary, ['-e', source], {
 			detached: true,
 			env: { PATH: '/usr/bin:/bin', HOME: root },
@@ -121,6 +135,31 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'});request.on(
 		const closed = new Promise((resolve) =>
 			child.once('close', (code, signal) => resolve({ code, signal })),
 		);
+		if (mode === 'late') {
+			await lateRequestReceived;
+			await controller.pending;
+			const calls = fileSystem
+				.readFileSync(path.join(root, 'calls.jsonl'), 'utf8')
+				.trim()
+				.split('\n')
+				.map((line) => JSON.parse(line));
+			assert.deepEqual(
+				calls.filter((args) => args[0] === 'run'),
+				[],
+				'late admission issued cancellation',
+			);
+			assert.equal(controller.pending, undefined);
+			assert.deepEqual(
+				fileSystem.readFileSync(path.join(root, 'observation.json')),
+				timedOutObservation,
+				'late request rewrote frozen timeout',
+			);
+			assert.deepEqual(await closed, { code: 0, signal: null });
+			assert.equal(Buffer.concat(stdout).toString(), 'late-refused:404\n');
+			testContext.mock.timers.reset();
+			await controller.finish();
+			return;
+		}
 		await new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
 				clearInterval(poll);
@@ -196,3 +235,6 @@ test('a live native and socket remain observed even when owned cleanup ends them
 	controllerCase('leave', testContext));
 test('a synthetic token in cancellation output is withheld and cannot yield a successful receipt', (testContext) =>
 	controllerCase('leak', testContext));
+
+test('a real request after the admission timeout cannot cancel or rewrite the frozen observation', (testContext) =>
+	controllerCase('late', testContext));

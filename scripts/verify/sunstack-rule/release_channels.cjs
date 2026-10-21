@@ -70,6 +70,14 @@ function stopExpectation(route, signal, destination, platform = process.platform
 	return 'cancel4';
 }
 
+function assertReportMatches(actual, reference, version, configPath) {
+	assert.deepEqual(
+		actual,
+		{ ...reference, version, config: fileSystem.realpathSync(configPath) },
+		'full lint report',
+	);
+}
+
 function gradeStop(result, expected, reference, version, configPath) {
 	const facts = result.observation;
 	assert.equal(facts.error, null, facts.error || 'capture failed');
@@ -91,11 +99,7 @@ function gradeStop(result, expected, reference, version, configPath) {
 			assert.equal(facts.root_close.signal, null);
 		}
 		const actual = JSON.parse(result.stdout);
-		assert.deepEqual(
-			actual,
-			{ ...reference, version, config: configPath },
-			'full cancelled report',
-		);
+		assertReportMatches(actual, reference, version, configPath);
 		assert.deepEqual(
 			Object.values(actual.evidence_seen),
 			[facts.admitted_request.state],
@@ -483,11 +487,12 @@ async function observeChannels(options) {
 								assert.equal(JSON.parse(native.stdout).status.kind, 'invalid');
 								assert.match(native.stdout.toString(), /UNKNOWN_S4_FIELD|unknown field/);
 							} else
-								assert.deepEqual(JSON.parse(result.stdout), {
-									...reference(template),
-									config: path.join(fixture, 'sunstack.lint.json'),
+								assertReportMatches(
+									JSON.parse(result.stdout),
+									reference(template),
 									version,
-								});
+									path.join(fixture, 'sunstack.lint.json'),
+								);
 						});
 					}
 					for (const [signal, destination] of [
@@ -566,6 +571,7 @@ if (require.main === module) {
 	}
 }
 module.exports = {
+	assertReportMatches,
 	stopExpectation,
 	gradeStop,
 	argumentsFrom,
