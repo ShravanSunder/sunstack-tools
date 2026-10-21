@@ -56,6 +56,14 @@
 .ex-comparison-option > :first-child {
 	margin-top: 0;
 }
+/* A topic heading names the row; it reads as a label beside the alternative's own content. */
+.ex-comparison-option > [data-compare-row] > :is(h3, h4):first-child {
+	margin-bottom: var(--space-2);
+	color: var(--ink-soft);
+	font: 600 var(--text-sm)/1.3 var(--font-display);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
 .ex-comparison-gap {
 	color: var(--ink-soft);
 	font: 400 var(--text-lg)/1.55 var(--font-body);

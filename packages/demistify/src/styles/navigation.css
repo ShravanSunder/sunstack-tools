@@ -208,3 +208,42 @@ ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
 	left: 60px;
 }
+/* On a phone the floating controls would cover the text; they join the top toolbar instead. */
+@media (max-width: 760px) {
+	body .ex-presentations-trigger,
+	body .ex-theme-toggle,
+	body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle,
+	body .ex-search-trigger,
+	body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
+		top: calc(env(safe-area-inset-top, 0px) + 5px);
+		bottom: auto;
+		left: auto;
+	}
+	body .ex-search-trigger,
+	body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
+		right: 8px;
+		width: 34px;
+		padding-inline: 0;
+		justify-content: center;
+	}
+	body .ex-theme-toggle,
+	body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle {
+		right: 48px;
+	}
+	body .ex-presentations-trigger {
+		right: 88px;
+	}
+	:is(.ex-search-trigger kbd, .ex-presentations-trigger .ex-shortcut-hint) {
+		display: none;
+	}
+	.ex-document-toolbar {
+		padding-right: 132px;
+	}
+	/* An open drawer takes the right of a phone screen; its own close control is the way back. */
+	:root[data-drawer] :is(.ex-presentations-trigger, .ex-theme-toggle, .ex-search-trigger) {
+		display: none;
+	}
+	:root[data-drawer] .ex-document-toolbar {
+		padding-right: var(--space-3);
+	}
+}

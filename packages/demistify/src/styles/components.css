@@ -286,6 +286,18 @@ ex-markdown {
 	max-width: 100%;
 	overflow-x: auto;
 }
+/* A document table keeps readable columns and scrolls, rather than wrapping a letter per line. */
+ex-document .ex-table-scroll:not(:is(ex-card, ex-callout, ex-compare, ex-grid) *) > table {
+	width: max-content;
+	min-width: 100%;
+}
+ex-document .ex-table-scroll:not(:is(ex-card, ex-callout, ex-compare, ex-grid) *) :is(td, th) {
+	min-width: 8ch;
+	max-width: 48ch;
+}
+:is(ex-code, ex-pre, pre) {
+	tab-size: 2;
+}
 ex-markdown ex-mermaid svg {
 	display: block;
 	max-width: 100%;
