@@ -40,15 +40,26 @@ function renderPanel(): void {
 	panel.replaceChildren(heading, list);
 }
 
-/** Records a visible authoring problem once; the page shows a panel and the console a warning. */
+/** Authoring issues are for agents and authors; the panel appears only when the address asks for it. */
+function authorCheckRequested(): boolean {
+	return new URLSearchParams(location.search).has('ex-check');
+}
+
+/**
+ * Records an authoring problem once. Agents read the console warning and the issue count on the
+ * root element; readers see neither unless the page was opened with `?ex-check`.
+ */
 export function reportIssue(element: Element | undefined, message: string): void {
 	const key = `${describeElement(element)}|${message}`;
 	if (reportedKeys.has(key)) return;
 	reportedKeys.add(key);
 	reportedIssues.push({ element, message });
 	element?.classList.add('ex-issue-target');
+	document.documentElement.dataset['exIssues'] = String(reportedIssues.length);
 	// oxlint-disable-next-line no-console -- headless page checks read authoring issues from the console.
 	console.warn(`[demistify] ${describeElement(element)}: ${message}`);
+	if (!authorCheckRequested()) return;
+	document.documentElement.dataset['exCheck'] = '';
 	renderFrame ??= requestAnimationFrame(renderPanel);
 }
 

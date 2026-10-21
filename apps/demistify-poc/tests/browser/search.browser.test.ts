@@ -139,31 +139,54 @@ test('query-bearing documents keep live headings searchable and open them withou
 	expect(document.querySelector('iframe')?.contentDocument).toBe(fixture);
 });
 
-for (const width of [1600, 390]) {
-	test(`search launcher sits beside the bottom theme control at ${width}px`, async (): Promise<void> => {
-		await page.viewport(width, 900);
-		const { document: fixture, frame } = await openFixture('navigation');
-		const launcher = frame.getByRole('button', { name: 'Search pages and headings', exact: true });
-		await expect.element(launcher).toBeVisible();
-		const searchBounds = requiredElement(fixture, '.ex-search-trigger').getBoundingClientRect();
-		const themeBounds = requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect();
-		expect(searchBounds.left).toBeGreaterThan(themeBounds.right);
-		expect(searchBounds.left - themeBounds.right).toBeLessThan(20);
-		expect(Math.abs(searchBounds.bottom - themeBounds.bottom)).toBeLessThan(2);
-		expect(searchBounds.bottom).toBeGreaterThan(850);
-		expect(insideViewport(requiredElement(fixture, '.ex-search-trigger'))).toBe(true);
-		await expect.element(launcher.getByText(/⌘K|Ctrl-K/)).toBeVisible();
-		await launcher.click();
-		const dialog = frame.getByRole('dialog', {
-			name: 'Search documents',
-			exact: true,
-			includeHidden: true,
-		});
-		await expect.element(dialog).toBeVisible();
-		await userEvent.keyboard('{Escape}');
-		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Search pages and headings');
+test('search launcher sits beside the bottom theme control at 1600px', async (): Promise<void> => {
+	await page.viewport(1600, 900);
+	const { document: fixture, frame } = await openFixture('navigation');
+	const launcher = frame.getByRole('button', { name: 'Search pages and headings', exact: true });
+	await expect.element(launcher).toBeVisible();
+	const searchBounds = requiredElement(fixture, '.ex-search-trigger').getBoundingClientRect();
+	const themeBounds = requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect();
+	expect(searchBounds.left).toBeGreaterThan(themeBounds.right);
+	expect(searchBounds.left - themeBounds.right).toBeLessThan(20);
+	expect(Math.abs(searchBounds.bottom - themeBounds.bottom)).toBeLessThan(2);
+	expect(searchBounds.bottom).toBeGreaterThan(850);
+	expect(insideViewport(requiredElement(fixture, '.ex-search-trigger'))).toBe(true);
+	await expect.element(launcher.getByText(/⌘K|Ctrl-K/)).toBeVisible();
+	await launcher.click();
+	const dialog = frame.getByRole('dialog', {
+		name: 'Search documents',
+		exact: true,
+		includeHidden: true,
 	});
-}
+	await expect.element(dialog).toBeVisible();
+	await userEvent.keyboard('{Escape}');
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Search pages and headings');
+});
+
+test('search and theme controls join the top toolbar at 390px', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('navigation');
+	const launcher = frame.getByRole('button', { name: 'Search pages and headings', exact: true });
+	await expect.element(launcher).toBeVisible();
+	const toolbar = requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect();
+	const searchBounds = requiredElement(fixture, '.ex-search-trigger').getBoundingClientRect();
+	const themeBounds = requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect();
+	expect(searchBounds.top).toBeGreaterThanOrEqual(toolbar.top);
+	expect(searchBounds.bottom).toBeLessThanOrEqual(toolbar.bottom);
+	expect(Math.abs(searchBounds.top - themeBounds.top)).toBeLessThan(2);
+	expect(themeBounds.right).toBeLessThan(searchBounds.left);
+	expect(searchBounds.right).toBeLessThanOrEqual(390);
+	expect(insideViewport(requiredElement(fixture, '.ex-search-trigger'))).toBe(true);
+	await launcher.click();
+	const dialog = frame.getByRole('dialog', {
+		name: 'Search documents',
+		exact: true,
+		includeHidden: true,
+	});
+	await expect.element(dialog).toBeVisible();
+	await userEvent.keyboard('{Escape}');
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Search pages and headings');
+});
 
 test('Pages is a native link dropdown, separate from search, with keyboard selection', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('navigation');

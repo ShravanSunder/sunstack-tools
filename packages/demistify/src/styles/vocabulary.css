@@ -57,9 +57,9 @@ ex-document > * + * {
 /* Reading wrappers carry section rhythm; other islands keep their own heading layout. */
 ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2) {
 	border-top: 1px solid var(--rule);
-	padding-top: calc(var(--space-10) * 1.25);
-	margin-top: var(--space-12);
-	margin-bottom: var(--space-6);
+	padding-top: var(--space-6);
+	margin-top: var(--space-10);
+	margin-bottom: var(--space-2);
 }
 ex-document :is(p, li, dd, td) code:not(.ex-code-text, pre code) {
 	color: var(--patch);
@@ -283,7 +283,7 @@ ex-callout > :is(p, ul, ol) {
 	margin: var(--space-1) 0;
 }
 
-.ex-issue-target {
+:root[data-ex-check] .ex-issue-target {
 	outline: 2px dashed var(--missing);
 	outline-offset: var(--space-1);
 }
@@ -459,10 +459,10 @@ ex-note .ex-tone-icon {
 }
 @media (max-width: 600px) {
 	ex-document h1 {
-		font-size: var(--text-section);
+		font-size: calc(var(--text-section) + 4px);
 	}
 	ex-document h2 {
-		font-size: calc(var(--text-subheading) + 7px);
+		font-size: calc(var(--text-subheading) + 2px);
 	}
 }
 

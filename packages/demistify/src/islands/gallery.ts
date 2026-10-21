@@ -60,11 +60,16 @@ export class GalleryIsland extends HTMLElement {
 	private inspectionSource: GalleryIsland | undefined;
 	private eventController = new AbortController();
 	private readonly pendingFilter = createDebouncedAction((): void => this.applyFilters(), 200);
+	private readonly loadError = document.createElement('p');
 
 	connectedCallback(): void {
+		this.loadError.remove();
 		try {
 			this.initialize();
 		} catch (error) {
+			this.loadError.textContent = 'Gallery could not load.';
+			this.loadError.setAttribute('role', 'status');
+			this.append(this.loadError);
 			reportIssue(this, `Gallery could not initialize: ${String(error)}`);
 		}
 	}

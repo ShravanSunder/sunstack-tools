@@ -1,15 +1,16 @@
-/* Two section widths. HTML and nested islands retain ownership of their own layout. */
+/* Two section widths share one left edge: Reading starts where Canvas starts. HTML and nested
+   islands retain ownership of their own layout. */
 ex-document {
 	max-width: var(--width-canvas);
 }
 /* Only document flow participates: structural wrappers are transparent, other islands stop it. */
 ex-document
-	:is(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, ex-callout, ex-card):not(
+	:is(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, ex-callout, ex-card, ex-stat):not(
 		ex-document :not(section, article, main, div, ex-markdown) *
 	) {
 	width: min(100%, var(--width-reading));
 	max-width: none;
-	margin-inline: auto;
+	margin-inline: 0 auto;
 	text-align: start;
 }
 /* Canvas wrappers leave room for visual islands; their document text still uses Reading. */
@@ -24,14 +25,14 @@ ex-document
 ex-document .reading-measure {
 	width: min(100%, var(--width-reading));
 	max-width: var(--width-reading);
-	margin-inline: auto;
+	margin-inline: 0 auto;
 }
 /* One author-selected width applies to the whole component, including tabs and their panels. */
 [data-width='reading'] {
 	box-sizing: border-box;
 	width: min(100%, var(--width-reading));
 	max-width: var(--width-reading);
-	margin-inline: auto;
+	margin-inline: 0 auto;
 }
 [data-width='canvas'] {
 	box-sizing: border-box;
@@ -48,7 +49,7 @@ ex-document.ex-gallery-document {
 	max-width: none;
 }
 
-/* Dividers always keep the Reading measure, independently of the following section's width. */
+/* Dividers keep the Reading measure and its left edge, independently of the following section's width. */
 ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2) {
 	position: relative;
 	border-top: 0;
@@ -57,14 +58,13 @@ ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2
 	content: '';
 	position: absolute;
 	top: 0;
-	left: 50%;
+	left: 0;
 	width: min(100%, var(--width-reading));
-	transform: translateX(-50%);
 	border-top: 1px solid var(--rule);
 }
 ex-document hr:not(ex-document :not(section, article, main, div, ex-markdown) *) {
 	width: min(100%, var(--width-reading));
-	margin-inline: auto;
+	margin-inline: 0 auto;
 }
 
 ex-document:not(.ex-gallery-document) {
