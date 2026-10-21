@@ -517,7 +517,26 @@ for (const component of ['gallery', 'explorer']) {
 			.element(fixtureLocator(frame, probe))
 			.toHaveTextContent(`${component === 'gallery' ? 'Gallery' : 'Explorer'} could not load.`);
 		expect(probe.hasAttribute('aria-busy')).toBe(false);
-		if (inlineSource) expect(probe.querySelector('script')).toBe(inlineSource);
+		if (inlineSource) {
+			expect(probe.querySelector('script')).toBe(inlineSource);
+			inlineSource.textContent = JSON.stringify({
+				version: 1,
+				sourceBase: 'https://example.com/',
+				title: 'Recovered Explorer',
+				description: 'The inline source remains available for another load.',
+				note: '',
+				groups: [],
+				nodes: [],
+				edges: [],
+				tables: [],
+			});
+			probe.remove();
+			requiredElement(fixture, 'ex-document').append(probe);
+			await expect
+				.element(frame.getByRole('heading', { name: 'Recovered Explorer', exact: true }))
+				.toBeVisible();
+			expect(probe.querySelector('[role="status"]')).toBeNull();
+		}
 		expect(Number(fixture.documentElement.dataset['exIssues'] ?? '0')).toBeGreaterThan(0);
 		expect(fixture.querySelector('.ex-issues')).toBeNull();
 	});
