@@ -4,6 +4,7 @@ import { parse, parseFragment, serialize, type DefaultTreeAdapterMap } from 'par
 
 import { documentSearchIndexSchema, type SearchDestination } from '../core/document-search.ts';
 import { headingSlug } from '../core/heading-fragments.ts';
+import { parseMarkdownSource } from '../core/markdown-source.ts';
 import { renderMarkdownContent } from '../render/markdown-content.ts';
 
 type HtmlNode = DefaultTreeAdapterMap['node'];
@@ -54,6 +55,14 @@ function markdownText(element: HtmlElement, sources: Readonly<Record<string, str
 		if (source === undefined) throw new Error(`Missing Markdown source for search: ${reference}`);
 		return source;
 	}
+	const retained = element.childNodes.find(
+		(child): child is HtmlElement =>
+			'tagName' in child &&
+			child.tagName === 'script' &&
+			attribute(child, 'type') === 'application/json' &&
+			child.attrs.some((item): boolean => item.name === 'data-ex-markdown-source'),
+	);
+	if (retained) return parseMarkdownSource(contentText(retained)).text;
 	const carrier = element.childNodes.find(
 		(child): child is HtmlElement =>
 			'tagName' in child &&

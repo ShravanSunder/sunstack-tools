@@ -44,7 +44,7 @@ The current page's live headings and authored Pages links work without an index.
 node packages/demistify/bin/demistify.ts index index.html details.html
 ```
 
-The command reads local inputs, including referenced local Markdown, prepares the collection and writes each listed HTML file **in place**. It does not fetch sibling HTML in the reader's browser. Give searchable Markdown islands stable IDs before running it. It retains explicit IDs and assigns stable native heading IDs. Search matches titles and heading ancestry, not whole-page prose or general fuzzy text.
+The command reads local inputs, including referenced local Markdown and the exact retained source written by `embed`, prepares the collection and writes each listed HTML file **in place**. It does not fetch sibling HTML in the reader's browser. Give searchable Markdown islands stable IDs before running it. It retains explicit IDs and assigns stable native heading IDs. Search matches titles and heading ancestry, not whole-page prose or general fuzzy text.
 
 After changing a heading, source, page path or walkthrough description, regenerate both the source snapshot and search index as appropriate. For direct-file readers, embed each live-source page first, then index the delivered collection. Indexing adds generated data, so a byte comparison with an unindexed fresh embed alone is not a like-for-like freshness check: apply the same indexing transform to the regenerated collection before comparing, or compare the exact source carriers and index destinations separately. Keep the live source pages and files as the authority; do not manually edit generated index data.
 
