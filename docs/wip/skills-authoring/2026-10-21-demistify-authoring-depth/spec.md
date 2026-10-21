@@ -92,7 +92,7 @@ References return a usable decision or authored result. A reference that merely 
 
 **Widths and typography.** Show the shared rules in examples rather than adding per-page fonts, colors, width caps or shadows. Text remains left aligned inside Reading. A table or visual can occupy Canvas while its document heading stays with the text. Tree hierarchy uses the existing shared styling.
 
-**Surface shape and tables.** Use the existing shared corner-radius scale consistently. The owner's preference is soft rounded corners in most enclosed surfaces; the medium token is the starting point for an ordinary table, card or control. Retain compact and larger tokens where the component's established scale warrants them. The new table direction uses a neutral gray header fill and border, existing quiet body stripes and rounded outer corners. Its shared-theme implementation is now pushed as an unreleased product candidate. Once that treatment is in the page's bound release, teach it as a shared default rather than having each authored page recreate it.
+**Surface shape and tables.** Use the existing shared corner-radius scale consistently. The owner's preference is soft rounded corners in most enclosed surfaces; the medium token is the starting point for an ordinary table, card or control. Retain compact and larger tokens where the component's established scale warrants them. The new table direction uses a neutral gray header fill and border, existing quiet body stripes and rounded outer corners. The shared-theme treatment shipped in Demistify 1.9.4. Teach it as a shared default for that release rather than having each authored page recreate it.
 
 **Proposals and evidence.** Use supported subject icons and clear short labels. A proposal is visibly proposed; a recommendation does not become an owner's chosen option. Supplied code is separate from observed execution. The icon list must include the implemented `path` name used by the existing narration example.
 
@@ -123,3 +123,5 @@ Do not introduce a navigation engine, server requirement, renderer or new compon
 Runtime fixes and the neutral rounded table treatment belong to Demistify's product release. The authoring guide may explain them once they are part of the bound release; authored examples should not recreate them with page-specific paint. Preserve the current radius scale and purposeful exceptions rather than assigning a new radius per page.
 
 The implementation keeps each rule in one owner and updates its active callers together. Preserve existing complete material where the inventory identifies it as working. Keep ordinary reader examples meaningful; state-retention instruments belong in explicit fixtures.
+
+The companion workflow proposal is [presentation-html #155](https://github.com/ShravanSunder/sunstack/pull/155). It retrieves this component guide and preserves this ownership boundary.
