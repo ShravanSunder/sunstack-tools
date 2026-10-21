@@ -19,6 +19,16 @@ test.each([
 );
 
 test.each([
+	gallery,
+	`<ex-document>${gallery}</ex-document><ex-document><p>Another document.</p></ex-document>`,
+])('a gallery requires exactly one owning document', async (source): Promise<void> => {
+	const findings = await checkHtml(source, { diagrams: false });
+	expect(findings.filter((finding): boolean => finding.rule === 'gallery-page')).toEqual([
+		expect.objectContaining({ severity: 'error', rule: 'gallery-page' }),
+	]);
+});
+
+test.each([
 	`<p>Read this explanation.</p>${gallery}`,
 	`Bare Markdown explanation.\n${gallery}`,
 	`<ex-compare><section label="Current">${gallery}</section></ex-compare>`,
