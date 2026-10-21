@@ -240,7 +240,13 @@ async function startController({
 			response.end(bytes);
 			return;
 		}
-		if (request.method === 'POST' && route === '/systemone' && !admitted && !observationPromise) {
+		if (
+			request.method === 'POST' &&
+			route === '/systemone' &&
+			!admitted &&
+			!observationPromise &&
+			!frozen
+		) {
 			let size = 0;
 			const chunks = [];
 			request.on('data', (chunk) => {
@@ -249,6 +255,10 @@ async function startController({
 				else chunks.push(chunk);
 			});
 			request.on('end', () => {
+				if (frozen) {
+					response.writeHead(409).end('admission closed');
+					return;
+				}
 				try {
 					const body = JSON.parse(Buffer.concat(chunks));
 					assert.ok(
