@@ -365,7 +365,8 @@ body:has(.ex-document-toolbar) .ex-explorer-browser {
 }
 .ex-explorer-table-scroll th {
 	font-size: var(--text-xs);
-	color: var(--ink-soft);
+	color: var(--table-header-foreground);
+	border-bottom-color: var(--table-border);
 }
 .ex-explorer-table-scroll p {
 	margin: 0 0 var(--space-2);

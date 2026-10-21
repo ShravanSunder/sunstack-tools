@@ -6,6 +6,9 @@
 	--diagram-foreground: #18202b;
 	--ink-soft: #4a5566;
 	--rule: #d9dee6;
+	--table-header-background: #ededed;
+	--table-border: #c9c9c9;
+	--table-header-foreground: #363636;
 	--accent: #1d6672;
 	--focus-color: #1d6672;
 	--selection-color: #1d6672;
@@ -88,6 +91,9 @@
 		--diagram-foreground: #f1efed;
 		--ink-soft: #a5afbd;
 		--rule: #2c3542;
+		--table-header-background: #292929;
+		--table-border: #484848;
+		--table-header-foreground: #e8e8e8;
 		--accent: #6fc0ca;
 		--focus-color: #6fc0ca;
 		--selection-color: #6fc0ca;
@@ -126,6 +132,9 @@
 	--diagram-foreground: #f1efed;
 	--ink-soft: #a5afbd;
 	--rule: #2c3542;
+	--table-header-background: #292929;
+	--table-border: #484848;
+	--table-header-foreground: #e8e8e8;
 	--accent: #6fc0ca;
 	--focus-color: #6fc0ca;
 	--selection-color: #6fc0ca;

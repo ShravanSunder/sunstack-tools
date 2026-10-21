@@ -76,6 +76,12 @@
 .ex-comparison-canvas[data-view='tabs'] {
 	display: block;
 }
+.ex-comparison-canvas[data-view='tabs']
+	> .ex-comparison-option
+	> [data-compare-row]
+	+ [data-compare-row] {
+	margin-block-start: var(--space-6);
+}
 .ex-comparison-choice {
 	display: flex;
 	align-items: center;

@@ -170,6 +170,7 @@ ex-mermaid > .ex-inspect-controls {
 	overflow: auto;
 	overscroll-behavior: contain;
 	padding: var(--space-6);
+	font-size: var(--text-lg);
 }
 .ex-inspect-body > ex-markdown {
 	width: min(78ch, 100%);

@@ -79,11 +79,16 @@ ex-flow {
 	container-type: inline-size;
 }
 ex-flow {
-	--gap: 72px;
+	--flow-label-column-gap: initial;
+	--flow-label-row-gap: initial;
+	--gap: var(--flow-label-column-gap, var(--space-18));
 	position: relative;
-	column-gap: var(--space-18);
-	row-gap: var(--space-16);
+	column-gap: var(--gap);
+	row-gap: var(--flow-label-row-gap, var(--space-16));
 	padding: var(--space-10) var(--space-6);
+}
+.ex-flow-label-background {
+	fill: var(--surface-page);
 }
 .ex-flow-overlay {
 	position: absolute;
@@ -1094,9 +1099,9 @@ ex-compare[slider] > [data-side]:nth-of-type(2)::before {
 .ex-tracing .ex-traced > :is(path, line) {
 	stroke: var(--accent);
 }
-/* SVG markers scale with their connector stroke; trace diagrams by colour without inflating tips. */
+/* SVG markers scale with the connector stroke; keep the hover emphasis modest. */
 :is(.ex-arrow-canvas, .ex-flow-overlay).ex-tracing :is(path, polyline, line).ex-traced {
-	stroke-width: 2.25;
+	stroke-width: 1.5;
 }
 
 /* Layers: switches for parts of the page readers can show or hide. */
