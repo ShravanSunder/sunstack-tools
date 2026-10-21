@@ -84,7 +84,7 @@ References return a usable decision or authored result. A reference that merely 
 
 ## Changes that need consistent examples
 
-**Gallery pages.** Teach the dedicated-screen direction throughout Pictures, Tours, Compare, Trace, the main chooser and the package README. An inline picture uses an ordinary figure; an explanation links to the Gallery. The prepared `gallery-page` checker enforces its exact accepted layout. Its final guidance and diagnostic must agree.
+**Gallery pages.** Teach the dedicated-screen direction throughout Pictures, Tours, Compare, Trace, the main chooser and the package README. An inline picture uses an ordinary figure; an explanation links to the Gallery. Dedicated-page enforcement is a pending product prerequisite: the public 1.10.0 baseline still allows an embedded Gallery and has no `gallery-page` checker rule. Before publishing this guide's dedicated-page constraint, the product change must have a public pinned revision defining its accepted layout, with the vocabulary, checker diagnostic and guidance in agreement. The established checker harness must accept a valid dedicated page and reject an embedded Gallery. This teaching change does not implement that checker, and an unmerged candidate is not evidence of published enforcement.
 
 **Gallery controls.** The hamburger beside search controls thumbnails. Pages and the heading outline remain separate document navigation. Explain title followed by quiet authored tags, the short collapse animation, reduced-motion handling, fullscreen arrows and how closing restores browse state. Keyboard instructions distinguish ordinary browsing from an active guided journey and preserve editing/overlay ownership.
 
@@ -131,7 +131,7 @@ Each part of this spec carries one label. **measured**: observed in the 2026-10-
 
 Use fresh authoring tasks that require selecting and applying the detail: a mixed-width explanation, a screenshot collection with variations, a multi-page guided path, and a rich comparison or Trace. Inspect the resulting artifacts and the recorded reference reads. Judge the output against the request, not whether it repeats this proposal's words.
 
-Run the existing matching markup/data checker on the actual examples. Exercise authored links, keys, fullscreen and narrow layouts through the intended delivery method where access permits. Include a missing target or invalid Gallery composition in the established checker harness to show that the relevant check rejects the wrong build.
+Run the existing matching markup/data checker on the actual examples. Exercise authored links, keys, fullscreen and narrow layouts through the intended delivery method where access permits. Include a missing target in the established checker harness. Verify the Gallery prerequisite with both accepted dedicated-page and rejected embedded-gallery cases on the product revision that implements it; a pass from the 1.10.0 checker cannot establish that enforcement.
 
 A syntax pass does not establish good component choice or readable content. A browser-access failure does not establish a skill failure. Until changed teaching has been used in a fresh task, describe it as authored from the requested intent, with behavior not yet evaluated.
 
