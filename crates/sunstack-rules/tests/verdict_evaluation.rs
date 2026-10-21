@@ -21,15 +21,15 @@ fn rule() -> RuleDefinition {
     .unwrap()
 }
 #[test]
-fn blocking_band_table_preserves_inclusive_threshold_and_native_basis() {
+fn error_band_table_preserves_inclusive_threshold_and_native_basis() {
     let mut rule = rule();
     if let VerdictDeclaration::Noul { threshold, .. } = &mut rule.verdict {
         *threshold = 0.8
     }
     for (value, expected) in [
-        (0.30, "block"),
-        (0.31, "nudge_above_band"),
-        (0.79, "nudge_above_band"),
+        (0.30, "error"),
+        (0.31, "warn_above_band"),
+        (0.79, "warn_above_band"),
         (0.80, "pass"),
     ] {
         let input = VerdictAnswers {
@@ -45,15 +45,15 @@ fn blocking_band_table_preserves_inclusive_threshold_and_native_basis() {
         assert_eq!(result.value, value);
         match (expected, &result.result) {
             (
-                "block",
+                "error",
                 VerdictResult::Fail {
-                    activation: Activation::Block,
+                    activation: Activation::Error,
                 },
             )
             | (
-                "nudge_above_band",
+                "warn_above_band",
                 VerdictResult::Fail {
-                    activation: Activation::NudgeAboveBand { band: 0.3 },
+                    activation: Activation::WarnAboveBand { band: 0.3 },
                 },
             )
             | ("pass", VerdictResult::Pass) => {}
@@ -132,7 +132,7 @@ fn verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape() 
         sunstack_evidence::SourceName::new("subject").unwrap(),
         InputDeclaration::Document {},
     )]);
-    let baseline = serde_json::json!({"rule_id":"check","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{"yes":{"type":"noul","instructions":"yes"},"quality":{"type":"score","instructions":"quality","criteria":["low","middle","high"]}},"verdict":{"kind":"composite","dimensions":[{"question":"yes","weight":0.5},{"question":"quality","weight":0.5}],"threshold":0.75},"severity":"block"});
+    let baseline = serde_json::json!({"rule_id":"check","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{"yes":{"type":"noul","instructions":"yes"},"quality":{"type":"score","instructions":"quality","criteria":["low","middle","high"]}},"verdict":{"kind":"composite","dimensions":[{"question":"yes","weight":0.5},{"question":"quality","weight":0.5}],"threshold":0.75},"severity":"error"});
     for case in [
         "valid",
         "missing_dimension",
@@ -171,15 +171,15 @@ fn verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape() 
         );
     }
     for (severity, band, accepted) in [
-        ("block", 0.3, true),
-        ("block", 0.8, false),
-        ("block", 0.9, false),
-        ("nudge", 0.3, false),
+        ("error", 0.3, true),
+        ("error", 0.8, false),
+        ("error", 0.9, false),
+        ("warn", 0.3, false),
     ] {
         let mut raw = baseline.clone();
         raw["verdict"] = serde_json::json!({"kind":"noul","question":{"type":"noul","instructions":"judge"},"threshold":0.8});
         raw["severity"] = serde_json::json!(severity);
-        raw["verdict"]["block_at_or_below"] = serde_json::json!(band);
+        raw["verdict"]["error_at_or_below"] = serde_json::json!(band);
         let rule = decode_rule_definition(
             &serde_json::to_vec(&raw).unwrap(),
             "rules.jsonl".as_ref(),
@@ -194,12 +194,11 @@ fn verdict_admission_refuses_every_invalid_band_and_composite_dimension_shape() 
     }
 }
 #[test]
-fn composite_threshold_equality_and_default_nudge_use_native_values_without_fabricated_confidence()
-{
+fn composite_threshold_equality_and_default_warn_use_native_values_without_fabricated_confidence() {
     let mut rule = rule();
     rule.questions = serde_json::from_value(serde_json::json!({"yes":{"type":"noul","instructions":"yes"},"quality":{"type":"score","instructions":"quality","criteria":["low","middle","high"]}})).unwrap();
     rule.verdict = serde_json::from_value(serde_json::json!({"kind":"composite","dimensions":[{"question":"yes","weight":0.5},{"question":"quality","weight":0.5}],"threshold":0.75})).unwrap();
-    rule.severity = Severity::Nudge;
+    rule.severity = Severity::Warn;
     for (probability, expected, passes) in [(0.5, 0.75, true), (0.4998, 0.7499, false)] {
         let informational = BTreeMap::from([
             (
@@ -238,7 +237,7 @@ fn composite_threshold_equality_and_default_nudge_use_native_values_without_fabr
             assert!(matches!(
                 verdict.result,
                 VerdictResult::Fail {
-                    activation: Activation::Nudge
+                    activation: Activation::Warn
                 }
             ));
         }
@@ -250,5 +249,5 @@ fn composite_threshold_equality_and_default_nudge_use_native_values_without_fabr
         1,
     )
     .unwrap();
-    assert_eq!(default.severity, Severity::Nudge);
+    assert_eq!(default.severity, Severity::Warn);
 }

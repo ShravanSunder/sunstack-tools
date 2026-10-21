@@ -22,9 +22,34 @@ fn cancelled_before(measurements: InvocationMeasurements) -> RuleInvocationOutco
 fn duration_ms(duration: Duration) -> u64 {
     u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
 }
+pub async fn evaluate_rules_with_policy(
+    input: RuleInvocationInput,
+    policy: RulePolicy,
+    context: RuleExecutionContext,
+) -> PolicyEvaluation {
+    let mut request_evidence = Default::default();
+    let outcome = evaluate_with_evidence(input, policy, context, &mut request_evidence).await;
+    PolicyEvaluation {
+        outcome,
+        request_evidence,
+    }
+}
 pub async fn evaluate_rules(
     input: RuleInvocationInput,
     context: RuleExecutionContext,
+) -> RuleInvocationOutcome {
+    evaluate_rules_with_policy(input, RulePolicy::default(), context)
+        .await
+        .outcome
+}
+async fn evaluate_with_evidence(
+    input: RuleInvocationInput,
+    policy: RulePolicy,
+    context: RuleExecutionContext,
+    request_evidence: &mut std::collections::BTreeMap<
+        usize,
+        sunstack_decisions::SharedEvidenceState,
+    >,
 ) -> RuleInvocationOutcome {
     let started = Instant::now();
     let mut measurements = InvocationMeasurements::default();
@@ -50,6 +75,10 @@ pub async fn evaluate_rules(
             };
         }
     };
+    let policy = match policy.resolve(&input.definition_root, &admitted.groups) {
+        Ok(policy) => policy,
+        Err(diagnostics) => return RuleInvocationOutcome::Invalid { diagnostics },
+    };
     let mut session = match EvidenceSession::open(
         admitted.evidence,
         context.adapters,
@@ -69,7 +98,7 @@ pub async fn evaluate_rules(
             };
         }
     };
-    let mut plan = definition_topology(admitted.groups, admitted.router);
+    let mut plan = definition_topology_with_policy(admitted.groups, admitted.router, &policy);
     plan_change_selection(&mut plan, &mut session).await;
     precompute_conditions(
         &mut plan,
@@ -111,6 +140,7 @@ pub async fn evaluate_rules(
     measurements.inference_attempts = scheduler.inference_attempts;
     let closed = session.close();
     copy_evidence_measurements(&mut measurements, closed.measurements);
+    *request_evidence = project_request_evidence(&plan, &state);
     if let Some(diagnostics) = failure {
         return match diagnostics {
             SchedulerFailure::Backend { diagnostics } => {

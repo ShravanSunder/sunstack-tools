@@ -18,7 +18,7 @@ fn write_source(root: &std::path::Path, entry: &str) {
     std::fs::write(root.join("standards.rules.json"), entry).unwrap();
 }
 fn entry(check: Value) -> Value {
-    let mut entry = json!({"name":"mechanical.one","target":{"input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},"severity":"block"});
+    let mut entry = json!({"name":"mechanical.one","target":{"input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},"severity":"error"});
     entry
         .as_object_mut()
         .unwrap()
@@ -226,10 +226,10 @@ fn mechanical_source_shape_is_exclusive_even_when_an_extra_verdict_field_is_null
     for (check, shape) in [
         (json!({"expect":{"matches":"ok"}}), true),
         (json!({"ast_grep":{"kind":"paragraph"}}), true),
-        (json!({"threshold":0.8,"block_at_or_below":null}), true),
+        (json!({"threshold":0.8,"error_at_or_below":null}), true),
         (json!({"expect":{"matches":"ok"},"threshold":null}), false),
         (
-            json!({"expect":{"matches":"ok"},"block_at_or_below":null}),
+            json!({"expect":{"matches":"ok"},"error_at_or_below":null}),
             false,
         ),
         (json!({"expect":null}), false),

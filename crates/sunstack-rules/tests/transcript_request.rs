@@ -88,7 +88,7 @@ async fn transcript_projections_keep_owner_labels_deduplicate_content_and_carry_
         "threshold",
         "severity",
         "weight",
-        "block_at_or_below",
+        "error_at_or_below",
         "routes",
     ] {
         assert!(!serde_json::to_string(body).unwrap().contains(field));

@@ -37,7 +37,7 @@ fn mechanical_fixture(
             json!({"matches":if same_input {"INITIAL"} else {"UPDATED"}})
         };
         rule["verdict"] = json!({"kind":"mechanical","explanation":"Keep the captured target","check":{"kind":"expect","expect":expect}});
-        rule["severity"] = json!("block");
+        rule["severity"] = json!("error");
         std::fs::write(path, serde_json::to_vec(&rule).unwrap()).unwrap();
     }
     if same_input {

@@ -12,6 +12,6 @@ Use an isolated worktree for changes. Preserve unrelated design documents. No de
 
 Use the pinned toolchain and root Cargo workspace gates. On Apple Silicon,
 Cargo and nextest use `scripts/cargo-debug-signing-runner.sh` to give debug
-executables stable Developer ID identities for LuLu: `sunstack-rule` has its
+executables stable Developer ID identities for LuLu: `sunstack` has its
 own identity; test and example executables share one. Signing is best effort;
 when the identity is unavailable, the runner warns and still executes.

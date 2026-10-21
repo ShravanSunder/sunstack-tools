@@ -191,7 +191,7 @@ async fn frontmatter_present_absent_and_unavailable_remain_distinct_and_keep_a_c
             json!({"kind":"frontmatter_field","field":"description"}),
             json!({"kind":"expect","expect":expect}),
         );
-        field["severity"] = json!("block");
+        field["severity"] = json!("error");
         let mut peer = mechanical_rule(
             "local.peer",
             json!({"kind":"markdown_units","mode":"unit","units":["paragraph"]}),
@@ -224,7 +224,7 @@ async fn frontmatter_present_absent_and_unavailable_remain_distinct_and_keep_a_c
             .find(|r| r["key"]["rule_id"] == "local.field")
             .unwrap();
         assert_eq!(field["kind"], "checked");
-        assert_eq!(field["declared_severity"], "block");
+        assert_eq!(field["declared_severity"], "error");
         assert_eq!(
             field["outcome"]["kind"],
             if completed { "completed" } else { "unresolved" }

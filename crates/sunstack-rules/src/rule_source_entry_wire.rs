@@ -23,7 +23,7 @@ pub(crate) struct SourceEntryWire {
         deserialize_with = "present_value",
         skip_serializing_if = "Option::is_none"
     )]
-    block_at_or_below: Option<Option<f64>>,
+    error_at_or_below: Option<Option<f64>>,
     #[serde(
         default,
         deserialize_with = "present_value",
@@ -49,13 +49,13 @@ impl TryFrom<SourceEntryWire> for RuleSourceEntry {
     fn try_from(wire: SourceEntryWire) -> Result<Self, Self::Error> {
         let verdict = match (
             wire.threshold,
-            wire.block_at_or_below,
+            wire.error_at_or_below,
             wire.expect,
             wire.ast_grep,
         ) {
-            (Some(threshold), block_at_or_below, None, None) => RuleSourceVerdict::Judgment {
+            (Some(threshold), error_at_or_below, None, None) => RuleSourceVerdict::Judgment {
                 threshold,
-                block_at_or_below: block_at_or_below.flatten(),
+                error_at_or_below: error_at_or_below.flatten(),
             },
             (None, None, Some(expect), None) => RuleSourceVerdict::Expect { expect },
             (None, None, None, Some(ast_grep)) => RuleSourceVerdict::AstGrep { ast_grep },
@@ -78,17 +78,17 @@ impl From<RuleSourceEntry> for SourceEntryWire {
             context: entry.context,
             severity: entry.severity,
             threshold: None,
-            block_at_or_below: None,
+            error_at_or_below: None,
             expect: None,
             ast_grep: None,
         };
         match entry.verdict {
             RuleSourceVerdict::Judgment {
                 threshold,
-                block_at_or_below,
+                error_at_or_below,
             } => {
                 wire.threshold = Some(threshold);
-                wire.block_at_or_below = block_at_or_below.map(Some);
+                wire.error_at_or_below = error_at_or_below.map(Some);
             }
             RuleSourceVerdict::Expect { expect } => wire.expect = Some(expect),
             RuleSourceVerdict::AstGrep { ast_grep } => wire.ast_grep = Some(ast_grep),
@@ -113,7 +113,7 @@ enum SourceEntrySchema {
         threshold: f64,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[schemars(extend("minimum"=0,"exclusiveMaximum"=1))]
-        block_at_or_below: Option<f64>,
+        error_at_or_below: Option<f64>,
         #[serde(default)]
         severity: Severity,
     },

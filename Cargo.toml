@@ -3,7 +3,8 @@ members = [
     "crates/sunstack-evidence",
     "crates/sunstack-decisions",
     "crates/sunstack-rules",
-    "crates/sunstack-rule-cli",
+    "crates/sunstack",
+    "crates/sunstack-lint",
 ]
 resolver = "3"
 
@@ -17,6 +18,7 @@ publish = false
 sunstack-evidence = { path = "crates/sunstack-evidence" }
 sunstack-decisions = { path = "crates/sunstack-decisions" }
 sunstack-rules = { path = "crates/sunstack-rules" }
+sunstack-lint = { path = "crates/sunstack-lint" }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
@@ -27,3 +29,8 @@ expect_used = "deny"
 panic = "deny"
 todo = "deny"
 unimplemented = "deny"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

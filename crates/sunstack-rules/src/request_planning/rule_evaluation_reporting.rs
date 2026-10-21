@@ -1,6 +1,20 @@
 use super::*;
 use crate::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+
+fn authored_rules(plan: &ExecutionPlan, group: &PlannedGroup) -> BTreeSet<usize> {
+    group
+        .occurrences
+        .iter()
+        .map(|index| plan.occurrences[index.0].authored_order)
+        .chain(
+            group
+                .evaluations
+                .iter()
+                .map(|index| plan.evaluations[index.0].authored_order),
+        )
+        .collect()
+}
 
 fn expanded_key(
     plan: &ExecutionPlan,
@@ -145,7 +159,7 @@ pub(crate) fn project_rule_evaluations(
         }) {
             continue;
         }
-        for authored in 0..group.admitted.set.rules.len() {
+        for authored in authored_rules(plan, group) {
             let record = group
                 .evaluations
                 .iter()
@@ -165,7 +179,7 @@ pub(crate) fn project_prepared_evaluations(
 ) -> Vec<PreparedRuleEvaluation> {
     let mut results = Vec::new();
     for (position, group) in plan.groups.iter().enumerate() {
-        for authored in 0..group.admitted.set.rules.len() {
+        for authored in authored_rules(plan, group) {
             let record = group
                 .evaluations
                 .iter()

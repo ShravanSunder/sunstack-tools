@@ -156,14 +156,14 @@ pub(crate) fn assemble_source(
                 verdict: match entry.verdict {
                     RuleSourceVerdict::Judgment {
                         threshold,
-                        block_at_or_below,
+                        error_at_or_below,
                     } => VerdictDeclaration::Noul {
                         question: JudgmentQuestion::Noul {
                             instructions: StructuredEntry::Text(binding.question_text.clone()),
                             criteria: None,
                         },
                         threshold,
-                        block_at_or_below,
+                        error_at_or_below,
                     },
                     RuleSourceVerdict::Expect { expect } => VerdictDeclaration::Mechanical {
                         explanation: binding.question_text.clone(),

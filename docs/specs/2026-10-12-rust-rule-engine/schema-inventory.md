@@ -24,8 +24,8 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | Rule line | `target` | Which declaration the result points at: a paragraph, conversation records, a payload field or code units |
 | Rule line | `applicability` | Rule-level conditions and decisions, after the RuleSet's |
 | Rule line | `questions` | Informational native questions. May be empty |
-| Rule line | `verdict` | `noul { question, threshold, block_at_or_below? }` or `composite { dimensions, threshold, block_at_or_below? }`. Required on every rule |
-| Rule line | `severity` | `block` or `nudge`. Omitted means nudge. Never sent to the model |
+| Rule line | `verdict` | `noul { question, threshold, error_at_or_below? }` or `composite { dimensions, threshold, error_at_or_below? }`. Required on every rule |
+| Rule line | `severity` | `error` or `warn`. Omitted means warn. Never sent to the model |
 | [Router](schemas/router.schema.json) | `inputs`, `evidence`, `question` | Its own named inputs and declarations, and one `choice` question |
 | Router | `routes` | Label to RuleSets, each with input wiring from RuleSet input name to router input name |
 | Router | `confidence_floor` | Compared with the Choice answer's native confidence |
@@ -40,7 +40,7 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 - references across files
 - input kinds against selections
 - weights summing to 1
-- a band below its threshold, and only on a block rule
+- a band below its threshold, and only on an error rule
 - composite dimensions naming this rule's noul or score questions
 - route labels inside the choice criteria
 - complete, kind-compatible wiring
@@ -75,7 +75,7 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | Rules (milestone 2) | `OccurrenceSelection` | `selected { selected_by }` or `comparison_pending` |
 | Rules (milestone 2) | `SelectedReason` | Closed and ordered: `full_scope`, `target_changed`, `context_changed`, `rule_changed`, `new_rule`, `applicability_changed`, `baseline_unavailable`, `before_analysis_unknown` |
 | Evidence (milestone 2, native only) | `ChangeComparison` | `unchanged`, `changed` (content level), `path_changed` (path level), `added`, `deleted`, `before_unknown`, `no_before_side`, `refused`, from `EvidenceSession::compare_change_sides` over a declaration, a whole input or a definition file, at `path` or `content` level |
-| Rules | `VerdictOutcome` | Basis (noul answer, or composite dimensions with normalized values and weights), value, threshold, `pass` or `fail { activation: nudge \| block \| nudge_above_band }` |
+| Rules | `VerdictOutcome` | Basis (noul answer, or composite dimensions with normalized values and weights), value, threshold, `pass` or `fail { activation: warn \| error \| warn_above_band }` |
 | Rules | `RouterOutcome` | `routed`, `uncertain_intent { confidence, floor, distribution }`, `no_route`, `router_failed`, `not_evaluated` |
 | Rules | `RequestRecord` | Mode, question bindings, outcome, discarded answers with their cost |
 | Evidence | Captures, coverage, cursors | Tail state, gaps, omissions, bytes read and parsed |

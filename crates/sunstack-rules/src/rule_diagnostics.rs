@@ -136,7 +136,7 @@ impl RuleDiagnostic {
             ),
             InvalidBand => (
                 RuleDiagnosticOrigin::RuleFile,
-                "Use a band below the threshold and only on a block rule.",
+                "Use a band below the threshold and only on an error rule.",
             ),
             InvalidComposite => (
                 RuleDiagnosticOrigin::RuleFile,

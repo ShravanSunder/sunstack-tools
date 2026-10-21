@@ -91,7 +91,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "const": "nudge"
+              "const": "warn"
             }
           },
           "additionalProperties": false,
@@ -104,7 +104,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "const": "block"
+              "const": "error"
             }
           },
           "additionalProperties": false,
@@ -121,7 +121,7 @@
             },
             "kind": {
               "type": "string",
-              "const": "nudge_above_band"
+              "const": "warn_above_band"
             }
           },
           "additionalProperties": false,
@@ -4798,8 +4798,8 @@
     "Severity": {
       "type": "string",
       "enum": [
-        "block",
-        "nudge"
+        "error",
+        "warn"
       ]
     },
     "SkippedRule": {
