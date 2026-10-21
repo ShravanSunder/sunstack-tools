@@ -2,6 +2,8 @@
 
 Proposed update to `demistify-explainer` in `packages/demistify/skill/`. The guide owns actual component syntax and behavior; `presentation-html` owns the document-level authoring workflow. This draft specifies the teaching change before implementation.
 
+Implementation status: implemented as an unpublished candidate main guide and fifteen reference homes. Dedicated-Gallery product enforcement remains a separate publication prerequisite.
+
 ## Why this needs a change
 
 The current main file covers the components but combines selection, syntax, widths and controls in dense paragraphs. Several basic families have no detailed reference, while code and map references are too short to teach a complete authored example. Agents need enough detail to choose and compose each construct without copying another document's layout or inventing attributes.

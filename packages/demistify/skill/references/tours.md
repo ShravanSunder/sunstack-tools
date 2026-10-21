@@ -1,5 +1,7 @@
 # Ordered walkthroughs and targets
 
+A Walkthrough serves guided explanation, not a download link or local disclosure. Keep optional prose in `details` and ordinary page/file links as links. Required `title` and `description` explain the path's purpose; stable `id` makes it addressable. A boolean flag such as `variations` is enabled by presence: remove it to disable it, rather than writing `variations="false"`.
+
 Inspect the existing content before writing a path: island IDs, Markdown headings, diagram-local node names and any containing tab/detail/layer. Content lives there once; presentations only reference it.
 
 Keep `<ex-nav></ex-nav>` on the page even when it has only one path and no collection links. It supplies the visible Walkthroughs launcher; the path declaration below stays hidden. Use the launch control to start the path during verification.
@@ -48,10 +50,12 @@ The Walkthroughs chooser, opened by W or the path button, shows the source page 
 
 ## Gallery Journeys
 
+Author the picture collection as its own Gallery page. Put the hidden path declaration beside `ex-document`, targeting its existing figure IDs; keep prose sections on the linking explanation page. A mixed text/diagram path can continue onto the Gallery page, but only picture-only paths are Gallery Journeys. Pages/outline remain independent navigation; the thumbnail hamburger and player close action do not hide them.
+
 Reference gallery figures directly, keeping their original captions and one shared player:
 
 ```html
-<ex-presentation id="checkout" title="Complete checkout" variations>
+<ex-presentation id="checkout" title="Complete checkout" description="Review the cart and payment captures." variations>
   <ex-step to="cart-mobile">Review the cart before continuing.</ex-step>
   <ex-step to="payment-mobile">Choose a payment method.</ex-step>
 </ex-presentation>
