@@ -513,7 +513,7 @@ for (const component of ['gallery', 'explorer']) {
 		requiredElement(fixture, 'ex-document').append(probe);
 		await expect
 			.element(fixtureLocator(frame, probe))
-			.toHaveText(`${component === 'gallery' ? 'Gallery' : 'Explorer'} could not load.`);
+			.toHaveTextContent(`${component === 'gallery' ? 'Gallery' : 'Explorer'} could not load.`);
 		expect(probe.hasAttribute('aria-busy')).toBe(false);
 		expect(Number(fixture.documentElement.dataset['exIssues'] ?? '0')).toBeGreaterThan(0);
 		expect(fixture.querySelector('.ex-issues')).toBeNull();
