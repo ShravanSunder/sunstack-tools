@@ -459,10 +459,10 @@ ex-note .ex-tone-icon {
 }
 @media (max-width: 600px) {
 	ex-document h1 {
-		font-size: var(--text-section);
+		font-size: calc(var(--text-section) + 4px);
 	}
 	ex-document h2 {
-		font-size: calc(var(--text-subheading) + 7px);
+		font-size: calc(var(--text-subheading) + 2px);
 	}
 }
 

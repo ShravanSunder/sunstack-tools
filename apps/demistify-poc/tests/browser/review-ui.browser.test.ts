@@ -469,3 +469,30 @@ test('?ex-check lists authoring issues on the page for the author', async (): Pr
 	expect(fixture.documentElement.hasAttribute('data-ex-check')).toBe(true);
 	expect(fixture.defaultView?.getComputedStyle(probe).outlineStyle).not.toBe('none');
 });
+
+test('phone headings keep their order and toolbar controls clear an open drawer', async (): Promise<void> => {
+	await page.viewport(1600, 1000);
+	const { document: fixture, frame } = await openFixture('ui', '', 'widths.html');
+	await expect
+		.poll((): boolean => requiredElement(fixture, '#mixed-markdown').hasAttribute('prepared'))
+		.toBe(true);
+	const view = fixture.defaultView;
+	if (!view) throw new Error('Missing fixture window.');
+	const fontSize = (selector: string): number =>
+		Number.parseFloat(view.getComputedStyle(requiredElement(fixture, selector)).fontSize);
+	const local = fixtureLocator(frame, requiredElement(fixture, '#width-code'));
+	await userEvent.hover(local);
+	await local.getByRole('button', { name: 'Open Canvas code in a sidebar', exact: true }).click();
+	await page.viewport(390, 900);
+	await expect
+		.poll((): number => fontSize('#reading-heading'))
+		.toBeLessThan(fontSize('#reading-title'));
+	const drawer = requiredElement(fixture, '.ex-drawer').getBoundingClientRect();
+	expect(drawer.width).toBeGreaterThan(0);
+	// The controls this layout moved into the phone toolbar must not hide under the drawer.
+	for (const selector of ['.ex-search-trigger', '.ex-theme-toggle']) {
+		const control = requiredElement(fixture, selector).getBoundingClientRect();
+		if (control.width === 0) continue;
+		expect(control.right).toBeLessThanOrEqual(drawer.left);
+	}
+});
