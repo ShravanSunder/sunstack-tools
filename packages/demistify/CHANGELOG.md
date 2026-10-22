@@ -1,5 +1,14 @@
 # @sunstack/demistify
 
+## 1.11.1
+
+### Patch Changes
+
+- f977f4a: Preserve Reading prose and Canvas visuals inside document disclosures. Enlarged code, diagrams, file trees and comparisons use the inspector's available width while keeping their original page sizing on close.
+- 01063eb: Keep adjacent headings, callouts, cards and other views separated inside tab panels and Trace attachments, including inspection. Preserve nested grid and component layouts.
+
+  Teach a worked Trace composition with prose, a consequential callout, native table cells with an existing chip, and linked code evidence.
+
 ## 1.11.0
 
 ### Minor Changes
