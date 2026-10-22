@@ -24,6 +24,12 @@ test('document disclosures retain Reading prose and Canvas visuals without chang
 	const verifyViewport = async (width: number): Promise<void> => {
 		await page.viewport(width, 1000);
 		const canvas = bounds('#disclosure-code');
+		const headingStyle = fixture.defaultView?.getComputedStyle(
+			requiredElement(fixture, '#disclosure-heading'),
+		);
+		if (!headingStyle) throw new Error('Missing disclosure heading style.');
+		expect.soft(Number.parseFloat(headingStyle.paddingTop)).toBeGreaterThanOrEqual(24);
+		expect.soft(Number.parseFloat(headingStyle.marginTop)).toBeGreaterThanOrEqual(40);
 		for (const selector of [
 			'#disclosure-heading',
 			'#disclosure-prose',
