@@ -1,5 +1,9 @@
 # Existing graph documents
 
+For a small ownership picture, prefer Board/Flow or Mermaid. Explorer earns its richer browser when supplied graph facts, evidence and related tables need coordinated selection. It is not a request to regenerate those facts or create another application shell.
+
+For direct-file delivery use supplied inline JSON or an allowed HTTPS source; embedding Markdown does not enable sibling JSON fetches. Set `selected` to a real supplied node ID and `view` explicitly when the initial relationship mode matters. An invalid graph or unknown selection is an error to correct, not an invitation to replace the source with a success-looking fallback.
+
 Use an explorer when the reader needs searchable selection, a connected graph, incoming consumers and source-backed tables together. It is an island, so ordinary HTML can place other content around it.
 
 ```html

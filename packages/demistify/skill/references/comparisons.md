@@ -1,16 +1,18 @@
 # Compare corresponding topics
 
-Use `ex-compare` when readers need to judge alternatives on the same topics. Each child section is one alternative and may contain ordinary HTML, Markdown, code, diagrams, Tree, Trace or an ordinary picture. Link to a dedicated Gallery page for screenshot browsing. The agent chooses the presentation and width; readers choose content.
+Use compact local topic labels, as the bold paragraphs in the example do. Repeated document headings in every alternative can flood the page outline; reserve real headings for independently navigable sections. Topic keys establish correspondence; similar labels alone do not.
+
+Use `ex-compare` when readers need to judge alternatives on the same topics. Each child section is one alternative and may contain ordinary HTML, Markdown, code, diagrams, Tree, Trace or an ordinary picture. Link to a dedicated Gallery page when readers need screenshot browsing. The agent chooses the presentation and width; readers choose content.
 
 ```html
 <ex-compare label="Session lifetime" data-width="canvas">
   <section id="current" label="Current" icon="code">
-    <section data-compare-row="owner"><h3>Owner</h3><p>The Transport owns lookup.</p></section>
-    <section data-compare-row="disconnect"><h3>Disconnect</h3><ex-code lang="typescript"><script type="text/plain">registry.delete(id);</script></ex-code></section>
+    <section data-compare-row="owner"><p><strong>Owner</strong></p><p>The Transport owns lookup.</p></section>
+    <section data-compare-row="disconnect"><p><strong>Disconnect</strong></p><ex-code lang="typescript"><script type="text/plain">registry.delete(id);</script></ex-code></section>
   </section>
   <section id="proposed" label="Proposed" icon="git-branch">
-    <section data-compare-row="owner"><h3>Owner</h3><p>The Registry retains lookup.</p></section>
-    <section data-compare-row="disconnect"><h3>Disconnect</h3><ex-code lang="typescript"><script type="text/plain">transport.close();</script></ex-code></section>
+    <section data-compare-row="owner"><p><strong>Owner</strong></p><p>The Registry retains lookup.</p></section>
+    <section data-compare-row="disconnect"><p><strong>Disconnect</strong></p><ex-code lang="typescript"><script type="text/plain">transport.close();</script></ex-code></section>
   </section>
 </ex-compare>
 ```

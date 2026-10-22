@@ -62,10 +62,10 @@ const gridChildren: Readonly<Record<string, AttributeSpec>> = {
 };
 
 export const layoutAttributes: Readonly<Record<string, AttributeSpec>> = {
-	'data-width': oneOf('Centered width of this entire component or layout wrapper.', [
-		'reading',
-		'canvas',
-	]),
+	'data-width': oneOf(
+		'Width of this entire component or layout wrapper; Reading and Canvas share a left edge.',
+		['reading', 'canvas'],
+	),
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {

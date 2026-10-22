@@ -18,7 +18,7 @@ Compare the durable identity **before and after** the interruption.
 </ex-trace>
 ```
 
-Each direct child is a native `details` with a native `summary`. Add `open` when its attachment should start expanded. Optional step `icon`, `tone` and `tag` use the shared vocabulary. A summary may retain inline code or a link. The body accepts any ordinary HTML or island, including cards, code/diffs, Markdown, diagrams, Tree, ordinary pictures and a nested Trace. Link to a dedicated Gallery page for screenshot browsing. There is no separate attachment registry.
+Each direct child is a native `details` with a native `summary`. Add `open` when its attachment should start expanded. Optional step `icon`, `tone` and `tag` use the shared vocabulary. A summary may retain inline code or a link. The body accepts ordinary HTML and rich islands such as cards, code/diffs, Markdown, diagrams, Tree and a nested Trace. Use an ordinary figure for one picture and a native link to a dedicated Gallery page for screenshot browsing. There is no separate attachment registry.
 
 Name the state precisely: **Supplied source**, **Observed**, or **Not executed** describe different evidence. A completed source-reading step is not a claim that the whole feature passed verification. Use short status labels and put the explanation in the body.
 
