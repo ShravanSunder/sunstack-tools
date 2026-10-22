@@ -101,7 +101,7 @@ Two shared width standards center in the space remaining beside the outline or i
 
 Walkthrough narration uses focused Markdown and optional `ex-step icon="path"` subject icons. Use a bold lead, short paragraphs/lists, links and inline code; keep full diagrams and evidence in the targeted content. See the matching [walkthrough guide](skill/references/tours.md).
 
-Use one `ex-gallery` among other content or as the whole page. Review and grid are two views of the same selection and filters. Authors supply evidence; readers do not upload it.
+Use one `ex-gallery` directly inside `ex-document` on its own page, optionally preceded by one h1. Put explanation on a linking page and use an ordinary figure for an inline picture. Review and grid are two views of the same selection and filters. Authors supply evidence; readers do not upload it.
 
 ```html
 <ex-gallery id="evidence" label="UI evidence">
@@ -130,7 +130,7 @@ For a pictured journey, target gallery figure IDs from the existing `ex-presenta
 
 ## Composition vocabulary
 
-Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Grid tracks, missing topics are explicit, and cells may contain any island. The author chooses columns or tabs and the whole component's Reading/Canvas width. Optional `choose` selects two live alternatives. Comparisons grow with their content and keep their headings sticky during page scrolling. See the [comparison reference](skill/references/comparisons.md).
+Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Grid tracks, missing topics are explicit, and cells may contain supported rich content such as code, diagrams, Tree, Trace or an ordinary picture. Link to a dedicated Gallery page for screenshot browsing. The author chooses columns or tabs and the whole component's Reading/Canvas width. Optional `choose` selects two live alternatives. Comparisons grow with their content and keep their headings sticky during page scrolling. See the [comparison reference](skill/references/comparisons.md).
 
 `ex-trace` is an ordered sequence of native disclosures with status and arbitrary rich attachments. Tree remains the hierarchy/navigation view. The [Trace reference](skill/references/traces.md) shows its syntax; [source-derived call paths](skill/references/call-paths.md) compose it with comparison while keeping branches distinct from call frames and runtime evidence.
 
@@ -156,7 +156,7 @@ Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Gr
 
 The theme owns colors, fonts, spacing, radii and motion. Semantic roles for tone, selection, keyboard focus, links, presentation position, comments and diffs are distinct. Related items use 16px gaps; neutral boundaries are 1px, semantic accents 2px. Chosen is a separate badge and does not recolor a card's meaning. A small slow marker sits outside the current presentation target; reduced motion leaves it static.
 
-Reading documents center in the space available beside the outline or inspection drawer. Prose stays measured; grids, code and diagrams can use the document canvas. A document containing only a gallery, optionally preceded by its h1, uses the available page width and height. Keep extra introduction text in a separate reading section when it would turn that dedicated viewer back into normal document flow. Explicit author CSS can still choose another layout.
+Reading documents center in the space available beside the outline or inspection drawer. Prose stays measured; grids, code and diagrams can use the document canvas. A document containing only a gallery, optionally preceded by its h1, uses the available page width and height. Keep extra introduction text on a separate linked page. Explicit author CSS can still choose another layout.
 
 The shared reading scale uses 18px regular paragraphs, 46px title, 36px section heading and 22px subheading, with smaller headings on narrow screens. Callouts have a bounded reading width and restrained semantic border/wash; their text fills that width. Use the existing `eyebrow` class for a short optional label: inside a card it takes the card's tone. Inline code and disclosure summaries use the matching shared accents. Do not repeat these defaults as per-page CSS.
 

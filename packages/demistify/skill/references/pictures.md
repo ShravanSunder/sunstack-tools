@@ -2,7 +2,7 @@
 
 Use a plain `<figure><img src="…" alt="…"><figcaption>…</figcaption></figure>` for one picture. It opens through the shared inspector beside the text; fullscreen uses the same dialog as other islands.
 
-Use `ex-gallery` when readers need to browse screenshots, compare viewport variants or filter evidence. It can be one island among prose or the main island on a page. A Gallery is the browsable picture collection; a Gallery Journey is an optional ordered path through its existing figures. The document still owns Pages, outline, theme and walkthrough selection. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
+Use `ex-gallery` when readers need to browse screenshots, compare viewport variants or filter evidence. Put one Gallery directly inside `ex-document` on its own page, optionally preceded by one h1. Put `ex-nav` and hidden path declarations beside the document. Keep explanation on a linking page; use an ordinary figure for one inline picture. The authoring checker reports `gallery-page` for embedded or multiple galleries; inert template data does not count as displayed content. A Gallery is the browsable picture collection; a Gallery Journey is an optional ordered path through its existing figures. The document still owns Pages, outline, theme and walkthrough selection. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
 
 ## Group the actual evidence
 
@@ -31,7 +31,7 @@ Keep the three controls distinct: the gallery’s list icon shows or hides scree
 
 ## Facets and captions
 
-For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Include the normal `ex-nav` construct for Pages and the Walkthroughs launcher; hiding gallery thumbnails does not hide those document controls. Other prose/sections/disclosures make it an embedded gallery in normal page flow. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
+For a gallery page that fills available space, put one `ex-gallery` directly in `ex-document`, optionally preceded by one h1. No sizing CSS or flag is needed. Include the normal `ex-nav` construct for Pages and the Walkthroughs launcher; hiding gallery thumbnails does not hide those document controls. Move other prose, sections and disclosures to the linking page. Short windows keep usable content and normal page overflow; grid rows retain their picture/caption size and scroll within the island.
 
 Use tags for useful content groupings, such as `data-tags="Account, Journey"`. Tags become the default filter choices when present. Screen and viewport metadata group navigation; they are not repeated as automatic picture filters. The keyboard icon opens shortcut help; Review/Grid use one named button group. Search uses available width and has a clear action through the same settled query pipeline.
 
@@ -48,7 +48,7 @@ Authors can explicitly request other facets using `filters="tags release"` with 
 
 A caption is native HTML or a Markdown island inside `figcaption`. Use normal paragraphs, emphasis, links, lists or code as the evidence needs; headings stay out of the page outline. Keep it about the picture rather than rebuilding a second viewer or application. A Markdown-file caption follows the main guide's live/embedded source rules. Images remain ordinary relative paths or HTTPS URLs, including in Markdown captions.
 
-Left/Right moves between logical screens/states and preserves the viewport category when available. Up/Down changes variations of the current screen/state; without a matching variation it stays put. Embedded and full-page galleries use the same keys. With multiple galleries, click or tab into one to make it active; keys follow the focused or last active gallery. A fullscreen screenshot keeps the keys attached to the gallery that opened it. Editing fields, popovers and other inspectors retain their own keys. Fit contains the whole picture; Fill covers the viewer, with minus/plus for manual zoom. The toolbar omits numeric percentages. Cmd/Ctrl+wheel zooms; modifier-drag pans. Normal scrolling remains native.
+Left/Right moves between logical screens/states and preserves the viewport category when available. Up/Down changes variations of the current screen/state; without a matching variation it stays put. The dedicated Gallery and its fullscreen screenshot keep the same arrow navigation. Editing fields, popovers and other inspectors retain their own keys. Fit contains the whole picture; Fill covers the viewer, with minus/plus for manual zoom. The toolbar omits numeric percentages. Cmd/Ctrl+wheel zooms; modifier-drag pans. Normal scrolling remains native.
 
 For a captioned user journey, target the existing figure IDs from `ex-presentation`/`ex-step`; see [ordered walkthroughs](tours.md). The existing player floats beneath the gallery with reserved space. Add the `variations` flag only when readers should switch sizes through a button group or Up/Down. Without it, each authored step uses its exact capture. A missing variation stays on its step and displays the gap. Closing restores the gallery's previous browse state.
 

@@ -76,7 +76,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-gallery': {
 		description:
-			'Agent-authored figures with shared review/grid views, filters and screenshot inspection.',
+			'Dedicated Gallery page with agent-authored figures, shared review/grid views, filters and fullscreen inspection.',
 		attributes: {
 			label,
 			filters: text('Space-separated metadata fields for filters.'),
