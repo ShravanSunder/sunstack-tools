@@ -6,7 +6,7 @@ ex-document {
 /* Only document flow participates: structural wrappers are transparent, other islands stop it. */
 ex-document
 	:is(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, ex-callout, ex-card, ex-stat):not(
-		ex-document :not(section, article, main, div, ex-markdown) *
+		ex-document :not(section, article, main, div, details, ex-markdown) *
 	) {
 	width: min(100%, var(--width-reading));
 	max-width: none;
@@ -15,8 +15,8 @@ ex-document
 }
 /* Canvas wrappers leave room for visual islands; their document text still uses Reading. */
 ex-document
-	:is(section, article, main, div, ex-markdown).wide-reading:not(
-		ex-document :not(section, article, main, div, ex-markdown) *
+	:is(section, article, main, div, details, ex-markdown).wide-reading:not(
+		ex-document :not(section, article, main, div, details, ex-markdown) *
 	) {
 	width: min(100%, var(--width-canvas));
 	max-width: var(--width-canvas);
@@ -41,7 +41,8 @@ ex-document .reading-measure {
 	margin-inline: auto;
 }
 /* Markdown images live in paragraph wrappers; those wrappers belong to Canvas, not prose. */
-ex-document p:has(> img):not(ex-document :not(section, article, main, div, ex-markdown) *) {
+ex-document
+	p:has(> img):not(ex-document :not(section, article, main, div, details, ex-markdown) *) {
 	width: 100%;
 }
 /* A dedicated gallery is a viewport surface, rather than a bounded document section. */
@@ -50,11 +51,11 @@ ex-document.ex-gallery-document {
 }
 
 /* Dividers keep the Reading measure and its left edge, independently of the following section's width. */
-ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2) {
+ex-document h2:not(ex-document :not(section, article, main, div, details, ex-markdown) h2) {
 	position: relative;
 	border-top: 0;
 }
-ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2)::before {
+ex-document h2:not(ex-document :not(section, article, main, div, details, ex-markdown) h2)::before {
 	content: '';
 	position: absolute;
 	top: 0;
@@ -62,7 +63,7 @@ ex-document h2:not(ex-document :not(section, article, main, div, ex-markdown) h2
 	width: min(100%, var(--width-reading));
 	border-top: 1px solid var(--rule);
 }
-ex-document hr:not(ex-document :not(section, article, main, div, ex-markdown) *) {
+ex-document hr:not(ex-document :not(section, article, main, div, details, ex-markdown) *) {
 	width: min(100%, var(--width-reading));
 	margin-inline: 0 auto;
 }
@@ -110,7 +111,7 @@ ex-document:not(.ex-gallery-document) {
 			p:has(> img),
 			[data-width='canvas']
 		):not([data-width='reading'], .reading-measure):not(
-			ex-document :not(section, article, main, div, ex-markdown) *
+			ex-document :not(section, article, main, div, details, ex-markdown) *
 		),
 	ex-document
 		:is(
@@ -149,7 +150,9 @@ ex-document:not(.ex-gallery-document) {
 			ex-callout,
 			[data-width='reading'],
 			.reading-measure
-		):not([data-width='canvas']):not(ex-document :not(section, article, main, div, ex-markdown) *) {
+		):not([data-width='canvas']):not(
+			ex-document :not(section, article, main, div, details, ex-markdown) *
+		) {
 		margin-top: var(--space-12);
 	}
 }

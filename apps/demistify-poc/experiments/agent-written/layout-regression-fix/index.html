@@ -88,6 +88,30 @@
 			</figure>
 			<h2 id="reading">Reading after diagrams</h2>
 			<p>This heading and paragraph must stay in the document while the sidebar is open.</p>
+			<details open id="disclosure-widths">
+				<summary>Optional source and commands</summary>
+				<h3 id="disclosure-heading">Keep the two document widths</h3>
+				<p id="disclosure-prose">Source explanations keep the same reading measure as the surrounding prose. The commands and table can use the wider canvas without widening this paragraph.</p>
+				<ul id="disclosure-list"><li>Keep source details optional and readable.</li></ul>
+				<ex-code id="disclosure-code" label="Source commands" lang="bash">
+					<script type="text/plain">demistify embed guide.source.html guide.html</script>
+				</ex-code>
+				<table id="disclosure-table">
+					<thead><tr><th>Command</th><th>Result</th></tr></thead>
+					<tbody><tr><td>embed</td><td>A portable reader</td></tr></tbody>
+				</table>
+				<details open>
+					<summary>Further source detail</summary>
+					<p id="nested-disclosure-prose">Nested disclosures retain the document's reading measure too.</p>
+				</details>
+				<ex-compare>
+					<section data-side="First"><p id="comparison-prose">Comparison columns own their local layout.</p></section>
+					<section data-side="Second"><p>Do not force a reading width into these columns.</p></section>
+				</ex-compare>
+			</details>
+			<ex-code id="reading-code" label="Short command" lang="bash" data-width="reading">
+				<script type="text/plain">demistify check guide.html</script>
+			</ex-code>
 		</ex-document>
 	</body>
 </html>

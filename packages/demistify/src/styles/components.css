@@ -176,6 +176,12 @@ ex-mermaid > .ex-inspect-controls {
 	width: min(78ch, 100%);
 	margin-inline: auto;
 }
+/* Page Reading/Canvas caps do not constrain an enlarged visual. Prose keeps its own measure. */
+.ex-inspect-body > :is(ex-code, ex-mermaid, ex-file-tree, ex-compare) {
+	width: 100%;
+	max-width: none;
+	margin-inline: 0;
+}
 .ex-inspect-body .ex-inspect-controls {
 	display: none;
 }
