@@ -1,5 +1,19 @@
 # @sunstack/demistify
 
+## 1.11.0
+
+### Minor Changes
+
+- 2f25f61: Require a dedicated page for Gallery authoring. The checker rejects embedded or multiple galleries with an actionable repair, while inert template data does not count as displayed content.
+
+### Patch Changes
+
+- de6ecb9: Teach component selection and composition through a shorter main guide and detailed content, layout, navigation, inspection, diagram and evidence references. Align width descriptions with the shared left edge and explain the existing rounded table wrappers.
+
+  Keep Markdown headings searchable after embedding a direct-file reader, including after source edits regenerate the collection index.
+
+  Validate code-note rows from decoded template carriers as well as scripts, preserving literal source that contains closing-script markup.
+
 ## 1.10.0
 
 ### Minor Changes
