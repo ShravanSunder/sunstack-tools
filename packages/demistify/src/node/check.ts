@@ -87,6 +87,28 @@ function parentElement(element: Element): Element | undefined {
 	return parent && isElement(parent) ? parent : undefined;
 }
 
+function isDedicatedGalleryDocument(gallery: Element, documentCount: number): boolean {
+	const parent = parentElement(gallery);
+	if (parent?.tagName !== 'ex-document' || documentCount !== 1) return false;
+	const content = parent.childNodes.filter((child): boolean => {
+		if ('value' in child) return child.value.trim().length > 0;
+		return (
+			isElement(child) &&
+			!['script', 'template', 'style'].includes(child.tagName) &&
+			!attributeMap(child).has('hidden')
+		);
+	});
+	if (content.length === 1) return content[0] === gallery;
+	const heading = content[0];
+	return (
+		content.length === 2 &&
+		!!heading &&
+		isElement(heading) &&
+		heading.tagName === 'h1' &&
+		content[1] === gallery
+	);
+}
+
 function hasAncestor(element: Element, names: readonly string[]): boolean {
 	for (let parent = parentElement(element); parent; parent = parentElement(parent))
 		if (names.includes(parent.tagName)) return true;
@@ -132,6 +154,14 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 	const findings: Finding[] = [];
 	const document = parse(source, { sourceCodeLocationInfo: true });
 	const elements = Array.from(walk(document));
+	const inertTemplateElements = new Set(
+		elements
+			.filter(isTemplateElement)
+			.flatMap((template): Element[] => Array.from(walk(template.content))),
+	);
+	const documentCount = elements.filter(
+		(element): boolean => element.tagName === 'ex-document' && !inertTemplateElements.has(element),
+	).length;
 	const report = (
 		element: Element,
 		severity: Finding['severity'],
@@ -266,6 +296,17 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 	for (const element of elements) {
 		const name = element.tagName;
 		const attributes = attributeMap(element);
+		if (
+			name === 'ex-gallery' &&
+			!inertTemplateElements.has(element) &&
+			!isDedicatedGalleryDocument(element, documentCount)
+		)
+			report(
+				element,
+				'error',
+				'gallery-page',
+				'A Gallery needs a dedicated page: one <ex-gallery> directly in <ex-document>, with only an optional preceding <h1>. Move prose to another page and link here; use an ordinary <figure> for an inline picture.',
+			);
 		if (name === 'link' && /theme\.css(\?|$)/.test(attributes.get('href') ?? '')) loadsTheme = true;
 		if (name === 'script' && /runtime\.js(\?|$)/.test(attributes.get('src') ?? ''))
 			loadsRuntime = true;

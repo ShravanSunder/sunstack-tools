@@ -4,7 +4,7 @@ Use a plain `<figure><img src="…" alt="…"><figcaption>…</figcaption></figu
 
 Use `ex-gallery` on its own screen when readers need to browse screenshots, compare viewport variants or filter evidence. An explanation uses an ordinary figure or links to that Gallery page. A Gallery is the browsable picture collection; a Gallery Journey is an optional ordered path through its existing figures. The document still owns Pages, outline, theme and walkthrough selection. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
 
-Put one Gallery directly inside `ex-document`, optionally preceded by one native h1, with `ex-nav` outside that document. Keep surrounding explanation on the linking page. Existing runtime support for embedded galleries is distinct from the dedicated-page authoring standard. Dedicated-page checker enforcement is a separate release prerequisite: 1.10.0 does not enforce it. Bind an enforcement claim to the public product revision that adds accepted dedicated/rejected embedded cases.
+Put one Gallery directly inside `ex-document`, optionally preceded by one native h1, with `ex-nav` and hidden path declarations outside that document. Keep surrounding explanation on the linking page. The matching authoring checker reports `gallery-page` for embedded or multiple galleries; inert template data does not count as displayed content. Existing runtime support for embedded galleries is distinct from this authoring standard. Earlier checkers, including 1.10.0, do not enforce it; bind checks to the matching release.
 
 ## Group the actual evidence
 

@@ -50,7 +50,7 @@ The Walkthroughs chooser, opened by W or the path button, shows the source page 
 
 ## Gallery Journeys
 
-Author the picture collection as its own Gallery page. Put the hidden path declaration beside `ex-document`, targeting its existing figure IDs; keep prose sections on the linking explanation page. A mixed text/diagram path can continue onto the Gallery page, but only picture-only paths are Gallery Journeys. Pages/outline remain independent navigation; the thumbnail hamburger and player close action do not hide them.
+Author the picture collection as its own Gallery page: one `ex-gallery` directly inside `ex-document`, optionally after one h1. Put the hidden path declaration beside `ex-document`, targeting its existing figure IDs; keep prose sections on the linking explanation page. A mixed text/diagram path can continue onto the Gallery page, but only picture-only paths are Gallery Journeys. Pages/outline remain independent navigation; the thumbnail hamburger and player close action do not hide them.
 
 Reference gallery figures directly, keeping their original captions and one shared player:
 

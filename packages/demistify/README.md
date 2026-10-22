@@ -103,7 +103,7 @@ Two shared width standards share one left edge in the space remaining beside the
 
 Walkthrough narration uses focused Markdown and optional `ex-step icon="path"` subject icons. Use a bold lead, short paragraphs/lists, links and inline code; keep full diagrams and evidence in the targeted content. See the matching [walkthrough guide](skill/references/tours.md).
 
-Use one `ex-gallery` on its own page; use ordinary figures or a link to that page from an explanation. Dedicated-page checker enforcement is a separate product prerequisite and is not provided by 1.10.0. Review and grid are two views of the same selection and filters. Authors supply evidence; readers do not upload it.
+Use one `ex-gallery` directly inside `ex-document` on its own page, optionally preceded by one h1. Put explanation on a linking page and use an ordinary figure for an inline picture. Review and grid are two views of the same selection and filters. Authors supply evidence; readers do not upload it.
 
 ```html
 <ex-gallery id="evidence" label="UI evidence">
@@ -132,7 +132,7 @@ For a pictured journey, target gallery figure IDs from the existing `ex-presenta
 
 ## Composition vocabulary
 
-Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Grid tracks, missing topics are explicit, and cells may contain supported islands and ordinary pictures, with links to dedicated Gallery pages for screenshot browsing. The author chooses columns or tabs and the whole component's Reading/Canvas width. Optional `choose` selects two live alternatives. Comparisons grow with their content and keep their headings sticky during page scrolling. See the [comparison reference](skill/references/comparisons.md).
+Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Grid tracks, missing topics are explicit, and cells may contain supported rich content such as code, diagrams, Tree, Trace or an ordinary picture. Link to a dedicated Gallery page for screenshot browsing. The author chooses columns or tabs and the whole component's Reading/Canvas width. Optional `choose` selects two live alternatives. Comparisons grow with their content and keep their headings sticky during page scrolling. See the [comparison reference](skill/references/comparisons.md).
 
 `ex-trace` is an ordered sequence of native disclosures with status and arbitrary rich attachments. Tree remains the hierarchy/navigation view. The [Trace reference](skill/references/traces.md) shows its syntax; [source-derived call paths](skill/references/call-paths.md) compose it with comparison while keeping branches distinct from call frames and runtime evidence.
 

@@ -68,7 +68,7 @@ Use stable island IDs and meaningful document headings. Keep the small `ex-nav` 
 
 A card groups one named option, component or finding. A callout highlights a proposal, decision, risk, question or unverified outcome; a subject icon says what it concerns. A recommendation is not an owner's chosen option. Local optional detail uses `details`/`summary`, not a Walkthrough. Rich content may nest, but another frame must add meaning: a tabbed alternative containing a Flow rarely needs a large outer card around the Flow's own cards.
 
-Use the generated vocabulary at the matching binding for accepted attributes and values. Do not invent elements, tone names or CSS variants from a screenshot. Gallery browsing belongs on its own page; an explanation uses an ordinary picture or a link there. An authoring rule is distinct from runtime capability: the publication prerequisite for dedicated-Gallery enforcement must be satisfied before claiming the checker enforces it.
+Use the generated vocabulary at the matching binding for accepted attributes and values. Do not invent elements, tone names or CSS variants from a screenshot. Gallery browsing belongs on its own page: one `ex-gallery` directly inside `ex-document`, optionally after one h1. Put navigation and hidden path declarations beside the document; an explanation uses an ordinary picture or a link there. The matching authoring checker reports `gallery-page` for embedded or multiple galleries; runtime support for older compositions does not make them valid authoring.
 
 Completion: facts occur once, navigation resolves to the intended content, proposal/evidence labels are honest, and ordinary examples contain reader content rather than state-retention test inputs.
 
