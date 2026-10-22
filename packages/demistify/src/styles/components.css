@@ -244,6 +244,20 @@ ex-diagram-diff > [slot],
 ex-tabs > :is([role='region'], [role='tabpanel']) {
 	min-width: 0;
 }
+/* Panels and step attachments are content flow, just like the document. Space only their
+   direct visible blocks; nested grids, cards and controls keep their own internal layout. */
+:is(ex-tabs > :is([role='region'], [role='tabpanel']), .ex-trace-body) {
+	display: flow-root;
+}
+:is(ex-tabs > :is([role='region'], [role='tabpanel']), .ex-trace-body)
+	> :not([hidden], script, template, .ex-inspect-controls)
+	~ :not([hidden], script, template, .ex-inspect-controls) {
+	margin-top: var(--space-6);
+}
+:is(ex-tabs > :is([role='region'], [role='tabpanel']), .ex-trace-body)
+	> :nth-child(1 of :not([hidden], script, template, .ex-inspect-controls)) {
+	margin-top: 0;
+}
 .ex-tab-bar,
 .ex-zoom-toolbar {
 	display: flex;

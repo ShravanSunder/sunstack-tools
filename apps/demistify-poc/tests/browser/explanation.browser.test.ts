@@ -8,6 +8,54 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('tab panels and Trace attachments space adjacent blocks without changing nested layouts', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui', '', 'content-spacing.html');
+	await expect
+		.poll((): boolean => requiredElement(fixture, '#spacing-trace').hasAttribute('prepared'))
+		.toBe(true);
+	const gap = (before: string, after: string): number =>
+		requiredElement(fixture, after).getBoundingClientRect().top -
+		requiredElement(fixture, before).getBoundingClientRect().bottom;
+	const verifySpacing = (): void => {
+		for (const [before, after] of [
+			['#assessment-heading', '#assessment-event'],
+			['#assessment-event', '#assessment-boundary'],
+			['#trace-heading', '#trace-limit'],
+			['#trace-limit', '#trace-owner'],
+			['#trace-owner', '#spacing-code'],
+			['#spacing-code', '#trace-grid'],
+		]) {
+			if (!before || !after) throw new Error('Missing spacing scenario.');
+			expect.soft(gap(before, after)).toBeGreaterThanOrEqual(23);
+		}
+		const grid = requiredElement(fixture, '#trace-grid');
+		const cards = grid.querySelectorAll('ex-card');
+		if (!cards[0] || !cards[1]) throw new Error('Missing nested grid cards.');
+		if (fixture.documentElement.clientWidth > 1000)
+			expect
+				.soft(Math.abs(cards[0].getBoundingClientRect().top - cards[1].getBoundingClientRect().top))
+				.toBeLessThan(2);
+		expect
+			.soft(fixture.documentElement.scrollWidth)
+			.toBeLessThanOrEqual(fixture.documentElement.clientWidth);
+	};
+	verifySpacing();
+	await page.viewport(390, 1000);
+	verifySpacing();
+	await page.viewport(1600, 1000);
+	const trace = requiredElement(fixture, '#spacing-trace');
+	trace.scrollIntoView();
+	await fixtureLocator(frame, trace).hover();
+	await frame.getByRole('button', { name: 'Expand Assessment evidence', exact: true }).click();
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Assessment evidence', exact: true }))
+		.toBeVisible();
+	expect(gap('#trace-heading', '#trace-limit')).toBeGreaterThanOrEqual(23);
+	await frame.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+	expect(requiredElement(fixture, '#composition-step').hasAttribute('open')).toBe(true);
+	verifySpacing();
+});
+
 test('Trace rows center disclosure controls while rich attachment headers keep their own layout', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui', '', 'explanation-components.html');
 	const summary = requiredElement(fixture, '#source-step > summary');

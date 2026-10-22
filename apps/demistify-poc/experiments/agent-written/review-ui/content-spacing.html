@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rich content spacing</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body><ex-document>
+<h1>Multiple blocks retain their own space</h1>
+<p>Tabs and evidence steps contain an explanation followed by useful views.</p>
+<ex-tabs id="workflow-tabs" label="Workflow views" zoom>
+ <section label="Assessment" id="assessment-panel">
+  <h3 id="assessment-heading">Assessment workflow</h3>
+  <ex-callout id="assessment-event" title="Started by a rejected-document event" icon="bell" tone="note"><p>A duplicate event is ignored; one assessment runs per job.</p></ex-callout>
+  <ex-callout id="assessment-boundary" title="Quiet period" icon="clock" tone="risk"><p>The example explains the debounce boundary; it is not a runtime capture.</p></ex-callout>
+ </section>
+ <section label="Decision"><p>The decision remains a separate peer view.</p></section>
+</ex-tabs>
+<ex-trace id="spacing-trace" title="Inspect the assessment" label="Assessment evidence" zoom>
+ <details id="composition-step" open icon="code" tag="Illustrative source">
+  <summary>Inspect the event boundary</summary>
+  <h3 id="trace-heading">Keep the source and its limits together</h3>
+  <ex-callout id="trace-limit" title="Source supplied" tone="note"><p>This example describes the guard and its expected result.</p></ex-callout>
+  <ex-card id="trace-owner" title="Assessment owner" icon="gear" tone="note"><p>Serializes work for one job.</p></ex-card>
+  <ex-code id="spacing-code" title="Event guard" lang="typescript"><script type="text/plain">if (seenEventIds.has(event.id)) return;</script></ex-code>
+  <ex-grid id="trace-grid" cols="2"><ex-card title="Input" tone="note"><p>Rejected-document event.</p></ex-card><ex-card title="Output" tone="note"><p>One continuing assessment.</p></ex-card></ex-grid>
+ </details>
+ <details><summary>Read the next observation</summary><p>Collapsing one step leaves the other steps available.</p></details>
+</ex-trace>
+</ex-document></body></html>
