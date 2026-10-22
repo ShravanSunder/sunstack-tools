@@ -14,6 +14,71 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('document disclosures retain Reading prose and Canvas visuals without changing island layouts', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('layout');
+	const bounds = (selector: string): DOMRect =>
+		requiredElement(fixture, selector).getBoundingClientRect();
+	await expect
+		.poll((): boolean => !!fixture.querySelector('#disclosure-code .ex-code-head'))
+		.toBe(true);
+	const verifyViewport = async (width: number): Promise<void> => {
+		await page.viewport(width, 1000);
+		const canvas = bounds('#disclosure-code');
+		const headingStyle = fixture.defaultView?.getComputedStyle(
+			requiredElement(fixture, '#disclosure-heading'),
+		);
+		if (!headingStyle) throw new Error('Missing disclosure heading style.');
+		expect.soft(Number.parseFloat(headingStyle.paddingTop)).toBeGreaterThanOrEqual(24);
+		expect.soft(Number.parseFloat(headingStyle.marginTop)).toBeGreaterThanOrEqual(40);
+		for (const selector of [
+			'#disclosure-heading',
+			'#disclosure-prose',
+			'#disclosure-list',
+			'#nested-disclosure-prose',
+		]) {
+			const reading = bounds(selector);
+			expect.soft(reading.width).toBeLessThanOrEqual(761);
+			expect.soft(Math.abs(reading.left - canvas.left)).toBeLessThan(2);
+			if (width === 1600) expect.soft(canvas.width - reading.width).toBeGreaterThan(100);
+		}
+		expect.soft(Math.abs(bounds('#disclosure-table').width - canvas.width)).toBeLessThan(2);
+		const column = requiredElement(fixture, '#comparison-prose').parentElement;
+		if (!column) throw new Error('Missing comparison column.');
+		expect
+			.soft(Math.abs(bounds('#comparison-prose').width - column.getBoundingClientRect().width))
+			.toBeLessThan(2);
+		expect.soft(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width + 1);
+	};
+	await verifyViewport(1600);
+	await verifyViewport(390);
+});
+
+test('enlarging a Reading code block uses the inspection width and restores its page size', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('layout');
+	const code = requiredElement(fixture, '#reading-code');
+	code.scrollIntoView();
+	await expect.poll((): boolean => !!code.querySelector('.ex-code-head')).toBe(true);
+	const originalWidth = code.getBoundingClientRect().width;
+	const originalContent = requiredElement(code, '.ex-code-head');
+	expect(originalWidth).toBeCloseTo(760, 0);
+	await fixtureLocator(frame, code).hover();
+	await frame.getByRole('button', { name: 'Expand Short command', exact: true }).click();
+	const modal = frame.getByRole('dialog', { name: 'Short command', exact: true });
+	await expect.element(modal).toBeVisible();
+	const content = requiredElement(fixture, '.ex-inspect-body > ex-code');
+	const body = requiredElement(fixture, '.ex-inspect-body');
+	const style = fixture.defaultView?.getComputedStyle(body);
+	if (!style) throw new Error('Missing inspection style.');
+	const availableWidth =
+		body.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+	expect.soft(content.getBoundingClientRect().width).toBeGreaterThan(originalWidth + 100);
+	expect.soft(Math.abs(content.getBoundingClientRect().width - availableWidth)).toBeLessThan(2);
+	await modal.getByRole('button', { name: 'Close', exact: true }).click();
+	expect(code.getAttribute('data-width')).toBe('reading');
+	expect(code.getBoundingClientRect().width).toBeCloseTo(originalWidth, 0);
+	expect(requiredElement(code, '.ex-code-head')).toBe(originalContent);
+});
+
 test('sequence messages remain readable in both themes and on a narrow screen', async (): Promise<void> => {
 	const { document: fixture } = await openFixture('ui', '', 'sequence-readability.html');
 	const diagram = requiredElement(fixture, '#sequence');
