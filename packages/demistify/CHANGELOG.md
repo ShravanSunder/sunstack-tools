@@ -1,5 +1,15 @@
 # @sunstack/demistify
 
+## 1.12.0
+
+### Minor Changes
+
+- 4e57fa1: Add reusable badge, exact progress, and phase breakdown parts with their authoring guide.
+
+### Patch Changes
+
+- e033344: Add shared identity styling, centered content-fitting progress dials, and badge-local status paint for combined evidence rows.
+
 ## 1.11.1
 
 ### Patch Changes
