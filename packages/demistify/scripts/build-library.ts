@@ -11,7 +11,12 @@ import {
 	localPhosphorStyles,
 	shippedIconCodePoints,
 } from '../src/node/packaging.ts';
-import { layoutAttributes, vocabulary } from '../src/vocabulary.ts';
+import {
+	layoutAttributes,
+	vocabulary,
+	type AttributeSpec,
+	type ElementSpec,
+} from '../src/vocabulary.ts';
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const outputDirectory = resolve(packageRoot, 'dist');
@@ -45,6 +50,7 @@ const styles = await Promise.all(
 		'presentations.css',
 		'inspection-gestures.css',
 		'vocabulary.css',
+		'small-parts.css',
 		'explorer.css',
 		'gallery.css',
 		'gallery-walkthrough.css',
@@ -81,13 +87,41 @@ const valuesOf = (type: (typeof vocabulary)[string]['attributes'][string]['type'
 				? 'number'
 				: 'boolean'
 			: 'string';
+
+function editorAttributes(
+	attributes: Readonly<Record<string, AttributeSpec>>,
+): Record<string, unknown>[] {
+	return Object.entries(attributes).map(([name, attribute]) => {
+		const entry: Record<string, unknown> = { name, description: attribute.description };
+		if (attribute.type.kind === 'enum')
+			entry['values'] = attribute.type.values.map((value) => ({ name: value }));
+		if (attribute.type.kind === 'flag') entry['valueSet'] = 'v';
+		return entry;
+	});
+}
+
+function childContractDescription(parentTag: string, spec: ElementSpec): string | undefined {
+	if (!spec.childTag || !spec.childAttributes) return undefined;
+	const attributes = Object.entries(spec.childAttributes)
+		.map(([name, attribute]): string => {
+			const allowedValues = attribute.type.kind === 'enum' ? ` (${valuesOf(attribute.type)})` : '';
+			const description = attribute.description.endsWith('.')
+				? attribute.description.slice(0, -1)
+				: attribute.description;
+			return `${name}${allowedValues}: ${description}`;
+		})
+		.join('; ');
+	return `Direct <${spec.childTag}> children of <${parentTag}> use ${attributes}.`;
+}
+
 const declarations = Object.entries(vocabulary).map(([tagName, spec]) => {
+	const childDescription = childContractDescription(tagName, spec);
 	const declaration: Record<string, unknown> = {
 		kind: 'class',
 		name: tagName,
 		tagName,
 		customElement: true,
-		description: spec.description,
+		description: childDescription ? `${spec.description} ${childDescription}` : spec.description,
 		attributes: Object.entries({ ...layoutAttributes, ...spec.attributes }).map(
 			([name, attribute]) => ({
 				name,
@@ -99,22 +133,24 @@ const declarations = Object.entries(vocabulary).map(([tagName, spec]) => {
 	if (spec.legacy) declaration['deprecated'] = 'Earlier lab vocabulary; still rendered.';
 	return declaration;
 });
-const customData = Object.entries(vocabulary).map(([name, spec]) => ({
-	name,
-	description: spec.description,
-	attributes: Object.entries({ ...layoutAttributes, ...spec.attributes }).map(
-		([attributeName, attribute]) => {
-			const entry: Record<string, unknown> = {
-				name: attributeName,
-				description: attribute.description,
-			};
-			if (attribute.type.kind === 'enum')
-				entry['values'] = attribute.type.values.map((value) => ({ name: value }));
-			if (attribute.type.kind === 'flag') entry['valueSet'] = 'v';
-			return entry;
-		},
-	),
-}));
+const customData = [
+	...Object.entries(vocabulary).map(([name, spec]) => ({
+		name,
+		description: spec.description,
+		attributes: editorAttributes({ ...layoutAttributes, ...spec.attributes }),
+	})),
+	...Object.entries(vocabulary).flatMap(([parentTag, spec]) => {
+		const description = childContractDescription(parentTag, spec);
+		if (!spec.childTag || !spec.childAttributes || !description) return [];
+		return [
+			{
+				name: spec.childTag,
+				description,
+				attributes: editorAttributes(spec.childAttributes),
+			},
+		];
+	}),
+];
 const json = (value: unknown): string => `${JSON.stringify(value, null, '\t')}\n`;
 await writeFile(
 	resolve(outputDirectory, 'custom-elements.json'),

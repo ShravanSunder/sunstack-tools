@@ -27,6 +27,7 @@ export interface AttributeSpec {
 export interface ElementSpec {
 	readonly description: string;
 	readonly attributes: Readonly<Record<string, AttributeSpec>>;
+	readonly childTag?: string;
 	/** Attributes this element gives its direct children (e.g. `span` inside a grid). */
 	readonly childAttributes?: Readonly<Record<string, AttributeSpec>>;
 	/** The element must sit inside one of these. */
@@ -145,6 +146,33 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			label: text('What the number measures.', true),
 			note: text('Comparison or context, e.g. "was 443 KiB".'),
 			tone,
+		},
+	},
+	'ex-badge': {
+		description: 'A normal-text label with an optional existing semantic tone.',
+		attributes: { tone },
+	},
+	'ex-progress': {
+		description: 'One exact completed count and total; missing counts remain not reported.',
+		attributes: {
+			label: text('Subject named beside the count.', true),
+			value: text('Authored completed whole-number count.'),
+			max: text('Authored whole-number total for the same subject.'),
+		},
+	},
+	'ex-breakdown': {
+		description: 'One named observation with one to three exact, stably slotted phase values.',
+		attributes: {
+			label: text('Name of this observation.', true),
+			unit: text('Shared unit printed with each phase value.', true),
+			scale: oneOf('Share of the sum or elapsed length against max.', ['share', 'elapsed']),
+			max: text('Required positive common maximum for elapsed scale.'),
+			compact: flag('Keep exact phase values in order for a labelled surrounding table.'),
+		},
+		childTag: 'data',
+		childAttributes: {
+			value: text('Finite non-negative exact phase value.', true),
+			series: oneOf('Stable categorical palette slot for this phase.', ['1', '2', '3']),
 		},
 	},
 	'ex-mermaid': {

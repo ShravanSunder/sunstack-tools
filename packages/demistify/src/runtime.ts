@@ -11,6 +11,7 @@ import { DecisionIsland, LayerIsland, TimelineIsland } from './islands/legacy.ts
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
 import { PreformattedIsland } from './islands/preformatted.ts';
+import { BadgeIsland, BreakdownIsland, ProgressIsland } from './islands/small-parts.ts';
 import { StatIsland } from './islands/stat.ts';
 import { TabsIsland } from './islands/tabs.ts';
 import { TreeIsland } from './islands/tree.ts';
@@ -50,6 +51,9 @@ for (const [tagName, constructor] of [
 	['ex-code', CodeIsland],
 	['ex-note', CodeNoteIsland],
 	['ex-stat', StatIsland],
+	['ex-badge', BadgeIsland],
+	['ex-progress', ProgressIsland],
+	['ex-breakdown', BreakdownIsland],
 	['ex-presentation', RouteElement],
 	['ex-step', StepElement],
 	['ex-document', DocumentIsland],
