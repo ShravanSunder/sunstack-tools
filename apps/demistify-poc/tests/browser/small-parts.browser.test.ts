@@ -3,9 +3,113 @@ import { page } from 'vitest/browser';
 
 import { openFixture, requiredElement } from './fixture-page.ts';
 
+function resolveThemeColor(fixture: Document, token: string): string {
+	const fixtureWindow = fixture.defaultView;
+	if (!fixtureWindow) throw new Error('Fixture has no browser window.');
+	const probe = fixture.createElement('span');
+	probe.style.color = `var(${token})`;
+	fixture.body.append(probe);
+	const color = fixtureWindow.getComputedStyle(probe).color;
+	probe.remove();
+	return color;
+}
+
+function resolveThemeBackground(fixture: Document, token: string): string {
+	const fixtureWindow = fixture.defaultView;
+	if (!fixtureWindow) throw new Error('Fixture has no browser window.');
+	const probe = fixture.createElement('span');
+	probe.style.backgroundColor = `var(${token})`;
+	fixture.body.append(probe);
+	const background = fixtureWindow.getComputedStyle(probe).backgroundColor;
+	probe.remove();
+	return background;
+}
+
+interface ProgressCountRingMetrics {
+	readonly countText: string;
+	readonly gaugeBounds: DOMRect;
+	readonly centerOffsetX: number;
+	readonly centerOffsetY: number;
+	readonly innerEdgeClearance: number;
+}
+
+function measureProgressCountRing(progress: Element): ProgressCountRingMetrics {
+	const gauge = requiredElement(progress, '.ex-progress-gauge');
+	const gaugeBounds = gauge.getBoundingClientRect();
+	const count = requiredElement(progress, '.ex-progress-count');
+	const countBounds = count.getBoundingClientRect();
+	const track = gauge.querySelector<SVGCircleElement>('.ex-progress-track');
+	if (!track) throw new Error('Progress has no SVG track.');
+	const trackTransform = track.getScreenCTM();
+	if (!trackTransform) throw new Error('Progress track has no screen transform.');
+	const fixtureWindow = progress.ownerDocument.defaultView;
+	if (!fixtureWindow) throw new Error('Fixture has no browser window.');
+	const circleCenterX = Number(track.getAttribute('cx'));
+	const circleCenterY = Number(track.getAttribute('cy'));
+	const circleRadius = Number(track.getAttribute('r'));
+	const strokeWidth = Number.parseFloat(fixtureWindow.getComputedStyle(track).strokeWidth);
+	const ringCenter = new DOMPoint(circleCenterX, circleCenterY).matrixTransform(trackTransform);
+	const innerEdge = new DOMPoint(
+		circleCenterX + circleRadius - strokeWidth / 2,
+		circleCenterY,
+	).matrixTransform(trackTransform);
+	const innerRingRadius = Math.hypot(innerEdge.x - ringCenter.x, innerEdge.y - ringCenter.y);
+	const countCenterX = countBounds.left + countBounds.width / 2;
+	const countCenterY = countBounds.top + countBounds.height / 2;
+	const farthestCountCorner = Math.max(
+		Math.hypot(countBounds.left - ringCenter.x, countBounds.top - ringCenter.y),
+		Math.hypot(countBounds.right - ringCenter.x, countBounds.top - ringCenter.y),
+		Math.hypot(countBounds.left - ringCenter.x, countBounds.bottom - ringCenter.y),
+		Math.hypot(countBounds.right - ringCenter.x, countBounds.bottom - ringCenter.y),
+	);
+	return {
+		countText: count.textContent ?? '',
+		gaugeBounds,
+		centerOffsetX: Math.abs(countCenterX - ringCenter.x),
+		centerOffsetY: Math.abs(countCenterY - ringCenter.y),
+		innerEdgeClearance: innerRingRadius - farthestCountCorner,
+	};
+}
+
 afterEach(async (): Promise<void> => {
 	document.body.replaceChildren();
 	await page.viewport(1600, 1000);
+});
+
+test('progress count is centered inside its actual ring and fits a long value', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('ui', '', 'small-parts.html');
+	const progress = requiredElement(fixture, '#partial-progress');
+	await expect.poll((): boolean => progress.hasAttribute('prepared')).toBe(true);
+	const partialCount = measureProgressCountRing(progress);
+	expect(partialCount.countText).toBe('2/6');
+	expect(partialCount.gaugeBounds.width).toBe(40);
+	expect(partialCount.gaugeBounds.height).toBe(40);
+	expect(partialCount.centerOffsetX).toBeLessThanOrEqual(1);
+	expect(partialCount.centerOffsetY).toBeLessThanOrEqual(1);
+	expect(partialCount.innerEdgeClearance).toBeGreaterThanOrEqual(0);
+	const subject = requiredElement(progress, '.ex-progress-label');
+	expect(subject.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+		partialCount.gaugeBounds.right - 1,
+	);
+
+	const longerProgress = requiredElement(fixture, '#longer-count-progress');
+	await expect.poll((): boolean => longerProgress.hasAttribute('prepared')).toBe(true);
+	const longerCount = measureProgressCountRing(longerProgress);
+	expect(longerCount.countText).toBe('1000000/1000000');
+	expect(longerCount.gaugeBounds.width).toBeGreaterThan(40);
+	expect(longerCount.centerOffsetX).toBeLessThanOrEqual(1);
+	expect(longerCount.centerOffsetY).toBeLessThanOrEqual(1);
+	expect(longerCount.innerEdgeClearance).toBeGreaterThanOrEqual(2);
+
+	const largeProgress = requiredElement(fixture, '#large-count-progress');
+	await expect.poll((): boolean => largeProgress.hasAttribute('prepared')).toBe(true);
+	const largeCount = measureProgressCountRing(largeProgress);
+	expect(largeCount.countText).toBe('1000/1000');
+	expect(largeCount.gaugeBounds.width).toBeGreaterThan(40);
+	expect(largeCount.gaugeBounds.width).toBeLessThan(longerCount.gaugeBounds.width);
+	expect(largeCount.centerOffsetX).toBeLessThanOrEqual(1);
+	expect(largeCount.centerOffsetY).toBeLessThanOrEqual(1);
+	expect(largeCount.innerEdgeClearance).toBeGreaterThanOrEqual(2);
 });
 
 test('compact C timing retains the selected two-line presentation', async (): Promise<void> => {
@@ -30,22 +134,132 @@ test('compact C timing retains the selected two-line presentation', async (): Pr
 	for (const fact of ['Connect 28 ms', 'Work 156 ms', 'Transfer 44 ms'])
 		expect(accessibleDescription).toContain(fact);
 
-	const records = requiredElement(fixture, '#selected-c-records');
-	expect(records.querySelectorAll('tbody tr')).toHaveLength(6);
-	for (const fact of [
-		'Asha Patel',
-		'Noor Chen',
-		'Luis Diaz',
-		'North workspace',
-		'West workspace',
-		'A-148',
-		'A-149',
-		'A-150',
-		'A-151',
-		'A-152',
-		'A-153',
-	])
-		expect(records.textContent).toContain(fact);
+	const records = requiredElement(fixture, '#selected-combined-records');
+	const rows = [...records.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+	expect(rows).toHaveLength(6);
+	await expect
+		.poll((): boolean =>
+			[...records.querySelectorAll('ex-progress, ex-breakdown')].every((part) =>
+				part.hasAttribute('prepared'),
+			),
+		)
+		.toBe(true);
+	const rowFacts = [
+		{
+			id: 'assessment-a148',
+			facts: [
+				'Asha Patel',
+				'North workspace',
+				'Document import',
+				'A-148',
+				'Complete',
+				'6/6',
+				'228 ms',
+				'28 / 156 / 44 ms',
+			],
+			initials: 'AP',
+		},
+		{
+			id: 'assessment-a149',
+			facts: [
+				'Noor Chen',
+				'North workspace',
+				'Address assessment',
+				'A-149',
+				'Running',
+				'2/6',
+				'371 ms',
+				'42 / 264 / 65 ms',
+			],
+			initials: 'NC',
+		},
+		{
+			id: 'assessment-a150',
+			facts: [
+				'Luis Diaz',
+				'West workspace',
+				'Photo review',
+				'A-150',
+				'Failed',
+				'1/6',
+				'512 ms',
+				'34 / 418 / 60 ms',
+			],
+			initials: 'LD',
+		},
+		{
+			id: 'assessment-a151',
+			facts: [
+				'Asha Patel',
+				'North workspace',
+				'Identity lookup',
+				'A-151',
+				'Complete',
+				'6/6',
+				'96 ms',
+				'18 / 55 / 23 ms',
+			],
+			initials: 'AP',
+		},
+		{
+			id: 'assessment-a152',
+			facts: [
+				'Noor Chen',
+				'West workspace',
+				'Delivery reconciliation',
+				'A-152',
+				'Queued',
+				'0/6',
+				'0 ms',
+				'Not started',
+			],
+			initials: 'NC',
+		},
+		{
+			id: 'assessment-a153',
+			facts: [
+				'Luis Diaz',
+				'West workspace',
+				'A deliberately long document classification label',
+				'A-153',
+				'Running',
+				'4/6',
+				'1240 ms',
+				'120 / 830 / 290 ms',
+			],
+			initials: 'LD',
+		},
+	] as const;
+	for (const rowFact of rowFacts) {
+		const row = requiredElement(records, `#${rowFact.id}`);
+		for (const fact of rowFact.facts) expect(row.textContent).toContain(fact);
+		const identity = requiredElement(row, '.ex-identity');
+		const avatar = requiredElement(identity, '.ex-avatar');
+		expect(avatar.textContent).toBe(rowFact.initials);
+		expect(avatar.getAttribute('aria-hidden')).toBe('true');
+		const avatarStyles = fixtureWindow.getComputedStyle(avatar);
+		expect(avatar.getBoundingClientRect().width).toBe(36);
+		expect(avatar.getBoundingClientRect().height).toBe(36);
+		expect(avatarStyles.borderRadius).toBe('50%');
+	}
+	expect(records.querySelectorAll('tbody tr ex-breakdown')).toHaveLength(5);
+	const queuedRow = requiredElement(records, '#assessment-a152');
+	expect(requiredElement(queuedRow, '#status-a152').hasAttribute('tone')).toBe(false);
+	expect(queuedRow.querySelector('ex-breakdown')).toBeNull();
+	const queuedGauge = requiredElement(
+		requiredElement(queuedRow, 'ex-progress'),
+		'.ex-progress-gauge',
+	);
+	expect(queuedGauge.querySelector('.ex-progress-track')).not.toBeNull();
+	expect(queuedGauge.querySelector('.ex-progress-fill')).toBeNull();
+	const identityDetail = requiredElement(fixture, '#prose-identity .ex-identity-detail');
+	expect(fixture.querySelector('#identity-prose')?.textContent).toContain(
+		'North workspace · deliberately long authored context for this wrapping example',
+	);
+	expect(requiredElement(fixture, '#trace-identity').textContent).toContain('Trace example');
+	await page.viewport(390, 1000);
+	expect(identityDetail.getBoundingClientRect().height).toBeGreaterThan(18);
+	expect(identityDetail.scrollWidth).toBeLessThanOrEqual(identityDetail.clientWidth + 1);
 	for (const cell of records.querySelectorAll('td'))
 		expect(fixtureWindow.getComputedStyle(cell).verticalAlign).toBe('middle');
 	for (const bar of records.querySelectorAll('ex-breakdown'))
@@ -61,6 +275,7 @@ test('compact evidence parts retain exact facts, scale and slot color in native 
 				'#trace-neutral-badge',
 				'#trace-planned-badge',
 				'#complete-progress',
+				'#large-count-progress',
 				'#zero-progress',
 				'#partial-progress',
 				'#unknown-progress',
@@ -72,6 +287,13 @@ test('compact evidence parts retain exact facts, scale and slot color in native 
 				'#zero-elapsed-breakdown',
 				'#trace-breakdown',
 				'#fractional-elapsed-breakdown',
+				'#status-a148',
+				'#status-a149',
+				'#status-a150',
+				'#status-a151',
+				'#status-a152',
+				'#status-a153',
+				'#nonbadge-done-tone',
 			].every((selector): boolean => requiredElement(fixture, selector).hasAttribute('prepared')),
 		)
 		.toBe(true);
@@ -158,6 +380,10 @@ test('compact evidence parts retain exact facts, scale and slot color in native 
 		light: { foreground: 'rgb(91, 102, 120)', background: 'rgb(236, 239, 243)' },
 		dark: { foreground: 'rgb(168, 178, 194)', background: 'rgb(35, 43, 55)' },
 	} as const;
+	const pillRadius = fixtureWindow
+		.getComputedStyle(fixture.documentElement)
+		.getPropertyValue('--radius-pill')
+		.trim();
 	for (const theme of ['light', 'dark'] as const) {
 		fixture.documentElement.dataset['theme'] = theme;
 		expect(
@@ -166,9 +392,31 @@ test('compact evidence parts retain exact facts, scale and slot color in native 
 		for (const id of ['#partial-progress', '#complete-progress']) {
 			const fill = requiredElement(requiredElement(fixture, id), '.ex-progress-fill');
 			const styles = fixtureWindow.getComputedStyle(fill);
-			expect(styles.stroke).toBe(expectedColors[theme][0]);
+			expect(styles.stroke).toBe(resolveThemeColor(fixture, '--accent'));
 			expect(styles.strokeLinecap).toBe('round');
 		}
+		for (const [id, foregroundToken, backgroundToken] of [
+			['#status-a148', '--tone-added', '--tone-added-surface'],
+			['#status-a149', '--accent', '--tone-note-surface'],
+			['#status-a150', '--tone-risk', '--tone-risk-surface'],
+		] as const) {
+			const badge = requiredElement(fixture, id);
+			const styles = fixtureWindow.getComputedStyle(badge);
+			expect(styles.color).toBe(resolveThemeColor(fixture, foregroundToken));
+			expect(styles.backgroundColor).toBe(resolveThemeBackground(fixture, backgroundToken));
+			expect(styles.borderTopLeftRadius).toBe(pillRadius);
+		}
+		const queuedBadge = fixtureWindow.getComputedStyle(requiredElement(fixture, '#status-a152'));
+		expect(queuedBadge.color).toBe(resolveThemeColor(fixture, '--ink-soft'));
+		expect(queuedBadge.backgroundColor).toBe(resolveThemeBackground(fixture, '--surface-content'));
+		expect(queuedBadge.borderTopLeftRadius).toBe(pillRadius);
+		const nonBadgeDone = fixtureWindow.getComputedStyle(
+			requiredElement(fixture, '#nonbadge-done-tone'),
+		);
+		expect(nonBadgeDone.borderLeftColor).toBe(resolveThemeColor(fixture, '--tone-done'));
+		expect(nonBadgeDone.borderRadius).toBe(
+			fixtureWindow.getComputedStyle(fixture.documentElement).getPropertyValue('--radius-sm'),
+		);
 		const reorderedSeries = new Map(
 			[...elapsed.querySelectorAll<HTMLElement>('.ex-breakdown-segment')].map(
 				(segment): [string, string] => [

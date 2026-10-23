@@ -11,6 +11,10 @@
 <ex-document>
   <h1>Compact evidence parts</h1>
   <p id="compact-prose">A neutral label can stay ordinary and readable: <ex-badge id="long-neutral-badge">Supplied observation from the full reconnect analysis, including the source and its known limits</ex-badge>. A delayed state remains explicit beside a complete count: <ex-badge id="delayed-status" tone="risk">Delayed</ex-badge> <ex-progress id="complete-progress" label="Checks" value="6" max="6"></ex-progress>.</p>
+  <p id="identity-prose">A long authored identity wraps without clipping: <span id="prose-identity" class="ex-identity"><span class="ex-avatar" aria-hidden="true">EX</span><span class="ex-identity-text"><strong>Example identity</strong><span class="ex-identity-detail">North workspace · deliberately long authored context for this wrapping example</span></span></span></p>
+  <ex-callout id="nonbadge-done-tone" tone="done" title="Existing tone control">The shared callout keeps its existing done-tone paint.</ex-callout>
+  <p>Large exact counts stay visible: <ex-progress id="large-count-progress" label="Checks" value="1000" max="1000"></ex-progress></p>
+  <p>Longer exact counts grow with content: <ex-progress id="longer-count-progress" label="Checks" value="1000000" max="1000000"></ex-progress></p>
   <div id="timing-prose"><p>The request took 228 ms across these named phases.</p><ex-breakdown id="prose-breakdown" label="Request phases" unit="ms"><data value="28" series="1">Connect</data><data value="156" series="2">Work</data><data value="44" series="3">Transfer</data></ex-breakdown><ex-breakdown id="fractional-elapsed-breakdown" label="Fractional phases" unit="s" scale="elapsed" max="0.3"><data value="0.1" series="1">Connect</data><data value="0.2" series="2">Work</data></ex-breakdown></div>
   <div id="evidence-table" class="ex-table-scroll" data-width="canvas">
     <table>
@@ -55,14 +59,15 @@
     <details id="request-trace-step" open tone="note" tag="Supplied measurement">
       <summary>Compare the request phases</summary>
       <p>The named phases retain their shared categorical identities here too.</p>
+      <p>Trace identity: <span id="trace-identity" class="ex-identity"><span class="ex-avatar" aria-hidden="true">TR</span><span class="ex-identity-text"><strong>Trace example</strong><span class="ex-identity-detail">Supplied measurement context</span></span></span></p>
       <ex-badge id="trace-neutral-badge">Neutral trace label</ex-badge>
       <ex-badge id="trace-planned-badge" tone="planned">Illustrative evidence</ex-badge>
       <ex-progress id="trace-progress" label="Checks" value="2" max="6"></ex-progress>
       <ex-breakdown id="trace-breakdown" label="Request phases" unit="ms"><data value="28" series="1">Connect</data><data value="156" series="2">Work</data><data value="44" series="3">Transfer</data></ex-breakdown>
     </details>
   </ex-trace>
-<h2>Selected C records</h2>
-<section id="selected-c-records">
+<h2>Selected combined records</h2>
+<section id="selected-combined-records">
 <div class="ex-table-scroll" data-width="canvas">
   <table>
     <caption>Illustrative assessment runs. Each bar shows the phase shares of one run; values follow Connect / Work / Transfer.</caption>
@@ -77,11 +82,11 @@
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td><strong>Asha Patel</strong><br><small>North workspace</small></td>
+      <tr id="assessment-a148">
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">AP</span><span class="ex-identity-text"><strong>Asha Patel</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
         <td><strong>Document import</strong><br><small>A-148</small></td>
-        <td><ex-badge tone="done">Complete</ex-badge></td>
-        <td>6 / 6</td>
+        <td><ex-badge id="status-a148" tone="done">Complete</ex-badge></td>
+        <td><ex-progress label="Checks" value="6" max="6"></ex-progress></td>
         <td>228 ms</td>
         <td><ex-breakdown label="Document import phases" unit="ms" compact>
           <data value="28" series="1">Connect</data>
@@ -89,11 +94,11 @@
           <data value="44" series="3">Transfer</data>
         </ex-breakdown></td>
       </tr>
-      <tr>
-        <td><strong>Noor Chen</strong><br><small>North workspace</small></td>
+      <tr id="assessment-a149">
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">NC</span><span class="ex-identity-text"><strong>Noor Chen</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
         <td><strong>Address assessment</strong><br><small>A-149</small></td>
-        <td><ex-badge tone="note">Running</ex-badge></td>
-        <td>2 / 6</td>
+        <td><ex-badge id="status-a149" tone="note">Running</ex-badge></td>
+        <td><ex-progress label="Checks" value="2" max="6"></ex-progress></td>
         <td>371 ms</td>
         <td><ex-breakdown label="Address assessment phases" unit="ms" compact>
           <data value="42" series="1">Connect</data>
@@ -101,11 +106,11 @@
           <data value="65" series="3">Transfer</data>
         </ex-breakdown></td>
       </tr>
-      <tr>
-        <td><strong>Luis Diaz</strong><br><small>West workspace</small></td>
+      <tr id="assessment-a150">
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">LD</span><span class="ex-identity-text"><strong>Luis Diaz</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
         <td><strong>Photo review</strong><br><small>A-150</small></td>
-        <td><ex-badge tone="risk">Failed</ex-badge></td>
-        <td>1 / 6</td>
+        <td><ex-badge id="status-a150" tone="risk">Failed</ex-badge></td>
+        <td><ex-progress label="Checks" value="1" max="6"></ex-progress></td>
         <td>512 ms</td>
         <td><ex-breakdown label="Photo review phases" unit="ms" compact>
           <data value="34" series="1">Connect</data>
@@ -113,11 +118,11 @@
           <data value="60" series="3">Transfer</data>
         </ex-breakdown></td>
       </tr>
-      <tr>
-        <td><strong>Asha Patel</strong><br><small>North workspace</small></td>
+      <tr id="assessment-a151">
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">AP</span><span class="ex-identity-text"><strong>Asha Patel</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
         <td><strong>Identity lookup</strong><br><small>A-151</small></td>
-        <td><ex-badge tone="done">Complete</ex-badge></td>
-        <td>6 / 6</td>
+        <td><ex-badge id="status-a151" tone="done">Complete</ex-badge></td>
+        <td><ex-progress label="Checks" value="6" max="6"></ex-progress></td>
         <td>96 ms</td>
         <td><ex-breakdown label="Identity lookup phases" unit="ms" compact>
           <data value="18" series="1">Connect</data>
@@ -125,19 +130,19 @@
           <data value="23" series="3">Transfer</data>
         </ex-breakdown></td>
       </tr>
-      <tr>
-        <td><strong>Noor Chen</strong><br><small>West workspace</small></td>
+      <tr id="assessment-a152">
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">NC</span><span class="ex-identity-text"><strong>Noor Chen</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
         <td><strong>Delivery reconciliation</strong><br><small>A-152</small></td>
-        <td><ex-badge tone="planned">Queued</ex-badge></td>
-        <td>0 / 6</td>
+        <td><ex-badge id="status-a152">Queued</ex-badge></td>
+        <td><ex-progress label="Checks" value="0" max="6"></ex-progress></td>
         <td>0 ms</td>
         <td><span>Not started</span></td>
       </tr>
-      <tr>
-        <td><strong>Luis Diaz</strong><br><small>West workspace</small></td>
+      <tr id="assessment-a153">
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">LD</span><span class="ex-identity-text"><strong>Luis Diaz</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
         <td><strong>A deliberately long document classification label</strong><br><small>A-153</small></td>
-        <td><ex-badge tone="note">Running</ex-badge></td>
-        <td>4 / 6</td>
+        <td><ex-badge id="status-a153" tone="note">Running</ex-badge></td>
+        <td><ex-progress label="Checks" value="4" max="6"></ex-progress></td>
         <td>1240 ms</td>
         <td><ex-breakdown label="A deliberately long document classification label phases" unit="ms" compact>
           <data value="120" series="1">Connect</data>

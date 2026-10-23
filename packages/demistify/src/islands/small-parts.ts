@@ -61,7 +61,8 @@ export class ProgressIsland extends HTMLElement {
 		const rawValue = this.getAttribute('value');
 		const rawMax = this.getAttribute('max');
 		const result = parseProgressValue(rawValue, rawMax);
-		const content: Node[] = [textElement(this.ownerDocument, 'ex-progress-label', label)];
+		const labelElement = textElement(this.ownerDocument, 'ex-progress-label', label);
+		const content: Node[] = [];
 
 		if (result.kind === 'known') {
 			const gauge = this.ownerDocument.createElementNS(svgNamespace, 'svg');
@@ -86,14 +87,17 @@ export class ProgressIsland extends HTMLElement {
 			);
 			gauge.append(track);
 			if (result.value > 0) gauge.append(fill);
-			content.push(gauge);
-			content.push(
+			const dial = this.ownerDocument.createElement('span');
+			dial.className = 'ex-progress-dial';
+			dial.append(
+				gauge,
 				textElement(
 					this.ownerDocument,
 					'ex-progress-count',
 					`${formatNumber(result.value)}/${formatNumber(result.max)}`,
 				),
 			);
+			content.push(dial, labelElement);
 		} else {
 			let message: string;
 			if (result.kind === 'unknown') message = 'Not reported';
@@ -105,7 +109,7 @@ export class ProgressIsland extends HTMLElement {
 				message = `${authored} · ${state}: ${detail}`;
 				reportIssue(this, `<ex-progress> ${label}: ${authored} is an ${state}; ${detail}.`);
 			}
-			content.push(textElement(this.ownerDocument, 'ex-progress-fallback', message));
+			content.push(labelElement, textElement(this.ownerDocument, 'ex-progress-fallback', message));
 		}
 
 		this.replaceChildren(...content);
