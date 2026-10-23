@@ -88,13 +88,13 @@ ex-progress {
 .ex-progress-dial {
 	position: relative;
 	display: inline-grid;
+	grid-template-columns: 1fr 3fr 1fr;
 	flex: none;
 	place-items: center;
 	width: max-content;
 	min-width: 40px;
 	min-height: 40px;
 	box-sizing: border-box;
-	padding-inline: var(--space-1);
 	aspect-ratio: 1;
 }
 .ex-progress-label {
@@ -112,6 +112,8 @@ ex-progress {
 .ex-progress-count {
 	position: relative;
 	z-index: 1;
+	grid-column: 2;
+	grid-row: 1;
 	font-variant-numeric: tabular-nums;
 	text-align: center;
 	white-space: nowrap;

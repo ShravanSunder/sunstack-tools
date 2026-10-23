@@ -25,6 +25,52 @@ function resolveThemeBackground(fixture: Document, token: string): string {
 	return background;
 }
 
+interface ProgressCountRingMetrics {
+	readonly countText: string;
+	readonly gaugeBounds: DOMRect;
+	readonly centerOffsetX: number;
+	readonly centerOffsetY: number;
+	readonly innerEdgeClearance: number;
+}
+
+function measureProgressCountRing(progress: Element): ProgressCountRingMetrics {
+	const gauge = requiredElement(progress, '.ex-progress-gauge');
+	const gaugeBounds = gauge.getBoundingClientRect();
+	const count = requiredElement(progress, '.ex-progress-count');
+	const countBounds = count.getBoundingClientRect();
+	const track = gauge.querySelector<SVGCircleElement>('.ex-progress-track');
+	if (!track) throw new Error('Progress has no SVG track.');
+	const trackTransform = track.getScreenCTM();
+	if (!trackTransform) throw new Error('Progress track has no screen transform.');
+	const fixtureWindow = progress.ownerDocument.defaultView;
+	if (!fixtureWindow) throw new Error('Fixture has no browser window.');
+	const circleCenterX = Number(track.getAttribute('cx'));
+	const circleCenterY = Number(track.getAttribute('cy'));
+	const circleRadius = Number(track.getAttribute('r'));
+	const strokeWidth = Number.parseFloat(fixtureWindow.getComputedStyle(track).strokeWidth);
+	const ringCenter = new DOMPoint(circleCenterX, circleCenterY).matrixTransform(trackTransform);
+	const innerEdge = new DOMPoint(
+		circleCenterX + circleRadius - strokeWidth / 2,
+		circleCenterY,
+	).matrixTransform(trackTransform);
+	const innerRingRadius = Math.hypot(innerEdge.x - ringCenter.x, innerEdge.y - ringCenter.y);
+	const countCenterX = countBounds.left + countBounds.width / 2;
+	const countCenterY = countBounds.top + countBounds.height / 2;
+	const farthestCountCorner = Math.max(
+		Math.hypot(countBounds.left - ringCenter.x, countBounds.top - ringCenter.y),
+		Math.hypot(countBounds.right - ringCenter.x, countBounds.top - ringCenter.y),
+		Math.hypot(countBounds.left - ringCenter.x, countBounds.bottom - ringCenter.y),
+		Math.hypot(countBounds.right - ringCenter.x, countBounds.bottom - ringCenter.y),
+	);
+	return {
+		countText: count.textContent ?? '',
+		gaugeBounds,
+		centerOffsetX: Math.abs(countCenterX - ringCenter.x),
+		centerOffsetY: Math.abs(countCenterY - ringCenter.y),
+		innerEdgeClearance: innerRingRadius - farthestCountCorner,
+	};
+}
+
 afterEach(async (): Promise<void> => {
 	document.body.replaceChildren();
 	await page.viewport(1600, 1000);
@@ -34,31 +80,36 @@ test('progress count is centered inside its actual ring and fits a long value', 
 	const { document: fixture } = await openFixture('ui', '', 'small-parts.html');
 	const progress = requiredElement(fixture, '#partial-progress');
 	await expect.poll((): boolean => progress.hasAttribute('prepared')).toBe(true);
-	const gauge = requiredElement(progress, '.ex-progress-gauge');
-	const count = requiredElement(progress, '.ex-progress-count');
-	const gaugeBounds = gauge.getBoundingClientRect();
-	const countBounds = count.getBoundingClientRect();
-	expect(
-		Math.abs(countBounds.left + countBounds.width / 2 - (gaugeBounds.left + gaugeBounds.width / 2)),
-	).toBeLessThanOrEqual(1);
-	expect(
-		Math.abs(countBounds.top + countBounds.height / 2 - (gaugeBounds.top + gaugeBounds.height / 2)),
-	).toBeLessThanOrEqual(1);
-	expect(gaugeBounds.width).toBeGreaterThanOrEqual(40);
-	expect(gaugeBounds.height).toBeGreaterThanOrEqual(40);
+	const partialCount = measureProgressCountRing(progress);
+	expect(partialCount.countText).toBe('2/6');
+	expect(partialCount.gaugeBounds.width).toBe(40);
+	expect(partialCount.gaugeBounds.height).toBe(40);
+	expect(partialCount.centerOffsetX).toBeLessThanOrEqual(1);
+	expect(partialCount.centerOffsetY).toBeLessThanOrEqual(1);
+	expect(partialCount.innerEdgeClearance).toBeGreaterThanOrEqual(0);
 	const subject = requiredElement(progress, '.ex-progress-label');
-	expect(subject.getBoundingClientRect().left).toBeGreaterThanOrEqual(gaugeBounds.right - 1);
+	expect(subject.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+		partialCount.gaugeBounds.right - 1,
+	);
+
+	const longerProgress = requiredElement(fixture, '#longer-count-progress');
+	await expect.poll((): boolean => longerProgress.hasAttribute('prepared')).toBe(true);
+	const longerCount = measureProgressCountRing(longerProgress);
+	expect(longerCount.countText).toBe('1000000/1000000');
+	expect(longerCount.gaugeBounds.width).toBeGreaterThan(40);
+	expect(longerCount.centerOffsetX).toBeLessThanOrEqual(1);
+	expect(longerCount.centerOffsetY).toBeLessThanOrEqual(1);
+	expect(longerCount.innerEdgeClearance).toBeGreaterThanOrEqual(2);
 
 	const largeProgress = requiredElement(fixture, '#large-count-progress');
 	await expect.poll((): boolean => largeProgress.hasAttribute('prepared')).toBe(true);
-	const largeGauge = requiredElement(largeProgress, '.ex-progress-gauge').getBoundingClientRect();
-	const largeCount = requiredElement(largeProgress, '.ex-progress-count');
-	const largeCountBounds = largeCount.getBoundingClientRect();
-	expect(largeCount.textContent).toBe('1000/1000');
-	expect(largeGauge.width).toBeGreaterThan(40);
-	expect(largeGauge.height).toBeGreaterThanOrEqual(40);
-	expect(largeCountBounds.left).toBeGreaterThanOrEqual(largeGauge.left);
-	expect(largeCountBounds.right).toBeLessThanOrEqual(largeGauge.right);
+	const largeCount = measureProgressCountRing(largeProgress);
+	expect(largeCount.countText).toBe('1000/1000');
+	expect(largeCount.gaugeBounds.width).toBeGreaterThan(40);
+	expect(largeCount.gaugeBounds.width).toBeLessThan(longerCount.gaugeBounds.width);
+	expect(largeCount.centerOffsetX).toBeLessThanOrEqual(1);
+	expect(largeCount.centerOffsetY).toBeLessThanOrEqual(1);
+	expect(largeCount.innerEdgeClearance).toBeGreaterThanOrEqual(2);
 });
 
 test('compact C timing retains the selected two-line presentation', async (): Promise<void> => {

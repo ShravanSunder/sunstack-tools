@@ -131,7 +131,7 @@ Use a badge for a compact status or category label. In the combined row, `done` 
 <ex-progress label="Checks" value="2" max="6"></ex-progress>
 ```
 
-Use the ring when the selected row compares progress alongside phase composition. The visible count retains both authored integers; a full ring says `6/6 Checks`, not that the work succeeded. Pair it with a separate status only when that status is known. If the fraction does not support a useful visual comparison, keep the supplied count as ordinary text rather than adding a decorative ring.
+Use the ring when the selected row compares progress alongside phase composition. The visible count retains both authored integers; a full ring says `6/6 Checks`, not that the work succeeded. Pair it with a separate status only when that status is known. If a progress ring was explicitly requested, keep it even when valid fractions are equal. Use ordinary count text for unhelpful fractions only when no progress visual was requested.
 
 A zero count with a positive total keeps the neutral track and has no colored fill; positive counts retain their supplied ratio. A missing `value` is **Not reported**, whether or not `max` is present. Do not turn a missing count into zero. `0/0` has no measurable denominator and is shown as an empty total without a ring or percentage. A count greater than its total, a negative value or a fractional value is invalid; it remains visible as authored and has no ring. Correct the source rather than clamping it.
 
