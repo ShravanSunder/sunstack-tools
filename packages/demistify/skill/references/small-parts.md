@@ -1,10 +1,10 @@
 # Compact labels, exact counts and phase breakdowns
 
-Use small parts when a compact comparison helps the reader scan facts. For rows with meaningful, comparable phase measurements, lead with **C**: one native table keeps an authored status, exact count, total duration and named phase bars together, with one shared phase order. Keep status separate from count and timing. A complete count does not imply success. Use ordinary prose and values when there is no useful phase comparison; use a progress ring only when progress itself is the reader's main comparison.
+Use small parts when a compact comparison helps the reader scan facts. When the requested row combines identity, status, checks and comparable phase measurements, use one native table for the complete combination: authored identity/avatar, status badge, exact checks count centered in its ring with the subject beside it, total duration and named phase bars. Keep status separate from count and timing. A complete count does not imply success. Ordinary prose and values remain useful when a visual comparison adds nothing.
 
-## C: compare records with a shared phase order
+## C: combine identity, checks and timing
 
-Keep the useful fields together: person and workspace, run and identifier, authored state, exact count, duration and timing. The header names the shared phase order, and the caption states the share scale once. A compact timing cell contains only the bar and one line of exact values. Its accessible description retains the observation, scale, phase names and values. Shared colors keep each phase recognizable across views.
+Keep the supplied fields together: person and workspace, run and identifier, authored state, exact checks count, duration and timing. The header names the shared phase order, and the caption states the share scale once. A compact timing cell contains only the bar and one line of exact values. Its accessible description retains the observation, scale, phase names and values. Shared colors keep each phase recognizable across views.
 
 ```html
 <div class="ex-table-scroll" data-width="canvas">
@@ -12,7 +12,7 @@ Keep the useful fields together: person and workspace, run and identifier, autho
     <caption>Illustrative assessment runs. Each bar shows the phase shares of one run; values follow Connect / Work / Transfer.</caption>
     <thead>
       <tr>
-        <th scope="col">Person</th>
+        <th scope="col">Identity</th>
         <th scope="col">Run</th>
         <th scope="col">State</th>
         <th scope="col">Checks</th>
@@ -22,10 +22,10 @@ Keep the useful fields together: person and workspace, run and identifier, autho
     </thead>
     <tbody>
       <tr>
-        <td><strong>Asha Patel</strong><br><small>North workspace</small></td>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">AP</span><span class="ex-identity-text"><strong>Asha Patel</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
         <td><strong>Document import</strong><br><small>A-148</small></td>
         <td><ex-badge tone="done">Complete</ex-badge></td>
-        <td>6 / 6</td>
+        <td><ex-progress label="Checks" value="6" max="6"></ex-progress></td>
         <td>228 ms</td>
         <td><ex-breakdown label="Document import phases" unit="ms" compact>
           <data value="28" series="1">Connect</data>
@@ -34,10 +34,10 @@ Keep the useful fields together: person and workspace, run and identifier, autho
         </ex-breakdown></td>
       </tr>
       <tr>
-        <td><strong>Noor Chen</strong><br><small>North workspace</small></td>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">NC</span><span class="ex-identity-text"><strong>Noor Chen</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
         <td><strong>Address assessment</strong><br><small>A-149</small></td>
         <td><ex-badge tone="note">Running</ex-badge></td>
-        <td>2 / 6</td>
+        <td><ex-progress label="Checks" value="2" max="6"></ex-progress></td>
         <td>371 ms</td>
         <td><ex-breakdown label="Address assessment phases" unit="ms" compact>
           <data value="42" series="1">Connect</data>
@@ -46,10 +46,10 @@ Keep the useful fields together: person and workspace, run and identifier, autho
         </ex-breakdown></td>
       </tr>
       <tr>
-        <td><strong>Luis Diaz</strong><br><small>West workspace</small></td>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">LD</span><span class="ex-identity-text"><strong>Luis Diaz</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
         <td><strong>Photo review</strong><br><small>A-150</small></td>
         <td><ex-badge tone="risk">Failed</ex-badge></td>
-        <td>1 / 6</td>
+        <td><ex-progress label="Checks" value="1" max="6"></ex-progress></td>
         <td>512 ms</td>
         <td><ex-breakdown label="Photo review phases" unit="ms" compact>
           <data value="34" series="1">Connect</data>
@@ -58,10 +58,10 @@ Keep the useful fields together: person and workspace, run and identifier, autho
         </ex-breakdown></td>
       </tr>
       <tr>
-        <td><strong>Asha Patel</strong><br><small>North workspace</small></td>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">AP</span><span class="ex-identity-text"><strong>Asha Patel</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
         <td><strong>Identity lookup</strong><br><small>A-151</small></td>
         <td><ex-badge tone="done">Complete</ex-badge></td>
-        <td>6 / 6</td>
+        <td><ex-progress label="Checks" value="6" max="6"></ex-progress></td>
         <td>96 ms</td>
         <td><ex-breakdown label="Identity lookup phases" unit="ms" compact>
           <data value="18" series="1">Connect</data>
@@ -70,18 +70,18 @@ Keep the useful fields together: person and workspace, run and identifier, autho
         </ex-breakdown></td>
       </tr>
       <tr>
-        <td><strong>Noor Chen</strong><br><small>West workspace</small></td>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">NC</span><span class="ex-identity-text"><strong>Noor Chen</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
         <td><strong>Delivery reconciliation</strong><br><small>A-152</small></td>
-        <td><ex-badge tone="planned">Queued</ex-badge></td>
-        <td>0 / 6</td>
+        <td><ex-badge>Queued</ex-badge></td>
+        <td><ex-progress label="Checks" value="0" max="6"></ex-progress></td>
         <td>0 ms</td>
         <td><span>Not started</span></td>
       </tr>
       <tr>
-        <td><strong>Luis Diaz</strong><br><small>West workspace</small></td>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">LD</span><span class="ex-identity-text"><strong>Luis Diaz</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
         <td><strong>A deliberately long document classification label</strong><br><small>A-153</small></td>
         <td><ex-badge tone="note">Running</ex-badge></td>
-        <td>4 / 6</td>
+        <td><ex-progress label="Checks" value="4" max="6"></ex-progress></td>
         <td>1240 ms</td>
         <td><ex-breakdown label="A deliberately long document classification label phases" unit="ms" compact>
           <data value="120" series="1">Connect</data>
@@ -94,9 +94,23 @@ Keep the useful fields together: person and workspace, run and identifier, autho
 </div>
 ```
 
-The status label is authored; the count and duration are exact supplied values. The bars use the default `scale="share"`, so they compare phase composition without implying equal total durations. Each row keeps Connect in slot 1, Work in slot 2 and Transfer in slot 3. The header supplies the shared visible names and order while each compact breakdown retains exact values alongside its bar. Keep the repeated run title and share explanation out of each cell. Compare a promoted recipe with its selected experiment using the same records and fields before claiming it matches. Do not add page-specific color rules or a ring to every row.
+The initials, names, workspace, run, status, count and duration are supplied author content; the renderer does not infer identity or outcome. The bars use the default `scale="share"`, so they compare phase composition without implying equal total durations. Each row keeps Connect in slot 1, Work in slot 2 and Transfer in slot 3. The header supplies the shared visible names and order while each compact breakdown retains exact values alongside its bar. Keep the repeated run title and share explanation out of each cell. Compare a promoted recipe with its selected experiment using the same records and fields before claiming it matches. Use the library's shared styles; do not add page-specific paint.
 
-When there is no meaningful phase comparison, leave the visual out. For example, `6 / 6 checks; 228 ms` in a sentence or table already communicates the supplied facts. Do not add a breakdown to decorate ordinary prose.
+## Identity in a cell, sentence or Trace
+
+Use the shared native classes for an authored identity. Supply the initials, complete readable name and detail yourself; do not infer initials or fetch an avatar. The shared avatar is a 36px circle. The initials are decorative and hidden from assistive technology, while the name and detail remain ordinary text. The same composition works in a table cell, prose or a Trace step and uses library styling without page-owned paint.
+
+```html
+<span class="ex-identity">
+  <span class="ex-avatar" aria-hidden="true">AP</span>
+  <span class="ex-identity-text">
+    <strong>Asha Patel</strong>
+    <span class="ex-identity-detail">North workspace</span>
+  </span>
+</span>
+```
+
+When there is no meaningful phase comparison, leave the bars out. For example, `6 / 6 checks; 228 ms` in a sentence already communicates the supplied facts. Do not add a breakdown to decorate ordinary prose.
 
 ## Short status labels
 
@@ -107,19 +121,19 @@ When there is no meaningful phase comparison, leave the visual out. For example,
 <p><ex-badge>Observation supplied</ex-badge> The follow-up is not classified.</p>
 ```
 
-Use a badge for a compact status or category label. Keep a sentence in prose, and do not use badge color to stand in for a count or phase category.
+Use a badge for a compact status or category label. In the combined row, `done` uses the shared green added-state paint, `note` uses the accent family, and `risk` uses its existing risk paint. Keep a known queued state neutral by omitting `tone`. These appearance rules apply to `ex-badge`; other components keep their own tone styles. Keep a sentence in prose, and do not use badge color to stand in for a count or phase category.
 
-## Optional progress-focused view
+## Exact counts and the selected ring
 
-`ex-progress` names the subject with required `label`. Supply both `value` and `max` for a reported count. They are non-negative whole numbers for the same subject.
+`ex-progress` names the subject with required `label`. Supply both `value` and `max` for a reported count. They are non-negative whole numbers for the same subject. In the combined row, the exact fraction is centered inside its ring, which is at least 40px and grows to fit longer counts; the subject follows beside it. The progress fill uses the shared accent, while phase bars keep their separate blue/amber/teal slots.
 
 ```html
 <ex-progress label="Checks" value="2" max="6"></ex-progress>
 ```
 
-Use a ring when comparing progress is the reader's main task. The visible count retains both authored integers; a full ring says `6/6 Checks`, not that the work succeeded. Pair it with a separate status only when that status is known. For a C table, prefer the exact count as text unless its progress fraction itself deserves a visual comparison.
+Use the ring when the selected row compares progress alongside phase composition. The visible count retains both authored integers; a full ring says `6/6 Checks`, not that the work succeeded. Pair it with a separate status only when that status is known. If the fraction does not support a useful visual comparison, keep the supplied count as ordinary text rather than adding a decorative ring.
 
-A missing `value` is **Not reported**, whether or not `max` is present. Do not turn a missing count into zero. `0/0` has no measurable denominator and is shown as an empty total without a ring or percentage. A count greater than its total, a negative value or a fractional value is invalid; it remains visible as authored and has no ring. Correct the source rather than clamping it.
+A zero count with a positive total keeps the neutral track and has no colored fill; positive counts retain their supplied ratio. A missing `value` is **Not reported**, whether or not `max` is present. Do not turn a missing count into zero. `0/0` has no measurable denominator and is shown as an empty total without a ring or percentage. A count greater than its total, a negative value or a fractional value is invalid; it remains visible as authored and has no ring. Correct the source rather than clamping it.
 
 ## Phase values, share and elapsed scale
 

@@ -47,7 +47,7 @@ For each matching condition below, load the named reference and return its autho
 | --- | --- | --- |
 | Explicit widths, a grid or tabs | `references/layouts.md` | Whole-component widths, child layout, labels and narrow behavior |
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
-| A compact label, exact progress count or small phase breakdown | `references/small-parts.md` | Supported parts, truthful boundaries, stable phase slots and a narrow/theme observation |
+| A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and a narrow/theme observation |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior to observe |
 | A Mermaid view or Mermaid fence | `references/diagrams.md` | Supported family, safe source and readable, resolving targets |

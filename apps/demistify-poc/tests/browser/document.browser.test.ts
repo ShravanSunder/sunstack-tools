@@ -209,8 +209,22 @@ test('inspection modifier wheel zooms and modifier drag pans while ordinary whee
 	await page.viewport(1600, 650);
 	const { document: fixture, frame } = await openFixture('layout');
 	const canvas = requiredElement(fixture, '#gesture-canvas');
-	canvas.scrollIntoView();
+	canvas.scrollIntoView({ block: 'center', behavior: 'instant' });
 	await fixtureLocator(frame, canvas).hover();
+	const sidebarButton = requiredElement(
+		canvas,
+		'button[aria-label="Open Gesture canvas in a sidebar"]',
+	);
+	const sidebarButtonBounds = sidebarButton.getBoundingClientRect();
+	const toolbarBounds = requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect();
+	expect(sidebarButtonBounds.width).toBeGreaterThan(0);
+	expect(sidebarButtonBounds.height).toBeGreaterThan(0);
+	const sidebarButtonOverlapsToolbar =
+		sidebarButtonBounds.left < toolbarBounds.right &&
+		sidebarButtonBounds.right > toolbarBounds.left &&
+		sidebarButtonBounds.top < toolbarBounds.bottom &&
+		sidebarButtonBounds.bottom > toolbarBounds.top;
+	expect(sidebarButtonOverlapsToolbar).toBe(false);
 	await frame
 		.getByRole('button', { name: 'Open Gesture canvas in a sidebar', exact: true })
 		.click();
