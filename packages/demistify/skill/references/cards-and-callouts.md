@@ -72,6 +72,6 @@ The existing shared `.chip` class is separate from `tag` and `pick`:
 <span class="chip">Source supplied</span>
 ```
 
-It uses monospace text, a leading dot and a pill shape. There is no dedicated `ex-chip` or general regular-text semantic badge element in this binding. Adding `tone` to a native `span` does not create one. Do not turn a screenshot's green success pill into an invented API; a new status-badge primitive is a separate product proposal.
+It keeps its monospace text, leading dot and pill shape. For a supported normal-text label beside a fact, use `ex-badge`; its one API home is [compact labels, exact counts and phase breakdowns](small-parts.md). Do not add `tone` to a native `span` or use a chip as a general semantic badge.
 
 Finish by checking that every enclosure names a useful unit, titles and body have a clear hierarchy, optional detail folds independently, and recommendation/chosen/source/observation labels match the supplied facts. A missing tone, misleading Chosen label or repeated outer frame is a correction even when the markup parses.

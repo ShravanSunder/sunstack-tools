@@ -14,6 +14,9 @@
 	--selection-color: #1d6672;
 	--link-color: #1d6672;
 	--presentation-color: #1d6672;
+	--chart-1: #3d79ae;
+	--chart-2: #a87824;
+	--chart-3: #2b8175;
 	--accent-soft: #e3f0f1;
 	--selection-surface: #e3f0f1;
 	--keep: #5b6678;
@@ -99,6 +102,9 @@
 		--selection-color: #6fc0ca;
 		--link-color: #6fc0ca;
 		--presentation-color: #6fc0ca;
+		--chart-1: #5b9bd5;
+		--chart-2: #d8a657;
+		--chart-3: #60b5a6;
 		--accent-soft: #1a3236;
 		--selection-surface: #1a3236;
 		--keep: #a8b2c2;
@@ -140,6 +146,9 @@
 	--selection-color: #6fc0ca;
 	--link-color: #6fc0ca;
 	--presentation-color: #6fc0ca;
+	--chart-1: #5b9bd5;
+	--chart-2: #d8a657;
+	--chart-3: #60b5a6;
 	--accent-soft: #1a3236;
 	--selection-surface: #1a3236;
 	--keep: #a8b2c2;

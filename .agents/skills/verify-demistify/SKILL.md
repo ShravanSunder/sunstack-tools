@@ -1,6 +1,6 @@
 ---
 name: verify-demistify
-description: Verify Demistify's built browser runtime and Markdown CLI through presentation navigation, fragments, Markdown/source inspection, diagram scrolling, tree wrapping and visual inspection journeys. Use when checking a declared Demistify build or maintaining these project-specific verification instructions.
+description: Verify Demistify's built browser runtime and Markdown CLI through compact evidence, fresh-author artifacts, presentation navigation, fragments, Markdown/source inspection, diagram scrolling, tree wrapping and visual inspection journeys. Use when checking a declared Demistify build or maintaining these project-specific verification instructions.
 ---
 
 # Verify Demistify
@@ -17,23 +17,31 @@ Record the declared commit, permitted dirty-state exceptions, build location/rec
 
 Public-safe fixtures need no account/backend. Existing dependencies are a prerequisite; this recipe grants no installation, browser control or execution beyond the current commission.
 
+The small-parts and fresh-Luna journeys below describe native coverage for the adopted 22 October 2026 small-parts contract (U1–U4/R1–R7). Require its exact source revisions, matching candidate guidance and frozen complete build from the commission. The permanent small-parts fixture and browser test exist in the repository. Their automated assertions and the native fixture, literal-example and fresh-author observations need their own target-bound evidence.
+
 ## Frozen built-library launch and health
 
-From the monorepo root, with Node 26+, pnpm 12 and the existing task Chromium cache, run the finished repository harness after execution is authorized:
+From the monorepo root, with Node 26+, pnpm 12 and the installed Chromium matching the checkout's Playwright dependency, run the existing repository harness after execution is authorized:
 
 ```sh
-PLAYWRIGHT_BROWSERS_PATH=/private/tmp/2026-10-demistify-browser-tests/chromium pnpm test:browser
+pnpm test:browser
 ```
 
 For an explicitly scoped compact-headings correction, run only its permanent case:
 
 ```sh
-PLAYWRIGHT_BROWSERS_PATH=/private/tmp/2026-10-demistify-browser-tests/chromium pnpm --filter @sunstack/demistify-poc exec vitest run --config vitest.browser.config.ts tests/browser/document.browser.test.ts -t 'compact headings menu'
+pnpm --filter @sunstack/demistify-poc exec vitest run --config vitest.browser.config.ts tests/browser/document.browser.test.ts -t 'compact headings menu'
 ```
 
 Report selected tests separately from name-filtered skips and uncollected files. A focused pass is not a full-suite pass.
 
-The root/package scripts route this to `vitest run --config vitest.browser.config.ts`. The existing Vitest Playwright provider launches isolated headless Chromium; no desktop tab is used. Its Vite plugin snapshots the complete `packages/demistify/dist` and authored fixtures, then serves those bytes from a fresh loopback port. `DEMISTIFY_BROWSER_ASSETS` optionally selects a declared complete library copy; record any override. Keep the same existing browser cache. Installations require a separate grant. See the [harness README](../../../apps/demistify-poc/tests/browser/README.md).
+The root/package scripts route this to `vitest run --config vitest.browser.config.ts`. The existing Vitest Playwright provider launches isolated headless Chromium; no desktop tab is used. With no `PLAYWRIGHT_BROWSERS_PATH` override, use the matching installed default executable. Before launch, resolve its path through the PoC's installed dependency and confirm it exists:
+
+```sh
+node --input-type=module -e 'import {createRequire} from "node:module"; import {resolve} from "node:path"; import {existsSync} from "node:fs"; const requireFromPoc=createRequire(resolve("apps/demistify-poc/package.json")); const executable=requireFromPoc("playwright").chromium.executablePath(); const exists=existsSync(executable); console.log(JSON.stringify({executable,exists,browserPathOverride:process.env.PLAYWRIGHT_BROWSERS_PATH??null},null,2)); process.exitCode=exists?0:1;'
+```
+
+Retain the actual executable/override receipt. An explicit cache is valid only when selected by the commission and this same check confirms its executable exists; preserve that override for the run. A missing executable is a setup gap: never install, change caches or fall back silently. Its Vite plugin snapshots the complete `packages/demistify/dist` and authored fixtures, then serves those bytes from a fresh loopback port. `DEMISTIFY_BROWSER_ASSETS` optionally selects a declared complete library copy; record any override. Installations require a separate grant. See the [harness README](../../../apps/demistify-poc/tests/browser/README.md) for harness behavior; its installation example grants no install and does not select this run's cache.
 
 Keep stdout/stderr, exit code, printed snapshot directory and API URL. Compare the snapshot's asset hashes with the declared library. Vite writes generated config/cache files under `node_modules/.vite-temp`; if sandbox permissions prevent launch, preserve that startup failure and request the exact access for the same command. It is not a product test failure. Never rebuild a frozen target.
 
@@ -61,6 +69,8 @@ Read [journey instructions and source map](references/journeys.md) for the selec
 | Tree labels | Multiline, inline-code and loose-paragraph labels wrap beneath text with the icon on the first line |
 | Visual gestures | Cmd+wheel anchors zoom at the pointer; Cmd+drag pans; normal scroll, buttons, reset and restoration remain usable |
 | CLI checking/embedding | Local sources check/embed and missing sources fail; transformation stays distinct from runtime/offline proof |
+| Small parts in cells/prose/Trace | Exact numeric states, stable phase slots, both themes and desktop/390px containment; permanent `review-ui/small-parts.html` and `tests/browser/small-parts.browser.test.ts` exist in the existing harness |
+| Frozen fresh-Luna artifact | Supported native action capture establishes the loaded candidate copies; matching CLI and the actual frozen HTML establish only the named case's factual/composition behavior |
 
 The representative pass uses the complete existing suite: real frame launch/readiness, navigation selection and cold fragment cases, external/embedded rendered text/SVG, exact-source inspection with original heading/table retained, Close, then automatic teardown. Cases use fresh frames rather than sharing one continuous user session. A pass covers only the assertions actually exercised.
 

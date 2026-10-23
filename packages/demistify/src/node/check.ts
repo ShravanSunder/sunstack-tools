@@ -9,6 +9,13 @@ import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
 import { headingSlug } from '../core/heading-fragments.ts';
 import { parseMarkdownSource } from '../core/markdown-source.ts';
+import {
+	parseBreakdownValue,
+	parseProgressValue,
+	type BreakdownPartInput,
+	type BreakdownValue,
+	type ProgressValue,
+} from '../core/small-parts.ts';
 import { normalizeIslandText } from '../core/source-text.ts';
 import { parseGraphDocument } from '../explorer/graph-document.ts';
 import { parseCode } from '../render/code-lines.ts';
@@ -130,6 +137,59 @@ function textOf(element: Element): string {
 					: '',
 		)
 		.join('');
+}
+
+function progressProblemMessage(
+	result: Extract<ProgressValue, { readonly kind: 'invalid' }>,
+	label: string,
+	value: string | null,
+	max: string | null,
+): string {
+	const exact = max === null ? `value="${value ?? ''}"` : `${value ?? ''}/${max}`;
+	switch (result.reason) {
+		case 'missing-total':
+			return `<ex-progress> ${label}: ${exact} needs a total.`;
+		case 'not-integer':
+			return `<ex-progress> ${label}: ${exact} needs finite whole-number values.`;
+		case 'negative':
+			return `<ex-progress> ${label}: ${exact} cannot be negative.`;
+		case 'exceeds-total':
+			return `<ex-progress> ${label}: ${exact} is inconsistent because the count exceeds its total.`;
+		default:
+			throw new Error('Unknown progress validation reason.');
+	}
+}
+
+function breakdownProblemMessage(
+	result: Extract<BreakdownValue, { readonly kind: 'invalid' }>,
+	parts: readonly BreakdownPartInput[],
+	scale: string | null,
+	max: string | null,
+	unit: string,
+): string {
+	const exactParts = parts.map((part): string =>
+		part.value === null
+			? `${part.label || 'Unnamed phase'}: value missing`
+			: `${part.label || 'Unnamed phase'}: ${part.value} ${unit}`,
+	);
+	switch (result.reason) {
+		case 'missing-parts':
+			return '<ex-breakdown> needs one to three direct <data> phase values with non-empty names.';
+		case 'invalid-value':
+			return `<ex-breakdown> phase values must be finite and non-negative: ${exactParts.join('; ')}.`;
+		case 'invalid-series':
+			return '<ex-breakdown> needs one to three phases, each with a series from 1 to 3.';
+		case 'duplicate-phase':
+			return '<ex-breakdown> phase names and series values must be unique.';
+		case 'invalid-scale':
+			return scale === 'elapsed'
+				? `<ex-breakdown> elapsed max="${max ?? ''}" must be finite and positive.`
+				: `<ex-breakdown> scale="${scale ?? ''}" must be share or elapsed.`;
+		case 'exceeds-scale':
+			return `<ex-breakdown> elapsed values ${exactParts.join(' + ')} exceed max="${max ?? ''}" ${unit}.`;
+		default:
+			throw new Error('Unknown breakdown validation reason.');
+	}
 }
 
 function cssProblems(css: string): string[] {
@@ -330,6 +390,11 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				);
 		const parent = parentElement(element);
 		for (const problem of checkAttributes(name, attributes, parent?.tagName)) {
+			if (
+				(name === 'ex-breakdown' && problem.attribute === 'scale') ||
+				(name === 'data' && parent?.tagName === 'ex-breakdown' && problem.attribute === 'series')
+			)
+				continue;
 			const location = element.sourceCodeLocation?.attrs?.[problem.attribute];
 			const edit =
 				problem.fix && location
@@ -360,6 +425,54 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				`Unknown element <${name}>.${meant ? ` Use ${meant}.` : ` Known: ${taughtElements.join(', ')}.`}`,
 			);
 			continue;
+		}
+
+		if (name === 'ex-progress') {
+			const value = attributes.get('value') ?? null;
+			const max = attributes.get('max') ?? null;
+			const result = parseProgressValue(value, max);
+			if (result.kind === 'invalid')
+				report(
+					element,
+					'error',
+					'small-parts',
+					progressProblemMessage(result, attributes.get('label') ?? '', value, max),
+					value === null ? 'max' : 'value',
+				);
+		}
+
+		if (name === 'ex-breakdown') {
+			const children = element.childNodes.filter(isElement);
+			for (const child of children)
+				if (child.tagName !== 'data')
+					report(
+						child,
+						'error',
+						'small-parts',
+						'Only direct <data> children can supply breakdown phases.',
+					);
+			const parts = children
+				.filter((child): boolean => child.tagName === 'data')
+				.map((child): BreakdownPartInput => {
+					const childAttributes = attributeMap(child);
+					return {
+						label: textOf(child).trim(),
+						value: childAttributes.get('value') ?? null,
+						series: childAttributes.get('series') ?? null,
+					};
+				});
+			const scale = attributes.get('scale') ?? null;
+			const max = attributes.get('max') ?? null;
+			const unit = attributes.get('unit') ?? '';
+			const result = parseBreakdownValue(parts, scale, max);
+			if (result.kind === 'invalid')
+				report(
+					element,
+					'error',
+					'small-parts',
+					breakdownProblemMessage(result, parts, scale, max, unit),
+					scale === 'elapsed' ? 'max' : 'scale',
+				);
 		}
 
 		if (spec.within && !hasAncestor(element, spec.within))
