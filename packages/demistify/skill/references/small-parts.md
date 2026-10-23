@@ -100,7 +100,7 @@ When there is no meaningful phase comparison, leave the visual out. For example,
 
 ## Short status labels
 
-`ex-badge` is a normal-text label that fits beside the fact it names. It has no required tone, so neutral wording remains neutral. An optional `tone` uses the existing semantic tone vocabulary; tone meanings and the separate `.chip` class are described in [cards and callouts](cards-and-callouts.md).
+`ex-badge` is a normal-text label that fits beside the fact it names. It has no required tone, so neutral wording remains neutral. An optional `tone` uses the existing semantic tone vocabulary. IF the authored label needs a semantic tone, load `cards-and-callouts.md` and return the existing tone that expresses that supplied meaning. That reference also owns the separate `.chip` class.
 
 ```html
 <p>The request was <ex-badge tone="risk">Delayed</ex-badge> after reconnect.</p>

@@ -84,7 +84,8 @@ export class ProgressIsland extends HTMLElement {
 				'stroke-dashoffset',
 				String(progressCircumference * (1 - result.value / result.max)),
 			);
-			gauge.append(track, fill);
+			gauge.append(track);
+			if (result.value > 0) gauge.append(fill);
 			content.push(gauge);
 			content.push(
 				textElement(

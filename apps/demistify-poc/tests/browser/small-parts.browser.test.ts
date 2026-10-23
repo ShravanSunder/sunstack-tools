@@ -91,6 +91,15 @@ test('compact evidence parts retain exact facts, scale and slot color in native 
 	expect(empty.textContent).toContain('0/0');
 	expect(empty.textContent?.toLowerCase()).toContain('empty');
 	expect(empty.querySelector('.ex-progress-gauge')).toBeNull();
+	const fixtureWindow = fixture.defaultView;
+	if (!fixtureWindow) throw new Error('Fixture has no browser window.');
+	const zeroGauge = requiredElement(
+		requiredElement(fixture, '#zero-progress'),
+		'.ex-progress-gauge',
+	);
+	expect(zeroGauge.getAttribute('aria-label')).toBe('0 of 6 Checks');
+	expect(zeroGauge.querySelector('.ex-progress-track')).not.toBeNull();
+	expect(zeroGauge.querySelector('.ex-progress-fill')).toBeNull();
 
 	const partialFill = requiredElement(
 		requiredElement(fixture, '#partial-progress'),
@@ -100,14 +109,6 @@ test('compact evidence parts retain exact facts, scale and slot color in native 
 	const partialDashOffset = Number(partialFill.getAttribute('stroke-dashoffset'));
 	expect(partialDashArray).toBeCloseTo(2 * Math.PI * 42, 0);
 	expect(1 - partialDashOffset / partialDashArray).toBeCloseTo(2 / 6, 3);
-	const emptyFill = requiredElement(
-		requiredElement(fixture, '#zero-progress'),
-		'.ex-progress-fill',
-	);
-	expect(
-		Number(emptyFill.getAttribute('stroke-dashoffset')) /
-			Number(emptyFill.getAttribute('stroke-dasharray')),
-	).toBe(1);
 	expect(
 		Number(
 			requiredElement(
@@ -157,10 +158,17 @@ test('compact evidence parts retain exact facts, scale and slot color in native 
 		light: { foreground: 'rgb(91, 102, 120)', background: 'rgb(236, 239, 243)' },
 		dark: { foreground: 'rgb(168, 178, 194)', background: 'rgb(35, 43, 55)' },
 	} as const;
-	const fixtureWindow = fixture.defaultView;
-	if (!fixtureWindow) throw new Error('Fixture has no browser window.');
 	for (const theme of ['light', 'dark'] as const) {
 		fixture.documentElement.dataset['theme'] = theme;
+		expect(
+			fixtureWindow.getComputedStyle(requiredElement(zeroGauge, '.ex-progress-track')).stroke,
+		).not.toBe('none');
+		for (const id of ['#partial-progress', '#complete-progress']) {
+			const fill = requiredElement(requiredElement(fixture, id), '.ex-progress-fill');
+			const styles = fixtureWindow.getComputedStyle(fill);
+			expect(styles.stroke).toBe(expectedColors[theme][0]);
+			expect(styles.strokeLinecap).toBe('round');
+		}
 		const reorderedSeries = new Map(
 			[...elapsed.querySelectorAll<HTMLElement>('.ex-breakdown-segment')].map(
 				(segment): [string, string] => [
