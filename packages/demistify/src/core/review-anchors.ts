@@ -10,7 +10,7 @@ export type ResolvedCommentAnchor =
 	| { readonly kind: 'unavailable'; readonly message: string };
 
 const excludedText =
-	'button,input,textarea,select,script,style,template,.ex-inspect-controls,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
+	'button,input,textarea,select,script,style,template,.ex-inspect-controls,.ex-choice-inline > summary,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
 
 function fragmentText(fragment: DocumentFragment): string {
 	for (const control of fragment.querySelectorAll(excludedText)) control.remove();

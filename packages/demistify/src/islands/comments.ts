@@ -74,6 +74,15 @@ export class CommentsIsland extends HTMLElement {
 			documentId: root.getAttribute('document-id'),
 			documentRevision: root.getAttribute('revision'),
 		});
+		const existing = this.store?.snapshot();
+		if (
+			existing &&
+			(existing.documentId !== identity.documentId ||
+				existing.documentRevision !== identity.documentRevision)
+		)
+			throw new Error(
+				'A Comments instance cannot change document identity or revision. Use a new Comments surface.',
+			);
 		this.root = root;
 		this.store ??= createCommentStore(identity);
 		boundDocuments.set(root, this);

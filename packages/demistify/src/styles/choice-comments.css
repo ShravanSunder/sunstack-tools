@@ -126,6 +126,7 @@ ex-option.ex-choice-option > input {
 }
 .ex-choice-inline > summary {
 	font-size: var(--text-sm);
+	user-select: none;
 }
 .ex-choice-inline > div {
 	margin-top: var(--space-3);

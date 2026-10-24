@@ -5,6 +5,7 @@ interface DrawerContent {
 }
 interface DrawerSession {
 	readonly identity: symbol;
+	readonly label: string;
 	readonly content: DrawerContent;
 	readonly panel: HTMLElement;
 	readonly returnFocus: HTMLElement | null;
@@ -13,6 +14,51 @@ const minimumWidth = 320;
 const defaultWidth = 460;
 let drawer: HTMLElement | undefined;
 let current: DrawerSession | undefined;
+
+function hidePresentation(panel: HTMLElement): void {
+	if (panel instanceof HTMLDialogElement) {
+		if (panel.open) panel.close();
+		panel.remove();
+	} else {
+		panel.hidden = true;
+		panel.replaceChildren(panel.firstElementChild ?? '');
+	}
+}
+
+function showPresentation(session: DrawerSession): void {
+	const { panel, content, identity, label } = session;
+	panel.setAttribute('aria-label', label);
+	panel.append(content.header, content.body);
+	panel.hidden = false;
+	if (panel instanceof HTMLDialogElement) {
+		panel.className = 'ex-inspect-dialog';
+		panel.dataset['mode'] = 'sidebar';
+		panel.addEventListener(
+			'close',
+			(): void => {
+				if (current?.identity === identity && current.panel === panel) closeDrawer();
+			},
+			{ once: true },
+		);
+		document.body.append(panel);
+		panel.showModal();
+	}
+}
+
+/** Rehome the same live session when the viewport crosses the native sheet boundary. */
+function adaptPresentation(): void {
+	const session = current;
+	if (!session || session.panel instanceof HTMLDialogElement === window.innerWidth < 900) return;
+	const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+	const panel =
+		window.innerWidth < 900 ? document.createElement('dialog') : (drawer ??= createDrawer());
+	const next = { ...session, panel };
+	current = next;
+	showPresentation(next);
+	hidePresentation(session.panel);
+	if (focused?.isConnected) focused.focus({ preventScroll: true });
+}
+window.addEventListener('resize', adaptPresentation);
 
 function setWidth(width: number): void {
 	const clamped = Math.round(Math.max(minimumWidth, Math.min(width, window.innerWidth * 0.7)));
@@ -25,13 +71,7 @@ export function closeDrawer(): void {
 	if (!session) return;
 	current = undefined;
 	delete document.documentElement.dataset['drawer'];
-	if (session.panel instanceof HTMLDialogElement) {
-		if (session.panel.open) session.panel.close();
-		session.panel.remove();
-	} else {
-		session.panel.hidden = true;
-		session.panel.replaceChildren(session.panel.firstElementChild ?? '');
-	}
+	hidePresentation(session.panel);
 	session.content.restore();
 	if (session.returnFocus?.isConnected) session.returnFocus.focus({ preventScroll: true });
 	window.dispatchEvent(new Event('resize'));
@@ -102,19 +142,10 @@ export function openDrawer(
 	};
 	const content = take(close);
 	if (!content) return close;
-	const session: DrawerSession = { identity, content, panel, returnFocus };
+	const session: DrawerSession = { identity, label, content, panel, returnFocus };
 	current = session;
-	panel.setAttribute('aria-label', label);
-	panel.append(content.header, content.body);
-	panel.hidden = false;
 	document.documentElement.dataset['drawer'] = '';
-	if (panel instanceof HTMLDialogElement) {
-		panel.className = 'ex-inspect-dialog';
-		panel.dataset['mode'] = 'sidebar';
-		panel.addEventListener('close', close, { once: true });
-		document.body.append(panel);
-		panel.showModal();
-	}
+	showPresentation(session);
 	window.dispatchEvent(new Event('resize'));
 	content.header
 		.querySelector<HTMLButtonElement>('button:last-of-type')

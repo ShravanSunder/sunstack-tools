@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'vitest';
 import { commands, page, userEvent } from 'vitest/browser';
 
 import { commentStorageKey } from '../../../../packages/demistify/src/core/comment-store.ts';
+import { assignHeadingFragments } from '../../../../packages/demistify/src/core/heading-fragments.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import {
 	openBoundaryReviewFixture,
@@ -41,6 +42,72 @@ test('detached Markdown finishes with local duplicate and connected heading coll
 		'detached-notes--repeat-3',
 	]);
 	expect(occupied.id).toBe('detached-notes--repeat');
+	const retained = fixture.createElement('section');
+	retained.id = 'heading-repeat';
+	retained.innerHTML =
+		'<h3>Repeat</h3><span id="heading-repeat-2">Authored block</span><h3 id="heading-repeat-3">Authored heading</h3><h3>Repeat</h3><a href="#repeat">Read repeat</a>';
+	assignHeadingFragments(retained);
+	expect([...retained.querySelectorAll('h3')].map((heading): string => heading.id)).toEqual([
+		'heading-repeat-4',
+		'heading-repeat-3',
+		'heading-repeat-5',
+	]);
+	expect(retained.querySelector('span')?.id).toBe('heading-repeat-2');
+	expect(retained.id).toBe('heading-repeat');
+	expect(retained.querySelector('a')?.getAttribute('href')).toBe('#heading-repeat-4');
+});
+
+test('a live comment draft and focused editor survive both sidebar presentation thresholds', async (): Promise<void> => {
+	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	await fixtureLocator(
+		frame,
+		requiredElement(fixture, '#technical > [data-comment-control]'),
+	).click();
+	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Keep this draft.');
+	const editor = fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]');
+	if (!editor) throw new Error('Comment editor is absent.');
+	await page.viewport(390, 900);
+	await expect.element(frame.getByRole('dialog', { name: 'Comments', exact: true })).toBeVisible();
+	expect(fixture.querySelector('textarea[aria-label="Your comment"]')).toBe(editor);
+	expect(fixture.activeElement).toBe(editor);
+	expect(editor.value).toBe('Keep this draft.');
+	await page.viewport(1600, 1000);
+	await expect
+		.element(frame.getByRole('complementary', { name: 'Comments', exact: true }))
+		.toBeVisible();
+	expect(fixture.querySelector('dialog[open]')).toBeNull();
+	expect(fixture.activeElement).toBe(editor);
+	expect(editor.value).toBe('Keep this draft.');
+	await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+	expect(readCurrentReview(fixture).comments[0]?.body).toBe('Keep this draft.');
+	await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Comment on Technical scope (1)');
+});
+
+test('generated disclosure controls stay out of cross-block text quotes and canonical anchors', async (): Promise<void> => {
+	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	const first = requiredElement(fixture, '#review-now .ex-choice-summary p');
+	const last = requiredElement(fixture, '#first-passage');
+	first.scrollIntoView({ block: 'center' });
+	const start = textCaretRect(first, 0);
+	const end = textCaretRect(last, 17);
+	await commands.dragReviewSelection({
+		startX: start.left + 0.5,
+		startY: start.top + start.height / 2,
+		endX: end.left,
+		endY: end.top + end.height / 2,
+	});
+	await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
+	await frame
+		.getByRole('textbox', { name: 'Your comment', exact: true })
+		.fill('Across a local disclosure.');
+	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+	const anchor = readCurrentReview(fixture).comments[0]?.anchor;
+	if (anchor?.kind !== 'text') throw new Error('No text anchor was saved.');
+	expect(anchor.sourceText).toContain('Resolve the bounded question today.');
+	expect(anchor.selectedText).toContain('The first passage');
+	expect(anchor.sourceText).not.toContain('Details');
+	expect(anchor.selectedText).not.toContain('Details');
 });
 
 test('a real cross-block drag saves the exact quote on the document and refuses changed source', async (): Promise<void> => {
@@ -278,6 +345,38 @@ test('malformed declarations reject visibly without another Comments authority',
 		.poll((): number => missingIdentity.querySelectorAll('[role="alert"]').length)
 		.toBe(1);
 	expect(fixture.querySelectorAll('.ex-comments-trigger')).toHaveLength(1);
+});
+
+test('reconnecting one Comments instance under another revision rejects scope mixing', async (): Promise<void> => {
+	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	await fixtureLocator(
+		frame,
+		requiredElement(fixture, '#technical > [data-comment-control]'),
+	).click();
+	await frame
+		.getByRole('textbox', { name: 'Your comment', exact: true })
+		.fill('Original revision comment.');
+	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+	const saved = readCurrentReview(fixture);
+	const comments = requiredElement(fixture, 'ex-comments');
+	comments.remove();
+	requiredElement(fixture, '#content').setAttribute('revision', 'r2');
+	fixture.body.append(comments);
+	await expect
+		.element(
+			frame.getByRole('alert').filter({ hasText: 'cannot change document identity or revision' }),
+		)
+		.toBeVisible();
+	expect(fixture.querySelectorAll('.ex-comments-trigger')).toHaveLength(0);
+	expect(readCurrentReview(fixture)).toEqual(saved);
+	expect(
+		localStorage.getItem(
+			commentStorageKey({
+				documentId: 'demistify-review-boundary-fixture',
+				documentRevision: 'r2',
+			}),
+		),
+	).toBeNull();
 });
 
 test.each(['dark', 'light'])(
