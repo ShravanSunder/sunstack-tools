@@ -21,7 +21,7 @@ import { parseGraphDocument } from '../explorer/graph-document.ts';
 import { parseCode } from '../render/code-lines.ts';
 import { renderThemedDiagram } from '../render/diagram.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
-import { renderMarkdownContent } from '../render/markdown-content.ts';
+import { renderChoiceTitle, renderMarkdownContent } from '../render/markdown-content.ts';
 import { checkAttributes, closest, taughtElements, vocabulary } from '../vocabulary.ts';
 
 type Element = DefaultTreeAdapterMap['element'];
@@ -427,6 +427,52 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			continue;
 		}
 
+		if (name === 'ex-choice') {
+			const children = element.childNodes.filter(isElement);
+			if (!children.length || children.some((child): boolean => child.tagName !== 'ex-option'))
+				report(element, 'error', 'choice', 'A choice needs direct ex-option children.');
+		}
+		if (name === 'ex-option') {
+			if (parent?.tagName !== 'ex-choice')
+				report(element, 'error', 'choice', 'An ex-option must be a direct child of ex-choice.');
+			const summaries = element.childNodes
+				.filter(isElement)
+				.filter(
+					(child): boolean =>
+						child.tagName === 'template' && attributeMap(child).get('slot') === 'summary',
+				);
+			if (summaries.length !== 1 || !summaries[0] || !textOf(summaries[0]).trim())
+				report(element, 'error', 'choice', 'An option needs one nonempty template slot="summary".');
+			try {
+				renderChoiceTitle(attributes.get('title') ?? '');
+			} catch (error) {
+				report(element, 'error', 'choice-title', String(error));
+			}
+		}
+		if (name === 'ex-comments') {
+			const binding = attributes.get('for');
+			const target = binding ? ids.get(binding) : undefined;
+			if (
+				!target ||
+				target.tagName !== 'ex-document' ||
+				!attributeMap(target).get('document-id')?.trim() ||
+				!attributeMap(target).get('revision')?.trim()
+			)
+				report(
+					element,
+					'error',
+					'comments',
+					'Comments must bind to an ex-document with an id, document-id and revision.',
+				);
+			if (
+				binding &&
+				elements.filter(
+					(candidate): boolean =>
+						candidate.tagName === 'ex-comments' && attributeMap(candidate).get('for') === binding,
+				).length > 1
+			)
+				report(element, 'error', 'comments', 'A document can have only one Comments surface.');
+		}
 		if (name === 'ex-progress') {
 			const value = attributes.get('value') ?? null;
 			const max = attributes.get('max') ?? null;

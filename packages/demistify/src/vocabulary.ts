@@ -70,6 +70,43 @@ export const layoutAttributes: Readonly<Record<string, AttributeSpec>> = {
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
+	'ex-choice': {
+		description: 'One question with native single or multiple response options.',
+		attributes: {
+			id: text('Stable authored question identity.', true),
+			title: text('The question readers answer.', true),
+			multiple: flag('Allow independent selected options instead of one answer.'),
+			view: oneOf('Cards at Reading width, or a selectable table at Canvas width.', [
+				'cards',
+				'table',
+			]),
+			details: oneOf('Extra content opens in the native sidebar, or an inline disclosure.', [
+				'sidebar',
+				'inline',
+			]),
+		},
+		childTag: 'ex-option',
+	},
+	'ex-option': {
+		description:
+			'An identified response option with inline title, summary template and optional detail slot.',
+		attributes: {
+			id: text('Stable authored option identity.', true),
+			title: text('One paragraph of inline Markdown.', true),
+		},
+		within: ['ex-choice'],
+	},
+	'ex-comments': {
+		description:
+			'One local review of an explicitly identified document revision, with comments and current answers.',
+		attributes: {
+			for: {
+				description: 'Original ex-document DOM ID; requires document-id and revision.',
+				type: { kind: 'id' },
+				required: true,
+			},
+		},
+	},
 	'ex-pre': {
 		description: 'Literal preformatted text and TUI drawings with shared inspection.',
 		attributes: { label },
@@ -98,7 +135,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	'ex-document': {
 		description:
 			'The page body: bare Markdown, islands and layouts; adds outline and theme toggle.',
-		attributes: {},
+		attributes: {
+			'document-id': text('Explicit logical document identity when Comments binds.'),
+			revision: text('Explicit content revision when Comments binds.'),
+		},
 	},
 	'ex-presentation': {
 		description:

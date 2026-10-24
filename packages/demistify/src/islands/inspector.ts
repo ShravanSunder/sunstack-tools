@@ -1,5 +1,5 @@
 import { createIconButton } from '../core/icons.ts';
-import { openDrawer } from './drawer.ts';
+import { closeDrawer, openDrawer } from './drawer.ts';
 import { copyInspectionContent } from './inspection-copy.ts';
 import { installInspectionGestures } from './inspection-gestures.ts';
 
@@ -217,9 +217,15 @@ function takeContent(
 
 /** The large centred view: a modal dialog over the page. */
 function openModal(owner: HTMLElement, controls: HTMLElement, request: InspectionRequest): void {
+	const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+	closeDrawer();
+	const returnFocus = active?.isConnected
+		? active
+		: document.activeElement instanceof HTMLElement
+			? document.activeElement
+			: null;
 	const { mode, navigation } = request;
 	const label = inspectionLabel(owner);
-	const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	const dialog = document.createElement('dialog');
 	dialog.className = 'ex-inspect-dialog';
 	dialog.dataset['mode'] = mode;
@@ -305,10 +311,6 @@ function openModal(owner: HTMLElement, controls: HTMLElement, request: Inspectio
 
 /** The right drawer on wide screens; a full-width sheet over the page on narrow ones. */
 function openSidebar(owner: HTMLElement, controls: HTMLElement): void {
-	if (window.innerWidth < 900) {
-		openModal(owner, controls, { mode: 'sidebar' });
-		return;
-	}
 	const label = inspectionLabel(owner);
 	openDrawer(label, (close): InspectionContent | undefined =>
 		takeContent(owner, controls, label, close, false, (): void => {

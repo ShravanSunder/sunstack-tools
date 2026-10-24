@@ -1,0 +1,327 @@
+:root {
+	--annotation-color: var(--patch);
+	--annotation-wash: var(--patch-bg);
+}
+ex-comments {
+	display: contents;
+}
+ex-choice {
+	display: block;
+	margin-block: var(--space-5) var(--space-10);
+}
+ex-choice fieldset {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	min-width: 0;
+}
+ex-choice legend {
+	font: 600 var(--text-lg)/1.5 var(--font-body);
+	padding-right: var(--space-10);
+	margin-bottom: var(--space-4);
+}
+ex-choice > .ex-inspect-controls {
+	right: var(--space-10);
+}
+.ex-choice-option,
+ex-choice,
+ex-document[document-id],
+[data-comment-label] {
+	position: relative;
+}
+ex-option.ex-choice-option {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	align-items: start;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-10) var(--space-3) var(--space-4);
+	margin-block: var(--space-3);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	cursor: pointer;
+	transition:
+		background-color var(--motion-fast),
+		border-color var(--motion-fast);
+}
+ex-option.ex-choice-option:has(> input:checked) {
+	background: var(--selection-surface);
+	border-color: var(--selection-color);
+}
+ex-option.ex-choice-option:hover:not(:has(> input:checked)) {
+	background: color-mix(in srgb, var(--ink) 3%, var(--surface-content));
+	border-color: var(--ink-soft);
+}
+.ex-choice-option:has(:focus-visible),
+.ex-choice-option:has(.ex-choice-depth.ex-inspected) {
+	outline: 2px solid var(--focus-color);
+	outline-offset: 2px;
+}
+.ex-choice-depth.ex-inspected {
+	outline: none;
+}
+.ex-choice-option input {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--selection-color);
+}
+ex-option.ex-choice-option > input {
+	margin: 5px 0 0;
+}
+.ex-choice-copy {
+	min-width: 0;
+}
+.ex-choice-title-row {
+	font: 600 var(--text-lg)/1.35 var(--font-body);
+	color: var(--ink);
+}
+.ex-choice-label {
+	display: inline;
+	font: inherit;
+	cursor: pointer;
+}
+.ex-choice-details-button {
+	display: inline-grid;
+	width: var(--space-8);
+	height: var(--space-8);
+	margin-left: var(--space-2);
+	padding: 0;
+	border-radius: 50%;
+	vertical-align: middle;
+	background: var(--surface-content);
+	color: var(--ink-soft);
+}
+.ex-choice-details-button .ph {
+	font-size: var(--text-lg);
+}
+.ex-choice-details-button:hover {
+	color: var(--ink);
+	border-color: var(--ink-soft);
+}
+.ex-choice-summary {
+	margin-top: var(--space-1);
+	font: 400 var(--text-md)/1.5 var(--font-body);
+	color: var(--ink-soft);
+}
+.ex-choice-summary :is(p, ul, ol, blockquote) {
+	margin: 0;
+	font: inherit;
+	color: inherit;
+}
+.ex-choice-summary > * + * {
+	margin-top: var(--space-2);
+}
+.ex-choice-summary :is(ul, ol) {
+	padding-inline-start: var(--space-5);
+}
+.ex-choice-summary li + li {
+	margin-top: var(--space-1);
+}
+.ex-choice-summary blockquote {
+	padding-inline-start: var(--space-3);
+	border-inline-start: 2px solid var(--rule);
+}
+.ex-choice-inline {
+	margin-top: var(--space-2);
+}
+.ex-choice-inline > summary {
+	font-size: var(--text-sm);
+}
+.ex-choice-inline > div {
+	margin-top: var(--space-3);
+}
+.ex-choice-local-heading {
+	font: 600 var(--text-lg)/1.4 var(--font-body);
+	margin-block: var(--space-4) var(--space-2);
+}
+.ex-choice-table table {
+	min-width: 700px;
+	table-layout: fixed;
+}
+.ex-choice-table th:first-child {
+	width: 68px;
+}
+.ex-choice-table th:nth-child(2) {
+	width: 210px;
+}
+.ex-choice-table th:nth-child(4) {
+	width: 82px;
+}
+.ex-choice-table th:last-child {
+	width: 80px;
+}
+.ex-choice-table :is(th, td) {
+	vertical-align: top;
+}
+.ex-choice-table tbody th {
+	text-transform: none;
+	letter-spacing: normal;
+}
+.ex-choice-table tbody tr:has(input:checked) {
+	background: var(--selection-surface);
+}
+.ex-choice-table .ex-choice-option:has(.ex-inspected) {
+	outline-offset: -2px;
+}
+.ex-choice-table [data-comment-slot] .ex-entity-comment {
+	position: static;
+}
+.ex-comment-symbol {
+	width: 22px;
+	height: 22px;
+	fill: currentColor;
+	flex: none;
+}
+.ex-comments-count {
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	min-width: 16px;
+	padding-inline: 4px;
+	border-radius: var(--radius-pill);
+	color: var(--surface-page);
+	background: var(--annotation-color);
+	font: 600 var(--text-2xs)/16px var(--font-body);
+}
+.ex-comments-trigger[aria-expanded='true'] {
+	color: var(--annotation-color);
+	background: var(--annotation-wash);
+	border-color: transparent;
+}
+.ex-entity-comment {
+	position: absolute;
+	top: var(--space-1);
+	right: var(--space-1);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-1);
+	min-width: var(--space-8);
+	height: var(--space-8);
+	padding: var(--space-1);
+	border: 1px solid transparent;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--annotation-color);
+	opacity: 0;
+	transition: opacity var(--motion-fast);
+}
+:is(ex-choice, .ex-choice-option, ex-document, [data-comment-label]):is(:hover, :focus-within)
+	> .ex-entity-comment,
+.ex-choice-table tr:is(:hover, :focus-within) > td > .ex-entity-comment,
+.ex-entity-comment:not([data-comment-count='0']) {
+	opacity: 1;
+}
+.ex-entity-comment:not([data-comment-count='0'])::after {
+	content: attr(data-comment-count);
+	font-size: var(--text-xs);
+}
+.ex-selection-comment {
+	position: fixed;
+	z-index: 60;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	background: var(--annotation-color);
+	color: var(--surface-page);
+	box-shadow: var(--shadow-float);
+}
+.ex-comment-active {
+	outline: 1px solid var(--annotation-color);
+	outline-offset: 4px;
+}
+.ex-comments-body {
+	font-size: var(--text-md);
+}
+.ex-comments-body :is(h3, p) {
+	font: inherit;
+	margin: 0 0 var(--space-3);
+}
+.ex-comments-body h3 {
+	font-weight: 600;
+}
+.ex-comment-composer {
+	border-bottom: 1px solid var(--rule);
+	padding-bottom: var(--space-6);
+	margin-bottom: var(--space-4);
+}
+.ex-comments-body textarea {
+	width: 100%;
+	resize: vertical;
+	min-height: 120px;
+	padding: var(--space-3);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	color: var(--ink);
+	font: inherit;
+}
+.ex-comment-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	margin-top: var(--space-3);
+	justify-content: flex-end;
+}
+.ex-comment-actions button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.ex-comment-save {
+	color: var(--surface-page);
+	background: var(--annotation-color);
+	border-color: var(--annotation-color);
+}
+.ex-comment-quote {
+	margin: 0 0 var(--space-3);
+	padding-left: var(--space-3);
+	border-left: 2px solid var(--annotation-color);
+	font-size: var(--text-sm);
+	color: var(--ink-soft);
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+	max-height: 160px;
+	overflow: auto;
+}
+.ex-saved-comment {
+	padding-block: var(--space-5);
+	border-bottom: 1px solid var(--rule);
+}
+.ex-comment-anchor,
+.ex-comment-edit {
+	border: 0;
+	background: transparent;
+	color: var(--ink-soft);
+	padding: 0;
+	text-align: left;
+}
+.ex-comment-edit,
+.ex-comment-status,
+.ex-review-question {
+	font-size: var(--text-sm);
+	color: var(--ink-soft);
+}
+.ex-comment-body {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.ex-comments-body > div:has(.ex-review-question) {
+	margin-bottom: var(--space-5);
+}
+@media (hover: none) {
+	.ex-entity-comment {
+		opacity: 1;
+	}
+}
+@media (max-width: 760px) {
+	.ex-entity-comment {
+		opacity: 1;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	ex-option.ex-choice-option,
+	.ex-entity-comment {
+		transition: none;
+	}
+}

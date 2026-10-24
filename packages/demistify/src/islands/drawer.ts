@@ -3,28 +3,37 @@ interface DrawerContent {
 	readonly body: HTMLElement;
 	readonly restore: () => void;
 }
-
+interface DrawerSession {
+	readonly identity: symbol;
+	readonly content: DrawerContent;
+	readonly panel: HTMLElement;
+	readonly returnFocus: HTMLElement | null;
+}
 const minimumWidth = 320;
 const defaultWidth = 460;
-
 let drawer: HTMLElement | undefined;
-let current: { readonly restore: () => void; readonly returnFocus: HTMLElement | null } | undefined;
+let current: DrawerSession | undefined;
 
 function setWidth(width: number): void {
 	const clamped = Math.round(Math.max(minimumWidth, Math.min(width, window.innerWidth * 0.7)));
 	document.documentElement.style.setProperty('--ex-drawer-width', `${clamped}px`);
 }
 
-/** Closes the drawer and returns its island's content to the page. */
+/** Restores the active sidebar session, including a narrow native sheet. */
 export function closeDrawer(): void {
-	if (!drawer || !current) return;
-	const { restore, returnFocus } = current;
+	const session = current;
+	if (!session) return;
 	current = undefined;
-	drawer.hidden = true;
-	drawer.replaceChildren(drawer.firstElementChild ?? '');
 	delete document.documentElement.dataset['drawer'];
-	restore();
-	returnFocus?.focus({ preventScroll: true });
+	if (session.panel instanceof HTMLDialogElement) {
+		if (session.panel.open) session.panel.close();
+		session.panel.remove();
+	} else {
+		session.panel.hidden = true;
+		session.panel.replaceChildren(session.panel.firstElementChild ?? '');
+	}
+	session.content.restore();
+	if (session.returnFocus?.isConnected) session.returnFocus.focus({ preventScroll: true });
 	window.dispatchEvent(new Event('resize'));
 }
 
@@ -63,7 +72,6 @@ function createDrawer(): HTMLElement {
 		window.dispatchEvent(new Event('resize'));
 	});
 	panel.append(handle);
-	// Escape closes the drawer first, before any route or page handler sees it.
 	window.addEventListener(
 		'keydown',
 		(event: KeyboardEvent): void => {
@@ -78,26 +86,38 @@ function createDrawer(): HTMLElement {
 	return panel;
 }
 
-/**
- * Shows content in a docked panel that takes space: the page narrows beside it and keeps
- * scrolling, the panel's left edge resizes it, and opening another island replaces it.
- */
+/** One replacement owner for a docked sidebar and the native phone sheet. */
 export function openDrawer(
 	label: string,
 	take: (close: () => void) => DrawerContent | undefined,
-): void {
-	const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+): () => void {
+	const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+	const returnFocus = active && current?.panel.contains(active) ? current.returnFocus : active;
 	closeDrawer();
-	drawer ??= createDrawer();
-	const content = take(closeDrawer);
-	if (!content) return;
-	current = { restore: content.restore, returnFocus };
-	drawer.setAttribute('aria-label', label);
-	drawer.append(content.header, content.body);
-	drawer.hidden = false;
+	const panel =
+		window.innerWidth < 900 ? document.createElement('dialog') : (drawer ??= createDrawer());
+	const identity = Symbol('sidebar-session');
+	const close = (): void => {
+		if (current?.identity === identity) closeDrawer();
+	};
+	const content = take(close);
+	if (!content) return close;
+	const session: DrawerSession = { identity, content, panel, returnFocus };
+	current = session;
+	panel.setAttribute('aria-label', label);
+	panel.append(content.header, content.body);
+	panel.hidden = false;
 	document.documentElement.dataset['drawer'] = '';
+	if (panel instanceof HTMLDialogElement) {
+		panel.className = 'ex-inspect-dialog';
+		panel.dataset['mode'] = 'sidebar';
+		panel.addEventListener('close', close, { once: true });
+		document.body.append(panel);
+		panel.showModal();
+	}
 	window.dispatchEvent(new Event('resize'));
 	content.header
 		.querySelector<HTMLButtonElement>('button:last-of-type')
 		?.focus({ preventScroll: true });
+	return close;
 }

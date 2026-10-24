@@ -209,7 +209,48 @@ body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
 	left: 60px;
 }
 /* On a phone the floating controls would cover the text; they join the top toolbar instead. */
+.ex-comments-trigger {
+	position: fixed;
+	left: 216px;
+	bottom: 12px;
+	z-index: 7;
+}
+body:not(:has(.ex-presentations-trigger)) .ex-comments-trigger {
+	left: 172px;
+}
+:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger) {
+	border-radius: var(--radius-pill);
+	border-color: var(--rule);
+	background: var(--surface-content);
+	color: var(--ink-soft);
+}
+:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger):hover {
+	color: var(--ink);
+	border-color: var(--ink-soft);
+}
 @media (max-width: 760px) {
+	body:has(ex-document) {
+		padding-inline: var(--space-2);
+	}
+	body .ex-comments-trigger,
+	body:not(:has(.ex-presentations-trigger)) .ex-comments-trigger {
+		left: auto;
+		right: 128px;
+		top: calc(env(safe-area-inset-top, 0px) + 5px);
+		bottom: auto;
+	}
+	body:not(:has(.ex-presentations-trigger)) .ex-comments-trigger {
+		right: 88px;
+	}
+	body:has(ex-comments) .ex-document-toolbar {
+		padding-right: 172px;
+	}
+	body:has(ex-comments):not(:has(.ex-presentations-trigger)) .ex-document-toolbar {
+		padding-right: 132px;
+	}
+	:root[data-drawer] .ex-comments-trigger {
+		display: none;
+	}
 	body .ex-presentations-trigger,
 	body .ex-theme-toggle,
 	body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle,
