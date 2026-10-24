@@ -7,7 +7,7 @@ description: Use when checking a declared Demistify built runtime or Markdown CL
 
 Verify `packages/demistify` through its plain-HTML consumer, `apps/demistify-poc`. Keep the real built library, Markdown files, native custom elements, diagram renderer and browser layout in the path. CLI checking and embedding prove different claims from browser behavior.
 
-**Operable for the existing focused headless browser and CLI routes below.** The choices/comments journey is a draft until driven on a declared built target. Broader journey variants remain explicitly unobserved. Record the actual target and coverage in the task's evidence/trace; a working recipe is not product acceptance or proof of cold-runner skill application.
+**Operable for the existing focused headless browser and CLI routes below.** The choices/comments journey remains a draft wherever its declared-target observations are incomplete; distinguish applicable feature/boundary assertions, component integration and native host observations. Broader journey variants remain explicitly unobserved. Record the actual target and coverage in the task's evidence/trace; a working recipe is not product acceptance or proof of cold-runner skill application.
 
 ## Target and contract
 
@@ -53,7 +53,7 @@ For separately authorized PoC preview work, root `pnpm build` refreshes the libr
 
 Inspect the finished browser configuration and assertions before reuse. The separate `apps/demistify-poc/vitest.config.ts` uses Node; the package `test` command is not browser evidence. The Implementer owns product tests. Report the current selected browser cases from the actual run and read their assertion limits at source; historical case counts in a journey are not the current suite inventory.
 
-For direct UI observation, use host computer-use/Chrome on one released surface with sole control. Use ordinary links, tabs, buttons, wheel and pointer input. Read-only DOM geometry corroborates visible outcomes. Internal setters, synthetic events and mocked rendering/fetch do not establish user interaction. Do not introduce a separate Playwright driver.
+For direct UI observation, use host computer-use/Chrome on one released surface with sole control. Use ordinary links, tabs, buttons, wheel and pointer input. Read-only DOM geometry corroborates visible outcomes. Internal setters, synthetic events and mocked rendering/fetch do not establish user interaction. An adopted component-integration case may call an existing action to decide its lifecycle boundary; label that result separately from native input, as the choices/comments reference requires for controls behind a phone modal. Do not introduce a separate Playwright driver.
 
 Inspect a passing journey's target, fixtures, interactions, assertions and result before reuse. Reuse applicable evidence. Add direct observation for a missing interaction, changed dependency or specific unresolved doubt; independence does not require repeating equivalent proof.
 
