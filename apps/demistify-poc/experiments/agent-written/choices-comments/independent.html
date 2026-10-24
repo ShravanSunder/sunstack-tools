@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delivery review</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head>
+<body>
+<ex-nav for="delivery"><nav slot="pages" aria-label="Pages"><a href="index.html">Scope review</a><a href="independent.html">Delivery review</a></nav></ex-nav>
+<ex-document id="delivery" document-id="demistify-independent-review" revision="initial">
+<h1>Choose the handoff</h1><p>This separately authored page loads the same built runtime and theme.</p>
+<ex-choice id="handoff" title="What should the handoff include?" multiple>
+<ex-option id="include-source" title="Source"><template slot="summary">Include the exact editable source.</template></ex-option>
+<ex-option id="include-proof" title="Proof"><template slot="summary">Include actual observations and their limits.</template><div slot="details"><p>Use the same identified artifact for the recorded observations.</p></div></ex-option>
+</ex-choice>
+</ex-document><ex-comments for="delivery"></ex-comments>
+</body></html>

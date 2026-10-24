@@ -11,6 +11,11 @@ export function headingSlug(label: string): string {
 
 export function assignHeadingFragments(root: HTMLElement): void {
 	const localFragments = new Map<string, string>();
+	const assignedIds = new Set(
+		[root, ...root.querySelectorAll('[id]')]
+			.map((element): string => element.id)
+			.filter((id): boolean => id.length > 0),
+	);
 	for (const heading of root.querySelectorAll<HTMLHeadingElement>('h1,h2,h3,h4,h5,h6')) {
 		const slug = headingSlug(heading.textContent ?? '');
 		if (!heading.id) {
@@ -18,14 +23,21 @@ export function assignHeadingFragments(root: HTMLElement): void {
 				root.localName === 'ex-markdown' && root.id ? `${root.id}--${slug}` : `heading-${slug}`;
 			heading.id = base;
 			let suffix = 1;
-			while (document.getElementById(heading.id) !== heading) heading.id = `${base}-${++suffix}`;
+			// Retained author content can finish rendering while detached from the document.
+			while (
+				assignedIds.has(heading.id) ||
+				(root.ownerDocument.getElementById(heading.id) !== null &&
+					root.ownerDocument.getElementById(heading.id) !== heading)
+			)
+				heading.id = `${base}-${++suffix}`;
 		}
+		assignedIds.add(heading.id);
 		if (!localFragments.has(slug)) localFragments.set(slug, heading.id);
 	}
 	for (const link of root.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
 		const fragment = decodeURIComponent(link.hash.slice(1));
 		// Markdown shorthand belongs to its island; page-wide links retain real authored IDs.
-		if (root.localName !== 'ex-markdown' && document.getElementById(fragment)) continue;
+		if (root.localName !== 'ex-markdown' && root.ownerDocument.getElementById(fragment)) continue;
 		const target = localFragments.get(fragment);
 		if (target) link.setAttribute('href', `#${target}`);
 	}

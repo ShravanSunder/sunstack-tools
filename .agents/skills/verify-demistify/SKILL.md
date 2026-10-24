@@ -1,13 +1,13 @@
 ---
 name: verify-demistify
-description: Verify Demistify's built browser runtime and Markdown CLI through compact evidence, fresh-author artifacts, presentation navigation, fragments, Markdown/source inspection, diagram scrolling, tree wrapping and visual inspection journeys. Use when checking a declared Demistify build or maintaining these project-specific verification instructions.
+description: Use when checking a declared Demistify built runtime or Markdown CLI, including choices/comments, navigation, Markdown/diagrams or small-parts behavior, or maintaining this project's verification recipe. Not for product repairs or delivery acceptance.
 ---
 
 # Verify Demistify
 
 Verify `packages/demistify` through its plain-HTML consumer, `apps/demistify-poc`. Keep the real built library, Markdown files, native custom elements, diagram renderer and browser layout in the path. CLI checking and embedding prove different claims from browser behavior.
 
-**Operable for the focused headless browser and CLI routes below.** Broader journey variants remain explicitly unobserved. Record the actual target and coverage in the task's evidence/trace; a working recipe is not product acceptance.
+**Operable for the existing focused headless browser and CLI routes below.** The choices/comments journey remains a draft wherever its declared-target observations are incomplete; distinguish applicable feature/boundary assertions, component integration and native host observations. Broader journey variants remain explicitly unobserved. Record the actual target and coverage in the task's evidence/trace; a working recipe is not product acceptance or proof of cold-runner skill application.
 
 ## Target and contract
 
@@ -51,9 +51,9 @@ For separately authorized PoC preview work, root `pnpm build` refreshes the libr
 
 ## Drive and reuse
 
-Inspect the finished browser configuration and assertions before reuse. The separate `apps/demistify-poc/vitest.config.ts` uses Node; the package `test` command is not browser evidence. The Implementer owns product tests. The twelve browser scenarios cover selected real interactions; their exact assertion limits are in the journey reference.
+Inspect the finished browser configuration and assertions before reuse. The separate `apps/demistify-poc/vitest.config.ts` uses Node; the package `test` command is not browser evidence. The Implementer owns product tests. Report the current selected browser cases from the actual run and read their assertion limits at source; historical case counts in a journey are not the current suite inventory.
 
-For direct UI observation, use host computer-use/Chrome on one released surface with sole control. Use ordinary links, tabs, buttons, wheel and pointer input. Read-only DOM geometry corroborates visible outcomes. Internal setters, synthetic events and mocked rendering/fetch do not establish user interaction. Do not introduce a separate Playwright driver.
+For direct UI observation, use host computer-use/Chrome on one released surface with sole control. Use ordinary links, tabs, buttons, wheel and pointer input. Read-only DOM geometry corroborates visible outcomes. Internal setters, synthetic events and mocked rendering/fetch do not establish user interaction. An adopted component-integration case may call an existing action to decide its lifecycle boundary; label that result separately from native input, as the choices/comments reference requires for controls behind a phone modal. Do not introduce a separate Playwright driver.
 
 Inspect a passing journey's target, fixtures, interactions, assertions and result before reuse. Reuse applicable evidence. Add direct observation for a missing interaction, changed dependency or specific unresolved doubt; independence does not require repeating equivalent proof.
 
@@ -61,16 +61,19 @@ Inspect a passing journey's target, fixtures, interactions, assertions and resul
 
 Read [journey instructions and source map](references/journeys.md) for the selected scope.
 
-| Journey | Deciding observation |
-| --- | --- |
-| Presentations/pages/fragments | Cold and same-page links reveal the correct presentation/tab; selected-only content and grouped navigation remain useful |
-| Markdown/Mermaid/source | Referenced text and real SVG render; source text/reference stay exact while main content stays rendered |
-| Diagram layout/inspection | Local scrolling reaches both ends without page overflow, displacement, lost controls or arrow/node drift; fullscreen restores state |
-| Tree labels | Multiline, inline-code and loose-paragraph labels wrap beneath text with the icon on the first line |
-| Visual gestures | Cmd+wheel anchors zoom at the pointer; Cmd+drag pans; normal scroll, buttons, reset and restoration remain usable |
-| CLI checking/embedding | Local sources check/embed and missing sources fail; transformation stays distinct from runtime/offline proof |
-| Small parts in cells/prose/Trace | Exact numeric states, stable phase slots, both themes and desktop/390px containment; permanent `review-ui/small-parts.html` and `tests/browser/small-parts.browser.test.ts` exist in the existing harness |
-| Frozen fresh-Luna artifact | Supported native action capture establishes the loaded candidate copies; matching CLI and the actual frozen HTML establish only the named case's factual/composition behavior |
+IF the claim includes choices or comments, load `references/choices-comments.md` and return the declared target, selected O1/O2 cases, deciding observations with evidence paths, and every unobserved case/gap. Use that return in the evidence/limits report below; selecting cases without observing them is not coverage.
+
+| Journey                          | Deciding observation                                                                                                                                                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Presentations/pages/fragments    | Cold and same-page links reveal the correct presentation/tab; selected-only content and grouped navigation remain useful                                                                                                               |
+| Markdown/Mermaid/source          | Referenced text and real SVG render; source text/reference stay exact while main content stays rendered                                                                                                                                |
+| Diagram layout/inspection        | Local scrolling reaches both ends without page overflow, displacement, lost controls or arrow/node drift; fullscreen restores state                                                                                                    |
+| Tree labels                      | Multiline, inline-code and loose-paragraph labels wrap beneath text with the icon on the first line                                                                                                                                    |
+| Visual gestures                  | Cmd+wheel anchors zoom at the pointer; Cmd+drag pans; normal scroll, buttons, reset and restoration remain usable                                                                                                                      |
+| CLI checking/embedding           | Local sources check/embed and missing sources fail; transformation stays distinct from runtime/offline proof                                                                                                                           |
+| Small parts in cells/prose/Trace | Exact numeric states, stable phase slots, both themes and desktop/390px containment; permanent `review-ui/small-parts.html` and `tests/browser/small-parts.browser.test.ts` exist in the existing harness                              |
+| Frozen fresh-Luna artifact       | Supported native action capture establishes the loaded candidate copies; matching CLI and the actual frozen HTML establish only the named case's factual/composition behavior                                                          |
+| Choices and comments             | Native cards/table/inline details, exact identified feedback, same-revision reload and actual Copy/Export; shared panels, reconnect and read-only-copy isolation through the existing frozen harness plus assigned native observations |
 
 The representative pass uses the complete existing suite: real frame launch/readiness, navigation selection and cold fragment cases, external/embedded rendered text/SVG, exact-source inspection with original heading/table retained, Close, then automatic teardown. Cases use fresh frames rather than sharing one continuous user session. A pass covers only the assertions actually exercised.
 

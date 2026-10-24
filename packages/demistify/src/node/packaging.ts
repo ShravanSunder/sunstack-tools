@@ -73,6 +73,8 @@ const fontFamilies = [
 export const shippedIconNames = [
 	...subjectIcons,
 	'files',
+	'copy',
+	'download-simple',
 	'images',
 	'path',
 	'house',

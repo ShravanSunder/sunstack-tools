@@ -57,6 +57,7 @@ const styles = await Promise.all(
 		'evidence-trace.css',
 		'comparison.css',
 		'controls.css',
+		'choice-comments.css',
 		'document-widths.css',
 	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8')),
 );
@@ -72,6 +73,10 @@ const iconFont = await subsetFont(
 	{ targetFormat: 'woff2' },
 );
 await writeFile(resolve(outputDirectory, 'Phosphor.woff2'), iconFont);
+await writeFile(
+	resolve(outputDirectory, 'Phosphor-LICENSE.txt'),
+	await readFile(new URL('../../LICENSE', import.meta.resolve('@phosphor-icons/web/regular'))),
+);
 await writeFile(
 	resolve(outputDirectory, 'theme.css'),
 	[linkedFontStyles('./fonts'), await localPhosphorStyles('./Phosphor.woff2'), ...styles].join(

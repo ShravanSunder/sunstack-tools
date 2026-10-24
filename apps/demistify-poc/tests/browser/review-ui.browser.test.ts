@@ -420,7 +420,8 @@ test('document headings and Reading prose share the left edge of the wider Canva
 	if (!nestedCard) throw new Error('Missing nested card.');
 	expect(bounds('#nested-proof').left).toBeGreaterThan(nestedCard.getBoundingClientRect().left);
 	expect(bounds('#nested-proof').right).toBeLessThan(nestedCard.getBoundingClientRect().right);
-	const local = fixtureLocator(frame, requiredElement(fixture, '#width-code'));
+	const originalCode = requiredElement(fixture, '#width-code');
+	const local = fixtureLocator(frame, originalCode);
 	await userEvent.hover(local);
 	await local.getByRole('button', { name: 'Open Canvas code in a sidebar', exact: true }).click();
 	await expect
@@ -431,11 +432,24 @@ test('document headings and Reading prose share the left edge of the wider Canva
 		.toBeLessThan(1);
 	await page.viewport(390, 900);
 	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
-	expect(bounds('.ex-drawer').width).toBeLessThanOrEqual(274);
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Canvas code', exact: true }))
+		.toBeVisible();
+	expect(bounds('.ex-inspect-dialog[data-mode="sidebar"]').width).toBeGreaterThanOrEqual(389);
+	expect(bounds('.ex-inspect-dialog[data-mode="sidebar"]').width).toBeLessThanOrEqual(391);
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Close');
+	await page.viewport(1600, 1000);
+	await expect
+		.element(frame.getByRole('complementary', { name: 'Canvas code', exact: true }))
+		.toBeVisible();
+	expect(fixture.querySelector('dialog[open]')).toBeNull();
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Close');
 	await frame
 		.getByRole('complementary', { name: 'Canvas code', exact: true })
 		.getByRole('button', { name: 'Close', exact: true })
 		.click();
+	expect(requiredElement(fixture, '#width-code')).toBe(originalCode);
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Open Canvas code in a sidebar');
 	await page.viewport(390, 900);
 	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
 });

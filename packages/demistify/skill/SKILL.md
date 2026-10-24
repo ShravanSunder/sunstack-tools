@@ -47,6 +47,7 @@ For each matching condition below, load the named reference and return its autho
 | --- | --- | --- |
 | Explicit widths, a grid or tabs | `references/layouts.md` | Whole-component widths, child layout, labels and narrow behavior |
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
+| The reader must select answers or attach feedback | `references/choices-and-comments.md` | Requested response/feedback arrangement, required identities and binding, optional supporting details and interactions to observe |
 | A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and a narrow/theme observation |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior to observe |
@@ -62,6 +63,8 @@ For each matching condition below, load the named reference and return its autho
 | A supplied Explorer graph document | `references/explorers.md` | Original graph data, real selection IDs and source-backed views |
 
 Completion: selected constructs answer the reader's task, their references were applied, and every construct is supported by the chosen binding.
+
+Response and feedback controls follow the requested task: feedback alone needs no choice; a choice needs no extras; a choice without feedback or a combined review handoff needs no Comments binding.
 
 ## 3. Compose content once and keep it navigable
 

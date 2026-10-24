@@ -35,6 +35,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['explorer', 'round-13-inspection'],
 			['ui', 'review-ui'],
 			['search', 'command-search'],
+			['review', 'choices-comments'],
 		].map(async ([name, source]): Promise<void> => {
 			if (!name || !source) throw new Error('Missing fixture name.');
 			await cp(
@@ -57,6 +58,14 @@ export async function builtFixtures(): Promise<Plugin> {
 					}),
 			);
 		}),
+	);
+	const reviewHtml = await readFile(join(snapshot, 'review/index.html'), 'utf8');
+	await writeFile(
+		join(snapshot, 'review/boundary.html'),
+		reviewHtml.replace(
+			'document-id="demistify-choice-fixture"',
+			'document-id="demistify-review-boundary-fixture"',
+		),
 	);
 	const searchPages = await Promise.all(
 		['index.html', 'evidence.html'].map(async (name) => ({
