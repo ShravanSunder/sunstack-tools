@@ -87,14 +87,17 @@ async fn full_union_context_does_not_widen_change_set_text_or_ast_queries() {
     }];
     for select in [
         EvidenceSelection::ChangeSetLiteralText {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: paths.clone(),
             text: "marker".into(),
         },
         EvidenceSelection::ChangeSetRegexText {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: paths.clone(),
             pattern: "marker".into(),
         },
         EvidenceSelection::ChangeSetAstPattern {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: paths.clone(),
             language: "typescript".into(),
             pattern: "function marker() {}".into(),

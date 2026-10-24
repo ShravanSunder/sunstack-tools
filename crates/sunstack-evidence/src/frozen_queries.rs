@@ -280,12 +280,19 @@ pub fn select_change_set(
             bytes_scanned: mapping.bytes_scanned,
         });
     }
-    let (paths, primitive) = match selection {
-        EvidenceSelection::ChangeSetLiteralText { paths, text } => {
-            (paths, EvidenceSelection::LiteralText { text: text.clone() })
-        }
-        EvidenceSelection::ChangeSetRegexText { paths, pattern } => (
+    let (paths, sides, primitive) = match selection {
+        EvidenceSelection::ChangeSetLiteralText { paths, text, sides } => (
             paths,
+            sides,
+            EvidenceSelection::LiteralText { text: text.clone() },
+        ),
+        EvidenceSelection::ChangeSetRegexText {
+            paths,
+            pattern,
+            sides,
+        } => (
+            paths,
+            sides,
             EvidenceSelection::RegexText {
                 pattern: pattern.clone(),
             },
@@ -294,8 +301,10 @@ pub fn select_change_set(
             paths,
             language,
             pattern,
+            sides,
         } => (
             paths,
+            sides,
             EvidenceSelection::AstPattern {
                 language: language.clone(),
                 pattern: pattern.clone(),
@@ -303,15 +312,25 @@ pub fn select_change_set(
         ),
         _ => return Err(EvidenceCode::InvalidSelector.into()),
     };
+    if sides.is_empty() {
+        return Err(EvidenceCode::InvalidSelector.into());
+    }
     // A Full union member supplies context, not extra delta matches.
-    let mut files = Vec::new();
+    let mut files: Vec<(&FrozenRepositoryFile, Vec<&ChangeSpan>)> = Vec::new();
     for member in &capture.members {
         for change in &member.changes {
-            for side in [&change.before, &change.after] {
-                if let CapturedFileSide::Present { file } = side
-                    && !files.contains(&file)
-                {
-                    files.push(file);
+            for (side, spans) in [
+                (&change.before, &change.before_spans),
+                (&change.after, &change.after_spans),
+            ] {
+                if let CapturedFileSide::Present { file } = side {
+                    if let Some((_, accumulated)) =
+                        files.iter_mut().find(|(known, _)| *known == file)
+                    {
+                        accumulated.extend(spans);
+                    } else {
+                        files.push((file, spans.iter().collect()));
+                    }
                 }
             }
         }
@@ -320,7 +339,21 @@ pub fn select_change_set(
     let mut cutoffs = Vec::new();
     let mut files_parsed = 0;
     let mut bytes_scanned = 0;
-    for file in files {
+    let mut matches_considered = 0;
+    for (file, spans) in files {
+        let (whole_side, changed_side) = match file.side {
+            SourceSide::Before => (
+                sides.contains(&MatchSide::BeforeFile),
+                sides.contains(&MatchSide::Removed),
+            ),
+            SourceSide::After => (
+                sides.contains(&MatchSide::AfterFile),
+                sides.contains(&MatchSide::Added),
+            ),
+        };
+        if !whole_side && !changed_side {
+            continue;
+        }
         let SourceRef::RepositoryFile { path, .. } = &file.source else {
             continue;
         };
@@ -332,10 +365,18 @@ pub fn select_change_set(
         let (content, limited) = select_frozen_file(
             file,
             &primitive,
-            max_matches.saturating_sub(all_matches.len()),
+            max_matches.saturating_sub(matches_considered),
         )?;
         if let SelectionContent::Matches { matches } = content {
-            all_matches.extend(matches);
+            matches_considered += matches.len();
+            all_matches.extend(matches.into_iter().filter(|found| {
+                whole_side
+                    || spans.iter().any(|span| {
+                        span.byte_start < span.byte_end
+                            && span.byte_start < found.span.byte_end
+                            && found.span.byte_start < span.byte_end
+                    })
+            }));
         }
         if limited {
             cutoffs.push(DiscoveryCutoff {
@@ -345,7 +386,6 @@ pub fn select_change_set(
             break;
         }
     }
-    let matches_considered = all_matches.len();
     Ok(ChangeSetSelection {
         content: SelectionContent::Matches {
             matches: all_matches,

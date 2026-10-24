@@ -32,18 +32,21 @@ async fn change_set_primitives_keep_sides_paths_and_every_read_source() {
     );
     for selector in [
         EvidenceSelection::ChangeSetLiteralText {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: vec![QueryPath::Exact {
                 path: "./changed.ts".into(),
             }],
             text: "selected".into(),
         },
         EvidenceSelection::ChangeSetRegexText {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: vec![QueryPath::Glob {
                 pattern: "*.ts".into(),
             }],
             pattern: "selected".into(),
         },
         EvidenceSelection::ChangeSetAstPattern {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: vec![QueryPath::Glob {
                 pattern: "*.ts".into(),
             }],

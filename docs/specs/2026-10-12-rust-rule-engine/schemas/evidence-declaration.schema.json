@@ -432,12 +432,26 @@
         "text": {
           "type": "string",
           "minLength": 1
+        },
+        "sides": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "added",
+              "removed",
+              "after_file",
+              "before_file"
+            ]
+          },
+          "minItems": 1
         }
       },
       "required": [
         "kind",
         "paths",
-        "text"
+        "text",
+        "sides"
       ],
       "additionalProperties": false
     },
@@ -453,12 +467,26 @@
         "pattern": {
           "type": "string",
           "minLength": 1
+        },
+        "sides": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "added",
+              "removed",
+              "after_file",
+              "before_file"
+            ]
+          },
+          "minItems": 1
         }
       },
       "required": [
         "kind",
         "paths",
-        "pattern"
+        "pattern",
+        "sides"
       ],
       "additionalProperties": false
     },
@@ -478,13 +506,27 @@
         "pattern": {
           "type": "string",
           "minLength": 1
+        },
+        "sides": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "added",
+              "removed",
+              "after_file",
+              "before_file"
+            ]
+          },
+          "minItems": 1
         }
       },
       "required": [
         "kind",
         "paths",
         "language",
-        "pattern"
+        "pattern",
+        "sides"
       ],
       "additionalProperties": false
     },

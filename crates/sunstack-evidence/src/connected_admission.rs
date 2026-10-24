@@ -89,11 +89,11 @@ fn repository_binding<'input>(
 }
 pub(crate) fn admit_connected_selection(selection: &EvidenceSelection) -> EvidenceResult<()> {
     match selection {
-        EvidenceSelection::ChangeSetLiteralText { paths, text } => {
+        EvidenceSelection::ChangeSetLiteralText { paths, text, .. } => {
             validate_paths(paths)?;
             validate_primitive(&EvidenceSelection::LiteralText { text: text.clone() })?;
         }
-        EvidenceSelection::ChangeSetRegexText { paths, pattern } => {
+        EvidenceSelection::ChangeSetRegexText { paths, pattern, .. } => {
             validate_paths(paths)?;
             validate_primitive(&EvidenceSelection::RegexText {
                 pattern: pattern.clone(),
@@ -103,6 +103,7 @@ pub(crate) fn admit_connected_selection(selection: &EvidenceSelection) -> Eviden
             paths,
             language,
             pattern,
+            ..
         } => {
             validate_paths(paths)?;
             validate_primitive(&EvidenceSelection::AstPattern {

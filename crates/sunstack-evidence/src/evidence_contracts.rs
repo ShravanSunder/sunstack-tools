@@ -178,6 +178,14 @@ pub struct EvidenceDeclaration {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_bytes: Option<NonZeroUsize>,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchSide {
+    Added,
+    Removed,
+    AfterFile,
+    BeforeFile,
+}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceSelection {
@@ -191,15 +199,21 @@ pub enum EvidenceSelection {
     ChangeSetLiteralText {
         paths: Vec<QueryPath>,
         text: String,
+        #[schemars(length(min = 1))]
+        sides: Vec<MatchSide>,
     },
     ChangeSetRegexText {
         paths: Vec<QueryPath>,
         pattern: String,
+        #[schemars(length(min = 1))]
+        sides: Vec<MatchSide>,
     },
     ChangeSetAstPattern {
         paths: Vec<QueryPath>,
         language: String,
         pattern: String,
+        #[schemars(length(min = 1))]
+        sides: Vec<MatchSide>,
     },
     ChangedUnits {
         languages: Vec<crate::SourceLanguage>,

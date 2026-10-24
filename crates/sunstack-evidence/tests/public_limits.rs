@@ -242,6 +242,7 @@ async fn public_history_budget_is_shared_across_repository_selections() {
     let mut input = plan(
         vec![first.binding(scope), other.clone()],
         EvidenceSelection::ChangeSetLiteralText {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: vec![QueryPath::Glob {
                 pattern: "*.ts".into(),
             }],

@@ -24,6 +24,7 @@ async fn public_connected_admission_refuses_duplicate_keys_and_canonical_roots()
     let valid = plan(
         vec![first_binding.clone(), second_binding.clone()],
         EvidenceSelection::ChangeSetLiteralText {
+            sides: vec![MatchSide::BeforeFile, MatchSide::AfterFile],
             paths: vec![QueryPath::Glob {
                 pattern: "*.ts".into(),
             }],

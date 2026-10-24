@@ -26,7 +26,7 @@ async fn real_process_selects_nonempty_union_after_bytes_from_each_relative_git_
         input["repositories"][0]["change_scope"] = json!({"kind":"union","members":[{"kind":"uncommitted","layers":["staged"]},{"kind":"uncommitted","layers":["unstaged"]}]});
         input["sources"] = json!({"changes":{"kind":"change_set","repository":"repo"}});
         input["discovery"] = serde_json::to_value(scope_fixture::changes::discovery()).unwrap();
-        input["declarations"] = json!([{"id":"changed","input":"changes","requirement":"required","select":{"kind":"change_set_literal_text","paths":[{"kind":"exact","path":"source.md"}],"text":marker}}]);
+        input["declarations"] = json!([{"id":"changed","input":"changes","requirement":"required","select":{"kind":"change_set_literal_text","paths":[{"kind":"exact","path":"source.md"}],"text":marker,"sides":["before_file","after_file"]}}]);
         let output = run(root, "prepare_evidence", input.clone()).await;
         let wire = response(&output, 0);
         assert_eq!(wire["protocol_version"], 1);

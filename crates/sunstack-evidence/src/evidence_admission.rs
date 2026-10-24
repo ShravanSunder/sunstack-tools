@@ -127,6 +127,13 @@ pub fn admit_evidence_declaration(
     if let Some(selection) = declaration.select.conversation() {
         selection.validate()?;
     }
+    if let EvidenceSelection::ChangeSetLiteralText { sides, .. }
+    | EvidenceSelection::ChangeSetRegexText { sides, .. }
+    | EvidenceSelection::ChangeSetAstPattern { sides, .. } = &declaration.select
+        && sides.is_empty()
+    {
+        return Err(EvidenceCode::InvalidSelector.into());
+    }
     match &declaration.select {
         EvidenceSelection::FrontmatterField { field } if field.is_empty() => {
             return Err(EvidenceCode::InvalidSelector.into());
