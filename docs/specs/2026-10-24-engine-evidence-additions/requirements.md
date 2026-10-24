@@ -12,7 +12,7 @@ The owner wants `skill-authoring:skill-audit` to hold every rule and run it easi
 A Sol spike on released 0.1.0 ran real inputs (scratch `sunstack-evidence-spike/report.md`). Jev judgments work. Three things the rules need do not:
 
 - **Mechanical rules can't target a conversation or a change set.** Admission allows only Markdown units and frontmatter fields (`sunstack-rules/src/definition_admission.rs:148–152`). So "an agent wrote to a wrangler config" needs a model call even when the transcript shows it exactly.
-- **Codex edits are invisible.** Codex rollout `custom_tool_call` records, which carry `apply_patch` and `exec` input, fall to the unsupported branch (`sunstack-evidence/src/transcript_normalization.rs:297`, `:388`). The Tool Portal Implementer's `ctx.storage.put` write is among the 368 records dropped.
+- **Codex edits are invisible.** Codex rollout `custom_tool_call` records fall to the unsupported branch (`sunstack-evidence/src/transcript_normalization.rs:297`, `:388`). Current Codex makes its file edits through the `exec` custom tool, with the patch in the call's input: across all 7,119 October 2026 rollouts on this machine (228,659 tool calls), no call is named `apply_patch` (`engine-additions-verifier-feasibility.md`, addendum). The Tool Portal Implementer's `ctx.storage.put` write is one of its 368 dropped `exec` records.
 - **Change rules see whole files.** A change-set AST or text selection scans both complete sides of each changed file (`sunstack-evidence/src/frozen_queries.rs:306`). So a rule against a forbidden API fails on every file that already used it, not only on the commit that added it.
 
 ## Sources

@@ -147,5 +147,6 @@ async fn custom_outcome_uses_a_native_status_field_and_ignores_nested_exit_codes
             panic!("custom call must be a tool use");
         };
         assert_eq!(tool.outcome, expected);
+        assert!(matches!(&tool.result, ToolResult::FullObserved { .. }));
     }
 }
