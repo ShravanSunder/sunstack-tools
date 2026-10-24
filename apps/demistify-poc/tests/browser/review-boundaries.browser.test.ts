@@ -151,6 +151,71 @@ test('a real cross-block drag saves the exact quote on the document and refuses 
 	expect(readCurrentReview(fixture).comments[0]?.anchor).toEqual(anchor);
 });
 
+test.each([1600, 390])(
+	'a saved cross-block quote reopens its tab and disclosure and reveals the actual passage at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openBoundaryReviewFixture();
+		const context = fixture.createElement('section');
+		context.innerHTML = `${'<p>Earlier evidence remains available while reading this long document.</p>'.repeat(40)}
+			<ex-tabs>
+				<section label="Evidence overview"><p>Open the archived evidence for the saved quotation.</p></section>
+				<section label="Archived evidence"><details open><summary>Passage context</summary>
+					<p id="saved-first">The first saved passage remains exact.</p>
+					<p id="saved-second">The second saved passage completes the quote.</p>
+				</details></section>
+			</ex-tabs>`;
+		requiredElement(fixture, 'ex-document').append(context);
+		await frame.getByRole('tab', { name: 'Archived evidence', exact: true }).click();
+		const first = requiredElement(fixture, '#saved-first');
+		const second = requiredElement(fixture, '#saved-second');
+		first.scrollIntoView({ block: 'center' });
+		const start = textCaretRect(first, 4);
+		const end = textCaretRect(second, 18);
+		await commands.dragReviewSelection({
+			startX: start.left + 0.5,
+			startY: start.top + start.height / 2,
+			endX: end.left,
+			endY: end.top + end.height / 2,
+		});
+		await expect
+			.poll((): string => fixture.defaultView?.getSelection()?.toString() ?? '')
+			.toBe('first saved passage remains exact.\n\nThe second saved p');
+		await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
+		await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Return here.');
+		await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+		const saved = readCurrentReview(fixture).comments[0];
+		expect(saved?.anchor.targetId).toBe('content');
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await fixtureLocator(frame, requiredElement(context, 'summary')).click();
+		await frame.getByRole('tab', { name: 'Evidence overview', exact: true }).click();
+		requiredElement(fixture, 'h1').scrollIntoView({ block: 'start' });
+		expect(fixture.scrollingElement?.scrollTop).toBeLessThan(100);
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-comments-trigger')).click();
+		await frame
+			.getByRole('button', { name: 'Show anchor: Choose the review scope', exact: true })
+			.click();
+
+		await expect
+			.element(frame.getByRole('tab', { name: 'Archived evidence', exact: true }))
+			.toHaveAttribute('aria-selected', 'true');
+		expect(requiredElement(context, 'details').hasAttribute('open')).toBe(true);
+		const passage = fixture.createRange();
+		if (!first.firstChild || !second.firstChild) throw new Error('Saved passage is absent.');
+		passage.setStart(first.firstChild, 4);
+		passage.setEnd(second.firstChild, 18);
+		await expect
+			.poll((): boolean => {
+				const bounds = passage.getBoundingClientRect();
+				return bounds.height > 0 && bounds.top >= 48 && bounds.bottom <= 1000;
+			})
+			.toBe(true);
+		expect(readCurrentReview(fixture).comments[0]).toEqual(saved);
+		expect(readCurrentReview(fixture).answers).toEqual([]);
+		if (width < 900) expect(fixture.querySelector('dialog[open]')).toBeNull();
+	},
+);
+
 test('dragging actual card body text creates an option anchor without selecting its answer', async (): Promise<void> => {
 	const { document: fixture, frame } = await openBoundaryReviewFixture();
 	const passage = requiredElement(fixture, '#layout .ex-choice-summary li');

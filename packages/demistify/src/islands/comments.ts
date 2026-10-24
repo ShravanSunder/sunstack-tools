@@ -4,6 +4,7 @@ import { reportIssue } from '../core/issues.ts';
 import {
 	captureCommentAnchor,
 	readReviewTargets,
+	reviewTextNodes,
 	resolveCommentAnchor,
 	type ReviewTarget,
 } from '../core/review-anchors.ts';
@@ -308,7 +309,34 @@ export class CommentsIsland extends HTMLElement {
 		const resolved = resolveCommentAnchor(comment.anchor, this.targets);
 		if (resolved.kind === 'unavailable') return resolved.message;
 		this.active = comment;
-		resolved.target.element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+		const range = resolved.range;
+		if (range) {
+			const passageNodes = reviewTextNodes(resolved.target.element).filter(
+				(node): boolean =>
+					range.intersectsNode(node) &&
+					Boolean(
+						node.data
+							.slice(
+								node === range.startContainer ? range.startOffset : 0,
+								node === range.endContainer ? range.endOffset : node.length,
+							)
+							.trim(),
+					),
+			);
+			for (const node of passageNodes) if (node.parentElement) revealElement(node.parentElement);
+			const passage = passageNodes[0]?.parentElement;
+			// The phone sheet closes after this handler; measure the restored reader on its next frame.
+			requestAnimationFrame((): void => {
+				if (!this.isConnected || this.active !== comment || !passage?.isConnected) return;
+				passage.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+				const bounds = range.getBoundingClientRect();
+				const view = passage.ownerDocument.defaultView;
+				view?.scrollBy({
+					top: bounds.top - (view.innerHeight - Math.min(bounds.height, view.innerHeight - 96)) / 2,
+					behavior: 'smooth',
+				});
+			});
+		} else resolved.target.element.scrollIntoView({ block: 'center', behavior: 'smooth' });
 		this.repaint();
 		return undefined;
 	}
