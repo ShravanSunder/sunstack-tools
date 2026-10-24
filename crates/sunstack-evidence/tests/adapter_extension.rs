@@ -278,6 +278,7 @@ async fn valid_clipped_results_keep_known_and_unknown_sizes_through_capture_and_
                 tool_use: ToolUseSelection::Included {
                     tools: ToolFilter::All {},
                     results: Inclusion::Included,
+                    input_pattern: None,
                 },
                 hook_injected: Inclusion::Excluded,
             },

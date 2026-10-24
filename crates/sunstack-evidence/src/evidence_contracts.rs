@@ -297,6 +297,7 @@ pub struct ReturnedCursor {
 pub enum OmissionReason {
     Window,
     Projection,
+    InputPattern,
     Limit,
     OptionalUnavailable,
 }

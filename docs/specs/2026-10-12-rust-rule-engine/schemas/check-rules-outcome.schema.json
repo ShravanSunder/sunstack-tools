@@ -3133,6 +3133,12 @@
             },
             "tools": {
               "$ref": "#/$defs/ToolFilter"
+            },
+            "input_pattern": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           "additionalProperties": false,

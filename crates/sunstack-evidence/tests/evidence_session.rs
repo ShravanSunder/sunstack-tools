@@ -142,6 +142,7 @@ async fn deleted_transcript_alias_keeps_the_same_frozen_capture() {
         tool_use: ToolUseSelection::Included {
             tools: ToolFilter::All {},
             results: Inclusion::Included,
+            input_pattern: None,
         },
         hook_injected: Inclusion::Included,
     };

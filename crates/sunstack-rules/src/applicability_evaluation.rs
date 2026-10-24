@@ -102,6 +102,7 @@ pub(crate) async fn evaluate_condition(
                     tool_use: ToolUseSelection::Included {
                         tools: ToolFilter::All {},
                         results: Inclusion::Included,
+                        input_pattern: None,
                     },
                     hook_injected: Inclusion::Included,
                 },

@@ -372,6 +372,7 @@ async fn conversation_aliases_share_capture_and_cursor_through_public_plan() {
                 tool_use: ToolUseSelection::Included {
                     tools: ToolFilter::All {},
                     results: Inclusion::Included,
+                    input_pattern: None,
                 },
                 hook_injected: Inclusion::Excluded,
             },

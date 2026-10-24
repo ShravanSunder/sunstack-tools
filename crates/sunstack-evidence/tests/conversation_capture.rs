@@ -10,6 +10,7 @@ fn selection() -> ConversationSelection {
         tool_use: ToolUseSelection::Included {
             tools: ToolFilter::All {},
             results: Inclusion::Included,
+            input_pattern: None,
         },
         hook_injected: Inclusion::Excluded,
     }
@@ -415,6 +416,7 @@ async fn generic_projection_windows_precede_filters_and_preserve_unknown_injecti
         projection.tool_use = ToolUseSelection::Included {
             tools,
             results: Inclusion::Excluded,
+            input_pattern: None,
         };
         let selected = select_conversation(&source, &projection).unwrap();
         assert_eq!(selected.records.len(), 6);
@@ -425,6 +427,7 @@ async fn generic_projection_windows_precede_filters_and_preserve_unknown_injecti
             names: vec!["Search".into()],
         },
         results: Inclusion::Included,
+        input_pattern: None,
     };
     assert!(
         select_conversation(&source, &projection)
@@ -530,6 +533,7 @@ async fn category_and_name_filters_exclude_contrasting_tools_and_remove_present_
         projection.tool_use = ToolUseSelection::Included {
             tools: filter,
             results: Inclusion::Included,
+            input_pattern: None,
         };
         let selected = select_conversation(&captured, &projection).unwrap();
         assert_eq!(selected.records.len(), 1);
@@ -542,6 +546,7 @@ async fn category_and_name_filters_exclude_contrasting_tools_and_remove_present_
     projection.tool_use = ToolUseSelection::Included {
         tools: ToolFilter::All {},
         results: Inclusion::Excluded,
+        input_pattern: None,
     };
     let excluded = select_conversation(&captured, &projection).unwrap();
     assert_eq!(excluded.records.len(), 3);

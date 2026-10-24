@@ -1,5 +1,5 @@
 use crate::*;
-use std::collections::BTreeSet;
+use std::{borrow::Cow, collections::BTreeSet};
 
 impl ConversationSelection {
     pub fn validate(&self) -> EvidenceResult<()> {
@@ -32,6 +32,13 @@ impl ConversationSelection {
                 _ => {}
             }
         }
+        if let ToolUseSelection::Included {
+            input_pattern: Some(pattern),
+            ..
+        } = &self.tool_use
+        {
+            regex::Regex::new(pattern).map_err(|_| EvidenceCode::InvalidSelector)?;
+        }
         Ok(())
     }
 }
@@ -46,6 +53,13 @@ pub fn select_conversation(
     selection: &ConversationSelection,
 ) -> EvidenceResult<ConversationProjection> {
     selection.validate()?;
+    let input_pattern = match &selection.tool_use {
+        ToolUseSelection::Included {
+            input_pattern: Some(pattern),
+            ..
+        } => Some(regex::Regex::new(pattern).map_err(|_| EvidenceCode::InvalidSelector)?),
+        _ => None,
+    };
     let mut omissions = Vec::new();
     let window: BTreeSet<&RecordId> = match selection.turns {
         TurnWindow::All {} => capture
@@ -88,6 +102,7 @@ pub fn select_conversation(
     let mut records = Vec::new();
     let mut window_omitted = 0;
     let mut projection_omitted = 0;
+    let mut pattern_omitted = 0;
     for record in &capture.records {
         if !window.contains(&record.record_id) {
             window_omitted += 1;
@@ -119,6 +134,18 @@ pub fn select_conversation(
             projection_omitted += 1;
             continue;
         }
+        if let (ConversationBody::ToolUse(tool), Some(pattern)) = (&record.body, &input_pattern) {
+            let input_text = match &tool.input {
+                StructuredJson::String(text) => Cow::Borrowed(text.as_str()),
+                input => Cow::Owned(
+                    serde_json::to_string(input).map_err(|_| EvidenceCode::InvalidSelector)?,
+                ),
+            };
+            if !pattern.is_match(&input_text) {
+                pattern_omitted += 1;
+                continue;
+            }
+        }
         let mut projected = record.clone();
         if let (
             ConversationBody::ToolUse(tool),
@@ -142,6 +169,12 @@ pub fn select_conversation(
         omissions.push(Omission {
             reason: OmissionReason::Projection,
             count: projection_omitted,
+        });
+    }
+    if pattern_omitted > 0 {
+        omissions.push(Omission {
+            reason: OmissionReason::InputPattern,
+            count: pattern_omitted,
         });
     }
     Ok(ConversationProjection {

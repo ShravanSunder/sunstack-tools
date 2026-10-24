@@ -40,6 +40,8 @@ pub enum ToolUseSelection {
     Included {
         tools: ToolFilter,
         results: Inclusion,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        input_pattern: Option<String>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

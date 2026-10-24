@@ -302,6 +302,12 @@
                 "included",
                 "excluded"
               ]
+            },
+            "input_pattern": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           "required": [
