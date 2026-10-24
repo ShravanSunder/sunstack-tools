@@ -111,7 +111,7 @@ impl NormalizationState {
         name: String,
         input: StructuredJson,
         position: u64,
-        namespaced: bool,
+        tool_category: ToolCategory,
     ) -> EvidenceResult<()> {
         if self.calls.contains_key(&id) {
             return Err(EvidenceCode::AdapterOutputInvalid.into());
@@ -123,7 +123,7 @@ impl NormalizationState {
             position,
             body: ConversationBody::ToolUse(ToolUse {
                 call_id: id,
-                category: category(&name, namespaced),
+                category: tool_category,
                 tool_name: name,
                 input,
                 outcome: ToolOutcome::ResultMissing,
@@ -240,7 +240,7 @@ impl NormalizationState {
                     )
                     .map_err(|_| EvidenceCode::AdapterOutputInvalid)?,
                     position,
-                    false,
+                    category(field(item, "name")?, false),
                 )?,
                 "tool_result" => {
                     let content = item
@@ -370,8 +370,49 @@ impl NormalizationState {
                         .map_or_else(|| name.into(), |namespace| format!("{namespace}.{name}")),
                     input,
                     position,
-                    namespace.is_some(),
+                    category(name, namespace.is_some()),
                 )?;
+            }
+            "custom_tool_call" => {
+                let name = field(payload, "name")?;
+                let tool_category = match name {
+                    "apply_patch" => ToolCategory::EditFile,
+                    "exec" | "Bash" | "exec_command" | "shell_command" => ToolCategory::Shell,
+                    _ => ToolCategory::Other,
+                };
+                self.call(
+                    CallId::new(field(payload, "call_id")?)?,
+                    name.into(),
+                    serde_json::from_value(
+                        payload
+                            .get("input")
+                            .ok_or(EvidenceCode::AdapterOutputInvalid)?
+                            .clone(),
+                    )
+                    .map_err(|_| EvidenceCode::AdapterOutputInvalid)?,
+                    position,
+                    tool_category,
+                )?;
+            }
+            "custom_tool_call_output" => {
+                let outcome = match payload.get("is_error") {
+                    Some(Value::Bool(true)) => ToolOutcome::Failed,
+                    Some(Value::Bool(false)) => ToolOutcome::Succeeded,
+                    None => ToolOutcome::ResultPresentStatusUnknown,
+                    _ => return Err(EvidenceCode::AdapterOutputInvalid.into()),
+                };
+                self.result(
+                    CallId::new(field(payload, "call_id")?)?,
+                    ToolResult::FullObserved {
+                        text: observed_text(
+                            payload
+                                .get("output")
+                                .ok_or(EvidenceCode::AdapterOutputInvalid)?,
+                        )?,
+                    },
+                    outcome,
+                    position,
+                );
             }
             "function_call_output" => self.result(
                 CallId::new(field(payload, "call_id")?)?,
