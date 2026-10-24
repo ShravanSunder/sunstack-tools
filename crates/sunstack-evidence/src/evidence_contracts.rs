@@ -386,6 +386,12 @@ pub struct SelectionResult {
     pub readiness: SelectionReadiness,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ConversationRecordLocation {
+    pub record_id: RecordId,
+    pub position: u64,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetLocation {
     FrontmatterField {
@@ -399,13 +405,16 @@ pub enum TargetLocation {
     CodeUnits {
         units: Vec<crate::SourceUnitKey>,
     },
+    ChangeMatches {
+        matches: Vec<SourceSpan>,
+    },
     Paragraph {
         span: SourceSpan,
         target_id: TargetId,
     },
     ConversationRecords {
         source: SourceRef,
-        record_ids: Vec<RecordId>,
+        records: Vec<ConversationRecordLocation>,
     },
     PayloadField {
         input: SourceName,

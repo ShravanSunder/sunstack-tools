@@ -178,10 +178,16 @@ pub(crate) async fn prepare_units(
                                 selected.declaration.id == plan.occurrences[index.0].rule.target
                             }) {
                                 Some(selected) => match &selected.result.readiness {
-                                    SelectionReadiness::Ready { content, .. } => {
+                                    SelectionReadiness::Ready {
+                                        content,
+                                        omissions,
+                                        coverage,
+                                    } => {
                                         crate::local_check_evaluation::settle_mechanical(
                                             check,
                                             content,
+                                            omissions,
+                                            coverage,
                                             session,
                                             cancellation,
                                         )

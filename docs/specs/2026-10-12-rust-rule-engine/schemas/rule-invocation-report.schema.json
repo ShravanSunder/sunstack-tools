@@ -5310,21 +5310,21 @@
               "type": "string",
               "const": "conversation_records"
             },
-            "record_ids": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/RecordId"
-              }
-            },
             "source": {
               "$ref": "#/$defs/SourceRef"
+            },
+            "records": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ConversationRecordLocation"
+              }
             }
           },
           "additionalProperties": false,
           "required": [
             "kind",
             "source",
-            "record_ids"
+            "records"
           ]
         },
         {
@@ -5347,6 +5347,26 @@
             "input",
             "pointer"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "change_matches"
+            },
+            "matches": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceSpan"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "matches"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -5520,6 +5540,24 @@
           ]
         }
       ]
+    },
+    "ConversationRecordLocation": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/RecordId"
+        },
+        "position": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "record_id",
+        "position"
+      ],
+      "additionalProperties": false
     }
   },
   "$id": "rule-invocation-report.schema.json",

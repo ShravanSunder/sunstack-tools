@@ -119,6 +119,38 @@ pub(crate) async fn finish_change_selection(
             selection: OccurrenceSelection::ComparisonPending {}
         }
     ) {
+        let rule = &plan.occurrences[index.0].rule;
+        let change_presence_target = matches!(
+            &rule.verdict,
+            VerdictDeclaration::Mechanical {
+                check: MechanicalCheck::Expect {
+                    expect: ExpectPredicate::Present { .. }
+                },
+                ..
+            }
+        ) && rule.evidence.iter().any(|declaration| {
+            declaration.id == rule.target
+                && matches!(
+                    declaration.select,
+                    sunstack_evidence::EvidenceSelection::ChangeSetLiteralText { .. }
+                        | sunstack_evidence::EvidenceSelection::ChangeSetRegexText { .. }
+                        | sunstack_evidence::EvidenceSelection::ChangeSetAstPattern { .. }
+                )
+        });
+        if change_presence_target {
+            let selected_by = SelectedReasons::try_from(vec![SelectedReason::TargetChanged])
+                .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))?;
+            state.scopes.insert(
+                index,
+                ScopeEvaluation {
+                    disposition: ScopeDisposition::InScope {
+                        selection: OccurrenceSelection::Selected { selected_by },
+                    },
+                    target: TargetPresence::ResolveCurrent,
+                },
+            );
+            return Ok(TargetPresence::ResolveCurrent);
+        }
         let result = compare_occurrence(plan, index, ComparisonLevel::Content, session).await?;
         state.scopes.insert(index, result);
     }

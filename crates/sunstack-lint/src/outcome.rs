@@ -74,6 +74,7 @@ pub(crate) fn target_span(target: &TargetLocation) -> Option<SourceSpan> {
             FrontmatterFieldLocation::BlockUnavailable { .. } => None,
         },
         TargetLocation::CodeUnits { .. }
+        | TargetLocation::ChangeMatches { .. }
         | TargetLocation::ConversationRecords { .. }
         | TargetLocation::PayloadField { .. } => None,
     }

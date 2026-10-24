@@ -149,25 +149,45 @@ pub fn validate_rule_definition(
         if explanation.is_empty() || !rule.questions.is_empty() {
             return Err(refusal(RuleDiagnosticCode::InvalidMechanicalCheck));
         }
-        if !matches!(
-            target.select,
-            EvidenceSelection::MarkdownUnits(_) | EvidenceSelection::FrontmatterField { .. }
-        ) || matches!(
-            (&target.select, check),
-            (
-                EvidenceSelection::FrontmatterField { .. },
+        let valid_target = match &target.select {
+            EvidenceSelection::MarkdownUnits(_) => matches!(
+                check,
                 crate::MechanicalCheck::AstGrep { .. }
-            )
-        ) || matches!(
-            check,
-            crate::MechanicalCheck::Expect {
-                expect: crate::ExpectPredicate::Present { .. }
+                    | crate::MechanicalCheck::Expect {
+                        expect: crate::ExpectPredicate::Matches { .. }
+                            | crate::ExpectPredicate::NotMatches { .. }
+                            | crate::ExpectPredicate::StartsWith { .. }
+                    }
+            ),
+            EvidenceSelection::FrontmatterField { .. } => {
+                matches!(check, crate::MechanicalCheck::Expect { .. })
             }
-        ) && !matches!(target.select, EvidenceSelection::FrontmatterField { .. })
-        {
+            EvidenceSelection::Conversation { .. }
+            | EvidenceSelection::ChangeSetLiteralText { .. }
+            | EvidenceSelection::ChangeSetRegexText { .. }
+            | EvidenceSelection::ChangeSetAstPattern { .. } => matches!(
+                check,
+                crate::MechanicalCheck::Expect {
+                    expect: crate::ExpectPredicate::Present { .. }
+                }
+            ),
+            _ => false,
+        };
+        if !valid_target {
             return Err(refusal(RuleDiagnosticCode::InvalidTarget));
         }
         validate_entries(&rule.applicability, inputs)?;
+        if matches!(
+            target.select,
+            EvidenceSelection::Conversation { .. }
+                | EvidenceSelection::ChangeSetLiteralText { .. }
+                | EvidenceSelection::ChangeSetRegexText { .. }
+                | EvidenceSelection::ChangeSetAstPattern { .. }
+        ) {
+            // The pairing above admits exactly a boolean presence predicate.
+            // Other targets retain the existing check validation policy.
+            return Ok(());
+        }
         return check.validate();
     }
     if !matches!(
@@ -296,6 +316,16 @@ pub(crate) fn validate_evidence(
             selection
                 .validate()
                 .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+        }
+        if let EvidenceSelection::ChangeSetLiteralText { sides, .. }
+        | EvidenceSelection::ChangeSetRegexText { sides, .. }
+        | EvidenceSelection::ChangeSetAstPattern { sides, .. } = &declaration.select
+            && sides.is_empty()
+        {
+            return Err(sunstack_evidence::DiagnosticList::one(
+                sunstack_evidence::EvidenceCode::InvalidSelector,
+            )
+            .into());
         }
         match &declaration.select {
             EvidenceSelection::PayloadField { pointer } if !valid_pointer(pointer) => {

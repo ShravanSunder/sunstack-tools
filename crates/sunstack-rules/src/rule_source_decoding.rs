@@ -144,7 +144,20 @@ pub(crate) fn decode_source_entries(
                 }
                 _ => None,
             };
+            let selection_presence = matches!(
+                &entry.verdict,
+                crate::RuleSourceVerdict::Expect {
+                    expect: crate::ExpectPredicate::Present { .. }
+                }
+            ) && matches!(
+                &entry.target.select,
+                sunstack_evidence::EvidenceSelection::Conversation { .. }
+                    | sunstack_evidence::EvidenceSelection::ChangeSetLiteralText { .. }
+                    | sunstack_evidence::EvidenceSelection::ChangeSetRegexText { .. }
+                    | sunstack_evidence::EvidenceSelection::ChangeSetAstPattern { .. }
+            );
             if let Some(check) = check
+                && !selection_presence
                 && let Err(mut diagnostics) = check.validate()
             {
                 let blocks: CheckBlocks<'_> = serde_json::from_str(raw.get()).map_err(malformed)?;

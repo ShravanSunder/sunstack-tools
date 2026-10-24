@@ -182,10 +182,18 @@ pub(crate) fn resolve_target(
         (SelectionContent::ConversationRecords { source, records }, _) => {
             Some(sunstack_evidence::TargetLocation::ConversationRecords {
                 source: source.clone(),
-                record_ids: records
+                records: records
                     .iter()
-                    .map(|record| record.record_id.clone())
+                    .map(|record| sunstack_evidence::ConversationRecordLocation {
+                        record_id: record.record_id.clone(),
+                        position: record.position,
+                    })
                     .collect(),
+            })
+        }
+        (SelectionContent::Matches { matches }, _) => {
+            Some(sunstack_evidence::TargetLocation::ChangeMatches {
+                matches: matches.iter().map(|found| found.span.clone()).collect(),
             })
         }
         (SelectionContent::PayloadValue { input, pointer, .. }, _) => {

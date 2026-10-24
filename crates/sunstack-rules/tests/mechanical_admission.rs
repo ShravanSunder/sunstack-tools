@@ -2,6 +2,8 @@
 use serde_json::{Value, json};
 use sunstack_decisions::CancellationToken;
 use sunstack_rules::*;
+#[path = "support/change_fixture.rs"]
+mod changes;
 #[path = "support/contract_schemas.rs"]
 mod schema_support;
 
@@ -199,6 +201,66 @@ async fn mechanical_source_alternatives_are_exclusive_and_ast_grep_errors_name_t
                 && item["location"]["line"] == 5),
         "{wire}"
     );
+}
+
+#[tokio::test]
+async fn markdown_rule_sources_scope_absence_checks_to_conversation_and_change_selections() {
+    for (selector, kind, binding, expected_exit) in [
+        (
+            json!({"kind":"conversation","turns":{"kind":"all"},"user_messages":"excluded","assistant_messages":"excluded","tool_use":{"kind":"included","tools":{"kind":"all"},"results":"excluded","input_pattern":"needle"},"hook_injected":"excluded"}),
+            "conversation",
+            json!({"kind":"conversation","transcript_path":"not-created.jsonl","format":"codex_rollout_jsonl"}),
+            0,
+        ),
+        (
+            json!({"kind":"change_set_literal_text","paths":[{"kind":"exact","path":"not-created.ts"}],"text":"needle","sides":["added"]}),
+            "change_set",
+            json!({"kind":"change_set","repository":"repo"}),
+            0,
+        ),
+        (
+            json!({"kind":"markdown_units","mode":"unit","units":["paragraph"]}),
+            "document",
+            json!({"kind":"document","repository":"repo","path":"unread.md"}),
+            2,
+        ),
+        (
+            json!({"kind":"frontmatter_field","field":"description"}),
+            "document",
+            json!({"kind":"document","repository":"repo","path":"unread.md"}),
+            2,
+        ),
+    ] {
+        let directory = tempfile::tempdir().unwrap();
+        let mut source = entry(json!({"expect":{"present":false}}));
+        source["target"]["select"] = selector;
+        write_source(
+            directory.path(),
+            &serde_json::to_string(&json!({"K014":source})).unwrap(),
+        );
+        let path = directory.path().join("set.json");
+        let mut set: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        set["inputs"]["skill"] = json!({"kind":kind});
+        std::fs::write(path, serde_json::to_vec(&set).unwrap()).unwrap();
+        let mut input = serde_json::to_value(check_input(directory.path())).unwrap();
+        input["definitions"]["rule_sets"][0]["binding_groups"][0]["bindings"]["skill"] = binding;
+        if kind == "change_set" {
+            input["discovery"] = serde_json::to_value(changes::discovery()).unwrap();
+        }
+        let outcome = check_rules(
+            serde_json::from_value(input).unwrap(),
+            CancellationToken::new(),
+        )
+        .await;
+        assert_eq!(outcome.exit_code(), expected_exit, "{kind}: {outcome:?}");
+        let wire = serde_json::to_value(outcome).unwrap();
+        assert!(
+            schema_support::reviewed("check-rules-outcome.schema.json").is_valid(&wire),
+            "{wire}"
+        );
+        assert!(schema_support::generated::<CheckRulesOutcome>().is_valid(&wire));
+        assert!(!directory.path().join("not-created.jsonl").exists());
+    }
 }
 
 #[test]
