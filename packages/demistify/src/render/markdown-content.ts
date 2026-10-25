@@ -20,6 +20,25 @@ export function renderMarkdownContent(sourceText: string): string {
 		.replaceAll('</table>', '</table></div>');
 }
 
+/** Choice titles stay a single inline paragraph without nested controls or document headings. */
+export function renderChoiceTitle(sourceText: string): string {
+	const html = renderMarkdownContent(sourceText).trim();
+	const allowed = new Set(['p', 'strong', 'em', 'code', 'del', 'br']);
+	const tags = Array.from(html.matchAll(/<\/?([a-z][a-z0-9-]*)\b[^>]*>/gi));
+	if (
+		!sourceText.trim() ||
+		!html.startsWith('<p>') ||
+		!html.endsWith('</p>') ||
+		tags.filter((tag): boolean => tag[0] === '<p>').length !== 1 ||
+		tags.some((tag): boolean => !allowed.has(tag[1] ?? ''))
+	) {
+		throw new Error(
+			'An option title must be one paragraph of inline Markdown. Put longer content in its body or details.',
+		);
+	}
+	return html.slice(3, -4);
+}
+
 /** Focused narration shares Markdown parsing; large visuals remain in the walkthrough target. */
 export function renderNarrationContent(sourceText: string, baseUrl: string): string {
 	const parser = new Marked({

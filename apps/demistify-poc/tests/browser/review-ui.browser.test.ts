@@ -420,7 +420,8 @@ test('document headings and Reading prose share the left edge of the wider Canva
 	if (!nestedCard) throw new Error('Missing nested card.');
 	expect(bounds('#nested-proof').left).toBeGreaterThan(nestedCard.getBoundingClientRect().left);
 	expect(bounds('#nested-proof').right).toBeLessThan(nestedCard.getBoundingClientRect().right);
-	const local = fixtureLocator(frame, requiredElement(fixture, '#width-code'));
+	const originalCode = requiredElement(fixture, '#width-code');
+	const local = fixtureLocator(frame, originalCode);
 	await userEvent.hover(local);
 	await local.getByRole('button', { name: 'Open Canvas code in a sidebar', exact: true }).click();
 	await expect
@@ -431,11 +432,24 @@ test('document headings and Reading prose share the left edge of the wider Canva
 		.toBeLessThan(1);
 	await page.viewport(390, 900);
 	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
-	expect(bounds('.ex-drawer').width).toBeLessThanOrEqual(274);
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Canvas code', exact: true }))
+		.toBeVisible();
+	expect(bounds('.ex-inspect-dialog[data-mode="sidebar"]').width).toBeGreaterThanOrEqual(389);
+	expect(bounds('.ex-inspect-dialog[data-mode="sidebar"]').width).toBeLessThanOrEqual(391);
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Close');
+	await page.viewport(1600, 1000);
+	await expect
+		.element(frame.getByRole('complementary', { name: 'Canvas code', exact: true }))
+		.toBeVisible();
+	expect(fixture.querySelector('dialog[open]')).toBeNull();
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Close');
 	await frame
 		.getByRole('complementary', { name: 'Canvas code', exact: true })
 		.getByRole('button', { name: 'Close', exact: true })
 		.click();
+	expect(requiredElement(fixture, '#width-code')).toBe(originalCode);
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Open Canvas code in a sidebar');
 	await page.viewport(390, 900);
 	await expect.poll((): number => fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
 });
@@ -480,20 +494,47 @@ test('phone headings keep their order and toolbar controls clear an open drawer'
 	if (!view) throw new Error('Missing fixture window.');
 	const fontSize = (selector: string): number =>
 		Number.parseFloat(view.getComputedStyle(requiredElement(fixture, selector)).fontSize);
-	const local = fixtureLocator(frame, requiredElement(fixture, '#width-code'));
+	const originalCode = requiredElement(fixture, '#width-code');
+	const local = fixtureLocator(frame, originalCode);
 	await userEvent.hover(local);
 	await local.getByRole('button', { name: 'Open Canvas code in a sidebar', exact: true }).click();
 	await page.viewport(390, 900);
 	await expect
 		.poll((): number => fontSize('#reading-heading'))
 		.toBeLessThan(fontSize('#reading-title'));
-	const drawer = requiredElement(fixture, '.ex-drawer').getBoundingClientRect();
-	expect(drawer.width).toBeGreaterThan(0);
-	// The controls this layout moved into the phone toolbar must not hide under the drawer.
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Canvas code', exact: true }))
+		.toBeVisible();
+	const sheet = requiredElement(fixture, '.ex-inspect-dialog[data-mode="sidebar"]');
+	await expect.poll((): number => sheet.getBoundingClientRect().right).toBeLessThanOrEqual(391);
+	const sheetBounds = sheet.getBoundingClientRect();
+	expect(sheetBounds.width).toBeGreaterThanOrEqual(389);
+	expect(sheetBounds.right).toBeLessThanOrEqual(391);
+	expect(sheetBounds.left).toBeGreaterThanOrEqual(0);
+	expect(sheet.textContent).toContain("export const sectionWidth = 'canvas';");
+	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+	expect(requiredElement(fixture, '.ex-drawer').getBoundingClientRect().width).toBe(0);
+	// The native phone sheet replaces the desktop drawer and hides the underlying reader controls.
+	for (const selector of ['.ex-search-trigger', '.ex-theme-toggle']) {
+		expect(requiredElement(fixture, selector).getBoundingClientRect().width).toBe(0);
+	}
+	await frame
+		.getByRole('dialog', { name: 'Canvas code', exact: true })
+		.getByRole('button', { name: 'Close', exact: true })
+		.click();
+	await expect.poll((): Element | null => fixture.querySelector('dialog[open]')).toBeNull();
+	expect(requiredElement(fixture, '#width-code')).toBe(originalCode);
+	await expect
+		.poll((): string | null => fixture.activeElement?.getAttribute('aria-label') ?? null)
+		.toBe('Open Canvas code in a sidebar');
 	for (const selector of ['.ex-search-trigger', '.ex-theme-toggle']) {
 		const control = requiredElement(fixture, selector).getBoundingClientRect();
-		if (control.width === 0) continue;
-		expect(control.right).toBeLessThanOrEqual(drawer.left);
+		expect(control.width).toBeGreaterThan(0);
+		expect(control.height).toBeGreaterThan(0);
+		expect(control.left).toBeGreaterThanOrEqual(0);
+		expect(control.right).toBeLessThanOrEqual(391);
+		expect(control.top).toBeGreaterThanOrEqual(0);
+		expect(control.bottom).toBeLessThanOrEqual(900);
 	}
 });
 

@@ -13,6 +13,7 @@
 		"./packaging": "./src/node/packaging.ts",
 		"./source-text": "./src/core/source-text.ts",
 		"./markdown-content": "./src/render/markdown-content.ts",
+		"./review-model": "./src/core/review-model.ts",
 		"./vocabulary": "./src/vocabulary.ts",
 		"./check": "./src/node/check.ts"
 	},

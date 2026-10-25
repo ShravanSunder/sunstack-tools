@@ -27,8 +27,37 @@ declare module 'vitest/browser' {
 		panInspection: () => Promise<void>;
 		clickInspectionBackdrop: () => Promise<void>;
 		setReducedMotion: (preference: 'reduce' | 'no-preference') => Promise<void>;
+		dragReviewSelection: (coordinates: {
+			readonly startX: number;
+			readonly startY: number;
+			readonly endX: number;
+			readonly endY: number;
+		}) => Promise<void>;
 	}
 }
+
+/** Real text selection uses pointer input in the existing fixture, never a Selection setter. */
+export const dragReviewSelection: BrowserCommand<
+	[
+		{
+			readonly startX: number;
+			readonly startY: number;
+			readonly endX: number;
+			readonly endY: number;
+		},
+	],
+	void
+> = async (context, coordinates): Promise<void> => {
+	if (context.provider.name !== 'playwright') throw new Error('Text selection needs Playwright.');
+	const bounds = await context.iframe.getByTestId('explainer').boundingBox();
+	if (!bounds) throw new Error('Review fixture is not visible.');
+	await context.page.mouse.move(bounds.x + coordinates.startX, bounds.y + coordinates.startY);
+	await context.page.mouse.down();
+	await context.page.mouse.move(bounds.x + coordinates.endX, bounds.y + coordinates.endY, {
+		steps: 12,
+	});
+	await context.page.mouse.up();
+};
 
 /** Set the real browser preference so motion checks exercise the CSS media query. */
 export const setReducedMotion: BrowserCommand<['reduce' | 'no-preference'], void> = async (

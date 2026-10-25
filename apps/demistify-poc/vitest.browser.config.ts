@@ -5,6 +5,7 @@ import { browserPort } from './tests/browser/browser-port.ts';
 import { builtFixtures } from './tests/browser/built-fixtures.ts';
 import {
 	clickInspectionBackdrop,
+	dragReviewSelection,
 	panInspection,
 	setReducedMotion,
 } from './tests/browser/gesture-commands.ts';
@@ -17,7 +18,7 @@ export default defineConfig({
 		testTimeout: 20_000,
 		expect: { poll: { timeout: 5_000 } },
 		browser: {
-			commands: { clickInspectionBackdrop, panInspection, setReducedMotion },
+			commands: { clickInspectionBackdrop, dragReviewSelection, panInspection, setReducedMotion },
 			enabled: true,
 			headless: true,
 			provider: playwright({ actionTimeout: 5_000 }),

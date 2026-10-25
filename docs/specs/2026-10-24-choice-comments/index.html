@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Choices and comments design</title>
+    <link rel="stylesheet" href="../../../packages/demistify/dist/theme.css">
+    <script type="module" src="../../../packages/demistify/dist/runtime.js"></script>
+  </head>
+  <body>
+    <ex-nav for="content"></ex-nav>
+    <ex-document id="content">
+      <h1>Choices and comments design</h1>
+      <p>Read the owner outcomes, then follow their observable behavior, component structure and proof. Each view below reads its source document.</p>
+      <ex-tabs label="Design documents" data-width="canvas">
+        <section id="requirements" label="Outcomes"><ex-markdown src="./requirements.md"></ex-markdown></section>
+        <section id="specification" label="Behavior"><ex-markdown src="./specification.md"></ex-markdown></section>
+        <section id="structure" label="Structure"><ex-markdown src="./program-design.md"></ex-markdown></section>
+        <section id="verification" label="Proof"><ex-markdown src="./verification-design.md"></ex-markdown></section>
+      </ex-tabs>
+    </ex-document>
+  </body>
+</html>

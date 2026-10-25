@@ -793,6 +793,39 @@ ex-board[data-mode='map'] ex-region[data-open] {
 	cursor: col-resize;
 	user-select: none;
 }
+@media (max-width: 899px) {
+	:root[data-drawer] {
+		--ex-drawer-used-width: 0px;
+	}
+	:root[data-drawer] body {
+		padding-inline-end: var(--space-5);
+	}
+}
+@media (max-width: 760px) {
+	:root[data-drawer] body:has(ex-document) {
+		padding-inline-end: var(--space-2);
+	}
+}
+.ex-drawer:not([hidden]),
+.ex-inspect-dialog[data-mode='sidebar'][open] {
+	animation: ex-sidebar-enter var(--motion-base) var(--ease-out);
+}
+@keyframes ex-sidebar-enter {
+	from {
+		opacity: 0;
+		transform: translateX(var(--space-6));
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.ex-drawer:not([hidden]),
+	.ex-inspect-dialog[data-mode='sidebar'][open] {
+		animation: none;
+	}
+}
 .ex-inspect-placeholder {
 	margin: 0;
 	padding: var(--space-4);
