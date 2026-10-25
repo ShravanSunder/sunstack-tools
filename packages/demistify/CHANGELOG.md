@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.13.0
+
+### Minor Changes
+
+- 36bb207: Add reusable native choices and local Comments with exact text anchors, identified review transfer and shared inspection lifecycle.
+
 ## 1.12.0
 
 ### Minor Changes
