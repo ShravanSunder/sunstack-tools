@@ -73,7 +73,7 @@ export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> 
 	for (const element of candidates) {
 		if (element.closest(`${excludedText},ex-comments,nav,[role="tablist"]`)) continue;
 		const generatedOwner = element.parentElement?.closest(
-			'ex-tree,ex-file-tree,ex-explorer,ex-gallery,ex-stat',
+			'ex-choice,ex-tree,ex-file-tree,ex-explorer,ex-gallery,ex-stat',
 		);
 		if (generatedOwner && !element.hasAttribute('data-comment-label')) continue;
 		ensureReviewTargetId(element, root);
