@@ -7,6 +7,7 @@ import type { Plugin } from 'vite';
 
 import { indexCollectionSearch } from '../../../../packages/demistify/src/node/collection-search.ts';
 import { embedMarkdownFiles } from '../../../../packages/demistify/src/node/markdown-files.ts';
+import { installDefaultCommentsFixtures } from './default-comments-fixtures.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const contentTypes: Readonly<Record<string, string>> = {
@@ -89,6 +90,7 @@ export async function builtFixtures(): Promise<Plugin> {
 	return {
 		name: 'demistify-built-fixtures',
 		configureServer(server): void {
+			installDefaultCommentsFixtures(server);
 			process.stdout.write(`Demistify browser snapshot: ${snapshot}\n`);
 			server.middlewares.use('/__demistify/', (request, response): void => {
 				const path = decodeURIComponent((request.url ?? '').split('?')[0] ?? '');

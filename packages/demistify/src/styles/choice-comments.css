@@ -26,8 +26,19 @@ ex-choice > .ex-inspect-controls {
 .ex-choice-option,
 ex-choice,
 ex-document[document-id],
+.ex-comment-target,
 [data-comment-label] {
 	position: relative;
+}
+.ex-comment-target:is(p, li, h1, h2, h3, h4, h5, h6) {
+	padding-inline-end: var(--space-10);
+	min-height: var(--space-8);
+}
+.ex-comment-target:is(ex-callout, ex-card, ex-tree, ex-file-tree) {
+	padding-inline-end: var(--space-10);
+}
+.ex-comment-target > .ex-inspect-controls {
+	right: var(--space-10);
 }
 ex-option.ex-choice-option {
 	display: grid;
@@ -207,7 +218,10 @@ ex-option.ex-choice-option > input {
 	opacity: 0;
 	transition: opacity var(--motion-fast);
 }
-:is(ex-choice, .ex-choice-option, ex-document, [data-comment-label]):is(:hover, :focus-within)
+:is(ex-choice, .ex-choice-option, ex-document, [data-comment-label], .ex-comment-target):is(
+		:hover,
+		:focus-within
+	)
 	> .ex-entity-comment,
 .ex-choice-table tr:is(:hover, :focus-within) > td > .ex-entity-comment,
 .ex-entity-comment:not([data-comment-count='0']) {

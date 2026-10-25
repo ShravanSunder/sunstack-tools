@@ -1,4 +1,5 @@
 import { reportIssue } from '../core/issues.ts';
+import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
 import type { ExplorerController } from '../explorer/explorer-controller.ts';
 
 /** Heavy graph/table UI loads only for documents that include the explorer island. */
@@ -15,20 +16,24 @@ export class ExplorerIsland extends HTMLElement {
 		this.loadError.remove();
 		this.loading = true;
 		this.setAttribute('aria-busy', 'true');
-		void import('../explorer/explorer-controller.ts')
-			.then(async ({ mountExplorer }): Promise<void> => {
-				this.controller = await mountExplorer(this);
+		const load = import('../explorer/explorer-controller.ts')
+			.then(async ({ mountExplorer }): Promise<ReviewSourceResult> => {
+				const mounted = await mountExplorer(this);
+				this.controller = mounted.controller;
+				return { kind: 'loaded', source: mounted.source };
 			})
-			.catch((error: unknown): void => {
+			.catch((error: unknown): ReviewSourceResult => {
 				this.removeAttribute('aria-busy');
 				this.loadError.textContent = 'Explorer could not load.';
 				this.loadError.setAttribute('role', 'status');
 				this.append(this.loadError);
 				reportIssue(this, error instanceof Error ? error.message : 'Explorer failed to load.');
+				return { kind: 'failed' };
 			})
 			.finally((): void => {
 				this.loading = false;
 			});
+		registerReviewSource(this, load);
 	}
 	disconnectedCallback(): void {
 		this.controller?.dispose();

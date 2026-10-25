@@ -6,6 +6,7 @@ import {
 	parseMarkdownSource,
 	type MarkdownSource,
 } from '../core/markdown-source.ts';
+import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
 import { readIslandSource } from '../core/source-text.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
@@ -48,7 +49,7 @@ function installSourceInspection(owner: HTMLElement, source: MarkdownSource): vo
 
 /** Inline or fetched Markdown; retained source never replaces its rendered document view. */
 export class MarkdownIsland extends HTMLElement {
-	private renderPromise: Promise<void> | undefined;
+	private renderPromise: Promise<ReviewSourceResult> | undefined;
 	connectedCallback(): void {
 		if (this.hasAttribute('prepared')) {
 			assignHeadingFragments(this);
@@ -58,6 +59,7 @@ export class MarkdownIsland extends HTMLElement {
 			return;
 		}
 		this.renderPromise ??= this.renderContent();
+		registerReviewSource(this, this.renderPromise);
 	}
 	private async readSource(): Promise<MarkdownSource | undefined> {
 		const embedded = retainedSource(this);
@@ -74,7 +76,7 @@ export class MarkdownIsland extends HTMLElement {
 		const text = readIslandSource(this);
 		return text === undefined ? undefined : { text, reference: '' };
 	}
-	private async renderContent(): Promise<void> {
+	private async renderContent(): Promise<ReviewSourceResult> {
 		try {
 			const source = await this.readSource();
 			if (source) {
@@ -98,6 +100,7 @@ export class MarkdownIsland extends HTMLElement {
 			installIslandInspector(this);
 			if (source) installSourceInspection(this, source);
 			this.dispatchEvent(new Event('island-ready', { bubbles: true }));
+			return { kind: 'loaded', source: source?.text ?? '' };
 		} catch (error) {
 			const localHint =
 				location.protocol === 'file:'
@@ -106,6 +109,7 @@ export class MarkdownIsland extends HTMLElement {
 			this.textContent = `Markdown could not load: ${String(error)}${localHint}`;
 			this.setAttribute('role', 'alert');
 			reportIssue(this, this.textContent);
+			return { kind: 'failed' };
 		} finally {
 			this.removeAttribute('aria-busy');
 		}

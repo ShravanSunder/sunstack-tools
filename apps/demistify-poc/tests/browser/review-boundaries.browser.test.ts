@@ -402,6 +402,8 @@ test('malformed declarations reject visibly without another Comments authority',
 		.toBeVisible();
 	const unidentified = fixture.createElement('ex-document');
 	unidentified.id = 'unidentified';
+	// Missing metadata now derives defaults; an explicitly invalid override still rejects.
+	unidentified.setAttribute('document-id', '');
 	fixture.body.append(unidentified);
 	const missingIdentity = fixture.createElement('ex-comments');
 	missingIdentity.setAttribute('for', 'unidentified');

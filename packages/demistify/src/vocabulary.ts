@@ -98,10 +98,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-comments': {
 		description:
-			'One local review of an explicitly identified document revision, with comments and current answers.',
+			'One local review with comments and current answers; supplied automatically unless disabled.',
 		attributes: {
 			for: {
-				description: 'Original ex-document DOM ID; requires document-id and revision.',
+				description: 'Original ex-document DOM ID. Missing logical identity/revision are derived.',
 				type: { kind: 'id' },
 				required: true,
 			},
@@ -136,8 +136,11 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		description:
 			'The page body: bare Markdown, islands and layouts; adds outline and theme toggle.',
 		attributes: {
-			'document-id': text('Explicit logical document identity when Comments binds.'),
-			revision: text('Explicit content revision when Comments binds.'),
+			'document-id': text(
+				'Logical review identity override; defaults to the page URL without query/fragment.',
+			),
+			revision: text('Content revision override; defaults to an authored-content fingerprint.'),
+			comments: oneOf('Disable automatic and explicit Comments for this document.', ['off']),
 		},
 	},
 	'ex-presentation': {

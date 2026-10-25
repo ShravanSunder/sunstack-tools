@@ -17,7 +17,8 @@ function copyNode(source: Node): Node {
 		return copy;
 	}
 	for (const child of source.childNodes) {
-		if (child instanceof Element && child.matches('.ex-inspect-controls')) continue;
+		if (child instanceof Element && child.matches('.ex-inspect-controls,[data-comment-control]'))
+			continue;
 		copy.appendChild(copyNode(child));
 	}
 	if (source instanceof HTMLInputElement && copy instanceof HTMLInputElement) {
@@ -46,7 +47,13 @@ export function copyInspectionContent(owner: HTMLElement): HTMLElement | undefin
 	}
 	for (const element of elements) {
 		// Cloning markup does not clone listeners: each island reconnects its rendered controls.
-		element.classList.remove('ex-linked-node', 'ex-traced', 'ex-route-focus');
+		element.classList.remove(
+			'ex-linked-node',
+			'ex-traced',
+			'ex-route-focus',
+			'ex-comment-target',
+			'ex-comment-active',
+		);
 		element.removeAttribute('data-traced');
 		for (const attribute of Array.from(element.attributes)) {
 			let value = attribute.value;

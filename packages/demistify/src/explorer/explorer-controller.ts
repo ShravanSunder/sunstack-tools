@@ -421,7 +421,9 @@ export class ExplorerController {
 	}
 }
 
-export async function mountExplorer(owner: HTMLElement): Promise<ExplorerController> {
+export async function mountExplorer(
+	owner: HTMLElement,
+): Promise<{ readonly controller: ExplorerController; readonly source: string }> {
 	const sourcePath = owner.getAttribute('src');
 	let input: unknown;
 	if (sourcePath) {
@@ -434,7 +436,10 @@ export async function mountExplorer(owner: HTMLElement): Promise<ExplorerControl
 		input = JSON.parse(inline.textContent ?? '');
 	}
 	try {
-		return new ExplorerController(owner, parseGraphDocument(input));
+		return {
+			controller: new ExplorerController(owner, parseGraphDocument(input)),
+			source: JSON.stringify(input),
+		};
 	} catch (error) {
 		reportIssue(owner, error instanceof Error ? error.message : 'Invalid explorer source.');
 		throw error;

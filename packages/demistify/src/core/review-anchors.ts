@@ -11,6 +11,7 @@ export type ResolvedCommentAnchor =
 
 const excludedText =
 	'button,input,textarea,select,script,style,template,.ex-inspect-controls,.ex-choice-inline > summary,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
+const automaticallyLabeledHeadings = new WeakSet<HTMLElement>();
 
 function fragmentText(fragment: DocumentFragment): string {
 	for (const control of fragment.querySelectorAll(excludedText)) control.remove();
@@ -40,22 +41,58 @@ export function reviewTargetText(element: HTMLElement): string {
 		.join('');
 }
 
+/** Structural identity is stable within the same authored content revision. */
+export function ensureReviewTargetId(element: HTMLElement, root: HTMLElement): void {
+	if (element.id) return;
+	const path: string[] = [];
+	let current: HTMLElement | null = element;
+	while (current && current !== root && !current.id) {
+		const parent: HTMLElement | null = current.parentElement;
+		if (!parent) break;
+		const siblings = [...parent.children].filter(
+			(sibling): boolean => sibling.localName === current?.localName,
+		);
+		path.unshift(`${current.localName}-${siblings.indexOf(current) + 1}`);
+		current = parent;
+	}
+	const base = `${current?.id || root.id}--review-${path.join('-')}`;
+	let candidate = base;
+	let suffix = 1;
+	while (root.ownerDocument.getElementById(candidate)) candidate = `${base}-${++suffix}`;
+	element.id = candidate;
+}
+
 export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> {
 	const targets = new Map<string, ReviewTarget>();
 	const candidates = [
 		root,
 		...root.querySelectorAll<HTMLElement>(
-			'ex-choice[id],.ex-choice-option[id],[data-comment-label][id]',
+			'ex-choice[id],.ex-choice-option[id],[data-comment-label],p,li,h1,h2,h3,h4,h5,h6,ex-callout,ex-card,ex-tree,ex-file-tree',
 		),
 	];
 	for (const element of candidates) {
-		if (!element.id || element.closest('[data-inspector-copy],[data-inspector-content]')) continue;
+		if (element.closest(`${excludedText},ex-comments,nav,[role="tablist"]`)) continue;
+		const generatedOwner = element.parentElement?.closest(
+			'ex-tree,ex-file-tree,ex-explorer,ex-gallery,ex-stat',
+		);
+		if (generatedOwner) continue;
+		ensureReviewTargetId(element, root);
+		if (
+			element.matches('h1,h2,h3,h4,h5,h6') &&
+			(!element.hasAttribute('aria-label') || automaticallyLabeledHeadings.has(element))
+		) {
+			// An interactive descendant otherwise changes the heading's accessible name.
+			element.setAttribute('aria-label', reviewTargetText(element).replace(/\s+/g, ' ').trim());
+			automaticallyLabeledHeadings.add(element);
+		}
 		if (targets.has(element.id)) throw new Error(`Duplicate review target id: ${element.id}`);
 		const label =
 			[
 				element.getAttribute('data-comment-label'),
 				element.getAttribute('title'),
+				element.getAttribute('label'),
 				element.querySelector('h1')?.textContent,
+				reviewTargetText(element).replace(/\s+/g, ' ').trim().slice(0, 120),
 			]
 				.find((value): value is string => Boolean(value?.trim()))
 				?.trim() ?? element.id;
@@ -96,7 +133,12 @@ export function captureCommentAnchor(
 		range.endContainer instanceof Element ? range.endContainer : range.endContainer.parentElement;
 	const blockSelector = 'p,li,blockquote,pre,h1,h2,h3,h4,h5,h6';
 	const crossesBlocks = startElement?.closest(blockSelector) !== endElement?.closest(blockSelector);
-	const target = targets.get(crossesBlocks ? root.id : (element?.id ?? root.id));
+	const explicitOwner = ancestor?.closest<HTMLElement>(
+		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id]',
+	);
+	const target = targets.get(
+		crossesBlocks ? root.id : (explicitOwner?.id ?? element?.id ?? root.id),
+	);
 	if (!target) return undefined;
 	const text = reviewTargetText(target.element);
 	const start = offsetBefore(target.element, range.startContainer, range.startOffset);

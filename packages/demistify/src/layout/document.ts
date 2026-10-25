@@ -1,5 +1,6 @@
 import { adoptBareMarkdown } from '../core/bare-markdown.ts';
 import { createIconButton } from '../core/icons.ts';
+import { captureReviewDocument, installDefaultComments } from '../core/review-document.ts';
 import { installIslandInspector, openIsland } from '../islands/inspector.ts';
 import { resolveTarget } from './target-resolution.ts';
 export { revealElement } from './target-resolution.ts';
@@ -13,6 +14,8 @@ export class StructuralIsland extends HTMLElement {
 export class GridIsland extends HTMLElement {}
 export class DocumentIsland extends StructuralIsland {
 	override connectedCallback(): void {
+		captureReviewDocument(this);
+		queueMicrotask(installDefaultComments);
 		adoptBareMarkdown(this);
 		const content = Array.from(this.children).filter(
 			(child): boolean => !child.matches('script,template,style,[hidden],.ex-inspect-controls'),

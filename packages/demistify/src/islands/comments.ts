@@ -8,8 +8,8 @@ import {
 	resolveCommentAnchor,
 	type ReviewTarget,
 } from '../core/review-anchors.ts';
+import { resolveReviewDocumentIdentity } from '../core/review-document.ts';
 import {
-	documentIdentitySchema,
 	reviewEnvelopeSchema,
 	type CommentAnchor,
 	type PageComment,
@@ -38,6 +38,7 @@ export class CommentsIsland extends HTMLElement {
 	private active: PageComment | undefined;
 	private readonly highlightName = `ex-comments-${crypto.randomUUID()}`;
 	private readonly highlightStyle = document.createElement('style');
+	private connectionGeneration = 0;
 
 	get review(): ReviewEnvelope {
 		if (!this.store || !this.root) throw new Error('Comments is not bound to a document.');
@@ -49,18 +50,18 @@ export class CommentsIsland extends HTMLElement {
 
 	connectedCallback(): void {
 		if (this.closest('[data-inspector-copy],[data-inspector-content]')) return;
-		try {
-			this.connect();
-		} catch (error) {
+		const generation = ++this.connectionGeneration;
+		void this.connect(generation).catch((error: unknown): void => {
+			if (!this.isConnected || generation !== this.connectionGeneration) return;
 			const message = document.createElement('p');
 			message.setAttribute('role', 'alert');
 			message.textContent = `Comments could not load: ${String(error)}`;
 			this.append(message);
 			reportIssue(this, message.textContent);
-		}
+		});
 	}
 
-	private connect(): void {
+	private async connect(generation: number): Promise<void> {
 		const binding = this.getAttribute('for')?.trim();
 		const root = binding ? document.getElementById(binding) : null;
 		if (
@@ -69,12 +70,11 @@ export class CommentsIsland extends HTMLElement {
 			root.closest('[data-inspector-copy],[data-inspector-content]')
 		)
 			throw new Error('ex-comments needs for="…" naming an original ex-document.');
+		if (root.getAttribute('comments') === 'off') return;
+		const identity = await resolveReviewDocumentIdentity(root);
+		if (!this.isConnected || generation !== this.connectionGeneration) return;
 		if (boundDocuments.has(root) && boundDocuments.get(root) !== this)
 			throw new Error('A document can have only one Comments surface.');
-		const identity = documentIdentitySchema.parse({
-			documentId: root.getAttribute('document-id'),
-			documentRevision: root.getAttribute('revision'),
-		});
 		const existing = this.store?.snapshot();
 		if (
 			existing &&
@@ -188,6 +188,7 @@ export class CommentsIsland extends HTMLElement {
 	}
 
 	disconnectedCallback(): void {
+		this.connectionGeneration++;
 		this.events.abort();
 		this.observer?.disconnect();
 		if (this.frame !== undefined) cancelAnimationFrame(this.frame);
@@ -198,7 +199,7 @@ export class CommentsIsland extends HTMLElement {
 		this.highlightStyle.remove();
 		for (const [element, control] of this.controls) {
 			control.remove();
-			element.classList.remove('ex-comment-active');
+			element.classList.remove('ex-comment-active', 'ex-comment-target');
 		}
 		this.controls.clear();
 		if (this.root && boundDocuments.get(this.root) === this) boundDocuments.delete(this.root);
@@ -256,9 +257,14 @@ export class CommentsIsland extends HTMLElement {
 		for (const [element, control] of this.controls)
 			if (!originalNodes.has(element)) {
 				control.remove();
+				element.classList.remove('ex-comment-target');
 				this.controls.delete(element);
 			}
 		for (const target of this.targets.values()) {
+			// The page already has its shared Comments launcher. Keep the root as the
+			// cross-block anchor without stacking a second icon over its first heading.
+			if (target.element === this.root && !this.root.hasAttribute('data-comment-label')) continue;
+			target.element.classList.add('ex-comment-target');
 			const existing = this.controls.get(target.element);
 			if (existing?.isConnected) continue;
 			existing?.remove();
