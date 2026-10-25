@@ -5,6 +5,45 @@ import { fixtureLocator, insideViewport, openFixture, requiredElement } from './
 
 afterEach((): void => document.body.replaceChildren());
 
+for (const width of [1600, 390]) {
+	test(`collection walkthroughs stay available without local paths at ${width}px`, async (): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('search', '', 'reading.html');
+		expect(fixture.querySelector('ex-presentation')).toBeNull();
+		const launcher = frame.getByRole('button', { name: 'Browse walkthroughs', exact: true });
+		await expect.element(launcher).toBeVisible();
+		await launcher.click();
+		const dialog = frame.getByRole('dialog', { name: 'Search documents', exact: true });
+		await expect.element(dialog.getByRole('option', { name: /Review queue/ })).toBeVisible();
+		await expect.element(dialog.getByRole('option', { name: /Review captures/ })).toBeVisible();
+		await userEvent.keyboard('{Escape}');
+		await expect
+			.poll((): string | null | undefined => fixture.activeElement?.getAttribute('aria-label'))
+			.toBe('Browse walkthroughs');
+		await userEvent.keyboard('w');
+		await expect.element(dialog).toBeVisible();
+		await dialog.getByRole('option', { name: /Review queue/ }).click();
+		await expect
+			.element(frame.getByRole('region', { name: 'Walkthrough player', exact: true }))
+			.toBeVisible();
+		const destination = document.querySelector('iframe')?.contentDocument;
+		expect(destination?.location.pathname).toBe('/__demistify/search/index.html');
+		expect(destination?.querySelector('.ex-route-focus')?.id).toBe('heading-ownership');
+		await frame.getByRole('button', { name: 'Close walkthrough', exact: true }).click();
+		await frame.getByRole('button', { name: 'Browse pages', exact: true }).click();
+		await expect
+			.element(frame.getByRole('navigation', { name: 'Pages', exact: true }))
+			.toBeVisible();
+	});
+}
+
+test('a page without local or indexed paths has no empty walkthrough launcher', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('review', '', 'choice-only.html');
+	expect(fixture.querySelector('ex-presentation')).toBeNull();
+	expect(fixture.querySelector('[data-ex-search-index]')).toBeNull();
+	expect(fixture.querySelector('.ex-presentations-trigger')).toBeNull();
+});
+
 test('command search shows heading ancestry and opens the existing Markdown destination', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('navigation');
 	await expect.element(frame.getByRole('heading', { name: 'Recovery', exact: true })).toBeVisible();

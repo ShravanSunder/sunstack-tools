@@ -68,7 +68,7 @@ Response and feedback controls follow the requested task: feedback alone needs n
 
 ## 3. Compose content once and keep it navigable
 
-Use stable island IDs and meaningful document headings. Keep the small `ex-nav` from the shell on every page offering a Walkthrough or Gallery Journey; the path declaration itself is hidden. A collection adds native Pages links inside that same navigation element. Do not require starting a guided path to read a page or follow an ordinary heading link.
+Use stable island IDs and meaningful document headings. Keep the small `ex-nav` from the shell on every page offering a Walkthrough or Gallery Journey, including indexed collection pages with no local path. A collection adds native Pages links inside that same navigation element; its generated index makes source-owned paths available across the listed pages. Do not require starting a guided path to read a page or follow an ordinary heading link.
 
 A card groups one named option, component or finding. A callout highlights a proposal, decision, risk, question or unverified outcome; a subject icon says what it concerns. A recommendation is not an owner's chosen option. Local optional detail uses `details`/`summary`, not a Walkthrough. Rich content may nest, but another frame must add meaning: a tabbed alternative containing a Flow rarely needs a large outer card around the Flow's own cards.
 
