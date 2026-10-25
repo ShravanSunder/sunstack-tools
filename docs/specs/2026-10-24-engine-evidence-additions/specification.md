@@ -29,7 +29,7 @@ Three existing entities change:
 
 ### R45 settlement
 
-A selection is **complete** when its coverage and omissions show no limit, cutoff or unavailable source that could have hidden an item.
+A selection is **complete** when its coverage and omissions show no limit, cutoff or unavailable source that could have hidden an item. An unreadable record is an unavailable source: a line that isn't valid JSON, or a record of a known type its adapter can't read (`MalformedRecord`). A record of a type the adapter doesn't normalize, an unknown injection and an ambiguous turn stay reported as positioned coverage gaps, but they don't make a selection incomplete. Their content was read and isn't a supported item; the coverage report lists them, so a new tool form shows up there. (Delivery correction, 2026-10-24, from the Implementer's malformed-record probe and the gap breakdown of the frozen real inputs.)
 
 | Check | Selected items | Complete? | Result |
 | --- | --- | --- | --- |

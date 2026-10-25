@@ -1,8 +1,9 @@
 use crate::*;
 use std::borrow::Cow;
 use sunstack_evidence::{
-    CaptureTail, DiscoveryCoverage, EvidenceCode, EvidenceSession, FrontmatterFieldContent,
-    MarkdownByteRange, Omission, OmissionReason, SelectionContent, SelectionCoverage,
+    CaptureTail, CoverageGap, DiscoveryCoverage, EvidenceCode, EvidenceSession,
+    FrontmatterFieldContent, MarkdownByteRange, Omission, OmissionReason, SelectionContent,
+    SelectionCoverage,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -54,6 +55,19 @@ fn incomplete_selection(omissions: &[Omission], coverage: &SelectionCoverage) ->
                 diagnostics.push(sunstack_evidence::Diagnostic::new(
                     EvidenceCode::MissingContext,
                 ));
+            }
+            if capture
+                .gaps
+                .iter()
+                .any(|gap| matches!(gap, CoverageGap::MalformedRecord { .. }))
+            {
+                let mut diagnostic =
+                    sunstack_evidence::Diagnostic::new(EvidenceCode::SourceUnavailable);
+                diagnostic.location = sunstack_evidence::DiagnosticLocation::Source {
+                    source: capture.source.clone(),
+                    span: None,
+                };
+                diagnostics.push(diagnostic);
             }
         }
         SelectionCoverage::ChangeSet { discovery, .. } => match discovery {

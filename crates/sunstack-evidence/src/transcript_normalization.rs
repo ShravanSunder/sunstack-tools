@@ -199,7 +199,11 @@ impl NormalizationState {
                             .into(),
                     }),
                     "thinking" => blocks.push(MessageBlock::Thinking {
-                        text: field(item, "thinking")?.into(),
+                        text: item
+                            .get("thinking")
+                            .and_then(Value::as_str)
+                            .ok_or(EvidenceCode::AdapterOutputInvalid)?
+                            .into(),
                     }),
                     "tool_use" => {
                         if assistant {

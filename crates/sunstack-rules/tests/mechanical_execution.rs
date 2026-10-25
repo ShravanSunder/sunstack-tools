@@ -318,9 +318,9 @@ fn assert_report_contracts(wire: &Value) {
 async fn conversation_presence(
     present: bool,
     count: usize,
-    complete: bool,
+    capture_suffix: &str,
     expected: Option<&str>,
-) {
+) -> Value {
     let directory = tempfile::tempdir().unwrap();
     let root = directory.path();
     let selector = json!({"kind":"conversation","turns":{"kind":"all"},"user_messages":"excluded","assistant_messages":"excluded","tool_use":{"kind":"included","tools":{"kind":"all"},"results":"excluded","input_pattern":"needle"},"hook_injected":"excluded"});
@@ -330,15 +330,18 @@ async fn conversation_presence(
         json!({"kind":"expect","expect":{"present":present}}),
     );
     fixture::write_set(root, &[rule], vec![]);
-    let mut bytes = String::new();
+    let mut bytes = concat!(
+        "{\"type\":\"session_meta\"}\n",
+        "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[]}}\n",
+        "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[]}}\n"
+    ).to_owned();
     let mut locations = Vec::new();
     for index in 0..count {
         locations.push(json!({"record_id":format!("tool:call{index}"),"position":bytes.len()}));
         bytes.push_str(&format!("{}\n",json!({"type":"response_item","payload":{"type":"custom_tool_call","call_id":format!("call{index}"),"name":"exec","input":"needle"}})));
     }
-    if !complete {
-        bytes.push_str("{\"type\":");
-    }
+    let malformed_position = bytes.len();
+    bytes.push_str(capture_suffix);
     let path = root.join("rollout.jsonl");
     std::fs::write(&path, bytes).unwrap();
     let mut input = presence_input(
@@ -352,39 +355,75 @@ async fn conversation_presence(
     assert_eq!(occurrence["target"]["kind"], "conversation_records");
     assert_eq!(occurrence["target"]["records"], json!(locations));
     assert!(occurrence["target"].get("record_ids").is_none());
-    if !complete {
+    let gaps = wire["report"]["captures"][0]["gaps"].as_array().unwrap();
+    for kind in ["unsupported_record", "unknown_injection", "ambiguous_turn"] {
+        assert!(gaps.iter().any(|gap| gap["kind"] == kind));
+    }
+    if !capture_suffix.is_empty() && !capture_suffix.ends_with('\n') {
         assert_eq!(wire["report"]["captures"][0]["tail"]["kind"], "incomplete");
+    } else {
+        assert_eq!(wire["report"]["captures"][0]["tail"]["kind"], "complete");
+    }
+    if capture_suffix.ends_with('\n') {
+        assert!(gaps.contains(&json!({"kind":"malformed_record","position":malformed_position})));
     }
     assert_report_contracts(&wire);
+    wire
 }
 
 #[tokio::test]
 async fn absent_check_with_selected_items_fails_for_complete_and_incomplete_capture() {
-    for complete in [true, false] {
-        conversation_presence(false, 2, complete, Some("fail")).await;
+    for capture_suffix in ["", "{\"type\":"] {
+        conversation_presence(false, 2, capture_suffix, Some("fail")).await;
     }
 }
 #[tokio::test]
 async fn absent_check_with_complete_empty_capture_passes() {
-    conversation_presence(false, 0, true, Some("pass")).await;
+    conversation_presence(false, 0, "", Some("pass")).await;
 }
 #[tokio::test]
 async fn absent_check_with_incomplete_empty_capture_is_unresolved() {
-    conversation_presence(false, 0, false, None).await;
+    conversation_presence(false, 0, "{\"type\":", None).await;
 }
 #[tokio::test]
 async fn present_check_with_selected_items_passes_for_complete_and_incomplete_capture() {
-    for complete in [true, false] {
-        conversation_presence(true, 2, complete, Some("pass")).await;
+    for capture_suffix in ["", "{\"type\":"] {
+        conversation_presence(true, 2, capture_suffix, Some("pass")).await;
     }
 }
 #[tokio::test]
 async fn present_check_with_complete_empty_capture_fails() {
-    conversation_presence(true, 0, true, Some("fail")).await;
+    conversation_presence(true, 0, "", Some("fail")).await;
 }
 #[tokio::test]
 async fn present_check_with_incomplete_empty_capture_is_unresolved() {
-    conversation_presence(true, 0, false, None).await;
+    conversation_presence(true, 0, "{\"type\":", None).await;
+}
+
+#[tokio::test]
+async fn malformed_record_gaps_make_only_empty_presence_selections_incomplete() {
+    for capture_suffix in [
+        "not-json\n",
+        "{\"type\":\"response_item\",\"payload\":{\"type\":\"custom_tool_call\"}}\n",
+    ] {
+        for (present, count, expected) in [
+            (false, 0, None),
+            (true, 0, None),
+            (false, 2, Some("fail")),
+            (true, 2, Some("pass")),
+        ] {
+            let wire = conversation_presence(present, count, capture_suffix, expected).await;
+            if count == 0 {
+                assert!(
+                    wire["report"]["occurrences"][0]["outcome"]["diagnostics"]["items"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|item| item["code"] == "source_unavailable")
+                );
+            }
+        }
+    }
 }
 
 #[tokio::test]
