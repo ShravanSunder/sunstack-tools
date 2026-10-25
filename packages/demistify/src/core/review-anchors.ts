@@ -75,7 +75,7 @@ export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> 
 		const generatedOwner = element.parentElement?.closest(
 			'ex-tree,ex-file-tree,ex-explorer,ex-gallery,ex-stat',
 		);
-		if (generatedOwner) continue;
+		if (generatedOwner && !element.hasAttribute('data-comment-label')) continue;
 		ensureReviewTargetId(element, root);
 		if (
 			element.matches('h1,h2,h3,h4,h5,h6') &&

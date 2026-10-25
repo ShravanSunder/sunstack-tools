@@ -22,6 +22,8 @@ test.each([
 );
 
 test.each([
+	[page.replace('revision="r1"', 'revision=""'), 'comments'],
+	[page.replace('document-id="scope"', 'document-id=" "'), 'comments'],
 	[page.replace('revision="r1"', 'comments="sometimes"'), 'attribute'],
 	[page.replace('for="content"', 'for="scope-question"'), 'comments'],
 	[page + '<ex-comments for="content"></ex-comments>', 'comments'],

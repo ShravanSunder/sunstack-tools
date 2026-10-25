@@ -449,6 +449,11 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				report(element, 'error', 'choice-title', String(error));
 			}
 		}
+		if (name === 'ex-document') {
+			for (const field of ['document-id', 'revision'])
+				if (attributes.has(field) && !attributes.get(field)?.trim())
+					report(element, 'error', 'comments', `An explicit ${field} must not be empty.`);
+		}
 		if (name === 'ex-comments') {
 			const binding = attributes.get('for');
 			const target = binding ? ids.get(binding) : undefined;

@@ -81,8 +81,8 @@ test('fixed initial source inventory waits for both HTTP loads in either order, 
 	expect(await completeHeld(secondCase, second.document)).toBe(baseline);
 });
 
-test.each(['markdown', 'graph'])(
-	'changed fetched %s payload changes revision with identical source markup',
+test.each(['markup', 'markdown', 'graph'])(
+	'changed %s content changes revision while other inputs stay fixed',
 	async (variant): Promise<void> => {
 		const baselineCase = await prepareHeld();
 		const baseline = await openHeld(baselineCase);
@@ -251,3 +251,20 @@ test.each([1600, 390])(
 		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
 	},
 );
+
+test('an authored named target inside an interactive island survives generated-UI exclusion', async (): Promise<void> => {
+	const caseId = await prepareHeld('named-intro');
+	const { document: fixture, frame } = await openHeld(caseId);
+	await completeHeld(caseId, fixture);
+	const intro = requiredElement(fixture, '#graph-intro');
+	expect(intro.querySelectorAll(':scope > .ex-entity-comment')).toHaveLength(1);
+	expect(fixture.querySelector('ex-explorer h1 .ex-entity-comment')).toBeNull();
+	await fixtureLocator(frame, requiredElement(intro, ':scope > .ex-entity-comment')).click();
+	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Graph is checked.');
+	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+	expect(readCurrentReview(fixture).comments[0]?.anchor).toEqual({
+		kind: 'entity',
+		targetId: 'graph-intro',
+		label: 'Graph introduction',
+	});
+});

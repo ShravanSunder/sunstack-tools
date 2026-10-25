@@ -53,7 +53,7 @@ function graphSource(changed: boolean): GraphDocument {
 		tables: [],
 	};
 }
-function fixtureHtml(mode: string): string {
+function fixtureHtml(mode: string, variant: string): string {
 	const attributes =
 		mode === 'off'
 			? ' comments="off"'
@@ -70,7 +70,7 @@ function fixtureHtml(mode: string): string {
 			: mode === 'manual-off'
 				? '<ex-comments for="content"></ex-comments>'
 				: '';
-	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Source review</title><link rel="stylesheet" href="/__demistify/library/theme.css"><script type="module" src="/__demistify/library/runtime.js"></script></head><body><ex-document id="content"${mode === 'manual-off' ? ' comments="off"' : attributes}><h1>Source review</h1><p>One source, one review.</p><ex-markdown src="notes.md"></ex-markdown><ex-explorer src="graph.json"></ex-explorer></ex-document>${surface}</body></html>`;
+	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Source review</title><link rel="stylesheet" href="/__demistify/library/theme.css"><script type="module" src="/__demistify/library/runtime.js"></script></head><body><ex-document id="content"${mode === 'manual-off' ? ' comments="off"' : attributes}><h1>Source review</h1><p>${variant === 'markup' ? 'Revised authored paragraph.' : 'One source, one review.'}</p><ex-markdown src="notes.md"></ex-markdown><ex-explorer src="graph.json">${mode === 'named-intro' ? '<p id="graph-intro" data-comment-label="Graph introduction">Original graph introduction.</p>' : ''}</ex-explorer></ex-document>${surface}</body></html>`;
 }
 
 /** Real HTTP loads pause at explicit gates; the production identity and fetch paths stay real. */
@@ -119,7 +119,7 @@ export function installDefaultCommentsFixtures(server: ViteDevServer): void {
 		}
 		if (file === 'index.html') {
 			response.setHeader('Content-Type', 'text/html');
-			response.end(fixtureHtml(fixture.mode));
+			response.end(fixtureHtml(fixture.mode, fixture.variant));
 			return;
 		}
 		const kind: SourceKind | undefined =
