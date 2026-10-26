@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.15.2
+
+### Patch Changes
+
+- 2861b47: Continue gallery Up/Down navigation across screen-group boundaries in both the main viewer and fullscreen. Retain Left/Right navigation at the current variation, filtered result boundaries and existing walkthrough key ownership.
+
 ## 1.15.1
 
 ### Patch Changes
