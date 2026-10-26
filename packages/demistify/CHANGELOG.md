@@ -1,5 +1,15 @@
 # @sunstack/demistify
 
+## 1.15.0
+
+### Minor Changes
+
+- 85be4e0: Use a shared six-color palette across supported Mermaid families, with soft fills and automatic identity distinctions. Add built-in flowchart category classes and keep authored styles and semantic tones authoritative. Fix entity and class fields inheriting the page's monospace font size instead of their measured SVG size, and preserve field-note tooltips.
+
+### Patch Changes
+
+- 39431e0: Open ordinary images and Mermaid drawings fullscreen when clicked. Preserve linked visuals, diagram node actions, Gallery controls, text selection and explicit sidebar inspection; restore the original visual on close.
+
 ## 1.14.0
 
 ### Minor Changes
