@@ -37,6 +37,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['ui', 'review-ui'],
 			['search', 'command-search'],
 			['review', 'choices-comments'],
+			['palette', 'diagram-colors'],
 		].map(async ([name, source]): Promise<void> => {
 			if (!name || !source) throw new Error('Missing fixture name.');
 			await cp(
