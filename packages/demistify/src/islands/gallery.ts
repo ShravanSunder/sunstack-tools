@@ -489,10 +489,11 @@ export class GalleryIsland extends HTMLElement {
 	private moveViewport(direction: number): void {
 		const current = this.visible.find((capture): boolean => capture.id === this.selected);
 		if (!current) return;
-		const candidates = this.visible.filter(
-			(capture): boolean => galleryScreenKey(capture) === galleryScreenKey(current),
+		const keys = [...new Set(this.visible.map(galleryScreenKey))];
+		const ordered = keys.flatMap((key): readonly GalleryCapture[] =>
+			this.visible.filter((capture): boolean => galleryScreenKey(capture) === key),
 		);
-		const next = candidates[candidates.indexOf(current) + direction];
+		const next = ordered[ordered.indexOf(current) + direction];
 		if (next) this.selectCapture(next.id);
 	}
 

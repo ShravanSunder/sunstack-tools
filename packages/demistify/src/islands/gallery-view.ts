@@ -119,7 +119,7 @@ export function createGalleryControls(prefix: string): GalleryControls {
 	helpPanel.popover = 'auto';
 	helpPanel.setAttribute('aria-label', 'Keyboard shortcuts');
 	helpPanel.innerHTML =
-		'<strong>Keyboard shortcuts</strong><dl><dt>Left / Right</dt><dd>Previous / next screen</dd><dt>Up / Down</dt><dd>Previous / next variation of this screen</dd><dt>⌘ / Ctrl + wheel</dt><dd>Zoom</dd><dt>Drag or scroll</dt><dd>Pan</dd><dt>Esc</dt><dd>Close fullscreen or this help</dd></dl>';
+		'<strong>Keyboard shortcuts</strong><dl><dt>Left / Right</dt><dd>Previous / next screen, keeping the variation</dd><dt>Up / Down</dt><dd>Previous / next variation, continuing across screen groups</dd><dt>⌘ / Ctrl + wheel</dt><dd>Zoom</dd><dt>Drag or scroll</dt><dd>Pan</dd><dt>Esc</dt><dd>Close fullscreen or this help</dd></dl>';
 	help.popoverTargetElement = helpPanel;
 	header.append(helpPanel);
 	toolbar.append(
