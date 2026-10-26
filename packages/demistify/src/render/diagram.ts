@@ -15,7 +15,7 @@ function supplyCategoryStyles(sourceText: string): string {
 	// Insert before authored statements so explicit class definitions retain their precedence.
 	return sourceText.replace(
 		/^[\t ]*(?:flowchart|graph)[\t ]+(?:TD|TB|LR|BT|RL)[\t ]*$/im,
-		(header): string => `${header}\n${definitions}`,
+		(header: string): string => `${header}\n${definitions}`,
 	);
 }
 
@@ -24,7 +24,7 @@ function colorDiagramIdentities(svg: string): string {
 	const slots = new Map<string, number>();
 	return svg.replace(
 		/<g class="(?:node|actor|class-node|entity|subgraph)" data-id="([^"]+)"[^>]*>/g,
-		(group, identity: string): string => {
+		(group: string, identity: string): string => {
 			if (/data-shape="state-(?:start|end)"/.test(group)) return group;
 			let slot = slots.get(identity);
 			if (slot === undefined) {

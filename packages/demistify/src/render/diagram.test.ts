@@ -3,6 +3,15 @@ import { expect, test } from 'vitest';
 
 import { renderThemedDiagram } from './diagram.ts';
 
+test('category declarations work with CRLF source', (): void => {
+	const svg = renderThemedDiagram(
+		renderMermaidSVG,
+		'flowchart LR\r\n  a[Reader] --> b[Store]\r\n  class a slot6',
+	);
+
+	expect(svg).toContain('fill="var(--chart-6-soft)"');
+});
+
 test('flowchart category slots supply soft fills and borders without authored class definitions', (): void => {
 	const source = `flowchart LR
   a[Client] --> b[Worker]
