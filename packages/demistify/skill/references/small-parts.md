@@ -176,5 +176,5 @@ A normal breakdown shows its own named phase key. Use that in prose or a rich Tr
    ```
 
    Require a non-zero file count and zero errors and warnings. Fix malformed input; do not present an intentionally invalid example as a working recipe.
-2. Open the actual artifact with its supported route. Observe badge text and wrapping, exact counts and durations, phase order and values, the optional progress view where used, local table scrolling, and the relevant light/dark themes at a narrow width.
+2. Open the actual artifact with its supported route. Observe badge text and wrapping, exact counts and durations, phase order and values, the optional progress view where used and local table scrolling.
 3. Keep supplied facts visible. The checker proves recognized markup and values, not that the surrounding explanation is true or that the rendered result is useful.

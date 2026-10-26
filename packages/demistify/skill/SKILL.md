@@ -47,16 +47,16 @@ For each matching condition below, load the named reference and return its autho
 
 | IF the page needs… | Load | Return |
 | --- | --- | --- |
-| Explicit widths, a grid or tabs | `references/layouts.md` | Whole-component widths, child layout, labels and narrow behavior |
+| Explicit widths, a grid or tabs | `references/layouts.md` | Whole-component widths, child layout and labels |
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
 | The reader must select answers, attach feedback or override review identity | `references/choices-and-comments.md` | Requested response/feedback arrangement, default or overridden identities and binding, optional supporting details and interactions to observe |
-| A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and a narrow/theme observation |
+| A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and exact supplied values |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior to observe |
 | A Mermaid view or Mermaid fence | `references/diagrams.md` | Supported family, safe source and readable, resolving targets |
 | Code, a diff or line notes | `references/code.md` | Exact source and notes on displayed file/row numbers |
 | Ownership regions, routed arrows or optional layers | `references/maps.md` | Reading/map choice, real endpoints and room for complete captions |
-| A picture, screenshot collection or image slider | `references/pictures.md` | Ordinary figures or a dedicated Gallery page with actual capture metadata |
+| A picture, screenshot collection or image slider | `references/pictures.md` | Ordinary figures or a dedicated Gallery page with logical groups, variation categories and actual capture metadata |
 | A guided path, including a Gallery Journey | `references/tours.md` | Named/described path, focused narration and resolving stops |
 | Alternatives on corresponding topics | `references/comparisons.md` | Matching topic keys, authored columns/tabs and natural content height |
 | Hierarchy, file paths or a literal text drawing | `references/trees.md` | Tree/File Tree/Pre choice, independent folding/jumps or exact text |
@@ -88,7 +88,9 @@ node packages/demistify/bin/demistify.ts check /absolute/path/to/page.html
 
 Check every final HTML file after embedding/indexing. Require a nonzero file count and **zero errors and warnings**; exit 0 alone does not establish both. `check --fix` repairs mechanical findings. The checker validates recognized markup/data, not prose truth, matching import releases, useful layout or readable diagrams. Compare theme/runtime imports with the recorded base explicitly.
 
-Open the actual artifact through its intended supported route. Exercise its authored links, chosen controls, loaded content, narrow layout and any inspection/fullscreen return. Inspect rendered Markdown and SVG rather than assuming source text rendered. Compare embedded source with a fresh regeneration from the live source page as `content.md` teaches. Follow browser URL/access policy; a blocked file URL is a proof gap, not a reason to launch another browser or server.
+Check the authored document and its requested interactions. Routine device and theme regression testing belongs to library development, not each document-authoring task.
+
+Open the actual artifact through its intended supported route. Exercise its authored links, chosen controls, loaded content and any inspection/fullscreen return. Inspect rendered Markdown and SVG rather than assuming source text rendered. Compare embedded source with a fresh regeneration from the live source page as `content.md` teaches. Follow browser URL/access policy; a blocked file URL is a proof gap, not a reason to launch another browser or server.
 
 Runtime authoring issues appear in console warnings and the root's `data-ex-issues` count. `?ex-check` opts into their visible panel; readers do not need that panel to see a content-load error. Fix the authored issue or report the exact release limitation.
 

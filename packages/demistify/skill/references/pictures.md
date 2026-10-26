@@ -6,26 +6,69 @@ Use `ex-gallery` on its own screen when readers need to browse screenshots, comp
 
 Put one Gallery directly inside `ex-document`, optionally preceded by one native h1, with `ex-nav` and hidden path declarations outside that document. Keep surrounding explanation on the linking page. The matching authoring checker reports `gallery-page` for embedded or multiple galleries; inert template data does not count as displayed content. Existing runtime support for embedded galleries is distinct from this authoring standard. Earlier checkers, including 1.10.0, do not enforce it; bind checks to the matching release.
 
-## Group the actual evidence
+## Choose the item, its variations and useful filters
 
-Inspect the supplied captures first. `data-screen` groups related screens, `data-viewport` names an authored size/category, and `data-state` describes a UI state. Laptop/Mobile/Widescreen are useful starting labels, not a fixed enum. Use labels supported by the actual captures; a wide image alone does not prove a laptop identity. Two URLs for the same capture are delivery alternatives, not different viewport evidence.
+Start with what the reader moves between and what they compare while staying on one item. Different subjects or meaningful UI states are separate items. Alternate captures of that same subject/state belong together as variations. A filter narrows the collection; it does not establish that relationship. Use a plain figure for one capture, a Gallery for browsing related captures, and a Gallery Journey when their explanation has an order.
 
-Keep related figures adjacent and their category names consistent:
+The existing gallery expresses this with three fields:
+
+| Meaning | Author | Example |
+| --- | --- | --- |
+| Logical subject | Same `data-screen` for the same screen | `Cart`, then `Payment` |
+| Meaningful UI state | Same `data-state` within a comparison group | `Ready` versus a separate `Error` item |
+| Capture variation | `data-viewport` category within that screen/state | `Phone`, `Tablet`, `Desktop` |
+
+Inspect supplied captures before assigning these fields. Category names are authored, not a fixed enum or inferred from image width. Use consistent labels supported by the captures; a category called Phone does not prove a physical phone was used. Keep unique figure IDs, one actual capture per screen/state/category for an unambiguous guided variation, and related figures adjacent. Two URLs for one image are delivery alternatives, not two variations.
+
+### Example: compare screen sizes without repeating the journey
+
+This example assumes the supplied collection has Cart and Payment in their Ready state at three sizes. It represents **two logical items, each with three variations**. Keep the Gallery on its own page; the navigation and hidden journey declaration sit outside `ex-document`.
 
 ```html
-<ex-gallery id="evidence" label="Account menu evidence">
-  <figure id="menu-mobile" data-screen="Account menu" data-viewport="Mobile" data-state="Open">
-    <img src="captures/menu-mobile.png" alt="Account menu on Mobile">
-    <figcaption>The account action remains reachable.</figcaption>
-  </figure>
-  <figure id="menu-laptop" data-screen="Account menu" data-viewport="Laptop" data-state="Open">
-    <img src="captures/menu-laptop.png" alt="Account menu on Laptop">
-    <figcaption><strong>Open state.</strong> The same account actions at the wider size.</figcaption>
-  </figure>
-</ex-gallery>
+<ex-nav for="content"></ex-nav>
+<ex-document id="content">
+  <h1>Checkout captures</h1>
+  <ex-gallery id="checkout-captures" label="Checkout screen sizes">
+    <figure id="cart-phone" data-screen="Cart" data-state="Ready" data-viewport="Phone">
+      <img src="captures/cart-phone.png" alt="Cart at phone size">
+      <figcaption>Cart, ready to continue, at phone size.</figcaption>
+    </figure>
+    <figure id="cart-tablet" data-screen="Cart" data-state="Ready" data-viewport="Tablet">
+      <img src="captures/cart-tablet.png" alt="Cart at tablet size">
+      <figcaption>Cart, ready to continue, at tablet size.</figcaption>
+    </figure>
+    <figure id="cart-desktop" data-screen="Cart" data-state="Ready" data-viewport="Desktop">
+      <img src="captures/cart-desktop.png" alt="Cart at desktop size">
+      <figcaption>Cart, ready to continue, at desktop size.</figcaption>
+    </figure>
+    <figure id="payment-phone" data-screen="Payment" data-state="Ready" data-viewport="Phone">
+      <img src="captures/payment-phone.png" alt="Payment at phone size">
+      <figcaption>Payment, ready to continue, at phone size.</figcaption>
+    </figure>
+    <figure id="payment-tablet" data-screen="Payment" data-state="Ready" data-viewport="Tablet">
+      <img src="captures/payment-tablet.png" alt="Payment at tablet size">
+      <figcaption>Payment, ready to continue, at tablet size.</figcaption>
+    </figure>
+    <figure id="payment-desktop" data-screen="Payment" data-state="Ready" data-viewport="Desktop">
+      <img src="captures/payment-desktop.png" alt="Payment at desktop size">
+      <figcaption>Payment, ready to continue, at desktop size.</figcaption>
+    </figure>
+  </ex-gallery>
+</ex-document>
+<ex-presentation id="checkout-review" title="Review checkout"
+  description="Compare Cart and Payment across the supplied sizes." variations>
+  <ex-step to="cart-phone">Review the cart.</ex-step>
+  <ex-step to="payment-phone">Review payment.</ex-step>
+</ex-presentation>
 ```
 
-Review is the default: a scrollable grouped thumbnail pane beside the selected image. The list icon to the left of search toggles thumbnails and gives the viewer their space; it remains reachable by keyboard and touch. Collapse/expand uses a short shared transition; reduced-motion preference removes that transition. Keep the same control in both cases rather than adding author animation. This visibility choice is retained across Review/Grid, inspection copies and Gallery Journeys. The grid icon switches the same gallery to a contact sheet; the review icon returns with selection and filters retained. `view="grid"` chooses the initial view; `selected="menu-laptop"` chooses an initial figure.
+Left/Right moves between Cart and Payment; Up/Down compares the current screen's size captures. The journey has two steps, one per screen/state, rather than six size-specific steps. Bare `variations` belongs on `ex-presentation`, not `ex-gallery`: it adds the journey's category buttons and Up/Down switching. A plain Gallery already browses its authored variations without that flag.
+
+Good: Cart/Ready keeps the same group while Phone, Tablet and Desktop change. Bad: `data-screen="Cart — Phone"` and `data-screen="Cart — Desktop"` split one comparison into unrelated items, or a Phone filter is offered as the only way to compare them. An explicitly requested viewport facet can still filter the collection; it serves a different purpose.
+
+For an exact evidence sequence, omit `variations` and target the exact figure IDs. For a size-switching journey, include it and target one existing figure per logical step. In that guided mode a missing or ambiguous screen/state/category stays on the step and shows a gap; do not invent a capture or silently substitute one. Ordinary Gallery navigation preserves the size category when available and otherwise uses its existing browse fallback. `tours.md` owns the remaining path and return behavior.
+
+Review is the default: a scrollable grouped thumbnail pane beside the selected image. The list icon to the left of search toggles thumbnails and gives the viewer their space; it remains reachable by keyboard and touch. Collapse/expand uses a short shared transition; reduced-motion preference removes that transition. Keep the same control in both cases rather than adding author animation. This visibility choice is retained across Review/Grid, inspection copies and Gallery Journeys. The grid icon switches the same gallery to a contact sheet; the review icon returns with selection and filters retained. `view="grid"` chooses the initial view; `selected="cart-desktop"` chooses an initial figure.
 
 In Review, the selected picture heading shows its title followed by quiet authored tags, for example **Queue · #Monitoring**. Set `data-title="Queue"` on the figure for its concise title; otherwise the image's alt text supplies it, while `data-tags="Monitoring, Needs attention"` supplies the tag labels. Selection replaces the title and tags together in Review; tags from the previous picture must not linger. The fullscreen heading uses the picture title without those tag labels. Keep alt text useful for the picture itself.
 

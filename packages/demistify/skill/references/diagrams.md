@@ -39,4 +39,4 @@ Keep labels short and put explanation beside the diagram. Shared text uses reada
 
 For a chart, identify units, categories and series explicitly in nearby content. Do not rely on generic generated series labels to carry their scientific meaning. A chart whose legend or interpolation misstates the supplied data needs a different supported representation, such as a table; a successful SVG render does not settle that judgment.
 
-Finish by inspecting actual SVG, every endpoint and label, one scoped cold link and any linked card interaction. Verify both ends of a wide view remain reachable and that a narrow layout does not shrink or crop meaning. The static checker can catch selected render/syntax problems and empty subgraphs; it does not prove visual semantics, legibility, runtime execution or complete node membership from source-word target checks.
+Finish by inspecting actual SVG, every endpoint and label, one scoped cold link and any linked card interaction. The static checker can catch selected render/syntax problems and empty subgraphs; it does not prove visual semantics, legibility, runtime execution or complete node membership from source-word target checks.
