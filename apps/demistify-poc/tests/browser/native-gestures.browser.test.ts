@@ -17,8 +17,8 @@ interface NativeInspection {
 
 async function verifyNativeGestures(target: NativeInspection): Promise<void> {
 	const { fixture, frame, original, visualSelector } = target;
-	const surface = visualSelector === 'img' ? '.ex-inspect-dialog' : '.ex-drawer';
-	const inspector = frame.getByRole(visualSelector === 'img' ? 'dialog' : 'complementary', {
+	const surface = '.ex-inspect-dialog';
+	const inspector = frame.getByRole('dialog', {
 		includeHidden: true,
 		name: visualSelector === 'img' ? 'Native inspection picture' : 'Wide comparison',
 		exact: true,
@@ -100,8 +100,7 @@ async function verifyNativeGestures(target: NativeInspection): Promise<void> {
 		.poll((): number => Math.abs(visual.getBoundingClientRect().width - initialBounds.width))
 		.toBeLessThan(2);
 	await inspector.getByRole('button', { name: 'Close', exact: true }).click();
-	if (visualSelector === 'img') await expect.element(inspector).not.toBeInTheDocument();
-	else await expect.element(inspector).not.toBeVisible();
+	await expect.element(inspector).not.toBeInTheDocument();
 	expect(original.isConnected).toBe(true);
 	expect(original.closest('ex-document')).not.toBeNull();
 	expect(original.getBoundingClientRect().width).toBeGreaterThan(50);
@@ -132,9 +131,7 @@ test('native Mermaid gestures enlarge the fitted SVG, pan available overflow, re
 		.toContain('Report the observed outcome');
 	const original = requiredElement(owner, ':scope > svg');
 	await fixtureLocator(frame, owner).hover();
-	await frame
-		.getByRole('button', { name: 'Open Wide comparison in a sidebar', exact: true })
-		.click();
+	await frame.getByRole('button', { name: 'Expand Wide comparison', exact: true }).click();
 	await verifyNativeGestures({ fixture, frame, original, visualSelector: 'ex-mermaid > svg' });
 	expect(owner.querySelector(':scope > svg')).toBe(original);
 	expect(original.textContent).toContain('Receive a complete request');

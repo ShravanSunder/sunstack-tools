@@ -56,7 +56,7 @@ A diagram node whose original ID matches a real page element takes its tone and 
 
 Use an actual supported inline source carrier. `src` is intended for source preparation/packaging; the runtime does not automatically fetch a sibling Mermaid file for an unprepared direct-file page. A relative file name that the checker can read is not proof that the reader can load it.
 
-Click the drawing to inspect it fullscreen; Escape/Close returns the original diagram. Linked nodes and explicit sidebar buttons keep their own actions without opening a second viewer. Use `zoom="none"` to suppress enlargement on a diagram.
+Use the fullscreen (arrows-out) icon to enlarge a Mermaid drawing; Escape/Close returns the original diagram. Mermaid has no sidebar inspection button. Clicking the drawing does not open inspection; linked nodes keep their own actions. Use `zoom="none"` to suppress enlargement on a diagram.
 
 ## Readability is an observation
 
