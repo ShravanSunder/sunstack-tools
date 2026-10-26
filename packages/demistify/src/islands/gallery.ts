@@ -464,6 +464,9 @@ export class GalleryIsland extends HTMLElement {
 		this.selected = id;
 		this.renderPreview();
 		this.updateNavigation();
+		this.controls?.strip
+			.querySelector(`[data-capture-id="${CSS.escape(id)}"]`)
+			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 	}
 
 	private moveCapture(direction: number): void {
@@ -481,9 +484,6 @@ export class GalleryIsland extends HTMLElement {
 			) ?? candidates[0];
 		if (!chosen) return;
 		this.selectCapture(chosen.id);
-		this.controls?.strip
-			.querySelector(`[data-capture-id="${CSS.escape(chosen.id)}"]`)
-			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 	}
 
 	private moveViewport(direction: number): void {

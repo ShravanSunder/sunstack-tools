@@ -404,6 +404,34 @@ test.each([
 	},
 );
 
+test.each([1600, 390])(
+	'sequential navigation keeps the selected thumbnail visible at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('gallery', '', 'sequence.html');
+		const gallery = requiredElement(fixture, '#sequence-gallery');
+		await frame.getByRole('heading', { name: 'Gallery navigation sequence', exact: true }).click();
+		await userEvent.keyboard(
+			'{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}',
+		);
+		await expect
+			.poll((): boolean => {
+				const selected = requiredElement(
+					gallery,
+					'[data-capture-id="capture-3c"]',
+				).getBoundingClientRect();
+				const strip = requiredElement(gallery, '.ex-gallery-strip').getBoundingClientRect();
+				return (
+					selected.left >= strip.left - 1 &&
+					selected.right <= strip.right + 1 &&
+					selected.top >= strip.top - 1 &&
+					selected.bottom <= strip.bottom + 1
+				);
+			})
+			.toBe(true);
+	},
+);
+
 test('gallery sequential navigation remains inside its filtered results', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('gallery', '', 'sequence.html');
 	const local = fixtureLocator(frame, requiredElement(fixture, '#sequence-gallery'));
