@@ -1,6 +1,6 @@
 # demistify-explainer: authoring verification scope
 
-Revision: 1. Target: `packages/demistify/skill`. One run, update; implemented.
+Revision: 1. Target: `packages/demistify/skill`. Revision 1 run: update; reviewed.
 
 ## Problem and success
 
@@ -27,7 +27,7 @@ Base origin/main `7403724327af73cd507cdd1bda494b1d4cb842e1`; branch already isol
 
 Non-goals: runtime/CSS/test implementation, storage/identity/API changes, deleting responsive behavior documentation, broad verification-policy rewrite.
 
-Run status: implemented. Review record: revision1 accepted-to-implement by independent skill-review SPEC stage; report retained in the owning lab. Implementation review follows focused proof and Root assessment.
+Run status: reviewed. Revision1 SPEC accepted-to-implement; combined independent implementation review returned great/source-only with no accepted findings. Reports remain in the owning work record; fresh-agent application is unobserved.
 
 ## Revision 2 — additional owner-directed variation teaching
 
@@ -45,4 +45,4 @@ A second run, same named skill. Main pictures call returns grouping/variation de
 
 Proof for added teaching: manual source/API walk against current galleryScreenKey (screen+state) and viewport navigation; static check the literal product example against unchanged matching checker when available; current frontmatter/link/version checks and independent review. Fresh author transfer remains unobserved/deferred. No browser/product-suite or paid evaluation rerun for prose-only changes. Same base/newPR/version allocation as above; patch Changeset/changelog now describes both changes.
 
-Run status: revision1 phone scope implemented/awaiting implementation review; revision2 variation teaching implemented after independent rev2 SPEC acceptance. Acceptance of revision1 does not cover the new teaching.
+Run status: revision1 phone scope reviewed; revision2 variation teaching separately SPEC-accepted and reviewed. Combined independent implementation review returned great/source-only at 1052b99284aa0533be8462a9a33453d5bfff077c; no accepted findings. Fresh-agent application, rendering and installed/released uptake remain unobserved.
