@@ -33,6 +33,8 @@ Use the supplied library base, normally `https://demistify.getagentstudio.dev/v1
 </html>
 ```
 
+Ordinary `ex-document` pages always get Comments automatically, initially closed, with a page-address identity, a content fingerprint and targets for semantic content. Author no feedback tag, page name/version or paragraph labels. Choose an explicit identity or revision only when its namespace consequence is intended.
+
 MUST load `references/content.md` and return the actual source carriers, image/data references and intended delivery method. A reader can double-click a prepared HTML file: HTTPS library assets need the network, not a local application/server. Sibling Markdown/JSON fetches need HTTP or author-time embedding. Keep relative page/image paths intact. Offline delivery also needs the complete matching library; two copied asset files are insufficient.
 
 Completion: the binding and opening method are concrete, supplied sources are preserved, and every required fetch can work through that method.
@@ -47,7 +49,7 @@ For each matching condition below, load the named reference and return its autho
 | --- | --- | --- |
 | Explicit widths, a grid or tabs | `references/layouts.md` | Whole-component widths, child layout, labels and narrow behavior |
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
-| The reader must select answers or attach feedback | `references/choices-and-comments.md` | Requested response/feedback arrangement, required identities and binding, optional supporting details and interactions to observe |
+| The reader must select answers, attach feedback or override review identity | `references/choices-and-comments.md` | Requested response/feedback arrangement, default or overridden identities and binding, optional supporting details and interactions to observe |
 | A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and a narrow/theme observation |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior to observe |
@@ -64,7 +66,7 @@ For each matching condition below, load the named reference and return its autho
 
 Completion: selected constructs answer the reader's task, their references were applied, and every construct is supported by the chosen binding.
 
-Response and feedback controls follow the requested task: feedback alone needs no choice; a choice needs no extras; a choice without feedback or a combined review handoff needs no Comments binding.
+Answer controls follow the requested task: feedback alone needs no choice, and a choice needs no extras. Use the existing Comments panel for feedback and a combined handoff; no separate answer-copy strip or page-owned response store is needed.
 
 ## 3. Compose content once and keep it navigable
 

@@ -1,4 +1,5 @@
 import { reportStructuralIssues } from './core/issues.ts';
+import { captureReviewDocument, installDefaultComments } from './core/review-document.ts';
 import { CalloutIsland, CardIsland } from './islands/card.ts';
 import { ChoiceIsland, OptionIsland } from './islands/choice.ts';
 import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
@@ -25,6 +26,10 @@ import { LayersElement } from './layout/layers.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
 import { installArrowTracing } from './layout/trace.ts';
+
+// Preserve authored source before any island upgrades replace it or add controls.
+for (const root of document.querySelectorAll<HTMLElement>('ex-document'))
+	captureReviewDocument(root);
 
 // A board is defined first so it arranges its children before they upgrade.
 for (const [tagName, constructor] of [
@@ -69,6 +74,7 @@ for (const [tagName, constructor] of [
 }
 
 reportStructuralIssues();
+installDefaultComments();
 installDocumentBehavior();
 installRoutes();
 installArrowTracing();

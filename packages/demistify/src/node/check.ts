@@ -449,20 +449,20 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				report(element, 'error', 'choice-title', String(error));
 			}
 		}
+		if (name === 'ex-document') {
+			for (const field of ['document-id', 'revision'])
+				if (attributes.has(field) && !attributes.get(field)?.trim())
+					report(element, 'error', 'comments', `An explicit ${field} must not be empty.`);
+		}
 		if (name === 'ex-comments') {
 			const binding = attributes.get('for');
 			const target = binding ? ids.get(binding) : undefined;
-			if (
-				!target ||
-				target.tagName !== 'ex-document' ||
-				!attributeMap(target).get('document-id')?.trim() ||
-				!attributeMap(target).get('revision')?.trim()
-			)
+			if (!target || target.tagName !== 'ex-document')
 				report(
 					element,
 					'error',
 					'comments',
-					'Comments must bind to an ex-document with an id, document-id and revision.',
+					'Comments must bind to an original ex-document with an id.',
 				);
 			if (
 				binding &&

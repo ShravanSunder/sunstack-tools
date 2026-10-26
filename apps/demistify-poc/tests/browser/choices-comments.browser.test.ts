@@ -14,6 +14,22 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('choice cards, table rows and inline details keep one stable option comment target', async (): Promise<void> => {
+	const { document: fixture } = await openReviewFixture();
+	const options = [...fixture.querySelectorAll('.ex-choice-option')];
+	expect(options).toHaveLength(8);
+	for (const option of options) {
+		expect(
+			option.querySelectorAll(
+				':scope > [data-comment-control],:scope > td > [data-comment-control]',
+			),
+		).toHaveLength(1);
+		expect(
+			option.querySelectorAll(':is(p,li,h1,h2,h3,h4,h5,h6) > [data-comment-control]'),
+		).toHaveLength(0);
+	}
+});
+
 test('body, native controls and repainted Comment SVG keep answer and action semantics separate', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture();
 	const choice = requiredElement(fixture, '#scope-question');
