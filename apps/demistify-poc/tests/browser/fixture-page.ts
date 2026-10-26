@@ -10,6 +10,7 @@ export async function openFixture(
 		| 'ui'
 		| 'search'
 		| 'review'
+		| 'palette'
 		| 'default-comments',
 	fragment = '',
 	file = 'index.html',

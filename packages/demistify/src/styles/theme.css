@@ -17,6 +17,15 @@
 	--chart-1: #3d79ae;
 	--chart-2: #a87824;
 	--chart-3: #2b8175;
+	--chart-4: var(--patch);
+	--chart-5: var(--missing);
+	--chart-6: var(--codex);
+	--chart-1-soft: var(--strong-bg);
+	--chart-2-soft: var(--change-bg);
+	--chart-3-soft: var(--accent-soft);
+	--chart-4-soft: var(--patch-bg);
+	--chart-5-soft: var(--missing-bg);
+	--chart-6-soft: var(--codex-bg);
 	--accent-soft: #e3f0f1;
 	--selection-surface: #e3f0f1;
 	--keep: #5b6678;
@@ -283,7 +292,7 @@ li {
 	margin: var(--space-1) 0;
 }
 code,
-.mono {
+.mono:not(text) {
 	font-family: var(--font-mono);
 	font-size: 0.86em;
 }

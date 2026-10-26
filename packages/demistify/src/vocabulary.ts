@@ -218,7 +218,8 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		},
 	},
 	'ex-mermaid': {
-		description: 'A Mermaid diagram or chart; nodes whose id matches a card open that card.',
+		description:
+			'A Mermaid diagram or chart with shared categorical colors; flowchart classes slot1–slot6 pin authored categories. Nodes whose id matches a card open that card.',
 		attributes: { label, src: text('Diagram file, inlined when the page is packaged.') },
 		source: 'text/plain',
 	},

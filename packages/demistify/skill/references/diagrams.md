@@ -13,6 +13,29 @@ Choose a diagram for a relationship the reader needs to see. Use Flow for respon
 
 These are the binding's renderer families, not a promise that all upstream Mermaid grammar/configuration works. If a needed feature is unsupported, simplify or choose another supported view; do not invent a component attribute or quietly drop the information.
 
+## Shared color defaults
+
+Flowchart nodes and groups, sequence participants, states, classes and entities automatically use the shared six-color categorical palette with soft fills, clear borders and theme-aware text. Repeated identities in one drawing keep their color; start/end markers and relationship lines stay neutral. Chart series use the same palette. Names, arrows and relationship labels still carry meaning: a category color does not mean success, failure or a supplied owner decision.
+
+Prepared SVGs and live-rendered diagrams use the same defaults. Pages that load the current hosted runtime and theme adopt them on reload; a standalone file containing an older embedded library must be rebuilt with the new binding.
+
+Slots cycle after six identities. Assignment follows the drawing's identity order, so editing its structure can change colors; these are visual distinctions, not persistent domain identities. Do not use color alone to identify an entity across separate diagrams. Existing linked-node tones and authored styles retain their precedence.
+
+For a flowchart whose colors need to express supplied categories, pin those categories with the built-in word-only classes `slot1` through `slot6`:
+
+```text
+flowchart LR
+  reader[Reader] --> worker[Worker]
+  worker --> store[Store]
+  class reader slot1
+  class worker slot2
+  class store slot3
+```
+
+These use the same blue, amber, teal, violet, rose and green slots as the shared theme. Name the categories in adjacent prose or a key, and reuse the same explicit slot for the same category. No `classDef`, raw hex color or page CSS is needed. When authoring a custom class, use word-only names; the pinned renderer splits property lists on commas, so comma-containing `rgba()`/`color-mix()` values are unsupported there. Use the shared `--chart-N` and `--chart-N-soft` variables instead.
+
+Entity fields keep separate type/name columns in the bundled monospace font, at the sizes used to lay out the SVG. Quoted field notes are retained as tooltips; they are not visible paragraphs. Keep long rules and explanations in a native table beside the diagram when readers must see them without hovering.
+
 ## Preserve source and name the targets
 
 ```html
