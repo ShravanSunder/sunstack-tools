@@ -83,15 +83,26 @@ export function installDocumentBehavior(): void {
 			document.documentElement.dataset['theme'] = current === 'dark' ? 'light' : 'dark';
 			return;
 		}
-		// A picture opens in the side panel, beside the text that explains it; a figure travels with
-		// its caption. The panel's expand button gives the large view.
+		// Direct visual clicks enlarge the original; explicit sidebar buttons keep their own action.
+		// Figures travel with their captions, and linked diagram nodes remain links.
 		const image = event.target.closest('img');
+		const diagram = event.target.closest('ex-mermaid > svg')?.parentElement;
+		const visual = image ?? diagram;
 		if (
-			image?.closest('ex-document') &&
-			!image.closest('a, .ex-drawer, dialog, ex-compare[slider], [data-inspector-content]')
+			visual?.closest('ex-document') &&
+			!event.target.closest(
+				'a,button,input,textarea,select,[role="button"],[contenteditable],.ex-drawer,dialog,ex-gallery,ex-compare[slider],[data-inspector-content]',
+			) &&
+			event.button === 0 &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey &&
+			document.getSelection()?.isCollapsed !== false
 		) {
-			const owner = image.closest('figure') ?? image.parentElement;
-			if (owner instanceof HTMLElement) openIsland(owner, 'sidebar');
+			const owner = diagram ?? image?.closest('figure') ?? image?.parentElement;
+			if (owner instanceof HTMLElement && owner.getAttribute('zoom') !== 'none')
+				openIsland(owner, 'modal');
 			return;
 		}
 		const targetLink = event.target.closest('a');

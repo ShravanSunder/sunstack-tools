@@ -9,6 +9,30 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test.each([
+	[1600, '#inspection-picture', 'img'],
+	[390, '#inspection-picture', 'img'],
+	[1600, '#full-width-diagram', ':scope > svg'],
+	[390, '#full-width-diagram', ':scope > svg'],
+])(
+	'visual click at %ipx opens %s fullscreen and restores its original',
+	async (width, ownerSelector, visualSelector): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('layout');
+		const owner = requiredElement(fixture, ownerSelector);
+		owner.scrollIntoView();
+		await expect.poll((): boolean => !!owner.querySelector(visualSelector)).toBe(true);
+		const original = requiredElement(owner, visualSelector);
+		await fixtureLocator(frame, original).click();
+		await expect.element(frame.getByRole('dialog')).toBeVisible();
+		expect(original.closest('dialog')).not.toBeNull();
+		expect(fixture.querySelector('.ex-drawer')).toBeNull();
+		await frame.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+		expect(owner.contains(original)).toBe(true);
+		expect(original.closest('ex-document')).not.toBeNull();
+	},
+);
+
 async function verifyMarkdownRendering(variant: 'navigation' | 'embedded'): Promise<void> {
 	const { document: fixture, frame } = await openFixture(variant);
 	await expect

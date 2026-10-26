@@ -1,6 +1,6 @@
 # Pictures and screenshot galleries
 
-Use a plain `<figure><img src="…" alt="…"><figcaption>…</figcaption></figure>` for one picture. It opens through the shared inspector beside the text; fullscreen uses the same dialog as other islands.
+Use a plain `<figure><img src="…" alt="…"><figcaption>…</figcaption></figure>` for one picture. Clicking its image opens the shared fullscreen inspector with its caption. An image inside a link retains that link's action; slider comparisons and Gallery retain their own controls.
 
 Use `ex-gallery` on its own screen when readers need to browse screenshots, compare viewport variants or filter evidence. An explanation uses an ordinary figure or links to that Gallery page. A Gallery is the browsable picture collection; a Gallery Journey is an optional ordered path through its existing figures. The document still owns Pages, outline, theme and walkthrough selection. The agent supplies captures; do not add upload/Add/Info/lab application chrome.
 

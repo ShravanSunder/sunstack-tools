@@ -54,6 +54,8 @@ A diagram node whose original ID matches a real page element takes its tone and 
 
 Use an actual supported inline source carrier. `src` is intended for source preparation/packaging; the runtime does not automatically fetch a sibling Mermaid file for an unprepared direct-file page. A relative file name that the checker can read is not proof that the reader can load it.
 
+Click the drawing to inspect it fullscreen; Escape/Close returns the original diagram. Linked nodes and explicit sidebar buttons keep their own actions without opening a second viewer. Use `zoom="none"` to suppress enlargement on a diagram.
+
 ## Readability is an observation
 
 Keep labels short and put explanation beside the diagram. Shared text uses readable colors and a 16px rendered floor; a view that needs more room scrolls locally. Use Canvas for a rich view and the shared inspector for closer reading. Avoid fixed heights/hidden overflow that crop nodes, legends or labels.

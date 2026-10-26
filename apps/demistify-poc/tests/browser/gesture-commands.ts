@@ -6,7 +6,7 @@ export const panInspection: BrowserCommand = async (context): Promise<void> => {
 	const viewport = context.iframe
 		.getByTestId('explainer')
 		.contentFrame()
-		.locator('.ex-drawer .ex-inspect-body');
+		.locator('.ex-inspect-body:visible');
 	const bounds = await viewport.boundingBox();
 	if (!bounds) throw new Error('Inspection viewport is not visible.');
 	const startX = bounds.x + bounds.width * 0.7;

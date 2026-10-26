@@ -17,13 +17,18 @@ interface NativeInspection {
 
 async function verifyNativeGestures(target: NativeInspection): Promise<void> {
 	const { fixture, frame, original, visualSelector } = target;
-	const drawer = frame.getByRole('complementary', { includeHidden: true });
-	await expect.element(drawer).toBeVisible();
-	const viewport = requiredElement(fixture, '.ex-drawer .ex-inspect-body');
+	const surface = visualSelector === 'img' ? '.ex-inspect-dialog' : '.ex-drawer';
+	const inspector = frame.getByRole(visualSelector === 'img' ? 'dialog' : 'complementary', {
+		includeHidden: true,
+		name: visualSelector === 'img' ? 'Native inspection picture' : 'Wide comparison',
+		exact: true,
+	});
+	await expect.element(inspector).toBeVisible();
+	const viewport = requiredElement(fixture, `${surface} .ex-inspect-body`);
 	const visual = requiredElement(viewport, visualSelector);
 	const viewportLocator = fixtureLocator(frame, viewport);
 	const magnification = (): string =>
-		requiredElement(fixture, '.ex-drawer .ex-inspect-header > span').textContent ?? '';
+		requiredElement(fixture, `${surface} .ex-inspect-header > span`).textContent ?? '';
 	const initialBounds = visual.getBoundingClientRect();
 	expect(magnification()).toBe('100%');
 	expect(initialBounds.width).toBeGreaterThan(50);
@@ -85,7 +90,7 @@ async function verifyNativeGestures(target: NativeInspection): Promise<void> {
 			}),
 		})
 		.toBeGreaterThan(20);
-	await drawer.getByRole('button', { name: 'Reset zoom', exact: true }).click();
+	await inspector.getByRole('button', { name: 'Reset zoom', exact: true }).click();
 	expect(magnification()).toBe('100%');
 	expect(viewport.scrollLeft).toBe(0);
 	expect(viewport.scrollTop).toBe(0);
@@ -94,8 +99,9 @@ async function verifyNativeGestures(target: NativeInspection): Promise<void> {
 	await expect
 		.poll((): number => Math.abs(visual.getBoundingClientRect().width - initialBounds.width))
 		.toBeLessThan(2);
-	await drawer.getByRole('button', { name: 'Close', exact: true }).click();
-	await expect.element(drawer).not.toBeVisible();
+	await inspector.getByRole('button', { name: 'Close', exact: true }).click();
+	if (visualSelector === 'img') await expect.element(inspector).not.toBeInTheDocument();
+	else await expect.element(inspector).not.toBeVisible();
 	expect(original.isConnected).toBe(true);
 	expect(original.closest('ex-document')).not.toBeNull();
 	expect(original.getBoundingClientRect().width).toBeGreaterThan(50);
