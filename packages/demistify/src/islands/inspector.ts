@@ -367,15 +367,18 @@ export function installIslandInspector(owner: HTMLElement): void {
 		return;
 	}
 	owner.classList.add('ex-inspectable');
-	const sidebar = createIconButton('sidebar-simple', `Open ${label} in a sidebar`, (): void =>
-		openInspector(owner, controls, { mode: 'sidebar' }),
-	);
+	if (owner.localName !== 'ex-mermaid') {
+		const sidebar = createIconButton('sidebar-simple', `Open ${label} in a sidebar`, (): void =>
+			openInspector(owner, controls, { mode: 'sidebar' }),
+		);
+		sidebar.classList.add('ex-inspect-trigger');
+		controls.append(sidebar);
+	}
 	const expand = createIconButton('arrows-out', `Expand ${label}`, (): void =>
 		openInspector(owner, controls, { mode: 'modal' }),
 	);
-	sidebar.classList.add('ex-inspect-trigger');
 	expand.classList.add('ex-inspect-trigger');
-	controls.append(sidebar, expand);
+	controls.append(expand);
 	owner.append(controls);
 }
 

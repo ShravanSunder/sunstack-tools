@@ -12,8 +12,6 @@ afterEach(async (): Promise<void> => {
 test.each([
 	[1600, '#inspection-picture', 'img'],
 	[390, '#inspection-picture', 'img'],
-	[1600, '#full-width-diagram', ':scope > svg'],
-	[390, '#full-width-diagram', ':scope > svg'],
 ])(
 	'visual click at %ipx opens %s fullscreen and restores its original',
 	async (width, ownerSelector, visualSelector): Promise<void> => {
@@ -152,60 +150,56 @@ test('initial fragments reveal the containing presentation and inactive tab befo
 	await verifyInitialFragment('#plan-diagram', 'Registry');
 });
 
-test('visual sidebar copies retain main content and fullscreen restores content and focus', async (): Promise<void> => {
-	const { document: fixture, frame } = await openFixture('layout');
-	const diagram = requiredElement(fixture, '#full-width-diagram');
-	diagram.scrollIntoView();
-	await expect
-		.poll((): string => diagram.querySelector('svg')?.textContent ?? '')
-		.toContain('Right endpoint');
-	await frame.getByRole('heading', { name: 'Full-width diagram', exact: true }).hover();
-	await fixtureLocator(frame, diagram).hover();
-	await frame
-		.getByRole('button', { name: 'Open Full-width diagram in a sidebar', exact: true })
-		.click();
-	await expect
-		.element(frame.getByRole('complementary', { name: 'Full-width diagram', exact: true }))
-		.toBeVisible();
-	expect(diagram.querySelector('svg')?.textContent).toContain('Left endpoint');
-	expect(diagram.closest('ex-document')).not.toBeNull();
-	expect(insideViewport(diagram)).toBe(true);
-	expect(requiredElement(fixture, '.ex-drawer svg').textContent).toContain('Right endpoint');
-	expect(diagram.getBoundingClientRect().height).toBeGreaterThan(30);
-	await frame.getByRole('button', { name: 'Close', exact: true }).click();
-	await fixtureLocator(frame, diagram).hover();
-	const expand = frame.getByRole('button', { name: 'Expand Full-width diagram', exact: true });
-	await expand.click();
-	const modal = frame.getByRole('dialog', { name: 'Full-width diagram', exact: true });
-	await expect.element(modal).toBeVisible();
-	await expect.element(modal.getByText('Left endpoint', { exact: true })).toBeVisible();
-	await modal.getByRole('button', { name: 'Zoom in', exact: true }).click();
-	await expect.element(modal.getByText('125%', { exact: true })).toBeVisible();
-	await userEvent.keyboard('{Escape}');
-	await expect.element(modal).not.toBeInTheDocument();
-	expect(diagram.querySelector('svg')?.textContent).toContain('Right endpoint');
-	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Expand Full-width diagram');
-	await expand.click();
-	await frame.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
-	expect(diagram.querySelector('svg')?.textContent).toContain('Left endpoint');
-});
+test.each([1600, 390])(
+	'Mermaid offers only its fullscreen icon at %ipx and leaves drawing clicks alone',
+	async (width): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('layout');
+		const diagram = requiredElement(fixture, '#full-width-diagram');
+		diagram.scrollIntoView();
+		await expect
+			.poll((): string => diagram.querySelector('svg')?.textContent ?? '')
+			.toContain('Right endpoint');
+		expect(diagram.querySelectorAll('.ex-inspect-trigger').length).toBe(1);
+		expect(diagram.querySelector('button[aria-label*="sidebar"]')).toBeNull();
+		const original = requiredElement(diagram, ':scope > svg');
+		await fixtureLocator(frame, original).click();
+		expect(fixture.querySelector('.ex-inspect-dialog, .ex-drawer')).toBeNull();
+		expect(diagram.querySelector(':scope > svg')).toBe(original);
+		await fixtureLocator(frame, diagram).hover();
+		const expand = frame.getByRole('button', { name: 'Expand Full-width diagram', exact: true });
+		await expand.click();
+		const modal = frame.getByRole('dialog', { name: 'Full-width diagram', exact: true });
+		await expect.element(modal).toBeVisible();
+		await expect.element(modal.getByText('Left endpoint', { exact: true })).toBeVisible();
+		await modal.getByRole('button', { name: 'Zoom in', exact: true }).click();
+		await expect.element(modal.getByText('125%', { exact: true })).toBeVisible();
+		await userEvent.keyboard('{Escape}');
+		await expect.element(modal).not.toBeInTheDocument();
+		expect(diagram.querySelector('svg')?.textContent).toContain('Right endpoint');
+		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Expand Full-width diagram');
+		await expand.click();
+		await frame.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+		expect(diagram.querySelector('svg')?.textContent).toContain('Left endpoint');
+	},
+);
 
 test('replacing sidebar content keeps the newly inspected item in view and restores its trigger on close', async (): Promise<void> => {
 	await page.viewport(1600, 650);
 	const { document: fixture, frame } = await openFixture('layout');
 	// Native focus scrolling stays real; immediate scrolling makes a wrong destination deterministic.
 	fixture.documentElement.style.scrollBehavior = 'auto';
-	const first = requiredElement(fixture, '#full-width-diagram');
+	const first = requiredElement(fixture, '#reading-code');
 	first.scrollIntoView({ block: 'center' });
-	await expect.poll((): boolean => !!first.querySelector('svg')).toBe(true);
+	await expect.poll((): boolean => !!first.querySelector('code')).toBe(true);
 	await fixtureLocator(frame, first).hover();
 	const firstButton = frame.getByRole('button', {
-		name: 'Open Full-width diagram in a sidebar',
+		name: 'Open Short command in a sidebar',
 		exact: true,
 	});
 	await firstButton.click();
 	await expect
-		.element(frame.getByRole('complementary', { name: 'Full-width diagram', exact: true }))
+		.element(frame.getByRole('complementary', { name: 'Short command', exact: true }))
 		.toBeVisible();
 
 	const second = requiredElement(fixture, '#gesture-canvas');
@@ -220,7 +214,7 @@ test('replacing sidebar content keeps the newly inspected item in view and resto
 	await expect.element(replacement).toBeVisible();
 	expect(second.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
 	expect(second.getBoundingClientRect().top).toBeLessThan(650);
-	expect(first.querySelector('svg')).not.toBeNull();
+	expect(first.querySelector('code')).not.toBeNull();
 	expect(requiredElement(fixture, '.ex-drawer svg').textContent).toContain('Canvas start');
 	await replacement.getByRole('button', { name: 'Close', exact: true }).click();
 	expect(fixture.activeElement?.getAttribute('aria-label')).toBe(

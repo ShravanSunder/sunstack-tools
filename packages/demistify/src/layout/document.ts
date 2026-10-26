@@ -83,13 +83,10 @@ export function installDocumentBehavior(): void {
 			document.documentElement.dataset['theme'] = current === 'dark' ? 'light' : 'dark';
 			return;
 		}
-		// Direct visual clicks enlarge the original; explicit sidebar buttons keep their own action.
-		// Figures travel with their captions, and linked diagram nodes remain links.
+		// Pictures enlarge with their captions. Diagrams use their explicit fullscreen control.
 		const image = event.target.closest('img');
-		const diagram = event.target.closest('ex-mermaid > svg')?.parentElement;
-		const visual = image ?? diagram;
 		if (
-			visual?.closest('ex-document') &&
+			image?.closest('ex-document') &&
 			!event.target.closest(
 				'a,button,input,textarea,select,[role="button"],[contenteditable],.ex-drawer,dialog,ex-gallery,ex-compare[slider],[data-inspector-content]',
 			) &&
@@ -100,7 +97,7 @@ export function installDocumentBehavior(): void {
 			!event.shiftKey &&
 			document.getSelection()?.isCollapsed !== false
 		) {
-			const owner = diagram ?? image?.closest('figure') ?? image?.parentElement;
+			const owner = image.closest('figure') ?? image.parentElement;
 			if (owner instanceof HTMLElement && owner.getAttribute('zoom') !== 'none')
 				openIsland(owner, 'modal');
 			return;
