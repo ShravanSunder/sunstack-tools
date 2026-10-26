@@ -98,7 +98,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-comments': {
 		description:
-			'One local review with comments and current answers; supplied automatically unless disabled.',
+			'One local review with comments and current answers; supplied automatically for ordinary documents.',
 		attributes: {
 			for: {
 				description: 'Original ex-document DOM ID. Missing logical identity/revision are derived.',
