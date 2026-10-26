@@ -1,4 +1,5 @@
 import { nameChartSeries, prepareChartSource } from './chart-source.ts';
+import { colorDiagramMarkup } from './diagram-palette.ts';
 import { respaceGraphEdges } from './graph-source.ts';
 import { removeSvgFontImports } from './svg-fonts.ts';
 
@@ -19,28 +20,11 @@ function supplyCategoryStyles(sourceText: string): string {
 	);
 }
 
-/** Repeated identities (such as sequence participants) keep one palette slot in this drawing. */
-function colorDiagramIdentities(svg: string): string {
-	const slots = new Map<string, number>();
-	return svg.replace(
-		/<g class="(?:node|actor|class-node|entity|subgraph)" data-id="([^"]+)"[^>]*>/g,
-		(group: string, identity: string): string => {
-			if (/data-shape="state-(?:start|end)"/.test(group)) return group;
-			let slot = slots.get(identity);
-			if (slot === undefined) {
-				slot = (slots.size % 6) + 1;
-				slots.set(identity, slot);
-			}
-			return group.replace(/>$/, ` data-diagram-slot="${slot}">`);
-		},
-	);
-}
-
 /** Renders diagram text with the page's colour tokens and local fonts. */
 export function renderThemedDiagram(render: MermaidRenderer, sourceText: string): string {
 	const chart = prepareChartSource(supplyCategoryStyles(respaceGraphEdges(sourceText)));
 	return nameChartSeries(
-		colorDiagramIdentities(
+		colorDiagramMarkup(
 			removeSvgFontImports(
 				render(chart.source, {
 					bg: 'var(--surface-content)',

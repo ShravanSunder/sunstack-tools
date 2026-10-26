@@ -17,6 +17,8 @@ These are the binding's renderer families, not a promise that all upstream Merma
 
 Flowchart nodes and groups, sequence participants, states, classes and entities automatically use the shared six-color categorical palette with soft fills, clear borders and theme-aware text. Repeated identities in one drawing keep their color; start/end markers and relationship lines stay neutral. Chart series use the same palette. Names, arrows and relationship labels still carry meaning: a category color does not mean success, failure or a supplied owner decision.
 
+Prepared SVGs and live-rendered diagrams use the same defaults. Pages that load the current hosted runtime and theme adopt them on reload; a standalone file containing an older embedded library must be rebuilt with the new binding.
+
 Slots cycle after six identities. Assignment follows the drawing's identity order, so editing its structure can change colors; these are visual distinctions, not persistent domain identities. Do not use color alone to identify an entity across separate diagrams. Existing linked-node tones and authored styles retain their precedence.
 
 For a flowchart whose colors need to express supplied categories, pin those categories with the built-in word-only classes `slot1` through `slot6`:

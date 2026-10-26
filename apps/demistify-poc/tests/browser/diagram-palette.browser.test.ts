@@ -8,6 +8,29 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('prepared diagrams gain default colors without replacing their live SVG on reconnect', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('palette');
+	const source = requiredElement(fixture, '#er-model');
+	source.scrollIntoView();
+	await expect.poll((): boolean => source.hasAttribute('prepared')).toBe(true);
+	const original = requiredElement(source, 'svg');
+	const svg = fixture.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	for (const attribute of original.attributes) svg.setAttribute(attribute.name, attribute.value);
+	svg.innerHTML = original.innerHTML;
+	for (const group of svg.querySelectorAll('[data-diagram-slot]'))
+		group.removeAttribute('data-diagram-slot');
+	const prepared = fixture.createElement('ex-mermaid');
+	prepared.setAttribute('prepared', '');
+	prepared.append(svg);
+	const documentRoot = requiredElement(fixture, 'ex-document');
+	documentRoot.append(prepared);
+	await expect.poll((): number => svg.querySelectorAll('[data-diagram-slot]').length).toBe(3);
+	prepared.remove();
+	documentRoot.append(prepared);
+	expect(prepared.querySelector('svg')).toBe(svg);
+	expect(svg.querySelectorAll('[data-diagram-slot]').length).toBe(3);
+});
+
 test.each([
 	['light', 1600],
 	['dark', 1600],
