@@ -140,7 +140,6 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 				'Logical review identity override; defaults to the page URL without query/fragment.',
 			),
 			revision: text('Content revision override; defaults to an authored-content fingerprint.'),
-			comments: oneOf('Disable automatic and explicit Comments for this document.', ['off']),
 		},
 	},
 	'ex-presentation': {

@@ -1,4 +1,23 @@
-# demistify-explainer default-comments teaching — revision 1
+# demistify-explainer default-comments teaching — revision 2
+
+## Current revision 2 — always available
+
+Run status: implemented. Owner explicitly confirmed removal of `comments="off"` and its complexity after the revision-1 PRs were ready. This supersedes revision-1 opt-out decisions and example/checklist branches below; the historical rows remain for context. This is a behavior-changing update from user-directed intent, not a reproduced agent failure.
+
+Success: an author using the matching runtime keeps automatic Comments on every ordinary document without any enable/disable setting or setup. Identity/revision overrides and task-driven choices remain. Main states the unconditional availability; its chooser removes disable routing. The existing feedback reference deletes the off recipe and conditions, and its completion checks always observe the launcher/eligible target. Trigger, other calls, review envelope and storage ownership stay unchanged. No new reference, helper or schema.
+
+| Dated revision-2 decision | Supersedes | Reason |
+| --- | --- | --- |
+| 2026-10-25: remove the disabling flag and all opt-out teaching | Revision-1 promise, depth/source allocation and opt-out rows | Owner answered yes to removing the escape hatch and asked to remove the complexity |
+| Preserve independent identity/revision overrides | No change | They name saved-review namespaces, not feature availability |
+
+Proof: re-read main/feedback/checklist together against an ordinary document and retained identity overrides; match runtime/checker tests proving the removed flag is unsupported and cannot disable either automatic or explicit binding. Validate current examples and inspect the existing normal native UI. Fresh-author loaded-copy/action-record gap and source/named-example ceiling are unchanged. No stochastic, installed or released claim.
+
+Coordination: product branch at ce5d1f16e7514bc58cdd42b96544b7c458e0476a; update existing PR80 and same minor Changeset. Governing R3/Specification now always available; no merge/release/cache mutation. Revision-2 spec review must accept this changed meaning before skill writes, and independent implementation review refreshes the affected coverage afterward.
+
+Review record revision 2: accepted-to-implement by the independent same-history spec review under the Lab always-on-review/demistify-spec-review.md; implemented diff removes the flag recipe/caller/checklist branches and retains identity overrides. Fitting example proof and independent implementation review follow. Non-goals remain the revision-1 non-goals.
+
+## Historical revision 1 — opt-out superseded
 
 Target: only `packages/demistify/skill/` in sunstack-tools. Owner is the Demistify API guide, not presentation-html. Classification: update, behavior-changing, user-directed intent. Run status: implemented.
 

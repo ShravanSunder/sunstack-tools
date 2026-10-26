@@ -81,7 +81,7 @@ export function installDefaultComments(): void {
 	const root = [...document.querySelectorAll<HTMLElement>('ex-document')].find(
 		(element): boolean => !element.closest(inspectionCopy),
 	);
-	if (!root || root.getAttribute('comments') === 'off') return;
+	if (!root) return;
 	captureReviewDocument(root);
 	const comments = document.createElement('ex-comments');
 	comments.setAttribute('for', root.id);

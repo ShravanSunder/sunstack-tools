@@ -11,20 +11,17 @@ test('the public choice and identified Comments markup checks without warnings',
 	expect(await checkHtml(page, { diagrams: false })).toEqual([]);
 });
 
-test.each([
-	page.replace('document-id="scope" revision="r1"', ''),
-	page.replace('document-id="scope" revision="r1"', 'comments="off"'),
-])(
-	'Comments derives missing metadata and accepts the document opt-out',
-	async (source): Promise<void> => {
-		expect(await checkHtml(source, { diagrams: false })).toEqual([]);
-	},
-);
+test('Comments derives missing metadata without author setup', async (): Promise<void> => {
+	expect(
+		await checkHtml(page.replace('document-id="scope" revision="r1"', ''), { diagrams: false }),
+	).toEqual([]);
+});
 
 test.each([
 	[page.replace('revision="r1"', 'revision=""'), 'comments'],
 	[page.replace('document-id="scope"', 'document-id=" "'), 'comments'],
 	[page.replace('revision="r1"', 'comments="sometimes"'), 'attribute'],
+	[page.replace('revision="r1"', 'comments="off"'), 'attribute'],
 	[page.replace('for="content"', 'for="scope-question"'), 'comments'],
 	[page + '<ex-comments for="content"></ex-comments>', 'comments'],
 	[page.replace('id="layout"', 'id="scope-question"'), 'duplicate-id'],

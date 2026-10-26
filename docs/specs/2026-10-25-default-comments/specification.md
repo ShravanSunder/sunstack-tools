@@ -2,7 +2,7 @@
 
 ## Page and review identity
 
-The primary original `ex-document` is the first one in document order outside inspection copies. If the page has no original `ex-comments` anywhere, runtime adds one bound to that document unless it has `comments="off"`. Existing authored bindings remain authoritative; a binding to an opted-out document stays inactive. This follows the existing single normal page shell rather than introducing multiple competing global launchers.
+The primary original `ex-document` is the first one in document order outside inspection copies. If the page has no original `ex-comments` anywhere, runtime adds one bound to that document. Existing authored bindings remain authoritative. Comments is always available on ordinary documents; `comments="off"` is unsupported and cannot disable the runtime feature. The checker rejects the unsupported attribute. This follows the existing single normal page shell rather than introducing multiple competing global launchers.
 
 Missing `document-id` defaults to the current URL with credentials, query and fragment removed. Viewer selections, search and walkthrough state therefore do not create new logical pages. Moving a file/URL changes the default identity; an explicit document-id is the way to keep identity across a move. Existing nonempty metadata is preserved; authored empty/invalid metadata still reports an error.
 

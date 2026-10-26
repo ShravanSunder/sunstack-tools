@@ -6,7 +6,7 @@ This reference owns choice and feedback authoring. Inputs are the reader's quest
 
 Use `ex-choice` for an answer: native radios select one option; bare `multiple` uses independent checkboxes. Use `ex-compare` to inspect corresponding topics, ordinary prose to explain, and `ex-card pick` to display an already supplied owner decision. A recommendation, the visible comparison pair and a reader's current answer are different facts.
 
-Comments is available automatically on an ordinary document, with one panel for feedback and the current-answer handoff. Add choices only when the reader needs to answer a question; feedback alone needs none. Extras remain optional. Keep explanation in document flow and content in its owning place.
+Comments is always available automatically on an ordinary document, with one panel for feedback and the current-answer handoff. Add choices only when the reader needs to answer a question; feedback alone needs none. Extras remain optional. Keep explanation in document flow and content in its owning place.
 
 ## A complete review page
 
@@ -93,16 +93,7 @@ The same page and unchanged content reopen the same local review. Moving its add
 
 Each field is an independent override: supply either or both; the missing field derives its default. Supplied empty/invalid values remain errors. Change an explicit revision when reviewed content changes; retaining a value does not prove old anchors still apply. Question/option IDs and IDs used by links remain authored identities; generated feedback IDs need stability only within the same content revision. A readable `data-comment-label` and unique `id` remain useful when deliberately naming another original target.
 
-To disable Comments, set the opt-out on the document:
-
-```html
-<ex-document comments="off">
-  <h1>A page without feedback</h1>
-  <p>No Comments launcher or target controls are created.</p>
-</ex-document>
-```
-
-An authored `ex-comments for="content"` remains supported for a deliberate binding to an original document with DOM ID `content`; omit it for the ordinary default. It also respects that document's opt-out. Duplicate target IDs, missing choice/option content or identity, invalid explicit review values, an invalid `for` binding or a second Comments surface for the same document are authoring errors. Runtime derives defaults without changing the existing review envelope or local-storage format.
+An authored `ex-comments for="content"` remains supported for a deliberate binding to an original document with DOM ID `content`; omit it for the ordinary default. Duplicate target IDs, missing choice/option content or identity, invalid explicit review values, an invalid `for` binding or a second Comments surface for the same document are authoring errors. Runtime derives defaults without changing the existing review envelope or local-storage format.
 
 One Comments panel owns composition, existing comments, current selected answers and Copy/Export. Readers can comment on an item or actual selected text. A selection spanning blocks anchors to the document; controls and source carriers are excluded from its source text. The comment retains the selected quote and exact source range/context. Following it reveals the original target when possible. Missing or changed source is reported as unavailable, without guessing a replacement passage.
 
@@ -129,7 +120,7 @@ Nothing is submitted to an agent or server automatically. There is no account, r
    Require a nonzero file count and zero errors and warnings. Check the actual binding and complete source separately; a markup pass establishes neither.
 2. When answers are requested, select by body click and native control/keyboard. Try a real link, Details or Comments action without changing the answer; drag to select text without selecting an option. Check single versus independent answers and their actual IDs.
 3. When extras are authored, open them, inspect the actual rendered Markdown/SVG, close them and confirm the same answer, focus, source content and outline. Observe the whole-card/row marker, not an empty internal wrapper. Exercise table rows and inline details when those variants are used.
-4. When Comments is enabled, check its launcher and an ordinary semantic target without manual feedback markup. For a deliberate `comments="off"`, confirm that the launcher and target controls are absent. When feedback is requested and enabled, comment on an item and an exact passage, including a cross-block quote when useful. Inspect the quote and return target, save with Cmd+Enter, retain newline/editing behavior and reopen the same document revision. Compare saved comment identities/content; do not promise restored answers.
+4. Check the automatic Comments launcher and an ordinary semantic target without manual feedback markup. When feedback is requested, comment on an item and an exact passage, including a cross-block quote when useful. Inspect the quote and return target, save with Cmd+Enter, retain newline/editing behavior and reopen the same document revision. Compare saved comment identities/content; do not promise restored answers.
 5. When a combined handoff is requested, inspect actual Copy/Export contents for the current answer IDs and comments/quotes. Keep any visible storage or clipboard failure explicit, using the provided transfer fallback.
 6. Observe the requested controls at desktop and 390 CSS px in both themes. Confirm native panel replacement/focus return, shared comment colors/counts and no covered content or page overflow. Keep source-preview, HTTP, file-origin and physical-touch observations separate; one does not prove the others.
 

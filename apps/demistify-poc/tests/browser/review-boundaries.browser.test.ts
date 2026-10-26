@@ -245,14 +245,14 @@ test('dragging actual card body text creates an option anchor without selecting 
 	expect(readCurrentReview(fixture).answers).toEqual([]);
 });
 
-test('choice-only and reviewed documents share the ordinary 8px phone gutter', async (): Promise<void> => {
+test('a choice-only document gets automatic Comments and retains the 8px phone gutter', async (): Promise<void> => {
 	await page.viewport(390, 900);
 	const { document: fixture, frame } = await openFixture('review', '', 'choice-only.html');
 	await expect.poll((): number => fixture.querySelectorAll('ex-choice input').length).toBe(2);
 	expect(fixture.defaultView?.getComputedStyle(fixture.body).paddingLeft).toBe('8px');
 	expect(fixture.defaultView?.getComputedStyle(fixture.body).paddingRight).toBe('8px');
 	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
-	expect(fixture.querySelector('.ex-comments-trigger')).toBeNull();
+	await expect.poll((): number => fixture.querySelectorAll('.ex-comments-trigger').length).toBe(1);
 	await frame.getByRole('radio', { name: 'Concise', exact: true }).click();
 	expect(
 		readChoiceResponse(requiredElement(fixture, '#format-question')).selected[0]?.optionId,

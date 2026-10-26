@@ -110,17 +110,13 @@ test('failed initial source and recovery on the same address use separate conten
 	expect(readCurrentReview(recovered.document).documentId).toBe(documentId);
 });
 
-test.each(['explicit', 'identity', 'revision', 'off', 'manual-off'])(
-	'author metadata and opt-out stay authoritative: %s',
+test.each(['explicit', 'identity', 'revision'])(
+	'author metadata stays authoritative: %s',
 	async (mode): Promise<void> => {
 		const caseId = await prepareHeld(mode);
 		const { document: fixture } = await openHeld(caseId);
 		await sourceControl({ caseId, action: 'release' });
 		await expect.poll((): boolean => !!fixture.querySelector('ex-markdown[prepared]')).toBe(true);
-		if (mode === 'off' || mode === 'manual-off') {
-			expect(fixture.querySelector('.ex-comments-trigger,.ex-entity-comment')).toBeNull();
-			return;
-		}
 		await expect
 			.poll((): number => fixture.querySelectorAll('.ex-comments-trigger').length)
 			.toBe(1);
@@ -132,6 +128,17 @@ test.each(['explicit', 'identity', 'revision', 'off', 'manual-off'])(
 		);
 		if (mode !== 'identity') expect(review.documentRevision).toBe('authored-r1');
 		else expect(review.documentRevision).toMatch(/^sha256:[a-f0-9]{64}$/);
+	},
+);
+
+test.each(['off', 'manual-off'])(
+	'the removed disabling flag cannot suppress Comments: %s',
+	async (mode): Promise<void> => {
+		const caseId = await prepareHeld(mode);
+		const { document: fixture } = await openHeld(caseId);
+		await completeHeld(caseId, fixture);
+		expect(fixture.querySelectorAll('.ex-comments-trigger')).toHaveLength(1);
+		expect(fixture.querySelectorAll('h1 > .ex-entity-comment')).toHaveLength(1);
 	},
 );
 

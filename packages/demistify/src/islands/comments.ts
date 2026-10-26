@@ -70,7 +70,6 @@ export class CommentsIsland extends HTMLElement {
 			root.closest('[data-inspector-copy],[data-inspector-content]')
 		)
 			throw new Error('ex-comments needs for="…" naming an original ex-document.');
-		if (root.getAttribute('comments') === 'off') return;
 		const identity = await resolveReviewDocumentIdentity(root);
 		if (!this.isConnected || generation !== this.connectionGeneration) return;
 		if (boundDocuments.has(root) && boundDocuments.get(root) !== this)
