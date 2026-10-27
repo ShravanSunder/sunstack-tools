@@ -27,5 +27,12 @@
   "ex-timeline": "legacy.html",
   "ex-layer": "legacy.html",
   "ex-gallery": "pictures.html",
-  "ex-pre": "visuals.html"
+  "ex-pre": "visuals.html",
+  "ex-choice": "choices.html",
+  "ex-option": "choices.html",
+  "ex-comments": "choices.html",
+  "ex-badge": "meters.html",
+  "ex-progress": "meters.html",
+  "ex-breakdown": "meters.html",
+  "ex-trace": "traces.html"
 }

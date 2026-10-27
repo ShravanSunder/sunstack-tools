@@ -1,0 +1,58 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choices and comments · Demistify feature review</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Feature review pages"><a href="index.html">Feature review</a>
+<a href="content.html">Content and code</a>
+<a href="choices.html">Choices and comments</a>
+<a href="meters.html">Identity, checks and timing</a>
+<a href="traces.html">Traces and evidence</a>
+<a href="diagrams.html">Diagram families</a>
+<a href="layouts.html">Layouts and maps</a>
+<a href="visuals.html">Trees and comparisons</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Walkthroughs and links</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Authoring and delivery</a></nav><nav slot="presentations" aria-label="Walkthroughs"><a href="navigation.html#walkthrough"><strong>Session walkthrough</strong><span>Requirements, diagram and shared decision.</span></a></nav></ex-nav><ex-document id="guide">
+<h1>Choose the review scope</h1>
+<p>Read the alternatives, inspect the evidence and carry your answers with precise feedback.</p>
+<h2>Scope</h2>
+<ex-choice id="scope-question" title="Which scope?" zoom>
+  <ex-option id="layout" title="**Layout** only">
+    <template slot="summary">Review **layout** and `fullscreen`.
+
+- Desktop containment
+- Phone controls
+
+> Keep the wording.
+
+[Read the context](#context)</template>
+  </ex-option>
+  <ex-option id="technical" title="Technical scope">
+    <template slot="summary">Inspect the native component lifecycle and exact comment anchors.</template>
+    <div slot="details"><h3>Technical detail</h3><p>The document remains the original feedback authority.</p><ex-mermaid id="scope-diagram" label="Review ownership"><script type="text/plain">flowchart LR
+Document --> Choice
+Document --> Comments</script></ex-mermaid></div>
+  </ex-option>
+</ex-choice>
+<h2>Checks</h2>
+<ex-choice id="checks-question" title="Which checks?" multiple>
+  <ex-option id="desktop-check" title="Desktop"><template slot="summary">Check the wide reader.</template></ex-option>
+  <ex-option id="phone-check" title="Phone"><template slot="summary">Check a 390 CSS pixel reader.</template></ex-option>
+</ex-choice>
+<h2>Delivery</h2>
+<ex-choice id="delivery-question" title="Choose a delivery" view="table">
+  <ex-option id="source-copy" title="Source copy"><template slot="summary">Keep a reviewable source artifact and supporting notes.</template></ex-option>
+  <ex-option id="reviewed-release" title="Reviewed release"><template slot="summary">Complete review and the separately authorized release gates.</template><div slot="details"><p>A source PR does not deploy the library.</p></div></ex-option>
+</ex-choice>
+<h2>Timing</h2>
+<ex-choice id="timing-question" title="When should we review?" details="inline">
+  <ex-option id="review-now" title="Review now"><template slot="summary">Resolve the bounded question today.</template><div slot="details"><ex-markdown id="choices-markdown-1"><script type="text/markdown">### Local detail
+
+Keep this supporting explanation beside its option.</script></ex-markdown></div></ex-option>
+  <ex-option id="review-later" title="Review later"><template slot="summary">Keep the source available for another session.</template></ex-option>
+</ex-choice>
+<section id="context" data-comment-label="Review context">
+  <h2>Review context</h2>
+  <p id="first-passage">The first passage keeps the original source visible.</p>
+  <p id="second-passage">The second passage makes a cross-block quotation possible.</p>
+</section>
+<label>Scratch note <textarea aria-label="Scratch note"></textarea></label>
+</ex-document></body></html>
