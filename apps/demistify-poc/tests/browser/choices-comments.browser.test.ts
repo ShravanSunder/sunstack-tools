@@ -119,7 +119,9 @@ test('choice typography and title-adjacent Details use the real native inspector
 	expect(view?.getComputedStyle(requiredElement(target, '.ex-choice-summary')).fontSize).toBe(
 		'15px',
 	);
-	expect(button.getBoundingClientRect().width).toBe(32);
+	expect(button.textContent?.trim()).toBe('Details');
+	expect(button.querySelector('.ph-article')).not.toBeNull();
+	expect(button.getBoundingClientRect().width).toBeGreaterThan(32);
 	expect(button.getBoundingClientRect().height).toBe(32);
 	expect(button.getBoundingClientRect().left - label.getBoundingClientRect().right).toBeCloseTo(
 		8,

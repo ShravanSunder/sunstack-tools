@@ -3,6 +3,7 @@ import { commands, page, userEvent } from 'vitest/browser';
 
 import { commentStorageKey } from '../../../../packages/demistify/src/core/comment-store.ts';
 import { assignHeadingFragments } from '../../../../packages/demistify/src/core/heading-fragments.ts';
+import { createCommentSnapshot } from '../../../../packages/demistify/src/core/review-model.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import {
 	openBoundaryReviewFixture,
@@ -301,6 +302,58 @@ test('dragging actual card body text creates an option anchor without selecting 
 		commentId: original?.commentId,
 		anchor: { kind: 'text', targetId: 'layout' },
 	});
+});
+
+test('a selection across options stays document-owned without editing question or option comments', async (): Promise<void> => {
+	const snapshot = createCommentSnapshot({
+		documentId: 'demistify-review-boundary-fixture',
+		documentRevision: 'r1',
+	});
+	const original = [
+		{ targetId: 'scope-question', label: 'Which scope?', body: 'Question feedback' },
+		{ targetId: 'layout', label: 'Layout only', body: 'Option feedback' },
+	].map(({ targetId, label, body }) => ({
+		commentId: `saved-${targetId}`,
+		anchor: { kind: 'entity', targetId, label },
+		body,
+		createdAt: '2026-10-24T10:00:00Z',
+		updatedAt: '2026-10-24T10:00:00Z',
+	}));
+	localStorage.setItem(
+		commentStorageKey(snapshot),
+		JSON.stringify({ ...snapshot, comments: original }),
+	);
+	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	expect(readCurrentReview(fixture).comments).toEqual(original);
+	const first = requiredElement(fixture, '#layout .ex-choice-summary li');
+	const second = requiredElement(fixture, '#technical .ex-choice-summary p');
+	requiredElement(fixture, '#scope-question').scrollIntoView({
+		block: 'start',
+		behavior: 'instant',
+	});
+	const start = textCaretRect(first, 0);
+	const end = textCaretRect(second, second.firstChild?.textContent?.length ?? 0);
+	await commands.dragReviewSelection({
+		startX: start.left + 0.5,
+		startY: start.top + start.height / 2,
+		endX: end.left,
+		endY: end.top + end.height / 2,
+	});
+	await expect
+		.poll((): string => fixture.defaultView?.getSelection()?.toString() ?? '')
+		.toMatch(/Desktop containment[\s\S]*comment anchors\.$/);
+	await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
+	expect(
+		fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
+	).toBe('');
+	await frame
+		.getByRole('textbox', { name: 'Your comment', exact: true })
+		.fill('Cross-option feedback');
+	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+	const saved = readCurrentReview(fixture).comments;
+	expect(saved).toHaveLength(3);
+	expect(saved.slice(0, 2)).toEqual(original);
+	expect(saved[2]?.anchor).toMatchObject({ kind: 'text', targetId: 'content' });
 });
 
 test('a choice-only document gets automatic Comments and retains the 8px phone gutter', async (): Promise<void> => {

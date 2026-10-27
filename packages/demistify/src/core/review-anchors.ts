@@ -136,9 +136,12 @@ export function captureCommentAnchor(
 	const explicitOwner = ancestor?.closest<HTMLElement>(
 		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id]',
 	);
+	const startChoice = startElement?.closest('.ex-choice-option[id],ex-choice[id]');
+	const endChoice = endElement?.closest('.ex-choice-option[id],ex-choice[id]');
+	const choiceOwner = startChoice === endChoice ? startChoice : undefined;
 	const target = targets.get(
-		crossesBlocks
-			? (ancestor?.closest('.ex-choice-option[id],ex-choice[id]')?.id ?? root.id)
+		crossesBlocks || startChoice !== endChoice
+			? (choiceOwner?.id ?? root.id)
 			: (explicitOwner?.id ?? element?.id ?? root.id),
 	);
 	if (!target) return undefined;
