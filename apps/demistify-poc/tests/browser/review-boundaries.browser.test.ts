@@ -243,6 +243,64 @@ test('dragging actual card body text creates an option anchor without selecting 
 	if (anchor?.kind !== 'text') throw new Error('No passage anchor was saved.');
 	expect(anchor.selectedText).toBe('Desktop containment');
 	expect(readCurrentReview(fixture).answers).toEqual([]);
+	const original = readCurrentReview(fixture).comments[0];
+	await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+	await fixtureLocator(frame, requiredElement(fixture, '#layout > [data-comment-control]')).click();
+	expect(
+		fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
+	).toBe('Preserve this item.');
+	expect(requiredElement(fixture, '.ex-comment-composer blockquote').textContent).toBe(
+		'Desktop containment',
+	);
+	await frame.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+	passage.scrollIntoView({ block: 'center' });
+	const nextStart = textCaretRect(passage, 0);
+	const nextEnd = textCaretRect(passage, 7);
+	await commands.dragReviewSelection({
+		startX: nextStart.left + 0.5,
+		startY: nextStart.top + nextStart.height / 2,
+		endX: nextEnd.left,
+		endY: nextEnd.top + nextEnd.height / 2,
+	});
+	await expect
+		.poll((): string => fixture.defaultView?.getSelection()?.toString() ?? '')
+		.toBe('Desktop');
+	await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
+	expect(
+		fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
+	).toBe('Preserve this item.');
+	await frame
+		.getByRole('textbox', { name: 'Your comment', exact: true })
+		.fill('More precise feedback.');
+	await frame.getByRole('button', { name: 'Save comment', exact: true }).click();
+	expect(readCurrentReview(fixture).comments).toHaveLength(1);
+	expect(readCurrentReview(fixture).comments[0]).toMatchObject({
+		commentId: original?.commentId,
+		anchor: { kind: 'text', targetId: 'layout', selectedText: 'Desktop' },
+		body: 'More precise feedback.',
+	});
+	await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+	passage.scrollIntoView({ block: 'center' });
+	const secondBlock = requiredElement(fixture, '#layout .ex-choice-summary li + li');
+	const blockStart = textCaretRect(passage, 0);
+	const blockEnd = textCaretRect(secondBlock, 5);
+	await commands.dragReviewSelection({
+		startX: blockStart.left + 0.5,
+		startY: blockStart.top + blockStart.height / 2,
+		endX: blockEnd.left,
+		endY: blockEnd.top + blockEnd.height / 2,
+	});
+	await expect
+		.poll((): string => fixture.defaultView?.getSelection()?.toString() ?? '')
+		.toContain('Phone');
+	await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
+	await frame.getByRole('button', { name: 'Save comment', exact: true }).click();
+	expect(readCurrentReview(fixture).comments).toHaveLength(1);
+	expect(readCurrentReview(fixture).comments[0]).toMatchObject({
+		commentId: original?.commentId,
+		anchor: { kind: 'text', targetId: 'layout' },
+	});
 });
 
 test('a choice-only document gets automatic Comments and retains the 8px phone gutter', async (): Promise<void> => {

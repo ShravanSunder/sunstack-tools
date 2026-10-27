@@ -137,7 +137,9 @@ export function captureCommentAnchor(
 		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id]',
 	);
 	const target = targets.get(
-		crossesBlocks ? root.id : (explicitOwner?.id ?? element?.id ?? root.id),
+		crossesBlocks
+			? (ancestor?.closest('.ex-choice-option[id],ex-choice[id]')?.id ?? root.id)
+			: (explicitOwner?.id ?? element?.id ?? root.id),
 	);
 	if (!target) return undefined;
 	const text = reviewTargetText(target.element);

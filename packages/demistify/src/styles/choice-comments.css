@@ -303,6 +303,21 @@ ex-option.ex-choice-option > input {
 	padding-block: var(--space-5);
 	border-bottom: 1px solid var(--rule);
 }
+.ex-review-answer {
+	padding-block: var(--space-4);
+	border-bottom: 1px solid var(--rule);
+}
+.ex-review-selected + .ex-review-selected {
+	margin-top: var(--space-4);
+}
+.ex-review-selected > :is(p, .ex-comment-anchor) {
+	color: var(--ink);
+	font-weight: 600;
+}
+.ex-review-answer .ex-saved-comment {
+	padding-block: var(--space-2) 0;
+	border-bottom: 0;
+}
 .ex-comment-anchor,
 .ex-comment-edit {
 	border: 0;

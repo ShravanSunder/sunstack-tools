@@ -13,6 +13,115 @@ import {
 const identity = { documentId: 'scope', documentRevision: 'r1' };
 const anchor = { kind: 'entity', targetId: 'layout', label: 'Layout' } as const;
 
+test('saving through either node entry updates one comment and preserves its identity', (): void => {
+	const values = new Map<string, string>();
+	const storage: CommentStorage = {
+		getItem: (key): string | null => values.get(key) ?? null,
+		setItem: (key, value): void => {
+			values.set(key, value);
+		},
+	};
+	const store = createCommentStore(identity, (): CommentStorage => storage);
+	store.save(anchor, 'First note');
+	const original = store.snapshot().comments[0];
+	store.save(anchor, 'Updated note');
+	expect(store.snapshot().comments).toHaveLength(1);
+	expect(store.snapshot().comments[0]).toMatchObject({
+		commentId: original?.commentId,
+		createdAt: original?.createdAt,
+		body: 'Updated note',
+	});
+	store.save({ ...anchor, targetId: 'technical', label: 'Technical' }, 'Another node');
+	expect(store.snapshot().comments).toHaveLength(2);
+	expect(createCommentStore(identity, (): CommentStorage => storage).snapshot()).toEqual(
+		store.snapshot(),
+	);
+});
+
+test('selected answer copy includes its comment without repeating the option title', (): void => {
+	const store = createCommentStore(identity, (): CommentStorage => ({
+		getItem: (): null => null,
+		setItem: (): void => {},
+	}));
+	store.save(anchor, 'Keep this boundary.');
+	store.save(
+		{ ...anchor, targetId: 'other', label: 'Unselected option' },
+		'Do not lose this note.',
+	);
+	const review = reviewEnvelopeSchema.parse({
+		...store.snapshot(),
+		answers: [
+			{
+				questionId: 'scope-question',
+				question: 'Which scope?',
+				selected: [{ optionId: 'layout', label: 'Layout' }],
+			},
+		],
+	});
+	const copied = formatReview(review);
+	expect(copied.match(/Layout/g)).toHaveLength(1);
+	expect(copied).toContain('Keep this boundary.');
+	expect(copied).toContain('Unselected option');
+	expect(copied).toContain('Do not lose this note.');
+	for (const comment of review.comments)
+		expect(copied).toContain(`Comment ID: ${comment.commentId}`);
+});
+
+test('a new selected passage updates the same comment without replacing its saved identity', (): void => {
+	const store = createCommentStore(identity, (): CommentStorage => ({
+		getItem: (): null => null,
+		setItem: (): void => {},
+	}));
+	store.save(anchor, 'Whole item note');
+	const original = store.snapshot().comments[0];
+	const passage = textCommentAnchorSchema.parse({
+		...anchor,
+		kind: 'text',
+		selectedText: 'Layout',
+		sourceText: 'Layout',
+		start: 0,
+		end: 6,
+		prefix: '',
+		suffix: '',
+	});
+	store.save(passage, 'Precise note', original?.commentId);
+	expect(store.snapshot().comments).toHaveLength(1);
+	expect(store.snapshot().comments[0]).toMatchObject({
+		commentId: original?.commentId,
+		createdAt: original?.createdAt,
+		anchor: passage,
+		body: 'Precise note',
+	});
+});
+
+test('historical same-node records remain readable and are not deleted or appended on save', (): void => {
+	const prior = commentSnapshotSchema.parse({
+		...createCommentSnapshot(identity),
+		comments: ['first', 'second'].map((commentId) => ({
+			commentId,
+			anchor,
+			body: commentId,
+			createdAt: '2026-10-24T10:00:00Z',
+			updatedAt: '2026-10-24T10:00:00Z',
+		})),
+	});
+	let stored = JSON.stringify(prior);
+	const store = createCommentStore(identity, (): CommentStorage => ({
+		getItem: (): string => stored,
+		setItem: (_key, value): void => {
+			stored = value;
+		},
+	}));
+	expect(store.snapshot()).toEqual(prior);
+	store.save(anchor, 'Edited first');
+	expect(store.snapshot().comments.map((comment): string => comment.commentId)).toEqual([
+		'first',
+		'second',
+	]);
+	expect(store.snapshot().comments[1]).toEqual(prior.comments[1]);
+	expect(JSON.parse(stored)).toEqual(store.snapshot());
+});
+
 test('a review carries current answers, exact comments and isolated returned values', (): void => {
 	const values = new Map<string, string>();
 	const storage: CommentStorage = {
