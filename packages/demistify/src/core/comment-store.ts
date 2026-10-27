@@ -67,14 +67,16 @@ export function createCommentStore(
 		save(anchor, body, commentId): void {
 			const previous =
 				commentId === undefined
-					? undefined
+					? snapshot.comments.find(
+							(comment): boolean => comment.anchor.targetId === anchor.targetId,
+						)
 					: snapshot.comments.find((comment): boolean => comment.commentId === commentId);
 			if (commentId !== undefined && !previous)
 				throw new Error('The comment to edit is unavailable.');
 			const now = new Date().toISOString();
 			const comment = pageCommentSchema.parse({
 				commentId: previous?.commentId ?? crypto.randomUUID(),
-				anchor: previous?.anchor ?? anchor,
+				anchor,
 				body,
 				createdAt: previous?.createdAt ?? now,
 				updatedAt: now,

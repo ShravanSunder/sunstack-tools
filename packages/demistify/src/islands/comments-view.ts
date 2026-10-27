@@ -148,16 +148,22 @@ export class CommentsView {
 	}
 
 	compose(anchor: CommentAnchor, existing?: PageComment): void {
+		const saved =
+			existing ??
+			this.options
+				.review()
+				.comments.find((comment): boolean => comment.anchor.targetId === anchor.targetId);
+		const currentAnchor = anchor.kind === 'entity' && saved ? saved.anchor : anchor;
 		this.open();
-		this.editing = { anchor: structuredClone(anchor), commentId: existing?.commentId };
+		this.editing = { anchor: structuredClone(currentAnchor), commentId: saved?.commentId };
 		this.composer.hidden = false;
-		this.targetLabel.textContent = anchor.label;
-		this.quote.hidden = anchor.kind !== 'text';
-		this.quote.textContent = anchor.kind === 'text' ? anchor.selectedText : '';
-		this.editor.value = existing?.body ?? '';
-		this.submit.textContent = existing ? 'Save comment' : 'Add comment';
+		this.targetLabel.textContent = currentAnchor.label;
+		this.quote.hidden = currentAnchor.kind !== 'text';
+		this.quote.textContent = currentAnchor.kind === 'text' ? currentAnchor.selectedText : '';
+		this.editor.value = saved?.body ?? '';
+		this.submit.textContent = saved ? 'Save comment' : 'Add comment';
 		this.submit.disabled = !this.editor.value.trim();
-		this.options.composing(anchor);
+		this.options.composing(currentAnchor);
 		this.body.scrollTop = 0;
 		this.editor.focus();
 	}
@@ -167,43 +173,69 @@ export class CommentsView {
 		this.title.textContent = `Comments · ${review.comments.length}`;
 		this.answers.replaceChildren();
 		this.list.replaceChildren();
+		const rendered = new Set<string>();
+		const appendTarget = (parent: HTMLElement, label: string, targetId: string): void => {
+			const comments = review.comments.filter(
+				(comment): boolean => comment.anchor.targetId === targetId,
+			);
+			const first = comments[0];
+			parent.append(first ? this.createAnchor(first, label) : textElement('p', label));
+			for (const comment of comments) {
+				parent.append(this.createComment(comment, false));
+				rendered.add(comment.commentId);
+			}
+		};
 		if (review.answers.length) {
 			this.answers.append(textElement('h3', 'Selected answers'));
 			for (const answer of review.answers) {
 				const item = document.createElement('article');
-				item.append(
-					textElement('p', answer.question, 'ex-review-question'),
-					...answer.selected.map((option): HTMLElement => textElement('p', option.label)),
-				);
+				item.className = 'ex-review-answer';
+				const question = document.createElement('div');
+				question.className = 'ex-review-question';
+				appendTarget(question, answer.question, answer.questionId);
+				item.append(question);
+				for (const option of answer.selected) {
+					const selected = document.createElement('section');
+					selected.className = 'ex-review-selected';
+					appendTarget(selected, option.label, option.optionId);
+					item.append(selected);
+				}
 				this.answers.append(item);
 			}
 		}
 		if (!review.comments.length && !review.answers.length)
 			this.list.append(textElement('p', 'No comments or selected answers yet.'));
-		for (const comment of review.comments) {
-			const item = document.createElement('article');
-			item.className = 'ex-saved-comment';
-			item.dataset['commentId'] = comment.commentId;
-			const reveal = textElement('button', comment.anchor.label, 'ex-comment-anchor');
-			reveal.type = 'button';
-			reveal.setAttribute('aria-label', `Show anchor: ${comment.anchor.label}`);
-			reveal.addEventListener('click', (): void => {
-				const issue = this.options.reveal(comment);
-				this.showIssue(issue);
-				if (!issue && window.innerWidth < 900) this.closePanel?.();
-			});
-			item.append(reveal);
-			if (comment.anchor.kind === 'text')
-				item.append(textElement('blockquote', comment.anchor.selectedText, 'ex-comment-quote'));
-			const edit = textElement('button', 'Edit', 'ex-comment-edit');
-			edit.type = 'button';
-			edit.setAttribute('aria-label', `Edit comment on ${comment.anchor.label}`);
-			edit.addEventListener('click', (): void => this.compose(comment.anchor, comment));
-			item.append(textElement('p', comment.body, 'ex-comment-body'), edit);
-			this.list.append(item);
-		}
+		for (const comment of review.comments)
+			if (!rendered.has(comment.commentId)) this.list.append(this.createComment(comment));
 		this.transfer.hidden = !review.comments.length && !review.answers.length;
 		this.showIssue(this.options.issue());
+	}
+
+	private createAnchor(comment: PageComment, label = comment.anchor.label): HTMLButtonElement {
+		const reveal = textElement('button', label, 'ex-comment-anchor');
+		reveal.type = 'button';
+		reveal.setAttribute('aria-label', `Show anchor: ${comment.anchor.label}`);
+		reveal.addEventListener('click', (): void => {
+			const issue = this.options.reveal(comment);
+			this.showIssue(issue);
+			if (!issue && window.innerWidth < 900) this.closePanel?.();
+		});
+		return reveal;
+	}
+
+	private createComment(comment: PageComment, includeLabel = true): HTMLElement {
+		const item = document.createElement('article');
+		item.className = 'ex-saved-comment';
+		item.dataset['commentId'] = comment.commentId;
+		if (includeLabel) item.append(this.createAnchor(comment));
+		if (comment.anchor.kind === 'text')
+			item.append(textElement('blockquote', comment.anchor.selectedText, 'ex-comment-quote'));
+		const edit = textElement('button', 'Edit', 'ex-comment-edit');
+		edit.type = 'button';
+		edit.setAttribute('aria-label', `Edit comment on ${comment.anchor.label}`);
+		edit.addEventListener('click', (): void => this.compose(comment.anchor, comment));
+		item.append(textElement('p', comment.body, 'ex-comment-body'), edit);
+		return item;
 	}
 
 	private endComposer(): void {
