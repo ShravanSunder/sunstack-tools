@@ -14,6 +14,45 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('a selected option and its comment share one title in the review rail', async (): Promise<void> => {
+	const { document: fixture, frame } = await openReviewFixture();
+	await frame.getByRole('radio', { name: 'Layout only', exact: true }).click();
+	await fixtureLocator(frame, requiredElement(fixture, '#layout > [data-comment-control]')).click();
+	await frame
+		.getByRole('textbox', { name: 'Your comment', exact: true })
+		.fill('Keep the boundary.');
+	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+	const entries = [...fixture.querySelectorAll('.ex-comments-body > div')]
+		.map((element): string => element.textContent ?? '')
+		.join('\n');
+	expect(entries.match(/Layout only/g)).toHaveLength(1);
+	expect(requiredElement(fixture, '.ex-comments-body').textContent).toContain('Keep the boundary.');
+	expect(readCurrentReview(fixture).comments).toHaveLength(1);
+});
+
+test('reopening a node edits its saved comment instead of adding another', async (): Promise<void> => {
+	const { document: fixture, frame } = await openReviewFixture();
+	const node = requiredElement(fixture, '#layout > [data-comment-control]');
+	await fixtureLocator(frame, node).click();
+	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('First note');
+	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+	const original = readCurrentReview(fixture).comments[0];
+	await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+	await fixtureLocator(frame, node).click();
+	expect(
+		fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
+	).toBe('First note');
+	await frame
+		.getByRole('textbox', { name: 'Your comment', exact: true })
+		.fill('Edited note\nSecond line');
+	await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+	expect(readCurrentReview(fixture).comments).toHaveLength(1);
+	expect(readCurrentReview(fixture).comments[0]).toMatchObject({
+		commentId: original?.commentId,
+		body: 'Edited note\nSecond line',
+	});
+});
+
 test('choice cards, table rows and inline details keep one stable option comment target', async (): Promise<void> => {
 	const { document: fixture } = await openReviewFixture();
 	const options = [...fixture.querySelectorAll('.ex-choice-option')];
@@ -80,7 +119,9 @@ test('choice typography and title-adjacent Details use the real native inspector
 	expect(view?.getComputedStyle(requiredElement(target, '.ex-choice-summary')).fontSize).toBe(
 		'15px',
 	);
-	expect(button.getBoundingClientRect().width).toBe(32);
+	expect(button.textContent?.trim()).toBe('Details');
+	expect(button.querySelector('.ph-article')).not.toBeNull();
+	expect(button.getBoundingClientRect().width).toBeGreaterThan(32);
 	expect(button.getBoundingClientRect().height).toBe(32);
 	expect(button.getBoundingClientRect().left - label.getBoundingClientRect().right).toBeCloseTo(
 		8,

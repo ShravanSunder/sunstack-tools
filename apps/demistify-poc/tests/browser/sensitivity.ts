@@ -61,7 +61,7 @@ const cases: readonly SensitivityCase[] = [
 	},
 	{
 		name: 'moved-sidebar-original',
-		testName: 'visual sidebar copies retain',
+		testName: 'replacing sidebar content keeps',
 		section: 'src/islands/inspector.ts',
 		pattern: /let (\w+) = (\w+) \? (\w+) : (\w+)\(\3\);/g,
 		replacement: 'let $1 = $3;',

@@ -92,15 +92,18 @@ ex-option.ex-choice-option > input {
 	cursor: pointer;
 }
 .ex-choice-details-button {
-	display: inline-grid;
-	width: var(--space-8);
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	width: auto;
 	height: var(--space-8);
 	margin-left: var(--space-2);
-	padding: 0;
-	border-radius: 50%;
+	padding: 0 var(--space-2);
+	border-radius: var(--radius-md);
 	vertical-align: middle;
 	background: var(--surface-content);
 	color: var(--ink-soft);
+	font: 600 var(--text-sm)/1 var(--font-body);
 }
 .ex-choice-details-button .ph {
 	font-size: var(--text-lg);
@@ -302,6 +305,21 @@ ex-option.ex-choice-option > input {
 .ex-saved-comment {
 	padding-block: var(--space-5);
 	border-bottom: 1px solid var(--rule);
+}
+.ex-review-answer {
+	padding-block: var(--space-4);
+	border-bottom: 1px solid var(--rule);
+}
+.ex-review-selected + .ex-review-selected {
+	margin-top: var(--space-4);
+}
+.ex-review-selected > :is(p, .ex-comment-anchor) {
+	color: var(--ink);
+	font-weight: 600;
+}
+.ex-review-answer .ex-saved-comment {
+	padding-block: var(--space-2) 0;
+	border-bottom: 0;
 }
 .ex-comment-anchor,
 .ex-comment-edit {

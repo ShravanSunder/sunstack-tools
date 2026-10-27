@@ -103,13 +103,10 @@ export function formatReview(review: ReviewEnvelope): string {
 		`Document revision: ${review.documentRevision}`,
 		`Review ID: ${review.reviewId}`,
 	];
-	for (const comment of review.comments) {
-		lines.push(
-			'',
-			`## ${comment.anchor.label}`,
-			`Target ID: ${comment.anchor.targetId}`,
-			`Comment ID: ${comment.commentId}`,
-		);
+	const rendered = new Set<string>();
+	const appendComment = (comment: PageComment, heading: boolean): void => {
+		if (heading) lines.push('', `## ${comment.anchor.label}`);
+		lines.push('', `Target ID: ${comment.anchor.targetId}`, `Comment ID: ${comment.commentId}`);
 		if (comment.anchor.kind === 'text')
 			lines.push(
 				`Selected text: ${JSON.stringify(comment.anchor.selectedText)}`,
@@ -117,14 +114,22 @@ export function formatReview(review: ReviewEnvelope): string {
 			);
 		else lines.push('Anchor: whole item');
 		lines.push('', comment.body);
-	}
+		rendered.add(comment.commentId);
+	};
+	const appendTargetComments = (targetId: string): void => {
+		for (const comment of review.comments)
+			if (comment.anchor.targetId === targetId) appendComment(comment, false);
+	};
 	if (review.answers.length) lines.push('', '# Selected answers');
-	for (const answer of review.answers)
-		lines.push(
-			'',
-			`## ${answer.question}`,
-			`Question ID: ${answer.questionId}`,
-			...answer.selected.map((option): string => `- ${option.label} (${option.optionId})`),
-		);
+	for (const answer of review.answers) {
+		lines.push('', `## ${answer.question}`, `Question ID: ${answer.questionId}`);
+		appendTargetComments(answer.questionId);
+		for (const option of answer.selected) {
+			lines.push(`- ${option.label} (${option.optionId})`);
+			appendTargetComments(option.optionId);
+		}
+	}
+	for (const comment of review.comments)
+		if (!rendered.has(comment.commentId)) appendComment(comment, true);
 	return lines.join('\n');
 }

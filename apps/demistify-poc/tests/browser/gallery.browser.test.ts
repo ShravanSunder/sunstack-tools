@@ -362,6 +362,88 @@ test.each(['review', 'grid'])(
 	},
 );
 
+test.each([
+	[1600, false],
+	[1600, true],
+	[390, false],
+	[390, true],
+])(
+	'gallery sequential variations at %ipx (fullscreen %s) cross groups and retain horizontal position',
+	async (width, fullscreen): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('gallery', '', 'sequence.html');
+		const gallery = requiredElement(fixture, '#sequence-gallery');
+		const local = fixtureLocator(frame, gallery);
+		if (fullscreen)
+			await local.getByRole('button', { name: 'View screenshot fullscreen', exact: true }).click();
+		else
+			await frame
+				.getByRole('heading', { name: 'Gallery navigation sequence', exact: true })
+				.click();
+		const assertSelection = async (name: string): Promise<void> => {
+			const selected = fullscreen ? frame.getByRole('dialog', { name, exact: true }) : local;
+			await expect.element(selected.getByRole('img', { name, exact: true })).toBeVisible();
+		};
+		await assertSelection('1a');
+		await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+		await assertSelection('1c');
+		await userEvent.keyboard('{ArrowDown}');
+		await assertSelection('2a');
+		await userEvent.keyboard('{ArrowUp}');
+		await assertSelection('1c');
+		await userEvent.keyboard('{ArrowRight}{ArrowRight}');
+		await assertSelection('3c');
+		await userEvent.keyboard('{ArrowDown}');
+		await assertSelection('3c');
+		await userEvent.keyboard('{ArrowUp}{ArrowLeft}');
+		await assertSelection('2b');
+		await userEvent.keyboard('{ArrowUp}{ArrowUp}');
+		await assertSelection('1c');
+		if (fullscreen) await userEvent.keyboard('{Escape}');
+		await expect.element(local.getByRole('img', { name: '1c', exact: true })).toBeVisible();
+	},
+);
+
+test.each([1600, 390])(
+	'sequential navigation keeps the selected thumbnail visible at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('gallery', '', 'sequence.html');
+		const gallery = requiredElement(fixture, '#sequence-gallery');
+		await frame.getByRole('heading', { name: 'Gallery navigation sequence', exact: true }).click();
+		await userEvent.keyboard(
+			'{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}',
+		);
+		await expect
+			.poll((): boolean => {
+				const selected = requiredElement(
+					gallery,
+					'[data-capture-id="capture-3c"]',
+				).getBoundingClientRect();
+				const strip = requiredElement(gallery, '.ex-gallery-strip').getBoundingClientRect();
+				return (
+					selected.left >= strip.left - 1 &&
+					selected.right <= strip.right + 1 &&
+					selected.top >= strip.top - 1 &&
+					selected.bottom <= strip.bottom + 1
+				);
+			})
+			.toBe(true);
+	},
+);
+
+test('gallery sequential navigation remains inside its filtered results', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('gallery', '', 'sequence.html');
+	const local = fixtureLocator(frame, requiredElement(fixture, '#sequence-gallery'));
+	await local.getByRole('searchbox', { name: 'Search screenshots', exact: true }).fill('Group 2');
+	await expect.element(local.getByRole('img', { name: '2a', exact: true })).toBeVisible();
+	await frame.getByRole('heading', { name: 'Gallery navigation sequence', exact: true }).click();
+	await userEvent.keyboard('{ArrowUp}');
+	await expect.element(local.getByRole('img', { name: '2a', exact: true })).toBeVisible();
+	await userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+	await expect.element(local.getByRole('img', { name: '2c', exact: true })).toBeVisible();
+});
+
 test('gallery arrows change screens and same-screen variations from body focus, while search keeps its keys', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('gallery');
 	const gallery = requiredElement(fixture, '#proof-gallery');

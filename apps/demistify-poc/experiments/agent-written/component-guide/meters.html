@@ -1,0 +1,97 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Identity, checks and timing · Demistify feature review</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Feature review pages"><a href="index.html">Feature review</a>
+<a href="content.html">Content and code</a>
+<a href="choices.html">Choices and comments</a>
+<a href="meters.html">Identity, checks and timing</a>
+<a href="traces.html">Traces and evidence</a>
+<a href="diagrams.html">Diagram families</a>
+<a href="layouts.html">Layouts and maps</a>
+<a href="visuals.html">Trees and comparisons</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Walkthroughs and links</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Authoring and delivery</a></nav><nav slot="presentations" aria-label="Walkthroughs"><a href="navigation.html#walkthrough"><strong>Session walkthrough</strong><span>Requirements, diagram and shared decision.</span></a></nav></ex-nav><ex-document id="guide"><h1>Identity, checks and timing</h1><p>The complete combined row: identity, run, status, exact checks, total duration and phase shares. These are illustrative records, not production measurements.</p><div class="ex-table-scroll" data-width="canvas">
+  <table>
+    <caption>Illustrative assessment runs. Each bar shows the phase shares of one run; values follow Connect / Work / Transfer.</caption>
+    <thead>
+      <tr>
+        <th scope="col">Identity</th>
+        <th scope="col">Run</th>
+        <th scope="col">State</th>
+        <th scope="col">Checks</th>
+        <th scope="col">Duration</th>
+        <th scope="col">Connect / Work / Transfer</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">AP</span><span class="ex-identity-text"><strong>Asha Patel</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
+        <td><strong>Document import</strong><br><small>A-148</small></td>
+        <td><ex-badge tone="done">Complete</ex-badge></td>
+        <td><ex-progress label="Checks" value="6" max="6"></ex-progress></td>
+        <td>228 ms</td>
+        <td><ex-breakdown label="Document import phases" unit="ms" compact>
+          <data value="28" series="1">Connect</data>
+          <data value="156" series="2">Work</data>
+          <data value="44" series="3">Transfer</data>
+        </ex-breakdown></td>
+      </tr>
+      <tr>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">NC</span><span class="ex-identity-text"><strong>Noor Chen</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
+        <td><strong>Address assessment</strong><br><small>A-149</small></td>
+        <td><ex-badge tone="note">Running</ex-badge></td>
+        <td><ex-progress label="Checks" value="2" max="6"></ex-progress></td>
+        <td>371 ms</td>
+        <td><ex-breakdown label="Address assessment phases" unit="ms" compact>
+          <data value="42" series="1">Connect</data>
+          <data value="264" series="2">Work</data>
+          <data value="65" series="3">Transfer</data>
+        </ex-breakdown></td>
+      </tr>
+      <tr>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">LD</span><span class="ex-identity-text"><strong>Luis Diaz</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
+        <td><strong>Photo review</strong><br><small>A-150</small></td>
+        <td><ex-badge tone="risk">Failed</ex-badge></td>
+        <td><ex-progress label="Checks" value="1" max="6"></ex-progress></td>
+        <td>512 ms</td>
+        <td><ex-breakdown label="Photo review phases" unit="ms" compact>
+          <data value="34" series="1">Connect</data>
+          <data value="418" series="2">Work</data>
+          <data value="60" series="3">Transfer</data>
+        </ex-breakdown></td>
+      </tr>
+      <tr>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">AP</span><span class="ex-identity-text"><strong>Asha Patel</strong><span class="ex-identity-detail">North workspace</span></span></span></td>
+        <td><strong>Identity lookup</strong><br><small>A-151</small></td>
+        <td><ex-badge tone="done">Complete</ex-badge></td>
+        <td><ex-progress label="Checks" value="6" max="6"></ex-progress></td>
+        <td>96 ms</td>
+        <td><ex-breakdown label="Identity lookup phases" unit="ms" compact>
+          <data value="18" series="1">Connect</data>
+          <data value="55" series="2">Work</data>
+          <data value="23" series="3">Transfer</data>
+        </ex-breakdown></td>
+      </tr>
+      <tr>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">NC</span><span class="ex-identity-text"><strong>Noor Chen</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
+        <td><strong>Delivery reconciliation</strong><br><small>A-152</small></td>
+        <td><ex-badge>Queued</ex-badge></td>
+        <td><ex-progress label="Checks" value="0" max="6"></ex-progress></td>
+        <td>0 ms</td>
+        <td><span>Not started</span></td>
+      </tr>
+      <tr>
+        <td><span class="ex-identity"><span class="ex-avatar" aria-hidden="true">LD</span><span class="ex-identity-text"><strong>Luis Diaz</strong><span class="ex-identity-detail">West workspace</span></span></span></td>
+        <td><strong>A deliberately long document classification label</strong><br><small>A-153</small></td>
+        <td><ex-badge tone="note">Running</ex-badge></td>
+        <td><ex-progress label="Checks" value="4" max="6"></ex-progress></td>
+        <td>1240 ms</td>
+        <td><ex-breakdown label="A deliberately long document classification label phases" unit="ms" compact>
+          <data value="120" series="1">Connect</data>
+          <data value="830" series="2">Work</data>
+          <data value="290" series="3">Transfer</data>
+        </ex-breakdown></td>
+      </tr>
+    </tbody>
+  </table>
+</div><h2 id="standalone-parts">Parts in ordinary content</h2><p><ex-badge tone="risk">Delayed</ex-badge> <ex-progress label="Checks" value="6" max="6"></ex-progress> A complete count does not imply a successful outcome.</p><ex-breakdown label="Request phase durations" unit="ms" scale="elapsed" max="1240"><data value="28" series="1">Connect</data><data value="156" series="2">Work</data><data value="44" series="3">Transfer</data></ex-breakdown></ex-document></body></html>

@@ -4,7 +4,7 @@ Sidebar inspection keeps the main explanation available. Fullscreen gives a larg
 
 ## Defaults and explicit choice
 
-Diagrams, code, file trees and content comparisons normally offer sidebar/expand controls. On components that install the shared inspector, such as Card, Callout, Tabs, Trace and Pre, bare `zoom` requests whole-island controls and `zoom="none"` removes them. Grid and Flow arrange their children and do not install whole-container inspection buttons, even when a `zoom` attribute parses; use the supported child island's controls. Plain prose and stats need no enlargement.
+Mermaid diagrams offer only the fullscreen (arrows-out) icon. Code, file trees and content comparisons normally offer sidebar/expand controls. On components that install the shared inspector, such as Card, Callout, Tabs, Trace and Pre, bare `zoom` requests whole-island controls and `zoom="none"` removes them. Grid and Flow arrange their children and do not install whole-container inspection buttons, even when a `zoom` attribute parses; use the supported child island's controls. Plain prose and stats need no enlargement.
 
 ```html
 <ex-card id="recovery-contract" title="Recovery contract" label="Recovery contract" tone="note" icon="database" zoom>
@@ -15,7 +15,7 @@ Diagrams, code, file trees and content comparisons normally offer sidebar/expand
 
 Use `label` for a useful inspector name when the visual alone has no clear title. `zoom="true"` is not the flag syntax; write bare `zoom` on a supported owner. Native `details` remain a local disclosure, not an inspector or a guided path. Whole Tabs inspection can serve a different question from its children's controls; Grid/Flow authors inspect supported children rather than adding a container affordance.
 
-An ordinary figure opens through document inspection, with its image and caption together. Gallery screenshots use their own fullscreen action and Gallery arrow navigation; they do not open a screenshot inspection sidebar. `pictures.md` owns that branch. Markdown's source button opens the retained source, which is different from enlarging its rendered view.
+Clicking an ordinary image opens fullscreen with its caption. Mermaid opens fullscreen only through its arrows-out icon; clicking the drawing does not open inspection. Closing fullscreen restores the original content. Linked images and diagram nodes keep their link action; dragging to select text does not open a viewer. Explicit sidebar buttons still open beside the explanation. `zoom="none"` on the visual owner disables direct enlargement as well as its inspection buttons. Gallery screenshots use their own fullscreen action and Gallery arrow navigation; they do not open a screenshot inspection sidebar. `pictures.md` owns that branch. Markdown's source button opens the retained source, which is different from enlarging its rendered view.
 
 ## What the reader can do
 

@@ -193,12 +193,11 @@ export class ChoiceIsland extends HTMLElement {
 					details.hidden = true;
 					depth.append(details);
 					const owner = depth;
-					const button = createIconButton(
-						'sidebar-simple',
-						`Open details for ${optionLabel}`,
-						(): void => openIsland(owner, 'sidebar'),
+					const button = createIconButton('article', `Open details for ${optionLabel}`, (): void =>
+						openIsland(owner, 'sidebar'),
 					);
 					button.classList.add('ex-choice-details-button');
+					button.append('Details');
 					titleRow.append(button);
 				}
 			}

@@ -70,7 +70,7 @@ Clicking noninteractive title, Markdown body or card background selects or toggl
 
 ## Choose the response view and optional detail
 
-Cards use Reading width by default. Supporting extras open through the native inspector: a circular 32px icon button follows the title with an 8px gap and flows beside wrapped title text. Opening it marks the complete source card, leaves its answer unchanged and returns focus on close. Use the existing inspector; no page script or second detail viewer is needed.
+Cards use Reading width by default. Supporting extras open through the native inspector: a compact 32px-high button with the shared document icon and visible **Details** label follows the title with an 8px gap and flows beside wrapped title text. Opening it marks the complete source card, leaves its answer unchanged and returns focus on close. Use the existing inspector; no page script or second detail viewer is needed.
 
 Use `view="table"` on the choice when short corresponding option bodies benefit from aligned selectable rows. The same option declarations become a Canvas-width native table; narrow scrolling stays inside the table boundary. Do not invent extra column or criteria attributes. Use `details="inline"` when extras should expand locally beneath an option, accepting that they move later content down. Both variations retain separate selection, detail and feedback actions.
 
@@ -95,7 +95,9 @@ Each field is an independent override: supply either or both; the missing field 
 
 An authored `ex-comments for="content"` remains supported for a deliberate binding to an original document with DOM ID `content`; omit it for the ordinary default. Duplicate target IDs, missing choice/option content or identity, invalid explicit review values, an invalid `for` binding or a second Comments surface for the same document are authoring errors. Runtime derives defaults without changing the existing review envelope or local-storage format.
 
-One Comments panel owns composition, existing comments, current selected answers and Copy/Export. Readers can comment on an item or actual selected text. A selection spanning blocks anchors to the document; controls and source carriers are excluded from its source text. The comment retains the selected quote and exact source range/context. Following it reveals the original target when possible. Missing or changed source is reported as unavailable, without guessing a replacement passage.
+One Comments panel owns composition, existing comments, current selected answers and Copy/Export. Each question, option or ordinary target has one editable comment: its button reopens that comment, and selecting text inside the same item edits it with the passage as quote context. A new passage updates the quote on Save; reopening the whole-item button retains the saved quote. Question and option comments stay independent. The panel and copied handoff show a selected answer once with its associated comments underneath, while feedback on unselected options remains available.
+
+A selection spanning blocks inside one choice question or option stays on that item; other cross-block selections anchor to the document. Controls and source carriers are excluded from its source text. The comment retains the selected quote and exact source range/context. Following it reveals the original target when possible. Missing or changed source is reported as unavailable, without guessing a replacement passage.
 
 C toggles Comments outside editable fields; modified commands, composition and repeated key events retain their normal ownership. Cmd+Enter saves a nonempty comment. Enter and Shift+Enter insert newlines. Existing comment counts remain visible; empty target controls reveal on hover/focus and stay reachable on narrow/touch layouts. Comments and native inspection share the right-side panel owner: opening either replaces the other, and fullscreen restores the live original state.
 

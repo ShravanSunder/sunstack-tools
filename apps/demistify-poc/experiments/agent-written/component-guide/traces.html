@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Traces and evidence · Demistify feature review</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Feature review pages"><a href="index.html">Feature review</a>
+<a href="content.html">Content and code</a>
+<a href="choices.html">Choices and comments</a>
+<a href="meters.html">Identity, checks and timing</a>
+<a href="traces.html">Traces and evidence</a>
+<a href="diagrams.html">Diagram families</a>
+<a href="layouts.html">Layouts and maps</a>
+<a href="visuals.html">Trees and comparisons</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Walkthroughs and links</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Authoring and delivery</a></nav><nav slot="presentations" aria-label="Walkthroughs"><a href="navigation.html#walkthrough"><strong>Session walkthrough</strong><span>Requirements, diagram and shared decision.</span></a></nav></ex-nav><ex-document id="guide"><h1>Source, explanation and planned proof</h1><p>The patch is supplied example source. These views do not establish runtime execution.</p>
+<ex-trace id="evidence-trace" title="Inspect the evidence" label="Evidence trace" data-width="canvas" zoom>
+<details id="source-step" icon="code" tone="done" tag="Supplied source"><summary>Read the exact reconnect changes</summary><ex-code id="trace-code" title="Supplied patch" lang="diff"><script type="text/plain">diff --git a/registry.ts b/registry.ts
+--- a/registry.ts
++++ b/registry.ts
+@@ -40,5 +40,6 @@
+ export function reconnect(id: string) {
+   const session = sessions.get(id);
+-  if (!session) return undefined;
++  if (!session) return { kind: 'missing' };
++  if (session.expired) return { kind: 'expired' };
+   return { kind: 'attached', session };
+ }
+diff --git a/transport.ts b/transport.ts
+--- a/transport.ts
++++ b/transport.ts
+@@ -12,3 +12,3 @@
+ export function disconnected(transport: Transport) {
+-  registry.delete(transport.sessionId);
++  transport.close();
+ }</script></ex-code><p>The supplied expiry guard is visible. No tenant check is supplied.</p></details>
+<details id="proof-step" icon="test-tube" tone="planned" tag="Not executed"><summary>Observe identity before and after reconnect</summary><ex-markdown id="trace-notes"><script type="text/markdown">
+## Expected identity
+
+Observe **the same Session**, not merely a successful attachment response.
+</script></ex-markdown><ex-mermaid id="trace-diagram"><script type="text/plain">flowchart LR
+  Original[Original Session] --> Reconnected[Reconnected Session]</script></ex-mermaid><ex-tree title="Observation plan"><script type="text/markdown">
+- planned: Record the original identity
+- planned: Compare the reconnected identity
+</script></ex-tree></details>
+</ex-trace></ex-document></body></html>

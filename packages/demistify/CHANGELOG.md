@@ -1,5 +1,39 @@
 # @sunstack/demistify
 
+## 1.15.3
+
+### Patch Changes
+
+- 3498162: Reopen and edit the same comment when a reader comments on an item or selects text inside it. Group selected answers with their comments in the review panel and copied handoff instead of repeating the option title. Label choice detail buttons with their icon and visible Details text.
+
+## 1.15.2
+
+### Patch Changes
+
+- 2861b47: Continue gallery Up/Down navigation across screen-group boundaries in both the main viewer and fullscreen. Retain Left/Right navigation at the current variation, filtered result boundaries and existing walkthrough key ownership.
+
+## 1.15.1
+
+### Patch Changes
+
+- 802c20b: Keep Mermaid fullscreen inspection on its expand icon only. Remove its sidebar button and direct drawing-click enlargement while preserving linked diagram-node actions and image click-to-fullscreen.
+
+## 1.15.0
+
+### Minor Changes
+
+- 85be4e0: Use a shared six-color palette across supported Mermaid families, with soft fills and automatic identity distinctions. Add built-in flowchart category classes and keep authored styles and semantic tones authoritative. Fix entity and class fields inheriting the page's monospace font size instead of their measured SVG size, and preserve field-note tooltips.
+
+### Patch Changes
+
+- 39431e0: Open ordinary images and Mermaid drawings fullscreen when clicked. Preserve linked visuals, diagram node actions, Gallery controls, text selection and explicit sidebar inspection; restore the original visual on close.
+
+## 1.14.0
+
+### Minor Changes
+
+- 7403724: Always provide Comments automatically on ordinary documents. Derive missing review identity from the page address and revision from original content and initial loaded sources; preserve explicit identity overrides. Add automatic semantic targets, retain navigation and inspection behavior, and teach automatic availability in the matching authoring guide.
+
 ## 1.13.0
 
 ### Minor Changes

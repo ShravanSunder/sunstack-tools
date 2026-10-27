@@ -464,6 +464,9 @@ export class GalleryIsland extends HTMLElement {
 		this.selected = id;
 		this.renderPreview();
 		this.updateNavigation();
+		this.controls?.strip
+			.querySelector(`[data-capture-id="${CSS.escape(id)}"]`)
+			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 	}
 
 	private moveCapture(direction: number): void {
@@ -481,18 +484,16 @@ export class GalleryIsland extends HTMLElement {
 			) ?? candidates[0];
 		if (!chosen) return;
 		this.selectCapture(chosen.id);
-		this.controls?.strip
-			.querySelector(`[data-capture-id="${CSS.escape(chosen.id)}"]`)
-			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 	}
 
 	private moveViewport(direction: number): void {
 		const current = this.visible.find((capture): boolean => capture.id === this.selected);
 		if (!current) return;
-		const candidates = this.visible.filter(
-			(capture): boolean => galleryScreenKey(capture) === galleryScreenKey(current),
+		const keys = [...new Set(this.visible.map(galleryScreenKey))];
+		const ordered = keys.flatMap((key): readonly GalleryCapture[] =>
+			this.visible.filter((capture): boolean => galleryScreenKey(capture) === key),
 		);
-		const next = candidates[candidates.indexOf(current) + direction];
+		const next = ordered[ordered.indexOf(current) + direction];
 		if (next) this.selectCapture(next.id);
 	}
 

@@ -3,6 +3,7 @@ import { normalizeIslandText, readIslandSource } from '../core/source-text.ts';
 import { assignDiagramFragments } from '../layout/target-resolution.ts';
 import { traceDiagram } from '../layout/trace.ts';
 import { renderDiagramSvg } from '../render/diagram-client.ts';
+import { colorPreparedDiagram } from '../render/diagram-palette.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
@@ -90,7 +91,10 @@ export class MermaidIsland extends HTMLElement {
 			sizeDiagram(this);
 			linkDiagramNodes(this);
 			const svg = this.querySelector(':scope > svg');
-			if (svg instanceof SVGSVGElement) traceDiagram(svg);
+			if (svg instanceof SVGSVGElement) {
+				colorPreparedDiagram(svg);
+				traceDiagram(svg);
+			}
 			installIslandInspector(this);
 			return;
 		}
