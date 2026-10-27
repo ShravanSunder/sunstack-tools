@@ -1,276 +1,59 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Demistify component guide · Demistify components</title>
-<link rel="stylesheet" href="/experiments/islands/theme.css">
-<script type="module" src="/experiments/islands/runtime.js">
-</script>
-</head>
-<body>
-<ex-nav for="guide">
-<nav slot="pages" aria-label="Component guide pages">
-<a href="index.html">Demistify components</a>
-<a href="content.html">Content and decisions</a>
-<a href="layouts.html">Layouts and navigation</a>
-<a href="visuals.html">Visuals and structure</a>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Feature review · Demistify feature review</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Feature review pages"><a href="index.html">Feature review</a>
+<a href="content.html">Content and code</a>
+<a href="choices.html">Choices and comments</a>
+<a href="meters.html">Identity, checks and timing</a>
+<a href="traces.html">Traces and evidence</a>
+<a href="diagrams.html">Diagram families</a>
+<a href="layouts.html">Layouts and maps</a>
+<a href="visuals.html">Trees and comparisons</a>
 <a href="pictures.html">Screenshot gallery</a>
-<a href="navigation.html">Presentations and deep links</a>
+<a href="navigation.html">Walkthroughs and links</a>
 <a href="explorer.html">Graph explorer</a>
 <a href="legacy.html">Earlier vocabulary</a>
-<a href="proof.html">Proof and usage</a>
-</nav>
-<nav slot="presentations" aria-label="Other presentations">
-<a href="navigation.html#walkthrough">
-<strong>Session design</strong>
-<span>Three named presentations with referenced Markdown and deep links.</span>
-</a>
-
-</nav>
-</ex-nav>
-<ex-document id="guide">
-
-<section id="examples">
-<h1>Demistify component guide</h1>
-<p>Review the working library by group. Every component has a live example and copyable markup. The examples use the matching local build; they do not claim that an older public asset pin supports these additions.</p>
-<p>Use <strong>Presentations</strong> for the examples/notes and other explainers. Use <strong>Pages</strong> for this guide’s sections. Open a component link to jump directly to its example.</p>
-<table>
-<thead>
-<tr>
-<th>Component</th>
-<th>Page</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="layouts.html#component-ex-arrow">
-<code>ex-arrow</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-board">
-<code>ex-board</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="content.html#component-ex-callout">
-<code>ex-callout</code>
-</a>
-</td>
-<td>Content and decisions</td>
-</tr>
-<tr>
-<td>
-<a href="content.html#component-ex-card">
-<code>ex-card</code>
-</a>
-</td>
-<td>Content and decisions</td>
-</tr>
-<tr>
-<td>
-<a href="content.html#component-ex-code">
-<code>ex-code</code>
-</a>
-</td>
-<td>Content and decisions</td>
-</tr>
-<tr>
-<td>
-<a href="visuals.html#component-ex-compare">
-<code>ex-compare</code>
-</a>
-</td>
-<td>Visuals and structure</td>
-</tr>
-<tr>
-<td>
-<a href="legacy.html#component-ex-decision">
-<code>ex-decision</code>
-</a>
-</td>
-<td>Earlier vocabulary</td>
-</tr>
-<tr>
-<td>
-<a href="legacy.html#component-ex-diagram-diff">
-<code>ex-diagram-diff</code>
-</a>
-</td>
-<td>Earlier vocabulary</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-document">
-<code>ex-document</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="explorer.html#component-ex-explorer">
-<code>ex-explorer</code>
-</a>
-</td>
-<td>Graph explorer</td>
-</tr>
-<tr>
-<td>
-<a href="visuals.html#component-ex-file-tree">
-<code>ex-file-tree</code>
-</a>
-</td>
-<td>Visuals and structure</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-flow">
-<code>ex-flow</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-grid">
-<code>ex-grid</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="legacy.html#component-ex-layer">
-<code>ex-layer</code>
-</a>
-</td>
-<td>Earlier vocabulary</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-layers">
-<code>ex-layers</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="content.html#component-ex-markdown">
-<code>ex-markdown</code>
-</a>
-</td>
-<td>Content and decisions</td>
-</tr>
-<tr>
-<td>
-<a href="visuals.html#component-ex-mermaid">
-<code>ex-mermaid</code>
-</a>
-</td>
-<td>Visuals and structure</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-nav">
-<code>ex-nav</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="content.html#component-ex-note">
-<code>ex-note</code>
-</a>
-</td>
-<td>Content and decisions</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-presentation">
-<code>ex-presentation</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-region">
-<code>ex-region</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-
-<tr>
-<td>
-<a href="content.html#component-ex-stat">
-<code>ex-stat</code>
-</a>
-</td>
-<td>Content and decisions</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-step">
-<code>ex-step</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="layouts.html#component-ex-tabs">
-<code>ex-tabs</code>
-</a>
-</td>
-<td>Layouts and navigation</td>
-</tr>
-<tr>
-<td>
-<a href="legacy.html#component-ex-timeline">
-<code>ex-timeline</code>
-</a>
-</td>
-<td>Earlier vocabulary</td>
-</tr>
-<tr>
-<td>
-<a href="visuals.html#component-ex-tree">
-<code>ex-tree</code>
-</a>
-</td>
-<td>Visuals and structure</td>
-</tr>
-<tr>
-<td>
-<a href="legacy.html#component-ex-zoom">
-<code>ex-zoom</code>
-</a>
-</td>
-<td>Earlier vocabulary</td>
-</tr>
-<tr><td><a href="pictures.html#component-ex-gallery"><code>ex-gallery</code></a></td><td>Screenshot gallery</td></tr>
-<tr><td><a href="visuals.html#component-ex-pre"><code>ex-pre</code></a></td><td>Visuals and structure</td></tr>
-</tbody>
-</table>
-</section>
-<section id="authoring">
-<ex-markdown id="authoring-notes" src="usage-notes.md">
-</ex-markdown>
-</section>
-<ex-presentation id="show-examples" title="Demistify component guide" description="Working components with copyable source and usage guidance."><ex-step to="examples">Read Demistify component guide.</ex-step></ex-presentation>
-<ex-presentation id="show-authoring" title="Authoring notes" description="Markdown loading, navigation and visual inspection guidance."><ex-step to="authoring">Read Authoring notes.</ex-step></ex-presentation>
-</ex-document>
-</body>
-</html>
+<a href="proof.html">Authoring and delivery</a></nav><nav slot="presentations" aria-label="Walkthroughs"><a href="navigation.html#walkthrough"><strong>Session walkthrough</strong><span>Requirements, diagram and shared decision.</span></a></nav></ex-nav><ex-document id="guide"><h1>Demistify feature review</h1><p>Explore the whole library in one connected guide. Choose a feature page from Pages, try its controls, and use Comments to attach feedback to an item or a passage.</p><h2 id="start-here">Start with the recent changes</h2><ul><li><a href="choices.html">Choice cards, selectable tables, inline extras, labelled Details and one editable comment per node</a></li><li><a href="meters.html">Identity, status badges, checks rings and timing bars together</a></li><li><a href="pictures.html">Gallery groups, variations, filters and fullscreen navigation</a></li><li><a href="diagrams.html">All six Mermaid families with shared colors and fullscreen controls</a></li></ul><h2 id="all-pages">Explore all features</h2><ul><li><a href="content.html">Content and code</a></li>
+<li><a href="choices.html">Choices and comments</a></li>
+<li><a href="meters.html">Identity, checks and timing</a></li>
+<li><a href="traces.html">Traces and evidence</a></li>
+<li><a href="diagrams.html">Diagram families</a></li>
+<li><a href="layouts.html">Layouts and maps</a></li>
+<li><a href="visuals.html">Trees and comparisons</a></li>
+<li><a href="pictures.html">Screenshot gallery</a></li>
+<li><a href="navigation.html">Walkthroughs and links</a></li>
+<li><a href="explorer.html">Graph explorer</a></li>
+<li><a href="legacy.html">Earlier vocabulary</a></li>
+<li><a href="proof.html">Authoring and delivery</a></li></ul><h2 id="component-coverage">Component coverage</h2><p>All 36 registered elements have an example in this collection. Earlier vocabulary has its own page. This is a browsable feature catalog; the delivery notes distinguish examples from verified behavior.</p><div class="ex-table-scroll"><table><thead><tr><th scope="col">Element</th><th scope="col">Example page</th></tr></thead><tbody><tr><th scope="row"><code>ex-choice</code></th><td><a href="choices.html">Choices and comments</a></td></tr>
+<tr><th scope="row"><code>ex-option</code></th><td><a href="choices.html">Choices and comments</a></td></tr>
+<tr><th scope="row"><code>ex-comments</code></th><td><a href="choices.html">Choices and comments</a></td></tr>
+<tr><th scope="row"><code>ex-pre</code></th><td><a href="visuals.html">Trees and comparisons</a></td></tr>
+<tr><th scope="row"><code>ex-gallery</code></th><td><a href="pictures.html">Screenshot gallery</a></td></tr>
+<tr><th scope="row"><code>ex-explorer</code></th><td><a href="explorer.html">Graph explorer</a></td></tr>
+<tr><th scope="row"><code>ex-document</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-presentation</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-markdown</code></th><td><a href="content.html">Content and code</a></td></tr>
+<tr><th scope="row"><code>ex-card</code></th><td><a href="content.html">Content and code</a></td></tr>
+<tr><th scope="row"><code>ex-callout</code></th><td><a href="content.html">Content and code</a></td></tr>
+<tr><th scope="row"><code>ex-stat</code></th><td><a href="content.html">Content and code</a></td></tr>
+<tr><th scope="row"><code>ex-badge</code></th><td><a href="meters.html">Identity, checks and timing</a></td></tr>
+<tr><th scope="row"><code>ex-progress</code></th><td><a href="meters.html">Identity, checks and timing</a></td></tr>
+<tr><th scope="row"><code>ex-breakdown</code></th><td><a href="meters.html">Identity, checks and timing</a></td></tr>
+<tr><th scope="row"><code>ex-mermaid</code></th><td><a href="visuals.html">Trees and comparisons</a></td></tr>
+<tr><th scope="row"><code>ex-code</code></th><td><a href="content.html">Content and code</a></td></tr>
+<tr><th scope="row"><code>ex-note</code></th><td><a href="content.html">Content and code</a></td></tr>
+<tr><th scope="row"><code>ex-file-tree</code></th><td><a href="visuals.html">Trees and comparisons</a></td></tr>
+<tr><th scope="row"><code>ex-tree</code></th><td><a href="visuals.html">Trees and comparisons</a></td></tr>
+<tr><th scope="row"><code>ex-trace</code></th><td><a href="traces.html">Traces and evidence</a></td></tr>
+<tr><th scope="row"><code>ex-grid</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-flow</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-arrow</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-tabs</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-board</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-region</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-step</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-layers</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-nav</code></th><td><a href="layouts.html">Layouts and maps</a></td></tr>
+<tr><th scope="row"><code>ex-zoom</code></th><td><a href="legacy.html">Earlier vocabulary</a></td></tr>
+<tr><th scope="row"><code>ex-decision</code></th><td><a href="legacy.html">Earlier vocabulary</a></td></tr>
+<tr><th scope="row"><code>ex-compare</code></th><td><a href="visuals.html">Trees and comparisons</a></td></tr>
+<tr><th scope="row"><code>ex-diagram-diff</code></th><td><a href="legacy.html">Earlier vocabulary</a></td></tr>
+<tr><th scope="row"><code>ex-timeline</code></th><td><a href="legacy.html">Earlier vocabulary</a></td></tr>
+<tr><th scope="row"><code>ex-layer</code></th><td><a href="legacy.html">Earlier vocabulary</a></td></tr></tbody></table></div></ex-document></body></html>

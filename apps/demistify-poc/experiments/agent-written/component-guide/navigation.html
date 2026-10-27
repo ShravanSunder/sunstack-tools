@@ -1,14 +1,16 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Presentations and deep links</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Component guide pages">
-<a href="index.html">Demistify components</a>
-<a href="content.html">Content and decisions</a>
-<a href="layouts.html">Layouts and navigation</a>
-<a href="visuals.html">Visuals and structure</a>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Presentations and deep links</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Feature review pages"><a href="index.html">Feature review</a>
+<a href="content.html">Content and code</a>
+<a href="choices.html">Choices and comments</a>
+<a href="meters.html">Identity, checks and timing</a>
+<a href="traces.html">Traces and evidence</a>
+<a href="diagrams.html">Diagram families</a>
+<a href="layouts.html">Layouts and maps</a>
+<a href="visuals.html">Trees and comparisons</a>
 <a href="pictures.html">Screenshot gallery</a>
-<a href="navigation.html">Presentations and deep links</a>
+<a href="navigation.html">Walkthroughs and links</a>
 <a href="explorer.html">Graph explorer</a>
 <a href="legacy.html">Earlier vocabulary</a>
-<a href="proof.html">Proof and usage</a>
-</nav></ex-nav><ex-document id="guide"><h1>Presentations and deep links</h1><p>A presentation is a named path through the content below. Several paths may share the same target.</p><ex-markdown id="requirements" label="Session requirements" src="requirements.md"></ex-markdown><section id="architecture"><h2>Architecture</h2><ex-grid cols="2"><ex-mermaid id="before" label="Before"><script type="text/plain">flowchart LR
+<a href="proof.html">Authoring and delivery</a></nav><nav slot="presentations" aria-label="Walkthroughs"><a href="navigation.html#walkthrough"><strong>Session walkthrough</strong><span>Requirements, diagram and shared decision.</span></a></nav></ex-nav><ex-document id="guide"><h1>Presentations and deep links</h1><p>A presentation is a named path through the content below. Several paths may share the same target.</p><ex-markdown id="requirements" label="Session requirements" src="requirements.md"></ex-markdown><section id="architecture"><h2>Architecture</h2><ex-grid cols="2"><ex-mermaid id="before" label="Before"><script type="text/plain">flowchart LR
 Client --> Registry --> Session</script></ex-mermaid><ex-mermaid id="after" label="After"><script type="text/plain">flowchart LR
 Client --> Registry --> Session</script></ex-mermaid></ex-grid><ex-card id="lifetime" title="Session lifetime" tone="decision" pick>The Registry owns the session. A new transport can reconnect without creating another session.</ex-card></section><ex-tree title="Read the source"><script type="text/markdown">- [Session ownership](#requirements--ownership-table)
   - [Registry node](#after--Registry)

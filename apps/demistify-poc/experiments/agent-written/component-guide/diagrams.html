@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diagram families · Demistify feature review</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="guide"><nav slot="pages" aria-label="Feature review pages"><a href="index.html">Feature review</a>
+<a href="content.html">Content and code</a>
+<a href="choices.html">Choices and comments</a>
+<a href="meters.html">Identity, checks and timing</a>
+<a href="traces.html">Traces and evidence</a>
+<a href="diagrams.html">Diagram families</a>
+<a href="layouts.html">Layouts and maps</a>
+<a href="visuals.html">Trees and comparisons</a>
+<a href="pictures.html">Screenshot gallery</a>
+<a href="navigation.html">Walkthroughs and links</a>
+<a href="explorer.html">Graph explorer</a>
+<a href="legacy.html">Earlier vocabulary</a>
+<a href="proof.html">Authoring and delivery</a></nav><nav slot="presentations" aria-label="Walkthroughs"><a href="navigation.html#walkthrough"><strong>Session walkthrough</strong><span>Requirements, diagram and shared decision.</span></a></nav></ex-nav><ex-document id="guide">
+  <h1>Read relationships with a shared palette</h1>
+  <p>Entity boxes, participants, classes and states use the same six-color palette. Names and arrows carry the meaning; colors help keep identities apart. These examples illustrate the rendering system.</p>
+  <h2>Entities retain readable fields</h2>
+  <ex-mermaid id="er-model" label="Machine and workspace fields"><script type="text/plain">
+erDiagram
+  MACHINE {
+    uuid service_id PK "Stable machine identity"
+    text access_client_id
+    text credential_hash
+    text state
+  }
+  WORKSPACE {
+    uuid workspace_id PK
+    text name
+    text state
+  }
+  PROJECT {
+    uuid project_id PK
+    uuid workspace_id FK
+    text name
+  }
+  MACHINE ||--o{ WORKSPACE : owns
+  WORKSPACE ||--o{ PROJECT : contains
+  </script></ex-mermaid>
+  <p>Each entity has its own soft fill and border. Field notes remain available as tooltips. The field types and names keep their measured monospace sizes.</p>
+  <h2>Flowchart categories can be explicit</h2>
+  <ex-mermaid id="flow-model" label="Author-supplied category slots"><script type="text/plain">
+flowchart TD
+  machine[Machine] --> session[Session]
+  session --> registry[Registry]
+  registry --> organization[Organization]
+  registry --> project[Project]
+  organization --> identity[Identity service]
+  class machine slot1
+  class session slot2
+  class registry slot3
+  class organization slot4
+  class project slot5
+  class identity slot6
+  </script></ex-mermaid>
+  <p>Blue: machine; amber: session; teal: registry; violet: organization; rose: project; green: identity service. These are authored categories, not success or failure states.</p>
+  <h2>Participants keep one color throughout a sequence</h2>
+  <ex-mermaid id="sequence-model" label="Read and write participants"><script type="text/plain">
+sequenceDiagram
+  Client->>Registry: Read project
+  Registry->>Store: Lookup project
+  Store-->>Registry: Project
+  Registry-->>Client: Result
+  </script></ex-mermaid>
+  <h2>States remain distinguishable</h2>
+  <ex-mermaid id="state-model" label="Review lifecycle"><script type="text/plain">
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Review
+  Review --> Published
+  Published --> [*]
+  </script></ex-mermaid>
+  <h2>Classes use the same visual system</h2>
+  <ex-mermaid id="class-model" label="Workspace and project classes"><script type="text/plain">
+classDiagram
+  class Workspace {
+    +string name
+    +listProjects()
+  }
+  class Project {
+    +string name
+    +getWorkspace()
+  }
+  Workspace --> Project : contains
+  </script></ex-mermaid>
+  <h2>Chart series use matching colors</h2>
+  <ex-mermaid id="chart-model" label="Illustrative timing comparison"><script type="text/plain">
+xychart-beta
+  x-axis [Read, Write]
+  y-axis "Milliseconds" 0 --> 100
+  bar "Before" [80, 95]
+  bar "After" [35, 50]
+  </script></ex-mermaid>
+  <p>Illustrative values only. The category palette does not assign a success or failure meaning.</p>
+</ex-document></body></html>
