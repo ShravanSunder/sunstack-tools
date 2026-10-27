@@ -36,6 +36,21 @@ These use the same blue, amber, teal, violet, rose and green slots as the shared
 
 Entity fields keep separate type/name columns in the bundled monospace font, at the sizes used to lay out the SVG. Quoted field notes are retained as tooltips; they are not visible paragraphs. Keep long rules and explanations in a native table beside the diagram when readers must see them without hovering.
 
+## Name numeric series and their meaning
+
+Demistify's chart adapter accepts a quoted name after each `bar` or `line` keyword and retains it in the rendered legend. Name each series, supply actual category labels and identify the axis units; generic labels such as “Bar 1” do not identify evidence. This is the bound adapter's supported source form, not a promise about all upstream chart grammar.
+
+```text
+xychart-beta
+  title "Requests per batch"
+  x-axis ["First", "Second", "Third"]
+  y-axis "Requests" 0 --> 8
+  bar "Accepted" [3, 5, 7]
+  line "Rejected" [1, 2, 1]
+```
+
+These illustrative counts describe three ordered batches, with one value per category in each named series. Keep the exact supplied values available in adjacent text or a table when readers need them. If the supported axes, legend or interpolation would misstate the supplied meaning, use a table rather than editing the generated SVG or guessing another renderer feature.
+
 ## Preserve source and name the targets
 
 ```html
@@ -60,8 +75,17 @@ Use the fullscreen (arrows-out) icon to enlarge a Mermaid drawing; Escape/Close 
 
 ## Readability is an observation
 
-Keep labels short and put explanation beside the diagram. Shared text uses readable colors and a 16px rendered floor; a view that needs more room scrolls locally. Use Canvas for a rich view and the shared inspector for closer reading. Avoid fixed heights/hidden overflow that crop nodes, legends or labels.
+Keep a node's identity and short responsibility readable; place its full rules in adjacent prose, a table or a linked card. In a quoted flowchart label, `<br/>` creates a deliberate line break; the renderer also normalizes a literal `\n` sequence there. Put this source inside the existing inert carrier, not parsed child HTML:
 
-For a chart, identify units, categories and series explicitly in nearby content. Do not rely on generic generated series labels to carry their scientific meaning. A chart whose legend or interpolation misstates the supplied data needs a different supported representation, such as a table; a successful SVG render does not settle that judgment.
+```text
+flowchart TD
+  request["Request<br/>Receive submission"] --> validate["Validation<br/>Check supplied fields"]
+  validate -->|valid| accepted["Accepted<br/>Record result"]
+  validate -->|invalid| rejected["Rejected<br/>Explain correction"]
+```
+
+Good: the node retains its identity and responsibility on meaningful lines, while the document explains the complete validation rules. Bad: one paragraph-wide node label, or missing constraints after shortening it. This example establishes flowchart label syntax; other families follow their own supported grammar.
+
+Shared text uses readable colors and a 16px rendered floor; a view that needs more room scrolls locally. Use Canvas for a rich view and the shared inspector for closer reading. Avoid fixed heights/hidden overflow that crop nodes, legends or labels.
 
 Finish by inspecting actual SVG, every endpoint and label, one scoped cold link and any linked card interaction. The static checker can catch selected render/syntax problems and empty subgraphs; it does not prove visual semantics, legibility, runtime execution or complete node membership from source-word target checks.
