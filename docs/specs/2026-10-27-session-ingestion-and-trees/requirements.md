@@ -24,7 +24,7 @@ The owner confirmed these six on 27 October ("Yes, as proposed", with their corr
 | --- | --- | --- | --- |
 | `inputs` | inputs | any agent's session log (by provider and session, or a custom entry), a diff, or code becomes positioned, attributed records; nothing is silently dropped | U1 to U5 |
 | `filtering` | filtering | a mechanical first pass keeps everything that might matter, an optional Jev pass narrows it, and both sample what they drop | U6 to U8 |
-| `judging` | judging | each candidate runs its rule's decision tree, each question with the evidence it needs; "unknown" never becomes "no" | U9 to U11 |
+| `judging` | judging | each candidate runs its rule's decision tree, each question with the evidence it needs; "unknown" never becomes "no" | U9 to U11, U18 |
 | `outcomes` | outcomes | every candidate ends with exactly one outcome, bundled for a bigger judge; a partial run never reads as all clear | U12 |
 | `code-context` | code context (renamed from the diff tree) | a diff, the whole functions it touches, and related code through the AST graph, each related piece with how likely it is related, paged under 20,000 characters per request, for Jev and for reviewer agents | U13 to U16 |
 | `evals` | evals | each rule scored on real, labeled, held-out session evidence | U17 |
@@ -99,6 +99,7 @@ Every row below is `authorized`: the owner settled it in Project 2's reviewed sp
 | U9 | Each candidate runs its rule's decision tree, a router, then gates, then a verdict, judged by Jev; a tree is a rule's configuration, so each rule brings its own | Authorized: the tree the owner drew and adopted, "yes this is what i meant"; reviewed spec, section 4 |
 | U10 | Each question names the evidence it needs, from the candidate's own text or a fact outside it (the repository at the revision the agent worked on, the owner's decisions, a run's own output); missing evidence makes the answer "unknown", never "no" | Authorized: reviewed spec, section 4 |
 | U11 | Jev's certainty, its probability, carries through the tree, so an uncertain answer stays uncertain | Authorized: 27 October, "allow JAB to say in the decision tree certainty, you're right, or use the probability that JEB gives" |
+| U18 | A skill standard runs as a decision model over the units skill text is made of: sections, paragraphs, list items and frontmatter fields. Jev judges each unit through the standard's own mechanical pass, optional narrowing, gates and verdict. | Authorized: the owner's 28 October direction to fix the engine and use decision models throughout; the 26 October choice for Jev to judge skill descriptions; Rule authors above. |
 
 ### outcomes
 
