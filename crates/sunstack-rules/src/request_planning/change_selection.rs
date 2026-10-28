@@ -150,6 +150,16 @@ async fn compare_rule(
     level: ComparisonLevel,
     session: &mut EvidenceSession,
 ) -> Result<ScopeEvaluation, DiagnosticList> {
+    // Mechanical discovery already selected this occurrence. Outside facts are checked
+    // by its questions; the legacy incremental selector must not require them first.
+    if plan.groups[group.0]
+        .admitted
+        .sources
+        .values()
+        .any(|source| source.candidate.is_some())
+    {
+        return Ok(ScopeEvaluation::full_scope());
+    }
     let dependencies = dependencies(plan, rule, group, entries)?;
     let mut reasons = BTreeSet::new();
     let mut pending = false;

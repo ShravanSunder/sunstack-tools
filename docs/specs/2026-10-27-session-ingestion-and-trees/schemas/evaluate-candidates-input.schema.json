@@ -271,6 +271,144 @@
       ],
       "type": "string"
     },
+    "DiscoveryLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "include_ignored": {
+          "type": "boolean"
+        },
+        "max_fan_out": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_file_bytes": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_files": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_history_commits": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_local_time_ms": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_matches": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_relationship_candidates": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_unit_visits": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_files",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_matches",
+        "include_ignored",
+        "max_unit_visits",
+        "max_relationship_candidates",
+        "max_fan_out",
+        "max_history_commits",
+        "max_local_time_ms"
+      ],
+      "type": "object"
+    },
+    "EvidenceBinding": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/InputBinding"
+            },
+            "kind": {
+              "const": "bound",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "binding"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unavailable",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnavailableReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "EvidenceDiscovery": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "none",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "bounded",
+              "type": "string"
+            },
+            "limits": {
+              "$ref": "#/$defs/DiscoveryLimits"
+            }
+          },
+          "required": [
+            "kind",
+            "limits"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "ExecutionSettings": {
       "additionalProperties": false,
       "properties": {
@@ -294,6 +432,92 @@
       "minLength": 1,
       "title": "string",
       "type": "string"
+    },
+    "InputBinding": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "document",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "repository",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "final_assistant_text": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "format": {
+              "$ref": "#/$defs/TranscriptFormatName"
+            },
+            "kind": {
+              "const": "conversation",
+              "type": "string"
+            },
+            "transcript_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "transcript_path",
+            "format"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "payload",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/StructuredJson"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "change_set",
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "repository"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "InvocationLimits": {
       "additionalProperties": false,
@@ -587,6 +811,16 @@
     "SourceEntry": {
       "additionalProperties": false,
       "properties": {
+        "evidence": {
+          "additionalProperties": false,
+          "default": {},
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}$": {
+              "$ref": "#/$defs/EvidenceBinding"
+            }
+          },
+          "type": "object"
+        },
         "source": {
           "$ref": "#/$defs/SourceInput"
         }
@@ -743,6 +977,14 @@
       ],
       "type": "object"
     },
+    "UnavailableReason": {
+      "enum": [
+        "not_recorded",
+        "withheld",
+        "unknown"
+      ],
+      "type": "string"
+    },
     "UnknownRecencyPolicy": {
       "enum": [
         "include_with_diagnostic",
@@ -765,6 +1007,22 @@
     },
     "definitions": {
       "$ref": "#/$defs/CandidateDefinitions"
+    },
+    "discovery": {
+      "$ref": "#/$defs/EvidenceDiscovery",
+      "default": {
+        "kind": "none"
+      }
+    },
+    "evidence": {
+      "additionalProperties": false,
+      "default": {},
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,63}$": {
+          "$ref": "#/$defs/EvidenceBinding"
+        }
+      },
+      "type": "object"
     },
     "execution": {
       "$ref": "#/$defs/ExecutionSettings"

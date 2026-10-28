@@ -329,6 +329,7 @@ pub(crate) fn project_candidate(
         occurrence: material.occurrence,
         outcome,
         answers,
+        evidence: vec![],
         privacy_view: material.view,
         elapsed_ms: None,
     })

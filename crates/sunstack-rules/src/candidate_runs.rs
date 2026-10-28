@@ -6,8 +6,10 @@ use std::{
 
 pub async fn evaluate_candidates(
     input: CandidateRunInput,
-    context: RuleExecutionContext,
+    mut context: RuleExecutionContext,
 ) -> CandidateRunOutcome {
+    context.cancellation = context.cancellation.child_token();
+    let _cancellation_guard = context.cancellation.clone().drop_guard();
     match run_candidates(input, context).await {
         Ok(outcome) => outcome,
         Err(diagnostics) => CandidateRunOutcome::Invalid { diagnostics },
@@ -56,7 +58,9 @@ async fn run_candidates(
     })
     .await
     .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))??;
-    let mut source_capture = capture_candidate_sources(&input, &context).await?;
+    let outside = crate::candidate_admission::admit_candidate_evidence(&input, &sets)?;
+    let plan = crate::candidate_admission::candidate_evidence_plan(&input, &outside);
+    let mut source_capture = capture_candidate_sources(&input, &context, plan).await?;
     for report in &mut source_capture.reports {
         for set in &sets {
             for rule in &set.rules {
@@ -82,6 +86,7 @@ async fn run_candidates(
     let mut materials = Vec::new();
     let mut candidates = Vec::new();
     let mut bound_sets = Vec::new();
+    let mut admitted_groups = Vec::new();
     let mut policy = RulePolicy::default();
     for set in &sets {
         let selected = discover_rule_candidates(
@@ -107,6 +112,7 @@ async fn run_candidates(
                         reason: NotProcessedReason::LeftOutForPrivacy,
                     },
                     answers: vec![],
+                    evidence: vec![],
                     privacy_view: material.view,
                     elapsed_ms: None,
                 });
@@ -124,15 +130,62 @@ async fn run_candidates(
                 .find(|evidence| evidence.id == rule.definition.target)
                 .ok_or_else(|| invalid_candidate_field(vec!["definitions".into()]))?;
             let group = binding_groups.len();
-            binding_groups.push(BindingGroup {
-                bindings: BTreeMap::from([(
-                    target.input.clone(),
-                    InputBinding::Conversation {
+            let mut scoped_bindings = input.evidence.clone();
+            scoped_bindings.extend(input.sources[material.entry_position].evidence.clone());
+            let mut bindings = scoped_bindings
+                .into_iter()
+                .filter(|(name, _)| set.definition.inputs.contains_key(name))
+                .filter_map(|(name, binding)| match binding {
+                    EvidenceBinding::Bound { binding } => Some((name, binding)),
+                    EvidenceBinding::Unavailable { .. } => None,
+                })
+                .collect::<BTreeMap<_, _>>();
+            let subject_binding = InputBinding::Conversation {
+                transcript_path: material.path.clone(),
+                format: material.format.clone(),
+                final_assistant_text: None,
+            };
+            bindings.insert(target.input.clone(), subject_binding);
+            binding_groups.push(BindingGroup { bindings });
+            let key = (set.path.clone(), material.entry_position);
+            let mut sources = outside
+                .entries
+                .get(&key)
+                .cloned()
+                .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
+            for source in sources.values_mut() {
+                source.candidate = Some(crate::input_binding::CandidateSourceView::Outside {
+                    grants: material.view.grants.iter().copied().collect(),
+                });
+            }
+            let selected = match &material.selected {
+                CandidateRecordSelection::Ready { selected } => selected.clone(),
+                CandidateRecordSelection::LeftOutForPrivacy => {
+                    return Err(invalid_candidate_field(vec!["sources".into()]));
+                }
+            };
+            sources.insert(
+                target.input.clone(),
+                crate::input_binding::AdmittedSource {
+                    id: crate::input_binding::SourceId::Conversation {
+                        path: material.path.clone(),
+                        format: material.format.clone(),
+                        supplement_identity: None,
+                    },
+                    name: material.source_name.clone(),
+                    spec: sunstack_evidence::SourceSpec::Conversation {
                         transcript_path: material.path.clone(),
                         format: material.format.clone(),
                         final_assistant_text: None,
                     },
-                )]),
+                    candidate: Some(crate::input_binding::CandidateSourceView::Record(selected)),
+                },
+            );
+            admitted_groups.push(crate::invocation_admission::AdmittedGroup {
+                set: set.clone(),
+                position: group,
+                binding: GroupBinding::Bound,
+                sources,
             });
             policy.off.insert(
                 GroupKey {
@@ -163,7 +216,7 @@ async fn run_candidates(
                 rule_sets: bound_sets,
             },
             repositories: input.repositories.clone(),
-            discovery: sunstack_evidence::EvidenceDiscovery::None {},
+            discovery: input.discovery.clone(),
             package_bindings: vec![],
             payload_schemas: input.payload_schemas.clone(),
             origin: InvocationOrigin::Direct {},
@@ -174,36 +227,22 @@ async fn run_candidates(
             attempts: input.attempts.clone(),
             request_budget: input.request_budget.clone(),
         };
-        let mut admitted = crate::invocation_admission::admit_invocation(
-            &invocation,
-            &context.adapters,
-            &context.cancellation,
-        )
-        .await?;
-        for group in &mut admitted.groups {
-            let (material, _) = materials
-                .iter()
-                .find(|(material, position)| {
-                    material.rule.rule_set == group.set.path && *position == group.position
-                })
-                .ok_or_else(|| invalid_candidate_field(vec!["definitions".into()]))?;
-            for source in group.sources.values_mut() {
-                source.candidate = Some(match &material.selected {
-                    CandidateRecordSelection::Ready { selected } => selected.clone(),
-                    CandidateRecordSelection::LeftOutForPrivacy => {
-                        return Err(invalid_candidate_field(vec!["sources".into()]));
-                    }
-                });
-            }
-        }
+        let admitted = crate::candidate_admission::CandidateAdmission {
+            invocation: crate::invocation_admission::AdmittedInvocation {
+                groups: admitted_groups,
+                router: None,
+                evidence: source_capture.plan.clone(),
+            },
+            session: source_capture.session,
+        };
         let mut request_evidence = BTreeMap::new();
-        let mut candidate_elapsed_ms = BTreeMap::new();
+        let mut candidate_data = crate::candidate_execution_data::CandidateExecutionData::default();
         let native = crate::rule_execution::evaluate_with_evidence(
             invocation,
             policy,
             context,
             &mut request_evidence,
-            &mut candidate_elapsed_ms,
+            &mut candidate_data,
             Some(admitted),
         )
         .await;
@@ -224,6 +263,13 @@ async fn run_candidates(
             RuleInvocationOutcome::Invalid { .. }
             | RuleInvocationOutcome::PreparationFailed { .. } => None,
         };
+        for (private_kind, count) in &candidate_data.outside_privacy.left_out {
+            privacy.left_out.push(PrivacyCount {
+                route: PrivacyRoute::OutsideEvidence,
+                private_kind: *private_kind,
+                count: *count,
+            });
+        }
         if let Some(report) = report {
             usage = crate::candidate_projection::project_candidate_usage(report);
         }
@@ -232,17 +278,60 @@ async fn run_candidates(
                 .iter()
                 .find(|set| set.path == material.rule.rule_set)
                 .ok_or_else(|| invalid_candidate_field(vec!["definitions".into()]))?;
-            let elapsed_ms = candidate_elapsed_ms
+            let elapsed_ms = candidate_data
+                .elapsed_ms
                 .get(&GroupKey {
                     rule_set: material.rule.rule_set.clone(),
                     group,
                 })
                 .copied();
+            let identities = candidate_data.evidence_identities.get(&GroupKey {
+                rule_set: material.rule.rule_set.clone(),
+                group,
+            });
+            let source_bindings = outside
+                .entries
+                .get(&(material.rule.rule_set.clone(), material.entry_position))
+                .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
+            let (evidence, outside_projection) =
+                crate::candidate_evidence_reporting::project_evidence_uses(
+                    &input,
+                    &material,
+                    set,
+                    report,
+                    identities,
+                    source_bindings,
+                )?;
+            for (private_kind, count) in outside_projection.left_out {
+                privacy.left_out.push(PrivacyCount {
+                    route: PrivacyRoute::OutsideEvidence,
+                    private_kind,
+                    count,
+                });
+            }
+            let evidence_key = (material.rule.rule_set.clone(), material.entry_position);
+            let failures = candidate_data.evidence_failures.get(&GroupKey {
+                rule_set: material.rule.rule_set.clone(),
+                group,
+            });
+            let unavailable = outside
+                .unavailable
+                .get(&evidence_key)
+                .cloned()
+                .unwrap_or_default();
             let mut entry =
                 crate::candidate_projection::project_candidate(material, group, set, report)?;
+            crate::candidate_evidence_outcomes::apply_evidence_failure(
+                &mut entry,
+                failures.map(Vec::as_slice).unwrap_or_default(),
+                &unavailable,
+            )?;
             entry.elapsed_ms = elapsed_ms;
+            entry.evidence = evidence;
             candidates.push(entry);
         }
+    } else {
+        source_capture.session.close();
     }
     usage.wall_time_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
     let completeness =

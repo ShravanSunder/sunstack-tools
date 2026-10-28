@@ -1,11 +1,11 @@
 use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 use sunstack_decisions::{AttemptSettings, BackendSelection, RequestBudgetSettings};
 use sunstack_evidence::{
     InvocationLimits, OccurrenceId, PayloadSchemaPath, ProviderRecipe, RepositoryBinding,
-    SourceInput,
+    SourceInput, SourceName,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -16,11 +16,15 @@ pub struct CandidateRunInput {
     pub definitions: CandidateDefinitions,
     pub definition_root: PathBuf,
     #[serde(default)]
+    pub evidence: BTreeMap<SourceName, EvidenceBinding>,
+    #[serde(default)]
     pub recipes: Vec<ProviderRecipe>,
     pub repositories: Vec<RepositoryBinding>,
     pub payload_schemas: Vec<PayloadSchemaPath>,
     pub execution: ExecutionSettings,
     pub limits: InvocationLimits,
+    #[serde(default = "crate::invocation_contracts::no_discovery")]
+    pub discovery: sunstack_evidence::EvidenceDiscovery,
     pub backend: BackendSelection,
     pub attempts: AttemptSettings,
     pub request_budget: RequestBudgetSettings,
@@ -34,6 +38,8 @@ fn default_samples_per_pass() -> usize {
 #[serde(deny_unknown_fields)]
 pub struct SourceEntry {
     pub source: SourceInput,
+    #[serde(default)]
+    pub evidence: BTreeMap<SourceName, EvidenceBinding>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]

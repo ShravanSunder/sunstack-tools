@@ -85,8 +85,10 @@ async fn select_owner_evidence_with_target(
             selected.result.clone()
         } else if let Some(source) = sources.get(&declaration.input) {
             mapped.input = source.name.clone();
-            let mut result = if let Some(candidate) = &source.candidate {
+            let mut result = if let Some(candidate) = source.candidate_record() {
                 candidate_record_selection(candidate, declaration)
+            } else if let Some(grants) = source.private_access() {
+                session.select_projected(&mapped, grants).await
             } else {
                 session.select(&mapped).await
             };

@@ -39,6 +39,7 @@ pub use positioned_records::*;
 pub mod record_privacy;
 pub use record_privacy::*;
 pub mod candidate_sources;
+mod selection_privacy;
 pub use candidate_sources::*;
 mod transcript_normalization;
 pub use transcript_formats::*;

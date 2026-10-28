@@ -29,7 +29,30 @@ pub struct AdmittedSource {
     pub id: SourceId,
     pub name: SourceName,
     pub spec: SourceSpec,
-    pub(crate) candidate: Option<std::sync::Arc<CandidateRecordView>>,
+    pub(crate) candidate: Option<CandidateSourceView>,
+}
+#[derive(Debug, Clone)]
+pub(crate) enum CandidateSourceView {
+    Record(std::sync::Arc<CandidateRecordView>),
+    Outside {
+        grants: std::collections::BTreeSet<sunstack_evidence::PrivateKind>,
+    },
+}
+impl AdmittedSource {
+    pub(crate) fn candidate_record(&self) -> Option<&CandidateRecordView> {
+        match &self.candidate {
+            Some(CandidateSourceView::Record(record)) => Some(record),
+            _ => None,
+        }
+    }
+    pub(crate) fn private_access(
+        &self,
+    ) -> Option<&std::collections::BTreeSet<sunstack_evidence::PrivateKind>> {
+        match &self.candidate {
+            Some(CandidateSourceView::Outside { grants }) => Some(grants),
+            _ => None,
+        }
+    }
 }
 #[derive(Debug, Clone)]
 pub(crate) struct CandidateRecordView {

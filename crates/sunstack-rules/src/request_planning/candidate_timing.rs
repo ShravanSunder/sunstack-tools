@@ -56,6 +56,9 @@ impl CandidateTimings {
         }
     }
     pub fn settle_ready(&mut self, plan: &ExecutionPlan, state: &ExecutionState, now: Instant) {
+        if self.0.is_empty() {
+            return;
+        }
         for position in 0..plan.groups.len() {
             let group = GroupIndex(position);
             if group_settled(plan, state, group) {

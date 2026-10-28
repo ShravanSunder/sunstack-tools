@@ -47,3 +47,41 @@ fn outcome_schema_and_decoder_reject_fields_outside_the_closed_variants() {
     assert!(!schema.is_valid(&invalid));
     assert!(serde_json::from_value::<CandidateRunOutcome>(invalid).is_err());
 }
+
+#[test]
+fn outside_fact_bindings_and_explicit_discovery_match_the_published_input() {
+    let root = tempfile::tempdir().unwrap();
+    let mut input = candidate_fixture::fixture(root.path(), "http://127.0.0.1:9/v1/systemone");
+    input["evidence"] = json!({"fact":{"kind":"unavailable","reason":"withheld"}});
+    input["sources"][0]["evidence"] =
+        json!({"fact":{"kind":"bound","binding":{"kind":"payload","value":{"decision":"public"}}}});
+    input["discovery"] = json!({"kind":"bounded","limits":{"max_files":10,"max_file_bytes":65536,"max_total_bytes":262144,"max_matches":100,"include_ignored":false,"max_unit_visits":100,"max_relationship_candidates":100,"max_fan_out":10,"max_history_commits":10,"max_local_time_ms":10000}});
+    let schema = reviewed("evaluate-candidates-input.schema.json");
+    assert!(schema.is_valid(&input));
+    decode_candidate_run(&serde_json::to_vec(&input).unwrap()).unwrap();
+    input["evidence"]["fact"]["extra"] = json!(true);
+    assert!(!schema.is_valid(&input));
+    assert!(decode_candidate_run(&serde_json::to_vec(&input).unwrap()).is_err());
+}
+
+#[test]
+fn outside_evidence_use_and_unavailable_reasons_match_the_published_outcome() {
+    let root = tempfile::tempdir().unwrap();
+    let fixture = candidate_fixture::fixture(root.path(), "http://127.0.0.1:9/v1/systemone");
+    let source: sunstack_evidence::SourceInput =
+        serde_json::from_value(fixture["sources"][0]["source"].clone()).unwrap();
+    let occurrence = json!({"kind":"record","record":"source:0:0","author":"assistant","positions":[{"byte_offset":0,"line":1}],"matched_at":{"byte_offset":0,"line":1},"field":"/body","span":{"byte_start":0,"byte_end":0}});
+    let rule = json!({"rule_set":root.path().join("set.json"),"rule_id":"candidate.one"});
+    let value = json!({"kind":"candidate_report","report":{"completeness":{"kind":"inconclusive","uncertain":0,"unresolved":1,"not_processed":0},"candidates":[{
+        "candidate_id":{"rule":rule,"occurrence":"opaque"},"rule":rule,"occurrence":occurrence,
+        "outcome":{"kind":"unresolved","at":{"kind":"verdict"},"missing":{"kind":"evidence_unavailable","evidence":"fact","reason":"withheld"}},
+        "answers":[],"evidence":[{"input":"fact","binding":{"kind":"unavailable","reason":"withheld"},"content_identity":null}],"privacy_view":{"grants":[]}
+    }],"dropped_samples":[],"inputs":[{"input_id":source.source_identity().unwrap(),"location":{"kind":"unlocatable","reason":"missing"},"records":0,"unfit":[],"capture":"incomplete","discovery":[]}],"privacy":{"left_out":[],"granted":[]},"usage":{"requests":0,"attempts":0,"input_tokens":0,"output_tokens":0,"cost_usd":null,"wall_time_ms":0}}});
+    let schema = reviewed("evaluate-candidates-outcome.schema.json");
+    assert!(schema.is_valid(&value));
+    serde_json::from_value::<CandidateRunOutcome>(value.clone()).unwrap();
+    let mut bad = value;
+    bad["report"]["candidates"][0]["evidence"][0]["extra"] = json!(true);
+    assert!(!schema.is_valid(&bad));
+    assert!(serde_json::from_value::<CandidateRunOutcome>(bad).is_err());
+}

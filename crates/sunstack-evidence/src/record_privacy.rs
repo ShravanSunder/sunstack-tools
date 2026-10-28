@@ -5,6 +5,32 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct PrivacyProjection {
     pub left_out: BTreeMap<PrivateKind, usize>,
 }
+impl PrivacyProjection {
+    pub(crate) fn accumulate(&mut self, other: Self) {
+        for (kind, count) in other.left_out {
+            *self.left_out.entry(kind).or_default() += count;
+        }
+    }
+}
+
+pub(crate) fn retain_private_blocks(
+    blocks: Vec<PositionedBlock>,
+    grants: &BTreeSet<PrivateKind>,
+    privacy: &mut PrivacyProjection,
+) -> Vec<(usize, PositionedBlock)> {
+    blocks
+        .into_iter()
+        .enumerate()
+        .filter(|(_, block)| {
+            if let Some(kind) = block.private_kind.filter(|kind| !grants.contains(kind)) {
+                *privacy.left_out.entry(kind).or_default() += 1;
+                false
+            } else {
+                true
+            }
+        })
+        .collect()
+}
 #[derive(Clone)]
 pub struct ProjectedRecord {
     pub record: Option<PositionedRecord>,
@@ -85,13 +111,9 @@ pub fn project_record(
         PositionedBody::Message { blocks } => {
             let mut kept = Vec::new();
             let mut positions = BTreeMap::new();
-            for (old_index, block) in std::mem::take(blocks).into_iter().enumerate() {
-                if let Some(kind) = block.private_kind
-                    && !grants.contains(&kind)
-                {
-                    *privacy.left_out.entry(kind).or_default() += 1;
-                    continue;
-                }
+            for (old_index, block) in
+                retain_private_blocks(std::mem::take(blocks), grants, &mut privacy)
+            {
                 let old_path = FieldPath::new(format!("/body/blocks/{old_index}"))?;
                 if let Some(position) = record.field_positions.get(&old_path) {
                     positions.insert(
@@ -150,7 +172,7 @@ fn credential_pattern() -> EvidenceResult<regex::Regex> {
         .map_err(|_| EvidenceCode::InvalidSelector.into())
 }
 
-fn project_json_text(
+pub(crate) fn project_json_text(
     value: &mut serde_json::Value,
     grants: &BTreeSet<PrivateKind>,
     privacy: &mut PrivacyProjection,
@@ -176,4 +198,15 @@ fn project_json_text(
         serde_json::Value::Null | serde_json::Value::Bool(_) | serde_json::Value::Number(_) => {}
     }
     Ok(())
+}
+
+pub fn project_structured_json(
+    value: &StructuredJson,
+    grants: &BTreeSet<PrivateKind>,
+) -> EvidenceResult<(StructuredJson, PrivacyProjection)> {
+    let mut value = serde_json::to_value(value).map_err(|_| EvidenceCode::InvalidSelector)?;
+    let mut privacy = PrivacyProjection::default();
+    project_json_text(&mut value, grants, &mut privacy)?;
+    let value = serde_json::from_value(value).map_err(|_| EvidenceCode::InvalidSelector)?;
+    Ok((value, privacy))
 }

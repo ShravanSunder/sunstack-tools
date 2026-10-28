@@ -216,7 +216,7 @@ pub fn project_positioned(
     Ok(output)
 }
 
-fn positioned_blocks(
+pub(crate) fn positioned_blocks(
     blocks: &[MessageBlock],
     private_kind: Option<PrivateKind>,
 ) -> Vec<PositionedBlock> {

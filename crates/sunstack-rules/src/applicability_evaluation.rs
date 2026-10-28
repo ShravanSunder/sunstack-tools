@@ -62,7 +62,7 @@ pub(crate) fn condition_basis(test: &ConditionTest) -> ConditionBasis {
 }
 pub(crate) async fn evaluate_condition(
     test: &ConditionTest,
-    context: ConditionContext<'_>,
+    mut context: ConditionContext<'_>,
 ) -> ConditionOutcome {
     match test {
         ConditionTest::OriginFieldEquals { field, value } => context
@@ -73,17 +73,20 @@ pub(crate) async fn evaluate_condition(
             input,
             pointer,
             value,
-        } => payload_field(context.sources, input, pointer)
-            .map_or_else(unresolved, |observed| comparison(observed == value)),
+        } => settle_payload_condition(
+            payload_field(&mut context, input, pointer).await,
+            |observed| observed == value,
+        ),
         ConditionTest::PayloadFieldIn {
             input,
             pointer,
             values,
-        } => payload_field(context.sources, input, pointer)
-            .map_or_else(unresolved, |observed| comparison(values.contains(observed))),
+        } => settle_payload_condition(
+            payload_field(&mut context, input, pointer).await,
+            |observed| values.contains(observed),
+        ),
         ConditionTest::PayloadFieldPresent { input, pointer } => {
-            payload_field(context.sources, input, pointer)
-                .map_or_else(unresolved, |_| ConditionOutcome::Passed)
+            settle_payload_condition(payload_field(&mut context, input, pointer).await, |_| true)
         }
         ConditionTest::PatternPresent {
             input,
@@ -93,7 +96,7 @@ pub(crate) async fn evaluate_condition(
             let Some(source) = context.sources.get(input) else {
                 return unresolved();
             };
-            if let Some(candidate) = &source.candidate {
+            if let Some(candidate) = source.candidate_record() {
                 let Some(text) = positioned_condition_text(&candidate.record) else {
                     return unresolved();
                 };
@@ -125,17 +128,19 @@ pub(crate) async fn evaluate_condition(
             let Ok(id) = DeclarationId::new("condition_scan") else {
                 return unresolved();
             };
-            let result = context
-                .session
-                .select(&EvidenceDeclaration {
-                    id,
-                    input: source.name.clone(),
-                    requirement: EvidenceRequirement::Required,
-                    select,
-                    max_items: None,
-                    max_bytes: None,
-                })
-                .await;
+            let declaration = EvidenceDeclaration {
+                id,
+                input: source.name.clone(),
+                requirement: EvidenceRequirement::Required,
+                select,
+                max_items: None,
+                max_bytes: None,
+            };
+            let result = if let Some(grants) = source.private_access() {
+                context.session.select_projected(&declaration, grants).await
+            } else {
+                context.session.select(&declaration).await
+            };
             let text = match result.readiness {
                 SelectionReadiness::Ready {
                     content: SelectionContent::DocumentText { text, .. },
@@ -145,10 +150,27 @@ pub(crate) async fn evaluate_condition(
                     content: SelectionContent::ConversationRecords { records, .. },
                     ..
                 } => normalized_text(&records),
+                SelectionReadiness::Refused { diagnostics }
+                    if source.private_access().is_some() =>
+                {
+                    return evidence_unresolved(
+                        diagnostics.items.into_iter().next().unwrap_or_else(|| {
+                            sunstack_evidence::Diagnostic::new(
+                                sunstack_evidence::EvidenceCode::InvalidSelector,
+                            )
+                        }),
+                    );
+                }
                 _ => return unresolved(),
             };
             if text.len() > max_scan_bytes.get() {
-                return unresolved();
+                return if source.private_access().is_some() {
+                    evidence_unresolved(sunstack_evidence::Diagnostic::new(
+                        sunstack_evidence::EvidenceCode::SelectorLimit,
+                    ))
+                } else {
+                    unresolved()
+                };
             }
             let pattern = pattern.clone();
             match tokio::task::spawn_blocking(move || pattern_present(&text, &pattern)).await {
@@ -193,14 +215,73 @@ fn positioned_condition_text(record: &sunstack_evidence::PositionedRecord) -> Op
         PositionedBody::Custom { fields } => serde_json::to_string(fields).ok(),
     }
 }
-fn payload_field<'value>(
-    sources: &'value AdmittedSources,
+async fn payload_field<'value>(
+    context: &mut ConditionContext<'value>,
     input: &SourceName,
     pointer: &str,
-) -> Option<&'value sunstack_evidence::StructuredJson> {
-    match &sources.get(input)?.spec {
-        SourceSpec::Payload { value, .. } => value.pointer(pointer),
+) -> Result<
+    Option<std::borrow::Cow<'value, sunstack_evidence::StructuredJson>>,
+    Box<sunstack_evidence::Diagnostic>,
+> {
+    let sources: &'value AdmittedSources = context.sources;
+    let Some(source) = sources.get(input) else {
+        return Ok(None);
+    };
+    if let Some(grants) = source.private_access() {
+        let declaration = EvidenceDeclaration {
+            id: DeclarationId::new("condition_payload")
+                .map_err(|error| Box::new(error.diagnostic()))?,
+            input: source.name.clone(),
+            requirement: EvidenceRequirement::Required,
+            select: EvidenceSelection::PayloadField {
+                pointer: pointer.into(),
+            },
+            max_items: None,
+            max_bytes: None,
+        };
+        return match context
+            .session
+            .select_projected(&declaration, grants)
+            .await
+            .readiness
+        {
+            SelectionReadiness::Ready {
+                content: SelectionContent::PayloadValue { value, .. },
+                ..
+            } => Ok(Some(std::borrow::Cow::Owned(value))),
+            SelectionReadiness::Refused { diagnostics } => Err(Box::new(
+                diagnostics.items.into_iter().next().unwrap_or_else(|| {
+                    sunstack_evidence::Diagnostic::new(
+                        sunstack_evidence::EvidenceCode::InvalidSelector,
+                    )
+                }),
+            )),
+            _ => Ok(None),
+        };
+    }
+    Ok(match &source.spec {
+        SourceSpec::Payload { value, .. } => value.pointer(pointer).map(std::borrow::Cow::Borrowed),
         _ => None,
+    })
+}
+fn evidence_unresolved(
+    diagnostic: impl Into<Box<sunstack_evidence::Diagnostic>>,
+) -> ConditionOutcome {
+    ConditionOutcome::Unresolved {
+        diagnostic: ReportDiagnostic::Evidence(diagnostic.into()),
+    }
+}
+fn settle_payload_condition(
+    result: Result<
+        Option<std::borrow::Cow<'_, sunstack_evidence::StructuredJson>>,
+        Box<sunstack_evidence::Diagnostic>,
+    >,
+    test: impl FnOnce(&sunstack_evidence::StructuredJson) -> bool,
+) -> ConditionOutcome {
+    match result {
+        Ok(Some(value)) => comparison(test(value.as_ref())),
+        Ok(None) => unresolved(),
+        Err(diagnostic) => evidence_unresolved(diagnostic),
     }
 }
 fn normalized_text(records: &[sunstack_evidence::ConversationRecord]) -> String {

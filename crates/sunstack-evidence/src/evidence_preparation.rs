@@ -379,6 +379,16 @@ impl Preparation {
         &mut self,
         declaration: &EvidenceDeclaration,
     ) -> EvidenceResult<SelectionReadiness> {
+        self.select_with_grants(declaration, None)
+            .await
+            .map(|(readiness, _)| readiness)
+    }
+    pub(crate) async fn select_with_grants(
+        &mut self,
+        declaration: &EvidenceDeclaration,
+        grants: Option<&BTreeSet<PrivateKind>>,
+    ) -> EvidenceResult<(SelectionReadiness, PrivacyProjection)> {
+        let mut privacy = PrivacyProjection::default();
         crate::evidence_admission::admit_evidence_declaration(declaration, &self.input.sources)?;
         if self.cancellation.is_cancelled() {
             return Err(EvidenceCode::MissingContext.into());
@@ -386,7 +396,12 @@ impl Preparation {
         if let Some(SourceSpec::ChangeSet { repository }) =
             self.input.sources.get(&declaration.input).cloned()
         {
-            return self.connected_select(&repository, declaration).await;
+            let readiness = self.connected_select(&repository, declaration).await?;
+            return if let Some(grants) = grants {
+                crate::selection_privacy::project_readiness(readiness, grants)
+            } else {
+                Ok((readiness, privacy))
+            };
         }
         let source = self.source(&declaration.input).await?;
         let (content, omissions, coverage) = match source {
@@ -416,7 +431,17 @@ impl Preparation {
                     .select
                     .conversation()
                     .ok_or(EvidenceCode::InvalidSelector)?;
-                let projection = select_conversation(&capture, &selection)?;
+                let projected_capture;
+                let selected_capture = if let Some(grants) = grants {
+                    let (projected, projection) =
+                        crate::selection_privacy::project_transcript(&capture, grants)?;
+                    privacy.accumulate(projection);
+                    projected_capture = projected;
+                    &projected_capture
+                } else {
+                    capture.as_ref()
+                };
+                let projection = select_conversation(selected_capture, &selection)?;
                 (
                     SelectionContent::ConversationRecords {
                         source: capture.coverage.source.clone(),
@@ -450,7 +475,15 @@ impl Preparation {
                 )
             }
         };
-        self.admit_selection(content, omissions, coverage, declaration)
+        let readiness = self.admit_selection(content, omissions, coverage, declaration)?;
+        if let Some(grants) = grants {
+            let (readiness, projection) =
+                crate::selection_privacy::project_readiness(readiness, grants)?;
+            privacy.accumulate(projection);
+            Ok((readiness, privacy))
+        } else {
+            Ok((readiness, privacy))
+        }
     }
     fn admit_selection(
         &mut self,

@@ -6,6 +6,7 @@ use tokio_util::sync::CancellationToken;
 pub struct EvidenceSession {
     preparation: Preparation,
     started: Instant,
+    privacy: PrivacyProjection,
 }
 pub struct EvidenceSessionSummary {
     pub captures: Vec<CaptureCoverage>,
@@ -24,6 +25,7 @@ impl EvidenceSession {
         Ok(Self {
             preparation,
             started,
+            privacy: PrivacyProjection::default(),
         })
     }
     pub async fn select(&mut self, declaration: &EvidenceDeclaration) -> SelectionResult {
@@ -37,6 +39,32 @@ impl EvidenceSession {
             id: declaration.id.clone(),
             readiness,
         }
+    }
+    pub async fn select_projected(
+        &mut self,
+        declaration: &EvidenceDeclaration,
+        grants: &std::collections::BTreeSet<PrivateKind>,
+    ) -> SelectionResult {
+        let readiness = match self
+            .preparation
+            .select_with_grants(declaration, Some(grants))
+            .await
+        {
+            Ok((readiness, privacy)) => {
+                self.privacy.accumulate(privacy);
+                readiness
+            }
+            Err(error) => SelectionReadiness::Refused {
+                diagnostics: error.diagnostics(),
+            },
+        };
+        SelectionResult {
+            id: declaration.id.clone(),
+            readiness,
+        }
+    }
+    pub fn privacy_projection(&self) -> &PrivacyProjection {
+        &self.privacy
     }
     /// Capture through the session's existing cache and cumulative acquisition limits.
     pub async fn capture_source(&mut self, name: &SourceName) -> EvidenceResult<CapturedSource> {

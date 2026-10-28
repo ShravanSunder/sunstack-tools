@@ -47,9 +47,11 @@ pub enum CandidateOutcome {
 pub enum UnresolvedCause {
     EvidenceUnavailable {
         evidence: sunstack_evidence::SourceName,
+        reason: crate::UnavailableReason,
     },
     EvidenceNotCaptured {
         evidence: sunstack_evidence::SourceName,
+        diagnostic: sunstack_evidence::EvidenceCode,
     },
     PageMissing {
         pages: Vec<u32>,

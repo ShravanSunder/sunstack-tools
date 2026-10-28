@@ -71,6 +71,12 @@
             "null"
           ]
         },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceUse"
+          },
+          "type": "array"
+        },
         "occurrence": {
           "$ref": "#/$defs/SourceOccurrence"
         },
@@ -736,6 +742,44 @@
       ],
       "type": "object"
     },
+    "EvidenceBinding": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/InputBinding"
+            },
+            "kind": {
+              "const": "bound",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "binding"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unavailable",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnavailableReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "EvidenceCode": {
       "enum": [
         "frontmatter_unavailable",
@@ -781,6 +825,28 @@
       ],
       "type": "string"
     },
+    "EvidenceUse": {
+      "additionalProperties": false,
+      "properties": {
+        "binding": {
+          "$ref": "#/$defs/EvidenceBinding"
+        },
+        "content_identity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input": {
+          "$ref": "#/$defs/SourceName"
+        }
+      },
+      "required": [
+        "input",
+        "binding"
+      ],
+      "type": "object"
+    },
     "FieldPath": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "minLength": 1,
@@ -793,6 +859,92 @@
       "minLength": 1,
       "title": "string",
       "type": "string"
+    },
+    "InputBinding": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "document",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "repository",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "final_assistant_text": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "format": {
+              "$ref": "#/$defs/TranscriptFormatName"
+            },
+            "kind": {
+              "const": "conversation",
+              "type": "string"
+            },
+            "transcript_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "transcript_path",
+            "format"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "payload",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/StructuredJson2"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "change_set",
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "repository"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "InputCaptureStatus": {
       "enum": [
@@ -2240,6 +2392,35 @@
         }
       ]
     },
+    "StructuredJson2": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/StructuredJson2"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson2"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Recursive JSON content. This is data, never a declaration or an executable expression."
+    },
     "TextSpan": {
       "additionalProperties": false,
       "properties": {
@@ -2267,6 +2448,14 @@
       "title": "string",
       "type": "string"
     },
+    "UnavailableReason": {
+      "enum": [
+        "not_recorded",
+        "withheld",
+        "unknown"
+      ],
+      "type": "string"
+    },
     "UnlocatableReason": {
       "enum": [
         "missing",
@@ -2286,17 +2475,24 @@
             "kind": {
               "const": "evidence_unavailable",
               "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnavailableReason"
             }
           },
           "required": [
             "kind",
-            "evidence"
+            "evidence",
+            "reason"
           ],
           "type": "object"
         },
         {
           "additionalProperties": false,
           "properties": {
+            "diagnostic": {
+              "$ref": "#/$defs/EvidenceCode"
+            },
             "evidence": {
               "$ref": "#/$defs/SourceName"
             },
@@ -2307,7 +2503,8 @@
           },
           "required": [
             "kind",
-            "evidence"
+            "evidence",
+            "diagnostic"
           ],
           "type": "object"
         },

@@ -58,8 +58,8 @@ pub(crate) async fn evaluate_with_evidence(
         usize,
         sunstack_decisions::SharedEvidenceState,
     >,
-    candidate_elapsed_ms: &mut std::collections::BTreeMap<GroupKey, u64>,
-    candidate_admission: Option<crate::invocation_admission::AdmittedInvocation>,
+    candidate_data: &mut crate::candidate_execution_data::CandidateExecutionData,
+    candidate_admission: Option<crate::candidate_admission::CandidateAdmission>,
 ) -> RuleInvocationOutcome {
     let started = Instant::now();
     let mut measurements = InvocationMeasurements::default();
@@ -74,9 +74,13 @@ pub(crate) async fn evaluate_with_evidence(
             diagnostics: DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration),
         };
     }
-    let admission = match candidate_admission {
-        Some(admitted) => Ok(admitted),
-        None => admit_invocation(&input, &context.adapters, &cancellation).await,
+    let candidate_run = candidate_admission.is_some();
+    let (admission, opened_session) = match candidate_admission {
+        Some(admitted) => (Ok(admitted.invocation), Some(admitted.session)),
+        None => (
+            admit_invocation(&input, &context.adapters, &cancellation).await,
+            None,
+        ),
     };
     let admitted = match admission {
         Ok(admitted) => admitted,
@@ -93,23 +97,22 @@ pub(crate) async fn evaluate_with_evidence(
         Ok(policy) => policy,
         Err(diagnostics) => return RuleInvocationOutcome::Invalid { diagnostics },
     };
-    let mut session = match EvidenceSession::open(
-        admitted.evidence,
-        context.adapters,
-        cancellation.clone(),
-    )
-    .await
-    {
-        Ok(session) => session,
-        Err(error) => {
-            measurements.local_elapsed_ms = duration_ms(started.elapsed());
-            return if cancellation.is_cancelled() {
-                cancelled_before(measurements)
-            } else {
-                RuleInvocationOutcome::Invalid {
-                    diagnostics: error.diagnostics().into(),
-                }
-            };
+    let mut session = if let Some(session) = opened_session {
+        session
+    } else {
+        match EvidenceSession::open(admitted.evidence, context.adapters, cancellation.clone()).await
+        {
+            Ok(session) => session,
+            Err(error) => {
+                measurements.local_elapsed_ms = duration_ms(started.elapsed());
+                return if cancellation.is_cancelled() {
+                    cancelled_before(measurements)
+                } else {
+                    RuleInvocationOutcome::Invalid {
+                        diagnostics: error.diagnostics().into(),
+                    }
+                };
+            }
         }
     };
     let mut plan = definition_topology_with_policy(admitted.groups, admitted.router, &policy);
@@ -146,13 +149,19 @@ pub(crate) async fn evaluate_with_evidence(
         Ok(scheduler) => (scheduler, None),
         Err((diagnostics, scheduler)) => (scheduler, Some(diagnostics)),
     };
-    *candidate_elapsed_ms = scheduler.candidate_elapsed_ms;
+    if candidate_run {
+        candidate_data.elapsed_ms = scheduler.candidate_elapsed_ms;
+        crate::candidate_execution_data::project_evidence_data(&plan, &state, candidate_data);
+    }
     measurements.local_elapsed_ms = measurements
         .local_elapsed_ms
         .saturating_add(duration_ms(scheduler.local_elapsed));
     measurements.provider_elapsed_ms = duration_ms(scheduler.provider_elapsed);
     measurements.model_requests = scheduler.model_requests;
     measurements.inference_attempts = scheduler.inference_attempts;
+    if candidate_run {
+        candidate_data.outside_privacy = session.privacy_projection().clone();
+    }
     let closed = session.close();
     copy_evidence_measurements(&mut measurements, closed.measurements);
     *request_evidence = project_request_evidence(&plan, &state);
