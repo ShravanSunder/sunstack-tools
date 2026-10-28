@@ -92,25 +92,34 @@ async fn multiple_hits_in_one_record_keep_one_candidate_and_the_first_permitted_
 
 #[tokio::test]
 async fn repeated_source_entries_are_refused_before_capture_or_dispatch() {
-    let root = tempfile::tempdir().unwrap();
-    let server = ControlledServer::start().await;
-    let mut input = evidence_fixture::fixture(root.path(), &server.endpoint, false);
-    input["evidence"] = json!({"fact":{"kind":"bound","binding":{"kind":"payload","value":{"decision":"DENY_CONTEXT"}}}});
-    let mut repeated = input["sources"][0].clone();
-    repeated["evidence"] = json!({"fact":{"kind":"bound","binding":{"kind":"payload","value":{"decision":"ALLOW_CONTEXT"}}}});
-    input["sources"].as_array_mut().unwrap().push(repeated);
-    // Even absent source bytes cannot turn this caller error into a capture outcome.
-    std::fs::remove_file(root.path().join("first.jsonl")).unwrap();
-    let output = support::run_without_credential(root.path(), "evaluate_candidates", input).await;
-    let outcome = evidence_fixture::report(&output, 2);
-    assert_eq!(outcome["kind"], "invalid");
-    assert!(outcome.get("report").is_none());
-    assert!(
-        outcome["diagnostics"]["items"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|item| item["location"]["field_path"] == json!(["sources", "1", "source"]))
-    );
-    assert_eq!(server.finish().await, 0);
+    for (changed_evidence, duplicate_position) in [(false, 1), (true, 1), (true, 2)] {
+        let root = tempfile::tempdir().unwrap();
+        let server = ControlledServer::start().await;
+        let mut input = evidence_fixture::fixture(root.path(), &server.endpoint, false);
+        input["evidence"] = json!({"fact":{"kind":"bound","binding":{"kind":"payload","value":{"decision":"DENY_CONTEXT"}}}});
+        let mut repeated = input["sources"][0].clone();
+        if changed_evidence {
+            repeated["evidence"] = json!({"fact":{"kind":"bound","binding":{"kind":"payload","value":{"decision":"ALLOW_CONTEXT"}}}});
+        }
+        if duplicate_position == 2 {
+            input["sources"].as_array_mut().unwrap().push(json!({"source":{"kind":"session_pair","provider":"claude_code","session":"distinct"}}));
+        }
+        input["sources"].as_array_mut().unwrap().push(repeated);
+        // Even absent source bytes cannot turn this caller error into a capture outcome.
+        std::fs::remove_file(root.path().join("first.jsonl")).unwrap();
+        let output =
+            support::run_without_credential(root.path(), "evaluate_candidates", input).await;
+        let outcome = evidence_fixture::report(&output, 2);
+        assert_eq!(outcome["kind"], "invalid");
+        assert!(outcome.get("report").is_none());
+        assert!(
+            outcome["diagnostics"]["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["location"]["field_path"]
+                    == json!(["sources", duplicate_position.to_string(), "source"]))
+        );
+        assert_eq!(server.finish().await, 0);
+    }
 }
