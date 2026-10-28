@@ -140,8 +140,19 @@ impl EventReadingState {
                         .and_then(Value::as_str)
                         .map(str::to_owned)
                         .unwrap_or_else(|| format!("cursor_call_{}_{index}", position.byte_offset));
+                    let call_id = CallId::new(call_id)?;
+                    self.events.push(TranscriptEvent::MessagePart {
+                        message_id: RecordId::new(id.clone())?,
+                        author,
+                        position,
+                        blocks: vec![MessageBlock::ToolCall {
+                            call_id: call_id.clone(),
+                        }],
+                        injection: InjectionOrigin::Unknown,
+                        private_kind: None,
+                    });
                     self.call(
-                        CallId::new(call_id)?,
+                        call_id,
                         field(block, "name")?.to_owned(),
                         serde_json::from_value(
                             block

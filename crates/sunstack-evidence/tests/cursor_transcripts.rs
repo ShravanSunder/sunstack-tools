@@ -105,3 +105,82 @@ fn idless_cursor_messages_and_tool_blocks_keep_source_positions_without_invented
             .contains("PRIVATE_CURSOR")
     );
 }
+
+#[test]
+fn tool_only_cursor_envelope_keeps_one_message_with_references_and_separate_calls() {
+    let text=json!({"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"first.rs"}},{"type":"tool_use","name":"Bash","input":{"command":"pwd"}}]}}).to_string()+"\n";
+    let registry = AdapterRegistry::builtins().unwrap();
+    let format = TranscriptFormatName::new("cursor_export_jsonl").unwrap();
+    let lines = registry
+        .event_reader(&format)
+        .unwrap()
+        .lines(&CapturedTranscript {
+            bytes: text.as_bytes(),
+            source_identity: "tool-only-cursor",
+        });
+    let projected =
+        project_positioned(&SourceInputId::new("tool-only-cursor").unwrap(), &lines).unwrap();
+    assert!(projected.gaps.is_empty());
+    assert_eq!(
+        projected.records.len(),
+        3,
+        "message envelope plus its two calls"
+    );
+    let message = projected
+        .records
+        .iter()
+        .find(|record| matches!(record.body, PositionedBody::Message { .. }))
+        .unwrap();
+    assert_eq!(message.author, RecordAuthor::Assistant);
+    assert_eq!(
+        message.positions,
+        [SourcePosition {
+            line: 1,
+            byte_offset: 0
+        }]
+    );
+    let PositionedBody::Message { blocks } = &message.body else {
+        unreachable!()
+    };
+    assert_eq!(blocks.len(), 2);
+    let calls = projected
+        .records
+        .iter()
+        .filter_map(|record| match &record.body {
+            PositionedBody::ToolCall {
+                call_id,
+                tool,
+                input,
+            } => Some((record, call_id, tool, input)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(calls.len(), 2);
+    for (block, (record, call_id, _, _)) in blocks.iter().zip(&calls) {
+        assert_eq!(
+            block.block,
+            MessageBlock::ToolCall {
+                call_id: (*call_id).clone()
+            }
+        );
+        assert_eq!(block.private_kind, None);
+        assert_eq!(record.positions, message.positions);
+        assert_eq!(record.author, RecordAuthor::Assistant);
+    }
+    assert_eq!(calls[0].2.as_str(), "Read");
+    assert_eq!(calls[1].2.as_str(), "Bash");
+    assert_eq!(
+        serde_json::to_value(calls[0].3).unwrap(),
+        json!({"path":"first.rs"})
+    );
+    assert_eq!(
+        serde_json::to_value(calls[1].3).unwrap(),
+        json!({"command":"pwd"})
+    );
+    assert!(
+        project_record(message, &Default::default())
+            .unwrap()
+            .record
+            .is_some()
+    );
+}
