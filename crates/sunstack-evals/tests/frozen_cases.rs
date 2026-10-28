@@ -78,7 +78,6 @@ fn sessions_and_projects_cannot_cross_splits() {
         freeze_cases(&root.path().join("same-session"), &specification),
         Err(EvalError::SplitLeakage { .. })
     ));
-    two.session.session = sunstack_evidence::SessionId::new("different_session").unwrap();
     two.source = CaseSourceId::new("source_2").unwrap();
     let mut second_source = specification.sources[0].clone();
     second_source.source_id = two.source.clone();

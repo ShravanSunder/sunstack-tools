@@ -2,7 +2,7 @@ use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf};
-use sunstack_evidence::{ProviderName, SessionId, SourceInput, SourceName, SourceOccurrence};
+use sunstack_evidence::{SourceInput, SourceName, SourceOccurrence};
 use sunstack_rules::{EvidenceBinding, QuestionRef, RuleRef};
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -11,12 +11,6 @@ pub struct CaseSource {
     pub source_id: CaseSourceId,
     pub source: SourceInput,
     pub evidence: BTreeMap<SourceName, EvidenceBinding>,
-}
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct SessionKey {
-    pub provider: ProviderName,
-    pub session: SessionId,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -36,7 +30,6 @@ pub enum Split {
 pub struct LabeledCase {
     pub case_id: CaseId,
     pub source: CaseSourceId,
-    pub session: SessionKey,
     pub project: Option<ProjectKey>,
     pub source_anchor: SourceOccurrence,
     pub question: QuestionRef,

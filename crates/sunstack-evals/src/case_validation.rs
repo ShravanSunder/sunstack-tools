@@ -1,6 +1,30 @@
 use crate::*;
-use std::collections::{BTreeMap, BTreeSet};
-use sunstack_evidence::SourceInput;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::{Component, PathBuf},
+};
+use sunstack_evidence::{
+    ProviderName, RepositoryId, SessionId, SourceInput, SourceInputId, SourceOccurrence, SourceRef,
+};
+
+/// Derived only in process; no case or manifest can supply its split group.
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum SourceGroup {
+    Session {
+        provider: ProviderName,
+        session: SessionId,
+    },
+    Code {
+        repository: RepositoryId,
+        path: PathBuf,
+    },
+    Diff {
+        input: SourceInputId,
+    },
+    Custom {
+        location: PathBuf,
+    },
+}
 
 pub(crate) fn validate_cases(
     sources: &[CaseSource],
@@ -17,7 +41,7 @@ pub(crate) fn validate_cases(
     }
     let mut case_ids = BTreeSet::new();
     let mut anchors = BTreeSet::new();
-    let mut sessions = BTreeMap::new();
+    let mut groups = BTreeMap::new();
     let mut projects = BTreeMap::new();
     for case in labels {
         if !case_ids.insert(&case.case_id) {
@@ -35,11 +59,12 @@ pub(crate) fn validate_cases(
         if !anchors.insert((&case.source, anchor, question)) {
             return Err(invalid("labels.source_anchor"));
         }
-        if let Some(prior) = sessions.insert(&case.session, case.split)
+        let group = source_group(source, &case.source_anchor)?;
+        if let Some(prior) = groups.insert(group, case.split)
             && prior != case.split
         {
             return Err(EvalError::SplitLeakage {
-                field: "session".into(),
+                field: "group".into(),
             });
         }
         if let Some(project) = &case.project
@@ -50,18 +75,88 @@ pub(crate) fn validate_cases(
                 field: "project".into(),
             });
         }
-        match &source.source {
-            SourceInput::SessionPair { provider, session } => {
-                if provider != &case.session.provider || session != &case.session.session {
-                    return Err(invalid("labels.session"));
-                }
-            }
-            SourceInput::CustomEntry { .. }
-            | SourceInput::Diff { .. }
-            | SourceInput::Code { .. } => {}
-        }
     }
     Ok(())
+}
+
+fn source_group(source: &CaseSource, anchor: &SourceOccurrence) -> Result<SourceGroup, EvalError> {
+    match &source.source {
+        SourceInput::SessionPair { provider, session } => {
+            require_record_anchor(anchor)?;
+            Ok(SourceGroup::Session {
+                provider: provider.clone(),
+                session: session.clone(),
+            })
+        }
+        SourceInput::Code { repository, .. } => {
+            let path = repository_document_path(source, anchor, repository)?;
+            Ok(SourceGroup::Code {
+                repository: repository.clone(),
+                path,
+            })
+        }
+        SourceInput::Diff { repository, .. } => {
+            repository_document_path(source, anchor, repository)?;
+            // SourceInput owns this identity: a diff contains only its repository and revision scope.
+            let input = source
+                .source
+                .source_identity()
+                .map_err(|_| invalid("sources.source"))?;
+            Ok(SourceGroup::Diff { input })
+        }
+        SourceInput::CustomEntry { location, .. } => {
+            require_record_anchor(anchor)?;
+            Ok(SourceGroup::Custom {
+                location: location.clone(),
+            })
+        }
+    }
+}
+fn require_record_anchor(anchor: &SourceOccurrence) -> Result<(), EvalError> {
+    match anchor {
+        SourceOccurrence::Record { .. } => Ok(()),
+        SourceOccurrence::CodeMatch { .. } | SourceOccurrence::ContextMatch { .. } => {
+            Err(invalid("labels.source_anchor"))
+        }
+    }
+}
+fn repository_document_path(
+    source: &CaseSource,
+    anchor: &SourceOccurrence,
+    repository: &RepositoryId,
+) -> Result<PathBuf, EvalError> {
+    let (input_id, span) = match anchor {
+        SourceOccurrence::CodeMatch { input_id, span, .. }
+        | SourceOccurrence::ContextMatch { input_id, span, .. } => (input_id, span),
+        SourceOccurrence::Record { .. } => return Err(invalid("labels.source_anchor")),
+    };
+    let expected = source
+        .source
+        .source_identity()
+        .map_err(|_| invalid("sources.source"))?;
+    if input_id != &expected {
+        return Err(invalid("labels.source_anchor.input_id"));
+    }
+    let SourceRef::RepositoryFile {
+        repository: anchor_repository,
+        path,
+        ..
+    } = &span.source
+    else {
+        return Err(invalid("labels.source_anchor.source"));
+    };
+    if anchor_repository != repository {
+        return Err(invalid("labels.source_anchor.repository"));
+    }
+    if path.as_os_str().is_empty()
+        || path.is_absolute()
+        || path
+            .components()
+            .any(|part| matches!(part, Component::ParentDir))
+    {
+        return Err(invalid("labels.source_anchor.path"));
+    }
+    Ok(path.clone())
 }
 pub(crate) fn invalid(field: &str) -> EvalError {
     EvalError::Invalid {

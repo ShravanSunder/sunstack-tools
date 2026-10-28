@@ -165,7 +165,6 @@ fn step_only_labels_are_not_end_truth_and_filter_occurrences_count_once() {
     second_gate.case_id = CaseId::new("second_gate").unwrap();
     second_gate.question = sunstack_rules::QuestionRef::RuleSetGate { position: 0 };
     let mut development = case(2, Label::No, Split::Development);
-    development.session.session = sunstack_evidence::SessionId::new("dev").unwrap();
     development.project = Some(ProjectKey::new("dev").unwrap());
     development.source = CaseSourceId::new("dev_source").unwrap();
     let mut specification = input(root.path(), vec![gate, second_gate, development]);
