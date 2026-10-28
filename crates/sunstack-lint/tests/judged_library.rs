@@ -47,3 +47,12 @@ fn reachable_models_require_a_key_and_reports_resolve_real_answers_evidence_and_
         assert!(!render(&report,OutputFormat::Json).contains("SYNTHETIC_LINT_CREDENTIAL"));
     });
 }
+
+async fn run(request: LintRequest, cancellation: CancellationToken) -> LintReport {
+    sunstack_lint::run(
+        request,
+        cancellation,
+        std::env::var("OPENROUTER_API_KEY").ok(),
+    )
+    .await
+}

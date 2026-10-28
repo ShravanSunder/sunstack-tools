@@ -27,6 +27,6 @@ The inspector preserves readable typography and local overflow. A diagram too wi
 
 ## Check the return, not just the opening
 
-Open the exact island, make a meaningful supported state change, expand it, close it and compare the original content/state. Confirm the main view remained available during sidebar inspection; check labels and controls in a narrow window. Exercise a nested disclosure/code view separately from the containing island. Lost live nodes, blank main content, controls hidden by the header or an unrelated keyboard owner losing its keys are failures.
+Open the exact island, make a meaningful supported state change, expand it, close it and compare the original content/state. Confirm the main view remained available during sidebar inspection. Exercise a nested disclosure/code view separately from the containing island. Lost live nodes, blank main content, controls hidden by the header or an unrelated keyboard owner losing its keys are failures.
 
 When access prevents these observations, keep the authored markup and exact limitation separate from an interaction-success claim. A source check cannot establish that a dialog restored the reader's state.

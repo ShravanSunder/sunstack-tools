@@ -43,4 +43,4 @@ In that example the removed store row is 10 and added row is 11; these are displ
 
 Code uses Canvas by default; apply `data-width="reading"` to the whole island for a short text-sized excerpt. Its file disclosures and notes keep their own controls inside a comparison, Trace or inspector. Use the shared sidebar/fullscreen controls instead of embedding another editor. Do not give a containing view a fixed height merely to match its neighbor.
 
-Complete by checking every note against the actual displayed file/row, opening each file section, reading literal characters, and inspecting a long line at a narrow width. Keep the source supplied/changed claim distinct from a test or execution observation. A colored diff and a syntax pass prove neither compilation nor runtime behavior.
+Complete by checking every note against the actual displayed file/row, opening each file section and reading literal characters. Keep the source supplied/changed claim distinct from a test or execution observation. A colored diff and a syntax pass prove neither compilation nor runtime behavior.

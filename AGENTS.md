@@ -15,3 +15,9 @@ Cargo and nextest use `scripts/cargo-debug-signing-runner.sh` to give debug
 executables stable Developer ID identities for LuLu: `sunstack` has its
 own identity; test and example executables share one. Signing is best effort;
 when the identity is unavailable, the runner warns and still executes.
+
+## Responsive UI verification belongs to component development
+
+When changing reusable rendering, layout or controls, verify the affected UI at desktop and 390 CSS px, in the themes the change affects. Inspect screenshots and exercise the changed interaction; fix clipping, overflow and controls covering content before handing it back. Reuse unchanged coverage instead of repeating a full matrix. A narrow desktop viewport is not physical iPhone/Safari proof; name that distinction when relevant.
+
+Document-authoring skills own content, markup, bindings and links. Keep phone/theme regression checks here, rather than requiring every author to retest shared components. Instruction-only changes need focused text/packaging checks, not another browser run.

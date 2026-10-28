@@ -381,7 +381,7 @@ pub(crate) fn native_diagnostics(
                     LintInvalidCode::OldSeverityWord
                 } else if message == "Lint backend configuration is missing." {
                     LintInvalidCode::BackendMissing
-                } else if message == "Lint credential is missing." {
+                } else if message.starts_with("OpenRouter credential is missing.") {
                     LintInvalidCode::CredentialMissing
                 } else {
                     LintInvalidCode::Syntax
