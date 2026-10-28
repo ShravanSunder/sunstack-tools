@@ -104,10 +104,16 @@ fn validate_manifest(manifest: &CaseSetManifest) -> Result<(), EvalError> {
 pub fn freeze_cases(directory: &Path, input: &FreezeInput) -> Result<FrozenCaseSet, EvalError> {
     validate_cases(&input.sources, &input.labels)?;
     let source_files = freeze_files(&input.source_files, "source_files")?;
-    let (definition_files, definition_bytes) =
+    let (definition_files, mut definition_bytes) =
         crate::definition_snapshot::capture_definitions(input)?;
-    sunstack_rules::frozen_rule_pass_means(&input.rule, definition_bytes.clone())
-        .map_err(|diagnostics| EvalError::Definitions { diagnostics })?;
+    let payload_schemas = crate::payload_snapshot::capture_schemas(input, &mut definition_bytes)?;
+    sunstack_rules::admit_frozen_entry(
+        &input.rule,
+        definition_bytes.clone(),
+        &input.entry,
+        &crate::payload_snapshot::schema_paths(&payload_schemas),
+    )
+    .map_err(|diagnostics| EvalError::Definitions { diagnostics })?;
     fs::create_dir(directory).map_err(|_| EvalError::File {
         path: directory.into(),
     })?;
@@ -115,6 +121,8 @@ pub fn freeze_cases(directory: &Path, input: &FreezeInput) -> Result<FrozenCaseS
     write_lines(&directory.join("sources.jsonl"), &input.sources)?;
     write_lines(&directory.join("labels.jsonl"), &input.labels)?;
     let manifest = CaseSetManifest {
+        entry: input.entry.clone(),
+        payload_schemas,
         rule: input.rule.clone(),
         split: input.split,
         sources: frozen_file(&directory.join("sources.jsonl"))?,
@@ -130,6 +138,34 @@ pub fn freeze_cases(directory: &Path, input: &FreezeInput) -> Result<FrozenCaseS
 /// Verify every pinned byte sequence before interpreting either JSONL file. Returned data is
 /// an immutable version: callers reload for a new run rather than mixing it with changed files.
 pub fn load_case_set(path: &Path) -> Result<FrozenCaseSet, EvalError> {
+    verify_for_replay(path)?.finish()
+}
+
+pub(crate) struct VerifiedReplayInput {
+    pub manifest: CaseSetManifest,
+    pub sources: Vec<CaseSource>,
+    pub definition_home: PathBuf,
+    identity: CaseSetIdentity,
+    rule_version: ContentIdentity,
+    pass_means: sunstack_rules::PassMeans,
+    labels_bytes: Vec<u8>,
+}
+impl VerifiedReplayInput {
+    pub fn finish(self) -> Result<FrozenCaseSet, EvalError> {
+        let labels = read_lines(&self.labels_bytes)?;
+        validate_cases(&self.sources, &labels)?;
+        Ok(FrozenCaseSet {
+            manifest: self.manifest,
+            sources: self.sources,
+            labels,
+            definition_home: self.definition_home,
+            identity: self.identity,
+            rule_version: self.rule_version,
+            pass_means: self.pass_means,
+        })
+    }
+}
+pub(crate) fn verify_for_replay(path: &Path) -> Result<VerifiedReplayInput, EvalError> {
     let bytes = read(path)?;
     let manifest: CaseSetManifest = decode(&bytes)?;
     validate_manifest(&manifest)?;
@@ -147,28 +183,43 @@ pub fn load_case_set(path: &Path) -> Result<FrozenCaseSet, EvalError> {
         .map_err(|_| EvalError::File {
             path: definition_path,
         })?;
-    let definition_bytes =
+    let mut definition_bytes =
         crate::definition_snapshot::load_definitions(&definition_home, &manifest.definition_files)?;
-    let pass_means = sunstack_rules::frozen_rule_pass_means(&manifest.rule, definition_bytes)
-        .map_err(|diagnostics| EvalError::Definitions { diagnostics })?;
+    crate::payload_snapshot::load_schemas(
+        &definition_home,
+        &manifest.payload_schemas,
+        &mut definition_bytes,
+    )?;
+    let pass_means = sunstack_rules::admit_frozen_entry(
+        &manifest.rule,
+        definition_bytes,
+        &manifest.entry,
+        &crate::payload_snapshot::schema_paths(&manifest.payload_schemas),
+    )
+    .map_err(|diagnostics| EvalError::Definitions { diagnostics })?;
     let sources = read_lines(&sources_bytes)?;
-    let labels = read_lines(&labels_bytes)?;
-    validate_cases(&sources, &labels)?;
+
     let identity = CaseSetIdentity::new(content_digest(&bytes))?;
     // Paths identify storage, not question content. Preserve declared file order in the version.
     let definition_identities = manifest
         .definition_files
         .iter()
         .map(|file| &file.content_identity)
+        .chain(
+            manifest
+                .payload_schemas
+                .iter()
+                .map(|schema| &schema.content_identity),
+        )
         .collect::<Vec<_>>();
     let rule_version = ContentIdentity::new(content_digest(&encoded(&definition_identities)?))?;
-    Ok(FrozenCaseSet {
+    Ok(VerifiedReplayInput {
         manifest,
         identity,
         rule_version,
         definition_home,
         pass_means,
         sources,
-        labels,
+        labels_bytes,
     })
 }

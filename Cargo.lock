@@ -2567,6 +2567,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sunstack-decisions",
+ "sunstack-evals",
  "sunstack-evidence",
  "sunstack-lint",
  "sunstack-rules",

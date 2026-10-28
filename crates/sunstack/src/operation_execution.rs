@@ -113,6 +113,17 @@ pub async fn execute_operation(
             };
             OperationResult::EvaluateRules(Box::new(outcome))
         }
+        OperationInput::ScoreEval(input) => {
+            let outcome = match rule_context(
+                &input.backend,
+                cancellation,
+                provider_credentials::resolve().await,
+            ) {
+                Ok(context) => sunstack_evals::run_eval(*input, context).await,
+                Err(diagnostics) => sunstack_evals::EvalRunOutcome::Invalid { diagnostics },
+            };
+            OperationResult::ScoreEval(Box::new(outcome))
+        }
         OperationInput::EvaluateCandidates(input) => {
             let outcome = match rule_context(
                 &input.backend,

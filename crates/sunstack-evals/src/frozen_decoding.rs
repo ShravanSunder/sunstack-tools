@@ -54,12 +54,31 @@ impl<'de> Deserialize<'de> for UniqueJson {
     }
 }
 pub(crate) fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, EvalError> {
+    decode_with_forbidden(bytes, &[])
+}
+pub(crate) fn decode_with_forbidden<T: DeserializeOwned>(
+    bytes: &[u8],
+    forbidden: &[&str],
+) -> Result<T, EvalError> {
     let mut unique = serde_json::Deserializer::from_slice(bytes);
     let _: UniqueJson =
         serde_path_to_error::deserialize(&mut unique).map_err(|error| invalid(error.path()))?;
     unique.end().map_err(|_| EvalError::Invalid {
         field: "json".into(),
     })?;
+    if !forbidden.is_empty() {
+        let value: serde_json::Value =
+            serde_json::from_slice(bytes).map_err(|_| EvalError::Invalid {
+                field: "json".into(),
+            })?;
+        for field in forbidden {
+            if value.get(*field).is_some() {
+                return Err(EvalError::ForbiddenField {
+                    field: (*field).into(),
+                });
+            }
+        }
+    }
     let mut decoder = serde_json::Deserializer::from_slice(bytes);
     let value =
         serde_path_to_error::deserialize(&mut decoder).map_err(|error| invalid(error.path()))?;
@@ -77,7 +96,19 @@ fn invalid(path: &serde_path_to_error::Path) -> EvalError {
             serde_path_to_error::Segment::Map { key }
                 if matches!(
                     key.as_str(),
-                    "rule"
+                    "case_set"
+                        | "backend"
+                        | "limits"
+                        | "execution"
+                        | "attempts"
+                        | "request_budget"
+                        | "recipes"
+                        | "repositories"
+                        | "discovery"
+                        | "entry"
+                        | "payload_schemas"
+                        | "name"
+                        | "rule"
                         | "split"
                         | "sources"
                         | "labels"

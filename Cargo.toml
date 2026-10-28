@@ -19,6 +19,7 @@ publish = false
 sunstack-evidence = { path = "crates/sunstack-evidence" }
 sunstack-decisions = { path = "crates/sunstack-decisions" }
 sunstack-rules = { path = "crates/sunstack-rules" }
+sunstack-evals = { path = "crates/sunstack-evals" }
 sunstack-lint = { path = "crates/sunstack-lint" }
 
 [workspace.lints.rust]

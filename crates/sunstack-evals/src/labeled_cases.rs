@@ -40,6 +40,8 @@ pub struct LabeledCase {
 #[serde(deny_unknown_fields)]
 pub struct FreezeInput {
     pub definition_root: PathBuf,
+    pub entry: sunstack_rules::CandidateDefinitions,
+    pub payload_schemas: Vec<sunstack_evidence::PayloadSchemaPath>,
     pub rule: RuleRef,
     pub split: Split,
     pub sources: Vec<CaseSource>,
@@ -56,12 +58,21 @@ pub struct FrozenFile {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CaseSetManifest {
+    pub entry: sunstack_rules::CandidateDefinitions,
+    pub payload_schemas: Vec<FrozenPayloadSchema>,
     pub rule: RuleRef,
     pub split: Split,
     pub sources: FrozenFile,
     pub labels: FrozenFile,
     pub source_files: Vec<FrozenFile>,
     pub definition_files: Vec<FrozenFile>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FrozenPayloadSchema {
+    pub name: sunstack_evidence::SchemaName,
+    pub path: PathBuf,
+    pub content_identity: ContentIdentity,
 }
 /// A verified, immutable snapshot; construct it by freezing or loading a manifest.
 #[derive(Clone, Debug)]

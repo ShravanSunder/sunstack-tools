@@ -22,7 +22,7 @@ pub use strict_decoding::decode_rule_invocation;
 mod definition_checking;
 mod definition_loading;
 mod frozen_definitions;
-pub use frozen_definitions::frozen_rule_pass_means;
+pub use frozen_definitions::admit_frozen_entry;
 mod definition_routing;
 pub mod input_binding;
 mod invocation_admission;
@@ -84,3 +84,6 @@ pub mod candidate_runs;
 mod candidate_verdict_projection;
 pub mod context_pages;
 pub use candidate_runs::*;
+
+// Native configuration types shared by the public candidate-run interface.
+pub use sunstack_decisions::{AttemptSettings, BackendSelection, RequestBudgetSettings};

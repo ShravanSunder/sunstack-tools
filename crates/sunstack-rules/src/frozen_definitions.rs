@@ -5,9 +5,11 @@ use std::{
 };
 
 /// Assemble the named rule exclusively from caller-verified, root-relative definition bytes.
-pub fn frozen_rule_pass_means(
+pub fn admit_frozen_entry(
     rule: &RuleRef,
     files: BTreeMap<PathBuf, Vec<u8>>,
+    entry: &CandidateDefinitions,
+    payload_schemas: &[sunstack_evidence::PayloadSchemaPath],
 ) -> Result<PassMeans, DiagnosticList> {
     let relative = |path: &std::path::Path| {
         !path.as_os_str().is_empty()
@@ -33,8 +35,28 @@ pub fn frozen_rule_pass_means(
     if !files.contains_key(&rule.rule_set) {
         return Err(missing());
     }
-    let mut loader = crate::definition_loading::DefinitionLoader::from_frozen(files);
-    let set = loader.load_set(rule.rule_set.clone())?;
+    let entry_paths = match entry {
+        CandidateDefinitions::Router { path } => std::slice::from_ref(path),
+        CandidateDefinitions::RuleSets { rule_sets } => rule_sets.as_slice(),
+    };
+    for path in entry_paths {
+        if !relative(path) || !files.contains_key(path) {
+            return Err(RuleDiagnostic::new(RuleDiagnosticCode::MissingRuleEntry)
+                .definition(path, 1, 1, vec!["entry".into()])
+                .into());
+        }
+    }
+    let loader = crate::definition_loading::DefinitionLoader::from_frozen(files);
+    let sets = crate::definition_checking::load_declared_definitions(
+        entry,
+        payload_schemas,
+        std::path::Path::new(""),
+        loader,
+    )?;
+    let set = sets
+        .iter()
+        .find(|set| set.path == rule.rule_set)
+        .ok_or_else(missing)?;
     if !set.skipped.is_empty() {
         let mut diagnostics = DiagnosticList::default();
         for skipped in &set.skipped {

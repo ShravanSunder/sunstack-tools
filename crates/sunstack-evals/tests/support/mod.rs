@@ -29,6 +29,10 @@ pub fn input(root: &Path, cases: Vec<LabeledCase>) -> FreezeInput {
     std::fs::write(root.join("rule.jsonl"),json!({"rule_id":"test_rule","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{},"verdict":{"kind":"noul","question":{"type":"noul","instructions":"Frozen question"},"threshold":0.8}}).to_string()).unwrap();
     FreezeInput {
         definition_root: root.into(),
+        entry: CandidateDefinitions::RuleSets {
+            rule_sets: vec!["set.json".into()],
+        },
+        payload_schemas: vec![],
         rule: rule(),
         split: Split::HeldOut,
         sources: vec![CaseSource {

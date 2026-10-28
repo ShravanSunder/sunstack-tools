@@ -44,7 +44,7 @@ impl DefinitionLoader {
         loader.frozen = Some(files);
         loader
     }
-    fn resolve(&self, base: &Path, path: &Path) -> Result<PathBuf, DiagnosticList> {
+    pub(crate) fn resolve(&self, base: &Path, path: &Path) -> Result<PathBuf, DiagnosticList> {
         if self.frozen.is_none() {
             return resolved_path(base, path);
         }

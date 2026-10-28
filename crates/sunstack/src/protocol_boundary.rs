@@ -28,6 +28,7 @@ pub enum OperationInput {
     EvaluateRules(Box<RuleInvocationInput>),
     CheckRules(Box<CheckDefinitionsInput>),
     EvaluateCandidates(Box<sunstack_rules::CandidateRunInput>),
+    ScoreEval(Box<sunstack_evals::EvalRunInput>),
     Rejected(OperationResult),
 }
 #[derive(Serialize)]
@@ -39,6 +40,7 @@ pub enum OperationResult {
     EvaluateRules(Box<RuleInvocationOutcome>),
     CheckRules(Box<CheckRulesOutcome>),
     EvaluateCandidates(Box<sunstack_rules::CandidateRunOutcome>),
+    ScoreEval(Box<sunstack_evals::EvalRunOutcome>),
 }
 impl OperationResult {
     pub fn exit_code(&self) -> u8 {
@@ -54,6 +56,7 @@ impl OperationResult {
             Self::EvaluateRules(outcome) => outcome.exit_code(),
             Self::CheckRules(outcome) => outcome.exit_code(),
             Self::EvaluateCandidates(outcome) => outcome.exit_code(),
+            Self::ScoreEval(outcome) => outcome.exit_code(),
         }
     }
 }
@@ -231,6 +234,14 @@ pub fn decode_request(bytes: &[u8]) -> Result<OperationInput, ProtocolCode> {
                 Err(diagnostics) => OperationInput::Rejected(OperationResult::EvaluateRules(
                     Box::new(RuleInvocationOutcome::Invalid { diagnostics }),
                 )),
+            },
+        ),
+        "score_eval" => Ok(
+            match sunstack_evals::decode_eval_run(envelope.input.get().as_bytes()) {
+                Ok(input) => OperationInput::ScoreEval(Box::new(input)),
+                Err(diagnostics) => OperationInput::Rejected(OperationResult::ScoreEval(Box::new(
+                    sunstack_evals::EvalRunOutcome::Invalid { diagnostics },
+                ))),
             },
         ),
         "evaluate_candidates" => Ok(

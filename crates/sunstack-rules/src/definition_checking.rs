@@ -18,9 +18,17 @@ pub(crate) fn load_checked_definitions(
     let cwd = std::env::current_dir()
         .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration))?;
     let root = resolved_path(&cwd, &input.definition_root)?;
-    let mut loader = DefinitionLoader::new(input.limits.max_file_bytes.get(), cancellation);
+    let loader = DefinitionLoader::new(input.limits.max_file_bytes.get(), cancellation);
+    load_declared_definitions(&input.definitions, &input.payload_schemas, &root, loader)
+}
+pub(crate) fn load_declared_definitions(
+    definitions: &CandidateDefinitions,
+    payload_schemas: &[sunstack_evidence::PayloadSchemaPath],
+    root: &std::path::Path,
+    mut loader: DefinitionLoader,
+) -> Result<Vec<Arc<LoadedRuleSet>>, DiagnosticList> {
     let mut sets = BTreeMap::new();
-    let router = match &input.definitions {
+    let router = match definitions {
         CandidateDefinitions::RuleSets { rule_sets } => {
             if rule_sets.is_empty() {
                 return Err(DiagnosticList::rule(
@@ -28,7 +36,7 @@ pub(crate) fn load_checked_definitions(
                 ));
             }
             for path in rule_sets {
-                let path = resolved_path(&root, path)?;
+                let path = loader.resolve(root, path)?;
                 if sets.contains_key(&path) {
                     return Err(DiagnosticList::rule(RuleDiagnosticCode::DuplicateRuleSet));
                 }
@@ -37,7 +45,7 @@ pub(crate) fn load_checked_definitions(
             None
         }
         CandidateDefinitions::Router { path } => {
-            let path = resolved_path(&root, path)?;
+            let path = loader.resolve(root, path)?;
             let definition = decode_router(&loader.read(&path)?, &path)?;
             let directory = path
                 .parent()
@@ -45,7 +53,7 @@ pub(crate) fn load_checked_definitions(
             for targets in definition.routes.values() {
                 let mut seen = BTreeSet::new();
                 for target in targets {
-                    let path = resolved_path(directory, &target.rule_set)?;
+                    let path = loader.resolve(directory, &target.rule_set)?;
                     if !seen.insert(path.clone()) {
                         return Err(DiagnosticList::rule(RuleDiagnosticCode::InvalidRoute));
                     }
@@ -62,8 +70,8 @@ pub(crate) fn load_checked_definitions(
         }
     };
     let mut schemas = BTreeMap::new();
-    for schema in &input.payload_schemas {
-        let path = resolved_path(&root, &schema.path)?;
+    for schema in payload_schemas {
+        let path = loader.resolve(root, &schema.path)?;
         let value = serde_json::from_slice(&loader.read(&path)?).map_err(|_| {
             DiagnosticList::from(sunstack_evidence::DiagnosticList::one(
                 sunstack_evidence::EvidenceCode::PayloadSchemaInvalid,
@@ -130,13 +138,20 @@ fn validate_input_schemas(
     inputs: &BTreeMap<SourceName, InputDeclaration>,
     schemas: &BTreeSet<sunstack_evidence::SchemaName>,
 ) -> Result<(), DiagnosticList> {
-    for input in inputs.values() {
+    for (name, input) in inputs {
         if let InputDeclaration::Payload { schema } = input
             && !schemas.contains(schema)
         {
-            return Err(sunstack_evidence::DiagnosticList::one(
+            let mut diagnostic = sunstack_evidence::Diagnostic::new(
                 sunstack_evidence::EvidenceCode::UnknownPayloadSchema,
-            )
+            );
+            diagnostic.location = sunstack_evidence::DiagnosticLocation::Field {
+                field_path: vec!["inputs".into(), name.as_str().into(), "schema".into()],
+            };
+            return Err(sunstack_evidence::DiagnosticList {
+                items: vec![diagnostic],
+                omitted_count: 0,
+            }
             .into());
         }
     }

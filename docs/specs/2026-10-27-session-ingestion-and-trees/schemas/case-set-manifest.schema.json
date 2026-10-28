@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "CandidateDefinitions": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "router",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "rule_sets",
+              "type": "string"
+            },
+            "rule_sets": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "rule_sets"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ContentIdentity": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "FrozenFile": {
+      "additionalProperties": false,
+      "properties": {
+        "content_identity": {
+          "$ref": "#/$defs/ContentIdentity"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "content_identity"
+      ],
+      "type": "object"
+    },
+    "FrozenPayloadSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "content_identity": {
+          "$ref": "#/$defs/ContentIdentity"
+        },
+        "name": {
+          "$ref": "#/$defs/SchemaName"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "path",
+        "content_identity"
+      ],
+      "type": "object"
+    },
+    "RuleId": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "type": "string"
+    },
+    "RuleRef": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "rule_set": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_set",
+        "rule_id"
+      ],
+      "type": "object"
+    },
+    "SchemaName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "Split": {
+      "enum": [
+        "development",
+        "held_out"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "definition_files": {
+      "items": {
+        "$ref": "#/$defs/FrozenFile"
+      },
+      "type": "array"
+    },
+    "entry": {
+      "$ref": "#/$defs/CandidateDefinitions"
+    },
+    "labels": {
+      "$ref": "#/$defs/FrozenFile"
+    },
+    "payload_schemas": {
+      "items": {
+        "$ref": "#/$defs/FrozenPayloadSchema"
+      },
+      "type": "array"
+    },
+    "rule": {
+      "$ref": "#/$defs/RuleRef"
+    },
+    "source_files": {
+      "items": {
+        "$ref": "#/$defs/FrozenFile"
+      },
+      "type": "array"
+    },
+    "sources": {
+      "$ref": "#/$defs/FrozenFile"
+    },
+    "split": {
+      "$ref": "#/$defs/Split"
+    }
+  },
+  "required": [
+    "entry",
+    "payload_schemas",
+    "rule",
+    "split",
+    "sources",
+    "labels",
+    "source_files",
+    "definition_files"
+  ],
+  "title": "CaseSetManifest",
+  "type": "object",
+  "$id": "case-set-manifest.schema.json"
+}
