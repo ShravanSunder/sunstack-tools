@@ -49,6 +49,10 @@ Each is described once; rows name it and say what they read in it.
 
 A16 custom-entry control (R4, S1): for JSONL and JSON, supply one valid mapped record, one JSON Schema mismatch and one missing required raw-record pointer. Only the first reaches judgment; both unfit records retain their actual positions, and subsequent valid records continue. The schema is `{ format: json | jsonl, record_schema: <JSON Schema>, fields: { output_name: <JSON Pointer> } }`; recipe mappings use the same raw-record pointer basis.
 
+A17 framing control (R4/R5, S1): capture a complete JSON object/array without a final newline and retain its records. A truncated document reports capture incomplete, never complete empty or record-schema mismatch. Existing JSONL commitment and old format/cursor cases remain unchanged.
+
+A18 mapped-privacy control (R32, S1): map both thinking and public fields from the same native record. Without a grant, thinking is absent and the public field remains; the grant permits thinking only for that rule. The record identity stays fixed. A pure custom source's mapped field appears as ordinary data.
+
 ### filtering
 
 | Requirement | Proven by | Reference | Target and journey | Passes when | Reuses | Unverified |

@@ -143,6 +143,7 @@ pub enum TranscriptEvent {
     ToolResult { call_id: CallId, outcome: ToolOutcome, result: ToolResult, position: SourcePosition },
     PrivateRecord { record_id: RecordId, author: RecordAuthor, position: SourcePosition, private_kind: PrivateKind,
                     text: Option<String> },      // A3: e.g. a Codex reasoning item; text only where the source holds readable text, never decrypted
+    CustomRecord { fields: BTreeMap<String, StructuredJson>, field_privacy: BTreeMap<String, PrivateKind>, position: SourcePosition }, // A17/A18: one raw record, classified mapped fields
     Gap { gap: CoverageGap },                    // unsupported, malformed, orphan: what the merge reports today
 }
 #[serde(rename_all = "snake_case")]
@@ -157,12 +158,14 @@ pub enum PrivateKind { Thinking, AnalysisChannel, EncryptedReasoning, Credential
 //   own call pairing and message-id claims, so orphan gaps and later lines
 // behave as at 1e986a9e; the positioned projection applies its own validity (an empty thinking block is a private
 // Thinking part, not malformed) and its own pairing. Orphan detection therefore belongs to each consumer, not the reader.
+// A17: the old fold emits an unsupported-record gap for CustomRecord.
 // A3: the old fold turns a PrivateRecord into exactly the unsupported-record gap it emits for that source line today,
 // and ignores `private_kind`, so `normalize`'s output is unchanged (R31). The positioned projection keeps both, and
 // the privacy projection leaves them out by default, counts them per kind, and lets a granted kind through for its rule.
 // CredentialLike is detected by the privacy projection over text, not by readers.
 pub trait TranscriptEventReader: Send + Sync {   // implemented by every built-in and new reader
     fn format_name(&self) -> &TranscriptFormatName;
+    fn framing(&self) -> TranscriptFraming { TranscriptFraming::JsonLines } // A17: JsonLines or JsonDocument
     fn lines(&self, capture: &CapturedTranscript<'_>) -> Vec<SourceLine>;  // A10: line envelopes, so each consumer sees its disposition
 }
 // Built-ins: normalize_builtin (transcript_normalization.rs:402) becomes "events, then the existing merge"; the
@@ -392,6 +395,8 @@ flowchart LR
 **Reading a log once (D10; R5, R31).** Today a reader's only output is the merged `AdapterOutput` (`TranscriptAdapter::normalize`, `transcript_formats.rs:12-15`), and the built-in parser writes JSON lines straight into the merging state (`normalize_builtin`, `transcript_normalization.rs:402`), so the per-line positions the new records need are gone by the time anything else sees them. The change is in the reader: each built-in format parses captured bytes once into `SourceLine` envelopes of `TranscriptEvent`s (`TranscriptEventReader::lines`, a new evidence-owned trait; A10), and the existing merge becomes a fold over those lines by their `legacy` disposition, so `normalize`'s output and the old cursors are unchanged; the positioned projection folds the same lines with its own validity and pairing, without merging. The event carries everything the merge reads today: for a message, its id, author, position, blocks and its existing `InjectionOrigin`, which the reader classifies from the source envelope while it still has it (today's Claude rule, `transcript_normalization.rs:171-182`: `origin.kind` `hook` → known injected, `user` → not injected, otherwise unknown); tool calls and results stay not injected, as today (`:133`). So a hook's text and a user's identical text stay distinct through the fold and the old selection's hook exclusion (`conversation_selection.rs:96`) keeps working. The new Cursor and schema-mapped readers implement `TranscriptEventReader` from the start. An external adapter registered only through `TranscriptAdapter` keeps serving the old operations; on `evaluate_candidates` its input is reported `unlocatable { unreadable }` rather than read through a merge that has lost its positions.
 
 **Custom entry mapping (A16; R4).** The reader compiles `record_schema` through the existing JSON Schema compiler. JSON arrays supply one raw record per item, objects one raw record, JSONL one per line. Every required `fields` pointer reads that raw record. A schema mismatch or missing required pointer is unfit at the record's actual position; later records still map. Recipe `map.fields` uses the same raw-record pointer basis.
+
+**Document framing and mapped privacy (A17/A18; R4, R5, R32).** The capture owner uses the event reader's `framing()`: `JsonLines` (the default) commits only through the last newline exactly as before; `JsonDocument` captures the whole bytes. A document that does not parse as complete JSON reports capture incomplete (A9), never a per-record schema mismatch or a complete empty source. Mapped readers emit one `CustomRecord` per raw record with its mapped fields, source position and per-field privacy classification. Non-empty recipe mappings derive each field's `PrivateKind` (or public status) from the native reader's classification of that raw-pointer source. Denied mapped fields are dropped; permitted fields remain; identity stays fixed. Empty recipe mappings retain the native body. Pure custom sources have no native classifier: their mapped fields are ordinary public data, supplied by the owner; credential projection still applies.
 
 **A diff's context and the pass (D1; R7, R8).** For a diff input, match eligibility is limited to units intersecting the change or code it calls (A15); callers and imports remain context. The code context builder first builds the input's `CodeContextIndex`: each hunk, the whole units it touches (both sides), and their related pieces. Within that eligible scope, a rule's mechanical pass over a diff reads all three parts unless its `context_parts` names fewer; each match records its `ContextPart`. A candidate's own context is the unit holding its match, the changes inside that unit, and that unit's related pieces (for a match in a related piece, also its seed unit). The changed lines are never an implicit limit.
 
