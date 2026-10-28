@@ -55,6 +55,8 @@ A18 mapped-privacy control (R32, S1): map both thinking and public fields from t
 
 A19 code-pass contract control (R7/R8, S1): an `ast { language, pattern }` predicate matches through the engine's supported Rust/TypeScript/TSX path; an unsupported language is refused invalid before any model request. Existing named-field predicate files parse unchanged, and omitted `context_parts` reads all parts. Code revisions/paths use `RevisionHead`/`QueryPath`; located repository input attribution is explicit.
 
+A20 occurrence controls (R7/R19, S1 with S3): the planted literal yields exactly the changed after-side match and one unchanged match in the touched function; a deleted literal is reported from the before side. An AST const/item match outside every extracted unit retains its exact span with unit absent. Two identical captures/runs yield identical occurrence identities despite fresh capture-instance snapshots; full provenance is retained. Explicit `SourceSides` before/both overrides are checked separately.
+
 ### filtering
 
 | Requirement | Proven by | Reference | Target and journey | Passes when | Reuses | Unverified |

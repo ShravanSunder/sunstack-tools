@@ -203,7 +203,7 @@ pub enum SourceOccurrence {
     Record { record: PositionedRecordId, author: RecordAuthor, positions: Vec<SourcePosition>,  // A2: the record's author and every line it came from
              matched_at: SourcePosition, field: FieldPath, span: TextSpan },
     ContextMatch { part: ContextPart, unit: Option<SourceUnitKey>, span: SourceSpan, hunk: Option<HunkId> },
-    CodeMatch { unit: SourceUnitKey, span: SourceSpan },
+    CodeMatch { unit: Option<SourceUnitKey>, span: SourceSpan }, // A20: top-level matches need no invented file unit
 }
 #[serde(rename_all = "snake_case")]
 pub enum ContextPart { Change, TouchedUnit, Related }   // a rule's pass reads all three unless `context_parts` narrows it
@@ -213,7 +213,9 @@ pub enum ContextPart { Change, TouchedUnit, Related }   // a rule's pass reads a
 // first hit overall when none is permitted; attribution is carried, never part of the identity. Privacy eligibility
 // (A5) is decided from all the record's hits: any permitted hit lets the record be judged through its projected view;
 // only when every hit is private is the candidate `not_processed { left_out_for_privacy }`.
-// ContextMatch and CodeMatch are identified by their unit and exact span, so two matches in one function are two candidates.
+// A20: ContextMatch and CodeMatch identities exclude capture-instance snapshots: repository, revision and side, path,
+// optional unit and match ranges, plus the span source content identity for a worktree. Full provenance stays on the occurrence.
+// Two matches in one function remain two candidates, and identical captures of the same occurrence join across runs.
 // A labeled case's source_anchor names the same identity (a record id, or a unit and span), so evals join on it.
 
 // evidence, code_context.rs (new) (E9, R21, R22): captured facts only; no rule meaning
@@ -400,7 +402,7 @@ flowchart LR
 
 **Document framing and mapped privacy (A17/A18; R4, R5, R32).** The capture owner uses the event reader's `framing()`: `JsonLines` (the default) commits only through the last newline exactly as before; `JsonDocument` captures the whole bytes. A document that does not parse as complete JSON reports capture incomplete (A9), never a per-record schema mismatch or a complete empty source. Mapped readers emit one `CustomRecord` per raw record with its mapped fields, source position and per-field `MappedFieldPrivacy { private_kind, readable }` classification. An opaque source field has `readable: false`: its bytes are never materialized and it is always removed/count left-out regardless of grants; readable private summaries retain normal grant behavior (A18a). Non-empty recipe mappings derive each field's `PrivateKind` (or public status) from the native reader's classification of that raw-pointer source. Denied mapped fields are dropped; permitted fields remain; identity stays fixed. Empty recipe mappings retain the native body. Pure custom sources have no native classifier: their mapped fields are ordinary public data, supplied by the owner; credential projection still applies.
 
-**A diff's context and the pass (D1; R7, R8).** For a diff input, match eligibility is limited to units intersecting the change or code it calls (A15); callers and imports remain context. The code context builder first builds the input's `CodeContextIndex`: each hunk, the whole units it touches (both sides), and their related pieces. Within that eligible scope, a rule's mechanical pass over a diff reads all three parts unless its `context_parts` names fewer; each match records its `ContextPart`. A candidate's own context is the unit holding its match, the changes inside that unit, and that unit's related pieces (for a match in a related piece, also its seed unit). The changed lines are never an implicit limit.
+**A diff's context and the pass (D1; R7, R8).** For a diff input, match eligibility is limited to units intersecting the change or code it calls (A15); callers and imports remain context. The code context builder first builds the input's `CodeContextIndex`: each hunk, the whole units it touches (both sides), and their related pieces. By default the pass matches the after side plus removed before-side lines; unchanged before-side text is context, not a duplicate match. An explicit `SourceSides` override selects before or both, and every occurrence retains its side (A20). Within that eligible scope, a rule's mechanical pass over a diff reads all three parts unless its `context_parts` names fewer; each match records its `ContextPart`. A candidate's own context is the unit holding its match, the changes inside that unit, and that unit's related pieces (for a match in a related piece, also its seed unit). The changed lines are never an implicit limit.
 
 **A record occurrence shows its record (amendment A2, 27 October; R5, R19).** A `SourceOccurrence::Record` carries the record's author and every position it came from, copied from its `PositionedRecord`, so the bundle alone shows who wrote a finding's record and every line it spans (a streamed message's four lines; a tool result on its own line). A rule whose mechanical pass keeps every record (a pattern every record's body matches) therefore exposes every projected record's author and positions through the public bundle, which is how a real log is audited record by record (S2).
 
