@@ -377,6 +377,12 @@ pub(crate) fn read_builtin_lines(format: &str, bytes: &[u8]) -> Vec<SourceLine> 
             .as_ref()
             .ok()
             .filter(|_| format == "claude_code_jsonl")
+            .filter(|value| {
+                matches!(
+                    value.get("type").and_then(Value::as_str),
+                    Some("user" | "assistant")
+                )
+            })
             .and_then(|value| value.get("parentUuid"))
             .and_then(Value::as_str)
             .map(str::to_owned);

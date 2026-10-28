@@ -107,6 +107,30 @@ fn an_empty_thinking_line_keeps_legacy_whole_line_rejection_and_identity_effects
                 source_identity: "empty-thinking-legacy",
             });
         if index == 0 {
+            let lines = registry
+                .event_reader(&format)
+                .unwrap()
+                .lines(&CapturedTranscript {
+                    bytes: text.as_bytes(),
+                    source_identity: "empty-thinking-positioned",
+                });
+            let positioned =
+                project_positioned(&SourceInputId::new("mixed").unwrap(), &lines).unwrap();
+            assert!(
+                positioned.gaps.is_empty(),
+                "the positioned consumer owns the valid call on its private line"
+            );
+            assert_eq!(positioned.records.len(), 3);
+            assert!(matches!(
+                positioned.records[1].body,
+                PositionedBody::ToolCall { .. }
+            ));
+            assert!(matches!(
+                positioned.records[2].body,
+                PositionedBody::ToolResult { .. }
+            ));
+            assert_eq!(positioned.records[1].positions[0].line, 1);
+            assert_eq!(positioned.records[2].positions[0].line, 2);
             assert!(
                 legacy.records.is_empty(),
                 "the old parser rejected the tool call on the same malformed line"
@@ -217,4 +241,33 @@ fn rejected_empty_thinking_keeps_prior_syntax_gaps_but_never_claims_a_parent() {
             },
         ]
     );
+}
+
+#[test]
+fn unsupported_envelopes_never_claim_message_parent_links() {
+    let lines = [
+        serde_json::json!({"type":"progress","parentUuid":"shared"}),
+        serde_json::json!({"type":"assistant","parentUuid":"shared","message":{"id":"one","content":"one"}}),
+        serde_json::json!({"type":"assistant","parentUuid":"shared","message":{"id":"two","content":"two"}}),
+    ].map(|line| line.to_string()+"\n");
+    let text = lines.concat();
+    let registry = AdapterRegistry::builtins().unwrap();
+    let format = TranscriptFormatName::new("claude_code_jsonl").unwrap();
+    let capture = CapturedTranscript {
+        bytes: text.as_bytes(),
+        source_identity: "unsupported-parent",
+    };
+    let source_lines = registry.event_reader(&format).unwrap().lines(&capture);
+    let legacy = registry.adapter(&format).unwrap().normalize(&capture);
+    let positioned =
+        project_positioned(&SourceInputId::new("parents").unwrap(), &source_lines).unwrap();
+    let expected = vec![
+        CoverageGap::UnsupportedRecord { position: 0 },
+        CoverageGap::AmbiguousTurn {
+            position: (lines[0].len() + lines[1].len()) as u64,
+            reason: AmbiguousReason::UnresolvedBranch,
+        },
+    ];
+    assert_eq!(legacy.gaps, expected);
+    assert_eq!(positioned.gaps, expected);
 }
