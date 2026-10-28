@@ -3,6 +3,7 @@ use serde_json::{Value, json};
 use std::{
     path::{Path, PathBuf},
     process::{Output, Stdio},
+    sync::Once,
     time::{Duration, Instant},
 };
 use tokio::{
@@ -18,16 +19,31 @@ pub fn workspace_root() -> PathBuf {
         .unwrap()
         .into()
 }
-fn process_command(root: &Path) -> Command {
-    let mut command = Command::new(workspace_root().join("scripts/cargo-debug-signing-runner.sh"));
-    command
+pub fn isolated_command(root: &Path) -> Command {
+    static SIGNED_APPLICATION: Once = Once::new();
+    SIGNED_APPLICATION.call_once(|| {
+        let status = std::process::Command::new(
+            workspace_root().join("scripts/cargo-debug-signing-runner.sh"),
+        )
+        .arg("--sign-only")
         .arg(env!("CARGO_BIN_EXE_sunstack"))
-        .arg("exec")
+        .status()
+        .expect("debug application signing runner must start");
+        assert!(status.success(), "debug application signing runner failed");
+    });
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sunstack"));
+    command
+        .env("SUNSTACK_CREDENTIAL_STORE", "off")
         .current_dir(root)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
+    command
+}
+fn process_command(root: &Path) -> Command {
+    let mut command = isolated_command(root);
+    command.arg("exec");
     command
 }
 pub fn child(root: &Path) -> Child {
