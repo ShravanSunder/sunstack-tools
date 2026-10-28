@@ -56,7 +56,9 @@ fn kept_record_matches_frozen_record_case_despite_different_match_attribution() 
     assert_eq!(projected.records.len(), 1);
     let whole_record = projected.records.as_slice().discover(None, 0).unwrap();
     let pass = MechanicalPass {
-        predicate: RecordPredicate::Literal {
+        context_parts: None,
+        source_sides: None,
+        predicate: MechanicalPredicate::Literal {
             field: FieldPath::new("/body/blocks/1/block/text").unwrap(),
             text: "MATCH".into(),
         },
@@ -96,6 +98,7 @@ fn kept_record_matches_frozen_record_case_despite_different_match_attribution() 
             assert_ne!(frozen_span, matched_span);
             assert_ne!(frozen_at, matched_at);
         }
+        _ => unreachable!("this fixture contains only record occurrences"),
     }
     assert_eq!(
         frozen_anchor.occurrence_identity().unwrap(),

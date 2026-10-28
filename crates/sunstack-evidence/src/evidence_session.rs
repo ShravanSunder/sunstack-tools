@@ -70,6 +70,12 @@ impl EvidenceSession {
     pub async fn capture_source(&mut self, name: &SourceName) -> EvidenceResult<CapturedSource> {
         self.preparation.source(name).await
     }
+    pub async fn build_code_context(
+        &mut self,
+        input: &SourceInput,
+    ) -> EvidenceResult<CodeContextIndex> {
+        self.preparation.build_code_context(input).await
+    }
     pub(crate) async fn select_native(&mut self, query: &NativeQuery) -> SelectionResult {
         let readiness = match self.preparation.native_select(query).await {
             Ok(readiness) => readiness,

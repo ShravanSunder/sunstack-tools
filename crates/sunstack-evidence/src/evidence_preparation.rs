@@ -1,4 +1,5 @@
 mod change_comparison;
+mod code_context;
 mod connected_relationships;
 mod connected_sources;
 mod markdown_match_query;
@@ -26,6 +27,7 @@ pub struct SourceSnapshot {
         EvidenceResult<Arc<CapturedChangeSelection>>,
     >,
     change_selections: BTreeMap<RepositoryId, ResolvedChangeSelection>,
+    code_contexts: BTreeMap<SourceInputId, EvidenceResult<Arc<CodeContextIndex>>>,
 }
 pub(crate) struct Preparation {
     input: EvidencePlanInput,

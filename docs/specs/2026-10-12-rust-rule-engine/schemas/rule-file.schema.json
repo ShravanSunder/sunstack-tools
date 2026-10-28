@@ -648,8 +648,27 @@
     "MechanicalPass": {
       "additionalProperties": false,
       "properties": {
+        "context_parts": {
+          "items": {
+            "$ref": "#/$defs/ContextPart"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "predicate": {
-          "$ref": "#/$defs/RecordPredicate"
+          "$ref": "#/$defs/MechanicalPredicate"
+        },
+        "source_sides": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSides"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -657,8 +676,29 @@
       ],
       "type": "object"
     },
-    "RecordPredicate": {
+    "MechanicalPredicate": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ast",
+              "type": "string"
+            },
+            "language": {
+              "$ref": "#/$defs/CodePatternLanguage"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "language",
+            "pattern"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -710,7 +750,7 @@
             },
             "predicates": {
               "items": {
-                "$ref": "#/$defs/RecordPredicate"
+                "$ref": "#/$defs/MechanicalPredicate"
               },
               "type": "array"
             }
@@ -730,7 +770,7 @@
             },
             "predicates": {
               "items": {
-                "$ref": "#/$defs/RecordPredicate"
+                "$ref": "#/$defs/MechanicalPredicate"
               },
               "type": "array"
             }
@@ -748,6 +788,31 @@
       "minLength": 1,
       "pattern": "^/",
       "title": "string",
+      "type": "string"
+    },
+    "ContextPart": {
+      "enum": [
+        "change",
+        "touched_unit",
+        "related"
+      ],
+      "type": "string"
+    },
+    "CodePatternLanguage": {
+      "enum": [
+        "rust",
+        "typescript",
+        "tsx"
+      ],
+      "type": "string"
+    },
+    "SourceSides": {
+      "enum": [
+        "after_only",
+        "before_only",
+        "both_available",
+        "paired_required"
+      ],
       "type": "string"
     }
   }

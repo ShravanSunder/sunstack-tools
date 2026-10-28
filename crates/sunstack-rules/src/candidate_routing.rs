@@ -1,10 +1,6 @@
 use crate::{
-    candidate_admission::CandidateEvidenceInputs,
-    candidate_definitions::CandidateRouter,
-    candidate_inputs::{CandidateMaterial, CandidateRecordSelection},
-    input_binding::*,
-    invocation_admission::*,
-    *,
+    candidate_admission::CandidateEvidenceInputs, candidate_definitions::CandidateRouter,
+    candidate_inputs::CandidateMaterial, input_binding::*, invocation_admission::*, *,
 };
 use std::sync::Arc;
 
@@ -35,27 +31,7 @@ pub(crate) fn admit_router_candidate(
             grants: material.view.grants.iter().copied().collect(),
         });
     }
-    let selected = match &material.selected {
-        CandidateRecordSelection::Ready { selected } => selected.clone(),
-        CandidateRecordSelection::LeftOutForPrivacy => return Err(invalid()),
-    };
-    sources.insert(
-        subject.clone(),
-        AdmittedSource {
-            id: SourceId::Conversation {
-                path: material.path.clone(),
-                format: material.format.clone(),
-                supplement_identity: None,
-            },
-            name: material.source_name.clone(),
-            spec: sunstack_evidence::SourceSpec::Conversation {
-                transcript_path: material.path.clone(),
-                format: material.format.clone(),
-                final_assistant_text: None,
-            },
-            candidate: Some(CandidateSourceView::Record(selected)),
-        },
-    );
+    sources.insert(subject.clone(), material.admitted_subject()?);
     for (label, targets) in &router.definition.routes {
         for target in targets {
             let set = sets

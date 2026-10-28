@@ -63,6 +63,7 @@ fn final_status(
 }
 pub(crate) fn target_span(target: &TargetLocation) -> Option<SourceSpan> {
     match target {
+        TargetLocation::CodeMatch { span } => Some(span.clone()),
         TargetLocation::Paragraph { span, .. } => Some(span.clone()),
         TargetLocation::MarkdownUnit { occurrence } => match occurrence.as_ref() {
             MarkdownOccurrence::Unit { span } => Some(span.clone()),

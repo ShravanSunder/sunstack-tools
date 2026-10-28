@@ -475,6 +475,19 @@ impl<'repo> RepositoryCapture<'repo> {
         }
         Ok(())
     }
+    pub(crate) fn capture_code_context_view(
+        &mut self,
+        view: &CaptureView,
+        side: SourceSide,
+    ) -> EvidenceResult<()> {
+        let catalogue = self.catalogue(view, side)?;
+        for path in catalogue.paths() {
+            if crate::source_units::source_language(&path).is_some() {
+                self.read_side(&catalogue, &path, side)?;
+            }
+        }
+        Ok(())
+    }
     pub fn checkpoint(&mut self) -> EvidenceResult<bool> {
         self.check_cancel()?;
         Ok(self.time_available())

@@ -50,7 +50,9 @@ fn three_streamed_lines_keep_all_positions_and_the_third_blocks_actual_origin() 
         .as_slice()
         .discover(Some(&pass), 20)
         .unwrap();
-    let SourceOccurrence::Record { matched_at, .. } = matches.matches[0].occurrence;
+    let SourceOccurrence::Record { matched_at, .. } = matches.matches[0].occurrence else {
+        unreachable!()
+    };
     assert_eq!(matched_at.line, 3);
     assert_eq!(
         matched_at.byte_offset,

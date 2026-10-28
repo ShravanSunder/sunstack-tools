@@ -111,6 +111,30 @@ pub(crate) async fn evaluate_condition(
                     _ => unresolved(),
                 };
             }
+            if let Some(code) = source.candidate_code() {
+                let text = std::iter::once(code.matched.text.as_str())
+                    .chain(code.units.iter().map(|unit| unit.text.as_str()))
+                    .chain(code.imports.iter().map(|import| import.text.as_str()))
+                    .chain(
+                        code.changes
+                            .iter()
+                            .flat_map(|hunk| [hunk.before.as_ref(), hunk.after.as_ref()])
+                            .flatten()
+                            .map(|excerpt| excerpt.text.as_str()),
+                    )
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                if text.len() > max_scan_bytes.get() {
+                    return unresolved();
+                }
+                let pattern = pattern.clone();
+                return match tokio::task::spawn_blocking(move || pattern_present(&text, &pattern))
+                    .await
+                {
+                    Ok(Ok(present)) => comparison(present),
+                    _ => unresolved(),
+                };
+            }
             let select = match source.spec {
                 SourceSpec::Document { .. } => EvidenceSelection::WholeDocument {},
                 SourceSpec::Conversation { .. } => EvidenceSelection::Conversation {

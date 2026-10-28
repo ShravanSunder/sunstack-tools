@@ -56,7 +56,9 @@ pub(crate) fn validate_cases(
                     return Err(invalid("labels.session"));
                 }
             }
-            SourceInput::CustomEntry { .. } => {}
+            SourceInput::CustomEntry { .. }
+            | SourceInput::Diff { .. }
+            | SourceInput::Code { .. } => {}
         }
     }
     Ok(())

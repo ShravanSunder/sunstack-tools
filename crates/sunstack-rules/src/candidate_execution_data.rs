@@ -69,7 +69,9 @@ pub(crate) fn project_evidence_data(
             for selection in selections {
                 if sources
                     .get(&selection.declaration.input)
-                    .is_some_and(|source| source.candidate_record().is_some())
+                    .is_some_and(|source| {
+                        source.candidate_record().is_some() || source.candidate_code().is_some()
+                    })
                 {
                     continue;
                 }
@@ -165,11 +167,9 @@ pub(crate) fn project_evidence_data(
             ConditionTest::OriginFieldEquals { .. } => continue,
         };
         let admitted = &plan.groups[group.0].admitted;
-        if admitted
-            .sources
-            .get(input)
-            .is_some_and(|source| source.candidate_record().is_some())
-        {
+        if admitted.sources.get(input).is_some_and(|source| {
+            source.candidate_record().is_some() || source.candidate_code().is_some()
+        }) {
             continue;
         }
         let code = match diagnostic {

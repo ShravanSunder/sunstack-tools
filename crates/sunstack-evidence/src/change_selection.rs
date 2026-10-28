@@ -24,10 +24,23 @@ pub(crate) async fn capture_change_selection_cached(
 ) -> EvidenceResult<CapturedChangeSelection> {
     let capture_cancellation = cancellation.clone();
     let capture = tokio::task::spawn_blocking(move || {
-        capture_blocking(request, cached, capture_cancellation)
+        capture_blocking(request, cached, capture_cancellation, false)
     })
     .await
     .map_err(|_| EvidenceCode::SourceUnavailable)??;
+    verify_change_capture(&capture, cancellation).await?;
+    Ok(capture)
+}
+pub(crate) async fn capture_code_selection_cached(
+    request: ChangeCaptureRequest,
+    cached: CachedAcquisition,
+    cancellation: CancellationToken,
+) -> EvidenceResult<CapturedChangeSelection> {
+    let actor = cancellation.clone();
+    let capture =
+        tokio::task::spawn_blocking(move || capture_blocking(request, cached, actor, true))
+            .await
+            .map_err(|_| EvidenceCode::SourceUnavailable)??;
     verify_change_capture(&capture, cancellation).await?;
     Ok(capture)
 }
@@ -35,6 +48,7 @@ fn capture_blocking(
     mut request: ChangeCaptureRequest,
     cached: CachedAcquisition,
     cancellation: CancellationToken,
+    include_code_context: bool,
 ) -> EvidenceResult<CapturedChangeSelection> {
     request.binding.change_scope.validate()?;
     if !request.binding.change_scope.has_change_selection() {
@@ -68,6 +82,34 @@ fn capture_blocking(
         resolve_scope(&mut capture, &scope, request.anchor_utc, &mut members)?;
         for member in &mut members[first_member..] {
             member.scope_position = scope_position;
+        }
+    }
+    if include_code_context {
+        let revisions = members
+            .iter()
+            .flat_map(|member| &member.changes)
+            .flat_map(|change| [&change.before, &change.after])
+            .filter_map(|side| match side {
+                CapturedFileSide::Present { file } => match &file.source {
+                    SourceRef::RepositoryFile { revision, .. } => Some(revision.clone()),
+                    _ => None,
+                },
+                CapturedFileSide::Absent => None,
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        for revision in revisions {
+            let (view, side) = match revision {
+                SourceRevision::Commit { commit_id, side } => (
+                    CaptureView::Commit(
+                        git2::Oid::from_str(commit_id.as_str())
+                            .map_err(|_| EvidenceCode::RevisionUnavailable)?,
+                    ),
+                    side,
+                ),
+                SourceRevision::Index { side, .. } => (CaptureView::Index, side),
+                SourceRevision::Worktree { side, .. } => (CaptureView::Worktree, side),
+            };
+            capture.capture_code_context_view(&view, side)?;
         }
     }
     let coverage = capture.coverage();

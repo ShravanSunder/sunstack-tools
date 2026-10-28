@@ -27,7 +27,7 @@ pub(crate) async fn load_definitions(
     let definitions = input.definitions.clone();
     let max_bytes = input.limits.max_file_bytes.get();
     let cancellation = context.cancellation.clone();
-    tokio::task::spawn_blocking(move || {
+    let loaded = tokio::task::spawn_blocking(move || {
         let mut loader = crate::definition_loading::DefinitionLoader::new(max_bytes, cancellation);
         match definitions {
             CandidateDefinitions::RuleSets { rule_sets } => {
@@ -101,7 +101,19 @@ pub(crate) async fn load_definitions(
         }
     })
     .await
-    .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))?
+    .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))??;
+    for set in &loaded.sets {
+        for rule in &set.rules {
+            if let Some(pass) = &rule.definition.mechanical_pass {
+                pass.validate().map_err(|error| {
+                    let mut diagnostics = DiagnosticList::from(error.diagnostics());
+                    crate::definition_admission::locate(&mut diagnostics, &rule.source, rule.line);
+                    diagnostics
+                })?;
+            }
+        }
+    }
+    Ok(loaded)
 }
 
 fn validate_mapping(

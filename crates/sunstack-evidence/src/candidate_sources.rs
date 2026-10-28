@@ -14,6 +14,18 @@ pub struct TextSpan {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceOccurrence {
+    ContextMatch {
+        input_id: SourceInputId,
+        part: ContextPart,
+        unit: Option<SourceUnitKey>,
+        span: SourceSpan,
+        hunk: Option<HunkId>,
+    },
+    CodeMatch {
+        input_id: SourceInputId,
+        unit: Option<SourceUnitKey>,
+        span: SourceSpan,
+    },
     Record {
         record: PositionedRecordId,
         author: RecordAuthor,
@@ -27,21 +39,54 @@ impl SourceOccurrence {
     pub fn occurrence_identity(&self) -> EvidenceResult<OccurrenceId> {
         match self {
             Self::Record { record, .. } => OccurrenceId::new(record.as_str()),
+            Self::CodeMatch {
+                input_id,
+                unit,
+                span,
+            }
+            | Self::ContextMatch {
+                input_id,
+                unit,
+                span,
+                ..
+            } => crate::code_occurrence_identity::code_occurrence_identity(
+                input_id,
+                unit.as_ref(),
+                span,
+            ),
         }
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MechanicalPass {
-    pub predicate: RecordPredicate,
+    pub predicate: MechanicalPredicate,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_parts: Option<Vec<ContextPart>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_sides: Option<SourceSides>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
-pub enum RecordPredicate {
-    Regex { field: FieldPath, pattern: String },
-    Literal { field: FieldPath, text: String },
-    Any { predicates: Vec<RecordPredicate> },
-    All { predicates: Vec<RecordPredicate> },
+pub enum MechanicalPredicate {
+    Ast {
+        language: CodePatternLanguage,
+        pattern: String,
+    },
+    Regex {
+        field: FieldPath,
+        pattern: String,
+    },
+    Literal {
+        field: FieldPath,
+        text: String,
+    },
+    Any {
+        predicates: Vec<MechanicalPredicate>,
+    },
+    All {
+        predicates: Vec<MechanicalPredicate>,
+    },
 }
 #[derive(Clone, Debug)]
 pub struct RecordMatch {
@@ -49,24 +94,38 @@ pub struct RecordMatch {
     pub record: PositionedRecord,
     pub witnesses: Vec<SourceOccurrence>,
 }
-#[derive(Clone, Debug, Default)]
-pub struct Discovery {
-    pub matches: Vec<RecordMatch>,
-    pub rejected_sample: Vec<RecordMatch>,
+#[derive(Clone, Debug)]
+pub struct Discovery<DiscoveredMatch> {
+    pub matches: Vec<DiscoveredMatch>,
+    pub rejected_sample: Vec<DiscoveredMatch>,
+    pub completed: bool,
+    pub coverage: Option<DiscoveryCoverage>,
+}
+impl<DiscoveredMatch> Default for Discovery<DiscoveredMatch> {
+    fn default() -> Self {
+        Self {
+            matches: vec![],
+            rejected_sample: vec![],
+            completed: true,
+            coverage: None,
+        }
+    }
 }
 pub trait CandidateSource {
+    type DiscoveredMatch;
     fn discover(
         &self,
         pass: Option<&MechanicalPass>,
         samples_per_pass: usize,
-    ) -> EvidenceResult<Discovery>;
+    ) -> EvidenceResult<Discovery<Self::DiscoveredMatch>>;
 }
 impl CandidateSource for [PositionedRecord] {
+    type DiscoveredMatch = RecordMatch;
     fn discover(
         &self,
         pass: Option<&MechanicalPass>,
         samples_per_pass: usize,
-    ) -> EvidenceResult<Discovery> {
+    ) -> EvidenceResult<Discovery<Self::DiscoveredMatch>> {
         let predicate = pass
             .map(|pass| compile_predicate(&pass.predicate))
             .transpose()?;
@@ -154,7 +213,8 @@ fn occurrence(
         span,
     })
 }
-enum CompiledRecordPredicate<'predicate> {
+enum CompiledMechanicalPredicate<'predicate> {
+    CodeOnly,
     Regex {
         field: &'predicate FieldPath,
         matcher: regex::Regex,
@@ -164,25 +224,28 @@ enum CompiledRecordPredicate<'predicate> {
         text: &'predicate str,
     },
     Any {
-        predicates: Vec<CompiledRecordPredicate<'predicate>>,
+        predicates: Vec<CompiledMechanicalPredicate<'predicate>>,
     },
     All {
-        predicates: Vec<CompiledRecordPredicate<'predicate>>,
+        predicates: Vec<CompiledMechanicalPredicate<'predicate>>,
     },
 }
-fn compile_predicate(predicate: &RecordPredicate) -> EvidenceResult<CompiledRecordPredicate<'_>> {
+fn compile_predicate(
+    predicate: &MechanicalPredicate,
+) -> EvidenceResult<CompiledMechanicalPredicate<'_>> {
     Ok(match predicate {
-        RecordPredicate::Regex { field, pattern } => CompiledRecordPredicate::Regex {
+        MechanicalPredicate::Ast { .. } => CompiledMechanicalPredicate::CodeOnly,
+        MechanicalPredicate::Regex { field, pattern } => CompiledMechanicalPredicate::Regex {
             field,
             matcher: regex::Regex::new(pattern).map_err(|_| EvidenceCode::InvalidSelector)?,
         },
-        RecordPredicate::Literal { field, text } => {
+        MechanicalPredicate::Literal { field, text } => {
             if text.is_empty() {
                 return Err(EvidenceCode::InvalidSelector.into());
             }
-            CompiledRecordPredicate::Literal { field, text }
+            CompiledMechanicalPredicate::Literal { field, text }
         }
-        RecordPredicate::Any { predicates } | RecordPredicate::All { predicates } => {
+        MechanicalPredicate::Any { predicates } | MechanicalPredicate::All { predicates } => {
             if predicates.is_empty() {
                 return Err(EvidenceCode::InvalidSelector.into());
             }
@@ -190,12 +253,12 @@ fn compile_predicate(predicate: &RecordPredicate) -> EvidenceResult<CompiledReco
                 .iter()
                 .map(compile_predicate)
                 .collect::<EvidenceResult<Vec<_>>>()?;
-            if matches!(predicate, RecordPredicate::Any { .. }) {
-                CompiledRecordPredicate::Any {
+            if matches!(predicate, MechanicalPredicate::Any { .. }) {
+                CompiledMechanicalPredicate::Any {
                     predicates: compiled,
                 }
             } else {
-                CompiledRecordPredicate::All {
+                CompiledMechanicalPredicate::All {
                     predicates: compiled,
                 }
             }
@@ -203,11 +266,12 @@ fn compile_predicate(predicate: &RecordPredicate) -> EvidenceResult<CompiledReco
     })
 }
 fn matching_fields(
-    predicate: &CompiledRecordPredicate<'_>,
+    predicate: &CompiledMechanicalPredicate<'_>,
     value: &serde_json::Value,
 ) -> EvidenceResult<Vec<(FieldPath, TextSpan)>> {
     match predicate {
-        CompiledRecordPredicate::Regex { field, matcher } => Ok(value
+        CompiledMechanicalPredicate::CodeOnly => Ok(vec![]),
+        CompiledMechanicalPredicate::Regex { field, matcher } => Ok(value
             .pointer(field.as_str())
             .and_then(serde_json::Value::as_str)
             .map(|text| {
@@ -225,7 +289,7 @@ fn matching_fields(
                     .collect()
             })
             .unwrap_or_default()),
-        CompiledRecordPredicate::Literal { field, text } => Ok(value
+        CompiledMechanicalPredicate::Literal { field, text } => Ok(value
             .pointer(field.as_str())
             .and_then(serde_json::Value::as_str)
             .map(|field_text| {
@@ -243,12 +307,14 @@ fn matching_fields(
                     .collect()
             })
             .unwrap_or_default()),
-        CompiledRecordPredicate::Any { predicates }
-        | CompiledRecordPredicate::All { predicates } => {
+        CompiledMechanicalPredicate::Any { predicates }
+        | CompiledMechanicalPredicate::All { predicates } => {
             let mut spans = Vec::new();
             for child in predicates {
                 let matches = matching_fields(child, value)?;
-                if matches.is_empty() && matches!(predicate, CompiledRecordPredicate::All { .. }) {
+                if matches.is_empty()
+                    && matches!(predicate, CompiledMechanicalPredicate::All { .. })
+                {
                     return Ok(vec![]);
                 }
                 for matched in matches {

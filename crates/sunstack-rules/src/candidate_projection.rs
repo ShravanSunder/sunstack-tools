@@ -341,6 +341,7 @@ pub(crate) fn project_candidate(
             }
         }
     };
+    let context = material.context();
     Ok(CandidateEntry {
         candidate_id: material.candidate_id,
         rule: material.rule,
@@ -348,6 +349,7 @@ pub(crate) fn project_candidate(
         outcome,
         answers,
         evidence: vec![],
+        context,
         privacy_view: material.view,
         elapsed_ms: None,
     })

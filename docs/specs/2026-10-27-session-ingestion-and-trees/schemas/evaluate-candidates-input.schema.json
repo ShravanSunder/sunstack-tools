@@ -883,6 +883,55 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
+              "const": "diff",
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            },
+            "scope": {
+              "$ref": "#/$defs/ChangeScope"
+            }
+          },
+          "required": [
+            "kind",
+            "repository",
+            "scope"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "code",
+              "type": "string"
+            },
+            "paths": {
+              "items": {
+                "$ref": "#/$defs/QueryPath"
+              },
+              "type": "array"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            },
+            "revision": {
+              "$ref": "#/$defs/RevisionHead"
+            }
+          },
+          "required": [
+            "kind",
+            "repository",
+            "revision",
+            "paths"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
               "const": "session_pair",
               "type": "string"
             },

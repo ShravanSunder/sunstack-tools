@@ -51,6 +51,95 @@
       "title": "string",
       "type": "string"
     },
+    "CandidateContext": {
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/ChangeHunk"
+          },
+          "type": "array"
+        },
+        "context_id": {
+          "$ref": "#/$defs/CodeContextId"
+        },
+        "coverage": {
+          "$ref": "#/$defs/DiscoveryCoverage"
+        },
+        "imports": {
+          "items": {
+            "$ref": "#/$defs/CodeExcerpt"
+          },
+          "type": "array"
+        },
+        "input_id": {
+          "$ref": "#/$defs/SourceInputId"
+        },
+        "matched": {
+          "$ref": "#/$defs/CodeExcerpt"
+        },
+        "redactions": {
+          "items": {
+            "$ref": "#/$defs/CodeRedaction"
+          },
+          "type": "array"
+        },
+        "related": {
+          "items": {
+            "$ref": "#/$defs/RelatedPiece"
+          },
+          "type": "array"
+        },
+        "repository": {
+          "$ref": "#/$defs/RepositoryId"
+        },
+        "units": {
+          "items": {
+            "$ref": "#/$defs/ContextUnit"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "context_id",
+        "input_id",
+        "repository",
+        "matched",
+        "changes",
+        "units",
+        "redactions",
+        "related",
+        "imports",
+        "coverage"
+      ],
+      "type": "object"
+    },
+    "CandidateContextView": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "$ref": "#/$defs/CandidateContext"
+        },
+        "labels": {
+          "additionalProperties": {
+            "$ref": "#/$defs/RelatednessLabel"
+          },
+          "type": "object"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/ContextPage"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "context",
+        "labels",
+        "pages"
+      ],
+      "type": "object"
+    },
     "CandidateEntry": {
       "additionalProperties": false,
       "properties": {
@@ -62,6 +151,16 @@
         },
         "candidate_id": {
           "$ref": "#/$defs/CandidateId"
+        },
+        "context": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CandidateContextView"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "elapsed_ms": {
           "format": "uint64",
@@ -274,11 +373,164 @@
       ],
       "type": "string"
     },
+    "ChangeHunk": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeExcerpt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeExcerpt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hunk_id": {
+          "$ref": "#/$defs/HunkId"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hunk_id",
+        "path"
+      ],
+      "type": "object"
+    },
     "ChoiceLabel": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "minLength": 1,
       "title": "string",
       "type": "string"
+    },
+    "CodeContextId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "CodeExcerpt": {
+      "additionalProperties": false,
+      "properties": {
+        "span": {
+          "$ref": "#/$defs/SourceSpan"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "span",
+        "text"
+      ],
+      "type": "object"
+    },
+    "CodeRedaction": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "private_kind": {
+          "$ref": "#/$defs/PrivateKind"
+        },
+        "span": {
+          "$ref": "#/$defs/SourceSpan"
+        }
+      },
+      "required": [
+        "span",
+        "private_kind",
+        "count"
+      ],
+      "type": "object"
+    },
+    "ContextPage": {
+      "additionalProperties": false,
+      "properties": {
+        "content_identity": {
+          "type": "string"
+        },
+        "holds": {
+          "items": {
+            "$ref": "#/$defs/PieceId"
+          },
+          "type": "array"
+        },
+        "number": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "of": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rendered_chars": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "of",
+        "revision",
+        "holds",
+        "rendered_chars",
+        "content_identity",
+        "text"
+      ],
+      "type": "object"
+    },
+    "ContextPart": {
+      "enum": [
+        "change",
+        "touched_unit",
+        "related"
+      ],
+      "type": "string"
+    },
+    "ContextUnit": {
+      "additionalProperties": false,
+      "properties": {
+        "piece_id": {
+          "$ref": "#/$defs/PieceId"
+        },
+        "text": {
+          "type": "string"
+        },
+        "unit": {
+          "$ref": "#/$defs/SourceUnit"
+        }
+      },
+      "required": [
+        "piece_id",
+        "unit",
+        "text"
+      ],
+      "type": "object"
     },
     "CoverageGap": {
       "oneOf": [
@@ -401,7 +653,7 @@
           "$ref": "#/$defs/DecisionDiagnosticOrigin"
         },
         "retry_advice": {
-          "$ref": "#/$defs/RetryAdvice"
+          "$ref": "#/$defs/RetryAdvice2"
         }
       },
       "required": [
@@ -553,7 +805,7 @@
           "$ref": "#/$defs/DiagnosticOrigin"
         },
         "retry_advice": {
-          "$ref": "#/$defs/RetryAdvice2"
+          "$ref": "#/$defs/RetryAdvice"
         }
       },
       "required": [
@@ -566,6 +818,27 @@
       "type": "object"
     },
     "DiagnosticList": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "type": "array"
+        },
+        "omitted_count": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "omitted_count"
+      ],
+      "type": "object"
+    },
+    "DiagnosticList2": {
       "additionalProperties": false,
       "properties": {
         "items": {
@@ -718,6 +991,101 @@
       ],
       "type": "string"
     },
+    "DiscoveryCoverage": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "complete_within_declared_scope",
+              "type": "string"
+            },
+            "query_bounds": {
+              "$ref": "#/$defs/QueryBounds"
+            }
+          },
+          "required": [
+            "kind",
+            "query_bounds"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "cutoffs": {
+              "items": {
+                "$ref": "#/$defs/DiscoveryCutoff"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "limited",
+              "type": "string"
+            },
+            "query_bounds": {
+              "$ref": "#/$defs/QueryBounds"
+            }
+          },
+          "required": [
+            "kind",
+            "query_bounds",
+            "cutoffs"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "$ref": "#/$defs/DiagnosticList"
+            },
+            "kind": {
+              "const": "unavailable",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "diagnostics"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "DiscoveryCutoff": {
+      "additionalProperties": false,
+      "properties": {
+        "frontier": {
+          "items": {
+            "$ref": "#/$defs/SourceUnitKey"
+          },
+          "type": "array"
+        },
+        "limit": {
+          "$ref": "#/$defs/DiscoveryLimit"
+        }
+      },
+      "required": [
+        "limit",
+        "frontier"
+      ],
+      "type": "object"
+    },
+    "DiscoveryLimit": {
+      "enum": [
+        "files",
+        "file_bytes",
+        "total_bytes",
+        "matches",
+        "unit_visits",
+        "relationship_candidates",
+        "fan_out",
+        "history_commits",
+        "local_time"
+      ],
+      "type": "string"
+    },
     "DroppedSample": {
       "additionalProperties": false,
       "properties": {
@@ -860,6 +1228,12 @@
       "title": "string",
       "type": "string"
     },
+    "HunkId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
     "InputBinding": {
       "oneOf": [
         {
@@ -955,6 +1329,23 @@
     },
     "InputLocation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "repository",
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "repository"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -1141,6 +1532,12 @@
       "title": "string",
       "type": "string"
     },
+    "PieceId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
     "PositionedRecordId": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "minLength": 1,
@@ -1239,6 +1636,34 @@
         "credential_like"
       ],
       "type": "string"
+    },
+    "QueryBounds": {
+      "additionalProperties": false,
+      "properties": {
+        "repository_ids": {
+          "items": {
+            "$ref": "#/$defs/RepositoryId"
+          },
+          "type": "array"
+        },
+        "requested_hops": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/ResolvedTimeWindow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "repository_ids",
+        "requested_hops",
+        "windows"
+      ],
+      "type": "object"
     },
     "QuestionName": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1370,6 +1795,332 @@
       "title": "string",
       "type": "string"
     },
+    "RelatedBasis": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "input_unit",
+              "type": "string"
+            },
+            "unit": {
+              "$ref": "#/$defs/SourceUnitKey"
+            }
+          },
+          "required": [
+            "kind",
+            "unit"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/DeclarationId"
+            },
+            "kind": {
+              "const": "judged",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "answer"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RelatedPiece": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "connection": {
+              "$ref": "#/$defs/RelationDirection"
+            },
+            "contradictions": {
+              "items": {
+                "$ref": "#/$defs/RelationshipContradiction"
+              },
+              "type": "array"
+            },
+            "facts": {
+              "items": {
+                "$ref": "#/$defs/RelationshipFact"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "resolved",
+              "type": "string"
+            },
+            "piece_id": {
+              "$ref": "#/$defs/PieceId"
+            },
+            "seed": {
+              "$ref": "#/$defs/SourceUnitKey"
+            },
+            "uncertainties": {
+              "items": {
+                "$ref": "#/$defs/RelationshipUncertainty"
+              },
+              "type": "array"
+            },
+            "unit": {
+              "$ref": "#/$defs/SourceUnitKey"
+            }
+          },
+          "required": [
+            "kind",
+            "piece_id",
+            "seed",
+            "connection",
+            "unit",
+            "facts",
+            "uncertainties",
+            "contradictions"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "call_site": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "connection": {
+              "$ref": "#/$defs/RelationDirection"
+            },
+            "kind": {
+              "const": "unresolved",
+              "type": "string"
+            },
+            "name_as_written": {
+              "type": "string"
+            },
+            "piece_id": {
+              "$ref": "#/$defs/PieceId"
+            },
+            "reason": {
+              "$ref": "#/$defs/RelationshipUncertainty"
+            },
+            "seed": {
+              "$ref": "#/$defs/SourceUnitKey"
+            }
+          },
+          "required": [
+            "kind",
+            "piece_id",
+            "seed",
+            "connection",
+            "name_as_written",
+            "call_site",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RelatednessLabel": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "basis": {
+              "$ref": "#/$defs/RelatedBasis"
+            },
+            "value": {
+              "const": "related",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "basis"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fact": {
+              "$ref": "#/$defs/RelationshipFactRef"
+            },
+            "value": {
+              "const": "probably_related",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "fact"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "reasons": {
+              "items": {
+                "$ref": "#/$defs/UncertaintyReason"
+              },
+              "type": "array"
+            },
+            "value": {
+              "const": "uncertain",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "reasons"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "judged_by": {
+              "$ref": "#/$defs/DeclarationId"
+            },
+            "value": {
+              "const": "unrelated",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "judged_by"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RelationDirection": {
+      "enum": [
+        "callers",
+        "callees",
+        "imports",
+        "imported_by"
+      ],
+      "type": "string"
+    },
+    "RelationshipContradiction": {
+      "enum": [
+        "lexical_shadow",
+        "ambiguous_binding"
+      ],
+      "type": "string"
+    },
+    "RelationshipFact": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "declaration",
+              "type": "string"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "required": [
+            "kind",
+            "span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "import_binding",
+              "type": "string"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "required": [
+            "kind",
+            "span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "static_call",
+              "type": "string"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "required": [
+            "kind",
+            "span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "importing_repository": {
+              "$ref": "#/$defs/RepositoryId"
+            },
+            "kind": {
+              "const": "package_mapping",
+              "type": "string"
+            },
+            "target_repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "importing_repository",
+            "target_repository"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RelationshipFactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "piece_id": {
+          "$ref": "#/$defs/PieceId"
+        },
+        "position": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "piece_id",
+        "position"
+      ],
+      "type": "object"
+    },
+    "RelationshipUncertainty": {
+      "enum": [
+        "syntax_only",
+        "dynamic_dispatch",
+        "ambiguous_declaration",
+        "unresolved_package",
+        "unsupported_import",
+        "missing_source",
+        "recovered_syntax"
+      ],
+      "type": "string"
+    },
     "ReportDiagnostic": {
       "anyOf": [
         {
@@ -1389,6 +2140,29 @@
       "minLength": 1,
       "title": "string",
       "type": "string"
+    },
+    "ResolvedTimeWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor_utc": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "since_utc": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "until_utc": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anchor_utc",
+        "since_utc",
+        "until_utc"
+      ],
+      "type": "object"
     },
     "RetryAdvice": {
       "oneOf": [
@@ -1634,7 +2408,7 @@
           "$ref": "#/$defs/RuleDiagnosticOrigin"
         },
         "retry_advice": {
-          "$ref": "#/$defs/RetryAdvice"
+          "$ref": "#/$defs/RetryAdvice2"
         }
       },
       "required": [
@@ -2066,6 +2840,82 @@
         {
           "additionalProperties": false,
           "properties": {
+            "hunk": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/HunkId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_id": {
+              "$ref": "#/$defs/SourceInputId"
+            },
+            "kind": {
+              "const": "context_match",
+              "type": "string"
+            },
+            "part": {
+              "$ref": "#/$defs/ContextPart"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "unit": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceUnitKey"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "input_id",
+            "part",
+            "span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "input_id": {
+              "$ref": "#/$defs/SourceInputId"
+            },
+            "kind": {
+              "const": "code_match",
+              "type": "string"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "unit": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceUnitKey"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "input_id",
+            "span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "author": {
               "$ref": "#/$defs/RecordAuthor"
             },
@@ -2355,6 +3205,151 @@
       ],
       "type": "object"
     },
+    "SourceUnit": {
+      "additionalProperties": false,
+      "properties": {
+        "content_identity": {
+          "type": "string"
+        },
+        "key": {
+          "$ref": "#/$defs/SourceUnitKey"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceUnitKind"
+        },
+        "span": {
+          "$ref": "#/$defs/SourceSpan"
+        },
+        "syntax_quality": {
+          "$ref": "#/$defs/SyntaxQuality"
+        }
+      },
+      "required": [
+        "key",
+        "kind",
+        "span",
+        "content_identity",
+        "syntax_quality"
+      ],
+      "type": "object"
+    },
+    "SourceUnitKey": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_end": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "byte_start": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "repository": {
+          "$ref": "#/$defs/RepositoryId"
+        },
+        "revision": {
+          "$ref": "#/$defs/SourceRevision"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotId"
+        }
+      },
+      "required": [
+        "snapshot",
+        "repository",
+        "revision",
+        "path",
+        "byte_start",
+        "byte_end"
+      ],
+      "type": "object"
+    },
+    "SourceUnitKind": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "function",
+              "type": "string"
+            },
+            "signature": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "signature"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "method",
+              "type": "string"
+            },
+            "signature": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "signature"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "class",
+              "type": "string"
+            },
+            "signature": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "signature"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "paragraph",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "section",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "StructuredEntry": {
       "anyOf": [
         {
@@ -2434,6 +3429,13 @@
       ],
       "description": "Recursive JSON content. This is data, never a declaration or an executable expression."
     },
+    "SyntaxQuality": {
+      "enum": [
+        "parsed",
+        "recovered_with_errors"
+      ],
+      "type": "string"
+    },
     "TextSpan": {
       "additionalProperties": false,
       "properties": {
@@ -2468,6 +3470,44 @@
         "unknown"
       ],
       "type": "string"
+    },
+    "UncertaintyReason": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "graph",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/RelationshipUncertainty"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "contradicted",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/RelationshipContradiction"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "UnlocatableReason": {
       "enum": [
@@ -2588,7 +3628,7 @@
       "additionalProperties": false,
       "properties": {
         "diagnostics": {
-          "$ref": "#/$defs/DiagnosticList"
+          "$ref": "#/$defs/DiagnosticList2"
         },
         "kind": {
           "const": "invalid",

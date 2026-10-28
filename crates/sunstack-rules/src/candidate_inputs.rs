@@ -1,3 +1,4 @@
+pub(crate) use crate::candidate_subjects::*;
 use crate::*;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -9,13 +10,12 @@ use sunstack_evidence::*;
 pub(crate) struct CapturedCandidateSource {
     pub entry_position: usize,
     pub source_name: SourceName,
-    pub path: PathBuf,
-    pub format: TranscriptFormatName,
     pub records: Vec<PositionedRecord>,
     pub coverage: CaptureCoverage,
 }
 pub(crate) struct CandidateSourceCapture {
     pub captured: Vec<CapturedCandidateSource>,
+    pub code: Vec<crate::candidate_code_inputs::CapturedCandidateCode>,
     pub reports: Vec<InputReport>,
     pub privacy: PrivacyProjection,
     pub session: EvidenceSession,
@@ -48,6 +48,26 @@ pub(crate) async fn capture_candidate_sources(
     }
     // Validate all providers before acquiring any source or constructing a backend.
     for (position, entry) in input.sources.iter().enumerate() {
+        entry.source.validate().map_err(|mut error| {
+            let mut prefix = vec!["sources".into(), position.to_string(), "source".into()];
+            prefix.extend(error.field_path);
+            error.field_path = prefix;
+            crate::DiagnosticList::from(error.diagnostics())
+        })?;
+        if let SourceInput::Diff { repository, .. } | SourceInput::Code { repository, .. } =
+            &entry.source
+            && !input
+                .repositories
+                .iter()
+                .any(|binding| binding.key == *repository)
+        {
+            return Err(invalid_candidate_field(vec![
+                "sources".into(),
+                position.to_string(),
+                "source".into(),
+                "repository".into(),
+            ]));
+        }
         if let SourceInput::SessionPair { provider, .. } = &entry.source
             && !recipes.contains_key(provider)
         {
@@ -62,6 +82,7 @@ pub(crate) async fn capture_candidate_sources(
     let mut captured = Vec::new();
     let mut reports = Vec::new();
     let mut located_sources = Vec::new();
+    let mut code_positions = Vec::new();
     let sources = &mut plan.sources;
     let mut adapters = context.adapters.clone();
     for (position, entry) in input.sources.iter().enumerate() {
@@ -70,6 +91,20 @@ pub(crate) async fn capture_candidate_sources(
             .source_identity()
             .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
         let located = match &entry.source {
+            SourceInput::Diff { repository, .. } | SourceInput::Code { repository, .. } => {
+                code_positions.push(position);
+                reports.push(InputReport {
+                    input_id,
+                    location: InputLocation::Repository {
+                        repository: repository.clone(),
+                    },
+                    records: 0,
+                    unfit: vec![],
+                    capture: InputCaptureStatus::Incomplete,
+                    discovery: vec![],
+                });
+                continue;
+            }
             SourceInput::SessionPair { provider, session } => {
                 let recipe = recipes
                     .get(provider)
@@ -140,7 +175,7 @@ pub(crate) async fn capture_candidate_sources(
                         final_assistant_text: None,
                     },
                 );
-                located_sources.push((position, name, path.clone(), format.clone()));
+                located_sources.push((position, name));
                 reports.push(InputReport {
                     input_id,
                     location: InputLocation::Located { path, format },
@@ -184,7 +219,7 @@ pub(crate) async fn capture_candidate_sources(
             }
             crate::DiagnosticList::from(error.diagnostics())
         })?;
-    for (position, name, path, format) in located_sources {
+    for (position, name) in located_sources {
         match session.capture_source(&name).await {
             Ok(CapturedSource::Transcript(capture)) => {
                 let events = capture
@@ -204,8 +239,6 @@ pub(crate) async fn capture_candidate_sources(
                 captured.push(CapturedCandidateSource {
                     entry_position: position,
                     source_name: name,
-                    path,
-                    format,
                     records: projected.records,
                     coverage,
                 });
@@ -215,6 +248,31 @@ pub(crate) async fn capture_candidate_sources(
                     reason: UnlocatableReason::Unreadable,
                 }
             }
+        }
+    }
+    let mut code = Vec::new();
+    for position in code_positions {
+        match session
+            .build_code_context(&input.sources[position].source)
+            .await
+        {
+            Ok(index) => {
+                reports[position].capture = if matches!(
+                    index.coverage,
+                    DiscoveryCoverage::CompleteWithinDeclaredScope { .. }
+                ) {
+                    InputCaptureStatus::Complete
+                } else {
+                    InputCaptureStatus::Incomplete
+                };
+                code.push(crate::candidate_code_inputs::CapturedCandidateCode {
+                    entry_position: position,
+                    source_name: SourceName::new(format!("candidate_input_{position}"))
+                        .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?,
+                    index,
+                });
+            }
+            Err(_) => reports[position].capture = InputCaptureStatus::Incomplete,
         }
     }
     let mut privacy = PrivacyProjection::default();
@@ -228,30 +286,12 @@ pub(crate) async fn capture_candidate_sources(
     }
     Ok(CandidateSourceCapture {
         captured,
+        code,
         reports,
         privacy,
         session,
         plan,
     })
-}
-
-pub(crate) struct CandidateMaterial {
-    pub candidate_id: CandidateId,
-    pub entry_position: usize,
-    pub source_name: SourceName,
-    pub rule: RuleRef,
-    pub occurrence: SourceOccurrence,
-    pub view: PrivacyView,
-    pub selected: CandidateRecordSelection,
-    pub path: PathBuf,
-    pub format: TranscriptFormatName,
-}
-
-pub(crate) enum CandidateRecordSelection {
-    Ready {
-        selected: Arc<crate::input_binding::CandidateRecordView>,
-    },
-    LeftOutForPrivacy,
 }
 
 pub(crate) fn discover_rule_candidates(
@@ -352,13 +392,13 @@ pub(crate) fn discover_rule_candidates(
                     }
                 }
                 let selected = match &projected.record {
-                    Some(record) if !private_match => CandidateRecordSelection::Ready {
+                    Some(record) if !private_match => CandidateSelection::Record {
                         selected: Arc::new(crate::input_binding::CandidateRecordView {
                             record: record.clone(),
                             coverage: coverage.clone(),
                         }),
                     },
-                    _ => CandidateRecordSelection::LeftOutForPrivacy,
+                    _ => CandidateSelection::LeftOutForPrivacy,
                 };
                 candidates.push(CandidateMaterial {
                     entry_position: source.entry_position,
@@ -375,8 +415,6 @@ pub(crate) fn discover_rule_candidates(
                         grants: rule.private_access.clone(),
                     },
                     selected,
-                    path: source.path.clone(),
-                    format: source.format.clone(),
                 });
             }
             receipt.status = RuleDiscoveryStatus::Completed;
@@ -384,7 +422,7 @@ pub(crate) fn discover_rule_candidates(
     }
     Ok(candidates)
 }
-fn append_privacy_counts(
+pub(crate) fn append_privacy_counts(
     report: &mut PrivacyReport,
     route: PrivacyRoute,
     projection: PrivacyProjection,

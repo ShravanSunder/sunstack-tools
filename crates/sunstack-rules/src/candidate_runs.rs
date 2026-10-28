@@ -81,7 +81,7 @@ async fn run_candidates(
     let mut policy = RulePolicy::default();
     let mut router_groups = Vec::new();
     for set in sets {
-        let selected = discover_rule_candidates(
+        let mut selected = discover_rule_candidates(
             set,
             &source_capture.captured,
             input.samples_per_pass,
@@ -90,12 +90,18 @@ async fn run_candidates(
             &mut source_capture.reports,
             &context.cancellation,
         )?;
+        selected.extend(crate::candidate_code_inputs::discover_code_candidates(
+            set,
+            &source_capture.code,
+            input.samples_per_pass,
+            &mut privacy,
+            &mut dropped_samples,
+            &mut source_capture.reports,
+            &context.cancellation,
+        )?);
         let mut binding_groups = Vec::new();
         for material in selected {
-            if matches!(
-                material.selected,
-                CandidateRecordSelection::LeftOutForPrivacy
-            ) {
+            if matches!(material.selected, CandidateSelection::LeftOutForPrivacy) {
                 candidates.push(CandidateEntry {
                     candidate_id: material.candidate_id,
                     rule: material.rule,
@@ -105,6 +111,7 @@ async fn run_candidates(
                     },
                     answers: vec![],
                     evidence: vec![],
+                    context: None,
                     privacy_view: material.view,
                     elapsed_ms: None,
                 });
@@ -147,11 +154,7 @@ async fn run_candidates(
                     EvidenceBinding::Unavailable { .. } => None,
                 })
                 .collect::<BTreeMap<_, _>>();
-            let subject_binding = InputBinding::Conversation {
-                transcript_path: material.path.clone(),
-                format: material.format.clone(),
-                final_assistant_text: None,
-            };
+            let subject_binding = material.subject_binding()?;
             bindings.insert(target.input.clone(), subject_binding);
             binding_groups.push(BindingGroup { bindings });
             let key = (set.path.clone(), material.entry_position);
@@ -165,29 +168,7 @@ async fn run_candidates(
                     grants: material.view.grants.iter().copied().collect(),
                 });
             }
-            let selected = match &material.selected {
-                CandidateRecordSelection::Ready { selected } => selected.clone(),
-                CandidateRecordSelection::LeftOutForPrivacy => {
-                    return Err(invalid_candidate_field(vec!["sources".into()]));
-                }
-            };
-            sources.insert(
-                target.input.clone(),
-                crate::input_binding::AdmittedSource {
-                    id: crate::input_binding::SourceId::Conversation {
-                        path: material.path.clone(),
-                        format: material.format.clone(),
-                        supplement_identity: None,
-                    },
-                    name: material.source_name.clone(),
-                    spec: sunstack_evidence::SourceSpec::Conversation {
-                        transcript_path: material.path.clone(),
-                        format: material.format.clone(),
-                        final_assistant_text: None,
-                    },
-                    candidate: Some(crate::input_binding::CandidateSourceView::Record(selected)),
-                },
-            );
+            sources.insert(target.input.clone(), material.admitted_subject()?);
             admitted_groups.push(crate::invocation_admission::AdmittedGroup {
                 set: set.clone(),
                 position: group,

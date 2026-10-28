@@ -133,7 +133,11 @@ fn input_discovery_completed(
     if inputs.next().is_some() {
         return Ok(false);
     }
-    if !matches!(input.location, InputLocation::Located { .. }) || !input.unfit.is_empty() {
+    if !matches!(
+        input.location,
+        InputLocation::Located { .. } | InputLocation::Repository { .. }
+    ) || !input.unfit.is_empty()
+    {
         return Ok(false);
     }
     match input.capture {

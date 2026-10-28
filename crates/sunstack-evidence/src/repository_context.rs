@@ -12,9 +12,24 @@ pub async fn capture_repository_context(
     capture_repository_context_cached(request, cached, cancellation).await
 }
 pub(crate) async fn capture_repository_context_cached(
+    request: ChangeCaptureRequest,
+    cached: CachedAcquisition,
+    cancellation: CancellationToken,
+) -> EvidenceResult<CapturedChangeSelection> {
+    capture_context(request, cached, cancellation, false).await
+}
+pub(crate) async fn capture_code_worktree_context_cached(
+    request: ChangeCaptureRequest,
+    cached: CachedAcquisition,
+    cancellation: CancellationToken,
+) -> EvidenceResult<CapturedChangeSelection> {
+    capture_context(request, cached, cancellation, true).await
+}
+async fn capture_context(
     mut request: ChangeCaptureRequest,
     cached: CachedAcquisition,
     cancellation: CancellationToken,
+    code_only: bool,
 ) -> EvidenceResult<CapturedChangeSelection> {
     let started = Instant::now();
     request.binding.root = request
@@ -61,7 +76,9 @@ pub(crate) async fn capture_repository_context_cached(
                 .path()
                 .strip_prefix(&binding.root)
                 .map_err(|_| EvidenceCode::PathOutsideRoot)?;
-            if path_is_allowed(&binding, path)? {
+            if path_is_allowed(&binding, path)?
+                && (!code_only || crate::source_units::source_language(path).is_some())
+            {
                 paths.insert(path.to_path_buf());
             }
             if paths.difference(&scan_cached_paths).count() > max_files {

@@ -56,7 +56,9 @@ pub fn match_is_private(
     occurrence: &SourceOccurrence,
     grants: &BTreeSet<PrivateKind>,
 ) -> EvidenceResult<bool> {
-    let SourceOccurrence::Record { field, span, .. } = occurrence;
+    let SourceOccurrence::Record { field, span, .. } = occurrence else {
+        return Err(EvidenceCode::InvalidSelector.into());
+    };
     match &record.body {
         PositionedBody::Private { private_kind, .. } if !grants.contains(private_kind) => {
             return Ok(true);
@@ -193,7 +195,7 @@ pub fn project_text(
     ))
 }
 
-fn credential_pattern() -> EvidenceResult<regex::Regex> {
+pub(crate) fn credential_pattern() -> EvidenceResult<regex::Regex> {
     regex::Regex::new(r#"(?i)(?:sk-[a-z0-9_-]{12,}|gh[pousr]_[a-z0-9]{20,}|AKIA[A-Z0-9]{16}|(?:api[_-]?key|password|secret|access[_-]?token)\s*[:=]\s*["']?[a-z0-9_./+\-]{12,})"#)
         .map_err(|_| EvidenceCode::InvalidSelector.into())
 }

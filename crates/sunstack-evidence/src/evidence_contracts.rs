@@ -319,6 +319,9 @@ pub struct EvidenceMatch {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SelectionContent {
+    CodeContext {
+        context: Box<crate::CandidateContext>,
+    },
     PositionedRecord {
         source: SourceRef,
         record: Box<crate::PositionedRecord>,
@@ -380,6 +383,9 @@ pub struct SelectionResult {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetLocation {
+    CodeMatch {
+        span: SourceSpan,
+    },
     PositionedRecord {
         source: SourceRef,
         record_id: crate::PositionedRecordId,

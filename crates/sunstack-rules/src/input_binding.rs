@@ -8,6 +8,9 @@ use sunstack_evidence::{
 };
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SourceId {
+    Code {
+        input_id: sunstack_evidence::SourceInputId,
+    },
     Document {
         repository: RepositoryId,
         path: PathBuf,
@@ -34,6 +37,10 @@ pub struct AdmittedSource {
 #[derive(Debug, Clone)]
 pub(crate) enum CandidateSourceView {
     Record(std::sync::Arc<CandidateRecordView>),
+    Code {
+        context: std::sync::Arc<sunstack_evidence::CandidateContext>,
+        grants: std::collections::BTreeSet<sunstack_evidence::PrivateKind>,
+    },
     Outside {
         grants: std::collections::BTreeSet<sunstack_evidence::PrivateKind>,
     },
@@ -45,11 +52,19 @@ impl AdmittedSource {
             _ => None,
         }
     }
+    pub(crate) fn candidate_code(&self) -> Option<&sunstack_evidence::CandidateContext> {
+        match &self.candidate {
+            Some(CandidateSourceView::Code { context, .. }) => Some(context),
+            _ => None,
+        }
+    }
     pub(crate) fn private_access(
         &self,
     ) -> Option<&std::collections::BTreeSet<sunstack_evidence::PrivateKind>> {
         match &self.candidate {
-            Some(CandidateSourceView::Outside { grants }) => Some(grants),
+            Some(
+                CandidateSourceView::Outside { grants } | CandidateSourceView::Code { grants, .. },
+            ) => Some(grants),
             _ => None,
         }
     }

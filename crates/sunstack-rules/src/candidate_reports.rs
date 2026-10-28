@@ -25,6 +25,8 @@ pub struct CandidateEntry {
     pub answers: Vec<AnswerRecord>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub evidence: Vec<EvidenceUse>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<CandidateContextView>,
     pub privacy_view: PrivacyView,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub elapsed_ms: Option<u64>,
@@ -91,6 +93,9 @@ pub enum RuleDiscoveryStatus {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InputLocation {
+    Repository {
+        repository: sunstack_evidence::RepositoryId,
+    },
     Located {
         path: std::path::PathBuf,
         format: sunstack_evidence::TranscriptFormatName,

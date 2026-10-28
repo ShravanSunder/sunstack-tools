@@ -5,6 +5,22 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, path::PathBuf};
 
+validated_name!(HunkId, |value: &str| !value.is_empty());
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CodeExcerpt {
+    pub span: SourceSpan,
+    pub text: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ChangeHunk {
+    pub hunk_id: HunkId,
+    pub path: std::path::PathBuf,
+    pub before: Option<CodeExcerpt>,
+    pub after: Option<CodeExcerpt>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ResolvedChangeSelection {
