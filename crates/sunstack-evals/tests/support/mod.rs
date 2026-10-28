@@ -94,5 +94,10 @@ pub fn located_input(set: &FrozenCaseSet) -> InputReport {
         },
         records: 9,
         unfit: vec![],
+        capture: InputCaptureStatus::Complete,
+        discovery: vec![RuleDiscovery {
+            rule: rule(),
+            status: RuleDiscoveryStatus::Completed,
+        }],
     }
 }

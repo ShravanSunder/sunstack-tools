@@ -276,3 +276,71 @@ fn filter_misses_require_complete_input_discovery_and_other_absence_is_unknown()
         );
     }
 }
+
+#[test]
+fn filter_unknown_uses_explicit_capture_and_own_rule_discovery_status() {
+    let root = tempfile::tempdir().unwrap();
+    let set = freeze(root.path(), vec![case(1, Label::Yes, Split::HeldOut)]);
+    let mut observed = bundle(vec![], None, 0);
+    let complete = located_input(&set);
+    observed.inputs = vec![complete.clone()];
+    assert_eq!(
+        score(&[observed.clone()], &set).unwrap().filter.missed,
+        vec![CaseId::new("case_1").unwrap()]
+    );
+
+    // An unfinished JSONL tail need not emit an unfit record. Location and the gap list
+    // therefore cannot stand in for the captured bytes' explicit completeness receipt.
+    let mut incomplete_capture = complete.clone();
+    incomplete_capture.capture = sunstack_rules::InputCaptureStatus::Incomplete;
+    assert!(incomplete_capture.unfit.is_empty());
+    let mut not_started = complete.clone();
+    not_started.discovery[0].status = sunstack_rules::RuleDiscoveryStatus::NotStarted;
+    let mut stopped = complete.clone();
+    stopped.discovery[0].status = sunstack_rules::RuleDiscoveryStatus::Stopped;
+    let mut different_rule = complete.clone();
+    different_rule.discovery[0].rule.rule_id = sunstack_rules::RuleId::new("other_rule").unwrap();
+    let mut no_receipt = complete.clone();
+    no_receipt.discovery.clear();
+    let mut ambiguous = complete.clone();
+    ambiguous.discovery.push(ambiguous.discovery[0].clone());
+    let mut observations = vec![];
+    for (name, input) in [
+        ("incomplete_capture", incomplete_capture),
+        ("not_started", not_started),
+        ("stopped", stopped),
+        ("different_rule", different_rule),
+        ("no_receipt", no_receipt),
+        ("ambiguous", ambiguous),
+    ] {
+        observed.inputs = vec![input];
+        let filter = score(&[observed.clone()], &set).unwrap().filter;
+        observations.push((name, serde_json::to_value(filter).unwrap()));
+    }
+    // An unrelated rule's stopped receipt does not undo this rule's completed discovery.
+    let mut both_rules = complete;
+    let mut other = both_rules.discovery[0].clone();
+    other.rule.rule_id = sunstack_rules::RuleId::new("other_rule").unwrap();
+    other.status = sunstack_rules::RuleDiscoveryStatus::Stopped;
+    both_rules.discovery.push(other);
+    observed.inputs = vec![both_rules];
+    let filter = score(&[observed], &set).unwrap().filter;
+    assert_eq!(filter.missed, vec![CaseId::new("case_1").unwrap()]);
+    assert!(filter.unknown.is_empty());
+    let unknown = json!({"positive_cases":1,"kept":0,"missed":[],"unknown":["case_1"]});
+    let expected = [
+        "incomplete_capture",
+        "not_started",
+        "stopped",
+        "different_rule",
+        "no_receipt",
+        "ambiguous",
+    ]
+    .into_iter()
+    .map(|name| (name, unknown.clone()))
+    .collect::<Vec<_>>();
+    assert_eq!(
+        observations, expected,
+        "explicit capture and own-rule discovery must establish each miss"
+    );
+}

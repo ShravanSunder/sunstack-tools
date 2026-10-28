@@ -29,9 +29,11 @@ A source anchor matches a candidate by its evidence-owned occurrence identity an
 
 - Filter recall counts each yes-labeled occurrence once. Its first positive case in
   label-file order represents a miss. A missing positive is a miss only with one
-  matching located input report and no unread/unfit coverage; otherwise it is filter
-  `unknown`. Missing, unlocatable, partial or ambiguous input reports never prove a
-  filter miss. Unknown labels never contribute negatives.
+  matching located input report, explicit complete capture, and exactly one completed
+  discovery receipt for this rule, with no unfit coverage; otherwise it is filter
+  `unknown`. Missing, unlocatable, partial or ambiguous input reports, incomplete
+  capture, and absent/not-started/stopped discovery never prove a filter miss.
+  Another rule's completed discovery cannot substitute for this rule's receipt. Unknown labels never contribute negatives.
 - Steps report case IDs for correct, wrong and unknown answers. A missing candidate,
   absent answer, multiple observations for one question, or nonbinary settlement stays
   unknown. A settlement is used as recorded; probabilities are never reinterpreted.

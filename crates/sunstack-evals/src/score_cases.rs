@@ -2,8 +2,8 @@ use crate::{case_validation::invalid, *};
 use std::collections::BTreeSet;
 use sunstack_evidence::OccurrenceId;
 use sunstack_rules::{
-    CandidateEntry, CandidateOutcome, CandidateRunReport, InputLocation, QuestionRef,
-    QuestionSettlement, RunUsage, SamplePass,
+    CandidateEntry, CandidateOutcome, CandidateRunReport, InputCaptureStatus, InputLocation,
+    QuestionRef, QuestionSettlement, RuleDiscoveryStatus, RunUsage, SamplePass,
 };
 
 /// Score an immutable verified snapshot, without filesystem, scheduler, clock or model access.
@@ -52,7 +52,7 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
             report.filter.positive_cases += 1;
             if !matching.is_empty() {
                 report.filter.kept += 1;
-            } else if input_read_in_full(case, set, bundles)? {
+            } else if input_discovery_completed(case, set, bundles)? {
                 report.filter.missed.push(case.case_id.clone());
             } else {
                 report.filter.unknown.push(case.case_id.clone());
@@ -106,7 +106,7 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
     }
     Ok(report)
 }
-fn input_read_in_full(
+fn input_discovery_completed(
     case: &LabeledCase,
     set: &FrozenCaseSet,
     bundles: &[CandidateRunReport],
@@ -131,7 +131,29 @@ fn input_read_in_full(
     if inputs.next().is_some() {
         return Ok(false);
     }
-    Ok(matches!(input.location, InputLocation::Located { .. }) && input.unfit.is_empty())
+    if !matches!(input.location, InputLocation::Located { .. }) || !input.unfit.is_empty() {
+        return Ok(false);
+    }
+    match input.capture {
+        InputCaptureStatus::Complete => {}
+        InputCaptureStatus::Incomplete => return Ok(false),
+    }
+    let mut discovery = input
+        .discovery
+        .iter()
+        .filter(|receipt| receipt.rule == set.manifest.rule);
+    let Some(receipt) = discovery.next() else {
+        return Ok(false);
+    };
+    // The rule's own receipt is authoritative; another rule cannot supply it, and
+    // duplicate receipts cannot establish an unambiguous completed pass.
+    if discovery.next().is_some() {
+        return Ok(false);
+    }
+    match receipt.status {
+        RuleDiscoveryStatus::Completed => Ok(true),
+        RuleDiscoveryStatus::NotStarted | RuleDiscoveryStatus::Stopped => Ok(false),
+    }
 }
 fn occurrence_identity(
     occurrence: &sunstack_evidence::SourceOccurrence,
