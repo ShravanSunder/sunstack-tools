@@ -56,7 +56,20 @@ async fn run_candidates(
     })
     .await
     .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))??;
-    let source_capture = capture_candidate_sources(&input, &context).await?;
+    let mut source_capture = capture_candidate_sources(&input, &context).await?;
+    for report in &mut source_capture.reports {
+        for set in &sets {
+            for rule in &set.rules {
+                report.discovery.push(RuleDiscovery {
+                    rule: RuleRef {
+                        rule_set: set.path.clone(),
+                        rule_id: rule.definition.rule_id.clone(),
+                    },
+                    status: RuleDiscoveryStatus::NotStarted,
+                });
+            }
+        }
+    }
     let mut privacy = PrivacyReport::default();
     for (private_kind, count) in &source_capture.privacy.left_out {
         privacy.left_out.push(PrivacyCount {
@@ -77,6 +90,8 @@ async fn run_candidates(
             input.samples_per_pass,
             &mut privacy,
             &mut dropped_samples,
+            &mut source_capture.reports,
+            &context.cancellation,
         )?;
         let mut binding_groups = Vec::new();
         for material in selected {

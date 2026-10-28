@@ -7,6 +7,7 @@ use std::{
 use sunstack_evidence::*;
 
 pub(crate) struct CapturedCandidateSource {
+    pub input_id: SourceInputId,
     pub path: PathBuf,
     pub format: TranscriptFormatName,
     pub records: Vec<PositionedRecord>,
@@ -103,6 +104,8 @@ pub(crate) async fn capture_candidate_sources(
                     location: InputLocation::Located { path, format },
                     records: 0,
                     unfit: vec![],
+                    capture: InputCaptureStatus::Incomplete,
+                    discovery: vec![],
                 });
             }
             SessionLookup::Located { .. } => reports.push(InputReport {
@@ -112,12 +115,16 @@ pub(crate) async fn capture_candidate_sources(
                 },
                 records: 0,
                 unfit: vec![],
+                capture: InputCaptureStatus::Incomplete,
+                discovery: vec![],
             }),
             SessionLookup::Unlocatable { reason } => reports.push(InputReport {
                 input_id,
                 location: InputLocation::Unlocatable { reason },
                 records: 0,
                 unfit: vec![],
+                capture: InputCaptureStatus::Incomplete,
+                discovery: vec![],
             }),
         }
     }
@@ -147,9 +154,15 @@ pub(crate) async fn capture_candidate_sources(
                         .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
                     let projected = project_positioned(&reports[position].input_id, events)
                         .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
+                    reports[position].capture = if capture.tail == CaptureTail::Complete {
+                        InputCaptureStatus::Complete
+                    } else {
+                        InputCaptureStatus::Incomplete
+                    };
                     reports[position].records = projected.records.len();
                     reports[position].unfit = projected.gaps;
                     captured.push(CapturedCandidateSource {
+                        input_id: reports[position].input_id.clone(),
                         path,
                         format,
                         records: projected.records,
@@ -204,6 +217,8 @@ pub(crate) fn discover_rule_candidates(
     samples: usize,
     privacy: &mut PrivacyReport,
     dropped: &mut Vec<DroppedSample>,
+    reports: &mut [InputReport],
+    cancellation: &tokio_util::sync::CancellationToken,
 ) -> Result<Vec<CandidateMaterial>, crate::DiagnosticList> {
     let mut candidates = Vec::new();
     for located_rule in &set.rules {
@@ -232,6 +247,20 @@ pub(crate) fn discover_rule_candidates(
             });
         }
         for source in sources {
+            if cancellation.is_cancelled() {
+                break;
+            }
+            let receipt = reports
+                .iter_mut()
+                .find(|report| report.input_id == source.input_id)
+                .and_then(|report| {
+                    report
+                        .discovery
+                        .iter_mut()
+                        .find(|discovery| discovery.rule == rule_ref)
+                })
+                .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
+            receipt.status = RuleDiscoveryStatus::Stopped;
             let mut coverage = source.coverage.clone();
             let projected_gaps = project_coverage_gaps(&coverage.gaps, &grants)
                 .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
@@ -298,6 +327,7 @@ pub(crate) fn discover_rule_candidates(
                     format: source.format.clone(),
                 });
             }
+            receipt.status = RuleDiscoveryStatus::Completed;
         }
     }
     Ok(candidates)

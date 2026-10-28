@@ -262,7 +262,9 @@
       "enum": [
         "unlocatable_input",
         "request_limit",
-        "cancelled"
+        "cancelled",
+        "incomplete_input",
+        "discovery_stopped"
       ],
       "type": "string"
     },
@@ -792,6 +794,13 @@
       "title": "string",
       "type": "string"
     },
+    "InputCaptureStatus": {
+      "enum": [
+        "complete",
+        "incomplete"
+      ],
+      "type": "string"
+    },
     "InputLocation": {
       "oneOf": [
         {
@@ -837,6 +846,15 @@
     "InputReport": {
       "additionalProperties": false,
       "properties": {
+        "capture": {
+          "$ref": "#/$defs/InputCaptureStatus"
+        },
+        "discovery": {
+          "items": {
+            "$ref": "#/$defs/RuleDiscovery"
+          },
+          "type": "array"
+        },
         "input_id": {
           "$ref": "#/$defs/SourceInputId"
         },
@@ -859,7 +877,9 @@
         "input_id",
         "location",
         "records",
-        "unfit"
+        "unfit",
+        "capture",
+        "discovery"
       ],
       "type": "object"
     },
@@ -1639,6 +1659,30 @@
         "request",
         "execution",
         "invocation"
+      ],
+      "type": "string"
+    },
+    "RuleDiscovery": {
+      "additionalProperties": false,
+      "properties": {
+        "rule": {
+          "$ref": "#/$defs/RuleRef"
+        },
+        "status": {
+          "$ref": "#/$defs/RuleDiscoveryStatus"
+        }
+      },
+      "required": [
+        "rule",
+        "status"
+      ],
+      "type": "object"
+    },
+    "RuleDiscoveryStatus": {
+      "enum": [
+        "completed",
+        "not_started",
+        "stopped"
       ],
       "type": "string"
     },

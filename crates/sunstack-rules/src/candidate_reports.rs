@@ -57,6 +57,27 @@ pub struct InputReport {
     pub location: InputLocation,
     pub records: usize,
     pub unfit: Vec<CoverageGap>,
+    pub capture: InputCaptureStatus,
+    pub discovery: Vec<RuleDiscovery>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum InputCaptureStatus {
+    Complete,
+    Incomplete,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RuleDiscovery {
+    pub rule: RuleRef,
+    pub status: RuleDiscoveryStatus,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RuleDiscoveryStatus {
+    Completed,
+    NotStarted,
+    Stopped,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -136,6 +157,8 @@ pub enum CandidateStopReason {
     UnlocatableInput,
     RequestLimit,
     Cancelled,
+    IncompleteInput,
+    DiscoveryStopped,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -192,6 +215,26 @@ pub(crate) fn completeness(
     {
         RunCompleteness::Partial {
             stopped_by: CandidateStopReason::UnlocatableInput,
+            findings,
+            inconclusive,
+        }
+    } else if inputs
+        .iter()
+        .any(|input| input.capture == InputCaptureStatus::Incomplete)
+    {
+        RunCompleteness::Partial {
+            stopped_by: CandidateStopReason::IncompleteInput,
+            findings,
+            inconclusive,
+        }
+    } else if inputs.iter().any(|input| {
+        input
+            .discovery
+            .iter()
+            .any(|discovery| discovery.status != RuleDiscoveryStatus::Completed)
+    }) {
+        RunCompleteness::Partial {
+            stopped_by: CandidateStopReason::DiscoveryStopped,
             findings,
             inconclusive,
         }
