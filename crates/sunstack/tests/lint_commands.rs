@@ -11,16 +11,11 @@ use std::{
 };
 use sunstack_decisions::CancellationToken;
 use tokio::process::Command;
+mod support;
 
 fn command(root: &Path) -> Command {
-    let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap();
-    let mut command = Command::new(workspace.join("scripts/cargo-debug-signing-runner.sh"));
+    let mut command = support::isolated_command(root);
     command
-        .arg(env!("CARGO_BIN_EXE_sunstack"))
         .arg("lint")
         .current_dir(root)
         .env_remove("OPENROUTER_API_KEY")
@@ -56,7 +51,12 @@ async fn real_cli_json_equals_the_library_and_each_format_preserves_the_finding(
     let root = tempfile::tempdir().unwrap();
     fixture::write(root.path());
     let cli = report(root.path(), &["--all"], 1).await;
-    let library = sunstack_lint::run(fixture::request(root.path()), CancellationToken::new()).await;
+    let library = sunstack_lint::run(
+        fixture::request(root.path()),
+        CancellationToken::new(),
+        None,
+    )
+    .await;
     assert_eq!(cli, serde_json::to_value(library).unwrap());
     let human = invoke(root.path(), &["--all"], 1).await;
     assert!(String::from_utf8(human.stdout).unwrap().contains(

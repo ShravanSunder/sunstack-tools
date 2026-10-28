@@ -31,6 +31,14 @@ sunstack-evidence.workspace = true
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util", "signal", "time"] }
+keyring-core = "1.0.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store = { version = "1.0.2", features = ["keychain"] }
+security-framework = "3.7.0"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus-secret-service-keyring-store = { version = "1.0.1", features = ["rt-async-io-crypto-rust"] }
 
 [dev-dependencies]
 git2 = { version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }

@@ -19,6 +19,17 @@ pub enum RunnerCommand {
     Lint(LintArguments),
     /// Execute one native JSON request from standard input.
     Exec,
+    /// Manage the OpenRouter credential in the OS credential store.
+    Credentials {
+        #[command(subcommand)]
+        command: CredentialCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum CredentialCommand {
+    /// Save OPENROUTER_API_KEY from the environment to the OS credential store.
+    Save,
 }
 
 #[derive(Args)]

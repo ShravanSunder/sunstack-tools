@@ -180,9 +180,13 @@ runs retain completed findings. Warnings alone do not fail unless a warning limi
 
 Mechanical rules send no text over the network. Selected text for judged rules and
 model-based applicability decisions is sent to the configured backend. Such work needs
-`backend: { "kind": "jev_openrouter", "model": "jev-latest" }` and `OPENROUTER_API_KEY`
-in the environment. The default endpoint is `https://openrouter.ai/api/v1/systemone`.
-The key is read only when model work is reachable and is never included in reports.
+`backend: { "kind": "jev_openrouter", "model": "jev-latest" }` and an OpenRouter key
+from `OPENROUTER_API_KEY` or the OS credential store. The default endpoint is `https://openrouter.ai/api/v1/systemone`.
+The environment wins without touching the store. To save the current environment
+key to macOS Keychain or Linux Secret Service, run `sunstack credentials save`;
+ordinary model runs never save it automatically. The command is listed in `sunstack --help`.
+Set `SUNSTACK_CREDENTIAL_STORE=off` to disable store lookup and saving, for example
+in CI. Credentials are never included in reports.
 Judged rules cost money; change scopes, `off` and `limits` bound that work. Reports
 include requests, tokens and provider-reported cost; missing cost stays absent.
 
