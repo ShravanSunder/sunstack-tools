@@ -80,7 +80,7 @@ This plans how each proof obligation in the [Specification](specification.md) ge
   - the V5 fixture bundle passes with `--no-network`;
   - a CDN-linked copy of the same fixture fails with `request-blocked` for `…/runtime.js` and `…/theme.css`, plus `library-not-loaded`;
   - a bundle whose Markdown island is changed to a missing `src` fails with `markdown-not-rendered` naming `ex-markdown#…`;
-  - a bundle whose inline Explorer JSON is made invalid fails with `explorer-not-rendered` naming `ex-explorer#…`.
+  - a bundle whose inlined Explorer JSON is made invalid after bundling (`bundle` itself validates it) fails with `explorer-not-rendered` naming `ex-explorer#…`.
 - Permanent test: a case runs `verify-command` with `launch-chromium` given no usable channel or executable, and asserts exit 2 and the browser guidance. This is the only stand-in: a forced launch failure in place of a machine with no browser.
 - Manual proof: `verify --no-network` on the two Downloads files. `index.standalone.html` fails, listing both blocked URLs. `address-mismatch-v2-workflow-map.standalone.html` passes with its four diagrams drawn.
 - Falsifier: a verifier that checks only `load` or the exit status passes the CDN-linked copy when network is allowed.
