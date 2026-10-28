@@ -111,9 +111,13 @@ This plans how each proof obligation in the [Specification](specification.md) ge
 - Assert:
   - it exits 0 and writes `out/index.html` and `out/guide/details.html`;
   - the test server logged each library file fetched exactly once;
-  - both outputs check with 0 errors.
-- Act and assert: add an `<img>` to `details.html` and rerun into a fresh `out`. It exits 1 naming `details.html`, and `out` stays empty, even though `index.html` alone would bundle.
-- Act and assert: `--out-dir site` fails as `output-collides-with-source` with the sources byte-identical. Two pages bound to different bases fail as `bindings-differ` before any release request.
+  - both outputs check with 0 errors and 0 warnings.
+- Act and assert: add an `<img>` to `details.html` and rerun with a new output directory. It exits 1 naming `details.html`, and the output directory is not created, even though `index.html` alone would bundle.
+- Act and assert: these cases fail as `output-collides-with-source`, with the sources byte-identical:
+  - `--out-dir site`;
+  - the same source given twice;
+  - `site/Index.html` beside `site/other/../index.html` on macOS.
+- Act and assert: two pages bound to different bases fail as `bindings-differ` before any release request. The same two pages with `--library` bundle.
 - Slice 3 adds: both outputs pass `verify --no-network`, and in Chromium the link in `out/index.html` opens `out/guide/details.html` from disk.
 - Falsifier: a batch that writes `index.html` even though `details.html` fails, that flattens `guide/`, or that fetches the runtime once per page.
 

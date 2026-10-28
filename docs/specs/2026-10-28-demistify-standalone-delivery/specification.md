@@ -78,8 +78,11 @@ P1: an agent cannot produce a file a chat viewer renders without improvising, an
   - a Mermaid island with an unprepared `src`;
   - a Markdown or Explorer `src` that is a URL or a missing local file.
 - **R10** (U4; E5) A failed `bundle` leaves the output path exactly as it was. An existing file there is unchanged, and no partial file appears.
-- **R22** (U10; E1, E3, E5) `demistify bundle --out-dir <directory> <source.html …>` bundles each page source into its own bundle, as R7 and R8 describe. Each output keeps the page's path relative to the nearest directory containing all the sources, under `<directory>`. File names are kept, so links between those pages keep working when the output directory is opened from disk; a chat viewer still opens each file alone. All the page sources must bind one binding; otherwise the command exits 1 naming two pages and their bases. `--library` applies to every page.
-- **R23** (U10; E5) If any page fails under R5, R6 or R9, the batch writes nothing for any page and names each failing page. An output path that is the same file as any page source fails the batch before anything is written.
+- **R22** (U10; E1, E3, E5) `demistify bundle --out-dir <directory> <source.html …>` bundles each page source into its own bundle, as R7 and R8 describe. Each output keeps the page's path relative to the nearest directory containing all the sources, under `<directory>`. File names are kept, so links between those pages keep working when the output directory is opened from disk; a chat viewer still opens each file alone. Except with `--library`, which reads no binding and applies to every page, all the page sources must bind one binding; otherwise the command exits 1 naming two pages and their bases. The output directory is created, with any missing parents, only when the batch writes.
+- **R23** (U10; E5) If any page fails under R5, R6 or R9, the batch writes nothing for any page and names each failing page. The batch also fails before anything is written when:
+  - an output path is the same file as any page source;
+  - the same page source is given twice;
+  - two page sources map to one output path, compared as the file system compares names, so case-only differences collide on macOS.
 - **R11** (U5; E5) `demistify check` reports 0 errors and 0 warnings on a bundle produced under R7 from a page source that itself checks with 0 errors and 0 warnings.
 - **R12** (U5; E5, E6) `check` reports an error for any file whose name ends in `.standalone.html` and that is not a bundle.
 - **R13** (U5; E5) `check` reports an error for a file that records bundle metadata but still loads the library from a URL, or any Markdown or Explorer source from a URL or a path, or an unprepared Mermaid `src`. A prepared Mermaid island may keep its `src`; `check` does not treat that leftover as remote loading.
@@ -135,6 +138,8 @@ P1: an agent cannot produce a file a chat viewer renders without improvising, an
 | `bundle` | `[--library <directory>] <source.html> <output.html>`, or `[--library <directory>] --out-dir <directory> <source.html …>` | exit 0; prints version, module count, and each output with its bytes | exit 1 naming each cause, per R5, R6, R9, R22, R23; outputs untouched per R10 and R23 |
 | `verify` | `[--no-network] [--screenshots <directory>] <file.html …>` | exit 0; one result line per file | exit 1 when any file failed; exit 2 when there is no usable browser |
 | `--version`, `--help` | none | exit 0 | — |
+
+Without `--out-dir`, `bundle` takes exactly two paths, the source and the output. With `--out-dir`, every path is a page source. Any other combination is a usage error, exit 1.
 
 Negative space: no merging of several pages into one file, no link rewriting, no picture inlining, no browser download, no automatic fix of a bundle, and no Windows promise.
 

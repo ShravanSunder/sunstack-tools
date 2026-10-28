@@ -56,7 +56,7 @@ flowchart TB
 | `render-check.ts` | Moved from the library unchanged, except that it launches through `launch-chromium.ts` | `check --render` |
 | `verify-delivered-file.ts` | Open one file from a `file:` URL, block network on request, drive the page, and return one `VerificationResult` | R14–R16 |
 | `write-file-atomically.ts` | Write to a sibling temporary file, then rename. On failure, remove the temporary file. For a batch, write every temporary file first, then rename each; on failure, remove the temporary files not yet renamed, and report which outputs were renamed. | R10, R23 |
-| `bundle-plan.ts` | Turn a batch's sources and `--out-dir` into output paths: find the sources' nearest common directory, keep each relative path, and reject an output that resolves to the same file as any source | R22, R23 |
+| `bundle-plan.ts` | Turn a batch's sources and `--out-dir` into output paths: find the sources' nearest common directory and keep each relative path. Reject, as `output-collides-with-source`, an output that resolves to the same file as any source, a source given twice (by real path), or two sources mapping to one output (names compared case-insensitively when the output directory's file system is case-insensitive) | R22, R23 |
 | `scripts/build-cli.ts` | Compile `src/bin.ts` to `dist/package/bin/demistify.js`, write the packed `package.json`, and run `pnpm pack` to produce `dist/cli.tgz` | archive shape (R3, C2) |
 | library `delivery-kind.ts` (new) | Read bundle metadata from a parsed document: `{ kind: 'bundle', metadata }` or `{ kind: 'linked' }` | C3 |
 | library `check-delivery.ts` (new) | Delivery findings under one rule name, `delivery`: misnamed standalone (R12) and a bundle that still loads remotely (R13) | R12, R13 |
@@ -85,7 +85,7 @@ flowchart TB
 | R18 | `ai-tools` `plugins/sunstack-dev/skills/presentation-html/` | The SKILL and `references/demistify.md` route by the reader's opening method to the guide's delivery reference, require `verify --no-network`, and drop "exists only as the source API". |
 | R19 | `.agents/skills/verify-demistify/references/journeys.md` | A standalone journey: build, run `bundle --library packages/demistify/dist` on a PoC fixture, `check`, then `verify --no-network`. |
 | R20, R21 | worktrees and branches | See delivery slices. |
-| R22 | `command-line.ts`, `bundle-plan.ts`, `bundle-command.ts` | `CliCommand` `bundle` carries `target: { kind: 'single'; source; output } \| { kind: 'batch'; sources; outputDirectory }`. A batch derives each page's binding and requires them all equal, otherwise `bindings-differ`. It opens one release reader for the batch; its per-path memo fetches and hash-checks each library file once, however many pages use it. |
+| R22 | `command-line.ts`, `bundle-plan.ts`, `bundle-command.ts` | `CliCommand` `bundle` carries `target: { kind: 'single'; source; output } \| { kind: 'batch'; sources; outputDirectory }`. Without `--library`, a batch derives each page's binding and requires them all equal, otherwise `bindings-differ`. With `--library`, every page uses the one directory reader. Writing creates `outputDirectory` and each output's parent folders with `mkdir({ recursive: true })`. It opens one release reader for the batch; its per-path memo fetches and hash-checks each library file once, however many pages use it. |
 | R23 | `bundle-command.ts`, `write-file-atomically.ts` | The command bundles every page in memory and collects each page's failure, so one bad page doesn't hide another. It writes only when no page failed. `bundle-plan.ts` rejects a source collision as `output-collides-with-source` before any page is read. |
 
 `--library <directory>` is the one flag beyond R7. It reads a complete local build through a directory reader, records `source=local-build`, and skips the binding and version guard. R19 needs it to prove a bundle before a release exists. The guide documents it as a maintainer route.
@@ -243,4 +243,4 @@ Slice 2 ships `bundle` before `verify`. Agents could bundle without the offline 
 | R17, R18 | U7 | E5, E7 | guide `delivery.md`, `presentation-html` | published guide text | — | V9 |
 | R19 | U6, U7 | E5, E8 | `verify-demistify` journey | journey steps | — | V10 |
 | R20, R21 | U8, U9 | — | worktrees, `gh stack` | PRs | — | V11 |
-| R22, R23 | U10 | E1, E3, E5 | `bundle-plan.ts`, `bundle-command.ts`, `write-file-atomically.ts` | `CliCommand.bundle.target`, `BatchFailure` | `bindings-differ`, `output-collides-with-source`, `pages-failed` | V12 |
+| R22, R23 | U10 | E1, E3, E5 | `bundle-plan.ts`, `bundle-command.ts`, `write-file-atomically.ts` | `CliCommand.bundle.target`, `BatchFailure` | `bindings-differ`, `output-collides-with-source`, `pages-failed`, `usage-error` for a mixed form | V12 |
