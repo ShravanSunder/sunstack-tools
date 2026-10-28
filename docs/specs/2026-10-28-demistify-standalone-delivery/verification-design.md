@@ -70,7 +70,7 @@ This plans how each proof obligation in the [Specification](specification.md) ge
 
 **V7 — bundle-aware check** (R11–R13).
 
-- Permanent test: `check-delivery.test.ts` in the library. Bundle a page that checks clean with `bundleStandaloneHtml(libraryDirectoryReader(dist))` and assert 0 errors and 0 warnings. A CDN-linked page checked with `pageFileName: 'x.standalone.html'` gives one `delivery` error. The bundle with a runtime script added back gives one `delivery` error.
+- Permanent test: `check-delivery.test.ts` in the library. Bundle a page that checks clean with `bundleStandaloneHtml(libraryDirectoryReader(dist))` and assert 0 errors and 0 warnings, including when prepared Mermaid islands still have `src`. A CDN-linked page checked with `pageFileName: 'x.standalone.html'` gives one `delivery` error. The bundle with a runtime script added back gives one `delivery` error. An unprepared Mermaid `src` on a file that already has bundle metadata also gives one `delivery` error.
 - Falsifier: the current checker reports 1 `library` error and 121 `styling` warnings on a correct bundle (recorded finding F6), so the first case fails before the change.
 - Also prove that the styling exemption covers only `<style data-demistify-theme>`: an authored `<style>` in the bundle setting `color` still warns.
 

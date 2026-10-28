@@ -80,7 +80,7 @@ P1: an agent cannot produce a file a chat viewer renders without improvising, an
 - **R10** (U4; E5) A failed `bundle` leaves the output path exactly as it was. An existing file there is unchanged, and no partial file appears.
 - **R11** (U5; E5) `demistify check` reports 0 errors and 0 warnings on a bundle produced under R7 from a page source that itself checks with 0 errors and 0 warnings.
 - **R12** (U5; E5, E6) `check` reports an error for any file whose name ends in `.standalone.html` and that is not a bundle.
-- **R13** (U5; E5) `check` reports an error for a file that records bundle metadata but still loads the library, or any Markdown, Explorer or Mermaid source, from a URL or a path.
+- **R13** (U5; E5) `check` reports an error for a file that records bundle metadata but still loads the library from a URL, or any Markdown or Explorer source from a URL or a path, or an unprepared Mermaid `src`. A prepared Mermaid island may keep its `src`; `check` does not treat that leftover as remote loading.
 
 ### `verify`: proof before sharing
 
