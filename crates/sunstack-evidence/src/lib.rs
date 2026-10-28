@@ -43,6 +43,8 @@ pub use positioned_records::*;
 pub mod record_privacy;
 pub use record_privacy::*;
 pub mod code_context;
+mod document_candidates;
+pub use document_candidates::DiscoveredDocumentMatch;
 mod code_context_discovery;
 mod code_context_privacy;
 mod code_context_view;

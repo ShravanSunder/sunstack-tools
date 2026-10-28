@@ -26,6 +26,14 @@ pub struct RuleSourceEntry {
     pub target: RuleSourceTarget,
     #[serde(default)]
     pub context: Vec<EvidenceDeclaration>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mechanical_pass: Option<sunstack_evidence::MechanicalPass>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub narrowing: Option<crate::NarrowingDecision>,
+    #[serde(default)]
+    pub gates: Vec<crate::ApplicabilityEntry>,
+    #[serde(default)]
+    pub questions: sunstack_decisions::NamedQuestionMap,
     pub verdict: RuleSourceVerdict,
     #[serde(default)]
     pub severity: Severity,

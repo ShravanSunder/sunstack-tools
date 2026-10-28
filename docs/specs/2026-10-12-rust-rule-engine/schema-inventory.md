@@ -24,7 +24,8 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 | Rule line | `target` | Which declaration the result points at: a paragraph, conversation records, a payload field or code units |
 | Rule line | `applicability` | Rule-level conditions and decisions, after the RuleSet's |
 | Rule line | `questions` | Informational native questions. May be empty |
-| Rule line | `verdict` | `noul { question, threshold, error_at_or_below? }` or `composite { dimensions, threshold, error_at_or_below? }`. Required on every rule |
+| Marked entry | `mechanical_pass`, `narrowing`, `gates`, `questions` | Optional native decision-model fields; assembly keeps the marked verdict sentence and sets conformance meaning; entries cannot override `pass_means` |
+| Rule line | `verdict` | `noul`, `composite` or local `mechanical`; judged verdicts accept `pass_means: conforms \| finding` (default `finding`); mechanical verdicts mean conformance. Required on every rule |
 | Rule line | `severity` | `error` or `warn`. Omitted means warn. Never sent to the model |
 | [Router](schemas/router.schema.json) | `inputs`, `evidence`, `question` | Its own named inputs and declarations, and one `choice` question |
 | Router | `routes` | Label to RuleSets, each with input wiring from RuleSet input name to router input name |

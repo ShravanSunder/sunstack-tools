@@ -78,12 +78,12 @@ fn hand_worked_table_scores_every_report_field() {
             None,
         ),
     ];
-    let mut observed = bundle(entries, Some(0.25), 1000);
+    let mut observed = bundle(&set, entries, Some(0.25), 1000);
     observed.inputs.push(located_input(&set));
     observed
         .dropped_samples
         .push(sunstack_rules::DroppedSample {
-            rule: rule(),
+            rule: set.replay_rule(),
             pass: sunstack_rules::SamplePass::Mechanical,
             occurrence: occurrence(7),
             excerpt: "actual mechanical drop".into(),
@@ -93,7 +93,7 @@ fn hand_worked_table_scores_every_report_field() {
     assert_eq!(actual["rule"], json!(rule()));
     assert_eq!(
         actual["rule_version"],
-        json!("a05d97f6d12f14582ce56010cd430ba0b31cd2ffabdf8f42306bad6edf6c6969")
+        json!("f3995f5fb57ed3fa412302f6fd89ec7a20c1678210b7f3ca62ce27332da65784")
     );
     let manifest_bytes = std::fs::read(root.path().join("cases/manifest.json")).unwrap();
     assert_eq!(
@@ -137,8 +137,8 @@ fn ambiguous_answers_and_missing_measurements_stay_unknown() {
     candidate.answers.push(conflicting);
     let report = score(
         &[
-            bundle(vec![candidate], None, 70),
-            bundle(vec![], Some(0.5), 30),
+            bundle(&set, vec![candidate], None, 70),
+            bundle(&set, vec![], Some(0.5), 30),
         ],
         &set,
     )
@@ -182,7 +182,7 @@ fn step_only_labels_are_not_end_truth_and_filter_occurrences_count_once() {
         Some(123),
     );
     candidate.answers[0].question = sunstack_rules::QuestionRef::RuleGate { position: 0 };
-    let report = score(&[bundle(vec![candidate], Some(0.1), 500)], &set).unwrap();
+    let report = score(&[bundle(&set, vec![candidate], Some(0.1), 500)], &set).unwrap();
     assert_eq!(report.filter.positive_cases, 1);
     assert_eq!(report.filter.kept, 1);
     assert_eq!(report.steps.len(), 2);
@@ -215,7 +215,12 @@ fn absent_or_duplicate_candidates_are_inconclusive_not_negative() {
         Some(5),
     );
     let report = score(
-        &[bundle(vec![candidate.clone(), candidate], Some(0.0), 10)],
+        &[bundle(
+            &set,
+            vec![candidate.clone(), candidate],
+            Some(0.0),
+            10,
+        )],
         &set,
     )
     .unwrap();
@@ -235,7 +240,7 @@ fn absent_or_duplicate_candidates_are_inconclusive_not_negative() {
 fn filter_misses_require_complete_input_discovery_and_other_absence_is_unknown() {
     let root = tempfile::tempdir().unwrap();
     let set = freeze(root.path(), vec![case(1, Label::Yes, Split::HeldOut)]);
-    let mut observed = bundle(vec![], None, 0);
+    let mut observed = bundle(&set, vec![], None, 0);
     let located = located_input(&set);
     observed.inputs = vec![located.clone()];
     let report = score(&[observed.clone()], &set).unwrap();
@@ -280,7 +285,7 @@ fn filter_misses_require_complete_input_discovery_and_other_absence_is_unknown()
 fn filter_unknown_uses_explicit_capture_and_own_rule_discovery_status() {
     let root = tempfile::tempdir().unwrap();
     let set = freeze(root.path(), vec![case(1, Label::Yes, Split::HeldOut)]);
-    let mut observed = bundle(vec![], None, 0);
+    let mut observed = bundle(&set, vec![], None, 0);
     let complete = located_input(&set);
     observed.inputs = vec![complete.clone()];
     assert_eq!(

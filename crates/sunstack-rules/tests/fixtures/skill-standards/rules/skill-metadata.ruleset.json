@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "skill-metadata",
+  "description": "Checks a skill's frontmatter description locally, with no model: it starts with `Use when` and is at most 1,024 characters. Metadata only, never a judgment of the skill's quality. Bind `skill` to each skill's SKILL.md and to no other file.",
+  "inputs": { "skill": { "kind": "document" } },
+  "applicability": [],
+  "common_ruleset_instructions": null,
+  "marker_prefix": "K",
+  "rule_sources": [
+    { "markdown": "../references/descriptions-and-invocation.md", "rules": "descriptions-and-invocation.rules.json" }
+  ]
+}

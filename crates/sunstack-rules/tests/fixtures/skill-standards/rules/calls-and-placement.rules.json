@@ -1,0 +1,16 @@
+{
+  "K001": {
+    "name": "call.completeness",
+    "target": {
+      "input": "skill",
+      "select": {
+        "kind": "markdown_units",
+        "mode": "call_site",
+        "units": ["paragraph", "list_item"],
+        "pattern": "\\bMUST\\s+(?:load|dispatch)\\b|\\b(?:IF|If)\\b[^.]*?,\\s*(?:load|dispatch)\\b"
+      }
+    },
+    "threshold": 0.8,
+    "severity": "warn"
+  }
+}

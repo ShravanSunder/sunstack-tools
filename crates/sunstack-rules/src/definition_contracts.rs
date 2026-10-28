@@ -170,14 +170,33 @@ impl NarrowingDecision {
         }
     }
 }
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PassMeans {
+    Conforms,
+    #[default]
+    Finding,
+}
+impl PassMeans {
+    fn is_finding(&self) -> bool {
+        *self == Self::Finding
+    }
+}
+fn mechanical_pass_means() -> PassMeans {
+    PassMeans::Conforms
+}
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum VerdictDeclaration {
     Mechanical {
+        #[serde(default = "mechanical_pass_means")]
+        pass_means: PassMeans,
         explanation: String,
         check: crate::MechanicalCheck,
     },
     Noul {
+        #[serde(default, skip_serializing_if = "PassMeans::is_finding")]
+        pass_means: PassMeans,
         #[schemars(schema_with = "noul_schema")]
         question: JudgmentQuestion,
         #[schemars(extend("exclusiveMinimum" = 0, "maximum" = 1))]
@@ -190,6 +209,8 @@ pub enum VerdictDeclaration {
         uncertain_below: Option<f64>,
     },
     Composite {
+        #[serde(default, skip_serializing_if = "PassMeans::is_finding")]
+        pass_means: PassMeans,
         #[schemars(length(min = 1))]
         dimensions: Vec<CompositeDimension>,
         #[schemars(extend("exclusiveMinimum" = 0, "maximum" = 1))]
@@ -203,6 +224,14 @@ pub enum VerdictDeclaration {
     },
 }
 impl VerdictDeclaration {
+    pub fn pass_means(&self) -> PassMeans {
+        match self {
+            Self::Mechanical { pass_means, .. }
+            | Self::Noul { pass_means, .. }
+            | Self::Composite { pass_means, .. } => *pass_means,
+        }
+    }
+
     pub fn uncertainty_floor(&self) -> Option<f64> {
         match self {
             Self::Mechanical { .. } => None,

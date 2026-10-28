@@ -115,14 +115,17 @@ fn kept_record_matches_frozen_record_case_despite_different_match_attribution() 
     candidate.candidate_id.occurrence = candidate.occurrence.occurrence_identity().unwrap();
     specification.labels[0].source_anchor = frozen_anchor;
     let frozen = freeze_cases(&root.path().join("record-case"), &specification).unwrap();
-    let mut observed = bundle(vec![candidate], Some(0.1), 20);
+    let exact_candidate = candidate.clone();
+    let mut observed = bundle(&frozen, vec![candidate], Some(0.1), 20);
     observed.inputs.push(located_input(&frozen));
 
     // Exact-attribution control: the honest produced CandidateId is accepted and scores a finding.
     let mut exact_specification = specification.clone();
     exact_specification.labels[0].source_anchor = matched_anchor;
     let exact = freeze_cases(&root.path().join("exact-case"), &exact_specification).unwrap();
-    let exact_report = score(&[observed.clone()], &exact).unwrap();
+    let mut exact_observed = bundle(&exact, vec![exact_candidate], Some(0.1), 20);
+    exact_observed.inputs.push(located_input(&exact));
+    let exact_report = score(&[exact_observed], &exact).unwrap();
     assert_eq!(exact_report.filter.kept, 1);
     assert_eq!(
         exact_report.end_result.true_findings,

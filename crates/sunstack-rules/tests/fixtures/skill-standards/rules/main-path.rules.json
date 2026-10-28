@@ -1,0 +1,11 @@
+{
+  "K001": {
+    "name": "branch.condition",
+    "target": {
+      "input": "skill",
+      "select": { "kind": "markdown_units", "mode": "call_site", "units": ["paragraph", "list_item"], "pattern": "\\b(?:IF|If|When)\\b" }
+    },
+    "threshold": 0.8,
+    "severity": "warn"
+  }
+}

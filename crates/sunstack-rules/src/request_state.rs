@@ -1,4 +1,6 @@
-use crate::candidate_subject_selection::{candidate_code_selection, candidate_record_selection};
+use crate::candidate_subject_selection::{
+    candidate_code_selection, candidate_document_selection, candidate_record_selection,
+};
 use crate::{input_binding::AdmittedSources, *};
 use sunstack_evidence::{
     EvidenceDeclaration, EvidenceRequirement, EvidenceSelection, EvidenceSession, SelectionContent,
@@ -85,6 +87,8 @@ async fn select_owner_evidence_with_target(
             mapped.input = source.name.clone();
             let mut result = if let Some(candidate) = source.candidate_record() {
                 candidate_record_selection(candidate, declaration)
+            } else if let Some((candidate, coverage)) = source.candidate_document() {
+                candidate_document_selection(candidate, coverage, declaration)
             } else if let Some(context) = source.candidate_code() {
                 candidate_code_selection(context, declaration)
             } else if let Some(grants) = source.private_access() {

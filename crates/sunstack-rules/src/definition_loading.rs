@@ -23,6 +23,7 @@ pub struct ValidatedRuleFile {
     pub rules: Vec<LocatedRuleDefinition>,
 }
 pub(crate) struct DefinitionLoader {
+    frozen: Option<BTreeMap<PathBuf, Vec<u8>>>,
     max_bytes: usize,
     cancellation: CancellationToken,
     files: BTreeMap<PathBuf, Arc<ValidatedRuleFile>>,
@@ -31,11 +32,30 @@ pub(crate) struct DefinitionLoader {
 impl DefinitionLoader {
     pub(crate) fn new(max_bytes: usize, cancellation: CancellationToken) -> Self {
         Self {
+            frozen: None,
             max_bytes,
             cancellation,
             files: BTreeMap::new(),
             sets: BTreeMap::new(),
         }
+    }
+    pub(crate) fn from_frozen(files: BTreeMap<PathBuf, Vec<u8>>) -> Self {
+        let mut loader = Self::new(usize::MAX, CancellationToken::new());
+        loader.frozen = Some(files);
+        loader
+    }
+    fn resolve(&self, base: &Path, path: &Path) -> Result<PathBuf, DiagnosticList> {
+        if self.frozen.is_none() {
+            return resolved_path(base, path);
+        }
+        if base.is_absolute() || path.is_absolute() {
+            return Err(DiagnosticList::rule(
+                RuleDiagnosticCode::InvalidConfiguration,
+            ));
+        }
+        crate::input_binding::normalize_path(&base.join(path))
+            .filter(|path| !path.as_os_str().is_empty())
+            .ok_or_else(|| DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration))
     }
     pub(crate) fn read(&self, path: &Path) -> Result<Vec<u8>, DiagnosticList> {
         let invalid = || {
@@ -45,6 +65,9 @@ impl DefinitionLoader {
         };
         if self.cancellation.is_cancelled() {
             return Err(DiagnosticList::rule(RuleDiagnosticCode::CallerAborted));
+        }
+        if let Some(files) = &self.frozen {
+            return files.get(path).cloned().ok_or_else(invalid);
         }
         let metadata = std::fs::metadata(path).map_err(|_| invalid())?;
         if !metadata.is_file() || metadata.len() > self.max_bytes as u64 {
@@ -80,7 +103,7 @@ impl DefinitionLoader {
         let mut rule_ids = BTreeSet::new();
         let mut rules = Vec::new();
         for source in &definition.rule_paths {
-            let source = resolved_path(directory, source)?;
+            let source = self.resolve(directory, source)?;
             if !source_paths.insert(source.clone()) {
                 return Err(RuleDiagnostic::new(RuleDiagnosticCode::DuplicateRuleSource)
                     .definition(&path, 1, 1, vec!["rule_paths".into()])
@@ -137,8 +160,8 @@ impl DefinitionLoader {
         let mut pairs = BTreeSet::new();
         for pair in &definition.rule_sources {
             let pair = RuleSourcePair {
-                markdown: resolved_path(directory, &pair.markdown)?,
-                rules: resolved_path(directory, &pair.rules)?,
+                markdown: self.resolve(directory, &pair.markdown)?,
+                rules: self.resolve(directory, &pair.rules)?,
             };
             if !pairs.insert((pair.markdown.clone(), pair.rules.clone())) {
                 return Err(RuleDiagnostic::new(RuleDiagnosticCode::DuplicateRuleSource)

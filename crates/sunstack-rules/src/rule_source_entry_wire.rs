@@ -12,6 +12,14 @@ pub(crate) struct SourceEntryWire {
     target: RuleSourceTarget,
     #[serde(default)]
     context: Vec<EvidenceDeclaration>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    mechanical_pass: Option<sunstack_evidence::MechanicalPass>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    narrowing: Option<NarrowingDecision>,
+    #[serde(default)]
+    gates: Vec<ApplicabilityEntry>,
+    #[serde(default)]
+    questions: sunstack_decisions::NamedQuestionMap,
     #[serde(
         default,
         deserialize_with = "present_value",
@@ -65,6 +73,10 @@ impl TryFrom<SourceEntryWire> for RuleSourceEntry {
             name: wire.name,
             target: wire.target,
             context: wire.context,
+            mechanical_pass: wire.mechanical_pass,
+            narrowing: wire.narrowing,
+            gates: wire.gates,
+            questions: wire.questions,
             verdict,
             severity: wire.severity,
         })
@@ -76,6 +88,10 @@ impl From<RuleSourceEntry> for SourceEntryWire {
             name: entry.name,
             target: entry.target,
             context: entry.context,
+            mechanical_pass: entry.mechanical_pass,
+            narrowing: entry.narrowing,
+            gates: entry.gates,
+            questions: entry.questions,
             severity: entry.severity,
             threshold: None,
             error_at_or_below: None,
@@ -109,6 +125,14 @@ enum SourceEntrySchema {
         target: RuleSourceTarget,
         #[serde(default)]
         context: Vec<EvidenceDeclaration>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mechanical_pass: Option<sunstack_evidence::MechanicalPass>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        narrowing: Option<NarrowingDecision>,
+        #[serde(default)]
+        gates: Vec<ApplicabilityEntry>,
+        #[serde(default)]
+        questions: sunstack_decisions::NamedQuestionMap,
         #[schemars(extend("exclusiveMinimum"=0,"maximum"=1))]
         threshold: f64,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -122,6 +146,14 @@ enum SourceEntrySchema {
         target: RuleSourceTarget,
         #[serde(default)]
         context: Vec<EvidenceDeclaration>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mechanical_pass: Option<sunstack_evidence::MechanicalPass>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        narrowing: Option<NarrowingDecision>,
+        #[serde(default)]
+        gates: Vec<ApplicabilityEntry>,
+        #[serde(default)]
+        questions: sunstack_decisions::NamedQuestionMap,
         expect: ExpectPredicate,
         #[serde(default)]
         severity: Severity,
@@ -131,6 +163,14 @@ enum SourceEntrySchema {
         target: RuleSourceTarget,
         #[serde(default)]
         context: Vec<EvidenceDeclaration>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mechanical_pass: Option<sunstack_evidence::MechanicalPass>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        narrowing: Option<NarrowingDecision>,
+        #[serde(default)]
+        gates: Vec<ApplicabilityEntry>,
+        #[serde(default)]
+        questions: sunstack_decisions::NamedQuestionMap,
         ast_grep: Box<AstGrepRule>,
         #[serde(default)]
         severity: Severity,

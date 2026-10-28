@@ -73,7 +73,7 @@ fn outside_evidence_use_and_unavailable_reasons_match_the_published_outcome() {
     let occurrence = json!({"kind":"record","record":"source:0:0","author":"assistant","positions":[{"byte_offset":0,"line":1}],"matched_at":{"byte_offset":0,"line":1},"field":"/body","span":{"byte_start":0,"byte_end":0}});
     let rule = json!({"rule_set":root.path().join("set.json"),"rule_id":"candidate.one"});
     let value = json!({"kind":"candidate_report","report":{"completeness":{"kind":"inconclusive","uncertain":0,"unresolved":1,"not_processed":0},"candidates":[{
-        "candidate_id":{"rule":rule,"occurrence":"opaque"},"rule":rule,"occurrence":occurrence,
+        "candidate_id":{"rule":rule,"occurrence":"opaque"},"rule":rule,"declared_severity":"warn","occurrence":occurrence,
         "outcome":{"kind":"unresolved","at":{"kind":"verdict"},"missing":{"kind":"evidence_unavailable","evidence":"fact","reason":"withheld"}},
         "answers":[],"evidence":[{"input":"fact","binding":{"kind":"unavailable","reason":"withheld"},"content_identity":null}],"privacy_view":{"grants":[]}
     }],"dropped_samples":[],"inputs":[{"input_id":source.source_identity().unwrap(),"location":{"kind":"unlocatable","reason":"missing"},"records":0,"unfit":[],"capture":"incomplete","discovery":[]}],"privacy":{"left_out":[],"granted":[]},"usage":{"requests":0,"attempts":0,"input_tokens":0,"output_tokens":0,"cost_usd":null,"wall_time_ms":0}}});

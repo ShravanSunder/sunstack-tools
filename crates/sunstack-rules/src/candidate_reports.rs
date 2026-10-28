@@ -20,6 +20,7 @@ pub struct CandidateRunReport {
 pub struct CandidateEntry {
     pub candidate_id: CandidateId,
     pub rule: RuleRef,
+    pub declared_severity: Severity,
     pub occurrence: SourceOccurrence,
     pub outcome: CandidateOutcome,
     pub answers: Vec<AnswerRecord>,

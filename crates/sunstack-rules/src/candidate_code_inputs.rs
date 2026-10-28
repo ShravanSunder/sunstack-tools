@@ -55,6 +55,76 @@ pub(crate) fn discover_code_candidates(
                 })
                 .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
             receipt.status = RuleDiscoveryStatus::Stopped;
+            let target = rule
+                .definition
+                .evidence
+                .iter()
+                .find(|declaration| declaration.id == rule.definition.target)
+                .ok_or_else(|| invalid_candidate_field(vec!["definitions".into()]))?;
+            if matches!(source.index.input, SourceInput::Code { .. })
+                && matches!(
+                    target.select,
+                    EvidenceSelection::MarkdownUnits(_)
+                        | EvidenceSelection::FrontmatterField { .. }
+                )
+            {
+                let discovery = source
+                    .index
+                    .discover_documents(
+                        &target.select,
+                        rule.definition.mechanical_pass.as_ref(),
+                        samples,
+                    )
+                    .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+                let coverage = discovery
+                    .coverage
+                    .unwrap_or_else(|| source.index.coverage.clone());
+                for sample in discovery.rejected_sample {
+                    let (projected, counts) = sample
+                        .project(&grants)
+                        .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+                    append_privacy_counts(privacy, PrivacyRoute::Samples, counts);
+                    dropped.push(DroppedSample {
+                        rule: rule_ref.clone(),
+                        pass: SamplePass::Mechanical,
+                        occurrence: sample.occurrence,
+                        excerpt: projected.visible_text(),
+                    });
+                }
+                for matched in discovery.matches {
+                    let (projected, counts) = matched
+                        .project(&grants)
+                        .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+                    append_privacy_counts(privacy, PrivacyRoute::Code, counts);
+                    materials.push(CandidateMaterial {
+                        candidate_id: CandidateId {
+                            rule: rule_ref.clone(),
+                            occurrence: matched
+                                .occurrence
+                                .occurrence_identity()
+                                .map_err(|error| DiagnosticList::from(error.diagnostics()))?,
+                        },
+                        entry_position: source.entry_position,
+                        source_name: source.source_name.clone(),
+                        rule: rule_ref.clone(),
+                        occurrence: matched.occurrence,
+                        view: PrivacyView {
+                            grants: rule.definition.private_access.clone(),
+                        },
+                        selected: CandidateSelection::Document {
+                            selected: std::sync::Arc::new(projected),
+                            coverage: coverage.clone(),
+                            grants: grants.clone(),
+                        },
+                    });
+                }
+                receipt.status = if discovery.completed {
+                    RuleDiscoveryStatus::Completed
+                } else {
+                    RuleDiscoveryStatus::Stopped
+                };
+                continue;
+            }
             let discovery = source
                 .index
                 .discover(rule.definition.mechanical_pass.as_ref(), samples)

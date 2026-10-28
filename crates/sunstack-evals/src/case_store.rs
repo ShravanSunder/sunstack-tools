@@ -41,7 +41,7 @@ fn freeze_files(paths: &[PathBuf], field: &str) -> Result<Vec<FrozenFile>, EvalE
     }
     Ok(files)
 }
-fn write_new(path: &Path, bytes: &[u8]) -> Result<(), EvalError> {
+pub(crate) fn write_new(path: &Path, bytes: &[u8]) -> Result<(), EvalError> {
     fs::OpenOptions::new()
         .create_new(true)
         .write(true)
@@ -81,25 +81,37 @@ fn validate_manifest(manifest: &CaseSetManifest) -> Result<(), EvalError> {
     for file in std::iter::once(&manifest.sources)
         .chain(std::iter::once(&manifest.labels))
         .chain(&manifest.source_files)
-        .chain(&manifest.definition_files)
     {
         if !file.path.is_absolute() || !unique.insert(&file.path) {
             return Err(invalid("manifest.path"));
         }
     }
+    let mut definition_paths = BTreeSet::new();
+    if !crate::definition_snapshot::relative_definition_path(&manifest.rule.rule_set)
+        || manifest.definition_files.iter().any(|file| {
+            !crate::definition_snapshot::relative_definition_path(&file.path)
+                || !definition_paths.insert(&file.path)
+        })
+    {
+        return Err(invalid("manifest.definition_files.path"));
+    }
     Ok(())
 }
 
-/// Freeze JSONL sources and labels separately. Referenced capture/definition files must already
-/// be stable copies; their complete bytes are pinned, and loading refuses later changes.
+/// Freeze JSONL sources and labels separately. Definition bytes are copied under definitions/;
+/// referenced captures stay pinned in place, and loading refuses changed frozen bytes.
 /// The destination is new and never overwrites an existing frozen set.
 pub fn freeze_cases(directory: &Path, input: &FreezeInput) -> Result<FrozenCaseSet, EvalError> {
     validate_cases(&input.sources, &input.labels)?;
     let source_files = freeze_files(&input.source_files, "source_files")?;
-    let definition_files = freeze_files(&input.definition_files, "definition_files")?;
+    let (definition_files, definition_bytes) =
+        crate::definition_snapshot::capture_definitions(input)?;
+    sunstack_rules::frozen_rule_pass_means(&input.rule, definition_bytes.clone())
+        .map_err(|diagnostics| EvalError::Definitions { diagnostics })?;
     fs::create_dir(directory).map_err(|_| EvalError::File {
         path: directory.into(),
     })?;
+    crate::definition_snapshot::write_definitions(directory, &definition_bytes)?;
     write_lines(&directory.join("sources.jsonl"), &input.sources)?;
     write_lines(&directory.join("labels.jsonl"), &input.labels)?;
     let manifest = CaseSetManifest {
@@ -123,13 +135,22 @@ pub fn load_case_set(path: &Path) -> Result<FrozenCaseSet, EvalError> {
     validate_manifest(&manifest)?;
     let sources_bytes = verified_bytes(&manifest.sources)?;
     let labels_bytes = verified_bytes(&manifest.labels)?;
-    for file in manifest
-        .source_files
-        .iter()
-        .chain(&manifest.definition_files)
-    {
+    for file in &manifest.source_files {
         verified_bytes(file)?;
     }
+    let definition_path = path
+        .parent()
+        .ok_or_else(|| invalid("manifest.path"))?
+        .join("definitions");
+    let definition_home = definition_path
+        .canonicalize()
+        .map_err(|_| EvalError::File {
+            path: definition_path,
+        })?;
+    let definition_bytes =
+        crate::definition_snapshot::load_definitions(&definition_home, &manifest.definition_files)?;
+    let pass_means = sunstack_rules::frozen_rule_pass_means(&manifest.rule, definition_bytes)
+        .map_err(|diagnostics| EvalError::Definitions { diagnostics })?;
     let sources = read_lines(&sources_bytes)?;
     let labels = read_lines(&labels_bytes)?;
     validate_cases(&sources, &labels)?;
@@ -145,6 +166,8 @@ pub fn load_case_set(path: &Path) -> Result<FrozenCaseSet, EvalError> {
         manifest,
         identity,
         rule_version,
+        definition_home,
+        pass_means,
         sources,
         labels,
     })

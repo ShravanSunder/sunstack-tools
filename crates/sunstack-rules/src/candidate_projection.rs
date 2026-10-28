@@ -288,6 +288,7 @@ pub(crate) fn project_candidate(
             Some(RuleOccurrenceResult::Judged { judgment, .. }) => {
                 crate::candidate_verdict_projection::project_verdict(
                     judgment,
+                    definition.definition.verdict.pass_means(),
                     &mut answers,
                     &references,
                 )?
@@ -315,9 +316,15 @@ pub(crate) fn project_candidate(
                     }),
                 }
             }
+            Some(RuleOccurrenceResult::Checked { outcome, .. }) => {
+                crate::candidate_local_projection::project_local_verdict(
+                    outcome,
+                    &mut answers,
+                    &material.source_name,
+                )?
+            }
             Some(
-                RuleOccurrenceResult::Checked { .. }
-                | RuleOccurrenceResult::NotApplicable { .. }
+                RuleOccurrenceResult::NotApplicable { .. }
                 | RuleOccurrenceResult::OutsideChangeScope { .. }
                 | RuleOccurrenceResult::NotStarted { .. },
             ) => CandidateOutcome::NotProcessed {
@@ -355,6 +362,7 @@ pub(crate) fn project_candidate(
     Ok(CandidateEntry {
         candidate_id: material.candidate_id,
         rule: material.rule,
+        declared_severity: definition.definition.severity,
         occurrence: material.occurrence,
         outcome,
         answers,

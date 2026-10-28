@@ -384,6 +384,10 @@ pub(crate) fn definition_topology_with_policy(
             read_set.extend(selection_read_set(&rule.evidence, &sources));
             if rule.evidence.iter().any(|declaration| {
                 declaration.id == rule.target
+                    && sources
+                        .get(&declaration.input)
+                        .and_then(|source| source.candidate_document())
+                        .is_none()
                     && matches!(
                         declaration.select,
                         sunstack_evidence::EvidenceSelection::MarkdownUnits(_)

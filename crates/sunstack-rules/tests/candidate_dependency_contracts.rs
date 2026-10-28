@@ -25,6 +25,7 @@ fn timing_contract_distinguishes_a_recorded_duration_from_an_unmeasured_candidat
     let value = json!({
         "candidate_id":{"rule":{"rule_set":"set.json","rule_id":"one"},"occurrence":"occurrence"},
         "rule":{"rule_set":"set.json","rule_id":"one"},
+        "declared_severity":"warn",
         "occurrence":{"kind":"record","record":"record","author":"assistant","positions":[{"byte_offset":0,"line":1}],"matched_at":{"byte_offset":0,"line":1},"field":"/body","span":{"byte_start":0,"byte_end":0}},
         "outcome":{"kind":"not_processed","reason":"run_stopped"},"answers":[],"privacy_view":{"grants":[]}
     });

@@ -10,7 +10,7 @@ pub fn occurrence(number: usize) -> sunstack_evidence::SourceOccurrence {
         "matched_at":{"line":number,"byte_offset":0}, "field":"/body", "span":{"byte_start":0,"byte_end":4}})).unwrap()
 }
 pub fn rule() -> RuleRef {
-    serde_json::from_value(json!({"rule_set":"rule.jsonl", "rule_id":"test_rule"})).unwrap()
+    serde_json::from_value(json!({"rule_set":"set.json", "rule_id":"test_rule"})).unwrap()
 }
 pub fn case(number: usize, label: Label, split: Split) -> LabeledCase {
     LabeledCase {
@@ -25,8 +25,10 @@ pub fn case(number: usize, label: Label, split: Split) -> LabeledCase {
 }
 pub fn input(root: &Path, cases: Vec<LabeledCase>) -> FreezeInput {
     std::fs::write(root.join("transcript.jsonl"), "frozen source bytes\n").unwrap();
-    std::fs::write(root.join("rule.jsonl"), "frozen question bytes\n").unwrap();
+    std::fs::write(root.join("set.json"),json!({"schema_version":1,"name":"frozen","description":"Frozen question","inputs":{"subject":{"kind":"document"}},"applicability":[],"common_ruleset_instructions":null,"rule_paths":["rule.jsonl"]}).to_string()).unwrap();
+    std::fs::write(root.join("rule.jsonl"),json!({"rule_id":"test_rule","evidence":[{"id":"target","input":"subject","select":{"kind":"paragraph","target_id":"U001"}}],"target":"target","applicability":[],"questions":{},"verdict":{"kind":"noul","question":{"type":"noul","instructions":"Frozen question"},"threshold":0.8}}).to_string()).unwrap();
     FreezeInput {
+        definition_root: root.into(),
         rule: rule(),
         split: Split::HeldOut,
         sources: vec![CaseSource {
@@ -39,7 +41,7 @@ pub fn input(root: &Path, cases: Vec<LabeledCase>) -> FreezeInput {
         }],
         labels: cases,
         source_files: vec![root.join("transcript.jsonl")],
-        definition_files: vec![root.join("rule.jsonl")],
+        definition_files: vec![root.join("set.json"), root.join("rule.jsonl")],
     }
 }
 pub fn freeze(root: &Path, cases: Vec<LabeledCase>) -> FrozenCaseSet {
@@ -54,16 +56,24 @@ pub fn entry(
     let occurrence = occurrence(number);
     let id = occurrence.occurrence_identity().unwrap();
     serde_json::from_value(json!({"candidate_id":{"rule":rule(),"occurrence":id},
-        "rule":rule(),"occurrence":occurrence,"outcome":outcome,
+        "rule":rule(),"declared_severity":"warn","occurrence":occurrence,"outcome":outcome,
         "answers":settlement.map(|settlement| vec![json!({"answer_id":"answer_1", "question":{"kind":"verdict"},
              "page":null, "answer":null, "settlement":settlement})]).unwrap_or_default(),
         "privacy_view":{"grants":[]}, "elapsed_ms":elapsed})).unwrap()
 }
 pub fn bundle(
-    entries: Vec<CandidateEntry>,
+    set: &FrozenCaseSet,
+    mut entries: Vec<CandidateEntry>,
     cost: Option<f64>,
     wall_time_ms: u64,
 ) -> CandidateRunReport {
+    for candidate in &mut entries {
+        for rule in [&mut candidate.rule, &mut candidate.candidate_id.rule] {
+            if rule.rule_set.is_relative() {
+                rule.rule_set = set.definition_root().join(&rule.rule_set);
+            }
+        }
+    }
     CandidateRunReport {
         completeness: RunCompleteness::NothingFound {},
         candidates: entries,
@@ -92,7 +102,7 @@ pub fn located_input(set: &FrozenCaseSet) -> InputReport {
         unfit: vec![],
         capture: InputCaptureStatus::Complete,
         discovery: vec![RuleDiscovery {
-            rule: rule(),
+            rule: set.replay_rule(),
             status: RuleDiscoveryStatus::Completed,
         }],
     }

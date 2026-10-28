@@ -169,6 +169,9 @@
             }
           ]
         },
+        "declared_severity": {
+          "$ref": "#/$defs/Severity"
+        },
         "elapsed_ms": {
           "format": "uint64",
           "minimum": 0,
@@ -199,6 +202,7 @@
       "required": [
         "candidate_id",
         "rule",
+        "declared_severity",
         "occurrence",
         "outcome",
         "answers",
@@ -1352,6 +1356,68 @@
       "title": "string",
       "type": "string"
     },
+    "FrontmatterFieldLocation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "present",
+              "type": "string"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "required": [
+            "kind",
+            "span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "frontmatter_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "kind": {
+              "const": "absent",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "frontmatter_span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "block_unavailable",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/FrontmatterUnavailableReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "FrontmatterUnavailableReason": {
+      "enum": [
+        "missing",
+        "malformed"
+      ],
+      "type": "string"
+    },
     "GitObjectId": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "minLength": 1,
@@ -1645,6 +1711,80 @@
           "type": "object"
         }
       ]
+    },
+    "MarkdownByteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "start": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "MarkdownOccurrence": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unit",
+              "type": "string"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "required": [
+            "kind",
+            "span"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "call_site",
+              "type": "string"
+            },
+            "match_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "unit_span": {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            "visible_range": {
+              "$ref": "#/$defs/MarkdownByteRange"
+            }
+          },
+          "required": [
+            "kind",
+            "unit_span",
+            "match_span",
+            "visible_range"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MarkdownUnitKind": {
+      "enum": [
+        "section",
+        "paragraph",
+        "list_item"
+      ],
+      "type": "string"
     },
     "NotProcessedReason": {
       "enum": [
@@ -2983,6 +3123,13 @@
       ],
       "type": "string"
     },
+    "Severity": {
+      "enum": [
+        "error",
+        "warn"
+      ],
+      "type": "string"
+    },
     "SnapshotId": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "minLength": 1,
@@ -3004,6 +3151,60 @@
     },
     "SourceOccurrence": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "input_id": {
+              "$ref": "#/$defs/SourceInputId"
+            },
+            "kind": {
+              "const": "document_unit",
+              "type": "string"
+            },
+            "occurrence": {
+              "$ref": "#/$defs/MarkdownOccurrence"
+            },
+            "unit_kind": {
+              "$ref": "#/$defs/MarkdownUnitKind"
+            }
+          },
+          "required": [
+            "kind",
+            "input_id",
+            "unit_kind",
+            "occurrence"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "input_id": {
+              "$ref": "#/$defs/SourceInputId"
+            },
+            "kind": {
+              "const": "document_field",
+              "type": "string"
+            },
+            "source": {
+              "$ref": "#/$defs/SourceRef"
+            },
+            "state": {
+              "$ref": "#/$defs/FrontmatterFieldLocation"
+            }
+          },
+          "required": [
+            "kind",
+            "input_id",
+            "source",
+            "field",
+            "state"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {

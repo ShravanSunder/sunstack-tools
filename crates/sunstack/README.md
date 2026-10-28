@@ -108,6 +108,16 @@ describe these boundaries. Preparation and evaluation reports now require covera
 rule evaluations, skipped rules and their counters; strict report consumers must
 update together.
 
+Candidate `code` inputs also accept Markdown targets. The target selects each unit or
+frontmatter field once; an optional mechanical pass filters its visible `/text`
+with regex or literal predicates. Missing or malformed frontmatter is unresolved.
+Marked entries carry optional `mechanical_pass`, `narrowing`, `gates` and `questions`;
+the marked sentence remains the verdict question. Their pass means `conforms`, so a
+failed standard produces a finding and a conforming unit is dropped. Full judged
+definitions default to `pass_means: finding`. Local mechanical expectations record
+their verdict answer without a model request. Candidate entries always include the
+loaded rule's `declared_severity`.
+
 Document targets can select Markdown units independently:
 
 ```json

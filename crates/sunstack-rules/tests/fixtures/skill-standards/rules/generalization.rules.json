@@ -1,0 +1,8 @@
+{
+  "K001": {
+    "name": "rule.generalization",
+    "target": { "input": "skill", "select": { "kind": "markdown_units", "mode": "unit", "units": ["paragraph"] } },
+    "threshold": 0.8,
+    "severity": "warn"
+  }
+}

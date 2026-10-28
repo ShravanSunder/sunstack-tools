@@ -151,16 +151,17 @@ pub(crate) fn assemble_source(
                 evidence,
                 target: DeclarationId::new("target")
                     .map_err(|error| DiagnosticList::from(error.diagnostics()))?,
-                applicability: vec![],
-                mechanical_pass: None,
-                narrowing: None,
+                applicability: entry.gates,
+                mechanical_pass: entry.mechanical_pass,
+                narrowing: entry.narrowing,
                 private_access: vec![],
-                questions: BTreeMap::new(),
+                questions: entry.questions,
                 verdict: match entry.verdict {
                     RuleSourceVerdict::Judgment {
                         threshold,
                         error_at_or_below,
                     } => VerdictDeclaration::Noul {
+                        pass_means: PassMeans::Conforms,
                         question: JudgmentQuestion::Noul {
                             instructions: StructuredEntry::Text(binding.question_text.clone()),
                             criteria: None,
@@ -170,10 +171,12 @@ pub(crate) fn assemble_source(
                         uncertain_below: None,
                     },
                     RuleSourceVerdict::Expect { expect } => VerdictDeclaration::Mechanical {
+                        pass_means: PassMeans::Conforms,
                         explanation: binding.question_text.clone(),
                         check: MechanicalCheck::Expect { expect },
                     },
                     RuleSourceVerdict::AstGrep { ast_grep } => VerdictDeclaration::Mechanical {
+                        pass_means: PassMeans::Conforms,
                         explanation: binding.question_text.clone(),
                         check: MechanicalCheck::AstGrep { ast_grep },
                     },

@@ -148,8 +148,24 @@ pub fn validate_rule_definition(
         .iter()
         .find(|declaration| declaration.id == rule.target)
         .ok_or_else(|| refusal(RuleDiagnosticCode::InvalidTarget))?;
-    if let VerdictDeclaration::Mechanical { explanation, check } = &rule.verdict {
-        if explanation.is_empty() || !rule.questions.is_empty() {
+    if matches!(
+        target.select,
+        EvidenceSelection::MarkdownUnits(_) | EvidenceSelection::FrontmatterField { .. }
+    ) && let Some(pass) = &rule.mechanical_pass
+    {
+        pass.validate_document()
+            .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+    }
+    if let VerdictDeclaration::Mechanical {
+        explanation,
+        check,
+        pass_means,
+    } = &rule.verdict
+    {
+        if explanation.is_empty()
+            || !rule.questions.is_empty()
+            || *pass_means != crate::PassMeans::Conforms
+        {
             return Err(refusal(RuleDiagnosticCode::InvalidMechanicalCheck));
         }
         if !matches!(

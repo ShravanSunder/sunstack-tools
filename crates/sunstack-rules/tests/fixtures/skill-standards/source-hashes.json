@@ -1,0 +1,58 @@
+[
+  {
+    "path": "rules/main-path.rules.json",
+    "sha256": "1e817f4aeb44dd9aa0b7e90e0530a5a509a40a20bcac4cc49736011e4801a528"
+  },
+  {
+    "path": "rules/descriptions-and-invocation.rules.json",
+    "sha256": "33fa0dd14e495a4adb5bcdfa0bae29ba59c8fd73e11b684d51898651804d1adb"
+  },
+  {
+    "path": "rules/skill-references.ruleset.json",
+    "sha256": "8afd0a2f86465c8a947186880c7f0f412370c17377f6b156d7d8870d0e59cb38"
+  },
+  {
+    "path": "rules/generalization.rules.json",
+    "sha256": "23140fea923017e266f4f6230e1a928cd1ec8cbc49d0f4b0a4b28d789cfa3abc"
+  },
+  {
+    "path": "rules/calls-and-placement.references.rules.json",
+    "sha256": "e8cf261afd6edfef181f788e620d227219f993f0459c63de77737e8aef053507"
+  },
+  {
+    "path": "rules/steering.rules.json",
+    "sha256": "adae2fde5b01a125893c0d0da61f8ab3e04279cd6839292e515e26e6ac9cf70c"
+  },
+  {
+    "path": "rules/skill-metadata.ruleset.json",
+    "sha256": "a78be0ad09a97b1387572ee03c7675f21f7e7c6de606a339c3d24e1e9c39b324"
+  },
+  {
+    "path": "rules/skill-text.ruleset.json",
+    "sha256": "7ff74382fc2c47ef23ce857b24bc9291a68801a30d0fece86a0dd8c27c31b629"
+  },
+  {
+    "path": "rules/calls-and-placement.rules.json",
+    "sha256": "e2d766adc1d3e82ab87b6aea729c87d64f2496eb7043ff7502189a108a3b253d"
+  },
+  {
+    "path": "references/descriptions-and-invocation.md",
+    "sha256": "05aa063a9098771d32c05d3a3c6d263e39396b574edf9d4d9d0a66bab50e414b"
+  },
+  {
+    "path": "references/generalization.md",
+    "sha256": "955955b95d6cd2055253d60633ffb80b0732f0c0ab2e8c98b41e097dc31ed07d"
+  },
+  {
+    "path": "references/calls-and-placement.md",
+    "sha256": "341e4de91e3b1379def76f9bfaa16dd0fa4545244d13f771da94612724c27b1f"
+  },
+  {
+    "path": "references/main-path.md",
+    "sha256": "130fc903bfa03e3f3fcd9dd8f08cb31802ece12f049ce16fd7d0eca89f5f482c"
+  },
+  {
+    "path": "references/steering.md",
+    "sha256": "8f0480c0d0ff646f4dae4f45f14173830b97dd939e4fe735f9767879635582dc"
+  }
+]

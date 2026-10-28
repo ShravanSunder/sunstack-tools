@@ -21,6 +21,8 @@ pub use strict_decoding::decode_rule_invocation;
 
 mod definition_checking;
 mod definition_loading;
+mod frozen_definitions;
+pub use frozen_definitions::frozen_rule_pass_means;
 mod definition_routing;
 pub mod input_binding;
 mod invocation_admission;
@@ -75,6 +77,7 @@ mod candidate_subject_selection;
 mod candidate_subjects;
 pub mod context_contracts;
 pub use context_contracts::*;
+mod candidate_local_projection;
 mod candidate_projection;
 mod candidate_routing;
 pub mod candidate_runs;

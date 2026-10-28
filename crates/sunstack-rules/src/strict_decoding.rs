@@ -132,6 +132,8 @@ fn safe_field(field: &str) -> bool {
             | "map"
             | "fields"
             | "samples_per_pass"
+            | "pass_means"
+            | "gates"
             | "mechanical_pass"
             | "predicate"
             | "private_access"

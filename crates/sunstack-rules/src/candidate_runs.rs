@@ -107,6 +107,13 @@ async fn run_candidates(
             if matches!(material.selected, CandidateSelection::LeftOutForPrivacy) {
                 candidates.push(CandidateEntry {
                     candidate_id: material.candidate_id,
+                    declared_severity: set
+                        .rules
+                        .iter()
+                        .find(|rule| rule.definition.rule_id == material.rule.rule_id)
+                        .ok_or_else(|| invalid_candidate_field(vec!["definitions".into()]))?
+                        .definition
+                        .severity,
                     rule: material.rule,
                     occurrence: material.occurrence,
                     outcome: CandidateOutcome::NotProcessed {
@@ -318,11 +325,33 @@ async fn run_candidates(
                 rule_set: material.rule.rule_set.clone(),
                 group,
             });
-            let unavailable = outside
+            let mut unavailable = outside
                 .unavailable
                 .get(&evidence_key)
                 .cloned()
                 .unwrap_or_default();
+            let subject = set
+                .rules
+                .iter()
+                .find(|rule| rule.definition.rule_id == material.rule.rule_id)
+                .and_then(|rule| {
+                    rule.definition
+                        .evidence
+                        .iter()
+                        .find(|declaration| declaration.id == rule.definition.target)
+                });
+            if let Some(subject) = subject {
+                let input = definitions
+                    .router
+                    .as_ref()
+                    .and_then(|router| {
+                        router
+                            .targets
+                            .get(&(set.path.clone(), material.rule.rule_id.clone()))
+                    })
+                    .unwrap_or(&subject.input);
+                unavailable.remove(input);
+            }
             let mut entry = crate::candidate_projection::project_candidate(
                 material,
                 group,

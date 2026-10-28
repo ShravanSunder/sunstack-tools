@@ -1,0 +1,22 @@
+{
+  "K001": {
+    "name": "completion.criterion",
+    "target": {
+      "input": "skill",
+      "select": {
+        "kind": "markdown_units",
+        "mode": "call_site",
+        "units": ["paragraph", "list_item"],
+        "pattern": "\\bCompletion:|\\bComplete when\\b|\\bStop when\\b"
+      }
+    },
+    "threshold": 0.8,
+    "severity": "warn"
+  },
+  "K002": {
+    "name": "guidance.positive",
+    "target": { "input": "skill", "select": { "kind": "markdown_units", "mode": "unit", "units": ["paragraph"] } },
+    "threshold": 0.8,
+    "severity": "warn"
+  }
+}

@@ -5,6 +5,7 @@ use sunstack_decisions::QuestionName;
 /// Preserve native operand answers; only the logical verdict carries aggregate truth.
 pub(crate) fn project_verdict(
     judgment: &RuleJudgment,
+    pass_means: PassMeans,
     answers: &mut Vec<AnswerRecord>,
     references: &BTreeMap<(usize, QuestionName), AnswerId>,
 ) -> Result<CandidateOutcome, DiagnosticList> {
@@ -54,23 +55,32 @@ pub(crate) fn project_verdict(
             answers: used,
         });
     }
-    Ok(match (&judgment.verdict.result, logical) {
-        (VerdictResult::Pass, Some(_)) => CandidateOutcome::Finding {
+    let Some(logical) = logical else {
+        return Ok(CandidateOutcome::NotProcessed {
+            reason: NotProcessedReason::EvaluationFailed,
+        });
+    };
+    let passed = matches!(judgment.verdict.result, VerdictResult::Pass);
+    let finding = passed == (pass_means == PassMeans::Finding);
+    Ok(if finding {
+        CandidateOutcome::Finding {
             path: answers
                 .iter()
                 .filter(|answer| {
-                    matches!(answer.settlement, QuestionSettlement::Passed)
-                        && !matches!(answer.question, QuestionRef::Informational { .. })
+                    answer.answer_id == logical
+                        || (matches!(answer.settlement, QuestionSettlement::Passed)
+                            && !matches!(
+                                answer.question,
+                                QuestionRef::Informational { .. } | QuestionRef::Verdict {}
+                            ))
                 })
                 .map(|answer| answer.answer_id.clone())
                 .collect(),
-        },
-        (VerdictResult::Fail { .. }, Some(answer)) => CandidateOutcome::Dropped {
+        }
+    } else {
+        CandidateOutcome::Dropped {
             at: QuestionRef::Verdict {},
-            answer,
-        },
-        (_, None) => CandidateOutcome::NotProcessed {
-            reason: NotProcessedReason::EvaluationFailed,
-        },
+            answer: logical,
+        }
     })
 }

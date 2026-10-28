@@ -8,8 +8,11 @@ use sunstack_rules::{
 
 /// Score an immutable verified snapshot, without filesystem, scheduler, clock or model access.
 /// Only verdict labels supply final finding truth. Other labels score their named question.
-/// Filter recall counts a yes-labeled occurrence once; its first label in file order names a miss.
+/// Filter recall counts a verdict defect, or raw yes on another question, once per occurrence.
+/// The first qualifying label in file order names a miss.
 pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<EvalReport, EvalError> {
+    validate_bundle_definitions(bundles, set)?;
+    let replay_rule = set.replay_rule();
     let cost = sum_usage(bundles)?;
     let speed = speed_summary(bundles, set, cost.wall_time_ms);
     let mut report = EvalReport {
@@ -27,7 +30,7 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
     let candidates = bundles
         .iter()
         .flat_map(|bundle| &bundle.candidates)
-        .filter(|candidate| candidate.rule == set.manifest.rule)
+        .filter(|candidate| candidate.rule == set.replay_rule())
         .collect::<Vec<_>>();
     for candidate in &candidates {
         if candidate.candidate_id.rule != candidate.rule
@@ -48,7 +51,13 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
             .copied()
             .filter(|candidate| candidate.candidate_id.occurrence == identity)
             .collect::<Vec<_>>();
-        if case.label == Label::Yes && positives.insert(identity.clone()) {
+        let positive = match case.question {
+            QuestionRef::Verdict {} if set.pass_means == sunstack_rules::PassMeans::Conforms => {
+                case.label == Label::No
+            }
+            _ => case.label == Label::Yes,
+        };
+        if positive && positives.insert(identity.clone()) {
             report.filter.positive_cases += 1;
             if !matching.is_empty() {
                 report.filter.kept += 1;
@@ -96,7 +105,8 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
                 &matching,
                 bundles,
                 &identity,
-                &set.manifest.rule,
+                &replay_rule,
+                set.pass_means,
                 &mut report.end_result,
             ),
             QuestionRef::Informational { .. }
@@ -108,6 +118,40 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
     }
     Ok(report)
 }
+fn validate_bundle_definitions(
+    bundles: &[CandidateRunReport],
+    set: &FrozenCaseSet,
+) -> Result<(), EvalError> {
+    let paths = set
+        .manifest
+        .definition_files
+        .iter()
+        .map(|file| set.definition_home.join(&file.path))
+        .collect::<BTreeSet<_>>();
+    for rule in bundles.iter().flat_map(|bundle| {
+        bundle
+            .candidates
+            .iter()
+            .flat_map(|candidate| [&candidate.rule, &candidate.candidate_id.rule])
+            .chain(bundle.dropped_samples.iter().map(|sample| &sample.rule))
+            .chain(
+                bundle
+                    .inputs
+                    .iter()
+                    .flat_map(|input| &input.discovery)
+                    .map(|receipt| &receipt.rule),
+            )
+    }) {
+        if !paths.contains(&rule.rule_set) {
+            return Err(EvalError::WrongDefinitions {
+                rule: rule.clone(),
+                home: set.definition_home.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+
 fn input_discovery_completed(
     case: &LabeledCase,
     set: &FrozenCaseSet,
@@ -147,7 +191,7 @@ fn input_discovery_completed(
     let mut discovery = input
         .discovery
         .iter()
-        .filter(|receipt| receipt.rule == set.manifest.rule);
+        .filter(|receipt| receipt.rule == set.replay_rule());
     let Some(receipt) = discovery.next() else {
         return Ok(false);
     };
@@ -214,6 +258,7 @@ fn score_end(
     bundles: &[CandidateRunReport],
     identity: &OccurrenceId,
     rule: &sunstack_rules::RuleRef,
+    pass_means: sunstack_rules::PassMeans,
     end: &mut EndScore,
 ) {
     let finding = match candidates {
@@ -238,7 +283,12 @@ fn score_end(
         }
         _ => None,
     };
-    match (case.label, finding) {
+    let label = match (case.label, pass_means) {
+        (Label::Yes, sunstack_rules::PassMeans::Conforms) => Label::No,
+        (Label::No, sunstack_rules::PassMeans::Conforms) => Label::Yes,
+        (label, _) => label,
+    };
+    match (label, finding) {
         (Label::Yes, Some(true)) => end.true_findings.push(case.case_id.clone()),
         (Label::No, Some(true)) => end.false_findings.push(case.case_id.clone()),
         (Label::Yes, Some(false)) => end.missed_findings.push(case.case_id.clone()),
@@ -300,7 +350,7 @@ fn speed_summary(
     for candidate in bundles
         .iter()
         .flat_map(|bundle| &bundle.candidates)
-        .filter(|candidate| candidate.rule == set.manifest.rule)
+        .filter(|candidate| candidate.rule == set.replay_rule())
     {
         match candidate.elapsed_ms {
             Some(elapsed) => measurements.push(elapsed),

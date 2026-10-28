@@ -42,3 +42,43 @@ pub(crate) fn candidate_code_selection(
         },
     }
 }
+
+pub(crate) fn candidate_document_selection(
+    candidate: &DiscoveredDocumentMatch,
+    discovery: &DiscoveryCoverage,
+    declaration: &EvidenceDeclaration,
+) -> SelectionResult {
+    if let SelectionContent::FrontmatterField { result } = &candidate.content
+        && let FrontmatterFieldContent::BlockUnavailable { diagnostics, .. } = result.as_ref()
+    {
+        return SelectionResult {
+            id: declaration.id.clone(),
+            readiness: SelectionReadiness::Refused {
+                diagnostics: diagnostics.clone(),
+            },
+        };
+    }
+    let repository = match &candidate.source {
+        SourceRef::RepositoryFile { repository, .. } => repository.clone(),
+        _ => {
+            return SelectionResult {
+                id: declaration.id.clone(),
+                readiness: SelectionReadiness::Refused {
+                    diagnostics: DiagnosticList::one(EvidenceCode::InvalidSelector),
+                },
+            };
+        }
+    };
+    SelectionResult {
+        id: declaration.id.clone(),
+        readiness: SelectionReadiness::Ready {
+            content: candidate.content.clone(),
+            omissions: vec![],
+            coverage: Box::new(SelectionCoverage::ChangeSet {
+                repository,
+                sources: vec![candidate.source.clone()],
+                discovery: discovery.clone(),
+            }),
+        },
+    }
+}

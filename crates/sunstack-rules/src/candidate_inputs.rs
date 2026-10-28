@@ -306,7 +306,7 @@ pub(crate) fn discover_rule_candidates(
     let mut candidates = Vec::new();
     for located_rule in &set.rules {
         let rule = &located_rule.definition;
-        if matches!(rule.verdict, VerdictDeclaration::Mechanical { .. }) {
+        if !sources.is_empty() && matches!(rule.verdict, VerdictDeclaration::Mechanical { .. }) {
             return Err(
                 RuleDiagnostic::new(RuleDiagnosticCode::InvalidConfiguration)
                     .definition(

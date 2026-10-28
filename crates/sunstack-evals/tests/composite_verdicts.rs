@@ -24,7 +24,7 @@ fn native_operands_do_not_replace_the_logical_verdict_when_scoring() {
          "page":null,"answer":null,"settlement":"did_not_pass"}
     ])).unwrap();
     // Act: scoring sees the logical verdict, without interpreting an operand as finding truth.
-    let report = score(&[bundle(vec![candidate], Some(0.1), 100)], &set).unwrap();
+    let report = score(&[bundle(&set, vec![candidate], Some(0.1), 100)], &set).unwrap();
     // Assert: both the verdict step and final truth are the clear negative.
     assert_eq!(
         report.steps[0].correct,

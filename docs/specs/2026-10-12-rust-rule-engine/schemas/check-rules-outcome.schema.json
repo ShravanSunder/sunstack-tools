@@ -3266,6 +3266,14 @@
             "kind": {
               "type": "string",
               "const": "mechanical"
+            },
+            "pass_means": {
+              "type": "string",
+              "enum": [
+                "conforms",
+                "finding"
+              ],
+              "default": "conforms"
             }
           },
           "additionalProperties": false,
@@ -3310,6 +3318,14 @@
               "format": "double",
               "exclusiveMinimum": 0,
               "maximum": 1
+            },
+            "pass_means": {
+              "type": "string",
+              "enum": [
+                "conforms",
+                "finding"
+              ],
+              "default": "finding"
             }
           },
           "additionalProperties": false,
@@ -3347,6 +3363,14 @@
               "format": "double",
               "exclusiveMinimum": 0,
               "maximum": 1
+            },
+            "pass_means": {
+              "type": "string",
+              "enum": [
+                "conforms",
+                "finding"
+              ],
+              "default": "finding"
             }
           },
           "additionalProperties": false,

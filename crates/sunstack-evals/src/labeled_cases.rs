@@ -39,6 +39,7 @@ pub struct LabeledCase {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct FreezeInput {
+    pub definition_root: PathBuf,
     pub rule: RuleRef,
     pub split: Split,
     pub sources: Vec<CaseSource>,
@@ -68,10 +69,28 @@ pub struct FrozenCaseSet {
     pub(crate) manifest: CaseSetManifest,
     pub(crate) identity: CaseSetIdentity,
     pub(crate) rule_version: ContentIdentity,
+    pub(crate) definition_home: PathBuf,
+    pub(crate) pass_means: sunstack_rules::PassMeans,
     pub(crate) sources: Vec<CaseSource>,
     pub(crate) labels: Vec<LabeledCase>,
 }
 impl FrozenCaseSet {
+    /// The owned frozen definitions directory to use for replay.
+    pub fn definition_root(&self) -> &std::path::Path {
+        &self.definition_home
+    }
+    /// The absolute rule identity emitted by replaying these frozen definitions.
+    pub fn replay_rule(&self) -> RuleRef {
+        RuleRef {
+            rule_set: self.definition_home.join(&self.manifest.rule.rule_set),
+            rule_id: self.manifest.rule.rule_id.clone(),
+        }
+    }
+
+    pub fn pass_means(&self) -> sunstack_rules::PassMeans {
+        self.pass_means
+    }
+
     pub fn identity(&self) -> &CaseSetIdentity {
         &self.identity
     }

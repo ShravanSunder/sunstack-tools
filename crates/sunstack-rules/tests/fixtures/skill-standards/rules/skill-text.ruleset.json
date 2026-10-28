@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "skill-text",
+  "description": "The root's judged standards for skill text, asked of each skill's SKILL.md and of each file in its references/ folder. A model answers them, so until their evals and a hosted run exist they are checked and printed, not evaluated. Bind `skill` once per file.",
+  "inputs": { "skill": { "kind": "document" } },
+  "applicability": [],
+  "common_ruleset_instructions": null,
+  "marker_prefix": "K",
+  "rule_sources": [
+    { "markdown": "../references/generalization.md", "rules": "generalization.rules.json" },
+    { "markdown": "../references/calls-and-placement.md", "rules": "calls-and-placement.rules.json" },
+    { "markdown": "../references/main-path.md", "rules": "main-path.rules.json" },
+    { "markdown": "../references/steering.md", "rules": "steering.rules.json" }
+  ]
+}

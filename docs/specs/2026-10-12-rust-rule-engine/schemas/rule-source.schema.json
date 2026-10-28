@@ -812,6 +812,40 @@
               "format": "double",
               "exclusiveMinimum": 0,
               "maximum": 1
+            },
+            "mechanical_pass": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MechanicalPass"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "narrowing": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/NarrowingDecision"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gates": {
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/ApplicabilityEntry"
+              },
+              "type": "array"
+            },
+            "questions": {
+              "additionalProperties": {
+                "$ref": "#/$defs/JudgmentQuestion"
+              },
+              "default": {},
+              "type": "object"
             }
           },
           "additionalProperties": false,
@@ -843,6 +877,40 @@
             },
             "target": {
               "$ref": "#/$defs/RuleSourceTarget"
+            },
+            "mechanical_pass": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MechanicalPass"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "narrowing": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/NarrowingDecision"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gates": {
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/ApplicabilityEntry"
+              },
+              "type": "array"
+            },
+            "questions": {
+              "additionalProperties": {
+                "$ref": "#/$defs/JudgmentQuestion"
+              },
+              "default": {},
+              "type": "object"
             }
           },
           "additionalProperties": false,
@@ -874,6 +942,40 @@
             },
             "target": {
               "$ref": "#/$defs/RuleSourceTarget"
+            },
+            "mechanical_pass": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MechanicalPass"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "narrowing": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/NarrowingDecision"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gates": {
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/ApplicabilityEntry"
+              },
+              "type": "array"
+            },
+            "questions": {
+              "additionalProperties": {
+                "$ref": "#/$defs/JudgmentQuestion"
+              },
+              "default": {},
+              "type": "object"
             }
           },
           "additionalProperties": false,
@@ -1365,6 +1467,656 @@
       "enum": [
         "unit"
       ]
+    },
+    "ApplicabilityEntry": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "condition",
+              "type": "string"
+            },
+            "test": {
+              "$ref": "#/$defs/ConditionTest"
+            }
+          },
+          "required": [
+            "kind",
+            "test"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence": {
+              "items": {
+                "$ref": "#/$defs/EvidenceDeclaration"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "kind": {
+              "const": "decision",
+              "type": "string"
+            },
+            "question": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/JudgmentQuestion"
+                },
+                {
+                  "properties": {
+                    "type": {
+                      "const": "noul"
+                    }
+                  }
+                }
+              ]
+            },
+            "threshold": {
+              "exclusiveMinimum": 0,
+              "format": "double",
+              "maximum": 1,
+              "type": "number"
+            },
+            "uncertain_below": {
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0,
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "question",
+            "evidence",
+            "threshold"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CodePatternLanguage": {
+      "enum": [
+        "rust",
+        "typescript",
+        "tsx"
+      ],
+      "type": "string"
+    },
+    "ConditionTest": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "const": "payload_field_equals",
+              "type": "string"
+            },
+            "pointer": {
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/StructuredJson2"
+            }
+          },
+          "required": [
+            "kind",
+            "input",
+            "pointer",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "const": "payload_field_in",
+              "type": "string"
+            },
+            "pointer": {
+              "type": "string"
+            },
+            "values": {
+              "items": {
+                "$ref": "#/$defs/StructuredJson2"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "input",
+            "pointer",
+            "values"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "const": "payload_field_present",
+              "type": "string"
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "input",
+            "pointer"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/OriginField"
+            },
+            "kind": {
+              "const": "origin_field_equals",
+              "type": "string"
+            },
+            "value": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/SourceName"
+            },
+            "kind": {
+              "const": "pattern_present",
+              "type": "string"
+            },
+            "max_scan_bytes": {
+              "format": "uint",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "pattern": {
+              "$ref": "#/$defs/PresencePattern"
+            }
+          },
+          "required": [
+            "kind",
+            "input",
+            "pattern",
+            "max_scan_bytes"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ContextPart": {
+      "enum": [
+        "change",
+        "touched_unit",
+        "related"
+      ],
+      "type": "string"
+    },
+    "FieldPath": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "pattern": "^/",
+      "title": "string",
+      "type": "string"
+    },
+    "JudgmentQuestion": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "criteria": {
+              "$ref": "#/$defs/NoulDescriptions"
+            },
+            "instructions": {
+              "$ref": "#/$defs/StructuredEntry"
+            },
+            "type": {
+              "const": "noul",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "instructions"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "criteria": {
+              "additionalProperties": {
+                "$ref": "#/$defs/StructuredEntry"
+              },
+              "minProperties": 1,
+              "type": "object"
+            },
+            "instructions": {
+              "$ref": "#/$defs/StructuredEntry"
+            },
+            "type": {
+              "const": "choice",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "instructions",
+            "criteria"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "criteria": {
+              "items": {
+                "$ref": "#/$defs/StructuredEntry"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "instructions": {
+              "$ref": "#/$defs/StructuredEntry"
+            },
+            "type": {
+              "const": "score",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "instructions",
+            "criteria"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MechanicalPass": {
+      "additionalProperties": false,
+      "properties": {
+        "context_parts": {
+          "items": {
+            "$ref": "#/$defs/ContextPart"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "predicate": {
+          "$ref": "#/$defs/MechanicalPredicate"
+        },
+        "source_sides": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSides"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "predicate"
+      ],
+      "type": "object"
+    },
+    "MechanicalPredicate": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ast",
+              "type": "string"
+            },
+            "language": {
+              "$ref": "#/$defs/CodePatternLanguage"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "language",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/FieldPath"
+            },
+            "kind": {
+              "const": "regex",
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/FieldPath"
+            },
+            "kind": {
+              "const": "literal",
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "any",
+              "type": "string"
+            },
+            "predicates": {
+              "items": {
+                "$ref": "#/$defs/MechanicalPredicate"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "predicates"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "all",
+              "type": "string"
+            },
+            "predicates": {
+              "items": {
+                "$ref": "#/$defs/MechanicalPredicate"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "predicates"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "NarrowingDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceDeclaration"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "question": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/JudgmentQuestion"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "noul"
+                }
+              }
+            }
+          ]
+        },
+        "threshold": {
+          "exclusiveMinimum": 0,
+          "format": "double",
+          "maximum": 1,
+          "type": "number"
+        },
+        "uncertain_below": {
+          "format": "double",
+          "maximum": 1,
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "question",
+        "evidence",
+        "threshold"
+      ],
+      "type": "object"
+    },
+    "NoulDescriptions": {
+      "additionalProperties": false,
+      "properties": {
+        "false": {
+          "$ref": "#/$defs/StructuredEntry"
+        },
+        "true": {
+          "$ref": "#/$defs/StructuredEntry"
+        }
+      },
+      "required": [
+        "true",
+        "false"
+      ],
+      "type": "object"
+    },
+    "OriginField": {
+      "enum": [
+        "host",
+        "event",
+        "agent_kind",
+        "agent_type"
+      ],
+      "type": "string"
+    },
+    "PresencePattern": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "literal",
+              "type": "string"
+            },
+            "text": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "regex",
+              "type": "string"
+            },
+            "pattern": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ast",
+              "type": "string"
+            },
+            "language": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "pattern": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "language",
+            "pattern"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "StructuredEntry": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "StructuredJson": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "StructuredJson2": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/StructuredJson2"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson2"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Recursive JSON content. This is data, never a declaration or an executable expression."
     }
   },
   "$id": "rule-source.schema.json",

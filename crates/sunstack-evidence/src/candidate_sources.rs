@@ -14,6 +14,17 @@ pub struct TextSpan {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceOccurrence {
+    DocumentUnit {
+        input_id: SourceInputId,
+        unit_kind: MarkdownUnitKind,
+        occurrence: MarkdownOccurrence,
+    },
+    DocumentField {
+        input_id: SourceInputId,
+        source: SourceRef,
+        field: String,
+        state: Box<FrontmatterFieldLocation>,
+    },
     ContextMatch {
         input_id: SourceInputId,
         part: ContextPart,
@@ -38,6 +49,51 @@ pub enum SourceOccurrence {
 impl SourceOccurrence {
     pub fn occurrence_identity(&self) -> EvidenceResult<OccurrenceId> {
         match self {
+            Self::DocumentUnit {
+                input_id,
+                unit_kind,
+                occurrence,
+            } => {
+                let span = match occurrence {
+                    MarkdownOccurrence::Unit { span } => span,
+                    MarkdownOccurrence::CallSite { unit_span, .. } => unit_span,
+                };
+                let base = crate::code_occurrence_identity::code_occurrence_identity(
+                    input_id, None, span,
+                )?;
+                let discriminator = match occurrence {
+                    MarkdownOccurrence::Unit { .. } => serde_json::json!([unit_kind]),
+                    MarkdownOccurrence::CallSite {
+                        match_span,
+                        visible_range,
+                        ..
+                    } => serde_json::json!([
+                        unit_kind,
+                        match_span.byte_start,
+                        match_span.byte_end,
+                        visible_range
+                    ]),
+                };
+                let bytes = serde_json::to_vec(&discriminator)
+                    .map_err(|_| EvidenceCode::InvalidSelector)?;
+                OccurrenceId::new(format!("{}:{}", base.as_str(), content_digest(&bytes)))
+            }
+            Self::DocumentField {
+                input_id,
+                source,
+                field,
+                ..
+            } => {
+                let span = source_span(source, "", 0..0);
+                let base = crate::code_occurrence_identity::code_occurrence_identity(
+                    input_id, None, &span,
+                )?;
+                OccurrenceId::new(format!(
+                    "{}:{}",
+                    base.as_str(),
+                    content_digest(field.as_bytes())
+                ))
+            }
             Self::Record { record, .. } => OccurrenceId::new(record.as_str()),
             Self::CodeMatch {
                 input_id,

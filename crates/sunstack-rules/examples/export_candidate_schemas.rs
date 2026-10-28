@@ -2,6 +2,7 @@ use schemars::schema_for;
 use serde_json::json;
 use sunstack_rules::{
     CandidateRunInput, CandidateRunOutcome, CheckDefinitionsInput, EvidenceBinding, RuleDefinition,
+    RuleSourceEntry,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,6 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "check_definitions": schema_for!(CheckDefinitionsInput),
             "outcome": schema_for!(CandidateRunOutcome),
             "rule": schema_for!(RuleDefinition),
+            "source_entry": schema_for!(RuleSourceEntry),
             "evidence_binding": schema_for!(EvidenceBinding),
         }),
     )?;

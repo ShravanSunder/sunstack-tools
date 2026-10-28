@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "skill-references",
+  "description": "The root's judged standards about reference files, asked of each file in a skill's references/ folder and of no SKILL.md. A model answers them, so until their evals and a hosted run exist they are checked and printed, not evaluated. Bind `skill` once per reference file, and never to a SKILL.md.",
+  "inputs": { "skill": { "kind": "document" } },
+  "applicability": [],
+  "common_ruleset_instructions": null,
+  "marker_prefix": "R",
+  "rule_sources": [
+    { "markdown": "../references/calls-and-placement.md", "rules": "calls-and-placement.references.rules.json" }
+  ]
+}

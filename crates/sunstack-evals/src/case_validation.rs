@@ -115,9 +115,10 @@ fn source_group(source: &CaseSource, anchor: &SourceOccurrence) -> Result<Source
 fn require_record_anchor(anchor: &SourceOccurrence) -> Result<(), EvalError> {
     match anchor {
         SourceOccurrence::Record { .. } => Ok(()),
-        SourceOccurrence::CodeMatch { .. } | SourceOccurrence::ContextMatch { .. } => {
-            Err(invalid("labels.source_anchor"))
-        }
+        SourceOccurrence::CodeMatch { .. }
+        | SourceOccurrence::ContextMatch { .. }
+        | SourceOccurrence::DocumentUnit { .. }
+        | SourceOccurrence::DocumentField { .. } => Err(invalid("labels.source_anchor")),
     }
 }
 fn repository_document_path(
@@ -125,9 +126,23 @@ fn repository_document_path(
     anchor: &SourceOccurrence,
     repository: &RepositoryId,
 ) -> Result<PathBuf, EvalError> {
-    let (input_id, span) = match anchor {
+    let (input_id, anchor_source) = match anchor {
         SourceOccurrence::CodeMatch { input_id, span, .. }
-        | SourceOccurrence::ContextMatch { input_id, span, .. } => (input_id, span),
+        | SourceOccurrence::ContextMatch { input_id, span, .. } => (input_id, &span.source),
+        SourceOccurrence::DocumentUnit {
+            input_id,
+            occurrence,
+            ..
+        } => {
+            let span = match occurrence {
+                sunstack_evidence::MarkdownOccurrence::Unit { span } => span,
+                sunstack_evidence::MarkdownOccurrence::CallSite { unit_span, .. } => unit_span,
+            };
+            (input_id, &span.source)
+        }
+        SourceOccurrence::DocumentField {
+            input_id, source, ..
+        } => (input_id, source),
         SourceOccurrence::Record { .. } => return Err(invalid("labels.source_anchor")),
     };
     let expected = source
@@ -141,7 +156,7 @@ fn repository_document_path(
         repository: anchor_repository,
         path,
         ..
-    } = &span.source
+    } = anchor_source
     else {
         return Err(invalid("labels.source_anchor.source"));
     };

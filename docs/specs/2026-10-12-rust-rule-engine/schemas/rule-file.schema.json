@@ -58,20 +58,43 @@
             {
               "type": "object",
               "properties": {
-                "question": { "$ref": "decision-question.schema.json#/$defs/NoulQuestion" },
+                "question": {
+                  "$ref": "decision-question.schema.json#/$defs/NoulQuestion"
+                },
                 "evidence": {
                   "allOf": [
-                    { "$ref": "evidence-declaration.schema.json#/$defs/EvidenceDeclarations" },
-                    { "minItems": 1 }
+                    {
+                      "$ref": "evidence-declaration.schema.json#/$defs/EvidenceDeclarations"
+                    },
+                    {
+                      "minItems": 1
+                    }
                   ]
                 },
-                "threshold": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
-                "uncertain_below": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+                "threshold": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1
+                },
+                "uncertain_below": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                }
               },
-              "required": ["question", "evidence", "threshold"],
+              "required": [
+                "question",
+                "evidence",
+                "threshold"
+              ],
               "additionalProperties": false
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         },
         "mechanical_pass": {
@@ -126,9 +149,21 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
-        "uncertain_below": { "type": "number", "minimum": 0, "maximum": 1 },
+        "uncertain_below": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "error_at_or_below": {
           "$ref": "#/$defs/Band"
+        },
+        "pass_means": {
+          "type": "string",
+          "enum": [
+            "conforms",
+            "finding"
+          ],
+          "default": "finding"
         }
       },
       "required": [
@@ -170,9 +205,21 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
-        "uncertain_below": { "type": "number", "minimum": 0, "maximum": 1 },
+        "uncertain_below": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "error_at_or_below": {
           "$ref": "#/$defs/Band"
+        },
+        "pass_means": {
+          "type": "string",
+          "enum": [
+            "conforms",
+            "finding"
+          ],
+          "default": "finding"
         }
       },
       "required": [
@@ -627,6 +674,14 @@
         },
         "check": {
           "$ref": "#/$defs/MechanicalCheck"
+        },
+        "pass_means": {
+          "type": "string",
+          "enum": [
+            "conforms",
+            "finding"
+          ],
+          "default": "conforms"
         }
       },
       "required": [

@@ -37,6 +37,11 @@ pub struct AdmittedSource {
 #[derive(Debug, Clone)]
 pub(crate) enum CandidateSourceView {
     Record(std::sync::Arc<CandidateRecordView>),
+    Document {
+        selected: std::sync::Arc<sunstack_evidence::DiscoveredDocumentMatch>,
+        coverage: sunstack_evidence::DiscoveryCoverage,
+        grants: std::collections::BTreeSet<sunstack_evidence::PrivateKind>,
+    },
     Code {
         context: std::sync::Arc<crate::CandidateContextView>,
         grants: std::collections::BTreeSet<sunstack_evidence::PrivateKind>,
@@ -46,6 +51,20 @@ pub(crate) enum CandidateSourceView {
     },
 }
 impl AdmittedSource {
+    pub(crate) fn candidate_document(
+        &self,
+    ) -> Option<(
+        &sunstack_evidence::DiscoveredDocumentMatch,
+        &sunstack_evidence::DiscoveryCoverage,
+    )> {
+        match &self.candidate {
+            Some(CandidateSourceView::Document {
+                selected, coverage, ..
+            }) => Some((selected, coverage)),
+            _ => None,
+        }
+    }
+
     pub(crate) fn candidate_record(&self) -> Option<&CandidateRecordView> {
         match &self.candidate {
             Some(CandidateSourceView::Record(record)) => Some(record),
@@ -69,7 +88,9 @@ impl AdmittedSource {
     ) -> Option<&std::collections::BTreeSet<sunstack_evidence::PrivateKind>> {
         match &self.candidate {
             Some(
-                CandidateSourceView::Outside { grants } | CandidateSourceView::Code { grants, .. },
+                CandidateSourceView::Outside { grants }
+                | CandidateSourceView::Code { grants, .. }
+                | CandidateSourceView::Document { grants, .. },
             ) => Some(grants),
             _ => None,
         }

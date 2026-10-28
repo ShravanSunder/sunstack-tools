@@ -52,7 +52,7 @@ fn sources_definitions_and_label_blind_sources_are_frozen_separately() {
     assert_eq!(set.sources().len(), 1);
     for path in [
         root.path().join("transcript.jsonl"),
-        root.path().join("rule.jsonl"),
+        root.path().join("cases/definitions/rule.jsonl"),
         root.path().join("cases/sources.jsonl"),
     ] {
         let original = std::fs::read(&path).unwrap();

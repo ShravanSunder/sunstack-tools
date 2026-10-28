@@ -2,6 +2,7 @@
 mod case_identity;
 mod case_store;
 mod case_validation;
+mod definition_snapshot;
 mod eval_reports;
 mod frozen_decoding;
 mod labeled_cases;
@@ -14,6 +15,17 @@ pub use score_cases::score;
 
 #[derive(Debug, thiserror::Error)]
 pub enum EvalError {
+    #[error(
+        "bundle rule is not from this case set's frozen definitions: {rule:?}; frozen home {home:?}"
+    )]
+    WrongDefinitions {
+        rule: sunstack_rules::RuleRef,
+        home: std::path::PathBuf,
+    },
+    #[error("frozen rule definitions are invalid")]
+    Definitions {
+        diagnostics: sunstack_rules::DiagnosticList,
+    },
     #[error("invalid eval field: {field}")]
     Invalid { field: String },
     #[error("eval file unavailable: {path}")]

@@ -17,6 +17,24 @@ impl Preparation {
             .values()
             .find(|document| &document.source == source)
             .cloned()
+            .or_else(|| {
+                self.snapshot
+                    .code_contexts
+                    .values()
+                    .filter_map(|entry| entry.as_ref().ok())
+                    .flat_map(|index| &index.capture.sources)
+                    .find(|file| &file.source == source)
+                    .map(|file| {
+                        Arc::new(CapturedDocument {
+                            interval: CaptureInterval {
+                                started_at: self.anchor_utc,
+                                completed_at: self.anchor_utc,
+                            },
+                            source: file.source.clone(),
+                            text: Arc::from(file.text.as_str()),
+                        })
+                    })
+            })
             .ok_or(EvidenceCode::SourceUnavailable)?;
         if document.text.get(unit.start..unit.end).is_none() {
             return Err(EvidenceCode::InvalidSelector.into());

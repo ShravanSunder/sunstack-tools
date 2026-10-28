@@ -11,6 +11,11 @@ pub(crate) struct CandidateMaterial {
     pub selected: CandidateSelection,
 }
 pub(crate) enum CandidateSelection {
+    Document {
+        selected: Arc<DiscoveredDocumentMatch>,
+        coverage: DiscoveryCoverage,
+        grants: std::collections::BTreeSet<PrivateKind>,
+    },
     Record {
         selected: Arc<CandidateRecordView>,
     },
@@ -29,6 +34,45 @@ struct SubjectSource {
 impl CandidateMaterial {
     fn subject_source(&self) -> Result<SubjectSource, DiagnosticList> {
         match &self.selected {
+            CandidateSelection::Document {
+                selected,
+                coverage,
+                grants,
+            } => {
+                let SourceRef::RepositoryFile {
+                    repository, path, ..
+                } = &selected.source
+                else {
+                    return Err(crate::candidate_inputs::invalid_candidate_field(vec![
+                        "sources".into(),
+                    ]));
+                };
+                let input_id = match &selected.occurrence {
+                    SourceOccurrence::DocumentUnit { input_id, .. }
+                    | SourceOccurrence::DocumentField { input_id, .. } => input_id.clone(),
+                    _ => {
+                        return Err(crate::candidate_inputs::invalid_candidate_field(vec![
+                            "sources".into(),
+                        ]));
+                    }
+                };
+                Ok(SubjectSource {
+                    id: SourceId::Code { input_id },
+                    spec: SourceSpec::Document {
+                        repository: repository.clone(),
+                        path: path.clone(),
+                    },
+                    binding: InputBinding::Document {
+                        repository: repository.clone(),
+                        path: path.clone(),
+                    },
+                    view: CandidateSourceView::Document {
+                        selected: selected.clone(),
+                        coverage: coverage.clone(),
+                        grants: grants.clone(),
+                    },
+                })
+            }
             CandidateSelection::Record { selected } => {
                 let SourceRef::Transcript { path, format, .. } = &selected.coverage.source else {
                     return Err(crate::candidate_inputs::invalid_candidate_field(vec![

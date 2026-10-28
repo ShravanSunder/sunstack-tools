@@ -36,12 +36,12 @@ fn code_occurrence_namespace_joins_and_complete_repository_discovery_alone_estab
     );
     observed.occurrence = occurrence.clone();
     observed.candidate_id.occurrence = occurrence.occurrence_identity().unwrap();
-    let mut found = bundle(vec![observed], Some(0.001), 1);
+    let mut found = bundle(&frozen, vec![observed], Some(0.001), 1);
     found.inputs = vec![input_report.clone()];
     let grade = score(&[found], &frozen).unwrap();
     assert_eq!(grade.filter.kept, 1);
     for complete in [true, false] {
-        let mut report = bundle(vec![], Some(0.0), 1);
+        let mut report = bundle(&frozen, vec![], Some(0.0), 1);
         let mut input = input_report.clone();
         if !complete {
             input.capture = InputCaptureStatus::Incomplete;

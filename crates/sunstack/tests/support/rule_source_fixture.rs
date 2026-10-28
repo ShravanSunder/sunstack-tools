@@ -20,9 +20,7 @@ pub fn write_source_fixture(root: &std::path::Path) -> Value {
     std::fs::write(root.join("teaching.rules.json"), serde_json::to_vec(&json!({
         "K014":{"name":"standard.visible","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U001"}},"threshold":0.8}
     })).unwrap()).unwrap();
-    bound_inputs(
-        json!({"definition_root":root,"payload_schemas":[],"output":"assembled_rules"}),
-    )
+    bound_inputs(json!({"definition_root":root,"payload_schemas":[],"output":"assembled_rules"}))
 }
 
 fn bound_inputs(mut input: Value) -> Value {
