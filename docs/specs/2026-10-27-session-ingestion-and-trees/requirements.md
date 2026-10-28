@@ -113,7 +113,7 @@ Every row below is `authorized`: the owner settled it in Project 2's reviewed sp
 | U13 | From a diff, or from the code a code rule matches, build the context a judge or a reviewer needs: the diff, the whole functions it touches, and the code related to it through the AST graph (callers, callees, imports), the same context for Jev and for agents | Authorized: 27 October, "we need the diff, the whole functions that the diff touches, and then the related ASD gram, those trees and stuff, right? So that actual related information can be passed in"; "we can provide that context to jab"; "this whole point of rust and ast grep and git integration" |
 | U14 | Each related piece says how likely it is related (for example related, probably related, uncertain), because the graph and ast-grep can be wrong | Authorized: 27 October, "Can we provide a probable enum probability of related or uncertain or something like that?" |
 | U15 | At most 20,000 characters of context per request, leaving room for the instructions; larger context is broken up | Authorized: 27 October, "Let's just use that as the max so we have room for the instructions"; "20k chars" |
-| U16 | Given a code rule, find its related triggers. **Open**: the Lead's reading, sent to the owner for confirmation, is "the code occurrences the rule's mechanical selector finds, each followed by its callers, callees and imports as context" | Authorized: 27 October, "If the inputs are a code rule, then we have to find the related triggers"; its exact meaning is open (O2) |
+| U16 | A code rule's mechanical selector finds code occurrences, each followed by its callees, callers and imports as context. With a repository input, every match is a candidate; with a diff input, only matches inside code the change touches, directly or through code it calls. Each candidate carries its callees, callers and imports as context. | Authorized: 27 October, "If the inputs are a code rule, then we have to find the related triggers"; O2 settled by the Lead on 28 October (A15), under owner delegation |
 
 ### evals
 
@@ -142,9 +142,7 @@ Every row below is `authorized`: the owner settled it in Project 2's reviewed sp
 
 - **O1, a function too big for one request (28 October):** truncate it once within the page budget, preserving its signature, first lines, one marked gap with the omitted line count, and last lines. The head/tail split is configurable; coverage names the truncated unit and omitted range. U13/U15 include this case.
 
-## Open with the owner
-
-- **O2, related triggers for a code rule:** U16's readback above. Sent the same day.
+- **O2, related triggers for a code rule (28 October, Lead decision):** With a repository input, every match is a candidate; with a diff input, only matches inside code the change touches, directly or through code it calls. Each candidate carries its callees, callers and imports as context. The owner delegated this reversible choice; it is recorded as decided without asking (A15).
 
 ## Not verified
 

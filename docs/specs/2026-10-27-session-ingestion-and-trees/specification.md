@@ -99,8 +99,8 @@ flowchart LR
 
 - **R1** (U1; E1) When a run's input is given, the engine checks it against the input schema before anything runs. If it doesn't match, then the engine refuses the run and names the failing field; it never guesses. *C1. V1.*
 - **R2** (U1; E1) The input accepts one or more session pairs, each a provider and a session. *C1. V2.*
-- **R3** (U2, U3; E1, E2) A session pair is located and read by its provider's recipe; Codex, Claude Code and Cursor have built-in recipes. If a session can't be found, or matches more than one log, then that input is reported as unlocatable, never as empty. *C1, C2. V3.*
-- **R4** (U2; E1) Where a custom entry gives a location and a schema definition, its records are read by that definition and reach the same filter, tree and outcomes as a built-in provider's. A custom entry covers sources stored as JSON or JSONL. *C1, C2. V4.*
+- **R3** (U2, U3; E1, E2) A session pair is located and read by its provider's recipe; Codex, Claude Code and Cursor have built-in recipes. If a session can't be found, or matches more than one log, then that input is reported as unlocatable, never as empty. *C1, C2. V3.* Recipe `map.fields` pointers also read each raw record (A16).
+- **R4** (U2; E1) Where a custom entry gives a location and a schema definition, its records are read by that definition and reach the same filter, tree and outcomes as a built-in provider's. A custom entry covers sources stored as JSON or JSONL. *C1, C2. V4.* A custom schema is `{ format: json | jsonl, record_schema: <JSON Schema>, fields: { output_name: <JSON Pointer> } }`. A JSON array yields one record per item, a JSON object one record, and JSONL one per line. Pointers read each raw record; a schema mismatch or missing required mapping marks that record unfit at its actual position while the rest continues (A16).
 - **R5** (U4; E3) Every record keeps who wrote it, its exact position, its source input, and what's missing or unreadable. If a record doesn't match its schema, then it is counted and reported, never silently dropped. *C3. V5.*
 - **R6** (U4; E3) Private blocks (thinking, encrypted reasoning, credential-looking content) are left out by default and counted as left out. *C3. V6.*
 - **R7** (U5, U13; E1, E4, E5, E8) A diff input (a repository and a revision range or commit) and a code input (a repository, revision and paths) each produce candidates that reach the same filter, tree and outcomes with no session involved, keeping before and after apart. A diff is where context starts, not a limit on where a rule looks: a rule's mechanical pass over a diff reads the change and its context (the whole touched units and their related code), and each match records which of these it fell in. A rule may limit its pass to some of them; the changed lines are never an implicit limit. *C1, C3, C4. V7.*
@@ -135,7 +135,7 @@ flowchart LR
 - **R24** (U15; E8, E12) When a context is larger than one request, it is split into numbered pages that keep code units whole. A code unit larger than one page is sent once, truncated: its signature, first lines, one marked gap stating how many lines were left out (`… N lines truncated …`), and last lines, together within the page budget. The head/tail split is configuration. Context coverage names the truncated unit and omitted line range; each page names its source revision, its place among the pages, and what the other pages hold, and the context's coverage says which pages and pieces were sent, excluded or never found. *C6. V24.*
 - **R25** (U13, U15; E8, E16) When a question's answer depends on several pages, answers are combined per question by how the question says it reads a context: an answer that one page can show (yes on any page settles yes; no needs every page), one that must hold on every page (no on any page settles no; yes needs every page), or one that needs the whole context at once (a context larger than one request leaves it unresolved). Conflicts the question's reading doesn't settle, and missing pages, stay uncertain or unresolved; pages never vote, and their confidences are never averaged. *C4, C5, C6. V25.*
 - **R26** (U13; E8) Jev and a reviewer agent receive the same pages for the same candidate. *C6. V26.*
-- **R27** (U16; E6, E8) Given a code rule, its mechanical matches are the candidates, each followed by its related code as context. **Open (O2)**: holds only once the owner confirms that reading. *C4, C6. V27.*
+- **R27** (U16; E6, E8) Given a code rule, its mechanical matches are the candidates, each followed by its related code as context. With a repository input, every match is a candidate; with a diff input, only matches inside code the change touches, directly or through code it calls. Each candidate carries its callees, callers and imports as context. *C4, C6. V27.*
 
 ### evals
 
@@ -191,7 +191,7 @@ flowchart LR
 | V24 | an oversized context is paged with whole units; an oversized unit keeps its signature, head, marked gap and tail within the cap, and coverage names every page, piece and omitted range | a context larger than one request |
 | V25 | a counterexample on one page isn't voted away; each declared reading settles as R25 says, including a decisive page that arrives last and a page that never completes | a planted conflicting page; a question of each reading |
 | V26 | Jev and a reviewer get identical pages | the two requests |
-| V27 | a code rule's matches become candidates with related context (once O2 is confirmed) | a code rule over a real repository |
+| V27 | a repository input yields every match; a diff input yields only touched or call-reachable matches, each with callees, callers and imports | a code rule over a real repository |
 | V28 | labels frozen before scoring; a held-out set never tuned on | the eval's frozen record |
 | V29 | the report carries each named score once per version | the eval report |
 | V30 | no label in any judge input | the judge requests |
@@ -211,4 +211,4 @@ flowchart LR
 | evals | U17 | E18, E19 | R28 to R30 | C7 | V28 to V30 |
 | cross-cutting | Boundaries, U4, U12 | (all) | R31 to R33 | C1, C3, C5 | V31 to V33 |
 
-**Gaps:** R27 waits on the owner's O2; O1 is settled as the truncation case in R24. A historical code graph for unchanged files at a change's revision is not yet available (Requirements, *Not verified*); R20 and R21 hold at the revision the engine can capture until Program Design closes it.
+**Gaps:** O1 and O2 are settled in R24 and R27. A historical code graph for unchanged files at a change's revision is not yet available (Requirements, *Not verified*); R20 and R21 hold at the revision the engine can capture until Program Design closes it.
