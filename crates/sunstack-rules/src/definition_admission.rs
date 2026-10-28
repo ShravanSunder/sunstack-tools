@@ -177,6 +177,7 @@ pub fn validate_rule_definition(
         target.select,
         EvidenceSelection::Paragraph { .. }
             | EvidenceSelection::MarkdownUnits(_)
+            | EvidenceSelection::FrontmatterField { .. }
             | EvidenceSelection::Conversation { .. }
             | EvidenceSelection::WholePayload {}
             | EvidenceSelection::PayloadField { .. }

@@ -62,7 +62,7 @@ pub mod evidence_preparation;
 pub use evidence_preparation::*;
 
 mod evidence_admission;
-pub use evidence_admission::admit_evidence_declaration;
+pub use evidence_admission::{admit_declared_selection, admit_evidence_declaration};
 pub mod preparation_contracts;
 pub use preparation_contracts::*;
 

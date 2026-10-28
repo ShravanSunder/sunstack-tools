@@ -12,17 +12,14 @@ use serde_json::{Value, json};
 use support::*;
 
 #[tokio::test]
-async fn connected_checks_admit_discovery_settings_without_acquiring_reviewed_content() {
-    let (directory, mut input) = source_fixture();
+async fn connected_definition_checks_need_no_discovery_and_runtime_admission_keeps_its_guards() {
+    let (directory, input) = source_fixture();
     let root = directory.path();
     let mut header: Value =
         serde_json::from_slice(&std::fs::read(root.join("set.json")).unwrap()).unwrap();
     header["inputs"]["changes"] = json!({"kind":"change_set"});
     std::fs::write(root.join("set.json"), serde_json::to_vec(&header).unwrap()).unwrap();
     std::fs::write(root.join("teaching.rules.json"), serde_json::to_vec_pretty(&json!({"K014":{"name":"connected.valid","target":{"input":"changes","select":{"kind":"changed_units","languages":["typescript"],"unit_kinds":["function"],"source_sides":"after_only"}},"threshold":0.8}})).unwrap()).unwrap();
-    input["definitions"]["rule_sets"][0]["binding_groups"][0]["bindings"]["changes"] =
-        json!({"kind":"change_set","repository":"repo"});
-    input["discovery"] = serde_json::to_value(changes::discovery()).unwrap();
     assert!(!root.join("missing-reviewed.md").exists());
     assert!(!root.join(".git").exists());
     let checked = response(
@@ -34,10 +31,21 @@ async fn connected_checks_admit_discovery_settings_without_acquiring_reviewed_co
         checked["result"]["outcome"]["printed_rules"][0]["definition"]["evidence"][0]["select"]["kind"],
         "changed_units"
     );
-    input.as_object_mut().unwrap().remove("discovery");
-    let refused = response(&run_without_credential(root, "check_rules", input).await, 2);
+    let mut runtime = runtime_input(input, "http://127.0.0.1:1/v1/systemone");
+    runtime["definitions"]["rule_sets"][0]["binding_groups"][0]["bindings"]["changes"] =
+        json!({"kind":"change_set","repository":"repo"});
+    let refused = response(
+        &run_without_credential(root, "evaluate_rules", runtime).await,
+        2,
+    );
     let diagnostic = &refused["result"]["outcome"]["diagnostics"]["items"][0];
     assert_eq!(diagnostic["code"], "discovery_not_enabled");
+    // Discovery availability is a runtime guard; definition checks still locate intrinsic errors.
+    std::fs::write(root.join("teaching.rules.json"), serde_json::to_vec_pretty(&json!({"K014":{"name":"connected.invalid","target":{"input":"changes","select":{"kind":"changed_units","languages":[],"unit_kinds":["function"],"source_sides":"after_only"}},"threshold":0.8}})).unwrap()).unwrap();
+    let input = serde_json::json!({"definition_root":root,"definitions":{"kind":"rule_sets","rule_sets":["set.json"]},"payload_schemas":[],"limits":{"max_file_bytes":65536},"output":"assembled_rules"});
+    let refused = response(&run_without_credential(root, "check_rules", input).await, 2);
+    let diagnostic = &refused["result"]["outcome"]["diagnostics"]["items"][0];
+    assert_eq!(diagnostic["code"], "invalid_selector");
     assert_eq!(
         diagnostic["location"]["file"],
         json!(root.canonicalize().unwrap().join("teaching.rules.json"))

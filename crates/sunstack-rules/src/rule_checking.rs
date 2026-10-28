@@ -1,14 +1,40 @@
-use crate::{
-    input_binding::resolved_path,
-    invocation_admission::{load_invocation, mapped_declarations},
-    *,
-};
+use crate::*;
 use std::{collections::BTreeSet, path::Path};
-use sunstack_evidence::{AdapterRegistry, EvidencePlanInput, EvidenceSession};
 use tokio_util::sync::CancellationToken;
 
-pub fn decode_check_rules(bytes: &[u8]) -> Result<CheckRulesInput, DiagnosticList> {
-    crate::strict_decoding::decode_definition(bytes, Path::new("<invocation>"), 1)
+pub fn decode_check_rules(bytes: &[u8]) -> Result<CheckDefinitionsInput, DiagnosticList> {
+    let decoded = crate::strict_decoding::decode_definition(bytes, Path::new("<invocation>"), 1);
+    if let Err(diagnostics) = &decoded
+        && !diagnostics.items.iter().any(|item| matches!(item, ReportDiagnostic::Rule(item) if item.code == RuleDiagnosticCode::DuplicateField))
+        && let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes)
+        && let Some(field) = retired_check_field(&value)
+    {
+        return Err(RuleDiagnostic::new(RuleDiagnosticCode::UnknownField)
+            .definition(Path::new("<invocation>"), 1, 1, field).into());
+    }
+    decoded
+}
+fn retired_check_field(value: &serde_json::Value) -> Option<Vec<String>> {
+    for name in ["repositories", "discovery"] {
+        if value.get(name).is_some() {
+            return Some(vec![name.into()]);
+        }
+    }
+    let definitions = value.get("definitions")?;
+    if definitions.get("binding_groups").is_some() {
+        return Some(vec!["definitions".into(), "binding_groups".into()]);
+    }
+    for (position, set) in definitions.get("rule_sets")?.as_array()?.iter().enumerate() {
+        if set.get("binding_groups").is_some() {
+            return Some(vec![
+                "definitions".into(),
+                "rule_sets".into(),
+                position.to_string(),
+                "binding_groups".into(),
+            ]);
+        }
+    }
+    None
 }
 
 fn refused(diagnostics: DiagnosticList) -> CheckRulesOutcome {
@@ -26,7 +52,7 @@ fn cancelled() -> CheckRulesOutcome {
 }
 
 pub async fn check_rules(
-    input: CheckRulesInput,
+    input: CheckDefinitionsInput,
     cancellation: CancellationToken,
 ) -> CheckRulesOutcome {
     let cancellation = cancellation.child_token();
@@ -42,20 +68,14 @@ pub async fn check_rules(
     let owned = input.clone();
     let loading_cancellation = cancellation.clone();
     let loaded = tokio::task::spawn_blocking(move || {
-        load_invocation(
-            &owned.definition_root,
-            &owned.definitions,
-            &owned.repositories,
-            owned.limits.max_file_bytes.get(),
-            loading_cancellation,
-        )
+        crate::definition_checking::load_checked_definitions(&owned, loading_cancellation)
     })
     .await;
     if cancellation.is_cancelled() {
         return cancelled();
     }
-    let (groups, router, sources) = match loaded {
-        Ok(Ok(loaded)) => loaded,
+    let sets = match loaded {
+        Ok(Ok(sets)) => sets,
         Ok(Err(diagnostics)) => return refused(diagnostics),
         Err(_) => {
             return CheckRulesOutcome::CheckFailed {
@@ -64,78 +84,19 @@ pub async fn check_rules(
             };
         }
     };
-    let admitted = async {
-        let registry = AdapterRegistry::builtins()
-            .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
-        let cwd = std::env::current_dir()
-            .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration))?;
-        let root = resolved_path(&cwd, &input.definition_root)?;
-        let mut schemas = input.payload_schemas.clone();
-        for schema in &mut schemas {
-            schema.path = resolved_path(&root, &schema.path)?;
-        }
-        let plan = EvidencePlanInput {
-            repositories: input.repositories.clone(),
-            sources,
-            payload_schemas: schemas,
-            cursors: vec![],
-            declarations: mapped_declarations(&groups, router.as_ref())?,
-            native_queries: vec![],
-            package_bindings: vec![],
-            limits: input.limits.clone(),
-            discovery: input.discovery.clone(),
-        };
-        // Opening admits schemas/bindings. No select/compare call can read a reviewed document.
-        EvidenceSession::open(plan, registry, cancellation.clone())
-            .await
-            .map_err(|error| DiagnosticList::from(error.diagnostics()))
-    }
-    .await;
-    if cancellation.is_cancelled() {
-        return cancelled();
-    }
-    if let Err(mut diagnostics) = admitted {
-        if diagnostics.items.iter().any(|diagnostic| {
-            matches!(diagnostic,
-            ReportDiagnostic::Evidence(diagnostic)
-                if diagnostic.code == sunstack_evidence::EvidenceCode::DiscoveryNotEnabled)
-        }) {
-            'location: for group in &groups {
-                for located in &group.set.rules {
-                    if located.definition.evidence.iter().any(|declaration| {
-                        group.sources.get(&declaration.input).is_some_and(|source| {
-                            matches!(source.spec, sunstack_evidence::SourceSpec::ChangeSet { .. })
-                        })
-                    }) {
-                        crate::definition_admission::locate_at(
-                            &mut diagnostics,
-                            &located.source,
-                            located.line,
-                            located
-                                .provenance
-                                .as_ref()
-                                .map_or(1, |source| source.entry_location.column),
-                        );
-                        break 'location;
-                    }
-                }
-            }
-        }
-        return refused(diagnostics);
-    }
     let mut seen = BTreeSet::new();
     let mut printed = Vec::new();
     let mut diagnostics = DiagnosticList::default();
     let mut refused_rule_count = 0;
-    for group in &groups {
-        if !seen.insert(group.set.path.clone()) {
+    for set in &sets {
+        if !seen.insert(set.path.clone()) {
             continue;
         }
-        for skipped in &group.set.skipped {
+        for skipped in &set.skipped {
             refused_rule_count += 1;
             diagnostics.extend(skipped.diagnostics().clone());
         }
-        for located in &group.set.rules {
+        for located in &set.rules {
             let source = match &located.provenance {
                 Some(provenance) => PrintedRuleSource::Markdown {
                     provenance: provenance.clone(),
@@ -146,7 +107,7 @@ pub async fn check_rules(
                 },
             };
             printed.push(PrintedRule {
-                rule_set: group.set.path.clone(),
+                rule_set: set.path.clone(),
                 source,
                 definition: (*located.definition).clone(),
             });

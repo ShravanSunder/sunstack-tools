@@ -3,10 +3,16 @@
   "operation": "check_rules",
   "input": {
     "definition_root": "docs/specs/2026-10-12-rust-rule-engine/examples",
-    "definitions": { "kind": "rule_sets", "rule_sets": [{ "path": "unit-targets.ruleset.json", "binding_groups": [{ "bindings": { "skill": { "kind": "document", "repository": "example", "path": "SKILL.md" } } }] }] },
-    "repositories": [{ "key": "example", "root": "docs/specs/2026-10-12-rust-rule-engine/examples", "input_paths": [{ "kind": "exact", "path": "SKILL.md" }], "change_scope": { "kind": "full" } }],
+    "definitions": {
+      "kind": "rule_sets",
+      "rule_sets": [
+        "unit-targets.ruleset.json"
+      ]
+    },
     "payload_schemas": [],
-    "limits": { "max_files": 10, "max_file_bytes": 65536, "max_total_bytes": 131072, "max_matches": 20, "max_transcript_bytes": 65536, "include_ignored": false },
+    "limits": {
+      "max_file_bytes": 65536
+    },
     "output": "assembled_rules"
   }
 }

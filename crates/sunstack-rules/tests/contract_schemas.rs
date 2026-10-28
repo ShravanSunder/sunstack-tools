@@ -63,7 +63,7 @@ fn every_reviewed_milestone_one_definition_and_invocation_deserializes_and_valid
             assert_eq!(value["operation"], "check_rules");
             assert_eq!(value.as_object().unwrap().len(), 3);
             decode_check_rules(&serde_json::to_vec(&value["input"]).unwrap()).unwrap();
-            assert!(generated::<CheckRulesInput>().is_valid(&value["input"]));
+            assert!(generated::<CheckDefinitionsInput>().is_valid(&value["input"]));
             assert!(reviewed("check-rules-input.schema.json").is_valid(&value["input"]));
         } else if name == "marked-standards.md" {
             let text = std::fs::read_to_string(&path).unwrap();
@@ -107,9 +107,6 @@ async fn reviewed_marked_standard_example_checks_and_prints_through_the_native_a
         .parent()
         .unwrap();
     input.definition_root = workspace.join(&input.definition_root);
-    for repository in &mut input.repositories {
-        repository.root = workspace.join(&repository.root);
-    }
     let outcome = check_rules(input, sunstack_decisions::CancellationToken::new()).await;
     let wire = serde_json::to_value(&outcome).unwrap();
     assert!(reviewed("check-rules-outcome.schema.json").is_valid(&wire));

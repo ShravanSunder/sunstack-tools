@@ -7,7 +7,7 @@ use sunstack_evidence::{
     DiagnosticList, EvidencePlanInput, EvidencePlanOutcome, decode_evidence_plan_input,
 };
 use sunstack_rules::{
-    CheckRulesInput, CheckRulesOutcome, RuleInvocationInput, RuleInvocationOutcome,
+    CheckDefinitionsInput, CheckRulesOutcome, RuleInvocationInput, RuleInvocationOutcome,
     RulePreparationOutcome, decode_check_rules, decode_rule_invocation,
 };
 use tokio::io::AsyncReadExt;
@@ -26,7 +26,7 @@ pub enum OperationInput {
     RunJudgments(Box<RunJudgmentsInput>),
     PrepareRules(Box<RuleInvocationInput>),
     EvaluateRules(Box<RuleInvocationInput>),
-    CheckRules(Box<CheckRulesInput>),
+    CheckRules(Box<CheckDefinitionsInput>),
     EvaluateCandidates(Box<sunstack_rules::CandidateRunInput>),
     Rejected(OperationResult),
 }

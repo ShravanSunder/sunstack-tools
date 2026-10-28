@@ -51,6 +51,7 @@ Every field a rule author or a caller writes, and what the engine returns. Each 
 
 | Schema | Field | Purpose |
 | --- | --- | --- |
+| [Definition check](schemas/check-rules-input.schema.json) | `definition_root`, `definitions`, `payload_schemas`, `limits`, `output` | `CheckDefinitionsInput`: path-only RuleSets or Router; compile declared payload schemas; required positive `max_file_bytes`. No target bindings, repositories, discovery or backend |
 | [Invocation](schemas/rule-invocation.schema.json) | `definition_root` | Where definition, rule and payload-schema paths resolve from |
 | Invocation | `definitions` | `router { path, binding_groups }` or `rule_sets { rule_sets: [{ path, binding_groups }] }` |
 | Invocation | `binding_groups[].bindings` | Each input bound once: `document { repository, path }`, `conversation { transcript_path, format, final_assistant_text? }`, `payload { value }`, `change_set { repository }` |

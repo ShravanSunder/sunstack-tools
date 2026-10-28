@@ -6,40 +6,12 @@
     "definitions": {
       "kind": "rule_sets",
       "rule_sets": [
-        {
-          "path": "marked-standards.ruleset.json",
-          "binding_groups": [
-            {
-              "bindings": {
-                "skill": {
-                  "kind": "document",
-                  "repository": "tools",
-                  "path": "docs/specs/2026-10-12-rust-rule-engine/examples/SKILL.md"
-                }
-              }
-            }
-          ]
-        }
+        "marked-standards.ruleset.json"
       ]
     },
-    "repositories": [
-      {
-        "key": "tools",
-        "root": ".",
-        "input_paths": [
-          { "kind": "exact", "path": "docs/specs/2026-10-12-rust-rule-engine/examples/SKILL.md" }
-        ],
-        "change_scope": { "kind": "full" }
-      }
-    ],
     "payload_schemas": [],
     "limits": {
-      "max_files": 10,
-      "max_file_bytes": 65536,
-      "max_total_bytes": 131072,
-      "max_matches": 100,
-      "max_transcript_bytes": 65536,
-      "include_ignored": false
+      "max_file_bytes": 65536
     },
     "output": "assembled_rules"
   }

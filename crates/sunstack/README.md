@@ -68,11 +68,11 @@ configuration when it becomes reachable. Evidence preparation needs no credentia
 
 `check_rules` assembles every requested RuleSet and validates its rules without
 constructing a backend, reading reviewed documents or sending model requests.
-Its input contains `definition_root`, `definitions`, `repositories`,
-`payload_schemas`, `limits`, optional `discovery` and `output` (`diagnostics` or `assembled_rules`).
-Discovery defaults to `none`, as in runtime input. Connected rules need bounded
-discovery settings for admission; check never executes discovery or acquisition.
-Repository-root metadata and declared payload schemas are still validated.
+Its input contains `definition_root`, path-only `definitions` (`rule_sets` paths or
+one Router path), `payload_schemas`, `limits.max_file_bytes` and `output`
+(`diagnostics` or `assembled_rules`). Selectors are checked against their declared
+input kinds, and named payload schemas are compiled without acquiring evidence.
+Bound requests with repositories, binding groups or discovery settings are refused.
 It accepts no backend, attempt or request-budget settings. A clean check exits 0;
 refusals exit 2 with definition file, line and column. Printed rules are returned
 only after a clean check and include each native definition and its source.

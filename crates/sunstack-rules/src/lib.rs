@@ -19,7 +19,9 @@ mod rule_source_reporting;
 pub use rule_checking::{check_rules, decode_check_rules};
 pub use strict_decoding::decode_rule_invocation;
 
+mod definition_checking;
 mod definition_loading;
+mod definition_routing;
 pub mod input_binding;
 mod invocation_admission;
 pub mod report_contracts;

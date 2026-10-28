@@ -94,10 +94,24 @@ pub fn admit_evidence_declaration(
     let source = sources
         .get(&declaration.input)
         .ok_or(EvidenceCode::InvalidSelector)?;
+    let source_kind = match source {
+        SourceSpec::Document { .. } => DeclaredSourceKind::Document,
+        SourceSpec::Conversation { .. } => DeclaredSourceKind::Conversation,
+        SourceSpec::ChangeSet { .. } => DeclaredSourceKind::ChangeSet,
+        SourceSpec::Payload { .. } => DeclaredSourceKind::Payload,
+    };
+    admit_declared_selection(&declaration.select, source_kind)
+}
+
+/// Validate declaration syntax and kind compatibility without binding or reading a target.
+pub fn admit_declared_selection(
+    selection: &EvidenceSelection,
+    source_kind: DeclaredSourceKind,
+) -> EvidenceResult<()> {
     let compatible = matches!(
-        (source, &declaration.select),
+        (source_kind, selection),
         (
-            SourceSpec::Document { .. },
+            DeclaredSourceKind::Document,
             EvidenceSelection::Paragraph { .. }
                 | EvidenceSelection::MarkdownUnits(_)
                 | EvidenceSelection::FrontmatterField { .. }
@@ -106,28 +120,28 @@ pub fn admit_evidence_declaration(
                 | EvidenceSelection::RegexText { .. }
                 | EvidenceSelection::AstPattern { .. }
         ) | (
-            SourceSpec::Conversation { .. },
+            DeclaredSourceKind::Conversation,
             EvidenceSelection::Conversation { .. }
         ) | (
-            SourceSpec::ChangeSet { .. },
+            DeclaredSourceKind::ChangeSet,
             EvidenceSelection::ChangeSetLiteralText { .. }
                 | EvidenceSelection::ChangeSetRegexText { .. }
                 | EvidenceSelection::ChangeSetAstPattern { .. }
                 | EvidenceSelection::ChangedUnits { .. }
                 | EvidenceSelection::RelatedUnits { .. }
         ) | (
-            SourceSpec::Payload { .. },
+            DeclaredSourceKind::Payload,
             EvidenceSelection::WholePayload {} | EvidenceSelection::PayloadField { .. }
         )
     );
     if !compatible {
         return Err(EvidenceCode::InvalidSelector.into());
     }
-    crate::connected_admission::admit_connected_selection(&declaration.select)?;
-    if let Some(selection) = declaration.select.conversation() {
-        selection.validate()?;
+    crate::connected_admission::admit_connected_selection(selection)?;
+    if let Some(conversation) = selection.conversation() {
+        conversation.validate()?;
     }
-    match &declaration.select {
+    match selection {
         EvidenceSelection::FrontmatterField { field } if field.is_empty() => {
             return Err(EvidenceCode::InvalidSelector.into());
         }

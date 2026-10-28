@@ -105,6 +105,14 @@ pub enum SourceRef {
         input: SourceName,
     },
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DeclaredSourceKind {
+    Document,
+    Conversation,
+    ChangeSet,
+    Payload,
+}
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SourceSpan {

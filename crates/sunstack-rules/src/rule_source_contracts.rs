@@ -1,12 +1,12 @@
 use crate::{
-    DiagnosticList, InvocationDefinitions, InvocationMeasurements, RuleDefinition, RuleId, Severity,
+    CandidateDefinitions, DiagnosticList, InvocationMeasurements, RuleDefinition, RuleId, Severity,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use sunstack_evidence::{
-    EvidenceDeclaration, EvidenceSelection, InvocationLimits, MarkdownTextSpan, MarkerId,
-    PayloadSchemaPath, RepositoryBinding, SourceName,
+    EvidenceDeclaration, EvidenceSelection, MarkdownTextSpan, MarkerId, PayloadSchemaPath,
+    SourceName,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -100,16 +100,19 @@ pub enum RuleCoverage {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct CheckRulesInput {
+pub struct CheckDefinitionsInput {
     #[schemars(length(min = 1))]
     pub definition_root: PathBuf,
-    pub definitions: InvocationDefinitions,
-    pub repositories: Vec<RepositoryBinding>,
+    pub definitions: CandidateDefinitions,
+    #[serde(default)]
     pub payload_schemas: Vec<PayloadSchemaPath>,
-    pub limits: InvocationLimits,
-    #[serde(default = "crate::invocation_contracts::no_discovery")]
-    pub discovery: sunstack_evidence::EvidenceDiscovery,
+    pub limits: DefinitionLimits,
     pub output: CheckRulesOutput,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DefinitionLimits {
+    pub max_file_bytes: std::num::NonZeroUsize,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]

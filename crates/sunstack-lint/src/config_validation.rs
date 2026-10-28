@@ -4,14 +4,13 @@ use crate::{
     *,
 };
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     io::Read,
     path::{Path, PathBuf},
 };
-use sunstack_evidence::{ChangeScope, QueryPath, RepositoryBinding, RepositoryId};
 use sunstack_rules::{
-    BindingGroup, BoundRuleSet, CheckRulesInput, CheckRulesOutcome, CheckRulesOutput, InputBinding,
-    InputDeclaration, InvocationDefinitions, PrintedRuleSource, VerdictDeclaration,
+    CheckDefinitionsInput, CheckRulesOutcome, CheckRulesOutput, InputDeclaration,
+    PrintedRuleSource, VerdictDeclaration,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -159,50 +158,15 @@ pub(crate) async fn checked_entries(
                 .into(),
             ]);
         };
-        let repository = RepositoryId::new("lint").map_err(|_| {
-            vec![
-                config_error(
-                    config,
-                    name.as_str(),
-                    LintInvalidCode::Syntax,
-                    "Invalid repository identity.",
-                )
-                .into(),
-            ]
-        })?;
-        let document = config
-            .source
-            .as_ref()
-            .and_then(|source| source.location.file.file_name())
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("sunstack.lint.json"));
-        let native = CheckRulesInput {
+        let native = CheckDefinitionsInput {
             definition_root: directory.clone(),
-            definitions: InvocationDefinitions::RuleSets {
-                rule_sets: vec![BoundRuleSet {
-                    path: path.clone(),
-                    binding_groups: vec![BindingGroup {
-                        bindings: BTreeMap::from([(
-                            input_name.clone(),
-                            InputBinding::Document {
-                                repository: repository.clone(),
-                                path: document,
-                            },
-                        )]),
-                    }],
-                }],
+            definitions: sunstack_rules::CandidateDefinitions::RuleSets {
+                rule_sets: vec![path.clone()],
             },
-            repositories: vec![RepositoryBinding {
-                key: repository,
-                root: directory.clone(),
-                input_paths: vec![QueryPath::Glob {
-                    pattern: "**".into(),
-                }],
-                change_scope: ChangeScope::Full {},
-            }],
             payload_schemas: vec![],
-            limits: native_limits.clone(),
-            discovery: limits.discovery().map_err(|error| vec![error.into()])?,
+            limits: sunstack_rules::DefinitionLimits {
+                max_file_bytes: native_limits.max_file_bytes,
+            },
             output: CheckRulesOutput::AssembledRules,
         };
         let printed = match sunstack_rules::check_rules(native, cancellation.clone()).await {

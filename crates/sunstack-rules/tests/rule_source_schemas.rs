@@ -13,7 +13,7 @@ fn entry() -> Value {
     json!({"name":"standard.one","target":{"input":"skill","select":{"kind":"paragraph","target_id":"U001"}},"threshold":0.8})
 }
 fn check_input(root: &std::path::Path) -> Value {
-    json!({"definition_root":root,"definitions":{"kind":"rule_sets","rule_sets":[{"path":"set.json","binding_groups":[{"bindings":{"skill":{"kind":"document","repository":"repo","path":"missing.md"}}}]}]},"repositories":[{"key":"repo","root":root,"input_paths":[{"kind":"glob","pattern":"**"}],"change_scope":{"kind":"full"}}],"payload_schemas":[],"limits":{"max_files":10,"max_file_bytes":65536,"max_total_bytes":131072,"max_matches":20,"max_transcript_bytes":65536,"include_ignored":false},"output":"assembled_rules"})
+    json!({"definition_root":root,"definitions":{"kind":"rule_sets","rule_sets":["set.json"]},"payload_schemas":[],"limits":{"max_file_bytes":65536},"output":"assembled_rules"})
 }
 
 #[test]
@@ -128,7 +128,7 @@ async fn source_entry_schemas_preserve_shape_and_native_cross_field_refusals() {
 #[tokio::test]
 async fn check_schema_refuses_backend_fields_and_empty_root_at_full_admission() {
     let reviewed = reviewed("check-rules-input.schema.json");
-    let generated = generated::<CheckRulesInput>();
+    let generated = generated::<CheckDefinitionsInput>();
     let root = tempfile::tempdir().unwrap();
     let baseline = check_input(root.path());
     assert!(reviewed.is_valid(&baseline));
@@ -200,7 +200,7 @@ async fn markdown_selector_schemas_and_check_keep_shape_and_semantic_refusals_di
         (
             json!({"kind":"frontmatter_field","field":"name"}),
             true,
-            false,
+            true,
         ),
     ] {
         let declaration = json!({"id":"target","input":"skill","select":selection});

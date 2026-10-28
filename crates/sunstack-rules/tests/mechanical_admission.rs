@@ -5,8 +5,8 @@ use sunstack_rules::*;
 #[path = "support/contract_schemas.rs"]
 mod schema_support;
 
-fn check_input(root: &std::path::Path) -> CheckRulesInput {
-    serde_json::from_value(json!({"definition_root":root,"definitions":{"kind":"rule_sets","rule_sets":[{"path":"set.json","binding_groups":[{"bindings":{"skill":{"kind":"document","repository":"repo","path":"unread.md"}}}]}]},"repositories":[{"key":"repo","root":root,"input_paths":[{"kind":"glob","pattern":"**"}],"change_scope":{"kind":"full"}}],"payload_schemas":[],"limits":{"max_files":10,"max_file_bytes":65536,"max_total_bytes":131072,"max_matches":20,"max_transcript_bytes":65536,"include_ignored":false},"output":"assembled_rules"})).unwrap()
+fn check_input(root: &std::path::Path) -> CheckDefinitionsInput {
+    serde_json::from_value(json!({"definition_root":root,"definitions":{"kind":"rule_sets","rule_sets":["set.json"]},"payload_schemas":[],"limits":{"max_file_bytes":65536},"output":"assembled_rules"})).unwrap()
 }
 fn write_source(root: &std::path::Path, entry: &str) {
     std::fs::write(root.join("set.json"),serde_json::to_vec(&json!({"schema_version":1,"name":"mechanical","description":"native check","inputs":{"skill":{"kind":"document"}},"applicability":[],"common_ruleset_instructions":null,"rule_sources":[{"markdown":"standards.md","rules":"standards.rules.json"}],"marker_prefix":"K"})).unwrap()).unwrap();
@@ -202,7 +202,7 @@ async fn mechanical_source_alternatives_are_exclusive_and_ast_grep_errors_name_t
 }
 
 #[test]
-fn judgment_rules_cannot_target_frontmatter_and_mechanical_rules_cannot_hide_model_questions() {
+fn judgment_rules_can_target_frontmatter_and_mechanical_rules_cannot_hide_model_questions() {
     let inputs = serde_json::from_value(json!({"skill":{"kind":"document"}})).unwrap();
     let base = json!({"rule_id":"mechanical.one","evidence":[{"id":"target","input":"skill","select":{"kind":"frontmatter_field","field":"description"}}],"target":"target","applicability":[],"questions":{},"verdict":{"kind":"mechanical","explanation":"Require a description","check":{"kind":"expect","expect":{"present":true}}}});
     let valid: RuleDefinition = serde_json::from_value(base.clone()).unwrap();
@@ -215,7 +215,7 @@ fn judgment_rules_cannot_target_frontmatter_and_mechanical_rules_cannot_hide_mod
     let mut judgment = base;
     judgment["verdict"] = json!({"kind":"noul","threshold":0.8,"question":{"type":"noul","instructions":"Judge the field"}});
     let judgment: RuleDefinition = serde_json::from_value(judgment).unwrap();
-    assert!(validate_rule_definition(&judgment, &inputs).is_err());
+    assert!(validate_rule_definition(&judgment, &inputs).is_ok());
 }
 
 #[test]
