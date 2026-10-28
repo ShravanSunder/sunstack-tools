@@ -306,8 +306,17 @@ pub(crate) fn discover_rule_candidates(
                 let projected = projected_records
                     .get(&matched.record.record_id)
                     .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
-                let private_match = match_is_private(&matched.record, &matched.occurrence, &grants)
-                    .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
+                let mut occurrence = matched.occurrence.clone();
+                let mut private_match = true;
+                for witness in &matched.witnesses {
+                    if !match_is_private(&matched.record, witness, &grants)
+                        .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?
+                    {
+                        occurrence = witness.clone();
+                        private_match = false;
+                        break;
+                    }
+                }
                 let selected = match &projected.record {
                     Some(record) if !private_match => CandidateRecordSelection::Ready {
                         selected: Arc::new(crate::input_binding::CandidateRecordView {
@@ -322,13 +331,12 @@ pub(crate) fn discover_rule_candidates(
                     source_name: source.source_name.clone(),
                     candidate_id: CandidateId {
                         rule: rule_ref.clone(),
-                        occurrence: matched
-                            .occurrence
+                        occurrence: occurrence
                             .occurrence_identity()
                             .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?,
                     },
                     rule: rule_ref.clone(),
-                    occurrence: matched.occurrence,
+                    occurrence,
                     view: PrivacyView {
                         grants: rule.private_access.clone(),
                     },

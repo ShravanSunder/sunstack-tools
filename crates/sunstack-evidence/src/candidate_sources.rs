@@ -25,8 +25,9 @@ pub enum SourceOccurrence {
 }
 impl SourceOccurrence {
     pub fn occurrence_identity(&self) -> EvidenceResult<OccurrenceId> {
-        let bytes = serde_json::to_vec(self).map_err(|_| EvidenceCode::InvalidSelector)?;
-        OccurrenceId::new(content_digest(&bytes))
+        match self {
+            Self::Record { record, .. } => OccurrenceId::new(record.as_str()),
+        }
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -46,6 +47,7 @@ pub enum RecordPredicate {
 pub struct RecordMatch {
     pub occurrence: SourceOccurrence,
     pub record: PositionedRecord,
+    pub witnesses: Vec<SourceOccurrence>,
 }
 #[derive(Clone, Debug, Default)]
 pub struct Discovery {
@@ -72,7 +74,7 @@ impl CandidateSource for [PositionedRecord] {
         let mut dropped = Vec::new();
         for record in self {
             let value = serde_json::to_value(record).map_err(|_| EvidenceCode::InvalidSelector)?;
-            let spans = match &predicate {
+            let mut spans = match &predicate {
                 Some(predicate) => matching_fields(predicate, &value)?,
                 None => vec![(
                     FieldPath::new("/body")?,
@@ -82,6 +84,12 @@ impl CandidateSource for [PositionedRecord] {
                     },
                 )],
             };
+            spans.sort_by(|(left_field, left_span), (right_field, right_span)| {
+                left_field
+                    .as_str()
+                    .cmp(right_field.as_str())
+                    .then(left_span.byte_start.cmp(&right_span.byte_start))
+            });
             if spans.is_empty() {
                 dropped.push(RecordMatch {
                     occurrence: occurrence(
@@ -93,12 +101,18 @@ impl CandidateSource for [PositionedRecord] {
                         },
                     )?,
                     record: record.clone(),
+                    witnesses: vec![],
                 });
             } else {
-                for (field, span) in spans {
+                let witnesses = spans
+                    .into_iter()
+                    .map(|(field, span)| occurrence(record, field, span))
+                    .collect::<EvidenceResult<Vec<_>>>()?;
+                if let Some(occurrence) = witnesses.first().cloned() {
                     discovery.matches.push(RecordMatch {
-                        occurrence: occurrence(record, field, span)?,
+                        occurrence,
                         record: record.clone(),
+                        witnesses,
                     });
                 }
             }

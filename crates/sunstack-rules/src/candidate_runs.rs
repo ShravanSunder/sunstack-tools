@@ -30,6 +30,20 @@ async fn run_candidates(
     {
         return Err(invalid_candidate_field(vec![]));
     }
+    let mut inputs = BTreeSet::new();
+    for (position, entry) in input.sources.iter().enumerate() {
+        let identity = entry
+            .source
+            .source_identity()
+            .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+        if !inputs.insert(identity) {
+            return Err(invalid_candidate_field(vec![
+                "sources".into(),
+                position.to_string(),
+                "source".into(),
+            ]));
+        }
+    }
     input.attempts.validate().map_err(|diagnostic| {
         DiagnosticList::from(sunstack_decisions::DiagnosticList::from(diagnostic))
     })?;

@@ -1,10 +1,11 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used)]
 #[path = "../../../sunstack-rules/tests/support/candidate_fixture.rs"]
 mod candidate_fixture;
+pub use candidate_fixture::fixture as record_fixture;
 use serde_json::{Value, json};
 use std::path::Path;
 pub fn fixture(root: &Path, endpoint: &str, document: bool) -> Value {
-    let mut input = candidate_fixture::fixture(root, endpoint);
+    let mut input = record_fixture(root, endpoint);
     input["sources"].as_array_mut().unwrap().truncate(1);
     std::fs::write(
         root.join("first.jsonl"),
