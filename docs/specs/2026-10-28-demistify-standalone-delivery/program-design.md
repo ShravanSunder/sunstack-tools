@@ -45,9 +45,9 @@ flowchart TB
 | Component | Job | Reason to change |
 | --- | --- | --- |
 | `demistify-cli/src/bin.ts` | Turn `process.argv` into one `CliCommand`, run it, and set the exit code | process contract |
-| `command-line.ts` | Parse arguments into a closed union `CliCommand` (`check`, `embed`, `index`, `bundle`, `verify`, `version`, `help`, `usage-error`), and own the usage text | C1 changes |
+| `command-line.ts` | Parse arguments into a closed union `CliCommand` (`check`, `check-hook`, `embed`, `index`, `bundle`, `verify`, `version`, `help`, `usage-error`), and own the usage text. `check-hook` keeps today's Claude Code hook contract: read the event from stdin, stay silent on clean files, exit 2 with findings on stderr. | C1 changes |
 | `commands/*-command.ts` | One command each: read inputs, call the library, print, return an exit code. `check`, `embed` and `index` move unchanged from `packages/demistify/bin/demistify.ts`. | one command's behavior |
-| `cli-identity.ts` | Expose `cliVersion` and `cliSourceCommit`. The version is imported from `@sunstack/demistify/package.json`, which Vite inlines at build. The commit comes from a build-time define; from source it reads `source checkout`. | release identity |
+| `cli-identity.ts` | Expose `cliVersion` and `cliSourceCommit`. The version is imported from `@sunstack/demistify/package.json`, which Vite inlines at build. The commit is the define `__DEMISTIFY_CLI_SOURCE_COMMIT__`, which `build-cli.ts` sets from `git rev-parse HEAD`, as `prepare-release.ts` does for the release. From source, where the define is absent, it reads `source checkout`. | release identity |
 | `page-library-binding.ts` | Find the theme link and runtime script and derive one `LibraryBinding` from their shared base URL | binding rules (R9) |
 | `release-library-reader.ts` | Fetch `<binding>release.json`, parse it with `releaseManifestSchema`, apply the version guard, and expose `readLibraryFile(path)`, which verifies size and SHA-256 | release contract (R5, R6) |
 | `launch-chromium.ts` | Launch headless Chromium from `playwright-core`: the `chrome` channel first, then Playwright's Chromium. It returns a launched browser or `browser-unavailable` with each attempt's error. | browser discovery |
@@ -65,15 +65,15 @@ flowchart TB
 
 | R | Realized at | How |
 | --- | --- | --- |
-| R1 | `build-cli.ts`, `stage-assets.ts`, `worker.ts` | The packed manifest declares `bin: { demistify: "bin/demistify.js" }`, compiled JavaScript (not TypeScript; pnpm `dlx` refuses `.ts` under `node_modules`), and `engines.node >=26`. Staging places the archive at `v1/cli.tgz`. |
+| R1 | `build-cli.ts`, `stage-assets.ts`, `prepare-release.ts`, `worker.ts` | The packed manifest declares `bin: { demistify: "bin/demistify.js" }`, compiled JavaScript (not TypeScript; pnpm `dlx` refuses `.ts` under `node_modules`), and `engines.node >=26`. `prepare-release.ts` passes `cliArchivePath: packages/demistify-cli/dist/cli.tgz`, and staging places it at `v1/cli.tgz`. |
 | R2 | `command-line.ts`, `cli-identity.ts` | `--version` prints `demistify <version> (<source commit>)`. `--help` prints C1's usage lines. |
 | R3 | `build-cli.ts`, `stage-assets.ts` | The packed `files` list is `["bin"]`. The build fails if `dist/package` contains any path that is not `bin/demistify.js` or `package.json`. `stageRelease` takes `cliArchivePath` and adds exactly `cli.tgz`. |
 | R4 | `build-cli.ts` | Packed `dependencies` come from bare imports Vite left external. The `@sunstack/demistify` code is inlined, never a dependency. The build fails if a kept external has no declared version in the library or CLI workspace manifest. |
 | R5 | `release-library-reader.ts` | It compares `manifest.version` with `cliVersion` and returns `release-mismatch`, carrying both versions and the C4 rerun command. |
 | R6 | `release-library-reader.ts` | `readLibraryFile(path)` requires `path` in `manifest.files`, fetches `<binding><path>` through `fetchReleaseBytes` (which already sets `redirect: 'error'`, `no-store` and a 20-second timeout), and compares the byte length and `hashBytes`. Results are memoized per path. |
-| R7 | `standalone.ts`, `bundle-command.ts` | The transform is unchanged except for its reader. The command supplies local Markdown and Explorer resolvers relative to the page source. |
+| R7 | `standalone.ts`, `bundle-command.ts` | The transform is unchanged except for its reader. The command supplies local Markdown and Explorer resolvers relative to the page source. The Markdown resolver rejects a reference with a scheme or a leading `//` (the same test `embed` applies today) as `unsupported-content` naming it. A missing file is `local-source-missing` naming its path. |
 | R8 | `standalone.ts` | It writes `<meta name="demistify-bundle" content="version=<v> source-commit=<sha>">` (or `version=<v> source=local-build`) into `<head>`. It marks the inlined theme `<style data-demistify-theme>`. |
-| R9 | `page-library-binding.ts`, `standalone.ts` | The binding rules cover a missing link, split bases, and a base that is not HTTPS (loopback HTTP is allowed for local proof, as `publicOrigin` already allows). The existing transform errors cover `<img>`, an unprepared `src` and remote Explorers. Missing local files surface from the resolvers. |
+| R9 | `page-library-binding.ts`, `standalone.ts` | The binding rules cover a missing link, split bases, and a base that is not HTTPS (loopback HTTP is allowed for local proof, as `publicOrigin` already allows). The existing transform errors cover `<img>`, an unprepared `src` and remote Explorers. The resolvers in R7 cover URL Markdown and missing local files. |
 | R10 | `write-file-atomically.ts` | The command writes only after the transform returns. |
 | R11 | `check.ts`, `delivery-kind.ts` | When `delivery-kind` says `bundle`, `check` treats the offline modules script as loading the runtime and `<style data-demistify-theme>` as loading the theme. It exempts only that style element from `styling`. |
 | R12, R13 | `check-delivery.ts` | `CheckOptions` gains `pageFileName`. A name ending in `.standalone.html` with `kind: 'linked'` is an error. A bundle with a theme link, a runtime script, or an `ex-markdown`, `ex-explorer` or unprepared `ex-mermaid` with `src` is an error. |
@@ -125,6 +125,7 @@ type VerificationFailure =
 	| { readonly kind: 'library-not-loaded' }
 	| { readonly kind: 'markdown-not-rendered'; readonly element: string }
 	| { readonly kind: 'diagram-not-rendered'; readonly element: string }
+	| { readonly kind: 'explorer-not-rendered'; readonly element: string }
 	| { readonly kind: 'runtime-issue'; readonly message: string }
 	| { readonly kind: 'page-error'; readonly message: string }
 	| { readonly kind: 'request-blocked'; readonly url: string }
@@ -176,8 +177,11 @@ For each file, using one browser across all files:
 1. Launch through `launch-chromium.ts`. On `browser-unavailable`, print the attempts and how to provide a browser, and exit 2.
 2. Open a page at 1400×900. With `--no-network`, install `page.route('**/*')`: it continues `file:`, `data:` and `blob:` and aborts everything else, recording each aborted URL. Record `[demistify]` console messages, console errors and `pageerror`.
 3. Go to `pathToFileURL(file)` and wait for `load`.
-4. In the page, check that `customElements.get('ex-markdown')` is defined; otherwise record `library-not-loaded`. Then scroll each `ex-markdown` and `ex-mermaid` into view, click each `[role="tab"]`, and wait until every `ex-markdown` has `prepared` and every `ex-mermaid` has `prepared` and a direct `svg` child, or until 20 seconds pass.
-5. Record `markdown-not-rendered` for each `ex-markdown` without `prepared`, or with `role="alert"`. Record `diagram-not-rendered` for each `ex-mermaid` without a direct `svg`, and `timeout` if the wait expired. Record any value in `document.documentElement.dataset.exIssues` and each `[demistify]` message as `runtime-issue`.
+4. In the page, check that `customElements.get('ex-markdown')` is defined; otherwise record `library-not-loaded`. Then scroll each `ex-markdown`, `ex-mermaid` and `ex-explorer` into view, and click each `[role="tab"]`. Wait until all of these hold, or until 20 seconds pass:
+   - every `ex-markdown` has `prepared` (set in `islands/markdown.ts` after rendering);
+   - every `ex-mermaid` has `prepared` and a direct `svg` child (`islands/mermaid.ts`);
+   - every `ex-explorer` has `data-ready` (`explorer/explorer-controller.ts`).
+5. Record `markdown-not-rendered` for each `ex-markdown` without `prepared`, or with `role="alert"`. Record `diagram-not-rendered` for each `ex-mermaid` without a direct `svg`, and `explorer-not-rendered` for each `ex-explorer` without `data-ready`. Record `timeout` if the wait expired. Record any value in `document.documentElement.dataset.exIssues` and each `[demistify]` message as `runtime-issue`.
 6. Screenshot the full page to `<screenshots>/<file stem>.png`, by default a fresh `mkdtemp` directory printed in the report. Print one line per file and one indented line per failure.
 
 The file is only read. Desktop width alone is enough here; the phone width stays in `check --render`.
@@ -215,16 +219,16 @@ Slice 2 ships `bundle` before `verify`. Agents could bundle without the offline 
 
 ## Trace
 
-| R | Component | V |
-| --- | --- | --- |
-| R1, R2 | `build-cli.ts`, `command-line.ts`, `cli-identity.ts`, staging | V1 |
-| R3, R4 | `build-cli.ts`, `stage-assets.ts` | V2 |
-| R5, R6 | `release-library-reader.ts` | V3, V4 |
-| R7, R8 | `standalone.ts`, `bundle-command.ts` | V5 |
-| R9 | `page-library-binding.ts`, `standalone.ts` | V6 |
-| R10 | `write-file-atomically.ts` | V4 |
-| R11–R13 | `delivery-kind.ts`, `check-delivery.ts`, `check.ts` | V7 |
-| R14–R16 | `verify-delivered-file.ts`, `launch-chromium.ts`, `verify-command.ts` | V8 |
-| R17, R18 | guide `delivery.md`, `presentation-html` | V9 |
-| R19 | `verify-demistify` journey | V10 |
-| R20, R21 | worktrees, `gh stack` | V11 |
+| R | U | E | Component | Interface or home | Failure shape | V |
+| --- | --- | --- | --- | --- | --- | --- |
+| R1, R2 | U1 | E3, E4 | `build-cli.ts`, `command-line.ts`, `cli-identity.ts`, `prepare-release.ts` | packed manifest, `CliCommand` | `usage-error` exits 1 | V1 |
+| R3, R4 | U2 | E3, E4 | `build-cli.ts`, `stage-assets.ts` | `files: ["bin"]`, `cliArchivePath` | the build or staging throws | V2 |
+| R5, R6 | U3 | E2–E4 | `release-library-reader.ts` | `ReleaseFailure`, `LibraryFileReader` | `release-mismatch`, `library-file-*` | V3, V4 |
+| R7, R8 | U3, U4 | E1, E3, E5 | `standalone.ts`, `bundle-command.ts` | `StandaloneHtmlOptions`, `BundleOrigin`, bundle meta | `unsupported-content`, `local-source-missing` | V5 |
+| R9 | U4 | E1 | `page-library-binding.ts`, `standalone.ts`, resolvers | `BindingFailure` | `binding-*`, `unsupported-content` | V6 |
+| R10 | U4 | E5 | `write-file-atomically.ts` | sibling temporary file, then rename | temporary file removed, output untouched | V4 |
+| R11–R13 | U5 | E5, E6 | `delivery-kind.ts`, `check-delivery.ts`, `check.ts` | `CheckOptions.pageFileName`, rule `delivery` | findings | V7 |
+| R14–R16 | U6 | E6, E8 | `verify-delivered-file.ts`, `launch-chromium.ts`, `verify-command.ts` | `VerificationResult`, `BrowserLaunch` | exit 1 or 2 | V8 |
+| R17, R18 | U7 | E5, E7 | guide `delivery.md`, `presentation-html` | published guide text | — | V9 |
+| R19 | U6, U7 | E5, E8 | `verify-demistify` journey | journey steps | — | V10 |
+| R20, R21 | U8, U9 | — | worktrees, `gh stack` | PRs | — | V11 |

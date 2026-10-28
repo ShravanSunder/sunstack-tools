@@ -61,14 +61,14 @@ P1: an agent cannot produce a file a chat viewer renders without improvising, an
 
 - **R1** (U1; E3, E4) When an agent runs `pnpm --package=<binding>cli.tgz dlx demistify <command> [arguments]` with Node 26 or later and pnpm 11 or later on macOS or Linux, the CLI archive of the release current at that binding installs and runs `<command>`. No repository checkout, login or other install step is needed.
 - **R2** (U1; E4) `demistify --version` prints the CLI's release version and source commit. `demistify --help` lists `check`, `embed`, `index`, `bundle` and `verify`, each with its usage line.
-- **R3** (U2; E3, E4) The CLI archive contains no runtime file (runtime script, stylesheet, chunks, fonts, icons or diagram worker) and no guide. Publishing it adds exactly one file, `cli.tgz`, to its release's file list and changes the bytes of no other published file.
-- **R4** (U2; E3, E4) Installing the CLI archive downloads no runtime file. Loading a page's runtime never installs or fetches the CLI.
+- **R3** (U2; E3, E4) The CLI archive contains no runtime file (runtime script, stylesheet, chunks, fonts, icons or diagram worker) and no guide. Publishing it adds exactly one file, `cli.tgz`, to its release's file list. No other listed file's bytes change; `release.json` necessarily gains the new entry.
+- **R4** (U2; E3, E4) The CLI archive declares no dependency on a Demistify package, so installing it downloads no runtime file. Because R3 leaves runtime bytes unchanged, loading a page's runtime cannot reach the CLI.
 - **R5** (U3; E2, E3, E4) If `bundle` finds that the release current at the page's binding has a different version from the CLI, it writes nothing and exits 1. The message names both versions and gives a rerun command that bypasses pnpm's `dlx` cache.
 - **R6** (U3; E3, E5) Every library file placed in a bundle has exactly the byte size and SHA-256 its release's `release.json` records. If a needed file is missing from `release.json`, cannot be fetched, or differs, `bundle` writes nothing and exits 1 naming the file.
 
 ### `bundle`: one file that renders with no network
 
-- **R7** (U4; E1, E3, E5) `demistify bundle <source.html> <output.html>` writes one file. Opened from disk with all network blocked, it shows what the page source shows when served with network: every Markdown island (inline or from a local file), every Mermaid island, every Explorer (inline or from a local JSON file), the theme and its fonts.
+- **R7** (U4; E1, E3, E5) `demistify bundle <source.html> <output.html>` writes one file. Opened from disk with all network blocked, it shows what the page source shows when served with network: every Markdown island (inline or from a local file), every Mermaid island written inline or already prepared, every Explorer (inline or from a local JSON file), the theme and its fonts.
 - **R8** (U3, U4; E3, E5) The bundle records its release's version and source commit as metadata in its document head, readable without running the page. `bundle --library <directory>` reads a complete local build instead of a release, skips R5, and records that it came from a local build. It is the maintainer's route to proof before a release exists (R19).
 - **R9** (U4; E1) If the page source cannot be bundled, `bundle` exits 1 naming the element or path, and writes nothing. That covers:
   - a missing theme link or runtime script;
@@ -88,6 +88,7 @@ P1: an agent cannot produce a file a chat viewer renders without improvising, an
   - Demistify's elements are defined;
   - every Markdown island shows rendered content;
   - every Mermaid island shows a drawn diagram;
+  - every Explorer shows its graph;
   - the runtime reported no authoring issue;
   - the page raised no error.
 - **R15** (U6; E8) With `--no-network`, every request other than the file itself, `data:` and `blob:` is blocked. Any blocked request fails the file and is listed by URL.
@@ -164,10 +165,10 @@ Negative space: no `bundle` for many pages at once, no picture inlining, no brow
 | V2 | R3, R4 | The archive's file list, and a staged release's runtime file bytes compared with and without the CLI | an archive carrying `runtime.js` or chunks; a staged runtime whose bytes changed |
 | V3 | R5 | A staged release whose version differs from the CLI's | a CLI that bundles anyway, or exits without the C4 rerun command |
 | V4 | R6, R10 | A staged release with one file's bytes changed after `release.json` was written | a bundle that trusts the download, or leaves a partial file |
-| V5 | R7, R8 | A page source with inline and file Markdown, a Mermaid island and an Explorer from local JSON, bundled and then opened with all network blocked | a bundle still linking the CDN; a bundle missing file Markdown or the Explorer data |
+| V5 | R7, R8 | A page source with inline and file Markdown, an inline Mermaid island and an Explorer from local JSON, bundled and then opened with all network blocked | a bundle still linking the CDN; a bundle missing file Markdown or the Explorer data |
 | V6 | R9 | Each listed unbundleable input | a command that writes a bundle with a hole in it |
 | V7 | R11–R13 | A V5 bundle; a CDN-linked file named `x.standalone.html`; a bundle with a runtime script added back | today's checker (1 error, 121 warnings on a correct bundle) |
-| V8 | R14–R16 | The 28 October CDN-linked page shape with `--no-network` (fails, listing `runtime.js` and `theme.css`); a V5 bundle (passes); a page with an island that never renders (fails naming it); no browser (exit 2) | a verify that checks only the load event or exit status |
+| V8 | R14–R16 | The 28 October CDN-linked page shape with `--no-network` (fails, listing `runtime.js` and `theme.css`); a V5 bundle (passes); a page with a Markdown island or an Explorer that never renders (fails naming it); no browser (exit 2) | a verify that checks only the load event or exit status |
 | V9 | R17, R18 | A fresh agent asked to prepare a page for a Slack reader, with the new guide and `presentation-html` | today's skills, under which agents produce a CDN-linked file named standalone |
 | V10 | R19 | The journey's own bundle and verify run | a journey that serves over HTTP, or never blocks the network |
 | V11 | R20, R21 | PR heads, bases and states | a combined PR, a merged PR, or a skill change based on the older `ai-tools` branch |

@@ -27,11 +27,12 @@ This plans how each proof obligation in the [Specification](specification.md) ge
 - Arrange: the V1 staging.
 - Act and assert:
   - list the archive's contents, which must be exactly `package/package.json` and `package/bin/demistify.js`;
-  - read the packed `dependencies`, which must contain no `@sunstack/` name;
+  - read the packed `dependencies`, which must contain no `@sunstack/` name, so installing the CLI cannot pull a runtime package (R4);
   - diff the staged `v1/` tree with and without `cliArchivePath`, which may differ only in `cli.tgz` and `release.json`;
   - build the archive twice, and require the same SHA-256 both times.
 - Permanent test: `release-assets.test.ts` gains one case, in which staging without `cli.tgz` fails as an incomplete release.
 - Falsifier: an archive carrying `runtime.js` or chunks, a `workspace:` dependency, or a second build with a different hash.
+- Also run `check --hook` through the built CLI with a hook event naming a page that has a known error, and assert exit 2 with findings on stderr. This keeps today's hook contract.
 
 **V3 — version guard** (R5).
 
@@ -53,11 +54,11 @@ This plans how each proof obligation in the [Specification](specification.md) ge
   - `/Users/shravan.sunder/Downloads/index.standalone.html`, the 28 October CDN-linked page, copied into the run directory as `incident.html`;
   - a PoC fixture with inline and file Markdown, a Mermaid island and an Explorer reading local JSON, such as `apps/demistify-poc/experiments/agent-written/navigation-markdown-fix/`, plus an Explorer example.
 - Act:
-  - bundle `incident.html` against the production binding with a CLI built at the version production serves;
+  - bundle `incident.html` against the production binding with a CLI built at the version production serves (1.15.4 on 28 October; Changesets bump the version only in the later version PR). If production has moved on by then, bind a copy of `incident.html` to the loopback release instead; R5 refusing the mismatch is the designed behavior, not a failure;
   - bundle the fixture with `--library packages/demistify/dist`;
   - run `verify --no-network` on both outputs;
   - read each output's `<meta name="demistify-bundle">`.
-- Assert: both outputs pass `verify`, with screenshots showing rendered Markdown and diagrams. The metadata reads `version=… source-commit=…` and `version=… source=local-build`.
+- Assert: both outputs pass `verify`, which includes the fixture's Explorer reaching `data-ready`, and the screenshots show rendered Markdown, diagrams and the Explorer graph. The metadata reads `version=… source-commit=…` and `version=… source=local-build`.
 - Falsifier: V8 shows the same verifier failing the unbundled incident file.
 - Evidence: manual proof, with screenshots in the PR body.
 
@@ -78,7 +79,8 @@ This plans how each proof obligation in the [Specification](specification.md) ge
 - Permanent test: `verify-delivered-file.test.ts` with real Chromium, three cases:
   - the V5 fixture bundle passes with `--no-network`;
   - a CDN-linked copy of the same fixture fails with `request-blocked` for `…/runtime.js` and `…/theme.css`, plus `library-not-loaded`;
-  - a bundle whose Markdown island is changed to a missing `src` fails with `markdown-not-rendered` naming `ex-markdown#…`.
+  - a bundle whose Markdown island is changed to a missing `src` fails with `markdown-not-rendered` naming `ex-markdown#…`;
+  - a bundle whose inline Explorer JSON is made invalid fails with `explorer-not-rendered` naming `ex-explorer#…`.
 - Permanent test: a case runs `verify-command` with `launch-chromium` given no usable channel or executable, and asserts exit 2 and the browser guidance. This is the only stand-in: a forced launch failure in place of a machine with no browser.
 - Manual proof: `verify --no-network` on the two Downloads files. `index.standalone.html` fails, listing both blocked URLs. `address-mismatch-v2-workflow-map.standalone.html` passes with its four diagrams drawn.
 - Falsifier: a verifier that checks only `load` or the exit status passes the CDN-linked copy when network is allowed.
