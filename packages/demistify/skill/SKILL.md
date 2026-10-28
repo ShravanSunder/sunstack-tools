@@ -11,7 +11,7 @@ Pages are separate HTML documents. Tabs switch peer views in one place. A native
 
 ## 1. Bind the page and prepare its sources
 
-Use the supplied library base, normally `https://demistify.getagentstudio.dev/v1/`. MUST load `release.json` and `authoring/SKILL.md` relative to that base and return the base, version/source commit and confirmation that theme, runtime and chosen API belong to it. This exact matching guide read counts; do not reload it recursively. Experimental v1 can change. A source preview uses its matching local build and names absent release metadata instead of claiming a published binding.
+Use the supplied library base, normally `https://demistify.getagentstudio.dev/v1/`. Read `authoring/SKILL.md` from that base once; use its API and keep theme, runtime and CLI on that same base. Do not reload the guide recursively or audit release hashes for routine authoring. Experimental v1 can change. A source preview uses its matching local build and names absent release metadata instead of claiming a published binding.
 
 ```html
 <!doctype html>
@@ -43,16 +43,16 @@ Completion: the binding and opening method are concrete, supplied sources are pr
 
 Two widths share one left edge from 1.10.0. **Reading** holds prose at 760px; **Canvas** gives visuals up to 1600px. Text remains left aligned. Document headings and dividers follow Reading; a wide view and its controls stay together. Earlier bindings follow their own guide. Set `data-width="reading"` or `data-width="canvas"` on the whole component or native layout wrapper when choosing explicitly.
 
-For each matching condition below, load the named reference and return its authored result. The references own syntax, configuration, controls, composition and deciding observations; a list of component names is not the result.
+For each matching condition below, load the named reference and return its authored result. The references own syntax, configuration, controls and composition; a list of component names is not the result.
 
 | IF the page needs… | Load | Return |
 | --- | --- | --- |
 | Explicit widths, a grid or tabs | `references/layouts.md` | Whole-component widths, child layout and labels |
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
-| The reader must select answers, attach feedback or override review identity | `references/choices-and-comments.md` | Requested response/feedback arrangement, default or overridden identities and binding, optional supporting details and interactions to observe |
+| The reader must select answers, attach feedback or override review identity | `references/choices-and-comments.md` | Requested response/feedback arrangement, default or overridden identities and binding, optional supporting details and intended interactions |
 | A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and exact supplied values |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
-| Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior to observe |
+| Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior |
 | A Mermaid view or Mermaid fence | `references/diagrams.md` | Supported family, safe source and readable, resolving targets |
 | Code, a diff or line notes | `references/code.md` | Exact source and notes on displayed file/row numbers |
 | Ownership regions, routed arrows or optional layers | `references/maps.md` | Reading/map choice, real endpoints and room for complete captions |
@@ -78,26 +78,23 @@ Use the generated vocabulary at the matching binding for accepted attributes and
 
 Completion: facts occur once, navigation resolves to the intended content, proposal/evidence labels are honest, and ordinary examples contain reader content rather than state-retention test inputs.
 
-## 4. Check the delivered files and observe the result
+## 4. Lint the final files once
 
-The CLI ships in source, not npm. From a dependency-installed matching sunstack-tools checkout with Node 26:
+Run the CLI shipped at the page's library binding (Node 26+):
 
 ```sh
-node packages/demistify/bin/demistify.ts check /absolute/path/to/page.html
+pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz check /path/page.html
+# Or: npx --yes --package=https://demistify.getagentstudio.dev/v1/demistify-cli.tgz demistify check /path/page.html
 ```
 
-Check every final HTML file after embedding/indexing. Require a nonzero file count and **zero errors and warnings**; exit 0 alone does not establish both. `check --fix` repairs mechanical findings. The checker validates recognized markup/data, not prose truth, matching import releases, useful layout or readable diagrams. Compare theme/runtime imports with the recorded base explicitly.
+Use the same base as the runtime and theme. List the HTML files changed by this task in one invocation. Fix reported errors in the authoring source; rerun only after a correction. Warnings are advice, not an automatic zero-warning gate. Keep supplied facts, source files and relative links intact.
 
-Check the authored document and its requested interactions. Routine device and theme regression testing belongs to library development, not each document-authoring task.
+Routine document authoring ends with this source check. Do not install or launch Playwright, Chrome, another browser, a preview server or a device/theme matrix to certify shared components. Browser inspection is only for an explicit user request or diagnosing a concrete rendering/interaction defect; inspect the affected view only. Component regression verification belongs to library development. This workflow policy also governs the component references below.
 
-Open the actual artifact through its intended supported route. Exercise its authored links, chosen controls, loaded content and any inspection/fullscreen return. Inspect rendered Markdown and SVG rather than assuming source text rendered. Compare embedded source with a fresh regeneration from the live source page as `content.md` teaches. Follow browser URL/access policy; a blocked file URL is a proof gap, not a reason to launch another browser or server.
-
-Runtime authoring issues appear in console warnings and the root's `data-ex-issues` count. `?ex-check` opts into their visible panel; readers do not need that panel to see a content-load error. Fix the authored issue or report the exact release limitation.
-
-Completion: matching static checks and source comparisons pass; the actual observations establish the claims being returned, with unavailable interactions explicitly unverified.
+A source check does not establish visual or interaction behavior. Report a failed command or unavailable tool plainly; do not turn routine authoring into a browser-proof task or claim unobserved behavior.
 
 ## 5. Return the artifact and its evidence
 
-Return the file link, recorded library binding/release, checks and actual observations, plus remaining limitations. Count authored HTML, referenced content/data/images and shared library costs separately. Source bytes/tokens are not model input/output/thinking usage or billed dollars. Loading public assets does not publish the document; publish only within the user's authorized scope.
+Return the file link and a brief lint result; mention a limitation only when it affects opening or using the document. Count authored HTML, referenced content/data/images and shared library costs separately. Source bytes/tokens are not model input/output/thinking usage or billed dollars. Loading public assets does not publish the document; publish only within the user's authorized scope.
 
-The task is complete when its requested content and interactions work through the intended delivery method, or it is returned with the precise blocker and no unsupported completion claim.
+The task is complete when the requested document is prepared for its intended delivery method and its changed HTML passes lint. Exercise interactions only when the task explicitly requests that verification.

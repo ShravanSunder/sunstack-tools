@@ -167,14 +167,4 @@ A phase keeps its chosen `series` when its position changes. Slot 1 is blue, slo
 
 A normal breakdown shows its own named phase key. Use that in prose or a rich Trace attachment where each phase name should sit beside its value. In a compact share table, let the table header provide the shared phase names and order and state the share scale once in its caption or introduction. Positive compact shares omit repeated visible titles and scale text; elapsed, zero and invalid results retain their explicit explanations. The bar has soft outside corners and straight internal joins. Let the native table wrapper own narrow scrolling, and let Trace own its disclosure and spacing. Do not add a wide outer card or change document Reading/Canvas widths for these parts.
 
-## Check and observe
-
-1. Check each finished HTML file with the matching library source:
-
-   ```sh
-   node packages/demistify/bin/demistify.ts check /absolute/path/to/page.html
-   ```
-
-   Require a non-zero file count and zero errors and warnings. Fix malformed input; do not present an intentionally invalid example as a working recipe.
-2. Open the actual artifact with its supported route. Observe badge text and wrapping, exact counts and durations, phase order and values, the optional progress view where used and local table scrolling.
-3. Keep supplied facts visible. The checker proves recognized markup and values, not that the surrounding explanation is true or that the rendered result is useful.
+Use the main guide's lint pass. Keep exact supplied counts, durations, phase names and values visible; library development owns wrapping, scrolling and shared-control regression tests.

@@ -17,6 +17,7 @@ import {
 	type AttributeSpec,
 	type ElementSpec,
 } from '../src/vocabulary.ts';
+import { buildAuthoringCli } from './build-cli.ts';
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const outputDirectory = resolve(packageRoot, 'dist');
@@ -171,3 +172,4 @@ await writeFile(
 process.stdout.write(
 	'Built drop-in Demistify runtime, lazy renderer chunks, theme, linked fonts, subset icons and editor data.\n',
 );
+await buildAuthoringCli(outputDirectory);

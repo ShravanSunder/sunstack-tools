@@ -41,4 +41,4 @@ last line</template></ex-pre>
 
 Keep the formatter-ignore comment with this literal island: Oxfmt otherwise collapses bare-template line breaks. Preserve hierarchical Markdown in its `text/markdown` script. After formatting, compare decoded literal characters/newlines and Markdown hierarchy with the original. Escape `&` as `&amp;` and `<` as `&lt;` inside this template; the component reads its decoded text. Use the shared zoom/sidebar/fullscreen inspection rather than custom fonts, borders or controls. Verify the literal delimiter and line breaks in the result.
 
-Complete by folding without navigation, following the trailing go-to to the intended target, and checking a long label with inline code and multiple paragraphs. For ex-pre, compare text and line breaks in main and inspector; clipping or changed characters fail the intended faithful drawing.
+Keep the intended target IDs and exact text/line breaks. Use the main guide's lint pass; folding, navigation and inspector regression journeys belong to library development.

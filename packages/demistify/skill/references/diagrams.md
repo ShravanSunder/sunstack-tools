@@ -88,4 +88,4 @@ Good: the node retains its identity and responsibility on meaningful lines, whil
 
 Shared text uses readable colors and a 16px rendered floor; a view that needs more room scrolls locally. Use Canvas for a rich view and the shared inspector for closer reading. Avoid fixed heights/hidden overflow that crop nodes, legends or labels.
 
-Finish by inspecting actual SVG, every endpoint and label, one scoped cold link and any linked card interaction. The static checker can catch selected render/syntax problems and empty subgraphs; it does not prove visual semantics, legibility, runtime execution or complete node membership from source-word target checks.
+The source checker catches supported syntax and selected render errors. Browser inspection is reserved for a requested visual review or a reported rendering defect, not every authored diagram.

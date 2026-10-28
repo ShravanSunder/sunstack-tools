@@ -1,6 +1,6 @@
 # Answers, supporting details and comments
 
-This reference owns choice and feedback authoring. Inputs are the reader's question, supplied options and sources, requested feedback or handoff, and matching library binding. Return the requested arrangement, its required identities and binding, optional supporting-detail placement and the interactions to observe.
+This reference owns choice and feedback authoring. Inputs are the reader's question, supplied options and sources, requested feedback or handoff, and matching library binding. Return the requested arrangement, its required identities and binding, optional supporting-detail placement and the intended reader interactions.
 
 ## Ask only for the response the reader needs to give
 
@@ -74,7 +74,7 @@ Cards use Reading width by default. Supporting extras open through the native in
 
 Use `view="table"` on the choice when short corresponding option bodies benefit from aligned selectable rows. The same option declarations become a Canvas-width native table; narrow scrolling stays inside the table boundary. Do not invent extra column or criteria attributes. Use `details="inline"` when extras should expand locally beneath an option, accepting that they move later content down. Both variations retain separate selection, detail and feedback actions.
 
-Keep full diagrams and their headings in extras. Opening or closing extras must leave document navigation unchanged. `inspection.md` owns shared sidebar/fullscreen controls and state-return checks; `layouts.md` owns Reading/Canvas and narrow containment.
+Keep full diagrams and their headings in extras. Opening or closing extras must leave document navigation unchanged. `inspection.md` owns shared sidebar/fullscreen controls and state-return behavior; `layouts.md` owns Reading/Canvas and narrow containment.
 
 ## Use defaults, then choose deliberate overrides
 
@@ -105,25 +105,12 @@ C toggles Comments outside editable fields; modified commands, composition and r
 
 Comments save locally in this browser origin for the same resolved document/revision, retaining review/comment IDs, bodies, anchors and timestamps. Answers remain current native input state and have no reload-persistence promise. Unavailable storage, failed writes and invalid saved content are visible states. Invalid stored data is preserved; new in-memory feedback remains unsaved and can be copied or exported. Do not erase saved data or claim it was saved to dismiss that state.
 
-Copy carries readable comments and selected answers together. Export carries the same review as `demistify-review-1`: `documentId`, `documentRevision`, `reviewId`, `comments` and `answers`. Each comment retains its `commentId`, anchor, body and creation/update times. Whole-item anchors identify the target; text anchors also retain the actual quote and verified source range/context. Answers identify the question and selected option IDs with readable labels. An unanswered choice contributes no answer to the review. A clipboard rejection provides a read-only manual-copy path; inspect the carried content rather than accepting a success message as proof.
+Copy carries readable comments and selected answers together. Export carries the same review as `demistify-review-1`: `documentId`, `documentRevision`, `reviewId`, `comments` and `answers`. Each comment retains its `commentId`, anchor, body and creation/update times. Whole-item anchors identify the target; text anchors also retain the actual quote and verified source range/context. Answers identify the question and selected option IDs with readable labels. An unanswered choice contributes no answer to the review. A clipboard rejection provides a read-only manual-copy path; when a transfer fails, keep the fallback available.
 
 After the components have bound and rendered, a consuming web UI can read the fresh `ex-choice.response` value and its bubbling, composed `choice-change` event, or `ex-comments.review` and `review-change`. A response carries `questionId`, `question` and `selected` entries with `optionId` and `label`. Returned snapshots do not grant mutation of the component's state. The source review model owns validation; do not maintain a second page schema or response store. Plain HTML needs no page script for these interactions.
 
 Nothing is submitted to an agent or server automatically. There is no account, reply-thread, prototype-storage migration, cross-revision relocation or multi-tab merge contract. Reconnecting the same instances retains their current state without duplicate controls. Sidebar inspection copies are read-only response snapshots; they do not join the original radio group or become original feedback targets. Fullscreen uses and restores the original component.
 
-## Check the requested interactions
+## Authoring check
 
-1. Check every final HTML file with the matching source CLI from the monorepo root:
-
-   ```sh
-   node packages/demistify/bin/demistify.ts check /absolute/path/to/review.html
-   ```
-
-   Require a nonzero file count and zero errors and warnings. Check the actual binding and complete source separately; a markup pass establishes neither.
-2. When answers are requested, select by body click and native control/keyboard. Try a real link, Details or Comments action without changing the answer; drag to select text without selecting an option. Check single versus independent answers and their actual IDs.
-3. When extras are authored, open them, inspect the actual rendered Markdown/SVG, close them and confirm the same answer, focus, source content and outline. Observe the whole-card/row marker, not an empty internal wrapper. Exercise table rows and inline details when those variants are used.
-4. Check the automatic Comments launcher and an ordinary semantic target without manual feedback markup. When feedback is requested, comment on an item and an exact passage, including a cross-block quote when useful. Inspect the quote and return target, save with Cmd+Enter, retain newline/editing behavior and reopen the same document revision. Compare saved comment identities/content; do not promise restored answers.
-5. When a combined handoff is requested, inspect actual Copy/Export contents for the current answer IDs and comments/quotes. Keep any visible storage or clipboard failure explicit, using the provided transfer fallback.
-6. Keep source-preview, HTTP, file-origin and physical-touch observations separate; one does not prove the others.
-
-Complete when every requested interaction is checked and observed through the intended opening method, or its precise blocker is returned. Feedback alone, choices without extras and explanation without response UI remain valid compositions. Static validation alone does not prove a usable review page.
+Use the single lint pass in the main guide. Preserve unique question/option IDs and supported summary/extras markup. The library owns selection, Comments, keyboard, storage and export behavior; document authors do not rerun those regression journeys. When the user requests an interaction check or reports a specific defect, exercise only that behavior and report what was observed.

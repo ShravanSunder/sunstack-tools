@@ -13,7 +13,6 @@ import { dirname, relative, resolve } from 'node:path';
 import { applyEdits, type CheckOptions, checkHtml, formatFindings } from '../src/node/check.ts';
 import { indexCollectionSearch, type SearchPageSource } from '../src/node/collection-search.ts';
 import { embedMarkdownFiles, markdownFileReferences } from '../src/node/markdown-files.ts';
-import { renderCheck } from '../src/node/render-check.ts';
 
 const write = (text: string): void => {
 	if (text) process.stdout.write(`${text}\n`);
@@ -119,6 +118,10 @@ async function main(): Promise<number> {
 	}
 
 	const files = rest.filter((argument): boolean => !argument.startsWith('--'));
+	if (files.length === 0) {
+		write('Usage: demistify check <page.html …>');
+		return 1;
+	}
 	const results = await Promise.all(
 		files.map(async (file) => {
 			let source = await readFile(file, 'utf8');
@@ -139,6 +142,7 @@ async function main(): Promise<number> {
 		warnings += findings.filter((finding): boolean => finding.severity === 'warning').length;
 	}
 	if (flags.has('--render') && files.length > 0) {
+		const { renderCheck } = await import('../src/node/render-check.ts');
 		for (const finding of await renderCheck(process.cwd(), files)) {
 			write(`${finding.file} render(${finding.width}): ${finding.message}`);
 			errors += 1;

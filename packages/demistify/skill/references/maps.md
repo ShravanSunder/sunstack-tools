@@ -16,7 +16,7 @@ Direct boxes have stable unique IDs; direct `ex-arrow` children name those IDs w
 
 Flow routes through the gaps between its boxes. In 1.10.0 it measures complete captions, wraps them into multiple lines and reserves minimum row/column room. Facing ports align where the cards permit it. Do not squeeze this room away with local fixed-gap overrides or move caption text into unrelated page positions. Shorten an overlong explanation into a useful edge caption and keep its full meaning beside the view.
 
-If no collision-free caption position exists, this release can omit that caption and report an authoring issue. Open `?ex-check` and inspect the root issue count/console; add room or simplify. A promised fallback caption placement is still an open product requirement, not an implemented API. Check every visible arrow and complete caption after fonts load; valid endpoint syntax alone cannot establish readable routing.
+If no collision-free caption position exists, this release can omit that caption and report an authoring issue. When diagnosing that reported issue, use `?ex-check` to locate it; add room or simplify. A promised fallback caption placement is still an open product requirement, not an implemented API. Keep room for complete arrow captions.
 
 ## Ownership regions and spatial maps
 
@@ -40,7 +40,7 @@ Hand-placed layout: an `ex-board` without regions keeps your own layout, with ar
 </ex-board>
 ```
 
-Regions belong inside the Board. Their `title`, `tone`, `icon` and `label` name the group; children marked `detail` are optional map detail rather than a separate page or path. The reading view preserves document flow; the map view exposes spatial overview and pan/zoom. A hand-placed canvas must leave real channels around boxes, not hide overflow to make it fit. Free Board arrows additionally accept `from-anchor`/`to-anchor` as `left`, `right`, `top` or `bottom`; Flow chooses its own ports. Free-map captions do not inherit Flow's measured multiline layout, so check their actual space separately.
+Regions belong inside the Board. Their `title`, `tone`, `icon` and `label` name the group; children marked `detail` are optional map detail rather than a separate page or path. The reading view preserves document flow; the map view exposes spatial overview and pan/zoom. A hand-placed canvas must leave real channels around boxes, not hide overflow to make it fit. Free Board arrows additionally accept `from-anchor`/`to-anchor` as `left`, `right`, `top` or `bottom`; Flow chooses its own ports. Free-map captions do not inherit Flow's measured multiline layout, so leave enough space for their captions.
 
 ## Independently optional layers
 
@@ -54,4 +54,4 @@ Layers: `layer="proposed"` on any element (cards, arrows, diagrams) lets readers
 
 Layer names connect related elements and their switches; `off` is a space-separated list. Mark corresponding arrows with the same layer as their optional boxes. Use tabs/Compare for mutually exclusive alternatives; layers may be visible independently. Fragments and guided stops reveal a hidden target's containing layer.
 
-Finish by checking endpoint identity, complete captions, map/read switching and every layer's intended content. Source-derived dependencies remain different from observed calls. An arrow passing a syntax check is not evidence that a real request crossed that boundary.
+Use the main guide's lint pass for endpoint IDs and markup; retain the intended captions and layer content. Source-derived dependencies remain different from observed calls. An arrow passing a syntax check is not evidence that a real request crossed that boundary.
