@@ -16,10 +16,6 @@ pub fn case(number: usize, label: Label, split: Split) -> LabeledCase {
     LabeledCase {
         case_id: CaseId::new(format!("case_{number}")).unwrap(),
         source: CaseSourceId::new("source_1").unwrap(),
-        session: SessionKey {
-            provider: sunstack_evidence::ProviderName::new("codex").unwrap(),
-            session: sunstack_evidence::SessionId::new("session_1").unwrap(),
-        },
         project: Some(ProjectKey::new("project_1").unwrap()),
         source_anchor: occurrence(number),
         question: QuestionRef::Verdict {},
