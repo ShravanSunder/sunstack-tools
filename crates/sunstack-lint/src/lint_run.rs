@@ -24,7 +24,11 @@ fn failed(mut report: LintReport) -> LintReport {
     });
     report
 }
-pub async fn run(request: LintRequest, cancellation: CancellationToken) -> LintReport {
+pub async fn run(
+    request: LintRequest,
+    cancellation: CancellationToken,
+    api_key: Option<String>,
+) -> LintReport {
     let mut report = LintReport::empty(
         request
             .config_path
@@ -128,6 +132,7 @@ pub async fn run(request: LintRequest, cancellation: CancellationToken) -> LintR
                 backend: Arc::new(LintBackendFactory {
                     selection: input.backend.clone(),
                     configured: config.backend.clone(),
+                    api_key,
                 }),
                 adapters,
                 cancellation,

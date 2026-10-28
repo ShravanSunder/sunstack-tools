@@ -294,3 +294,7 @@ async fn missing_named_path_default_outside_git_and_reachable_missing_backend_ar
     );
     assert_eq!(missing.usage.model_requests, 0);
 }
+
+async fn run(request: LintRequest, cancellation: CancellationToken) -> LintReport {
+    sunstack_lint::run(request, cancellation, None).await
+}

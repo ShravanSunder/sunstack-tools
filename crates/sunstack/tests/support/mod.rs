@@ -18,16 +18,21 @@ pub fn workspace_root() -> PathBuf {
         .unwrap()
         .into()
 }
-fn process_command(root: &Path) -> Command {
+pub fn isolated_command(root: &Path) -> Command {
     let mut command = Command::new(workspace_root().join("scripts/cargo-debug-signing-runner.sh"));
     command
         .arg(env!("CARGO_BIN_EXE_sunstack"))
-        .arg("exec")
+        .env("SUNSTACK_CREDENTIAL_STORE", "off")
         .current_dir(root)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
+    command
+}
+fn process_command(root: &Path) -> Command {
+    let mut command = isolated_command(root);
+    command.arg("exec");
     command
 }
 pub fn child(root: &Path) -> Child {

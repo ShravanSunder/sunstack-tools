@@ -1,3 +1,4 @@
+use crate::provider_credentials;
 use crate::{
     command_line::LintArguments,
     process_signals::{ProcessSignals, operational_message},
@@ -129,6 +130,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         None if arguments.all => ScopeChoice::All,
         None => ScopeChoice::Default,
     };
+    let credential = provider_credentials::resolve().await;
     let report = sunstack_lint::run(
         LintRequest {
             config_path: arguments.config,
@@ -137,6 +139,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
             max_warnings: arguments.max_warnings,
         },
         cancellation,
+        credential,
     )
     .await;
     output(

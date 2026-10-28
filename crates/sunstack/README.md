@@ -45,8 +45,22 @@ Preparing rules sends no model request. A waiting gate leaves target comparison
 pending; evaluation resolves it only when the native gate permits the work.
 The CLI forwards these native outcomes and uses the same exit meanings above.
 
-The Jev backend reads `OPENROUTER_API_KEY` from the process environment, never
-stdin. Rule preparation uses the selected backend for encoding and accounting
+The binary uses a non-empty `OPENROUTER_API_KEY` first, otherwise the OS credential
+store (`sunstack` / `openrouter-api-key`): macOS login Keychain or Linux Secret
+Service. When the environment key is present, a run never reads or writes the store.
+Runs never save credentials automatically. Use `sunstack credentials save` to save
+the current environment key explicitly; it is listed in `sunstack --help`.
+The command reports its destination without printing the key and refuses a missing
+or empty variable. Set
+`SUNSTACK_CREDENTIAL_STORE=off` to disable both lookup and saving (for CI or a one-off
+key). Library callers pass the key as a value to `sunstack_lint::run`.
+Without a terminal on stdin, macOS access that needs Keychain approval is treated
+as unavailable immediately. Run once from a terminal to approve a changed build,
+or supply the environment key. Interactive terminal runs may show the Keychain dialog.
+On Linux, a locked Secret Service collection may prompt during fallback lookup or explicit saving;
+use `SUNSTACK_CREDENTIAL_STORE=off` for unattended runs.
+
+Credentials never come from stdin. Rule preparation uses the selected backend for encoding and accounting
 when model work is reachable; it sends no provider request. Local-only rule
 preparation and evaluation construct no backend and need no credential. A
 model-based judgment, applicability gate or Router still requires valid backend
