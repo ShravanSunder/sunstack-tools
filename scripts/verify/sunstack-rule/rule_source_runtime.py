@@ -1,6 +1,7 @@
 """Own local rule-source process runs and their immutable target/evidence identity."""
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -151,6 +152,7 @@ class JourneyTarget:
         command = [
             str(REPOSITORY_ROOT / "scripts/cargo-debug-signing-runner.sh"),
             str(self.binary),
+            "exec",
         ]
         with (
             (directory / "stdin.json").open("rb") as stdin,
@@ -181,7 +183,7 @@ class JourneyTarget:
         self.confirm()
         assert process.returncode == expected_exit, f"Unexpected exit: {directory}"
         stderr_text = (directory / "stderr.log").read_text()
-        assert "sunstack-rule: ready\n" in stderr_text, f"No readiness: {directory}"
+        assert "sunstack: ready\n" in stderr_text, f"No readiness: {directory}"
         frame = OperationFrame.model_validate_json(
             (directory / "stdout.json").read_bytes()
         )
@@ -201,7 +203,7 @@ def journey_target(description: str) -> JourneyTarget:
         raise SystemExit("Unset PYTHONOPTIMIZE and omit -O/-OO; assertions are proof")
     parser = argparse.ArgumentParser(description=description)
     _ = parser.add_argument(
-        "--binary", type=Path, required=True, help="Declared built sunstack-rule"
+        "--binary", type=Path, required=True, help="Declared built sunstack binary"
     )
     _ = parser.add_argument(
         "--commit", required=True, help="Full declared product commit at HEAD"
@@ -250,7 +252,7 @@ def rule_entry(name: str) -> JsonObject:
     }
 
 
-def source_fixture(root: Path, markdown: str, rules: JsonObject) -> JsonObject:
+def write_rule_source_fixture(root: Path, markdown: str, rules: JsonObject) -> None:
     root.mkdir(exist_ok=False)
     _ = (root / "source.md").write_text(markdown)
     write_json(root / "source.rules.json", rules)
@@ -267,6 +269,9 @@ def source_fixture(root: Path, markdown: str, rules: JsonObject) -> JsonObject:
             "rule_sources": [{"markdown": "source.md", "rules": "source.rules.json"}],
         },
     )
+
+
+def bound_evaluation_input(root: Path) -> JsonObject:
     return {
         "definition_root": str(root),
         "definitions": {
@@ -305,5 +310,64 @@ def source_fixture(root: Path, markdown: str, rules: JsonObject) -> JsonObject:
             "max_transcript_bytes": 262144,
             "include_ignored": False,
         },
+    }
+
+
+def evaluation_source_fixture(
+    root: Path, markdown: str, rules: JsonObject
+) -> JsonObject:
+    write_rule_source_fixture(root, markdown, rules)
+    return bound_evaluation_input(root)
+
+
+def local_evaluation_input(bound_input: JsonObject) -> JsonObject:
+    value = copy.deepcopy(bound_input)
+    value.update(
+        origin={"kind": "direct"},
+        cursors=[],
+        execution={"speculation": "off", "max_concurrent_requests": 1},
+        backend={
+            "kind": "jev_openrouter",
+            "endpoint": "not-a-url",
+            "model": "jev-latest",
+        },
+        attempts={
+            "attempt_timeout_ms": 10000,
+            "retry_count": 0,
+            "initial_backoff_ms": 100,
+            "max_backoff_ms": 1000,
+            "max_response_bytes": 1048576,
+        },
+        request_budget={
+            "max_input_tokens": 100000,
+            "max_request_bytes": 262144,
+            "max_questions": 1,
+            "max_requests": 1,
+            "safety_margin_tokens": 32,
+            "accounting_policy": "allow_estimated",
+        },
+    )
+    value["limits"] = {
+        "max_files": 32,
+        "max_file_bytes": 262144,
+        "max_total_bytes": 4194304,
+        "max_matches": 2048,
+        "max_transcript_bytes": 262144,
+        "include_ignored": False,
+    }
+    return value
+
+
+def definition_check_input(root: Path) -> JsonObject:
+    return {
+        "definition_root": str(root),
+        "definitions": {"kind": "rule_sets", "rule_sets": ["set.json"]},
+        "payload_schemas": [],
+        "limits": {"max_file_bytes": 262144},
         "output": "assembled_rules",
     }
+
+
+def check_source_fixture(root: Path, markdown: str, rules: JsonObject) -> JsonObject:
+    write_rule_source_fixture(root, markdown, rules)
+    return definition_check_input(root)

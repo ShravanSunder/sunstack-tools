@@ -2,7 +2,7 @@
 # requires-python = ">=3.12"
 # dependencies = ["pydantic==2.14.1", "pydantic_core==2.50.1"]
 # ///
-"""Observe the CLI portion of U9 mechanical rules on a declared frozen S4 build.
+"""Observe the CLI portion of U9 mechanical rules on a declared R37 cutover build.
 
 Run from the monorepo root with uv run --script <this-file> --binary <binary>
 --commit <full-HEAD> --evidence <new-owned-directory>. No provider credential is
@@ -17,7 +17,6 @@ and staged/carried local-work proofs in the permanent native harness. Inspect
 and reuse an applicable run; zero HTTP or this pass file alone cannot prove them.
 """
 
-import copy
 import hashlib
 import json
 import os
@@ -33,10 +32,12 @@ from rule_source_runtime import (  # pyright: ignore[reportImplicitRelativeImpor
     JsonObject,
     as_array,
     as_object,
+    check_source_fixture,
+    evaluation_source_fixture,
     journey_target,
+    local_evaluation_input,
     object_at,
     read_json,
-    source_fixture,
     write_json,
 )
 
@@ -60,45 +61,6 @@ def unit_selector(kind: str = "paragraph", prefix: str | None = None) -> JsonObj
     value: JsonObject = {"kind": "markdown_units", "mode": "unit", "units": [kind]}
     if prefix is not None:
         value["starts_with"] = prefix
-    return value
-
-
-def runtime_input(check_input: JsonObject) -> JsonObject:
-    value = copy.deepcopy(check_input)
-    _ = value.pop("output")
-    value.update(
-        origin={"kind": "direct"},
-        cursors=[],
-        execution={"speculation": "off", "max_concurrent_requests": 1},
-        backend={
-            "kind": "jev_openrouter",
-            "endpoint": "not-a-url",
-            "model": "jev-latest",
-        },
-        attempts={
-            "attempt_timeout_ms": 10000,
-            "retry_count": 0,
-            "initial_backoff_ms": 100,
-            "max_backoff_ms": 1000,
-            "max_response_bytes": 1048576,
-        },
-        request_budget={
-            "max_input_tokens": 100000,
-            "max_request_bytes": 262144,
-            "max_questions": 1,
-            "max_requests": 1,
-            "safety_margin_tokens": 32,
-            "accounting_policy": "allow_estimated",
-        },
-    )
-    value["limits"] = {
-        "max_files": 32,
-        "max_file_bytes": 262144,
-        "max_total_bytes": 4194304,
-        "max_matches": 2048,
-        "max_transcript_bytes": 262144,
-        "include_ignored": False,
-    }
     return value
 
 
@@ -190,7 +152,7 @@ def observe_expect_forms(target: JourneyTarget, fixtures: Path) -> list[str]:
         for label, text, expected in [("good", good, "pass"), ("bad", bad, "fail")]:
             case = f"expect-{name}-{label}"
             root = fixtures / case
-            invocation = source_fixture(
+            invocation = evaluation_source_fixture(
                 root,
                 "Require explicit local behavior.<!-- K014 -->\n",
                 {
@@ -201,11 +163,14 @@ def observe_expect_forms(target: JourneyTarget, fixtures: Path) -> list[str]:
             )
             _ = (root / "reviewed.md").write_text(text)
             outcome = target.run(
-                case, "evaluate_rules", runtime_input(invocation), expected_exit=0
+                case,
+                "evaluate_rules",
+                local_evaluation_input(invocation),
+                expected_exit=0,
             )
             checked = sole_rule(local_report(outcome, complete=True), "local.expect")
             require_completed(checked, expected)
-            assert checked["declared_severity"] == "nudge"
+            assert checked["declared_severity"] == "warn"
             passed.append(case)
     return passed
 
@@ -225,8 +190,8 @@ def observe_frontmatter(target: JourneyTarget, fixtures: Path) -> list[str]:
             {"kind": "frontmatter_field", "field": "description"},
             {"expect": {"present": True}},
         )
-        field["severity"] = "block"
-        invocation = source_fixture(
+        field["severity"] = "error"
+        invocation = evaluation_source_fixture(
             root,
             "Require a description.<!-- K014 -->\n\nKeep a peer.<!-- K015 -->\n",
             {
@@ -241,11 +206,14 @@ def observe_frontmatter(target: JourneyTarget, fixtures: Path) -> list[str]:
         _ = (root / "reviewed.md").write_text(text)
         case = f"field-{name}"
         outcome = target.run(
-            case, "evaluate_rules", runtime_input(invocation), expected_exit=exit_code
+            case,
+            "evaluate_rules",
+            local_evaluation_input(invocation),
+            expected_exit=exit_code,
         )
         report = local_report(outcome, complete=exit_code == 0)
         checked = sole_rule(report, "local.description")
-        assert checked["declared_severity"] == "block"
+        assert checked["declared_severity"] == "error"
         if expected is not None:
             require_completed(checked, expected)
         else:
@@ -290,12 +258,12 @@ def observe_decoded_fields(target: JourneyTarget, fixtures: Path) -> list[str]:
                 {"expect": predicate},
             )
             teaching.append(f"Match the decoded field.<!-- {marker} -->\n")
-        invocation = source_fixture(root, "\n".join(teaching), entries)
+        invocation = evaluation_source_fixture(root, "\n".join(teaching), entries)
         _ = (root / "reviewed.md").write_text(
             "---\ndescription: " + json.dumps(value, ensure_ascii=False) + "\n---\n"
         )
         outcome = target.run(
-            case, "evaluate_rules", runtime_input(invocation), expected_exit=0
+            case, "evaluate_rules", local_evaluation_input(invocation), expected_exit=0
         )
         report = local_report(outcome, complete=True)
         assert len(as_array(report["occurrences"])) == 2
@@ -319,10 +287,13 @@ def observe_decoded_fields(target: JourneyTarget, fixtures: Path) -> list[str]:
             {"expect": predicate},
         )
         teaching.append(f"Require an existing field.<!-- {marker} -->\n")
-    invocation = source_fixture(root, "\n".join(teaching), entries)
+    invocation = evaluation_source_fixture(root, "\n".join(teaching), entries)
     _ = (root / "reviewed.md").write_text("---\nname: other\n---\n")
     outcome = target.run(
-        "absent-all-forms", "evaluate_rules", runtime_input(invocation), expected_exit=0
+        "absent-all-forms",
+        "evaluate_rules",
+        local_evaluation_input(invocation),
+        expected_exit=0,
     )
     report = local_report(outcome, complete=True)
     assert len(as_array(report["occurrences"])) == 4
@@ -334,7 +305,9 @@ def observe_decoded_fields(target: JourneyTarget, fixtures: Path) -> list[str]:
 
 def observe_invalid_ast(target: JourneyTarget, fixtures: Path) -> str:
     root = fixtures / "invalid-ast"
-    invocation = source_fixture(root, "Reject invalid AST rules.<!-- K014 -->\n", {})
+    invocation = check_source_fixture(
+        root, "Reject invalid AST rules.<!-- K014 -->\n", {}
+    )
     rules = '{\n  "K014": {\n    "name": "local.invalid",\n    "target": {"input":"subject","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},\n    "ast_grep": {"regex":"["}\n  }\n}\n'
     _ = (root / "source.rules.json").write_text(rules)
     assert not (root / "reviewed.md").exists()
@@ -349,7 +322,7 @@ def observe_invalid_ast(target: JourneyTarget, fixtures: Path) -> str:
 
 def observe_nested_ast_refusal(target: JourneyTarget, fixtures: Path) -> str:
     root = fixtures / "nested-unknown-ast"
-    invocation = source_fixture(
+    invocation = check_source_fixture(
         root, "Reject misspelled relation keys.<!-- K014 -->\n", {}
     )
     rules = '{\n  "K014": {\n    "name": "local.nested",\n    "target": {"input":"subject","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"],"starts_with":"nested"}},\n    "ast_grep": {"kind":"paragraph","regex":"MUST","inside":{"kind":"list_item","regex":"outer","stop_by":"end"}}\n  }\n}\n'
@@ -501,11 +474,11 @@ def observe_ast_corpus(target: JourneyTarget, fixtures: Path) -> list[str]:
                 name, unit_selector(unit), {"ast_grep": rules[check_name]}
             )
             teaching.append(f"Apply the structural standard.<!-- {marker} -->\n")
-        invocation = source_fixture(root, "\n".join(teaching), entries)
+        invocation = evaluation_source_fixture(root, "\n".join(teaching), entries)
         _ = (root / "reviewed.md").write_bytes(raw)
         name = f"ast-{source.stem}"
         outcome = target.run(
-            name, "evaluate_rules", runtime_input(invocation), expected_exit=0
+            name, "evaluate_rules", local_evaluation_input(invocation), expected_exit=0
         )
         report = local_report(outcome, complete=True)
         for value in as_array(report["occurrences"]):

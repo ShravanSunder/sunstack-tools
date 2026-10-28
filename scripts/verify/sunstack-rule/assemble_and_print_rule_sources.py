@@ -5,7 +5,7 @@
 """Assemble three marked real teaching standards and check their printed bytes.
 
 Run from the monorepo root with uv run --script <this-file> --binary <binary>
---commit <full-HEAD> --evidence <new-owned-directory>. Requires check_rules (S2).
+--commit <full-HEAD> --evidence <new-owned-directory>. Requires the R37 definition-only checker.
 Uses local Git fixture commits/clones, never a network clone or provider. Keeps
 two same-commit checkouts, inputs, outputs, exits and literal question oracles.
 Oracle: Markdown-rule Specification R6/R8–R13, Verification Design U1/U2 and
@@ -24,12 +24,12 @@ from rule_source_runtime import (  # pyright: ignore[reportImplicitRelativeImpor
     JsonObject,
     as_array,
     as_object,
+    check_source_fixture,
     journey_target,
     object_at,
     printed_rule_definitions,
     read_json,
     rule_entry,
-    source_fixture,
     write_json,
 )
 
@@ -61,7 +61,7 @@ def require_questions(definitions: dict[str, JsonObject], expected: JsonObject) 
         assert definition["target"] == "target"
         assert definition["applicability"] == [] and definition["questions"] == {}
         assert definition["severity"] == (
-            "block" if name == "skill.call.complete" else "nudge"
+            "error" if name == "skill.call.complete" else "warn"
         )
         verdict = object_at(definition, "verdict")
         assert verdict["kind"] == "noul" and verdict["threshold"] == 0.8
@@ -109,10 +109,10 @@ def main() -> None:
     }
     root = target.evidence / "fixture-origin"
     rules: JsonObject = {
-        "K014": {**rule_entry("skill.call.complete"), "severity": "block"},
+        "K014": {**rule_entry("skill.call.complete"), "severity": "error"},
         "K015": rule_entry("skill.step.completion"),
     }
-    invocation = source_fixture(
+    invocation = check_source_fixture(
         root, (FIXTURES / "skill-creation.md").read_text(), rules
     )
     _ = shutil.copyfile(
@@ -162,7 +162,6 @@ def main() -> None:
         assert git_fixture(checkout, "rev-parse", "HEAD") == fixture_commit
         cloned_input = copy.deepcopy(invocation)
         cloned_input["definition_root"] = str(checkout)
-        as_object(as_array(cloned_input["repositories"])[0])["root"] = str(checkout)
         cloned = native_definitions(
             target.run(
                 f"checkout-{index}", "check_rules", cloned_input, expected_exit=0

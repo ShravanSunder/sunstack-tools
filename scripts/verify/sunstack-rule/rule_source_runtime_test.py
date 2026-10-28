@@ -2,6 +2,7 @@
 
 import copy
 import json
+from pathlib import Path
 
 import pytest
 from assemble_and_print_rule_sources import QUESTION_FILES, require_questions  # pyright: ignore[reportImplicitRelativeImport]
@@ -15,9 +16,87 @@ from check_rule_refusals import (  # pyright: ignore[reportImplicitRelativeImpor
     require_located_refusal,
     require_marker_details,
     require_printed_questions,
+    require_retired_refusal,
+    require_runtime_discovery_refusal,
 )
 from pydantic import JsonValue, ValidationError
-from rule_source_runtime import JsonObject, OperationFrame  # pyright: ignore[reportImplicitRelativeImport]
+from rule_source_runtime import (  # pyright: ignore[reportImplicitRelativeImport]
+    JsonObject,
+    OperationFrame,
+    as_array,
+    as_object,
+    check_source_fixture,
+    evaluation_source_fixture,
+    local_evaluation_input,
+    object_at,
+    rule_entry,
+)
+
+
+def test_evaluation_fixture_retains_bound_runtime_controls_without_check_output(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "evaluation"
+    bound = evaluation_source_fixture(
+        root, "A standard.<!-- K014 -->\n", {"K014": rule_entry("skill.one")}
+    )
+    request = local_evaluation_input(bound)
+    group = as_object(as_array(object_at(request, "definitions")["rule_sets"])[0])
+    bindings = object_at(as_array(group["binding_groups"])[0], "bindings")
+    assert bindings["subject"] == {
+        "kind": "document",
+        "repository": "repo",
+        "path": "reviewed.md",
+    }
+    assert group["path"] == "set.json"
+    assert "output" not in request
+    assert object_at(request, "backend")["endpoint"] == "not-a-url"
+    assert object_at(request, "execution")["speculation"] == "off"
+    assert as_array(request["repositories"])
+    assert not (root / "reviewed.md").exists()
+
+
+def test_check_fixture_has_only_committed_definition_fields_and_no_target_bindings(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "check"
+    request = check_source_fixture(
+        root, "A standard.<!-- K014 -->\n", {"K014": rule_entry("skill.one")}
+    )
+    assert set(request) == {
+        "definition_root",
+        "definitions",
+        "payload_schemas",
+        "limits",
+        "output",
+    }
+    assert request["definitions"] == {"kind": "rule_sets", "rule_sets": ["set.json"]}
+    assert request["limits"] == {"max_file_bytes": 262144}
+    assert request["payload_schemas"] == []
+    assert request["output"] == "assembled_rules"
+    assert not (root / "reviewed.md").exists()
+
+
+def test_retired_request_control_rejects_an_unrelated_refusal() -> None:
+    diagnostic: JsonObject = {
+        "code": "unknown_field",
+        "location": {"kind": "definition", "field_path": ["repositories"]},
+    }
+    valid: JsonObject = {
+        "kind": "refused",
+        "checked_rule_count": 0,
+        "diagnostics": {"items": [diagnostic]},
+    }
+    require_retired_refusal(valid, ["repositories"])
+    invalid_diagnostics: list[JsonObject] = [
+        {**diagnostic, "code": "invalid_selector"},
+        {**diagnostic, "location": {"kind": "definition", "field_path": ["other"]}},
+    ]
+    for invalid in invalid_diagnostics:
+        with pytest.raises(AssertionError):
+            require_retired_refusal(
+                {**valid, "diagnostics": {"items": [invalid]}}, ["repositories"]
+            )
 
 
 def test_protocol_errors_and_wrong_versions_cannot_count_as_operation_completion() -> (
@@ -43,6 +122,30 @@ def test_protocol_errors_and_wrong_versions_cannot_count_as_operation_completion
     ]:
         with pytest.raises(ValidationError):
             _ = OperationFrame.model_validate_json(json.dumps(invalid))
+
+
+def test_runtime_discovery_control_rejects_wrong_cause_owner_or_location() -> None:
+    diagnostic: JsonObject = {
+        "code": "discovery_not_enabled",
+        "origin": "invocation",
+        "location": {"kind": "none"},
+    }
+    valid: JsonObject = {"kind": "invalid", "diagnostics": {"items": [diagnostic]}}
+    require_runtime_discovery_refusal(valid)
+    invalid_diagnostics: list[JsonObject] = [
+        {**diagnostic, "code": "invalid_selector"},
+        {**diagnostic, "origin": "rule_set"},
+        {**diagnostic, "location": {"kind": "definition", "file": "source.rules.json"}},
+    ]
+    for invalid in invalid_diagnostics:
+        with pytest.raises(AssertionError):
+            require_runtime_discovery_refusal(
+                {**valid, "diagnostics": {"items": [invalid]}}
+            )
+    with pytest.raises(AssertionError):
+        require_runtime_discovery_refusal({**valid, "kind": "refused"})
+    with pytest.raises(AssertionError):
+        require_runtime_discovery_refusal({**valid, "diagnostics": {"items": []}})
 
 
 def test_refusal_requires_actual_expected_source_and_positive_coordinates() -> None:
@@ -97,7 +200,7 @@ def test_question_check_catches_swapped_text_wrong_target_and_missing_settings()
             "target": "target",
             "applicability": [],
             "questions": {},
-            "severity": "block" if name == "skill.call.complete" else "nudge",
+            "severity": "error" if name == "skill.call.complete" else "warn",
             "verdict": {
                 "kind": "noul",
                 "question": {"instructions": expected[name]},
@@ -122,7 +225,7 @@ def test_question_check_catches_swapped_text_wrong_target_and_missing_settings()
         require_questions(swapped, expected)
     mutations: list[tuple[str, JsonValue]] = [
         ("target", "wrong"),
-        ("severity", "nudge"),
+        ("severity", "warn"),
         ("evidence", []),
     ]
     for field, value in mutations:

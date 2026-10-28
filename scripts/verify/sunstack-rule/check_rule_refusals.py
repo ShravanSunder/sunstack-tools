@@ -2,11 +2,11 @@
 # requires-python = ">=3.12"
 # dependencies = ["pydantic==2.14.1", "pydantic_core==2.50.1"]
 # ///
-"""Check Markdown rule-source refusals through a declared sunstack-rule process.
+"""Check Markdown rule-source refusals through a declared sunstack exec process.
 
 Run from the monorepo root with uv run --script <this-file> --binary <binary>
 --commit <full-HEAD> --evidence <new-owned-directory>. Needs the check_rules
-operation (S2); no provider credential, backend or paid call is used. Preserves
+operation at the R37 cutover; no provider credential, backend or paid call is used. Preserves
 each input, stdout, stderr and exit. Oracle: Markdown-rule Specification R1–R13
 and Verification Design U4. This is admission proof, not judgment-quality proof.
 """
@@ -24,12 +24,14 @@ from rule_source_runtime import (  # pyright: ignore[reportImplicitRelativeImpor
     JsonObject,
     as_array,
     as_object,
+    bound_evaluation_input,
+    check_source_fixture,
     journey_target,
+    local_evaluation_input,
     object_at,
     printed_rule_definitions,
     read_json,
     rule_entry,
-    source_fixture,
     write_json,
 )
 
@@ -160,6 +162,29 @@ def require_located_refusal(
         )
 
 
+def require_retired_refusal(outcome: JsonObject, field_path: list[str]) -> None:
+    assert outcome["kind"] == "refused"
+    assert outcome["checked_rule_count"] == 0
+    diagnostics = as_array(object_at(outcome, "diagnostics")["items"])
+    assert any(
+        as_object(item)["code"] == "unknown_field"
+        and object_at(item, "location")["kind"] == "definition"
+        and object_at(item, "location")["field_path"] == field_path
+        for item in diagnostics
+    ), f"Retired request field was not named: {field_path}"
+
+
+def require_runtime_discovery_refusal(outcome: JsonObject) -> None:
+    assert outcome["kind"] == "invalid"
+    diagnostics = as_array(object_at(outcome, "diagnostics")["items"])
+    assert diagnostics and all(
+        as_object(item)["code"] == "discovery_not_enabled"
+        and as_object(item)["origin"] == "invocation"
+        and object_at(item, "location") == {"kind": "none"}
+        for item in diagnostics
+    ), "Missing runtime discovery must retain its invocation-level cause"
+
+
 def located_in_file(location: JsonObject, filename: str) -> bool:
     match location.get("kind"):
         case "definition":
@@ -232,49 +257,32 @@ def check_discovery_admission(target: JourneyTarget, fixtures: Path) -> list[str
             "source_sides": "after_only",
         },
     }
-    invocation = source_fixture(
+    invocation = check_source_fixture(
         root, "Connected standard<!-- K014 -->\n", {"K014": entry}
     )
     header = read_json(root / "set.json")
     object_at(header, "inputs")["changes"] = {"kind": "change_set"}
     write_json(root / "set.json", header)
-    group = as_object(as_array(object_at(invocation, "definitions")["rule_sets"])[0])
-    bindings = object_at(as_array(group["binding_groups"])[0], "bindings")
-    bindings["changes"] = {"kind": "change_set", "repository": "repo"}
-    invocation["discovery"] = {
-        "kind": "bounded",
-        "limits": {
-            "max_files": 100,
-            "max_file_bytes": 100000,
-            "max_total_bytes": 1000000,
-            "max_matches": 1000,
-            "include_ignored": False,
-            "max_unit_visits": 1000,
-            "max_relationship_candidates": 1000,
-            "max_fan_out": 100,
-            "max_history_commits": 100,
-            "max_local_time_ms": 10000,
-        },
-    }
     assert not (root / "reviewed.md").exists() and not (root / ".git").exists()
     outcome = target.run(
-        "bounded-discovery", "check_rules", invocation, expected_exit=0
+        "definition-selector", "check_rules", invocation, expected_exit=0
     )
     require_printed_questions(outcome, {"skill.connected": "Connected standard"})
     definitions = printed_rule_definitions(outcome)
     declaration = as_object(as_array(definitions["skill.connected"]["evidence"])[0])
     assert object_at(declaration, "select")["kind"] == "changed_units"
-    _ = invocation.pop("discovery")
+    runtime = local_evaluation_input(bound_evaluation_input(root))
+    group = as_object(as_array(object_at(runtime, "definitions")["rule_sets"])[0])
+    bindings = object_at(as_array(group["binding_groups"])[0], "bindings")
+    bindings["changes"] = {"kind": "change_set", "repository": "repo"}
     outcome = target.run(
-        "discovery-default-none", "check_rules", invocation, expected_exit=2
+        "discovery-default-none", "evaluate_rules", runtime, expected_exit=2
     )
-    require_located_refusal(outcome, "source.rules.json")
-    diagnostics = as_array(object_at(outcome, "diagnostics")["items"])
-    assert diagnostics and all(
-        as_object(item)["code"] == "discovery_not_enabled" for item in diagnostics
-    )
+    # A22 moves this check to runtime preflight. The retired checker attached a
+    # source location; runtime discovery is an invocation setting, not a rule.
+    require_runtime_discovery_refusal(outcome)
     assert not (root / "reviewed.md").exists() and not (root / ".git").exists()
-    return ["bounded-discovery", "discovery-default-none"]
+    return ["definition-selector", "discovery-default-none"]
 
 
 def require_printed_questions(outcome: JsonObject, expected: JsonObject) -> None:
@@ -286,6 +294,36 @@ def require_printed_questions(outcome: JsonObject, expected: JsonObject) -> None
     assert questions == expected, "Printed bindings differ from source-visible text"
 
 
+def check_retired_requests(target: JourneyTarget, fixtures: Path) -> list[str]:
+    root = fixtures / "retired-check-inputs"
+    valid = check_source_fixture(
+        root, "A standard.<!-- K014 -->\n", {"K014": rule_entry("skill.one")}
+    )
+    repositories = copy.deepcopy(valid)
+    repositories["repositories"] = []
+    discovery = copy.deepcopy(valid)
+    discovery["discovery"] = {"kind": "none"}
+    bound_groups = copy.deepcopy(valid)
+    bound_groups["definitions"] = bound_evaluation_input(root)["definitions"]
+    retired = bound_evaluation_input(root)
+    retired["output"] = "assembled_rules"
+    cases: list[tuple[str, JsonObject, list[str]]] = [
+        ("retired-repositories", repositories, ["repositories"]),
+        ("retired-discovery", discovery, ["discovery"]),
+        (
+            "retired-binding-groups",
+            bound_groups,
+            ["definitions", "rule_sets", "0", "binding_groups"],
+        ),
+        ("retired-bound-request", retired, ["repositories"]),
+    ]
+    for name, request, field_path in cases:
+        outcome = target.run(name, "check_rules", request, expected_exit=2)
+        require_retired_refusal(outcome, field_path)
+    assert not (root / "reviewed.md").exists()
+    return [name for name, _, _ in cases]
+
+
 def main() -> None:
     target = journey_target(__doc__ or "Check rule refusals")
     passed: list[str] = []
@@ -293,7 +331,7 @@ def main() -> None:
     fixtures.mkdir()
     for case in refusal_cases():
         root = fixtures / case.name
-        invocation = source_fixture(root, case.markdown, case.rules)
+        invocation = check_source_fixture(root, case.markdown, case.rules)
         ruleset = read_json(root / "set.json")
         if case.max_question_words is not None:
             ruleset["max_question_words"] = case.max_question_words
@@ -341,14 +379,14 @@ def main() -> None:
         ),
     ]
     for name, markdown, question in valid_cases:
-        invocation = source_fixture(
+        invocation = check_source_fixture(
             fixtures / name, markdown, {"K014": rule_entry("skill.one")}
         )
         outcome = target.run(name, "check_rules", invocation, expected_exit=0)
         require_printed_questions(outcome, {"skill.one": question})
         passed.append(name)
 
-    invocation = source_fixture(
+    invocation = check_source_fixture(
         fixtures / "all-refusals",
         "## First <!-- K014 -->\n\n## Second <!-- K015 -->\n",
         {"K014": rule_entry("skill.first"), "K015": rule_entry("skill.second")},
@@ -362,7 +400,7 @@ def main() -> None:
     passed.append("all-refusals")
 
     root = fixtures / "source-qualified-id"
-    invocation = source_fixture(
+    invocation = check_source_fixture(
         root, "first<!-- K014 -->\n", {"K014": rule_entry("skill.first")}
     )
     _ = (root / "other.md").write_text("second<!-- K014 -->\n")
@@ -380,6 +418,7 @@ def main() -> None:
     )
     passed.append("source-qualified-id")
     passed.extend(check_discovery_admission(target, fixtures))
+    passed.extend(check_retired_requests(target, fixtures))
     target.confirm()
     write_json(
         target.evidence / "journey-pass.json",
