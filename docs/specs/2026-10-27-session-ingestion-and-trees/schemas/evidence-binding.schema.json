@@ -1,0 +1,179 @@
+{
+  "$defs": {
+    "InputBinding": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "document",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "repository",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "final_assistant_text": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "format": {
+              "$ref": "#/$defs/TranscriptFormatName"
+            },
+            "kind": {
+              "const": "conversation",
+              "type": "string"
+            },
+            "transcript_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "transcript_path",
+            "format"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "payload",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/StructuredJson"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "change_set",
+              "type": "string"
+            },
+            "repository": {
+              "$ref": "#/$defs/RepositoryId"
+            }
+          },
+          "required": [
+            "kind",
+            "repository"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RepositoryId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "StructuredJson": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Recursive JSON content. This is data, never a declaration or an executable expression."
+    },
+    "TranscriptFormatName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "UnavailableReason": {
+      "enum": [
+        "not_recorded",
+        "withheld",
+        "unknown"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "binding": {
+          "$ref": "#/$defs/InputBinding"
+        },
+        "kind": {
+          "const": "bound",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "binding"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "unavailable",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/UnavailableReason"
+        }
+      },
+      "required": [
+        "kind",
+        "reason"
+      ],
+      "type": "object"
+    }
+  ],
+  "title": "EvidenceBinding",
+  "$id": "evidence-binding.schema.json"
+}

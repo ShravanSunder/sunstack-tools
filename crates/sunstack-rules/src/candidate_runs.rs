@@ -93,6 +93,7 @@ async fn run_candidates(
                     },
                     answers: vec![],
                     privacy_view: material.view,
+                    elapsed_ms: None,
                 });
                 continue;
             }

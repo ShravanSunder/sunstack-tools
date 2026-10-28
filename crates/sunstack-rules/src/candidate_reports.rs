@@ -24,6 +24,8 @@ pub struct CandidateEntry {
     pub outcome: CandidateOutcome,
     pub answers: Vec<AnswerRecord>,
     pub privacy_view: PrivacyView,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u64>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

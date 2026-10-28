@@ -63,6 +63,14 @@
         "candidate_id": {
           "$ref": "#/$defs/CandidateId"
         },
+        "elapsed_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "occurrence": {
           "$ref": "#/$defs/SourceOccurrence"
         },

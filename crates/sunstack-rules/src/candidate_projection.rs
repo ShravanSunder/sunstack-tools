@@ -290,6 +290,7 @@ pub(crate) fn project_candidate(
         outcome,
         answers,
         privacy_view: material.view,
+        elapsed_ms: None,
     })
 }
 fn native_failure_reason(cause: &Cause, report: &RuleInvocationReport) -> NotProcessedReason {
