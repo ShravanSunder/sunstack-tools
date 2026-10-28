@@ -1,13 +1,10 @@
 use crate::*;
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Default)]
 struct EventReadingState {
     events: Vec<TranscriptEvent>,
-    messages: BTreeMap<RecordId, RecordAuthor>,
-    calls: BTreeSet<CallId>,
-    parents: BTreeMap<String, usize>,
+    legacy_rejection: Option<(CoverageGap, Vec<CoverageGap>)>,
 }
 fn field<'value>(value: &'value Value, key: &str) -> EvidenceResult<&'value str> {
     value
@@ -46,14 +43,6 @@ impl EventReadingState {
         } else {
             RecordAuthor::User
         };
-        if self
-            .messages
-            .get(&message_id)
-            .is_some_and(|previous| *previous != author)
-        {
-            return Err(EvidenceCode::AdapterOutputInvalid.into());
-        }
-        self.messages.insert(message_id.clone(), author);
         self.events.push(TranscriptEvent::MessagePart {
             message_id,
             author,
@@ -72,9 +61,6 @@ impl EventReadingState {
         position: SourcePosition,
         namespaced: bool,
     ) -> EvidenceResult<()> {
-        if !self.calls.insert(call_id.clone()) {
-            return Err(EvidenceCode::AdapterOutputInvalid.into());
-        }
         let category = category(&name, namespaced);
         self.events.push(TranscriptEvent::ToolCall {
             call_id,
@@ -92,20 +78,12 @@ impl EventReadingState {
         outcome: ToolOutcome,
         position: SourcePosition,
     ) {
-        let orphan = !self.calls.contains(&call_id);
-        let orphan_id = call_id.clone();
         self.events.push(TranscriptEvent::ToolResult {
             call_id,
             result,
             outcome,
             position,
         });
-        if orphan {
-            self.gap(CoverageGap::OrphanResult {
-                call_id: orphan_id,
-                position: position.byte_offset,
-            });
-        }
     }
     fn claude(&mut self, value: Value, position: SourcePosition) -> EvidenceResult<()> {
         let kind = field(&value, "type")?;
@@ -156,9 +134,27 @@ impl EventReadingState {
                             .ok_or(EvidenceCode::AdapterOutputInvalid)?
                             .into(),
                     }),
-                    "thinking" => blocks.push(MessageBlock::Thinking {
-                        text: field(item, "thinking")?.into(),
-                    }),
+                    "thinking" => {
+                        let text = item
+                            .get("thinking")
+                            .and_then(Value::as_str)
+                            .ok_or(EvidenceCode::AdapterOutputInvalid)?;
+                        if text.is_empty() && self.legacy_rejection.is_none() {
+                            self.legacy_rejection = Some((
+                                CoverageGap::MalformedRecord {
+                                    position: position.byte_offset,
+                                },
+                                self.events
+                                    .iter()
+                                    .filter_map(|event| match event {
+                                        TranscriptEvent::Gap { gap } => Some(gap.clone()),
+                                        _ => None,
+                                    })
+                                    .collect(),
+                            ));
+                        }
+                        blocks.push(MessageBlock::Thinking { text: text.into() });
+                    }
                     "tool_use" => {
                         if assistant {
                             blocks.push(MessageBlock::ToolCall {
@@ -233,16 +229,6 @@ impl EventReadingState {
                     );
                 }
                 _ => {}
-            }
-        }
-        if let Some(parent) = value.get("parentUuid").and_then(Value::as_str) {
-            let count = self.parents.entry(parent.into()).or_default();
-            *count += 1;
-            if *count > 1 {
-                self.gap(CoverageGap::AmbiguousTurn {
-                    position: position.byte_offset,
-                    reason: AmbiguousReason::UnresolvedBranch,
-                });
             }
         }
         Ok(())
@@ -377,26 +363,48 @@ fn observed_text(value: &Value) -> EvidenceResult<String> {
         _ => serde_json::to_string(value).map_err(|_| EvidenceCode::AdapterOutputInvalid.into()),
     }
 }
-pub(crate) fn read_builtin_events(format: &str, bytes: &[u8]) -> Vec<TranscriptEvent> {
-    let mut state = EventReadingState::default();
+pub(crate) fn read_builtin_lines(format: &str, bytes: &[u8]) -> Vec<SourceLine> {
+    let mut lines = Vec::new();
     let mut byte_offset = 0_u64;
     for (line_index, line) in bytes.split_inclusive(|byte| *byte == b'\n').enumerate() {
         let position = SourcePosition {
             byte_offset,
             line: line_index as u64 + 1,
         };
-        let parsed = serde_json::from_slice(line);
+        let mut state = EventReadingState::default();
+        let parsed = serde_json::from_slice::<Value>(line);
+        let parent = parsed
+            .as_ref()
+            .ok()
+            .filter(|_| format == "claude_code_jsonl")
+            .and_then(|value| value.get("parentUuid"))
+            .and_then(Value::as_str)
+            .map(str::to_owned);
         let result = match parsed {
             Ok(value) if format == "claude_code_jsonl" => state.claude(value, position),
             Ok(value) => state.codex(value, position),
             Err(_) => Err(EvidenceCode::AdapterOutputInvalid.into()),
         };
+        let parent = if result.is_ok() { parent } else { None };
         if result.is_err() {
             state.gap(CoverageGap::MalformedRecord {
                 position: byte_offset,
             });
         }
+        let legacy = match state.legacy_rejection {
+            Some((reason, preceding_gaps)) => LegacyDisposition::RejectedWhole {
+                reason,
+                preceding_gaps,
+            },
+            None => LegacyDisposition::Folded,
+        };
+        lines.push(SourceLine {
+            position,
+            legacy,
+            events: state.events,
+            parent,
+        });
         byte_offset += line.len() as u64;
     }
-    state.events
+    lines
 }

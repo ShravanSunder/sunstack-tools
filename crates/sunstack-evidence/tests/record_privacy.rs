@@ -13,7 +13,7 @@ fn default_projection_removes_thinking_analysis_and_opaque_reasoning_without_cha
         bytes: text.as_bytes(),
         source_identity: "fixture",
     };
-    let events = registry.event_reader(&format).unwrap().events(&capture);
+    let events = registry.event_reader(&format).unwrap().lines(&capture);
     let positioned = project_positioned(&SourceInputId::new("fixture").unwrap(), &events).unwrap();
     assert_eq!(positioned.records.len(), 2);
     for (record, kind) in positioned.records.iter().zip([
@@ -80,7 +80,7 @@ fn mixed_message_keeps_visible_blocks_and_only_the_final_channel_survives_by_def
     let events = registry
         .event_reader(&format)
         .unwrap()
-        .events(&CapturedTranscript {
+        .lines(&CapturedTranscript {
             bytes: text.as_bytes(),
             source_identity: "fixture",
         });
@@ -98,7 +98,7 @@ fn mixed_message_keeps_visible_blocks_and_only_the_final_channel_survives_by_def
     let events = registry
         .event_reader(&format)
         .unwrap()
-        .events(&CapturedTranscript {
+        .lines(&CapturedTranscript {
             bytes: codex.as_bytes(),
             source_identity: "fixture",
         });

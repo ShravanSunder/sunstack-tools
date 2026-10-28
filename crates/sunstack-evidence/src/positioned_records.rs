@@ -1,7 +1,7 @@
 use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 validated_name!(PositionedRecordId, |value: &str| !value.is_empty());
 
@@ -55,124 +55,163 @@ pub struct PositionedRecords {
 
 pub fn project_positioned(
     source: &SourceInputId,
-    events: &[TranscriptEvent],
+    lines: &[SourceLine],
 ) -> EvidenceResult<PositionedRecords> {
     let mut output = PositionedRecords::default();
     let mut messages = BTreeMap::<RecordId, usize>::new();
-    for event in events {
-        let (author, position, injection, body) = match event {
-            TranscriptEvent::MessagePart {
-                message_id,
-                author,
-                position,
-                blocks,
-                injection,
-                private_kind,
-            } => {
-                if let Some(index) = messages.get(message_id).copied() {
-                    let record = &mut output.records[index];
-                    if let PositionedBody::Message { blocks: previous } = &mut record.body {
-                        let first_block = previous.len();
-                        for block_index in 0..blocks.len() {
-                            record.field_positions.insert(
-                                FieldPath::new(format!(
-                                    "/body/blocks/{}",
-                                    first_block + block_index
-                                ))?,
-                                *position,
-                            );
+    let mut calls = BTreeSet::new();
+    let mut parents = BTreeMap::<String, usize>::new();
+    'lines: for line in lines {
+        for event in &line.events {
+            let (author, position, injection, body) = match event {
+                TranscriptEvent::MessagePart {
+                    message_id,
+                    author,
+                    position,
+                    blocks,
+                    injection,
+                    private_kind,
+                } => {
+                    if let Some(index) = messages.get(message_id).copied() {
+                        let record = &mut output.records[index];
+                        if record.author != *author {
+                            output.gaps.push(CoverageGap::MalformedRecord {
+                                position: position.byte_offset,
+                            });
+                            continue 'lines;
                         }
-                        previous.extend(positioned_blocks(blocks, *private_kind));
-                        if record.positions.last() != Some(position) {
-                            record.positions.push(*position);
+                        if let PositionedBody::Message { blocks: previous } = &mut record.body {
+                            let first_block = previous.len();
+                            for block_index in 0..blocks.len() {
+                                record.field_positions.insert(
+                                    FieldPath::new(format!(
+                                        "/body/blocks/{}",
+                                        first_block + block_index
+                                    ))?,
+                                    *position,
+                                );
+                            }
+                            previous.extend(positioned_blocks(blocks, *private_kind));
+                            if record.positions.last() != Some(position) {
+                                record.positions.push(*position);
+                            }
                         }
+                        continue;
+                    }
+                    messages.insert(message_id.clone(), output.records.len());
+                    (
+                        *author,
+                        *position,
+                        *injection,
+                        PositionedBody::Message {
+                            blocks: positioned_blocks(blocks, *private_kind),
+                        },
+                    )
+                }
+                TranscriptEvent::ToolCall {
+                    call_id,
+                    tool,
+                    input,
+                    position,
+                    ..
+                } => {
+                    if !calls.insert(call_id.clone()) {
+                        output.gaps.push(CoverageGap::MalformedRecord {
+                            position: position.byte_offset,
+                        });
+                        continue 'lines;
+                    }
+                    (
+                        RecordAuthor::Assistant,
+                        *position,
+                        InjectionOrigin::NotInjected,
+                        PositionedBody::ToolCall {
+                            call_id: call_id.clone(),
+                            tool: tool.clone(),
+                            input: input.clone(),
+                        },
+                    )
+                }
+                TranscriptEvent::ToolResult {
+                    call_id,
+                    outcome,
+                    result,
+                    position,
+                } => {
+                    if !calls.contains(call_id) {
+                        output.gaps.push(CoverageGap::OrphanResult {
+                            call_id: call_id.clone(),
+                            position: position.byte_offset,
+                        });
+                    }
+                    (
+                        RecordAuthor::Tool,
+                        *position,
+                        InjectionOrigin::NotInjected,
+                        PositionedBody::ToolResult {
+                            call_id: call_id.clone(),
+                            outcome: *outcome,
+                            result: result.clone(),
+                        },
+                    )
+                }
+                TranscriptEvent::PrivateRecord {
+                    author,
+                    position,
+                    private_kind,
+                    text,
+                    ..
+                } => (
+                    *author,
+                    *position,
+                    InjectionOrigin::NotInjected,
+                    PositionedBody::Private {
+                        private_kind: *private_kind,
+                        text: text.clone(),
+                    },
+                ),
+                TranscriptEvent::Gap { gap } => {
+                    output.gaps.push(gap.clone());
+                    if matches!(gap, CoverageGap::MalformedRecord { .. }) {
+                        continue 'lines;
                     }
                     continue;
                 }
-                messages.insert(message_id.clone(), output.records.len());
-                (
-                    *author,
-                    *position,
-                    *injection,
-                    PositionedBody::Message {
-                        blocks: positioned_blocks(blocks, *private_kind),
-                    },
-                )
+            };
+            // Several blocks may occupy the same source line; the event ordinal disambiguates them.
+            let mut field_positions = BTreeMap::new();
+            if let PositionedBody::Message { blocks } = &body {
+                for block_index in 0..blocks.len() {
+                    field_positions.insert(
+                        FieldPath::new(format!("/body/blocks/{block_index}"))?,
+                        position,
+                    );
+                }
             }
-            TranscriptEvent::ToolCall {
-                call_id,
-                tool,
-                input,
-                position,
-                ..
-            } => (
-                RecordAuthor::Assistant,
-                *position,
-                InjectionOrigin::NotInjected,
-                PositionedBody::ToolCall {
-                    call_id: call_id.clone(),
-                    tool: tool.clone(),
-                    input: input.clone(),
-                },
-            ),
-            TranscriptEvent::ToolResult {
-                call_id,
-                outcome,
-                result,
-                position,
-            } => (
-                RecordAuthor::Tool,
-                *position,
-                InjectionOrigin::NotInjected,
-                PositionedBody::ToolResult {
-                    call_id: call_id.clone(),
-                    outcome: *outcome,
-                    result: result.clone(),
-                },
-            ),
-            TranscriptEvent::PrivateRecord {
+            output.records.push(PositionedRecord {
+                record_id: PositionedRecordId::new(format!(
+                    "{}:{}:{}",
+                    source.as_str(),
+                    position.byte_offset,
+                    output.records.len()
+                ))?,
                 author,
-                position,
-                private_kind,
-                text,
-                ..
-            } => (
-                *author,
-                *position,
-                InjectionOrigin::NotInjected,
-                PositionedBody::Private {
-                    private_kind: *private_kind,
-                    text: text.clone(),
-                },
-            ),
-            TranscriptEvent::Gap { gap } => {
-                output.gaps.push(gap.clone());
-                continue;
-            }
-        };
-        // Several blocks may occupy the same source line; the event ordinal disambiguates them.
-        let mut field_positions = BTreeMap::new();
-        if let PositionedBody::Message { blocks } = &body {
-            for block_index in 0..blocks.len() {
-                field_positions.insert(
-                    FieldPath::new(format!("/body/blocks/{block_index}"))?,
-                    position,
-                );
+                positions: vec![position],
+                injection,
+                body,
+                field_positions,
+            });
+        }
+        if let Some(parent) = &line.parent {
+            let count = parents.entry(parent.clone()).or_default();
+            *count += 1;
+            if *count > 1 {
+                output.gaps.push(CoverageGap::AmbiguousTurn {
+                    position: line.position.byte_offset,
+                    reason: AmbiguousReason::UnresolvedBranch,
+                });
             }
         }
-        output.records.push(PositionedRecord {
-            record_id: PositionedRecordId::new(format!(
-                "{}:{}:{}",
-                source.as_str(),
-                position.byte_offset,
-                output.records.len()
-            ))?,
-            author,
-            positions: vec![position],
-            injection,
-            body,
-            field_positions,
-        });
     }
     Ok(output)
 }

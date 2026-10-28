@@ -69,8 +69,31 @@ pub enum TranscriptEvent {
     },
 }
 
+#[derive(Clone, Debug)]
+pub enum LegacyDisposition {
+    /// Replay the old parser's events, including any partial effects before a syntax error.
+    Folded,
+    RejectedWhole {
+        reason: CoverageGap,
+        preceding_gaps: Vec<CoverageGap>,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub struct SourceLine {
+    pub position: SourcePosition,
+    pub legacy: LegacyDisposition,
+    pub events: Vec<TranscriptEvent>,
+    pub parent: Option<String>,
+}
 /// Read source envelopes before either consumer folds messages or joins tool results.
 pub trait TranscriptEventReader: Send + Sync {
     fn format_name(&self) -> &TranscriptFormatName;
-    fn events(&self, capture: &CapturedTranscript<'_>) -> Vec<TranscriptEvent>;
+    fn lines(&self, capture: &CapturedTranscript<'_>) -> Vec<SourceLine>;
+    fn events(&self, capture: &CapturedTranscript<'_>) -> Vec<TranscriptEvent> {
+        self.lines(capture)
+            .into_iter()
+            .flat_map(|line| line.events)
+            .collect()
+    }
 }

@@ -140,12 +140,12 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
         bytes: &bytes[..committed],
         source_identity: &source.file_identity,
     };
-    let events = registry
+    let lines = registry
         .event_reader(&request.format)
         .ok()
-        .map(|reader| reader.events(&captured));
-    let output = match &events {
-        Some(events) => crate::transcript_normalization::fold_transcript_events(events.clone()),
+        .map(|reader| reader.lines(&captured));
+    let output = match &lines {
+        Some(lines) => crate::transcript_normalization::fold_transcript_lines(lines.clone()),
         None => registry.adapter(&request.format)?.normalize(&captured),
     };
     if cancellation.is_cancelled() {
@@ -241,7 +241,7 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
         coverage,
         cursor,
         previous_cursor,
-        events,
+        lines,
     })
 }
 pub(crate) fn message_text(blocks: &[MessageBlock]) -> String {

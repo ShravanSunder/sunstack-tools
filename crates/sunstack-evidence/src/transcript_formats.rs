@@ -65,8 +65,8 @@ impl TranscriptEventReader for BuiltinAdapter {
     fn format_name(&self) -> &TranscriptFormatName {
         &self.name
     }
-    fn events(&self, capture: &CapturedTranscript<'_>) -> Vec<TranscriptEvent> {
-        crate::transcript_event_reading::read_builtin_events(self.name.as_str(), capture.bytes)
+    fn lines(&self, capture: &CapturedTranscript<'_>) -> Vec<SourceLine> {
+        crate::transcript_event_reading::read_builtin_lines(self.name.as_str(), capture.bytes)
     }
 }
 impl TranscriptAdapter for BuiltinAdapter {

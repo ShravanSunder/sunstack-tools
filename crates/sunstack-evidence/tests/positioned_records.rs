@@ -9,7 +9,7 @@ fn an_orphan_result_remains_positioned_and_reports_one_gap_in_both_consumers() {
         bytes: text.as_bytes(),
         source_identity: "fixture",
     };
-    let events = registry.event_reader(&format).unwrap().events(&capture);
+    let events = registry.event_reader(&format).unwrap().lines(&capture);
     let positioned = project_positioned(&SourceInputId::new("orphan").unwrap(), &events).unwrap();
     let legacy = registry.adapter(&format).unwrap().normalize(&capture);
     let expected = vec![CoverageGap::OrphanResult {
@@ -30,7 +30,7 @@ fn three_streamed_lines_keep_all_positions_and_the_third_blocks_actual_origin() 
     let events = registry
         .event_reader(&format)
         .unwrap()
-        .events(&CapturedTranscript {
+        .lines(&CapturedTranscript {
             bytes: text.as_bytes(),
             source_identity: "fixture",
         });

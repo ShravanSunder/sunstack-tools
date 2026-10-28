@@ -150,7 +150,7 @@ pub(crate) async fn capture_candidate_sources(
             match session.capture_source(&name).await {
                 Ok(CapturedSource::Transcript(capture)) => {
                     let events = capture
-                        .transcript_events()
+                        .transcript_lines()
                         .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
                     let projected = project_positioned(&reports[position].input_id, events)
                         .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
