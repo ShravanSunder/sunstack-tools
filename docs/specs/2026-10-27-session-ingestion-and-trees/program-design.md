@@ -188,13 +188,16 @@ pub enum PositionedBody {
     Private { private_kind: PrivateKind, text: Option<String> },  // A3: a standalone PrivateRecord (a reasoning item); text only where readable
     ToolCall { call_id: CallId, tool: ToolName, input: serde_json::Value },
     ToolResult { call_id: CallId, outcome: ToolOutcome, result: ToolResult },
-    Custom { fields: BTreeMap<FieldName, serde_json::Value> },
+    Custom { fields: BTreeMap<FieldName, serde_json::Value>, field_privacy: BTreeMap<FieldName, MappedFieldPrivacy> },  // A18/A18a: from the CustomRecord, unchanged; empty for a pure custom source
 }
 #[serde(deny_unknown_fields)]
 pub struct PositionedBlock { pub block: MessageBlock, pub private_kind: Option<PrivateKind> }  // A3: from the MessagePart it came from
 // A3: the positioned projection carries every event's private classification into these shapes; the privacy projection
 // reads only them: it leaves out a private block or a Private body by default, counts each per kind and route, keeps
-// the public blocks of a mixed message, and lets a granted kind through for its rule's candidates. Encrypted material
+// the public blocks of a mixed message, and lets a granted kind through for its rule's candidates. For a Custom body it
+// reads each mapped field's MappedFieldPrivacy (A18/A18a): a field with a private_kind is left out unless its rule holds
+// that grant, a field with readable: false is always left out and counted, its bytes never materialized, grant or not,
+// and a field with no entry is public; record identity and raw matching stay as A5/A12 say. Encrypted material
 // is never decrypted. The old fold is unchanged.
 
 // evidence, candidate_sources.rs (new) (E6, R7, R8)

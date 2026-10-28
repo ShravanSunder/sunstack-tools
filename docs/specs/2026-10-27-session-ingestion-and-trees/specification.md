@@ -165,7 +165,7 @@ flowchart LR
 - **C3, records.** Each record shows its author, position, source input and gaps; unfit and private records are counted.
 - **C4, rules.** A rule declares its mechanical pass (and, over a diff, which parts of the context it reads, all of them unless it says otherwise), an optional narrowing pass, its tree (a router may route to it), and its questions, each with the evidence it needs, its confidence floor, and how it reads a context split across pages. A rule that needs private content (R32) declares it.
 - **C5, the bundle.** One per run: every candidate's outcome with its source occurrence, answers, evidence and probabilities; the narrowed-out and dropped samples; whether the run is complete; its model usage and cost.
-- **C6, code context.** Per candidate: pages of at most 20,000 characters, each naming its revision, number and what the others hold; related pieces with their labels and bases; coverage of what was sent, excluded and never found.
+- **C6, code context.** Per candidate: pages of at most 20,000 characters, each naming its revision, number and what the others hold; related pieces with their labels and bases; coverage of where each piece was placed or truncated, and of what was excluded and never found (R24; what a judge received is in its answers).
 - **C7, an eval report.** Per rule version: the frozen case set, the held-out split, and the scores R29 names.
 
 **Undefined, on purpose:** the order of candidates within a bundle; how pages are numbered beyond being ordered; which model judges, beyond Jev today; the wording of a label's basis.
