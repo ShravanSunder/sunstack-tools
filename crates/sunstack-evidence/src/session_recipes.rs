@@ -58,6 +58,12 @@ pub fn builtin_session_recipes(home: &std::path::Path) -> EvidenceResult<Vec<Pro
             "claude_code_jsonl",
         ),
         (
+            "cursor",
+            ".cursor/projects",
+            "*/agent-transcripts/{session}/{session}.jsonl",
+            "cursor_export_jsonl",
+        ),
+        (
             "codex",
             ".codex/sessions",
             "**/rollout-*{session}.jsonl",

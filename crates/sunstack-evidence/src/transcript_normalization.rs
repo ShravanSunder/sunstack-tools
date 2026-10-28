@@ -179,7 +179,8 @@ pub(crate) fn fold_transcript_lines(lines: Vec<SourceLine>) -> AdapterOutput {
                     result,
                     position,
                 } => state.result(call_id, result, outcome, position.byte_offset),
-                TranscriptEvent::PrivateRecord { position, .. } => {
+                TranscriptEvent::PrivateRecord { position, .. }
+                | TranscriptEvent::CustomRecord { position, .. } => {
                     state.output.gaps.push(CoverageGap::UnsupportedRecord {
                         position: position.byte_offset,
                     });

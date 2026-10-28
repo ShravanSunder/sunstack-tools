@@ -75,10 +75,24 @@ pub fn match_is_private(
                 return Ok(true);
             }
         }
+        PositionedBody::Custom { field_privacy, .. } => {
+            if let Some(name) = field
+                .as_str()
+                .strip_prefix("/body/fields/")
+                .and_then(|tail| tail.split('/').next())
+            {
+                let name = name.replace("~1", "/").replace("~0", "~");
+                if let Some(classification) = field_privacy.get(&name) {
+                    return Ok(!classification.readable
+                        || classification
+                            .private_kind
+                            .is_some_and(|kind| !grants.contains(&kind)));
+                }
+            }
+        }
         PositionedBody::Private { .. }
         | PositionedBody::ToolCall { .. }
-        | PositionedBody::ToolResult { .. }
-        | PositionedBody::Custom { .. } => {}
+        | PositionedBody::ToolResult { .. } => {}
     }
     if !grants.contains(&PrivateKind::CredentialLike) {
         let value = serde_json::to_value(record).map_err(|_| EvidenceCode::InvalidSelector)?;
@@ -132,10 +146,22 @@ pub fn project_record(
                 });
             }
         }
+        PositionedBody::Custom {
+            fields,
+            field_privacy,
+        } => {
+            let classified = !field_privacy.is_empty();
+            retain_mapped_fields(fields, field_privacy, grants, &mut privacy);
+            if classified && fields.is_empty() {
+                return Ok(ProjectedRecord {
+                    record: None,
+                    privacy,
+                });
+            }
+        }
         PositionedBody::Private { .. }
         | PositionedBody::ToolCall { .. }
-        | PositionedBody::ToolResult { .. }
-        | PositionedBody::Custom { .. } => {}
+        | PositionedBody::ToolResult { .. } => {}
     }
     let mut body = serde_json::to_value(&record.body).map_err(|_| EvidenceCode::InvalidSelector)?;
     project_json_text(&mut body, grants, &mut privacy)?;
@@ -209,4 +235,25 @@ pub fn project_structured_json(
     project_json_text(&mut value, grants, &mut privacy)?;
     let value = serde_json::from_value(value).map_err(|_| EvidenceCode::InvalidSelector)?;
     Ok((value, privacy))
+}
+
+pub(crate) fn retain_mapped_fields(
+    fields: &mut BTreeMap<String, StructuredJson>,
+    classifications: &mut BTreeMap<String, MappedFieldPrivacy>,
+    grants: &BTreeSet<PrivateKind>,
+    privacy: &mut PrivacyProjection,
+) {
+    classifications.retain(|name, classification| {
+        let denied = !classification.readable
+            || classification
+                .private_kind
+                .is_some_and(|kind| !grants.contains(&kind));
+        if denied {
+            if let Some(kind) = classification.private_kind {
+                *privacy.left_out.entry(kind).or_default() += 1;
+            }
+            fields.remove(name);
+        }
+        !denied
+    });
 }

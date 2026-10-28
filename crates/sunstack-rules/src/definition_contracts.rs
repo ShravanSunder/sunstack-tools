@@ -152,6 +152,7 @@ pub struct RuleDefinition {
 pub struct NarrowingDecision {
     #[schemars(schema_with = "noul_schema")]
     pub question: JudgmentQuestion,
+    #[schemars(length(min = 1))]
     pub evidence: Vec<EvidenceDeclaration>,
     #[schemars(extend("exclusiveMinimum" = 0, "maximum" = 1))]
     pub threshold: f64,

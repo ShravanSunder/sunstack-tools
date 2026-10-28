@@ -16,7 +16,7 @@ pub enum SourceInput {
     },
     CustomEntry {
         location: PathBuf,
-        schema: StructuredJson,
+        schema: CustomEntrySchema,
     },
 }
 

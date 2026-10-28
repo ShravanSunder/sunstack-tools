@@ -64,6 +64,13 @@ pub enum TranscriptEvent {
         private_kind: PrivateKind,
         text: Option<String>,
     },
+    CustomRecord {
+        injection: InjectionOrigin,
+        author: RecordAuthor,
+        field_privacy: std::collections::BTreeMap<String, MappedFieldPrivacy>,
+        fields: std::collections::BTreeMap<String, StructuredJson>,
+        position: SourcePosition,
+    },
     Gap {
         gap: CoverageGap,
     },
@@ -86,9 +93,18 @@ pub struct SourceLine {
     pub events: Vec<TranscriptEvent>,
     pub parent: Option<String>,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TranscriptFraming {
+    JsonLines,
+    JsonDocument,
+}
+
 /// Read source envelopes before either consumer folds messages or joins tool results.
 pub trait TranscriptEventReader: Send + Sync {
     fn format_name(&self) -> &TranscriptFormatName;
+    fn framing(&self) -> TranscriptFraming {
+        TranscriptFraming::JsonLines
+    }
     fn lines(&self, capture: &CapturedTranscript<'_>) -> Vec<SourceLine>;
     fn events(&self, capture: &CapturedTranscript<'_>) -> Vec<TranscriptEvent> {
         self.lines(capture)

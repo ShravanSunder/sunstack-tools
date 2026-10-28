@@ -1265,6 +1265,19 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
+              "const": "narrowing",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
               "const": "rule_set_gate",
               "type": "string"
             },

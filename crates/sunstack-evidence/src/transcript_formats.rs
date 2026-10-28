@@ -24,7 +24,11 @@ impl AdapterRegistry {
             adapters: BTreeMap::new(),
             event_readers: BTreeMap::new(),
         };
-        for name in ["claude_code_jsonl", "codex_rollout_jsonl"] {
+        for name in [
+            "claude_code_jsonl",
+            "codex_rollout_jsonl",
+            "cursor_export_jsonl",
+        ] {
             let adapter = Arc::new(BuiltinAdapter {
                 name: TranscriptFormatName::new(name)?,
             });
@@ -34,6 +38,39 @@ impl AdapterRegistry {
             registry = registry.with_adapter(adapter)?;
         }
         Ok(registry)
+    }
+    pub fn with_custom_schema(
+        mut self,
+        schema: &CustomEntrySchema,
+    ) -> EvidenceResult<(Self, TranscriptFormatName)> {
+        let reader = Arc::new(crate::custom_sources::CustomRecordReader::new(schema)?);
+        let name = TranscriptEventReader::format_name(reader.as_ref()).clone();
+        if !self.adapters.contains_key(&name) {
+            self.event_readers.insert(name.clone(), reader.clone());
+            self = self.with_adapter(reader)?;
+        }
+        Ok((self, name))
+    }
+    pub fn with_record_mapping(
+        mut self,
+        format: &TranscriptFormatName,
+        mapping: &RecordMapping,
+    ) -> EvidenceResult<(Self, TranscriptFormatName)> {
+        if mapping.fields.is_empty() {
+            return Ok((self, format.clone()));
+        }
+        if !self.event_readers.contains_key(format) {
+            return Err(EvidenceCode::UnknownTranscriptFormat.into());
+        }
+        let reader = Arc::new(crate::mapped_sources::MappedTranscriptReader::new(
+            format, mapping,
+        )?);
+        let name = TranscriptEventReader::format_name(reader.as_ref()).clone();
+        if !self.adapters.contains_key(&name) {
+            self.event_readers.insert(name.clone(), reader.clone());
+            self = self.with_adapter(reader)?;
+        }
+        Ok((self, name))
     }
     pub fn with_adapter(mut self, adapter: Arc<dyn TranscriptAdapter>) -> EvidenceResult<Self> {
         if self.adapters.contains_key(adapter.format_name()) {

@@ -85,8 +85,96 @@ impl EventReadingState {
             position,
         });
     }
-    fn claude(&mut self, value: Value, position: SourcePosition) -> EvidenceResult<()> {
-        let kind = field(&value, "type")?;
+    fn cursor(&mut self, value: &Value, position: SourcePosition) -> EvidenceResult<()> {
+        let author = match value.get("role").and_then(Value::as_str) {
+            Some("user") => RecordAuthor::User,
+            Some("assistant") => RecordAuthor::Assistant,
+            _ => {
+                self.gap(CoverageGap::UnsupportedRecord {
+                    position: position.byte_offset,
+                });
+                return Ok(());
+            }
+        };
+        let message = value
+            .get("message")
+            .ok_or(EvidenceCode::AdapterOutputInvalid)?;
+        let content = message
+            .get("content")
+            .ok_or(EvidenceCode::AdapterOutputInvalid)?;
+        let blocks = match content {
+            Value::String(text) => vec![serde_json::json!({"type":"text","text":text})],
+            Value::Array(blocks) => blocks.clone(),
+            _ => return Err(EvidenceCode::AdapterOutputInvalid.into()),
+        };
+        let id = message
+            .get("id")
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .unwrap_or_else(|| format!("cursor_message_{}", position.byte_offset));
+        for (index, block) in blocks.iter().enumerate() {
+            match field(block, "type")? {
+                "text" | "thinking" => {
+                    let thinking = field(block, "type")? == "thinking";
+                    let text = block
+                        .get(if thinking { "thinking" } else { "text" })
+                        .and_then(Value::as_str)
+                        .ok_or(EvidenceCode::AdapterOutputInvalid)?
+                        .to_owned();
+                    self.events.push(TranscriptEvent::MessagePart {
+                        message_id: RecordId::new(id.clone())?,
+                        author,
+                        position,
+                        blocks: vec![if thinking {
+                            MessageBlock::Thinking { text }
+                        } else {
+                            MessageBlock::Text { text }
+                        }],
+                        injection: InjectionOrigin::Unknown,
+                        private_kind: thinking.then_some(PrivateKind::Thinking),
+                    });
+                }
+                "tool_use" => {
+                    let call_id = block
+                        .get("id")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned)
+                        .unwrap_or_else(|| format!("cursor_call_{}_{index}", position.byte_offset));
+                    self.call(
+                        CallId::new(call_id)?,
+                        field(block, "name")?.to_owned(),
+                        serde_json::from_value(
+                            block
+                                .get("input")
+                                .cloned()
+                                .ok_or(EvidenceCode::AdapterOutputInvalid)?,
+                        )
+                        .map_err(|_| EvidenceCode::AdapterOutputInvalid)?,
+                        position,
+                        false,
+                    )?;
+                }
+                "tool_result" => self.result(
+                    CallId::new(field(block, "tool_use_id")?)?,
+                    ToolResult::FullObserved {
+                        text: observed_text(
+                            block
+                                .get("content")
+                                .ok_or(EvidenceCode::AdapterOutputInvalid)?,
+                        )?,
+                    },
+                    ToolOutcome::ResultPresentStatusUnknown,
+                    position,
+                ),
+                _ => self.gap(CoverageGap::UnsupportedRecord {
+                    position: position.byte_offset,
+                }),
+            }
+        }
+        Ok(())
+    }
+    fn claude(&mut self, value: &Value, position: SourcePosition) -> EvidenceResult<()> {
+        let kind = field(value, "type")?;
         if kind != "user" && kind != "assistant" {
             self.gap(CoverageGap::UnsupportedRecord {
                 position: position.byte_offset,
@@ -233,8 +321,8 @@ impl EventReadingState {
         }
         Ok(())
     }
-    fn codex(&mut self, value: Value, position: SourcePosition) -> EvidenceResult<()> {
-        if field(&value, "type")? != "response_item" {
+    fn codex(&mut self, value: &Value, position: SourcePosition) -> EvidenceResult<()> {
+        if field(value, "type")? != "response_item" {
             self.gap(CoverageGap::UnsupportedRecord {
                 position: position.byte_offset,
             });
@@ -364,6 +452,16 @@ fn observed_text(value: &Value) -> EvidenceResult<String> {
     }
 }
 pub(crate) fn read_builtin_lines(format: &str, bytes: &[u8]) -> Vec<SourceLine> {
+    read_lines(format, bytes, None)
+}
+pub(crate) fn read_mapped_lines(
+    format: &str,
+    bytes: &[u8],
+    mapping: &RecordMapping,
+) -> Vec<SourceLine> {
+    read_lines(format, bytes, Some(mapping))
+}
+fn read_lines(format: &str, bytes: &[u8], mapping: Option<&RecordMapping>) -> Vec<SourceLine> {
     let mut lines = Vec::new();
     let mut byte_offset = 0_u64;
     for (line_index, line) in bytes.split_inclusive(|byte| *byte == b'\n').enumerate() {
@@ -386,8 +484,9 @@ pub(crate) fn read_builtin_lines(format: &str, bytes: &[u8]) -> Vec<SourceLine> 
             .and_then(|value| value.get("parentUuid"))
             .and_then(Value::as_str)
             .map(str::to_owned);
-        let result = match parsed {
+        let result = match &parsed {
             Ok(value) if format == "claude_code_jsonl" => state.claude(value, position),
+            Ok(value) if format == "cursor_export_jsonl" => state.cursor(value, position),
             Ok(value) => state.codex(value, position),
             Err(_) => Err(EvidenceCode::AdapterOutputInvalid.into()),
         };
@@ -404,11 +503,15 @@ pub(crate) fn read_builtin_lines(format: &str, bytes: &[u8]) -> Vec<SourceLine> 
             },
             None => LegacyDisposition::Folded,
         };
-        lines.push(SourceLine {
+        let envelope = SourceLine {
             position,
             legacy,
             events: state.events,
             parent,
+        };
+        lines.push(match (mapping, parsed.as_ref()) {
+            (Some(mapping), Ok(raw)) => crate::mapped_sources::map_line(envelope, raw, mapping),
+            _ => envelope,
         });
         byte_offset += line.len() as u64;
     }

@@ -38,6 +38,8 @@ pub enum PositionedBody {
     },
     Custom {
         fields: BTreeMap<String, StructuredJson>,
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        field_privacy: BTreeMap<String, MappedFieldPrivacy>,
     },
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -168,6 +170,21 @@ pub fn project_positioned(
                     PositionedBody::Private {
                         private_kind: *private_kind,
                         text: text.clone(),
+                    },
+                ),
+                TranscriptEvent::CustomRecord {
+                    author,
+                    injection,
+                    field_privacy,
+                    fields,
+                    position,
+                } => (
+                    *author,
+                    *position,
+                    *injection,
+                    PositionedBody::Custom {
+                        fields: fields.clone(),
+                        field_privacy: field_privacy.clone(),
                     },
                 ),
                 TranscriptEvent::Gap { gap } => {

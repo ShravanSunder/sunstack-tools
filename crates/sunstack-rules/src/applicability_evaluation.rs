@@ -212,7 +212,7 @@ fn positioned_condition_text(record: &sunstack_evidence::PositionedRecord) -> Op
             }
             ToolResult::Absent => None,
         },
-        PositionedBody::Custom { fields } => serde_json::to_string(fields).ok(),
+        PositionedBody::Custom { fields, .. } => serde_json::to_string(fields).ok(),
     }
 }
 async fn payload_field<'value>(

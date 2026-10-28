@@ -82,6 +82,23 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
+              "const": "router",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
               "const": "rule_sets",
               "type": "string"
             },
@@ -260,6 +277,36 @@
       "enum": [
         "first_parent",
         "each_parent"
+      ],
+      "type": "string"
+    },
+    "CustomEntrySchema": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "format": {
+          "$ref": "#/$defs/CustomRecordFormat"
+        },
+        "record_schema": {
+          "$ref": "#/$defs/StructuredJson"
+        }
+      },
+      "required": [
+        "format",
+        "record_schema",
+        "fields"
+      ],
+      "type": "object"
+    },
+    "CustomRecordFormat": {
+      "enum": [
+        "json",
+        "jsonl"
       ],
       "type": "string"
     },
@@ -864,7 +911,7 @@
               "type": "string"
             },
             "schema": {
-              "$ref": "#/$defs/StructuredJson"
+              "$ref": "#/$defs/CustomEntrySchema"
             }
           },
           "required": [

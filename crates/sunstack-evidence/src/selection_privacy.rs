@@ -74,6 +74,31 @@ pub(crate) fn project_transcript(
                         });
                     }
                 }
+                TranscriptEvent::CustomRecord {
+                    fields,
+                    field_privacy,
+                    ..
+                } => {
+                    let mut fields = fields.clone();
+                    let mut field_privacy = field_privacy.clone();
+                    crate::record_privacy::retain_mapped_fields(
+                        &mut fields,
+                        &mut field_privacy,
+                        grants,
+                        &mut privacy,
+                    );
+                    let mut event = event.clone();
+                    if let TranscriptEvent::CustomRecord {
+                        fields: target,
+                        field_privacy: classifications,
+                        ..
+                    } = &mut event
+                    {
+                        *target = fields;
+                        *classifications = field_privacy;
+                    }
+                    projected.events.push(event);
+                }
                 TranscriptEvent::ToolCall { .. }
                 | TranscriptEvent::ToolResult { .. }
                 | TranscriptEvent::Gap { .. } => projected.events.push(event.clone()),

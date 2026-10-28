@@ -116,15 +116,29 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
     if file_identity(&at_path) != source.file_identity {
         return Err(EvidenceCode::TranscriptDiscontinuous.into());
     }
-    let committed = bytes
-        .iter()
-        .rposition(|byte| *byte == b'\n')
-        .map_or(0, |position| position + 1);
-    let tail = if committed == bytes.len() {
+    let framing = registry
+        .event_reader(&request.format)
+        .map(|reader| reader.framing())
+        .unwrap_or(TranscriptFraming::JsonLines);
+    let committed = if framing == TranscriptFraming::JsonDocument {
+        bytes.len()
+    } else {
+        bytes
+            .iter()
+            .rposition(|byte| *byte == b'\n')
+            .map_or(0, |position| position + 1)
+    };
+    let document_complete = framing != TranscriptFraming::JsonDocument
+        || serde_json::from_slice::<serde_json::Value>(&bytes).is_ok();
+    let tail = if committed == bytes.len() && document_complete {
         CaptureTail::Complete
     } else {
         CaptureTail::Incomplete {
-            bytes: (bytes.len() - committed) as u64,
+            bytes: if document_complete {
+                (bytes.len() - committed) as u64
+            } else {
+                bytes.len() as u64
+            },
         }
     };
     if let Some(cursor) = &previous_cursor {

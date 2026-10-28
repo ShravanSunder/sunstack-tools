@@ -49,8 +49,7 @@ pub(crate) async fn capture_candidate_sources(
     // Validate all providers before acquiring any source or constructing a backend.
     for (position, entry) in input.sources.iter().enumerate() {
         if let SourceInput::SessionPair { provider, .. } = &entry.source
-            && (!matches!(provider.as_str(), "claude_code" | "codex")
-                || !recipes.contains_key(provider))
+            && !recipes.contains_key(provider)
         {
             return Err(invalid_candidate_field(vec![
                 "sources".into(),
@@ -64,6 +63,7 @@ pub(crate) async fn capture_candidate_sources(
     let mut reports = Vec::new();
     let mut located_sources = Vec::new();
     let sources = &mut plan.sources;
+    let mut adapters = context.adapters.clone();
     for (position, entry) in input.sources.iter().enumerate() {
         let input_id = entry
             .source
@@ -76,20 +76,58 @@ pub(crate) async fn capture_candidate_sources(
                     .ok_or_else(|| invalid_candidate_field(vec!["recipes".into()]))?
                     .clone();
                 let session = session.clone();
-                tokio::task::spawn_blocking(move || locate_session(&recipe, &session))
-                    .await
-                    .map_err(|_| {
-                        crate::DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError)
-                    })?
-                    .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?
+                let mapping = recipe.map.clone();
+                let located =
+                    tokio::task::spawn_blocking(move || locate_session(&recipe, &session))
+                        .await
+                        .map_err(|_| {
+                            crate::DiagnosticList::rule(
+                                RuleDiagnosticCode::UnexpectedExecutionError,
+                            )
+                        })?
+                        .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
+                match located {
+                    SessionLookup::Located { path, format }
+                        if !mapping.fields.is_empty() && adapters.event_reader(&format).is_ok() =>
+                    {
+                        let (registered, format) = adapters
+                            .with_record_mapping(&format, &mapping)
+                            .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
+                        adapters = registered;
+                        SessionLookup::Located { path, format }
+                    }
+                    other => other,
+                }
             }
-            SourceInput::CustomEntry { .. } => SessionLookup::Unlocatable {
-                reason: UnlocatableReason::Unreadable,
-            },
+            SourceInput::CustomEntry { location, schema } => {
+                let (registered, format) =
+                    adapters.with_custom_schema(schema).map_err(|mut error| {
+                        let mut path = vec![
+                            "sources".into(),
+                            position.to_string(),
+                            "source".into(),
+                            "schema".into(),
+                        ];
+                        path.extend(error.field_path);
+                        error.field_path = path;
+                        crate::DiagnosticList::from(error.diagnostics())
+                    })?;
+                adapters = registered;
+                match location.canonicalize() {
+                    Ok(path) if path.is_file() => SessionLookup::Located { path, format },
+                    _ => SessionLookup::Unlocatable {
+                        reason: if location.exists() {
+                            UnlocatableReason::Unreadable
+                        } else {
+                            UnlocatableReason::Missing
+                        },
+                    },
+                }
+            }
         };
         match located {
             SessionLookup::Located { path, format }
-                if context.adapters.event_reader(&format).is_ok()
+                if adapters.event_reader(&format).is_ok()
                     && located_sources.len() < input.limits.max_files.get() =>
             {
                 let name = SourceName::new(format!("candidate_input_{position}"))
@@ -132,24 +170,20 @@ pub(crate) async fn capture_candidate_sources(
             }),
         }
     }
-    let mut session = EvidenceSession::open(
-        plan.clone(),
-        context.adapters.clone(),
-        context.cancellation.clone(),
-    )
-    .await
-    .map_err(|mut error| {
-        if error.field_path.is_empty() {
-            match error.code {
-                EvidenceCode::DiscoveryNotEnabled => error.field_path.push("discovery".into()),
-                EvidenceCode::UnknownPayloadSchema | EvidenceCode::PayloadSchemaInvalid => {
-                    error.field_path.push("payload_schemas".into())
+    let mut session = EvidenceSession::open(plan.clone(), adapters, context.cancellation.clone())
+        .await
+        .map_err(|mut error| {
+            if error.field_path.is_empty() {
+                match error.code {
+                    EvidenceCode::DiscoveryNotEnabled => error.field_path.push("discovery".into()),
+                    EvidenceCode::UnknownPayloadSchema | EvidenceCode::PayloadSchemaInvalid => {
+                        error.field_path.push("payload_schemas".into())
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
-        }
-        crate::DiagnosticList::from(error.diagnostics())
-    })?;
+            crate::DiagnosticList::from(error.diagnostics())
+        })?;
     for (position, name, path, format) in located_sources {
         match session.capture_source(&name).await {
             Ok(CapturedSource::Transcript(capture)) => {

@@ -85,3 +85,43 @@ fn outside_evidence_use_and_unavailable_reasons_match_the_published_outcome() {
     assert!(!schema.is_valid(&bad));
     assert!(serde_json::from_value::<CandidateRunOutcome>(bad).is_err());
 }
+
+#[test]
+fn router_and_custom_source_inputs_match_generated_and_published_contracts() {
+    let root = tempfile::tempdir().unwrap();
+    let mut input = candidate_fixture::fixture(root.path(), "http://127.0.0.1:9/v1/systemone");
+    input["definitions"] = json!({"kind":"router","path":"router.json"});
+    input["sources"] = json!([{"source":{"kind":"custom_entry","location":"source.json","schema":{"format":"json","record_schema":{"type":"object"},"fields":{"text":"/text"}}}}]);
+    let schema = reviewed("evaluate-candidates-input.schema.json");
+    assert!(schema.is_valid(&input));
+    decode_candidate_run(&serde_json::to_vec(&input).unwrap()).unwrap();
+    input["sources"][0]["source"]["schema"]["format"] = json!("unknown");
+    assert!(!schema.is_valid(&input));
+    assert!(decode_candidate_run(&serde_json::to_vec(&input).unwrap()).is_err());
+}
+
+#[test]
+fn narrowing_question_reference_is_published_and_closed() {
+    let schema:Value=serde_json::from_slice(&std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/specs/2026-10-27-session-ingestion-and-trees/schemas/evaluate-candidates-outcome.schema.json")).unwrap()).unwrap();
+    let reference = json!({"$defs":schema["$defs"],"$ref":"#/$defs/QuestionRef"});
+    let validator = jsonschema::options().offline().build(&reference).unwrap();
+    assert!(validator.is_valid(&json!({"kind":"narrowing"})));
+    assert!(!validator.is_valid(&json!({"kind":"narrowing","extra":true})));
+    serde_json::from_value::<QuestionRef>(json!({"kind":"narrowing"})).unwrap();
+}
+
+#[path = "support/contract_schemas.rs"]
+mod native_schema_support;
+#[test]
+fn narrowing_rule_definition_matches_the_reviewed_authoring_schema() {
+    let root = tempfile::tempdir().unwrap();
+    candidate_fixture::fixture(root.path(), "http://127.0.0.1:9/v1/systemone");
+    let mut rule: Value =
+        serde_json::from_slice(&std::fs::read(root.path().join("rules.jsonl")).unwrap()).unwrap();
+    rule["narrowing"] = json!({"question":{"type":"noul","instructions":"Narrow this candidate"},"evidence":rule["evidence"],"threshold":0.8});
+    let schema = native_schema_support::reviewed("rule-file.schema.json");
+    assert!(native_schema_support::generated::<RuleDefinition>().is_valid(&rule));
+    assert!(schema.is_valid(&rule));
+    rule["narrowing"]["extra"] = json!(true);
+    assert!(!schema.is_valid(&rule));
+}

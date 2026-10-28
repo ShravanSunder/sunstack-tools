@@ -53,6 +53,27 @@
             "warn"
           ]
         },
+        "narrowing": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "question": { "$ref": "decision-question.schema.json#/$defs/NoulQuestion" },
+                "evidence": {
+                  "allOf": [
+                    { "$ref": "evidence-declaration.schema.json#/$defs/EvidenceDeclarations" },
+                    { "minItems": 1 }
+                  ]
+                },
+                "threshold": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                "uncertain_below": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+              },
+              "required": ["question", "evidence", "threshold"],
+              "additionalProperties": false
+            },
+            { "type": "null" }
+          ]
+        },
         "mechanical_pass": {
           "anyOf": [
             {
