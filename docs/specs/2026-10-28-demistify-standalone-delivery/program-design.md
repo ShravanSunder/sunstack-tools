@@ -17,6 +17,7 @@ flowchart TB
     renderCheck["src/browser/render-check.ts (moved)"]
     verifyFile["src/verify/verify-delivered-file.ts"]
     atomic["src/output/write-file-atomically.ts"]
+    plan["src/output/bundle-plan.ts<br/>batch output paths"]
     buildCli["scripts/build-cli.ts<br/>vite SSR build, packed manifest, pnpm pack"]
   end
   subgraph libPkg["packages/demistify (library)"]
@@ -36,6 +37,7 @@ flowchart TB
   releaseReader -->|"HTTPS fetch"| cdn
   commands --> verifyFile --> chromium
   commands --> renderCheck --> chromium
+  commands --> plan
   commands --> atomic
   check --> delivery
   standalone --> delivery
@@ -53,7 +55,8 @@ flowchart TB
 | `launch-chromium.ts` | Launch headless Chromium from `playwright-core`: the `chrome` channel first, then Playwright's Chromium. It returns a launched browser or `browser-unavailable` with each attempt's error. | browser discovery |
 | `render-check.ts` | Moved from the library unchanged, except that it launches through `launch-chromium.ts` | `check --render` |
 | `verify-delivered-file.ts` | Open one file from a `file:` URL, block network on request, drive the page, and return one `VerificationResult` | R14–R16 |
-| `write-file-atomically.ts` | Write to a sibling temporary file, then rename. On failure, remove the temporary file. | R10 |
+| `write-file-atomically.ts` | Write to a sibling temporary file, then rename. On failure, remove the temporary file. For a batch, write every temporary file first, then rename each; on failure, remove the temporary files not yet renamed, and report which outputs were renamed. | R10, R23 |
+| `bundle-plan.ts` | Turn a batch's sources and `--out-dir` into output paths: find the sources' nearest common directory, keep each relative path, and reject an output that resolves to the same file as any source | R22, R23 |
 | `scripts/build-cli.ts` | Compile `src/bin.ts` to `dist/package/bin/demistify.js`, write the packed `package.json`, and run `pnpm pack` to produce `dist/cli.tgz` | archive shape (R3, C2) |
 | library `delivery-kind.ts` (new) | Read bundle metadata from a parsed document: `{ kind: 'bundle', metadata }` or `{ kind: 'linked' }` | C3 |
 | library `check-delivery.ts` (new) | Delivery findings under one rule name, `delivery`: misnamed standalone (R12) and a bundle that still loads remotely (R13) | R12, R13 |
@@ -82,6 +85,8 @@ flowchart TB
 | R18 | `ai-tools` `plugins/sunstack-dev/skills/presentation-html/` | The SKILL and `references/demistify.md` route by the reader's opening method to the guide's delivery reference, require `verify --no-network`, and drop "exists only as the source API". |
 | R19 | `.agents/skills/verify-demistify/references/journeys.md` | A standalone journey: build, run `bundle --library packages/demistify/dist` on a PoC fixture, `check`, then `verify --no-network`. |
 | R20, R21 | worktrees and branches | See delivery slices. |
+| R22 | `command-line.ts`, `bundle-plan.ts`, `bundle-command.ts` | `CliCommand` `bundle` carries `target: { kind: 'single'; source; output } \| { kind: 'batch'; sources; outputDirectory }`. A batch derives each page's binding and requires them all equal, otherwise `bindings-differ`. It opens one release reader for the batch; its per-path memo fetches and hash-checks each library file once, however many pages use it. |
+| R23 | `bundle-command.ts`, `write-file-atomically.ts` | The command bundles every page in memory and collects each page's failure, so one bad page doesn't hide another. It writes only when no page failed. `bundle-plan.ts` rejects a source collision as `output-collides-with-source` before any page is read. |
 
 `--library <directory>` is the one flag beyond R7. It reads a complete local build through a directory reader, records `source=local-build`, and skips the binding and version guard. R19 needs it to prove a bundle before a release exists. The guide documents it as a maintainer route.
 
@@ -120,6 +125,10 @@ type ReleaseFailure =
 	| { readonly kind: 'release-mismatch'; readonly cliVersion: string; readonly releaseVersion: string; readonly rerun: string }
 	| { readonly kind: 'library-file-missing'; readonly path: string }
 	| { readonly kind: 'library-file-integrity'; readonly path: string; readonly expected: string; readonly actual: string };
+type BatchFailure =
+	| { readonly kind: 'bindings-differ'; readonly firstPage: string; readonly firstBase: string; readonly page: string; readonly base: string }
+	| { readonly kind: 'output-collides-with-source'; readonly source: string; readonly output: string }
+	| { readonly kind: 'pages-failed'; readonly failures: readonly { readonly page: string; readonly reason: string }[] };
 
 type VerificationFailure =
 	| { readonly kind: 'library-not-loaded' }
@@ -170,6 +179,8 @@ sequenceDiagram
 
 The transform and resolver errors keep their messages. The command reports them as `unsupported-content` or `local-source-missing`.
 
+A batch runs the same path once per page, sharing one reader. The bindings are checked before the release is opened, and the outputs are written together at the end.
+
 ## Verify call path
 
 For each file, using one browser across all files:
@@ -206,7 +217,7 @@ Each slice is one worktree and one pull request, stacked with `gh stack` in this
 1. **Design** (`docs/demistify-standalone-delivery-design`): these four documents.
 2. **CLI and bundle** (`feat/demistify-cli-bundle`):
    - the CLI package, with the moved `check`, `embed`, `index` and render check;
-   - `bundle` and the reader interface;
+   - `bundle` for one page or a batch (`--out-dir`), and the reader interface;
    - the delivery kind and delivery rules in `check`;
    - the release archive, worker and verify MIME, release intent and workflow;
    - the PoC call sites;
@@ -232,3 +243,4 @@ Slice 2 ships `bundle` before `verify`. Agents could bundle without the offline 
 | R17, R18 | U7 | E5, E7 | guide `delivery.md`, `presentation-html` | published guide text | — | V9 |
 | R19 | U6, U7 | E5, E8 | `verify-demistify` journey | journey steps | — | V10 |
 | R20, R21 | U8, U9 | — | worktrees, `gh stack` | PRs | — | V11 |
+| R22, R23 | U10 | E1, E3, E5 | `bundle-plan.ts`, `bundle-command.ts`, `write-file-atomically.ts` | `CliCommand.bundle.target`, `BatchFailure` | `bindings-differ`, `output-collides-with-source`, `pages-failed` | V12 |

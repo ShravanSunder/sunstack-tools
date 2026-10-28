@@ -37,10 +37,11 @@ The owner named these parts on 28 October 2026: "pnpm dlx demistify verify and s
 | U7 | `skills` | Skills route agents to a bundle when the reader opens the page in a chat viewer, an attachment or offline, teach the commands and limits, and require the offline check before delivery. | Owner: "we need to provide a skill -> reference and help for agents on how to do it well"; `presentation-html` currently says the bundle "exists only as the source API" and forbids inventing a command | authorized | must |
 | U8 | `skills` | The skills start from the latest `presentation-html`. | Owner: "yes get latest presetnation hytml" | authorized | must |
 | U9 | `skills` | The change arrives as separate pull requests: this design, the CLI with bundling, verification, and skill changes. | Owner: "seperate pr for veify, sperate for skill chagnes", "make worktrees and prs" | authorized | must |
+| U10 | `bundle` | One command bundles several page sources, such as a collection's `index.html` and `details.html`, each into its own standalone file. | Owner, 28 October 2026, choosing among collection options: "Let bundle take many pages in one command, in the CLI PR" | authorized | must |
 
 ## Boundary
 
-Inside: a separate CLI package and its release archive at `/v1/cli.tgz`; bundling, checking and verifying as CLI commands; bundle-aware checking; the library's guide, `presentation-html` and `verify-demistify`.
+Inside: a separate CLI package and its release archive at `/v1/cli.tgz`; bundling one page or several, checking and verifying as CLI commands; bundle-aware checking; the library's guide, `presentation-html` and `verify-demistify`.
 
 Protected: the runtime, theme, chunks, fonts and worker the display package publishes keep their current contents and URLs, and existing CDN-linked pages keep working unchanged.
 
@@ -49,7 +50,7 @@ Non-goals:
 - publishing to npm or any registry other than the Demistify CDN;
 - inlining pictures or separate Mermaid files into a bundle (the bundler keeps failing clearly on them);
 - emulating Slack's or Grok's exact security policy (blocking all network is the stricter check);
-- bundling a whole collection of pages in one command, or rewriting links between pages;
+- merging a collection of pages into one file, or rewriting links between pages (U10 bundles each page into its own file);
 - downloading browsers for `verify`;
 - merging, tagging, deploying or releasing by agents.
 
