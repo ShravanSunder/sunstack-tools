@@ -197,11 +197,13 @@ async fn run_candidates(
             }
         }
         let mut request_evidence = BTreeMap::new();
+        let mut candidate_elapsed_ms = BTreeMap::new();
         let native = crate::rule_execution::evaluate_with_evidence(
             invocation,
             policy,
             context,
             &mut request_evidence,
+            &mut candidate_elapsed_ms,
             Some(admitted),
         )
         .await;
@@ -230,9 +232,16 @@ async fn run_candidates(
                 .iter()
                 .find(|set| set.path == material.rule.rule_set)
                 .ok_or_else(|| invalid_candidate_field(vec!["definitions".into()]))?;
-            candidates.push(crate::candidate_projection::project_candidate(
-                material, group, set, report,
-            )?);
+            let elapsed_ms = candidate_elapsed_ms
+                .get(&GroupKey {
+                    rule_set: material.rule.rule_set.clone(),
+                    group,
+                })
+                .copied();
+            let mut entry =
+                crate::candidate_projection::project_candidate(material, group, set, report)?;
+            entry.elapsed_ms = elapsed_ms;
+            candidates.push(entry);
         }
     }
     usage.wall_time_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);

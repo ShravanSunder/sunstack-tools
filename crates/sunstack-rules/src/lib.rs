@@ -62,4 +62,5 @@ pub use candidate_reports::*;
 mod candidate_inputs;
 mod candidate_projection;
 pub mod candidate_runs;
+mod candidate_verdict_projection;
 pub use candidate_runs::*;

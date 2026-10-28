@@ -98,9 +98,21 @@ pub enum NotEvaluatedReason {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ApplicabilityOutcome {
     Applicable,
-    NotApplicable { entry: EntryKey, basis: EntryBasis },
-    ApplicabilityFailed { entry: EntryKey, cause: Cause },
-    NotEvaluated { reason: NotEvaluatedReason },
+    NotApplicable {
+        entry: EntryKey,
+        basis: EntryBasis,
+    },
+    Uncertain {
+        entry: EntryKey,
+        answer: JudgmentReference,
+    },
+    ApplicabilityFailed {
+        entry: EntryKey,
+        cause: Cause,
+    },
+    NotEvaluated {
+        reason: NotEvaluatedReason,
+    },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -177,6 +189,7 @@ pub enum ConditionOutcome {
 pub enum DecisionEntryOutcome {
     Passed { answer: JudgmentReference },
     DidNotPass { answer: JudgmentReference },
+    Uncertain { answer: JudgmentReference },
     Failed { cause: Cause },
     Cancelled,
 }
@@ -227,6 +240,11 @@ pub enum RuleOccurrenceResult {
         stopped_at: EntryKey,
         basis: EntryBasis,
     },
+    Uncertain {
+        key: RuleOccurrenceKey,
+        at: EntryKey,
+        answer: JudgmentReference,
+    },
     OutsideChangeScope {
         key: RuleOccurrenceKey,
         reason: OutsideChangeReason,
@@ -256,6 +274,7 @@ impl RuleOccurrenceResult {
             Self::Judged { key, .. }
             | Self::Checked { key, .. }
             | Self::NotApplicable { key, .. }
+            | Self::Uncertain { key, .. }
             | Self::OutsideChangeScope { key, .. }
             | Self::SelectionFailed { key, .. }
             | Self::EvaluationFailed { key, .. }

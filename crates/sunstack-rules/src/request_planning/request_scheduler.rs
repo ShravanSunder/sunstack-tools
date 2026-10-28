@@ -17,6 +17,7 @@ pub(crate) struct SchedulerMeasurements {
     pub provider_elapsed: Duration,
     pub model_requests: usize,
     pub inference_attempts: usize,
+    pub candidate_elapsed_ms: BTreeMap<GroupKey, u64>,
 }
 pub(crate) struct SchedulerInput<'invocation> {
     pub plan: &'invocation mut ExecutionPlan,
@@ -65,6 +66,7 @@ pub(crate) async fn execute_plan(
         cancellation,
     } = input;
     let mut measurements = SchedulerMeasurements::default();
+    let mut candidate_timings = super::candidate_timing::CandidateTimings::default();
     let tracker = TaskTracker::new();
     let semaphore = Arc::new(Semaphore::new(max_concurrent_requests));
     let mut tasks = JoinSet::new();
@@ -77,6 +79,7 @@ pub(crate) async fn execute_plan(
         let mut changed = advance_entries(plan, state, origin, session, &cancellation).await;
         changed |= discover_ready_rules(plan, state, session, &cancellation).await;
         finish_empty_carriers(plan, state);
+        candidate_timings.settle_ready(plan, state, Instant::now());
         for position in 0..plan.requests.len() {
             let request = plan.requests[position].clone();
             if !matches!(
@@ -232,6 +235,15 @@ pub(crate) async fn execute_plan(
                 .request_evidence
                 .insert(id, encoded.request.state.clone());
             state.requests.insert(id, RequestSettlement::InFlight);
+            candidate_timings.request_sent(
+                plan,
+                &encoded
+                    .units
+                    .iter()
+                    .map(|(unit, _)| *unit)
+                    .collect::<Vec<_>>(),
+                Instant::now(),
+            );
             tasks.spawn(tracker.track_future(async move {
                 let started = Instant::now();
                 let outcome = run_admitted_judgments(
@@ -254,6 +266,7 @@ pub(crate) async fn execute_plan(
             measurements.model_requests += 1;
             changed = true;
         }
+        candidate_timings.settle_ready(plan, state, Instant::now());
         measurements.local_elapsed = measurements
             .local_elapsed
             .saturating_add(local_started.elapsed());
@@ -338,6 +351,8 @@ pub(crate) async fn execute_plan(
     advance_entries(plan, state, origin, session, &cancellation).await;
     discover_ready_rules(plan, state, session, &cancellation).await;
     measurements.local_elapsed = measurements.local_elapsed.saturating_add(started.elapsed());
+    candidate_timings.settle_ready(plan, state, Instant::now());
+    measurements.candidate_elapsed_ms = candidate_timings.measurements(plan);
     match fatal {
         Some(diagnostics) => Err((diagnostics, measurements)),
         None => Ok(measurements),

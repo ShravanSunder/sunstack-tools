@@ -189,7 +189,8 @@ fn apply_native_report(
                 report.exclusions.outside_change_scope =
                     report.exclusions.outside_change_scope.saturating_add(1)
             }
-            RuleEvaluationResult::SelectionFailed { key, .. }
+            RuleEvaluationResult::Uncertain { key, .. }
+            | RuleEvaluationResult::SelectionFailed { key, .. }
             | RuleEvaluationResult::EvaluationFailed { key, .. }
             | RuleEvaluationResult::Cancelled { key } => {
                 let target = targets.get(&GroupKey {
@@ -197,6 +198,7 @@ fn apply_native_report(
                     group: key.group,
                 });
                 let reason = match evaluation {
+                    RuleEvaluationResult::Uncertain { .. } => IncompleteReason::EvaluationFailed,
                     RuleEvaluationResult::SelectionFailed { .. } => {
                         IncompleteReason::SelectionFailed
                     }
@@ -337,6 +339,15 @@ fn apply_native_report(
             RuleOccurrenceResult::OutsideChangeScope { .. } => {
                 report.exclusions.outside_change_scope =
                     report.exclusions.outside_change_scope.saturating_add(1);
+                continue;
+            }
+            RuleOccurrenceResult::Uncertain { .. } => {
+                add_incomplete(
+                    report,
+                    Some(target),
+                    Some(&key.rule_id),
+                    IncompleteReason::EvaluationFailed,
+                );
                 continue;
             }
             RuleOccurrenceResult::SelectionFailed { .. } => {

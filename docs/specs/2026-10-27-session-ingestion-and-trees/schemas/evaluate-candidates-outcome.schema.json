@@ -1159,6 +1159,23 @@
             "kind"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "informational",
+              "type": "string"
+            },
+            "name": {
+              "$ref": "#/$defs/QuestionName"
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ],
+          "type": "object"
         }
       ]
     },

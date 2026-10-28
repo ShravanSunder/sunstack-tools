@@ -52,25 +52,51 @@ pub(crate) fn project_candidate(
                 continue;
             }
             for (position, question) in request.questions.iter().enumerate() {
-                let (question_ref, threshold) = match &question.owner {
+                if request
+                    .discarded
+                    .iter()
+                    .any(|discarded| discarded.question_name == question.request_name)
+                {
+                    continue;
+                }
+                let (question_ref, threshold, floor) = match &question.owner {
                     QuestionOwner::Verdict { .. } => (
                         QuestionRef::Verdict {},
                         definition.definition.verdict.threshold(),
+                        definition.definition.verdict.uncertainty_floor(),
                     ),
-                    QuestionOwner::Informational { .. } => (QuestionRef::Verdict {}, None),
+                    QuestionOwner::Informational { name, .. } => (
+                        QuestionRef::Informational { name: name.clone() },
+                        None,
+                        match &definition.definition.verdict {
+                            VerdictDeclaration::Composite {
+                                dimensions,
+                                uncertain_below,
+                                ..
+                            } if dimensions
+                                .iter()
+                                .any(|dimension| dimension.question == *name) =>
+                            {
+                                *uncertain_below
+                            }
+                            _ => None,
+                        },
+                    ),
                     QuestionOwner::RuleDecision { entry, .. } => (
                         QuestionRef::RuleGate {
                             position: entry.position,
                         },
                         decision_threshold(&definition.definition.applicability, entry.position),
+                        decision_floor(&definition.definition.applicability, entry.position),
                     ),
                     QuestionOwner::RuleSetDecision { entry } => (
                         QuestionRef::RuleSetGate {
                             position: entry.position,
                         },
                         decision_threshold(&set.definition.applicability, entry.position),
+                        decision_floor(&set.definition.applicability, entry.position),
                     ),
-                    QuestionOwner::Router { .. } => (QuestionRef::Router {}, None),
+                    QuestionOwner::Router { .. } => (QuestionRef::Router {}, None, None),
                 };
                 let answer_id = AnswerId(
                     sunstack_evidence::DeclarationId::new(format!(
@@ -85,14 +111,21 @@ pub(crate) fn project_candidate(
                     } => answers.get(&question.request_name).cloned(),
                     _ => None,
                 };
-                let settlement = match (&answer, threshold) {
-                    (Some(JudgmentAnswer::Noul { yes_probability }), Some(threshold))
-                        if *yes_probability < threshold =>
-                    {
-                        QuestionSettlement::DidNotPass
+                let settlement = if answer
+                    .as_ref()
+                    .is_some_and(|answer| below_floor(answer, floor))
+                {
+                    QuestionSettlement::Uncertain
+                } else {
+                    match (&answer, threshold) {
+                        (Some(JudgmentAnswer::Noul { yes_probability }), Some(threshold))
+                            if *yes_probability < threshold =>
+                        {
+                            QuestionSettlement::DidNotPass
+                        }
+                        (Some(_), _) => QuestionSettlement::Passed,
+                        (None, _) => QuestionSettlement::NotSent,
                     }
-                    (Some(_), _) => QuestionSettlement::Passed,
-                    (None, _) => QuestionSettlement::NotSent,
                 };
                 references.insert(
                     (request.index, question.request_name.clone()),
@@ -183,7 +216,27 @@ pub(crate) fn project_candidate(
                 })
         }),
     };
-    let outcome = if let Some((stopped_at, basis)) = applicability_stop {
+    let uncertain_gate = report.and_then(|report| {
+        report
+            .rule_evaluations
+            .iter()
+            .find_map(|evaluation| match evaluation {
+                RuleEvaluationResult::Uncertain { key, at, answer }
+                    if key.rule_set == material.rule.rule_set
+                        && key.group == group
+                        && key.rule_id == material.rule.rule_id =>
+                {
+                    Some((at, answer))
+                }
+                _ => None,
+            })
+    });
+    let outcome = if let Some((at, answer)) = uncertain_gate {
+        CandidateOutcome::Uncertain {
+            at: gate_reference(at),
+            answers: lookup(answer).into_iter().collect(),
+        }
+    } else if let Some((stopped_at, basis)) = applicability_stop {
         let at = gate_reference(stopped_at);
         let answer = match basis {
             EntryBasis::Decision { answer, .. } => lookup(answer),
@@ -203,32 +256,19 @@ pub(crate) fn project_candidate(
         }
     } else {
         match occurrence {
-            Some(RuleOccurrenceResult::Judged { judgment, .. }) => match &judgment.verdict.result {
-                VerdictResult::Pass => CandidateOutcome::Finding {
-                    path: answers
-                        .iter()
-                        .filter(|answer| matches!(answer.settlement, QuestionSettlement::Passed))
-                        .map(|answer| answer.answer_id.clone())
-                        .collect(),
-                },
-                VerdictResult::Fail { .. } => {
-                    let reference = match &judgment.verdict.basis {
-                        VerdictBasis::Noul { answer } => Some(answer),
-                        VerdictBasis::Composite { dimensions } => {
-                            dimensions.first().map(|dimension| &dimension.answer)
-                        }
-                    };
-                    match reference.and_then(lookup) {
-                        Some(answer) => CandidateOutcome::Dropped {
-                            at: QuestionRef::Verdict {},
-                            answer,
-                        },
-                        None => CandidateOutcome::NotProcessed {
-                            reason: NotProcessedReason::EvaluationFailed,
-                        },
-                    }
+            Some(RuleOccurrenceResult::Judged { judgment, .. }) => {
+                crate::candidate_verdict_projection::project_verdict(
+                    judgment,
+                    &mut answers,
+                    &references,
+                )?
+            }
+            Some(RuleOccurrenceResult::Uncertain { at, answer, .. }) => {
+                CandidateOutcome::Uncertain {
+                    at: gate_reference(at),
+                    answers: lookup(answer).into_iter().collect(),
                 }
-            },
+            }
             Some(RuleOccurrenceResult::NotStarted {
                 reason: NotStartedReason::RequestLimit,
                 ..
@@ -340,4 +380,23 @@ fn gate_reference(key: &EntryKey) -> QuestionRef {
             position: key.position,
         },
     }
+}
+
+fn decision_floor(entries: &[ApplicabilityEntry], position: usize) -> Option<f64> {
+    match entries.get(position) {
+        Some(ApplicabilityEntry::Decision {
+            uncertain_below, ..
+        }) => *uncertain_below,
+        _ => None,
+    }
+}
+fn below_floor(answer: &JudgmentAnswer, floor: Option<f64>) -> bool {
+    floor.is_some_and(|floor| match answer {
+        JudgmentAnswer::Noul { yes_probability } => {
+            yes_probability.max(1.0 - *yes_probability) < floor
+        }
+        JudgmentAnswer::Score { confidence, .. } | JudgmentAnswer::Choice { confidence, .. } => {
+            *confidence < floor
+        }
+    })
 }

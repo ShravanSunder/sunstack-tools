@@ -267,6 +267,13 @@ pub(crate) fn stopped_occurrence(
 ) -> Option<RuleOccurrenceResult> {
     match outcome {
         ApplicabilityOutcome::Applicable => None,
+        ApplicabilityOutcome::Uncertain { entry, answer } => {
+            Some(RuleOccurrenceResult::Uncertain {
+                key,
+                at: entry.clone(),
+                answer: answer.clone(),
+            })
+        }
         ApplicabilityOutcome::NotApplicable { entry, basis } => {
             Some(RuleOccurrenceResult::NotApplicable {
                 key,

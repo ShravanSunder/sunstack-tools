@@ -36,6 +36,7 @@ pub(crate) enum EntryDefinition {
         question: JudgmentQuestion,
         evidence: Vec<EvidenceDeclaration>,
         threshold: f64,
+        uncertain_below: Option<f64>,
     },
     Router {
         definition: Arc<RouterDefinition>,
@@ -157,6 +158,7 @@ pub(crate) enum EntrySettlement {
 pub(crate) enum DecisionSettlement {
     Passed { reference: AnswerReference },
     DidNotPass { reference: AnswerReference },
+    Uncertain { reference: AnswerReference },
     Failed { cause: FailureCause },
     Cancelled,
 }
@@ -442,10 +444,16 @@ fn append_entries(
                 question,
                 evidence,
                 threshold,
+                uncertain_below,
             } => EntryDefinition::Decision {
                 question: question.clone(),
                 evidence: evidence.clone(),
                 threshold: *threshold,
+                uncertain_below: if sources.values().any(|source| source.candidate.is_some()) {
+                    *uncertain_below
+                } else {
+                    None
+                },
             },
         };
         plan.entries.push(PlannedEntry {

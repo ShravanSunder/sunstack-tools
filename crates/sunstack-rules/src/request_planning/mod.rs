@@ -17,6 +17,7 @@ mod report_projection;
 pub(crate) use report_projection::*;
 mod request_settlement;
 pub(crate) use request_settlement::*;
+mod candidate_timing;
 mod request_scheduler;
 pub(crate) use request_scheduler::*;
 

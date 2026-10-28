@@ -28,7 +28,15 @@ pub async fn evaluate_rules_with_policy(
     context: RuleExecutionContext,
 ) -> PolicyEvaluation {
     let mut request_evidence = Default::default();
-    let outcome = evaluate_with_evidence(input, policy, context, &mut request_evidence, None).await;
+    let outcome = evaluate_with_evidence(
+        input,
+        policy,
+        context,
+        &mut request_evidence,
+        &mut Default::default(),
+        None,
+    )
+    .await;
     PolicyEvaluation {
         outcome,
         request_evidence,
@@ -50,6 +58,7 @@ pub(crate) async fn evaluate_with_evidence(
         usize,
         sunstack_decisions::SharedEvidenceState,
     >,
+    candidate_elapsed_ms: &mut std::collections::BTreeMap<GroupKey, u64>,
     candidate_admission: Option<crate::invocation_admission::AdmittedInvocation>,
 ) -> RuleInvocationOutcome {
     let started = Instant::now();
@@ -137,6 +146,7 @@ pub(crate) async fn evaluate_with_evidence(
         Ok(scheduler) => (scheduler, None),
         Err((diagnostics, scheduler)) => (scheduler, Some(diagnostics)),
     };
+    *candidate_elapsed_ms = scheduler.candidate_elapsed_ms;
     measurements.local_elapsed_ms = measurements
         .local_elapsed_ms
         .saturating_add(duration_ms(scheduler.local_elapsed));

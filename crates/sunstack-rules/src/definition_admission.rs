@@ -198,6 +198,13 @@ pub fn validate_rule_definition(
     }) {
         return Err(refusal(RuleDiagnosticCode::InvalidBand));
     }
+    if rule
+        .verdict
+        .uncertainty_floor()
+        .is_some_and(|floor| !floor.is_finite() || !(0.0..=1.0).contains(&floor))
+    {
+        return Err(refusal(RuleDiagnosticCode::InvalidBand));
+    }
     match &rule.verdict {
         VerdictDeclaration::Mechanical { .. } => {
             return Err(refusal(RuleDiagnosticCode::InvalidMechanicalCheck));
@@ -330,7 +337,13 @@ pub(crate) fn validate_entries(
                 question,
                 evidence,
                 threshold,
+                uncertain_below,
             } => {
+                if uncertain_below
+                    .is_some_and(|floor| !floor.is_finite() || !(0.0..=1.0).contains(&floor))
+                {
+                    return Err(refusal(RuleDiagnosticCode::InvalidBand));
+                }
                 if !threshold_valid(*threshold) {
                     return Err(refusal(RuleDiagnosticCode::InvalidThreshold));
                 }

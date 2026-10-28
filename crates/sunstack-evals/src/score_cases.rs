@@ -99,7 +99,8 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
                 &set.manifest.rule,
                 &mut report.end_result,
             ),
-            QuestionRef::Router {}
+            QuestionRef::Informational { .. }
+            | QuestionRef::Router {}
             | QuestionRef::RuleSetGate { .. }
             | QuestionRef::RuleGate { .. } => {}
         }
@@ -164,6 +165,9 @@ fn occurrence_identity(
 }
 fn same_question(left: &QuestionRef, right: &QuestionRef) -> bool {
     match (left, right) {
+        (QuestionRef::Informational { name: left }, QuestionRef::Informational { name: right }) => {
+            left == right
+        }
         (QuestionRef::Router {}, QuestionRef::Router {})
         | (QuestionRef::Verdict {}, QuestionRef::Verdict {}) => true,
         (
@@ -177,6 +181,10 @@ fn same_question(left: &QuestionRef, right: &QuestionRef) -> bool {
     }
 }
 fn observed_step(candidate: &CandidateEntry, question: &QuestionRef) -> Option<bool> {
+    // Operands preserve native values, but have no independent binary verdict threshold.
+    if matches!(question, QuestionRef::Informational { .. }) {
+        return None;
+    }
     let mut answers = candidate
         .answers
         .iter()

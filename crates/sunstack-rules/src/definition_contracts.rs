@@ -160,6 +160,9 @@ pub enum VerdictDeclaration {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[schemars(extend("minimum" = 0, "exclusiveMaximum" = 1))]
         error_at_or_below: Option<f64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[schemars(range(min = 0, max = 1))]
+        uncertain_below: Option<f64>,
     },
     Composite {
         #[schemars(length(min = 1))]
@@ -169,9 +172,23 @@ pub enum VerdictDeclaration {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[schemars(extend("minimum" = 0, "exclusiveMaximum" = 1))]
         error_at_or_below: Option<f64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[schemars(range(min = 0, max = 1))]
+        uncertain_below: Option<f64>,
     },
 }
 impl VerdictDeclaration {
+    pub fn uncertainty_floor(&self) -> Option<f64> {
+        match self {
+            Self::Mechanical { .. } => None,
+            Self::Noul {
+                uncertain_below, ..
+            }
+            | Self::Composite {
+                uncertain_below, ..
+            } => *uncertain_below,
+        }
+    }
     pub fn threshold(&self) -> Option<f64> {
         match self {
             Self::Noul { threshold, .. } | Self::Composite { threshold, .. } => Some(*threshold),
@@ -210,6 +227,9 @@ pub enum ApplicabilityEntry {
         evidence: Vec<EvidenceDeclaration>,
         #[schemars(extend("exclusiveMinimum" = 0, "maximum" = 1))]
         threshold: f64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[schemars(range(min = 0, max = 1))]
+        uncertain_below: Option<f64>,
     },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

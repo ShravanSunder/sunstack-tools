@@ -36,7 +36,8 @@
             { "minItems": 1 }
           ]
         },
-        "threshold": { "$ref": "#/$defs/Threshold" }
+        "threshold": { "$ref": "#/$defs/Threshold" },
+        "uncertain_below": { "type": "number", "minimum": 0, "maximum": 1 }
       },
       "required": ["kind", "question", "evidence", "threshold"],
       "additionalProperties": false

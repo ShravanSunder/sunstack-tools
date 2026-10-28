@@ -9,9 +9,16 @@ pub struct AnswerId(pub DeclarationId);
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum QuestionRef {
     Router {},
-    RuleSetGate { position: usize },
-    RuleGate { position: usize },
+    RuleSetGate {
+        position: usize,
+    },
+    RuleGate {
+        position: usize,
+    },
     Verdict {},
+    Informational {
+        name: sunstack_decisions::QuestionName,
+    },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]

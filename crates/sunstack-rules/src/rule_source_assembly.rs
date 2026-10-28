@@ -166,6 +166,7 @@ pub(crate) fn assemble_source(
                         },
                         threshold,
                         error_at_or_below,
+                        uncertain_below: None,
                     },
                     RuleSourceVerdict::Expect { expect } => VerdictDeclaration::Mechanical {
                         explanation: binding.question_text.clone(),

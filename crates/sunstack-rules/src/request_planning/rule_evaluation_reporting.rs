@@ -66,6 +66,13 @@ fn terminal_evaluation(
             }
         }
         match applicability(&evaluation.entries, plan, state, indices) {
+            ApplicabilityOutcome::Uncertain { entry, answer } => {
+                return RuleEvaluationResult::Uncertain {
+                    key,
+                    at: entry,
+                    answer,
+                };
+            }
             ApplicabilityOutcome::NotApplicable { entry, basis } => {
                 return RuleEvaluationResult::NotApplicable {
                     key,
@@ -123,6 +130,11 @@ fn terminal_evaluation(
             cause: cause(failure, plan, indices),
         },
         ExpansionState::Stopped { entry } => match applicability(&[*entry], plan, state, indices) {
+            ApplicabilityOutcome::Uncertain { entry, answer } => RuleEvaluationResult::Uncertain {
+                key,
+                at: entry,
+                answer,
+            },
             ApplicabilityOutcome::NotApplicable { entry, basis } => {
                 RuleEvaluationResult::NotApplicable {
                     key,

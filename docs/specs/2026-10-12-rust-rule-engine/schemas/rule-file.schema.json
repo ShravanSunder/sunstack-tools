@@ -105,6 +105,7 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
+        "uncertain_below": { "type": "number", "minimum": 0, "maximum": 1 },
         "error_at_or_below": {
           "$ref": "#/$defs/Band"
         }
@@ -148,6 +149,7 @@
         "threshold": {
           "$ref": "applicability.schema.json#/$defs/Threshold"
         },
+        "uncertain_below": { "type": "number", "minimum": 0, "maximum": 1 },
         "error_at_or_below": {
           "$ref": "#/$defs/Band"
         }

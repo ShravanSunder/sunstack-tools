@@ -60,6 +60,11 @@ pub(crate) fn evaluated_entry(
                         answer: reference(answer, indices),
                     }
                 }
+                DecisionSettlement::Uncertain { reference: answer } => {
+                    DecisionEntryOutcome::Uncertain {
+                        answer: reference(answer, indices),
+                    }
+                }
                 DecisionSettlement::Failed { cause: failure } => DecisionEntryOutcome::Failed {
                     cause: cause(failure, plan, indices),
                 },
@@ -99,6 +104,21 @@ pub(crate) fn applicability(
             entry: plan.entries[entry.0].key.clone(),
             cause: cause(&failure, plan, indices),
         },
+        PrefixState::Uncertain { entry } => {
+            let EntrySettlement::Decision {
+                result: DecisionSettlement::Uncertain { reference: answer },
+                ..
+            } = &state.entries[entry.0]
+            else {
+                return ApplicabilityOutcome::NotEvaluated {
+                    reason: NotEvaluatedReason::EarlierEntryStopped,
+                };
+            };
+            ApplicabilityOutcome::Uncertain {
+                entry: plan.entries[entry.0].key.clone(),
+                answer: reference(answer, indices),
+            }
+        }
         PrefixState::Stopped { entry } => {
             let basis = match &state.entries[entry.0] {
                 EntrySettlement::Condition { basis, .. } => EntryBasis::Condition {

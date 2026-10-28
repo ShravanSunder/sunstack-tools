@@ -13,6 +13,9 @@ pub(crate) enum PrefixState {
     Stopped {
         entry: EntryIndex,
     },
+    Uncertain {
+        entry: EntryIndex,
+    },
     Failed {
         entry: EntryIndex,
         cause: FailureCause,
@@ -95,6 +98,10 @@ pub(crate) fn entry_state(index: EntryIndex, state: &ExecutionState) -> PrefixSt
             result: DecisionSettlement::DidNotPass { .. },
             ..
         } => PrefixState::Stopped { entry: index },
+        EntrySettlement::Decision {
+            result: DecisionSettlement::Uncertain { .. },
+            ..
+        } => PrefixState::Uncertain { entry: index },
         EntrySettlement::Condition {
             outcome: ConditionOutcome::Unresolved { diagnostic },
             ..
@@ -175,7 +182,9 @@ pub(crate) async fn advance_entries(
         }
         match prefix_state(&entry.parents, state) {
             PrefixState::Pending => continue,
-            PrefixState::Stopped { .. } | PrefixState::Failed { .. } => {
+            PrefixState::Stopped { .. }
+            | PrefixState::Uncertain { .. }
+            | PrefixState::Failed { .. } => {
                 state.entries[position] = EntrySettlement::NotEvaluated {
                     reason: NotEvaluatedReason::EarlierEntryStopped,
                 };
@@ -218,13 +227,23 @@ pub(crate) async fn advance_entries(
                     basis: condition_basis(test),
                 })
             }
-            EntryDefinition::Decision { threshold, .. } => match state.gates.get(&index) {
+            EntryDefinition::Decision {
+                threshold,
+                uncertain_below,
+                ..
+            } => match state.gates.get(&index) {
                 Some(GateSettlement::Answered {
                     answer: JudgmentAnswer::Noul { yes_probability },
                     reference,
                 }) => Some(EntrySettlement::Decision {
                     threshold: *threshold,
-                    result: if *yes_probability >= *threshold {
+                    result: if uncertain_below
+                        .is_some_and(|floor| yes_probability.max(1.0 - *yes_probability) < floor)
+                    {
+                        DecisionSettlement::Uncertain {
+                            reference: reference.clone(),
+                        }
+                    } else if *yes_probability >= *threshold {
                         DecisionSettlement::Passed {
                             reference: reference.clone(),
                         }
@@ -270,6 +289,7 @@ fn known_stop(entries: &[EntryIndex], state: &ExecutionState) -> Option<EntryInd
         matches!(
             entry_state(*entry, state),
             PrefixState::Stopped { .. }
+                | PrefixState::Uncertain { .. }
                 | PrefixState::Failed { .. }
                 | PrefixState::Cancelled { .. }
         )
@@ -313,7 +333,7 @@ pub(crate) fn stopped_by_entries(
         if plan.precomputed.get(index).is_some_and(|outcome|!matches!(outcome,ConditionOutcome::Passed)){return true}
         match state.gates.get(index){
             Some(GateSettlement::Failed{..}|GateSettlement::Cancelled)=>true,
-            Some(GateSettlement::Answered{answer:JudgmentAnswer::Noul{yes_probability},..})=>matches!(plan.entries[index.0].definition,EntryDefinition::Decision{threshold,..} if *yes_probability<threshold),
+            Some(GateSettlement::Answered{answer:JudgmentAnswer::Noul{yes_probability},..})=>matches!(plan.entries[index.0].definition,EntryDefinition::Decision{threshold,uncertain_below,..} if *yes_probability<threshold || uncertain_below.is_some_and(|floor| yes_probability.max(1.0-*yes_probability)<floor)),
             _=>false,
         }
     }))
@@ -338,6 +358,7 @@ pub(crate) fn request_readiness(
         RequestPurpose::Gate { .. } => match prefix_state(&request.prerequisites, state) {
             PrefixState::Pending => return RequestReadiness::Waiting,
             PrefixState::Stopped { entry }
+            | PrefixState::Uncertain { entry }
             | PrefixState::Failed { entry, .. }
             | PrefixState::Cancelled { entry } => return RequestReadiness::Stopped { entry },
             PrefixState::Passed => {}

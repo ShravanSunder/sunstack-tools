@@ -163,7 +163,9 @@ pub(crate) fn project_report(
                 UnitKey::Rule(index) => plan.occurrences[index.0].entries.as_slice(),
                 UnitKey::Gate(index) => plan.entries[index.0].parents.as_slice(),
             };
-            if let PrefixState::Stopped { entry } = prefix_state(parents, state) {
+            if let PrefixState::Stopped { entry } | PrefixState::Uncertain { entry } =
+                prefix_state(parents, state)
+            {
                 discarded.push(DiscardedAnswer {
                     question_name,
                     reason: DiscardReason::OwnerNotApplicable {

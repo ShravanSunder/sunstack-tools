@@ -20,6 +20,11 @@ pub enum RuleEvaluationResult {
         stopped_at: EntryKey,
         basis: EntryBasis,
     },
+    Uncertain {
+        key: RuleEvaluationKey,
+        at: EntryKey,
+        answer: JudgmentReference,
+    },
     OutsideChangeScope {
         key: RuleEvaluationKey,
         reason: OutsideChangeReason,
@@ -70,6 +75,11 @@ pub enum PreparedRuleEvaluation {
         stopped_at: EntryKey,
         basis: EntryBasis,
     },
+    Uncertain {
+        key: RuleEvaluationKey,
+        at: EntryKey,
+        answer: JudgmentReference,
+    },
     OutsideChangeScope {
         key: RuleEvaluationKey,
         reason: OutsideChangeReason,
@@ -95,6 +105,9 @@ impl From<RuleEvaluationResult> for PreparedRuleEvaluation {
             }
             RuleEvaluationResult::ZeroMatches { key, input, source } => {
                 Self::ZeroMatches { key, input, source }
+            }
+            RuleEvaluationResult::Uncertain { key, at, answer } => {
+                Self::Uncertain { key, at, answer }
             }
             RuleEvaluationResult::NotApplicable {
                 key,
