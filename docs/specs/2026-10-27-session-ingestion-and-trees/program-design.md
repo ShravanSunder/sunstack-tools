@@ -111,8 +111,8 @@ flowchart TB
 | E | Semantic owner | Package home | Schema/type home | Shape at each boundary | Disposition | Convention |
 | --- | --- | --- | --- | --- | --- | --- |
 | E1 Source input | session locator | `sunstack-evidence` (new module) | `source_inputs.rs` (new): `SourceInput`; the operation wraps it as `SourceEntry { source, evidence }` in rules (`candidate_contracts.rs`, new), because outside-evidence bindings are a rules type | exec input JSON, `kind` tagged: `session_pair { provider, session }`, `custom_entry { location, schema }`, `diff { repository, scope: ChangeScope }`, `code { repository, revision, paths }` | derived per run | tagged enum, `deny_unknown_fields`, `JsonSchema` |
-| E2 Recipe | session locator | `sunstack-evidence` (new) | `session_recipes.rs` (new): `ProviderRecipe` | configuration JSON: `provider`, `locate { roots, pattern }`, `read { format: claude_code_jsonl \| codex_rollout_jsonl \| cursor_export_jsonl \| cursor_database }`, `map { fields }`; built-ins compiled in, overrides in the run's input | configuration | as above |
-| E3 Record | positioned record projection | `sunstack-evidence` (new module `positioned_records.rs`; `transcript_events.rs` new) | `PositionedRecord` (below), projected from the `TranscriptEvent` stream (below) a reader parses once from the captured bytes; the existing merging normalizer folds the same stream, so `ConversationRecord` (`conversation_contracts.rs:141`) and its merge rules (`transcript_normalization.rs:82-91`, `:137-144`) keep their outputs for the old operations | inside `SourceOccurrence::Record`; in the bundle through the candidate's occurrence | derived from the log | tagged enum, newtype ids |
+| E2 Recipe | session locator | `sunstack-evidence` (new) | `session_recipes.rs` (new): `ProviderRecipe` | configuration JSON: `provider`, `locate { roots, pattern }`, `read { format: claude_code_jsonl \| codex_rollout_jsonl \| cursor_export_jsonl }` (Cursor's agent transcripts are JSONL files on the declared Mac, `~/.cursor/projects/<project>/agent-transcripts/<session>/<session>.jsonl`; a database reader is added only when a source needs one, and Cursor's live database stays unverified), `map { fields }`; built-ins compiled in, overrides in the run's input | configuration | as above |
+| E3 Record | positioned record projection | `sunstack-evidence` (new module `positioned_records.rs`; `transcript_events.rs` new) | `PositionedRecord` (below), projected from the `TranscriptEvent` stream (below) a reader parses once from the captured bytes; the existing merging normalizer folds the same stream, so `ConversationRecord` (`conversation_contracts.rs:141`) and its merge rules (`transcript_normalization.rs:82-91`, `:137-144`) keep their outputs for the old operations | inside `SourceOccurrence::Record`; in the bundle through the candidate's occurrence; in a request as `SelectionContent::PositionedRecord { source: SourceRef, record: PositionedRecord }` with `TargetLocation::PositionedRecord { source, record_id }` (A6, new variants in evidence's selection contracts), the record being the group's privacy-projected view; old operations never emit them | derived from the log | tagged enum, newtype ids |
 | E4 Change | Git capture | `sunstack-evidence` (existing) | `change_contracts.rs:199` `CapturedChange` (existing, holds `before_spans` and `after_spans`); `ChangeHunk` (new) in `change_reporting.rs` (modified), beside `ResolvedChangedPath` (`:56`), which today reports changed paths without their spans | `ChangeHunk { hunk_id: HunkId, path, before: Option<ChangeSpan>, after: Option<ChangeSpan> }`, with `ChangeSpan` the existing span (`change_contracts.rs:193`) | derived from the frozen capture | newtype id, existing span |
 | E5 Code unit | Git capture and unit extraction | `sunstack-evidence` (existing) | `connected_contracts.rs:51` `SourceUnitKey`, `:76` `SourceUnit` | inside pages and occurrences | derived | existing |
 | E6 Candidate | candidate run planner | `sunstack-rules` (new module `candidate_runs.rs`) | `candidate_contracts.rs` (new): `CandidateId { rule: RuleRef, occurrence: OccurrenceId }`; `SourceOccurrence` (below) lives in evidence (`candidate_sources.rs`, new) | `CandidateEntry` in the bundle (below) | derived per run | newtype ids, tagged enum |
@@ -127,7 +127,7 @@ flowchart TB
 | E15 Relatedness label | context projection in rules (derives from evidence's graph facts and hints); narrowing pass (judges `unrelated`) | `sunstack-rules` (`context_pages.rs`) | `RelatednessLabel` (below), keyed by piece in `CandidateContextView.labels` | inside the view, its pages and the bundle | derived | tagged enum |
 | E16 Answer | backend run | `sunstack-decisions` (existing) | `decision_contracts.rs:135` `JudgmentAnswer`; rules' `DecisionSettlement` (`plan_contracts.rs:157`) gains `Uncertain` and a paged form; the bundle records each as an `AnswerRecord` | `AnswerRecord` in `CandidateEntry` | derived | existing |
 | E17 Dropped sample | candidate run planner | `sunstack-rules` (`candidate_reports.rs`) | `DroppedSample { rule, pass: mechanical \| narrowing, occurrence, excerpt }` (excerpt projected for privacy) | bundle JSON | derived per run | tagged enum |
-| E18 Labeled case | eval store | `sunstack-evals` (new crate) | `labeled_cases.rs`: `LabeledCase { case_id, session: SessionKey, source_anchor, question: QuestionRef, label: yes \| no \| unknown, split: development \| held_out }` | frozen case files (JSONL), with a case-set manifest holding each file's content identity | persisted (files) | newtypes, tagged enums |
+| E18 Labeled case | eval store | `sunstack-evals` (new crate) | `labeled_cases.rs`: `CaseSource { source_id: CaseSourceId, source: SourceInput, evidence: BTreeMap<InputName, EvidenceBinding> }`, the label-blind replay material, frozen with the case's source files (A1); `LabeledCase { case_id, source: CaseSourceId, session: SessionKey, source_anchor, question: QuestionRef, label: yes \| no \| unknown, split: development \| held_out }` | two kinds of frozen files (JSONL): case sources, and labels kept apart from them; a case-set manifest holds each file's content identity | persisted (files) | newtypes, tagged enums |
 | E19 Eval | eval scorer | `sunstack-evals` (new) | `eval_reports.rs`: `EvalReport` (below) | report JSON | derived | tagged enums |
 
 The shapes callers and consumers branch on:
@@ -137,11 +137,20 @@ The shapes callers and consumers branch on:
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TranscriptEvent {
     MessagePart { message_id: RecordId, author: RecordAuthor, position: SourcePosition, blocks: Vec<MessageBlock>,
-                  injection: InjectionOrigin },  // existing enum, classified from the source envelope while the reader has it (hook | user | unknown)
+                  injection: InjectionOrigin,    // existing enum, classified from the source envelope while the reader has it (hook | user | unknown)
+                  private_kind: Option<PrivateKind> },  // A3: thinking, or Codex analysis-channel text, classified from the envelope; the old fold ignores it
     ToolCall { call_id: CallId, tool: ToolName, input: serde_json::Value, position: SourcePosition },
     ToolResult { call_id: CallId, outcome: ToolOutcome, result: ToolResult, position: SourcePosition },
+    PrivateRecord { record_id: RecordId, author: RecordAuthor, position: SourcePosition, private_kind: PrivateKind,
+                    text: Option<String> },      // A3: e.g. a Codex reasoning item; text only where the source holds readable text, never decrypted
     Gap { gap: CoverageGap },                    // unsupported, malformed, orphan: what the merge reports today
 }
+#[serde(rename_all = "snake_case")]
+pub enum PrivateKind { Thinking, AnalysisChannel, EncryptedReasoning, CredentialLike }  // A3: evidence owns it; rules' `private_access` names it
+// A3: the old fold turns a PrivateRecord into exactly the unsupported-record gap it emits for that source line today,
+// and ignores `private_kind`, so `normalize`'s output is unchanged (R31). The positioned projection keeps both, and
+// the privacy projection leaves them out by default, counts them per kind, and lets a granted kind through for its rule.
+// CredentialLike is detected by the privacy projection over text, not by readers.
 pub trait TranscriptEventReader: Send + Sync {   // implemented by every built-in and new reader
     fn format_name(&self) -> &TranscriptFormatName;
     fn events(&self, capture: &CapturedTranscript<'_>) -> Vec<TranscriptEvent>;
@@ -157,20 +166,29 @@ pub struct PositionedRecord {
     pub author: RecordAuthor,                // user | assistant | tool | system | custom
     pub positions: Vec<SourcePosition>,      // every contributing line, in order (a streamed message has several)
     pub injection: InjectionOrigin,          // a hook's injected text stays marked as injected, not the user's
+    pub field_positions: BTreeMap<FieldPath, SourcePosition>,  // A4: each block's field path prefix to the line it came from, so a match's matched_at is its own line
     pub body: PositionedBody,
 }
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PositionedBody {
-    Message { blocks: Vec<MessageBlock> },
+    Message { blocks: Vec<PositionedBlock> },   // A3: each block keeps its part's private_kind, so a mixed message keeps its public text
+    Private { private_kind: PrivateKind, text: Option<String> },  // A3: a standalone PrivateRecord (a reasoning item); text only where readable
     ToolCall { call_id: CallId, tool: ToolName, input: serde_json::Value },
     ToolResult { call_id: CallId, outcome: ToolOutcome, result: ToolResult },
     Custom { fields: BTreeMap<FieldName, serde_json::Value> },
 }
+#[serde(deny_unknown_fields)]
+pub struct PositionedBlock { pub block: MessageBlock, pub private_kind: Option<PrivateKind> }  // A3: from the MessagePart it came from
+// A3: the positioned projection carries every event's private classification into these shapes; the privacy projection
+// reads only them: it leaves out a private block or a Private body by default, counts each per kind and route, keeps
+// the public blocks of a mixed message, and lets a granted kind through for its rule's candidates. Encrypted material
+// is never decrypted. The old fold is unchanged.
 
 // evidence, candidate_sources.rs (new) (E6, R7, R8)
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceOccurrence {
-    Record { record: PositionedRecordId, matched_at: SourcePosition, field: FieldPath, span: TextSpan },
+    Record { record: PositionedRecordId, author: RecordAuthor, positions: Vec<SourcePosition>,  // A2: the record's author and every line it came from
+             matched_at: SourcePosition, field: FieldPath, span: TextSpan },
     ContextMatch { part: ContextPart, unit: Option<SourceUnitKey>, span: SourceSpan, hunk: Option<HunkId> },
     CodeMatch { unit: SourceUnitKey, span: SourceSpan },
 }
@@ -253,6 +271,7 @@ pub struct CandidateEntry {
     pub evidence: Vec<EvidenceUse>,              // each outside fact: name, binding or unavailable, content identity
     pub context: Option<CandidateContextView>,   // pieces, labels, coverage, and the pages with their exact text (R24, R26)
     pub privacy_view: PrivacyView,               // the grants this candidate's rule declared; its view saw only those
+    pub elapsed_ms: Option<u64>,                 // A7: wall time from its first request sent to its outcome settled, recorded by the scheduler; absent when no request was sent
 }
 #[serde(deny_unknown_fields)]
 pub struct AnswerRecord {
@@ -282,7 +301,7 @@ pub struct EvalReport {
     pub end_result: EndScore,                    // true, false and missed findings; inconclusive
     pub unknown_labels: u32,                     // counted, never scored as negative
     pub cost: RunUsage,
-    pub speed: SpeedSummary,                     // wall time; per-candidate p50 and p95
+    pub speed: SpeedSummary,                     // run wall time; p50 and p95 over the candidates' recorded elapsed_ms (A7), with how many had none
 }
 ```
 
@@ -303,7 +322,7 @@ pub struct EvalReport {
 | context projection and pager | E8 view, E12, E15; R22 to R24, R26 | rules (new, `context_pages.rs`, called from `request_materialization.rs`) | `project_context(CandidateContext) -> CandidateContextView`: labels from evidence's facts and hints, then pages; renders one page into a page unit's request and counts its characters | page planner, bundle projector | the cap, packing or label policy changes |
 | outcome mapper | E11, E16 bands; R13 to R15, R17 | rules (new) | `map_outcome(group_report, routing) -> CandidateOutcome` per candidate | bundle projector | the outcome vocabulary changes |
 | bundle projector | E13; R18, R19, R26, R32, R33 | rules (new) | `CandidateRunReport` | CLI, evals | the bundle's shape changes |
-| eval store and scorer | E18, E19; R28 to R30 | evals (new crate) | `freeze_cases`, `score(bundles, case_set) -> EvalReport` | rule authors | the eval method changes (Project 1 settles it) |
+| eval store and scorer | E18, E19; R28 to R30 | evals (new crate) | `freeze_cases`, `score(bundles, case_set) -> EvalReport`, `run_eval(case_set, run) -> EvalReport` (below) | rule authors, through the `score_eval` operation | the eval method changes (Project 1 settles it) |
 
 ## Ownership and dependency direction
 
@@ -347,6 +366,8 @@ flowchart LR
 
 **A diff's context and the pass (D1; R7, R8).** For a diff input, the code context builder first builds the input's `CodeContextIndex`: each hunk, the whole units it touches (both sides), and their related pieces. A rule's mechanical pass over a diff reads all three parts unless its `context_parts` names fewer; each match records its `ContextPart`. A candidate's own context is the unit holding its match, the changes inside that unit, and that unit's related pieces (for a match in a related piece, also its seed unit). The changed lines are never an implicit limit.
 
+**A record occurrence shows its record (amendment A2, 27 October; R5, R19).** A `SourceOccurrence::Record` carries the record's author and every position it came from, copied from its `PositionedRecord`, so the bundle alone shows who wrote a finding's record and every line it spans (a streamed message's four lines; a tool result on its own line). A rule whose mechanical pass keeps every record (a pattern every record's body matches) therefore exposes every projected record's author and positions through the public bundle, which is how a real log is audited record by record (S2).
+
 **Evidence to rules, in process.** `CandidateSource::discover(pass: MechanicalPass, input: LocatedInput) -> Discovery { matches: Vec<SourceOccurrence>, rejected_sample: Vec<SourceOccurrence>, coverage }`. `MechanicalPass` is data the rule declares (named-field predicates combined `any`/`all`, regex or literal, ast-grep queries for code, and `context_parts`), so evidence executes patterns without knowing rule meaning. `rejected_sample` holds up to `samples_per_pass` items (default 20) per pass and input, chosen deterministically, evenly spaced over the dropped items in source order, so a rerun over the same input returns the same sample (R10). A record-field pattern reads the decoded field (never the raw JSON line), so a JSON-encoded argument is decoded before matching (the research's `payload.arguments` case).
 
 **Paged questions (D2; R23 to R25, R33).** When a candidate's context renders to more than one page, the page planner (a change to the existing planner) gives every question that reads the context input and declares `any_page` or `every_page` one page unit per page; each page unit is an ordinary unit the existing scheduler admits, budgets and sends as its own request, carrying the question and that one page. A question that declares `whole_context` (the default) over a multi-page context settles `Unresolved { NeedsWholeContext }` with no request. Settlement changes in one place: a paged question's controlling slot holds one state per page, each filled only by its own page unit's request (so the existing rule that only a slot's controlling request settles it, `request_settlement.rs:80-91`, holds per page), and the slot leaves `Pending` by its reading:
@@ -359,6 +380,8 @@ flowchart LR
 Once a slot settles, its page units not yet sent are dropped from the queue; requests already in flight drain under the existing cancellation owner. Page answers are never voted on or averaged: the settlement references the deciding page's `AnswerRecord`, or every page's when all were needed, each with its own reported probability. Every page request counts against `max_requests`; when the limit stops the remaining pages, the slot settles by the table with those pages `not_sent`.
 
 **The uncertainty band (E16, R14).** A decision or verdict may declare `uncertain_below` (a probability under which the answer is uncertain even if it would pass or fail its threshold, with its symmetric upper edge for "no"). With the band absent, gates keep today's binary meaning, so existing RuleSets are unchanged (R31). Router `UncertainIntent` maps to `Uncertain`.
+
+**Running an eval (amendment A1, 27 October; R28 to R30).** A second new operation, `score_eval`, lets a rule author or the Verifier run an eval through the binary. Input, strict-decoded: `{ case_set: path, definitions, evidence?, definition_root, payload_schemas, recipes?, repositories?, limits, backend, attempts, request_budget, execution }`, where `case_set` names a frozen manifest and `evidence` binds run-wide outside facts exactly as `evaluate_candidates`' run-level `evidence` does. The CLI calls `sunstack_evals::run_eval`: evals verifies every case file's content identity against the manifest (a changed file refuses the run `invalid`, nothing sent), builds the run's `SourceEntry` list from the frozen `CaseSource` records alone (each case source's `SourceInput` and its own `evidence` bindings, so a question that needs an owner decision or a repository revision gets the same fact it had when the case was labeled, or the same `unavailable`), runs it through rules' public candidate-run API, and scores the returned bundle with `score`. Labels stay in their own files: `run_eval` never reads a label file before the bundle returns, so no label field reaches a `SourceEntry`. Because a generic document or payload could still carry any text, the recorded-request scan for planted label text stays the proof. Result, closed: `eval_report { report: EvalReport }` (exit 0), `invalid { diagnostics }` (exit 2), `incomplete { report }` (exit 3, the bundle partial; its inconclusive cases scored unknown), `cancelled { report }` (exit 4). This realizes the existing `cli → evals` and `evals → rules` edges; no new edge, crate or store.
 
 **Cutover.** None: `evaluate_candidates` is additive, every new RuleSet and router field is optional and read only by it, and no stored data changes shape. The only persisted state is the evals crate's frozen case files, which are new. Not applicable here: accessibility (no screen), migration (nothing stored before).
 
@@ -386,7 +409,7 @@ The proposed path, with each edge's status:
 | transcript events → positioned record projection | added | calls and results stay two records with their own positions; streamed messages keep every position | R5 |
 | every new-path output → privacy projection | added | records, code text, outside evidence and samples projected; counts per route | R6, R32 |
 | diff or code input → code context builder | added | the input's context index (hunks, touched units, related pieces, resolved or unresolved) | R7, R20 to R22 |
-| projected records and context → mechanical matcher | added | positioned matches per rule pass, parts recorded, deterministic samples | R7, R8, R10 |
+| positioned records and context → mechanical matcher | added | positioned matches per rule pass over the raw, immutable records (A5: exact source spans), parts recorded, deterministic samples; a match inside a private field the rule isn't granted ends `not_processed { left_out_for_privacy }`, counted, with no request | R7, R8, R10, R32 |
 | matcher → candidate run planner | added | one binding group per candidate; only its rule switched on through the existing per-group switch; its rule's privacy view of the occurrence | R12, R32 |
 | planner → new-path admission | added | outside evidence bound per run or per input, or unavailable; absent is unavailable; payloads validated against `payload_schemas` | R13 |
 | planner → router or rule sets | intentionally unchanged | the existing router question, routes, gates and verdicts run per group | R12, R16 |
@@ -557,7 +580,7 @@ Each `R` cell carries its home capability key.
 | U16 | R27 (`code-context`) code rule matches become candidates with context | E6, E8 | mechanical matcher and code context builder | `discover` per match, not per unit | `SourceOccurrence::CodeMatch { unit, span }` | kept | gap: holds once the owner confirms O2 | process test with a code rule over a real repository |
 | U17 | R28 (`evals`) frozen labels, held-out split | E18, E19 | eval store | `freeze_cases` | `LabeledCase`, manifest with content identities | persisted case files | a changed frozen file refuses to score | eval-crate test on a frozen set |
 | U17 | R29 (`evals`) the report's scores once per version | E19 | eval scorer | `score` | `EvalReport` | derived | unknown labels counted, never scored negative | eval-crate test against a hand-worked table |
-| U17 | R30 (`evals`) labels never in a judge input | E18 | crate boundary | none: `rules` does not depend on `evals` | crate manifests | none | a forbidden edge fails the build | `cargo tree` gate; recorded-request scan for a planted label |
+| U17 | R30 (`evals`) labels never in a judge input | E18 | crate boundary; eval runner | none: `rules` does not depend on `evals`; `run_eval` builds sources from anchors only (A1) | crate manifests; `score_eval` | none | a forbidden edge fails the build | `cargo tree` gate; recorded-request scan for a planted label in a `score_eval` run |
 | none: a boundary from the Requirements | R31 (cross-cutting) old operations keep their meaning | none: protocol, not an entity | protocol boundary | old decoders, `admit_group` and normalizer unchanged; new operation additive | `protocol_boundary.rs` (modified: one new arm) | none | unknown operation still `UnsupportedOperation` | existing process, cursor and schema tests unchanged and passing |
 | U4 | R32 (cross-cutting) no private content leaves by default | E3, E8, E14, E17 | privacy projection, run per candidate group | `project` on every new-path route; `private_access` | `PrivacyReport { left_out, granted }`; `CandidateEntry.privacy_view` | private | none: policy | process test: sentinels through a session, a code context, an outside document and a sample, with and without a grant; two rules on one occurrence, one granted, the other's requests without the sentinel |
 | U12 | R33 (cross-cutting) model work bounded and reported | E13, E16 | scheduler (bounds); bundle projector (reports) | `max_requests`, page units included; `ExecutionUsage` summed | `RunUsage` | none | limit reached → `not_processed { run_stopped }` or missing pages | loopback test at a small `max_requests` |
