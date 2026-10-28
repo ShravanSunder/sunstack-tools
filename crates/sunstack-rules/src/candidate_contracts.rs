@@ -30,6 +30,8 @@ pub struct CandidateRunInput {
     pub request_budget: RequestBudgetSettings,
     #[serde(default = "default_samples_per_pass")]
     pub samples_per_pass: usize,
+    #[serde(default)]
+    pub context_settings: ContextSettings,
 }
 fn default_samples_per_pass() -> usize {
     20

@@ -280,6 +280,19 @@
       ],
       "type": "string"
     },
+    "ContextSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "truncation": {
+          "$ref": "#/$defs/TruncationSettings",
+          "default": {
+            "head_lines": 40,
+            "tail_lines": 20
+          }
+        }
+      },
+      "type": "object"
+    },
     "CustomEntrySchema": {
       "additionalProperties": false,
       "properties": {
@@ -1073,6 +1086,24 @@
       ],
       "type": "object"
     },
+    "TruncationSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "head_lines": {
+          "default": 40,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "tail_lines": {
+          "default": 20,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "UnavailableReason": {
       "enum": [
         "not_recorded",
@@ -1097,6 +1128,15 @@
     },
     "backend": {
       "$ref": "#/$defs/BackendSelection"
+    },
+    "context_settings": {
+      "$ref": "#/$defs/ContextSettings",
+      "default": {
+        "truncation": {
+          "head_lines": 40,
+          "tail_lines": 20
+        }
+      }
     },
     "definition_root": {
       "type": "string"

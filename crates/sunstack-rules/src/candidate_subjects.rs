@@ -15,7 +15,7 @@ pub(crate) enum CandidateSelection {
         selected: Arc<CandidateRecordView>,
     },
     Code {
-        context: Arc<CandidateContext>,
+        context: Arc<CandidateContextView>,
         grants: std::collections::BTreeSet<PrivateKind>,
     },
     LeftOutForPrivacy,
@@ -56,13 +56,13 @@ impl CandidateMaterial {
             }
             CandidateSelection::Code { context, grants } => Ok(SubjectSource {
                 id: SourceId::Code {
-                    input_id: context.input_id.clone(),
+                    input_id: context.context.input_id.clone(),
                 },
                 spec: SourceSpec::ChangeSet {
-                    repository: context.repository.clone(),
+                    repository: context.context.repository.clone(),
                 },
                 binding: InputBinding::ChangeSet {
-                    repository: context.repository.clone(),
+                    repository: context.context.repository.clone(),
                 },
                 view: CandidateSourceView::Code {
                     context: context.clone(),
@@ -90,11 +90,7 @@ impl CandidateMaterial {
     }
     pub fn context(&self) -> Option<CandidateContextView> {
         match &self.selected {
-            CandidateSelection::Code { context, .. } => Some(CandidateContextView {
-                context: context.as_ref().clone(),
-                labels: Default::default(),
-                pages: vec![],
-            }),
+            CandidateSelection::Code { context, .. } => Some(context.as_ref().clone()),
             _ => None,
         }
     }
@@ -102,9 +98,22 @@ impl CandidateMaterial {
 pub(crate) fn code_selection(
     context: CandidateContext,
     grants: &std::collections::BTreeSet<PrivateKind>,
-) -> CandidateSelection {
-    CandidateSelection::Code {
-        context: Arc::new(context),
+    settings: &ContextSettings,
+    redactions: &[CodeRedactionRange],
+) -> Result<CandidateSelection, DiagnosticList> {
+    let projection = crate::context_pages::project_context_pages(
+        &context,
+        settings,
+        redactions,
+        crate::request_state::rendered_code_page_chars,
+    )?;
+    Ok(CandidateSelection::Code {
+        context: Arc::new(CandidateContextView {
+            context,
+            labels: projection.labels,
+            pages: projection.pages,
+            coverage: projection.coverage,
+        }),
         grants: grants.clone(),
-    }
+    })
 }

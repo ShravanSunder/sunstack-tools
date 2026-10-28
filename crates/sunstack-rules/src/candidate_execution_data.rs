@@ -4,6 +4,8 @@ use sunstack_evidence::{EvidenceCode, SelectionReadiness, SourceName};
 
 #[derive(Default)]
 pub(crate) struct CandidateExecutionData {
+    pub context_failures:
+        BTreeMap<GroupKey, Vec<crate::candidate_context_reporting::QuestionContextFailure>>,
     pub elapsed_ms: BTreeMap<GroupKey, u64>,
     pub evidence_failures: BTreeMap<GroupKey, Vec<QuestionEvidenceFailure>>,
     pub evidence_identities: BTreeMap<GroupKey, BTreeMap<SourceName, BTreeSet<String>>>,
@@ -66,6 +68,18 @@ pub(crate) fn project_evidence_data(
         };
         for (group, at, sources) in groups {
             let admitted = &plan.groups[group.0].admitted;
+            if let Some(pages) = state.context_unresolved.get(unit) {
+                data.context_failures
+                    .entry(GroupKey {
+                        rule_set: admitted.set.path.clone(),
+                        group: admitted.position,
+                    })
+                    .or_default()
+                    .push(crate::candidate_context_reporting::QuestionContextFailure {
+                        at: at.clone(),
+                        pages: *pages,
+                    });
+            }
             for selection in selections {
                 if sources
                     .get(&selection.declaration.input)

@@ -11,15 +11,24 @@ pub(crate) struct CapturedCandidateCode {
     pub source_name: SourceName,
     pub index: CodeContextIndex,
 }
+pub(crate) struct CodeDiscoverySettings<'run> {
+    pub samples_per_pass: usize,
+    pub context_settings: &'run ContextSettings,
+    pub cancellation: &'run tokio_util::sync::CancellationToken,
+}
 pub(crate) fn discover_code_candidates(
     set: &crate::invocation_admission::LoadedRuleSet,
     sources: &[CapturedCandidateCode],
-    samples: usize,
+    settings: CodeDiscoverySettings<'_>,
     privacy: &mut PrivacyReport,
     dropped: &mut Vec<DroppedSample>,
     reports: &mut [InputReport],
-    cancellation: &tokio_util::sync::CancellationToken,
 ) -> Result<Vec<CandidateMaterial>, DiagnosticList> {
+    let CodeDiscoverySettings {
+        samples_per_pass: samples,
+        context_settings,
+        cancellation,
+    } = settings;
     let mut materials = Vec::new();
     for rule in &set.rules {
         let rule_ref = RuleRef {
@@ -68,7 +77,12 @@ pub(crate) fn discover_code_candidates(
                 let selected = if projected.match_is_private {
                     CandidateSelection::LeftOutForPrivacy
                 } else {
-                    code_selection(projected.context, &grants)
+                    code_selection(
+                        projected.context,
+                        &grants,
+                        context_settings,
+                        &projected.redaction_ranges,
+                    )?
                 };
                 materials.push(CandidateMaterial {
                     candidate_id: CandidateId {

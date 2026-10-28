@@ -38,7 +38,9 @@ pub(crate) fn project_candidate(
     set: &crate::invocation_admission::LoadedRuleSet,
     report: Option<&RuleInvocationReport>,
     router: Option<&crate::candidate_definitions::CandidateRouter>,
+    request_evidence: &std::collections::BTreeMap<usize, sunstack_decisions::SharedEvidenceState>,
 ) -> Result<CandidateEntry, DiagnosticList> {
+    let context = material.context();
     let mut answers = Vec::new();
     let mut references = std::collections::BTreeMap::new();
     let definition = set
@@ -137,7 +139,16 @@ pub(crate) fn project_candidate(
                 answers.push(AnswerRecord {
                     answer_id,
                     question: question_ref,
-                    page: None,
+                    page: context.as_ref().and_then(|context| {
+                        let [page] = context.pages.as_slice() else {
+                            return None;
+                        };
+                        let received = request_evidence
+                            .get(&request.index)
+                            .and_then(crate::request_state_rendering::delivered_code_page);
+                        (answer.is_some() && received == Some(page.text.as_str()))
+                            .then_some(u32::try_from(page.number).unwrap_or(u32::MAX))
+                    }),
                     answer,
                     settlement,
                 });
@@ -341,7 +352,6 @@ pub(crate) fn project_candidate(
             }
         }
     };
-    let context = material.context();
     Ok(CandidateEntry {
         candidate_id: material.candidate_id,
         rule: material.rule,

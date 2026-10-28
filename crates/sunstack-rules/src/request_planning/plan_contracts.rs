@@ -204,6 +204,7 @@ pub(crate) enum RequestSettlement {
     },
 }
 pub(crate) struct ExecutionState {
+    pub context_unresolved: BTreeMap<UnitKey, u32>,
     pub request_evidence: BTreeMap<RequestId, sunstack_decisions::SharedEvidenceState>,
     pub local_settlements: BTreeMap<OccurrenceIndex, LocalSettlement>,
     pub expansions: Vec<ExpansionState>,

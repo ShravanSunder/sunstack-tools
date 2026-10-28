@@ -396,6 +396,7 @@ impl ExecutionState {
         }
         Self {
             request_evidence: BTreeMap::new(),
+            context_unresolved: BTreeMap::new(),
             local_settlements: BTreeMap::new(),
             expansions: plan
                 .evaluations

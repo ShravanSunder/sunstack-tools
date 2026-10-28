@@ -120,6 +120,12 @@
         "context": {
           "$ref": "#/$defs/CandidateContext"
         },
+        "coverage": {
+          "items": {
+            "$ref": "#/$defs/ContextPieceCoverage"
+          },
+          "type": "array"
+        },
         "labels": {
           "additionalProperties": {
             "$ref": "#/$defs/RelatednessLabel"
@@ -136,7 +142,8 @@
       "required": [
         "context",
         "labels",
-        "pages"
+        "pages",
+        "coverage"
       ],
       "type": "object"
     },
@@ -459,6 +466,27 @@
       ],
       "type": "object"
     },
+    "ContextExclusionReason": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "duplicate_unit",
+              "type": "string"
+            },
+            "retained": {
+              "$ref": "#/$defs/PieceId"
+            }
+          },
+          "required": [
+            "kind",
+            "retained"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "ContextPage": {
       "additionalProperties": false,
       "properties": {
@@ -511,6 +539,108 @@
         "related"
       ],
       "type": "string"
+    },
+    "ContextPieceCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "$ref": "#/$defs/ContextPieceDisposition"
+        },
+        "piece_id": {
+          "$ref": "#/$defs/PieceId"
+        },
+        "redacted": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "piece_id",
+        "disposition",
+        "redacted"
+      ],
+      "type": "object"
+    },
+    "ContextPieceDisposition": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "placed",
+              "type": "string"
+            },
+            "page": {
+              "format": "uint",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "truncated",
+              "type": "string"
+            },
+            "omitted_lines": {
+              "$ref": "#/$defs/OmittedSourceLines"
+            },
+            "page": {
+              "format": "uint",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "page",
+            "omitted_lines"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "excluded",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/ContextExclusionReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "never_found",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/RelationshipUncertainty"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "ContextUnit": {
       "additionalProperties": false,
@@ -1532,6 +1662,26 @@
       "title": "string",
       "type": "string"
     },
+    "OmittedSourceLines": {
+      "additionalProperties": false,
+      "properties": {
+        "first": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "last": {
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "first",
+        "last"
+      ],
+      "type": "object"
+    },
     "PieceId": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "minLength": 1,
@@ -1811,6 +1961,23 @@
           "required": [
             "kind",
             "unit"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "input_span",
+              "type": "string"
+            },
+            "span": {
+              "$ref": "#/$defs/SourceSpan"
+            }
+          },
+          "required": [
+            "kind",
+            "span"
           ],
           "type": "object"
         },

@@ -125,6 +125,28 @@ pub(crate) async fn prepare_units(
                     }
                 }
             };
+            if !plan.unit_is_mechanical(*unit)
+                && let OwnerPreparation::Ready { selections, .. } = &prepared
+                && let Some(pages) = selections
+                    .iter()
+                    .filter_map(|selection| selection.context.as_ref())
+                    .map(|context| context.pages.len())
+                    .find(|pages| *pages > 1)
+            {
+                state
+                    .context_unresolved
+                    .insert(*unit, u32::try_from(pages).unwrap_or(u32::MAX));
+                prepared = match prepared {
+                    OwnerPreparation::Ready { selections, .. } => OwnerPreparation::Refused {
+                        selections,
+                        diagnostics: sunstack_evidence::DiagnosticList::one(
+                            sunstack_evidence::EvidenceCode::MissingContext,
+                        )
+                        .into(),
+                    },
+                    other => other,
+                };
+            }
             if cancellation.is_cancelled() {
                 let selections = match prepared {
                     OwnerPreparation::Ready { selections, .. }

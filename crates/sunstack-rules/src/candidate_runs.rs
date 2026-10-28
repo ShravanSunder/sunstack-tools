@@ -93,11 +93,14 @@ async fn run_candidates(
         selected.extend(crate::candidate_code_inputs::discover_code_candidates(
             set,
             &source_capture.code,
-            input.samples_per_pass,
+            crate::candidate_code_inputs::CodeDiscoverySettings {
+                samples_per_pass: input.samples_per_pass,
+                context_settings: &input.context_settings,
+                cancellation: &context.cancellation,
+            },
             &mut privacy,
             &mut dropped_samples,
             &mut source_capture.reports,
-            &context.cancellation,
         )?);
         let mut binding_groups = Vec::new();
         for material in selected {
@@ -326,12 +329,24 @@ async fn run_candidates(
                 set,
                 report,
                 definitions.router.as_ref(),
+                &request_evidence,
             )?;
             crate::candidate_evidence_outcomes::apply_evidence_failure(
                 &mut entry,
                 failures.map(Vec::as_slice).unwrap_or_default(),
                 &unavailable,
             )?;
+            crate::candidate_context_reporting::apply_whole_context_failure(
+                &mut entry,
+                candidate_data
+                    .context_failures
+                    .get(&GroupKey {
+                        rule_set: set.path.clone(),
+                        group,
+                    })
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+            );
             entry.elapsed_ms = elapsed_ms;
             entry.evidence = evidence;
             candidates.push(entry);

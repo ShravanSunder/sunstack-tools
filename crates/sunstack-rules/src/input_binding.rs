@@ -38,7 +38,7 @@ pub struct AdmittedSource {
 pub(crate) enum CandidateSourceView {
     Record(std::sync::Arc<CandidateRecordView>),
     Code {
-        context: std::sync::Arc<sunstack_evidence::CandidateContext>,
+        context: std::sync::Arc<crate::CandidateContextView>,
         grants: std::collections::BTreeSet<sunstack_evidence::PrivateKind>,
     },
     Outside {
@@ -53,6 +53,12 @@ impl AdmittedSource {
         }
     }
     pub(crate) fn candidate_code(&self) -> Option<&sunstack_evidence::CandidateContext> {
+        match &self.candidate {
+            Some(CandidateSourceView::Code { context, .. }) => Some(&context.context),
+            _ => None,
+        }
+    }
+    pub(crate) fn candidate_context(&self) -> Option<&std::sync::Arc<crate::CandidateContextView>> {
         match &self.candidate {
             Some(CandidateSourceView::Code { context, .. }) => Some(context),
             _ => None,
