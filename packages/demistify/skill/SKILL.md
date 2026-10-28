@@ -93,8 +93,8 @@ Routine document authoring ends with this source check. Do not install or launch
 
 A source check does not establish visual or interaction behavior. Report a failed command or unavailable tool plainly; do not turn routine authoring into a browser-proof task or claim unobserved behavior.
 
-## 5. Return the artifact and its evidence
+## 5. Return the artifact
 
-Return the file link and a brief lint result; mention a limitation only when it affects opening or using the document. Count authored HTML, referenced content/data/images and shared library costs separately. Source bytes/tokens are not model input/output/thinking usage or billed dollars. Loading public assets does not publish the document; publish only within the user's authorized scope.
+Return the file link and a brief lint result; mention a limitation only when it affects opening or using the document. When comparing efficiency, count authored content and shared library costs separately. Source bytes/tokens are not model input/output/thinking usage or billed dollars. Loading public assets does not publish the document; publish only within the user's authorized scope.
 
 The task is complete when the requested document is prepared for its intended delivery method and its changed HTML passes lint. Exercise interactions only when the task explicitly requests that verification.
