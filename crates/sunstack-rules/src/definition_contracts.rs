@@ -142,8 +142,32 @@ pub struct RuleDefinition {
     pub severity: Severity,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mechanical_pass: Option<sunstack_evidence::MechanicalPass>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub narrowing: Option<NarrowingDecision>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub private_access: Vec<sunstack_evidence::PrivateKind>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct NarrowingDecision {
+    #[schemars(schema_with = "noul_schema")]
+    pub question: JudgmentQuestion,
+    pub evidence: Vec<EvidenceDeclaration>,
+    #[schemars(extend("exclusiveMinimum" = 0, "maximum" = 1))]
+    pub threshold: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 0, max = 1))]
+    pub uncertain_below: Option<f64>,
+}
+impl NarrowingDecision {
+    pub(crate) fn entry(&self) -> ApplicabilityEntry {
+        ApplicabilityEntry::Decision {
+            question: self.question.clone(),
+            evidence: self.evidence.clone(),
+            threshold: self.threshold,
+            uncertain_below: self.uncertain_below,
+        }
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]

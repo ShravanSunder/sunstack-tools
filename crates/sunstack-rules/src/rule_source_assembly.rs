@@ -153,6 +153,7 @@ pub(crate) fn assemble_source(
                     .map_err(|error| DiagnosticList::from(error.diagnostics()))?,
                 applicability: vec![],
                 mechanical_pass: None,
+                narrowing: None,
                 private_access: vec![],
                 questions: BTreeMap::new(),
                 verdict: match entry.verdict {

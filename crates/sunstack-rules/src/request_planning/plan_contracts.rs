@@ -362,9 +362,16 @@ pub(crate) fn definition_topology_with_policy(
                 route: admitted.binding.route().cloned(),
                 rule_id: rule.rule_id.clone(),
             };
+            let candidate_entries;
+            let applicability = if sources.values().any(|source| source.candidate.is_some()) {
+                candidate_entries = crate::candidate_gates::rule_entries(rule);
+                &candidate_entries
+            } else {
+                &rule.applicability
+            };
             let entries = append_entries(
                 &mut plan,
-                &rule.applicability,
+                applicability,
                 owner,
                 sources.clone(),
                 group_entries.clone(),

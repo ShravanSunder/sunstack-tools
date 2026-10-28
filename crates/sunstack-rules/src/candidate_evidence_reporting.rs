@@ -9,6 +9,7 @@ pub(crate) fn project_evidence_uses(
     report: Option<&RuleInvocationReport>,
     identities: Option<&BTreeMap<SourceName, BTreeSet<String>>>,
     sources: &crate::input_binding::AdmittedSources,
+    router: Option<&crate::candidate_definitions::CandidateRouter>,
 ) -> Result<(Vec<EvidenceUse>, PrivacyProjection), DiagnosticList> {
     let rule = set
         .rules
@@ -32,6 +33,13 @@ pub(crate) fn project_evidence_uses(
         .applicability
         .iter()
         .chain(&rule.definition.applicability)
+        .chain(
+            rule.definition
+                .narrowing
+                .as_ref()
+                .map(NarrowingDecision::entry)
+                .as_ref(),
+        )
     {
         match entry {
             ApplicabilityEntry::Decision { evidence, .. } => {
@@ -49,6 +57,31 @@ pub(crate) fn project_evidence_uses(
         }
     }
     names.remove(&subject.input);
+    if let Some(router) = router {
+        names = router
+            .definition
+            .routes
+            .values()
+            .flatten()
+            .filter(|target| target.rule_set == set.path)
+            .flat_map(|target| target.inputs.iter())
+            .filter(|(name, _)| names.contains(*name))
+            .map(|(_, alias)| alias.clone())
+            .collect();
+        names.extend(
+            router
+                .definition
+                .evidence
+                .iter()
+                .map(|evidence| evidence.input.clone()),
+        );
+        if let Some(subject) = router
+            .targets
+            .get(&(set.path.clone(), rule.definition.rule_id.clone()))
+        {
+            names.remove(subject);
+        }
+    }
     let grants = material.view.grants.iter().copied().collect();
     let mut privacy = PrivacyProjection::default();
     let mut uses = Vec::new();

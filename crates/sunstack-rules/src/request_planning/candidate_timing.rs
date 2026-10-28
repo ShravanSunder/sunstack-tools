@@ -82,7 +82,13 @@ impl CandidateTimings {
                     ))
                 }
             })
-            .collect()
+            .fold(BTreeMap::new(), |mut timings, (key, elapsed)| {
+                timings
+                    .entry(key)
+                    .and_modify(|current: &mut u64| *current = (*current).max(elapsed))
+                    .or_insert(elapsed);
+                timings
+            })
     }
 }
 

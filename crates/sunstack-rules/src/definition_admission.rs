@@ -140,6 +140,9 @@ pub fn validate_rule_definition(
     inputs: &BTreeMap<SourceName, InputDeclaration>,
 ) -> Result<(), DiagnosticList> {
     validate_evidence(&rule.evidence, inputs)?;
+    if let Some(narrowing) = &rule.narrowing {
+        validate_entries(&[narrowing.entry()], inputs)?;
+    }
     let target = rule
         .evidence
         .iter()

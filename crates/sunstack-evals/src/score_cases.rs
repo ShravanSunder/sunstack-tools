@@ -100,6 +100,7 @@ pub fn score(bundles: &[CandidateRunReport], set: &FrozenCaseSet) -> Result<Eval
                 &mut report.end_result,
             ),
             QuestionRef::Informational { .. }
+            | QuestionRef::Narrowing {}
             | QuestionRef::Router {}
             | QuestionRef::RuleSetGate { .. }
             | QuestionRef::RuleGate { .. } => {}
@@ -168,7 +169,8 @@ fn same_question(left: &QuestionRef, right: &QuestionRef) -> bool {
         (QuestionRef::Informational { name: left }, QuestionRef::Informational { name: right }) => {
             left == right
         }
-        (QuestionRef::Router {}, QuestionRef::Router {})
+        (QuestionRef::Narrowing {}, QuestionRef::Narrowing {})
+        | (QuestionRef::Router {}, QuestionRef::Router {})
         | (QuestionRef::Verdict {}, QuestionRef::Verdict {}) => true,
         (
             QuestionRef::RuleSetGate { position: left },

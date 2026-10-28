@@ -57,6 +57,9 @@ pub enum UnavailableReason {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum CandidateDefinitions {
+    Router {
+        path: PathBuf,
+    },
     RuleSets {
         #[schemars(length(min = 1))]
         rule_sets: Vec<PathBuf>,

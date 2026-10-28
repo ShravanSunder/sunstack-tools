@@ -47,36 +47,13 @@ async fn run_candidates(
     input.attempts.validate().map_err(|diagnostic| {
         DiagnosticList::from(sunstack_decisions::DiagnosticList::from(diagnostic))
     })?;
-    let CandidateDefinitions::RuleSets { rule_sets } = &input.definitions;
-    if rule_sets.is_empty() {
-        return Err(invalid_candidate_field(vec!["definitions".into()]));
-    }
-    let cwd = std::env::current_dir().map_err(|_| invalid_candidate_field(vec![]))?;
-    let root = crate::input_binding::resolved_path(&cwd, &input.definition_root)?;
-    let paths = rule_sets.clone();
-    let max_bytes = input.limits.max_file_bytes.get();
-    let cancellation = context.cancellation.clone();
-    let sets = tokio::task::spawn_blocking(move || {
-        let mut loader = crate::definition_loading::DefinitionLoader::new(max_bytes, cancellation);
-        let mut seen = BTreeSet::new();
-        paths
-            .into_iter()
-            .map(|path| {
-                let path = crate::input_binding::resolved_path(&root, &path)?;
-                if !seen.insert(path.clone()) {
-                    return Err(DiagnosticList::rule(RuleDiagnosticCode::DuplicateRuleSet));
-                }
-                loader.load_set(path)
-            })
-            .collect::<Result<Vec<_>, _>>()
-    })
-    .await
-    .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))??;
-    let outside = crate::candidate_admission::admit_candidate_evidence(&input, &sets)?;
+    let definitions = crate::candidate_definitions::load_definitions(&input, &context).await?;
+    let sets = &definitions.sets;
+    let outside = crate::candidate_admission::admit_candidate_evidence(&input, &definitions)?;
     let plan = crate::candidate_admission::candidate_evidence_plan(&input, &outside);
     let mut source_capture = capture_candidate_sources(&input, &context, plan).await?;
     for report in &mut source_capture.reports {
-        for set in &sets {
+        for set in sets {
             for rule in &set.rules {
                 report.discovery.push(RuleDiscovery {
                     rule: RuleRef {
@@ -102,7 +79,8 @@ async fn run_candidates(
     let mut bound_sets = Vec::new();
     let mut admitted_groups = Vec::new();
     let mut policy = RulePolicy::default();
-    for set in &sets {
+    let mut router_groups = Vec::new();
+    for set in sets {
         let selected = discover_rule_candidates(
             set,
             &source_capture.captured,
@@ -143,6 +121,21 @@ async fn run_candidates(
                 .iter()
                 .find(|evidence| evidence.id == rule.definition.target)
                 .ok_or_else(|| invalid_candidate_field(vec!["definitions".into()]))?;
+            if let Some(router) = &definitions.router {
+                let group = router_groups.len();
+                let sources = crate::candidate_routing::admit_router_candidate(
+                    router,
+                    sets,
+                    &outside,
+                    &material,
+                    group,
+                    &mut admitted_groups,
+                    &mut policy,
+                )?;
+                router_groups.push(sources);
+                materials.push((material, group));
+                continue;
+            }
             let group = binding_groups.len();
             let mut scoped_bindings = input.evidence.clone();
             scoped_bindings.extend(input.sources[material.entry_position].evidence.clone());
@@ -244,7 +237,12 @@ async fn run_candidates(
         let admitted = crate::candidate_admission::CandidateAdmission {
             invocation: crate::invocation_admission::AdmittedInvocation {
                 groups: admitted_groups,
-                router: None,
+                router: definitions.router.as_ref().map(|router| {
+                    crate::invocation_admission::AdmittedRouter {
+                        definition: router.definition.clone(),
+                        groups: router_groups,
+                    }
+                }),
                 evidence: source_capture.plan.clone(),
             },
             session: source_capture.session,
@@ -303,9 +301,16 @@ async fn run_candidates(
                 rule_set: material.rule.rule_set.clone(),
                 group,
             });
+            let evidence_key = (
+                definitions.router.as_ref().map_or_else(
+                    || material.rule.rule_set.clone(),
+                    |router| router.path.clone(),
+                ),
+                material.entry_position,
+            );
             let source_bindings = outside
                 .entries
-                .get(&(material.rule.rule_set.clone(), material.entry_position))
+                .get(&evidence_key)
                 .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
             let (evidence, outside_projection) =
                 crate::candidate_evidence_reporting::project_evidence_uses(
@@ -315,6 +320,7 @@ async fn run_candidates(
                     report,
                     identities,
                     source_bindings,
+                    definitions.router.as_ref(),
                 )?;
             for (private_kind, count) in outside_projection.left_out {
                 privacy.left_out.push(PrivacyCount {
@@ -323,7 +329,7 @@ async fn run_candidates(
                     count,
                 });
             }
-            let evidence_key = (material.rule.rule_set.clone(), material.entry_position);
+
             let failures = candidate_data.evidence_failures.get(&GroupKey {
                 rule_set: material.rule.rule_set.clone(),
                 group,
@@ -333,8 +339,13 @@ async fn run_candidates(
                 .get(&evidence_key)
                 .cloned()
                 .unwrap_or_default();
-            let mut entry =
-                crate::candidate_projection::project_candidate(material, group, set, report)?;
+            let mut entry = crate::candidate_projection::project_candidate(
+                material,
+                group,
+                set,
+                report,
+                definitions.router.as_ref(),
+            )?;
             crate::candidate_evidence_outcomes::apply_evidence_failure(
                 &mut entry,
                 failures.map(Vec::as_slice).unwrap_or_default(),

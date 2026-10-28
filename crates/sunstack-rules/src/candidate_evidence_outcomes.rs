@@ -18,8 +18,9 @@ pub(crate) fn apply_evidence_failure(
     let Some(failure) = failures.iter().min_by_key(|failure| match failure.at {
         QuestionRef::Router {} => (0, 0),
         QuestionRef::RuleSetGate { position } => (1, position),
-        QuestionRef::RuleGate { position } => (2, position),
-        QuestionRef::Verdict {} | QuestionRef::Informational { .. } => (3, 0),
+        QuestionRef::Narrowing {} => (2, 0),
+        QuestionRef::RuleGate { position } => (3, position),
+        QuestionRef::Verdict {} | QuestionRef::Informational { .. } => (4, 0),
     }) else {
         return Ok(());
     };

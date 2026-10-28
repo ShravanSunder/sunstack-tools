@@ -2,7 +2,6 @@ use crate::{input_binding::*, invocation_admission::*, *};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::PathBuf,
-    sync::Arc,
 };
 use sunstack_evidence::{
     EvidencePlanInput, EvidenceSession, PayloadSchemaPath, SourceName, SourceSpec,
@@ -22,11 +21,19 @@ pub(crate) struct CandidateEvidenceInputs {
 /// Admit only supplied outside facts. A missing fact has no fabricated source or value.
 pub(crate) fn admit_candidate_evidence(
     input: &CandidateRunInput,
-    sets: &[Arc<LoadedRuleSet>],
+    definitions: &crate::candidate_definitions::CandidateDefinitionsLoaded,
 ) -> Result<CandidateEvidenceInputs, DiagnosticList> {
-    let names = sets
+    let declarations = match &definitions.router {
+        Some(router) => vec![(&router.path, &router.definition.inputs)],
+        None => definitions
+            .sets
+            .iter()
+            .map(|set| (&set.path, &set.definition.inputs))
+            .collect(),
+    };
+    let names = declarations
         .iter()
-        .flat_map(|set| set.definition.inputs.keys())
+        .flat_map(|(_, inputs)| inputs.keys())
         .collect::<BTreeSet<_>>();
     if input
         .evidence
@@ -49,12 +56,12 @@ pub(crate) fn admit_candidate_evidence(
         entries: BTreeMap::new(),
         unavailable: BTreeMap::new(),
     };
-    for set in sets {
+    for (path, inputs) in declarations {
         for (position, entry) in input.sources.iter().enumerate() {
             let mut declarations = BTreeMap::new();
             let mut bindings = BTreeMap::new();
             let mut unavailable = BTreeMap::new();
-            for (name, declaration) in &set.definition.inputs {
+            for (name, declaration) in inputs {
                 match entry
                     .evidence
                     .get(name)
@@ -78,7 +85,7 @@ pub(crate) fn admit_candidate_evidence(
                 &input.repositories,
                 &mut prepared.sources,
             )?;
-            let key = (set.path.clone(), position);
+            let key = (path.clone(), position);
             prepared.entries.insert(key.clone(), admitted);
             prepared.unavailable.insert(key, unavailable);
         }

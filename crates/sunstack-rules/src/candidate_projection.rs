@@ -37,6 +37,7 @@ pub(crate) fn project_candidate(
     group: usize,
     set: &crate::invocation_admission::LoadedRuleSet,
     report: Option<&RuleInvocationReport>,
+    router: Option<&crate::candidate_definitions::CandidateRouter>,
 ) -> Result<CandidateEntry, DiagnosticList> {
     let mut answers = Vec::new();
     let mut references = std::collections::BTreeMap::new();
@@ -48,6 +49,7 @@ pub(crate) fn project_candidate(
     if let Some(report) = report {
         for request in &report.requests {
             if !matches!(&request.owner, RequestOwner::RuleSetGroup { rule_set, group: position, .. } if *rule_set == material.rule.rule_set && *position == group)
+                && !matches!(&request.owner, RequestOwner::Router {group:position} if router.is_some() && *position==group)
             {
                 continue;
             }
@@ -82,13 +84,14 @@ pub(crate) fn project_candidate(
                             _ => None,
                         },
                     ),
-                    QuestionOwner::RuleDecision { entry, .. } => (
-                        QuestionRef::RuleGate {
-                            position: entry.position,
-                        },
-                        decision_threshold(&definition.definition.applicability, entry.position),
-                        decision_floor(&definition.definition.applicability, entry.position),
-                    ),
+                    QuestionOwner::RuleDecision { entry, .. } => {
+                        let entries = crate::candidate_gates::rule_entries(&definition.definition);
+                        (
+                            crate::candidate_gates::reference(entry, &definition.definition),
+                            decision_threshold(&entries, entry.position),
+                            decision_floor(&entries, entry.position),
+                        )
+                    }
                     QuestionOwner::RuleSetDecision { entry } => (
                         QuestionRef::RuleSetGate {
                             position: entry.position,
@@ -172,7 +175,10 @@ pub(crate) fn project_candidate(
                 };
                 answers.push(AnswerRecord {
                     answer_id,
-                    question: gate_reference(&evaluated.key),
+                    question: crate::candidate_gates::reference(
+                        &evaluated.key,
+                        &definition.definition,
+                    ),
                     page: None,
                     answer: None,
                     settlement,
@@ -231,13 +237,25 @@ pub(crate) fn project_candidate(
                 _ => None,
             })
     });
-    let outcome = if let Some((at, answer)) = uncertain_gate {
+    let routing = report.and_then(|report| {
+        crate::candidate_routing::router_outcome(
+            router,
+            group,
+            &material.rule.rule_set,
+            report,
+            &mut answers,
+        )
+    });
+    let outcome = if let Some(outcome) = routing {
+        answers.retain(|answer| matches!(answer.question, QuestionRef::Router {}));
+        outcome
+    } else if let Some((at, answer)) = uncertain_gate {
         CandidateOutcome::Uncertain {
-            at: gate_reference(at),
+            at: crate::candidate_gates::reference(at, &definition.definition),
             answers: lookup(answer).into_iter().collect(),
         }
     } else if let Some((stopped_at, basis)) = applicability_stop {
-        let at = gate_reference(stopped_at);
+        let at = crate::candidate_gates::reference(stopped_at, &definition.definition);
         let answer = match basis {
             EntryBasis::Decision { answer, .. } => lookup(answer),
             EntryBasis::Condition { .. } => answers
@@ -265,7 +283,7 @@ pub(crate) fn project_candidate(
             }
             Some(RuleOccurrenceResult::Uncertain { at, answer, .. }) => {
                 CandidateOutcome::Uncertain {
-                    at: gate_reference(at),
+                    at: crate::candidate_gates::reference(at, &definition.definition),
                     answers: lookup(answer).into_iter().collect(),
                 }
             }
@@ -369,17 +387,6 @@ fn decision_threshold(entries: &[ApplicabilityEntry], position: usize) -> Option
     match entries.get(position) {
         Some(ApplicabilityEntry::Decision { threshold, .. }) => Some(*threshold),
         _ => None,
-    }
-}
-
-fn gate_reference(key: &EntryKey) -> QuestionRef {
-    match key.owner {
-        EntryOwner::RuleSet { .. } => QuestionRef::RuleSetGate {
-            position: key.position,
-        },
-        _ => QuestionRef::RuleGate {
-            position: key.position,
-        },
     }
 }
 
