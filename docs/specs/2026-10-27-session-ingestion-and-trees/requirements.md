@@ -138,9 +138,12 @@ Every row below is `authorized`: the owner settled it in Project 2's reviewed sp
 - **Finding every entry path** that could reach some code, or discovering event hooks.
 - **Project 3's rules, and the bigger judge itself:** this project produces the bundle a bigger judge reads, not that judge.
 
+## Settled with the owner
+
+- **O1, a function too big for one request (28 October):** truncate it once within the page budget, preserving its signature, first lines, one marked gap with the omitted line count, and last lines. The head/tail split is configurable; coverage names the truncated unit and omitted range. U13/U15 include this case.
+
 ## Open with the owner
 
-- **O1, a function too big for one request:** does its complete, exact source sent across several numbered requests count as "the whole function" (the Lead recommends yes), or does that candidate stay unprocessed? Sent through the Station Chief on 27 October. It decides one row of U13 and U15's specification.
 - **O2, related triggers for a code rule:** U16's readback above. Sent the same day.
 
 ## Not verified
