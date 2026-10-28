@@ -3,6 +3,7 @@ members = [
     "crates/sunstack-evidence",
     "crates/sunstack-decisions",
     "crates/sunstack-rules",
+    "crates/sunstack-evals",
     "crates/sunstack",
     "crates/sunstack-lint",
 ]

@@ -2085,6 +2085,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "sunstack-evals"
+version = "0.1.0"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "sunstack-evidence",
+ "sunstack-rules",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
 name = "sunstack-evidence"
 version = "0.1.0"
 dependencies = [
