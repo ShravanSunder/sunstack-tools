@@ -50,6 +50,9 @@ macro_rules! validated_name {
                     "TranscriptFormatName" => {
                         schema.insert("maxLength".into(), serde_json::json!(128));
                     }
+                    "FieldPath" => {
+                        schema.insert("pattern".into(), serde_json::json!("^/"));
+                    }
                     _ => {}
                 }
                 schema
@@ -316,6 +319,10 @@ pub struct EvidenceMatch {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SelectionContent {
+    PositionedRecord {
+        source: SourceRef,
+        record: Box<crate::PositionedRecord>,
+    },
     FrontmatterField {
         result: Box<crate::FrontmatterFieldContent>,
     },
@@ -373,6 +380,10 @@ pub struct SelectionResult {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetLocation {
+    PositionedRecord {
+        source: SourceRef,
+        record_id: crate::PositionedRecordId,
+    },
     FrontmatterField {
         source: SourceRef,
         field: String,

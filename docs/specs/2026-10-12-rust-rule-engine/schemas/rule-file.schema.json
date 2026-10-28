@@ -52,6 +52,22 @@
             "error",
             "warn"
           ]
+        },
+        "mechanical_pass": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MechanicalPass"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "private_access": {
+          "items": {
+            "$ref": "#/$defs/PrivateKind"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -596,6 +612,120 @@
         "check"
       ],
       "additionalProperties": false
+    },
+    "PrivateKind": {
+      "enum": [
+        "thinking",
+        "analysis_channel",
+        "encrypted_reasoning",
+        "credential_like"
+      ],
+      "type": "string"
+    },
+    "MechanicalPass": {
+      "additionalProperties": false,
+      "properties": {
+        "predicate": {
+          "$ref": "#/$defs/RecordPredicate"
+        }
+      },
+      "required": [
+        "predicate"
+      ],
+      "type": "object"
+    },
+    "RecordPredicate": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/FieldPath"
+            },
+            "kind": {
+              "const": "regex",
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/FieldPath"
+            },
+            "kind": {
+              "const": "literal",
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "any",
+              "type": "string"
+            },
+            "predicates": {
+              "items": {
+                "$ref": "#/$defs/RecordPredicate"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "predicates"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "all",
+              "type": "string"
+            },
+            "predicates": {
+              "items": {
+                "$ref": "#/$defs/RecordPredicate"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "predicates"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "FieldPath": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "pattern": "^/",
+      "title": "string",
+      "type": "string"
     }
   }
 }

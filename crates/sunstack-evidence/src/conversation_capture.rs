@@ -136,11 +136,18 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
             return Err(EvidenceCode::TranscriptDiscontinuous.into());
         }
     }
-    let adapter = registry.adapter(&request.format)?;
-    let output = adapter.normalize(&CapturedTranscript {
+    let captured = CapturedTranscript {
         bytes: &bytes[..committed],
         source_identity: &source.file_identity,
-    });
+    };
+    let events = registry
+        .event_reader(&request.format)
+        .ok()
+        .map(|reader| reader.events(&captured));
+    let output = match &events {
+        Some(events) => crate::transcript_normalization::fold_transcript_events(events.clone()),
+        None => registry.adapter(&request.format)?.normalize(&captured),
+    };
     if cancellation.is_cancelled() {
         return Err(EvidenceCode::MissingContext.into());
     }
@@ -234,6 +241,7 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
         coverage,
         cursor,
         previous_cursor,
+        events,
     })
 }
 pub(crate) fn message_text(blocks: &[MessageBlock]) -> String {

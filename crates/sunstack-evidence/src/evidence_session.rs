@@ -38,6 +38,10 @@ impl EvidenceSession {
             readiness,
         }
     }
+    /// Capture through the session's existing cache and cumulative acquisition limits.
+    pub async fn capture_source(&mut self, name: &SourceName) -> EvidenceResult<CapturedSource> {
+        self.preparation.source(name).await
+    }
     pub(crate) async fn select_native(&mut self, query: &NativeQuery) -> SelectionResult {
         let readiness = match self.preparation.native_select(query).await {
             Ok(readiness) => readiness,

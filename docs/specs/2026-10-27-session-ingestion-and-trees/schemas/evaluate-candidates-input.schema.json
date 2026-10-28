@@ -1,0 +1,826 @@
+{
+  "$defs": {
+    "AccountingPolicy": {
+      "enum": [
+        "require_exact",
+        "allow_estimated"
+      ],
+      "type": "string"
+    },
+    "AttemptSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_timeout_ms": {
+          "format": "uint64",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "initial_backoff_ms": {
+          "format": "uint64",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_backoff_ms": {
+          "format": "uint64",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "retry_count": {
+          "format": "uint32",
+          "maximum": 4294967294,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attempt_timeout_ms",
+        "retry_count",
+        "initial_backoff_ms",
+        "max_backoff_ms",
+        "max_response_bytes"
+      ],
+      "type": "object"
+    },
+    "BackendSelection": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "context_ceiling_tokens": {
+              "format": "uint64",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "endpoint": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "jev_openrouter",
+              "type": "string"
+            },
+            "model": {
+              "$ref": "#/$defs/ModelName"
+            }
+          },
+          "required": [
+            "kind",
+            "endpoint",
+            "model"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CandidateDefinitions": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "rule_sets",
+              "type": "string"
+            },
+            "rule_sets": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "rule_sets"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ChangeScope": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "full",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "uncommitted",
+              "type": "string"
+            },
+            "layers": {
+              "items": {
+                "$ref": "#/$defs/DirtyLayer"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "layers"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "base_revision": {
+              "type": "string"
+            },
+            "head": {
+              "$ref": "#/$defs/RevisionHead"
+            },
+            "kind": {
+              "const": "revision_diff",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "base_revision",
+            "head"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "commit_ids": {
+              "items": {
+                "$ref": "#/$defs/GitObjectId"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "commit_set",
+              "type": "string"
+            },
+            "parent_policy": {
+              "$ref": "#/$defs/CommitParentPolicy"
+            }
+          },
+          "required": [
+            "kind",
+            "commit_ids",
+            "parent_policy"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "recent_commits",
+              "type": "string"
+            },
+            "parent_policy": {
+              "$ref": "#/$defs/CommitParentPolicy"
+            },
+            "reference": {
+              "type": "string"
+            },
+            "window": {
+              "$ref": "#/$defs/TimeWindow"
+            }
+          },
+          "required": [
+            "kind",
+            "reference",
+            "window",
+            "parent_policy"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "recent_uncommitted",
+              "type": "string"
+            },
+            "layers": {
+              "items": {
+                "$ref": "#/$defs/DirtyLayer"
+              },
+              "type": "array"
+            },
+            "unknown_recency": {
+              "$ref": "#/$defs/UnknownRecencyPolicy"
+            },
+            "window": {
+              "$ref": "#/$defs/TimeWindow"
+            }
+          },
+          "required": [
+            "kind",
+            "layers",
+            "window",
+            "unknown_recency"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "union",
+              "type": "string"
+            },
+            "members": {
+              "items": {
+                "$ref": "#/$defs/ChangeScope"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "members"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CommitParentPolicy": {
+      "enum": [
+        "first_parent",
+        "each_parent"
+      ],
+      "type": "string"
+    },
+    "DirtyLayer": {
+      "enum": [
+        "staged",
+        "unstaged",
+        "untracked"
+      ],
+      "type": "string"
+    },
+    "ExecutionSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "max_concurrent_requests": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "speculation": {
+          "$ref": "#/$defs/Speculation"
+        }
+      },
+      "required": [
+        "speculation",
+        "max_concurrent_requests"
+      ],
+      "type": "object"
+    },
+    "GitObjectId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "InvocationLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "include_ignored": {
+          "type": "boolean"
+        },
+        "max_file_bytes": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_files": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_matches": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_transcript_bytes": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_files",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_matches",
+        "max_transcript_bytes",
+        "include_ignored"
+      ],
+      "type": "object"
+    },
+    "ModelName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "PayloadSchemaPath": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/SchemaName"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ],
+      "type": "object"
+    },
+    "ProviderName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "ProviderRecipe": {
+      "additionalProperties": false,
+      "properties": {
+        "locate": {
+          "$ref": "#/$defs/SessionLocation"
+        },
+        "map": {
+          "$ref": "#/$defs/RecordMapping",
+          "default": {
+            "fields": {}
+          }
+        },
+        "provider": {
+          "$ref": "#/$defs/ProviderName"
+        },
+        "read": {
+          "$ref": "#/$defs/TranscriptReading"
+        }
+      },
+      "required": [
+        "provider",
+        "locate",
+        "read"
+      ],
+      "type": "object"
+    },
+    "QueryPath": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "exact",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "glob",
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "pattern"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RecordMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "type": "object"
+    },
+    "RepositoryBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "change_scope": {
+          "$ref": "#/$defs/ChangeScope"
+        },
+        "input_paths": {
+          "items": {
+            "$ref": "#/$defs/QueryPath"
+          },
+          "type": "array"
+        },
+        "key": {
+          "$ref": "#/$defs/RepositoryId"
+        },
+        "root": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "root",
+        "input_paths",
+        "change_scope"
+      ],
+      "type": "object"
+    },
+    "RepositoryId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "RequestBudgetSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "accounting_policy": {
+          "$ref": "#/$defs/AccountingPolicy"
+        },
+        "max_input_tokens": {
+          "format": "uint64",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_questions": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_request_bytes": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_requests": {
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "safety_margin_tokens": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_input_tokens",
+        "max_request_bytes",
+        "max_questions",
+        "max_requests",
+        "safety_margin_tokens",
+        "accounting_policy"
+      ],
+      "type": "object"
+    },
+    "RevisionHead": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "commit",
+              "type": "string"
+            },
+            "revision": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "revision"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "worktree",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SchemaName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "SessionId": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "SessionLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {
+          "type": "string"
+        },
+        "roots": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "roots",
+        "pattern"
+      ],
+      "type": "object"
+    },
+    "SourceEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/SourceInput"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "type": "object"
+    },
+    "SourceInput": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "session_pair",
+              "type": "string"
+            },
+            "provider": {
+              "$ref": "#/$defs/ProviderName"
+            },
+            "session": {
+              "$ref": "#/$defs/SessionId"
+            }
+          },
+          "required": [
+            "kind",
+            "provider",
+            "session"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "custom_entry",
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "schema": {
+              "$ref": "#/$defs/StructuredJson"
+            }
+          },
+          "required": [
+            "kind",
+            "location",
+            "schema"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Speculation": {
+      "enum": [
+        "off",
+        "on"
+      ],
+      "type": "string"
+    },
+    "StructuredJson": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/StructuredJson"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Recursive JSON content. This is data, never a declaration or an executable expression."
+    },
+    "TimeWindow": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "lookback",
+              "type": "string"
+            },
+            "seconds": {
+              "format": "uint",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "seconds"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "absolute",
+              "type": "string"
+            },
+            "since_utc": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "until_utc": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "since_utc",
+            "until_utc"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "TranscriptFormatName": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "string",
+      "type": "string"
+    },
+    "TranscriptReading": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/TranscriptFormatName"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "type": "object"
+    },
+    "UnknownRecencyPolicy": {
+      "enum": [
+        "include_with_diagnostic",
+        "exclude_with_omission"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempts": {
+      "$ref": "#/$defs/AttemptSettings"
+    },
+    "backend": {
+      "$ref": "#/$defs/BackendSelection"
+    },
+    "definition_root": {
+      "type": "string"
+    },
+    "definitions": {
+      "$ref": "#/$defs/CandidateDefinitions"
+    },
+    "execution": {
+      "$ref": "#/$defs/ExecutionSettings"
+    },
+    "limits": {
+      "$ref": "#/$defs/InvocationLimits"
+    },
+    "payload_schemas": {
+      "items": {
+        "$ref": "#/$defs/PayloadSchemaPath"
+      },
+      "type": "array"
+    },
+    "recipes": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ProviderRecipe"
+      },
+      "type": "array"
+    },
+    "repositories": {
+      "items": {
+        "$ref": "#/$defs/RepositoryBinding"
+      },
+      "type": "array"
+    },
+    "request_budget": {
+      "$ref": "#/$defs/RequestBudgetSettings"
+    },
+    "samples_per_pass": {
+      "default": 20,
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceEntry"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "sources",
+    "definitions",
+    "definition_root",
+    "repositories",
+    "payload_schemas",
+    "execution",
+    "limits",
+    "backend",
+    "attempts",
+    "request_budget"
+  ],
+  "title": "CandidateRunInput",
+  "type": "object",
+  "$id": "evaluate-candidates-input.schema.json"
+}

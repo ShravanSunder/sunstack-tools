@@ -120,7 +120,22 @@ fn safe_path(path: &serde_path_to_error::Path) -> Vec<String> {
 fn safe_field(field: &str) -> bool {
     matches!(
         field,
-        "instructions"
+        "sources"
+            | "source"
+            | "provider"
+            | "session"
+            | "recipes"
+            | "locate"
+            | "roots"
+            | "read"
+            | "format"
+            | "map"
+            | "fields"
+            | "samples_per_pass"
+            | "mechanical_pass"
+            | "predicate"
+            | "private_access"
+            | "instructions"
             | "criteria"
             | "schema_version"
             | "name"

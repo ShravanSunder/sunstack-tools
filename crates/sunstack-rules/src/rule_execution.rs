@@ -28,7 +28,7 @@ pub async fn evaluate_rules_with_policy(
     context: RuleExecutionContext,
 ) -> PolicyEvaluation {
     let mut request_evidence = Default::default();
-    let outcome = evaluate_with_evidence(input, policy, context, &mut request_evidence).await;
+    let outcome = evaluate_with_evidence(input, policy, context, &mut request_evidence, None).await;
     PolicyEvaluation {
         outcome,
         request_evidence,
@@ -42,7 +42,7 @@ pub async fn evaluate_rules(
         .await
         .outcome
 }
-async fn evaluate_with_evidence(
+pub(crate) async fn evaluate_with_evidence(
     input: RuleInvocationInput,
     policy: RulePolicy,
     context: RuleExecutionContext,
@@ -50,6 +50,7 @@ async fn evaluate_with_evidence(
         usize,
         sunstack_decisions::SharedEvidenceState,
     >,
+    candidate_admission: Option<crate::invocation_admission::AdmittedInvocation>,
 ) -> RuleInvocationOutcome {
     let started = Instant::now();
     let mut measurements = InvocationMeasurements::default();
@@ -64,7 +65,11 @@ async fn evaluate_with_evidence(
             diagnostics: DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration),
         };
     }
-    let admitted = match admit_invocation(&input, &context.adapters, &cancellation).await {
+    let admission = match candidate_admission {
+        Some(admitted) => Ok(admitted),
+        None => admit_invocation(&input, &context.adapters, &cancellation).await,
+    };
+    let admitted = match admission {
         Ok(admitted) => admitted,
         Err(diagnostics) => {
             measurements.local_elapsed_ms = duration_ms(started.elapsed());

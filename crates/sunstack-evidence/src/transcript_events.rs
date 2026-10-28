@@ -21,6 +21,17 @@ pub enum RecordAuthor {
     Custom,
 }
 
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum PrivateKind {
+    Thinking,
+    AnalysisChannel,
+    EncryptedReasoning,
+    CredentialLike,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TranscriptEvent {
@@ -30,6 +41,8 @@ pub enum TranscriptEvent {
         position: SourcePosition,
         blocks: Vec<MessageBlock>,
         injection: InjectionOrigin,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        private_kind: Option<PrivateKind>,
     },
     ToolCall {
         call_id: CallId,
@@ -43,6 +56,13 @@ pub enum TranscriptEvent {
         outcome: ToolOutcome,
         result: ToolResult,
         position: SourcePosition,
+    },
+    PrivateRecord {
+        record_id: RecordId,
+        author: RecordAuthor,
+        position: SourcePosition,
+        private_kind: PrivateKind,
+        text: Option<String>,
     },
     Gap {
         gap: CoverageGap,

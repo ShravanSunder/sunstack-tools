@@ -60,6 +60,7 @@ impl EventReadingState {
             position,
             blocks,
             injection,
+            private_kind: None,
         });
         Ok(())
     }
@@ -91,12 +92,20 @@ impl EventReadingState {
         outcome: ToolOutcome,
         position: SourcePosition,
     ) {
+        let orphan = !self.calls.contains(&call_id);
+        let orphan_id = call_id.clone();
         self.events.push(TranscriptEvent::ToolResult {
             call_id,
             result,
             outcome,
             position,
         });
+        if orphan {
+            self.gap(CoverageGap::OrphanResult {
+                call_id: orphan_id,
+                position: position.byte_offset,
+            });
+        }
     }
     fn claude(&mut self, value: Value, position: SourcePosition) -> EvidenceResult<()> {
         let kind = field(&value, "type")?;
@@ -294,6 +303,32 @@ impl EventReadingState {
                         InjectionOrigin::Unknown
                     },
                 )?;
+                if payload.get("channel").and_then(Value::as_str) == Some("analysis")
+                    && let Some(TranscriptEvent::MessagePart { private_kind, .. }) =
+                        self.events.last_mut()
+                {
+                    *private_kind = Some(PrivateKind::AnalysisChannel);
+                }
+            }
+            "reasoning" => {
+                let text = payload
+                    .get("summary")
+                    .and_then(Value::as_array)
+                    .map(|summary| {
+                        summary
+                            .iter()
+                            .filter_map(|part| part.get("text").and_then(Value::as_str))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    })
+                    .filter(|text| !text.is_empty());
+                self.events.push(TranscriptEvent::PrivateRecord {
+                    record_id: RecordId::new(format!("reasoning:{}", position.byte_offset))?,
+                    author: RecordAuthor::Assistant,
+                    position,
+                    private_kind: PrivateKind::EncryptedReasoning,
+                    text,
+                });
             }
             "function_call" => {
                 let arguments = payload

@@ -91,11 +91,6 @@ impl NormalizationState {
                 tool.outcome = outcome;
                 record.position = position;
             }
-        } else {
-            self.output.gaps.push(CoverageGap::OrphanResult {
-                call_id: id,
-                position,
-            });
         }
     }
 }
@@ -109,6 +104,7 @@ pub(crate) fn fold_transcript_events(events: Vec<TranscriptEvent>) -> AdapterOut
                 position,
                 blocks,
                 injection,
+                ..
             } => {
                 // Built-in readers validate message identity/role before emitting a part.
                 if state
@@ -160,6 +156,11 @@ pub(crate) fn fold_transcript_events(events: Vec<TranscriptEvent>) -> AdapterOut
                 result,
                 position,
             } => state.result(call_id, result, outcome, position.byte_offset),
+            TranscriptEvent::PrivateRecord { position, .. } => {
+                state.output.gaps.push(CoverageGap::UnsupportedRecord {
+                    position: position.byte_offset,
+                });
+            }
             TranscriptEvent::Gap { gap } => {
                 if matches!(
                     gap,

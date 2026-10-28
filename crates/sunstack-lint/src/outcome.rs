@@ -75,7 +75,8 @@ pub(crate) fn target_span(target: &TargetLocation) -> Option<SourceSpan> {
         },
         TargetLocation::CodeUnits { .. }
         | TargetLocation::ConversationRecords { .. }
-        | TargetLocation::PayloadField { .. } => None,
+        | TargetLocation::PayloadField { .. }
+        | TargetLocation::PositionedRecord { .. } => None,
     }
 }
 pub fn summarize_usage(report: &RuleInvocationReport) -> UsageSummary {

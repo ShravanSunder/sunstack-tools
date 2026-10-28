@@ -486,7 +486,8 @@ fn selected_fingerprint(
             values.sort();
             ((!values.is_empty()).then_some(values), count)
         }
-        SelectionContent::ConversationRecords { .. }
+        SelectionContent::PositionedRecord { .. }
+        | SelectionContent::ConversationRecords { .. }
         | SelectionContent::PayloadValue { .. }
         | SelectionContent::ChangedUnits { .. }
         | SelectionContent::RelatedGroup { .. }
@@ -513,6 +514,7 @@ fn content_nonempty(content: &SelectionContent) -> bool {
         },
         SelectionContent::RelatedGroups { groups } => !groups.is_empty(),
         SelectionContent::Paragraph { .. }
+        | SelectionContent::PositionedRecord { .. }
         | SelectionContent::DocumentText { .. }
         | SelectionContent::ConversationRecords { .. }
         | SelectionContent::PayloadValue { .. } => true,

@@ -233,4 +233,10 @@ pub struct ConversationCapture {
     pub coverage: CaptureCoverage,
     pub cursor: MonitoringCursor,
     pub(crate) previous_cursor: Option<MonitoringCursor>,
+    pub(crate) events: Option<Vec<crate::TranscriptEvent>>,
+}
+impl ConversationCapture {
+    pub fn transcript_events(&self) -> Option<&[crate::TranscriptEvent]> {
+        self.events.as_deref()
+    }
 }

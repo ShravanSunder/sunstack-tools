@@ -235,7 +235,7 @@ impl Preparation {
         }
         Ok(())
     }
-    async fn source(&mut self, name: &SourceName) -> EvidenceResult<CapturedSource> {
+    pub(crate) async fn source(&mut self, name: &SourceName) -> EvidenceResult<CapturedSource> {
         if let Some(source) = self.snapshot.sources.get(name) {
             return Ok(source.clone());
         }

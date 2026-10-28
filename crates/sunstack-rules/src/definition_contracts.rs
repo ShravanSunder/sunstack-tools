@@ -140,6 +140,10 @@ pub struct RuleDefinition {
     pub verdict: VerdictDeclaration,
     #[serde(default)]
     pub severity: Severity,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mechanical_pass: Option<sunstack_evidence::MechanicalPass>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub private_access: Vec<sunstack_evidence::PrivateKind>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]

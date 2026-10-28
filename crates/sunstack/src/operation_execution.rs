@@ -5,8 +5,7 @@ use sunstack_decisions::{
 };
 use sunstack_evidence::{AdapterRegistry, EvidencePlanOutcome};
 use sunstack_rules::{
-    RuleBackendFactory, RuleExecutionContext, RuleInvocationInput, RuleInvocationOutcome,
-    RulePreparationOutcome,
+    RuleBackendFactory, RuleExecutionContext, RuleInvocationOutcome, RulePreparationOutcome,
 };
 
 struct JevRuleBackendFactory {
@@ -28,14 +27,14 @@ impl RuleBackendFactory for JevRuleBackendFactory {
 }
 
 fn rule_context(
-    input: &RuleInvocationInput,
+    backend: &sunstack_decisions::BackendSelection,
     cancellation: &CancellationToken,
 ) -> Result<RuleExecutionContext, sunstack_rules::DiagnosticList> {
     let adapters = AdapterRegistry::builtins()
         .map_err(|error| sunstack_rules::DiagnosticList::from(error.diagnostics()))?;
     Ok(RuleExecutionContext {
         backend: Arc::new(JevRuleBackendFactory {
-            selection: input.backend.clone(),
+            selection: backend.clone(),
         }),
         adapters,
         cancellation: cancellation.clone(),
@@ -75,18 +74,25 @@ pub async fn execute_operation(
             OperationResult::RunJudgments(outcome)
         }
         OperationInput::PrepareRules(input) => {
-            let outcome = match rule_context(&input, cancellation) {
+            let outcome = match rule_context(&input.backend, cancellation) {
                 Ok(context) => sunstack_rules::prepare_rules(*input, context).await,
                 Err(diagnostics) => RulePreparationOutcome::Invalid { diagnostics },
             };
             OperationResult::PrepareRules(Box::new(outcome))
         }
         OperationInput::EvaluateRules(input) => {
-            let outcome = match rule_context(&input, cancellation) {
+            let outcome = match rule_context(&input.backend, cancellation) {
                 Ok(context) => sunstack_rules::evaluate_rules(*input, context).await,
                 Err(diagnostics) => RuleInvocationOutcome::Invalid { diagnostics },
             };
             OperationResult::EvaluateRules(Box::new(outcome))
+        }
+        OperationInput::EvaluateCandidates(input) => {
+            let outcome = match rule_context(&input.backend, cancellation) {
+                Ok(context) => sunstack_rules::evaluate_candidates(*input, context).await,
+                Err(diagnostics) => sunstack_rules::CandidateRunOutcome::Invalid { diagnostics },
+            };
+            OperationResult::EvaluateCandidates(Box::new(outcome))
         }
     }
 }

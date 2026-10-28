@@ -85,7 +85,11 @@ async fn select_owner_evidence_with_target(
             selected.result.clone()
         } else if let Some(source) = sources.get(&declaration.input) {
             mapped.input = source.name.clone();
-            let mut result = session.select(&mapped).await;
+            let mut result = if let Some(candidate) = &source.candidate {
+                candidate_record_selection(candidate, declaration)
+            } else {
+                session.select(&mapped).await
+            };
             if let SelectionReadiness::Ready {
                 content, coverage, ..
             } = &mut result.readiness
@@ -122,6 +126,26 @@ async fn select_owner_evidence_with_target(
     }
     selections
 }
+
+fn candidate_record_selection(
+    candidate: &crate::input_binding::CandidateRecordView,
+    declaration: &EvidenceDeclaration,
+) -> SelectionResult {
+    let readiness = SelectionReadiness::Ready {
+        content: SelectionContent::PositionedRecord {
+            source: candidate.coverage.source.clone(),
+            record: Box::new(candidate.record.clone()),
+        },
+        omissions: vec![],
+        coverage: Box::new(SelectionCoverage::SingleSource {
+            capture: candidate.coverage.clone(),
+        }),
+    };
+    SelectionResult {
+        id: declaration.id.clone(),
+        readiness,
+    }
+}
 pub(crate) fn resolve_target(
     selection: &LabeledSelection,
 ) -> Option<sunstack_evidence::TargetLocation> {
@@ -129,6 +153,12 @@ pub(crate) fn resolve_target(
         return None;
     };
     match (content, &selection.declaration.select) {
+        (SelectionContent::PositionedRecord { source, record }, _) => {
+            Some(sunstack_evidence::TargetLocation::PositionedRecord {
+                source: source.clone(),
+                record_id: record.record_id.clone(),
+            })
+        }
         (SelectionContent::MarkdownUnits { units }, _) if units.len() == 1 => {
             Some(sunstack_evidence::TargetLocation::MarkdownUnit {
                 occurrence: Box::new(units[0].occurrence.clone()),
@@ -246,6 +276,10 @@ struct EvidenceAttribution {
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum AttributedEvidence {
+    PositionedRecord {
+        #[serde(flatten)]
+        attribution: EvidenceAttribution,
+    },
     FrontmatterField {
         #[serde(flatten)]
         attribution: EvidenceAttribution,
@@ -295,6 +329,7 @@ enum AttributedEvidence {
 #[derive(Clone, Serialize)]
 #[serde(untagged)]
 enum ContentValue {
+    PositionedRecord(Box<sunstack_evidence::PositionedRecord>),
     FrontmatterField(FrontmatterValue),
     MarkdownUnits(Vec<MarkdownUnitText>),
     Text(String),
@@ -351,6 +386,9 @@ pub(crate) fn build_request_state(
                 coverage,
             } if !(optional && omit_optional) => {
                 let value = match &content {
+                    SelectionContent::PositionedRecord { record, .. } => {
+                        ContentValue::PositionedRecord(record.clone())
+                    }
                     SelectionContent::FrontmatterField { result } => {
                         ContentValue::FrontmatterField(match result.as_ref() {
                             sunstack_evidence::FrontmatterFieldContent::Present {
@@ -416,6 +454,9 @@ pub(crate) fn build_request_state(
                     coverage: *coverage,
                 };
                 match content {
+                    SelectionContent::PositionedRecord { .. } => {
+                        AttributedEvidence::PositionedRecord { attribution }
+                    }
                     SelectionContent::FrontmatterField { result } => {
                         AttributedEvidence::FrontmatterField {
                             attribution,

@@ -93,6 +93,21 @@ pub(crate) async fn evaluate_condition(
             let Some(source) = context.sources.get(input) else {
                 return unresolved();
             };
+            if let Some(candidate) = &source.candidate {
+                let Some(text) = positioned_condition_text(&candidate.record) else {
+                    return unresolved();
+                };
+                if text.len() > max_scan_bytes.get() {
+                    return unresolved();
+                }
+                let pattern = pattern.clone();
+                return match tokio::task::spawn_blocking(move || pattern_present(&text, &pattern))
+                    .await
+                {
+                    Ok(Ok(present)) => comparison(present),
+                    _ => unresolved(),
+                };
+            }
             let select = match source.spec {
                 SourceSpec::Document { .. } => EvidenceSelection::WholeDocument {},
                 SourceSpec::Conversation { .. } => EvidenceSelection::Conversation {
@@ -141,6 +156,41 @@ pub(crate) async fn evaluate_condition(
                 _ => unresolved(),
             }
         }
+    }
+}
+fn positioned_condition_text(record: &sunstack_evidence::PositionedRecord) -> Option<String> {
+    use sunstack_evidence::PositionedBody;
+    match &record.body {
+        PositionedBody::Message { blocks } => {
+            let mut text = String::new();
+            for block in blocks {
+                match &block.block {
+                    MessageBlock::Text { text: part } | MessageBlock::Thinking { text: part } => {
+                        text.push_str(part);
+                        text.push('\n');
+                    }
+                    MessageBlock::Unsupported { content, .. } => {
+                        text.push_str(&serde_json::to_string(content).ok()?);
+                        text.push('\n');
+                    }
+                    MessageBlock::ToolCall { .. } => {}
+                }
+            }
+            Some(text)
+        }
+        PositionedBody::Private { text, .. } => text.clone(),
+        PositionedBody::ToolCall { tool, input, .. } => Some(format!(
+            "{}\n{}",
+            tool.as_str(),
+            serde_json::to_string(input).ok()?
+        )),
+        PositionedBody::ToolResult { result, .. } => match result {
+            ToolResult::FullObserved { text } | ToolResult::Clipped { text, .. } => {
+                Some(text.clone())
+            }
+            ToolResult::Absent => None,
+        },
+        PositionedBody::Custom { fields } => serde_json::to_string(fields).ok(),
     }
 }
 fn payload_field<'value>(

@@ -29,6 +29,12 @@ pub struct AdmittedSource {
     pub id: SourceId,
     pub name: SourceName,
     pub spec: SourceSpec,
+    pub(crate) candidate: Option<std::sync::Arc<CandidateRecordView>>,
+}
+#[derive(Debug, Clone)]
+pub(crate) struct CandidateRecordView {
+    pub record: sunstack_evidence::PositionedRecord,
+    pub coverage: sunstack_evidence::CaptureCoverage,
 }
 pub(crate) type AdmittedSources = BTreeMap<SourceName, AdmittedSource>;
 pub(crate) fn normalize_path(path: &Path) -> Option<PathBuf> {
@@ -171,6 +177,7 @@ pub(crate) fn admit_group(
                 id,
                 name: source_name,
                 spec,
+                candidate: None,
             },
         );
     }

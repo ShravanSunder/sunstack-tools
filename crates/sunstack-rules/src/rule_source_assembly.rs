@@ -152,6 +152,8 @@ pub(crate) fn assemble_source(
                 target: DeclarationId::new("target")
                     .map_err(|error| DiagnosticList::from(error.diagnostics()))?,
                 applicability: vec![],
+                mechanical_pass: None,
+                private_access: vec![],
                 questions: BTreeMap::new(),
                 verdict: match entry.verdict {
                     RuleSourceVerdict::Judgment {

@@ -94,6 +94,7 @@ fn streamed_parts_preserve_every_position_author_and_injection_before_legacy_mer
             position,
             blocks,
             injection,
+            ..
         } = event
         else {
             unreachable!("message part missing")
