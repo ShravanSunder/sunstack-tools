@@ -124,7 +124,7 @@ flowchart LR
 
 - **R17** (U12; E6, E11, E13) Every candidate that entered the tree gets exactly one outcome (finding, dropped, uncertain, unresolved, not processed), with the answers and evidence that led to it. *C5. V17.*
 - **R18** (U12; E13) If any candidate is uncertain, unresolved or not processed, or the run stopped partway, then the run's result says so and never reads as "all clear". A run where every candidate was dropped by clear answers reads as "nothing found". *C5. V18.*
-- **R19** (U12; E11, E13) The run's outcomes are returned together as one bundle a bigger judge can read, each outcome pointing back to its source occurrence. *C5. V19.* Code occurrence identity excludes the capture-instance snapshot: repository, revision and side, path, optional unit and match range, plus source content identity for a worktree. Full provenance remains on the occurrence (A20).
+- **R19** (U12; E11, E13) The run's outcomes are returned together as one bundle a bigger judge can read, each outcome pointing back to its source occurrence. *C5. V19.* A code occurrence's identity is prefixed by its stable `SourceInputId`; distinct inputs overlapping one span give separate candidates with their own bindings (A21). Inside that namespace, identity excludes the capture-instance snapshot: repository, revision and side, path, optional unit and match range, plus source content identity for a worktree. Full provenance remains on the occurrence (A20).
 
 ### code-context
 

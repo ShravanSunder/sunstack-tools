@@ -202,8 +202,8 @@ pub struct PositionedBlock { pub block: MessageBlock, pub private_kind: Option<P
 pub enum SourceOccurrence {
     Record { record: PositionedRecordId, author: RecordAuthor, positions: Vec<SourcePosition>,  // A2: the record's author and every line it came from
              matched_at: SourcePosition, field: FieldPath, span: TextSpan },
-    ContextMatch { part: ContextPart, unit: Option<SourceUnitKey>, span: SourceSpan, hunk: Option<HunkId> },
-    CodeMatch { unit: Option<SourceUnitKey>, span: SourceSpan }, // A20: top-level matches need no invented file unit
+    ContextMatch { input_id: SourceInputId, part: ContextPart, unit: Option<SourceUnitKey>, span: SourceSpan, hunk: Option<HunkId> },
+    CodeMatch { input_id: SourceInputId, unit: Option<SourceUnitKey>, span: SourceSpan }, // A20: top-level matches need no invented file unit
 }
 #[serde(rename_all = "snake_case")]
 pub enum ContextPart { Change, TouchedUnit, Related }   // a rule's pass reads all three unless `context_parts` narrows it
@@ -213,7 +213,8 @@ pub enum ContextPart { Change, TouchedUnit, Related }   // a rule's pass reads a
 // first hit overall when none is permitted; attribution is carried, never part of the identity. Privacy eligibility
 // (A5) is decided from all the record's hits: any permitted hit lets the record be judged through its projected view;
 // only when every hit is private is the candidate `not_processed { left_out_for_privacy }`.
-// A20: ContextMatch and CodeMatch identities exclude capture-instance snapshots: repository, revision and side, path,
+// A21: code occurrence identities are prefixed by stable SourceInputId, so overlapping distinct inputs retain their own candidates/bindings.
+// A20: inside that namespace, ContextMatch and CodeMatch identities exclude capture-instance snapshots: repository, revision and side, path,
 // optional unit and match ranges, plus the span source content identity for a worktree. Full provenance stays on the occurrence.
 // Two matches in one function remain two candidates, and identical captures of the same occurrence join across runs.
 // A labeled case's source_anchor names the same identity (a record id, or a unit and span), so evals join on it.
