@@ -53,6 +53,8 @@ A17 framing control (R4/R5, S1): capture a complete JSON object/array without a 
 
 A18 mapped-privacy control (R32, S1): map both thinking and public fields from the same native record. Without a grant, thinking is absent and the public field remains; the grant permits thinking only for that rule. The record identity stays fixed. A pure custom source's mapped field appears as ordinary data. A mapping of `encrypted_content` never shows its bytes even with an `EncryptedReasoning` grant, counts it left out and keeps a public sibling (A18a).
 
+A19 code-pass contract control (R7/R8, S1): an `ast { language, pattern }` predicate matches through the engine's supported Rust/TypeScript/TSX path; an unsupported language is refused invalid before any model request. Existing named-field predicate files parse unchanged, and omitted `context_parts` reads all parts. Code revisions/paths use `RevisionHead`/`QueryPath`; located repository input attribution is explicit.
+
 ### filtering
 
 | Requirement | Proven by | Reference | Target and journey | Passes when | Reuses | Unverified |
