@@ -48,7 +48,7 @@ impl MatchAnchor<'_> {
             (first <= last).then_some(OmittedSourceLines { first, last })
         });
         let disposition =
-            intersection.map_or(ContextPieceDisposition::Sent { page }, |omitted_lines| {
+            intersection.map_or(ContextPieceDisposition::Placed { page }, |omitted_lines| {
                 ContextPieceDisposition::Truncated {
                     page,
                     omitted_lines,
@@ -117,7 +117,7 @@ impl PagePiece<'_> {
                 omitted_lines: omitted_lines.clone(),
             }
         } else {
-            ContextPieceDisposition::Sent { page }
+            ContextPieceDisposition::Placed { page }
         };
         ContextPieceCoverage {
             piece_id: self.piece_id.clone(),
@@ -415,7 +415,7 @@ fn render_page(
         ));
         if let Some(matched) = &piece.matched {
             text.push_str(&format!(
-                "match anchor {} into {}\\nanchor: {}\\nlabel: {}\\ncoverage: {}\\n",
+                "match anchor {} into {}\nanchor: {}\nlabel: {}\ncoverage: {}\n",
                 matched.piece_id.as_str(),
                 piece.piece_id.as_str(),
                 json_text(&matched.excerpt.span)?,
@@ -510,7 +510,7 @@ fn shrink_unit(
     settings: &ContextSettings,
 ) -> Result<(), DiagnosticList> {
     let unit = piece.unit.ok_or_else(over_budget)?;
-    let lines = unit.text.lines().collect::<Vec<_>>();
+    let lines = unit.text.split_inclusive('\n').collect::<Vec<_>>();
     // Keep a source head and tail even when configuration asks for zero lines.
     let (mut head, mut tail) = if let Some(omitted) = &piece.omitted_lines {
         (
@@ -542,12 +542,16 @@ fn shrink_unit(
         }
     }
     let omitted_count = lines.len() - head - tail;
-    let head_text = lines[..head].join("\n");
+    let head_text = lines[..head].concat();
+    let tail_text = lines[lines.len() - tail..].concat();
+    let gap_ending = if lines[head - 1].ends_with("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
     let prefix = signature_header(unit);
-    piece.body = format!(
-        "{prefix}{head_text}\n… {omitted_count} lines truncated …\n{}",
-        lines[lines.len() - tail..].join("\n")
-    );
+    piece.body =
+        format!("{prefix}{head_text}… {omitted_count} lines truncated …{gap_ending}{tail_text}");
     piece.omitted_lines = Some(OmittedSourceLines {
         first: unit.unit.span.start_line + head,
         last: unit.unit.span.start_line + lines.len() - tail - 1,

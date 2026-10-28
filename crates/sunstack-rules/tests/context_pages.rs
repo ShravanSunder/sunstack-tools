@@ -312,8 +312,10 @@ fn settings_and_coverage_reject_undeclared_fields() {
         .is_err()
     );
     assert!(
-        serde_json::from_value::<ContextPieceDisposition>(json!({"kind":"sent","page":1,"typo":0}))
-            .is_err()
+        serde_json::from_value::<ContextPieceDisposition>(
+            json!({"kind":"placed","page":1,"typo":0})
+        )
+        .is_err()
     );
 }
 
@@ -703,8 +705,11 @@ fn a_whole_function_match_is_an_anchor_into_one_source_rendering() {
         .unwrap();
     assert!(page.holds.contains(&function.piece_id));
     assert!(page.text.contains("match anchor"));
+    let anchor_text = page.text.split_once("match anchor").unwrap().1;
+    assert!(anchor_text.contains("\nanchor:"));
+    assert!(!anchor_text.contains(r"\nanchor:"));
     assert!(
-        matches!(projection.coverage.iter().find(|piece|piece.piece_id==match_id).unwrap().disposition,ContextPieceDisposition::Sent {page:number} if number==page.number)
+        matches!(projection.coverage.iter().find(|piece|piece.piece_id==match_id).unwrap().disposition,ContextPieceDisposition::Placed {page:number} if number==page.number)
     );
 }
 #[test]
@@ -737,7 +742,7 @@ fn a_match_wholly_inside_the_omitted_source_range_has_exact_truncated_coverage()
     );
 }
 #[test]
-fn a_match_in_the_delivered_head_remains_sent_when_its_unit_is_truncated() {
+fn a_match_in_the_delivered_head_remains_placed_when_its_unit_is_truncated() {
     let function = large_function("head_match", "HEAD_MATCH", "body");
     let mut source = context(vec![function]);
     positioned_match(&mut source, 1, 1);
@@ -750,7 +755,7 @@ fn a_match_in_the_delivered_head_remains_sent_when_its_unit_is_truncated() {
         .unwrap();
     assert!(matches!(
         match_piece.disposition,
-        ContextPieceDisposition::Sent { .. }
+        ContextPieceDisposition::Placed { .. }
     ));
     assert_eq!(
         projection
@@ -788,6 +793,12 @@ fn source_line_truncation_composes_with_actual_code_privacy_for_lf_and_crlf() {
                 .contains(&format!("[redacted credential]{newline}"))
         );
         assert!(!projected.context.units[0].text.contains("abcdefghijklmnop"));
+        let retained_head = projected.context.units[0]
+            .text
+            .split_inclusive('\n')
+            .take(4)
+            .collect::<String>();
+        let retained_tail = format!("TAIL{newline}}}");
         let projection = project_context_pages(
             &projected.context,
             &truncation(4, 2),
@@ -795,6 +806,20 @@ fn source_line_truncation_composes_with_actual_code_privacy_for_lf_and_crlf() {
             scalar_cost,
         )
         .unwrap();
+        assert!(
+            projection
+                .pages
+                .iter()
+                .any(|page| page.text.contains(&retained_head)),
+            "retained head bytes changed for {newline:?}"
+        );
+        assert!(
+            projection
+                .pages
+                .iter()
+                .any(|page| page.text.contains(&retained_tail)),
+            "retained tail bytes changed for {newline:?}"
+        );
         let unit_coverage = projection
             .coverage
             .iter()
@@ -818,7 +843,7 @@ fn source_line_truncation_composes_with_actual_code_privacy_for_lf_and_crlf() {
             .unwrap();
         assert!(matches!(
             match_coverage.disposition,
-            ContextPieceDisposition::Sent { .. }
+            ContextPieceDisposition::Placed { .. }
         ));
         assert_eq!(match_coverage.redacted, 0);
         assert!(
