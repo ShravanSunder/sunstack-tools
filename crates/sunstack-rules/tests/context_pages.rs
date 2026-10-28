@@ -285,14 +285,27 @@ fn impossible_signature_and_callback_errors_are_returned() {
     big.unit.kind = SourceUnitKind::Function {
         signature: "S".repeat(21_000),
     };
-    assert!(
-        project_context_pages(
-            &context(vec![big]),
-            &ContextSettings::default(),
-            &[],
-            scalar_cost
-        )
-        .is_err()
+    let blocking_unit = big.piece_id.clone();
+    let mut required_chars = 0;
+    let projection = project_context_pages(
+        &context(vec![big]),
+        &ContextSettings::default(),
+        &[],
+        |page| {
+            required_chars = scalar_cost(page)?;
+            Ok(required_chars)
+        },
+    )
+    .unwrap();
+    assert!(projection.pages.is_empty());
+    let reason =
+        json!({"kind":"over_page_budget","unit":blocking_unit,"required_chars":required_chars});
+    assert_eq!(
+        serde_json::to_value(projection.coverage).unwrap(),
+        json!([
+            {"piece_id":"huge","disposition":{"kind":"excluded","reason":reason},"redacted":0},
+            {"piece_id":"match:context","disposition":{"kind":"excluded","reason":reason},"redacted":0}
+        ])
     );
     let small = context(vec![unit(
         "small",

@@ -104,6 +104,7 @@ pub enum ContextPieceDisposition {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ContextExclusionReason {
     DuplicateUnit { retained: PieceId },
+    OverPageBudget { unit: PieceId, required_chars: u32 },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

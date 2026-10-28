@@ -23,6 +23,9 @@ pub(crate) enum CandidateSelection {
         context: Arc<CandidateContextView>,
         grants: std::collections::BTreeSet<PrivateKind>,
     },
+    CodeOverBudget {
+        context: Arc<CandidateContextView>,
+    },
     LeftOutForPrivacy,
 }
 struct SubjectSource {
@@ -113,7 +116,7 @@ impl CandidateMaterial {
                     grants: grants.clone(),
                 },
             }),
-            CandidateSelection::LeftOutForPrivacy => {
+            CandidateSelection::CodeOverBudget { .. } | CandidateSelection::LeftOutForPrivacy => {
                 Err(crate::candidate_inputs::invalid_candidate_field(vec![
                     "sources".into(),
                 ]))
@@ -134,7 +137,8 @@ impl CandidateMaterial {
     }
     pub fn context(&self) -> Option<CandidateContextView> {
         match &self.selected {
-            CandidateSelection::Code { context, .. } => Some(context.as_ref().clone()),
+            CandidateSelection::Code { context, .. }
+            | CandidateSelection::CodeOverBudget { context } => Some(context.as_ref().clone()),
             _ => None,
         }
     }
@@ -151,13 +155,26 @@ pub(crate) fn code_selection(
         redactions,
         crate::request_state::rendered_code_page_chars,
     )?;
-    Ok(CandidateSelection::Code {
-        context: Arc::new(CandidateContextView {
+    let over_budget = projection.coverage.iter().any(|piece| {
+        matches!(
+            piece.disposition,
+            ContextPieceDisposition::Excluded {
+                reason: ContextExclusionReason::OverPageBudget { .. }
+            }
+        )
+    });
+    let context = Arc::new(CandidateContextView {
+        context,
+        labels: projection.labels,
+        pages: projection.pages,
+        coverage: projection.coverage,
+    });
+    Ok(if over_budget {
+        CandidateSelection::CodeOverBudget { context }
+    } else {
+        CandidateSelection::Code {
             context,
-            labels: projection.labels,
-            pages: projection.pages,
-            coverage: projection.coverage,
-        }),
-        grants: grants.clone(),
+            grants: grants.clone(),
+        }
     })
 }

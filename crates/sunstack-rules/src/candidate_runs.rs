@@ -104,7 +104,15 @@ async fn run_candidates(
         )?);
         let mut binding_groups = Vec::new();
         for material in selected {
-            if matches!(material.selected, CandidateSelection::LeftOutForPrivacy) {
+            let terminal_reason = match &material.selected {
+                CandidateSelection::LeftOutForPrivacy => {
+                    Some(NotProcessedReason::LeftOutForPrivacy)
+                }
+                CandidateSelection::CodeOverBudget { .. } => Some(NotProcessedReason::OverBudget),
+                _ => None,
+            };
+            if let Some(reason) = terminal_reason {
+                let context = material.context();
                 candidates.push(CandidateEntry {
                     candidate_id: material.candidate_id,
                     declared_severity: set
@@ -116,12 +124,10 @@ async fn run_candidates(
                         .severity,
                     rule: material.rule,
                     occurrence: material.occurrence,
-                    outcome: CandidateOutcome::NotProcessed {
-                        reason: NotProcessedReason::LeftOutForPrivacy,
-                    },
+                    outcome: CandidateOutcome::NotProcessed { reason },
                     answers: vec![],
                     evidence: vec![],
-                    context: None,
+                    context,
                     privacy_view: material.view,
                     elapsed_ms: None,
                 });

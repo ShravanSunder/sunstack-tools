@@ -488,6 +488,29 @@
             "retained"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "over_page_budget",
+              "type": "string"
+            },
+            "required_chars": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "unit": {
+              "$ref": "#/$defs/PieceId"
+            }
+          },
+          "required": [
+            "kind",
+            "unit",
+            "required_chars"
+          ],
+          "type": "object"
         }
       ]
     },
