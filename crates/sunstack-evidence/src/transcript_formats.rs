@@ -16,16 +16,22 @@ pub trait TranscriptAdapter: Send + Sync {
 #[derive(Clone)]
 pub struct AdapterRegistry {
     adapters: BTreeMap<TranscriptFormatName, Arc<dyn TranscriptAdapter>>,
+    event_readers: BTreeMap<TranscriptFormatName, Arc<dyn TranscriptEventReader>>,
 }
 impl AdapterRegistry {
     pub fn builtins() -> EvidenceResult<Self> {
         let mut registry = Self {
             adapters: BTreeMap::new(),
+            event_readers: BTreeMap::new(),
         };
         for name in ["claude_code_jsonl", "codex_rollout_jsonl"] {
-            registry = registry.with_adapter(Arc::new(BuiltinAdapter {
+            let adapter = Arc::new(BuiltinAdapter {
                 name: TranscriptFormatName::new(name)?,
-            }))?;
+            });
+            registry
+                .event_readers
+                .insert(adapter.name.clone(), adapter.clone());
+            registry = registry.with_adapter(adapter)?;
         }
         Ok(registry)
     }
@@ -42,9 +48,26 @@ impl AdapterRegistry {
             .map(Arc::as_ref)
             .ok_or_else(|| EvidenceCode::UnknownTranscriptFormat.into())
     }
+    pub fn event_reader(
+        &self,
+        name: &TranscriptFormatName,
+    ) -> EvidenceResult<&dyn TranscriptEventReader> {
+        self.event_readers
+            .get(name)
+            .map(Arc::as_ref)
+            .ok_or_else(|| EvidenceCode::UnknownTranscriptFormat.into())
+    }
 }
 struct BuiltinAdapter {
     name: TranscriptFormatName,
+}
+impl TranscriptEventReader for BuiltinAdapter {
+    fn format_name(&self) -> &TranscriptFormatName {
+        &self.name
+    }
+    fn events(&self, capture: &CapturedTranscript<'_>) -> Vec<TranscriptEvent> {
+        crate::transcript_event_reading::read_builtin_events(self.name.as_str(), capture.bytes)
+    }
 }
 impl TranscriptAdapter for BuiltinAdapter {
     fn format_name(&self) -> &TranscriptFormatName {
