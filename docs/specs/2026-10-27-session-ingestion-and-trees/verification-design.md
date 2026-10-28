@@ -51,7 +51,7 @@ A16 custom-entry control (R4, S1): for JSONL and JSON, supply one valid mapped r
 
 A17 framing control (R4/R5, S1): capture a complete JSON object/array without a final newline and retain its records. A truncated document reports capture incomplete, never complete empty or record-schema mismatch. Existing JSONL commitment and old format/cursor cases remain unchanged.
 
-A18 mapped-privacy control (R32, S1): map both thinking and public fields from the same native record. Without a grant, thinking is absent and the public field remains; the grant permits thinking only for that rule. The record identity stays fixed. A pure custom source's mapped field appears as ordinary data.
+A18 mapped-privacy control (R32, S1): map both thinking and public fields from the same native record. Without a grant, thinking is absent and the public field remains; the grant permits thinking only for that rule. The record identity stays fixed. A pure custom source's mapped field appears as ordinary data. A mapping of `encrypted_content` never shows its bytes even with an `EncryptedReasoning` grant, counts it left out and keeps a public sibling (A18a).
 
 ### filtering
 
