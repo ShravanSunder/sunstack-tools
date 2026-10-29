@@ -8,50 +8,22 @@ How the engine realizes [Specification](specification.md) R1–R28 for [Requirem
 
 ```mermaid
 flowchart TB
-  subgraph cli["sunstack (CLI)"]
-    cmd["command_line + lint_command<br/>flags, credential at the edge"]
-  end
-  subgraph lint["sunstack-lint (command policy)"]
-    cfg["rules_config_*<br/>decode, validate, resolve paths"]
-    run["lint_run<br/>scope → pipeline → outcome"]
-    rep["report_contracts + outcome + formats<br/>status, exit code, uncertain"]
-  end
-  subgraph rules["sunstack-rules (rules and decisions)"]
-    asm["rulebook_assembly<br/>markers ↔ entries"]
-    adm["rulebook_admission<br/>the R24 checks"]
-    walk["decision_walking<br/>steps → result or needs answers"]
-    exe["rulebook_run<br/>request building, bounded dispatch"]
-  end
-  subgraph evidence["sunstack-evidence (Markdown evidence)"]
-    proj["evidence_project_loading<br/>sgconfig + standard utils"]
-    std["standard_markdown_utils<br/>embedded YAML"]
-    src["checked_file_source<br/>the only reader of checked and target files"]
-    build["evidence_piece_building<br/>matches → pieces → raw fields"]
-    cut["evidence_model_view<br/>bounded projection for the model"]
-    pick["evidence_piece_picking<br/>changed spans → picked pieces"]
-    md["markdown_document (existing)<br/>parse, bind_markers"]
-    fm["markdown_frontmatter (existing)"]
-    chg["change_selection + repository_capture (existing)"]
-  end
-  subgraph decisions["sunstack-decisions (existing, one addition)"]
-    jv["judgment_validation"]
-    je["judgment_execution + decision_backends<br/>+ exposed request-body encoding"]
-  end
-  cmd --> cfg --> run
-  run --> proj
-  std --> proj
-  run --> asm --> adm
-  asm --> md
-  adm --> jv
-  run --> chg
-  run --> build --> cut
-  build --> src
-  build --> fm
-  build --> pick
-  run --> exe --> walk
-  exe --> je
-  run --> rep
+  cli["sunstack (CLI)<br/>--config, --check, --evidence<br/>credential at the edge"]
+  lint["sunstack-lint: the command<br/>rules config · lint_run · report, exit 5"]
+  rules["sunstack-rules: rules and decisions<br/>rulebook assembly + admission<br/>decision walking · rulebook_run"]
+  evidence["sunstack-evidence: Markdown evidence<br/>evidence project + standard utils<br/>checked_file_source · pieces · model view · picking<br/>(existing: parse, markers, frontmatter, change capture)"]
+  decisions["sunstack-decisions: the decision model<br/>(existing; adds exact request-body encoding)"]
+  model[("Decision model<br/>Jev via OpenRouter")]
+  cli -->|"LintRequest + key"| lint
+  lint -->|"config, scope"| evidence
+  lint -->|"rulebook, pieces"| rules
+  rules -->|"marker binding"| evidence
+  rules -->|"questions, requests"| decisions
+  decisions -->|"HTTPS"| model
+  lint -->|"report"| cli
 ```
+
+Inside each crate, the modules and their jobs are in [Components, owners and edges](#components-owners-and-edges).
 
 ## Structure decision
 
@@ -109,39 +81,31 @@ Allowed edges: `sunstack` → `sunstack-lint` → (`sunstack-rules`, `sunstack-e
 
 ```mermaid
 sequenceDiagram
-  participant CLI as sunstack lint
-  participant Cfg as rules_config
-  participant Proj as evidence_project_loading
-  participant Asm as rulebook_assembly + admission
-  participant Chg as change_selection (existing)
-  participant Ev as evidence_piece_building + picking
-  participant Run as rulebook_run + decision_walking
-  participant Jev as judgment_execution (existing)
-  participant Rep as outcome + report
-  CLI->>Cfg: read and validate config (refuse old keys)
-  Cfg-->>CLI: RulesConfig | invalid (exit 2)
-  CLI->>Proj: load sgconfig + standard utils
-  Proj-->>CLI: EvidenceProject | invalid
-  CLI->>Asm: markers ↔ entries, admit against project and kinds
-  Asm-->>CLI: rules + skipped rules (R28)
-  CLI->>CLI: any rule asks and no credential? → invalid before reading files (R4)
-  CLI->>Chg: capture RevisionDiff(origin/main → worktree)
-  Chg-->>CLI: changed files with after_spans; config inputs changed? → widen to full
-  CLI->>Ev: parse each selected file once; run every applicable project rule once
-  Ev-->>CLI: pieces per kind (cut per R12) + match index per file; picked by span overlap or target change
-  loop each picked (rule, piece), in rule order then file and byte order
-    CLI->>Run: walk decision
-    Run-->>Run: mechanical steps settle locally
-    alt walk reaches an ask or combine
-      Run->>Run: build request (all the rule's questions, one piece's state), check request_max_chars
-      Run->>Jev: run_judgments (bounded by max_concurrent_requests, max_model_requests, cancellation)
-      Jev-->>Run: answers | failure → Incomplete
-      Run-->>Run: finish walk with answers
+  participant Lint as sunstack lint<br/>(CLI, lint_run, report)
+  participant Rules as sunstack-rules<br/>(assembly, admission)
+  participant Ev as sunstack-evidence<br/>(project, change capture, pieces)
+  participant Run as rulebook_run<br/>(walk, dispatch)
+  participant Jev as decision model<br/>(run_judgments)
+  Lint->>Lint: read and validate the config (old keys refused) or exit 2
+  Lint->>Ev: load sgconfig + standard utils
+  Lint->>Rules: markers ↔ entries, admit against the project and kinds
+  Rules-->>Lint: rules + skipped rules (R28)
+  Lint->>Lint: any rule asks and no key? exit 2 before any checked read (R4)
+  Lint->>Ev: changes since origin/main; config inputs changed? widen to full
+  Lint->>Ev: read each selected file once, run each project rule once
+  Ev-->>Lint: pieces (raw fields + model view), picked by changed spans
+  loop each picked (rule, piece), in order
+    Lint->>Run: walk the decision
+    Run->>Run: mechanical steps on raw fields
+    opt the walk reaches an ask or combine
+      Run->>Run: build the request from the model view; measure the encoded body
+      Run->>Jev: one request: all the rule's questions, one piece
+      Jev-->>Run: answers, or a failure that makes this pair incomplete
+      Run->>Run: finish the walk with those answers
     end
-    Run-->>CLI: RuleResult
+    Run-->>Lint: result
   end
-  CLI->>Rep: results, skips, scope → status and exit code (R26)
-  Rep-->>CLI: report (default | json | github | sarif)
+  Lint->>Lint: status and exit code (R26), report in the chosen format
 ```
 
 `--check` runs the first three steps only and lists rules (R24). `--evidence [kind]` skips the credential gate, runs through picking and prints pieces with their raw fields and model views, with no request (R13). Every checked-file and target read in all three paths goes through `checked_file_source`, and the report's usage counts them (`checked_files_read`), so "no read before the gate" is observed where acquisition happens.
