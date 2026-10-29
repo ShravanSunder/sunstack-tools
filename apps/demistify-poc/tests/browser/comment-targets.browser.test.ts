@@ -39,14 +39,21 @@ test('Code and individual Mermaid nodes retain independent comments instead of s
 	expect(code.id).not.toBe('');
 	async function savePassage(passage: Element, index: number): Promise<void> {
 		passage.scrollIntoView({ block: 'center' });
-		const start = textCaretRect(passage, 0);
-		const end = textCaretRect(passage, passage.firstChild?.textContent?.length ?? 0);
+		// SVG selections use the rendered glyph bounds, rather than a collapsed HTML caret range.
+		const svgText = passage.namespaceURI === 'http://www.w3.org/2000/svg';
+		const start = svgText ? passage.getBoundingClientRect() : textCaretRect(passage, 0);
+		const end = svgText
+			? passage.getBoundingClientRect()
+			: textCaretRect(passage, passage.firstChild?.textContent?.length ?? 0);
 		await commands.dragReviewSelection({
 			startX: start.left + 0.5,
 			startY: start.top + start.height / 2,
-			endX: end.left,
+			endX: svgText ? end.right : end.left,
 			endY: end.top + end.height / 2,
 		});
+		await expect
+			.poll((): string => fixture.defaultView?.getSelection()?.toString().trim() ?? '')
+			.toBe(passage.textContent?.trim());
 		await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
 		expect(
 			fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
