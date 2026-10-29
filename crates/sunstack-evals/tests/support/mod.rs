@@ -4,8 +4,26 @@ use std::path::Path;
 use sunstack_evals::*;
 use sunstack_rules::*;
 
+fn default_record_source() -> sunstack_evidence::SourceInput {
+    sunstack_evidence::SourceInput::SessionPair {
+        provider: sunstack_evidence::ProviderName::new("codex").unwrap(),
+        session: sunstack_evidence::SessionId::new("session_1").unwrap(),
+    }
+}
 pub fn occurrence(number: usize) -> sunstack_evidence::SourceOccurrence {
-    serde_json::from_value(json!({"kind":"record", "record":format!("record_{number}"),
+    occurrence_for_source(&default_record_source(), number)
+}
+pub fn occurrence_for_source(
+    source: &sunstack_evidence::SourceInput,
+    number: usize,
+) -> sunstack_evidence::SourceOccurrence {
+    let record = sunstack_evidence::PositionedRecordId::for_source_record(
+        &source.source_identity().unwrap(),
+        0,
+        number.saturating_sub(1),
+    )
+    .unwrap();
+    serde_json::from_value(json!({"kind":"record", "record":record,
         "author":"assistant", "positions":[{"line":number,"byte_offset":0}],
         "matched_at":{"line":number,"byte_offset":0}, "field":"/body", "span":{"byte_start":0,"byte_end":4}})).unwrap()
 }
@@ -37,10 +55,7 @@ pub fn input(root: &Path, cases: Vec<LabeledCase>) -> FreezeInput {
         split: Split::HeldOut,
         sources: vec![CaseSource {
             source_id: CaseSourceId::new("source_1").unwrap(),
-            source: serde_json::from_value(
-                json!({"kind":"session_pair","provider":"codex","session":"session_1"}),
-            )
-            .unwrap(),
+            source: default_record_source(),
             evidence: Default::default(),
         }],
         labels: cases,

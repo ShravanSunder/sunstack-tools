@@ -5,6 +5,37 @@ use std::collections::{BTreeMap, BTreeSet};
 
 validated_name!(PositionedRecordId, |value: &str| !value.is_empty());
 
+impl PositionedRecordId {
+    /// Mint the existing source namespace, initial byte position and projection ordinal.
+    pub fn for_source_record(
+        source: &SourceInputId,
+        byte_offset: u64,
+        ordinal: usize,
+    ) -> EvidenceResult<Self> {
+        Self::new(format!("{}:{byte_offset}:{ordinal}", source.as_str()))
+    }
+
+    /// Whether this ID has the exact native record form under the supplied source namespace.
+    pub fn belongs_to_source(&self, source: &SourceInputId) -> bool {
+        let Some(suffix) = self
+            .as_str()
+            .strip_prefix(source.as_str())
+            .and_then(|suffix| suffix.strip_prefix(':'))
+        else {
+            return false;
+        };
+        let Some((byte_offset, ordinal)) = suffix.split_once(':') else {
+            return false;
+        };
+        let (Ok(byte_offset), Ok(ordinal)) = (byte_offset.parse::<u64>(), ordinal.parse::<usize>())
+        else {
+            return false;
+        };
+        Self::for_source_record(source, byte_offset, ordinal)
+            .is_ok_and(|expected| expected.as_str() == self.as_str())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PositionedRecord {
@@ -206,12 +237,11 @@ pub fn project_positioned(
                 }
             }
             output.records.push(PositionedRecord {
-                record_id: PositionedRecordId::new(format!(
-                    "{}:{}:{}",
-                    source.as_str(),
+                record_id: PositionedRecordId::for_source_record(
+                    source,
                     position.byte_offset,
-                    output.records.len()
-                ))?,
+                    output.records.len(),
+                )?,
                 author,
                 positions: vec![position],
                 injection,

@@ -1,4 +1,5 @@
 use crate::DiagnosticList;
+use crate::candidate_narrowing_samples::CandidateNarrowingSampleView;
 use crate::{
     candidate_inputs::{append_privacy_counts, invalid_candidate_field},
     candidate_subjects::*,
@@ -95,14 +96,30 @@ pub(crate) fn discover_code_candidates(
                     let (projected, counts) = matched
                         .project(&grants)
                         .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+                    let occurrence_identity = matched
+                        .occurrence
+                        .occurrence_identity()
+                        .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+                    let narrowing_sample = if rule.definition.narrowing.is_some() {
+                        Some(
+                            CandidateNarrowingSampleView::new(
+                                source.entry_position,
+                                &matched.occurrence,
+                                None,
+                                &occurrence_identity,
+                                projected.visible_text(),
+                                counts.clone(),
+                            )
+                            .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?,
+                        )
+                    } else {
+                        None
+                    };
                     append_privacy_counts(privacy, PrivacyRoute::Code, counts);
                     materials.push(CandidateMaterial {
                         candidate_id: CandidateId {
                             rule: rule_ref.clone(),
-                            occurrence: matched
-                                .occurrence
-                                .occurrence_identity()
-                                .map_err(|error| DiagnosticList::from(error.diagnostics()))?,
+                            occurrence: occurrence_identity,
                         },
                         entry_position: source.entry_position,
                         source_name: source.source_name.clone(),
@@ -116,6 +133,7 @@ pub(crate) fn discover_code_candidates(
                             coverage: coverage.clone(),
                             grants: grants.clone(),
                         },
+                        narrowing_sample,
                     });
                 }
                 receipt.status = if discovery.completed {
@@ -143,6 +161,25 @@ pub(crate) fn discover_code_candidates(
             for matched in discovery.matches {
                 let projected = project_code_context(&matched.context, &grants)
                     .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+                let occurrence_identity = matched
+                    .occurrence
+                    .occurrence_identity()
+                    .map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+                let narrowing_sample = if rule.definition.narrowing.is_some() {
+                    Some(
+                        CandidateNarrowingSampleView::new(
+                            source.entry_position,
+                            &matched.occurrence,
+                            None,
+                            &occurrence_identity,
+                            projected.context.matched.text.clone(),
+                            projected.privacy.clone(),
+                        )
+                        .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?,
+                    )
+                } else {
+                    None
+                };
                 append_privacy_counts(privacy, PrivacyRoute::Code, projected.privacy);
                 let selected = if projected.match_is_private {
                     CandidateSelection::LeftOutForPrivacy
@@ -157,10 +194,7 @@ pub(crate) fn discover_code_candidates(
                 materials.push(CandidateMaterial {
                     candidate_id: CandidateId {
                         rule: rule_ref.clone(),
-                        occurrence: matched
-                            .occurrence
-                            .occurrence_identity()
-                            .map_err(|error| DiagnosticList::from(error.diagnostics()))?,
+                        occurrence: occurrence_identity,
                     },
                     entry_position: source.entry_position,
                     source_name: source.source_name.clone(),
@@ -170,6 +204,7 @@ pub(crate) fn discover_code_candidates(
                         grants: rule.definition.private_access.clone(),
                     },
                     selected,
+                    narrowing_sample,
                 });
             }
             receipt.status = if discovery.completed {

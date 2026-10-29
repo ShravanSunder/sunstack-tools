@@ -106,6 +106,15 @@ pub(crate) async fn load_definitions(
     })
     .await
     .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))??;
+    let mut skipped_diagnostics = DiagnosticList::default();
+    for set in &loaded.sets {
+        for skipped in &set.skipped {
+            skipped_diagnostics.extend(skipped.diagnostics().clone());
+        }
+    }
+    if !skipped_diagnostics.is_empty() {
+        return Err(skipped_diagnostics);
+    }
     for set in &loaded.sets {
         for rule in &set.rules {
             if let Some(pass) = &rule.definition.mechanical_pass {

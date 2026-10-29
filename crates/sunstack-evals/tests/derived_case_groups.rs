@@ -239,8 +239,18 @@ fn session_groups_come_from_provider_and_session_on_the_source() {
                 session: SessionId::new(session).unwrap(),
             },
         );
-        let development = label(1, &first, support::occurrence(1), Split::Development);
-        let held_out = label(2, &second, support::occurrence(2), Split::HeldOut);
+        let development = label(
+            1,
+            &first,
+            support::occurrence_for_source(&first.source, 1),
+            Split::Development,
+        );
+        let held_out = label(
+            2,
+            &second,
+            support::occurrence_for_source(&second.source, 2),
+            Split::HeldOut,
+        );
         let result = freeze_labels(vec![first, second], vec![development, held_out]);
         if leaks {
             assert!(matches!(result,Err(EvalError::SplitLeakage {field}) if field=="group"));
@@ -259,8 +269,18 @@ fn custom_groups_use_location_even_when_the_schema_or_source_id_differs() {
         };
         let first = source("one", custom("custom.jsonl", "first schema"));
         let second = source("two", custom(second_location, "different schema"));
-        let development = label(1, &first, support::occurrence(1), Split::Development);
-        let held_out = label(2, &second, support::occurrence(2), Split::HeldOut);
+        let development = label(
+            1,
+            &first,
+            support::occurrence_for_source(&first.source, 1),
+            Split::Development,
+        );
+        let held_out = label(
+            2,
+            &second,
+            support::occurrence_for_source(&second.source, 2),
+            Split::HeldOut,
+        );
         let result = freeze_labels(vec![first, second], vec![development, held_out]);
         if leaks {
             assert!(matches!(result,Err(EvalError::SplitLeakage {field}) if field=="group"));

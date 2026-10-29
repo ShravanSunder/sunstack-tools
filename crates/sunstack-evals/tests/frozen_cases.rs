@@ -85,6 +85,7 @@ fn sessions_and_projects_cannot_cross_splits() {
         json!({"kind":"session_pair","provider":"codex","session":"different_session"}),
     )
     .unwrap();
+    two.source_anchor = occurrence_for_source(&second_source.source, 2);
     specification.sources.push(second_source);
     specification.labels = vec![one, two];
     assert!(matches!(

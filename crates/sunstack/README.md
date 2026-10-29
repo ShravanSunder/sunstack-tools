@@ -148,7 +148,7 @@ canonical target selection and expansion still wait for their gate frontier.
 The evidence library also supports `frontmatter_field` with a literal top-level
 `field`. An initial YAML `---` block yields a decoded JSON value or an absent
 field. Missing or malformed blocks yield explicit unavailable data without an
-invented span. Noul and composite rules reject this mechanical-only target.
+invented span. Noul and composite judgments may target this field.
 
 A rules entry can replace its judgment threshold with one local check:
 

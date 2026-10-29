@@ -73,6 +73,7 @@ mod candidate_evidence_reporting;
 mod candidate_execution_data;
 mod candidate_gates;
 mod candidate_inputs;
+mod candidate_narrowing_samples;
 mod candidate_subject_selection;
 mod candidate_subjects;
 pub mod context_contracts;

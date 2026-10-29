@@ -13,9 +13,12 @@ The destination's parent must exist; an existing destination is refused.
 
 `load_case_set(manifest_path)` verifies every recorded SHA-256 identity, then strictly
 decodes both JSONL files. Duplicate keys, unknown fields, duplicate cases, duplicate
-source IDs, missing source references, mismatched session metadata, and any session or
-supplied project key occurring in both splits are refused. Project keys are optional;
-session separation always applies. The selected split is recorded in the manifest.
+source IDs, missing source references, and any derived group appearing in both splits
+are refused. Labels contain no `session` or `group` fields. The loader derives each
+group from its referenced source: provider and session for a session, repository and
+path for code, source-input identity for a diff, and location for a custom entry.
+Project keys are optional; a supplied project key must stay in one split. The selected
+split is recorded in the manifest.
 
 The returned `FrozenCaseSet` is an immutable validated snapshot. Reload before each new
 run: changing a frozen file refuses loading and produces no score report. A previously
@@ -27,13 +30,16 @@ the caller's declared order, independent of their storage paths.
 a file. The caller supplies bundles for the selected frozen rule, case set and split.
 A source anchor matches a candidate by its evidence-owned occurrence identity and rule.
 
-- Filter recall counts each yes-labeled occurrence once. Its first positive case in
-  label-file order represents a miss. A missing positive is a miss only with one
-  matching located input report, explicit complete capture, and exactly one completed
-  discovery receipt for this rule, with no unfit coverage; otherwise it is filter
-  `unknown`. Missing, unlocatable, partial or ambiguous input reports, incomplete
-  capture, and absent/not-started/stopped discovery never prove a filter miss.
-  Another rule's completed discovery cannot substitute for this rule's receipt. Unknown labels never contribute negatives.
+- Filter recall counts each occurrence labeled as a defect once. For verdict cases,
+  the frozen rule's `pass_means` maps `no` to a defect for `conforms` and `yes` to a
+  defect for `finding`. Labels for other questions use `yes` as the positive label.
+  The first positive case in label-file order represents a miss. A missing positive is
+  a miss only with one matching located input report, explicit complete capture, and
+  exactly one completed discovery receipt for this rule, with no unfit coverage;
+  otherwise it is filter `unknown`. Missing, unlocatable, partial or ambiguous input
+  reports, incomplete capture, and absent/not-started/stopped discovery never prove a
+  filter miss. Another rule's completed discovery cannot substitute for this rule's
+  receipt. Unknown labels never contribute negatives.
 - Steps report case IDs for correct, wrong and unknown answers. A missing candidate,
   absent answer, multiple observations for one question, or nonbinary settlement stays
   unknown. A settlement is used as recorded; probabilities are never reinterpreted.

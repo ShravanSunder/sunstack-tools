@@ -9,6 +9,7 @@ pub(crate) struct CandidateMaterial {
     pub occurrence: SourceOccurrence,
     pub view: PrivacyView,
     pub selected: CandidateSelection,
+    pub narrowing_sample: Option<crate::candidate_narrowing_samples::CandidateNarrowingSampleView>,
 }
 pub(crate) enum CandidateSelection {
     Document {

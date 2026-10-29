@@ -74,6 +74,7 @@ async fn run_candidates(
         });
     }
     let mut dropped_samples = Vec::new();
+    let mut narrowing_sample_candidates = Vec::new();
     let mut materials = Vec::new();
     let mut candidates = Vec::new();
     let mut bound_sets = Vec::new();
@@ -283,6 +284,8 @@ async fn run_candidates(
             usage = crate::candidate_projection::project_candidate_usage(report);
         }
         for (material, group) in materials {
+            let mut material = material;
+            let narrowing_sample_view = material.narrowing_sample.take();
             let set = sets
                 .iter()
                 .find(|set| set.path == material.rule.rule_set)
@@ -384,10 +387,27 @@ async fn run_candidates(
             );
             entry.elapsed_ms = elapsed_ms;
             entry.evidence = evidence;
+            if let Some(view) = narrowing_sample_view
+                && let Some(candidate) =
+                    crate::candidate_narrowing_samples::clear_narrowing_drop(&entry, view)
+            {
+                narrowing_sample_candidates.push(candidate);
+            }
             candidates.push(entry);
         }
     } else {
         source_capture.session.close();
+    }
+    for sample in crate::candidate_narrowing_samples::select_narrowing_samples(
+        narrowing_sample_candidates,
+        input.samples_per_pass,
+    ) {
+        crate::candidate_inputs::append_privacy_counts(
+            &mut privacy,
+            PrivacyRoute::Samples,
+            sample.privacy,
+        );
+        dropped_samples.push(sample.sample);
     }
     usage.wall_time_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
     let completeness =

@@ -1,3 +1,4 @@
+use crate::candidate_narrowing_samples::CandidateNarrowingSampleView;
 pub(crate) use crate::candidate_subjects::*;
 use crate::*;
 use std::{
@@ -352,6 +353,14 @@ pub(crate) fn discover_rule_candidates(
                 .as_slice()
                 .discover(rule.mechanical_pass.as_ref(), samples)
                 .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
+            let record_ordinals = rule.narrowing.as_ref().map(|_| {
+                source
+                    .records
+                    .iter()
+                    .enumerate()
+                    .map(|(ordinal, record)| (record.record_id.as_str().to_owned(), ordinal))
+                    .collect::<BTreeMap<_, _>>()
+            });
             let mut projected_records = BTreeMap::new();
             for record in &source.records {
                 let projected = project_record(record, &grants)
@@ -400,14 +409,40 @@ pub(crate) fn discover_rule_candidates(
                     },
                     _ => CandidateSelection::LeftOutForPrivacy,
                 };
+                let occurrence_identity = occurrence
+                    .occurrence_identity()
+                    .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?;
+                let narrowing_sample = if rule.narrowing.is_some() {
+                    let record_ordinal = record_ordinals
+                        .as_ref()
+                        .and_then(|ordinals| ordinals.get(matched.record.record_id.as_str()))
+                        .copied()
+                        .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?;
+                    let excerpt = match &projected.record {
+                        Some(record) => serde_json::to_string(&record.body)
+                            .map_err(|_| invalid_candidate_field(vec!["sources".into()]))?,
+                        None => "[left out for privacy]".into(),
+                    };
+                    Some(
+                        CandidateNarrowingSampleView::new(
+                            source.entry_position,
+                            &occurrence,
+                            Some(record_ordinal),
+                            &occurrence_identity,
+                            excerpt,
+                            projected.privacy.clone(),
+                        )
+                        .ok_or_else(|| invalid_candidate_field(vec!["sources".into()]))?,
+                    )
+                } else {
+                    None
+                };
                 candidates.push(CandidateMaterial {
                     entry_position: source.entry_position,
                     source_name: source.source_name.clone(),
                     candidate_id: CandidateId {
                         rule: rule_ref.clone(),
-                        occurrence: occurrence
-                            .occurrence_identity()
-                            .map_err(|error| crate::DiagnosticList::from(error.diagnostics()))?,
+                        occurrence: occurrence_identity,
                     },
                     rule: rule_ref.clone(),
                     occurrence,
@@ -415,6 +450,7 @@ pub(crate) fn discover_rule_candidates(
                         grants: rule.private_access.clone(),
                     },
                     selected,
+                    narrowing_sample,
                 });
             }
             receipt.status = RuleDiscoveryStatus::Completed;

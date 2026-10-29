@@ -173,6 +173,7 @@ fn step_only_labels_are_not_end_truth_and_filter_occurrences_count_once() {
     dev_source.source =
         serde_json::from_value(json!({"kind":"session_pair","provider":"codex","session":"dev"}))
             .unwrap();
+    specification.labels[2].source_anchor = occurrence_for_source(&dev_source.source, 2);
     specification.sources.push(dev_source);
     let set = freeze_cases(&root.path().join("cases"), &specification).unwrap();
     let mut candidate = entry(

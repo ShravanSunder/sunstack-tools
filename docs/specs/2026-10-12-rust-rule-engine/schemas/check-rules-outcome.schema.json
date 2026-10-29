@@ -104,35 +104,35 @@
     "ApplicabilityEntry": {
       "oneOf": [
         {
-          "type": "object",
+          "additionalProperties": false,
           "properties": {
             "kind": {
-              "type": "string",
-              "const": "condition"
+              "const": "condition",
+              "type": "string"
             },
             "test": {
               "$ref": "#/$defs/ConditionTest"
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind",
             "test"
-          ]
+          ],
+          "type": "object"
         },
         {
-          "type": "object",
+          "additionalProperties": false,
           "properties": {
             "evidence": {
-              "type": "array",
               "items": {
                 "$ref": "#/$defs/EvidenceDeclaration"
               },
-              "minItems": 1
+              "minItems": 1,
+              "type": "array"
             },
             "kind": {
-              "type": "string",
-              "const": "decision"
+              "const": "decision",
+              "type": "string"
             },
             "question": {
               "allOf": [
@@ -149,19 +149,28 @@
               ]
             },
             "threshold": {
-              "type": "number",
-              "format": "double",
               "exclusiveMinimum": 0,
-              "maximum": 1
+              "format": "double",
+              "maximum": 1,
+              "type": "number"
+            },
+            "uncertain_below": {
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0,
+              "type": [
+                "number",
+                "null"
+              ]
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind",
             "question",
             "evidence",
             "threshold"
-          ]
+          ],
+          "type": "object"
         }
       ]
     },
@@ -2162,26 +2171,52 @@
       ]
     },
     "RuleDefinition": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "applicability": {
-          "type": "array",
           "items": {
             "$ref": "#/$defs/ApplicabilityEntry"
-          }
+          },
+          "type": "array"
         },
         "evidence": {
-          "type": "array",
           "items": {
             "$ref": "#/$defs/EvidenceDeclaration"
           },
-          "minItems": 1
+          "minItems": 1,
+          "type": "array"
+        },
+        "mechanical_pass": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MechanicalPass"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "narrowing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NarrowingDecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "private_access": {
+          "items": {
+            "$ref": "#/$defs/PrivateKind"
+          },
+          "type": "array"
         },
         "questions": {
-          "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/JudgmentQuestion"
-          }
+          },
+          "type": "object"
         },
         "rule_id": {
           "$ref": "#/$defs/RuleId"
@@ -2197,7 +2232,6 @@
           "$ref": "#/$defs/VerdictDeclaration"
         }
       },
-      "additionalProperties": false,
       "required": [
         "rule_id",
         "evidence",
@@ -2205,7 +2239,8 @@
         "applicability",
         "questions",
         "verdict"
-      ]
+      ],
+      "type": "object"
     },
     "RuleDiagnostic": {
       "type": "object",
@@ -3255,7 +3290,7 @@
     "VerdictDeclaration": {
       "oneOf": [
         {
-          "type": "object",
+          "additionalProperties": false,
           "properties": {
             "check": {
               "$ref": "#/$defs/MechanicalCheck"
@@ -3264,40 +3299,40 @@
               "type": "string"
             },
             "kind": {
-              "type": "string",
-              "const": "mechanical"
+              "const": "mechanical",
+              "type": "string"
             },
             "pass_means": {
-              "type": "string",
-              "enum": [
-                "conforms",
-                "finding"
-              ],
+              "$ref": "#/$defs/PassMeans",
               "default": "conforms"
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind",
             "explanation",
             "check"
-          ]
+          ],
+          "type": "object"
         },
         {
-          "type": "object",
+          "additionalProperties": false,
           "properties": {
             "error_at_or_below": {
+              "exclusiveMaximum": 1,
+              "format": "double",
+              "minimum": 0,
               "type": [
                 "number",
                 "null"
-              ],
-              "format": "double",
-              "exclusiveMaximum": 1,
-              "minimum": 0
+              ]
             },
             "kind": {
-              "type": "string",
-              "const": "noul"
+              "const": "noul",
+              "type": "string"
+            },
+            "pass_means": {
+              "$ref": "#/$defs/PassMeans",
+              "default": "finding"
             },
             "question": {
               "allOf": [
@@ -3314,73 +3349,303 @@
               ]
             },
             "threshold": {
-              "type": "number",
-              "format": "double",
               "exclusiveMinimum": 0,
-              "maximum": 1
+              "format": "double",
+              "maximum": 1,
+              "type": "number"
             },
-            "pass_means": {
-              "type": "string",
-              "enum": [
-                "conforms",
-                "finding"
-              ],
-              "default": "finding"
+            "uncertain_below": {
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0,
+              "type": [
+                "number",
+                "null"
+              ]
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind",
             "question",
             "threshold"
-          ]
+          ],
+          "type": "object"
         },
         {
-          "type": "object",
+          "additionalProperties": false,
           "properties": {
-            "error_at_or_below": {
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "double",
-              "exclusiveMaximum": 1,
-              "minimum": 0
-            },
             "dimensions": {
-              "type": "array",
               "items": {
                 "$ref": "#/$defs/CompositeDimension"
               },
-              "minItems": 1
+              "minItems": 1,
+              "type": "array"
+            },
+            "error_at_or_below": {
+              "exclusiveMaximum": 1,
+              "format": "double",
+              "minimum": 0,
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "kind": {
-              "type": "string",
-              "const": "composite"
-            },
-            "threshold": {
-              "type": "number",
-              "format": "double",
-              "exclusiveMinimum": 0,
-              "maximum": 1
+              "const": "composite",
+              "type": "string"
             },
             "pass_means": {
-              "type": "string",
-              "enum": [
-                "conforms",
-                "finding"
-              ],
+              "$ref": "#/$defs/PassMeans",
               "default": "finding"
+            },
+            "threshold": {
+              "exclusiveMinimum": 0,
+              "format": "double",
+              "maximum": 1,
+              "type": "number"
+            },
+            "uncertain_below": {
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0,
+              "type": [
+                "number",
+                "null"
+              ]
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind",
             "dimensions",
             "threshold"
-          ]
+          ],
+          "type": "object"
         }
       ]
+    },
+    "CodePatternLanguage": {
+      "enum": [
+        "rust",
+        "typescript",
+        "tsx"
+      ],
+      "type": "string"
+    },
+    "ContextPart": {
+      "enum": [
+        "change",
+        "touched_unit",
+        "related"
+      ],
+      "type": "string"
+    },
+    "FieldPath": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "minLength": 1,
+      "pattern": "^/",
+      "title": "string",
+      "type": "string"
+    },
+    "MechanicalPass": {
+      "additionalProperties": false,
+      "properties": {
+        "context_parts": {
+          "items": {
+            "$ref": "#/$defs/ContextPart"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "predicate": {
+          "$ref": "#/$defs/MechanicalPredicate"
+        },
+        "source_sides": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSides"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "predicate"
+      ],
+      "type": "object"
+    },
+    "MechanicalPredicate": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ast",
+              "type": "string"
+            },
+            "language": {
+              "$ref": "#/$defs/CodePatternLanguage"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "language",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/FieldPath"
+            },
+            "kind": {
+              "const": "regex",
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/FieldPath"
+            },
+            "kind": {
+              "const": "literal",
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "any",
+              "type": "string"
+            },
+            "predicates": {
+              "items": {
+                "$ref": "#/$defs/MechanicalPredicate"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "predicates"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "all",
+              "type": "string"
+            },
+            "predicates": {
+              "items": {
+                "$ref": "#/$defs/MechanicalPredicate"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "predicates"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "NarrowingDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceDeclaration"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "question": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/JudgmentQuestion"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "noul"
+                }
+              }
+            }
+          ]
+        },
+        "threshold": {
+          "exclusiveMinimum": 0,
+          "format": "double",
+          "maximum": 1,
+          "type": "number"
+        },
+        "uncertain_below": {
+          "format": "double",
+          "maximum": 1,
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "question",
+        "evidence",
+        "threshold"
+      ],
+      "type": "object"
+    },
+    "PassMeans": {
+      "enum": [
+        "conforms",
+        "finding"
+      ],
+      "type": "string"
+    },
+    "PrivateKind": {
+      "enum": [
+        "thinking",
+        "analysis_channel",
+        "encrypted_reasoning",
+        "credential_like"
+      ],
+      "type": "string"
     }
   },
   "$id": "check-rules-outcome.schema.json",

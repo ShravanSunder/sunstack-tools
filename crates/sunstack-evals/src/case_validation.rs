@@ -82,7 +82,7 @@ pub(crate) fn validate_cases(
 fn source_group(source: &CaseSource, anchor: &SourceOccurrence) -> Result<SourceGroup, EvalError> {
     match &source.source {
         SourceInput::SessionPair { provider, session } => {
-            require_record_anchor(anchor)?;
+            require_record_anchor(&source.source, anchor)?;
             Ok(SourceGroup::Session {
                 provider: provider.clone(),
                 session: session.clone(),
@@ -105,16 +105,25 @@ fn source_group(source: &CaseSource, anchor: &SourceOccurrence) -> Result<Source
             Ok(SourceGroup::Diff { input })
         }
         SourceInput::CustomEntry { location, .. } => {
-            require_record_anchor(anchor)?;
+            require_record_anchor(&source.source, anchor)?;
             Ok(SourceGroup::Custom {
                 location: location.clone(),
             })
         }
     }
 }
-fn require_record_anchor(anchor: &SourceOccurrence) -> Result<(), EvalError> {
+fn require_record_anchor(source: &SourceInput, anchor: &SourceOccurrence) -> Result<(), EvalError> {
     match anchor {
-        SourceOccurrence::Record { .. } => Ok(()),
+        SourceOccurrence::Record { record, .. } => {
+            let expected = source
+                .source_identity()
+                .map_err(|_| invalid("sources.source"))?;
+            if record.belongs_to_source(&expected) {
+                Ok(())
+            } else {
+                Err(invalid("labels.source_anchor.record"))
+            }
+        }
         SourceOccurrence::CodeMatch { .. }
         | SourceOccurrence::ContextMatch { .. }
         | SourceOccurrence::DocumentUnit { .. }
