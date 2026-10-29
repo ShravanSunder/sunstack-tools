@@ -30,6 +30,6 @@
 		"forceConsistentCasingInFileNames": true,
 		"skipLibCheck": true
 	},
-	"include": ["packages/demistify/**/*.ts", "apps/demistify-poc/**/*.ts"],
+	"include": ["packages/demistify/**/*.ts", "apps/demistify-poc/**/*.ts", "scripts/**/*.ts"],
 	"exclude": ["node_modules", "dist"]
 }

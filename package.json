@@ -7,9 +7,9 @@
 		"dev": "pnpm build && pnpm --filter @sunstack/demistify-poc dev:serve",
 		"preview": "pnpm --filter @sunstack/demistify-poc preview",
 		"typecheck": "tsc --noEmit",
-		"lint": "oxlint --type-aware --max-warnings 0 packages/demistify apps/demistify-poc",
-		"fmt": "oxfmt packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset",
-		"fmt:check": "oxfmt --check packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset",
+		"lint": "oxlint --type-aware --max-warnings 0 packages/demistify apps/demistify-poc scripts/release/*.ts scripts/verify/sunstack-rule/*.ts",
+		"fmt": "oxfmt packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset scripts/release/*.ts scripts/verify/sunstack-rule/*.ts",
+		"fmt:check": "oxfmt --check packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset scripts/release/*.ts scripts/verify/sunstack-rule/*.ts",
 		"check": "pnpm lint && pnpm fmt:check && pnpm typecheck",
 		"test": "pnpm --filter @sunstack/demistify-poc test",
 		"changeset": "changeset",
@@ -17,7 +17,8 @@
 		"release:prepare": "node packages/demistify/release/prepare-release.ts",
 		"release:verify": "node packages/demistify/release/verify-release.ts",
 		"release:check": "node packages/demistify/release/check-release-intent.ts",
-		"test:browser": "pnpm --filter @sunstack/demistify-poc test:browser"
+		"test:browser": "pnpm --filter @sunstack/demistify-poc test:browser",
+		"test:scripts": "vitest run --testTimeout 20000 scripts"
 	},
 	"devDependencies": {
 		"@changesets/cli": "3.0.3",

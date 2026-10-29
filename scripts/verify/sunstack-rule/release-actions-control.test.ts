@@ -1,13 +1,18 @@
+import assert from 'node:assert/strict';
+import { spawn, type ChildProcessByStdio } from 'node:child_process';
+import fileSystem from 'node:fs';
+import operatingSystem from 'node:os';
+import path from 'node:path';
+import type { Readable } from 'node:stream';
+
 // Controller controls exercise real HTTP/processes and a fake gh, never the real cancel API.
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const operatingSystem = require('node:os');
-const path = require('node:path');
-const { spawn } = require('node:child_process');
-const { startController, validateTarget, safeOutput } = require('./release_actions_control.cjs');
-const { sha256, save } = require('./release_registry.cjs');
-const { settleGroup } = require('./release_process.cjs');
+import { test, vi, onTestFinished } from 'vitest';
+import { z } from 'zod';
+
+import { startController, validateTarget, safeOutput } from './release-actions-control.ts';
+import { settleGroup } from './release-process.ts';
+import { errorCode } from './release-records.ts';
+import { sha256, save } from './release-registry.ts';
 const target = {
 	repository: 'ShravanSunder/sunstack-release-rehearsal',
 	run: '123456',
@@ -43,8 +48,8 @@ test('self-cancel admission rejects the wrong repository, run, head, workflow an
 	);
 });
 
-async function controllerCase(mode, testContext) {
-	if (mode === 'late') testContext.mock.timers.enable({ apis: ['setTimeout'] });
+async function controllerCase(mode: string): Promise<void> {
+	if (mode === 'late') vi.useFakeTimers({ toFake: ['setTimeout'] });
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-actions-control-'),
 	);
@@ -80,14 +85,14 @@ process.stdout.write(${JSON.stringify(mode)}==='leak'?process.env.GH_TOKEN:'canc
 		ghCommand: [process.execPath, fake],
 		bounds: mode === 'late' ? [] : [0, 100, 500],
 	});
-	let child;
-	testContext.after(async () => {
-		if (mode === 'late') testContext.mock.timers.reset();
-		if (child) {
+	let child: ChildProcessByStdio<null, Readable, Readable> | undefined;
+	onTestFinished(async () => {
+		if (mode === 'late') vi.useRealTimers();
+		if (child?.pid) {
 			try {
 				process.kill(-child.pid, 'SIGKILL');
 			} catch (error) {
-				if (error.code !== 'ESRCH') throw error;
+				if (errorCode(error) !== 'ESRCH') throw error;
 			}
 			assert.deepEqual(await settleGroup(child.pid), []);
 		}
@@ -108,10 +113,10 @@ process.stdout.write(${JSON.stringify(mode)}==='leak'?process.env.GH_TOKEN:'canc
 		await assert.rejects(controller.finish(), /before frozen/);
 		let lateRequestReceived, timedOutObservation;
 		if (mode === 'late') {
-			testContext.mock.timers.tick(120000);
-			assert.match(controller.observation.error, /no admitted real request/);
+			vi.advanceTimersByTime(120000);
+			assert.match(controller.observation?.error ?? '', /no admitted real request/);
 			timedOutObservation = fileSystem.readFileSync(path.join(root, 'observation.json'));
-			lateRequestReceived = new Promise((resolve) =>
+			lateRequestReceived = new Promise<void>((resolve) =>
 				controller.server.once('request', (request) => {
 					request.once('end', resolve);
 					request.resume();
@@ -130,7 +135,7 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{i
 			stdio: ['ignore', 'pipe', 'pipe'],
 		});
 		save(path.join(root, 'work-step.json'), { pid: child.pid, group: child.pid, binary });
-		const stdout = [];
+		const stdout: Buffer[] = [];
 		child.stdout.on('data', (chunk) => stdout.push(chunk));
 		const closed = new Promise((resolve) =>
 			child.once('close', (code, signal) => resolve({ code, signal })),
@@ -142,7 +147,7 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{i
 				.readFileSync(path.join(root, 'calls.jsonl'), 'utf8')
 				.trim()
 				.split('\n')
-				.map((line) => JSON.parse(line));
+				.map((line): string[] => z.array(z.string()).parse(JSON.parse(line)));
 			assert.deepEqual(
 				calls.filter((args) => args[0] === 'run'),
 				[],
@@ -156,11 +161,11 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{i
 			);
 			assert.deepEqual(await closed, { code: 0, signal: null });
 			assert.equal(Buffer.concat(stdout).toString(), 'late-refused:404\n');
-			testContext.mock.timers.reset();
+			vi.useRealTimers();
 			await controller.finish();
 			return;
 		}
-		await new Promise((resolve, reject) => {
+		await new Promise<void>((resolve, reject) => {
 			const timer = setTimeout(() => {
 				clearInterval(poll);
 				reject(new Error('controller did not freeze observation'));
@@ -175,6 +180,7 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{i
 		});
 		await controller.pending;
 		const observation = controller.observation;
+		assert.ok(observation?.admitted);
 		assert.deepEqual(observation.admitted.body.state, {
 			contents: { content001: 'synthetic actual HTTP state' },
 		});
@@ -182,13 +188,13 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{i
 			.readFileSync(path.join(root, 'calls.jsonl'), 'utf8')
 			.trim()
 			.split('\n')
-			.map((line) => JSON.parse(line));
+			.map((line): string[] => z.array(z.string()).parse(JSON.parse(line)));
 		assert.deepEqual(
 			calls.filter((args) => args[0] === 'run'),
 			[['run', 'cancel', target.run, '--repo', target.repository]],
 		);
 		assert.equal(
-			JSON.parse(fileSystem.readFileSync(path.join(root, 'cancel-command.json')))
+			JSON.parse(fileSystem.readFileSync(path.join(root, 'cancel-command.json')).toString())
 				.after_real_admission,
 			true,
 		);
@@ -199,11 +205,11 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{i
 			assert.deepEqual(observation.survivors_before_cleanup, []);
 			assert.equal(observation.sockets_before_cleanup, 0);
 		} else {
-			assert.ok(observation.survivors_before_cleanup.some((member) => member.pid === child.pid));
+			assert.ok(observation.survivors_before_cleanup?.some((member) => member.pid === child.pid));
 			assert.equal(observation.sockets_before_cleanup, 1);
 		}
 		if (mode === 'leak') {
-			assert.notEqual(observation.cancellation.code, 0);
+			assert.notEqual(observation.cancellation?.code, 0);
 			for (const name of fileSystem
 				.readdirSync(root)
 				.filter((fileName) => /\.(json|jsonl|log)$/.test(fileName)))
@@ -222,19 +228,19 @@ setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{i
 			'cleanup rewrote observed state',
 		);
 		assert.equal(
-			JSON.parse(fileSystem.readFileSync(path.join(root, 'cleanup.json'))).listening,
+			JSON.parse(fileSystem.readFileSync(path.join(root, 'cleanup.json')).toString()).listening,
 			false,
 		);
 		await closed;
 	}
 }
 
-test('actual HTTP admission precedes exact fake self-cancel and the token stays out of the native environment', (testContext) =>
-	controllerCase('signal', testContext));
-test('a live native and socket remain observed even when owned cleanup ends them later', (testContext) =>
-	controllerCase('leave', testContext));
-test('a synthetic token in cancellation output is withheld and cannot yield a successful receipt', (testContext) =>
-	controllerCase('leak', testContext));
+test('actual HTTP admission precedes exact fake self-cancel and the token stays out of the native environment', () =>
+	controllerCase('signal'));
+test('a live native and socket remain observed even when owned cleanup ends them later', () =>
+	controllerCase('leave'));
+test('a synthetic token in cancellation output is withheld and cannot yield a successful receipt', () =>
+	controllerCase('leak'));
 
-test('a real request after the admission timeout cannot cancel or rewrite the frozen observation', (testContext) =>
-	controllerCase('late', testContext));
+test('a real request after the admission timeout cannot cancel or rewrite the frozen observation', () =>
+	controllerCase('late'));

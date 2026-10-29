@@ -1,20 +1,90 @@
 #!/usr/bin/env node
 /* eslint-disable no-await-in-loop -- Observation bounds and owned teardown are sequential. */
 // S4 Actions: an admitted real request triggers exactly one self-cancellation.
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const path = require('node:path');
-const http = require('node:http');
-const { spawn, execFile } = require('node:child_process');
-const { promisify } = require('node:util');
-const { sha256, save: saveRaw } = require('./release_registry.cjs');
-const { groupMembers } = require('./release_process.cjs');
+import assert from 'node:assert/strict';
+import { spawn, execFile } from 'node:child_process';
+import fileSystem from 'node:fs';
+import http from 'node:http';
+import type { Socket } from 'node:net';
+import path from 'node:path';
+import { promisify } from 'node:util';
+
+import { z } from 'zod';
+
+import { groupMembers } from './release-process.ts';
+import {
+	identitySchema,
+	workStepSchema,
+	targetSchema,
+	repositorySchema,
+	runSchema,
+	heldRequestSchema,
+	lintConfigSchema,
+	errorCode,
+	errorMessage,
+	type ControllerTarget,
+	type RepositoryMetadata,
+	type RunMetadata,
+	type WorkStep,
+	type ProcessMember,
+	type HeldRequest,
+} from './release-records.ts';
+import { sha256, save as saveRaw } from './release-registry.ts';
+
+interface ControllerOptions {
+	root: string;
+	assets: string;
+	identity: string;
+	target: ControllerTarget;
+	token: string;
+	ghCommand?: string[];
+	bounds?: number[];
+}
+interface CommandResult {
+	code: number | null;
+	stdout: string;
+	stderr: string;
+	signal?: unknown;
+	uncertain?: boolean;
+}
+interface ControllerAdmission {
+	elapsed_ms: number;
+	body: HeldRequest;
+	native: ProcessMember[];
+	work_step: WorkStep;
+}
+interface ControllerTimeline {
+	after_cancel_request_ms: number;
+	processes: ProcessMember[];
+	held_sockets: number;
+}
+interface ControllerObservation {
+	admitted: ControllerAdmission | null;
+	cancellation?: CommandResult;
+	timeline: ControllerTimeline[];
+	survivors_before_cleanup: ProcessMember[] | null;
+	sockets_before_cleanup: number;
+	elapsed_ms: number;
+	error?: string;
+}
+interface ControllerService {
+	ready: { pid: number; port: number; base: string };
+	finish: () => Promise<void>;
+	readonly observation: ControllerObservation | undefined;
+	readonly pending: Promise<void> | undefined;
+	server: http.Server;
+}
 const execute = promisify(execFile);
-const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const delay = (milliseconds: number): Promise<void> =>
+	new Promise((resolve) => setTimeout(resolve, milliseconds));
 const privateRepository = 'ShravanSunder/sunstack-release-rehearsal';
 const workflowName = 'S4 cancellation observation';
 
-function validateTarget(target, repository, run) {
+function validateTarget(
+	target: ControllerTarget,
+	repository: RepositoryMetadata,
+	run: RunMetadata,
+): void {
 	assert.equal(target.repository, privateRepository, 'wrong private repository');
 	assert.match(target.run, /^[1-9][0-9]*$/);
 	assert.match(target.head, /^[0-9a-f]{40}$/);
@@ -30,8 +100,8 @@ function validateTarget(target, repository, run) {
 	assert.equal(run.status, 'in_progress');
 }
 
-function safeOutput(value, token) {
-	const text = String(value || '');
+function safeOutput(value: string | number | Buffer | null | undefined, token: string): string {
+	const text = value ? String(value) : '';
 	assert.ok(
 		!token || !text.includes(token),
 		'credential appeared in command output; raw output withheld',
@@ -47,9 +117,9 @@ async function startController({
 	token,
 	ghCommand = ['gh'],
 	bounds = [0, 100, 500, 1500, 4000, 8000, 12000, 20000],
-}) {
+}: ControllerOptions): Promise<ControllerService> {
 	assert.ok(token, 'controller token required');
-	const save = (file, value) => {
+	const save = (file: string, value: unknown): void => {
 		safeOutput(JSON.stringify(value), token);
 		saveRaw(file, value);
 	};
@@ -58,32 +128,39 @@ async function startController({
 	assert.match(target.head, /^[0-9a-f]{40}$/);
 	assert.equal(target.workflow, workflowName);
 	assert.ok(!fileSystem.existsSync(path.join(root, 'ready.json')), 'controller already prepared');
-	const expected = JSON.parse(fileSystem.readFileSync(identity));
+	const expected = identitySchema.parse(JSON.parse(fileSystem.readFileSync(identity, 'utf8')));
 	assert.equal(expected.tag, 'v0.0.7');
 	assert.equal(expected.version, '0.0.7');
 	assert.match(expected.binary_sha256, /^[0-9a-f]{64}$/);
 	fileSystem.mkdirSync(root, { recursive: true });
 	const started = performance.now();
-	const elapsed = () => Math.round(performance.now() - started);
-	const heldSockets = new Set(),
-		requests = [],
-		timeline = [],
-		admittedNative = new Map();
-	let admitted,
-		work,
-		workIdentity,
-		frozen,
+	const elapsed = (): number => Math.round(performance.now() - started);
+	const heldSockets = new Set<Socket>(),
+		requests: {
+			method: string | undefined;
+			path: string;
+			elapsed_ms: number;
+			status?: number;
+			sha256?: string;
+			bytes?: number;
+		}[] = [],
+		timeline: ControllerTimeline[] = [],
+		admittedNative = new Map<number, string>();
+	let admitted: ControllerAdmission | undefined,
+		work: WorkStep | undefined,
+		workIdentity: string | undefined,
+		frozen: ControllerObservation | undefined,
 		cancelStarted = false,
-		observationPromise,
+		observationPromise: Promise<void> | undefined,
 		closed = false;
-	async function github(words) {
+	async function github(words: string[]): Promise<CommandResult> {
 		try {
-			const result = await execute(ghCommand[0], [...ghCommand.slice(1), ...words], {
+			const result = await execute(ghCommand[0] ?? '', [...ghCommand.slice(1), ...words], {
 				cwd: root,
 				timeout: 20000,
 				maxBuffer: 1024 * 1024,
 				env: {
-					PATH: process.env.PATH,
+					PATH: process.env['PATH'],
 					HOME: root,
 					GH_TOKEN: token,
 					GH_HOST: 'github.com',
@@ -96,26 +173,41 @@ async function startController({
 				stderr: safeOutput(result.stderr, token),
 			};
 		} catch (error) {
+			const failure = z
+				.object({
+					code: z.union([z.number(), z.string()]).optional(),
+					signal: z.unknown().optional(),
+					stdout: z.union([z.string(), z.instanceof(Buffer)]).optional(),
+					stderr: z.union([z.string(), z.instanceof(Buffer)]).optional(),
+				})
+				.parse(error);
 			return {
-				code: typeof error.code === 'number' ? error.code : null,
-				signal: error.signal || null,
+				code: typeof failure.code === 'number' ? failure.code : null,
+				signal: failure.signal ?? null,
 				uncertain: true,
-				stdout: safeOutput(error.stdout, token),
-				stderr: safeOutput(error.stderr, token),
+				stdout: safeOutput(failure.stdout, token),
+				stderr: safeOutput(failure.stderr, token),
 			};
 		}
 	}
-	async function admitTarget() {
+	async function admitTarget(): Promise<void> {
 		const repository = await github(['api', 'repos/' + target.repository]);
 		const run = await github(['api', 'repos/' + target.repository + '/actions/runs/' + target.run]);
 		assert.equal(repository.code, 0, 'private metadata read failed');
 		assert.equal(run.code, 0, 'own run read failed');
-		validateTarget(target, JSON.parse(repository.stdout), JSON.parse(run.stdout));
+		validateTarget(
+			target,
+			repositorySchema.parse(JSON.parse(repository.stdout)),
+			runSchema.parse(JSON.parse(run.stdout)),
+		);
 		save(path.join(root, 'target.json'), { ...target, private: true, validated_at_ms: elapsed() });
 	}
 	await admitTarget();
-	function ownedFacts() {
-		work = JSON.parse(fileSystem.readFileSync(path.join(root, 'work-step.json')));
+	function ownedFacts(): ProcessMember[] {
+		work = workStepSchema.parse(
+			JSON.parse(fileSystem.readFileSync(path.join(root, 'work-step.json'), 'utf8')),
+		);
+		const ownedWork = work;
 		assert.ok(Number.isSafeInteger(work.pid) && work.pid > 1);
 		assert.equal(work.binary, path.join(root, 'installed/sunstack'));
 		const members = groupMembers(work.group);
@@ -123,7 +215,7 @@ async function startController({
 			members
 				.filter(
 					(member) =>
-						(member.pid === work.pid && (!workIdentity || member.command === workIdentity)) ||
+						(member.pid === ownedWork.pid && (!workIdentity || member.command === workIdentity)) ||
 						admittedNative.get(member.pid) === member.command,
 				)
 				.map((member) => member.pid),
@@ -132,11 +224,13 @@ async function startController({
 			for (const member of members) if (ownedIds.has(member.parent)) ownedIds.add(member.pid);
 		return members.filter((member) => ownedIds.has(member.pid));
 	}
-	async function cancelAfterAdmission(requestBody) {
+	async function cancelAfterAdmission(requestBody: HeldRequest): Promise<void> {
 		assert.equal(cancelStarted, false, 'duplicate cancel forbidden');
 		safeOutput(JSON.stringify(requestBody), token);
 		const members = ownedFacts();
-		workIdentity = members.find((member) => member.pid === work.pid)?.command;
+		assert.ok(work);
+		const ownedWork = work;
+		workIdentity = members.find((member) => member.pid === ownedWork.pid)?.command;
 		assert.equal(
 			sha256(fileSystem.readFileSync(work.binary)),
 			expected.binary_sha256,
@@ -147,11 +241,11 @@ async function startController({
 				if (process.platform === 'linux')
 					return (
 						fileSystem.realpathSync('/proc/' + member.pid + '/exe') ===
-						fileSystem.realpathSync(work.binary)
+						fileSystem.realpathSync(ownedWork.binary)
 					);
-				return member.command.split(/\s+/).includes(work.binary);
+				return member.command.split(/\s+/).includes(ownedWork.binary);
 			} catch (error) {
-				if (['ENOENT', 'ESRCH'].includes(error.code)) return false;
+				if (errorCode(error) === 'ENOENT' || errorCode(error) === 'ESRCH') return false;
 				throw error;
 			}
 		});
@@ -198,9 +292,9 @@ async function startController({
 			cancellation_exit: cancelResult.code,
 		});
 	}
-	function failObservation(error) {
-		const message = safeOutput(error.message, token);
-		let processes = null;
+	function failObservation(error: unknown): void {
+		const message = safeOutput(errorMessage(error), token);
+		let processes: ProcessMember[] | null = null;
 		try {
 			processes = ownedFacts();
 		} catch {
@@ -208,7 +302,7 @@ async function startController({
 		}
 		frozen = {
 			error: message,
-			admitted: admitted || null,
+			admitted: admitted ?? null,
 			timeline,
 			survivors_before_cleanup: processes,
 			sockets_before_cleanup: heldSockets.size,
@@ -219,7 +313,7 @@ async function startController({
 		save(path.join(root, 'complete.json'), { observation_frozen: true, status: 'unknown' });
 	}
 	const server = http.createServer((request, response) => {
-		const route = new URL(request.url, 'http://127.0.0.1').pathname;
+		const route = new URL(request.url ?? '', 'http://127.0.0.1').pathname;
 		requests.push({ method: request.method, path: route, elapsed_ms: elapsed() });
 		save(path.join(root, 'requests.json'), requests);
 		if (request.method === 'GET' && route === '/health') {
@@ -235,7 +329,11 @@ async function startController({
 			const name = path.basename(route),
 				bytes = fileSystem.readFileSync(path.join(assets, name));
 			assert.equal(sha256(bytes), expected.asset_sha256[name], 'served archive identity');
-			Object.assign(requests.at(-1), { status: 200, sha256: sha256(bytes), bytes: bytes.length });
+			Object.assign(requests.at(-1) ?? {}, {
+				status: 200,
+				sha256: sha256(bytes),
+				bytes: bytes.length,
+			});
 			save(path.join(root, 'requests.json'), requests);
 			response.end(bytes);
 			return;
@@ -248,7 +346,7 @@ async function startController({
 			!frozen
 		) {
 			let size = 0;
-			const chunks = [];
+			const chunks: Buffer[] = [];
 			request.on('data', (chunk) => {
 				size += chunk.length;
 				if (size > 262144) request.destroy();
@@ -260,7 +358,7 @@ async function startController({
 					return;
 				}
 				try {
-					const body = JSON.parse(Buffer.concat(chunks));
+					const body = heldRequestSchema.parse(JSON.parse(Buffer.concat(chunks).toString()));
 					assert.ok(
 						body.state &&
 							body.questions &&
@@ -283,41 +381,47 @@ async function startController({
 		}
 		response.writeHead(404).end();
 	});
-	async function finish() {
+	async function finish(): Promise<void> {
 		assert.ok(frozen, 'cleanup forbidden before frozen observation');
 		if (closed) return;
 		closed = true;
 		const survivors = work ? ownedFacts() : [];
 		for (const member of survivors) {
 			// Do not kill a reused PID or a command outside the captured work tree.
-			if (member.pid === work.pid || admittedNative.get(member.pid) === member.command) {
+			if (member.pid === work?.pid || admittedNative.get(member.pid) === member.command) {
 				try {
 					process.kill(member.pid, 'SIGKILL');
 				} catch (error) {
-					if (error.code !== 'ESRCH') throw error;
+					if (errorCode(error) !== 'ESRCH') throw error;
 				}
 			}
 		}
 		for (const socket of heldSockets) socket.destroy();
 		server.closeAllConnections();
-		await new Promise((resolve) => server.close(resolve));
+		await new Promise<void>((resolve, reject) =>
+			server.close((error) => (error ? reject(error) : resolve())),
+		);
 		await delay(100);
 		save(path.join(root, 'cleanup.json'), {
 			survivors_after_cleanup: work ? ownedFacts() : [],
 			listening: server.listening,
 			observation_unchanged:
 				JSON.stringify(frozen) ===
-				JSON.stringify(JSON.parse(fileSystem.readFileSync(path.join(root, 'observation.json')))),
+				JSON.stringify(
+					JSON.parse(fileSystem.readFileSync(path.join(root, 'observation.json'), 'utf8')),
+				),
 		});
 	}
-	await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	assert.ok(address && typeof address !== 'string');
 	const ready = {
 		pid: process.pid,
-		port: server.address().port,
-		base: 'http://127.0.0.1:' + server.address().port,
+		port: address.port,
+		base: 'http://127.0.0.1:' + address.port,
 	};
 	const configPath = path.join(root, 'fixture/sunstack.lint.json');
-	const config = JSON.parse(fileSystem.readFileSync(configPath));
+	const config = lintConfigSchema.parse(JSON.parse(fileSystem.readFileSync(configPath, 'utf8')));
 	config.backend.endpoint = ready.base + '/systemone';
 	save(configPath, config);
 	save(path.join(root, 'ready.json'), ready);
@@ -338,25 +442,43 @@ async function startController({
 	};
 }
 
-function parseOptions(words) {
+function parseOptions(words: string[]): {
+	root: string;
+	assets: string;
+	identity: string;
+	repository: string;
+	run: string;
+	head: string;
+	workflow: string;
+} {
 	const allowed = ['root', 'assets', 'identity', 'repository', 'run', 'head', 'workflow'];
-	const options = {};
+	const options: Record<string, string> = {};
 	for (let index = 0; index < words.length; index += 2) {
-		const name = words[index].replace(/^--/, '');
+		const name = (words[index] ?? '').replace(/^--/, '');
 		assert.ok(
 			allowed.includes(name) && words[index + 1] && !options[name],
 			'invalid controller argument',
 		);
-		options[name] = words[index + 1];
+		options[name] = words[index + 1] ?? '';
 	}
 	for (const name of allowed) assert.ok(options[name], '--' + name + ' required');
-	return options;
+	return z
+		.object({
+			root: z.string(),
+			assets: z.string(),
+			identity: z.string(),
+			repository: z.string(),
+			run: z.string(),
+			head: z.string(),
+			workflow: z.string(),
+		})
+		.parse(options);
 }
 
-async function main(words) {
+async function main(words: string[]): Promise<void> {
 	const action = words.shift();
 	if (action === 'finish') {
-		const root = path.resolve(words[0]);
+		const root = path.resolve(words[0] ?? '');
 		const until = Date.now() + 45000;
 		while (!fileSystem.existsSync(path.join(root, 'complete.json')) && Date.now() < until)
 			await delay(100);
@@ -364,7 +486,9 @@ async function main(words) {
 			fileSystem.existsSync(path.join(root, 'complete.json')),
 			'controller observation missing; retain logs as unknown',
 		);
-		const ready = JSON.parse(fileSystem.readFileSync(path.join(root, 'ready.json')));
+		const ready = z
+			.object({ base: z.string() })
+			.parse(JSON.parse(fileSystem.readFileSync(path.join(root, 'ready.json'), 'utf8')));
 		const result = await fetch(ready.base + '/finish', { method: 'POST' });
 		assert.equal(result.status, 200);
 		while (!fileSystem.existsSync(path.join(root, 'cleanup.json')) && Date.now() < until)
@@ -375,16 +499,16 @@ async function main(words) {
 		);
 		return;
 	}
-	assert.ok(['start', 'serve'].includes(action));
+	assert.ok(['start', 'serve'].includes(action ?? ''));
 	const options = parseOptions(words);
 	if (action === 'start') {
-		assert.ok(process.env.GH_TOKEN, 'controller token required');
+		assert.ok(process.env['GH_TOKEN'], 'controller token required');
 		fileSystem.mkdirSync(options.root, { recursive: true });
 		const output = fileSystem.openSync(path.join(options.root, 'controller.log'), 'wx', 0o600);
-		const child = spawn(process.execPath, [__filename, 'serve', ...words], {
+		const child = spawn(process.execPath, [import.meta.filename, 'serve', ...words], {
 			detached: true,
 			stdio: ['ignore', output, output],
-			env: { PATH: process.env.PATH, GH_TOKEN: process.env.GH_TOKEN },
+			env: { PATH: process.env['PATH'], GH_TOKEN: process.env['GH_TOKEN'] },
 		});
 		child.unref();
 		fileSystem.closeSync(output);
@@ -398,15 +522,17 @@ async function main(words) {
 		process.stdout.write('controller ready\n');
 		return;
 	}
-	const target = Object.fromEntries(
-		['repository', 'run', 'head', 'workflow'].map((name) => [name, options[name]]),
+	const target = targetSchema.parse(
+		Object.fromEntries(
+			['repository', 'run', 'head', 'workflow'].map((name) => [name, Reflect.get(options, name)]),
+		),
 	);
-	await startController({ ...options, target, token: process.env.GH_TOKEN });
+	await startController({ ...options, target, token: process.env['GH_TOKEN'] ?? '' });
 }
 
-if (require.main === module)
+if (import.meta.main)
 	main(process.argv.slice(2)).catch((error) => {
-		process.stderr.write(error.message + '\n');
+		process.stderr.write(errorMessage(error) + '\n');
 		process.exitCode = 2;
 	});
-module.exports = { startController, validateTarget, safeOutput };
+export { startController, validateTarget, safeOutput };

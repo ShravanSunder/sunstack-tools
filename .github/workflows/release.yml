@@ -153,8 +153,12 @@ jobs:
           # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26.11.1'
+          package-manager-cache: false
       - name: Verify standalone archive linkage
-        run: python3 scripts/release/check_linkage.py target/distrib --target ${{ join(matrix.targets, ' --target ') }}
+        run: node scripts/release/check-linkage.ts target/distrib --target ${{ join(matrix.targets, ' --target ') }}
       - id: cargo-dist
         name: Post-build
         # We force bash here just because github makes it really hard to get values up
@@ -424,8 +428,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-node@v6
         with:
-          python-version: '3.13'
+          node-version: '26.11.1'
+          package-manager-cache: false
       - name: Install released bytes from a mirror and check an empty environment
-        run: python3 scripts/release/fresh_install_smoke.py --tag '${{ needs.plan.outputs.tag }}' --repository "$GITHUB_REPOSITORY"
+        run: node scripts/release/fresh-install-smoke.ts --tag '${{ needs.plan.outputs.tag }}' --repository "$GITHUB_REPOSITORY"

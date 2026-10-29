@@ -1,25 +1,45 @@
 // Formula-specific private-tap installation and owned uninstall lifecycle.
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const path = require('node:path');
-const { captureProcess } = require('./release_process.cjs');
-const { sha256, save } = require('./release_registry.cjs');
+import assert from 'node:assert/strict';
+import fileSystem from 'node:fs';
+import path from 'node:path';
 
-async function installHomebrew({ assets, label, version, cell, environment, mirrorBase, raw }) {
+import { provenanceSchema, type RawCommand } from './release-records.ts';
+interface HomebrewOptions {
+	assets: string;
+	label: string;
+	version: string;
+	cell: string;
+	environment: NodeJS.ProcessEnv;
+	mirrorBase: string;
+	raw: RawCommand;
+}
+import { captureProcess } from './release-process.ts';
+import { sha256, save } from './release-registry.ts';
+
+async function installHomebrew({
+	assets,
+	label,
+	version,
+	cell,
+	environment,
+	mirrorBase,
+	raw,
+}: HomebrewOptions): Promise<{ binary: string; cleanup: () => Promise<void> }> {
 	const brew =
-		process.env.S4_BREW ||
-		(process.platform === 'darwin'
-			? '/opt/homebrew/bin/brew'
-			: '/home/linuxbrew/.linuxbrew/bin/brew');
+		process.env['S4_BREW'] && process.env['S4_BREW'].length > 0
+			? process.env['S4_BREW']
+			: process.platform === 'darwin'
+				? '/opt/homebrew/bin/brew'
+				: '/home/linuxbrew/.linuxbrew/bin/brew';
 	const env = {
 		...environment,
-		PATH: path.dirname(brew) + ':' + environment.PATH,
+		PATH: path.dirname(brew) + ':' + environment['PATH'],
 		HOMEBREW_NO_AUTO_UPDATE: '1',
 		HOMEBREW_NO_ANALYTICS: '1',
 		HOMEBREW_NO_INSTALL_CLEANUP: '1',
 	};
 	let installOwned = false;
-	async function cleanup() {
+	async function cleanup(): Promise<void> {
 		if (!installOwned) return;
 		const listing = await captureProcess({
 			command: [brew, 'list', '--versions', 'sunstack'],
@@ -28,7 +48,9 @@ async function installHomebrew({ assets, label, version, cell, environment, mirr
 			stem: path.join(cell, 'cleanup-list'),
 		});
 		assert.equal(listing.observation.error, null);
-		assert.ok([0, 1].includes(listing.observation.root_close?.code));
+		assert.ok(
+			listing.observation.root_close?.code === 0 || listing.observation.root_close?.code === 1,
+		);
 		if (listing.stdout.toString().trim())
 			await raw(
 				[brew, 'uninstall', '--formula', 'sunstack'],
@@ -46,14 +68,14 @@ async function installHomebrew({ assets, label, version, cell, environment, mirr
 			stem: path.join(cell, 'preexisting'),
 		});
 		assert.equal(prior.observation.error, null);
-		assert.ok([0, 1].includes(prior.observation.root_close?.code));
+		assert.ok(prior.observation.root_close?.code === 0 || prior.observation.root_close?.code === 1);
 		assert.equal(prior.stdout.toString().trim(), '', 'refuse preexisting Homebrew sunstack');
 		const original = fileSystem.readFileSync(
 			path.join(assets, label, 'ci-pushed-sunstack.rb'),
 			'utf8',
 		);
-		const provenance = JSON.parse(
-			fileSystem.readFileSync(path.join(assets, label, 'tap-provenance.json')),
+		const provenance = provenanceSchema.parse(
+			JSON.parse(fileSystem.readFileSync(path.join(assets, label, 'tap-provenance.json'), 'utf8')),
 		);
 		assert.equal(provenance.repository, 'ShravanSunder/homebrew-sunstack-rehearsal');
 		assert.equal(provenance.version, version);
@@ -102,4 +124,4 @@ async function installHomebrew({ assets, label, version, cell, environment, mirr
 		throw error;
 	}
 }
-module.exports = { installHomebrew };
+export { installHomebrew };

@@ -1,19 +1,49 @@
 #!/usr/bin/env node
 /* eslint-disable no-await-in-loop -- Each fixture and process must settle before the next owned cell begins. */
 // S4: install authenticated private artifacts, then compare real user routes.
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const path = require('node:path');
-const { sha256, save, startRegistry } = require('./release_registry.cjs');
-const { captureProcess } = require('./release_process.cjs');
-const { installHomebrew } = require('./release_homebrew.cjs');
-const { compareStreams } = require('./release_streams.cjs');
-const writeLine = (message) => process.stdout.write(message + '\n');
-const writeError = (error) => process.stderr.write((error.stack || String(error)) + '\n');
-const npmRoutes = ['local-bin', 'exec-script', 'global', 'npx', 'exec-npx', 'pnpm-dlx'];
-const expectedCellCount = (channel) => 2 * (channel === 'npm' ? npmRoutes.length : 1) * 11;
+import assert from 'node:assert/strict';
+import fileSystem from 'node:fs';
+import path from 'node:path';
 
-function channelCommand(route, launch, words) {
+import { z } from 'zod';
+
+import { stopExpectation, assertReportMatches, gradeStop } from './release-channel-grading.ts';
+import { argumentsFrom, type ChannelOptions } from './release-channel-options.ts';
+import { installHomebrew } from './release-homebrew.ts';
+import { captureProcess } from './release-process.ts';
+import {
+	declarationSchema,
+	reportSchema,
+	errorStack,
+	type LintReport,
+	type CapturedProcess,
+} from './release-records.ts';
+import { sha256, save, startRegistry } from './release-registry.ts';
+import { compareStreams } from './release-streams.ts';
+
+interface ChannelRow {
+	id: string;
+	version: string;
+	route: string;
+	case: string;
+	status: string;
+	transcript: string;
+	error?: string;
+}
+type ChannelError =
+	| { label: string; route: string; cleanup: string }
+	| { matrix: string; expected: number; actual: number };
+interface ChannelResult {
+	rows: ChannelRow[];
+	errors: ChannelError[];
+}
+const writeLine = (message: string): boolean => process.stdout.write(message + '\n');
+const writeError = (error: unknown): boolean => process.stderr.write(errorStack(error) + '\n');
+const npmRoutes = ['local-bin', 'exec-script', 'global', 'npx', 'exec-npx', 'pnpm-dlx'];
+const expectedCellCount = (channel: string): number =>
+	2 * (channel === 'npm' ? npmRoutes.length : 1) * 11;
+
+function channelCommand(route: string, launch: string[], words: string[]): string[] {
 	if (route === 'exec-npx') {
 		const quoted = words.map((word) => "'" + word.replaceAll("'", "'\\''") + "'").join(' ');
 		return [...launch, 'exec sunstack ' + quoted];
@@ -21,96 +51,8 @@ function channelCommand(route, launch, words) {
 	return [...launch, ...(route === 'exec-script' && words[0] === 'lint' ? words.slice(1) : words)];
 }
 
-function argumentsFrom(argv) {
-	if (argv.includes('--help')) {
-		writeLine(
-			'S4 private installs: --commit DECLARED_PRODUCT_SHA --assets DIR (older/newer plus s4-artifacts.json) --native-root DIR (preflight older/newer/TARGET/sunstack) --fixtures DIR --evidence NEW_DIR --dependency-tar detect-libc-2.1.2.tgz --channel npm|shell|brew [--pnpm PATH]. npm runs local-bin, exec-script, global, npx, exec-npx and pnpm-dlx. No registry credentials or public publication.',
-		);
-		return null;
-	}
-	const allowed = [
-		'commit',
-		'assets',
-		'native-root',
-		'fixtures',
-		'evidence',
-		'dependency-tar',
-		'channel',
-		'pnpm',
-	];
-	const options = {};
-	for (let index = 0; index < argv.length; index += 2) {
-		const key = argv[index].replace(/^--/, '');
-		assert.ok(
-			allowed.includes(key) && argv[index + 1] && !options[key],
-			'unknown/missing/duplicate option',
-		);
-		options[key] = argv[index + 1];
-	}
-	for (const key of allowed.filter((optionName) => optionName !== 'pnpm'))
-		assert.ok(options[key], '--' + key + ' required');
-	assert.ok(['npm', 'shell', 'brew'].includes(options.channel));
-	assert.match(options.commit, /^[0-9a-f]{40}$/, 'explicit full declared product commit');
-	if (options.channel === 'npm') assert.ok(options.pnpm, '--pnpm required for all npm routes');
-	for (const key of allowed.filter((optionName) => !['channel', 'commit'].includes(optionName)))
-		if (options[key]) options[key] = path.resolve(options[key]);
-	return options;
-}
-
-function stopExpectation(route, signal, destination, platform = process.platform) {
-	if (destination === 'group')
-		return route === 'npx' && platform === 'linux' ? 'cancelled-native/npx-int' : 'cancel4';
-	if (
-		(route === 'npx' && platform === 'linux') ||
-		(signal === 'SIGHUP' && ['exec-script', 'npx', 'exec-npx'].includes(route))
-	)
-		return 'no-cancelled-report';
-	if (signal === 'SIGHUP')
-		return route === 'pnpm-dlx' ? 'native-ended' : 'native-ended/caller-sighup';
-	return 'cancel4';
-}
-
-function assertReportMatches(actual, reference, version, configPath) {
-	assert.deepEqual(
-		actual,
-		{ ...reference, version, config: fileSystem.realpathSync(configPath) },
-		'full lint report',
-	);
-}
-
-function gradeStop(result, expected, reference, version, configPath) {
-	const facts = result.observation;
-	assert.equal(facts.error, null, facts.error || 'capture failed');
-	if (expected === 'no-cancelled-report') {
-		assert.doesNotMatch(result.stdout.toString(), /"kind"\s*:\s*"cancelled"/);
-		return 'limit';
-	}
-	assert.deepEqual(facts.survivors_before_cleanup, [], 'survivors before cleanup');
-	assert.equal(facts.sockets_before_cleanup, 0, 'held socket before cleanup');
-	assert.ok(facts.root_close, 'caller did not close');
-	if (expected === 'native-ended/caller-sighup') {
-		assert.equal(facts.root_close.signal, 'SIGHUP');
-		assert.equal(facts.root_close.code, null);
-	} else if (expected !== 'native-ended') {
-		if (expected === 'cancelled-native/npx-int')
-			assert.ok(facts.root_close.signal === 'SIGINT' || facts.root_close.code === 130);
-		else {
-			assert.equal(facts.root_close.code, 4);
-			assert.equal(facts.root_close.signal, null);
-		}
-		const actual = JSON.parse(result.stdout);
-		assertReportMatches(actual, reference, version, configPath);
-		assert.deepEqual(
-			Object.values(actual.evidence_seen),
-			[facts.admitted_request.state],
-			'report state equals the actual sent state',
-		);
-	}
-	return 'pass';
-}
-
-function walkFiles(root) {
-	const files = [];
+function walkFiles(root: string): string[] {
+	const files: string[] = [];
 	for (const entry of fileSystem.readdirSync(root, { withFileTypes: true })) {
 		const full = path.join(root, entry.name);
 		if (entry.isDirectory()) files.push(...walkFiles(full));
@@ -119,11 +61,24 @@ function walkFiles(root) {
 	return files;
 }
 
-async function observeChannels(options) {
-	assert.ok(!fileSystem.existsSync(options.evidence), 'new evidence directory required');
-	fileSystem.mkdirSync(options.evidence, { recursive: true });
-	const declaration = JSON.parse(
-		fileSystem.readFileSync(path.join(options.assets, 's4-artifacts.json')),
+async function raw(
+	command: string[],
+	cwd: string,
+	environment: NodeJS.ProcessEnv,
+	stem: string,
+): Promise<CapturedProcess> {
+	const result = await captureProcess({ command, cwd, environment, stem });
+	assert.equal(result.observation.error, null);
+	assert.equal(result.observation.root_close?.code, 0, stem + ': ' + result.stderr);
+	assert.deepEqual(result.observation.survivors_before_cleanup, []);
+	return result;
+}
+
+async function observeChannels(options: ChannelOptions): Promise<ChannelResult> {
+	assert.ok(!fileSystem.existsSync(options['evidence']), 'new evidence directory required');
+	fileSystem.mkdirSync(options['evidence'], { recursive: true });
+	const declaration = declarationSchema.parse(
+		JSON.parse(fileSystem.readFileSync(path.join(options['assets'], 's4-artifacts.json'), 'utf8')),
 	);
 	const target =
 		(process.arch === 'arm64' ? 'aarch64' : 'x86_64') +
@@ -134,33 +89,31 @@ async function observeChannels(options) {
 	);
 	const npx = path.join(path.dirname(npm), 'npx-cli.js');
 	assert.ok(fileSystem.existsSync(npm) && fileSystem.existsSync(npx));
-	const rows = [],
-		errors = [];
+	const rows: ChannelRow[] = [],
+		errors: ChannelError[] = [];
 	const registry = await startRegistry({
-		assets: options.assets,
+		assets: options['assets'],
 		declaration,
 		dependencyTar: options['dependency-tar'],
-		evidence: path.join(options.evidence, 'registry'),
+		evidence: path.join(options['evidence'], 'registry'),
 	});
-	const reference = (name) =>
-		JSON.parse(fileSystem.readFileSync(path.join(options.fixtures, name + '.expected.json')));
-	const recordRows = () =>
-		save(path.join(options.evidence, 'receipt.json'), {
+	const reference = (name: string): LintReport =>
+		reportSchema.parse(
+			JSON.parse(
+				fileSystem.readFileSync(path.join(options['fixtures'], name + '.expected.json'), 'utf8'),
+			),
+		);
+	const recordRows = (): void =>
+		save(path.join(options['evidence'], 'receipt.json'), {
 			target,
-			channel: options.channel,
+			channel: options['channel'],
 			rows,
 			errors,
-			product_source: options.commit,
+			product_source: options['commit'],
 		});
-	async function raw(command, cwd, environment, stem) {
-		const result = await captureProcess({ command, cwd, environment, stem });
-		assert.equal(result.observation.error, null);
-		assert.equal(result.observation.root_close?.code, 0, stem + ': ' + result.stderr);
-		assert.deepEqual(result.observation.survivors_before_cleanup, []);
-		return result;
-	}
+
 	try {
-		const toolHome = path.join(options.evidence, 'tools-home');
+		const toolHome = path.join(options['evidence'], 'tools-home');
 		fileSystem.mkdirSync(toolHome);
 		const toolEnvironment = {
 			PATH: path.dirname(process.execPath) + ':/usr/bin:/bin',
@@ -171,31 +124,33 @@ async function observeChannels(options) {
 			[process.execPath, npm, '--version'],
 			toolHome,
 			toolEnvironment,
-			path.join(options.evidence, 'npm-version'),
+			path.join(options['evidence'], 'npm-version'),
 		);
-		let pnpmVersion;
-		if (options.pnpm) {
+		let pnpmVersion: CapturedProcess | undefined;
+		if (options['pnpm']) {
 			pnpmVersion = await raw(
-				[options.pnpm, '--dir', toolHome, '--version'],
+				[options['pnpm'], '--dir', toolHome, '--version'],
 				toolHome,
 				toolEnvironment,
-				path.join(options.evidence, 'pnpm-version'),
+				path.join(options['evidence'], 'pnpm-version'),
 			);
 			assert.equal(pnpmVersion.stdout.toString().trim(), '12.14.0');
 		}
-		save(path.join(options.evidence, 'tools.json'), {
+		save(path.join(options['evidence'], 'tools.json'), {
 			node: process.version,
 			node_path: process.execPath,
 			npm: npmVersion.stdout.toString().trim(),
-			pnpm: pnpmVersion?.stdout.toString().trim() || null,
+			pnpm: pnpmVersion?.stdout.toString().trim() ?? null,
 			platform: process.platform,
 			arch: process.arch,
 			shell: fileSystem.realpathSync('/bin/sh'),
 			shell_sha256: sha256(fileSystem.readFileSync('/bin/sh')),
 		});
-		for (const label of ['older', 'newer']) {
-			const version = declaration[label].version;
-			const expectedSha = declaration[label].binary_sha256[target];
+		for (const label of ['older', 'newer'] satisfies ('older' | 'newer')[]) {
+			const release = declaration[label];
+			assert.ok(release);
+			const version = release.version;
+			const expectedSha = release.binary_sha256?.[target];
 			const baseline = path.join(options['native-root'], label, target, 'sunstack');
 			assert.equal(sha256(fileSystem.readFileSync(baseline)), expectedSha);
 			const served = await fetch(
@@ -204,11 +159,11 @@ async function observeChannels(options) {
 			assert.equal(served.status, 200);
 			assert.equal(
 				sha256(Buffer.from(await served.arrayBuffer())),
-				declaration[label].archive_sha256[target],
+				release.archive_sha256?.[target],
 			);
-			const routes = options.channel === 'npm' ? npmRoutes : [options.channel];
+			const routes = options['channel'] === 'npm' ? npmRoutes : [options['channel']];
 			for (const route of routes) {
-				const cell = path.join(options.evidence, label, route);
+				const cell = path.join(options['evidence'], label, route);
 				fileSystem.mkdirSync(cell, { recursive: true });
 				const caseNames = [
 					'install',
@@ -225,7 +180,7 @@ async function observeChannels(options) {
 				];
 				const planned = Object.fromEntries(
 					caseNames.map((name) => {
-						const row = {
+						const row: ChannelRow = {
 							id: label + '.' + route + '.' + name,
 							version,
 							route,
@@ -266,23 +221,27 @@ async function observeChannels(options) {
 					version: '1.0.0',
 					scripts: { lint: 'exec sunstack lint', version: 'exec sunstack --version' },
 				});
-				let launch, installedBinary, channelCleanup;
+				let launch: string[] = [];
+				let installedBinary: string | undefined;
+				let channelCleanup: (() => Promise<void>) | undefined;
 				const firstRequest = registry.requests.length;
-				async function one(name, action) {
+				async function one(name: string, action: () => Promise<string | void>): Promise<boolean> {
+					const plannedRow = planned[name];
+					assert.ok(plannedRow);
 					try {
 						const status = await action();
-						planned[name].status = status || 'pass';
+						plannedRow.status = status || 'pass';
 					} catch (error) {
-						planned[name].status = 'fail';
-						planned[name].error = error.stack;
+						plannedRow.status = 'fail';
+						plannedRow.error = errorStack(error);
 					}
 					recordRows();
-					return planned[name].status !== 'fail';
+					return plannedRow.status !== 'fail';
 				}
-				const copyFixture = (name, template) => {
+				const copyFixture = (name: string, template: string): string => {
 					const destination = path.join(cell, 'fixtures', name);
 					fileSystem.mkdirSync(path.dirname(destination), { recursive: true });
-					fileSystem.cpSync(path.join(options.fixtures, template), destination, {
+					fileSystem.cpSync(path.join(options['fixtures'], template), destination, {
 						recursive: true,
 						filter: (source) => path.basename(source) !== '.git',
 					});
@@ -326,7 +285,7 @@ async function observeChannels(options) {
 							launch = [process.execPath, npx, '--yes', '--package=' + spec, '-c'];
 						else if (route === 'pnpm-dlx')
 							launch = [
-								options.pnpm,
+								options['pnpm'] ?? '',
 								'--registry',
 								registry.base,
 								'--store-dir',
@@ -341,7 +300,7 @@ async function observeChannels(options) {
 								spec,
 							];
 						else if (route === 'shell') {
-							const installer = path.join(options.assets, label, 'sunstack-installer.sh');
+							const installer = path.join(options['assets'], label, 'sunstack-installer.sh');
 							const installerSource = fileSystem.readFileSync(installer, 'utf8');
 							assert.ok(
 								installerSource.includes('INSTALLER_DOWNLOAD_URL') &&
@@ -363,7 +322,7 @@ async function observeChannels(options) {
 							launch = [installedBinary];
 						} else {
 							const homebrewInstallation = await installHomebrew({
-								assets: options.assets,
+								assets: options['assets'],
 								label,
 								version,
 								cell,
@@ -387,7 +346,7 @@ async function observeChannels(options) {
 					});
 					if (!installed) continue;
 					const executionEnv = ['shell', 'brew'].includes(route) ? minimal : env;
-					const commandFor = (words) => channelCommand(route, launch, words);
+					const commandFor = (words: string[]): string[] => channelCommand(route, launch, words);
 					const versionCommand =
 						route === 'exec-script'
 							? [process.execPath, npm, 'run', '--silent', 'version']
@@ -410,11 +369,16 @@ async function observeChannels(options) {
 								(file) => sha256(fileSystem.readFileSync(file)) === expectedSha,
 							);
 							assert.ok(installedBinary, 'actual installed native bytes must match archive');
-							const launcherDigest = JSON.parse(
-								fileSystem.readFileSync(
-									path.join(options.evidence, 'registry', label + '-url-only.json'),
-								),
-							).before['package/run-sunstack.js'];
+							const launcherDigest = z
+								.object({ before: z.record(z.string(), z.string()) })
+								.parse(
+									JSON.parse(
+										fileSystem.readFileSync(
+											path.join(options['evidence'], 'registry', label + '-url-only.json'),
+											'utf8',
+										),
+									),
+								).before['package/run-sunstack.js'];
 							assert.ok(
 								walkFiles(cell).some(
 									(file) =>
@@ -433,7 +397,7 @@ async function observeChannels(options) {
 								'name-based cold tar fetch missing',
 							);
 						}
-						assert.equal(sha256(fileSystem.readFileSync(installedBinary)), expectedSha);
+						assert.equal(sha256(fileSystem.readFileSync(installedBinary ?? '')), expectedSha);
 						save(path.join(cell, 'installed-identity.json'), {
 							native: installedBinary,
 							sha256: expectedSha,
@@ -456,7 +420,7 @@ async function observeChannels(options) {
 						['finding', 'mechanical-error', 1],
 						['invalid', 'clean', 2],
 						['incomplete', 'error-plus-incomplete', 3],
-					]) {
+					] satisfies [string, string, number][]) {
 						await one(name, async () => {
 							const fixture = copyFixture(name, template);
 							if (name === 'invalid')
@@ -484,11 +448,14 @@ async function observeChannels(options) {
 							);
 							assert.deepEqual(result.observation.survivors_before_cleanup, []);
 							if (name === 'invalid') {
-								assert.equal(JSON.parse(native.stdout).status.kind, 'invalid');
+								assert.equal(
+									reportSchema.parse(JSON.parse(native.stdout.toString())).status?.kind,
+									'invalid',
+								);
 								assert.match(native.stdout.toString(), /UNKNOWN_S4_FIELD|unknown field/);
 							} else
 								assertReportMatches(
-									JSON.parse(result.stdout),
+									reportSchema.parse(JSON.parse(result.stdout.toString())),
 									reference(template),
 									version,
 									path.join(fixture, 'sunstack.lint.json'),
@@ -500,7 +467,7 @@ async function observeChannels(options) {
 						['SIGINT', 'pid'],
 						['SIGTERM', 'pid'],
 						['SIGHUP', 'pid'],
-					]) {
+					] satisfies [NodeJS.Signals, string][]) {
 						const name = destination + '-' + signal;
 						await one(name, async () => {
 							const fixture = copyFixture(name, 'cancel');
@@ -510,7 +477,7 @@ async function observeChannels(options) {
 								cwd: fixture,
 								environment: executionEnv,
 								stem: path.join(cell, name),
-								expectedNativeSha: expectedSha,
+								expectedNativeSha: expectedSha ?? '',
 								stop: { signal, destination, expectation },
 							});
 							return gradeStop(
@@ -527,7 +494,7 @@ async function observeChannels(options) {
 						try {
 							await channelCleanup();
 						} catch (error) {
-							errors.push({ label, route, cleanup: error.stack });
+							errors.push({ label, route, cleanup: errorStack(error) });
 						}
 					}
 					recordRows();
@@ -538,14 +505,14 @@ async function observeChannels(options) {
 		await registry.close();
 		recordRows();
 	}
-	const expectedCells = expectedCellCount(options.channel);
+	const expectedCells = expectedCellCount(options['channel']);
 	if (rows.length !== expectedCells)
 		errors.push({ matrix: 'incomplete', expected: expectedCells, actual: rows.length });
 	recordRows();
 	return { rows, errors };
 }
 
-if (require.main === module) {
+if (import.meta.main) {
 	try {
 		const options = argumentsFrom(process.argv.slice(2));
 		if (options)
@@ -570,13 +537,4 @@ if (require.main === module) {
 		process.exitCode = 2;
 	}
 }
-module.exports = {
-	assertReportMatches,
-	stopExpectation,
-	gradeStop,
-	argumentsFrom,
-	observeChannels,
-	channelCommand,
-	npmRoutes,
-	expectedCellCount,
-};
+export { observeChannels, channelCommand, npmRoutes, expectedCellCount };

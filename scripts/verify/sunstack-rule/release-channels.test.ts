@@ -1,38 +1,37 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
+import fileSystem from 'node:fs';
+import operatingSystem from 'node:os';
+import path from 'node:path';
+import zlib from 'node:zlib';
+
 /* eslint-disable no-await-in-loop -- Each fixture and process must settle before the next owned cell begins. */
 // Permanent apparatus controls; synthetic packages are never product proof.
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const operatingSystem = require('node:os');
-const path = require('node:path');
-const zlib = require('node:zlib');
-const {
+import { test, onTestFinished } from 'vitest';
+import { z } from 'zod';
+
+import { stopExpectation, assertReportMatches, gradeStop } from './release-channel-grading.ts';
+import { argumentsFrom } from './release-channel-options.ts';
+import { channelCommand, npmRoutes, expectedCellCount } from './release-channels.ts';
+import { captureProcess, groupMembers, trackOwnedTree } from './release-process.ts';
+import { errorCode, declarationSchema, type ReleaseDeclaration } from './release-records.ts';
+import {
 	unpackPackage,
 	repackPackage,
 	startRegistry,
 	sha256,
 	integrity,
 	save,
-} = require('./release_registry.cjs');
-const { captureProcess, groupMembers, trackOwnedTree } = require('./release_process.cjs');
-const {
-	assertReportMatches,
-	stopExpectation,
-	gradeStop,
-	argumentsFrom,
-	channelCommand,
-	npmRoutes,
-	expectedCellCount,
-} = require('./release_channels.cjs');
-const { spawnSync } = require('node:child_process');
+} from './release-registry.ts';
+import { compareStreams } from './release-streams.ts';
 
 test('ordinary stream grading keeps native stderr lines whole and ordered with only manager extras', () => {
-	const { compareStreams } = require('./release_streams.cjs');
 	const native = {
 		stdout: Buffer.from('literal output\n'),
 		stderr: Buffer.from('native first\nnative second\n'),
 	};
-	const channel = (stderr) => ({
+	const channel = (stderr: string): { stdout: Buffer; stderr: Buffer } => ({
 		stdout: Buffer.from(native.stdout),
 		stderr: Buffer.from(stderr),
 	});
@@ -90,8 +89,8 @@ test('exec npx preserves literal arguments through the actual inner shell and ke
 	const prefix = ['/node', '/npx-cli.js', '--yes', '--package=@sunstack/cli@0.0.6', '-c'];
 	const command = channelCommand('exec-npx', prefix, words);
 	assert.deepEqual(command.slice(0, -1), prefix);
-	assert.match(command.at(-1), /^exec sunstack /);
-	const result = spawnSync('/bin/sh', ['-c', command.at(-1)], {
+	assert.match(command.at(-1) ?? '', /^exec sunstack /);
+	const result = spawnSync('/bin/sh', ['-c', command.at(-1) ?? ''], {
 		cwd: root,
 		env: { PATH: root + ':/usr/bin:/bin' },
 		encoding: 'utf8',
@@ -119,13 +118,16 @@ test('exec npx preserves literal arguments through the actual inner shell and ke
 			['SIGINT', 'pid'],
 			['SIGTERM', 'pid'],
 		])
-			assert.equal(stopExpectation('exec-npx', signal, destination, platform), 'cancel4');
+			assert.equal(
+				stopExpectation('exec-npx', signal ?? '', destination ?? '', platform),
+				'cancel4',
+			);
 		assert.equal(stopExpectation('exec-npx', 'SIGHUP', 'pid', platform), 'no-cancelled-report');
 	}
 });
 
-function archiveFrom(entries) {
-	const pieces = [];
+function archiveFrom(entries: Record<string, string>): Buffer {
+	const pieces: Buffer[] = [];
 	for (const [name, text] of Object.entries(entries)) {
 		const body = Buffer.from(text),
 			header = Buffer.alloc(512);
@@ -163,7 +165,7 @@ test('URL-only repack preserves all other members, including dotfiles, and rejec
 	assert.throws(() => repackPackage(input, '0.0.7', 'http://127.0.0.1:3'), /AssertionError/);
 	assert.throws(() => unpackPackage(archiveFrom({ 'package/../escape': 'bad' })), /AssertionError/);
 	const broken = zlib.gunzipSync(input);
-	broken[100] ^= 1;
+	broken[100] = (broken[100] ?? 0) ^ 1;
 	assert.throws(() => unpackPackage(zlib.gzipSync(broken)), /checksum/);
 });
 
@@ -176,11 +178,14 @@ test('real loopback registry resolves both exact versions and refuses unknown na
 	});
 	const dependencyFile = path.join(root, 'dependency.tgz');
 	fileSystem.writeFileSync(dependencyFile, dependency);
-	const declaration = {};
+	const declaration: ReleaseDeclaration = {
+		older: { version: '0.0.6' },
+		newer: { version: '0.0.7' },
+	};
 	for (const [label, version] of [
 		['older', '0.0.6'],
 		['newer', '0.0.7'],
-	]) {
+	] satisfies ['older' | 'newer', string][]) {
 		const folder = path.join(root, label);
 		fileSystem.mkdirSync(folder);
 		const payload = archiveFrom({
@@ -192,6 +197,7 @@ test('real loopback registry resolves both exact versions and refuses unknown na
 			}),
 			'package/npm-shrinkwrap.json': JSON.stringify({
 				packages: {
+					'': { name: '@sunstack/cli', version },
 					'node_modules/detect-libc': { version: '2.1.2', integrity: integrity(dependency) },
 				},
 			}),
@@ -211,13 +217,28 @@ test('real loopback registry resolves both exact versions and refuses unknown na
 		evidence: path.join(root, 'proof'),
 	});
 	try {
-		const metadata = await (await fetch(service.base + '/@sunstack%2fcli')).json();
+		const metadata = z
+			.object({
+				'dist-tags': z.object({ latest: z.string() }),
+				versions: z.record(
+					z.string(),
+					z.object({ dist: z.object({ tarball: z.string(), integrity: z.string() }) }),
+				),
+			})
+			.parse(await (await fetch(service.base + '/@sunstack%2fcli')).json());
 		assert.equal(metadata['dist-tags'].latest, '0.0.7');
 		for (const version of ['0.0.6', '0.0.7']) {
-			const response = await fetch(metadata.versions[version].dist.tarball);
+			const published = metadata.versions[version];
+			assert.ok(published);
+			const response = await fetch(published.dist.tarball);
 			const payload = Buffer.from(await response.arrayBuffer());
-			assert.equal(integrity(payload), metadata.versions[version].dist.integrity);
-			assert.equal(JSON.parse(unpackPackage(payload)[0].data).version, version);
+			assert.equal(integrity(payload), published.dist.integrity);
+			assert.equal(
+				z
+					.object({ version: z.string() })
+					.parse(JSON.parse(unpackPackage(payload)[0]?.data.toString() ?? '')).version,
+				version,
+			);
 		}
 		assert.equal((await fetch(service.base + '/missing')).status, 404);
 		assert.equal(
@@ -228,7 +249,7 @@ test('real loopback registry resolves both exact versions and refuses unknown na
 		await service.close();
 	}
 	assert.equal(
-		JSON.parse(fileSystem.readFileSync(path.join(root, 'proof/cleanup.json'))).listening,
+		JSON.parse(fileSystem.readFileSync(path.join(root, 'proof/cleanup.json')).toString()).listening,
 		false,
 	);
 });
@@ -260,7 +281,7 @@ test('oracle distinguishes no-report limits, Linux npx group exit and pnpm HUP',
 		'--pnpm',
 		'./pnpm',
 	]);
-	assert.equal(options.commit, commit);
+	assert.equal(options?.commit, commit);
 });
 
 test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report in a limit cell', () => {
@@ -280,7 +301,7 @@ test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report i
 	assert.equal(gradeStop(result, 'no-cancelled-report', {}, '0.0.6', '/fixture'), 'limit');
 	const state = { contents: { content1: 'literal' } };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
-	const literalConfig = fileSystem.realpathSync(__filename);
+	const literalConfig = fileSystem.realpathSync(import.meta.filename);
 	const mismatchedState = {
 		stdout: Buffer.from(JSON.stringify({ ...reference, version: '0.0.6', config: literalConfig })),
 		observation: {
@@ -314,7 +335,7 @@ test('real child capture retains streams and exit; timeout records live group be
 	});
 	assert.equal(completed.stdout.toString(), 'exact stdout\n');
 	assert.equal(completed.stderr.toString(), 'exact stderr\n');
-	assert.equal(completed.observation.root_close.code, 3);
+	assert.equal(completed.observation.root_close?.code, 3);
 	assert.equal(completed.observation.ownership.kind, 'established');
 	assert.deepEqual(completed.observation.survivors_before_cleanup, []);
 	const timedOut = await captureProcess({
@@ -324,11 +345,11 @@ test('real child capture retains streams and exit; timeout records live group be
 		stem: path.join(root, 'timeout'),
 		timeoutMs: 500,
 	});
-	assert.match(timedOut.observation.error, /within bound/);
+	assert.match(timedOut.observation.error ?? '', /within bound/);
 	assert.equal(timedOut.stdout.toString(), 'partial sentinel\n');
-	assert.ok(timedOut.observation.survivors_before_cleanup.length > 0);
+	assert.ok((timedOut.observation.survivors_before_cleanup?.length ?? 0) > 0);
 	assert.deepEqual(
-		JSON.parse(fileSystem.readFileSync(path.join(root, 'timeout.cleanup.json')))
+		JSON.parse(fileSystem.readFileSync(path.join(root, 'timeout.cleanup.json')).toString())
 			.survivors_after_cleanup,
 		[],
 	);
@@ -360,7 +381,7 @@ const request=http.request(config.backend.endpoint,{method:'POST',headers:{'cont
 		expectedNativeSha: sha256(Buffer.from(source)),
 	});
 	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', configPath), 'pass');
-	assert.deepEqual(result.observation.admitted_request.state, state);
+	assert.deepEqual(result.observation.admitted_request?.state, state);
 });
 
 test('an owned native in a separate process group is admitted without widening the signal destination', async () => {
@@ -381,8 +402,8 @@ const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});
 const child=spawn(process.execPath,[${JSON.stringify(binary)}],{detached:true,stdio:['ignore',process.stdout,process.stderr]});
 process.on('SIGINT',()=>child.kill('SIGINT'));
 child.on('close',(code)=>process.exit(code));`;
-	const realKill = process.kill;
-	const signalTargets = [];
+	const realKill = process.kill.bind(process);
+	const signalTargets: { targetPid: number; signal: number | string | undefined }[] = [];
 	let result;
 	process.kill = (targetPid, signal) => {
 		signalTargets.push({ targetPid, signal });
@@ -401,8 +422,10 @@ child.on('close',(code)=>process.exit(code));`;
 		process.kill = realKill;
 	}
 	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', configPath), 'pass');
-	assert.deepEqual(signalTargets, [{ targetPid: -result.observation.pid, signal: 'SIGINT' }]);
-	assert.equal(result.observation.stop.destination, 'group');
+	assert.deepEqual(signalTargets, [
+		{ targetPid: -(result.observation.pid ?? 0), signal: 'SIGINT' },
+	]);
+	assert.equal(result.observation.stop?.destination, 'group');
 	assert.ok(
 		result.observation.owned_tree_at_readiness.some(
 			(member) => member.group !== result.observation.pid,
@@ -415,8 +438,7 @@ child.on('close',(code)=>process.exit(code));`;
 	);
 });
 
-test('an unrelated native with matching bytes cannot authorize a held request from another process', async (testContext) => {
-	const { spawn } = require('node:child_process');
+test('an unrelated native with matching bytes cannot authorize a held request from another process', async () => {
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-unrelated-control-'),
 	);
@@ -430,15 +452,15 @@ test('an unrelated native with matching bytes cannot authorize a held request fr
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
 	const closed = new Promise((resolve) => decoy.once('close', resolve));
-	testContext.after(async () => {
+	onTestFinished(async () => {
 		try {
-			process.kill(-decoy.pid, 'SIGKILL');
+			if (decoy.pid) process.kill(-decoy.pid, 'SIGKILL');
 		} catch (error) {
-			if (error.code !== 'ESRCH') throw error;
+			if (errorCode(error) !== 'ESRCH') throw error;
 		}
 		await closed;
 	});
-	await new Promise((resolve, reject) => {
+	await new Promise<void>((resolve, reject) => {
 		decoy.stdout.once('data', resolve);
 		decoy.once('error', reject);
 	});
@@ -453,16 +475,15 @@ const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});
 		stop: { signal: 'SIGINT', destination: 'group', expectation: 'cancel4' },
 		expectedNativeSha: sha256(Buffer.from(source)),
 	});
-	assert.match(result.observation.error, /owned by the installed/);
+	assert.match(result.observation.error ?? '', /owned by the installed/);
 	assert.equal(result.observation.signal_at_ms, null);
 	assert.doesNotThrow(
-		() => process.kill(decoy.pid, 0),
+		() => process.kill(decoy.pid ?? 0, 0),
 		'unrelated native must not be cleaned by the observer',
 	);
 });
 
-test('ownership census after root exit retains its live same-group child and refuses proven absence', async (testContext) => {
-	const { spawn } = require('node:child_process');
+test('ownership census after root exit retains its live same-group child and refuses proven absence', async () => {
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-missed-root-'),
 	);
@@ -473,25 +494,27 @@ test('ownership census after root exit retains its live same-group child and ref
 		detached: true,
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
-	testContext.after(() => {
+	onTestFinished(() => {
 		try {
-			process.kill(-wrapper.pid, 'SIGKILL');
+			if (wrapper.pid) process.kill(-wrapper.pid, 'SIGKILL');
 		} catch (error) {
-			if (error.code !== 'ESRCH') throw error;
+			if (errorCode(error) !== 'ESRCH') throw error;
 		}
 	});
 	let output = '';
 	wrapper.stdout.on('data', (chunk) => {
 		output += chunk;
 	});
-	const ending = await new Promise((resolve, reject) => {
-		wrapper.once('close', (code, signal) => resolve({ code, signal }));
-		wrapper.once('error', reject);
-	});
+	const ending = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
+		(resolve, reject) => {
+			wrapper.once('close', (code, signal) => resolve({ code, signal }));
+			wrapper.once('error', reject);
+		},
+	);
 	assert.deepEqual(ending, { code: 0, signal: null });
 	assert.equal(output, 'exact completed output\n');
 	const childPid = Number(fileSystem.readFileSync(childPidPath, 'utf8'));
-	const actualGroup = groupMembers(wrapper.pid);
+	const actualGroup = groupMembers(wrapper.pid ?? 0);
 	assert.ok(
 		!actualGroup.some((member) => member.pid === wrapper.pid),
 		'root has exited and been reaped before the first ownership census',
@@ -500,7 +523,7 @@ test('ownership census after root exit retains its live same-group child and ref
 		actualGroup.some((member) => member.pid === childPid),
 		'synchronized child remains in caller group',
 	);
-	const observe = trackOwnedTree(wrapper.pid);
+	const observe = trackOwnedTree(wrapper.pid ?? 0);
 	const members = observe();
 	assert.ok(
 		members.some((member) => member.pid === childPid),
@@ -550,4 +573,16 @@ test('report comparison accepts canonical config paths behind a symlinked fixtur
 		},
 	};
 	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', aliasConfig), 'pass');
+});
+
+test('preflight declarations retain observation status and gaps alongside both releases', (): void => {
+	const declaration = declarationSchema.parse({
+		older: { version: '0.0.6' },
+		newer: { version: '0.0.7' },
+		installation_observed: false,
+		gaps: ['private installations'],
+	});
+	assert.equal(declaration.older.version, '0.0.6');
+	assert.equal(declaration['installation_observed'], false);
+	assert.deepEqual(declaration['gaps'], ['private installations']);
 });
