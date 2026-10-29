@@ -62,7 +62,7 @@ The Markdown-marker route through RuleSets (`rule_sources`) is deleted, not kept
 | --- | --- | --- | --- |
 | `standard_markdown_utils` | hold the shipped utils and their reserved IDs | a new common Markdown shape | `evidence_project_loading` |
 | `evidence_project_loading` | turn an `sgconfig.yml` plus the standard utils into globals and a rule collection, Markdown only, reserved IDs enforced | ast-grep's project format | lint check and run |
-| `checked_file_source` | the one place the evidence pipeline gets checked-file and target bytes: for a file in the captured change set it serves the change capture's frozen after text (no second read, so spans, hunks and parse share the same bytes); any other file it reads from the filesystem, bounded and inside the repository root; tests pass a recording source. `usage.checked_files_read` counts every worktree read of a checked or target file on both paths (capture's after-side reads plus this source's reads). Change capture keeps owning Git snapshot reads and runs only after the credential gate, never under `--check` | how files are acquired | piece building (checked files, target openings) |
+| `checked_file_source` | the one place the evidence pipeline gets checked-file and target bytes: for a file in the captured change set it serves the change capture's frozen after text (no second read, so spans, hunks and parse share the same bytes); any other file it reads from the filesystem, bounded and inside the repository root; tests pass a recording source. `usage.checked_files_acquired` counts the distinct checked or target files whose content the run acquired (capture's after side plus this source's filesystem reads); capture's snapshot-verification rereads are not counted. Change capture keeps owning Git snapshot reads and runs only after the credential gate, never under `--check` | how files are acquired | piece building (checked files, target openings) |
 | `evidence_piece_building` | parse each checked file once, run every project rule that applies to its path once, build pieces and raw fields per kind, resolve targets through `checked_file_source` | the field-source vocabulary | lint run, `--evidence` |
 | `evidence_model_view` | project raw fields into the bounded model view by R12's reduction order, or `TooLarge` | the size rule | piece building |
 | sunstack-decisions request-body encoding (one public function over the backend's existing encoding) | return the exact body `dispatch` would send for a request and model | the provider wire | `rulebook_run` (R21) |
@@ -109,7 +109,7 @@ sequenceDiagram
   Lint->>Lint: status and exit code (R26), report in the chosen format
 ```
 
-`--check` runs the first three steps only and lists rules (R24). `--evidence [kind]` skips the credential gate, runs through picking and prints pieces with their raw fields and model views, with no request (R13). Every checked-file and target read in all three paths goes through `checked_file_source`, and the report's usage counts them (`checked_files_read`), so "no read before the gate" is observed where acquisition happens.
+`--check` runs the first three steps only and lists rules (R24). `--evidence [kind]` skips the credential gate, runs through picking and prints pieces with their raw fields and model views, with no request (R13). Every checked-file and target read in all three paths goes through `checked_file_source`, and the report's usage counts them (`checked_files_acquired`), so "no read before the gate" is observed where acquisition happens.
 
 The current path for comparison: lint builds a native RuleSet invocation with a stand-in binding, calls `sunstack_rules` `evaluate`, which plans requests per RuleSet group and occurrence (`request_graph.rs:157`), and projects verdicts into the lint report (`lint_run.rs:142`). Added edges: config → evidence project; assembly → admission against evidence kinds; pieces → picking by span; run → `run_judgments` per pair. Removed edges: lint → native invocation with bindings; marker sources → `RuleDefinition` lowering. Preserved: credential resolution at the CLI edge; `run_judgments` with its attempt controller, retries and receipts; lint's scope mapping, widening on config change and formats.
 
@@ -168,7 +168,7 @@ The decision model receives the standard, the piece's location and its bounded m
 
 - **Performance:** each checked file is read and parsed once, and every applicable project rule runs on it once; kinds, `inside`, `enclosing`, `same_file` and the `ast_grep` tool all read the per-file match index instead of re-matching.
 - **Determinism (R27):** directory walks are sorted; pieces are ordered by kind name, file and byte start; results by rule order, file and byte start.
-- **Observability:** the report's usage summary (requests, tokens, cost) is filled from the existing receipts, plus `checked_files_read` from `checked_file_source`.
+- **Observability:** the report's usage summary (requests, tokens, cost) is filled from the existing receipts, plus `checked_files_acquired` from `checked_file_source`.
 
 ## Proof seams
 
@@ -188,7 +188,7 @@ The decision model receives the standard, the piece's location and its bounded m
 | U4 | R1 config shape | E1 | lint rules_config | `load_rules_config(path) -> Result<RulesConfig, LintInvalid>` | `RulesConfig`, `config_contracts` | none | invalid | fixture configs through `--check` |
 | U4 | R2 path bases | E1 | lint rules_config | path resolution in validation | `ConfigLocation` (existing) + repository root | none | invalid on missing paths | fixture with config in a subfolder |
 | U4 | R3 cutover refusals | E1, E3 | lint rules_config; rules definition loading | decoder refusals | `LintInvalidCode` (existing) | none | invalid | old-shape configs and RuleSets |
-| U7 | R4 credential, no switch | E11 | lint_run (gate), CLI (resolution) | `Option<ApiKey>` into the run; gate before any `checked_file_source` read | existing credential path; `usage.checked_files_read` | none | invalid before reads | recording source (zero reads) and binary report count; source has no off switch |
+| U7 | R4 credential, no switch | E11 | lint_run (gate), CLI (resolution) | `Option<ApiKey>` into the run; gate before any `checked_file_source` read | existing credential path; `usage.checked_files_acquired` | none | invalid before reads | recording source (zero reads) and binary report count; source has no off switch |
 | U4 | R5 markers both ways | E2, E3 | rulebook_assembly | `assemble_rulebook(config) -> RulebookAssembly { rules, skipped }` | `RulebookSentence`, `RulebookRule` | none | skip or invalid | crafted rulebooks |
 | U1–U3 | R6 evidence section | E5 | lint rules_config → evidence | `EvidenceSettings` | `evidence_kind_contracts` | none | invalid | `--check` fixtures |
 | U4–U6 | R7 rule file shape | E3 | rulebook_entry_wire | strict Serde | `RuleEntryWire` | none | skip | crafted entries |
