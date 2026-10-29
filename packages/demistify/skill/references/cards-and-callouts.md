@@ -56,7 +56,7 @@ When a tab or comparison already groups the option, use explanation and its Flow
 
 Keep long explanations and Gain/Cost sections in ordinary flow, with normal spacing after the view. Use an ordinary picture or link to a dedicated Gallery instead of making a card into a screenshot-browsing application. Reading/Canvas applies to the whole chosen surface; its internal text follows that surface's component layout.
 
-Plain cards do not get inspection buttons automatically. Bare `zoom` requests them; `zoom="none"` removes them. Native disclosures remain their own local control. When inspection is part of the composition, load `inspection.md` and return the supported opening choice and state-restoration observations, or the exact access gap.
+Plain cards do not get inspection buttons automatically. Bare `zoom` requests them; `zoom="none"` removes them. Native disclosures remain their own local control. When inspection is part of the composition, load `inspection.md` and return the supported opening choice and the intended reader behavior.
 
 ## Subject icons and chips
 
@@ -74,4 +74,4 @@ The existing shared `.chip` class is separate from `tag` and `pick`:
 
 It keeps its monospace text, leading dot and pill shape. IF a fact needs a normal-text status or category label, load `small-parts.md` and return supported badge markup for that supplied fact. Do not add `tone` to a native `span` or use a chip as a general semantic badge.
 
-Finish by checking that every enclosure names a useful unit, titles and body have a clear hierarchy, optional detail folds independently, and recommendation/chosen/source/observation labels match the supplied facts. A missing tone, misleading Chosen label or repeated outer frame is a correction even when the markup parses.
+Give every enclosure a useful unit name, distinguish title from body, and keep recommendation/chosen/source/observation labels faithful to the supplied facts. A missing tone, misleading Chosen label or repeated outer frame is a correction even when the markup parses.

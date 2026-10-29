@@ -41,7 +41,7 @@ Cmd/Ctrl-K or the search button beside the bottom theme control opens pages/head
 The current page's live headings and authored Pages links work without an index. Other pages' headings and descriptions require an embedded index generated from explicit local inputs:
 
 ```sh
-node packages/demistify/bin/demistify.ts index index.html details.html
+pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz index index.html details.html
 ```
 
 The command reads local inputs, including referenced local Markdown and the exact retained source written by `embed`, prepares the collection and writes each listed HTML file **in place**. It does not fetch sibling HTML in the reader's browser. Give searchable Markdown islands stable IDs before running it. It retains explicit IDs and assigns stable native heading IDs. Search matches titles and heading ancestry, not whole-page prose or general fuzzy text.

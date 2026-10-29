@@ -21,12 +21,8 @@ Clicking an ordinary image opens fullscreen with its caption. Mermaid opens full
 
 Use the sidebar button to keep context beside the view, or arrows-out to enlarge it. Shared controls provide zoom out/in/reset; Cmd/Ctrl-wheel zooms and modifier-drag pans where the view supports it. Normal scrolling remains native. Escape/Close and applicable backdrop dismissal return to reading.
 
-Sidebar content is an independent interactive copy; fullscreen uses the live content and returns it. A closing action must preserve the main island and restore its state, including selected tabs, folded details, typed fixture state, filters or zoom where supported. This is behavior to verify on the authored composition, not an excuse to add editable test inputs to an ordinary explanation.
+Sidebar content is an independent interactive copy; fullscreen uses the live content and returns it. A closing action must preserve the main island and restore its state, including selected tabs, folded details, typed fixture state, filters or zoom where supported. Keep ordinary explanations free of editable regression-test inputs.
 
 The inspector preserves readable typography and local overflow. A diagram too wide to read should scroll rather than shrink labels below the shared floor. Long prose stays readable rather than inheriting a larger whole-page heading scale. Use the shared surface, corner radius and elevation; add no per-document shadow or modal implementation.
 
-## Check the return, not just the opening
-
-Open the exact island, make a meaningful supported state change, expand it, close it and compare the original content/state. Confirm the main view remained available during sidebar inspection. Exercise a nested disclosure/code view separately from the containing island. Lost live nodes, blank main content, controls hidden by the header or an unrelated keyboard owner losing its keys are failures.
-
-When access prevents these observations, keep the authored markup and exact limitation separate from an interaction-success claim. A source check cannot establish that a dialog restored the reader's state.
+The library owns inspection and state-restoration regression tests. Routine authors use the documented controls and the main guide's lint pass. Inspect an interaction only when requested or when diagnosing a reported defect.

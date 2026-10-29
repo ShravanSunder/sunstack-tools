@@ -34,20 +34,13 @@ A literal closing-script delimiter ends a raw HTML script before the component c
 Browsers block sibling-file fetches from `file:` pages. Embed local Markdown while authoring, retaining the HTTPS library links:
 
 ```sh
-node packages/demistify/bin/demistify.ts embed /path/index.source.html /path/index.html
-node packages/demistify/bin/demistify.ts check /path/index.html
+pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz embed /path/index.source.html /path/index.html
+pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz check /path/index.html
 ```
 
-Run from the matching checkout's monorepo root with Node 26 and its installed dependencies. Keep output beside input or preserve relative page/image paths. The transform safely carries exact source, including a script terminator; it does not inline the runtime, fonts, pictures or arbitrary JSON. The reader runs no command. Later source edits require another embed.
+Run with Node 26+; the CLI tarball includes its dependencies. Keep output beside input or preserve relative page/image paths. The transform safely carries exact source, including a script terminator; it does not inline the runtime, fonts, pictures or arbitrary JSON. The reader runs no command. Later source edits require another embed.
 
-Prove snapshot freshness by regenerating from the page whose islands still have `src`, then comparing the complete output:
-
-```sh
-node packages/demistify/bin/demistify.ts embed /path/index.source.html /tmp/task/index.fresh.html
-cmp /tmp/task/index.fresh.html /path/index.html
-```
-
-Exit 0 from `cmp` means identical. Running `embed` on an already embedded output proves nothing: its `src` attributes have been consumed. Replace stale output from its live source and compare again. If a collection index is also generated, repeat the same indexing transform on regenerated and delivered copies before comparing, or compare retained source payloads separately; `navigation.md` owns indexing order and freshness.
+After editing a known live source, regenerate its reader and collection index when present. Routine delivery needs no second temporary copy or byte-comparison pass. Use a comparison only to investigate a stale-output defect or an explicit freshness-proof request.
 
 Ordinary relative HTML links, fragments and picture paths work when their files travel together. Inline supplied Explorer JSON or use an allowed HTTPS data URL for direct-file delivery; embedding Markdown does not prepare Explorer data. HTTPS assets need a network. Truly offline delivery needs the complete matching local distribution or the source API's standalone bundle, not just `runtime.js` and `theme.css`.
 
@@ -83,4 +76,4 @@ A disclosure is a concise summary followed by useful optional depth:
 
 It can contain ordinary HTML, Markdown islands, code, diagrams, lists, tables and other useful views. Use an explicit Markdown island inside a plain disclosure if writing Markdown. Keep its opening compact; an immediate document-sized heading and large section gap make optional explanation look like an unrelated page. `open` starts it expanded. A disclosure does not create guided stops or download behavior. Gallery browsing belongs on a separate linked page; `traces.md` adds an ordered evidence sequence when that ordering matters.
 
-Finish by comparing complete supplied text/data with retained sources, opening an actual relative link/image, inspecting a representative table and literal excerpt, and toggling optional detail. A green markup check does not establish source equality, fresh snapshots, successful delivery or readable content.
+Preserve complete supplied text/data and source-relative paths. Use the main guide's lint pass; opening tables, links and disclosures is not a separate authoring gate.
