@@ -39,7 +39,7 @@ test('Code and individual Mermaid nodes retain independent comments instead of s
 	expect(code.id).not.toBe('');
 	async function savePassage(passage: Element, index: number): Promise<void> {
 		passage.scrollIntoView({ block: 'center' });
-		// SVG selections use the rendered glyph bounds, rather than a collapsed HTML caret range.
+		// Native SVG word selection may cross adjacent tspans within the same diagram node.
 		const svgText = passage.namespaceURI === 'http://www.w3.org/2000/svg';
 		const start = svgText ? passage.getBoundingClientRect() : textCaretRect(passage, 0);
 		const end = svgText
@@ -54,17 +54,20 @@ test('Code and individual Mermaid nodes retain independent comments instead of s
 			pointerEvents: fixture.defaultView?.getComputedStyle(passage).pointerEvents,
 			viewport: [fixture.defaultView?.innerWidth, fixture.defaultView?.innerHeight],
 		});
-		await commands.dragReviewSelection({
-			startX: start.left + 0.5,
-			startY: start.top + start.height / 2,
-			endX: svgText ? end.right : end.left,
-			endY: end.top + end.height / 2,
-		});
-		await expect
-			.poll((): string => fixture.defaultView?.getSelection()?.toString().trim() ?? '', {
-				message: diagnostics,
-			})
-			.toBe(passage.textContent?.trim());
+		if (svgText) await fixtureLocator(frame, passage).dblClick();
+		else
+			await commands.dragReviewSelection({
+				startX: start.left + 0.5,
+				startY: start.top + start.height / 2,
+				endX: end.left,
+				endY: end.top + end.height / 2,
+			});
+		const selectedText = expect.poll(
+			(): string => fixture.defaultView?.getSelection()?.toString().trim() ?? '',
+			{ message: diagnostics },
+		);
+		if (svgText) await selectedText.toContain(passage.textContent?.trim());
+		else await selectedText.toBe(passage.textContent?.trim());
 		await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
 		expect(
 			fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
