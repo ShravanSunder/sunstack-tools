@@ -1,0 +1,10 @@
+{
+  "id": "skill",
+  "language": "Markdown",
+  "files": [
+    "**/SKILL.md"
+  ],
+  "rule": {
+    "matches": "frontmatter"
+  }
+}

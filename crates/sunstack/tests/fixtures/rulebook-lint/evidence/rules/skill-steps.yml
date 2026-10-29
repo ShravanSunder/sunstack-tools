@@ -1,0 +1,171 @@
+{
+  "id": "step",
+  "language": "Markdown",
+  "files": [
+    "**/SKILL.md"
+  ],
+  "rule": {
+    "all": [
+      {
+        "matches": "step"
+      },
+      {
+        "not": {
+          "inside": {
+            "kind": "block_quote",
+            "stopBy": "end"
+          }
+        }
+      }
+    ]
+  }
+}
+---
+{
+  "id": "completion",
+  "language": "Markdown",
+  "files": [
+    "**/SKILL.md"
+  ],
+  "rule": {
+    "all": [
+      {
+        "kind": "paragraph",
+        "regex": "\\bCompletion:"
+      },
+      {
+        "not": {
+          "inside": {
+            "kind": "block_quote",
+            "stopBy": "end"
+          }
+        }
+      }
+    ]
+  }
+}
+---
+{
+  "id": "load",
+  "language": "Markdown",
+  "files": [
+    "**/SKILL.md"
+  ],
+  "rule": {
+    "all": [
+      {
+        "kind": "paragraph",
+        "regex": "\\bload\\s+`[^`]+`"
+      },
+      {
+        "not": {
+          "inside": {
+            "kind": "block_quote",
+            "stopBy": "end"
+          }
+        }
+      }
+    ]
+  }
+}
+---
+{
+  "id": "branch",
+  "language": "Markdown",
+  "files": [
+    "**/SKILL.md"
+  ],
+  "rule": {
+    "all": [
+      {
+        "kind": "paragraph",
+        "regex": "^(?:IF|When)\\b"
+      },
+      {
+        "not": {
+          "inside": {
+            "kind": "block_quote",
+            "stopBy": "end"
+          }
+        }
+      }
+    ]
+  }
+}
+---
+{
+  "id": "sentence",
+  "language": "Markdown",
+  "files": [
+    "**/SKILL.md"
+  ],
+  "rule": {
+    "all": [
+      {
+        "kind": "paragraph"
+      },
+      {
+        "not": {
+          "inside": {
+            "matches": "quoted",
+            "stopBy": "end"
+          }
+        }
+      },
+      {
+        "inside": {
+          "any": [
+            {
+              "matches": "step"
+            },
+            {
+              "kind": "section",
+              "has": {
+                "kind": "atx_heading",
+                "regex": "^##\\s+Standards\\s*$",
+                "stopBy": "neighbor"
+              }
+            }
+          ],
+          "stopBy": "end"
+        }
+      }
+    ]
+  }
+}
+---
+{
+  "id": "section-heading",
+  "language": "Markdown",
+  "rule": {
+    "kind": "section"
+  }
+}
+---
+{
+  "id": "reference-section",
+  "language": "Markdown",
+  "files": [
+    "**/references/**/*.md"
+  ],
+  "rule": {
+    "all": [
+      {
+        "kind": "section",
+        "has": {
+          "kind": "atx_heading",
+          "regex": "^##\\s+",
+          "stopBy": "neighbor"
+        }
+      },
+      {
+        "not": {
+          "inside": {
+            "matches": "quoted",
+            "stopBy": "end"
+          }
+        }
+      }
+    ]
+  }
+}

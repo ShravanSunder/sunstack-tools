@@ -1,0 +1,96 @@
+{
+  "rulebook": [
+    {
+      "markdown": "rulebook/steering.md",
+      "rules": "rulebook/steering.rules.json"
+    }
+  ],
+  "marker_prefix": "K",
+  "check": {
+    "files": [
+      "skills/**/SKILL.md"
+    ]
+  },
+  "evidence": {
+    "ast_grep": "evidence/sgconfig.yml",
+    "kinds": {
+      "step": {
+        "rule": "step",
+        "fields": {
+          "heading": {
+            "from": "capture",
+            "regex": "^(?:###\\s+|[0-9]+[.)]\\s+\\*\\*)([^\\n]+)\\n?"
+          },
+          "completion": {
+            "from": "inside",
+            "rule": "completion"
+          },
+          "body": {
+            "from": "remainder"
+          }
+        }
+      },
+      "skill": {
+        "rule": "skill",
+        "fields": {
+          "description": {
+            "from": "yaml",
+            "key": "description"
+          },
+          "steps": {
+            "from": "same_file",
+            "rule": "step"
+          }
+        }
+      },
+      "load": {
+        "rule": "load",
+        "fields": {
+          "line": {
+            "from": "first_line"
+          },
+          "targets": {
+            "from": "target",
+            "regex": "`([^`]+)`",
+            "resolve": "path_or_skill",
+            "as_kind": "skill"
+          }
+        }
+      },
+      "branch": {
+        "rule": "branch",
+        "fields": {
+          "line": {
+            "from": "first_line"
+          }
+        }
+      },
+      "sentence": {
+        "rule": "sentence",
+        "fields": {
+          "body": {
+            "from": "remainder"
+          },
+          "headings": {
+            "from": "enclosing",
+            "rule": "section-heading"
+          }
+        }
+      },
+      "reference_section": {
+        "rule": "reference-section",
+        "fields": {
+          "heading": {
+            "from": "first_line"
+          },
+          "body": {
+            "from": "remainder"
+          }
+        }
+      }
+    }
+  },
+  "decision_model": {
+    "model": "openai/gpt-4.1-mini"
+  }
+}

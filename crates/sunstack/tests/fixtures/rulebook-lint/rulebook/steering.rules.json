@@ -1,0 +1,134 @@
+{
+  "K001": {
+    "name": "step_completion",
+    "evidence": "step",
+    "questions": {
+      "kind": {
+        "type": "choice",
+        "instructions": {
+          "check": "completion",
+          "against": "body",
+          "task": "Classify what the completion describes."
+        },
+        "criteria": {
+          "outcome": "An observable outcome.",
+          "action": "An action only.",
+          "other": "Neither an outcome nor an action."
+        }
+      },
+      "covers": {
+        "type": "noul",
+        "instructions": {
+          "check": "completion",
+          "against": "body",
+          "task": "Does the completion cover every obligation?"
+        }
+      },
+      "checkable": {
+        "type": "score",
+        "instructions": {
+          "check": "completion",
+          "task": "How checkable is this completion?"
+        },
+        "criteria": [
+          "Not checkable.",
+          "Partly checkable.",
+          "Directly checkable."
+        ]
+      }
+    },
+    "decision": {
+      "start": "has_completion",
+      "steps": {
+        "has_completion": {
+          "mechanical_check": {
+            "tool": "ast_grep",
+            "rule": "completion"
+          },
+          "yes": "kind",
+          "no": {
+            "finding": "Missing completion."
+          }
+        },
+        "kind": {
+          "ask": "kind",
+          "min_probability": 0.6,
+          "routes": {
+            "outcome": "quality",
+            "action": {
+              "finding": "Completion describes only an action.",
+              "at": "completion"
+            },
+            "other": {
+              "finding": "Completion does not describe an outcome.",
+              "at": "completion"
+            }
+          }
+        },
+        "quality": {
+          "combine": {
+            "covers": 0.6,
+            "checkable": 0.4
+          },
+          "yes_at_or_above": 0.8,
+          "no_at_or_below": 0.6,
+          "yes": "pass",
+          "no": {
+            "finding": "Completion is incomplete or not checkable.",
+            "at": "completion"
+          }
+        }
+      }
+    }
+  },
+  "K002": {
+    "name": "description_length",
+    "evidence": "skill",
+    "severity": "error",
+    "decision": {
+      "start": "under_300",
+      "steps": {
+        "under_300": {
+          "mechanical_check": {
+            "tool": "max_chars",
+            "field": "description",
+            "max": 300
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Over 300 characters.",
+            "at": "description"
+          }
+        }
+      }
+    }
+  },
+  "K003": {
+    "name": "description_trigger",
+    "evidence": "skill",
+    "questions": {
+      "names_trigger": {
+        "type": "noul",
+        "instructions": {
+          "check": "description",
+          "task": "Does the description name when to use this skill?"
+        }
+      }
+    },
+    "decision": {
+      "start": "names_trigger",
+      "steps": {
+        "names_trigger": {
+          "ask": "names_trigger",
+          "yes_at_or_above": 0.8,
+          "no_at_or_below": 0.6,
+          "yes": "pass",
+          "no": {
+            "finding": "Description does not name its trigger.",
+            "at": "description"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "quoted",
+  "language": "Markdown",
+  "rule": {
+    "kind": "block_quote"
+  }
+}

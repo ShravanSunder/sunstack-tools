@@ -1,0 +1,9 @@
+{
+  "ruleDirs": [
+    "../evidence/rules"
+  ],
+  "utilDirs": [
+    "../evidence/utils",
+    "oracle-utils"
+  ]
+}

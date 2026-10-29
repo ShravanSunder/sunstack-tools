@@ -1,0 +1,7 @@
+{
+  "rule": "step",
+  "file": "skills/practices-retrospective/SKILL.md",
+  "start": 2478,
+  "end": 3712,
+  "text": "1. **Set the boundary.** Name the work being looked back on: the session, delivery or set of sessions the request names, or the current work when it names none. Look at other sessions only when the request or the owner names them. Write the owner's intent in their own words, and each later correction with where it was said. Then list the records that show what happened: the actions and their results, diffs and commits, review reports, proof output and the owner's messages. A summary or a trace tells you where to look and never proves what it reports.\n   - IF the evidence in hand is a summary, a partial transcript, or spans more than one session, load `references/evidence-checklist.md` and return the records to read first, the coverage they leave and whether a recurrence claim is possible.\n   - IF the records you need are outside this conversation, load `practices-research` and return the bounded records with their coverage and null results. Give it the retrospective question and the boundary.\n\n   Completion: the boundary, the owner's intent and each later correction are written with their sources, each record you read is named by path or id, and each part of the work you couldn't read is listed as a coverage gap.\n\n"
+}

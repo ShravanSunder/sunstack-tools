@@ -1,0 +1,23 @@
+{
+  "repository": "ShravanSunder/ai-tools",
+  "commit": "565d763ff0ebcd378a981a2d45bf8f7a9201f525",
+  "verification_step_3": {
+    "file": "skills/verification-design/SKILL.md",
+    "byte_start": 6114,
+    "byte_end": 7909,
+    "first_line": 49,
+    "last_line": 60,
+    "heading": "3. Choose each observation",
+    "completion_line": 59
+  },
+  "verification_load": {
+    "file": "skills/verification-design/SKILL.md",
+    "line": 51,
+    "target": "skills/verification-design/references/choosing-the-observation.md"
+  },
+  "retrospective_step_1": {
+    "file": "skills/practices-retrospective/SKILL.md",
+    "first_line": 19,
+    "skill_load_line": 21
+  }
+}
