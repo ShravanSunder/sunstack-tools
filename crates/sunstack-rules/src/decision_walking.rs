@@ -68,14 +68,23 @@ pub fn piece_state(
         fields: &'a BTreeMap<FieldName, sunstack_evidence::ModelFieldValue>,
     }
     let empty = BTreeMap::new();
-    let fields = match &piece.model_view {
-        ModelView::Bounded { fields, .. } => fields,
-        ModelView::TooLarge { .. } => &empty,
+    let available_fields = match &piece.model_view {
+        ModelView::Bounded { fields, .. } => fields
+            .iter()
+            .filter(|(name, _)| {
+                !matches!(
+                    piece.fields.get(*name),
+                    Some(FieldValue::Unavailable { .. })
+                )
+            })
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect(),
+        ModelView::TooLarge { .. } => empty,
     };
     serde_json::from_value(serde_json::to_value(PieceState {
         standard: &rule.sentence.standard,
         location: &piece.location,
-        fields,
+        fields: &available_fields,
     })?)
 }
 
@@ -93,6 +102,19 @@ pub fn walk_decision(
             return incomplete(RulebookIncompleteReason::EvidenceUnavailable, None);
         };
         path.push(current.clone());
+        if !matches!(step, DecisionStep::Mechanical { .. })
+            && let Some(field) =
+                crate::rulebook_admission::question_field_references(&rule.questions)
+                    .into_iter()
+                    .find(|field| {
+                        matches!(
+                            piece.fields.get(field),
+                            Some(FieldValue::Unavailable { .. })
+                        )
+                    })
+        {
+            return incomplete(RulebookIncompleteReason::EvidenceUnavailable, Some(field));
+        }
         if !matches!(step, DecisionStep::Mechanical { .. })
             && matches!(piece.model_view, ModelView::TooLarge { .. })
         {

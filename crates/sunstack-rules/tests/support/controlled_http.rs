@@ -17,6 +17,7 @@ use tokio::{
 
 pub struct PendingHttpRequest {
     pub body: Value,
+    pub raw_body: Vec<u8>,
     reply: oneshot::Sender<(u16, Value)>,
 }
 impl PendingHttpRequest {
@@ -124,7 +125,14 @@ async fn serve(
     let body = serde_json::from_slice(&bytes[header_end..header_end + length]).unwrap();
     received.fetch_add(1, Ordering::SeqCst);
     let (reply, receive) = oneshot::channel();
-    if send.send(PendingHttpRequest { body, reply }).is_err() {
+    if send
+        .send(PendingHttpRequest {
+            body,
+            raw_body: bytes[header_end..header_end + length].to_vec(),
+            reply,
+        })
+        .is_err()
+    {
         return;
     }
     if let Ok((status, body)) = receive.await {

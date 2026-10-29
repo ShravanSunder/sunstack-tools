@@ -73,6 +73,19 @@ pub(crate) fn decode_definition<T: serde::de::DeserializeOwned>(
         };
         let mut diagnostic = RuleDiagnostic::new(code);
         // Only these fixed migration messages may cross the diagnostic privacy boundary.
+        if message.starts_with("unknown field `rule_sources`") {
+            diagnostic.guidance =
+                "RuleSets no longer accept rule_sources; use sunstack lint --config with rulebook."
+                    .into();
+        } else if message.starts_with("unknown field `marker_prefix`") {
+            diagnostic.guidance =
+                "Move marker_prefix to the lint rules config; RuleSets do not accept it.".into();
+        } else if message.starts_with("unknown field `max_question_words`") {
+            diagnostic.guidance =
+                "Move max_question_words to the lint rules config; RuleSets do not accept it."
+                    .into();
+        }
+
         if message.starts_with("severity `block` was renamed to `error`") {
             diagnostic.guidance = "Use severity `error`; the old severity word is refused.".into();
         } else if message.starts_with("severity `nudge` was renamed to `warn`") {

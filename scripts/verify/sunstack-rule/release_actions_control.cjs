@@ -318,7 +318,7 @@ async function startController({
 	};
 	const configPath = path.join(root, 'fixture/sunstack.lint.json');
 	const config = JSON.parse(fileSystem.readFileSync(configPath));
-	config.backend.endpoint = ready.base + '/systemone';
+	config.decision_model.endpoint = ready.base + '/systemone';
 	save(configPath, config);
 	save(path.join(root, 'ready.json'), ready);
 	const admissionDeadline = setTimeout(() => {

@@ -30,12 +30,14 @@ fn field<'a>(piece: &'a EvidencePiece, name: &str) -> &'a FieldValue {
 struct RecordingSource {
     source: FilesystemCheckedSource,
     reads: Vec<PathBuf>,
+    fail_path: Option<PathBuf>,
 }
 impl RecordingSource {
     fn new(root: &Path) -> Self {
         Self {
             source: FilesystemCheckedSource::new(root).unwrap(),
             reads: vec![],
+            fail_path: None,
         }
     }
 }
@@ -45,11 +47,54 @@ impl CheckedFileSource for RecordingSource {
     }
     fn read_file(&mut self, path: &Path, max_bytes: usize) -> Result<String, CheckedReadError> {
         self.reads.push(path.into());
+        if self.fail_path.as_deref() == Some(path) {
+            return Err(CheckedReadError::Unreadable);
+        }
         self.source.read_file(path, max_bytes)
     }
-    fn checked_files_read(&self) -> usize {
-        self.reads.len()
+    fn checked_files_acquired(&self) -> usize {
+        self.source.checked_files_acquired()
     }
+}
+
+#[test]
+fn resolved_target_acquisition_failure_is_unavailable_rather_than_a_missing_file() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/load.yml"),
+        "id: load\nlanguage: Markdown\nrule: {kind: paragraph}\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("SKILL.md"), "load `target.md`.\n").unwrap();
+    std::fs::write(root.path().join("target.md"), "An existing target.\n").unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let kind:EvidenceKindDefinition=serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path"}}}"#).unwrap();
+    let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
+    let mut source = RecordingSource::new(root.path());
+    source.fail_path = Some("target.md".into());
+    assert_eq!(
+        source.resolve_file(Path::new("target.md")),
+        Some("target.md".into())
+    );
+    let catalog = build_pieces(
+        &project,
+        &kinds,
+        &["SKILL.md".into()],
+        &mut source,
+        limits(),
+    );
+    assert_eq!(
+        field(&catalog.pieces[0], "targets"),
+        &FieldValue::Unavailable {
+            reason: FieldUnavailable::Unreadable
+        }
+    );
+    assert_eq!(
+        source.reads,
+        vec![PathBuf::from("SKILL.md"), PathBuf::from("target.md")]
+    );
 }
 
 #[test]
@@ -187,31 +232,35 @@ fn yaml_empty_absent_malformed_and_non_string_remain_distinct() {
 
 #[test]
 fn duplicate_skills_and_outside_targets_are_not_opened() {
-    let root = tempfile::tempdir().unwrap();
-    std::fs::create_dir(root.path().join("rules")).unwrap();
-    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    let workspace = tempfile::tempdir().unwrap();
+    let root_path = workspace.path().join("repository");
+    std::fs::create_dir(&root_path).unwrap();
+    let root = root_path.as_path();
     std::fs::write(
-        root.path().join("rules/paragraph.yml"),
+        workspace.path().join("outside.md"),
+        "Outside the allowed repository.\n",
+    )
+    .unwrap();
+    std::fs::create_dir(root.join("rules")).unwrap();
+    std::fs::write(root.join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.join("rules/paragraph.yml"),
         "id: load\nlanguage: Markdown\nrule: {kind: paragraph}\n",
     )
     .unwrap();
     for directory in ["a/shared", "b/shared"] {
-        std::fs::create_dir_all(root.path().join(directory)).unwrap();
-        std::fs::write(
-            root.path().join(directory).join("SKILL.md"),
-            "Shared skill.\n",
-        )
-        .unwrap();
+        std::fs::create_dir_all(root.join(directory)).unwrap();
+        std::fs::write(root.join(directory).join("SKILL.md"), "Shared skill.\n").unwrap();
     }
     std::fs::write(
-        root.path().join("SKILL.md"),
+        root.join("SKILL.md"),
         "load `shared` and `../outside.md`.\n",
     )
     .unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.join("sgconfig.yml")).unwrap();
     let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path_or_skill"}}}"#).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
-    let mut source = RecordingSource::new(root.path());
+    let mut source = RecordingSource::new(root);
     let catalog = build_pieces(
         &project,
         &kinds,
@@ -232,7 +281,42 @@ fn duplicate_skills_and_outside_targets_are_not_opened() {
         panic!()
     };
     assert!(!values[0].exists);
-    assert_eq!(values[0].candidates.len(), 2);
+    assert_eq!(
+        values[0].candidates,
+        [
+            PathBuf::from("a/shared/SKILL.md"),
+            PathBuf::from("b/shared/SKILL.md")
+        ]
+    );
     assert!(!values[1].exists);
     assert_eq!(source.reads.len(), 3);
+}
+
+#[test]
+fn non_ascii_terminal_character_without_newline_keeps_valid_ranges_and_character_columns() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/paragraph.yml"),
+        "id: paragraph\nlanguage: Markdown\nrule: {kind: paragraph}\n",
+    )
+    .unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let kind:EvidenceKindDefinition=serde_json::from_str(r#"{"rule":"paragraph","fields":{"token":{"from":"capture","regex":"(token)"},"body":{"from":"remainder"}}}"#).unwrap();
+    let kinds = BTreeMap::from([(EvidenceKindName::new("paragraph").unwrap(), kind)]);
+    std::fs::write(root.path().join("SKILL.md"), "📚 token尾").unwrap();
+    let catalog = build_pieces(
+        &project,
+        &kinds,
+        &["SKILL.md".into()],
+        &mut RecordingSource::new(root.path()),
+        limits(),
+    );
+    let piece = &catalog.pieces[0];
+    assert_eq!(piece.location.last_line, 1);
+    assert_eq!(piece.location.span.end_column, 9);
+    let span = field(piece, "token").spans().first().unwrap();
+    assert_eq!(span.start_column, 3);
+    assert_eq!(span.end_column, 8);
 }

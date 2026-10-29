@@ -140,20 +140,8 @@ impl DecisionBackend for JevOpenRouterBackend {
         &self,
         request: &StructuredJudgmentRequest,
     ) -> Result<EncodedBackendRequest, DecisionDiagnostic> {
-        judgment_validation::validate_request(request)?;
-        #[derive(Serialize)]
-        struct JevRequest<'request> {
-            model: &'request ModelName,
-            state: &'request SharedEvidenceState,
-            questions: &'request NamedQuestionMap,
-        }
         let BackendSelection::JevOpenrouter { model, .. } = &self.selection;
-        let body = serde_json::to_vec(&JevRequest {
-            model,
-            state: &request.state,
-            questions: &request.questions,
-        })
-        .map_err(|_| DecisionDiagnostic::request(DecisionDiagnosticCode::InvalidQuestion))?;
+        let body = encode_judgment_body(request, model)?;
         Ok(EncodedBackendRequest::new(
             self.identity.clone(),
             body,
@@ -266,6 +254,26 @@ impl DecisionBackend for JevOpenRouterBackend {
     ) -> Result<(NamedAnswerMap, ExecutionReceipt), DecisionDiagnostic> {
         judgment_validation::decode_jev_response(request, body)
     }
+}
+
+/// Encode exactly the body the Jev backend dispatches, before constructing a backend.
+pub fn encode_judgment_body(
+    request: &StructuredJudgmentRequest,
+    model: &ModelName,
+) -> Result<Vec<u8>, DecisionDiagnostic> {
+    judgment_validation::validate_request(request)?;
+    #[derive(Serialize)]
+    struct JevRequest<'a> {
+        model: &'a ModelName,
+        state: &'a SharedEvidenceState,
+        questions: &'a NamedQuestionMap,
+    }
+    serde_json::to_vec(&JevRequest {
+        model,
+        state: &request.state,
+        questions: &request.questions,
+    })
+    .map_err(|_| DecisionDiagnostic::request(DecisionDiagnosticCode::InvalidQuestion))
 }
 
 #[cfg(test)]

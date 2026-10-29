@@ -1,0 +1,46 @@
+{
+  "K001": {
+    "name": "standard",
+    "evidence": "paragraph",
+    "severity": "error",
+    "decision": {
+      "start": "must",
+      "steps": {
+        "must": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "body",
+            "text": "MUST"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Use MUST in each paragraph.",
+            "at": "body"
+          }
+        }
+      }
+    }
+  },
+  "K002": {
+    "name": "unavailable",
+    "evidence": "document",
+    "severity": "error",
+    "decision": {
+      "start": "description",
+      "steps": {
+        "description": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "description",
+            "text": "MUST"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Description needs MUST.",
+            "at": "description"
+          }
+        }
+      }
+    }
+  }
+}

@@ -152,3 +152,21 @@ fn missing_util_bad_rule_glob_and_reserved_rule_are_rejected_at_load() {
         );
     }
 }
+
+#[test]
+fn yaml_parser_refusals_preserve_the_vendors_line_and_column() {
+    let directory = tempfile::tempdir().unwrap();
+    std::fs::create_dir(directory.path().join("rules")).unwrap();
+    std::fs::write(directory.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        directory.path().join("rules/broken.yml"),
+        "id: broken\nlanguage: Markdown\nrule:\n  kind: [\n",
+    )
+    .unwrap();
+    let error = load_evidence_project(&directory.path().join("sgconfig.yml"))
+        .err()
+        .unwrap();
+    assert!(error.path.ends_with("rules/broken.yml"));
+    assert!(error.line >= 4);
+    assert!(error.column.is_some());
+}

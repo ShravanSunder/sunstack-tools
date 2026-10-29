@@ -18,12 +18,19 @@ fn admit_shape<T: JsonSchema + DeserializeOwned>(path: &Path) {
     assert!(generated::<T>().is_valid(&value), "{}", path.display());
 }
 #[test]
-fn every_reviewed_milestone_one_definition_and_invocation_deserializes_and_validates_generated_schema()
- {
+fn native_examples_validate_and_archived_marker_headers_are_refused() {
     for entry in std::fs::read_dir(examples()).unwrap() {
         let path = entry.unwrap().path();
         let name = path.file_name().unwrap().to_str().unwrap();
         if name.ends_with(".ruleset.json") {
+            let bytes = std::fs::read(&path).unwrap();
+            let value: Value = serde_json::from_slice(&bytes).unwrap();
+            if value.get("rule_sources").is_some() {
+                assert!(reviewed("rule-set.schema.json").is_valid(&value));
+                assert!(decode_rule_set(&bytes, &path).is_err());
+                assert!(!generated::<RuleSetDefinition>().is_valid(&value));
+                continue;
+            }
             admit_shape::<RuleSetDefinition>(&path);
             let set = decode_rule_set(&std::fs::read(&path).unwrap(), &path).unwrap();
             for rule_path in &set.rule_paths {
@@ -54,8 +61,7 @@ fn every_reviewed_milestone_one_definition_and_invocation_deserializes_and_valid
             }
         } else if name.ends_with(".rules.json") {
             let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-            let _: BTreeMap<sunstack_evidence::MarkerId, RuleSourceEntry> =
-                serde_json::from_value(value.clone()).unwrap();
+            // Archived marker-entry examples remain checked against their historical schema.
             assert!(reviewed("rule-source.schema.json").is_valid(&value));
         } else if name.ends_with(".check.request.json") {
             let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
@@ -95,7 +101,7 @@ fn every_reviewed_milestone_one_definition_and_invocation_deserializes_and_valid
     }
 }
 #[tokio::test]
-async fn reviewed_marked_standard_example_checks_and_prints_through_the_native_api() {
+async fn archived_marked_standard_example_is_refused_with_the_lint_replacement() {
     let request: Value = serde_json::from_slice(
         &std::fs::read(examples().join("marked-standards.check.request.json")).unwrap(),
     )
@@ -113,33 +119,16 @@ async fn reviewed_marked_standard_example_checks_and_prints_through_the_native_a
     let outcome = check_rules(input, sunstack_decisions::CancellationToken::new()).await;
     let wire = serde_json::to_value(&outcome).unwrap();
     assert!(reviewed("check-rules-outcome.schema.json").is_valid(&wire));
-    let CheckRulesOutcome::Checked {
-        checked_rule_count,
-        printed_rules,
-    } = outcome
-    else {
-        panic!("{wire}")
-    };
-    assert_eq!(checked_rule_count, 1);
-    assert_eq!(printed_rules.len(), 1);
-    assert_eq!(
-        printed_rules[0].definition.rule_id.as_str(),
-        "paragraph.clear-result"
-    );
-    let VerdictDeclaration::Noul {
-        question:
-            sunstack_decisions::JudgmentQuestion::Noul {
-                instructions: sunstack_decisions::StructuredEntry::Text(text),
-                ..
-            },
-        ..
-    } = &printed_rules[0].definition.verdict
-    else {
-        panic!("judgment shape")
-    };
-    assert_eq!(
-        text,
-        "Clear result\n\nThe selected paragraph states a clear result."
+    assert_eq!(outcome.exit_code(), 2);
+    assert!(
+        wire["diagnostics"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["code"] == "unknown_field"
+                && item["guidance"]
+                    .as_str()
+                    .is_some_and(|message| message.contains("lint")))
     );
 }
 

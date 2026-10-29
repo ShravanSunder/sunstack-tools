@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "config": "/private/tmp/2026-10-sunstack-runner-verification/final-26122bf/s1-mac-release/fixtures/mechanical-error/sunstack.lint.json",
+  "config": "/private/tmp/2026-10-rulebook-s3-final-uo_nc20s/mechanical-error/sunstack.lint.json",
   "scope": {
     "kind": "all",
     "widened": null
@@ -10,12 +10,15 @@
   },
   "findings": [
     {
-      "rule": "docs/standard",
+      "rule": "standard",
+      "marker": "K001",
       "file": "docs/one.md",
+      "line": 1,
+      "field": "body",
       "span": {
         "source": {
           "kind": "document",
-          "repository": "lint",
+          "repository": "checked_repository",
           "path": "docs/one.md",
           "content_identity": "da244278b455a51da5f06aeb7440518cb927ee28c231be465f52dd193306104e"
         },
@@ -34,6 +37,8 @@
       "judgment": null
     }
   ],
+  "uncertain": [],
+  "skipped_rules": [],
   "counts": {
     "error": 1,
     "warn": 0
@@ -47,6 +52,7 @@
   },
   "incomplete": [],
   "usage": {
+    "checked_files_acquired": 1,
     "model_requests": 0,
     "input_tokens": null,
     "output_tokens": null,
@@ -56,6 +62,8 @@
   },
   "evidence_seen": {},
   "limits": {
+    "evidence_max_chars": 6000,
+    "request_max_chars": 20000,
     "max_files": 2000,
     "max_file_bytes": 1048576,
     "max_total_bytes": 67108864,

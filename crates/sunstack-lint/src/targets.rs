@@ -3,9 +3,9 @@ use std::{
     collections::BTreeSet,
     path::{Path, PathBuf},
 };
-
 pub(crate) struct TargetSelection {
-    pub entries: Vec<Vec<PathBuf>>,
+    pub root: PathBuf,
+    pub files: Vec<PathBuf>,
     pub ignored: u32,
 }
 /// Express an absolute path relative to an absolute base directory.
@@ -41,16 +41,14 @@ pub fn relative_path(base: &Path, path: &Path) -> PathBuf {
     }
     relative
 }
+
 fn matches(patterns: &[GlobPattern], file: &Path) -> bool {
     patterns.iter().any(|pattern| {
         globset::Glob::new(pattern.as_str()).is_ok_and(|glob| glob.compile_matcher().is_match(file))
     })
 }
-fn named(file: &Path, paths: &[PathBuf]) -> bool {
-    paths.is_empty() || paths.iter().any(|path| file.starts_with(path))
-}
 pub(crate) fn select_targets(
-    config: &LintConfig,
+    config: &RulesConfig,
     paths: &[PathBuf],
     cwd: &Path,
 ) -> Result<TargetSelection, LintInvalid> {
@@ -58,29 +56,31 @@ pub(crate) fn select_targets(
         LintInvalid::at(
             "sunstack.lint.json",
             LintInvalidCode::Syntax,
-            "Cannot resolve the config directory.",
+            "cannot resolve config directory",
         )
     })?;
-    let mut named_paths = Vec::new();
-    for path in paths {
-        let absolute = cwd.join(path);
-        named_paths.push(absolute.canonicalize().map_err(|_| {
-            LintInvalid::at(
-                absolute,
-                LintInvalidCode::PathNotFound,
-                "A named path does not exist.",
-            )
-        })?);
-    }
     let repository = git2::Repository::discover(&directory).ok();
     let root = repository
         .as_ref()
-        .and_then(|repository| repository.workdir())
-        .unwrap_or(&directory);
-    let entries = config.rule_sets.values().collect::<Vec<_>>();
-    let mut selected = vec![BTreeSet::new(); entries.len()];
+        .and_then(|repo| repo.workdir())
+        .unwrap_or(&directory)
+        .to_path_buf();
+    let paths = paths
+        .iter()
+        .map(|path| {
+            cwd.join(path).canonicalize().map_err(|_| {
+                LintInvalid::at(
+                    path,
+                    LintInvalidCode::PathNotFound,
+                    "named path does not exist",
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let named = |file: &Path| paths.is_empty() || paths.iter().any(|path| file.starts_with(path));
+    let mut files = BTreeSet::new();
     let mut ignored = BTreeSet::new();
-    for entry in ignore::WalkBuilder::new(root)
+    for entry in ignore::WalkBuilder::new(&root)
         .hidden(false)
         .parents(false)
         .git_global(false)
@@ -91,29 +91,23 @@ pub(crate) fn select_targets(
     {
         let entry = entry.map_err(|_| {
             LintInvalid::at(
-                root,
+                &root,
                 LintInvalidCode::PathNotFound,
-                "A target path could not be inspected.",
+                "target path could not be inspected",
             )
         })?;
-        if !entry.file_type().is_some_and(|kind| kind.is_file())
-            || !named(entry.path(), &named_paths)
-        {
+        if !entry.file_type().is_some_and(|kind| kind.is_file()) || !named(entry.path()) {
             continue;
         }
-        let relative = relative_path(&directory, entry.path());
-        for (index, configured) in entries.iter().enumerate() {
-            if matches(&configured.files, &relative) {
-                if matches(&config.ignore_patterns, &relative) {
-                    ignored.insert((index, entry.path().to_path_buf()));
-                } else {
-                    selected[index].insert(entry.path().to_path_buf());
-                }
+        let file = relative_path(&root, entry.path());
+        if matches(&config.check.files, &file) {
+            if matches(&config.check.ignore, &file) {
+                ignored.insert(file);
+            } else {
+                files.insert(file);
             }
         }
     }
-    // The walk excludes Git-ignored files. Git's status catalogue supplies their
-    // exclusion count without reading their contents or admitting them as targets.
     if let Some(repository) = repository.as_ref() {
         let mut options = git2::StatusOptions::new();
         options
@@ -121,34 +115,26 @@ pub(crate) fn select_targets(
             .recurse_ignored_dirs(true)
             .include_untracked(true)
             .recurse_untracked_dirs(true);
-        if let (Some(root), Ok(statuses)) = (
-            repository.workdir(),
-            repository.statuses(Some(&mut options)),
-        ) {
+        if let Ok(statuses) = repository.statuses(Some(&mut options)) {
             for status in statuses
                 .iter()
                 .filter(|status| status.status().is_ignored())
             {
                 if let Ok(path) = status.path() {
-                    let absolute = root.join(path);
-                    if !absolute.is_file() || !named(&absolute, &named_paths) {
-                        continue;
-                    }
-                    let relative = relative_path(&directory, &absolute);
-                    for (index, configured) in entries.iter().enumerate() {
-                        if matches(&configured.files, &relative) {
-                            ignored.insert((index, absolute.clone()));
-                        }
+                    let file = PathBuf::from(path);
+                    if root.join(&file).is_file()
+                        && named(&root.join(&file))
+                        && matches(&config.check.files, &file)
+                    {
+                        ignored.insert(file);
                     }
                 }
             }
         }
     }
     Ok(TargetSelection {
-        entries: selected
-            .into_iter()
-            .map(|files| files.into_iter().collect())
-            .collect(),
+        root,
+        files: files.into_iter().collect(),
         ignored: u32::try_from(ignored.len()).unwrap_or(u32::MAX),
     })
 }

@@ -1,0 +1,7 @@
+id: paragraph
+language: Markdown
+rule: {kind: paragraph}
+---
+id: document
+language: Markdown
+rule: {kind: document}

@@ -8,11 +8,14 @@ use sunstack_evidence::{EvidenceRuleId, FieldName};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "String", into = "String")]
 pub struct StepName(String);
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("step name is empty or reserved")]
+pub struct InvalidStepName;
 impl StepName {
-    pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
+    pub fn new(value: impl Into<String>) -> Result<Self, InvalidStepName> {
         let value = value.into();
         if value.is_empty() || ["pass", "not_applicable", "uncertain"].contains(&value.as_str()) {
-            Err("step name is empty or reserved")
+            Err(InvalidStepName)
         } else {
             Ok(Self(value))
         }
@@ -22,7 +25,7 @@ impl StepName {
     }
 }
 impl TryFrom<String> for StepName {
-    type Error = &'static str;
+    type Error = InvalidStepName;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(value)
     }
@@ -57,7 +60,7 @@ pub enum DecisionRoute {
     Finding(FindingRoute),
 }
 impl TryFrom<RouteWire> for DecisionRoute {
-    type Error = &'static str;
+    type Error = InvalidStepName;
     fn try_from(route: RouteWire) -> Result<Self, Self::Error> {
         Ok(match route {
             RouteWire::Finding(finding) => Self::Finding(finding),

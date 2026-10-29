@@ -173,6 +173,41 @@ fn field_references_valid(value: &StructuredJson, kind: &EvidenceKindDefinition)
     }
 }
 
+pub(crate) fn question_field_references(questions: &NamedQuestionMap) -> BTreeSet<FieldName> {
+    let mut fields = BTreeSet::new();
+    for question in questions.values() {
+        let instructions = match question {
+            JudgmentQuestion::Noul { instructions, .. }
+            | JudgmentQuestion::Choice { instructions, .. }
+            | JudgmentQuestion::Score { instructions, .. } => instructions,
+        };
+        if let StructuredEntry::Object(instructions) = instructions {
+            for key in ["check", "against", "context"] {
+                let values = match instructions.get(key) {
+                    Some(StructuredJson::Text(name)) => vec![name.as_str()],
+                    Some(StructuredJson::Array(names)) => names
+                        .iter()
+                        .filter_map(|name| {
+                            if let StructuredJson::Text(name) = name {
+                                Some(name.as_str())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
+                    _ => vec![],
+                };
+                for name in values {
+                    if let Ok(field) = FieldName::new(name) {
+                        fields.insert(field);
+                    }
+                }
+            }
+        }
+    }
+    fields
+}
+
 fn admit_graph(
     wire: &DecisionGraphWire,
     questions: &NamedQuestionMap,
@@ -196,7 +231,7 @@ fn admit_graph(
                 route
             }
             Err(message) => {
-                errors.push(refusal(&path, message));
+                errors.push(refusal(&path, message.to_string()));
                 DecisionRoute::Uncertain
             }
         };

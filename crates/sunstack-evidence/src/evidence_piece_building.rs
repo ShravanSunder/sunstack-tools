@@ -187,10 +187,10 @@ pub fn build_pieces(
                                 };
                                 if !use_path && candidates.len() != 1 {
                                     target.candidates = candidates;
-                                    return target;
+                                    return Ok(target);
                                 }
                                 let Some(resolved) = source.resolve_file(&target_path) else {
-                                    return target;
+                                    return Ok(target);
                                 };
                                 target.path = resolved.clone();
                                 if use_path {
@@ -204,10 +204,13 @@ pub fn build_pieces(
                                             })
                                             .clone()
                                     };
-                                    if let Ok(text) = content {
-                                        target.exists = true;
-                                        target.opening =
-                                            Some(text.chars().take(*opening_chars).collect());
+                                    match content {
+                                        Ok(text) => {
+                                            target.exists = true;
+                                            target.opening =
+                                                Some(text.chars().take(*opening_chars).collect());
+                                        }
+                                        Err(_) => return Err(FieldUnavailable::Unreadable),
                                     }
                                 } else {
                                     target.exists = true;
@@ -221,17 +224,27 @@ pub fn build_pieces(
                                         );
                                     }
                                 }
-                                target
+                                Ok(target)
                             })
-                            .collect();
-                        fields.insert(field.clone(), FieldValue::Targets { values: targets });
+                            .collect::<Result<Vec<_>, FieldUnavailable>>();
+                        fields.insert(
+                            field.clone(),
+                            match targets {
+                                Ok(values) => FieldValue::Targets { values },
+                                Err(reason) => FieldValue::Unavailable { reason },
+                            },
+                        );
                     }
                 }
                 let span = source_span(file, range);
                 let location = PieceLocation {
                     file: path.clone(),
                     first_line: span.start_line,
-                    last_line: span.end_line,
+                    last_line: file.text.as_bytes()[..range.end.saturating_sub(1).max(range.start)]
+                        .iter()
+                        .filter(|byte| **byte == b'\n')
+                        .count()
+                        + 1,
                     span,
                 };
                 let max_chars = definition
@@ -252,27 +265,7 @@ pub fn build_pieces(
 }
 
 fn source_span(file: &MatchedFile, range: &MatchRange) -> SourceSpan {
-    let start_line = file.text[..range.start]
-        .bytes()
-        .filter(|b| *b == b'\n')
-        .count()
-        + 1;
-    // End is exclusive; a trailing newline belongs to its preceding line.
-    let last_byte = range.end.saturating_sub(1).max(range.start);
-    let end_line = file.text[..last_byte]
-        .bytes()
-        .filter(|b| *b == b'\n')
-        .count()
-        + 1;
-    SourceSpan {
-        source: file.source.clone(),
-        byte_start: range.start,
-        byte_end: range.end,
-        start_line,
-        end_line,
-        start_column: range.start - file.text[..range.start].rfind('\n').map_or(0, |i| i + 1) + 1,
-        end_column: range.end - file.text[..range.end].rfind('\n').map_or(0, |i| i + 1) + 1,
-    }
+    crate::source_capture::source_span(&file.source, &file.text, range.start..range.end)
 }
 
 fn first_line_range(file: &MatchedFile, range: &MatchRange) -> MatchRange {

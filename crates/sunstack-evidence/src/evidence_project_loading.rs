@@ -11,13 +11,25 @@ use std::{
 pub struct ProjectRefusal {
     pub path: PathBuf,
     pub message: String,
+    pub line: usize,
+    pub column: Option<usize>,
 }
 impl ProjectRefusal {
     fn at(path: &Path, message: impl ToString) -> Self {
         Self {
             path: path.into(),
             message: message.to_string(),
+            line: 1,
+            column: None,
         }
+    }
+    fn located(path: &Path, message: impl ToString, position: Option<(u64, u64)>) -> Self {
+        let mut refusal = Self::at(path, message);
+        if let Some((line, column)) = position {
+            refusal.line = usize::try_from(line).unwrap_or(usize::MAX);
+            refusal.column = usize::try_from(column).ok();
+        }
+        refusal
     }
 }
 
@@ -79,8 +91,16 @@ pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, Proj
     let read = |path: &Path| {
         std::fs::read_to_string(path).map_err(|error| ProjectRefusal::at(path, error))
     };
-    let settings: ProjectSettings = ast_grep_config::from_str(&read(config_path)?)
-        .map_err(|error| ProjectRefusal::at(config_path, error))?;
+    let settings: ProjectSettings =
+        ast_grep_config::from_str(&read(config_path)?).map_err(|error| {
+            ProjectRefusal::located(
+                config_path,
+                error.to_string(),
+                error
+                    .location()
+                    .map(|location| (location.line(), location.column())),
+            )
+        })?;
     let base = config_path.parent().unwrap_or(Path::new("."));
     let reserved = crate::standard_markdown_utils::standard_utils();
     let reserved_ids = reserved.iter().map(|(id, _)| *id).collect::<BTreeSet<_>>();
@@ -96,7 +116,15 @@ pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, Proj
         for path in yaml_files(&base.join(folder))? {
             for util in
                 ast_grep_config::from_multiple::<SerializableGlobalRule<SupportLang>>(&read(&path)?)
-                    .map_err(|error| ProjectRefusal::at(&path, error))?
+                    .map_err(|error| {
+                        ProjectRefusal::located(
+                            &path,
+                            error.to_string(),
+                            error
+                                .location()
+                                .map(|location| (location.line(), location.column())),
+                        )
+                    })?
             {
                 refuse_reserved_local_utils(&util.core, &reserved_ids, &path)?;
                 if reserved_ids.contains(util.id.as_str()) {
@@ -125,7 +153,15 @@ pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, Proj
             let loaded = ast_grep_config::from_multiple::<
                 ast_grep_config::SerializableRuleConfig<SupportLang>,
             >(&read(&path)?)
-            .map_err(|error| ProjectRefusal::at(&path, error))?;
+            .map_err(|error| {
+                ProjectRefusal::located(
+                    &path,
+                    error.to_string(),
+                    error
+                        .location()
+                        .map(|location| (location.line(), location.column())),
+                )
+            })?;
             for wire in loaded {
                 refuse_reserved_local_utils(&wire.core, &reserved_ids, &path)?;
                 let rule = ast_grep_config::RuleConfig::try_from(wire, &globals)

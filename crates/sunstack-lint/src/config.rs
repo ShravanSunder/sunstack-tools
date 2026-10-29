@@ -47,7 +47,7 @@ fn locate(file: PathBuf) -> Result<ConfigLocation, LintInvalid> {
         .to_path_buf();
     Ok(ConfigLocation { file, directory })
 }
-pub fn load_config(location: &ConfigLocation) -> Result<LintConfig, LintInvalid> {
+pub fn load_config(location: &ConfigLocation) -> Result<RulesConfig, LintInvalid> {
     let text = std::fs::read_to_string(&location.file).map_err(|_| {
         LintInvalid::at(
             &location.file,
@@ -58,23 +58,18 @@ pub fn load_config(location: &ConfigLocation) -> Result<LintConfig, LintInvalid>
     crate::config_decoding::decode_config(&text, location)
 }
 pub fn config_schema() -> schemars::Schema {
-    schemars::schema_for!(LintConfig)
+    schemars::schema_for!(RulesConfig)
 }
 pub fn init_config(directory: &Path) -> Result<ConfigLocation, LintInvalid> {
     let path = directory.join("sunstack.lint.json");
-    #[derive(serde::Serialize)]
-    struct Skeleton {
-        #[serde(rename = "$schema")]
-        schema: String,
-        rule_sets: std::collections::BTreeMap<EntryName, RuleSetEntry>,
-    }
-    let skeleton = Skeleton {
-        schema: format!(
-            "https://github.com/ShravanSunder/sunstack-tools/releases/download/v{}/sunstack.lint.schema.json",
-            env!("CARGO_PKG_VERSION")
-        ),
-        rule_sets: std::collections::BTreeMap::new(),
-    };
+    let skeleton = serde_json::json!({
+        "$schema":format!("https://github.com/ShravanSunder/sunstack-tools/releases/download/v{}/sunstack.lint.schema.json",env!("CARGO_PKG_VERSION")),
+        "rulebook":[{"markdown":"rulebook.md","rules":"rulebook.rules.json"}],
+        "marker_prefix":"K",
+        "check":{"files":["**/*.md"]},
+        "evidence":{"ast_grep":"evidence/sgconfig.yml","kinds":{"piece":{"rule":"your-rule-id","fields":{"body":{"from":"remainder"}}}}},
+        "decision_model":{"model":"jev-latest"}
+    });
     let bytes = serde_json::to_vec_pretty(&skeleton).map_err(|_| {
         LintInvalid::at(
             &path,

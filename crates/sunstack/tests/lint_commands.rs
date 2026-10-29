@@ -59,9 +59,11 @@ async fn real_cli_json_equals_the_library_and_each_format_preserves_the_finding(
     .await;
     assert_eq!(cli, serde_json::to_value(library).unwrap());
     let human = invoke(root.path(), &["--all"], 1).await;
-    assert!(String::from_utf8(human.stdout).unwrap().contains(
-        "docs/one.md:2:14: error [docs/description] Description must begin with Use when."
-    ));
+    assert!(
+        String::from_utf8(human.stdout).unwrap().contains(
+            "docs/one.md:2:14: error [description] Description must begin with Use when."
+        )
+    );
     let github = invoke(root.path(), &["--all", "--format", "github"], 1).await;
     assert!(
         String::from_utf8(github.stdout)
@@ -74,7 +76,7 @@ async fn real_cli_json_equals_the_library_and_each_format_preserves_the_finding(
             .stdout,
     )
     .unwrap();
-    assert_eq!(sarif["runs"][0]["results"][0]["ruleId"], "docs/description");
+    assert_eq!(sarif["runs"][0]["results"][0]["ruleId"], "description");
     assert_eq!(
         sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["region"]["startColumn"],
         14
@@ -94,9 +96,10 @@ async fn config_check_admits_integer_type_maxima_and_refuses_the_next_integers()
         config["limits"] = json!({field: maximum});
         fixture::config_file(root.path(), &config);
         invoke(root.path(), &["--check"], 0).await;
+        let baseline_text = serde_json::to_string(&baseline).unwrap();
         let raw = format!(
-            "{{\"rule_sets\":{},\"limits\":{{\"{field}\":{overflow}}}}}",
-            baseline["rule_sets"]
+            "{},\"limits\":{{\"{field}\":{overflow}}}}}",
+            baseline_text.strip_suffix('}').unwrap()
         );
         std::fs::write(root.path().join("sunstack.lint.json"), raw).unwrap();
         invoke(root.path(), &["--check"], 2).await;
@@ -110,15 +113,12 @@ async fn nested_config_reports_binding_root_paths_in_every_format_and_incomplete
     std::fs::create_dir_all(&nested).unwrap();
     let mut config = fixture::write(&nested);
     std::fs::rename(nested.join("docs"), root.path().join("docs")).unwrap();
-    config["rule_sets"]["docs"]["files"] = json!(["../docs/*.md"]);
-    // Policy still matches paths relative to the governing config.
-    config["rules"] = json!({"docs/*":"off"});
-    config["overrides"] = json!([{"files":["../docs/*.md"],"rules":{"docs/*":"error"}}]);
+    config["check"]["files"] = json!(["docs/*.md"]);
     fixture::config_file(&nested, &config);
     fixture::commit(root.path(), "nested governing config");
     let json = report(&nested, &["--all"], 1).await;
     assert_eq!(json["findings"][0]["file"], "docs/one.md");
-    assert_eq!(json["findings"][0]["severity_origin"]["kind"], "override");
+    assert_eq!(json["findings"][0]["severity_origin"]["kind"], "authored");
     let human = String::from_utf8(invoke(&nested, &["--all"], 1).await.stdout).unwrap();
     assert!(human.contains("docs/one.md:2:14: error"));
     assert!(!human.contains("../docs/one.md"));
@@ -140,14 +140,9 @@ async fn nested_config_reports_binding_root_paths_in_every_format_and_incomplete
         "docs/one.md"
     );
     let mut server = controlled::ControlledServer::start().await;
-    let rules = nested.join("rules.jsonl");
-    let mut rule: Value = serde_json::from_slice(&std::fs::read(&rules).unwrap()).unwrap();
-    rule["evidence"][0]["select"] = json!({"kind":"paragraph","target_id":"U001"});
-    rule["verdict"] = json!({"kind":"noul","question":{"type":"noul","instructions":"Does it comply?"},"threshold":0.8});
-    std::fs::write(rules, serde_json::to_vec(&rule).unwrap()).unwrap();
-    std::fs::write(root.path().join("docs/one.md"), "U001: failing text.\n").unwrap();
-    config["backend"] =
-        json!({"kind":"jev_openrouter","model":"jev-latest","endpoint":server.endpoint});
+    config = fixture::judged(&nested, &server.endpoint);
+    std::fs::remove_file(nested.join("docs/one.md")).unwrap();
+    std::fs::remove_dir(nested.join("docs")).unwrap();
     fixture::config_file(&nested, &config);
     let operation = command(&nested)
         .args(["--all", "--format", "json"])
@@ -203,7 +198,7 @@ async fn clean_named_paths_history_and_warning_limit_keep_exit_and_selection_sem
         report(root.path(), &[], 0).await["status"]["kind"],
         "nothing_selected"
     );
-    let rules = root.path().join("rules.jsonl");
+    let rules = root.path().join("rules.json");
     let bytes = std::fs::read_to_string(&rules).unwrap();
     std::fs::write(&rules, format!("{bytes}\n")).unwrap();
     assert_eq!(
@@ -221,7 +216,11 @@ async fn clean_named_paths_history_and_warning_limit_keep_exit_and_selection_sem
             .len(),
         1
     );
-    config["rules"] = json!({"docs/*":"warn"});
+    let path = root.path().join("rules.json");
+    let mut entries: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    entries["K001"]["severity"] = json!("warn");
+    fixture::entry_file(root.path(), &entries);
+    config["limits"] = json!({"max_files":100});
     fixture::config_file(root.path(), &config);
     let widened = report(root.path(), &[], 0).await;
     assert_eq!(widened["scope"]["widened"]["kind"], "config_changed");
@@ -230,13 +229,7 @@ async fn clean_named_paths_history_and_warning_limit_keep_exit_and_selection_sem
         report(root.path(), &["--max-warnings", "0"], 1).await["counts"]["warn"],
         1
     );
-    config["rules"] = json!({"docs/*":"off"});
-    fixture::config_file(root.path(), &config);
-    let off = report(root.path(), &["--all"], 0).await;
-    assert_eq!(off["exclusions"]["off"], 1);
-    assert_eq!(off["status"]["kind"], "nothing_selected");
-    config["rules"] = json!({});
-    config["ignore_patterns"] = json!(["docs/explicit.md"]);
+    config["check"]["ignore"] = json!(["docs/explicit.md"]);
     fixture::config_file(root.path(), &config);
     std::fs::write(root.path().join(".gitignore"), "docs/git.md\n").unwrap();
     for name in ["explicit.md", "git.md"] {
@@ -260,12 +253,7 @@ async fn clean_named_paths_history_and_warning_limit_keep_exit_and_selection_sem
 #[tokio::test]
 async fn discovery_inspection_and_init_need_no_key_or_target_read_and_bad_flags_are_invalid() {
     let root = tempfile::tempdir().unwrap();
-    let mut config = fixture::write(root.path());
-    config["backend"] =
-        json!({"kind":"jev_openrouter","model":"jev-latest","endpoint":"http://127.0.0.1:1"});
-    config["rules"] = json!({"docs/*":"off"});
-    config["overrides"] = json!([{"files":["docs/one.md"],"rules":{"docs/*":"warn"}}]);
-    fixture::config_file(root.path(), &config);
+    fixture::write(root.path());
     // A FIFO would block if --check opened target content. No writer is started.
     std::fs::remove_file(root.path().join("docs/one.md")).unwrap();
     assert!(
@@ -284,9 +272,9 @@ async fn discovery_inspection_and_init_need_no_key_or_target_read_and_bad_flags_
     .await;
     let listed: Value =
         serde_json::from_slice(&invoke(root.path(), &["--rules"], 0).await.stdout).unwrap();
-    assert_eq!(listed[0]["rule"], "docs/description");
-    assert_eq!(listed[0]["authored"], "error");
-    assert_eq!(listed[0]["configured"], "off");
+    assert_eq!(listed[0]["rule"], "description");
+    assert_eq!(listed[0]["severity"], "error");
+    assert_eq!(listed[0]["marker"], "K001");
     assert_eq!(listed[0]["kind"]["kind"], "mechanical");
     assert_eq!(listed[0]["source"]["line"], 1);
     let for_file: Value = serde_json::from_slice(
@@ -295,10 +283,7 @@ async fn discovery_inspection_and_init_need_no_key_or_target_read_and_bad_flags_
             .stdout,
     )
     .unwrap();
-    assert_eq!(
-        for_file[0]["for_file"],
-        json!({"setting":"warn","decided_by":{"kind":"override","index":0}})
-    );
+    assert_eq!(for_file, listed);
     let parent_path: Value = serde_json::from_slice(
         &invoke(&root.path().join("docs"), &["--rules", "../docs/one.md"], 0)
             .await
@@ -321,8 +306,8 @@ async fn discovery_inspection_and_init_need_no_key_or_target_read_and_bad_flags_
     invoke(empty.path(), &["--init"], 0).await;
     let original = std::fs::read(empty.path().join("sunstack.lint.json")).unwrap();
     let skeleton: Value = serde_json::from_slice(&original).unwrap();
-    assert_eq!(skeleton.as_object().unwrap().len(), 2);
-    assert_eq!(skeleton["rule_sets"], json!({}));
+    assert!(skeleton["rulebook"].is_array());
+    assert!(skeleton["evidence"]["ast_grep"].is_string());
     assert!(skeleton["$schema"].is_string());
     invoke(empty.path(), &["--init"], 2).await;
     invoke(empty.path(), &["--check"], 2).await;
@@ -343,15 +328,7 @@ async fn discovery_inspection_and_init_need_no_key_or_target_read_and_bad_flags_
 }
 
 fn judged(root: &Path, endpoint: &str) {
-    let mut config = fixture::write(root);
-    config["backend"] = json!({"kind":"jev_openrouter","model":"jev-latest","endpoint":endpoint});
-    fixture::config_file(root, &config);
-    let path = root.join("rules.jsonl");
-    let mut rule: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    rule["evidence"][0]["select"] = json!({"kind":"paragraph","target_id":"U001"});
-    rule["verdict"] = json!({"kind":"noul","question":{"type":"noul","instructions":"Does the paragraph comply?"},"threshold":0.8});
-    std::fs::write(path, serde_json::to_vec(&rule).unwrap()).unwrap();
-    std::fs::write(root.join("docs/one.md"), "U001: failing fixture.\n").unwrap();
+    fixture::judged(root, endpoint);
 }
 
 #[tokio::test]

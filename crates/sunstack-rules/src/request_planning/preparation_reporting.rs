@@ -257,7 +257,7 @@ pub(crate) fn project_preparation(
             _ => {}
         }
     }
-    let source_summary = crate::rule_source_reporting::source_summary(
+    let source_summary = crate::rule_coverage_reporting::source_summary(
         plan.groups.iter().map(|group| group.admitted.set.as_ref()),
         &mut measurements,
     );

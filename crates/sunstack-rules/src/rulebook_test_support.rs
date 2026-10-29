@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(dead_code, clippy::unwrap_used)]
 use crate::*;
 use std::{collections::BTreeMap, path::PathBuf};
 use sunstack_evidence::*;

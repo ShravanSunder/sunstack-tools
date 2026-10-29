@@ -1,8 +1,6 @@
 //! Lint repository documents through the native Sunstack engine.
 mod config_contracts;
 pub use config_contracts::*;
-pub mod policy;
-pub use policy::*;
 pub mod config;
 mod config_decoding;
 pub use config::*;
@@ -13,10 +11,9 @@ pub use report_contracts::*;
 mod config_validation;
 pub use config_validation::{check, list_rules};
 mod backend_factory;
-pub mod invocation;
 mod lint_run;
 pub mod outcome;
-pub use lint_run::run;
+pub use lint_run::{run, run_with_source};
 pub mod formats;
 pub use formats::{OutputFormat, render};
 mod sarif_format;

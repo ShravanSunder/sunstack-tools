@@ -1,345 +1,161 @@
 use crate::{
     config_decoding::{config_error, validate_config_shape},
-    report_contracts::CheckedEntry,
     *,
 };
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    io::Read,
-    path::{Path, PathBuf},
-};
-use sunstack_evidence::{ChangeScope, QueryPath, RepositoryBinding, RepositoryId};
-use sunstack_rules::{
-    BindingGroup, BoundRuleSet, CheckRulesInput, CheckRulesOutcome, CheckRulesOutput, InputBinding,
-    InputDeclaration, InvocationDefinitions, PrintedRuleSource, VerdictDeclaration,
-};
+use std::path::{Path, PathBuf};
+use sunstack_evidence::{EvidenceProject, load_evidence_project};
+use sunstack_rules::{RulebookAssembly, RulebookPair, admit_evidence_kinds, assemble_rulebook};
 use tokio_util::sync::CancellationToken;
 
-enum HeaderReadError {
-    Unreadable,
-    Invalid(sunstack_rules::DiagnosticList),
+pub(crate) struct CheckedRulebook {
+    pub project: EvidenceProject,
+    pub assembly: RulebookAssembly,
+    pub inputs: Vec<PathBuf>,
 }
-fn read_header(
-    path: PathBuf,
-    max_bytes: u64,
-) -> Result<(PathBuf, sunstack_rules::RuleSetDefinition), HeaderReadError> {
-    let path = path
-        .canonicalize()
-        .map_err(|_| HeaderReadError::Unreadable)?;
-    let file = std::fs::File::open(&path).map_err(|_| HeaderReadError::Unreadable)?;
-    let mut bytes = Vec::new();
-    file.take(max_bytes.saturating_add(1))
-        .read_to_end(&mut bytes)
-        .map_err(|_| HeaderReadError::Unreadable)?;
-    if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
-        return Err(HeaderReadError::Invalid(
-            sunstack_rules::RuleDiagnostic::new(
-                sunstack_rules::RuleDiagnosticCode::RuleExceedsBudget,
-            )
-            .definition(&path, 1, 1, vec![])
-            .into(),
-        ));
-    }
-    let header =
-        sunstack_rules::decode_rule_set(&bytes, &path).map_err(HeaderReadError::Invalid)?;
-    Ok((path, header))
-}
-
-pub(crate) fn config_directory(config: &LintConfig) -> PathBuf {
+pub(crate) fn config_directory(config: &RulesConfig) -> PathBuf {
     config
         .source
         .as_ref()
         .map(|source| source.location.directory.clone())
         .unwrap_or_else(|| PathBuf::from("."))
 }
-pub(crate) async fn checked_entries(
-    config: &LintConfig,
-    cancellation: CancellationToken,
-) -> Result<Vec<CheckedEntry>, Vec<LintDiagnostic>> {
+pub(crate) fn load_checked_rulebook(
+    config: &RulesConfig,
+) -> Result<CheckedRulebook, Vec<LintDiagnostic>> {
     validate_config_shape(config).map_err(|error| vec![error.into()])?;
-    let directory = config_directory(config);
+    let base = config_directory(config);
+    let project =
+        load_evidence_project(&base.join(&config.evidence.ast_grep)).map_err(|error| {
+            let mut diagnostic =
+                LintInvalid::at(error.path, LintInvalidCode::Syntax, error.message);
+            diagnostic.line = u32::try_from(error.line).ok();
+            diagnostic.column = error.column.and_then(|column| u32::try_from(column).ok());
+            vec![diagnostic.into()]
+        })?;
     let limits = config
         .limits
         .as_ref()
         .map(EffectiveLimits::from)
         .unwrap_or_default();
-    let native_limits = limits
-        .invocation_limits()
-        .map_err(|error| vec![error.into()])?;
-    let mut seen = BTreeSet::new();
-    let mut entries = Vec::new();
-    for (name, entry) in &config.rule_sets {
-        if cancellation.is_cancelled() {
-            return Err(vec![
+    let errors = admit_evidence_kinds(
+        &config.evidence.kinds,
+        &project,
+        limits.evidence_max_chars as usize,
+    );
+    if !errors.is_empty() {
+        return Err(errors
+            .into_iter()
+            .map(|error| {
                 config_error(
                     config,
-                    "rule_sets",
+                    &error.field_path,
                     LintInvalidCode::Syntax,
-                    "Config checking cancelled.",
+                    error.message,
                 )
-                .into(),
-            ]);
+                .into()
+            })
+            .collect());
+    }
+    let pairs = config
+        .rulebook
+        .iter()
+        .map(|pair| RulebookPair {
+            markdown: base.join(&pair.markdown),
+            rules: base.join(&pair.rules),
+        })
+        .collect::<Vec<_>>();
+    let assembly = assemble_rulebook(
+        &pairs,
+        &config.marker_prefix,
+        config.max_question_words.get() as usize,
+        &config.evidence.kinds,
+        &project,
+    )
+    .map_err(|errors| native_diagnostics(config, errors))?;
+    let mut inputs = project.inputs.clone();
+    for pair in &pairs {
+        inputs.push(pair.markdown.clone());
+        inputs.push(pair.rules.clone());
+    }
+    if let Some(source) = &config.source {
+        inputs.push(source.location.file.clone());
+    }
+    Ok(CheckedRulebook {
+        project,
+        assembly,
+        inputs,
+    })
+}
+pub async fn check(config: &RulesConfig, cancellation: CancellationToken) -> CheckResult {
+    let config = config.clone();
+    if cancellation.is_cancelled() {
+        return CheckResult::Invalid {
+            diagnostics: vec![],
+        };
+    }
+    let result = tokio::task::spawn_blocking(move || {
+        let checked = load_checked_rulebook(&config)?;
+        let mut diagnostics = Vec::new();
+        for skipped in &checked.assembly.skipped {
+            diagnostics.extend(native_diagnostics(&config, skipped.diagnostics.clone()));
         }
-        let joined = directory.join(&entry.path);
-        let max_bytes = limits.max_file_bytes;
-        let header_path = joined.clone();
-        let loaded = tokio::task::spawn_blocking(move || read_header(header_path, max_bytes))
-            .await
-            .map_err(|_| {
-                vec![
-                    config_error(
-                        config,
-                        name.as_str(),
-                        LintInvalidCode::Syntax,
-                        "Rule-set loading failed.",
-                    )
-                    .into(),
-                ]
-            })?;
-        let (path, header) = loaded.map_err(|error| match error {
-            HeaderReadError::Invalid(diagnostics) => native_diagnostics(config, diagnostics),
-            HeaderReadError::Unreadable => vec![
-                config_error(
-                    config,
-                    name.as_str(),
-                    LintInvalidCode::MissingRuleSet,
-                    format!("Cannot read rule-set file {}.", joined.display()),
+        if diagnostics.is_empty() {
+            Ok(checked
+                .assembly
+                .rules
+                .iter()
+                .map(listing)
+                .collect::<Vec<_>>())
+        } else {
+            Err(diagnostics)
+        }
+    })
+    .await;
+    match result {
+        Ok(Ok(rules)) => CheckResult::Valid { rules },
+        Ok(Err(diagnostics)) => CheckResult::Invalid { diagnostics },
+        Err(_) => CheckResult::Invalid {
+            diagnostics: vec![
+                LintInvalid::at(
+                    "sunstack.lint.json",
+                    LintInvalidCode::Syntax,
+                    "config checking failed",
                 )
                 .into(),
             ],
-        })?;
-        if !seen.insert(path.clone()) {
-            return Err(vec![
-                config_error(
-                    config,
-                    name.as_str(),
-                    LintInvalidCode::SameRuleSetTwice,
-                    "Two entries name the same rule-set file.",
-                )
-                .into(),
-            ]);
-        }
-        if header.inputs.len() != 1
-            || !header
-                .inputs
-                .values()
-                .all(|kind| matches!(kind, InputDeclaration::Document {}))
-        {
-            let kinds = header
-                .inputs
-                .values()
-                .map(|kind| match kind {
-                    InputDeclaration::Document {} => "document",
-                    InputDeclaration::Conversation {} => "conversation",
-                    InputDeclaration::ChangeSet {} => "change_set",
-                    InputDeclaration::Payload { .. } => "payload",
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-            return Err(vec![
-                config_error(
-                    config,
-                    name.as_str(),
-                    LintInvalidCode::UnsupportedInputs,
-                    format!(
-                        "Lint requires exactly one document input; this rule set has: {kinds}."
-                    ),
-                )
-                .into(),
-            ]);
-        }
-        let Some(input_name) = header.inputs.keys().next().cloned() else {
-            return Err(vec![
-                config_error(
-                    config,
-                    name.as_str(),
-                    LintInvalidCode::UnsupportedInputs,
-                    "Lint requires one document input.",
-                )
-                .into(),
-            ]);
-        };
-        let repository = RepositoryId::new("lint").map_err(|_| {
-            vec![
-                config_error(
-                    config,
-                    name.as_str(),
-                    LintInvalidCode::Syntax,
-                    "Invalid repository identity.",
-                )
-                .into(),
-            ]
-        })?;
-        let document = config
-            .source
-            .as_ref()
-            .and_then(|source| source.location.file.file_name())
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("sunstack.lint.json"));
-        let native = CheckRulesInput {
-            definition_root: directory.clone(),
-            definitions: InvocationDefinitions::RuleSets {
-                rule_sets: vec![BoundRuleSet {
-                    path: path.clone(),
-                    binding_groups: vec![BindingGroup {
-                        bindings: BTreeMap::from([(
-                            input_name.clone(),
-                            InputBinding::Document {
-                                repository: repository.clone(),
-                                path: document,
-                            },
-                        )]),
-                    }],
-                }],
-            },
-            repositories: vec![RepositoryBinding {
-                key: repository,
-                root: directory.clone(),
-                input_paths: vec![QueryPath::Glob {
-                    pattern: "**".into(),
-                }],
-                change_scope: ChangeScope::Full {},
-            }],
-            payload_schemas: vec![],
-            limits: native_limits.clone(),
-            discovery: limits.discovery().map_err(|error| vec![error.into()])?,
-            output: CheckRulesOutput::AssembledRules,
-        };
-        let printed = match sunstack_rules::check_rules(native, cancellation.clone()).await {
-            CheckRulesOutcome::Checked { printed_rules, .. } => printed_rules,
-            CheckRulesOutcome::Refused { diagnostics, .. }
-            | CheckRulesOutcome::CheckFailed { diagnostics, .. }
-            | CheckRulesOutcome::Cancelled { diagnostics, .. } => {
-                return Err(native_diagnostics(config, diagnostics));
-            }
-        };
-        entries.push(CheckedEntry {
-            name: name.clone(),
-            path,
-            input: input_name,
-            rules: printed,
-        });
-    }
-    for selector in config
-        .rules
-        .keys()
-        .chain(config.overrides.iter().flat_map(|block| block.rules.keys()))
-    {
-        let Some(entry) = entries.iter().find(|entry| &entry.name == selector.entry()) else {
-            return Err(vec![
-                config_error(
-                    config,
-                    &selector.written(),
-                    LintInvalidCode::UnknownSelector,
-                    "The selector names an unknown rule-set entry.",
-                )
-                .into(),
-            ]);
-        };
-        if let RuleSelector::Exact { rule, .. } = selector
-            && !entry
-                .rules
-                .iter()
-                .any(|loaded| &loaded.definition.rule_id == rule)
-        {
-            return Err(vec![
-                config_error(
-                    config,
-                    &selector.written(),
-                    LintInvalidCode::UnknownSelector,
-                    "The selector names an unknown rule ID.",
-                )
-                .into(),
-            ]);
-        }
-    }
-    Ok(entries)
-}
-pub async fn check(config: &LintConfig, cancellation: CancellationToken) -> CheckResult {
-    match checked_entries(config, cancellation).await {
-        Ok(entries) => CheckResult::Valid {
-            rules: entry_listings(config, &entries, None),
         },
-        Err(diagnostics) => CheckResult::Invalid { diagnostics },
+    }
+}
+fn listing(rule: &sunstack_rules::RulebookRule) -> RuleListing {
+    RuleListing {
+        rule: rule.name.clone(),
+        marker: rule.sentence.marker.clone(),
+        source: SourceLocation {
+            file: rule.sentence.rulebook.clone(),
+            line: u32::try_from(rule.sentence.line).unwrap_or(u32::MAX),
+        },
+        evidence: rule.kind.clone(),
+        kind: if rule.questions.is_empty() {
+            RuleKind::Mechanical
+        } else {
+            RuleKind::Asking
+        },
+        severity: rule.severity,
+        standard: rule.sentence.standard.clone(),
     }
 }
 pub fn list_rules(
-    config: &LintConfig,
+    _config: &RulesConfig,
     checked: &CheckResult,
-    file: Option<&Path>,
+    _file: Option<&Path>,
 ) -> Vec<RuleListing> {
     match checked {
+        CheckResult::Valid { rules } => rules.clone(),
         CheckResult::Invalid { .. } => vec![],
-        CheckResult::Valid { rules } => rules
-            .iter()
-            .map(|listing| {
-                let mut listing = listing.clone();
-                if let RuleSelector::Exact { entry, rule } = &listing.rule {
-                    listing.for_file = file.map(|file| {
-                        effective_setting(config, entry, rule, listing.authored, Some(file))
-                    });
-                }
-                listing
-            })
-            .collect(),
     }
 }
-pub(crate) fn entry_listings(
-    config: &LintConfig,
-    entries: &[CheckedEntry],
-    file: Option<&Path>,
-) -> Vec<RuleListing> {
-    entries
-        .iter()
-        .flat_map(|entry| {
-            entry.rules.iter().map(|rule| {
-                let source = match &rule.source {
-                    PrintedRuleSource::Jsonl { file, line } => SourceLocation {
-                        file: file.clone(),
-                        line: u32::try_from(*line).unwrap_or(u32::MAX),
-                    },
-                    PrintedRuleSource::Markdown { provenance } => SourceLocation {
-                        file: provenance.entry_location.file.clone(),
-                        line: u32::try_from(provenance.entry_location.line).unwrap_or(u32::MAX),
-                    },
-                };
-                let setting = effective_setting(
-                    config,
-                    &entry.name,
-                    &rule.definition.rule_id,
-                    rule.definition.severity,
-                    None,
-                );
-                RuleListing {
-                    rule: RuleSelector::Exact {
-                        entry: entry.name.clone(),
-                        rule: rule.definition.rule_id.clone(),
-                    },
-                    source,
-                    kind: match rule.definition.verdict {
-                        VerdictDeclaration::Mechanical { .. } => RuleKind::Mechanical,
-                        VerdictDeclaration::Noul { .. } | VerdictDeclaration::Composite { .. } => {
-                            RuleKind::Judged
-                        }
-                    },
-                    authored: rule.definition.severity,
-                    configured: setting.setting,
-                    for_file: file.map(|file| {
-                        effective_setting(
-                            config,
-                            &entry.name,
-                            &rule.definition.rule_id,
-                            rule.definition.severity,
-                            Some(file),
-                        )
-                    }),
-                }
-            })
-        })
-        .collect()
-}
 pub(crate) fn native_diagnostics(
-    config: &LintConfig,
+    config: &RulesConfig,
     diagnostics: sunstack_rules::DiagnosticList,
 ) -> Vec<LintDiagnostic> {
     diagnostics

@@ -13,6 +13,8 @@ pub mod decision_walking;
 pub use decision_walking::*;
 pub mod rulebook_assembly;
 pub use rulebook_assembly::*;
+pub mod rulebook_run;
+pub use rulebook_run::*;
 #[cfg(test)]
 mod rulebook_test_support;
 mod strict_decoding;
@@ -20,14 +22,9 @@ pub use definition_admission::*;
 pub use definition_contracts::*;
 pub use invocation_contracts::*;
 pub use rule_diagnostics::*;
-pub mod rule_source_contracts;
-pub use rule_source_contracts::*;
+pub mod rule_check_contracts;
+pub use rule_check_contracts::*;
 pub mod rule_checking;
-mod rule_source_admission;
-mod rule_source_assembly;
-mod rule_source_decoding;
-mod rule_source_entry_wire;
-mod rule_source_reporting;
 pub use rule_checking::{check_rules, decode_check_rules};
 pub use strict_decoding::decode_rule_invocation;
 
@@ -65,3 +62,5 @@ pub use rule_preparation::*;
 
 pub mod selection_contracts;
 pub use selection_contracts::*;
+
+mod rule_coverage_reporting;
