@@ -91,14 +91,14 @@ sequenceDiagram
   Lint->>Rules: markers ↔ entries, admit against the project and kinds
   Rules-->>Lint: rules + skipped rules (R28)
   Lint->>Lint: any rule asks and no key? exit 2 before any checked read (R4)
-  Lint->>Ev: changes since origin/main; config inputs changed? widen to full
+  Lint->>Ev: changes since origin/main, and widen to full if config inputs changed
   Lint->>Ev: read each selected file once, run each project rule once
   Ev-->>Lint: pieces (raw fields + model view), picked by changed spans
   loop each picked (rule, piece), in order
     Lint->>Run: walk the decision
     Run->>Run: mechanical steps on raw fields
     opt the walk reaches an ask or combine
-      Run->>Run: build the request from the model view; measure the encoded body
+      Run->>Run: build the request from the model view, measure the encoded body
       Run->>Jev: one request: all the rule's questions, one piece
       Jev-->>Run: answers, or a failure that makes this pair incomplete
       Run->>Run: finish the walk with those answers
