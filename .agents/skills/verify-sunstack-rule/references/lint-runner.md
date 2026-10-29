@@ -25,7 +25,7 @@ The rulebook lint journey owns the complementary Git/definition/loaded-file/untr
 Inspect the Implementer's current-target tests and raw runs before joining them:
 
 - Library/CLI report equality and the current report schema, including uncertain/field/read-count additions. Keep actual producer/consumer serialization real.
-- `crates/sunstack-lint/tests/rulebook_lint_gates.rs` for zero content acquisitions and no change capture and zero backend construction. The binary counter and zero network alone are insufficient.
+- `crates/sunstack-lint/tests/rulebook_lint_gates.rs` for run-path acquisition/capture gates. The binary counter alone is insufficient. Check-only U9 uses its amended structural call-path plus no-writer FIFO witness, owned by the refusal journey.
 - Every retained native JSONL/conversation `exec` test, including admission assertions extracted before deleting marker-route tests.
 - Decision-body size/encoding, typed answer admission, request ordering, field states and detailed threshold/location tables from the 29 Oct design.
 

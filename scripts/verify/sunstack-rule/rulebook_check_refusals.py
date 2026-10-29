@@ -7,12 +7,13 @@
 Run from the monorepo root with uv run --script <this-file> --prepare --evidence
 <new-directory> to inspect the independently authored cases without a binary.
 For observation omit --prepare and supply --binary, --source-root and full
---commit. No genuine provider request or credential access. Recording-source
-and backend-construction proof is joined from rulebook_lint_gates.rs, not
-inferred from an exit or from this binary's own usage counter.
+--commit. No genuine provider request or credential access. No-checked-content
+proof is the amended structural check call path plus a no-writer FIFO outside
+Git; a bounded timeout fails. Run-path recording gates remain a separate join.
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -42,6 +43,32 @@ class RefusalCase(BaseModel):
     file: str
     offending: str
     reason: str
+
+
+def prepare_fifo(destination: Path) -> Path:
+    """No writer: a mistaken content open blocks until the process bound fails."""
+    root = prepare_fixture(destination)
+    os.mkfifo(root / "blocked.md")
+    configure(root, lambda config: config.update(check={"files": ["blocked.md"]}))
+    git = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=root,
+        env={
+            "PATH": "/usr/bin:/bin",
+            "HOME": str(root.parent / "git-home"),
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    require(
+        git.returncode == 128 and "not a git repository" in git.stderr,
+        "FIFO witness must be outside Git; Git probe must be conclusive",
+    )
+    return root
 
 
 def set_field(document: JsonObject, path: tuple[str, ...], value: JsonValue) -> None:
@@ -448,10 +475,16 @@ def main() -> None:
         evidence = args.evidence.resolve()
         evidence.mkdir(parents=True, exist_ok=False)
         cases = prepare_cases(evidence / "fixtures")
+        fifo = prepare_fifo(evidence / "fifo-check")
         if args.prepare:
             write_json(
                 evidence / "prepared.json",
-                {"product_observed": False, "cases": len(cases), "oracle": ORACLE},
+                {
+                    "product_observed": False,
+                    "cases": len(cases),
+                    "oracle": ORACLE,
+                    "fifo_without_writer_outside_git": True,
+                },
             )
             print(f"Prepared {len(cases)} R24 controls; product unobserved")
             return
@@ -478,6 +511,26 @@ def main() -> None:
                 "Clean check lost rule listing",
             )
             require(not calls, "Clean check dispatched a request")
+            configure(
+                fifo,
+                lambda config: object_value(config["decision_model"]).update(
+                    endpoint=process.server.endpoint
+                ),
+            )
+            out, err, calls = process.run(
+                fifo,
+                "fifo-no-writer-check",
+                ["lint", "--config", CONFIG, "--check"],
+                expected_exit=0,
+            )
+            require(
+                not calls
+                and all(
+                    marker in (out + err).decode()
+                    for marker in ("K001", "K002", "K003")
+                ),
+                "FIFO check did not complete with its rule listing and zero requests",
+            )
             for case in cases:
                 root = evidence / "fixtures" / case.name
                 # Keep duplicate and malformed JSON intact; parsing and writing
@@ -518,11 +571,11 @@ def main() -> None:
                 "binary_sha256": target.digest,
                 "cases": results,
                 "oracle": ORACLE,
-                "required_join": "crates/sunstack-lint/tests/rulebook_lint_gates.rs: recording reads and backend construction; this process driver alone does not prove those",
+                "required_join": "U9 structural check signature/call path has no checked-file source, capture or backend path; FIFO completed without writer/key. Run-path acquisition recording tests remain separate.",
             },
         )
         print(
-            f"Observed {len(results)} refusal cases; recording-source join remains separate"
+            f"Observed {len(results)} refusal cases and bounded FIFO check; structural call-path join remains separate"
         )
     except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
         parser.exit(2, f"Rulebook check observation failed: {error}\n")
