@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.16.0
+
+### Minor Changes
+
+- 2f44f29: Ship a self-contained authoring CLI tarball with the CDN distribution for pnpm dlx and npx. Reduce routine document authoring to one static lint pass; remove browser, phone/theme and shared-control regression requirements from the component guide.
+
 ## 1.15.4
 
 ### Patch Changes
