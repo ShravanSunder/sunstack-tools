@@ -45,6 +45,17 @@ test('Code and individual Mermaid nodes retain independent comments instead of s
 		const end = svgText
 			? passage.getBoundingClientRect()
 			: textCaretRect(passage, passage.firstChild?.textContent?.length ?? 0);
+		if (svgText) {
+			const hit = fixture.elementFromPoint(start.left + 0.5, start.top + start.height / 2);
+			console.info('SVG selection geometry', {
+				bounds: start.toJSON(),
+				hit: hit?.localName,
+				hitNode: hit?.closest('[data-id]')?.getAttribute('data-id'),
+				selection: fixture.defaultView?.getComputedStyle(passage).userSelect,
+				pointerEvents: fixture.defaultView?.getComputedStyle(passage).pointerEvents,
+				viewport: [fixture.defaultView?.innerWidth, fixture.defaultView?.innerHeight],
+			});
+		}
 		await commands.dragReviewSelection({
 			startX: start.left + 0.5,
 			startY: start.top + start.height / 2,
