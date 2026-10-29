@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.16.1
+
+### Patch Changes
+
+- 8c45c11: Keep Code, Pre and Mermaid feedback on their own semantic targets, with separate flowchart-node comments. Editing a comment shows only its editor and restores the saved entry on cancel. Existing page comments and saved identities are preserved.
+
 ## 1.16.0
 
 ### Minor Changes
