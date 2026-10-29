@@ -4,7 +4,7 @@ How the engine realizes [Specification](specification.md) R1–R28 for [Requirem
 
 ## What changes, in one picture
 
-`sunstack lint --config` gets a new pipeline: load the config, load the evidence project with the standard util library, assemble and admit the rulebook, build evidence pieces, pick them, walk each rule's decision, ask the decision model only when a walk needs answers, and report. It sits beside the existing `exec` pipeline for JSONL RuleSets and conversation rules, which stays as it is. It reuses what already works: the Markdown parse and marker binding, the frontmatter YAML reader, git change capture, the decision model contract and its HTTP backend, credential resolution, and lint's scopes, formats and exit codes.
+`sunstack lint --config` gets a new pipeline: load the config, load the evidence project with the standard util library, assemble and admit the rulebook, build evidence pieces, pick them, walk each rule's decision, ask the decision model only when a walk needs answers, and report. It sits beside the existing `exec` pipeline for JSONL RuleSets and conversation rules, which stays as it is. It reuses what already works: the Markdown parse and marker binding, the frontmatter YAML reader, git change capture, the decision model contract and its HTTP backend, credential resolution, and lint's scopes, formats and exit codes. The decision crate gains one public function: the exact request body its backend would send, so the request cap (R21) measures what is really sent.
 
 ```mermaid
 flowchart TB
@@ -25,16 +25,17 @@ flowchart TB
   subgraph evidence["sunstack-evidence (Markdown evidence)"]
     proj["evidence_project_loading<br/>sgconfig + standard utils"]
     std["standard_markdown_utils<br/>embedded YAML"]
-    build["evidence_piece_building<br/>matches → pieces → fields"]
-    cut["evidence_piece_cutting"]
+    src["checked_file_source<br/>the only reader of checked and target files"]
+    build["evidence_piece_building<br/>matches → pieces → raw fields"]
+    cut["evidence_model_view<br/>bounded projection for the model"]
     pick["evidence_piece_picking<br/>changed spans → picked pieces"]
     md["markdown_document (existing)<br/>parse, bind_markers"]
     fm["markdown_frontmatter (existing)"]
     chg["change_selection + repository_capture (existing)"]
   end
-  subgraph decisions["sunstack-decisions (existing, unchanged)"]
+  subgraph decisions["sunstack-decisions (existing, one addition)"]
     jv["judgment_validation"]
-    je["judgment_execution + decision_backends"]
+    je["judgment_execution + decision_backends<br/>+ exposed request-body encoding"]
   end
   cmd --> cfg --> run
   run --> proj
@@ -44,6 +45,7 @@ flowchart TB
   adm --> jv
   run --> chg
   run --> build --> cut
+  build --> src
   build --> fm
   build --> pick
   run --> exe --> walk
@@ -74,8 +76,8 @@ The Markdown-marker route through RuleSets (`rule_sources`) is deleted, not kept
 | E3 Rule entry | sunstack-rules | new: `rulebook_entry_wire`, `rulebook_assembly`, `rulebook_admission`; replaces `rule_source_entry_wire` | wire `RuleEntryWire { name, evidence, questions: NamedQuestionMap, decision: DecisionGraphWire, severity: Option<Severity> }`; admitted `RulebookRule { name: RuleId, sentence: RulebookSentence, kind: EvidenceKindName, questions: NamedQuestionMap, decision: DecisionGraph, severity: Severity }` | derived | `RuleId`, `Severity` (existing, `definition_contracts`); `NamedQuestionMap` (existing, sunstack-decisions) |
 | E4 Evidence project | sunstack-evidence | new: `evidence_project_loading` | `EvidenceProject { globals: GlobalRules, rules: RuleCollection<SupportLang>, rule_ids: BTreeSet<EvidenceRuleId> }` from ast-grep-config 0.51 | derived | vendor types, mirrored from ast-grep's CLI loader |
 | E5 Evidence kind | sunstack-evidence | new: `evidence_kind_contracts` | `EvidenceKindDefinition { rule: EvidenceRuleId, fields: BTreeMap<FieldName, FieldSource>, max_chars: Option<NonZeroU32> }`; `FieldSource` closed enum: `FirstLine`, `Capture { regex }`, `Inside { rule }`, `Enclosing { rule }`, `SameFile { rule }`, `Yaml { key }`, `Remainder`, `Target { regex, resolve: TargetResolution, opening_chars, as_kind: Option<EvidenceKindName> }`; `TargetResolution`: `Path`, `Skill`, `PathOrSkill` | derived | Serde tag `from`, snake_case |
-| E6 Evidence piece | sunstack-evidence | new: `evidence_piece_building`, `evidence_piece_cutting` | `EvidencePiece { kind, where: PieceLocation { file, first_line, last_line, span: SourceSpan }, text, fields: BTreeMap<FieldName, FieldValue>, cut: Vec<FieldName> }`; plus `FileMatchIndex { by_rule: BTreeMap<EvidenceRuleId, Vec<SourceSpan>> }` per file | derived per run | `SourceSpan` (existing, `evidence_contracts`) |
-| E7 Field | sunstack-evidence | same as E6 | `FieldValue` closed enum: `Text { value, spans, uncut_chars }`, `Texts { values, spans }`, `Targets(Vec<LoadTarget { name, path, exists, opening: Option<String>, fields: Option<BTreeMap<FieldName, FieldValue>> }>)` | derived | — |
+| E6 Evidence piece | sunstack-evidence | new: `evidence_piece_building`, `evidence_model_view` | `EvidencePiece { kind, where: PieceLocation { file, first_line, last_line, span: SourceSpan }, text, fields: BTreeMap<FieldName, FieldValue>, model_view: ModelView }` where `fields` is the immutable raw view mechanical tools read and `ModelView` is `Bounded { fields: BTreeMap<FieldName, ModelFieldValue>, cut: Vec<FieldName> }` or `TooLarge { chars, limit }`; plus `FileMatchIndex { by_rule: BTreeMap<EvidenceRuleId, Vec<SourceSpan>> }` per file | derived per run | `SourceSpan` (existing, `evidence_contracts`) |
+| E7 Field | sunstack-evidence | same as E6 | `FieldValue` closed enum: `Text { value, spans }`, `Texts { values, spans }`, `Targets(Vec<LoadTarget>)`, `Absent`, `Unavailable { reason: FieldUnavailable }`; `FieldUnavailable`: `FrontmatterMalformed`, `NotAString`, `Unreadable`; `LoadTarget { name, path, exists, candidates: Vec<PathBuf>, opening: Option<String>, fields: Option<BTreeMap<FieldName, FieldValue>> }` (nested `fields` never hold `Targets`, by admission); `ModelFieldValue` is the same shape with cut strings and list tails. The YAML states map from the existing `markdown_frontmatter` Present / Absent / BlockUnavailable | derived | existing frontmatter states |
 | E8 Question | sunstack-decisions | existing: `JudgmentQuestion`, `NamedQuestionMap` | unchanged | authored | existing |
 | E9 Decision step | sunstack-rules | new: `decision_graph_contracts` | `DecisionGraph { start: StepName, steps: BTreeMap<StepName, DecisionStep> }`; `DecisionStep` closed enum: `MechanicalCheck { tool: MechanicalTool, yes: Route, no: Route }`, `AskNoul { question, yes_at_or_above, no_at_or_below, yes, no }`, `AskChoice { question, min_probability, routes: BTreeMap<ChoiceLabel, Route> }`, `AskScore { … like noul }`, `Combine { weights: BTreeMap<QuestionName, Weight>, yes_at_or_above, no_at_or_below, yes, no }`; `MechanicalTool`: `AstGrep { rule }`, `Regex { field, pattern }`, `Contains { field, text }`, `MaxChars { field, max }`, `FileExists { field }`; `Route`: `Step(StepName)`, `Pass`, `NotApplicable`, `Uncertain`, `Finding { message, severity: Option<Severity>, at: Option<FieldName> }` | authored | the wire's step keys (`mechanical_check`, `ask`, `combine`) select the variant |
 | E10 Result | sunstack-rules (produced), sunstack-lint (reported) | new: `decision_walking`, `rulebook_run`; modified: lint `report_contracts` | `RuleResult` closed enum: `Pass`, `Finding { severity, message, line, path_taken, answers?, value? }`, `NotApplicable`, `Uncertain { step, state, answers }`, `Incomplete { reason: IncompleteReason }`; lint adds `LintStatus::Uncertain` (exit 5), `IncompleteReason::RequestTooLarge` | derived per run | lint's existing enums |
@@ -88,13 +90,15 @@ The Markdown-marker route through RuleSets (`rule_sources`) is deleted, not kept
 | --- | --- | --- | --- |
 | `standard_markdown_utils` | hold the shipped utils and their reserved IDs | a new common Markdown shape | `evidence_project_loading` |
 | `evidence_project_loading` | turn an `sgconfig.yml` plus the standard utils into globals and a rule collection, Markdown only, reserved IDs enforced | ast-grep's project format | lint check and run |
-| `evidence_piece_building` | parse each checked file once, run every project rule that applies to its path once, build pieces and fields per kind, resolve targets inside the repository root | the field-source vocabulary | lint run, `--evidence` |
-| `evidence_piece_cutting` | apply R12 | the size rule | piece building |
+| `checked_file_source` | the one place checked files and target files are read: bounded reads inside the repository root, counted; production reads the filesystem, tests pass a recording source | how files are acquired | piece building (checked files, target openings) |
+| `evidence_piece_building` | parse each checked file once, run every project rule that applies to its path once, build pieces and raw fields per kind, resolve targets through `checked_file_source` | the field-source vocabulary | lint run, `--evidence` |
+| `evidence_model_view` | project raw fields into the bounded model view by R12's reduction order, or `TooLarge` | the size rule | piece building |
+| sunstack-decisions request-body encoding (one public function over the backend's existing encoding) | return the exact body `dispatch` would send for a request and model | the provider wire | `rulebook_run` (R21) |
 | `evidence_piece_picking` | select pieces under a scope from `CapturedChange` spans and target changes | the picking rule | lint run |
 | `rulebook_assembly` | pair markers and entries both ways and produce admitted-or-skipped rules | the rule file wire | check and run |
-| `rulebook_admission` | every R24 refusal, against the evidence project and kinds | the decision vocabulary | check and run |
-| `decision_walking` | walk one rule on one piece: settle, or stop at the first ask needing answers, then finish with answers | decision semantics | `rulebook_run` |
-| `rulebook_run` | for each picked pair, walk, build the request, enforce `request_max_chars`, dispatch with bounded concurrency and request count, collect results in order | dispatch policy | lint run |
+| `rulebook_admission` | every R24 refusal, against the evidence project and kinds: graph shape, threshold domains, tool/field shape compatibility (each field source has one shape), `as_kind` defined and target-free | the decision vocabulary | check and run |
+| `decision_walking` | walk one rule on one piece against its raw fields: settle, or stop at the first ask needing answers, then finish with answers; an unavailable field it reads settles `Incomplete { evidence_unavailable }` | decision semantics | `rulebook_run` |
+| `rulebook_run` | for each picked pair, walk, build the request from the model view, measure the encoded body against `request_max_chars`, dispatch with bounded concurrency and request count, collect results in order | dispatch policy | lint run |
 | lint `rules_config` modules | decode, validate and resolve the config, refusing old keys by name | the config contract | CLI |
 | lint `lint_run` | order the pipeline and map scope, skips and results into the outcome | the command's flow | CLI |
 | lint report modules | statuses, exit codes, uncertain, findings, evidence listing, formats | the report contract | CLI, the #171 runner |
@@ -140,7 +144,7 @@ sequenceDiagram
   Rep-->>CLI: report (default | json | github | sarif)
 ```
 
-`--check` runs the first three steps only and lists rules (R24). `--evidence [kind]` runs through picking and prints pieces, with no credential and no request (R13).
+`--check` runs the first three steps only and lists rules (R24). `--evidence [kind]` skips the credential gate, runs through picking and prints pieces with their raw fields and model views, with no request (R13). Every checked-file and target read in all three paths goes through `checked_file_source`, and the report's usage counts them (`checked_files_read`), so "no read before the gate" is observed where acquisition happens.
 
 The current path for comparison: lint builds a native RuleSet invocation with a stand-in binding, calls `sunstack_rules` `evaluate`, which plans requests per RuleSet group and occurrence (`request_graph.rs:157`), and projects verdicts into the lint report (`lint_run.rs:142`). Added edges: config → evidence project; assembly → admission against evidence kinds; pieces → picking by span; run → `run_judgments` per pair. Removed edges: lint → native invocation with bindings; marker sources → `RuleDefinition` lowering. Preserved: credential resolution at the CLI edge; `run_judgments` with its attempt controller, retries and receipts; lint's scope mapping, widening on config change and formats.
 
@@ -156,7 +160,7 @@ Nothing persists. Per run: the config, project, rules and pieces are immutable o
 | `NeedsAnswers` | request too large, provider failure, malformed answer, cancel, request limit | `Incomplete { reason }` |
 | any step | a terminal | `Pass`, `Finding`, `NotApplicable` or `Uncertain` |
 
-Illegal states are unrepresentable or refused at the trusted entry: a route to a missing step, a cycle, an unrouted choice option, an ask naming an undefined question, weights not summing to 1, or no above yes are refused by `rulebook_admission`, so the walk never meets them. A piece without a field a step names can't happen because admission checks field references against the kind.
+Illegal states are unrepresentable or refused at the trusted entry: a route to a missing step, a cycle, an unrouted choice option, an ask naming an undefined question, weights not summing to 1, a threshold outside 0 to 1, a yes threshold not strictly above the no threshold, a tool given a field of the wrong shape, and an `as_kind` that is undefined or has its own `target` field are refused by `rulebook_admission`, so the walk and the builder never meet them. Every field name a step uses exists on its kind, but its value can still be `Absent` or `Unavailable` at run time; R17 settles both.
 
 ## Failure and recovery
 
@@ -166,7 +170,10 @@ Illegal states are unrepresentable or refused at the trusted entry: a route to a
 | one bad marker or entry | assembly, admission | that rule | skipped with diagnostics; `incomplete: coverage_partial` (R28) |
 | missing credential with asking rules | lint run, before reading files | the whole run | `invalid` naming the credential (R4) |
 | a checked file over lint's file limits or unreadable | piece building | that file's pieces | `incomplete` with the existing selection reason |
-| request over `request_max_chars` | `rulebook_run` | that pair | `Incomplete { request_too_large }` (R21) |
+| a field a step reads is `Unavailable` (malformed frontmatter, non-string value, unreadable) | `decision_walking` | that pair | `Incomplete { evidence_unavailable, field }` (R17) |
+| a piece's model view can't fit `max_chars` after R12's reduction | `evidence_model_view` | every rule on that piece | `Incomplete { evidence_too_large }` (R12); mechanical-only paths still settle from raw fields |
+| a skill name matches several checked skills | piece building | that target | `exists: false` with `candidates` (R11) |
+| request over `request_max_chars` (measured on the exact encoded body) | `rulebook_run` with the decision crate's body encoding | that pair | `Incomplete { request_too_large }` (R21) |
 | provider error, timeout, malformed answer | `run_judgments` (existing attempt controller and validation) | that pair | `Incomplete { provider_failure }` (R21); retries are the existing controller's |
 | request limit reached | dispatcher | remaining pairs | `Incomplete { request_limit_reached }` |
 | cancellation (signal) | existing cancellation token | the run | `cancelled` (4); finished results kept |
@@ -190,19 +197,20 @@ No migration of stored data: nothing is stored.
 
 ## Trust and privacy
 
-The decision model receives the standard, the piece's location and its fields, which are repository text the consumer chose to check; that is the existing contract with OpenRouter. The credential path is unchanged and never enters state, reports or diagnostics. Evidence reads stay inside the repository root (R11). The evidence project is consumer-authored YAML parsed by ast-grep's own deserializer; regexes compile with the `regex` crate (linear time).
+The decision model receives the standard, the piece's location and its bounded model view (never `text` or the cut-out parts of a field), which is repository text the consumer chose to check; that is the existing contract with OpenRouter. The credential path is unchanged and never enters state, reports or diagnostics. Evidence reads stay inside the repository root (R11). The evidence project is consumer-authored YAML parsed by ast-grep's own deserializer; regexes compile with the `regex` crate (linear time).
 
 ## Cross-cutting
 
 - **Performance:** each checked file is read and parsed once, and every applicable project rule runs on it once; kinds, `inside`, `enclosing`, `same_file` and the `ast_grep` tool all read the per-file match index instead of re-matching.
 - **Determinism (R27):** directory walks are sorted; pieces are ordered by kind name, file and byte start; results by rule order, file and byte start.
-- **Observability:** the report's usage summary (requests, tokens, cost) is filled from the existing receipts.
+- **Observability:** the report's usage summary (requests, tokens, cost) is filled from the existing receipts, plus `checked_files_read` from `checked_file_source`.
 
 ## Proof seams
 
 | Seam | Real | Faked | Observes |
 | --- | --- | --- | --- |
-| evidence project + pieces on fixture files | ast-grep-config, the standard utils, the builder | nothing | pieces, fields, spans, cut lists; equality with `ast-grep scan` 0.51.0 output |
+| evidence project + pieces on fixture files | ast-grep-config, the standard utils, the builder | nothing | pieces, raw fields and their states, model views, spans, cut lists; equality with `ast-grep scan` 0.51.0 output |
+| `checked_file_source` | the lint pipeline | a recording source in library tests | every attempted checked-file and target read, in order; zero before the credential gate and in `--check` |
 | `decision_walking` | the walk | answers supplied directly | results, lines, paths taken, which steps asked |
 | `rulebook_run` with a loopback decision backend | dispatch, request building, limits | the HTTP endpoint (existing loopback pattern in `sunstack-decisions/tests/http_adapter.rs`) | requests sent (questions byte-equal, one piece), incomplete reasons, order |
 | `sunstack lint` binary on fixture repositories | everything | the decision endpoint via `decision_model.endpoint` | exit codes, JSON report, `--check`, `--evidence` |
@@ -215,27 +223,27 @@ The decision model receives the standard, the piece's location and its fields, w
 | U4 | R1 config shape | E1 | lint rules_config | `load_rules_config(path) -> Result<RulesConfig, LintInvalid>` | `RulesConfig`, `config_contracts` | none | invalid | fixture configs through `--check` |
 | U4 | R2 path bases | E1 | lint rules_config | path resolution in validation | `ConfigLocation` (existing) + repository root | none | invalid on missing paths | fixture with config in a subfolder |
 | U4 | R3 cutover refusals | E1, E3 | lint rules_config; rules definition loading | decoder refusals | `LintInvalidCode` (existing) | none | invalid | old-shape configs and RuleSets |
-| U7 | R4 credential, no switch | E11 | lint_run (gate), CLI (resolution) | `Option<ApiKey>` into the run | existing credential path | none | invalid before reads | binary without a key; source has no off switch |
+| U7 | R4 credential, no switch | E11 | lint_run (gate), CLI (resolution) | `Option<ApiKey>` into the run; gate before any `checked_file_source` read | existing credential path; `usage.checked_files_read` | none | invalid before reads | recording source (zero reads) and binary report count; source has no off switch |
 | U4 | R5 markers both ways | E2, E3 | rulebook_assembly | `assemble_rulebook(config) -> RulebookAssembly { rules, skipped }` | `RulebookSentence`, `RulebookRule` | none | skip or invalid | crafted rulebooks |
 | U1–U3 | R6 evidence section | E5 | lint rules_config → evidence | `EvidenceSettings` | `evidence_kind_contracts` | none | invalid | `--check` fixtures |
 | U4–U6 | R7 rule file shape | E3 | rulebook_entry_wire | strict Serde | `RuleEntryWire` | none | skip | crafted entries |
 | U1, U3 | R8 evidence project | E4 | evidence_project_loading | `load_evidence_project(sgconfig) -> Result<EvidenceProject, ProjectRefusal>` | `EvidenceProject` | none | invalid | equality with `ast-grep scan` |
 | U3 | R9 standard library | E12 | standard_markdown_utils | `standard_utils() -> &[(UtilId, &str)]` | embedded YAML | none | reserved-ID refusal | each util on fixtures; reuse refusal |
 | U2 | R10 pieces | E6 | evidence_piece_building | `build_pieces(project, kinds, files) -> EvidenceCatalog` | `EvidencePiece`, `FileMatchIndex` | none | per-file incomplete | step 3 fixture bytes |
-| U2 | R11 field sources | E7 | evidence_piece_building | `FieldSource` evaluation | `FieldValue` | none | empty field; target `exists: false` | each source on fixtures; outside-root target |
-| U2 | R12 size cut | E6 | evidence_piece_cutting | `cut_piece(piece, max_chars)` | `EvidencePiece.cut`, `uncut_chars` | whole → cut | none | oversize fixture |
+| U2 | R11 field sources | E7 | evidence_piece_building | `FieldSource` evaluation through `checked_file_source` | `FieldValue` with `Absent` and `Unavailable` states; `LoadTarget` with `candidates` | none | absent, unavailable, `exists: false`, candidates | each source and state on fixtures; outside-root target; duplicate skill names |
+| U2 | R12 size cut | E6 | evidence_model_view | `project_model_view(fields, max_chars) -> ModelView` | `ModelView::Bounded` / `TooLarge`; raw `fields` untouched | raw → bounded or too large | `evidence_too_large` per piece | scalar, list, multi-target and nested fixtures; middle-token regex on raw fields |
 | U2, U10 | R13 `--evidence` | E6, E11 | lint_run + report | flag → evidence listing | `EvidenceListing` in report modules | none | invalid as config | binary run, no key set |
 | U10 | R14 one run per piece | E6, E10 | rulebook_run | pair enumeration | `(RuleId, piece index)` | none | none | counts on fixtures |
 | U10 | R15 picking | E6, E11 | evidence_piece_picking | `pick_pieces(catalog, scope, changes) -> Picked` | `CapturedChange.after_spans` (existing) | none | full scope when the before side is unknown, as today | temp Git repo fixtures |
 | U5 | R16 decision shape | E9 | decision_graph_contracts | Serde | `DecisionGraph`, `Route` | none | skip | crafted graphs |
-| U5 | R17 mechanical tools | E9 | decision_walking | `walk_decision(rule, piece, index, answers) -> WalkOutcome` | `MechanicalTool` | step → step | none (refused at admission) | walk tests |
-| U5, U6 | R18 ask and combine | E9 | decision_walking | same | `DecisionStep` | step → step / terminal | uncertain bands | walk tests with supplied answers |
+| U5 | R17 mechanical tools | E9 | decision_walking | `walk_decision(rule, piece, index, answers) -> WalkOutcome` over raw fields | `MechanicalTool` with accepted field shapes | step → step | `evidence_unavailable` for an unavailable field | walk tests per tool × value state |
+| U5, U6 | R18 ask and combine | E9 | decision_walking | same | `DecisionStep` | step → step / terminal | uncertain bands | walk tests with supplied answers just below, at and just above each threshold; combine without rounding |
 | U6 | R19 question schema | E8 | rulebook_admission via `judgment_validation` | validation call | `JudgmentQuestion` (existing) | none | skip | crafted questions |
 | U6, U7 | R20 one request, lazy | E8, E10 | rulebook_run | `build_piece_request(rule, piece) -> StructuredJudgmentRequest` | existing request type; state object `{standard, where, <fields>}` | `NeedsAnswers` → settled | incomplete | loopback request capture |
-| U2 | R21 request limits, failures | E10 | rulebook_run | dispatcher | `IncompleteReason` | `NeedsAnswers` → incomplete | contained to pair | loopback oversize and error |
+| U2 | R21 request limits, failures | E10 | rulebook_run | dispatcher; the decision crate's exact body encoding | `IncompleteReason` | `NeedsAnswers` → incomplete | contained to pair | loopback: escape-heavy and long-question bodies measured on the recorded body; error contained |
 | U5 | R22 finding location | E10 | decision_walking | `Route::Finding.at` → field span line | `RuleResult::Finding` | terminal | none | worked examples |
 | U8 | R23 uncertain | E10 | decision_walking; lint report | `RuleResult::Uncertain` | report `uncertain` list | terminal | none | worked examples |
-| U9 | R24 check | E1–E5, E8, E9 | rulebook_admission + lint check | `check(config) -> CheckResult` | `CheckResult` (existing, new listing) | none | refusals listed | refusal matrix |
+| U9 | R24 check | E1–E5, E8, E9 | rulebook_admission + lint check | `check(config) -> CheckResult` | `CheckResult` (existing, new listing) | none | refusals listed | refusal matrix incl. threshold domains, tool/field shapes, `as_kind`; recording source shows zero checked reads |
 | U5, U8, U10 | R25 run and report | E10, E11 | lint_run + report modules | `run(request, key) -> LintReport` | `LintReport` + `uncertain` | none | per R26 | binary JSON report |
 | U8 | R26 status and exit | E11 | lint outcome | `LintStatus::exit_code` | `LintStatus::Uncertain` = 5 | precedence table | none | binary exit codes |
 | U2, U10 | R27 determinism | E6, E10 | piece building, dispatcher | ordering rules | ordered vectors | none | none | repeat runs, shuffled completion |
