@@ -4,7 +4,7 @@ How the engine realizes [Specification](specification.md) R1–R28 for [Requirem
 
 ## What changes, in one picture
 
-`sunstack lint --config` gets a new pipeline: load the config, load the evidence project with the standard util library, assemble and admit the rulebook, build evidence pieces, pick them, walk each rule's decision, ask the decision model only when a walk needs answers, and report. It sits beside the existing `exec` pipeline for JSONL RuleSets and conversation rules, which stays as it is. It reuses what already works: the Markdown parse and marker binding, the frontmatter YAML reader, git change capture, the decision model contract and its HTTP backend, credential resolution, and lint's scopes, formats and exit codes. The decision crate gains one public function: the exact request body its backend would send, so the request cap (R21) measures what is really sent.
+`sunstack lint --config` gets a new pipeline: load the config, load the evidence project with the standard util library, assemble and admit the rulebook, build evidence pieces, pick them, walk each rule's decision, ask the decision model only when a walk needs answers, and report. It sits beside the existing `exec` pipeline for JSONL RuleSets and conversation rules, which stays as it is. It reuses what already works: the Markdown parse and marker binding, the frontmatter YAML reader, git change capture, the decision model contract and its HTTP backend, credential resolution, and lint's scopes, formats and exit codes. The decision crate gains two public functions: the exact request body its backend would send, so the request cap (R21) measures what is really sent, and question-map validation (`validate_questions`, which `validate_request` now delegates to), so the check (R24) validates questions without a stand-in state.
 
 ```mermaid
 flowchart TB
@@ -66,6 +66,7 @@ The Markdown-marker route through RuleSets (`rule_sources`) is deleted, not kept
 | `evidence_piece_building` | parse each checked file once, run every project rule that applies to its path once, build pieces and raw fields per kind, resolve targets through `checked_file_source` | the field-source vocabulary | lint run, `--evidence` |
 | `evidence_model_view` | project raw fields into the bounded model view by R12's reduction order, or `TooLarge` | the size rule | piece building |
 | sunstack-decisions request-body encoding (one public function over the backend's existing encoding) | return the exact body `dispatch` would send for a request and model | the provider wire | `rulebook_run` (R21) |
+| sunstack-decisions `validate_questions` (extracted from `validate_request`, which delegates to it unchanged) | validate a named question map on its own | the question schema | `rulebook_admission` (R19, R24) |
 | `evidence_piece_picking` | select pieces under a scope from `CapturedChange` spans and target changes | the picking rule | lint run |
 | `rulebook_assembly` | pair markers and entries both ways and produce admitted-or-skipped rules | the rule file wire | check and run |
 | `rulebook_admission` | every R24 refusal, against the evidence project and kinds: graph shape, threshold domains, tool/field shape compatibility (each field source has one shape), `as_kind` defined and target-free | the decision vocabulary | check and run |
