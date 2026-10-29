@@ -2,9 +2,9 @@
 # requires-python = ">=3.12"
 # dependencies = ["pydantic==2.14.1", "pydantic_core==2.50.1"]
 # ///
-"""S3: one separately commissioned genuine Jev lint in static arm64 Alpine.
+"""S3: separately commissioned genuine K001/K003 rulebook lint in arm64 Alpine.
 
---prepare --evidence <new-dir> builds the known-false fixture without a key.
+--prepare --evidence <new-dir> builds the adopted S0 fixture without a key.
 Observation requires --binary, --sha256, --commit, --version and an authorized
 --credential-file (owner-only mode 600). No automatic rerun. The credential is
 read once into only the docker command's environment and is never an argument
@@ -22,22 +22,24 @@ from pathlib import Path
 
 from container_matrix import IMAGES
 from runner_contracts import (
-    FixtureCase,
     JsonObject,
     as_array,
     as_object,
-    compare_report,
     read_object,
     write_json,
 )
-from runner_fixture_setup import (
-    base_config,
-    expected_finding,
-    judged_rule,
-    write_fixture,
-)
 from runner_linkage import inspect_elf
 from runner_process import binary_digest
+
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[4] / "scripts/verify/sunstack-rule")
+)
+from rulebook_fixture_support import (
+    CONFIG,
+    configure,
+    prepare_fixture,
+    select_worked_skill,
+)
 
 
 def read_credential(path: Path) -> str:
@@ -93,23 +95,26 @@ def main() -> None:
         evidence = arguments.evidence.resolve()
         evidence.mkdir(parents=True, exist_ok=False)
         fixture = evidence / "fixture"
-        config = base_config()
-        config["backend"] = {"kind": "jev_openrouter", "model": "jev-latest"}
-        config["limits"] = {
-            "max_model_requests": 1,
-            "max_concurrent_requests": 1,
-            "attempt_timeout_seconds": 60,
-        }
-        write_fixture(fixture, config=config, rules=[judged_rule()])
-        (fixture / "docs/one.md").write_text(
-            "U001: The integer 2 plus the integer 2 equals the integer 5.\n"
-        )
+        prepare_fixture(fixture)
+        select_worked_skill(fixture)
+
+        def hosted_settings(config: JsonObject) -> None:
+            config["decision_model"] = {"model": "jev-latest"}
+            config["limits"] = {
+                "max_model_requests": 16,
+                "max_concurrent_requests": 1,
+                "attempt_timeout_seconds": 60,
+            }
+
+        configure(fixture, hosted_settings)
         if arguments.prepare:
             write_json(
                 evidence / "s3-prepared.json",
                 {"product_observed": False, "genuine_requests": 0},
             )
-            print("Prepared S3 fixture; no credential read or product observed")
+            print(
+                "Prepared S3 rulebook fixture; no credential read or product observed"
+            )
             return
         image = IMAGES["arm64"]["alpine"]
         subprocess.run(
@@ -149,7 +154,7 @@ def main() -> None:
             image,
             "/bin/sh",
             "-c",
-            'test -z "$(find /etc/ssl -type f -print)" || exit 92; printf "CA_BUNDLE_EMPTY\\n" >&2; exec /usr/bin/env -i PATH=/usr/bin:/bin HOME=/home/runner OPENROUTER_API_KEY="$OPENROUTER_API_KEY" /sunstack lint --all --format json',
+            f'test -z "$(find /etc/ssl -type f -print)" || exit 92; printf "CA_BUNDLE_EMPTY\\n" >&2; exec /usr/bin/env -i PATH=/usr/bin:/bin HOME=/home/runner OPENROUTER_API_KEY="$OPENROUTER_API_KEY" /sunstack lint --config {CONFIG} --all --format json',
         ]
         secret = read_credential(arguments.credential_file)
         environment = {
@@ -242,31 +247,24 @@ def main() -> None:
         )
         if result.returncode != 1 or b"CA_BUNDLE_EMPTY" not in result.stderr:
             raise ValueError(
-                "Hosted known-false lint did not return expected finding with empty CA bundle"
+                "Hosted rulebook lint did not return expected K002 error with empty CA bundle"
             )
         report = read_object(evidence / "stdout.json")
-        case = FixtureCase(
-            name="hosted-known-false",
-            findings=[expected_finding(kind="judged")],
-            requests=1,
-            credential=True,
-            cost=False,
-            wrong_build="TLS depends on OS roots or known-false judgment is lost",
-        )
-        # Provider cost is optional; compare its actual presence separately below.
         usage = as_object(report["usage"])
-        case = case.model_copy(update={"cost": usage.get("cost_usd") is not None})
-        compare_report(report, case, Path("/fixture"))
         if report["version"] != arguments.version or not usage.get("input_tokens"):
             raise ValueError("Wrong build version or missing real inference usage")
-        for raw in as_array(report["findings"]):
-            finding = as_object(raw)
-            judgment = as_object(finding["judgment"])
-            if (
-                judgment["result"] != "fail"
-                and as_object(judgment["result"])["kind"] != "fail"
-            ):
-                raise ValueError("Known-false hosted verdict did not fail")
+        if as_array(report["incomplete"]) or as_array(report["skipped_rules"]):
+            raise ValueError("Hosted rulebook report is incomplete or skipped rules")
+        states = [
+            as_object(value) for value in as_object(report["evidence_seen"]).values()
+        ]
+        standards = {str(state["standard"]) for state in states}
+        expected_standards = {
+            "Each workflow step states a checkable completion covering its obligations.",
+            "A skill description names when to use the skill.",
+        }
+        if not expected_standards.issubset(standards):
+            raise ValueError("Real admitted requests did not cover K001 and K003")
         if binary_digest(binary) != arguments.sha256:
             raise ValueError("Static binary changed during hosted run")
         write_json(
@@ -274,15 +272,17 @@ def main() -> None:
             {
                 "commit": arguments.commit,
                 "binary_sha256": arguments.sha256,
-                "genuine_fixture": "known-false arithmetic",
+                "genuine_fixture": "rulebook K001 and K003 with mechanical K002 error",
                 "usage": usage,
                 "image": image,
-                "gaps": ["one fixture/model only", "private CAs unverified"],
+                "gaps": [
+                    "one fixture/model only",
+                    "private CAs unverified",
+                    "semantic answer quality is not judged",
+                ],
             },
         )
-        print(
-            "S3 known-false hosted lint observed; evidence retained; no retry performed"
-        )
+        print("S3 rulebook hosted lint observed; evidence retained; no retry performed")
     except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
         parser.exit(2, f"S3 setup/observation failed: {error}\n")
 
