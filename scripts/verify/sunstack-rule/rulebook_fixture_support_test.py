@@ -9,7 +9,11 @@ import pytest
 from lint_runner_rulebook import LintCase, require_report
 from pydantic import JsonValue, ValidationError
 from rulebook_check_refusals import prepare_cases
-from rulebook_evidence_checks import listing_pieces
+from rulebook_evidence_checks import (
+    listing_pieces,
+    require_repeated_requests,
+    require_request_piece,
+)
 from rulebook_fixture_support import (
     CONFIG,
     SKILL,
@@ -115,6 +119,87 @@ def test_listing_reader_requires_the_declared_envelope() -> None:
     raw.pop("pieces")
     with pytest.raises(ValidationError):
         listing_pieces(json.dumps(raw).encode())
+
+
+def test_request_comparison_rejects_raw_middle_extra_piece_and_wrong_standard() -> None:
+    piece: JsonObject = {
+        "where": {"file": "one.md", "first_line": 1},
+        "fields": {
+            "body": {"state": "text", "value": "BEGIN_PRIVATE_MIDDLE_END", "spans": []}
+        },
+        "text": "BEGIN_PRIVATE_MIDDLE_END",
+        "model_view": {
+            "state": "bounded",
+            "cut": ["body"],
+            "fields": {"body": "BEGIN[cut]END"},
+        },
+    }
+    state: JsonObject = {
+        "standard": "Literal standard.",
+        "where": piece["where"],
+        "body": "BEGIN[cut]END",
+    }
+    require_request_piece(state, piece, "Literal standard.", {})
+    for changed in [
+        {**state, "body": "BEGIN_PRIVATE_MIDDLE_END"},
+        {**state, "second_piece": {"body": "Another piece"}},
+        {**state, "standard": "Wrong standard."},
+    ]:
+        with pytest.raises(ValueError, match="exactly one piece"):
+            require_request_piece(changed, piece, "Literal standard.", {})
+
+
+def test_request_comparison_omits_unreferenced_unavailable_fields_and_blocks_referenced_ones() -> (
+    None
+):
+    piece: JsonObject = {
+        "where": {"file": "one.md"},
+        "fields": {
+            "body": {"state": "text", "value": "Visible", "spans": []},
+            "optional": {"state": "unavailable", "reason": "unreadable"},
+        },
+        "model_view": {
+            "state": "bounded",
+            "cut": [],
+            "fields": {"body": "Visible", "optional": {"unavailable": True}},
+        },
+    }
+    state: JsonObject = {
+        "standard": "Standard",
+        "where": piece["where"],
+        "body": "Visible",
+    }
+    questions: JsonObject = {"q": {"type": "noul", "instructions": {"check": "body"}}}
+    require_request_piece(state, piece, "Standard", questions)
+    with pytest.raises(ValueError, match="exactly one piece"):
+        require_request_piece(
+            {**state, "optional": {"unavailable": True}}, piece, "Standard", questions
+        )
+    questions = {"q": {"type": "noul", "instructions": {"context": ["optional"]}}}
+    with pytest.raises(ValueError, match="block dispatch"):
+        require_request_piece(state, piece, "Standard", questions)
+
+
+def test_repeat_comparison_accepts_arrival_reordering_but_rejects_report_reordering() -> (
+    None
+):
+    first: JsonObject = {"standard": "First", "where": {"file": "one.md"}}
+    second: JsonObject = {"standard": "Second", "where": {"file": "two.md"}}
+    first_body = json.dumps(
+        {"model": "fixture", "questions": {}, "state": first}
+    ).encode()
+    second_body = json.dumps(
+        {"model": "fixture", "questions": {}, "state": second}
+    ).encode()
+    report: JsonObject = {"evidence_seen": {"0": first, "1": second}}
+    require_repeated_requests(
+        report, report, [first_body, second_body], [second_body, first_body]
+    )
+    reordered: JsonObject = {"evidence_seen": {"1": second, "0": first}}
+    with pytest.raises(ValueError, match="Report request order"):
+        require_repeated_requests(
+            report, reordered, [first_body, second_body], [first_body, second_body]
+        )
 
 
 def test_real_child_uses_owned_loopback_and_keeps_actual_capture(

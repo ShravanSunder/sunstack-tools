@@ -1,10 +1,12 @@
 """Check rulebook evidence listings against independently scanned S0 source values."""
 
+from collections import Counter
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 from rulebook_fixture_support import (
     CONFIG,
+    JSON_OBJECT,
     SKILL,
     JsonObject,
     array_value,
@@ -40,6 +42,83 @@ def signature(piece: JsonObject) -> tuple[str, str, int, int]:
     start, end = span["byte_start"], span["byte_end"]
     require(type(start) is int and type(end) is int, "Piece offsets must be integers")
     return str(piece["kind"]), str(where["file"]), int(str(start)), int(str(end))
+
+
+def require_request_piece(
+    state: JsonObject, piece: JsonObject, standard: str, questions: JsonObject
+) -> None:
+    view = object_value(piece["model_view"])
+    require(view["state"] == "bounded", "A TooLarge piece must not be dispatched")
+    unavailable = {
+        name
+        for name, value in object_value(piece["fields"]).items()
+        if object_value(value)["state"] == "unavailable"
+    }
+    references: set[str] = set()
+    for question in questions.values():
+        instructions = object_value(question)["instructions"]
+        if isinstance(instructions, dict):
+            for key in ("check", "against", "context"):
+                names = instructions.get(key)
+                if isinstance(names, str):
+                    references.add(names)
+                elif isinstance(names, list):
+                    references.update(name for name in names if isinstance(name, str))
+    require(
+        not unavailable.intersection(references),
+        "An explicitly referenced unavailable field must block dispatch",
+    )
+    expected: JsonObject = {
+        "standard": standard,
+        "where": piece["where"],
+        **{
+            name: value
+            for name, value in object_value(view["fields"]).items()
+            if name not in unavailable
+        },
+    }
+    require(
+        state == expected, "Request state differs from exactly one piece's model view"
+    )
+
+
+def require_repeated_requests(
+    first: JsonObject,
+    second: JsonObject,
+    first_bodies: list[bytes],
+    second_bodies: list[bytes],
+) -> None:
+    require(
+        Counter(first_bodies) == Counter(second_bodies),
+        "Arrival-side request bodies changed",
+    )
+
+    def logical_bodies(
+        report: JsonObject, bodies: list[bytes]
+    ) -> list[tuple[str, bytes]]:
+        records = object_value(report["evidence_seen"])
+        require(
+            len(records) == len(bodies),
+            "Request evidence count differs from actual captures",
+        )
+        result: list[tuple[str, bytes]] = []
+        for index, state in records.items():
+            matches = [
+                raw
+                for raw in bodies
+                if JSON_OBJECT.validate_json(raw)["state"] == state
+            ]
+            require(
+                len(matches) == 1, "Report request record has no unique captured body"
+            )
+            result.append((index, matches[0]))
+        return result
+
+    # Preserve emitted report order. Only the concurrent arrival side is a multiset.
+    require(
+        logical_bodies(first, first_bodies) == logical_bodies(second, second_bodies),
+        "Report request order or exact body bytes changed",
+    )
 
 
 def require_piece_contract(pieces: list[JsonObject], root: Path) -> None:
@@ -98,6 +177,18 @@ def require_piece_contract(pieces: list[JsonObject], root: Path) -> None:
         body["state"] == "text"
         and body["value"] == "\n".join(source_lines[50:57]).strip(),
         "Body grouping differs",
+    )
+    view = object_value(piece["model_view"])
+    require(
+        view["state"] == "bounded"
+        and view["cut"] == []
+        and view["fields"]
+        == {
+            "heading": heading["value"],
+            "completion": completion["values"],
+            "body": body["value"],
+        },
+        "Small worked piece's model view differs from its independently checked fields",
     )
     loaded = [item for item in pieces if signature(item) == ("load", SKILL, 6146, 6445)]
     require(len(loaded) == 1, "Line 51 load absent")

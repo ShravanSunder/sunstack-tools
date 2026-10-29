@@ -17,7 +17,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from rulebook_evidence_checks import listing_pieces, location, require_piece_contract
+from rulebook_evidence_checks import (
+    listing_pieces,
+    location,
+    require_piece_contract,
+    require_repeated_requests,
+    require_request_piece,
+)
 from rulebook_fixture_support import (
     CONFIG,
     ORACLE,
@@ -169,13 +175,17 @@ def observe(process: RulebookProcess, fixtures: Path) -> None:
     )
     require(status(baseline) == "findings", "Wrong full-fixture status")
     require_worked_results(baseline)
-    require(bool(requests), "Worked examples never asked")
+    require(
+        len(requests) == 7, "Worked examples must ask six steps and one description"
+    )
     repeated_report, repeated_requests = process.report(
         worked, "worked-repeat", lint_args("--all"), expected_exit=1, credential=True
     )
-    require(
-        [item.raw for item in requests] == [item.raw for item in repeated_requests],
-        "Worked-example request order or bytes changed",
+    require_repeated_requests(
+        baseline,
+        repeated_report,
+        [item.raw for item in requests],
+        [item.raw for item in repeated_requests],
     )
     for key in ("findings", "uncertain", "counts", "exclusions", "incomplete"):
         require(
@@ -183,6 +193,10 @@ def observe(process: RulebookProcess, fixtures: Path) -> None:
             f"Worked-example result order/content changed: {key}",
         )
     rules = read_object(worked / RULES)
+    standards = {
+        "K001": "Each workflow step states a checkable completion covering its obligations.",
+        "K003": "A skill description names when to use the skill.",
+    }
     for pending in requests:
         questions = object_value(pending.body["questions"])
         marker = "K001" if "kind" in questions else "K003"
@@ -192,9 +206,19 @@ def observe(process: RulebookProcess, fixtures: Path) -> None:
         )
         state = object_value(pending.body["state"])
         require(
-            "text" not in state and "standard" in state and "where" in state,
-            "Request includes raw text or misses standard/location",
+            object_value(state["where"])["file"] == SKILL,
+            "Run asked about an unselected file",
         )
+        kind = "step" if marker == "K001" else "skill"
+        matching = [
+            piece
+            for piece in pieces
+            if piece["kind"] == kind and piece["where"] == state["where"]
+        ]
+        require(
+            len(matching) == 1, "Request location does not identify one listed piece"
+        )
+        require_request_piece(state, matching[0], standards[marker], questions)
     for name, total, confidence, expected_step in [
         ("quality", 0.65, 0.86, "quality"),
         ("choice", 0.58, 0.55, "kind"),
@@ -317,9 +341,11 @@ def observe_changes(process: RulebookProcess, fixtures: Path) -> None:
         expected_exit=0,
         credential=True,
     )
-    require(
-        [request.raw for request in repeated] == [request.raw for request in requests],
-        "Request order or bytes were nondeterministic",
+    require_repeated_requests(
+        report,
+        repeat,
+        [request.raw for request in requests],
+        [request.raw for request in repeated],
     )
     for key in ("findings", "uncertain", "counts", "exclusions", "incomplete"):
         require(report[key] == repeat[key], f"Result order/content changed: {key}")
