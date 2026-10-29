@@ -78,7 +78,7 @@ export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> 
 		if (generatedOwner && !element.hasAttribute('data-comment-label')) continue;
 		if (element.matches('ex-mermaid g.node[data-id]')) {
 			const owner = element.closest('ex-mermaid');
-			if (owner) element.id ||= `${owner.id}--${element.getAttribute('data-id') ?? ''}`;
+			if (owner) element.id = `${owner.id}--${element.getAttribute('data-id') ?? ''}`;
 		}
 		ensureReviewTargetId(element, root);
 		if (

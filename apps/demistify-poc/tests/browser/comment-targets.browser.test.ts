@@ -35,6 +35,10 @@ test('Code and individual Mermaid nodes retain independent comments instead of s
 	const { document: fixture, frame } = await openFixture('review', '', 'targets.html');
 	await expect.poll((): boolean => !!fixture.querySelector('#process g.node text')).toBe(true);
 	await expect.poll((): number => fixture.querySelectorAll('.ex-comments-trigger').length).toBe(1);
+	await expect.poll((): number => fixture.querySelectorAll('ex-mermaid[prepared]').length).toBe(3);
+	for (const diagram of fixture.querySelectorAll('ex-mermaid'))
+		for (const node of diagram.querySelectorAll('g.node[data-id]'))
+			expect(node.id).toBe(`${diagram.id}--${node.getAttribute('data-id') ?? ''}`);
 	const code = requiredElement(fixture, 'ex-code');
 	expect(code.id).not.toBe('');
 	async function savePassage(passage: Element, index: number): Promise<void> {
