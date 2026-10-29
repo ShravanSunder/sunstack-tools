@@ -3,7 +3,7 @@ import { textAnchorMatches, type CommentAnchor, type TextCommentAnchor } from '.
 export interface ReviewTarget {
 	readonly targetId: string;
 	readonly label: string;
-	readonly element: HTMLElement;
+	readonly element: Element;
 }
 export type ResolvedCommentAnchor =
 	| { readonly kind: 'resolved'; readonly target: ReviewTarget; readonly range: Range | null }
@@ -18,7 +18,7 @@ function fragmentText(fragment: DocumentFragment): string {
 	return fragment.textContent ?? '';
 }
 
-export function reviewTextNodes(element: HTMLElement): Text[] {
+export function reviewTextNodes(element: Element): Text[] {
 	const walker = element.ownerDocument.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
 		acceptNode(node): number {
 			return node.parentElement?.closest(excludedText)
@@ -35,19 +35,19 @@ export function reviewTextNodes(element: HTMLElement): Text[] {
 	return nodes;
 }
 
-export function reviewTargetText(element: HTMLElement): string {
+export function reviewTargetText(element: Element): string {
 	return reviewTextNodes(element)
 		.map((node): string => node.data)
 		.join('');
 }
 
 /** Structural identity is stable within the same authored content revision. */
-export function ensureReviewTargetId(element: HTMLElement, root: HTMLElement): void {
+export function ensureReviewTargetId(element: Element, root: HTMLElement): void {
 	if (element.id) return;
 	const path: string[] = [];
-	let current: HTMLElement | null = element;
+	let current: Element | null = element;
 	while (current && current !== root && !current.id) {
-		const parent: HTMLElement | null = current.parentElement;
+		const parent: Element | null = current.parentElement;
 		if (!parent) break;
 		const siblings = [...parent.children].filter(
 			(sibling): boolean => sibling.localName === current?.localName,
@@ -66,8 +66,8 @@ export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> 
 	const targets = new Map<string, ReviewTarget>();
 	const candidates = [
 		root,
-		...root.querySelectorAll<HTMLElement>(
-			'ex-choice[id],.ex-choice-option[id],[data-comment-label],p,li,h1,h2,h3,h4,h5,h6,ex-callout,ex-card,ex-tree,ex-file-tree',
+		...root.querySelectorAll(
+			'ex-choice[id],.ex-choice-option[id],[data-comment-label],p,li,h1,h2,h3,h4,h5,h6,ex-callout,ex-card,ex-tree,ex-file-tree,ex-code,ex-mermaid,ex-pre,ex-mermaid g.node[data-id]',
 		),
 	];
 	for (const element of candidates) {
@@ -76,8 +76,16 @@ export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> 
 			'ex-choice,ex-tree,ex-file-tree,ex-explorer,ex-gallery,ex-stat',
 		);
 		if (generatedOwner && !element.hasAttribute('data-comment-label')) continue;
+		if (element.matches('ex-mermaid g.node[data-id]')) {
+			const owner = element.closest('ex-mermaid');
+			if (owner) {
+				const scopedNodeId = `${owner.id}--${element.getAttribute('data-id') ?? ''}`;
+				if (element.id !== scopedNodeId) element.id = scopedNodeId;
+			}
+		}
 		ensureReviewTargetId(element, root);
 		if (
+			element instanceof HTMLElement &&
 			element.matches('h1,h2,h3,h4,h5,h6') &&
 			(!element.hasAttribute('aria-label') || automaticallyLabeledHeadings.has(element))
 		) {
@@ -101,7 +109,7 @@ export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> 
 	return targets;
 }
 
-function offsetBefore(element: HTMLElement, container: Node, offset: number): number {
+function offsetBefore(element: Element, container: Node, offset: number): number {
 	const prefix = element.ownerDocument.createRange();
 	prefix.selectNodeContents(element);
 	prefix.setEnd(container, offset);
@@ -123,7 +131,7 @@ export function captureCommentAnchor(
 			? range.commonAncestorContainer
 			: range.commonAncestorContainer.parentElement;
 	if (ancestor?.closest(excludedText)) return undefined;
-	let element = ancestor instanceof HTMLElement ? ancestor : ancestor?.parentElement;
+	let element: Element | null | undefined = ancestor;
 	while (element && !targets.has(element.id)) element = element.parentElement;
 	const startElement =
 		range.startContainer instanceof Element
@@ -133,16 +141,19 @@ export function captureCommentAnchor(
 		range.endContainer instanceof Element ? range.endContainer : range.endContainer.parentElement;
 	const blockSelector = 'p,li,blockquote,pre,h1,h2,h3,h4,h5,h6';
 	const crossesBlocks = startElement?.closest(blockSelector) !== endElement?.closest(blockSelector);
-	const explicitOwner = ancestor?.closest<HTMLElement>(
-		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id]',
+	const explicitOwner = ancestor?.closest(
+		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id],ex-code[id],ex-pre[id],ex-mermaid g.node[id],ex-mermaid[id]',
 	);
 	const startChoice = startElement?.closest('.ex-choice-option[id],ex-choice[id]');
 	const endChoice = endElement?.closest('.ex-choice-option[id],ex-choice[id]');
 	const choiceOwner = startChoice === endChoice ? startChoice : undefined;
+	const componentOwner = ancestor?.closest('ex-code[id],ex-pre[id],ex-mermaid[id]');
+	const componentTarget = componentOwner ? targets.get(componentOwner.id) : undefined;
+	const explicitTarget = explicitOwner ? targets.get(explicitOwner.id) : undefined;
 	const target = targets.get(
 		crossesBlocks || startChoice !== endChoice
-			? (choiceOwner?.id ?? root.id)
-			: (explicitOwner?.id ?? element?.id ?? root.id),
+			? (choiceOwner?.id ?? componentTarget?.targetId ?? root.id)
+			: (explicitTarget?.targetId ?? element?.id ?? root.id),
 	);
 	if (!target) return undefined;
 	const text = reviewTargetText(target.element);

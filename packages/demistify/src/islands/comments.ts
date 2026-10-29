@@ -29,7 +29,7 @@ export class CommentsIsland extends HTMLElement {
 	private trigger: HTMLButtonElement | undefined;
 	private selectionButton: HTMLButtonElement | undefined;
 	private targets = new Map<string, ReviewTarget>();
-	private controls = new Map<HTMLElement, HTMLButtonElement>();
+	private controls = new Map<Element, HTMLButtonElement>();
 	private events = new AbortController();
 	private observer: MutationObserver | undefined;
 	private frame: number | undefined;
@@ -251,7 +251,7 @@ export class CommentsIsland extends HTMLElement {
 			return;
 		}
 		const originalNodes = new Set(
-			[...this.targets.values()].map((target): HTMLElement => target.element),
+			[...this.targets.values()].map((target): Element => target.element),
 		);
 		for (const [element, control] of this.controls)
 			if (!originalNodes.has(element)) {
@@ -260,6 +260,8 @@ export class CommentsIsland extends HTMLElement {
 				this.controls.delete(element);
 			}
 		for (const target of this.targets.values()) {
+			// SVG nodes are selection targets; HTML buttons cannot be inserted into SVG.
+			if (!(target.element instanceof HTMLElement)) continue;
 			// The page already has its shared Comments launcher. Keep the root as the
 			// cross-block anchor without stacking a second icon over its first heading.
 			if (target.element === this.root && !this.root.hasAttribute('data-comment-label')) continue;

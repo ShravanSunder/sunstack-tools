@@ -116,7 +116,6 @@ export class CommentsView {
 			try {
 				this.options.save(this.editing.anchor, this.editor.value, this.editing.commentId);
 				this.endComposer();
-				this.refresh();
 			} catch (error) {
 				this.showIssue(`Comment could not save: ${String(error)}`);
 			}
@@ -164,6 +163,7 @@ export class CommentsView {
 		this.submit.textContent = saved ? 'Save comment' : 'Add comment';
 		this.submit.disabled = !this.editor.value.trim();
 		this.options.composing(currentAnchor);
+		this.refresh();
 		this.body.scrollTop = 0;
 		this.editor.focus();
 	}
@@ -174,8 +174,11 @@ export class CommentsView {
 		this.answers.replaceChildren();
 		this.list.replaceChildren();
 		const rendered = new Set<string>();
+		const visibleComments = review.comments.filter(
+			(comment): boolean => comment.commentId !== this.editing?.commentId,
+		);
 		const appendTarget = (parent: HTMLElement, label: string, targetId: string): void => {
-			const comments = review.comments.filter(
+			const comments = visibleComments.filter(
 				(comment): boolean => comment.anchor.targetId === targetId,
 			);
 			const first = comments[0];
@@ -205,7 +208,7 @@ export class CommentsView {
 		}
 		if (!review.comments.length && !review.answers.length)
 			this.list.append(textElement('p', 'No comments or selected answers yet.'));
-		for (const comment of review.comments)
+		for (const comment of visibleComments)
 			if (!rendered.has(comment.commentId)) this.list.append(this.createComment(comment));
 		this.transfer.hidden = !review.comments.length && !review.answers.length;
 		this.showIssue(this.options.issue());
@@ -243,6 +246,7 @@ export class CommentsView {
 		this.composer.hidden = true;
 		this.editor.value = '';
 		this.options.composing(undefined);
+		this.refresh();
 	}
 	private showIssue(message: string | undefined): void {
 		this.status.textContent = message ?? '';

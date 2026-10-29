@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Independent feedback targets</title>
+  <link rel="stylesheet" href="/experiments/islands/theme.css">
+  <script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+<ex-document id="content" document-id="demistify-targets-fixture" revision="r1">
+  <h1>Independent feedback targets</h1>
+  <ex-code title="Configuration" lang="json"><script type="text/plain">{
+  "owner": "Registry",
+  "delivery": "Receipt"
+}</script></ex-code>
+  <ex-mermaid id="process" label="Submission process"><script type="text/plain">flowchart LR
+    request["Request<br/>Read input"] --> receipt["Receipt<br/>Confirm delivery"]
+  </script></ex-mermaid>
+  <p id="after-views">Keep the original source and feedback together.</p>
+  <ex-mermaid prepared label="First unnamed process"><svg viewBox="0 0 240 80"><g class="node" data-id="request" id="engine-request"><rect width="240" height="80"></rect><text x="24" y="44" font-size="16">Request</text></g></svg></ex-mermaid>
+  <ex-mermaid prepared label="Second unnamed process"><svg viewBox="0 0 240 80"><g class="node" data-id="request" id="engine-request"><rect width="240" height="80"></rect><text x="24" y="44" font-size="16">Request</text></g></svg></ex-mermaid>
+</ex-document>
+</body>
+</html>
