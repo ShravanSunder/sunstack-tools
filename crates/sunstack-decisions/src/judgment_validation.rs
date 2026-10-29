@@ -3,12 +3,16 @@ use serde::Deserialize;
 use std::collections::BTreeSet;
 
 pub fn validate_request(request: &StructuredJudgmentRequest) -> Result<(), DecisionDiagnostic> {
-    if request.questions.is_empty() {
+    validate_questions(&request.questions)
+}
+
+pub fn validate_questions(questions: &NamedQuestionMap) -> Result<(), DecisionDiagnostic> {
+    if questions.is_empty() {
         return Err(DecisionDiagnostic::request(
             DecisionDiagnosticCode::InvalidQuestion,
         ));
     }
-    for question in request.questions.values() {
+    for question in questions.values() {
         match question {
             JudgmentQuestion::Choice { criteria, .. } if criteria.is_empty() => {
                 return Err(DecisionDiagnostic::request(

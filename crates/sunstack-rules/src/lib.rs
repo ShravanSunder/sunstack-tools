@@ -1,8 +1,20 @@
 //! Admit authored definitions, plan evidence-backed requests, and reduce native answers in authored order.
+pub mod decision_graph_contracts;
 pub mod definition_admission;
 pub mod definition_contracts;
 pub mod invocation_contracts;
 pub mod rule_diagnostics;
+pub use decision_graph_contracts::*;
+pub mod rulebook_entry_wire;
+pub use rulebook_entry_wire::*;
+pub mod rulebook_admission;
+pub use rulebook_admission::*;
+pub mod decision_walking;
+pub use decision_walking::*;
+pub mod rulebook_assembly;
+pub use rulebook_assembly::*;
+#[cfg(test)]
+mod rulebook_test_support;
 mod strict_decoding;
 pub use definition_admission::*;
 pub use definition_contracts::*;
