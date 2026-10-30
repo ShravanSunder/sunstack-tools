@@ -4,6 +4,11 @@
   run: |
     rustup show active-toolchain
     rustup target add ${{ join(matrix.targets, ' ') }}
+- name: Install Node for release linkage checks
+  uses: actions/setup-node@v6
+  with:
+    node-version: '26'
+    package-manager-cache: false
 - name: Configure Apple SDK
   if: runner.os == 'macOS'
   run: |
