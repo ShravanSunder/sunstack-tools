@@ -2,7 +2,27 @@
 
 Skill rules judge evidence, and today every kind of evidence is cut by an ast-grep rule alone. For steps, that means a heading's *name* decides whether a numbered list is a workflow: plain numbered items count only under an H2 that starts with "Workflow", "Steps" or "Main path", and numbered stage headings count only at `###`. Measured on 30 Oct 2026 across all 74 skills on sunstack main `690dc5a7`, only 198 of 342 numbered steps became step evidence, and 13 skills got none at all, including `implement-plan`, `plan-implementation`, `orchestrator-implementation-goal`, `implementation-review` and `spec-program-review`. The completion rule never ran on those skills, and their reports looked clean. A longer name list wouldn't fix it: about 116 of the 144 missed items sit under workflow headings with other names ("Core Flow", "Plan the Change", "Hand off"), while 28 are numbered lists of rules or checks ("Core rules", "Structural Principles") that a broader "every numbered list" rule would wrongly take as steps. Telling the two apart needs a judgment about what a section is for.
 
-This change lets the evidence system ask that question: ast-grep cuts candidates mechanically, the decision model chooses which candidates become evidence, and everything after works as it does today. It amends the [skill rules on evidence and decisions](../2026-10-29-skill-rules-evidence-and-decisions/requirements.md) design (U1–U12 stay in force). The [Specification](specification.md) defines the contract, the [Program Design](program-design.md) places it in the crates, and the [Verification Design](verification-design.md) plans its proof. The measurement is in the owner page *Skill-rules evidence coverage* (30 Oct) and its source report.
+This change lets the evidence system ask that question: ast-grep cuts candidates mechanically, the decision model chooses which candidates become evidence, and everything after works as it does today.
+
+```mermaid
+flowchart LR
+  subgraph today["Today: the heading's name decides"]
+    t1["SKILL.md"] --> t2{"Heading starts with<br/>Workflow, Steps, Main path?"}
+    t2 -->|yes| t3["Numbered items<br/>become steps"]
+    t2 -->|no| t4["No steps, no finding<br/>looks clean"]
+  end
+  subgraph wanted["Wanted: the decision model decides"]
+    w1["SKILL.md"] --> w2["Candidates, no AI<br/>every section with<br/>a numbered list"]
+    w2 --> w3{"Decision model, per candidate<br/>is this the workflow?"}
+    w3 -->|yes| w4["Its items become steps<br/>rules run as today"]
+    w3 -->|"no / uncertain"| w5["Reported by heading<br/>with its answer"]
+  end
+  class t4 slot5
+  class w4 slot3
+  class w5 slot4
+```
+
+It amends the [skill rules on evidence and decisions](../2026-10-29-skill-rules-evidence-and-decisions/requirements.md) design (U1–U12 stay in force). The [Specification](specification.md) defines the contract, the [Program Design](program-design.md) places it in the crates, and the [Verification Design](verification-design.md) plans its proof. The measurement is in the owner page *Skill-rules evidence coverage* (30 Oct) and its source report.
 
 ## Who it serves
 
