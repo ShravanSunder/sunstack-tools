@@ -19,6 +19,8 @@ node scripts/verify/sunstack-rule/rulebook-check-refusals.ts --case selection \
 
 For observation, omit `--prepare` and add `--binary <absolute-built-binary> --commit <full-head> --sha256 <declared-digest>`. Existing journey modes and expectations remain unchanged. This mode needs the new fixture and does not silently fall back to the old one.
 
+Request `--format json` when a run-path refusal is parsed as a report: a missing-key `--evidence` invocation otherwise renders the normal human error. When a fixture deliberately prunes its kinds, keep its admitted rulebook valid as well; a rule still naming a removed kind creates a real coverage gap even on evidence-only runs. The fixture helper retargets only S0's known mechanical body witness to a retained body-bearing kind.
+
 ## Selection through the CLI
 
 The lasting `--case selection` route keeps the binary, filesystem, Git selection, JSON serialization, engine transport and decisions real. Only the remote model is replaced by owned loopback. Its scripted response is keyed by file and candidate key, with different answers for different candidates. It uses a literal synthetic authorization value, isolated HOME and disabled credential store. No credential lookup or external model call is allowed.
@@ -55,7 +57,9 @@ R42 compares the npm `@sunstack/cli@0.2.0` release executable with the declared 
 
 Run both binaries sequentially against the same configured loopback and identical fixed answers. Capture `--evidence` and full-run JSON plus exact request bodies. Compare pieces, fields, model views and ordered results; enumerate any extra numbered or Step heading matches at levels other than `###`. New report fields are `file_counts` and empty `selections`. Default selection lines have no application to this no-selection config. For identical results, GitHub/SARIF bytes remain unchanged.
 
-Do not sort reports to hide order changes or drop entire kinds to make the comparison pass. A changed existing piece field or request needs an explicit source-based classification against R32, not an automatic exemption. Stop on any difference beyond the listed heading matches and return its reproduction under R42. This proves compatibility only for the named kit/config, not every possible 0.2.0 config or the release/install channels.
+Use amended R42 at `73e7cbd`: classify by dependency, never by location alone. A new or removed piece must come from a selector that uses `numbered-heading-section` or `step-heading-section`, directly or through utilities, and from a particular newly matched non-`###` section. A changed existing field must name a source rule with that dependency and differ only by reading that match; requests and results need their own link to the affected piece or field. Keep the util → selector/field source → piece/field chain and source section with each difference. Changes to existing text, spans, first lines or unrelated field sources fail even inside one of those sections. If changed raw fields alter a bounded model view, verify both views against the deterministic R12 projection rather than excusing every model-view delta.
+
+Do not sort reports to hide order changes or drop entire kinds to make the comparison pass. Prove the comparator on the same `spec-program-review` branch piece: its step field gaining `## 1. Classify Review Requirement` passes, while a corrupted `first_line` fails. Preserve the earlier result when a governing clarification changes a check. Stop on every untraced difference and return its reproduction under R42. This proves compatibility only for the named kit/config, not every possible 0.2.0 config or the release/install channels.
 
 ## Return
 
