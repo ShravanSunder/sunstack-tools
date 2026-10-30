@@ -39,3 +39,36 @@ test('kind diagnostic rejects an earlier value, a nested same-name field and a w
 			}),
 		).toThrow('Kind-plan diagnostic must locate the owning evidence.kinds.step key');
 });
+
+test.each(['a.b', 'a.fields.body', 'ordinary_kind', 'odd"\\kind'])(
+	'literal kind %s stays one authored key rather than structural segments',
+	(kind) => {
+		const literalConfig = [
+			'{',
+			'  "evidence": {',
+			'    "kinds": {',
+			'      "a": {"fields":{"body":{"from":"first_line"}}},',
+			`      ${JSON.stringify(kind)}: {"rule":"section"}`,
+			'    }',
+			'  }',
+			'}',
+		].join('\n');
+		expect(() =>
+			requireKindDiagnosticLocation({
+				configText: literalConfig,
+				kind,
+				file,
+				diagnostic: `${file}:5:7: undefined kind missing_literal_kind`,
+			}),
+		).not.toThrow();
+		for (const location of ['1:1', '4:24'])
+			expect(() =>
+				requireKindDiagnosticLocation({
+					configText: literalConfig,
+					kind,
+					file,
+					diagnostic: `${file}:${location}: undefined kind missing_literal_kind`,
+				}),
+			).toThrow('Kind-plan diagnostic must locate the owning evidence.kinds.');
+	},
+);

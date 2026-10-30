@@ -1,6 +1,6 @@
 # Within one or more kinds: amended U14/U16 and W6
 
-This route follows amended R30/R40 and U14/U16 at `9dfdb10` plus `a4696af` (WK1/WK2), the engine's `within-kinds-impl-commission.md` W1–W6 and the Lead's amendments. U14, U16 and W6 were observed locally at `ef968f91`, including exact per-file counters, present-null refusal and owning-key locations. The earlier `93fff155` location/null counterexamples remain recorded in the target's report. The expected containment is inclusive union over final pieces, with each match counted once. `within` accepts a nonempty list of distinct kind names in config order; only omission means no containment. Product code, Rust tests, canonical repo fixtures, exported schema and release notes have their own owners.
+This route follows amended R30/R40 and U14/U16 at `9dfdb10` plus `a4696af` (WK1/WK2), `2198c47` (WK3 proof seams), the engine's W1–W6 commission and the Lead's amendments. U14/W6 and ordinary U16 cases were observed locally at `ef968f91`; WI1's valid dotted-kind locations fail there and await c2. Earlier location/null counterexamples remain in the target's report. The expected containment is inclusive union over final pieces, with each match counted once. `within` accepts a nonempty list of distinct kind names in config order; only omission means no containment. Product code, Rust tests, canonical repo fixtures, exported schema and release notes have their own owners.
 
 Use the main skill's source/binary pinning and synthetic-only policy. The lasting rulebook entries and their `--case selection` mode keep their names and flags:
 
@@ -29,7 +29,11 @@ Selection refusal mode retains canonical R40 cases and adds six isolated configs
 
 For the cycle and undefined-container fixtures, the diagnostic must locate the owning evidence-kind key, with the exact authored line and column. An earlier matching string value or a nested field with the same name is not that key. These controlled two-space fixtures put kind keys at six-space indentation; the assertion checks that fixture invariant before comparing the location. Comparator tests and retained c0 wrong-location readback reject the earlier-value defect that the original generic location-presence check missed.
 
+WI1 adds four exact-location refusal cases: literal `a.b`, `a.fields.body` with a separate `a.fields.body` structural-path decoy, an ordinary kind and an escaped literal kind. Each names an undefined second container, exits2 without a key/request, and must point to its literal kind key. The last two control location preservation; they are still invalid configs, not successful admissions. A locator that splits the name on periods must fail the dotted/collision cases. Native compact/pretty and genuinely absent-path fallback tests join this binary observation; restricting valid names would violate the contract.
+
 Join the direct native constructor/decode/schema controls (including `minItems: 1` and `uniqueItems: true`), every-entry dependency/build-order controls, and the structural keyless/no-checked-source `check` route. A located refusal caused by an unrelated invalid field is insufficient. The binary journey does not replace the native schema or plan proof.
+
+WK3 keeps those seams distinct: non-list/empty/repeated shapes fail at decode and check; well-shaped lists with undefined entries or cycles decode successfully and fail the graph plan at admission/check. A direct decoder is not expected to resolve the containing-kind graph.
 
 ## W6 one-item equivalence
 
