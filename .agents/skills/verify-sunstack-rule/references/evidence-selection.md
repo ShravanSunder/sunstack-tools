@@ -2,7 +2,7 @@
 
 This extends the rulebook lint and check-refusal journeys for `docs/specs/2026-10-30-evidence-selection/{specification,verification-design}.md`. Selection is part of building evidence: a selected kind's mechanical matches are candidates, only `selected` candidates become pieces, and contained kinds and kind-based fields read those final pieces. The real model's classification quality and live all-skill V21 run belong to their separate commission.
 
-The recipes are draft until driven on the declared S3 target. They do not infer a pass from prepared fixtures, a library test that supplies chosen sets directly, or the old 0.2.0 binary refusing the new key.
+The recipes were driven on declared S3 source `7315762cabc1233e3322c67df373858514b07ee9`, frozen macOS arm64 binary SHA256 `241c7d02b851a7d1488004ad7ac3d311c29029d3a6e5a4f7c74d1ee58f86470e`. Selection, all 18 R40 refusals and the temporary R42 comparison passed locally. U13–U17 have their inspected native joins, including the held-backend concurrency test added at `5d7c070c054046d7b980495dd721d0eac0c4b5eb`: peak 1/2 at limits 1/2, and a deliberate selection semaphore bypass fails. That addendum changes only the new test; the frozen binary and production dependencies remain identical. Live V21 is separate. Prepared fixtures, a library test that supplies chosen sets directly, and the old 0.2.0 binary refusing the new key do not establish the delivered selection behavior.
 
 ## Inputs and preparation
 
@@ -50,6 +50,8 @@ U17's focused utility tests and regenerated bidirectional ast-grep oracle are re
 The staged-builder tests supply chosen sets directly and prove containment, `inside`/`enclosing`/`same_file` kind fields, strict-inner exclusion without self-erasure, forward-named target composition after its plain dependencies, and refusal of selection-dependent `as_kind`. They do not prove CLI wiring; the live route closes that boundary.
 
 Inspect the selection-run and dispatcher tests for referenced malformed/non-string fields with a same-file peer, omission of unreferenced unavailable fields, independent shared reduction, exact encoded admission, concurrency across both stages and failure isolation. A count alone is insufficient: the assertion must fail for the named wrong behavior. The unchanged old rulebook tests characterize the dispatcher extraction; retain their full expectations.
+
+For concurrency, immediate responses and a request-total assertion do not prove the in-flight limit. Require controlled held replies, peak 1 at limit 1 and peak 2 at limit 2 for both selection and rule stages, plus a bypassed-semaphore negative control. Check the actual offered assertion and its sensitivity before closing that join.
 
 ## Temporary 0.2.0 compatibility observation
 
