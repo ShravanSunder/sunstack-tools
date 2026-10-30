@@ -3,7 +3,7 @@ use super::*;
 use crate::*;
 use std::{sync::Arc, time::Duration};
 use tokio::{io::AsyncReadExt, net::TcpListener, sync::Notify};
-#[path = "../tests/support/mod.rs"]
+#[path = "../../tests/support/mod.rs"]
 mod support;
 use support::*;
 
