@@ -20,7 +20,7 @@
           "question": {
             "type": "noul",
             "instructions": {
-              "check": "path_targets",
+              "check": "body",
               "against": "heading",
               "context": [
                 "outline"

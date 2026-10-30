@@ -8,6 +8,7 @@ use sunstack_decisions::{
 };
 use sunstack_evidence::{
     EvidenceKindDefinition, EvidenceKindName, EvidenceProject, FieldName, FieldShape, FieldSource,
+    MatchSource,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,13 +49,18 @@ pub fn admit_evidence_kinds(
         for (field, source) in &kind.fields {
             let path = format!("{path}.fields.{}", field.as_str());
             match source {
-                FieldSource::Inside { rule }
-                | FieldSource::Enclosing { rule }
-                | FieldSource::SameFile { rule } => {
-                    if !project.rule_ids.contains(rule) {
-                        errors.push(refusal(&path, "unknown evidence rule"));
+                FieldSource::Inside { of }
+                | FieldSource::Enclosing { of }
+                | FieldSource::SameFile { of }
+                | FieldSource::Remainder { exclude: Some(of) } => match of {
+                    MatchSource::Rule { rule } if !project.rule_ids.contains(rule) => {
+                        errors.push(refusal(&path, "unknown evidence rule"))
                     }
-                }
+                    MatchSource::Kind { kind } if !kinds.contains_key(kind) => {
+                        errors.push(refusal(&path, "undefined evidence kind"))
+                    }
+                    _ => {}
+                },
                 FieldSource::Capture { regex } | FieldSource::Target { regex, .. } => {
                     match regex::Regex::new(regex) {
                         Err(_) => errors.push(refusal(&path, "invalid field regex")),
@@ -84,7 +90,7 @@ pub fn admit_evidence_kinds(
                 }
                 FieldSource::FirstLine {}
                 | FieldSource::Yaml { .. }
-                | FieldSource::Remainder {} => {}
+                | FieldSource::Remainder { exclude: None } => {}
             }
         }
     }
