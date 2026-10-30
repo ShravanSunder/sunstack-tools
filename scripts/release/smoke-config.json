@@ -1,8 +1,10 @@
 {
-	"rule_sets": {
-		"mechanical": {
-			"path": "mechanical.ruleset.json",
-			"files": ["mechanical-skill.md"]
-		}
-	}
+	"rulebook": [{ "markdown": "rulebook.md", "rules": "rules.json" }],
+	"marker_prefix": "K",
+	"check": { "files": ["skill.md"] },
+	"evidence": {
+		"ast_grep": "evidence/sgconfig.yml",
+		"kinds": { "paragraph": { "rule": "paragraph", "fields": { "body": { "from": "remainder" } } } }
+	},
+	"decision_model": { "model": "jev-latest", "endpoint": "http://127.0.0.1:1/unused" }
 }

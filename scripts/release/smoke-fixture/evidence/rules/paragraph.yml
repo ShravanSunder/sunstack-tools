@@ -1,0 +1,3 @@
+id: paragraph
+language: Markdown
+rule: { kind: paragraph }
