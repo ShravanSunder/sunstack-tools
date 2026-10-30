@@ -1,5 +1,7 @@
 # Rulebook check refusals
 
+For the additive R40 selection/containment/field-plan refusal inventory, load [evidence-selection.md](evidence-selection.md) and use this entry's `--case selection` mode. The default R24/FIFO journey below stays unchanged.
+
 This journey owns U9/R24's public boundary: the built `sunstack lint --config <path> --check` accepts a valid config and refuses each crafted invalid config, rule entry, marker or evidence-project construct before running checked content. Its oracle is the 29 Oct Specification R24, including the R1/R3/R5–R9 refusals it references. Expected refusal cases are authored in `scripts/verify/sunstack-rule/fixtures/rulebook-refusal-mutations.json` and validated by `rulebook-refusal-fixtures.ts`; they are independent of product diagnostics.
 
 Inputs: the declared source/binary/configuration/client from the main skill, S0 fixture tree and a fresh authorized evidence directory. Read the script's header and `--help`. From the monorepo root:
