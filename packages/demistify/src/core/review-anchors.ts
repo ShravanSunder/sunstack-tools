@@ -64,12 +64,14 @@ export function ensureReviewTargetId(element: Element, root: HTMLElement): void 
 
 export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> {
 	const targets = new Map<string, ReviewTarget>();
-	const candidates = [
+	// Existing descendants get their historical IDs before newly targetable table ancestors do.
+	const candidates = new Set([
 		root,
 		...root.querySelectorAll(
 			'ex-choice[id],.ex-choice-option[id],[data-comment-label],p,li,h1,h2,h3,h4,h5,h6,ex-callout,ex-card,ex-tree,ex-file-tree,ex-code,ex-mermaid,ex-pre,ex-mermaid g.node[data-id]',
 		),
-	];
+		...root.querySelectorAll('table,tr,td,th'),
+	]);
 	for (const element of candidates) {
 		if (element.closest(`${excludedText},ex-comments,nav,[role="tablist"]`)) continue;
 		const generatedOwner = element.parentElement?.closest(
@@ -126,6 +128,24 @@ export function captureCommentAnchor(
 		return undefined;
 	const range = selection.getRangeAt(0).cloneRange();
 	if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return undefined;
+	// A browser range may include whitespace siblings outside the visible highlighted paragraph.
+	// Choose its owner from the selected readable text, keeping genuine cross-block ranges intact.
+	const selectedNodes = reviewTextNodes(root).filter((node): boolean => {
+		if (!range.intersectsNode(node)) return false;
+		return Boolean(
+			node.data
+				.slice(
+					node === range.startContainer ? range.startOffset : 0,
+					node === range.endContainer ? range.endOffset : node.length,
+				)
+				.trim(),
+		);
+	});
+	const firstNode = selectedNodes[0];
+	const lastNode = selectedNodes.at(-1);
+	if (!firstNode || !lastNode) return undefined;
+	if (range.startContainer !== firstNode) range.setStart(firstNode, 0);
+	if (range.endContainer !== lastNode) range.setEnd(lastNode, lastNode.length);
 	const ancestor =
 		range.commonAncestorContainer instanceof Element
 			? range.commonAncestorContainer
@@ -147,7 +167,9 @@ export function captureCommentAnchor(
 	const startChoice = startElement?.closest('.ex-choice-option[id],ex-choice[id]');
 	const endChoice = endElement?.closest('.ex-choice-option[id],ex-choice[id]');
 	const choiceOwner = startChoice === endChoice ? startChoice : undefined;
-	const componentOwner = ancestor?.closest('ex-code[id],ex-pre[id],ex-mermaid[id]');
+	const componentOwner = ancestor?.closest(
+		'td[id],th[id],tr[id],table[id],ex-code[id],ex-pre[id],ex-mermaid[id]',
+	);
 	const componentTarget = componentOwner ? targets.get(componentOwner.id) : undefined;
 	const explicitTarget = explicitOwner ? targets.get(explicitOwner.id) : undefined;
 	const target = targets.get(

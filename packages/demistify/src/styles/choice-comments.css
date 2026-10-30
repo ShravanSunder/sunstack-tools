@@ -330,10 +330,34 @@ ex-option.ex-choice-option > input {
 	text-align: left;
 }
 .ex-comment-edit,
+.ex-comment-delete,
 .ex-comment-status,
 .ex-review-question {
 	font-size: var(--text-sm);
 	color: var(--ink-soft);
+}
+.ex-comment-item-actions {
+	display: flex;
+	gap: var(--space-3);
+}
+.ex-comment-item-actions button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: var(--space-8);
+	border: 0;
+	background: transparent;
+	padding: var(--space-1) 0;
+	color: var(--ink-soft);
+}
+.ex-comment-delete:hover {
+	color: var(--tone-risk);
+}
+.ex-comment-actions > .ex-comment-delete {
+	margin-inline-end: auto;
+	color: var(--tone-risk);
+	background: transparent;
+	border-color: transparent;
 }
 .ex-comment-body {
 	white-space: pre-wrap;

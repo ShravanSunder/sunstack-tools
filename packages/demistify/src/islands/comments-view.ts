@@ -1,3 +1,4 @@
+import { labelControl } from '../core/controls.ts';
 import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
 import {
 	formatReview,
@@ -11,6 +12,7 @@ interface CommentsViewOptions {
 	readonly review: () => ReviewEnvelope;
 	readonly issue: () => string | undefined;
 	readonly save: (anchor: CommentAnchor, body: string, commentId?: string) => void;
+	readonly remove: (commentId: string) => void;
 	readonly reveal: (comment: PageComment) => string | undefined;
 	readonly composing: (anchor: CommentAnchor | undefined) => void;
 	readonly visibility: (open: boolean) => void;
@@ -38,6 +40,7 @@ export class CommentsView {
 	private readonly quote = textElement('blockquote', '', 'ex-comment-quote');
 	private readonly editor = document.createElement('textarea');
 	private readonly submit = textElement('button', 'Add comment', 'ex-comment-save');
+	private readonly deleteEditing = textElement('button', 'Delete', 'ex-comment-delete');
 	private readonly answers = document.createElement('div');
 	private readonly list = document.createElement('div');
 	private readonly transfer = document.createElement('div');
@@ -65,11 +68,25 @@ export class CommentsView {
 		this.submit.setAttribute('aria-keyshortcuts', 'Meta+Enter');
 		this.submit.title = 'Save comment (⌘Enter)';
 		const cancel = textElement('button', 'Cancel');
+		labelControl(cancel, 'x', 'Cancel');
 		cancel.type = 'button';
 		cancel.addEventListener('click', (): void => this.endComposer());
 		const actions = document.createElement('div');
 		actions.className = 'ex-comment-actions';
-		actions.append(cancel, this.submit);
+		labelControl(this.deleteEditing, 'trash', 'Delete');
+		this.deleteEditing.type = 'button';
+		this.deleteEditing.hidden = true;
+		this.deleteEditing.addEventListener('click', (): void => {
+			const commentId = this.editing?.commentId;
+			if (!commentId) return;
+			try {
+				this.options.remove(commentId);
+				this.endComposer();
+			} catch (error) {
+				this.showIssue(`Comment could not delete: ${String(error)}`);
+			}
+		});
+		actions.append(this.deleteEditing, cancel, this.submit);
 		this.composer.append(this.targetLabel, this.quote, this.editor, actions);
 		this.manual.readOnly = true;
 		this.manual.hidden = true;
@@ -160,7 +177,13 @@ export class CommentsView {
 		this.quote.hidden = currentAnchor.kind !== 'text';
 		this.quote.textContent = currentAnchor.kind === 'text' ? currentAnchor.selectedText : '';
 		this.editor.value = saved?.body ?? '';
-		this.submit.textContent = saved ? 'Save comment' : 'Add comment';
+		this.deleteEditing.hidden = !saved;
+		this.deleteEditing.setAttribute('aria-label', `Delete comment on ${currentAnchor.label}`);
+		labelControl(
+			this.submit,
+			saved ? 'check-circle' : 'chat-circle',
+			saved ? 'Save changes' : 'Add comment',
+		);
 		this.submit.disabled = !this.editor.value.trim();
 		this.options.composing(currentAnchor);
 		this.refresh();
@@ -234,10 +257,26 @@ export class CommentsView {
 		if (comment.anchor.kind === 'text')
 			item.append(textElement('blockquote', comment.anchor.selectedText, 'ex-comment-quote'));
 		const edit = textElement('button', 'Edit', 'ex-comment-edit');
+		labelControl(edit, 'pencil-simple', 'Edit');
 		edit.type = 'button';
 		edit.setAttribute('aria-label', `Edit comment on ${comment.anchor.label}`);
 		edit.addEventListener('click', (): void => this.compose(comment.anchor, comment));
-		item.append(textElement('p', comment.body, 'ex-comment-body'), edit);
+		const remove = textElement('button', 'Delete', 'ex-comment-delete');
+		labelControl(remove, 'trash', 'Delete');
+		remove.type = 'button';
+		remove.setAttribute('aria-label', `Delete comment on ${comment.anchor.label}`);
+		remove.addEventListener('click', (): void => {
+			try {
+				this.options.remove(comment.commentId);
+				this.refresh();
+			} catch (error) {
+				this.showIssue(`Comment could not delete: ${String(error)}`);
+			}
+		});
+		const actions = document.createElement('div');
+		actions.className = 'ex-comment-item-actions';
+		actions.append(edit, remove);
+		item.append(textElement('p', comment.body, 'ex-comment-body'), actions);
 		return item;
 	}
 
