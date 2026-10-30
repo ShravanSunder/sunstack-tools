@@ -128,6 +128,25 @@ jobs:
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           fi
+      # Generated from dist.github-build-setup; edit the setup source and
+      # re-diff `dist generate` when updating these cache steps.
+      - name: Install pinned Rust and release targets
+        run: |
+          rustup show active-toolchain
+          rustup target add ${{ join(matrix.targets, ' ') }}
+      - name: Configure Apple SDK
+        if: runner.os == 'macOS'
+        run: |
+          {
+            echo "SDKROOT=$(xcrun --show-sdk-path)"
+            echo "CC=/usr/bin/clang"
+            echo "CFLAGS=-isysroot $(xcrun --show-sdk-path)"
+          } >> "$GITHUB_ENV"
+      - name: Restore main release dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: dist-${{ join(matrix.targets, '-') }}
+          save-if: 'false'
       - name: Install dist
         run: ${{ matrix.install_dist.run }}
       # Get the dist-manifest
@@ -140,20 +159,14 @@ jobs:
       - name: Install dependencies
         run: |
           ${{ matrix.packages_install }}
-      - name: Configure Apple SDK
-        if: runner.os == 'macOS'
-        run: |
-          {
-            echo "SDKROOT=$(xcrun --show-sdk-path)"
-            echo "CC=/usr/bin/clang"
-            echo "CFLAGS=-isysroot $(xcrun --show-sdk-path)"
-          } >> "$GITHUB_ENV"
       - name: Build artifacts
         run: |
           # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
       - name: Verify standalone archive linkage
+        id: archive-linkage
+        background: true
         run: python3 scripts/release/check_linkage.py target/distrib --target ${{ join(matrix.targets, ' --target ') }}
       - id: cargo-dist
         name: Post-build
@@ -170,6 +183,9 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           cp dist-manifest.json "$BUILD_MANIFEST_NAME"
+      # Linkage can overlap manifest preparation, but must pass before upload.
+      - name: Wait for archive checks
+        wait-all:
       - name: 'Upload artifacts'
         uses: actions/upload-artifact@v7
         with:

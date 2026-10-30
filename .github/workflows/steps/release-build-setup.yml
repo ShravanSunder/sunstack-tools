@@ -1,0 +1,19 @@
+# cargo-dist reads this step array through dist.github-build-setup. Keeping it
+# below workflows/ prevents GitHub treating it as a standalone workflow.
+- name: Install pinned Rust and release targets
+  run: |
+    rustup show active-toolchain
+    rustup target add ${{ join(matrix.targets, ' ') }}
+- name: Configure Apple SDK
+  if: runner.os == 'macOS'
+  run: |
+    {
+      echo "SDKROOT=$(xcrun --show-sdk-path)"
+      echo "CC=/usr/bin/clang"
+      echo "CFLAGS=-isysroot $(xcrun --show-sdk-path)"
+    } >> "$GITHUB_ENV"
+- name: Restore main release dependencies
+  uses: Swatinem/rust-cache@v2
+  with:
+    shared-key: dist-${{ join(matrix.targets, '-') }}
+    save-if: 'false'

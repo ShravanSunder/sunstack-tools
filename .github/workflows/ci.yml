@@ -1,0 +1,97 @@
+name: Sunstack CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Cancel obsolete PR checks; let each main cache producer finish its post-save.
+concurrency:
+  group: sunstack-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  native:
+    name: Native gates (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-22.04, macos-14]
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      SUNSTACK_CREDENTIAL_STORE: 'off'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      # Resolve every pinned component before background Cargo commands start.
+      - name: Install pinned Rust components
+        run: rustup show active-toolchain
+      - name: Configure Apple SDK
+        if: runner.os == 'macOS'
+        run: |
+          {
+            echo "SDKROOT=$(xcrun --show-sdk-path)"
+            echo "CC=/usr/bin/clang"
+            echo "CFLAGS=-isysroot $(xcrun --show-sdk-path)"
+          } >> "$GITHUB_ENV"
+      - name: Cache native dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: native-gates
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - name: Install nextest with the pipe-inheritance fix
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest@0.9.150
+      - uses: actions/setup-node@v6
+        if: runner.os == 'Linux'
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v4
+        if: runner.os == 'Linux'
+      - name: Install TypeScript dependencies
+        if: runner.os == 'Linux'
+        run: pnpm install --frozen-lockfile
+      # These checks do not acquire Cargo's compilation lock. Keep clippy and
+      # nextest serial; extra concurrent compilation only contends for CPU/state.
+      - name: Check Rust formatting
+        id: rust-format
+        background: true
+        run: cargo fmt --all -- --check
+      - name: Check scripts TypeScript
+        id: typescript
+        if: runner.os == 'Linux'
+        background: true
+        run: pnpm exec tsc -p scripts/verify/sunstack-rule/tsconfig.json
+      - name: Lint scripts
+        id: scripts-lint
+        if: runner.os == 'Linux'
+        background: true
+        run: pnpm exec oxlint --type-aware --type-check --tsconfig scripts/verify/sunstack-rule/tsconfig.json --max-warnings 0 scripts/verify/sunstack-rule/*.ts
+      - name: Check scripts and workflow formatting
+        id: scripts-format
+        if: runner.os == 'Linux'
+        background: true
+        run: pnpm exec oxfmt --check scripts/verify/sunstack-rule/*.ts scripts/verify/sunstack-rule/tsconfig.json .github/workflows/ci.yml .github/workflows/release-cache.yml .github/workflows/steps/release-build-setup.yml
+      - name: Test scripts
+        id: scripts-tests
+        if: runner.os == 'Linux'
+        background: true
+        run: pnpm exec vitest run scripts/verify/sunstack-rule/*.test.ts
+      - name: Lint Rust workspace
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Test Rust workspace
+        run: cargo nextest run --locked --workspace
+      # A failed background check fails this join and prevents the cache save.
+      - name: Wait for independent checks
+        wait-all:

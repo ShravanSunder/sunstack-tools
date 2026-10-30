@@ -1,0 +1,79 @@
+name: Warm release cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '**/rust-toolchain'
+      - '**/rust-toolchain.toml'
+      - '**/.cargo/config.toml'
+      - dist-workspace.toml
+      - .github/workflows/release-cache.yml
+      - .github/workflows/steps/release-build-setup.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One producer at a time; tags and source-only pushes never start this workflow.
+concurrency:
+  group: sunstack-release-cache-main
+  cancel-in-progress: false
+
+jobs:
+  release-cache:
+    name: Warm release dependencies (${{ join(matrix.targets, ', ') }})
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      # Match `dist plan`'s target/runner pairs. Each optimized cross-target build
+      # is a substantial workload and cannot reuse the native job's dev profile.
+      matrix:
+        include:
+          - runner: macos-14
+            targets: [aarch64-apple-darwin]
+          - runner: macos-14
+            targets: [x86_64-apple-darwin]
+          - runner: ubuntu-22.04
+            targets: [x86_64-unknown-linux-musl]
+          - runner: ubuntu-22.04-arm
+            targets: [aarch64-unknown-linux-musl]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      # Match steps/release-build-setup.yml's target, toolchain and environment.
+      # Deliberately omit native's dev/test profile overrides from this job.
+      - name: Install pinned Rust and release targets
+        run: |
+          rustup show active-toolchain
+          rustup target add ${{ join(matrix.targets, ' ') }}
+      - name: Configure Apple SDK
+        if: runner.os == 'macOS'
+        run: |
+          {
+            echo "SDKROOT=$(xcrun --show-sdk-path)"
+            echo "CC=/usr/bin/clang"
+            echo "CFLAGS=-isysroot $(xcrun --show-sdk-path)"
+          } >> "$GITHUB_ENV"
+      - name: Cache release dependencies
+        id: release-cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: dist-${{ join(matrix.targets, '-') }}
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - name: Install pinned dist
+        if: steps.release-cache.outputs.cache-hit != 'true'
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.32.0/cargo-dist-installer.sh | sh
+      - name: Install musl dependencies
+        if: steps.release-cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes musl-tools
+      - name: Build release artifacts without publishing
+        if: steps.release-cache.outputs.cache-hit != 'true'
+        run: dist build --artifacts=local --print=linkage --output-format=json --target=${{ join(matrix.targets, ' --target=') }} > dist-manifest.json
