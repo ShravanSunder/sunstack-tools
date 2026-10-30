@@ -95,16 +95,24 @@ pub enum RequestLimit {
     RequestBytes,
     InputTokens,
 }
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SelectionIncompleteReason {
+    #[error("a referenced selection evidence field is unavailable")]
     EvidenceUnavailable { field: sunstack_evidence::FieldName },
+    #[error("selection evidence exceeds its configured size limit")]
     EvidenceTooLarge,
+    #[error("selection request exceeds a configured limit")]
     RequestTooLarge { limit: RequestLimit },
+    #[error("selection request is invalid")]
     InvalidRequest,
+    #[error("selection provider request failed")]
     ProviderFailure,
+    #[error("selection answer is malformed")]
     MalformedAnswer,
+    #[error("selection model request allowance is exhausted")]
     RequestLimitReached,
+    #[error("selection was cancelled")]
     Cancelled,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

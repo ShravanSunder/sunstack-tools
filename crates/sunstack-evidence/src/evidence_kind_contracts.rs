@@ -278,9 +278,34 @@ impl Ord for CandidateId {
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
-#[serde(transparent)]
+#[serde(try_from = "String", into = "String")]
 pub struct CandidateKey(String);
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("invalid candidate key: expected c followed by a canonical positive integer")]
+pub struct InvalidCandidateKey;
+impl TryFrom<String> for CandidateKey {
+    type Error = InvalidCandidateKey;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+impl From<CandidateKey> for String {
+    fn from(value: CandidateKey) -> Self {
+        value.0
+    }
+}
 impl CandidateKey {
+    pub fn new(value: impl Into<String>) -> Result<Self, InvalidCandidateKey> {
+        let value = value.into();
+        let digits = value.strip_prefix('c').ok_or(InvalidCandidateKey)?;
+        if digits.is_empty()
+            || digits.starts_with('0')
+            || !digits.bytes().all(|digit| digit.is_ascii_digit())
+        {
+            return Err(InvalidCandidateKey);
+        }
+        Ok(Self(value))
+    }
     pub fn at(position: usize) -> Self {
         Self(format!("c{}", position.saturating_add(1)))
     }

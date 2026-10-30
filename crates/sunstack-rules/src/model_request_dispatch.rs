@@ -3,11 +3,15 @@ use std::sync::Arc;
 use sunstack_decisions::*;
 use tokio::{sync::Semaphore, task::JoinSet};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum DispatchRefusal {
+    #[error("request exceeds the configured size limit")]
     RequestTooLarge,
+    #[error("model request allowance is exhausted")]
     RequestLimitReached,
+    #[error("model request was cancelled")]
     Cancelled,
+    #[error("model request is invalid")]
     InvalidRequest,
 }
 #[derive(Debug, Clone)]

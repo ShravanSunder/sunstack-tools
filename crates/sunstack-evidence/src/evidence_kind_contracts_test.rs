@@ -80,3 +80,32 @@ fn source_keys_reject_present_null_and_non_string_values() {
         }
     }
 }
+
+#[test]
+fn candidate_keys_reject_empty_and_noncanonical_intake_without_changing_valid_wire_keys() {
+    for value in [
+        "",
+        "c",
+        "c0",
+        "c01",
+        "C1",
+        "c-1",
+        "c+1",
+        "c1.0",
+        "c 1",
+        " c1",
+        "c1 ",
+        "c١",
+        "candidate",
+    ] {
+        assert!(
+            serde_json::from_value::<CandidateKey>(serde_json::json!(value)).is_err(),
+            "{value:?}"
+        );
+    }
+    for (position, value) in [(0, "c1"), (1, "c2"), (9, "c10")] {
+        let key: CandidateKey = serde_json::from_value(serde_json::json!(value)).unwrap();
+        assert_eq!(key, CandidateKey::at(position));
+        assert_eq!(serde_json::to_string(&key).unwrap(), format!("\"{value}\""));
+    }
+}

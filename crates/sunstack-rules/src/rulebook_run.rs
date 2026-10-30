@@ -147,7 +147,11 @@ pub async fn run_rulebook_with_dispatcher(
             DecisionRunOutcome::Cancelled { .. } => {
                 incomplete(RulebookIncompleteReason::Cancelled, Some(step))
             }
-            _ => incomplete(RulebookIncompleteReason::ProviderFailure, Some(step)),
+            DecisionRunOutcome::InvalidRequest { .. }
+            | DecisionRunOutcome::ProviderFailure { .. }
+            | DecisionRunOutcome::InvalidResponse { .. } => {
+                incomplete(RulebookIncompleteReason::ProviderFailure, Some(step))
+            }
         };
         run.results[pair_index].result = result;
         run.requests.push(RulebookRequestRecord {

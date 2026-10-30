@@ -166,7 +166,10 @@ async fn selection_thresholds_are_per_candidate_with_qualified_questions_and_no_
         })
         .collect::<serde_json::Map<_, _>>();
     request.respond(200,json!({"model":"typesafe/controlled","answers":answers,"usage":{"input_tokens":10,"output_tokens":2}}));
-    let (outcomes, records) = operation.await.unwrap();
+    let (outcomes, records) = tokio::time::timeout(Duration::from_secs(5), operation)
+        .await
+        .unwrap()
+        .unwrap();
     let outcomes = outcomes
         .values()
         .map(|outcome| {
@@ -208,7 +211,10 @@ async fn thirty_three_short_candidates_pack_at_the_real_question_limit_as_thirty
     assert!(second.body["questions"].get("c33").is_some());
     assert_eq!(second.body["state"]["shared"], shared);
     second.noul(0.93);
-    let (outcomes, records) = operation.await.unwrap();
+    let (outcomes, records) = tokio::time::timeout(Duration::from_secs(5), operation)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(outcomes.len(), 33);
     assert!(
         outcomes
@@ -263,7 +269,10 @@ async fn unavailable_referenced_fields_block_only_their_candidate_and_input_toke
             .is_none()
     );
     request.noul(0.9);
-    let (outcomes, _) = operation.await.unwrap();
+    let (outcomes, _) = tokio::time::timeout(Duration::from_secs(5), operation)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(
         outcomes
             .values()
@@ -409,7 +418,10 @@ async fn encoded_character_packing_keeps_consecutive_groups_and_names_singleton_
         ["c4", "c5"]
     );
     second.noul(0.9);
-    let (outcomes, records) = operation.await.unwrap();
+    let (outcomes, records) = tokio::time::timeout(Duration::from_secs(5), operation)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(outcomes.len(), 5);
     assert_eq!(records.len(), 2);
     assert_eq!(server.finish().await, 2);
@@ -455,7 +467,10 @@ async fn provider_failure_is_contained_to_its_file_while_the_other_file_selects(
     );
     request.respond(500, json!({"error":"controlled failure"}));
     server.next().await.noul(0.93);
-    let (outcomes, records) = operation.await.unwrap();
+    let (outcomes, records) = tokio::time::timeout(Duration::from_secs(5), operation)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(outcomes.len(), 2);
     assert!(outcomes.iter().any(|(id, outcome)| {
         id.file.to_string_lossy().contains("practices-research")
@@ -514,6 +529,13 @@ async fn unequal_candidates_share_one_independently_bounded_shared_view_in_each_
         assert_eq!(request.body["state"]["shared"], expected);
         request.noul(0.93);
     }
-    assert_eq!(operation.await.unwrap().len(), 2);
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(5), operation)
+            .await
+            .unwrap()
+            .unwrap()
+            .len(),
+        2
+    );
     assert_eq!(server.finish().await, 2);
 }
