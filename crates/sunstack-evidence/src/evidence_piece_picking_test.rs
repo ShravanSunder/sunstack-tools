@@ -39,7 +39,34 @@ fn target_change_identity_normalizes_contained_paths_and_rejects_root_escape() {
         ("/target/SKILL.md", None),
     ] {
         assert_eq!(
-            contained_target_identity(std::path::Path::new(raw)),
+            contained_target_identity(
+                std::path::Path::new("/repository"),
+                std::path::Path::new(raw)
+            ),
+            expected.map(std::path::PathBuf::from)
+        );
+    }
+}
+
+#[test]
+fn missing_absolute_target_identity_is_root_relative_without_filesystem_access() {
+    use crate::checked_file_source::contained_target_identity;
+    let root = std::path::Path::new("/repository");
+    for (raw, expected) in [
+        (
+            "/repository/skills/target/SKILL.md",
+            Some("skills/target/SKILL.md"),
+        ),
+        (
+            "/repository/skills/loader/../target/./SKILL.md",
+            Some("skills/target/SKILL.md"),
+        ),
+        ("/repository/../outside/SKILL.md", None),
+        ("/repository-other/skills/target/SKILL.md", None),
+        ("/outside/target/SKILL.md", None),
+    ] {
+        assert_eq!(
+            contained_target_identity(root, std::path::Path::new(raw)),
             expected.map(std::path::PathBuf::from)
         );
     }

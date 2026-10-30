@@ -89,7 +89,12 @@ async fn real_git_hunk_picks_only_step_three_and_a_changed_target_picks_its_load
         .cloned()
         .collect::<Vec<_>>();
     assert_eq!(steps.len(), 6);
-    let (picked, outside) = pick_pieces(&steps, &changes(&fixture).await, false);
+    let (picked, outside) = pick_pieces(
+        &steps,
+        &changes(&fixture).await,
+        false,
+        fixture.directory.path(),
+    );
     assert_eq!(outside, 5);
     assert_eq!(picked.len(), 1);
     assert_eq!(steps[picked[0]].location.first_line, 49);
@@ -102,7 +107,12 @@ async fn real_git_hunk_picks_only_step_three_and_a_changed_target_picks_its_load
         .filter(|piece| piece.kind.as_str() == "load")
         .cloned()
         .collect::<Vec<_>>();
-    let (picked, _) = pick_pieces(&loads, &changes(&fixture).await, false);
+    let (picked, _) = pick_pieces(
+        &loads,
+        &changes(&fixture).await,
+        false,
+        fixture.directory.path(),
+    );
     assert!(
         picked
             .iter()
@@ -128,7 +138,12 @@ async fn an_untracked_skill_is_wholly_changed() {
         .into_iter()
         .filter(|piece| piece.kind.as_str() == "step")
         .collect::<Vec<_>>();
-    let (picked, outside) = pick_pieces(&steps, &changes(&fixture).await, false);
+    let (picked, outside) = pick_pieces(
+        &steps,
+        &changes(&fixture).await,
+        false,
+        fixture.directory.path(),
+    );
     assert_eq!(picked.len(), 6);
     assert_eq!(outside, 0);
 }

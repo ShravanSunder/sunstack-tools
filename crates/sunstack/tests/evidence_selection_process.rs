@@ -383,3 +383,100 @@ async fn deleting_only_parent_relative_target_selects_loader_and_keeps_missing_t
         }
     }
 }
+
+#[tokio::test]
+async fn deleting_only_absolute_in_root_target_selects_loader_and_preserves_raw_missing_path() {
+    for (deleted, outside) in [(false, false), (true, false), (true, true)] {
+        let root = fixture();
+        std::fs::create_dir_all(root.path().join("skills/loader")).unwrap();
+        std::fs::create_dir_all(root.path().join("skills/target")).unwrap();
+        let absolute_target = root
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join("skills/target/SKILL.md");
+        std::fs::write(root.path().join("skills/loader/SKILL.md"), "# Loader\n\n## Workflow\n\n1. Inspect inputs.\n\n   load `../target/SKILL.md` and return its observations.\n\n2. Record results.\n".replace("../target/SKILL.md", absolute_target.to_str().unwrap())).unwrap();
+        if outside {
+            let loader = root.path().join("skills/loader/SKILL.md");
+            let text = std::fs::read_to_string(&loader).unwrap().replace(
+                absolute_target.to_str().unwrap(),
+                root.path()
+                    .canonicalize()
+                    .unwrap()
+                    .parent()
+                    .unwrap()
+                    .join("outside-target/SKILL.md")
+                    .to_str()
+                    .unwrap(),
+            );
+            std::fs::write(loader, text).unwrap();
+        }
+        let target = root.path().join("skills/target/SKILL.md");
+        std::fs::write(
+            &target,
+            "---\ndescription: Use when checking a target.\n---\n",
+        )
+        .unwrap();
+        let path = root.path().join("skill-rules.config.json");
+        let mut config = read(&path);
+        config["check"]["files"] = json!(["skills/loader/SKILL.md"]);
+        config["evidence"]["kinds"]["load"]["within"] = json!("workflow_section");
+        let mut server = controlled::ControlledServer::start().await;
+        config["decision_model"]["endpoint"] = json!(server.endpoint);
+        save(&path, &config);
+        git(root.path(), &["init", "--quiet"]);
+        git(root.path(), &["add", "."]);
+        git(root.path(), &["commit", "--quiet", "-m", "baseline"]);
+        if deleted {
+            std::fs::remove_file(&target).unwrap();
+        } else {
+            std::fs::write(
+                &target,
+                "---\ndescription: Use when checking a modified target.\n---\n",
+            )
+            .unwrap();
+        }
+        assert_eq!(
+            git(root.path(), &["diff", "--name-only"]),
+            "skills/target/SKILL.md\n"
+        );
+        let mut operation = tokio::spawn(
+            command(root.path())
+                .args(["--evidence", "--since", "HEAD"])
+                .env("OPENROUTER_API_KEY", "SYNTHETIC_TARGET_KEY")
+                .output(),
+        );
+        let mut bodies = Vec::new();
+        let output = tokio::time::timeout(Duration::from_secs(10), async { loop { tokio::select! { output = &mut operation => break output.unwrap().unwrap(), request = server.receive() => { bodies.push(request.body.clone()); request.noul(0.93); } } } }).await.unwrap();
+        assert_eq!(server.finish().await, bodies.len());
+        assert_eq!(
+            output.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        if outside {
+            assert!(bodies.is_empty());
+            assert_eq!(report["selections"], json!([]));
+            assert_eq!(report["pieces"], json!([]));
+            continue;
+        }
+        assert_eq!(bodies.len(), 1, "selection must ask for unchanged loader");
+        assert_eq!(report["selections"].as_array().unwrap().len(), 1);
+        let load = report["pieces"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|piece| piece["kind"] == "load")
+            .unwrap();
+        assert_eq!(load["fields"]["targets"]["values"][0]["exists"], !deleted);
+        if deleted {
+            assert_eq!(report["usage"]["checked_files_acquired"], 1);
+            assert_eq!(
+                load["fields"]["targets"]["values"][0]["path"],
+                absolute_target.to_str().unwrap()
+            );
+        }
+    }
+}

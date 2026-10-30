@@ -175,7 +175,11 @@ impl EvidenceBuild {
     }
 
     /// Resolve target identities from scanned matches without opening their content.
-    pub fn target_paths(&self, source: &dyn CheckedFileSource) -> BTreeMap<PathBuf, Vec<PathBuf>> {
+    pub fn target_paths(
+        &self,
+        source: &dyn CheckedFileSource,
+        repository_root: &Path,
+    ) -> BTreeMap<PathBuf, Vec<PathBuf>> {
         let mut targets = BTreeMap::<PathBuf, Vec<PathBuf>>::new();
         for (path, file) in &self.matched {
             for definition in self.kinds.values() {
@@ -225,7 +229,10 @@ impl EvidenceBuild {
                             };
                             for target in paths {
                                 if let Some(resolved) = source.resolve_file(&target).or_else(|| {
-                                    crate::checked_file_source::contained_target_identity(&target)
+                                    crate::checked_file_source::contained_target_identity(
+                                        repository_root,
+                                        &target,
+                                    )
                                 }) {
                                     targets.entry(path.clone()).or_default().push(resolved);
                                 }

@@ -341,8 +341,9 @@ pub async fn run_with_source(
         Err(_) => return failed(report, "evidence building failed"),
     };
     let scope_changes = changes.clone();
+    let repository_root = selection.root.clone();
     let prepared = tokio::task::spawn_blocking(move || {
-        let targets = build.target_paths(&source);
+        let targets = build.target_paths(&source, &repository_root);
         let files = selection_files_for_changes(&scope_files, &targets, &scope_changes, full);
         (build, source, files)
     })
@@ -471,7 +472,7 @@ pub async fn run_with_source(
             reason: IncompleteReason::SelectionFailed,
         });
     }
-    let (picked, _) = pick_pieces(&catalog.pieces, &changes, full);
+    let (picked, _) = pick_pieces(&catalog.pieces, &changes, full, &selection.root);
     let picked_set = picked
         .iter()
         .copied()
