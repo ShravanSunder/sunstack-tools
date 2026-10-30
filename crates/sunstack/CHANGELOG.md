@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
+
+This pre-1.0 minor release cuts over the lint configuration and rulebook format.
 
 - Replace lint's `rule_sets` configuration with marked Markdown `rulebook` pairs,
   checked-file globs, an ast-grep evidence project and `decision_model`. Rule

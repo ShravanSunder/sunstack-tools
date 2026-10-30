@@ -45,7 +45,7 @@ Six exploratory Sol/Luna runs compared Demistify with ordinary HTML/CSS artifact
 
 ## Sunstack runner
 
-`sunstack lint` checks repository documents using authored rule sets. The same lint is
+`sunstack lint` checks repository documents using marked rulebooks and decision graphs. The same lint is
 available as the `sunstack-lint` Rust library. `sunstack exec` exposes the native JSON protocol.
 Build from this repository with the pinned Rust toolchain:
 
@@ -84,7 +84,7 @@ runtime failures after the release assets are available.
 brew install shravansunder/taps/sunstack
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/latest/download/sunstack-installer.sh | sh
 # Pin a version by downloading that release's installer:
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.2.0/sunstack-installer.sh | sh
 npm i -D @sunstack/cli
 node_modules/.bin/sunstack --version
 ```
@@ -118,15 +118,15 @@ Stopping a run depends on what sits in front of the bin. "4" means the run cance
 prints its full report and exits 4. "Not passed on" means the stop never reaches the
 run, and the run may keep going, so signal the whole process group instead.
 
-| Route | Ctrl-C at a terminal | SIGINT or SIGTERM to that process only | SIGHUP to that process only |
-| --- | --- | --- | --- |
-| The bin run directly, or `sunstack` after `npm i -g` | 4 | 4 | the run ends by SIGHUP |
-| npm script written `exec sunstack …` | 4 | 4 | not passed on |
-| npm script without `exec`, on Linux | the run cancels; npm reports the signal | not passed on | not passed on |
-| `pnpm dlx @sunstack/cli …` | 4 | 4 | the run ends |
-| `npx @sunstack/cli …` on macOS | 4 | 4 | not passed on |
-| `npx @sunstack/cli …` on Linux | the run cancels; npx exits 130, not 4 | not passed on | not passed on |
-| `npx --package=@sunstack/cli -c 'exec sunstack …'` | 4 | 4 | not passed on |
+| Route                                                | Ctrl-C at a terminal                    | SIGINT or SIGTERM to that process only | SIGHUP to that process only |
+| ---------------------------------------------------- | --------------------------------------- | -------------------------------------- | --------------------------- |
+| The bin run directly, or `sunstack` after `npm i -g` | 4                                       | 4                                      | the run ends by SIGHUP      |
+| npm script written `exec sunstack …`                 | 4                                       | 4                                      | not passed on               |
+| npm script without `exec`, on Linux                  | the run cancels; npm reports the signal | not passed on                          | not passed on               |
+| `pnpm dlx @sunstack/cli …`                           | 4                                       | 4                                      | the run ends                |
+| `npx @sunstack/cli …` on macOS                       | 4                                       | 4                                      | not passed on               |
+| `npx @sunstack/cli …` on Linux                       | the run cancels; npx exits 130, not 4   | not passed on                          | not passed on               |
+| `npx --package=@sunstack/cli -c 'exec sunstack …'`   | 4                                       | 4                                      | not passed on               |
 
 For tools and CI that stop runs by signal, use the bin, an `exec` script, `pnpm dlx`,
 or write npx with `-c 'exec …'` as in the last row. On Linux, plain `npx` runs the bin
@@ -145,49 +145,27 @@ with `exec`:
 
 ### Configure and run lint
 
-Run `sunstack lint --init`, then add at least one rule-set entry. The skeleton has no
-built-in rules and is refused until configured. Each rule set must declare exactly one
-`document` input. Paths and file globs in the config are relative to its directory.
+Run `sunstack lint --init`, then add the referenced rulebook, rule entries and
+ast-grep evidence project. See the [CLI configuration guide](crates/sunstack/README.md#repository-lint)
+for the current configuration shape, scope flags, `--check`, `--evidence` and report
+formats. Version 0.2.0 refuses the former `rule_sets` configuration.
 
-```json
-{
-	"$schema": "https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack.lint.schema.json",
-	"rule_sets": {
-		"docs": { "path": "rules/docs.ruleset.json", "files": ["docs/**/*.md"] }
-	},
-	"rules": { "docs/*": "error" }
-}
-```
-
-The command finds the nearest `sunstack.lint.json` in the current directory or its
-parents; `--config <file>` selects one explicitly. `--check` validates config and rule
-sets without reading target content or needing a backend. `--rules` lists every rule
-as JSON; `--rules <file>` adds that file's effective setting and its origin.
-
-With no paths, lint checks staged, unstaged and untracked changes in Git. Named paths
-default to full scope. Use `--all` for every configured target (also outside Git), or
-`--since <rev>` for changes since a revision, including worktree edits. A config change
-widens the run to full scope and is reported. Git-ignored files and `ignore_patterns`
-are excluded. Severity precedence is authored, entry wildcard, exact rule, then matching
-override blocks in order. An exact rule wins within a block; `off` prevents model work.
-
-Formats are `default`, `json`, `github` and SARIF 2.1.0 (`--format sarif`). Exit codes:
-0 clean or no checks selected; 1 error findings or warnings above `--max-warnings`;
-2 invalid input/config/backend; 3 incomplete; 4 cancelled. Incomplete and cancelled
-runs retain completed findings. Warnings alone do not fail unless a warning limit is set.
+Exit codes are 0 for clean or nothing selected, 1 for failing findings, 2 for
+invalid input, 3 for incomplete work, 4 for cancellation and 5 for uncertain
+decisions when no higher-priority result applies.
 
 ### Privacy, cost and limits
 
 Mechanical rules send no text over the network. Selected text for judged rules and
-model-based applicability decisions is sent to the configured backend. Such work needs
-`backend: { "kind": "jev_openrouter", "model": "jev-latest" }` and an OpenRouter key
+asking decisions is sent to the configured backend. Such work needs
+`decision_model: { "model": "jev-latest" }` and an OpenRouter key
 from `OPENROUTER_API_KEY` or the OS credential store. The default endpoint is `https://openrouter.ai/api/v1/systemone`.
 The environment wins without touching the store. To save the current environment
 key to macOS Keychain or Linux Secret Service, run `sunstack credentials save`;
 ordinary model runs never save it automatically. The command is listed in `sunstack --help`.
 Set `SUNSTACK_CREDENTIAL_STORE=off` to disable store lookup and saving, for example
 in CI. Credentials are never included in reports.
-Judged rules cost money; change scopes, `off` and `limits` bound that work. Reports
+Judged rules cost money; change scopes and `limits` bound that work. Reports
 include requests, tokens and provider-reported cost; missing cost stays absent.
 
 Default limits are 2,000 files, 1 MiB per file, 64 MiB total, 10,000 matches, 8 MiB of
