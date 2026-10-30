@@ -119,26 +119,53 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
     Ok(config)
 }
 pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInvalid> {
-    if config.rulebook.is_empty()
-        || config.check.files.is_empty()
-        || config.evidence.kinds.is_empty()
-    {
+    let empty_collection = if config.rulebook.is_empty() {
+        Some(ConfigPath::keys(["rulebook"]))
+    } else if config.check.files.is_empty() {
+        Some(ConfigPath::keys(["check", "files"]))
+    } else if config.evidence.kinds.is_empty() {
+        Some(ConfigPath::keys(["evidence", "kinds"]))
+    } else {
+        None
+    };
+    if let Some(path) = empty_collection {
         return Err(config_error(
             config,
-            &ConfigPath::keys(["rulebook"]),
+            &path,
             LintInvalidCode::Syntax,
             "rulebook, check.files and evidence.kinds must be nonempty",
         ));
     }
-    if config
+    let empty_pair_path = config
         .rulebook
         .iter()
-        .any(|pair| pair.markdown.as_os_str().is_empty() || pair.rules.as_os_str().is_empty())
-        || config.evidence.ast_grep.as_os_str().is_empty()
-    {
+        .enumerate()
+        .find_map(|(index, pair)| {
+            let field = if pair.markdown.as_os_str().is_empty() {
+                Some("markdown")
+            } else if pair.rules.as_os_str().is_empty() {
+                Some("rules")
+            } else {
+                None
+            };
+            field.map(|field| {
+                ConfigPath::keys(["rulebook"])
+                    .with_index(index)
+                    .with_key(field)
+            })
+        });
+    let empty_path = empty_pair_path.or_else(|| {
+        config
+            .evidence
+            .ast_grep
+            .as_os_str()
+            .is_empty()
+            .then(|| ConfigPath::keys(["evidence", "ast_grep"]))
+    });
+    if let Some(path) = empty_path {
         return Err(config_error(
             config,
-            &ConfigPath::keys(["rulebook"]),
+            &path,
             LintInvalidCode::Syntax,
             "configured paths must be nonempty",
         ));
@@ -151,7 +178,7 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
     {
         return Err(config_error(
             config,
-            &ConfigPath::keys(["evidence_max_chars"]),
+            &ConfigPath::keys(["limits", "evidence_max_chars"]),
             LintInvalidCode::Syntax,
             "evidence_max_chars must be at least 1000",
         ));

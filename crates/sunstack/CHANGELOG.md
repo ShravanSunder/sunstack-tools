@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Config refusals name the full path of the setting (for example `limits.evidence_max_chars`).
+
 - Check refusals for undefined kinds and kind cycles now point at the kind in
   the config. Cycle refusals name a deterministic path and point at its first kind.
 
