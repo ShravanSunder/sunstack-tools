@@ -7,6 +7,7 @@ import { afterEach, expect, test } from 'vitest';
 
 import { baselineGit, gitCommand, parseObject, readObject } from './rulebook-fixture-support.ts';
 import { declaredTarget, RulebookProcess } from './rulebook-process.ts';
+import { keepKinds } from './selection-fixture.ts';
 import { expectedSelectionState } from './selection-journey.ts';
 const roots: string[] = [];
 afterEach(() => {
@@ -82,5 +83,29 @@ test('source oracle keeps a parent section remainder and removes only strict chi
 	expect(expectedSelectionState(root, 'one.md')).toEqual({
 		candidates: { ['c1']: { heading: '## Workflow', body: '\n1. Parent item.\n\n' } },
 		shared: { outline: ['## Workflow', '### Child'] },
+	});
+});
+
+test('pruning a kind retains a valid canonical body-rule witness', () => {
+	const root = filesystem.mkdtempSync(path.join(operatingSystem.tmpdir(), 'selection-prune-'));
+	roots.push(root);
+	filesystem.writeFileSync(
+		path.join(root, 'skill-rules.config.json'),
+		JSON.stringify({
+			evidence: {
+				kinds: {
+					step: { rule: 'step', fields: { body: { from: 'remainder' } } },
+					section: { rule: 'section', fields: { body: { from: 'remainder' } } },
+				},
+			},
+		}),
+	);
+	filesystem.writeFileSync(
+		path.join(root, 'rules.json'),
+		JSON.stringify({ K001: { name: 'step_body', evidence: 'step' } }),
+	);
+	keepKinds(root, ['section']);
+	expect(readObject(path.join(root, 'rules.json'))).toEqual({
+		K001: { name: 'step_body', evidence: 'section' },
 	});
 });
