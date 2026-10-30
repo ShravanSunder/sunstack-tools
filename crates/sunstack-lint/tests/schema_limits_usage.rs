@@ -381,3 +381,69 @@ async fn cycle_location_and_path_are_stable_across_declared_kind_orders() {
     }
     assert_eq!(observed[0], observed[1]);
 }
+
+async fn assert_kind_key_skips_decoys(scenario: &str) {
+    for pretty in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let mut config = fixture::write(root.path());
+        let decoy = match scenario {
+            "value" => json!({"rule":"skill","fields":{"body":{"from":"inside","kind":"step"}}}),
+            "nested_key" => json!({"rule":"skill","fields":{"step":{"from":"first_line"}}}),
+            "escaped_string" => {
+                json!({"rule":"skill","fields":{"description":{"from":"yaml","key":"see \\\"step\\\" and \\\\ { ["}}})
+            }
+            "array_value" => json!({"rule":"skill","within":["step"],"fields":{}}),
+            _ => panic!(),
+        };
+        config["evidence"]["kinds"]["a_decoy"] = decoy;
+        config["evidence"]["kinds"]["step"] =
+            json!({"rule":"skill","fields":{},"within":["skill","missing"]});
+        let text = if pretty {
+            serde_json::to_string_pretty(&config).unwrap()
+        } else {
+            serde_json::to_string(&config).unwrap()
+        };
+        let position = text.rfind("\"step\":").unwrap();
+        let prefix = &text[..position];
+        let expected_line =
+            u32::try_from(prefix.bytes().filter(|byte| *byte == b'\n').count() + 1).unwrap();
+        let expected_column =
+            u32::try_from(prefix.rsplit('\n').next().unwrap().chars().count() + 1).unwrap();
+        let path = root.path().join("sunstack.lint.json");
+        std::fs::write(&path, &text).unwrap();
+        let config = load_config(&ConfigLocation {
+            file: path,
+            directory: root.path().to_owned(),
+        })
+        .unwrap();
+        let CheckResult::Invalid { diagnostics } = check(&config, CancellationToken::new()).await
+        else {
+            panic!()
+        };
+        let diagnostic = diagnostics
+            .iter()
+            .find(|row| row.message == "undefined kind missing")
+            .unwrap();
+        assert_eq!(
+            (diagnostic.line, diagnostic.column),
+            (Some(expected_line), Some(expected_column)),
+            "{scenario}, pretty={pretty}: {diagnostics:?}"
+        );
+    }
+}
+#[tokio::test]
+async fn kind_key_location_skips_an_earlier_matching_value() {
+    assert_kind_key_skips_decoys("value").await;
+}
+#[tokio::test]
+async fn kind_key_location_skips_an_earlier_nested_key() {
+    assert_kind_key_skips_decoys("nested_key").await;
+}
+#[tokio::test]
+async fn kind_key_location_skips_escaped_quotes_backslashes_and_braces() {
+    assert_kind_key_skips_decoys("escaped_string").await;
+}
+#[tokio::test]
+async fn kind_key_location_skips_an_earlier_within_array_value() {
+    assert_kind_key_skips_decoys("array_value").await;
+}

@@ -165,28 +165,16 @@ pub(crate) fn config_error(
     let (file, line, column) = match &config.source {
         Some(source) => {
             let quoted = serde_json::to_string(key).unwrap_or_default();
-            let position = source
-                .text
-                .find(&quoted)
-                .or_else(|| {
-                    if !key.starts_with("evidence.kinds.")
-                        || !(message.starts_with("undefined kind ")
-                            || message == "undefined evidence kind"
-                            || message.starts_with("kind dependency cycle"))
-                    {
-                        return None;
-                    }
-                    let mut search_start = 0;
-                    let mut position = 0;
-                    for segment in key.split('.') {
-                        let quoted_segment = serde_json::to_string(segment).ok()?;
-                        position = search_start
-                            + source.text.get(search_start..)?.find(&quoted_segment)?;
-                        search_start = position + quoted_segment.len();
-                    }
-                    Some(position)
-                })
-                .unwrap_or(0);
+            let position = if key.starts_with("evidence.kinds.")
+                && (message.starts_with("undefined kind ")
+                    || message == "undefined evidence kind"
+                    || message.starts_with("kind dependency cycle"))
+            {
+                config_field_position(&source.text, key)
+            } else {
+                source.text.find(&quoted)
+            }
+            .unwrap_or(0);
             let prefix = &source.text[..position];
             (
                 source.location.file.clone(),
@@ -213,6 +201,70 @@ pub(crate) fn config_error(
     }
 }
 
+// Follow only direct object keys; strings and nested values cannot impersonate
+// the next path segment. A named within entry is the sole array-element case.
+fn config_field_position(text: &str, path: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut search_start = 0;
+    let mut position = 0;
+    let mut parent_is_within = false;
+    for segment in path.split('.') {
+        let mut cursor = search_start;
+        while bytes
+            .get(cursor)
+            .is_some_and(|byte| byte.is_ascii_whitespace() || *byte == b':')
+        {
+            cursor += 1;
+        }
+        let container_is_array = match bytes.get(cursor)? {
+            b'{' => false,
+            b'[' if parent_is_within => true,
+            _ => return None,
+        };
+        let mut depth = 0_usize;
+        let mut found = None;
+        while let Some(byte) = bytes.get(cursor) {
+            match byte {
+                b'{' | b'[' => depth += 1,
+                b'}' | b']' => {
+                    depth = depth.checked_sub(1)?;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                b'"' => {
+                    let string_start = cursor;
+                    cursor += 1;
+                    loop {
+                        match bytes.get(cursor)? {
+                            b'\\' => cursor += 2,
+                            b'"' => break,
+                            _ => cursor += 1,
+                        }
+                    }
+                    let string_end = cursor + 1;
+                    let is_key = text.get(string_end..)?.trim_start().starts_with(':');
+                    if depth == 1 && (container_is_array || is_key) {
+                        let name: String =
+                            serde_json::from_str(text.get(string_start..string_end)?).ok()?;
+                        if name == segment {
+                            found = Some((string_start, string_end));
+                            break;
+                        }
+                    }
+                }
+                _ => {}
+            }
+            cursor += 1;
+        }
+        let (start, end) = found?;
+        position = start;
+        search_start = end;
+        parent_is_within = segment == "within";
+    }
+    Some(position)
+}
+
 fn migration_message(message: &str) -> String {
     for (old, replacement) in [
         ("rule_sets", "rulebook"),
@@ -226,4 +278,59 @@ fn migration_message(message: &str) -> String {
         }
     }
     message.into()
+}
+
+#[cfg(test)]
+mod location_tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+
+    #[test]
+    fn within_entry_location_skips_an_earlier_matching_list_and_keeps_fallback() {
+        for pretty in [false, true] {
+            let value = serde_json::json!({
+                "rulebook":[{"markdown":"rulebook.md","rules":"rules.json"}],
+                "marker_prefix":"K","check":{"files":["step"]},
+                "evidence":{"ast_grep":"evidence/sgconfig.yml","kinds":{
+                    "step":{"rule":"r","fields":{},
+                        "select":{"question":{},"yes_at_or_above":0.7,"no_at_or_below":0.3,"shared":["within","missing"]},
+                        "within":["parent","missing"]}
+                }},"decision_model":{"model":"jev-latest"}
+            });
+            let text = if pretty {
+                serde_json::to_string_pretty(&value).unwrap()
+            } else {
+                serde_json::to_string(&value).unwrap()
+            };
+            let location = ConfigLocation {
+                file: "sunstack.lint.json".into(),
+                directory: ".".into(),
+            };
+            let config = decode_config(&text, &location).unwrap();
+            let position = text.rfind("\"missing\"").unwrap();
+            let prefix = &text[..position];
+            let line =
+                u32::try_from(prefix.bytes().filter(|byte| *byte == b'\n').count() + 1).unwrap();
+            let column =
+                u32::try_from(prefix.rsplit('\n').next().unwrap().chars().count() + 1).unwrap();
+            let diagnostic = config_error(
+                &config,
+                "evidence.kinds.step.within.missing",
+                LintInvalidCode::Syntax,
+                "undefined kind missing",
+            );
+            assert_eq!(
+                (diagnostic.line, diagnostic.column),
+                (Some(line), Some(column)),
+                "pretty={pretty}"
+            );
+            let absent = config_error(
+                &config,
+                "evidence.kinds.absent",
+                LintInvalidCode::Syntax,
+                "undefined kind absent",
+            );
+            assert_eq!((absent.line, absent.column), (Some(1), Some(1)));
+        }
+    }
 }

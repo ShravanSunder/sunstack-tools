@@ -34,7 +34,9 @@ fn within_accepts_one_or_more_kinds_and_preserves_config_order() {
 fn within_schema_requires_a_nonempty_unique_array() {
     let schema = schemars::schema_for!(EvidenceKindDefinition);
     let validator = jsonschema::validator_for(schema.as_value()).unwrap();
+    assert!(validator.is_valid(&serde_json::json!({"rule":"r","fields":{}})));
     for (within, valid) in [
+        (serde_json::json!(null), false),
         (serde_json::json!("a"), false),
         (serde_json::json!([]), false),
         (serde_json::json!(["a", "a"]), false),
@@ -156,4 +158,16 @@ fn candidate_keys_reject_empty_and_noncanonical_intake_without_changing_valid_wi
         assert_eq!(key, CandidateKey::at(position));
         assert_eq!(serde_json::to_string(&key).unwrap(), format!("\"{value}\""));
     }
+}
+
+#[test]
+fn within_null_is_refused_while_omission_means_no_containment() {
+    let omitted: EvidenceKindDefinition =
+        serde_json::from_value(serde_json::json!({"rule":"r","fields":{}})).unwrap();
+    assert!(omitted.within.is_none());
+    let error = serde_json::from_value::<EvidenceKindDefinition>(
+        serde_json::json!({"rule":"r","fields":{},"within":null}),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("within"), "{error}");
 }

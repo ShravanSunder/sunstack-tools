@@ -117,13 +117,15 @@ pub struct EvidenceKindDefinition {
         deserialize_with = "decode_containing_kinds",
         skip_serializing_if = "Option::is_none"
     )]
+    #[schemars(with = "ContainingKinds")]
     pub within: Option<ContainingKinds>,
 }
 
 fn decode_containing_kinds<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<ContainingKinds>, D::Error> {
-    Option::<ContainingKinds>::deserialize(deserializer)
+    ContainingKinds::deserialize(deserializer)
+        .map(Some)
         .map_err(|error| serde::de::Error::custom(format!("within: {error}")))
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]

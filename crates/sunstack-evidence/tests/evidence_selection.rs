@@ -438,7 +438,7 @@ rule: {kind: paragraph}
     .unwrap();
     std::fs::write(
         root.path().join("reference.md"),
-        "# Reference\n\nOutside reference.\n\n## Standards\n\nStandards only.\n",
+        "# Reference\n\n## Standards\n\nStandards only.\n",
     )
     .unwrap();
     let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
@@ -505,10 +505,66 @@ rule: {kind: paragraph}
                 sentences, expected,
                 "selected sentence={select_sentences}, chosen workflow={choose_workflow}"
             );
+            require_union_file_counts(&catalog.file_counts, choose_workflow);
+            let (picked, _) = pick_pieces(&catalog.pieces, &[], true, root.path());
+            assert_eq!(
+                picked
+                    .iter()
+                    .filter(|index| catalog.pieces[**index].kind.as_str() == "sentence")
+                    .count(),
+                if choose_workflow { 3 } else { 2 }
+            );
+            let (unpicked, _) = pick_pieces(&catalog.pieces, &[], false, root.path());
+            assert!(unpicked.is_empty());
+            let mut corrupted_counts = catalog.file_counts.clone();
+            corrupted_counts[0]
+                .kinds
+                .get_mut(&EvidenceKindName::new("sentence").unwrap())
+                .unwrap()
+                .matches += 1;
+            assert!(
+                std::panic::catch_unwind(|| require_union_file_counts(
+                    &corrupted_counts,
+                    choose_workflow
+                ))
+                .is_err(),
+                "counter-only corruption must fail while catalog pieces remain untouched"
+            );
             if select_sentences {
                 sentence_candidates.sort();
                 assert_eq!(sentence_candidates, expected);
             }
         }
     }
+}
+
+fn require_union_file_counts(counts: &[FileCount], choose_workflow: bool) {
+    let sentence = EvidenceKindName::new("sentence").unwrap();
+    assert_eq!(counts.len(), 2);
+    let actual = counts
+        .iter()
+        .map(|entry| {
+            let count = &entry.kinds[&sentence];
+            (
+                entry.file.to_string_lossy().into_owned(),
+                count.matches,
+                count.pieces,
+                count.picked,
+                count.limited,
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        actual,
+        vec![
+            ("reference.md".into(), 1, 1, 0, false),
+            (
+                "skill.md".into(),
+                3,
+                if choose_workflow { 2 } else { 1 },
+                0,
+                false
+            )
+        ]
+    );
 }

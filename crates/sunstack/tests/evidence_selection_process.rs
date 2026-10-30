@@ -499,7 +499,15 @@ async fn within_lists_have_ordered_check_rows_and_located_refusals() {
             .any(|row| row["kind"] == "step"
                 && row["within"] == json!(["workflow_section", "standards_section"]))
     );
+    let mut omitted = valid.clone();
+    omitted["evidence"]["kinds"]["step"]
+        .as_object_mut()
+        .unwrap()
+        .remove("within");
+    save(&path, &omitted);
+    no_key(root.path(), &["--check"], 0).await;
     for (within, cycle, message) in [
+        (json!(null), false, "within"),
         (json!("workflow_section"), false, "within"),
         (json!([]), false, "within"),
         (
