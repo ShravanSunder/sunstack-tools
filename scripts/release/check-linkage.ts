@@ -105,6 +105,23 @@ export function findArchives(directory: string, targets?: readonly string[]): st
 	return archives;
 }
 
+function linkageUsageText(): string {
+	return [
+		'Usage: node check-linkage.ts DIRECTORY [--target TARGET ...]',
+		'',
+		'DIRECTORY        cargo-dist artifact directory',
+		'-h, --help       show this help message and exit',
+		"--target TARGET  check only this build job's target; repeat for multiple targets",
+		`Supported targets: ${[...releaseTargets].join(', ')}`,
+		'',
+	].join('\n');
+}
+
+function argumentFailure(message: string): void {
+	process.stderr.write(`${message}\n${linkageUsageText()}`);
+	process.exitCode = 2;
+}
+
 function main(): void {
 	const { values, positionals } = parseArgs({
 		options: { target: { type: 'string', multiple: true }, help: { type: 'boolean', short: 'h' } },
@@ -112,18 +129,20 @@ function main(): void {
 	});
 	if (values.help) {
 		process.stdout.write(
-			'Reject non-standalone executables in the actual Sunstack release archives.\nUsage: node check-linkage.ts DIRECTORY [--target TARGET ...]\n',
+			`Reject non-standalone executables in the actual Sunstack release archives.\n${linkageUsageText()}`,
+		);
+		return;
+	}
+	const invalidTarget = values.target?.find((target) => !releaseTargets.has(target));
+	if (invalidTarget !== undefined) {
+		argumentFailure(
+			`unsupported release target '${invalidTarget}'; choose from ${[...releaseTargets].join(', ')}`,
 		);
 		return;
 	}
 	const directory = positionals[0];
-	if (
-		positionals.length !== 1 ||
-		!directory ||
-		values.target?.some((target) => !releaseTargets.has(target))
-	) {
-		process.stderr.write('a directory and supported release targets are required\n');
-		process.exitCode = 2;
+	if (positionals.length !== 1 || !directory) {
+		argumentFailure('exactly one cargo-dist artifact directory is required');
 		return;
 	}
 	for (const archive of findArchives(directory, values.target)) checkArchive(archive);
@@ -133,12 +152,15 @@ if (import.meta.main) {
 	try {
 		main();
 	} catch (error) {
-		process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-		process.exitCode =
+		const isArgumentError =
 			error instanceof TypeError &&
 			'code' in error &&
-			String(error.code).startsWith('ERR_PARSE_ARGS')
-				? 2
-				: 1;
+			String(error.code).startsWith('ERR_PARSE_ARGS');
+		const message = error instanceof Error ? error.message : String(error);
+		if (isArgumentError) argumentFailure(message);
+		else {
+			process.stderr.write(`${message}\n`);
+			process.exitCode = 1;
+		}
 	}
 }

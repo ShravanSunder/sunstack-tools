@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import filesystem from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -81,4 +81,40 @@ await test('real tar member types exclude directories and links and preserve a P
 	);
 	execFileSync('tar', ['--format=pax', '-czf', archive, '-C', stage, ...archivedPaths]);
 	assert.throws(() => checkArchive(archive), /exactly one/);
+});
+
+await test('CLI uses full target flags and refuses abbreviations with usage', (context): void => {
+	const directory = filesystem.mkdtempSync(path.join(tmpdir(), 'sunstack-linkage-cli-test-'));
+	context.after(() => filesystem.rmSync(directory, { recursive: true, force: true }));
+	filesystem.writeFileSync(path.join(directory, 'sunstack'), elfWithProgram(1));
+	const archiveName = 'sunstack-aarch64-unknown-linux-musl.tar.gz';
+	execFileSync('tar', ['-czf', path.join(directory, archiveName), '-C', directory, 'sunstack']);
+	const checker = path.join(import.meta.dirname, 'check-linkage.ts');
+	for (const option of ['--target', '--target=aarch64-unknown-linux-musl']) {
+		const argumentsList = option.includes('=')
+			? [directory, option]
+			: [directory, option, 'aarch64-unknown-linux-musl'];
+		const result = spawnSync(process.execPath, [checker, ...argumentsList], { encoding: 'utf8' });
+		assert.equal(result.status, 0, result.stderr);
+		assert.equal(result.stdout, `${archiveName}: standalone linkage verified\n`);
+		assert.equal(result.stderr, '');
+	}
+	for (const option of ['--t', '--tar', '--he']) {
+		const argumentsList = option.startsWith('--t')
+			? [directory, option, 'aarch64-unknown-linux-musl']
+			: [option];
+		const refused = spawnSync(process.execPath, [checker, ...argumentsList], { encoding: 'utf8' });
+		assert.equal(refused.status, 2);
+		assert.match(refused.stderr, /Usage:/);
+	}
+	const help = spawnSync(process.execPath, [checker, '--help'], { encoding: 'utf8' });
+	assert.equal(help.status, 0, help.stderr);
+	assert.match(help.stdout, /cargo-dist artifact directory/);
+	assert.match(help.stdout, /aarch64-unknown-linux-musl/);
+	const invalid = spawnSync(process.execPath, [checker, directory, '--target', 'wrong'], {
+		encoding: 'utf8',
+	});
+	assert.equal(invalid.status, 2);
+	assert.match(invalid.stderr, /wrong/);
+	assert.match(invalid.stderr, /aarch64-unknown-linux-musl/);
 });
