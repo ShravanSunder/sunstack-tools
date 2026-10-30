@@ -1,4 +1,4 @@
-use crate::{decision_contracts::*, decision_diagnostics::*};
+use crate::{decision_protocol::decision_contracts::*, decision_protocol::decision_diagnostics::*};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 

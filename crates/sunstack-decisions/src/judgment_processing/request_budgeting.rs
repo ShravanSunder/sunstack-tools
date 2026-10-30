@@ -1,4 +1,4 @@
-use crate::{decision_contracts::*, decision_diagnostics::*};
+use crate::{decision_protocol::decision_contracts::*, decision_protocol::decision_diagnostics::*};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{num::NonZeroU64, sync::Arc};

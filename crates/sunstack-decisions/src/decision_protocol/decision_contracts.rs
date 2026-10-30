@@ -1,4 +1,6 @@
-use crate::decision_diagnostics::{DecisionDiagnostic, DecisionDiagnosticCode, DiagnosticList};
+use crate::decision_protocol::decision_diagnostics::{
+    DecisionDiagnostic, DecisionDiagnosticCode, DiagnosticList,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::{collections::BTreeMap, num::NonZeroU64};

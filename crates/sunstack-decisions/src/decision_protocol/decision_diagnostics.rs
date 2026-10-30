@@ -1,4 +1,4 @@
-use crate::decision_contracts::ProviderFailureClass;
+use crate::decision_protocol::decision_contracts::ProviderFailureClass;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

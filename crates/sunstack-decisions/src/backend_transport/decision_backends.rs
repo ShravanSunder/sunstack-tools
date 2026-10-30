@@ -1,5 +1,6 @@
 use crate::{
-    decision_contracts::*, decision_diagnostics::*, judgment_validation, request_budgeting::*,
+    decision_protocol::decision_contracts::*, decision_protocol::decision_diagnostics::*,
+    judgment_processing::request_budgeting::*,
 };
 use serde::Serialize;
 use std::{future::Future, pin::Pin};
@@ -252,7 +253,7 @@ impl DecisionBackend for JevOpenRouterBackend {
         request: &StructuredJudgmentRequest,
         body: &[u8],
     ) -> Result<(NamedAnswerMap, ExecutionReceipt), DecisionDiagnostic> {
-        judgment_validation::decode_jev_response(request, body)
+        crate::judgment_processing::judgment_validation::decode_jev_response(request, body)
     }
 }
 
@@ -261,7 +262,7 @@ pub fn encode_judgment_body(
     request: &StructuredJudgmentRequest,
     model: &ModelName,
 ) -> Result<Vec<u8>, DecisionDiagnostic> {
-    judgment_validation::validate_request(request)?;
+    crate::judgment_processing::judgment_validation::validate_request(request)?;
     #[derive(Serialize)]
     struct JevRequest<'a> {
         model: &'a ModelName,
@@ -277,5 +278,4 @@ pub fn encode_judgment_body(
 }
 
 #[cfg(test)]
-#[path = "adapter_cancellation_tests.rs"]
 mod adapter_cancellation_tests;

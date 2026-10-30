@@ -1,6 +1,6 @@
 use crate::{
-    decision_backends::*, decision_contracts::*, decision_diagnostics::*, judgment_validation,
-    request_budgeting::*,
+    backend_transport::decision_backends::*, decision_protocol::decision_contracts::*,
+    decision_protocol::decision_diagnostics::*, judgment_processing::request_budgeting::*,
 };
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
@@ -15,8 +15,9 @@ pub async fn run_judgments(
     let invalid = |diagnostic: DecisionDiagnostic| DecisionRunOutcome::InvalidRequest {
         diagnostics: diagnostic.into(),
     };
-    if let Err(diagnostic) = judgment_validation::validate_request(&input.request)
-        .and_then(|()| input.attempts.validate())
+    if let Err(diagnostic) =
+        crate::judgment_processing::judgment_validation::validate_request(&input.request)
+            .and_then(|()| input.attempts.validate())
     {
         return invalid(diagnostic);
     }
@@ -58,7 +59,8 @@ pub async fn run_admitted_judgments(
     cancellation: &CancellationToken,
 ) -> DecisionRunOutcome {
     if let Err(diagnostic) =
-        judgment_validation::validate_request(request).and_then(|()| settings.validate())
+        crate::judgment_processing::judgment_validation::validate_request(request)
+            .and_then(|()| settings.validate())
     {
         return DecisionRunOutcome::InvalidRequest {
             diagnostics: diagnostic.into(),
