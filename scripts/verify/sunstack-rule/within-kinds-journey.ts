@@ -23,13 +23,47 @@ import { scriptedSelectionReply } from './selection-reply.ts';
 const skillFile = 'skills/within-union/SKILL.md';
 const referenceFile = 'references/within-standards.md';
 const skillText =
-	'# Union fixture\n\nOutside both containers.\n\n## Workflow\n\n1. Chosen step guidance.\n\n## Standards\n\n1. Overlapping guidance.\n\n## Other\n\nOutside the tail.\n';
+	'# Union fixture\n\nOutside both containers.\n\n## Workflow\n\n1. Chosen step guidance.\n\n## Standards\n\nStandards-only guidance.\n\n1. Overlapping guidance.\n';
 const referenceText = '# Reference\n\n## Standards\n\n1. Reference guidance.\n';
+
+/** Compare counters with authored match facts, independently of the returned piece list. */
+export function requireUnionCounts(options: {
+	report: JsonObject;
+	expected: readonly { file: string; matches: number; pieces: number; picked: number }[];
+}): void {
+	const counts = arrayValue(options.report['file_counts']).map(objectValue);
+	equal(
+		counts.map((row) => row['file']),
+		options.expected.map((row) => row.file),
+		'Union count file identities drifted',
+	);
+	for (const expected of options.expected) {
+		const file = counts.find((row) => row['file'] === expected.file);
+		requireCondition(file, 'Union count file missing');
+		const sentence = objectValue(objectValue(file['kinds'])['sentence']);
+		equal(
+			[sentence['matches'], sentence['pieces'], sentence['picked']],
+			[expected.matches, expected.pieces, expected.picked],
+			'Union counters must match fixture facts for ' + expected.file,
+		);
+	}
+}
+
+function expectUnionCounts(report: JsonObject, chosen: boolean): void {
+	requireUnionCounts({
+		report,
+		expected: [
+			{ file: referenceFile, matches: 1, pieces: 1, picked: 1 },
+			{ file: skillFile, matches: 4, pieces: chosen ? 3 : 2, picked: chosen ? 3 : 2 },
+		],
+	});
+}
 
 function expectSentences(report: JsonObject, chosen: boolean): void {
 	const pieces = selectionPieces(report, 'sentence');
 	const expected = [
 		...(chosen ? [[skillFile, skillText.indexOf('1. Chosen step guidance.')]] : []),
+		[skillFile, skillText.indexOf('Standards-only guidance.')],
 		[skillFile, skillText.indexOf('1. Overlapping guidance.')],
 		[referenceFile, referenceText.indexOf('1. Reference guidance.')],
 	].toSorted(
@@ -67,6 +101,7 @@ function expectSentences(report: JsonObject, chosen: boolean): void {
 		chosen ? 2 : 0,
 		'Chosen/not-chosen step control did not reach the required state',
 	);
+	expectUnionCounts(report, chosen);
 }
 
 export async function observeWithinKinds(options: {
@@ -84,7 +119,7 @@ export async function observeWithinKinds(options: {
 	writeChecked(root, referenceFile, referenceText);
 	filesystem.writeFileSync(
 		path.join(root, 'evidence/rules/within-union.yml'),
-		'id: within-standards\nlanguage: Markdown\nrule: {kind: section, has: {kind: atx_heading, regex: "^## Standards", stopBy: neighbor}}\n---\nid: within-sentence\nlanguage: Markdown\nrule: {any: [{kind: list_item}, {kind: paragraph, regex: "^Outside"}]}\n',
+		'id: within-standards\nlanguage: Markdown\nrule: {kind: section, has: {kind: atx_heading, regex: "^## Standards", stopBy: neighbor}}\n---\nid: within-sentence\nlanguage: Markdown\nrule: {any: [{kind: list_item}, {kind: paragraph, regex: "^(Outside|Standards-only)"}]}\n',
 	);
 	configure(root, (config) => {
 		config['decision_model'] = {
@@ -165,6 +200,7 @@ export async function observeWithinKinds(options: {
 			[
 				...(chosen ? [[skillFile, 7, 'pass']] : []),
 				[skillFile, 11, 'pass'],
+				[skillFile, 13, 'pass'],
 				[referenceFile, 5, 'pass'],
 			].toSorted(
 				(left, right) =>
@@ -172,5 +208,6 @@ export async function observeWithinKinds(options: {
 			),
 			'Each admitted sentence must produce exactly one lint result, including overlap',
 		);
+		expectUnionCounts(run.report, chosen);
 	});
 }

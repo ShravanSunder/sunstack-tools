@@ -25,6 +25,12 @@ const withinRefusals: Record<string, { change: (kinds: JsonObject) => void; caus
 		},
 		cause: /sequence|list|array/i,
 	},
+	'amended-within-null': {
+		change: (kinds) => {
+			objectValue(kinds['step'])['within'] = null;
+		},
+		cause: /null.*(?:sequence|list|array)|(?:sequence|list|array).*null/i,
+	},
 	'amended-within-empty': {
 		change: (kinds) => {
 			objectValue(kinds['step'])['within'] = [];
@@ -92,6 +98,14 @@ export function prepareSelectionRefusals(options: {
 		sourceRoot: options.sourceRoot,
 		allKinds: true,
 	});
+	const omitted = copySelectionFixture({
+		destination: path.join(options.evidence, 'omitted-within'),
+		sourceRoot: options.sourceRoot,
+		allKinds: true,
+	});
+	configure(omitted, (config) => {
+		delete objectValue(objectValue(objectValue(config['evidence'])['kinds'])['step'])['within'];
+	});
 	const sources = filesystem
 		.readdirSync(path.join(base, 'refusals'))
 		.filter((file) => file.endsWith('.json'))
@@ -158,6 +172,22 @@ export async function observeSelectionRefusals(options: {
 			['workflow_section'],
 			'One-item containment listing is not the new list contract',
 		);
+		const omitted = path.join(options.evidence, 'omitted-within');
+		configureEndpoint(omitted, observer.endpoint);
+		const omittedCheck = await observer.run({
+			root: omitted,
+			name: 'selection-omitted-within-check',
+			arguments: ['lint', '--config', configName, '--check'],
+			expectedExit: 0,
+		});
+		equal(omittedCheck.captures.length, 0, 'Omitted within control dispatched');
+		const omittedListing = arrayValue(
+			jsonValueSchema.parse(JSON.parse(omittedCheck.stdout.toString('utf8'))),
+		).map(objectValue);
+		requireCondition(
+			!omittedListing.some((row) => row['kind'] === 'step'),
+			'An omitted within must leave the plain step kind without a containment listing',
+		);
 		await runSequence(cases, async (name) => {
 			const root = path.join(options.evidence, name);
 			const file = path.join(root, configName);
@@ -214,6 +244,7 @@ export async function observeSelectionRefusals(options: {
 		source_commit: options.target.commit,
 		binary_sha256: options.target.digest,
 		cases: results,
+		accepted_controls: ['omitted within', 'one-item within; two-item control in union journey'],
 		required_join:
 			'Check signature/call path has no checked-source/capture/backend; native R40 admission assertions distinguish exact causes.',
 	});
