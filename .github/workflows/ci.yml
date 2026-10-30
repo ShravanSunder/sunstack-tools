@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-22.04, macos-14]
+        runner: [ubuntu-22.04, macos-15]
     env:
       CARGO_TERM_COLOR: always
       CARGO_INCREMENTAL: '0'
@@ -72,17 +72,21 @@ jobs:
         id: typescript
         if: runner.os == 'Linux'
         background: true
-        run: pnpm exec tsc -p scripts/verify/sunstack-rule/tsconfig.json
+        run: |
+          pnpm exec tsc -p scripts/verify/sunstack-rule/tsconfig.json
+          pnpm exec tsc -p scripts/release/tsconfig.json
       - name: Lint scripts
         id: scripts-lint
         if: runner.os == 'Linux'
         background: true
-        run: pnpm exec oxlint --type-aware --type-check --tsconfig scripts/verify/sunstack-rule/tsconfig.json --max-warnings 0 scripts/verify/sunstack-rule/*.ts
+        run: |
+          pnpm exec oxlint --type-aware --type-check --tsconfig scripts/verify/sunstack-rule/tsconfig.json --max-warnings 0 scripts/verify/sunstack-rule/*.ts
+          pnpm exec oxlint --type-aware --type-check --tsconfig scripts/release/tsconfig.json --max-warnings 0 scripts/release/*.ts
       - name: Check scripts and workflow formatting
         id: scripts-format
         if: runner.os == 'Linux'
         background: true
-        run: pnpm exec oxfmt --check scripts/verify/sunstack-rule/*.ts scripts/verify/sunstack-rule/tsconfig.json .github/workflows/ci.yml .github/workflows/release-cache.yml .github/workflows/steps/release-build-setup.yml
+        run: pnpm exec oxfmt --check scripts/verify/sunstack-rule/*.ts scripts/verify/sunstack-rule/tsconfig.json scripts/release/*.ts scripts/release/tsconfig.json .github/workflows/ci.yml .github/workflows/release-cache.yml .github/workflows/steps/release-build-setup.yml
       - name: Test scripts
         id: scripts-tests
         if: runner.os == 'Linux'
