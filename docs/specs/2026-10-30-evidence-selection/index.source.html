@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evidence selection design</title>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content"></ex-nav>
+
+<ex-presentation id="workflow-path" title="A workflow under any heading becomes steps"
+  description="From the need, through the contract and the engine's path, to how it will be proven.">
+  <ex-step to="requirements--authorized-needs">The needs, in your words: U13 and U14.</ex-step>
+  <ex-step to="specification--selected-and-contained-kinds-in-the-config">What a consumer writes in the config.</ex-step>
+  <ex-step to="specification--choosing-the-evidence">What one selection request carries and how answers become outcomes.</ex-step>
+  <ex-step to="specification--worked-examples">practices-research and presentation-tui, worked through.</ex-step>
+  <ex-step to="program-design--structure-decision">Why a staged build driven by lint, and what was rejected.</ex-step>
+  <ex-step to="program-design--diagram-3">One run, end to end.</ex-step>
+  <ex-step to="program-design--state">A candidate's lifecycle.</ex-step>
+  <ex-step to="verification-design--rows">How each need will be shown to hold. Planned; nothing observed yet.</ex-step>
+</ex-presentation>
+
+<ex-presentation id="silence-path" title="Nothing disappears silently"
+  description="Where every candidate's outcome and every file's counts show up.">
+  <ex-step to="requirements--authorized-needs">The needs: U15 and U16.</ex-step>
+  <ex-step to="specification--report-status-and-the-evidence-listing">What the report adds.</ex-step>
+  <ex-step to="program-design--failure-and-recovery">What happens when a selection request fails.</ex-step>
+  <ex-step to="program-design--trace">Each obligation's owner and proof seam.</ex-step>
+  <ex-step to="verification-design--proven-by-for-the-owner">The proven-by lines. Planned.</ex-step>
+</ex-presentation>
+
+<ex-presentation id="compat-path" title="Today's configs keep working"
+  description="What stays the same for a config that uses none of the new settings.">
+  <ex-step to="requirements--goal-boundary">What is protected.</ex-step>
+  <ex-step to="specification--check-sameness-and-compatibility">The compatibility promise and its one exception.</ex-step>
+  <ex-step to="program-design--compatibility-and-cutover">How the build keeps it.</ex-step>
+  <ex-step to="verification-design--rows">The comparison against the 0.2.0 release. Planned.</ex-step>
+</ex-presentation>
+
+<ex-document id="content">
+
+<h1>Evidence selection</h1>
+
+<p>Your direction for skill rules: cut candidates mechanically, let the decision model choose which become evidence, then run the rules as today. This page leads into the four design documents for the engine part of that. Each answer lives in its own document:</p>
+
+<ul>
+<li>Why, for whom, and what's out of scope: the measured gap and your words, in <a href="#requirements--authorized-needs">Requirements</a>.</li>
+<li>What must be observably true: the new config settings, the selection request, outcomes, report fields and compatibility, in <a href="#specification--selected-and-contained-kinds-in-the-config">Specification</a>.</li>
+<li>How the engine does it, and the alternatives rejected: in <a href="#program-design--structure-decision">Program Design</a>.</li>
+<li>How each need will be shown to hold, with what stays unverified: in <a href="#verification-design--proven-by-for-the-owner">Verification Design</a>. Planned; nothing has been run yet.</li>
+</ul>
+
+<p>Start with the two worked examples, a real workflow section and a real list of rules, in <a href="#specification--worked-examples">Specification: worked examples</a>, then follow one run end to end in the <a href="#program-design--diagram-3">representative path</a>. The Walkthroughs button takes the three reading paths.</p>
+
+<ex-tabs label="Design documents" data-width="canvas">
+<section id="tab-requirements" label="Requirements" icon="user">
+<p>The needs U13–U17, your words from 30 Oct, the non-goals (including one request per piece for several rules) and the goal boundary.</p>
+<ex-markdown id="requirements" label="Requirements" src="./requirements.md"></ex-markdown>
+</section>
+<section id="tab-specification" label="Specification" icon="book-open">
+<p>Entities, the R29–R43 obligations, worked examples and proof obligations. Failure cases inside: uncertain answers, requests too large, provider failures, limits reached, change scope.</p>
+<ex-markdown id="specification" label="Specification" src="./specification.md"></ex-markdown>
+</section>
+<section id="tab-program-design" label="Program Design" icon="stack">
+<p>Structure decision, entity binding, components, the representative path, state, concurrency and the trace. Failure cases inside: a failed or oversized selection request, the shared request limit, cancellation.</p>
+<ex-markdown id="program-design" label="Program Design" src="./program-design.md"></ex-markdown>
+</section>
+<section id="tab-verification-design" label="Verification Design" icon="test-tube">
+<p>Proven-by lines for you and coverage rows for review. All planned. Failure cases inside: each row names the wrong build that fails it.</p>
+<ex-markdown id="verification-design" label="Verification Design" src="./verification-design.md"></ex-markdown>
+</section>
+</ex-tabs>
+
+</ex-document>
+</body>
+</html>
