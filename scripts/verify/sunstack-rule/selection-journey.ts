@@ -38,7 +38,7 @@ import {
 	keepKinds,
 } from './selection-fixture.ts';
 import { observeSelectionLimits } from './selection-limits.ts';
-import { scriptedSelectionReply } from './selection-reply.ts';
+import { scriptedSelectionReply, selectionArguments } from './selection-reply.ts';
 import { observeSelectionChanges } from './selection-scope.ts';
 
 function removeRanges(
@@ -188,7 +188,7 @@ async function observeWorked(observer: RulebookProcess, fixtures: string): Promi
 	const missing = await observer.report({
 		root: gated,
 		name: 'selected-no-key',
-		arguments: ['lint', '--config', configName, '--evidence', '--all'],
+		arguments: selectionArguments('--evidence', '--all'),
 		expectedExit: 2,
 	});
 	equal(missing.captures.length, 0, 'No-key selection dispatched');
