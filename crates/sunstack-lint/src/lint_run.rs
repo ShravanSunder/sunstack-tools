@@ -304,6 +304,13 @@ pub async fn run_with_source(
     };
     report.usage.checked_files_acquired = acquired;
     for failure in &catalog.failures {
+        report.diagnostics.push(LintDiagnostic {
+            file: Some(failure.file.clone()),
+            line: None,
+            column: None,
+            code: LintInvalidCode::Syntax,
+            message: failure.reason.clone(),
+        });
         report.incomplete.push(IncompletePart {
             rule: None,
             file: Some(failure.file.clone()),

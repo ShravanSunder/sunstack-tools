@@ -58,6 +58,40 @@ fn eighty_item_list_reduces_strings_to_floor_then_trims_its_tail() {
 }
 
 #[test]
+fn authored_cut_looking_list_tail_is_reduced_without_mutating_raw_values() {
+    for tail in ["ordinary author text", "[cut: literal author text]"] {
+        let mut values = vec!["a".repeat(32); 79];
+        values.push(tail.into());
+        let raw = fields(FieldValue::Texts {
+            values: values.clone(),
+            spans: vec![],
+        });
+        let view = project_model_view(&raw, 1000);
+        assert!(bounded_size(&view) <= 1000, "{tail}");
+        let ModelView::Bounded {
+            fields: reduced,
+            cut,
+        } = &view
+        else {
+            panic!()
+        };
+        assert_eq!(cut, &[FieldName::new("body").unwrap()]);
+        let ModelFieldValue::List(items) = &reduced[&FieldName::new("body").unwrap()] else {
+            panic!()
+        };
+        assert!(items.len() < 80);
+        assert_eq!(
+            raw,
+            fields(FieldValue::Texts {
+                values,
+                spans: vec![]
+            })
+        );
+        assert_eq!(view, project_model_view(&raw, 1000));
+    }
+}
+
+#[test]
 fn target_openings_and_nested_skill_fields_are_bounded() {
     let raw = fields(FieldValue::Targets {
         values: (0..5)

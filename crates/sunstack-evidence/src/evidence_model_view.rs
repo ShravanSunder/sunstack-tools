@@ -101,6 +101,7 @@ pub fn project_model_view(raw: &BTreeMap<FieldName, FieldValue>, max_chars: usiz
         }
     }
     // Each list is reduced as a single operation, preserving its prefix and one tail marker.
+    let mut reduced_lists = BTreeSet::new();
     loop {
         let chars: usize = fields.values().map(model_value_chars).sum();
         if chars <= max_chars {
@@ -111,7 +112,13 @@ pub fn project_model_view(raw: &BTreeMap<FieldName, FieldValue>, max_chars: usiz
         }
         let mut candidates = Vec::new();
         for (field, value) in &fields {
-            collect_lists(value, field, &mut Vec::new(), &mut candidates);
+            collect_lists(
+                value,
+                field,
+                &mut Vec::new(),
+                &reduced_lists,
+                &mut candidates,
+            );
         }
         candidates.sort_by_key(|item| std::cmp::Reverse(item.2));
         let Some((field, path, _)) = candidates.into_iter().find(|(_, _, size)| *size > 0) else {
@@ -145,6 +152,7 @@ pub fn project_model_view(raw: &BTreeMap<FieldName, FieldValue>, max_chars: usiz
             }
             debug_assert!(removed <= before);
             values.push(ModelFieldValue::Text(marker));
+            reduced_lists.insert((field.clone(), path));
             cut.insert(field);
         }
     }
@@ -167,7 +175,7 @@ fn cut_string(text: &str, desired: usize) -> String {
     )
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum ValuePath {
     Field(String),
     Item(usize),
@@ -204,14 +212,13 @@ fn collect_lists(
     value: &ModelFieldValue,
     field: &FieldName,
     path: &mut Vec<ValuePath>,
+    reduced_lists: &BTreeSet<(FieldName, Vec<ValuePath>)>,
     output: &mut Vec<ReductionCandidate>,
 ) {
     match value {
         ModelFieldValue::List(values) => {
             // Already cut lists can still contain nested lists, but never replace their marker.
-            if !values
-                .last()
-                .is_some_and(|v| matches!(v, ModelFieldValue::Text(s) if s.starts_with("[cut: ")))
+            if !reduced_lists.contains(&(field.clone(), path.clone()))
                 && values.iter().map(model_value_chars).sum::<usize>()
                     > format!("[cut: {} more]", values.len()).chars().count()
             {
@@ -219,14 +226,14 @@ fn collect_lists(
             }
             for (index, value) in values.iter().enumerate() {
                 path.push(ValuePath::Item(index));
-                collect_lists(value, field, path, output);
+                collect_lists(value, field, path, reduced_lists, output);
                 path.pop();
             }
         }
         ModelFieldValue::Object(fields) => {
             for (name, value) in fields {
                 path.push(ValuePath::Field(name.clone()));
-                collect_lists(value, field, path, output);
+                collect_lists(value, field, path, reduced_lists, output);
                 path.pop();
             }
         }

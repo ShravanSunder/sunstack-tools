@@ -198,23 +198,43 @@ The evidence library also supports `frontmatter_field` with a literal top-level
 field. Missing or malformed blocks yield explicit unavailable data without an
 invented span. Noul and composite rules reject this mechanical-only target.
 
-A rules entry can replace its judgment threshold with one local check:
+A rules entry can use a native mechanical verdict. Put the check under
+`verdict.check` and select the checked field in the evidence declaration:
 
 ```json
 {
-	"name": "skill.description",
-	"target": { "input": "skill", "select": { "kind": "frontmatter_field", "field": "description" } },
-	"expect": { "starts_with": "Use when" },
+	"rule_id": "skill.description",
+	"evidence": [
+		{
+			"id": "description",
+			"input": "subject",
+			"requirement": "required",
+			"select": { "kind": "frontmatter_field", "field": "description" }
+		}
+	],
+	"target": "description",
+	"applicability": [],
+	"questions": {},
+	"verdict": {
+		"kind": "mechanical",
+		"explanation": "Description names when to use the skill.",
+		"check": { "kind": "expect", "expect": { "starts_with": "Use when" } }
+	},
 	"severity": "error"
 }
 ```
 
-`expect` accepts exactly one of `matches`, `not_matches`, `starts_with` or
+Save each native definition as one JSONL line in a RuleSet's `rule_paths`, and
+declare its `subject` input as a document in the RuleSet header. Bind that input
+to the document when calling `check_rules` or `evaluate_rules`.
+
+`verdict.check.expect` accepts exactly one of `matches`, `not_matches`, `starts_with` or
 `present: true`. Text predicates use the unit's rendered-visible text, excluding
 inline code. A frontmatter string uses its decoded text; other values use
 canonical JSON text. Null is present. Every predicate fails on an absent field;
 a missing or malformed header is unresolved.
 
+For an AST check, use `verdict.check: {"kind":"ast_grep","ast_grep":{...}}`.
 `ast_grep` accepts a native rule object validated by ast-grep-config 0.51.0.
 It sees the full original Markdown syntax tree, including ancestors outside
 the unit. A match fully contained in the target unit is a failure; sibling

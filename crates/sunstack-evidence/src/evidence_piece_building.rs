@@ -37,6 +37,35 @@ struct MatchedFile {
     source: SourceRef,
 }
 
+/// Charge each resolved content acquisition once, including target openings and frozen text.
+fn read_cached_content(
+    source: &mut dyn CheckedFileSource,
+    contents: &mut BTreeMap<PathBuf, Result<String, CheckedReadError>>,
+    total_bytes: &mut usize,
+    path: &Path,
+    limits: PieceBuildLimits,
+) -> Result<String, CheckedReadError> {
+    let path = source
+        .resolve_file(path)
+        .ok_or(CheckedReadError::NotContained)?;
+    if let Some(content) = contents.get(&path) {
+        return content.clone();
+    }
+    let remaining = limits.max_total_bytes.saturating_sub(*total_bytes);
+    let content = match source.read_file(&path, limits.max_file_bytes.min(remaining)) {
+        Ok(text) => {
+            *total_bytes = total_bytes.saturating_add(text.len());
+            Ok(text)
+        }
+        Err(CheckedReadError::TooLarge) if remaining < limits.max_file_bytes => {
+            Err(CheckedReadError::TotalBytesExceeded)
+        }
+        Err(error) => Err(error),
+    };
+    contents.insert(path, content.clone());
+    content
+}
+
 /// Acquire and match files once, then compose fields from the immutable match indexes.
 pub fn build_pieces(
     project: &EvidenceProject,
@@ -51,23 +80,19 @@ pub fn build_pieces(
     paths.sort();
     paths.dedup();
     let mut total_bytes = 0usize;
+    let mut contents = BTreeMap::new();
+    let mut remaining_matches = limits.max_matches;
     for path in paths {
-        let result = source.read_file(&path, limits.max_file_bytes);
+        let result = read_cached_content(source, &mut contents, &mut total_bytes, &path, limits);
         match result {
             Err(error) => catalog.failures.push(EvidenceFileFailure {
                 file: path,
                 reason: error.to_string(),
             }),
             Ok(text) => {
-                total_bytes = total_bytes.saturating_add(text.len());
-                if total_bytes > limits.max_total_bytes {
-                    catalog.failures.push(EvidenceFileFailure {
-                        file: path,
-                        reason: "max_total_bytes".into(),
-                    });
-                    continue;
-                }
-                let index = project.match_file(&path, &text, limits.max_matches);
+                let index = project.match_file(&path, &text, remaining_matches);
+                remaining_matches = remaining_matches
+                    .saturating_sub(index.by_rule.values().map(Vec::len).sum::<usize>());
                 if index.limited {
                     catalog.failures.push(EvidenceFileFailure {
                         file: path.clone(),
@@ -110,7 +135,6 @@ pub fn build_pieces(
             }
         }
     }
-    let mut openings = BTreeMap::<PathBuf, Result<String, CheckedReadError>>::new();
     for (kind, definition) in kinds {
         for (path, file) in &matched {
             for range in file
@@ -197,12 +221,13 @@ pub fn build_pieces(
                                     let content = if let Some(file) = matched.get(&resolved) {
                                         Ok(file.text.clone())
                                     } else {
-                                        openings
-                                            .entry(resolved.clone())
-                                            .or_insert_with(|| {
-                                                source.read_file(&resolved, limits.max_file_bytes)
-                                            })
-                                            .clone()
+                                        read_cached_content(
+                                            source,
+                                            &mut contents,
+                                            &mut total_bytes,
+                                            &resolved,
+                                            limits,
+                                        )
                                     };
                                     match content {
                                         Ok(text) => {
@@ -259,6 +284,16 @@ pub fn build_pieces(
                     model_view,
                 });
             }
+        }
+    }
+    for (file, content) in contents {
+        if matches!(content, Err(CheckedReadError::TotalBytesExceeded))
+            && !catalog.failures.iter().any(|failure| failure.file == file)
+        {
+            catalog.failures.push(EvidenceFileFailure {
+                file,
+                reason: CheckedReadError::TotalBytesExceeded.to_string(),
+            });
         }
     }
     catalog

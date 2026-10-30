@@ -98,6 +98,63 @@ fn resolved_target_acquisition_failure_is_unavailable_rather_than_a_missing_file
 }
 
 #[test]
+fn frozen_checked_and_target_content_share_one_distinct_byte_budget() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/load.yml"),
+        "id: load\nlanguage: Markdown\nrule: {kind: paragraph}\n",
+    )
+    .unwrap();
+    let checked = "load `target.md`, `./target.md` and `SKILL.md`.\n";
+    std::fs::write(root.path().join("SKILL.md"), checked).unwrap();
+    // A fallback read cannot pass the per-file cap; the frozen target must supply the opening.
+    std::fs::write(root.path().join("target.md"), "stale".repeat(1000)).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","opening_chars":10}}}"#).unwrap();
+    let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
+    for (cap, complete) in [(400, false), (checked.len() + 400, true)] {
+        let mut source = FrozenCheckedSource::new(
+            BTreeMap::from([
+                (PathBuf::from("SKILL.md"), checked.into()),
+                (PathBuf::from("target.md"), "x".repeat(400)),
+            ]),
+            Box::new(RecordingSource::new(root.path())),
+        );
+        let catalog = build_pieces(
+            &project,
+            &kinds,
+            &["SKILL.md".into()],
+            &mut source,
+            PieceBuildLimits {
+                max_file_bytes: 500,
+                max_total_bytes: cap,
+                ..limits()
+            },
+        );
+        if complete {
+            assert!(catalog.failures.is_empty(), "{:?}", catalog.failures);
+            let FieldValue::Targets { values } = field(&catalog.pieces[0], "targets") else {
+                panic!()
+            };
+            assert_eq!(values.len(), 3);
+            assert_eq!(values[0].opening.as_deref(), Some("xxxxxxxxxx"));
+            assert_eq!(values[0].opening, values[1].opening);
+            assert_eq!(values[2].opening.as_deref(), Some("load `targ"));
+        } else {
+            assert!(
+                catalog
+                    .failures
+                    .iter()
+                    .any(|failure| failure.reason == "max_total_bytes")
+            );
+        }
+        assert_eq!(source.checked_files_acquired(), 2);
+    }
+}
+
+#[test]
 fn pinned_step_fields_and_path_and_skill_loads_keep_their_sources() {
     let root = fixture();
     let settings = settings();

@@ -32,6 +32,36 @@ fn check_input(mut input: Value) -> Value {
     input["output"] = json!("assembled_rules");
     input
 }
+
+#[tokio::test]
+async fn readme_mechanical_definition_passes_native_check_rules() {
+    let readme = include_str!("../README.md");
+    let section = readme.split_once("A rules entry").unwrap().1;
+    let example = section
+        .split_once("```json\n")
+        .unwrap()
+        .1
+        .split_once("\n```")
+        .unwrap()
+        .0;
+    let rule: Value = serde_json::from_str(example).unwrap();
+    let root = tempfile::tempdir().unwrap();
+    rule_fixture::write_set(root.path(), std::slice::from_ref(&rule), vec![]);
+    let checked = response(
+        &run_without_credential(
+            root.path(),
+            "check_rules",
+            check_input(input(root.path(), "not-a-url")),
+        )
+        .await,
+        0,
+    );
+    assert_eq!(checked["result"]["outcome"]["checked_rule_count"], 1);
+    assert_eq!(
+        checked["result"]["outcome"]["printed_rules"][0]["definition"],
+        rule
+    );
+}
 #[tokio::test]
 async fn invalid_connected_jsonl_selector_refuses_prepare_and_evaluate_without_dispatch() {
     let root = tempfile::tempdir().unwrap();

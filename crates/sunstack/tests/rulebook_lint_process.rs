@@ -272,3 +272,132 @@ async fn exact_encoded_escape_heavy_evidence_cap_blocks_only_the_large_view() {
     .unwrap();
     assert_encoded_cap_blocks_only_large(root.path()).await;
 }
+
+fn limit_fixture(fields: Value, decision: Value) -> tempfile::TempDir {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(root.path().join("evidence/rules")).unwrap();
+    std::fs::write(
+        root.path().join("evidence/sgconfig.yml"),
+        "ruleDirs: [rules]\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("evidence/rules/pieces.yml"), "id: document\nlanguage: Markdown\nrule:\n  kind: document\n---\nid: paragraph\nlanguage: Markdown\nrule:\n  kind: paragraph\n").unwrap();
+    std::fs::write(
+        root.path().join("rulebook.md"),
+        "Document meets the standard. <!-- K001 -->\n",
+    )
+    .unwrap();
+    save(
+        &root.path().join("rules.json"),
+        &json!({"K001":{"name":"document_standard","evidence":"review","severity":"error","decision":decision}}),
+    );
+    save(
+        &root.path().join("skill-rules.config.json"),
+        &json!({
+            "rulebook":[{"markdown":"rulebook.md","rules":"rules.json"}],"marker_prefix":"K",
+            "check":{"files":["docs/*.md"]},
+            "evidence":{"ast_grep":"evidence/sgconfig.yml","kinds":{"review":{"rule":"document","max_chars":1000,"fields":fields}}},
+            "decision_model":{"model":"jev-latest"}
+        }),
+    );
+    std::fs::create_dir(root.path().join("docs")).unwrap();
+    root
+}
+fn mechanical_graph(tool: Value) -> Value {
+    json!({"start":"check","steps":{"check":{"mechanical_check":tool,"yes":"pass","no":{"finding":"Standard failed."}}}})
+}
+
+#[tokio::test]
+async fn literal_cut_looking_tail_reaches_the_real_asking_path() {
+    for tail in ["ordinary author text", "[cut: literal author text]"] {
+        let root = limit_fixture(
+            json!({"items":{"from":"same_file","rule":"paragraph"}}),
+            json!({"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Needs work."}}}}),
+        );
+        let mut entries = read(&root.path().join("rules.json"));
+        entries["K001"]["questions"] = json!({"quality":{"type":"noul","instructions":{"check":"items","task":"Does this document meet the standard?"}}});
+        save(&root.path().join("rules.json"), &entries);
+        let mut paragraphs = vec!["a".repeat(32); 79];
+        paragraphs.push(tail.into());
+        std::fs::write(root.path().join("docs/one.md"), paragraphs.join("\n\n")).unwrap();
+        let listed = invoke(root.path(), &["--all", "--evidence", "review"], 0).await;
+        assert_eq!(
+            listed["pieces"][0]["fields"]["items"]["values"],
+            json!(paragraphs)
+        );
+        let (report, bodies) = judged(root.path(), 0.9, 0).await;
+        assert_eq!(report["incomplete"], json!([]));
+        assert_eq!(report["usage"]["model_requests"], 1);
+        assert_eq!(bodies.len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn match_limit_is_shared_across_checked_files_with_a_sufficient_cap_control() {
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
+    );
+    // Only document matches participate in this budget counterexample.
+    std::fs::write(
+        root.path().join("evidence/rules/pieces.yml"),
+        "id: document\nlanguage: Markdown\nrule:\n  kind: document\n",
+    )
+    .unwrap();
+    for name in ["a.md", "b.md"] {
+        std::fs::write(root.path().join("docs").join(name), "Long document.\n").unwrap();
+    }
+    let path = root.path().join("skill-rules.config.json");
+    let mut config = read(&path);
+    config["limits"] = json!({"max_matches":1});
+    save(&path, &config);
+    let limited = invoke(root.path(), &["--all", "--format", "json"], 3).await;
+    assert_eq!(limited["counts"]["error"], 1);
+    assert_eq!(limited["findings"][0]["file"], "docs/a.md");
+    assert!(!limited["incomplete"].as_array().unwrap().is_empty());
+    assert_eq!(limited["limits"]["max_matches"], 1);
+    assert!(
+        limited["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["message"] == "max_matches")
+    );
+    config["limits"]["max_matches"] = json!(2);
+    save(&path, &config);
+    let complete = invoke(root.path(), &["--all", "--format", "json"], 1).await;
+    assert_eq!(complete["counts"]["error"], 2);
+    assert_eq!(complete["incomplete"], json!([]));
+}
+
+#[tokio::test]
+async fn target_content_shares_total_bytes_and_cached_targets_are_charged_once() {
+    let root = limit_fixture(
+        json!({"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","opening_chars":10}}),
+        mechanical_graph(json!({"tool":"file_exists","field":"targets"})),
+    );
+    let checked = "Open `../one.md`, `../two.md`, `../three.md`, `../one.md` and `a.md`.\n";
+    std::fs::write(root.path().join("docs/a.md"), checked).unwrap();
+    for name in ["one.md", "two.md", "three.md"] {
+        std::fs::write(root.path().join(name), "x".repeat(400)).unwrap();
+    }
+    let path = root.path().join("skill-rules.config.json");
+    let mut config = read(&path);
+    config["limits"] = json!({"max_file_bytes":500,"max_total_bytes":600});
+    save(&path, &config);
+    let limited = invoke(root.path(), &["--all", "--format", "json"], 3).await;
+    assert!(!limited["incomplete"].as_array().unwrap().is_empty());
+    assert!(
+        limited["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["message"] == "max_total_bytes")
+    );
+    // Exact distinct-byte total must pass: repeated and already-checked targets add no bytes.
+    config["limits"]["max_total_bytes"] = json!(checked.len() + 1200);
+    save(&path, &config);
+    let complete = invoke(root.path(), &["--all", "--format", "json"], 0).await;
+    assert_eq!(complete["incomplete"], json!([]));
+    assert_eq!(complete["usage"]["checked_files_acquired"], 4);
+}
