@@ -2,7 +2,10 @@ import path from 'node:path';
 
 import { expect, test } from 'vitest';
 
-import { requireKindDiagnosticLocation } from './selection-refusals.ts';
+import {
+	requireFieldDiagnosticLocation,
+	requireKindDiagnosticLocation,
+} from './selection-refusals.ts';
 
 const configText = [
 	'{',
@@ -72,3 +75,62 @@ test.each(['a.b', 'a.fields.body', 'ordinary_kind', 'odd"\\kind'])(
 			).toThrow('Kind-plan diagnostic must locate the owning evidence.kinds.');
 	},
 );
+
+const fieldCollisionConfig = [
+	'{',
+	'  "evidence": {',
+	'    "kinds": {',
+	'      "a": {',
+	'        "rule": "section",',
+	'        "within": [',
+	'          "foo.fields.body"',
+	'        ],',
+	'        "fields": {}',
+	'      },',
+	'      "foo.fields.body": {"rule":"section","fields":{}},',
+	'      "a.within.foo": {',
+	'        "rule": "section",',
+	'        "fields": {',
+	'          "body": {',
+	'            "from": "inside",',
+	'            "kind": "missing_field_kind"',
+	'          }',
+	'        }',
+	'      }',
+	'    }',
+	'  }',
+	'}',
+].join('\n');
+
+test('field-source diagnostic locates the field under the full literal kind identity', () => {
+	expect(() =>
+		requireFieldDiagnosticLocation({
+			configText: fieldCollisionConfig,
+			kind: 'a.within.foo',
+			field: 'body',
+			file,
+			diagnostic: `${file}:15:11: undefined evidence kind`,
+		}),
+	).not.toThrow();
+	expect(() =>
+		requireKindDiagnosticLocation({
+			configText: fieldCollisionConfig,
+			kind: 'a.within.foo',
+			file,
+			diagnostic: `${file}:12:7: undefined kind missing_field_kind`,
+		}),
+	).not.toThrow();
+});
+
+test('field-source diagnostic rejects a shorter kind container, root key and fallback', () => {
+	for (const location of ['7:11', '12:7', '1:1'])
+		expect(() =>
+			requireFieldDiagnosticLocation({
+				configText: fieldCollisionConfig,
+				kind: 'a.within.foo',
+				field: 'body',
+				file,
+				diagnostic: `${file}:${location}: undefined evidence kind`,
+			}),
+		).toThrow('Field-source diagnostic must locate the field inside its complete literal kind');
+});
