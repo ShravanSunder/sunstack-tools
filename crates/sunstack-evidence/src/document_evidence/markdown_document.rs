@@ -1,12 +1,11 @@
 //! Markdown source ranges and rule bindings share the block and inline grammars.
-use crate::markdown_contracts::*;
+use crate::document_evidence::markdown_contracts::*;
 use ast_grep_core::{AstGrep, Node, tree_sitter::StrDoc};
 use ast_grep_language::{LanguageExt, SupportLang};
 use std::{collections::BTreeMap, ops::Range};
 
 type BlockNode<'tree> = Node<'tree, StrDoc<SupportLang>>;
 
-#[path = "markdown_unit_selection.rs"]
 mod unit_selection;
 
 pub struct MarkdownDocument {
@@ -112,7 +111,7 @@ impl MarkdownDocument {
             match node.kind().as_ref() {
                 "fenced_code_block" | "indented_code_block" => return true,
                 "inline"
-                    if crate::markdown_projection::inside_code_span(
+                    if crate::document_evidence::markdown_projection::inside_code_span(
                         &node.text(),
                         range.start - node.range().start,
                     ) =>
@@ -235,18 +234,29 @@ impl MarkdownDocument {
     fn project_mapped_range(
         &self,
         range: Range<usize>,
-    ) -> (String, crate::markdown_mapped_text::MappedMarkdownText) {
+    ) -> (
+        String,
+        crate::document_evidence::markdown_mapped_text::MappedMarkdownText,
+    ) {
         let normalized =
-            crate::markdown_offset_projection::NormalizedMarkdown::new(self.tree.source());
-        let projection = crate::markdown_offset_projection::OffsetProjection::new(&normalized);
+            crate::document_evidence::markdown_offset_projection::NormalizedMarkdown::new(
+                self.tree.source(),
+            );
+        let projection =
+            crate::document_evidence::markdown_offset_projection::OffsetProjection::new(
+                &normalized,
+            );
         self.project_with_offsets(range, &projection)
     }
 
     fn project_with_offsets(
         &self,
         range: Range<usize>,
-        projection: &crate::markdown_offset_projection::OffsetProjection<'_>,
-    ) -> (String, crate::markdown_mapped_text::MappedMarkdownText) {
+        projection: &crate::document_evidence::markdown_offset_projection::OffsetProjection<'_>,
+    ) -> (
+        String,
+        crate::document_evidence::markdown_mapped_text::MappedMarkdownText,
+    ) {
         let root = self.tree.root();
         let nodes = root.dfs().filter(|node| {
             contains_range(
@@ -267,7 +277,8 @@ impl MarkdownDocument {
             })
         });
         let mut question = String::new();
-        let mut filter = crate::markdown_mapped_text::MappedMarkdownText::default();
+        let mut filter =
+            crate::document_evidence::markdown_mapped_text::MappedMarkdownText::default();
         let mut previous_list = false;
         for node in nodes {
             let (visible, mut filter_visible) = match node.kind().as_ref() {

@@ -1,5 +1,7 @@
-use crate::repository_capture::{CachedAcquisition, PairCapture, RepositoryCapture};
-use crate::repository_catalogue::CaptureView;
+use crate::repository_evidence::repository_capture::{
+    CachedAcquisition, PairCapture, RepositoryCapture,
+};
+use crate::repository_evidence::repository_catalogue::CaptureView;
 use crate::*;
 use chrono::{DateTime, Utc};
 use tokio_util::sync::CancellationToken;

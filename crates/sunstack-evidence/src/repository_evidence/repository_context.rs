@@ -1,4 +1,4 @@
-use crate::repository_capture::CachedAcquisition;
+use crate::repository_evidence::repository_capture::CachedAcquisition;
 use crate::*;
 use std::{collections::BTreeSet, time::Instant};
 use tokio_util::sync::CancellationToken;
@@ -142,8 +142,8 @@ pub(crate) async fn capture_repository_context_cached(
             cutoff(&mut cutoffs, DiscoveryLimit::TotalBytes);
             continue;
         }
-        let document = crate::source_capture::capture_document_accounted(
-            crate::source_capture::DocumentCapture {
+        let document = crate::source_acquisition::source_capture::capture_document_accounted(
+            crate::source_acquisition::source_capture::DocumentCapture {
                 binding: request.binding.clone(),
                 path: path.clone(),
                 max_bytes: request
@@ -177,7 +177,8 @@ pub(crate) async fn capture_repository_context_cached(
             text,
             side: SourceSide::After,
         };
-        acquisitions.push(crate::repository_capture::repository_file_coverage(&file));
+        acquisitions
+            .push(crate::repository_evidence::repository_capture::repository_file_coverage(&file));
         sources.push(file);
     }
     let query_bounds = QueryBounds {

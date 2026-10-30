@@ -1,4 +1,4 @@
-use crate::evidence_contracts::validated_name;
+use crate::evidence_planning::evidence_contracts::validated_name;
 use crate::*;
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;

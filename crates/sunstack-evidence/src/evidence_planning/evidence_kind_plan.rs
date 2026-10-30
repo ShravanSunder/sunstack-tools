@@ -114,5 +114,4 @@ fn reaches_selected(
         })
 }
 #[cfg(test)]
-#[path = "evidence_kind_plan_test.rs"]
 mod tests;

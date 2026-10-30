@@ -226,7 +226,6 @@ pub fn match_within(inner: &MatchRange, outer: &MatchRange) -> bool {
 }
 
 #[cfg(test)]
-#[path = "evidence_kind_contracts_test.rs"]
 mod tests;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

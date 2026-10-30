@@ -229,7 +229,7 @@ impl EvidenceBuild {
                             };
                             for target in paths {
                                 if let Some(resolved) = source.resolve_file(&target).or_else(|| {
-                                    crate::checked_file_source::contained_target_identity(
+                                    crate::source_acquisition::checked_file_source::contained_target_identity(
                                         repository_root,
                                         &target,
                                     )

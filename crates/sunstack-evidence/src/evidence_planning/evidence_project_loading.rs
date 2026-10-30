@@ -102,7 +102,7 @@ pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, Proj
             )
         })?;
     let base = config_path.parent().unwrap_or(Path::new("."));
-    let reserved = crate::standard_markdown_utils::standard_utils();
+    let reserved = crate::document_evidence::standard_markdown_utils::standard_utils();
     let reserved_ids = reserved.iter().map(|(id, _)| *id).collect::<BTreeSet<_>>();
     let mut utils = Vec::new();
     for (_, yaml) in reserved {

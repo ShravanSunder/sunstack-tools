@@ -1,6 +1,7 @@
 use crate::{
-    ChangeScope, conversation_contracts::*, evidence_diagnostics::*,
-    structured_json::StructuredJson,
+    ChangeScope, conversation_evidence::conversation_contracts::*,
+    evidence_planning::evidence_diagnostics::*,
+    source_acquisition::structured_json::StructuredJson,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

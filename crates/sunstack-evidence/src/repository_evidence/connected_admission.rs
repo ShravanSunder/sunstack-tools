@@ -46,7 +46,9 @@ pub(crate) fn admit_connected_plan(input: &EvidencePlanInput) -> EvidenceResult<
                     }
                     for selector in selectors {
                         let (repository, paths, selection) =
-                            crate::frozen_queries::primitive_selector(selector)?;
+                            crate::repository_evidence::frozen_queries::primitive_selector(
+                                selector,
+                            )?;
                         let binding = repository_binding(input, repository)?;
                         if !query.repository_ids.contains(repository) {
                             return Err(EvidenceCode::InvalidSelector.into());

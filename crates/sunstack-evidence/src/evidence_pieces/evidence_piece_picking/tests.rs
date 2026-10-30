@@ -27,7 +27,7 @@ fn overlap_and_deletion_points_keep_the_existing_no_neighbor_boundary() {
 
 #[test]
 fn target_change_identity_normalizes_contained_paths_and_rejects_root_escape() {
-    use crate::checked_file_source::contained_target_identity;
+    use crate::source_acquisition::checked_file_source::contained_target_identity;
     for (raw, expected) in [
         (
             "skills/loader/../target/./SKILL.md",
@@ -50,7 +50,7 @@ fn target_change_identity_normalizes_contained_paths_and_rejects_root_escape() {
 
 #[test]
 fn missing_absolute_target_identity_is_root_relative_without_filesystem_access() {
-    use crate::checked_file_source::contained_target_identity;
+    use crate::source_acquisition::checked_file_source::contained_target_identity;
     let root = std::path::Path::new("/repository");
     for (raw, expected) in [
         (

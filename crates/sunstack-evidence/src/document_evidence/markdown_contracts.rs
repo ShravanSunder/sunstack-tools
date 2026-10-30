@@ -1,4 +1,4 @@
-use crate::{EvidenceCode, EvidenceResult, evidence_contracts::validated_name};
+use crate::{EvidenceCode, EvidenceResult, evidence_planning::evidence_contracts::validated_name};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -29,8 +29,10 @@ pub struct MarkdownTextSpan {
 
 impl MarkdownTextSpan {
     pub(crate) fn from_range(text: &str, range: std::ops::Range<usize>) -> Self {
-        let (start_line, start_column) = crate::source_capture::text_position(text, range.start);
-        let (end_line, end_column) = crate::source_capture::text_position(text, range.end);
+        let (start_line, start_column) =
+            crate::source_acquisition::source_capture::text_position(text, range.start);
+        let (end_line, end_column) =
+            crate::source_acquisition::source_capture::text_position(text, range.end);
         Self {
             byte_start: range.start,
             byte_end: range.end,

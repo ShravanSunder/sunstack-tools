@@ -1,4 +1,4 @@
-use crate::source_capture::file_identity;
+use crate::source_acquisition::source_capture::file_identity;
 use crate::*;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Arc};
@@ -34,7 +34,7 @@ pub async fn capture_conversation(
         request,
         registry,
         cancellation,
-        progress: crate::acquisition_progress::AcquisitionProgress::shared(),
+        progress: crate::source_acquisition::acquisition_progress::AcquisitionProgress::shared(),
     })
     .await
 }
@@ -42,7 +42,7 @@ pub(crate) struct ConversationAcquisition {
     pub request: ConversationCaptureRequest,
     pub registry: AdapterRegistry,
     pub cancellation: CancellationToken,
-    pub progress: Arc<crate::acquisition_progress::AcquisitionProgress>,
+    pub progress: Arc<crate::source_acquisition::acquisition_progress::AcquisitionProgress>,
 }
 pub(crate) async fn capture_conversation_accounted(
     acquisition: ConversationAcquisition,

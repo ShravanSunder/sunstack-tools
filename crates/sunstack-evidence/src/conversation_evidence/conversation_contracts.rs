@@ -1,4 +1,7 @@
-use crate::{evidence_contracts::*, evidence_diagnostics::*, structured_json::StructuredJson};
+use crate::{
+    evidence_planning::evidence_contracts::*, evidence_planning::evidence_diagnostics::*,
+    source_acquisition::structured_json::StructuredJson,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroUsize, path::PathBuf};
@@ -221,7 +224,7 @@ pub struct AdapterOutput {
 }
 #[derive(Clone, Debug)]
 pub struct ConversationCapture {
-    pub interval: crate::source_capture::CaptureInterval,
+    pub interval: crate::source_acquisition::source_capture::CaptureInterval,
     pub source: TranscriptSource,
     pub format: TranscriptFormatName,
     pub committed_bytes: u64,

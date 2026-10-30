@@ -1,4 +1,4 @@
-use crate::{markdown_offset_projection::NormalizedMarkdown, *};
+use crate::{document_evidence::markdown_offset_projection::NormalizedMarkdown, *};
 use std::{collections::BTreeMap, ops::Range};
 
 pub(crate) fn select_frontmatter(

@@ -1,4 +1,4 @@
-use crate::repository_catalogue::{CaptureView, FileCatalogue, ReadTarget};
+use crate::repository_evidence::repository_catalogue::{CaptureView, FileCatalogue, ReadTarget};
 use crate::*;
 use git2::Repository;
 use std::{
@@ -26,7 +26,7 @@ pub(crate) struct CachedAcquisition {
     pub remaining_files: usize,
     pub remaining_bytes: usize,
     pub snapshot: Option<SnapshotId>,
-    pub progress: Arc<crate::acquisition_progress::AcquisitionProgress>,
+    pub progress: Arc<crate::source_acquisition::acquisition_progress::AcquisitionProgress>,
     pub remaining_history_commits: usize,
 }
 impl CachedAcquisition {
@@ -36,7 +36,8 @@ impl CachedAcquisition {
             remaining_files: limits.max_files.get(),
             remaining_bytes: limits.max_total_bytes.get(),
             snapshot: None,
-            progress: crate::acquisition_progress::AcquisitionProgress::shared(),
+            progress: crate::source_acquisition::acquisition_progress::AcquisitionProgress::shared(
+            ),
             remaining_history_commits: limits.max_history_commits.get(),
         }
     }
@@ -75,7 +76,7 @@ pub(crate) struct RepositoryCapture<'repo> {
     available_bytes: usize,
     available_history_commits: usize,
     history_commits: usize,
-    progress: Arc<crate::acquisition_progress::AcquisitionProgress>,
+    progress: Arc<crate::source_acquisition::acquisition_progress::AcquisitionProgress>,
     started: Instant,
     cancellation: CancellationToken,
 }
@@ -113,7 +114,8 @@ impl<'repo> RepositoryCapture<'repo> {
             available_bytes: request.limits.max_total_bytes.get(),
             available_history_commits: request.limits.max_history_commits.get(),
             history_commits: 0,
-            progress: crate::acquisition_progress::AcquisitionProgress::shared(),
+            progress: crate::source_acquisition::acquisition_progress::AcquisitionProgress::shared(
+            ),
             started: Instant::now(),
             cancellation,
         })

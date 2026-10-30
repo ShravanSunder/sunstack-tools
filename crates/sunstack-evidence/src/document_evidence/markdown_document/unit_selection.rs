@@ -41,7 +41,7 @@ impl MarkdownUnitSelection {
 struct Candidate {
     kind: MarkdownUnitKind,
     range: Range<usize>,
-    visible: crate::markdown_mapped_text::MappedMarkdownText,
+    visible: crate::document_evidence::markdown_mapped_text::MappedMarkdownText,
 }
 
 impl Candidate {
@@ -71,8 +71,12 @@ impl MarkdownDocument {
         selection.validate()?;
         let (kinds, filter) = selection.parts();
         let text = self.tree.source();
-        let normalized = crate::markdown_offset_projection::NormalizedMarkdown::new(text);
-        let projection = crate::markdown_offset_projection::OffsetProjection::new(&normalized);
+        let normalized =
+            crate::document_evidence::markdown_offset_projection::NormalizedMarkdown::new(text);
+        let projection =
+            crate::document_evidence::markdown_offset_projection::OffsetProjection::new(
+                &normalized,
+            );
         let candidates = self
             .tree
             .root()

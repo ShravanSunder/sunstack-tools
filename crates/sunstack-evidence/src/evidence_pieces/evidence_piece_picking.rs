@@ -32,7 +32,7 @@ pub fn pick_pieces(
                         return false;
                     };
                     values.iter().any(|target| {
-                        crate::checked_file_source::contained_target_identity(
+                        crate::source_acquisition::checked_file_source::contained_target_identity(
                             repository_root,
                             &target.path,
                         )
@@ -51,7 +51,6 @@ pub fn pick_pieces(
     (picked, outside)
 }
 #[cfg(test)]
-#[path = "evidence_piece_picking_test.rs"]
 mod tests;
 
 /// Selection considers a whole loading file whenever a hunk or a resolved target changed.

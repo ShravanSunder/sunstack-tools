@@ -64,7 +64,7 @@ impl Preparation {
                 };
             }
             ChangeComparisonSubject::Declaration { declaration } => {
-                crate::evidence_admission::admit_evidence_declaration(
+                crate::evidence_planning::evidence_admission::admit_evidence_declaration(
                     &declaration,
                     &self.input.sources,
                 )?;
@@ -250,7 +250,10 @@ impl Preparation {
                         _ => None,
                     };
                     if let Some(paths) = paths
-                        && !crate::frozen_queries::matches_paths(paths, &change.path)?
+                        && !crate::repository_evidence::frozen_queries::matches_paths(
+                            paths,
+                            &change.path,
+                        )?
                     {
                         continue;
                     }
@@ -289,7 +292,7 @@ impl Preparation {
                 let unit_kinds = unit_kinds.clone();
                 let source_sides = *source_sides;
                 let mapping = tokio::task::spawn_blocking(move || {
-                    crate::source_units::map_changed_source_units(
+                    crate::repository_evidence::source_units::map_changed_source_units(
                         &capture_for_mapping,
                         &languages,
                         &unit_kinds,
@@ -385,18 +388,21 @@ fn selected_fingerprint(
     declaration: &EvidenceDeclaration,
     remaining: usize,
 ) -> EvidenceResult<SelectionFingerprint> {
-    let (content, limited) =
-        match crate::frozen_queries::select_frozen_file(file, &declaration.select, remaining) {
-            Ok(content) => content,
-            Err(error) if error.code == EvidenceCode::MissingTarget => {
-                return Ok(SelectionFingerprint {
-                    content: None,
-                    matches_considered: 0,
-                    bytes_scanned: file.text.len(),
-                });
-            }
-            Err(error) => return Err(error),
-        };
+    let (content, limited) = match crate::repository_evidence::frozen_queries::select_frozen_file(
+        file,
+        &declaration.select,
+        remaining,
+    ) {
+        Ok(content) => content,
+        Err(error) if error.code == EvidenceCode::MissingTarget => {
+            return Ok(SelectionFingerprint {
+                content: None,
+                matches_considered: 0,
+                bytes_scanned: file.text.len(),
+            });
+        }
+        Err(error) => return Err(error),
+    };
     if limited {
         return Err(EvidenceCode::SelectorLimit.into());
     }

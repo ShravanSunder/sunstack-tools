@@ -1,5 +1,7 @@
 use crate::*;
-use crate::{relationship_resolution::*, relationship_syntax::*};
+use crate::{
+    repository_evidence::relationship_resolution::*, repository_evidence::relationship_syntax::*,
+};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     time::Instant,

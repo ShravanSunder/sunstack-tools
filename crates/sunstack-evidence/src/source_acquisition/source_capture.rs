@@ -77,7 +77,7 @@ pub async fn capture_document(
         path,
         max_bytes,
         cancellation,
-        progress: crate::acquisition_progress::AcquisitionProgress::shared(),
+        progress: crate::source_acquisition::acquisition_progress::AcquisitionProgress::shared(),
     })
     .await
 }
@@ -86,7 +86,7 @@ pub(crate) struct DocumentCapture {
     pub path: std::path::PathBuf,
     pub max_bytes: usize,
     pub cancellation: CancellationToken,
-    pub progress: Arc<crate::acquisition_progress::AcquisitionProgress>,
+    pub progress: Arc<crate::source_acquisition::acquisition_progress::AcquisitionProgress>,
 }
 pub(crate) async fn capture_document_accounted(
     request: DocumentCapture,

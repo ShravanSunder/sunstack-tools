@@ -38,7 +38,7 @@ pub(crate) fn parse_relationship_file(
     let SourceRef::RepositoryFile { path, .. } = &file.source else {
         return Err(EvidenceCode::InvalidSelector.into());
     };
-    let language = match crate::source_units::source_language(path) {
+    let language = match crate::repository_evidence::source_units::source_language(path) {
         Some(SourceLanguage::Rust) => "rust",
         Some(SourceLanguage::Typescript) => "typescript",
         Some(SourceLanguage::Tsx) => "tsx",

@@ -1,4 +1,4 @@
-use crate::evidence_contracts::{SourceRef, SourceSpan};
+use crate::evidence_planning::evidence_contracts::{SourceRef, SourceSpan};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

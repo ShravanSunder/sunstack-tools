@@ -1,5 +1,5 @@
 use crate::{
-    source_capture::{CapturedDocument, source_span},
+    source_acquisition::source_capture::{CapturedDocument, source_span},
     *,
 };
 use ast_grep_core::{Pattern, meta_var::MetaVariable};
@@ -123,8 +123,10 @@ pub(crate) fn select_document_bounded(
     };
     let mut matches = match selection {
         EvidenceSelection::FrontmatterField { field } => {
-            return crate::markdown_frontmatter::select_frontmatter(document, field)
-                .map(|content| (content, false));
+            return crate::document_evidence::markdown_frontmatter::select_frontmatter(
+                document, field,
+            )
+            .map(|content| (content, false));
         }
         EvidenceSelection::MarkdownUnits(selection) => {
             let (units, limited) = MarkdownDocument::parse(text).select_units(

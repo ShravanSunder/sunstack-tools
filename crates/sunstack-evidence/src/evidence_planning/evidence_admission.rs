@@ -5,7 +5,7 @@ pub(crate) fn admission(
     input: &EvidencePlanInput,
     registry: &AdapterRegistry,
 ) -> EvidenceResult<()> {
-    crate::connected_admission::admit_connected_plan(input)?;
+    crate::repository_evidence::connected_admission::admit_connected_plan(input)?;
     let mut keys = BTreeSet::new();
     let mut roots = BTreeSet::new();
     for binding in &input.repositories {
@@ -123,7 +123,9 @@ pub fn admit_evidence_declaration(
     if !compatible {
         return Err(EvidenceCode::InvalidSelector.into());
     }
-    crate::connected_admission::admit_connected_selection(&declaration.select)?;
+    crate::repository_evidence::connected_admission::admit_connected_selection(
+        &declaration.select,
+    )?;
     if let Some(selection) = declaration.select.conversation() {
         selection.validate()?;
     }

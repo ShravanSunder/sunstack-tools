@@ -216,7 +216,7 @@ fn markdown_units(
     file: &FrozenRepositoryFile,
     snapshot: &SnapshotId,
 ) -> EvidenceResult<Vec<SelectedSourceUnit>> {
-    let mut units = crate::document_selection::paragraph_ranges(&file.text)
+    let mut units = crate::document_evidence::document_selection::paragraph_ranges(&file.text)
         .into_iter()
         .map(|range| {
             make_unit(

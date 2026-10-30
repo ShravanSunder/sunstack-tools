@@ -1,5 +1,5 @@
 use super::*;
-use crate::repository_capture::CachedAcquisition;
+use crate::repository_evidence::repository_capture::CachedAcquisition;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) enum RepositoryView {
@@ -50,7 +50,8 @@ impl Preparation {
         limits.max_local_time_ms = remaining_ms
             .try_into()
             .map_err(|_| EvidenceCode::DiscoveryLimit)?;
-        let progress = crate::acquisition_progress::AcquisitionProgress::shared();
+        let progress =
+            crate::source_acquisition::acquisition_progress::AcquisitionProgress::shared();
         let cached = CachedAcquisition {
             worktree: self
                 .document_cache
@@ -78,7 +79,7 @@ impl Preparation {
         let started = Instant::now();
         let result = match view {
             RepositoryView::ChangeSelection => {
-                crate::change_selection::capture_change_selection_cached(
+                crate::repository_evidence::change_selection::capture_change_selection_cached(
                     request,
                     cached,
                     self.cancellation.clone(),
@@ -86,7 +87,7 @@ impl Preparation {
                 .await
             }
             RepositoryView::Context => {
-                crate::repository_context::capture_repository_context_cached(
+                crate::repository_evidence::repository_context::capture_repository_context_cached(
                     request,
                     cached,
                     self.cancellation.clone(),

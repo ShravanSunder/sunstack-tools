@@ -169,7 +169,7 @@ impl Preparation {
                 SourceSpec::Payload { .. } | SourceSpec::ChangeSet { .. } => {}
             }
         }
-        crate::evidence_admission::admission(&input, &registry)?;
+        crate::evidence_planning::evidence_admission::admission(&input, &registry)?;
         let anchor_utc = chrono::Utc::now();
         let snapshot_id = SnapshotId::new(content_digest(anchor_utc.to_rfc3339().as_bytes()))?;
         let mut preparation = Self {
@@ -282,9 +282,10 @@ impl Preparation {
                     .max_total_bytes
                     .get()
                     .saturating_sub(self.total_read);
-                let progress = crate::acquisition_progress::AcquisitionProgress::shared();
-                let result = crate::conversation_capture::capture_conversation_accounted(
-                    crate::conversation_capture::ConversationAcquisition {
+                let progress =
+                    crate::source_acquisition::acquisition_progress::AcquisitionProgress::shared();
+                let result = crate::conversation_evidence::conversation_capture::capture_conversation_accounted(
+                    crate::conversation_evidence::conversation_capture::ConversationAcquisition {
                         request: ConversationCaptureRequest {
                             transcript_path,
                             format,
@@ -349,9 +350,10 @@ impl Preparation {
             .max_total_bytes
             .get()
             .saturating_sub(self.total_read);
-        let progress = crate::acquisition_progress::AcquisitionProgress::shared();
-        let result = crate::source_capture::capture_document_accounted(
-            crate::source_capture::DocumentCapture {
+        let progress =
+            crate::source_acquisition::acquisition_progress::AcquisitionProgress::shared();
+        let result = crate::source_acquisition::source_capture::capture_document_accounted(
+            crate::source_acquisition::source_capture::DocumentCapture {
                 binding,
                 path,
                 max_bytes: self.input.limits.max_file_bytes.get().min(remaining),
@@ -379,7 +381,10 @@ impl Preparation {
         &mut self,
         declaration: &EvidenceDeclaration,
     ) -> EvidenceResult<SelectionReadiness> {
-        crate::evidence_admission::admit_evidence_declaration(declaration, &self.input.sources)?;
+        crate::evidence_planning::evidence_admission::admit_evidence_declaration(
+            declaration,
+            &self.input.sources,
+        )?;
         if self.cancellation.is_cancelled() {
             return Err(EvidenceCode::MissingContext.into());
         }

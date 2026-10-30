@@ -1,4 +1,4 @@
-use crate::markdown_mapped_text::MappedMarkdownText;
+use crate::document_evidence::markdown_mapped_text::MappedMarkdownText;
 use pulldown_cmark::{Alignment, Event, Options, Parser, Tag, TagEnd};
 use std::ops::Range;
 

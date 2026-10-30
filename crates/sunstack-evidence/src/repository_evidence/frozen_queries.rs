@@ -116,7 +116,7 @@ pub(crate) fn select_frozen_file(
     max_matches: usize,
 ) -> EvidenceResult<(SelectionContent, bool)> {
     let now = chrono::Utc::now();
-    crate::document_selection::select_document_bounded(
+    crate::document_evidence::document_selection::select_document_bounded(
         &CapturedDocument {
             interval: CaptureInterval {
                 started_at: now,
@@ -149,7 +149,7 @@ pub fn select_source_units(
                     .iter()
                     .find(|capture| &capture.repository == repository)
                     .ok_or(EvidenceCode::UnknownRepository)?;
-                let mapping = crate::source_units::map_changed_source_units(
+                let mapping = crate::repository_evidence::source_units::map_changed_source_units(
                     capture,
                     &query.languages,
                     &query.unit_kinds,
@@ -179,7 +179,7 @@ pub fn select_source_units(
                         continue;
                     };
                     if !matches_paths(&paths, path)?
-                        || !crate::source_units::source_language(path)
+                        || !crate::repository_evidence::source_units::source_language(path)
                             .is_some_and(|language| query.languages.contains(&language))
                     {
                         continue;
@@ -215,14 +215,14 @@ pub fn select_source_units(
                     }
                     matched += spans.len();
                     for unit in extract_source_units(file, &capture.snapshot)? {
-                        if query
-                            .unit_kinds
-                            .contains(&crate::source_units::unit_kind_filter(&unit.unit.kind))
-                            && spans.iter().any(|span| {
-                                span.byte_start < unit.unit.key.byte_end
-                                    && unit.unit.key.byte_start < span.byte_end
-                            })
-                        {
+                        if query.unit_kinds.contains(
+                            &crate::repository_evidence::source_units::unit_kind_filter(
+                                &unit.unit.kind,
+                            ),
+                        ) && spans.iter().any(|span| {
+                            span.byte_start < unit.unit.key.byte_end
+                                && unit.unit.key.byte_start < span.byte_end
+                        }) {
                             located_before |= file.side == SourceSide::Before;
                             located_after |= file.side == SourceSide::After;
                             selected.insert(unit.unit.key.clone(), unit);
@@ -264,7 +264,7 @@ pub fn select_change_set(
         source_sides,
     } = selection
     {
-        let mapping = crate::source_units::map_changed_source_units(
+        let mapping = crate::repository_evidence::source_units::map_changed_source_units(
             capture,
             languages,
             unit_kinds,

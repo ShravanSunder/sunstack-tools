@@ -255,7 +255,6 @@ fn value_at<'a>(
 }
 
 #[cfg(test)]
-#[path = "evidence_model_view_test.rs"]
 mod tests;
 
 /// Selection views omit unavailable fields; the raw fields remain for the admission guard.
