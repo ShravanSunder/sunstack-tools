@@ -1,9 +1,16 @@
+#[path = "command_dispatch/command_line.rs"]
 mod command_line;
+#[path = "operation_protocol/exec_protocol.rs"]
 mod exec_protocol;
+#[path = "command_dispatch/lint_command.rs"]
 mod lint_command;
+#[path = "operation_protocol/operation_execution.rs"]
 mod operation_execution;
+#[path = "process_runtime/process_signals.rs"]
 mod process_signals;
+#[path = "operation_protocol/protocol_boundary.rs"]
 mod protocol_boundary;
+#[path = "process_runtime/provider_credentials.rs"]
 mod provider_credentials;
 
 use clap::Parser;
