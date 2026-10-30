@@ -8,6 +8,7 @@ import {
 	configName,
 	configureEndpoint,
 	equal,
+	gitCommand,
 	objectValue,
 	requireCondition,
 } from './rulebook-fixture-support.ts';
@@ -107,6 +108,43 @@ export async function observeSelectionChanges(options: {
 		['1. Inspect inputs.'],
 		'Load context is not chosen step',
 	);
+	filesystem.unlinkSync(path.join(targets, 'skills/target/SKILL.md'));
+	equal(
+		gitCommand(targets, ['diff', '--name-status', 'HEAD']).trim(),
+		'D\tskills/target/SKILL.md',
+		'Target-deletion fixture must change only the target, with no loader hunk',
+	);
+	const deleted = await observer.report({
+		root: targets,
+		name: 'selection-target-deleted',
+		arguments: ['lint', '--config', configName, '--evidence', '--since', 'HEAD'],
+		expectedExit: 0,
+		credential: true,
+	});
+	requireCondition(
+		deleted.captures.some(
+			(capture) => selectionState(capture.body).file === 'skills/loader/SKILL.md',
+		),
+		'Deleted target did not select loading file',
+	);
+	requireCondition(
+		selectionEntries(deleted.report).some(
+			(entry) => entry.where.file === 'skills/loader/SKILL.md' && entry.outcome.kind === 'selected',
+		),
+		'Deleted target loader has no selected candidate outcome',
+	);
+	const deletedLoads = selectionPieces(deleted.report, 'load', 'skills/loader/SKILL.md');
+	equal(deletedLoads.length, 1, 'Deleted target failed to pick dependent load');
+	const deletedTargets = arrayValue(
+		objectValue(objectValue(deletedLoads[0]?.['fields'])['targets'])['values'],
+	).map(objectValue);
+	equal(deletedTargets.length, 1, 'Deleted target identity missing from dependent load');
+	equal(
+		deletedTargets[0]?.['path'],
+		'skills/loader/../target/SKILL.md',
+		'Missing target must preserve its serialized unresolved path',
+	);
+	equal(deletedTargets[0]?.['exists'], false, 'Deleted target must report exists:false');
 	const staged = copySelectionFixture({
 		destination: path.join(evidence, 'selection-barrier'),
 		sourceRoot,
