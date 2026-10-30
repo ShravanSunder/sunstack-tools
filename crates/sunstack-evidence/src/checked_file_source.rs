@@ -12,6 +12,8 @@ pub enum CheckedReadError {
     TooLarge,
     #[error("max_total_bytes")]
     TotalBytesExceeded,
+    #[error("max_files")]
+    FileCountExceeded,
     #[error("file cannot be read as UTF-8")]
     Unreadable,
 }

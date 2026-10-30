@@ -17,6 +17,7 @@ fn settings() -> EvidenceSettings {
 }
 fn limits() -> PieceBuildLimits {
     PieceBuildLimits {
+        max_files: 2000,
         max_file_bytes: 100_000,
         max_total_bytes: 1_000_000,
         max_matches: 10_000,
@@ -151,6 +152,59 @@ fn frozen_checked_and_target_content_share_one_distinct_byte_budget() {
             );
         }
         assert_eq!(source.checked_files_acquired(), 2);
+    }
+}
+
+#[test]
+fn frozen_target_file_count_reuses_cached_alias_and_self_content() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/load.yml"),
+        "id: load\nlanguage: Markdown\nrule: {kind: paragraph}\n",
+    )
+    .unwrap();
+    let checked = "load `SKILL.md`, `target.md`, `./target.md` and `target.md`.\n";
+    std::fs::write(root.path().join("SKILL.md"), checked).unwrap();
+    std::fs::write(root.path().join("target.md"), "stale".repeat(1000)).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","opening_chars":10}}}"#).unwrap();
+    let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
+    for max_files in [1, 2] {
+        let mut source = FrozenCheckedSource::new(
+            BTreeMap::from([
+                (PathBuf::from("SKILL.md"), checked.into()),
+                (PathBuf::from("target.md"), "x".repeat(400)),
+            ]),
+            Box::new(RecordingSource::new(root.path())),
+        );
+        let catalog = build_pieces(
+            &project,
+            &kinds,
+            &["SKILL.md".into()],
+            &mut source,
+            PieceBuildLimits {
+                max_files,
+                max_file_bytes: 500,
+                ..limits()
+            },
+        );
+        assert_eq!(source.checked_files_acquired(), max_files);
+        if max_files == 1 {
+            assert_eq!(catalog.failures.len(), 1);
+            assert_eq!(catalog.failures[0].reason, "max_files");
+        } else {
+            assert!(catalog.failures.is_empty(), "{:?}", catalog.failures);
+            let FieldValue::Targets { values } = field(&catalog.pieces[0], "targets") else {
+                panic!()
+            };
+            assert_eq!(values.len(), 4);
+            assert!(values.iter().all(|value| value.exists));
+            for value in &values[1..] {
+                assert_eq!(value.opening.as_deref(), Some("xxxxxxxxxx"));
+            }
+        }
     }
 }
 

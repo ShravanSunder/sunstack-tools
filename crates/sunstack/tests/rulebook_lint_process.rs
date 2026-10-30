@@ -401,3 +401,52 @@ async fn target_content_shares_total_bytes_and_cached_targets_are_charged_once()
     assert_eq!(complete["incomplete"], json!([]));
     assert_eq!(complete["usage"]["checked_files_acquired"], 4);
 }
+
+#[tokio::test]
+async fn file_limit_counts_checked_and_target_content_once_per_resolved_path() {
+    let root = limit_fixture(
+        json!({"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","opening_chars":10}}),
+        mechanical_graph(json!({"tool":"file_exists","field":"targets"})),
+    );
+    std::fs::write(
+        root.path().join("docs/a.md"),
+        "Open `a.md`, `../one.md`, `.././one.md`, `../two.md`, `../three.md` and `../one.md`.\n",
+    )
+    .unwrap();
+    for name in ["one.md", "two.md", "three.md"] {
+        std::fs::write(root.path().join(name), "x".repeat(400)).unwrap();
+    }
+    let path = root.path().join("skill-rules.config.json");
+    let mut config = read(&path);
+    config["limits"] = json!({"max_files":1,"max_file_bytes":500,"max_total_bytes":6000});
+    save(&path, &config);
+    let limited = invoke(root.path(), &["--all", "--format", "json"], 3).await;
+    assert_eq!(limited["usage"]["checked_files_acquired"], 1);
+    assert_eq!(limited["status"]["kind"], "incomplete");
+    assert!(
+        limited["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["message"] == "max_files")
+    );
+    config["limits"]["max_files"] = json!(4);
+    save(&path, &config);
+    let complete = invoke(root.path(), &["--all", "--format", "json"], 0).await;
+    assert_eq!(complete["incomplete"], json!([]));
+    assert_eq!(complete["usage"]["checked_files_acquired"], 4);
+    // Checked selection truncation remains deterministic and names the same cap.
+    config["limits"]["max_files"] = json!(1);
+    save(&path, &config);
+    std::fs::write(root.path().join("docs/a.md"), "No targets.\n").unwrap();
+    std::fs::write(root.path().join("docs/b.md"), "No targets.\n").unwrap();
+    let truncated = invoke(root.path(), &["--all", "--format", "json"], 3).await;
+    assert_eq!(truncated["usage"]["checked_files_acquired"], 1);
+    assert!(
+        truncated["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["message"] == "max_files")
+    );
+}

@@ -264,6 +264,13 @@ pub async fn run_with_source(
     let mut files = selection.files;
     if files.len() > report.limits.max_files as usize {
         files.truncate(report.limits.max_files as usize);
+        report.diagnostics.push(LintDiagnostic {
+            file: None,
+            line: None,
+            column: None,
+            code: LintInvalidCode::Syntax,
+            message: "max_files".into(),
+        });
         report.incomplete.push(IncompletePart {
             rule: None,
             file: None,
@@ -281,6 +288,7 @@ pub async fn run_with_source(
     let mut source = FrozenCheckedSource::new(frozen, fallback);
     let kinds = config.evidence.kinds.clone();
     let limits = PieceBuildLimits {
+        max_files: report.limits.max_files as usize,
         max_file_bytes: match usize::try_from(report.limits.max_file_bytes) {
             Ok(value) => value,
             Err(_) => return failed(report, "file byte limit exceeds platform"),

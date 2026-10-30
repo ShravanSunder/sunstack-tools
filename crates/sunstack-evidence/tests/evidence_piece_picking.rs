@@ -22,6 +22,7 @@ fn build(root: &std::path::Path, files: &[PathBuf]) -> EvidenceCatalog {
         files,
         &mut FilesystemCheckedSource::new(root).unwrap(),
         PieceBuildLimits {
+            max_files: 2000,
             max_file_bytes: 100000,
             max_total_bytes: 1000000,
             max_matches: 10000,

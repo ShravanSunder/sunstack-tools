@@ -25,6 +25,7 @@ pub struct EvidenceCatalog {
 }
 #[derive(Debug, Clone, Copy)]
 pub struct PieceBuildLimits {
+    pub max_files: usize,
     pub max_file_bytes: usize,
     pub max_total_bytes: usize,
     pub max_matches: usize,
@@ -52,15 +53,19 @@ fn read_cached_content(
         return content.clone();
     }
     let remaining = limits.max_total_bytes.saturating_sub(*total_bytes);
-    let content = match source.read_file(&path, limits.max_file_bytes.min(remaining)) {
-        Ok(text) => {
-            *total_bytes = total_bytes.saturating_add(text.len());
-            Ok(text)
+    let content = if source.checked_files_acquired() >= limits.max_files {
+        Err(CheckedReadError::FileCountExceeded)
+    } else {
+        match source.read_file(&path, limits.max_file_bytes.min(remaining)) {
+            Ok(text) => {
+                *total_bytes = total_bytes.saturating_add(text.len());
+                Ok(text)
+            }
+            Err(CheckedReadError::TooLarge) if remaining < limits.max_file_bytes => {
+                Err(CheckedReadError::TotalBytesExceeded)
+            }
+            Err(error) => Err(error),
         }
-        Err(CheckedReadError::TooLarge) if remaining < limits.max_file_bytes => {
-            Err(CheckedReadError::TotalBytesExceeded)
-        }
-        Err(error) => Err(error),
     };
     contents.insert(path, content.clone());
     content
@@ -287,12 +292,14 @@ pub fn build_pieces(
         }
     }
     for (file, content) in contents {
-        if matches!(content, Err(CheckedReadError::TotalBytesExceeded))
+        if let Err(
+            error @ (CheckedReadError::TotalBytesExceeded | CheckedReadError::FileCountExceeded),
+        ) = content
             && !catalog.failures.iter().any(|failure| failure.file == file)
         {
             catalog.failures.push(EvidenceFileFailure {
                 file,
-                reason: CheckedReadError::TotalBytesExceeded.to_string(),
+                reason: error.to_string(),
             });
         }
     }
