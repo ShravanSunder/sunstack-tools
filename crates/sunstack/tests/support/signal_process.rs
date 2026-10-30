@@ -5,6 +5,8 @@ use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
     process::{Child, ChildStderr},
 };
+
+const CHILD_READY_STARTUP_TIMEOUT: Duration = Duration::from_secs(20);
 pub async fn expect_line(
     stderr: &mut BufReader<ChildStderr>,
     expected: &str,
@@ -29,19 +31,20 @@ pub async fn ready_process_without_credential(
 async fn observe_ready(mut process: Child) -> (Child, BufReader<ChildStderr>, Vec<u8>) {
     let mut stderr = BufReader::new(process.stderr.take().unwrap());
     let mut transcript = vec![];
-    loop {
-        let mut received = String::new();
-        tokio::time::timeout(Duration::from_secs(5), stderr.read_line(&mut received))
-            .await
-            .unwrap()
-            .unwrap();
-        transcript.extend_from_slice(received.as_bytes());
-        assert!(transcript.len() <= 256);
-        if received == "sunstack: ready\n" {
-            break;
+    tokio::time::timeout(CHILD_READY_STARTUP_TIMEOUT, async {
+        loop {
+            let mut received = String::new();
+            stderr.read_line(&mut received).await.unwrap();
+            transcript.extend_from_slice(received.as_bytes());
+            assert!(transcript.len() <= 256);
+            if received == "sunstack: ready\n" {
+                break;
+            }
+            assert!(received.starts_with("cargo debug runner: sunstack runs unsigned ("));
         }
-        assert!(received.starts_with("cargo debug runner: sunstack runs unsigned ("));
-    }
+    })
+    .await
+    .expect("child startup did not emit sunstack: ready within 20 s");
     (process, stderr, transcript)
 }
 pub async fn send_signal(process: &Child, signal_name: &str) {
