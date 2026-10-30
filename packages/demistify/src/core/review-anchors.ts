@@ -64,12 +64,14 @@ export function ensureReviewTargetId(element: Element, root: HTMLElement): void 
 
 export function readReviewTargets(root: HTMLElement): Map<string, ReviewTarget> {
 	const targets = new Map<string, ReviewTarget>();
-	const candidates = [
+	// Existing descendants get their historical IDs before newly targetable table ancestors do.
+	const candidates = new Set([
 		root,
 		...root.querySelectorAll(
-			'ex-choice[id],.ex-choice-option[id],[data-comment-label],p,li,h1,h2,h3,h4,h5,h6,table,tr,td,th,ex-callout,ex-card,ex-tree,ex-file-tree,ex-code,ex-mermaid,ex-pre,ex-mermaid g.node[data-id]',
+			'ex-choice[id],.ex-choice-option[id],[data-comment-label],p,li,h1,h2,h3,h4,h5,h6,ex-callout,ex-card,ex-tree,ex-file-tree,ex-code,ex-mermaid,ex-pre,ex-mermaid g.node[data-id]',
 		),
-	];
+		...root.querySelectorAll('table,tr,td,th'),
+	]);
 	for (const element of candidates) {
 		if (element.closest(`${excludedText},ex-comments,nav,[role="tablist"]`)) continue;
 		const generatedOwner = element.parentElement?.closest(

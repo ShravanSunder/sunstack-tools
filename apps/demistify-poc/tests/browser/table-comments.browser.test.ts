@@ -102,6 +102,16 @@ test('a range touching whitespace outside one paragraph stays paragraph-owned', 
 	expect(captured?.anchor.sourceText).toBe('Confirmed with source context.');
 });
 
+test('new table targets preserve the existing generated IDs of paragraphs inside cells', (): void => {
+	const root = document.createElement('ex-document');
+	root.id = 'legacy-root';
+	root.innerHTML =
+		'<table><tbody><tr><td><p>Existing paragraph feedback.</p></td></tr></tbody></table>';
+	document.body.append(root);
+	readReviewTargets(root);
+	expect(requiredElement(root, 'p').id).toBe('legacy-root--review-table-1-tbody-1-tr-1-td-1-p-1');
+});
+
 test.each([
 	['first', 'within-cell', 'cell-one'],
 	['first', 'next-cell', 'row-one'],
