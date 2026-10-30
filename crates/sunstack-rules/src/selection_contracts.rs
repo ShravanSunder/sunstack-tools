@@ -78,3 +78,47 @@ impl OccurrenceSelection {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct AdmittedSelection {
+    pub kind: sunstack_evidence::EvidenceKindName,
+    pub question: sunstack_decisions::JudgmentQuestion,
+    pub yes_at_or_above: f64,
+    pub no_at_or_below: f64,
+    pub shared: Vec<sunstack_evidence::FieldName>,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestLimit {
+    RequestMaxChars,
+    QuestionsPerRequest,
+    RequestBytes,
+    InputTokens,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum SelectionIncompleteReason {
+    EvidenceUnavailable { field: sunstack_evidence::FieldName },
+    EvidenceTooLarge,
+    RequestTooLarge { limit: RequestLimit },
+    InvalidRequest,
+    ProviderFailure,
+    MalformedAnswer,
+    RequestLimitReached,
+    Cancelled,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum SelectionOutcome {
+    Selected { yes: f64 },
+    NotSelected { yes: f64 },
+    Uncertain { yes: f64 },
+    Incomplete { reason: SelectionIncompleteReason },
+}
+#[derive(Debug, Clone)]
+pub struct SelectionInput {
+    pub selection: AdmittedSelection,
+    pub candidates: Vec<sunstack_evidence::SelectionCandidate>,
+    pub shared: Vec<sunstack_evidence::SharedView>,
+    pub files: std::collections::BTreeSet<std::path::PathBuf>,
+}
