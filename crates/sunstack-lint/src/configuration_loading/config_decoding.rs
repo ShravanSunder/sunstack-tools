@@ -170,7 +170,38 @@ pub(crate) fn config_error(
                     || message == "undefined evidence kind"
                     || message.starts_with("kind dependency cycle"))
             {
-                config_field_position(&source.text, key)
+                let kind_path = key.strip_prefix("evidence.kinds.");
+                let segments = kind_path.and_then(|kind_path| {
+                    if message != "undefined evidence kind"
+                        && let Some((kind, _)) = config
+                            .evidence
+                            .kinds
+                            .iter()
+                            .find(|(kind, _)| kind.as_str() == kind_path)
+                    {
+                        return Some(vec!["evidence", "kinds", kind.as_str()]);
+                    }
+                    config.evidence.kinds.iter().find_map(|(kind, definition)| {
+                        let suffix = kind_path.strip_prefix(kind.as_str())?.strip_prefix('.')?;
+                        if let Some(field) = suffix.strip_prefix("fields.") {
+                            let (field, _) = definition
+                                .fields
+                                .iter()
+                                .find(|(name, _)| name.as_str() == field)?;
+                            Some(vec![
+                                "evidence",
+                                "kinds",
+                                kind.as_str(),
+                                "fields",
+                                field.as_str(),
+                            ])
+                        } else {
+                            let entry = suffix.strip_prefix("within.")?;
+                            Some(vec!["evidence", "kinds", kind.as_str(), "within", entry])
+                        }
+                    })
+                });
+                segments.and_then(|segments| config_field_position(&source.text, &segments))
             } else {
                 source.text.find(&quoted)
             }
@@ -203,12 +234,12 @@ pub(crate) fn config_error(
 
 // Follow only direct object keys; strings and nested values cannot impersonate
 // the next path segment. A named within entry is the sole array-element case.
-fn config_field_position(text: &str, path: &str) -> Option<usize> {
+fn config_field_position(text: &str, segments: &[&str]) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut search_start = 0;
     let mut position = 0;
     let mut parent_is_within = false;
-    for segment in path.split('.') {
+    for &segment in segments {
         let mut cursor = search_start;
         while bytes
             .get(cursor)

@@ -447,3 +447,50 @@ async fn kind_key_location_skips_escaped_quotes_backslashes_and_braces() {
 async fn kind_key_location_skips_an_earlier_within_array_value() {
     assert_kind_key_skips_decoys("array_value").await;
 }
+
+#[tokio::test]
+async fn kind_locations_preserve_literal_dotted_and_escaped_identities() {
+    for kind_name in ["ordinary", "a.b", "a.fields.body", "odd\"\\kind"] {
+        for pretty in [false, true] {
+            let root = tempfile::tempdir().unwrap();
+            let mut value = fixture::write(root.path());
+            value["evidence"]["kinds"]["a"] =
+                json!({"rule":"skill","fields":{"body":{"from":"first_line"}}});
+            value["evidence"]["kinds"][kind_name] =
+                json!({"rule":"skill","fields":{},"within":["skill","missing"]});
+            let text = if pretty {
+                serde_json::to_string_pretty(&value).unwrap()
+            } else {
+                serde_json::to_string(&value).unwrap()
+            };
+            let literal_key = format!("{}:", serde_json::to_string(kind_name).unwrap());
+            let position = text.find(&literal_key).unwrap();
+            let prefix = &text[..position];
+            let expected_line =
+                u32::try_from(prefix.bytes().filter(|byte| *byte == b'\n').count() + 1).unwrap();
+            let expected_column =
+                u32::try_from(prefix.rsplit('\n').next().unwrap().chars().count() + 1).unwrap();
+            let path = root.path().join("sunstack.lint.json");
+            std::fs::write(&path, &text).unwrap();
+            let config = load_config(&ConfigLocation {
+                file: path,
+                directory: root.path().to_owned(),
+            })
+            .unwrap();
+            let CheckResult::Invalid { diagnostics } =
+                check(&config, CancellationToken::new()).await
+            else {
+                panic!()
+            };
+            let diagnostic = diagnostics
+                .iter()
+                .find(|row| row.message == "undefined kind missing")
+                .unwrap();
+            assert_eq!(
+                (diagnostic.line, diagnostic.column),
+                (Some(expected_line), Some(expected_column)),
+                "{kind_name}, pretty={pretty}: {diagnostics:?}"
+            );
+        }
+    }
+}
