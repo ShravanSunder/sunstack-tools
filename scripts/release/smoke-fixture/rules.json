@@ -1,0 +1,17 @@
+{
+	"K001": {
+		"name": "smoke_requirement",
+		"evidence": "paragraph",
+		"severity": "error",
+		"decision": {
+			"start": "required",
+			"steps": {
+				"required": {
+					"mechanical_check": { "tool": "contains", "field": "body", "text": "MUST" },
+					"yes": "pass",
+					"no": { "finding": "The required instruction is missing.", "at": "body" }
+				}
+			}
+		}
+	}
+}
