@@ -11,7 +11,7 @@ The 29 Oct rulebook route replaces the old Markdown marker-to-RuleSet lowering a
 | Located AST refusal, native matcher versus ast-grep scan, ancestor context and full-document containment | `crates/sunstack-rules/tests/mechanical_ast_grep.rs` |
 | Native mechanical gates, cancellation and retained completed peers | `crates/sunstack-rules/tests/gated_mechanical_rules.rs` and native backend-factory tests |
 | JSONL admission through real exec, formerly embedded in process_rule_source_admission.rs | the Implementer's named kept native process test in its deletion handback; inspect that actual path and run before reuse |
-| Rulebook assembly, admission and skipped peers | the new sunstack-rules assembly/admission tests, plus `scripts/verify/sunstack-rule/rulebook_check_refusals.py` and `rulebook_lint.py` |
+| Rulebook assembly, admission and skipped peers | the new sunstack-rules assembly/admission tests, plus `scripts/verify/sunstack-rule/rulebook-check-refusals.ts` and `rulebook-lint.ts` |
 
 Inspect each offered source and raw current-target run. A test must keep its claimed boundary real and reject the named wrong behavior. Preserve native assertions before deleting a mixed-purpose marker-route test; a closed file or a new happy-path check is not proof that its retained assertions moved. The Implementer's deletion handback names every extracted destination. A missing destination or unobserved current-target run remains a gap for the Lead.
 

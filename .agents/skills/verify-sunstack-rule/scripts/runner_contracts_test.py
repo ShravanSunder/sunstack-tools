@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 from container_matrix import IMAGES, container_command
-from hosted_lint import read_credential
 from lint_observations import (
     check_report,
     require_diagnostic,
@@ -234,16 +233,6 @@ def test_fixture_preparation_has_expected_files_and_real_dependency_histories(
     assert {case.exit_code for case in manifest.cases} == {0, 1, 2, 3, 4}
 
 
-def test_hosted_credential_is_owner_only_regular_file(tmp_path: Path) -> None:
-    credential = tmp_path / "synthetic-credential"
-    credential.write_text("SYNTHETIC_NOT_A_SECRET\n")
-    credential.chmod(0o644)
-    with pytest.raises(ValueError):
-        read_credential(credential)
-    credential.chmod(0o600)
-    assert read_credential(credential) == "SYNTHETIC_NOT_A_SECRET"
-
-
 def test_archive_reader_rejects_duplicate_or_symlink_binary(tmp_path: Path) -> None:
     for kind in ("valid", "duplicate", "symlink"):
         archive = tmp_path / f"{kind}.tar.gz"
@@ -267,7 +256,7 @@ def test_archive_reader_rejects_duplicate_or_symlink_binary(tmp_path: Path) -> N
 
 @pytest.mark.parametrize(
     "script",
-    ["lint_fixtures.py", "container_matrix.py", "hosted_lint.py", "release_assets.py"],
+    ["container_matrix.py", "release_assets.py"],
 )
 def test_driver_help_and_missing_target_fail_before_pass_file(
     script: str, tmp_path: Path
@@ -290,7 +279,6 @@ def test_driver_help_and_missing_target_fail_before_pass_file(
     assert result.returncode == 2 and not evidence.exists()
     missing = str(tmp_path / "no-such-binary")
     extras = {
-        "lint_fixtures.py": ["--binary", missing, "--commit", "a" * 40],
         "container_matrix.py": [
             "--linux-amd64",
             missing,
@@ -298,18 +286,6 @@ def test_driver_help_and_missing_target_fail_before_pass_file(
             missing,
             "--version",
             "0.1.0",
-        ],
-        "hosted_lint.py": [
-            "--binary",
-            missing,
-            "--sha256",
-            "b" * 64,
-            "--commit",
-            "a" * 40,
-            "--version",
-            "0.1.0",
-            "--credential-file",
-            str(tmp_path / "never-read"),
         ],
         "release_assets.py": [
             "--older",
