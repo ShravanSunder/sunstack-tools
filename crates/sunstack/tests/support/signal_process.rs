@@ -44,7 +44,7 @@ async fn observe_ready(mut process: Child) -> (Child, BufReader<ChildStderr>, Ve
         }
     })
     .await
-    .expect("child startup did not emit sunstack: ready within 20 s");
+    .unwrap_or_else(|_| panic!("child startup did not emit sunstack: ready within 20 s"));
     (process, stderr, transcript)
 }
 pub async fn send_signal(process: &Child, signal_name: &str) {
