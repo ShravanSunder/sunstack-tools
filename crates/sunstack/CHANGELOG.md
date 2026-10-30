@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Add noul-based evidence selection, kind containment, kind-based field sources and
+  strict-child remainder exclusions. Selection and rules share model-request limits.
+- Report every asked candidate and per-file/per-kind counts, including files with
+  no candidates. Selected kinds require credentials for `--evidence`; `--check`
+  remains credential-free. Uncertain and incomplete selection affect run status.
+- Recognize numbered and Step section headings at H2 through H6, excluding H1.
+  Configurations using those generic utilities can gain evidence within the new
+  sections and changed fields or results that read them.
+
 ## 0.2.0
 
 This pre-1.0 minor release cuts over the lint configuration and rulebook format.

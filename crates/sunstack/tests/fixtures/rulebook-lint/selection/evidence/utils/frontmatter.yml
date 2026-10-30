@@ -1,0 +1,7 @@
+{
+  "id": "frontmatter",
+  "language": "Markdown",
+  "rule": {
+    "kind": "minus_metadata"
+  }
+}

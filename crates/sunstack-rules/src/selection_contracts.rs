@@ -78,3 +78,55 @@ impl OccurrenceSelection {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct AdmittedSelection {
+    pub kind: sunstack_evidence::EvidenceKindName,
+    pub question: sunstack_decisions::JudgmentQuestion,
+    pub yes_at_or_above: f64,
+    pub no_at_or_below: f64,
+    pub shared: Vec<sunstack_evidence::FieldName>,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestLimit {
+    RequestMaxChars,
+    QuestionsPerRequest,
+    RequestBytes,
+    InputTokens,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, thiserror::Error)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum SelectionIncompleteReason {
+    #[error("a referenced selection evidence field is unavailable")]
+    EvidenceUnavailable { field: sunstack_evidence::FieldName },
+    #[error("selection evidence exceeds its configured size limit")]
+    EvidenceTooLarge,
+    #[error("selection request exceeds a configured limit")]
+    RequestTooLarge { limit: RequestLimit },
+    #[error("selection request is invalid")]
+    InvalidRequest,
+    #[error("selection provider request failed")]
+    ProviderFailure,
+    #[error("selection answer is malformed")]
+    MalformedAnswer,
+    #[error("selection model request allowance is exhausted")]
+    RequestLimitReached,
+    #[error("selection was cancelled")]
+    Cancelled,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum SelectionOutcome {
+    Selected { yes: f64 },
+    NotSelected { yes: f64 },
+    Uncertain { yes: f64 },
+    Incomplete { reason: SelectionIncompleteReason },
+}
+#[derive(Debug, Clone)]
+pub struct SelectionInput {
+    pub selection: AdmittedSelection,
+    pub candidates: Vec<sunstack_evidence::SelectionCandidate>,
+    pub shared: Vec<sunstack_evidence::SharedView>,
+    pub files: std::collections::BTreeSet<std::path::PathBuf>,
+}

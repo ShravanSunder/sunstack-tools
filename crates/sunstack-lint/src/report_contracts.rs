@@ -116,6 +116,7 @@ pub struct ExclusionCounts {
 #[derive(schemars::JsonSchema)]
 pub enum IncompleteReason {
     SelectionFailed,
+    SelectionIncomplete,
     EvaluationFailed,
     NotStarted,
     PreparationFailed,
@@ -172,6 +173,8 @@ pub struct EvidenceListing {
     pub config: PathBuf,
     pub scope: ScopeReport,
     pub pieces: Vec<EvidencePiece>,
+    pub selections: Vec<SelectionEntry>,
+    pub file_counts: Vec<sunstack_evidence::FileCount>,
     pub usage: UsageSummary,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
@@ -183,6 +186,8 @@ pub struct LintReport {
     pub findings: Vec<Finding>,
     pub results: Vec<RulePieceResult>,
     pub uncertain: Vec<UncertainResult>,
+    pub selections: Vec<SelectionEntry>,
+    pub file_counts: Vec<sunstack_evidence::FileCount>,
     pub skipped_rules: Vec<RulebookSkippedRule>,
     pub counts: SeverityCounts,
     pub exclusions: ExclusionCounts,
@@ -207,6 +212,8 @@ impl LintReport {
             findings: vec![],
             results: vec![],
             uncertain: vec![],
+            selections: vec![],
+            file_counts: vec![],
             skipped_rules: vec![],
             counts: SeverityCounts::default(),
             exclusions: ExclusionCounts::default(),
@@ -267,6 +274,29 @@ pub struct RuleListing {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum CheckResult {
-    Valid { rules: Vec<RuleListing> },
+    Valid { rules: Vec<CheckListing> },
     Invalid { diagnostics: Vec<LintDiagnostic> },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct SelectionEntry {
+    pub kind: EvidenceKindName,
+    #[serde(rename = "where")]
+    pub location: PieceLocation,
+    pub first_line: String,
+    pub outcome: sunstack_rules::SelectionOutcome,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CheckListing {
+    Rule(RuleListing),
+    Kind(KindListing),
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KindListing {
+    pub kind: EvidenceKindName,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub select: Option<sunstack_evidence::SelectionWire>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub within: Option<EvidenceKindName>,
 }

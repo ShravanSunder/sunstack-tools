@@ -89,3 +89,6 @@ pub use change_comparison_contracts::*;
 
 mod evidence_plan_decoding;
 pub use evidence_plan_decoding::decode_evidence_plan_input;
+
+pub mod evidence_kind_plan;
+pub use evidence_kind_plan::*;

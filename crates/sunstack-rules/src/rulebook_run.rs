@@ -1,17 +1,14 @@
 use crate::{
-    RulebookIncompleteReason, RulebookResult, RulebookRule, StepName, WalkOutcome, piece_state,
-    walk_decision,
+    DispatchRefusal, ModelRequestDispatch, RulebookIncompleteReason, RulebookResult, RulebookRule,
+    StepName, WalkOutcome, piece_state, walk_decision,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 use sunstack_decisions::{
     AttemptSettings, BackendSelection, CancellationToken, DecisionBackend, DecisionRunOutcome,
-    RequestBudgetSettings, RunJudgmentsInput, StructuredJudgmentRequest, encode_judgment_body,
-    run_judgments,
+    RequestBudgetSettings, StructuredJudgmentRequest,
 };
 use sunstack_evidence::{EvidencePiece, FileMatchIndex};
-use tokio::{sync::Semaphore, task::JoinSet};
-
 #[derive(Debug, Clone)]
 pub struct RulebookRunSettings {
     pub backend: BackendSelection,
@@ -47,7 +44,7 @@ fn incomplete(reason: RulebookIncompleteReason, step: Option<StepName>) -> Ruleb
     }
 }
 
-/// Walk and dispatch without acquiring files; each task owns one rule/piece request.
+/// A direct rules consumer creates the same dispatcher that lint shares with selection.
 pub async fn run_rulebook(
     rules: &[RulebookRule],
     pieces: &[EvidencePiece],
@@ -56,13 +53,20 @@ pub async fn run_rulebook(
     backend: Option<Arc<dyn DecisionBackend>>,
     cancellation: CancellationToken,
 ) -> RulebookRun {
+    let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation);
+    run_rulebook_with_dispatcher(rules, pieces, indexes, &mut dispatcher).await
+}
+pub async fn run_rulebook_with_dispatcher(
+    rules: &[RulebookRule],
+    pieces: &[EvidencePiece],
+    indexes: &BTreeMap<PathBuf, FileMatchIndex>,
+    dispatcher: &mut ModelRequestDispatch,
+) -> RulebookRun {
     let mut run = RulebookRun {
         results: vec![],
         requests: vec![],
     };
-    let semaphore = Arc::new(Semaphore::new(settings.max_concurrent_requests.max(1)));
-    let mut tasks = JoinSet::new();
-    let mut requested = 0usize;
+    let mut pending = BTreeMap::new();
     for (rule_index, rule) in rules.iter().enumerate() {
         for (piece_index, piece) in pieces
             .iter()
@@ -75,14 +79,14 @@ pub async fn run_rulebook(
                 piece_index,
                 result: incomplete(RulebookIncompleteReason::ProviderFailure, None),
             });
-            if cancellation.is_cancelled() {
+            if dispatcher.is_cancelled() {
                 run.results[pair_index].result =
                     incomplete(RulebookIncompleteReason::Cancelled, None);
                 continue;
             }
             let empty = FileMatchIndex::default();
             let index = indexes.get(&piece.location.file).unwrap_or(&empty);
-            let pending_step = match walk_decision(rule, piece, index, None) {
+            let step = match walk_decision(rule, piece, index, None) {
                 WalkOutcome::Settled(result) => {
                     run.results[pair_index].result = result;
                     continue;
@@ -91,105 +95,70 @@ pub async fn run_rulebook(
             };
             run.results[pair_index].result = incomplete(
                 RulebookIncompleteReason::ProviderFailure,
-                Some(pending_step.clone()),
+                Some(step.clone()),
             );
-            let state = match piece_state(rule, piece) {
-                Ok(state) => state,
-                Err(_) => continue,
+            let Ok(state) = piece_state(rule, piece) else {
+                continue;
             };
             let request = StructuredJudgmentRequest {
                 questions: rule.questions.clone(),
                 state,
             };
-            let BackendSelection::JevOpenrouter { model, .. } = &settings.backend;
-            let body = match encode_judgment_body(&request, model) {
-                Ok(body) => body,
-                Err(_) => continue,
-            };
-            let chars = match std::str::from_utf8(&body) {
-                Ok(body) => body.chars().count(),
-                Err(_) => continue,
-            };
-            if chars > settings.request_max_chars {
-                run.results[pair_index].result = incomplete(
-                    RulebookIncompleteReason::RequestTooLarge,
-                    Some(pending_step.clone()),
-                );
-                continue;
-            }
-            if requested >= settings.max_model_requests {
-                run.results[pair_index].result = incomplete(
-                    RulebookIncompleteReason::RequestLimitReached,
-                    Some(pending_step.clone()),
-                );
-                continue;
-            }
-            let Some(backend) = backend.clone() else {
-                continue;
-            };
-            let permit = match semaphore.clone().acquire_owned().await {
-                Ok(permit) => permit,
-                Err(_) => continue,
-            };
-            if cancellation.is_cancelled() {
-                run.results[pair_index].result =
-                    incomplete(RulebookIncompleteReason::Cancelled, Some(pending_step));
-                continue;
-            }
-            requested += 1;
-            let input = RunJudgmentsInput {
-                request: request.clone(),
-                backend: settings.backend.clone(),
-                attempts: settings.attempts.clone(),
-                request_budget: settings.request_budget.clone(),
-            };
-            let cancellation = cancellation.clone();
-            let rule = rule.clone();
-            let piece = piece.clone();
-            let index = index.clone();
-            tasks.spawn(async move {
-                let _permit = permit;
-                let outcome = run_judgments(&input, backend.as_ref(), &cancellation).await;
-                let result = match &outcome {
-                    DecisionRunOutcome::Completed { answers, .. } => {
-                        match walk_decision(&rule, &piece, &index, Some(answers)) {
-                            WalkOutcome::Settled(result) => result,
-                            WalkOutcome::NeedsAnswers { .. } => incomplete(
-                                RulebookIncompleteReason::ProviderFailure,
-                                Some(pending_step.clone()),
-                            ),
+            match dispatcher.submit(request).await {
+                Ok(id) => {
+                    pending.insert(id, (pair_index, step));
+                }
+                Err(refusal) => {
+                    let reason = match refusal {
+                        DispatchRefusal::Cancelled => RulebookIncompleteReason::Cancelled,
+                        DispatchRefusal::RequestTooLarge => {
+                            RulebookIncompleteReason::RequestTooLarge
                         }
-                    }
-                    DecisionRunOutcome::Cancelled { .. } => incomplete(
-                        RulebookIncompleteReason::Cancelled,
-                        Some(pending_step.clone()),
-                    ),
-                    DecisionRunOutcome::InvalidRequest { .. }
-                    | DecisionRunOutcome::ProviderFailure { .. }
-                    | DecisionRunOutcome::InvalidResponse { .. } => incomplete(
-                        RulebookIncompleteReason::ProviderFailure,
-                        Some(pending_step),
-                    ),
-                };
-                (
-                    pair_index,
-                    result,
-                    RulebookRequestRecord {
-                        pair_index,
-                        request,
-                        outcome,
-                    },
-                )
-            });
+                        DispatchRefusal::RequestLimitReached => {
+                            RulebookIncompleteReason::RequestLimitReached
+                        }
+                        DispatchRefusal::InvalidRequest => {
+                            RulebookIncompleteReason::ProviderFailure
+                        }
+                    };
+                    run.results[pair_index].result = incomplete(reason, Some(step));
+                }
+            }
         }
     }
-    while let Some(completed) = tasks.join_next().await {
-        if let Ok((pair_index, result, record)) = completed {
-            if let Some(pair) = run.results.get_mut(pair_index) {
-                pair.result = result;
+    for record in dispatcher.drain().await {
+        let Some((pair_index, step)) = pending.remove(&record.id) else {
+            continue;
+        };
+        let pair = &run.results[pair_index];
+        let rule = &rules[pair.rule_index];
+        let piece = &pieces[pair.piece_index];
+        let empty = FileMatchIndex::default();
+        let index = indexes.get(&piece.location.file).unwrap_or(&empty);
+        let result = match &record.outcome {
+            DecisionRunOutcome::Completed { answers, .. } => {
+                match walk_decision(rule, piece, index, Some(answers)) {
+                    WalkOutcome::Settled(result) => result,
+                    WalkOutcome::NeedsAnswers { .. } => {
+                        incomplete(RulebookIncompleteReason::ProviderFailure, Some(step))
+                    }
+                }
             }
-            run.requests.push(record);
-        }
+            DecisionRunOutcome::Cancelled { .. } => {
+                incomplete(RulebookIncompleteReason::Cancelled, Some(step))
+            }
+            DecisionRunOutcome::InvalidRequest { .. }
+            | DecisionRunOutcome::ProviderFailure { .. }
+            | DecisionRunOutcome::InvalidResponse { .. } => {
+                incomplete(RulebookIncompleteReason::ProviderFailure, Some(step))
+            }
+        };
+        run.results[pair_index].result = result;
+        run.requests.push(RulebookRequestRecord {
+            pair_index,
+            request: record.request,
+            outcome: record.outcome,
+        });
     }
     run.requests.sort_by_key(|record| record.pair_index);
     run

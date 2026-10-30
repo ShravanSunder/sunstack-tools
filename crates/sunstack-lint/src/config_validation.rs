@@ -11,6 +11,7 @@ pub(crate) struct CheckedRulebook {
     pub project: EvidenceProject,
     pub assembly: RulebookAssembly,
     pub inputs: Vec<PathBuf>,
+    pub selections: Vec<sunstack_rules::AdmittedSelection>,
 }
 pub(crate) fn config_directory(config: &RulesConfig) -> PathBuf {
     config
@@ -80,7 +81,23 @@ pub(crate) fn load_checked_rulebook(
     if let Some(source) = &config.source {
         inputs.push(source.location.file.clone());
     }
+    let selections =
+        sunstack_rules::admit_selections(&config.evidence.kinds).map_err(|errors| {
+            errors
+                .into_iter()
+                .map(|error| {
+                    config_error(
+                        config,
+                        &error.field_path,
+                        LintInvalidCode::Syntax,
+                        error.message,
+                    )
+                    .into()
+                })
+                .collect::<Vec<LintDiagnostic>>()
+        })?;
     Ok(CheckedRulebook {
+        selections,
         project,
         assembly,
         inputs,
@@ -100,12 +117,27 @@ pub async fn check(config: &RulesConfig, cancellation: CancellationToken) -> Che
             diagnostics.extend(native_diagnostics(&config, skipped.diagnostics.clone()));
         }
         if diagnostics.is_empty() {
-            Ok(checked
+            let mut rows = checked
                 .assembly
                 .rules
                 .iter()
-                .map(listing)
-                .collect::<Vec<_>>())
+                .map(|rule| CheckListing::Rule(listing(rule)))
+                .collect::<Vec<_>>();
+            rows.extend(
+                config
+                    .evidence
+                    .kinds
+                    .iter()
+                    .filter(|(_, kind)| kind.select.is_some() || kind.within.is_some())
+                    .map(|(name, kind)| {
+                        CheckListing::Kind(KindListing {
+                            kind: name.clone(),
+                            select: kind.select.clone(),
+                            within: kind.within.clone(),
+                        })
+                    }),
+            );
+            Ok(rows)
         } else {
             Err(diagnostics)
         }
@@ -150,7 +182,13 @@ pub fn list_rules(
     _file: Option<&Path>,
 ) -> Vec<RuleListing> {
     match checked {
-        CheckResult::Valid { rules } => rules.clone(),
+        CheckResult::Valid { rules } => rules
+            .iter()
+            .filter_map(|row| match row {
+                CheckListing::Rule(rule) => Some(rule.clone()),
+                CheckListing::Kind(_) => None,
+            })
+            .collect(),
         CheckResult::Invalid { .. } => vec![],
     }
 }
