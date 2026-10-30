@@ -56,6 +56,32 @@ const withinRefusals: Record<string, { change: (kinds: JsonObject) => void; caus
 	},
 };
 
+/** Authored two-space fixtures put evidence.kinds keys at six-space indentation. */
+export function requireKindDiagnosticLocation(options: {
+	configText: string;
+	kind: string;
+	file: string;
+	diagnostic: string;
+}): void {
+	const keyPrefix = '      ' + JSON.stringify(options.kind) + ':';
+	const locations = options.configText
+		.split('\n')
+		.flatMap((line, index) => (line.startsWith(keyPrefix) ? [`${index + 1}:7`] : []));
+	equal(locations.length, 1, 'Fixture must contain exactly one owning evidence kind key');
+	requireCondition(
+		options.diagnostic.includes(`${path.resolve(options.file)}:${locations[0]}:`),
+		'Kind-plan diagnostic must locate the owning evidence.kinds.' + options.kind + ' key',
+	);
+}
+
+const stepLocationCases = new Set([
+	'kind-cycle',
+	'within-cycle',
+	'within-undefined',
+	'amended-within-undefined-second',
+	'amended-within-cycle-second',
+]);
+
 export function prepareSelectionRefusals(options: {
 	evidence: string;
 	sourceRoot: string;
@@ -172,6 +198,13 @@ export async function observeSelectionRefusals(options: {
 						);
 				}
 			}
+			if (stepLocationCases.has(name))
+				requireKindDiagnosticLocation({
+					configText: filesystem.readFileSync(file, 'utf8'),
+					kind: 'step',
+					file,
+					diagnostic,
+				});
 			results.push({ case: name, exit: 2, requests: 0, diagnostic });
 		});
 	} finally {

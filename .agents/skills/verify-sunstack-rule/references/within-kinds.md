@@ -1,6 +1,6 @@
 # Within one or more kinds: amended U14/U16 and W6
 
-This route follows the amended R30/R40 and U14/U16 rows at design `9dfdb10`, plus the engine's `within-kinds-impl-commission.md` W1–W6. It is draft until driven on the declared frozen within-kinds target. The expected containment is inclusive union over final pieces, with each match counted once. `within` accepts a nonempty list of distinct kind names in config order; the old scalar form is refused. Product code, Rust tests, canonical repo fixtures, exported schema and release notes have their own owners.
+This route follows the amended R30/R40 and U14/U16 rows at design `9dfdb10`, plus the engine's `within-kinds-impl-commission.md` W1–W6. U14 union and W6 equivalence were observed locally at `93fff155`; U16's owning-key diagnostic location failed there and awaits a corrected target. The expected containment is inclusive union over final pieces, with each match counted once. `within` accepts a nonempty list of distinct kind names in config order; the old scalar form is refused. Product code, Rust tests, canonical repo fixtures, exported schema and release notes have their own owners.
 
 Use the main skill's source/binary pinning and synthetic-only policy. The lasting rulebook entries and their `--case selection` mode keep their names and flags:
 
@@ -24,6 +24,8 @@ When the skill's workflow candidates are answered yes, exact file/byte-start rec
 ## Check-only refusals
 
 Selection refusal mode retains the canonical R40 cases and adds five isolated configs: scalar `within`, empty list, repeated kind, undefined second entry and a cycle present only through the second entry. Each must exit 2, emit a related config/file/line diagnostic for its actual cause, dispatch nothing and need no key. The cycle diagnostic must name its path's kinds. Clean listing includes the one-item list, and the union fixture lists both kinds in config order.
+
+For the cycle and undefined-container fixtures, the diagnostic must locate the owning evidence-kind key, with the exact authored line and column. An earlier matching string value or a nested field with the same name is not that key. These controlled two-space fixtures put kind keys at six-space indentation; the assertion checks that fixture invariant before comparing the location. Comparator tests and retained c0 wrong-location readback reject the earlier-value defect that the original generic location-presence check missed.
 
 Join the direct native constructor/decode/schema controls (including `minItems: 1` and `uniqueItems: true`), every-entry dependency/build-order controls, and the structural keyless/no-checked-source `check` route. A located refusal caused by an unrelated invalid field is insufficient. The binary journey does not replace the native schema or plan proof.
 
