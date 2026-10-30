@@ -20,6 +20,7 @@ export interface CommentStore {
 	readonly snapshot: () => CommentSnapshot;
 	readonly persistence: () => PersistenceState;
 	readonly save: (anchor: CommentAnchor, body: string, commentId?: string) => void;
+	readonly remove: (commentId: string) => void;
 }
 
 export function commentStorageKey(identity: DocumentIdentity): string {
@@ -61,6 +62,18 @@ export function createCommentStore(
 			};
 		}
 	}
+	const persist = (): void => {
+		if (persistence.kind === 'invalid') return;
+		try {
+			storage().setItem(storageKey, JSON.stringify(snapshot));
+			persistence = { kind: 'ready' };
+		} catch {
+			persistence = {
+				kind: 'unavailable',
+				message: 'Could not save locally. Copy or export to keep your review.',
+			};
+		}
+	};
 	return {
 		snapshot: (): CommentSnapshot => structuredClone(snapshot),
 		persistence: (): PersistenceState => ({ ...persistence }),
@@ -89,16 +102,16 @@ export function createCommentStore(
 						)
 					: [...snapshot.comments, comment],
 			};
-			if (persistence.kind === 'invalid') return;
-			try {
-				storage().setItem(storageKey, JSON.stringify(snapshot));
-				persistence = { kind: 'ready' };
-			} catch {
-				persistence = {
-					kind: 'unavailable',
-					message: 'Could not save locally. Copy or export to keep your review.',
-				};
-			}
+			persist();
+		},
+		remove(commentId): void {
+			if (!snapshot.comments.some((comment): boolean => comment.commentId === commentId))
+				throw new Error('The comment to delete is unavailable.');
+			snapshot = {
+				...snapshot,
+				comments: snapshot.comments.filter((comment): boolean => comment.commentId !== commentId),
+			};
+			persist();
 		},
 	};
 }

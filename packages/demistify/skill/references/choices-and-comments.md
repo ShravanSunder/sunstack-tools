@@ -99,7 +99,7 @@ One Comments panel owns composition, existing comments, current selected answers
 
 A selection spanning blocks inside one choice question or option stays on that item; other cross-block selections anchor to the document. Controls and source carriers are excluded from its source text. The comment retains the selected quote and exact source range/context. Following it reveals the original target when possible. Missing or changed source is reported as unavailable, without guessing a replacement passage.
 
-C toggles Comments outside editable fields; modified commands, composition and repeated key events retain their normal ownership. Cmd+Enter saves a nonempty comment. Enter and Shift+Enter insert newlines. Existing comment counts remain visible; empty target controls reveal on hover/focus and stay reachable on narrow/touch layouts. Comments and native inspection share the right-side panel owner: opening either replaces the other, and fullscreen restores the live original state.
+C toggles Comments outside editable fields; modified commands, composition and repeated key events retain their normal ownership. New feedback uses **Add comment**; editing uses **Save changes**. Comment actions include icons and visible labels. **Delete** removes that saved comment locally; other comments and current answers stay intact. Cmd+Enter saves a nonempty comment. Enter and Shift+Enter insert newlines. Existing comment counts remain visible; empty target controls reveal on hover/focus and stay reachable on narrow/touch layouts. Comments and native inspection share the right-side panel owner: opening either replaces the other, and fullscreen restores the live original state.
 
 ## Keep local saving and explicit handoff distinct
 

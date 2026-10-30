@@ -274,7 +274,7 @@ test('dragging actual card body text creates an option anchor without selecting 
 	await frame
 		.getByRole('textbox', { name: 'Your comment', exact: true })
 		.fill('More precise feedback.');
-	await frame.getByRole('button', { name: 'Save comment', exact: true }).click();
+	await frame.getByRole('button', { name: 'Save changes', exact: true }).click();
 	expect(readCurrentReview(fixture).comments).toHaveLength(1);
 	expect(readCurrentReview(fixture).comments[0]).toMatchObject({
 		commentId: original?.commentId,
@@ -296,7 +296,7 @@ test('dragging actual card body text creates an option anchor without selecting 
 		.poll((): string => fixture.defaultView?.getSelection()?.toString() ?? '')
 		.toContain('Phone');
 	await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
-	await frame.getByRole('button', { name: 'Save comment', exact: true }).click();
+	await frame.getByRole('button', { name: 'Save changes', exact: true }).click();
 	expect(readCurrentReview(fixture).comments).toHaveLength(1);
 	expect(readCurrentReview(fixture).comments[0]).toMatchObject({
 		commentId: original?.commentId,

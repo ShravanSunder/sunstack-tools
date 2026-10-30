@@ -110,6 +110,7 @@ export const shippedIconNames = [
 	'minus-circle',
 	'panel',
 	'pencil-simple',
+	'trash',
 	'play',
 	'plus-circle',
 	'question',
