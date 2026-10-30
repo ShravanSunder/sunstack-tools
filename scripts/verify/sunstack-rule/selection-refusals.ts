@@ -60,6 +60,17 @@ const withinRefusals: Record<string, { change: (kinds: JsonObject) => void; caus
 		},
 		cause: /cycle/i,
 	},
+	'field-kind-prefix-collision': {
+		change: (kinds) => {
+			kinds['foo.fields.body'] = { rule: 'section', fields: {} };
+			kinds['a'] = { rule: 'section', within: ['foo.fields.body'], fields: {} };
+			kinds['a.within.foo'] = {
+				rule: 'section',
+				fields: { body: { from: 'inside', kind: 'missing_field_kind' } },
+			};
+		},
+		cause: /undefined evidence kind/,
+	},
 };
 
 const literalKindNames: Record<string, string> = {
@@ -97,6 +108,33 @@ export function requireKindDiagnosticLocation(options: {
 	requireCondition(
 		options.diagnostic.includes(`${path.resolve(options.file)}:${locations[0]}:`),
 		'Kind-plan diagnostic must locate the owning evidence.kinds.' + options.kind + ' key',
+	);
+}
+
+/** The controlled fixture's field key must be inside its complete literal kind block. */
+export function requireFieldDiagnosticLocation(options: {
+	configText: string;
+	kind: string;
+	field: string;
+	file: string;
+	diagnostic: string;
+}): void {
+	const lines = options.configText.split('\n');
+	const kindPrefix = '      ' + JSON.stringify(options.kind) + ':';
+	const starts = lines.flatMap((line, index) => (line.startsWith(kindPrefix) ? [index] : []));
+	equal(starts.length, 1, 'Fixture must contain exactly one owning literal kind block');
+	const start = starts[0];
+	requireCondition(start !== undefined, 'Owning literal kind block missing');
+	const end = lines.findIndex((line, index) => index > start && line.startsWith('      }'));
+	requireCondition(end > start, 'Owning literal kind block is not closed');
+	const fieldPrefix = '          ' + JSON.stringify(options.field) + ':';
+	const locations = lines.flatMap((line, index) =>
+		index > start && index < end && line.startsWith(fieldPrefix) ? [`${index + 1}:11`] : [],
+	);
+	equal(locations.length, 1, 'Fixture must contain exactly one field key in its owning kind');
+	requireCondition(
+		options.diagnostic.includes(`${path.resolve(options.file)}:${locations[0]}:`),
+		'Field-source diagnostic must locate the field inside its complete literal kind',
 	);
 }
 
@@ -257,6 +295,29 @@ export async function observeSelectionRefusals(options: {
 					file,
 					diagnostic,
 				});
+			if (name === 'field-kind-prefix-collision') {
+				const rows = diagnostic.split('\n');
+				const fieldRows = rows.filter((row) => row.endsWith(': undefined evidence kind'));
+				const plannerRows = rows.filter((row) =>
+					row.endsWith(': undefined kind missing_field_kind'),
+				);
+				equal(fieldRows.length, 1, 'Field collision must retain its field-source refusal');
+				equal(plannerRows.length, 1, 'Field collision must retain its planner refusal');
+				const configText = filesystem.readFileSync(file, 'utf8');
+				requireFieldDiagnosticLocation({
+					configText,
+					kind: 'a.within.foo',
+					field: 'body',
+					file,
+					diagnostic: fieldRows.join('\n'),
+				});
+				requireKindDiagnosticLocation({
+					configText,
+					kind: 'a.within.foo',
+					file,
+					diagnostic: plannerRows.join('\n'),
+				});
+			}
 			results.push({ case: name, exit: 2, requests: 0, diagnostic });
 		});
 	} finally {
