@@ -7,9 +7,9 @@
 		"dev": "pnpm build && pnpm --filter @sunstack/demistify-poc dev:serve",
 		"preview": "pnpm --filter @sunstack/demistify-poc preview",
 		"typecheck": "tsc --noEmit",
-		"lint": "oxlint --type-aware --max-warnings 0 packages/demistify apps/demistify-poc scripts/release/*.ts scripts/verify/sunstack-rule/*.ts",
-		"fmt": "oxfmt packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset scripts/release/*.ts scripts/verify/sunstack-rule/*.ts",
-		"fmt:check": "oxfmt --check packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset scripts/release/*.ts scripts/verify/sunstack-rule/*.ts",
+		"lint": "oxlint --type-aware --max-warnings 0 packages/demistify apps/demistify-poc scripts/release/*.ts scripts/verify/sunstack-rule/*.ts scripts/release/npm-launcher",
+		"fmt": "oxfmt packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset scripts/release/*.ts scripts/verify/sunstack-rule/*.ts scripts/release/npm-launcher",
+		"fmt:check": "oxfmt --check packages/demistify apps/demistify-poc docs/wip/demystify package.json pnpm-workspace.yaml tsconfig.json .oxlintrc.json .oxfmtrc.json .github .changeset scripts/release/*.ts scripts/verify/sunstack-rule/*.ts scripts/release/npm-launcher",
 		"check": "pnpm lint && pnpm fmt:check && pnpm typecheck",
 		"test": "pnpm --filter @sunstack/demistify-poc test",
 		"changeset": "changeset",
@@ -18,7 +18,8 @@
 		"release:verify": "node packages/demistify/release/verify-release.ts",
 		"release:check": "node packages/demistify/release/check-release-intent.ts",
 		"test:browser": "pnpm --filter @sunstack/demistify-poc test:browser",
-		"test:scripts": "vitest run --testTimeout 20000 scripts"
+		"test:scripts": "vitest run --testTimeout 20000 scripts",
+		"build:npm-launcher": "bun build scripts/release/npm-launcher/run.ts --target=node --format=cjs --external=./scripts/release/npm-launcher/binary.js --outfile=target/npm-launcher/run-sunstack.js"
 	},
 	"devDependencies": {
 		"@changesets/cli": "3.0.3",

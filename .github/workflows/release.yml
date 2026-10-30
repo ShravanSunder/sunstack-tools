@@ -148,15 +148,15 @@ jobs:
             echo "CC=/usr/bin/clang"
             echo "CFLAGS=-isysroot $(xcrun --show-sdk-path)"
           } >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26.11.1'
+          package-manager-cache: false
       - name: Build artifacts
         run: |
           # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '26.11.1'
-          package-manager-cache: false
       - name: Verify standalone archive linkage
         run: node scripts/release/check-linkage.ts target/distrib --target ${{ join(matrix.targets, ' --target ') }}
       - id: cargo-dist
@@ -209,6 +209,13 @@ jobs:
           pattern: artifacts-*
           path: target/distrib/
           merge-multiple: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26.11.1'
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
       - id: cargo-dist
         shell: bash
         run: |
@@ -219,7 +226,8 @@ jobs:
           npm_archive=target/distrib/sunstack-npm-package.tar.gz
           npm_stage=$(mktemp -d)
           tar -xzf "$npm_archive" -C "$npm_stage"
-          cp scripts/release/npm-launcher/run.js "$npm_stage/package/run-sunstack.js"
+          bun run build:npm-launcher
+          cp target/npm-launcher/run-sunstack.js "$npm_stage/package/run-sunstack.js"
           tar -czf "$npm_archive" -C "$npm_stage" package
           npm_digest=$(sha256sum "$npm_archive" | cut -d ' ' -f 1)
           sed -i "s/^[0-9a-f]* [*]sunstack-npm-package.tar.gz$/$npm_digest *sunstack-npm-package.tar.gz/" target/distrib/sha256.sum

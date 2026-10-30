@@ -1,14 +1,22 @@
 // Exercise the shipped JavaScript launcher with real processes and Unix signals.
 import assert from 'node:assert/strict';
-import { spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { copyFileSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { test } from 'vitest';
+import { beforeAll, test } from 'vitest';
 import { z } from 'zod';
+
+const compiledLauncher = fileURLToPath(
+	new URL('../../target/npm-launcher/run-sunstack.js', import.meta.url),
+);
+
+beforeAll((): void => {
+	execFileSync('bun', ['run', 'build:npm-launcher'], { stdio: 'pipe' });
+});
 
 const childSource = `
 if (process.argv[2] === 'exit') {
@@ -28,9 +36,19 @@ if (process.argv[2] === 'exit') {
 `;
 
 function installedLauncher(): { launcher: string; child: string } {
-	const directory = mkdtempSync(path.join(tmpdir(), 'sunstack-launcher-test-'));
-	const launcher = path.join(directory, 'run.cjs');
-	copyFileSync(fileURLToPath(new URL('./npm-launcher/run.js', import.meta.url)), launcher);
+	const root = mkdtempSync(path.join(tmpdir(), 'sunstack-launcher-test-'));
+	const directory = path.join(root, 'node_modules/@sunstack/cli');
+	mkdirSync(directory, { recursive: true });
+	writeFileSync(
+		path.join(directory, 'package.json'),
+		JSON.stringify({
+			name: '@sunstack/cli',
+			version: '0.0.0',
+			bin: { sunstack: 'run-sunstack.js' },
+		}),
+	);
+	const launcher = path.join(directory, 'run-sunstack.js');
+	copyFileSync(compiledLauncher, launcher);
 	const child = path.join(directory, 'child.cjs');
 	writeFileSync(child, childSource);
 	// Selection/download is outside the process-lifetime boundary, as in the old tests.
