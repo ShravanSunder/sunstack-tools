@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.17.0
+
+### Minor Changes
+
+- c52c903: Keep paragraph highlights local when browser ranges include surrounding whitespace, and give ordinary table cells, rows and tables distinct comment targets. Add persistent comment deletion and icon-labelled Add comment, Save changes, Cancel, Edit and Delete actions.
+
 ## 1.16.1
 
 ### Patch Changes

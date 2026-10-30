@@ -101,6 +101,11 @@ export class CommentsIsland extends HTMLElement {
 				this.store?.save(anchor, body, commentId);
 				this.changed();
 			},
+			remove: (commentId): void => {
+				this.store?.remove(commentId);
+				if (this.active?.commentId === commentId) this.active = undefined;
+				this.changed();
+			},
 			reveal: (comment): string | undefined => this.reveal(comment),
 			composing: (anchor): void => {
 				this.composing = anchor;
@@ -260,6 +265,12 @@ export class CommentsIsland extends HTMLElement {
 				this.controls.delete(element);
 			}
 		for (const target of this.targets.values()) {
+			// Table selections have local targets without inserting controls into table structure.
+			if (
+				target.element.matches('table,tr,td,th') &&
+				!target.element.matches('.ex-choice-option,[data-comment-label]')
+			)
+				continue;
 			// SVG nodes are selection targets; HTML buttons cannot be inserted into SVG.
 			if (!(target.element instanceof HTMLElement)) continue;
 			// The page already has its shared Comments launcher. Keep the root as the

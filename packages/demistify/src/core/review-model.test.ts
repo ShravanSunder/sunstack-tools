@@ -13,6 +13,27 @@ import {
 const identity = { documentId: 'scope', documentRevision: 'r1' };
 const anchor = { kind: 'entity', targetId: 'layout', label: 'Layout' } as const;
 
+test('deleting one comment preserves other records and the deletion survives reopening', (): void => {
+	const values = new Map<string, string>();
+	const storage: CommentStorage = {
+		getItem: (key): string | null => values.get(key) ?? null,
+		setItem: (key, value): void => {
+			values.set(key, value);
+		},
+	};
+	const store = createCommentStore(identity, (): CommentStorage => storage);
+	store.save(anchor, 'Remove this note');
+	const removedId = store.snapshot().comments[0]?.commentId;
+	if (!removedId) throw new Error('Expected a saved comment');
+	store.save({ ...anchor, targetId: 'other' }, 'Keep this note');
+	const retained = store.snapshot().comments[1];
+	store.remove(removedId);
+	expect(store.snapshot().comments).toEqual([retained]);
+	expect(createCommentStore(identity, (): CommentStorage => storage).snapshot().comments).toEqual([
+		retained,
+	]);
+});
+
 test('saving through either node entry updates one comment and preserves its identity', (): void => {
 	const values = new Map<string, string>();
 	const storage: CommentStorage = {
