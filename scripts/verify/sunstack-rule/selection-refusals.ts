@@ -62,6 +62,26 @@ const withinRefusals: Record<string, { change: (kinds: JsonObject) => void; caus
 	},
 };
 
+const literalKindNames: Record<string, string> = {
+	'literal-kind-dotted': 'a.b',
+	'literal-kind-collision': 'a.fields.body',
+	'literal-kind-ordinary': 'ordinary_kind',
+	'literal-kind-escaped': 'odd"\\kind',
+};
+for (const [name, kind] of Object.entries(literalKindNames)) {
+	withinRefusals[name] = {
+		change: (kinds) => {
+			kinds['a'] = { rule: 'section', fields: { body: { from: 'first_line' } } };
+			kinds[kind] = {
+				rule: 'section',
+				within: ['workflow_section', 'missing_literal_kind'],
+				fields: {},
+			};
+		},
+		cause: /undefined kind missing_literal_kind/,
+	};
+}
+
 /** Authored two-space fixtures put evidence.kinds keys at six-space indentation. */
 export function requireKindDiagnosticLocation(options: {
 	configText: string;
@@ -228,10 +248,12 @@ export async function observeSelectionRefusals(options: {
 						);
 				}
 			}
-			if (stepLocationCases.has(name))
+			const owningKind =
+				literalKindNames[name] ?? (stepLocationCases.has(name) ? 'step' : undefined);
+			if (owningKind)
 				requireKindDiagnosticLocation({
 					configText: filesystem.readFileSync(file, 'utf8'),
-					kind: 'step',
+					kind: owningKind,
 					file,
 					diagnostic,
 				});
