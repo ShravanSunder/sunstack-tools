@@ -4,6 +4,7 @@ use serde::{
     de::{MapAccess, SeqAccess, Visitor},
 };
 use std::{collections::BTreeSet, fmt};
+use sunstack_evidence::{ConfigPath, ConfigPathSegment};
 
 struct UniqueJson;
 impl<'de> Deserialize<'de> for UniqueJson {
@@ -57,10 +58,11 @@ impl<'de> Deserialize<'de> for UniqueJson {
     }
 }
 pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfig, LintInvalid> {
-    let failure = |error: &serde_json::Error, path: Vec<String>| {
+    let failure = |error: &serde_json::Error, path: ConfigPath| {
         let message = error.to_string();
         let code = if message.starts_with("duplicate key") {
-            if path.first().is_some_and(|key| key == "rule_sets") {
+            if matches!(path.segments().first(), Some(ConfigPathSegment::Key(key)) if key == "rule_sets")
+            {
                 LintInvalidCode::DuplicateEntry
             } else {
                 LintInvalidCode::DuplicateKey
@@ -80,7 +82,14 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
             file: location.file.clone(),
             line: Some(u32::try_from(error.line()).unwrap_or(u32::MAX)),
             column: Some(u32::try_from(error.column()).unwrap_or(u32::MAX)),
-            json_path: path,
+            json_path: path
+                .segments()
+                .iter()
+                .map(|segment| match segment {
+                    ConfigPathSegment::Key(key) => key.clone(),
+                    ConfigPathSegment::Index(index) => index.to_string(),
+                })
+                .collect(),
             code,
             message: format!(
                 "Invalid sunstack.lint.json: {}",
@@ -91,11 +100,15 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
     let mut uniqueness = serde_json::Deserializer::from_str(text);
     let _: UniqueJson = serde_path_to_error::deserialize(&mut uniqueness)
         .map_err(|error| failure(error.inner(), path_fields(error.path())))?;
-    uniqueness.end().map_err(|error| failure(&error, vec![]))?;
+    uniqueness
+        .end()
+        .map_err(|error| failure(&error, ConfigPath::default()))?;
     let mut decoder = serde_json::Deserializer::from_str(text);
     let mut config: RulesConfig = serde_path_to_error::deserialize(&mut decoder)
         .map_err(|error| failure(error.inner(), path_fields(error.path())))?;
-    decoder.end().map_err(|error| failure(&error, vec![]))?;
+    decoder
+        .end()
+        .map_err(|error| failure(&error, ConfigPath::default()))?;
     config.source = Some(
         crate::configuration_loading::config_contracts::ConfigSource {
             location: location.clone(),
@@ -112,7 +125,7 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
     {
         return Err(config_error(
             config,
-            "rulebook",
+            &ConfigPath::keys(["rulebook"]),
             LintInvalidCode::Syntax,
             "rulebook, check.files and evidence.kinds must be nonempty",
         ));
@@ -125,7 +138,7 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
     {
         return Err(config_error(
             config,
-            "rulebook",
+            &ConfigPath::keys(["rulebook"]),
             LintInvalidCode::Syntax,
             "configured paths must be nonempty",
         ));
@@ -138,7 +151,7 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
     {
         return Err(config_error(
             config,
-            "evidence_max_chars",
+            &ConfigPath::keys(["evidence_max_chars"]),
             LintInvalidCode::Syntax,
             "evidence_max_chars must be at least 1000",
         ));
@@ -146,66 +159,23 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
 
     Ok(())
 }
-fn path_fields(path: &serde_path_to_error::Path) -> Vec<String> {
-    path.iter()
-        .filter_map(|segment| match segment {
-            serde_path_to_error::Segment::Map { key } => Some(key.clone()),
-            serde_path_to_error::Segment::Seq { index } => Some(index.to_string()),
-            _ => None,
-        })
-        .collect()
+fn path_fields(path: &serde_path_to_error::Path) -> ConfigPath {
+    ConfigPath::new(path.iter().filter_map(|segment| match segment {
+        serde_path_to_error::Segment::Map { key } => Some(ConfigPathSegment::Key(key.clone())),
+        serde_path_to_error::Segment::Seq { index } => Some(ConfigPathSegment::Index(*index)),
+        _ => None,
+    }))
 }
 pub(crate) fn config_error(
     config: &RulesConfig,
-    key: &str,
+    path: &ConfigPath,
     code: LintInvalidCode,
     message: impl Into<String>,
 ) -> LintInvalid {
     let message = message.into();
     let (file, line, column) = match &config.source {
         Some(source) => {
-            let quoted = serde_json::to_string(key).unwrap_or_default();
-            let position = if key.starts_with("evidence.kinds.")
-                && (message.starts_with("undefined kind ")
-                    || message == "undefined evidence kind"
-                    || message.starts_with("kind dependency cycle"))
-            {
-                let kind_path = key.strip_prefix("evidence.kinds.");
-                let segments = kind_path.and_then(|kind_path| {
-                    if message != "undefined evidence kind"
-                        && let Some((kind, _)) = config
-                            .evidence
-                            .kinds
-                            .iter()
-                            .find(|(kind, _)| kind.as_str() == kind_path)
-                    {
-                        return Some(vec!["evidence", "kinds", kind.as_str()]);
-                    }
-                    config.evidence.kinds.iter().find_map(|(kind, definition)| {
-                        let suffix = kind_path.strip_prefix(kind.as_str())?.strip_prefix('.')?;
-                        if let Some(field) = suffix.strip_prefix("fields.") {
-                            let (field, _) = definition
-                                .fields
-                                .iter()
-                                .find(|(name, _)| name.as_str() == field)?;
-                            Some(vec![
-                                "evidence",
-                                "kinds",
-                                kind.as_str(),
-                                "fields",
-                                field.as_str(),
-                            ])
-                        } else {
-                            let entry = suffix.strip_prefix("within.")?;
-                            Some(vec!["evidence", "kinds", kind.as_str(), "within", entry])
-                        }
-                    })
-                });
-                segments.and_then(|segments| config_field_position(&source.text, &segments))
-            } else {
-                source.text.find(&quoted)
-            }
-            .unwrap_or(0);
+            let position = config_field_position(&source.text, path).unwrap_or(0);
             let prefix = &source.text[..position];
             (
                 source.location.file.clone(),
@@ -226,20 +196,19 @@ pub(crate) fn config_error(
         file,
         line: Some(line),
         column: Some(column),
-        json_path: vec![key.into()],
+        json_path: vec![path.to_string()],
         code,
         message,
     }
 }
 
-// Follow only direct object keys; strings and nested values cannot impersonate
-// the next path segment. A named within entry is the sole array-element case.
-fn config_field_position(text: &str, segments: &[&str]) -> Option<usize> {
+// Locate literal object keys and indexed array values without parsing their
+// displayed diagnostic spelling back into configuration structure.
+fn config_field_position(text: &str, path: &ConfigPath) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut search_start = 0;
     let mut position = 0;
-    let mut parent_is_within = false;
-    for &segment in segments {
+    for segment in path.segments() {
         let mut cursor = search_start;
         while bytes
             .get(cursor)
@@ -249,13 +218,25 @@ fn config_field_position(text: &str, segments: &[&str]) -> Option<usize> {
         }
         let container_is_array = match bytes.get(cursor)? {
             b'{' => false,
-            b'[' if parent_is_within => true,
+            b'[' => true,
             _ => return None,
         };
         let mut depth = 0_usize;
         let mut found = None;
+        let mut element_index = 0;
         while let Some(byte) = bytes.get(cursor) {
+            if container_is_array
+                && depth == 1
+                && !byte.is_ascii_whitespace()
+                && *byte != b','
+                && *byte != b']'
+                && matches!(segment, ConfigPathSegment::Index(index) if *index == element_index)
+            {
+                found = Some((cursor, cursor));
+                break;
+            }
             match byte {
+                b',' if container_is_array && depth == 1 => element_index += 1,
                 b'{' | b'[' => depth += 1,
                 b'}' | b']' => {
                     depth = depth.checked_sub(1)?;
@@ -275,10 +256,10 @@ fn config_field_position(text: &str, segments: &[&str]) -> Option<usize> {
                     }
                     let string_end = cursor + 1;
                     let is_key = text.get(string_end..)?.trim_start().starts_with(':');
-                    if depth == 1 && (container_is_array || is_key) {
+                    if depth == 1 && !container_is_array && is_key {
                         let name: String =
                             serde_json::from_str(text.get(string_start..string_end)?).ok()?;
-                        if name == segment {
+                        if matches!(segment, ConfigPathSegment::Key(key) if key == &name) {
                             found = Some((string_start, string_end));
                             break;
                         }
@@ -291,7 +272,6 @@ fn config_field_position(text: &str, segments: &[&str]) -> Option<usize> {
         let (start, end) = found?;
         position = start;
         search_start = end;
-        parent_is_within = segment == "within";
     }
     Some(position)
 }
@@ -346,7 +326,7 @@ mod location_tests {
                 u32::try_from(prefix.rsplit('\n').next().unwrap().chars().count() + 1).unwrap();
             let diagnostic = config_error(
                 &config,
-                "evidence.kinds.step.within.missing",
+                &ConfigPath::keys(["evidence", "kinds", "step", "within"]).with_index(1),
                 LintInvalidCode::Syntax,
                 "undefined kind missing",
             );
@@ -357,11 +337,66 @@ mod location_tests {
             );
             let absent = config_error(
                 &config,
-                "evidence.kinds.absent",
+                &ConfigPath::keys(["evidence", "kinds", "absent"]),
                 LintInvalidCode::Syntax,
                 "undefined kind absent",
             );
             assert_eq!((absent.line, absent.column), (Some(1), Some(1)));
         }
+    }
+    #[test]
+    fn structured_array_indexes_skip_nested_values_and_keep_literal_keys() {
+        for pretty in [false, true] {
+            let value = serde_json::json!({"rows":[{"ignore":[1,2]},"escaped, \"value\"",{"a.b":{"body":[false,{"literal.key":"wanted"}]}}],"0":"object-key"});
+            let text = if pretty {
+                serde_json::to_string_pretty(&value).unwrap()
+            } else {
+                serde_json::to_string(&value).unwrap()
+            };
+            let indexed = ConfigPath::keys(["rows"])
+                .with_index(2)
+                .with_key("a.b")
+                .with_key("body")
+                .with_index(1)
+                .with_key("literal.key");
+            assert_eq!(
+                config_field_position(&text, &indexed),
+                text.find("\"literal.key\"")
+            );
+            assert_eq!(
+                config_field_position(&text, &ConfigPath::keys(["rows"]).with_index(1)),
+                text.find("\"escaped,")
+            );
+            assert_eq!(
+                config_field_position(&text, &ConfigPath::keys(["rows"]).with_index(3)),
+                None
+            );
+            assert_eq!(
+                config_field_position(&text, &ConfigPath::keys(["rows", "2"])),
+                None
+            );
+            assert_eq!(
+                config_field_position(&text, &ConfigPath::keys(["0"])),
+                text.find("\"0\"")
+            );
+        }
+    }
+    #[test]
+    fn serde_paths_keep_map_names_and_sequence_indexes_distinct() {
+        let text = r#"{"a.b":["valid",false]}"#;
+        let mut decoder = serde_json::Deserializer::from_str(text);
+        let result: Result<std::collections::BTreeMap<String, Vec<String>>, _> =
+            serde_path_to_error::deserialize(&mut decoder);
+        let error = result.unwrap_err();
+        let path = path_fields(error.path());
+        assert_eq!(
+            path.segments(),
+            &[
+                ConfigPathSegment::Key("a.b".into()),
+                ConfigPathSegment::Index(1)
+            ]
+        );
+        assert_eq!(path.to_string(), "a.b.1");
+        assert_eq!(config_field_position(text, &path), text.find("false"));
     }
 }

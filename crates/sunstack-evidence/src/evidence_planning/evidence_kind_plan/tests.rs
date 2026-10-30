@@ -61,7 +61,7 @@ fn within_plan_refuses_an_undefined_second_entry() {
     let errors = EvidenceKindPlan::derive(&kinds(value)).unwrap_err();
     assert_eq!(errors.len(), 1);
     assert!(errors[0].message.contains("undefined kind missing"));
-    assert!(errors[0].field.contains("child"));
+    assert!(errors[0].field.to_string().contains("child"));
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn cycle_field_is_the_deterministic_first_kind_in_its_reported_path() {
         let definitions = serde_json::from_str(text).unwrap();
         let errors = EvidenceKindPlan::derive(&definitions).unwrap_err();
         assert_eq!(errors.len(), 1);
-        assert_eq!(errors[0].field, "evidence.kinds.child");
+        assert_eq!(errors[0].field.to_string(), "evidence.kinds.child");
         assert_eq!(
             errors[0].message,
             "kind dependency cycle: child -> z -> child"

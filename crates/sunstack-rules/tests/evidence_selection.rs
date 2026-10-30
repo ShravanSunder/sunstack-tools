@@ -119,6 +119,46 @@ fn selection_admission_refuses_each_crafted_cause_and_accepts_the_canonical_conf
         .unwrap();
         let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
         let errors = admit_evidence_kinds(&kinds, &project, 6000);
+        let public_paths = errors
+            .iter()
+            .map(|error| error.field_path.to_string())
+            .collect::<BTreeSet<_>>();
+        let expected_paths: &[&str] = match name {
+            "choice-question" | "invalid-question" => &[
+                "evidence.kinds.selected_targets.select.question",
+                "evidence.kinds.workflow_section.select.question",
+            ],
+            "high-threshold" | "equal-threshold" => &[
+                "evidence.kinds.selected_targets.select",
+                "evidence.kinds.workflow_section.select",
+            ],
+            "shared-undefined" | "shared-first-line" => &[
+                "evidence.kinds.selected_targets.select.shared",
+                "evidence.kinds.workflow_section.select.shared",
+            ],
+            "question-undefined" => &[
+                "evidence.kinds.selected_targets.select.question.instructions.check",
+                "evidence.kinds.workflow_section.select.question.instructions.check",
+            ],
+            "question-target" => &["evidence.kinds.selected_targets.select.question"],
+            "within-undefined" | "within-cycle" | "kind-cycle" => &["evidence.kinds.step"],
+            "kind-undefined" => &["evidence.kinds.load", "evidence.kinds.load.fields.step"],
+            "exclude-undefined" => &[
+                "evidence.kinds.workflow_section",
+                "evidence.kinds.workflow_section.fields.body",
+            ],
+            "as-kind-selected" => &["evidence.kinds.a_load"],
+            "as-kind-dependent" => &["evidence.kinds.a_load", "evidence.kinds.selected_targets"],
+            _ => panic!(),
+        };
+        assert_eq!(
+            public_paths,
+            expected_paths
+                .iter()
+                .map(|path| (*path).to_owned())
+                .collect(),
+            "public field spelling changed for {name}"
+        );
         assert!(
             errors.iter().any(|error| error.message.contains(expected)),
             "{name}: {errors:?}"

@@ -494,3 +494,67 @@ async fn kind_locations_preserve_literal_dotted_and_escaped_identities() {
         }
     }
 }
+
+#[tokio::test]
+async fn field_locations_preserve_the_owner_across_kind_prefix_collisions() {
+    for (pretty, reverse_order) in [(false, false), (false, true), (true, false), (true, true)] {
+        let root = tempfile::tempdir().unwrap();
+        let mut value = fixture::write(root.path());
+        value["evidence"]["kinds"]["a"] =
+            json!({"rule":"skill","fields":{},"within":["foo.fields.body"]});
+        value["evidence"]["kinds"]["foo.fields.body"] = json!({"rule":"skill","fields":{}});
+        value["evidence"]["kinds"]["a.within.foo"] =
+            json!({"rule":"skill","fields":{"body":{"from":"inside","kind":"missing"}}});
+        let mut entries = value["evidence"]["kinds"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(name, definition)| {
+                let definition = if pretty {
+                    serde_json::to_string_pretty(definition).unwrap()
+                } else {
+                    serde_json::to_string(definition).unwrap()
+                };
+                format!("{}: {}", serde_json::to_string(name).unwrap(), definition)
+            })
+            .collect::<Vec<_>>();
+        if reverse_order {
+            entries.reverse();
+        }
+        let kinds_text = format!("{{{}}}", entries.join(if pretty { ",\n" } else { "," }));
+        value["evidence"]["kinds"] = json!("KINDS_PLACEHOLDER");
+        let text = if pretty {
+            serde_json::to_string_pretty(&value).unwrap()
+        } else {
+            serde_json::to_string(&value).unwrap()
+        };
+        let text = text.replace("\"KINDS_PLACEHOLDER\"", &kinds_text);
+        let owner = text.find("\"a.within.foo\":").unwrap();
+        let position = owner + text[owner..].find("\"body\":").unwrap();
+        let prefix = &text[..position];
+        let expected_line =
+            u32::try_from(prefix.bytes().filter(|byte| *byte == b'\n').count() + 1).unwrap();
+        let expected_column =
+            u32::try_from(prefix.rsplit('\n').next().unwrap().chars().count() + 1).unwrap();
+        let path = root.path().join("sunstack.lint.json");
+        std::fs::write(&path, &text).unwrap();
+        let config = load_config(&ConfigLocation {
+            file: path,
+            directory: root.path().to_owned(),
+        })
+        .unwrap();
+        let CheckResult::Invalid { diagnostics } = check(&config, CancellationToken::new()).await
+        else {
+            panic!()
+        };
+        let diagnostic = diagnostics
+            .iter()
+            .find(|row| row.message == "undefined evidence kind")
+            .unwrap();
+        assert_eq!(
+            (diagnostic.line, diagnostic.column),
+            (Some(expected_line), Some(expected_column)),
+            "pretty={pretty}, reverse={reverse_order}: {diagnostics:?}"
+        );
+    }
+}

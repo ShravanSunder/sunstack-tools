@@ -1,3 +1,4 @@
+pub mod configuration_paths;
 pub(crate) mod evidence_admission;
 pub mod evidence_contracts;
 pub mod evidence_diagnostics;

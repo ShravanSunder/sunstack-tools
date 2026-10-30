@@ -1,4 +1,4 @@
-use crate::{EvidenceKindDefinition, EvidenceKindName, FieldSource, MatchSource};
+use crate::{ConfigPath, EvidenceKindDefinition, EvidenceKindName, FieldSource, MatchSource};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ pub struct EvidenceKindPlan {
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("{field}: {message}")]
 pub struct KindPlanRefusal {
-    pub field: String,
+    pub field: ConfigPath,
     pub message: String,
 }
 impl EvidenceKindPlan {
@@ -45,7 +45,7 @@ impl EvidenceKindPlan {
             for dependency in &dependencies {
                 if !kinds.contains_key(dependency) {
                     errors.push(KindPlanRefusal {
-                        field: format!("evidence.kinds.{}", name.as_str()),
+                        field: ConfigPath::keys(["evidence", "kinds", name.as_str()]),
                         message: format!("undefined kind {}", dependency.as_str()),
                     });
                 }
@@ -68,8 +68,8 @@ impl EvidenceKindPlan {
                 let cycle = dependency_cycle(&depends_on);
                 return Err(vec![KindPlanRefusal {
                     field: cycle.first().map_or_else(
-                        || "evidence.kinds".into(),
-                        |kind| format!("evidence.kinds.{}", kind.as_str()),
+                        || ConfigPath::keys(["evidence", "kinds"]),
+                        |kind| ConfigPath::keys(["evidence", "kinds", kind.as_str()]),
                     ),
                     message: format!(
                         "kind dependency cycle: {}",
@@ -93,7 +93,7 @@ impl EvidenceKindPlan {
                     && reaches_selected(target, kinds, &depends_on, &mut BTreeSet::new())
                 {
                     errors.push(KindPlanRefusal {
-                        field: format!("evidence.kinds.{}", name.as_str()),
+                        field: ConfigPath::keys(["evidence", "kinds", name.as_str()]),
                         message: "as_kind names a selected or selection-dependent kind".into(),
                     });
                 }
