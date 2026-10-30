@@ -433,12 +433,12 @@ rule: {kind: paragraph}
     .unwrap();
     std::fs::write(
         root.path().join("skill.md"),
-        "# Skill\n\nOutside skill.\n\n## Workflow\n\n1. Step only.\n\n### Standards\n\n1. Both.\n",
+        "# Skill\n\nOutside skill.\n\n## Workflow\n\n1. Step only.\n\n### Standards\n\n1. Both.\n\nStandards only.\n",
     )
     .unwrap();
     std::fs::write(
         root.path().join("reference.md"),
-        "# Reference\n\n## Standards\n\nStandards only.\n",
+        "# Reference\n\n## Standards\n\nReference guidance.\n",
     )
     .unwrap();
     let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
@@ -497,9 +497,14 @@ rule: {kind: paragraph}
                 .collect::<Vec<_>>();
             sentences.sort();
             let expected = if choose_workflow {
-                vec!["Both.", "Standards only.", "Step only."]
+                vec![
+                    "Both.",
+                    "Reference guidance.",
+                    "Standards only.",
+                    "Step only.",
+                ]
             } else {
-                vec!["Both.", "Standards only."]
+                vec!["Both.", "Reference guidance.", "Standards only."]
             };
             assert_eq!(
                 sentences, expected,
@@ -512,16 +517,19 @@ rule: {kind: paragraph}
                     .iter()
                     .filter(|index| catalog.pieces[**index].kind.as_str() == "sentence")
                     .count(),
-                if choose_workflow { 3 } else { 2 }
+                if choose_workflow { 4 } else { 3 }
             );
             let (unpicked, _) = pick_pieces(&catalog.pieces, &[], false, root.path());
             assert!(unpicked.is_empty());
             let mut corrupted_counts = catalog.file_counts.clone();
-            corrupted_counts[0]
+            corrupted_counts
+                .iter_mut()
+                .find(|entry| entry.file == std::path::Path::new("skill.md"))
+                .unwrap()
                 .kinds
                 .get_mut(&EvidenceKindName::new("sentence").unwrap())
                 .unwrap()
-                .matches += 1;
+                .pieces += 1;
             assert!(
                 std::panic::catch_unwind(|| require_union_file_counts(
                     &corrupted_counts,
@@ -560,8 +568,8 @@ fn require_union_file_counts(counts: &[FileCount], choose_workflow: bool) {
             ("reference.md".into(), 1, 1, 0, false),
             (
                 "skill.md".into(),
-                3,
-                if choose_workflow { 2 } else { 1 },
+                4,
+                if choose_workflow { 3 } else { 2 },
                 0,
                 false
             )
