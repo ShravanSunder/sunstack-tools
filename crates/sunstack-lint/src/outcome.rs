@@ -141,7 +141,14 @@ pub(crate) fn project_outcome(
         || max_warnings.is_some_and(|maximum| report.counts.warn > maximum)
     {
         LintStatus::Findings
-    } else if !report.uncertain.is_empty() {
+    } else if !report.uncertain.is_empty()
+        || report.selections.iter().any(|entry| {
+            matches!(
+                entry.outcome,
+                sunstack_rules::SelectionOutcome::Uncertain { .. }
+            )
+        })
+    {
         LintStatus::Uncertain
     } else if selected == 0 {
         LintStatus::NothingSelected

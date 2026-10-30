@@ -173,6 +173,68 @@ impl EvidenceBuild {
         }
         Ok(build)
     }
+
+    /// Resolve target identities from scanned matches without opening their content.
+    pub fn target_paths(&self, source: &dyn CheckedFileSource) -> BTreeMap<PathBuf, Vec<PathBuf>> {
+        let mut targets = BTreeMap::<PathBuf, Vec<PathBuf>>::new();
+        for (path, file) in &self.matched {
+            for definition in self.kinds.values() {
+                for range in file
+                    .index
+                    .by_rule
+                    .get(&definition.rule)
+                    .into_iter()
+                    .flatten()
+                {
+                    for field in definition.fields.values() {
+                        let FieldSource::Target { regex, resolve, .. } = field else {
+                            continue;
+                        };
+                        let Ok(pattern) = Regex::new(regex) else {
+                            continue;
+                        };
+                        for capture in pattern.captures_iter(&file.text[range.start..range.end]) {
+                            let Some(name) = capture
+                                .iter()
+                                .skip(1)
+                                .flatten()
+                                .find(|value| !value.as_str().is_empty())
+                                .map(|value| value.as_str())
+                            else {
+                                continue;
+                            };
+                            let use_path = match resolve {
+                                EvidenceTargetResolution::Path => true,
+                                EvidenceTargetResolution::Skill => false,
+                                EvidenceTargetResolution::PathOrSkill => name.ends_with(".md"),
+                            };
+                            let paths = if use_path {
+                                vec![path.parent().unwrap_or(Path::new("")).join(name)]
+                            } else {
+                                self.matched
+                                    .keys()
+                                    .filter(|candidate| {
+                                        candidate.file_name().is_some_and(|part| part == "SKILL.md")
+                                            && candidate
+                                                .parent()
+                                                .and_then(Path::file_name)
+                                                .is_some_and(|part| part == name)
+                                    })
+                                    .cloned()
+                                    .collect()
+                            };
+                            for target in paths {
+                                if let Some(resolved) = source.resolve_file(&target) {
+                                    targets.entry(path.clone()).or_default().push(resolved);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        targets
+    }
     pub fn advance(
         &mut self,
         chosen: ChosenCandidates,

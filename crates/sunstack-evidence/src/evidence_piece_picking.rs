@@ -31,3 +31,26 @@ pub fn pick_pieces(
 #[cfg(test)]
 #[path = "evidence_piece_picking_test.rs"]
 mod tests;
+
+/// Selection considers a whole loading file whenever a hunk or a resolved target changed.
+pub fn selection_files_for_changes(
+    files: &[std::path::PathBuf],
+    targets: &std::collections::BTreeMap<std::path::PathBuf, Vec<std::path::PathBuf>>,
+    changes: &[CapturedChange],
+    full: bool,
+) -> std::collections::BTreeSet<std::path::PathBuf> {
+    files
+        .iter()
+        .filter(|file| {
+            full || changes.iter().any(|change| {
+                (&change.path == *file
+                    && (!change.after_spans.is_empty()
+                        || matches!(change.before, CapturedFileSide::Absent)))
+                    || targets
+                        .get(*file)
+                        .is_some_and(|targets| targets.contains(&change.path))
+            })
+        })
+        .cloned()
+        .collect()
+}

@@ -40,6 +40,7 @@ pub(crate) fn transport_level(severity: Severity) -> &'static str {
 pub(crate) fn incomplete_text(reason: &IncompleteReason) -> &'static str {
     match reason {
         IncompleteReason::SelectionFailed => "selection failed",
+        IncompleteReason::SelectionIncomplete => "selection incomplete",
         IncompleteReason::EvaluationFailed => "evaluation failed",
         IncompleteReason::NotStarted => "not started",
         IncompleteReason::PreparationFailed => "preparation failed",
@@ -106,6 +107,46 @@ fn human(report: &LintReport) -> String {
             finding.rule.as_str(),
             finding.message
         );
+    }
+    let mut totals = std::collections::BTreeMap::<String, [usize; 5]>::new();
+    for file in &report.file_counts {
+        for (kind, count) in &file.kinds {
+            if let Some(selection) = &count.selection {
+                let total = totals.entry(kind.as_str().into()).or_default();
+                total[0] += selection.candidates;
+                total[1] += selection.selected;
+                total[2] += selection.not_selected;
+                total[3] += selection.uncertain;
+                total[4] += selection.incomplete;
+            }
+        }
+    }
+    for (kind, count) in totals {
+        let _ = writeln!(
+            output,
+            "Selection {kind}: {} candidates, {} selected, {} not_selected, {} uncertain, {} incomplete",
+            count[0], count[1], count[2], count[3], count[4]
+        );
+    }
+    for file in &report.file_counts {
+        for (kind, count) in &file.kinds {
+            if let Some(selection) = &count.selection
+                && selection.candidates > 0
+                && selection.selected == 0
+            {
+                let kind = kind.as_str();
+                let _ = writeln!(
+                    output,
+                    "{} [{kind}]: {} candidates, none selected; {} not_selected, {} uncertain, {} incomplete ({} asked)",
+                    file.file.display(),
+                    selection.candidates,
+                    selection.not_selected,
+                    selection.uncertain,
+                    selection.incomplete,
+                    selection.asked
+                );
+            }
+        }
     }
     for result in &report.uncertain {
         let _ = writeln!(

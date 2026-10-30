@@ -84,7 +84,7 @@ async fn inspect(arguments: &LintArguments, cancellation: CancellationToken) -> 
         CheckResult::Invalid {
             diagnostics: errors,
         } => diagnostics(errors),
-        CheckResult::Valid { .. } => {
+        CheckResult::Valid { rules } => {
             if let Some(file) = &arguments.rules {
                 let relative = file.as_ref().map(|file| {
                     sunstack_lint::targets::relative_path(&location.directory, &cwd.join(file))
@@ -95,7 +95,7 @@ async fn inspect(arguments: &LintArguments, cancellation: CancellationToken) -> 
                     relative.as_deref(),
                 ))
             } else {
-                json_output(&sunstack_lint::list_rules(&config, &checked, None))
+                json_output(rules)
             }
         }
     }
@@ -144,11 +144,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         Some(None) => Some(None),
         None => None,
     };
-    let credential = if evidence_listing.is_some() {
-        None
-    } else {
-        provider_credentials::resolve().await
-    };
+    let credential = provider_credentials::resolve().await;
     let report = sunstack_lint::run(
         LintRequest {
             config_path: arguments.config,

@@ -240,6 +240,15 @@ async fn unavailable_referenced_fields_block_only_their_candidate_and_input_toke
             reason: FieldUnavailable::NotAString,
         },
     );
+    input.candidates[2].selection_view = selection_model_view(
+        &input.candidates[2]
+            .fields
+            .iter()
+            .filter(|(name, _)| name.as_str() != "outline")
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect(),
+        6000,
+    );
     let mut server = controlled::ControlledServer::start().await;
     let mut dispatch = dispatcher(settings(&server.endpoint));
     let operation = tokio::spawn(async move {
