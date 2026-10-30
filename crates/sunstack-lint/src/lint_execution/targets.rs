@@ -1,4 +1,4 @@
-use crate::{config_validation::config_directory, *};
+use crate::{configuration_loading::config_validation::config_directory, *};
 use std::{
     collections::BTreeSet,
     path::{Path, PathBuf},

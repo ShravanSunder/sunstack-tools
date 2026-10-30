@@ -1,6 +1,6 @@
 use crate::{
     LintReport, LintStatus, ScopeReport,
-    formats::{incomplete_text, transport_level, uncertain_text},
+    lint_reporting::formats::{incomplete_text, transport_level, uncertain_text},
 };
 use serde::Serialize;
 use std::path::Path;

@@ -55,7 +55,7 @@ pub fn load_config(location: &ConfigLocation) -> Result<RulesConfig, LintInvalid
             "Cannot read sunstack.lint.json as UTF-8.",
         )
     })?;
-    crate::config_decoding::decode_config(&text, location)
+    crate::configuration_loading::config_decoding::decode_config(&text, location)
 }
 pub fn config_schema() -> schemars::Schema {
     schemars::schema_for!(RulesConfig)

@@ -1,6 +1,6 @@
 use crate::{
-    backend_factory::{backend_selection, prepare_backend},
-    config_validation::{load_checked_rulebook, native_diagnostics},
+    configuration_loading::config_validation::{load_checked_rulebook, native_diagnostics},
+    lint_execution::backend_factory::{backend_selection, prepare_backend},
     *,
 };
 use std::collections::BTreeMap;
@@ -160,7 +160,7 @@ pub async fn run_with_source(
     let paths = request.paths.clone();
     let selected_cwd = cwd.clone();
     let selection = match tokio::task::spawn_blocking(move || {
-        targets::select_targets(&selected_config, &paths, &selected_cwd)
+        crate::lint_execution::targets::select_targets(&selected_config, &paths, &selected_cwd)
     })
     .await
     {
@@ -258,10 +258,9 @@ pub async fn run_with_source(
             }
         }
         if changes.iter().any(|change| {
-            checked
-                .inputs
-                .iter()
-                .any(|input| targets::relative_path(&selection.root, input) == change.path)
+            checked.inputs.iter().any(|input| {
+                crate::lint_execution::targets::relative_path(&selection.root, input) == change.path
+            })
         }) {
             full = true;
             report.scope.widened = Some(WidenedReason::ConfigChanged);
@@ -565,7 +564,7 @@ pub async fn run_with_source(
         &mut dispatcher,
     )
     .await;
-    let mut report = outcome::project_outcome(
+    let mut report = crate::lint_reporting::outcome::project_outcome(
         run,
         &checked.assembly.rules,
         &pieces,
@@ -590,7 +589,7 @@ fn selection_usage(dispatcher: &ModelRequestDispatch, acquired: usize) -> UsageS
             })
             .collect(),
     };
-    let mut usage = outcome::summarize_usage(&run);
+    let mut usage = crate::lint_reporting::outcome::summarize_usage(&run);
     usage.checked_files_acquired = acquired;
     usage
 }

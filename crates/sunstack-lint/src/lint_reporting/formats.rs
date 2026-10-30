@@ -288,7 +288,7 @@ pub fn render(report: &LintReport, format: OutputFormat) -> String {
         OutputFormat::Github => github(report),
         OutputFormat::Json => serde_json::to_string_pretty(report)
             .unwrap_or_else(|_| "Unable to encode lint report.\n".into()),
-        OutputFormat::Sarif => crate::sarif_format::render_sarif(report)
+        OutputFormat::Sarif => crate::lint_reporting::sarif_format::render_sarif(report)
             .unwrap_or_else(|_| "Unable to encode SARIF report.\n".into()),
     }
 }

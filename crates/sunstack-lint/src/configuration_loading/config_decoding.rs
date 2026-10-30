@@ -96,10 +96,12 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
     let mut config: RulesConfig = serde_path_to_error::deserialize(&mut decoder)
         .map_err(|error| failure(error.inner(), path_fields(error.path())))?;
     decoder.end().map_err(|error| failure(&error, vec![]))?;
-    config.source = Some(crate::config_contracts::ConfigSource {
-        location: location.clone(),
-        text: text.into(),
-    });
+    config.source = Some(
+        crate::configuration_loading::config_contracts::ConfigSource {
+            location: location.clone(),
+            text: text.into(),
+        },
+    );
     validate_config_shape(&config)?;
     Ok(config)
 }

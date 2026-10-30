@@ -1,5 +1,5 @@
 use crate::{
-    config_decoding::{config_error, validate_config_shape},
+    configuration_loading::config_decoding::{config_error, validate_config_shape},
     *,
 };
 use std::path::{Path, PathBuf};
