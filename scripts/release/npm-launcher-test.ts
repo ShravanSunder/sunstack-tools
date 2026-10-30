@@ -39,7 +39,10 @@ function installedLauncher(context: TestContext): LauncherFixture {
 	);
 	return { launcher, child };
 }
-function bounded<TOutcome>(promise: Promise<TOutcome>, message: string): Promise<TOutcome> {
+function withCompletionDeadline<TOutcome>(
+	promise: Promise<TOutcome>,
+	message: string,
+): Promise<TOutcome> {
 	let deadline: NodeJS.Timeout | undefined;
 	const timeout = new Promise<never>((_resolve, reject) => {
 		deadline = setTimeout(() => reject(new Error(message)), 10000);
@@ -95,9 +98,9 @@ for (const scenario of signalCases) {
 			} catch (error) {
 				ignoreMissingProcess(error);
 			}
-			await bounded(closed, 'owned launcher cleanup did not settle');
+			await withCompletionDeadline(closed, 'owned launcher cleanup did not settle');
 		});
-		const ready = await bounded(
+		const ready = await withCompletionDeadline(
 			new Promise<Buffer>((resolve, reject) => {
 				launcher.stdout.once('data', (chunk: Buffer) => resolve(chunk));
 				launcher.once('error', reject);
@@ -115,10 +118,13 @@ for (const scenario of signalCases) {
 		launcher.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
 		launcher.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
 		process.kill(scenario.wholeGroup ? -launcherPid : launcherPid, scenario.signal);
-		assert.deepEqual(await bounded(closed, 'launcher did not settle its native outcome'), {
-			code: scenario.expectedCode,
-			signal: scenario.expectedSignal,
-		});
+		assert.deepEqual(
+			await withCompletionDeadline(closed, 'launcher did not settle its native outcome'),
+			{
+				code: scenario.expectedCode,
+				signal: scenario.expectedSignal,
+			},
+		);
 		if (scenario.signal === 'SIGHUP') assert.equal(Buffer.concat(stdout).length, 0);
 		else
 			assert.deepEqual(cancelledSchema.parse(JSON.parse(Buffer.concat(stdout).toString('utf8'))), {
