@@ -162,7 +162,7 @@ export function captureCommentAnchor(
 	const blockSelector = 'p,li,blockquote,pre,h1,h2,h3,h4,h5,h6';
 	const crossesBlocks = startElement?.closest(blockSelector) !== endElement?.closest(blockSelector);
 	const explicitOwner = ancestor?.closest(
-		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id],td[id],th[id],tr[id],table[id],ex-code[id],ex-pre[id],ex-mermaid g.node[id],ex-mermaid[id]',
+		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id],ex-code[id],ex-pre[id],ex-mermaid g.node[id],ex-mermaid[id]',
 	);
 	const startChoice = startElement?.closest('.ex-choice-option[id],ex-choice[id]');
 	const endChoice = endElement?.closest('.ex-choice-option[id],ex-choice[id]');

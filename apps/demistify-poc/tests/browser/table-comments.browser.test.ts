@@ -102,14 +102,21 @@ test('a range touching whitespace outside one paragraph stays paragraph-owned', 
 	expect(captured?.anchor.sourceText).toBe('Confirmed with source context.');
 });
 
-test('new table targets preserve the existing generated IDs of paragraphs inside cells', (): void => {
+test('new table targets preserve paragraph identities and selection ownership inside cells', (): void => {
 	const root = document.createElement('ex-document');
 	root.id = 'legacy-root';
 	root.innerHTML =
 		'<table><tbody><tr><td><p>Existing paragraph feedback.</p></td></tr></tbody></table>';
 	document.body.append(root);
-	readReviewTargets(root);
-	expect(requiredElement(root, 'p').id).toBe('legacy-root--review-table-1-tbody-1-tr-1-td-1-p-1');
+	const targets = readReviewTargets(root);
+	const paragraph = requiredElement(root, 'p');
+	expect(paragraph.id).toBe('legacy-root--review-table-1-tbody-1-tr-1-td-1-p-1');
+	const range = document.createRange();
+	range.selectNodeContents(paragraph);
+	const selection = document.getSelection();
+	if (!selection) throw new Error('Selection unavailable');
+	selection.addRange(range);
+	expect(captureCommentAnchor(selection, targets, root)?.anchor.targetId).toBe(paragraph.id);
 });
 
 test.each([
