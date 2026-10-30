@@ -4,8 +4,12 @@ import path from 'node:path';
 
 import {
 	configName,
+	configure,
 	configureEndpoint,
 	equal,
+	jsonValueSchema,
+	arrayValue,
+	objectValue,
 	requireCondition,
 	runSequence,
 	writeJson,
@@ -13,6 +17,44 @@ import {
 } from './rulebook-fixture-support.ts';
 import { type DeclaredTarget, RulebookProcess } from './rulebook-process.ts';
 import { copySelectionFixture } from './selection-fixture.ts';
+
+const withinRefusals: Record<string, { change: (kinds: JsonObject) => void; cause: RegExp }> = {
+	'amended-within-string': {
+		change: (kinds) => {
+			objectValue(kinds['step'])['within'] = 'workflow_section';
+		},
+		cause: /sequence|list|array/i,
+	},
+	'amended-within-empty': {
+		change: (kinds) => {
+			objectValue(kinds['step'])['within'] = [];
+		},
+		cause: /empty|at least|min/i,
+	},
+	'amended-within-repeated': {
+		change: (kinds) => {
+			objectValue(kinds['step'])['within'] = ['workflow_section', 'workflow_section'];
+		},
+		cause: /repeat|duplicate/i,
+	},
+	'amended-within-undefined-second': {
+		change: (kinds) => {
+			objectValue(kinds['step'])['within'] = ['workflow_section', 'missing_within_kind'];
+		},
+		cause: /undefined.*missing_within_kind|missing_within_kind.*undefined/i,
+	},
+	'amended-within-cycle-second': {
+		change: (kinds) => {
+			objectValue(kinds['step'])['within'] = ['workflow_section', 'within_cycle_peer'];
+			kinds['within_cycle_peer'] = {
+				rule: 'section',
+				within: ['step'],
+				fields: { body: { from: 'remainder' } },
+			};
+		},
+		cause: /cycle/i,
+	},
+};
 
 export function prepareSelectionRefusals(options: {
 	evidence: string;
@@ -37,12 +79,28 @@ export function prepareSelectionRefusals(options: {
 		});
 		filesystem.copyFileSync(path.join(base, 'refusals', file), path.join(root, configName));
 	}
+	const cases = sources.map((file) => path.basename(file, '.json'));
+	for (const [name, refusal] of Object.entries(withinRefusals)) {
+		requireCondition(
+			!cases.includes(name),
+			'Amended refusal name collides with canonical S0 inventory',
+		);
+		const root = copySelectionFixture({
+			destination: path.join(options.evidence, name),
+			sourceRoot: options.sourceRoot,
+			allKinds: true,
+		});
+		configure(root, (config) => {
+			refusal.change(objectValue(objectValue(config['evidence'])['kinds']));
+		});
+		cases.push(name);
+	}
 	writeJson(path.join(options.evidence, 'prepared.json'), {
 		product_observed: false,
-		cases: sources,
+		cases,
 		oracle: 'docs/specs/2026-10-30-evidence-selection/specification.md R40',
 	});
-	return sources.map((file) => path.basename(file, '.json'));
+	return cases;
 }
 export async function observeSelectionRefusals(options: {
 	evidence: string;
@@ -66,18 +124,28 @@ export async function observeSelectionRefusals(options: {
 		const text = Buffer.concat([checked.stdout, checked.stderr]).toString('utf8');
 		for (const name of ['workflow_section', 'step'])
 			requireCondition(text.includes(name), 'Check listing omits kind ' + name);
+		const listing = arrayValue(
+			jsonValueSchema.parse(JSON.parse(checked.stdout.toString('utf8'))),
+		).map(objectValue);
+		equal(
+			listing.find((row) => row['kind'] === 'step')?.['within'],
+			['workflow_section'],
+			'One-item containment listing is not the new list contract',
+		);
 		await runSequence(cases, async (name) => {
 			const root = path.join(options.evidence, name);
 			const file = path.join(root, configName);
-			filesystem.writeFileSync(
-				file,
-				filesystem
-					.readFileSync(file, 'utf8')
-					.replace(
-						'"model": "jev-latest"',
-						`"model": "jev-latest", "endpoint": "${observer.endpoint}"`,
-					),
-			);
+			if (withinRefusals[name]) configureEndpoint(root, observer.endpoint);
+			else
+				filesystem.writeFileSync(
+					file,
+					filesystem
+						.readFileSync(file, 'utf8')
+						.replace(
+							'"model": "jev-latest"',
+							`"model": "jev-latest", "endpoint": "${observer.endpoint}"`,
+						),
+				);
 			const result = await observer.run({
 				root,
 				name: 'r40-' + name,
@@ -90,6 +158,20 @@ export async function observeSelectionRefusals(options: {
 				diagnostic.includes(path.resolve(file)) && new RegExp(':\\d+(?::\\d+)?:').test(diagnostic),
 				'R40 refusal lacks config file/line',
 			);
+			const amended = withinRefusals[name];
+			if (amended) {
+				requireCondition(
+					amended.cause.test(diagnostic),
+					'Within refusal did not reach its intended cause: ' + name,
+				);
+				if (name === 'amended-within-cycle-second') {
+					for (const kind of ['step', 'within_cycle_peer'])
+						requireCondition(
+							diagnostic.includes(kind),
+							'Cycle diagnostic omits the dependency path kind ' + kind,
+						);
+				}
+			}
 			results.push({ case: name, exit: 2, requests: 0, diagnostic });
 		});
 	} finally {

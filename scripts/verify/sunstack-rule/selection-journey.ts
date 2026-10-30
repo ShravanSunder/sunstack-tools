@@ -40,6 +40,7 @@ import {
 import { observeSelectionLimits } from './selection-limits.ts';
 import { scriptedSelectionReply, selectionArguments } from './selection-reply.ts';
 import { observeSelectionChanges } from './selection-scope.ts';
+import { observeWithinKinds } from './within-kinds-journey.ts';
 
 function removeRanges(
 	text: Buffer,
@@ -315,6 +316,7 @@ export async function runSelectionJourney(options: JourneyArguments): Promise<vo
 		await observeWorked(observer, path.join(evidence, 'fixtures'));
 		await observeBoundaries(observer, path.join(evidence, 'fixtures'));
 		await observeSelectionChanges({ observer, evidence, sourceRoot: options['source-root'] });
+		await observeWithinKinds({ observer, evidence, sourceRoot: options['source-root'] });
 		await observeSelectionLimits({ observer, evidence, sourceRoot: options['source-root'] });
 	} finally {
 		await observer.close();
