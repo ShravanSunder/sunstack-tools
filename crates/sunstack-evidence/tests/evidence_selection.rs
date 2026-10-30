@@ -274,3 +274,134 @@ fn heading_utils_accept_h2_h3_h4_and_reject_document_titles() {
         }
     }
 }
+
+#[test]
+fn remainder_exclusions_are_local_to_each_field_and_its_spans() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(root.path().join("rules/pieces.yml"), "id: section\nlanguage: Markdown\nrule: {kind: section}\n---\nid: child\nlanguage: Markdown\nrule: {kind: section, has: {kind: atx_heading, regex: '^### Child', stopBy: neighbor}}\n---\nid: other\nlanguage: Markdown\nrule: {kind: section, has: {kind: atx_heading, regex: '^### Other', stopBy: neighbor}}\n").unwrap();
+    let text = "# Doc\n\n## Parent\n\nParent body.\n\n### Child\n\nChild body.\n\n### Other\n\nOther body.\n";
+    std::fs::write(root.path().join("doc.md"), text).unwrap();
+    let kinds = serde_json::from_value(serde_json::json!({
+        "section":{"rule":"section","fields":{
+            "heading":{"from":"first_line"},
+            "body":{"from":"remainder"},
+            "without_child":{"from":"remainder","exclude":{"rule":"child"}},
+            "without_other":{"from":"remainder","exclude":{"rule":"other"}}
+        }}
+    }))
+    .unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
+    let catalog = build_pieces(&project, &kinds, &["doc.md".into()], &mut source, limits());
+    let parent = catalog
+        .pieces
+        .iter()
+        .find(|piece| piece.text.starts_with("## Parent"))
+        .unwrap();
+    let body_start = text.find("\nParent body.").unwrap();
+    let child_start = text.find("### Child").unwrap();
+    let other_start = text.find("### Other").unwrap();
+    for (name, expected, ranges) in [
+        (
+            "body",
+            "\nParent body.\n\n### Child\n\nChild body.\n\n### Other\n\nOther body.\n",
+            vec![(body_start, text.len())],
+        ),
+        (
+            "without_child",
+            "\nParent body.\n\n### Other\n\nOther body.\n",
+            vec![(body_start, child_start), (other_start, text.len())],
+        ),
+        (
+            "without_other",
+            "\nParent body.\n\n### Child\n\nChild body.\n\n",
+            vec![(body_start, other_start)],
+        ),
+    ] {
+        let FieldValue::Text { value, spans } = &parent.fields[&FieldName::new(name).unwrap()]
+        else {
+            panic!()
+        };
+        assert_eq!(value, expected, "{name}");
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| (span.byte_start, span.byte_end))
+                .collect::<Vec<_>>(),
+            ranges,
+            "{name}"
+        );
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &text[span.byte_start..span.byte_end])
+                .collect::<String>(),
+            expected
+        );
+    }
+}
+
+#[test]
+fn selected_candidates_coalesce_equal_ranges_without_changing_plain_kinds() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/pieces.yml"),
+        "id: duplicate\nlanguage: Markdown\nrule: {any: [{kind: document}, {kind: paragraph}]}\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("doc.md"), "Hello\n").unwrap();
+    let kinds = serde_json::from_value(serde_json::json!({
+        "plain":{"rule":"duplicate","fields":{"body":{"from":"remainder"}}},
+        "selected":{"rule":"duplicate","fields":{"body":{"from":"remainder"}},"select":{"question":{},"yes_at_or_above":0.7,"no_at_or_below":0.3}}
+    })).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
+    let mut build =
+        EvidenceBuild::start(&project, &kinds, &["doc.md".into()], &mut source, limits()).unwrap();
+    let BuildStep::NeedsSelection { candidates, .. } =
+        build.advance(ChosenCandidates::default(), &mut source)
+    else {
+        panic!()
+    };
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].key.as_str(), "c1");
+    let BuildStep::Done(catalog) = build.advance(
+        ChosenCandidates(
+            candidates
+                .iter()
+                .map(|candidate| candidate.id.clone())
+                .collect(),
+        ),
+        &mut source,
+    ) else {
+        panic!()
+    };
+    assert_eq!(
+        catalog
+            .pieces
+            .iter()
+            .filter(|piece| piece.kind.as_str() == "plain")
+            .count(),
+        2
+    );
+    assert_eq!(
+        catalog
+            .pieces
+            .iter()
+            .filter(|piece| piece.kind.as_str() == "selected")
+            .count(),
+        1
+    );
+    assert_eq!(
+        catalog.file_counts[0].kinds[&EvidenceKindName::new("selected").unwrap()]
+            .selection
+            .as_ref()
+            .unwrap()
+            .candidates,
+        1
+    );
+}

@@ -349,15 +349,21 @@ enum FieldSourceWire {
         regex: String,
     },
     Inside {
+        #[serde(default, deserialize_with = "present_match_source")]
         rule: Option<EvidenceRuleId>,
+        #[serde(default, deserialize_with = "present_match_source")]
         kind: Option<EvidenceKindName>,
     },
     Enclosing {
+        #[serde(default, deserialize_with = "present_match_source")]
         rule: Option<EvidenceRuleId>,
+        #[serde(default, deserialize_with = "present_match_source")]
         kind: Option<EvidenceKindName>,
     },
     SameFile {
+        #[serde(default, deserialize_with = "present_match_source")]
         rule: Option<EvidenceRuleId>,
+        #[serde(default, deserialize_with = "present_match_source")]
         kind: Option<EvidenceKindName>,
     },
     Yaml {
@@ -373,6 +379,15 @@ enum FieldSourceWire {
         opening_chars: usize,
         as_kind: Option<EvidenceKindName>,
     },
+}
+// Missing source keys use the field default; a present key must decode as T,
+// so an explicit null cannot disappear into Option's missing-key state.
+fn present_match_source<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    T::deserialize(deserializer).map(Some)
 }
 impl<'de> Deserialize<'de> for FieldSource {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {

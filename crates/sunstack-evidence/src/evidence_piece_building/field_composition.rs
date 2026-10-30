@@ -108,9 +108,13 @@ pub(super) fn local_fields(
         };
         fields.insert(name.clone(), value);
     }
-    for source in definition.fields.values() {
-        if let FieldSource::Remainder { exclude: Some(of) } = source {
-            taken.extend(
+    for (name, source) in &definition.fields {
+        let FieldSource::Remainder { exclude } = source else {
+            continue;
+        };
+        let mut field_taken = taken.clone();
+        if let Some(of) = exclude {
+            field_taken.extend(
                 source_ranges(of, file, pieces)
                     .into_iter()
                     .filter(|candidate| {
@@ -119,26 +123,35 @@ pub(super) fn local_fields(
                     }),
             );
         }
+        fields.insert(name.clone(), remainder_field(file, range, field_taken));
     }
+    fields
+}
+
+fn remainder_field(
+    file: &MatchedFile,
+    range: &MatchRange,
+    mut taken: Vec<MatchRange>,
+) -> FieldValue {
     taken.sort_by_key(|span| (span.start, span.end));
     let mut cursor = range.start;
-    let mut remainder = String::new();
+    let mut value = String::new();
     let mut spans = Vec::new();
-    for taken in taken {
-        if taken.start > cursor {
-            remainder.push_str(&file.text[cursor..taken.start]);
+    for removed in taken {
+        if removed.start > cursor {
+            value.push_str(&file.text[cursor..removed.start]);
             spans.push(source_span(
                 file,
                 &MatchRange {
                     start: cursor,
-                    end: taken.start,
+                    end: removed.start,
                 },
             ));
         }
-        cursor = cursor.max(taken.end);
+        cursor = cursor.max(removed.end);
     }
     if cursor < range.end {
-        remainder.push_str(&file.text[cursor..range.end]);
+        value.push_str(&file.text[cursor..range.end]);
         spans.push(source_span(
             file,
             &MatchRange {
@@ -147,18 +160,7 @@ pub(super) fn local_fields(
             },
         ));
     }
-    for (name, source) in &definition.fields {
-        if matches!(source, FieldSource::Remainder { .. }) {
-            fields.insert(
-                name.clone(),
-                FieldValue::Text {
-                    value: remainder.clone(),
-                    spans: spans.clone(),
-                },
-            );
-        }
-    }
-    fields
+    FieldValue::Text { value, spans }
 }
 
 fn yaml_field(file: &MatchedFile, range: &MatchRange, key: &str) -> FieldValue {

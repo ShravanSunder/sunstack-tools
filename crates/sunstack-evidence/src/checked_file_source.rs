@@ -36,7 +36,7 @@ impl FrozenCheckedSource {
         }
     }
 }
-fn normalized_relative(path: &Path) -> Option<PathBuf> {
+pub(crate) fn contained_target_identity(path: &Path) -> Option<PathBuf> {
     let mut result = PathBuf::new();
     for component in path.components() {
         match component {
@@ -54,7 +54,8 @@ fn normalized_relative(path: &Path) -> Option<PathBuf> {
 }
 impl CheckedFileSource for FrozenCheckedSource {
     fn resolve_file(&self, path: &Path) -> Option<PathBuf> {
-        let normalized = normalized_relative(path).or_else(|| self.fallback.resolve_file(path))?;
+        let normalized =
+            contained_target_identity(path).or_else(|| self.fallback.resolve_file(path))?;
         if self.frozen.contains_key(&normalized) {
             Some(normalized)
         } else {

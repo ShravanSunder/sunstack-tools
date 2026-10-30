@@ -224,7 +224,9 @@ impl EvidenceBuild {
                                     .collect()
                             };
                             for target in paths {
-                                if let Some(resolved) = source.resolve_file(&target) {
+                                if let Some(resolved) = source.resolve_file(&target).or_else(|| {
+                                    crate::checked_file_source::contained_target_identity(&target)
+                                }) {
                                     targets.entry(path.clone()).or_default().push(resolved);
                                 }
                             }
@@ -308,6 +310,16 @@ impl EvidenceBuild {
                 }
             }
             if let Some(selection) = &definition.select {
+                // AST nodes may share a byte range; E13 identifies the candidate
+                // by kind, file and range, before keys, counts and pending pieces.
+                let mut identities = std::collections::BTreeSet::new();
+                pieces.retain(|piece| {
+                    identities.insert(CandidateId {
+                        kind: kind.clone(),
+                        file: piece.location.file.clone(),
+                        span: piece.location.span.clone(),
+                    })
+                });
                 let max_chars = definition
                     .max_chars
                     .map_or(self.limits.evidence_max_chars, |n| n.get() as usize);

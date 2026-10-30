@@ -18,7 +18,7 @@ pub fn pick_pieces(
         let selected=full||changes.iter().any(|change| {
             (change.path==piece.location.file && (matches!(change.before,CapturedFileSide::Absent)
                 ||change.after_spans.iter().any(|span|span_touches_piece(span,piece.location.span.byte_start,piece.location.span.byte_end))))
-            ||piece.fields.values().any(|field|matches!(field,FieldValue::Targets {values} if values.iter().any(|target|target.path==change.path)))
+            ||piece.fields.values().any(|field|matches!(field,FieldValue::Targets {values} if values.iter().any(|target|crate::checked_file_source::contained_target_identity(&target.path).as_ref()==Some(&change.path))))
         });
         if selected {
             picked.push(index);

@@ -51,3 +51,32 @@ fn match_sources_refuse_both_neither_and_unknown_keys_without_losing_rule_compat
         );
     }
 }
+
+#[test]
+fn source_keys_reject_present_null_and_non_string_values() {
+    for from in ["inside", "enclosing", "same_file"] {
+        for keys in [
+            serde_json::json!({"rule":null,"kind":"k"}),
+            serde_json::json!({"rule":"r","kind":null}),
+            serde_json::json!({"rule":null}),
+            serde_json::json!({"kind":null}),
+            serde_json::json!({"rule":17}),
+            serde_json::json!({"kind":false}),
+        ] {
+            let mut value = keys;
+            value["from"] = from.into();
+            assert!(
+                serde_json::from_value::<FieldSource>(value.clone()).is_err(),
+                "{value}"
+            );
+        }
+        for keys in [
+            serde_json::json!({"rule":"r"}),
+            serde_json::json!({"kind":"k"}),
+        ] {
+            let mut value = keys;
+            value["from"] = from.into();
+            assert!(serde_json::from_value::<FieldSource>(value).is_ok());
+        }
+    }
+}
