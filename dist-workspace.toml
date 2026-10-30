@@ -19,14 +19,18 @@ unix-archive = ".tar.gz"
 install-path = "CARGO_HOME"
 # Which actions to run on pull requests
 pr-run-mode = "plan"
+# The built-in cache also saves from tag builds. Use a restore-only setup hook;
+# release-cache.yml warms matching dist-profile caches from main on input changes.
+cache-builds = false
+github-build-setup = "steps/release-build-setup.yml"
 # This workflow adds an archive linkage gate after cargo-dist's build step,
 # and pushes the formula with a deploy key instead of a token.
 allow-dirty = ["ci"]
 publish-jobs = ["homebrew", "npm"]
 
 [dist.github-custom-runners]
-aarch64-apple-darwin = "macos-14"
-x86_64-apple-darwin = "macos-14"
+aarch64-apple-darwin = "macos-15"
+x86_64-apple-darwin = "macos-15"
 
 [[dist.extra-artifacts]]
 build = ["sh", "scripts/release/export-lint-schema.sh"]

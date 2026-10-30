@@ -17,7 +17,12 @@ fn structured_roots_and_null_survive_each_primitive_position() {
             "s":{"type":"score","instructions":entry,"criteria":[entry]}
         },"state":{"nested":[null, true, 42]}});
         let decoded: StructuredJudgmentRequest = serde_json::from_value(request.clone()).unwrap();
-        assert!(judgment_validation::validate_request(&decoded).is_ok());
+        assert!(
+            sunstack_decisions::judgment_processing::judgment_validation::validate_request(
+                &decoded
+            )
+            .is_ok()
+        );
         assert_eq!(serde_json::to_value(decoded).unwrap(), request);
     }
 }
@@ -85,7 +90,12 @@ fn valid_answers() -> serde_json::Value {
 fn response_validation_accepts_fractions_without_sum_or_legend_text_constraints() {
     let answers: NamedAnswerMap = serde_json::from_value(valid_answers()).unwrap();
     let (answers, receipt) =
-        judgment_validation::validate_response(&mixed_request(), answers, receipt()).unwrap();
+        sunstack_decisions::judgment_processing::judgment_validation::validate_response(
+            &mixed_request(),
+            answers,
+            receipt(),
+        )
+        .unwrap();
     assert!(
         matches!(answers.get(&QuestionName::new("s").unwrap()), Some(JudgmentAnswer::Score {score, ..}) if *score == 1.25)
     );
@@ -147,7 +157,12 @@ fn request_relative_answer_mismatches_refuse_the_whole_map() {
     for value in cases {
         let answers = serde_json::from_value(value).unwrap();
         assert!(
-            judgment_validation::validate_response(&mixed_request(), answers, receipt()).is_err()
+            sunstack_decisions::judgment_processing::judgment_validation::validate_response(
+                &mixed_request(),
+                answers,
+                receipt()
+            )
+            .is_err()
         );
     }
     let mut answers: NamedAnswerMap = serde_json::from_value(original).unwrap();
@@ -157,7 +172,14 @@ fn request_relative_answer_mismatches_refuse_the_whole_map() {
             yes_probability: f64::NAN,
         },
     );
-    assert!(judgment_validation::validate_response(&mixed_request(), answers, receipt()).is_err());
+    assert!(
+        sunstack_decisions::judgment_processing::judgment_validation::validate_response(
+            &mixed_request(),
+            answers,
+            receipt()
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -174,11 +196,23 @@ fn empty_criteria_refused_one_level_score_admitted() {
             .into(),
             state: SharedEvidenceState::Text(String::new()),
         };
-        assert!(judgment_validation::validate_request(&request).is_err());
+        assert!(
+            sunstack_decisions::judgment_processing::judgment_validation::validate_request(
+                &request
+            )
+            .is_err()
+        );
     }
     let request: StructuredJudgmentRequest=serde_json::from_value(json!({"questions":{"q":{"type":"score","instructions":null,"criteria":[null]}},"state":[]})).unwrap();
     let answers = serde_json::from_value(json!({"q":{"type":"score","score":0.0,"confidence":0.0,"legend":{"0":null},"probabilities":{"0":0.7}}})).unwrap();
-    assert!(judgment_validation::validate_response(&request, answers, receipt()).is_ok());
+    assert!(
+        sunstack_decisions::judgment_processing::judgment_validation::validate_response(
+            &request,
+            answers,
+            receipt()
+        )
+        .is_ok()
+    );
 }
 
 proptest::proptest! {
@@ -189,6 +223,6 @@ proptest::proptest! {
         let mut probabilities:std::collections::BTreeMap<_,_>=labels.iter().map(|name| (ChoiceLabel::new(name).unwrap(), 0.5)).collect();
         let first=probabilities.keys().next().unwrap().clone(); probabilities.remove(&first); probabilities.insert(ChoiceLabel::new(replacement).unwrap(),0.5);
         let answers=[(QuestionName::new("q").unwrap(),JudgmentAnswer::Choice {selected_label:first,confidence:0.1, probabilities})].into();
-        proptest::prop_assert!(judgment_validation::validate_response(&request,answers,receipt()).is_err());
+        proptest::prop_assert!(sunstack_decisions::judgment_processing::judgment_validation::validate_response(&request,answers,receipt()).is_err());
     }
 }

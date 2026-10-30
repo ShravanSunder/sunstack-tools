@@ -1,7 +1,7 @@
 use super::expansion_contracts::*;
 use crate::{
-    input_binding::{AdmittedSources, SourceId},
-    invocation_admission::{AdmittedGroup, AdmittedRouter},
+    rule_definitions::input_binding::{AdmittedSources, SourceId},
+    rule_definitions::invocation_admission::{AdmittedGroup, AdmittedRouter},
     *,
 };
 use std::{
@@ -73,7 +73,7 @@ pub(crate) struct PlannedOccurrence {
     pub group: GroupIndex,
     pub entries: Vec<EntryIndex>,
     pub authored_order: usize,
-    pub target_selection: Option<crate::request_state::LabeledSelection>,
+    pub target_selection: Option<crate::rule_evaluation::request_state::LabeledSelection>,
 }
 #[derive(Debug, Clone)]
 pub(crate) enum RequestPurpose {
@@ -176,14 +176,14 @@ pub(crate) enum RouterSettlement {
 pub(crate) enum OwnerPreparation {
     OutsideChangeScope,
     Cancelled {
-        selections: Vec<crate::request_state::LabeledSelection>,
+        selections: Vec<crate::rule_evaluation::request_state::LabeledSelection>,
     },
     Ready {
-        selections: Vec<crate::request_state::LabeledSelection>,
+        selections: Vec<crate::rule_evaluation::request_state::LabeledSelection>,
         target: OwnerTarget,
     },
     Refused {
-        selections: Vec<crate::request_state::LabeledSelection>,
+        selections: Vec<crate::rule_evaluation::request_state::LabeledSelection>,
         diagnostics: DiagnosticList,
     },
 }

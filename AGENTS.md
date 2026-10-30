@@ -10,6 +10,17 @@ Use an isolated worktree for changes. Preserve unrelated design documents. No de
 
 ## Rust
 
+CI runs the workspace gates on Linux and macOS with cargo-nextest 0.9.150 or
+newer; older versions have a pipe-inheritance LEAK race. Keep Rust compilation
+serial while independent formatting and TypeScript checks run as background
+steps, and join them before saving caches. Only main runs save Rust caches;
+PRs and release tags restore them. `release-cache.yml` warms each release target's
+dist profile on dependency/toolchain/config changes on main or a manual main
+dispatch, skipping compilation on an exact cache hit. Source-only pushes do not
+start that workflow. Its toolchain, SDK environment and cache key match the
+`dist-workspace.toml` build-setup hook. Keep the warmer matrix and path filters
+aligned with `dist plan` and the cache inputs when changing targets or runners.
+
 Use the pinned toolchain and root Cargo workspace gates. On Apple Silicon,
 Cargo and nextest use `scripts/cargo-debug-signing-runner.sh` to give debug
 executables stable Developer ID identities for LuLu: `sunstack` has its
