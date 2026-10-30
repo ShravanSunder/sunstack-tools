@@ -11,6 +11,7 @@ import {
 	gitCommand,
 	objectValue,
 	requireCondition,
+	runSequence,
 } from './rulebook-fixture-support.ts';
 import { type RulebookProcess } from './rulebook-process.ts';
 import { selectionEntries, selectionPieces, selectionState } from './selection-checks.ts';
@@ -67,84 +68,89 @@ export async function observeSelectionChanges(options: {
 	);
 	equal(selection['asked'], 0, 'Untouched candidates were asked');
 	requireCondition(Number(selection['candidates']) > 0, 'Untouched candidate count omitted');
-	const targets = copySelectionFixture({
-		destination: path.join(evidence, 'target-only'),
-		sourceRoot,
-		files: ['skills/loader/SKILL.md', 'skills/target/SKILL.md'],
+	await runSequence([false, true], async (absolute) => {
+		const targets = copySelectionFixture({
+			destination: path.join(evidence, absolute ? 'target-absolute' : 'target-only'),
+			sourceRoot,
+			files: ['skills/loader/SKILL.md', 'skills/target/SKILL.md'],
+		});
+		const targetPath = path.join(targets, 'skills/target/SKILL.md');
+		const targetName = absolute ? targetPath : '../target/SKILL.md';
+		writeChecked(
+			targets,
+			'skills/loader/SKILL.md',
+			`# Loader\n\n## Workflow\n\n1. Inspect inputs.\n\n   load \`${targetName}\` and return its observations.\n\n2. Record results.\n`,
+		);
+		writeChecked(
+			targets,
+			'skills/target/SKILL.md',
+			'---\ndescription: Use when checking a target.\n---\n',
+		);
+		configureEndpoint(targets, observer.endpoint);
+		baselineGit(targets);
+		filesystem.appendFileSync(
+			path.join(targets, 'skills/target/SKILL.md'),
+			'\nChanged target, no loader hunk.\n',
+		);
+		const loaded = await observer.report({
+			root: targets,
+			name: absolute ? 'selection-absolute-target-modified' : 'selection-target-only',
+			arguments: ['lint', '--config', configName, '--evidence', '--since', 'HEAD'],
+			expectedExit: 0,
+			credential: true,
+		});
+		requireCondition(
+			loaded.captures.some(
+				(capture) => selectionState(capture.body).file === 'skills/loader/SKILL.md',
+			),
+			'Target-only change did not select loading file',
+		);
+		const loads = selectionPieces(loaded.report, 'load', 'skills/loader/SKILL.md');
+		requireCondition(loads.length === 1, 'Target change failed to pick dependent load');
+		equal(
+			objectValue(objectValue(loads[0]?.['fields'])['step'])['values'],
+			['1. Inspect inputs.'],
+			'Load context is not chosen step',
+		);
+		filesystem.unlinkSync(path.join(targets, 'skills/target/SKILL.md'));
+		equal(
+			gitCommand(targets, ['diff', '--name-status', 'HEAD']).trim(),
+			'D\tskills/target/SKILL.md',
+			'Target-deletion fixture must change only the target, with no loader hunk',
+		);
+		const deleted = await observer.report({
+			root: targets,
+			name: absolute ? 'selection-absolute-target-deleted' : 'selection-target-deleted',
+			arguments: ['lint', '--config', configName, '--evidence', '--since', 'HEAD'],
+			expectedExit: 0,
+			credential: true,
+		});
+		requireCondition(
+			deleted.captures.some(
+				(capture) => selectionState(capture.body).file === 'skills/loader/SKILL.md',
+			),
+			'Deleted target did not select loading file',
+		);
+		requireCondition(
+			selectionEntries(deleted.report).some(
+				(entry) =>
+					entry.where.file === 'skills/loader/SKILL.md' && entry.outcome.kind === 'selected',
+			),
+			'Deleted target loader has no selected candidate outcome',
+		);
+		const deletedLoads = selectionPieces(deleted.report, 'load', 'skills/loader/SKILL.md');
+		equal(deletedLoads.length, 1, 'Deleted target failed to pick dependent load');
+		const deletedTargets = arrayValue(
+			objectValue(objectValue(deletedLoads[0]?.['fields'])['targets'])['values'],
+		).map(objectValue);
+		equal(deletedTargets.length, 1, 'Deleted target identity missing from dependent load');
+		equal(
+			deletedTargets[0]?.['path'],
+			absolute ? targetPath : 'skills/loader/../target/SKILL.md',
+			'Missing target must preserve its serialized unresolved path',
+		);
+		equal(deletedTargets[0]?.['exists'], false, 'Deleted target must report exists:false');
 	});
-	writeChecked(
-		targets,
-		'skills/loader/SKILL.md',
-		'# Loader\n\n## Workflow\n\n1. Inspect inputs.\n\n   load `../target/SKILL.md` and return its observations.\n\n2. Record results.\n',
-	);
-	writeChecked(
-		targets,
-		'skills/target/SKILL.md',
-		'---\ndescription: Use when checking a target.\n---\n',
-	);
-	configureEndpoint(targets, observer.endpoint);
-	baselineGit(targets);
-	filesystem.appendFileSync(
-		path.join(targets, 'skills/target/SKILL.md'),
-		'\nChanged target, no loader hunk.\n',
-	);
-	const loaded = await observer.report({
-		root: targets,
-		name: 'selection-target-only',
-		arguments: ['lint', '--config', configName, '--evidence', '--since', 'HEAD'],
-		expectedExit: 0,
-		credential: true,
-	});
-	requireCondition(
-		loaded.captures.some(
-			(capture) => selectionState(capture.body).file === 'skills/loader/SKILL.md',
-		),
-		'Target-only change did not select loading file',
-	);
-	const loads = selectionPieces(loaded.report, 'load', 'skills/loader/SKILL.md');
-	requireCondition(loads.length === 1, 'Target change failed to pick dependent load');
-	equal(
-		objectValue(objectValue(loads[0]?.['fields'])['step'])['values'],
-		['1. Inspect inputs.'],
-		'Load context is not chosen step',
-	);
-	filesystem.unlinkSync(path.join(targets, 'skills/target/SKILL.md'));
-	equal(
-		gitCommand(targets, ['diff', '--name-status', 'HEAD']).trim(),
-		'D\tskills/target/SKILL.md',
-		'Target-deletion fixture must change only the target, with no loader hunk',
-	);
-	const deleted = await observer.report({
-		root: targets,
-		name: 'selection-target-deleted',
-		arguments: ['lint', '--config', configName, '--evidence', '--since', 'HEAD'],
-		expectedExit: 0,
-		credential: true,
-	});
-	requireCondition(
-		deleted.captures.some(
-			(capture) => selectionState(capture.body).file === 'skills/loader/SKILL.md',
-		),
-		'Deleted target did not select loading file',
-	);
-	requireCondition(
-		selectionEntries(deleted.report).some(
-			(entry) => entry.where.file === 'skills/loader/SKILL.md' && entry.outcome.kind === 'selected',
-		),
-		'Deleted target loader has no selected candidate outcome',
-	);
-	const deletedLoads = selectionPieces(deleted.report, 'load', 'skills/loader/SKILL.md');
-	equal(deletedLoads.length, 1, 'Deleted target failed to pick dependent load');
-	const deletedTargets = arrayValue(
-		objectValue(objectValue(deletedLoads[0]?.['fields'])['targets'])['values'],
-	).map(objectValue);
-	equal(deletedTargets.length, 1, 'Deleted target identity missing from dependent load');
-	equal(
-		deletedTargets[0]?.['path'],
-		'skills/loader/../target/SKILL.md',
-		'Missing target must preserve its serialized unresolved path',
-	);
-	equal(deletedTargets[0]?.['exists'], false, 'Deleted target must report exists:false');
 	const staged = copySelectionFixture({
 		destination: path.join(evidence, 'selection-barrier'),
 		sourceRoot,
