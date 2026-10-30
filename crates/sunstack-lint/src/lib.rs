@@ -1,20 +1,12 @@
 //! Lint repository documents through the native Sunstack engine.
-mod config_contracts;
-pub use config_contracts::*;
-pub mod config;
-mod config_decoding;
-pub use config::*;
-mod limit_settings;
-pub use limit_settings::*;
-mod report_contracts;
-pub use report_contracts::*;
-mod config_validation;
-pub use config_validation::{check, list_rules};
-mod backend_factory;
-mod lint_run;
-pub mod outcome;
-pub use lint_run::{run, run_with_source};
-pub mod formats;
-pub use formats::{OutputFormat, render};
-mod sarif_format;
-pub mod targets;
+pub mod configuration_loading;
+pub mod lint_execution;
+pub mod lint_reporting;
+
+pub use configuration_loading::config::*;
+pub use configuration_loading::config_contracts::*;
+pub use configuration_loading::config_validation::{check, list_rules};
+pub use configuration_loading::limit_settings::*;
+pub use lint_execution::lint_run::{run, run_with_source};
+pub use lint_reporting::formats::{OutputFormat, render};
+pub use lint_reporting::report_contracts::*;

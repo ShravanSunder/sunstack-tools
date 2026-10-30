@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 use super::*;
 use crate::{
-    invocation_admission::{AdmittedGroup, LoadedRuleSet},
+    rule_definitions::invocation_admission::{AdmittedGroup, LoadedRuleSet},
     *,
 };
 use serde_json::json;

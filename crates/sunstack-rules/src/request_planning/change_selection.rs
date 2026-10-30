@@ -324,7 +324,7 @@ fn push_declaration(
     dependencies: &mut Vec<SelectionDependency>,
     role: DependencyRole,
     declaration: &EvidenceDeclaration,
-    sources: &crate::input_binding::AdmittedSources,
+    sources: &crate::rule_definitions::input_binding::AdmittedSources,
 ) -> Result<(), DiagnosticList> {
     let source = sources
         .get(&declaration.input)

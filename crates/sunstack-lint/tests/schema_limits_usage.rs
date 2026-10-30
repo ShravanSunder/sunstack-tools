@@ -163,7 +163,8 @@ fn usage_sums_each_receipt_once_and_distinguishes_missing_cost_from_reported_zer
         (vec![Some(0.0)], Some(0.0), 1, 0),
         (vec![Some(0.01), None, Some(0.02)], Some(0.03), 2, 1),
     ] {
-        let summary = outcome::summarize_usage(&usage_report(&costs));
+        let summary =
+            sunstack_lint::lint_reporting::outcome::summarize_usage(&usage_report(&costs));
         assert_eq!(summary.model_requests, costs.len() as u32);
         assert_eq!(
             (

@@ -71,7 +71,8 @@ pub(crate) async fn execute_plan(
     let mut fatal = None;
     let mut split_encodings = BTreeMap::<RequestId, (Vec<UnitKey>, EncodedRequest)>::new();
     let mut omitted_optionals = BTreeSet::new();
-    let mut backend_session = crate::rule_backend_factory::RuleBackendSession::new(backend);
+    let mut backend_session =
+        crate::rule_evaluation::rule_backend_factory::RuleBackendSession::new(backend);
     'scheduler: loop {
         let local_started = Instant::now();
         let mut changed = advance_entries(plan, state, origin, session, &cancellation).await;
