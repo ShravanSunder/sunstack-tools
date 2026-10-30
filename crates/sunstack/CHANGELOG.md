@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
+
+Release date: 2026-10-30.
 
 - Add noul-based evidence selection, kind containment, kind-based field sources and
   strict-child remainder exclusions. Selection and rules share model-request limits.
@@ -10,6 +12,7 @@
 - Recognize numbered and Step section headings at H2 through H6, excluding H1.
   Configurations using those generic utilities can gain evidence within the new
   sections and changed fields or results that read them.
+- Run the fresh-install smoke in TypeScript with a current rulebook fixture.
 
 ## 0.2.0
 
