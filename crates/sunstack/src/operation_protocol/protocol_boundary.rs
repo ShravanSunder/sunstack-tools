@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use sunstack_decisions::{
-    DecisionRunOutcome, RunJudgmentsInput, judgment_validation::decode_run_input,
+    DecisionRunOutcome, RunJudgmentsInput,
+    judgment_processing::judgment_validation::decode_run_input,
 };
 use sunstack_evidence::{
     DiagnosticList, EvidencePlanInput, EvidencePlanOutcome, decode_evidence_plan_input,

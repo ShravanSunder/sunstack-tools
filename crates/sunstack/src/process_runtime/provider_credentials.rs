@@ -153,5 +153,4 @@ pub(crate) async fn save_command() -> ExitCode {
 }
 
 #[cfg(test)]
-#[path = "provider_credentials_tests.rs"]
 mod tests;

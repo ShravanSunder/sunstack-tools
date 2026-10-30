@@ -1,7 +1,6 @@
-use crate::provider_credentials;
 use crate::{
-    command_line::LintArguments,
-    process_signals::{ProcessSignals, operational_message},
+    command_dispatch::command_line::LintArguments,
+    process_runtime::process_signals::{ProcessSignals, operational_message},
 };
 use std::{
     io::{self, Write},
@@ -87,7 +86,10 @@ async fn inspect(arguments: &LintArguments, cancellation: CancellationToken) -> 
         CheckResult::Valid { rules } => {
             if let Some(file) = &arguments.rules {
                 let relative = file.as_ref().map(|file| {
-                    sunstack_lint::targets::relative_path(&location.directory, &cwd.join(file))
+                    sunstack_lint::lint_execution::targets::relative_path(
+                        &location.directory,
+                        &cwd.join(file),
+                    )
                 });
                 json_output(&sunstack_lint::list_rules(
                     &config,
@@ -144,7 +146,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         Some(None) => Some(None),
         None => None,
     };
-    let credential = provider_credentials::resolve().await;
+    let credential = crate::process_runtime::provider_credentials::resolve().await;
     let report = sunstack_lint::run(
         LintRequest {
             config_path: arguments.config,

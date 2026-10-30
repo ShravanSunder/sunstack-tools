@@ -1,6 +1,5 @@
-use crate::process_signals::{ProcessSignals, operational_message};
-use crate::protocol_boundary::ProgramResponse;
-use crate::{operation_execution, protocol_boundary};
+use crate::operation_protocol::protocol_boundary::ProgramResponse;
+use crate::process_runtime::process_signals::{ProcessSignals, operational_message};
 use std::{
     io::{self, Write},
     process::ExitCode,
@@ -18,16 +17,22 @@ pub async fn run() -> ExitCode {
     operational_message(b"sunstack: ready\n");
     let cancellation = CancellationToken::new();
     let request = signals
-        .drive(protocol_boundary::read_frame(), &cancellation)
+        .drive(
+            crate::operation_protocol::protocol_boundary::read_frame(),
+            &cancellation,
+        )
         .await
-        .and_then(|bytes| protocol_boundary::decode_request(&bytes));
+        .and_then(|bytes| crate::operation_protocol::protocol_boundary::decode_request(&bytes));
     let (response, exit) = match request {
         Ok(input) => {
             // Drive to owned settlement even after a signal. Dropping this
             // future would discard the libraries' cancellation progress.
             let result = signals
                 .drive(
-                    operation_execution::execute_operation(input, &cancellation),
+                    crate::operation_protocol::operation_execution::execute_operation(
+                        input,
+                        &cancellation,
+                    ),
                     &cancellation,
                 )
                 .await;

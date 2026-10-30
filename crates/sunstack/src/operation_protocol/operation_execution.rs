@@ -1,5 +1,4 @@
-use crate::protocol_boundary::{OperationInput, OperationResult};
-use crate::provider_credentials;
+use crate::operation_protocol::protocol_boundary::{OperationInput, OperationResult};
 use std::sync::Arc;
 use sunstack_decisions::{
     BackendPreparation, CancellationToken, DecisionRunOutcome, JevOpenRouterBackend,
@@ -25,7 +24,8 @@ impl RuleBackendFactory for JevRuleBackendFactory {
             let mut diagnostic = sunstack_rules::RuleDiagnostic::new(
                 sunstack_rules::RuleDiagnosticCode::InvalidConfiguration,
             );
-            diagnostic.guidance = provider_credentials::MISSING_CREDENTIAL.into();
+            diagnostic.guidance =
+                crate::process_runtime::provider_credentials::MISSING_CREDENTIAL.into();
             sunstack_rules::DiagnosticList::from(diagnostic)
         })?;
         match JevOpenRouterBackend::prepare(self.selection.clone(), credential) {
@@ -73,7 +73,7 @@ pub async fn execute_operation(
             })
         }
         OperationInput::RunJudgments(input) => {
-            let credential = provider_credentials::resolve().await;
+            let credential = crate::process_runtime::provider_credentials::resolve().await;
             let outcome = match JevOpenRouterBackend::prepare(
                 input.backend.clone(),
                 credential.as_deref().unwrap_or_default(),
@@ -84,7 +84,9 @@ pub async fn execute_operation(
                 BackendPreparation::Refused { mut diagnostics } => {
                     if credential.is_none() {
                         for diagnostic in &mut diagnostics.items {
-                            diagnostic.guidance = provider_credentials::MISSING_CREDENTIAL.into();
+                            diagnostic.guidance =
+                                crate::process_runtime::provider_credentials::MISSING_CREDENTIAL
+                                    .into();
                         }
                     }
                     DecisionRunOutcome::InvalidRequest { diagnostics }
@@ -93,19 +95,25 @@ pub async fn execute_operation(
             OperationResult::RunJudgments(outcome)
         }
         OperationInput::PrepareRules(input) => {
-            let outcome =
-                match rule_context(&input, cancellation, provider_credentials::resolve().await) {
-                    Ok(context) => sunstack_rules::prepare_rules(*input, context).await,
-                    Err(diagnostics) => RulePreparationOutcome::Invalid { diagnostics },
-                };
+            let outcome = match rule_context(
+                &input,
+                cancellation,
+                crate::process_runtime::provider_credentials::resolve().await,
+            ) {
+                Ok(context) => sunstack_rules::prepare_rules(*input, context).await,
+                Err(diagnostics) => RulePreparationOutcome::Invalid { diagnostics },
+            };
             OperationResult::PrepareRules(Box::new(outcome))
         }
         OperationInput::EvaluateRules(input) => {
-            let outcome =
-                match rule_context(&input, cancellation, provider_credentials::resolve().await) {
-                    Ok(context) => sunstack_rules::evaluate_rules(*input, context).await,
-                    Err(diagnostics) => RuleInvocationOutcome::Invalid { diagnostics },
-                };
+            let outcome = match rule_context(
+                &input,
+                cancellation,
+                crate::process_runtime::provider_credentials::resolve().await,
+            ) {
+                Ok(context) => sunstack_rules::evaluate_rules(*input, context).await,
+                Err(diagnostics) => RuleInvocationOutcome::Invalid { diagnostics },
+            };
             OperationResult::EvaluateRules(Box::new(outcome))
         }
     }
