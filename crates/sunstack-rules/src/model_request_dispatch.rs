@@ -72,6 +72,7 @@ impl ModelRequestDispatch {
         let encoded = backend
             .encode_request(request)
             .map_err(|_| Reason::InvalidRequest)?;
+        let encoded_bytes = encoded.body().len();
         let accounting = backend.account_request(&encoded);
         match assess_request_budget(encoded, budget, accounting.clone()) {
             RequestBudgetAssessment::WithinConfiguredBudget { .. } => Ok(()),
@@ -79,7 +80,7 @@ impl ModelRequestDispatch {
             RequestBudgetAssessment::Exceeded { .. } => {
                 let limit = if request.questions.len() > budget.max_questions {
                     RequestLimit::QuestionsPerRequest
-                } else if body.len() > budget.max_request_bytes {
+                } else if encoded_bytes > budget.max_request_bytes {
                     RequestLimit::RequestBytes
                 } else {
                     RequestLimit::InputTokens

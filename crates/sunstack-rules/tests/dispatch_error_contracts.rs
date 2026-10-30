@@ -103,3 +103,85 @@ fn selection_error_display_does_not_change_serialized_reason_tags_or_payloads() 
         assert_eq!(serde_json::to_value(reason).unwrap(), expected);
     }
 }
+
+struct ExpandedEncodingBackend {
+    inner: JevOpenRouterBackend,
+}
+impl DecisionBackend for ExpandedEncodingBackend {
+    fn identity(&self) -> &BackendIdentity {
+        self.inner.identity()
+    }
+    fn selection(&self) -> &BackendSelection {
+        DecisionBackend::selection(&self.inner)
+    }
+    fn encode_request(
+        &self,
+        request: &StructuredJudgmentRequest,
+    ) -> Result<EncodedBackendRequest, DecisionDiagnostic> {
+        let encoded = self.inner.encode_request(request)?;
+        let mut body = encoded.body().to_vec();
+        body.extend_from_slice(&[b' '; 256]);
+        Ok(EncodedBackendRequest::new(
+            self.inner.identity().clone(),
+            body,
+            request.questions.len(),
+        ))
+    }
+    fn account_request(&self, request: &EncodedBackendRequest) -> TokenAccounting {
+        self.inner.account_request(request)
+    }
+    fn dispatch<'request>(
+        &'request self,
+        request: &'request AdmittedBackendRequest,
+        max_response_bytes: usize,
+    ) -> BackendAttemptFuture<'request> {
+        self.inner.dispatch(request, max_response_bytes)
+    }
+    fn admit_response(
+        &self,
+        request: &StructuredJudgmentRequest,
+        body: &[u8],
+    ) -> Result<(NamedAnswerMap, ExecutionReceipt), DecisionDiagnostic> {
+        self.inner.admit_response(request, body)
+    }
+}
+
+#[test]
+fn selection_byte_limit_names_the_backend_encoded_measure_that_exceeded_the_budget() {
+    let request: StructuredJudgmentRequest = serde_json::from_value(json!({
+        "questions":{"candidate":{"type":"noul","instructions":{"check":"body","task":"Does it comply?"}}},
+        "state":{"body":"A small judgment body."}
+    })).unwrap();
+    let mut settings = settings("http://127.0.0.1:1/unused");
+    let BackendSelection::JevOpenrouter { model, .. } = &settings.backend;
+    let judgment = encode_judgment_body(&request, model).unwrap();
+    settings.request_budget.max_request_bytes = judgment.len() + 1;
+    let backend = std::sync::Arc::new(ExpandedEncodingBackend {
+        inner: JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_ENCODING_KEY")
+            .unwrap(),
+    });
+    let encoded = backend.encode_request(&request).unwrap();
+    assert!(judgment.len() < settings.request_budget.max_request_bytes);
+    assert!(encoded.body().len() > settings.request_budget.max_request_bytes);
+    let encoded_bytes = encoded.body().len();
+    let accounting = backend.account_request(&encoded);
+    assert!(matches!(
+        assess_request_budget(encoded, &settings.request_budget, accounting),
+        RequestBudgetAssessment::Exceeded { .. }
+    ));
+    let mut control_settings = settings.clone();
+    control_settings.request_budget.max_request_bytes = encoded_bytes;
+    let control = ModelRequestDispatch::new(
+        control_settings,
+        Some(backend.clone()),
+        CancellationToken::new(),
+    );
+    assert!(control.assess_selection(&request).is_ok());
+    let dispatcher = ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
+    assert!(matches!(
+        dispatcher.assess_selection(&request),
+        Err(SelectionIncompleteReason::RequestTooLarge {
+            limit: RequestLimit::RequestBytes
+        })
+    ));
+}
