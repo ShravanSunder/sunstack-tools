@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    request_state::{LabeledSelection, select_owner_evidence},
+    rule_evaluation::request_state::{LabeledSelection, select_owner_evidence},
     *,
 };
 use sunstack_evidence::{

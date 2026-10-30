@@ -25,7 +25,9 @@ fn leading_stop(plan: &ExecutionPlan, entries: &[EntryIndex]) -> Option<LeadingC
                 Some(LeadingConditionStop::DidNotPass {
                     index: *index,
                     basis: EntryBasis::Condition {
-                        test: crate::applicability_evaluation::condition_basis(test),
+                        test: crate::rule_evaluation::applicability_evaluation::condition_basis(
+                            test,
+                        ),
                     },
                 })
             }
@@ -107,7 +109,10 @@ pub(crate) fn project_preparation(
                         key: plan.entries[index.0].key.clone(),
                         result: EntryResult::Condition {
                             outcome: outcome.clone(),
-                            basis: crate::applicability_evaluation::condition_basis(test),
+                            basis:
+                                crate::rule_evaluation::applicability_evaluation::condition_basis(
+                                    test,
+                                ),
                         },
                     })
                 })
@@ -257,7 +262,7 @@ pub(crate) fn project_preparation(
             _ => {}
         }
     }
-    let source_summary = crate::rule_coverage_reporting::source_summary(
+    let source_summary = crate::rule_evaluation::rule_coverage_reporting::source_summary(
         plan.groups.iter().map(|group| group.admitted.set.as_ref()),
         &mut measurements,
     );

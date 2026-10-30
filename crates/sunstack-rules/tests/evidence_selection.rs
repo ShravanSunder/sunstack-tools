@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 #[path = "support/controlled_http.rs"]
 mod controlled;
-#[path = "../src/rulebook_test_support.rs"]
+#[path = "../src/rulebook_planning/rulebook_test_support.rs"]
 mod rule_fixture;
 use serde_json::{Value, json};
 use std::{

@@ -1,0 +1,28 @@
+pub fn standard_utils() -> &'static [(&'static str, &'static str)] {
+    &[
+        (
+            "numbered-heading-section",
+            include_str!("../../ast-grep-utils/markdown/numbered-heading-section.yml"),
+        ),
+        (
+            "step-heading-section",
+            include_str!("../../ast-grep-utils/markdown/step-heading-section.yml"),
+        ),
+        (
+            "bold-numbered-item",
+            include_str!("../../ast-grep-utils/markdown/bold-numbered-item.yml"),
+        ),
+        (
+            "numbered-item",
+            include_str!("../../ast-grep-utils/markdown/numbered-item.yml"),
+        ),
+        (
+            "quoted",
+            include_str!("../../ast-grep-utils/markdown/quoted.yml"),
+        ),
+        (
+            "frontmatter",
+            include_str!("../../ast-grep-utils/markdown/frontmatter.yml"),
+        ),
+    ]
+}
