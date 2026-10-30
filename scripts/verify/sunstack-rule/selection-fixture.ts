@@ -87,6 +87,20 @@ export function keepKinds(root: string, names: readonly string[]): void {
 			}),
 		);
 	});
+	if (!names.includes('step')) {
+		// Evidence-only probes still admit their rulebook. Keep the fixture's
+		// mechanical body witness valid when its original step kind is removed.
+		const rules = readObject(path.join(root, 'rules.json'));
+		const entry = objectValue(rules['K001']);
+		requireCondition(entry['evidence'] === 'step', 'Expected the canonical S0 step-body witness');
+		const kinds = selectionKinds(root);
+		const bodyKind = names.find(
+			(name) => 'body' in objectValue(objectValue(kinds[name])['fields']),
+		);
+		requireCondition(bodyKind, 'Pruned fixture needs an explicit valid rule witness');
+		entry['evidence'] = bodyKind;
+		writeJson(path.join(root, 'rules.json'), rules);
+	}
 }
 export function askingStepRule(root: string): void {
 	writeJson(path.join(root, 'rules.json'), {
