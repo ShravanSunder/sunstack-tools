@@ -274,3 +274,110 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
         assert_eq!(render(&report, format), render(&without_results, format));
     }
 }
+
+async fn assert_kind_refusal_location(scenario: &str) {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = fixture::write(root.path());
+    config["check"]["files"] = json!(["child", "docs/*.md"]);
+    config["evidence"]["kinds"]["child"] = json!({"rule":"skill","fields":{}});
+    match scenario {
+        "undefined_kind" => {
+            config["evidence"]["kinds"]["child"]["fields"]["body"] =
+                json!({"from":"inside","kind":"missing"})
+        }
+        "cycle" => {
+            config["evidence"]["kinds"]["child"]["within"] = json!(["skill", "z"]);
+            config["evidence"]["kinds"]["z"] =
+                json!({"rule":"skill","fields":{},"within":["child"]});
+        }
+        "undefined_within_entry" => {
+            config["evidence"]["kinds"]["child"]["within"] = json!(["skill", "missing"])
+        }
+        _ => panic!(),
+    }
+    fixture::config_file(root.path(), &config);
+    let path = root.path().join("sunstack.lint.json");
+    let text = std::fs::read_to_string(&path).unwrap();
+    let position = text.find("\"child\": {").unwrap();
+    let prefix = &text[..position];
+    let line = u32::try_from(prefix.bytes().filter(|byte| *byte == b'\n').count() + 1).unwrap();
+    let column = u32::try_from(prefix.rsplit('\n').next().unwrap().chars().count() + 1).unwrap();
+    let loaded = load_config(&ConfigLocation {
+        file: path.clone(),
+        directory: root.path().to_owned(),
+    })
+    .unwrap();
+    let CheckResult::Invalid { diagnostics } = check(&loaded, CancellationToken::new()).await
+    else {
+        panic!()
+    };
+
+    let diagnostic = diagnostics
+        .iter()
+        .find(|row| {
+            row.message.starts_with("undefined kind ")
+                || row.message.starts_with("kind dependency cycle")
+        })
+        .unwrap();
+    assert_eq!(diagnostic.file, Some(path));
+    assert_eq!(
+        (diagnostic.line, diagnostic.column),
+        (Some(line), Some(column)),
+        "{scenario}: {diagnostics:?}"
+    );
+    assert!(line > 1);
+}
+
+#[tokio::test]
+async fn kind_plan_refusals_locate_undefined_kind() {
+    assert_kind_refusal_location("undefined_kind").await;
+}
+
+#[tokio::test]
+async fn kind_plan_refusals_locate_cycle() {
+    assert_kind_refusal_location("cycle").await;
+}
+
+#[tokio::test]
+async fn kind_plan_refusals_locate_undefined_within_entry() {
+    assert_kind_refusal_location("undefined_within_entry").await;
+}
+
+#[tokio::test]
+async fn cycle_location_and_path_are_stable_across_declared_kind_orders() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = fixture::write(root.path());
+    config["evidence"]["kinds"] = json!("KINDS_PLACEHOLDER");
+    let envelope = serde_json::to_string(&config).unwrap();
+    let child = r#""child":{"rule":"skill","fields":{},"within":["skill","z"]}"#;
+    let skill =
+        r#""skill":{"rule":"skill","fields":{"description":{"from":"yaml","key":"description"}}}"#;
+    let z = r#""z":{"rule":"skill","fields":{},"within":["child"]}"#;
+    let mut observed = Vec::new();
+    for kinds in [
+        format!("{{{child},{skill},{z}}}"),
+        format!("{{{child},{z},{skill}}}"),
+    ] {
+        let text = envelope.replace("\"KINDS_PLACEHOLDER\"", &kinds);
+        let path = root.path().join("sunstack.lint.json");
+        std::fs::write(&path, &text).unwrap();
+        let loaded = load_config(&ConfigLocation {
+            file: path,
+            directory: root.path().to_owned(),
+        })
+        .unwrap();
+        let CheckResult::Invalid { diagnostics } = check(&loaded, CancellationToken::new()).await
+        else {
+            panic!()
+        };
+        assert_eq!(diagnostics.len(), 1);
+        assert!(diagnostics[0].message.contains("child -> z -> child"));
+        let row = serde_json::to_value(&diagnostics[0]).unwrap();
+        assert_eq!(
+            diagnostics[0].column,
+            Some(u32::try_from(text.find("\"child\":").unwrap() + 1).unwrap())
+        );
+        observed.push(row);
+    }
+    assert_eq!(observed[0], observed[1]);
+}

@@ -2,6 +2,54 @@
 use super::*;
 
 #[test]
+fn within_rejects_a_string_empty_list_and_repeated_kind() {
+    for within in [
+        serde_json::json!("a"),
+        serde_json::json!([]),
+        serde_json::json!(["a", "a"]),
+    ] {
+        let definition = serde_json::json!({"rule":"r","fields":{},"within":within});
+        let text = definition.to_string();
+        let mut decoder = serde_json::Deserializer::from_str(&text);
+        let result: Result<EvidenceKindDefinition, _> =
+            serde_path_to_error::deserialize(&mut decoder);
+        let error = result.unwrap_err();
+        assert_eq!(error.path().to_string(), "within");
+        if within == serde_json::json!(["a", "a"]) {
+            assert!(error.to_string().contains('a'));
+        }
+    }
+}
+
+#[test]
+fn within_accepts_one_or_more_kinds_and_preserves_config_order() {
+    for within in [serde_json::json!(["a"]), serde_json::json!(["z", "a"])] {
+        let definition = serde_json::json!({"rule":"r","fields":{},"within":within});
+        let parsed: EvidenceKindDefinition = serde_json::from_value(definition.clone()).unwrap();
+        assert_eq!(serde_json::to_value(parsed).unwrap(), definition);
+    }
+}
+
+#[test]
+fn within_schema_requires_a_nonempty_unique_array() {
+    let schema = schemars::schema_for!(EvidenceKindDefinition);
+    let validator = jsonschema::validator_for(schema.as_value()).unwrap();
+    for (within, valid) in [
+        (serde_json::json!("a"), false),
+        (serde_json::json!([]), false),
+        (serde_json::json!(["a", "a"]), false),
+        (serde_json::json!(["a"]), true),
+        (serde_json::json!(["z", "a"]), true),
+    ] {
+        assert_eq!(
+            validator.is_valid(&serde_json::json!({"rule":"r","fields":{},"within":within})),
+            valid,
+            "{within}"
+        );
+    }
+}
+
+#[test]
 fn field_source_is_closed_and_field_names_exclude_reserved_names() {
     for value in [
         "text",

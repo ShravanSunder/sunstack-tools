@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `within` is now a nonempty list of distinct kind names. Rewrite a single kind
+  as a one-item list, for example `"within": ["workflow_section"]`. A match inside
+  any listed kind produces one piece, including when containers overlap.
+
+### Fixed
+
+- Check refusals for undefined kinds and kind cycles now point at the kind in
+  the config. Cycle refusals name a deterministic path and point at its first kind.
+
 ## 0.3.0
 
 Release date: 2026-10-30.

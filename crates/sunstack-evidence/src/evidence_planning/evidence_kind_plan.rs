@@ -20,8 +20,8 @@ impl EvidenceKindPlan {
         let mut errors = Vec::new();
         for (name, definition) in kinds {
             let mut dependencies = BTreeSet::new();
-            if let Some(parent) = &definition.within {
-                dependencies.insert(parent.clone());
+            if let Some(parents) = &definition.within {
+                dependencies.extend(parents.as_slice().iter().cloned());
             }
             for source in definition.fields.values() {
                 match source {
@@ -65,9 +65,20 @@ impl EvidenceKindPlan {
                 })
                 .map(|(kind, _)| kind.clone());
             let Some(next) = next else {
+                let cycle = dependency_cycle(&depends_on);
                 return Err(vec![KindPlanRefusal {
-                    field: "evidence.kinds".into(),
-                    message: "kind dependency cycle".into(),
+                    field: cycle.first().map_or_else(
+                        || "evidence.kinds".into(),
+                        |kind| format!("evidence.kinds.{}", kind.as_str()),
+                    ),
+                    message: format!(
+                        "kind dependency cycle: {}",
+                        cycle
+                            .iter()
+                            .map(EvidenceKindName::as_str)
+                            .collect::<Vec<_>>()
+                            .join(" -> ")
+                    ),
                 }]);
             };
             completed.insert(next.clone());
@@ -94,6 +105,44 @@ impl EvidenceKindPlan {
             Err(errors)
         }
     }
+}
+
+fn dependency_cycle(
+    dependencies: &BTreeMap<EvidenceKindName, BTreeSet<EvidenceKindName>>,
+) -> Vec<EvidenceKindName> {
+    fn visit(
+        kind: &EvidenceKindName,
+        dependencies: &BTreeMap<EvidenceKindName, BTreeSet<EvidenceKindName>>,
+        path: &mut Vec<EvidenceKindName>,
+        complete: &mut BTreeSet<EvidenceKindName>,
+    ) -> Option<Vec<EvidenceKindName>> {
+        if let Some(start) = path.iter().position(|ancestor| ancestor == kind) {
+            let mut cycle = path[start..].to_vec();
+            cycle.push(kind.clone());
+            return Some(cycle);
+        }
+        if complete.contains(kind) {
+            return None;
+        }
+        path.push(kind.clone());
+        if let Some(parents) = dependencies.get(kind) {
+            for parent in parents {
+                if let Some(cycle) = visit(parent, dependencies, path, complete) {
+                    return Some(cycle);
+                }
+            }
+        }
+        path.pop();
+        complete.insert(kind.clone());
+        None
+    }
+    let mut complete = BTreeSet::new();
+    for kind in dependencies.keys() {
+        if let Some(cycle) = visit(kind, dependencies, &mut Vec::new(), &mut complete) {
+            return cycle;
+        }
+    }
+    Vec::new()
 }
 fn reaches_selected(
     kind: &EvidenceKindName,

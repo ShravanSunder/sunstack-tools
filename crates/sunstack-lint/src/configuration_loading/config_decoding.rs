@@ -161,10 +161,32 @@ pub(crate) fn config_error(
     code: LintInvalidCode,
     message: impl Into<String>,
 ) -> LintInvalid {
+    let message = message.into();
     let (file, line, column) = match &config.source {
         Some(source) => {
             let quoted = serde_json::to_string(key).unwrap_or_default();
-            let position = source.text.find(&quoted).unwrap_or(0);
+            let position = source
+                .text
+                .find(&quoted)
+                .or_else(|| {
+                    if !key.starts_with("evidence.kinds.")
+                        || !(message.starts_with("undefined kind ")
+                            || message == "undefined evidence kind"
+                            || message.starts_with("kind dependency cycle"))
+                    {
+                        return None;
+                    }
+                    let mut search_start = 0;
+                    let mut position = 0;
+                    for segment in key.split('.') {
+                        let quoted_segment = serde_json::to_string(segment).ok()?;
+                        position = search_start
+                            + source.text.get(search_start..)?.find(&quoted_segment)?;
+                        search_start = position + quoted_segment.len();
+                    }
+                    Some(position)
+                })
+                .unwrap_or(0);
             let prefix = &source.text[..position];
             (
                 source.location.file.clone(),
@@ -187,7 +209,7 @@ pub(crate) fn config_error(
         column: Some(column),
         json_path: vec![key.into()],
         code,
-        message: message.into(),
+        message,
     }
 }
 
