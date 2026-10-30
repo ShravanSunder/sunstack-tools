@@ -48,9 +48,11 @@ sunstack lint --config sunstack.lint.json --all --format json
 ```
 
 `--check` validates configuration, the rulebook and evidence project, then lists
-the assembled rules as JSON. It reads no checked files and sends no model
-requests. `--evidence [KIND]` prints picked evidence and its fields as JSON without
-asking the model. Both routes work without a credential.
+the assembled rules and selected/contained kinds as JSON. It reads no checked
+files, sends no model requests and needs no credential. `--evidence [KIND]` prints
+picked pieces, selection outcomes and file counts as JSON. It runs evidence
+selection when configured, requiring a credential, but sends no rule questions.
+Without selected kinds, the evidence listing remains credential-free.
 
 An ordinary lint run uses changed evidence by default and requires Git for that
 default scope. Use `--all` for every configured target, `--since REV` for changes
@@ -65,7 +67,9 @@ file and first and last line, its outcome (`pass`, `finding`, `not_applicable`,
 The decision model is always configured and enabled for asking rules; there is
 no model-off switch. Ordinary runs with asking rules require an OpenRouter
 credential before checked-file acquisition, even if a later mechanical branch
-would avoid an ask. Mechanical-only rules need no key. Credential lookup and
+would avoid an ask. A selected evidence kind also requires a credential, including
+for `--evidence`, even when the rules are mechanical. With neither selected kinds
+nor asking rules, no key is needed. Credential lookup and
 saving are described below under the native protocol.
 
 Lint exits 0 for clean or nothing selected, 1 for error findings or warnings over
@@ -80,6 +84,92 @@ and its [rulebook entries](tests/fixtures/rulebook-lint/rulebook/steering.rules.
 for a complete test example. Copy the fixture directory to an isolated root to
 try it; its checked-file globs are relative to that root. The example's
 skill-specific rules are test content.
+
+## Selected and contained evidence
+
+Add `select` to an evidence kind to ask one noul question about each mechanical
+candidate. Add `within` to keep a kind's matches only inside or equal to a final
+piece of another kind in the same file. This fragment belongs in `evidence.kinds`;
+the rule IDs must exist in the caller's ast-grep project:
+
+```json
+{
+	"workflow_section": {
+		"rule": "workflow-candidate",
+		"fields": {
+			"heading": { "from": "first_line" },
+			"body": { "from": "remainder", "exclude": { "rule": "section" } },
+			"outline": { "from": "same_file", "rule": "section" }
+		},
+		"select": {
+			"question": {
+				"type": "noul",
+				"instructions": {
+					"check": "body",
+					"against": "heading",
+					"context": ["outline"],
+					"task": "Is this section an ordered workflow?"
+				}
+			},
+			"yes_at_or_above": 0.7,
+			"no_at_or_below": 0.3,
+			"shared": ["outline"]
+		}
+	},
+	"step": {
+		"rule": "step",
+		"within": "workflow_section",
+		"fields": { "body": { "from": "remainder" } }
+	},
+	"load": {
+		"rule": "load",
+		"fields": { "step": { "from": "enclosing", "kind": "step" } }
+	}
+}
+```
+
+Answers at or above 0.7 select the candidate; at or below 0.3 reject it; values
+between them are uncertain. Only selected candidates become pieces. A failed
+selection remains incomplete; it never falls back to selecting the candidate.
+Kinds build in dependency order before any rules run. Cycles, undefined kinds,
+invalid thresholds, non-noul selection questions and target-field references in
+selection questions are refused by `--check`.
+
+`inside`, `enclosing` and `same_file` accept exactly one of `rule` or `kind`.
+A rule source reads raw matches; a kind source reads final pieces after selection
+and containment. `remainder.exclude` removes only strictly contained ranges,
+including child sections; an equal range never erases the piece itself. A target's
+`as_kind` must remain target-free and independent of selection.
+
+The model receives consecutive candidates of one file and kind, with one question
+per candidate. Fields in `shared` must come from `same_file`; their view is bounded
+once and sent once per request. Each candidate has its own bounded view without
+shared or target fields. Questions cannot refer to target fields, and selection
+requests carry no target opening or target-file fields. Requests split to satisfy
+encoded character, byte, question-count and input-token limits. Selection and rule
+requests share the run's request count, concurrency and usage accounting.
+
+Under a change scope, selection considers all candidates of each file with a
+changed hunk or a changed load target. Other files retain their candidate counts
+with `asked: 0`. Final pieces are still picked by their own changed ranges or
+changed targets; changing only a parent heading does not pick every child step.
+
+JSON reports and evidence listings add `selections` and `file_counts`. Each asked
+candidate reports its kind, source location, first line and outcome, with a yes
+probability or an incomplete reason. Counts cover every built file and configured
+kind, including zero-candidate files: matches, pieces, picked and scan-limited,
+plus candidate/asked/outcome counts for selected kinds. The default format prints
+selection totals and files with candidates but none selected. Selection uncertainty
+uses exit 5 unless a higher-priority status applies; any incomplete candidate
+makes the run incomplete with `selection_incomplete`. GitHub and SARIF formatting
+is unchanged.
+
+The generic numbered-heading and Step-heading utilities recognize levels H2
+through H6; H1 titles are excluded. Existing configurations otherwise preserve
+0.2.0 behavior, apart from these extra heading matches and evidence, fields and
+results derived from their sections. See the complete
+[selection fixture](tests/fixtures/rulebook-lint/selection/skill-rules.config.json)
+for working configuration inputs; its domain-specific question is test content.
 
 ## Native JSON protocol
 

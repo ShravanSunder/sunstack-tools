@@ -213,7 +213,7 @@ export function journeyArguments(description: string): JourneyArguments | undefi
 	});
 	if (parsed.values.help) {
 		process.stdout.write(
-			`${description}\n--prepare --evidence <new-directory> writes fixtures without a product.\nObservation: --binary <absolute> --source-root <checkout> --commit <full-head> [--sha256 <declared>] --evidence <new-directory>.\n--case <name> selects a supported bounded S1 rerun. No hosted calls or credential access.\n`,
+			`${description}\n--prepare --evidence <new-directory> writes fixtures without a product.\nObservation: --binary <absolute> --source-root <checkout> --commit <full-head> [--sha256 <declared>] --evidence <new-directory>.\n--case selection selects the additive selection/refusal mode on its supported entries; S1 accepts named cases. No hosted calls or credential access.\n`,
 		);
 		return undefined;
 	}

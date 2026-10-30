@@ -52,6 +52,16 @@ fn normalized_relative(path: &Path) -> Option<PathBuf> {
     }
     Some(result)
 }
+// Identity comparison never opens the target. Existing-file resolution remains
+// responsible for filesystem containment and readable-content acquisition.
+pub(crate) fn contained_target_identity(repository_root: &Path, path: &Path) -> Option<PathBuf> {
+    let relative = if path.is_absolute() {
+        path.strip_prefix(repository_root).ok()?
+    } else {
+        path
+    };
+    normalized_relative(relative)
+}
 impl CheckedFileSource for FrozenCheckedSource {
     fn resolve_file(&self, path: &Path) -> Option<PathBuf> {
         let normalized = normalized_relative(path).or_else(|| self.fallback.resolve_file(path))?;

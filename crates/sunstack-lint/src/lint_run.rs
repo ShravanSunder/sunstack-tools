@@ -5,7 +5,10 @@ use crate::{
 };
 use std::collections::BTreeMap;
 use sunstack_evidence::*;
-use sunstack_rules::{RulebookRunSettings, run_rulebook};
+use sunstack_rules::{
+    ModelRequestDispatch, RulebookRunSettings, SelectionInput, SelectionOutcome,
+    run_rulebook_with_dispatcher, select_candidates,
+};
 use tokio_util::sync::CancellationToken;
 
 fn invalid(mut report: LintReport, error: LintInvalid) -> LintReport {
@@ -127,8 +130,14 @@ pub async fn run_with_source(
         .rules
         .iter()
         .any(|rule| !rule.questions.is_empty());
+    let selected = config
+        .evidence
+        .kinds
+        .values()
+        .any(|kind| kind.select.is_some());
+    let model_work = selected || (request.evidence_listing.is_none() && asking);
     let key = api_key.as_deref().filter(|key| !key.trim().is_empty());
-    if request.evidence_listing.is_none() && asking && key.is_none() {
+    if model_work && key.is_none() {
         return invalid(
             report,
             LintInvalid::at(
@@ -138,7 +147,7 @@ pub async fn run_with_source(
             ),
         );
     }
-    let backend = if request.evidence_listing.is_none() && asking {
+    let backend = if model_work {
         match key.map(|key| prepare_backend(&config, key)) {
             Some(Ok(backend)) => Some(backend),
             Some(Err(error)) => return invalid(report, error),
@@ -300,16 +309,153 @@ pub async fn run_with_source(
         max_matches: report.limits.max_matches as usize,
         evidence_max_chars: report.limits.evidence_max_chars as usize,
     };
+    let attempts = match report.limits.attempts() {
+        Ok(attempts) => attempts,
+        Err(error) => return invalid(report, error),
+    };
+    let request_budget = match report.limits.request_budget() {
+        Ok(budget) => budget,
+        Err(error) => return invalid(report, error),
+    };
+    let settings = RulebookRunSettings {
+        backend: backend_selection(&config),
+        attempts,
+        request_budget,
+        request_max_chars: report.limits.request_max_chars as usize,
+        max_concurrent_requests: report.limits.max_concurrent_requests as usize,
+        max_model_requests: report.limits.max_model_requests as usize,
+    };
+
+    let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation.clone());
+    let definitions = checked.selections;
     let project = checked.project;
-    let built = tokio::task::spawn_blocking(move || {
-        let catalog = build_pieces(&project, &kinds, &files, &mut source, limits);
-        (catalog, source.checked_files_acquired())
+    let scope_files = files.clone();
+    let started = tokio::task::spawn_blocking(move || {
+        let build = EvidenceBuild::start(&project, &kinds, &files, &mut source, limits);
+        (build, source)
     })
     .await;
-    let (catalog, acquired) = match built {
-        Ok(value) => value,
+    let (mut build, mut source) = match started {
+        Ok((Ok(build), source)) => (build, source),
+        Ok((Err(_), _)) => return failed(report, "evidence kind plan failed"),
         Err(_) => return failed(report, "evidence building failed"),
     };
+    let scope_changes = changes.clone();
+    let repository_root = selection.root.clone();
+    let prepared = tokio::task::spawn_blocking(move || {
+        let targets = build.target_paths(&source, &repository_root);
+        let files = selection_files_for_changes(&scope_files, &targets, &scope_changes, full);
+        (build, source, files)
+    })
+    .await;
+    let selection_files = match prepared {
+        Ok((next_build, next_source, files)) => {
+            build = next_build;
+            source = next_source;
+            files
+        }
+        Err(_) => return failed(report, "selection scope failed"),
+    };
+    let mut chosen = ChosenCandidates::default();
+    let mut catalog = loop {
+        let advanced = tokio::task::spawn_blocking(move || {
+            let step = build.advance(chosen, &mut source);
+            (build, source, step)
+        })
+        .await;
+        let step = match advanced {
+            Ok((next_build, next_source, step)) => {
+                build = next_build;
+                source = next_source;
+                step
+            }
+            Err(_) => return failed(report, "evidence stage failed"),
+        };
+        match step {
+            BuildStep::Done(catalog) => break catalog,
+            BuildStep::NeedsSelection {
+                kind,
+                candidates,
+                shared,
+            } => {
+                let Some(selection) = definitions
+                    .iter()
+                    .find(|selection| selection.kind == kind)
+                    .cloned()
+                else {
+                    return failed(report, "selection admission missing");
+                };
+                let input = SelectionInput {
+                    selection,
+                    candidates,
+                    shared,
+                    files: selection_files.clone(),
+                };
+                let outcomes = select_candidates(&input, &mut dispatcher).await;
+                chosen = ChosenCandidates(
+                    outcomes
+                        .iter()
+                        .filter_map(|(id, outcome)| {
+                            matches!(outcome, SelectionOutcome::Selected { .. })
+                                .then_some(id.clone())
+                        })
+                        .collect(),
+                );
+                for candidate in input.candidates {
+                    if let Some(outcome) = outcomes.get(&candidate.id) {
+                        report.selections.push(SelectionEntry {
+                            kind: kind.clone(),
+                            location: candidate.location,
+                            first_line: candidate.first_line,
+                            outcome: outcome.clone(),
+                        });
+                    }
+                }
+            }
+        }
+    };
+    report.selections.sort_by(|left, right| {
+        (
+            &left.location.file,
+            &left.kind,
+            left.location.span.byte_start,
+        )
+            .cmp(&(
+                &right.location.file,
+                &right.kind,
+                right.location.span.byte_start,
+            ))
+    });
+    for entry in &report.selections {
+        if let Some(count) = catalog
+            .file_counts
+            .iter_mut()
+            .find(|count| count.file == entry.location.file)
+            .and_then(|count| count.kinds.get_mut(&entry.kind))
+            .and_then(|count| count.selection.as_mut())
+        {
+            count.asked += 1;
+            match entry.outcome {
+                SelectionOutcome::Selected { .. } => count.selected += 1,
+                SelectionOutcome::NotSelected { .. } => count.not_selected += 1,
+                SelectionOutcome::Uncertain { .. } => count.uncertain += 1,
+                SelectionOutcome::Incomplete { .. } => count.incomplete += 1,
+            }
+        }
+    }
+    if report
+        .selections
+        .iter()
+        .any(|entry| matches!(entry.outcome, SelectionOutcome::Incomplete { .. }))
+    {
+        report.incomplete.push(IncompletePart {
+            rule: None,
+            file: None,
+            field: None,
+            reason: IncompleteReason::SelectionIncomplete,
+        });
+    }
+    let acquired = source.checked_files_acquired();
     report.usage.checked_files_acquired = acquired;
     for failure in &catalog.failures {
         report.diagnostics.push(LintDiagnostic {
@@ -326,11 +472,26 @@ pub async fn run_with_source(
             reason: IncompleteReason::SelectionFailed,
         });
     }
-    let (picked, _) = pick_pieces(&catalog.pieces, &changes, full);
+    let (picked, _) = pick_pieces(&catalog.pieces, &changes, full, &selection.root);
     let picked_set = picked
         .iter()
         .copied()
         .collect::<std::collections::BTreeSet<_>>();
+    for count in &mut catalog.file_counts {
+        for (kind, kind_count) in &mut count.kinds {
+            kind_count.picked = catalog
+                .pieces
+                .iter()
+                .enumerate()
+                .filter(|(index, piece)| {
+                    picked_set.contains(index)
+                        && piece.location.file == count.file
+                        && &piece.kind == kind
+                })
+                .count();
+        }
+    }
+    report.file_counts = catalog.file_counts.clone();
     let outside = checked
         .assembly
         .rules
@@ -377,48 +538,59 @@ pub async fn run_with_source(
             config: report.config.clone(),
             scope: report.scope.clone(),
             pieces,
-            usage: report.usage.clone(),
+            usage: selection_usage(&dispatcher, acquired),
+            selections: report.selections.clone(),
+            file_counts: report.file_counts.clone(),
         });
+        report.usage = selection_usage(&dispatcher, acquired);
         report.status = if cancellation.is_cancelled() {
             LintStatus::Cancelled
         } else if !report.incomplete.is_empty() {
             LintStatus::Incomplete
+        } else if report
+            .selections
+            .iter()
+            .any(|entry| matches!(entry.outcome, SelectionOutcome::Uncertain { .. }))
+        {
+            LintStatus::Uncertain
         } else {
             LintStatus::Clean
         };
         return report;
     }
-    let attempts = match report.limits.attempts() {
-        Ok(attempts) => attempts,
-        Err(error) => return invalid(report, error),
-    };
-    let request_budget = match report.limits.request_budget() {
-        Ok(budget) => budget,
-        Err(error) => return invalid(report, error),
-    };
-    let settings = RulebookRunSettings {
-        backend: backend_selection(&config),
-        attempts,
-        request_budget,
-        request_max_chars: report.limits.request_max_chars as usize,
-        max_concurrent_requests: report.limits.max_concurrent_requests as usize,
-        max_model_requests: report.limits.max_model_requests as usize,
-    };
-    let run = run_rulebook(
+    let run = run_rulebook_with_dispatcher(
         &checked.assembly.rules,
         &pieces,
         &catalog.matches,
-        settings,
-        backend,
-        cancellation.clone(),
+        &mut dispatcher,
     )
     .await;
-    outcome::project_outcome(
+    let mut report = outcome::project_outcome(
         run,
         &checked.assembly.rules,
         &pieces,
         report,
         request.max_warnings,
         cancellation.is_cancelled(),
-    )
+    );
+    report.usage = selection_usage(&dispatcher, acquired);
+    report
+}
+
+fn selection_usage(dispatcher: &ModelRequestDispatch, acquired: usize) -> UsageSummary {
+    let run = sunstack_rules::RulebookRun {
+        results: vec![],
+        requests: dispatcher
+            .records
+            .iter()
+            .map(|record| sunstack_rules::RulebookRequestRecord {
+                pair_index: record.id,
+                request: record.request.clone(),
+                outcome: record.outcome.clone(),
+            })
+            .collect(),
+    };
+    let mut usage = outcome::summarize_usage(&run);
+    usage.checked_files_acquired = acquired;
+    usage
 }

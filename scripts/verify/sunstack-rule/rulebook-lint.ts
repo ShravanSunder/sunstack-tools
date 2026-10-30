@@ -37,6 +37,7 @@ import {
 	type JsonObject,
 } from './rulebook-fixture-support.ts';
 import { declaredTarget, responseBody, RulebookProcess } from './rulebook-process.ts';
+import { runSelectionJourney } from './selection-journey.ts';
 
 export function scriptedReply(body: JsonObject, total = 0.58, confidence = 0.86): JsonObject {
 	const reply = responseBody(body);
@@ -483,6 +484,10 @@ export async function main(): Promise<void> {
 		'Rulebook lint: independently checked pieces, worked decisions, Git scope and peer skips.',
 	);
 	if (!options) return;
+	if (options.case.includes('selection')) {
+		await runSelectionJourney(options);
+		return;
+	}
 	const target = options.prepare
 		? undefined
 		: declaredTarget({

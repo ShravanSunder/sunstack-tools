@@ -1,5 +1,7 @@
 # Rulebook lint: pieces, decisions and changed evidence
 
+For the additive 30 Oct selected/contained-kind cases, load [evidence-selection.md](evidence-selection.md) and use this entry's `--case selection` mode. The default journey below keeps its existing expectations; a prepared selection fixture is not a product pass.
+
 This journey drives the 29 Oct rulebook pipeline through the actual `sunstack lint` entry. Expected outcomes come from `docs/specs/2026-10-29-skill-rules-evidence-and-decisions/{specification,verification-design}.md`, especially R10–R15, R20–R28 and U2/U5/U8/U10/U12. The fixture is the Implementer's pinned S0 tree under `crates/sunstack/tests/fixtures/rulebook-lint/`; its `expected/` values come from the source copies and ast-grep 0.51.0, independently of the builder.
 
 Inputs: a declared source commit, local binary path and configuration/client, unchanged product sources and binary bytes, the pinned fixture tree, and a fresh authorized evidence directory. The current driver is `scripts/verify/sunstack-rule/rulebook-lint.ts`; read its header and `--help`. The entry returns the source-declared EvidenceListing envelope; finding locations use Finding.line and combined values use JudgmentSummary.value. Recheck these types at the declared S3 target. Fixture preparation establishes no product behavior.

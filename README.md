@@ -148,7 +148,10 @@ with `exec`:
 Run `sunstack lint --init`, then add the referenced rulebook, rule entries and
 ast-grep evidence project. See the [CLI configuration guide](crates/sunstack/README.md#repository-lint)
 for the current configuration shape, scope flags, `--check`, `--evidence` and report
-formats. Version 0.2.0 refuses the former `rule_sets` configuration.
+formats. Version 0.2.0 refuses the former `rule_sets` configuration. Kinds can also
+use model-based `select` and `within` containment; selection outcomes and per-file
+counts are visible in reports and `--evidence` listings. Selected kinds require a
+credential for evidence listings as well as ordinary runs.
 
 Exit codes are 0 for clean or nothing selected, 1 for failing findings, 2 for
 invalid input, 3 for incomplete work, 4 for cancellation and 5 for uncertain
@@ -156,8 +159,9 @@ decisions when no higher-priority result applies.
 
 ### Privacy, cost and limits
 
-Mechanical rules send no text over the network. Selected text for judged rules and
-asking decisions is sent to the configured backend. Such work needs
+Mechanical checks run locally. Evidence selection sends bounded candidate and
+shared field views; asking rules send a piece's bounded field view to the
+configured backend. Such work needs
 `decision_model: { "model": "jev-latest" }` and an OpenRouter key
 from `OPENROUTER_API_KEY` or the OS credential store. The default endpoint is `https://openrouter.ai/api/v1/systemone`.
 The environment wins without touching the store. To save the current environment

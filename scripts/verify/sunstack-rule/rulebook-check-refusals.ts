@@ -18,6 +18,7 @@ import {
 } from './rulebook-fixture-support.ts';
 import { declaredTarget, RulebookProcess } from './rulebook-process.ts';
 import { prepareCases, prepareFifo } from './rulebook-refusal-fixtures.ts';
+import { observeSelectionRefusals, prepareSelectionRefusals } from './selection-refusals.ts';
 
 function locatedInputs(root: string): Set<string> {
 	const files = [
@@ -38,6 +39,27 @@ export async function main(): Promise<void> {
 		'Rulebook --check: R24 refusals plus bounded no-writer FIFO, no key.',
 	);
 	if (!options) return;
+	if (options.case.includes('selection')) {
+		if (options.prepare) {
+			prepareSelectionRefusals({
+				evidence: path.resolve(options.evidence),
+				sourceRoot: options['source-root'],
+			});
+		} else {
+			const target = declaredTarget({
+				binary: options.binary ?? '',
+				source: options['source-root'],
+				commit: options.commit ?? '',
+				...(options.sha256 ? { digest: options.sha256 } : {}),
+			});
+			await observeSelectionRefusals({
+				evidence: path.resolve(options.evidence),
+				sourceRoot: options['source-root'],
+				target,
+			});
+		}
+		return;
+	}
 	const target = options.prepare
 		? undefined
 		: declaredTarget({

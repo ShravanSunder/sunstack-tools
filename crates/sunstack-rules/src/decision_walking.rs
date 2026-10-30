@@ -111,15 +111,7 @@ pub fn walk_decision(
         };
         path.push(current.clone());
         if !matches!(step, DecisionStep::Mechanical { .. })
-            && let Some(field) =
-                crate::rulebook_admission::question_field_references(&rule.questions)
-                    .into_iter()
-                    .find(|field| {
-                        matches!(
-                            piece.fields.get(field),
-                            Some(FieldValue::Unavailable { .. })
-                        )
-                    })
+            && let Some(field) = unavailable_question_field(&rule.questions, &piece.fields)
         {
             return incomplete(RulebookIncompleteReason::EvidenceUnavailable, Some(field));
         }
@@ -335,3 +327,13 @@ fn mechanical_check(
 #[cfg(test)]
 #[path = "decision_walking_test.rs"]
 mod tests;
+
+/// The shared referenced-field guard for rule and evidence-selection questions.
+pub fn unavailable_question_field(
+    questions: &sunstack_decisions::NamedQuestionMap,
+    fields: &BTreeMap<FieldName, FieldValue>,
+) -> Option<FieldName> {
+    crate::rulebook_admission::question_field_references(questions)
+        .into_iter()
+        .find(|field| matches!(fields.get(field), Some(FieldValue::Unavailable { .. })))
+}

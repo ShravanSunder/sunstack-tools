@@ -28,6 +28,10 @@ export interface CapturedRequest {
 	body: JsonObject;
 	raw: Buffer;
 }
+export interface ControlledReply {
+	status: number;
+	body: JsonObject;
+}
 export interface RunCase {
 	root: string;
 	name: string;
@@ -161,6 +165,8 @@ export class RulebookProcess {
 	private held = new Set<http.ServerResponse>();
 	endpoint = '';
 	reply: (body: JsonObject) => JsonObject = responseBody;
+	respond: ((request: CapturedRequest) => Promise<ControlledReply>) | undefined;
+	readonly events: { request: number; event: 'received' | 'responded' }[] = [];
 	constructor(target: DeclaredTarget, evidence: string) {
 		this.target = target;
 		this.evidence = evidence;
@@ -210,6 +216,7 @@ export class RulebookProcess {
 		const body = jsonObjectSchema.parse(JSON.parse(raw.toString('utf8')));
 		this.captures.push({ body, raw });
 		const number = this.captures.length;
+		this.events.push({ request: number, event: 'received' });
 		writeJson(path.join(this.evidence, 'http', `http-${number}.json`), body);
 		filesystem.writeFileSync(path.join(this.evidence, 'http', `http-${number}.raw.json`), raw);
 		if (this.cancelOnRequest) {
@@ -220,12 +227,16 @@ export class RulebookProcess {
 			process.kill(-pid, 'SIGINT');
 			return;
 		}
-		const encoded = Buffer.from(JSON.stringify(this.reply(body)));
-		response.writeHead(200, {
+		const reply = this.respond
+			? await this.respond({ body, raw })
+			: { status: 200, body: this.reply(body) };
+		const encoded = Buffer.from(JSON.stringify(reply.body));
+		response.writeHead(reply.status, {
 			'Content-Type': 'application/json',
 			'Content-Length': encoded.length,
 		});
 		response.end(encoded);
+		this.events.push({ request: number, event: 'responded' });
 	}
 	async run(options: RunCase): Promise<ProcessResult> {
 		confirmTarget(this.target);
@@ -318,6 +329,7 @@ export class RulebookProcess {
 		writeJson(path.join(this.evidence, 'harness.json'), {
 			errors: this.errors,
 			requests: this.captures.length,
+			events: this.events,
 		});
 		confirmTarget(this.target);
 		requireCondition(
