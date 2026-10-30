@@ -36,7 +36,7 @@ async fn full_context_reads_plain_directory_without_git_and_preserves_every_sour
     limits.max_files = 1.try_into().unwrap();
     let limited = capture_repository_context(
         ChangeCaptureRequest {
-            binding,
+            binding: binding.clone(),
             limits,
             anchor_utc: chrono::Utc::now(),
         },
@@ -48,4 +48,28 @@ async fn full_context_reads_plain_directory_without_git_and_preserves_every_sour
     assert!(
         matches!(limited.coverage, DiscoveryCoverage::Limited { cutoffs, .. } if cutoffs.iter().any(|cutoff| cutoff.limit == DiscoveryLimit::Files))
     );
+
+    let mut file_bytes = support::discovery_limits();
+    file_bytes.max_file_bytes = 1.try_into().unwrap();
+    let mut total_bytes = support::discovery_limits();
+    total_bytes.max_total_bytes = 1.try_into().unwrap();
+    for (limits, expected_limit) in [
+        (file_bytes, DiscoveryLimit::FileBytes),
+        (total_bytes, DiscoveryLimit::TotalBytes),
+    ] {
+        let limited = capture_repository_context(
+            ChangeCaptureRequest {
+                binding: binding.clone(),
+                limits,
+                anchor_utc: chrono::Utc::now(),
+            },
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap();
+        assert!(limited.sources.is_empty());
+        assert!(
+            matches!(limited.coverage, DiscoveryCoverage::Limited { cutoffs, .. } if cutoffs.iter().any(|cutoff| cutoff.limit == expected_limit))
+        );
+    }
 }

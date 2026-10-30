@@ -1,6 +1,9 @@
 use crate::repository_evidence::repository_capture::CachedAcquisition;
 use crate::*;
-use std::{collections::BTreeSet, time::Instant};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    time::Instant,
+};
 use tokio_util::sync::CancellationToken;
 
 /// Freeze an allowed current-source context. Full-scope roots need not be Git repositories.
@@ -34,7 +37,7 @@ pub(crate) async fn capture_repository_context_cached(
     let cached_paths = cached.worktree.keys().cloned().collect::<BTreeSet<_>>();
     let scan_cached_paths = cached_paths.clone();
     let scan_cancellation = cancellation.clone();
-    let (paths, scan_timed_out) = tokio::task::spawn_blocking(move || {
+    let (paths, mut metadata_by_path, scan_timed_out) = tokio::task::spawn_blocking(move || {
         let mut paths = BTreeSet::new();
         let mut timed_out = false;
         for entry in ignore::WalkBuilder::new(&binding.root)
@@ -68,7 +71,18 @@ pub(crate) async fn capture_repository_context_cached(
                 break;
             }
         }
-        Ok::<_, EvidenceError>((paths, timed_out))
+        let mut metadata_by_path = BTreeMap::new();
+        for path in paths.difference(&scan_cached_paths) {
+            if scan_cancellation.is_cancelled() {
+                return Err(EvidenceCode::MissingContext.into());
+            }
+            if started.elapsed().as_millis() >= max_time_ms as u128 {
+                timed_out = true;
+                break;
+            }
+            metadata_by_path.insert(path.clone(), std::fs::metadata(binding.root.join(path)));
+        }
+        Ok::<_, EvidenceError>((paths, metadata_by_path, timed_out))
     })
     .await
     .map_err(|_| EvidenceCode::SourceUnavailable)??;
@@ -123,10 +137,9 @@ pub(crate) async fn capture_repository_context_cached(
             cutoff(&mut cutoffs, DiscoveryLimit::Files);
             break;
         }
-        let metadata_path = request.binding.root.join(&path);
-        let metadata = match tokio::task::spawn_blocking(move || std::fs::metadata(metadata_path))
-            .await
-            .map_err(|_| EvidenceCode::SourceUnavailable)?
+        let metadata = match metadata_by_path
+            .remove(&path)
+            .ok_or(EvidenceCode::SourceUnavailable)?
         {
             Ok(metadata) => metadata,
             Err(_) => {
