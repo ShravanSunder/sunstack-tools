@@ -1,0 +1,165 @@
+{
+  "rulebook": [
+    {
+      "markdown": "rulebook.md",
+      "rules": "rules.json"
+    }
+  ],
+  "marker_prefix": "K",
+  "check": {
+    "files": [
+      "skills/**/SKILL.md"
+    ]
+  },
+  "evidence": {
+    "ast_grep": "evidence/sgconfig.yml",
+    "kinds": {
+      "workflow_section": {
+        "rule": "workflow-candidate",
+        "select": {
+          "question": {
+            "type": "noul",
+            "instructions": {
+              "check": "body",
+              "against": "heading",
+              "context": [
+                "outline"
+              ],
+              "task": "Is this section an ordered workflow rather than a list of rules or checks?"
+            }
+          },
+          "yes_at_or_above": 0.7,
+          "no_at_or_below": 0.3,
+          "shared": [
+            "outline"
+          ]
+        },
+        "fields": {
+          "heading": {
+            "from": "first_line"
+          },
+          "body": {
+            "from": "remainder",
+            "exclude": {
+              "rule": "section"
+            }
+          },
+          "outline": {
+            "from": "same_file",
+            "rule": "section"
+          }
+        }
+      },
+      "step": {
+        "rule": "step",
+        "within": "workflow_section",
+        "fields": {
+          "body": {
+            "from": "remainder"
+          }
+        }
+      },
+      "load": {
+        "rule": "load",
+        "fields": {
+          "step": {
+            "from": "enclosing"
+          },
+          "targets": {
+            "from": "target",
+            "regex": "`([^`]+)`",
+            "resolve": "path_or_skill"
+          }
+        }
+      },
+      "plain_heading": {
+        "rule": "heading",
+        "fields": {
+          "heading": {
+            "from": "first_line"
+          }
+        }
+      },
+      "z_skill": {
+        "rule": "skill",
+        "fields": {
+          "description": {
+            "from": "yaml",
+            "key": "description"
+          },
+          "headings": {
+            "from": "same_file",
+            "kind": "plain_heading"
+          }
+        }
+      },
+      "a_load": {
+        "rule": "load",
+        "fields": {
+          "targets": {
+            "from": "target",
+            "regex": "`([^`]+)`",
+            "resolve": "skill",
+            "as_kind": "z_skill"
+          }
+        }
+      },
+      "section_steps": {
+        "rule": "section",
+        "fields": {
+          "steps": {
+            "from": "inside",
+            "kind": "step"
+          }
+        }
+      },
+      "selected_targets": {
+        "rule": "workflow-candidate",
+        "select": {
+          "question": {
+            "type": "noul",
+            "instructions": {
+              "check": "body",
+              "against": "heading",
+              "context": [
+                "outline"
+              ],
+              "task": "Is this section an ordered workflow rather than a list of rules or checks?"
+            }
+          },
+          "yes_at_or_above": 0.7,
+          "no_at_or_below": 0.3,
+          "shared": [
+            "outline"
+          ]
+        },
+        "fields": {
+          "heading": {
+            "from": "first_line"
+          },
+          "body": {
+            "from": "remainder"
+          },
+          "outline": {
+            "from": "same_file",
+            "rule": "section"
+          },
+          "path_targets": {
+            "from": "target",
+            "regex": "`([^`]+\\.md)`",
+            "resolve": "path"
+          },
+          "skill_targets": {
+            "from": "target",
+            "regex": "`([a-z-]+)`",
+            "resolve": "skill",
+            "as_kind": "z_skill"
+          }
+        }
+      }
+    }
+  },
+  "decision_model": {
+    "model": "jev-latest"
+  }
+}

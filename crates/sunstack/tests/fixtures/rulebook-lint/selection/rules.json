@@ -1,0 +1,22 @@
+{
+  "K001": {
+    "name": "step_body",
+    "evidence": "step",
+    "decision": {
+      "start": "body",
+      "steps": {
+        "body": {
+          "mechanical_check": {
+            "tool": "regex",
+            "field": "body",
+            "pattern": "\\S"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Step body missing."
+          }
+        }
+      }
+    }
+  }
+}

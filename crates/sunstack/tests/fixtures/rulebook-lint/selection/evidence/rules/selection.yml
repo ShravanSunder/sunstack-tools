@@ -1,0 +1,11 @@
+{"id":"section","rule":{"kind":"section"},"language":"Markdown"}
+---
+{"id":"workflow-candidate","rule":{"kind":"section","any":[{"has":{"kind":"list","regex":"^[0-9]+[.)] ","stopBy":"neighbor"}},{"has":{"kind":"atx_heading","regex":"^#{2,6}\\s+[0-9]+[.)]\\s+","stopBy":"neighbor"}}]},"language":"Markdown"}
+---
+{"id":"step","rule":{"any":[{"kind":"list_item","regex":"^[0-9]+[.)] "},{"matches":"numbered-heading-section"},{"matches":"step-heading-section"}]},"language":"Markdown"}
+---
+{"id":"load","rule":{"kind":"paragraph","regex":"\\bload\\s+`[^`]+`"},"language":"Markdown"}
+---
+{"id":"skill","rule":{"matches":"frontmatter"},"language":"Markdown"}
+---
+{"id":"heading","rule":{"kind":"section"},"language":"Markdown"}

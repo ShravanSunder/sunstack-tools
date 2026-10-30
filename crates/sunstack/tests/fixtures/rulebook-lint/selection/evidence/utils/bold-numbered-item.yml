@@ -1,0 +1,8 @@
+{
+  "id": "bold-numbered-item",
+  "language": "Markdown",
+  "rule": {
+    "kind": "list_item",
+    "regex": "^[0-9]+[.)]\\s+\\*\\*[^*\\n]+\\*\\*"
+  }
+}
