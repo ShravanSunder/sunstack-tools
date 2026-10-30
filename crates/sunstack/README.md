@@ -1,4 +1,87 @@
-# sunstack exec
+# sunstack
+
+Lint repository documents with a marked rulebook, ast-grep evidence and explicit
+decision steps. Use `sunstack exec` for the native JSON protocol.
+
+## Repository lint
+
+Create a configuration skeleton with `sunstack lint --init`, then add the
+referenced Markdown rulebook, JSON rule entries and ast-grep project. Init writes
+only `sunstack.lint.json` and refuses to overwrite an existing file.
+
+```json
+{
+	"rulebook": [{ "markdown": "rulebook.md", "rules": "rulebook.rules.json" }],
+	"marker_prefix": "K",
+	"check": { "files": ["docs/**/*.md"], "ignore": ["docs/archive/**"] },
+	"evidence": {
+		"ast_grep": "evidence/sgconfig.yml",
+		"kinds": {
+			"piece": {
+				"rule": "your-rule-id",
+				"fields": { "body": { "from": "remainder" } }
+			}
+		}
+	},
+	"decision_model": { "model": "jev-latest" }
+}
+```
+
+Replace `your-rule-id` with a rule in your ast-grep project. An end-of-line marker
+such as `<!-- K001 -->` binds a Markdown standard to its `K001` JSON entry.
+Each entry names an evidence kind and a decision graph. Steps can check fields
+mechanically, ask authored questions, combine answers and route to pass or a
+finding. Questions reach the model as authored, with one piece's bounded field
+view. The binary embeds six generic Markdown utilities; rulebooks, questions and
+domain-specific evidence rules belong to the caller.
+
+Rulebook and ast-grep project paths resolve relative to the configuration file.
+Checked-file globs resolve from its Git repository root, or from the config
+directory outside Git. Without `--config`, lint searches the current directory
+and its parents for `sunstack.lint.json`.
+
+```sh
+sunstack lint --config sunstack.lint.json --check
+sunstack lint --config sunstack.lint.json --all --evidence
+sunstack lint --config sunstack.lint.json --all --evidence piece
+sunstack lint --config sunstack.lint.json --all --format json
+```
+
+`--check` validates configuration, the rulebook and evidence project, then lists
+the assembled rules as JSON. It reads no checked files and sends no model
+requests. `--evidence [KIND]` prints picked evidence and its fields as JSON without
+asking the model. Both routes work without a credential.
+
+An ordinary lint run uses changed evidence by default and requires Git for that
+default scope. Use `--all` for every configured target, `--since REV` for changes
+since a revision including worktree edits, or name files or directories for full
+scope within those paths. Findings retain their rule, marker and source
+location. Available output formats are `default`, `json`, `github` and `sarif`.
+The JSON report includes `results`, one entry per evaluated rule/piece pair in
+logical report order. Each entry has the rule's `name` and marker, the piece's
+file and first and last line, its outcome (`pass`, `finding`, `not_applicable`,
+`uncertain` or `incomplete`) and its ending `step` (null before any step ran).
+
+The decision model is always configured and enabled for asking rules; there is
+no model-off switch. Ordinary runs with asking rules require an OpenRouter
+credential before checked-file acquisition, even if a later mechanical branch
+would avoid an ask. Mechanical-only rules need no key. Credential lookup and
+saving are described below under the native protocol.
+
+Lint exits 0 for clean or nothing selected, 1 for error findings or warnings over
+`--max-warnings`, 2 for invalid input, 3 for incomplete work, 4 for cancellation,
+and 5 for uncertain decisions. Uncertainty retains the decision step, sent state
+and answers for the caller to inspect. Cancellation takes precedence over
+incomplete work, then findings, then uncertainty. A warning alone does not fail
+unless it exceeds `--max-warnings`.
+
+See the checked-in [worked configuration](tests/fixtures/rulebook-lint/skill-rules.config.json)
+and its [rulebook entries](tests/fixtures/rulebook-lint/rulebook/steering.rules.json)
+for a complete test example. Copy the fixture directory to an isolated root to
+try it; its checked-file globs are relative to that root. The example's
+skill-specific rules are test content.
+
+## Native JSON protocol
 
 Run `sunstack exec` (or `cargo run -p sunstack -- exec` from the repository root).
 One process consumes one JSON request on stdin and writes one JSON response on
@@ -6,7 +89,7 @@ stdout. Relative input paths resolve from the process working directory. Run
 from the repository root when using the reviewed examples.
 
 ```json
-{"protocol_version":1,"operation":"evaluate_rules","input":{}}
+{ "protocol_version": 1, "operation": "evaluate_rules", "input": {} }
 ```
 
 Replace `input` with the native operation input. Supported operations are
@@ -29,7 +112,7 @@ package bindings. A relative repository root resolves from this process's CWD.
 For example, select current unstaged changes on a repository binding with:
 
 ```json
-{"change_scope":{"kind":"uncommitted","layers":["unstaged"]}}
+{ "change_scope": { "kind": "uncommitted", "layers": ["unstaged"] } }
 ```
 
 This is a binding fragment, not a complete invocation. ChangeSet selectors need
@@ -77,41 +160,20 @@ It accepts no backend, attempt or request-budget settings. A clean check exits 0
 refusals exit 2 with definition file, line and column. Printed rules are returned
 only after a clean check and include each native definition and its source.
 
-RuleSets can combine existing `rule_paths` JSONL files with
-`rule_sources: [{"markdown":"standards.md","rules":"standards.rules.json"}]`.
-Paths resolve relative to the RuleSet file. A RuleSet with sources needs a `marker_prefix`
-such as `K`; an end-of-line `<!-- K014 -->` binds its standard to the `K014`
-entry in the strict rules object. Entry `name` becomes the native rule ID;
-`target.input` is always explicit, and optional `context` uses native evidence
-declarations. The target declaration reserves ID `target`. The assembled question
-uses visible Markdown wording, with a default cap of 400 words configurable by
-`max_question_words`. Both the Markdown and rules file are definition dependencies.
-
-At runtime, invalid source entries are listed in `skipped_rules`, while valid
-rules continue. An unreadable or malformed source contributes one source-level
-skip. `rule_coverage` is `full`, `partial` or `none`; partial runs can complete
-with exit 0, while no valid rule yields incomplete exit 3. Measurements keep
-`invalid_rule_entries` and `skipped_rule_sources` separate from applicability's
-`rules_skipped`. Existing JSONL, RuleSet-header and invocation errors retain
-their strict refusal behavior.
-
-Run the complete credential-free check/print example from the repository root:
-
-```sh
-scripts/cargo-debug-signing-runner.sh target/debug/sunstack exec \
-  < docs/specs/2026-10-12-rust-rule-engine/examples/marked-standards.check.request.json
-```
-
-The [check input schema](../../docs/specs/2026-10-12-rust-rule-engine/schemas/check-rules-input.schema.json)
-and [rules-object schema](../../docs/specs/2026-10-12-rust-rule-engine/schemas/rule-source.schema.json)
-describe these boundaries. Preparation and evaluation reports now require coverage,
-rule evaluations, skipped rules and their counters; strict report consumers must
-update together.
+Native RuleSets load `rule_paths` JSONL files, with paths relative to the RuleSet
+file. Use the repository lint route above for marked Markdown rulebooks. Native
+preparation and evaluation retain their coverage, rule evaluations, skipped rules
+and counters. JSONL, RuleSet-header and invocation errors remain strict refusals.
 
 Document targets can select Markdown units independently:
 
 ```json
-{"kind":"markdown_units","mode":"call_site","units":["paragraph","list_item"],"pattern":"\\bMUST\\s+load\\b"}
+{
+	"kind": "markdown_units",
+	"mode": "call_site",
+	"units": ["paragraph", "list_item"],
+	"pattern": "\\bMUST\\s+load\\b"
+}
 ```
 
 `mode: unit` produces one occurrence per requested section, paragraph or list
@@ -140,36 +202,54 @@ The evidence library also supports `frontmatter_field` with a literal top-level
 field. Missing or malformed blocks yield explicit unavailable data without an
 invented span. Noul and composite rules reject this mechanical-only target.
 
-A rules entry can replace its judgment threshold with one local check:
+A rules entry can use a native mechanical verdict. Put the check under
+`verdict.check` and select the checked field in the evidence declaration:
 
 ```json
-{"name":"skill.description","target":{"input":"skill","select":{"kind":"frontmatter_field","field":"description"}},"expect":{"starts_with":"Use when"},"severity":"error"}
+{
+	"rule_id": "skill.description",
+	"evidence": [
+		{
+			"id": "description",
+			"input": "subject",
+			"requirement": "required",
+			"select": { "kind": "frontmatter_field", "field": "description" }
+		}
+	],
+	"target": "description",
+	"applicability": [],
+	"questions": {},
+	"verdict": {
+		"kind": "mechanical",
+		"explanation": "Description names when to use the skill.",
+		"check": { "kind": "expect", "expect": { "starts_with": "Use when" } }
+	},
+	"severity": "error"
+}
 ```
 
-`expect` accepts exactly one of `matches`, `not_matches`, `starts_with` or
+Save each native definition as one JSONL line in a RuleSet's `rule_paths`, and
+declare its `subject` input as a document in the RuleSet header. Bind that input
+to the document when calling `check_rules` or `evaluate_rules`.
+
+`verdict.check.expect` accepts exactly one of `matches`, `not_matches`, `starts_with` or
 `present: true`. Text predicates use the unit's rendered-visible text, excluding
 inline code. A frontmatter string uses its decoded text; other values use
 canonical JSON text. Null is present. Every predicate fails on an absent field;
 a missing or malformed header is unresolved.
 
+For an AST check, use `verdict.check: {"kind":"ast_grep","ast_grep":{...}}`.
 `ast_grep` accepts a native rule object validated by ast-grep-config 0.51.0.
 It sees the full original Markdown syntax tree, including ancestors outside
 the unit. A match fully contained in the target unit is a failure; sibling
 matches outside it are excluded. Frontmatter fields use `expect`; runtime unit
-kinds do not select the metadata block. The marked standard becomes the local
-result's explanation and is not sent to a model.
+kinds do not select the metadata block. Local checks send no model request.
 
 Reports use `checked` occurrences with `completed` pass/fail, `unresolved` or
 `cancelled` local outcomes. A failed check retains its declared severity and
 can complete with exit 0. Unresolved checks make the report incomplete. Local
 checks create no model answers, references, receipts or confidence and consume
 no model question/request budget. Applicability and routing still govern them.
-
-The [mechanical invocation](../../docs/specs/2026-10-12-rust-rule-engine/examples/mechanical.invocation.json)
-checks a description and a load instruction without a credential. Wrap that
-native input in the usual `evaluate_rules` protocol frame. The companion
-[check request](../../docs/specs/2026-10-12-rust-rule-engine/examples/mechanical.check.request.json)
-validates and prints both standards without reading the reviewed skill.
 
 Rust callers supply `RuleBackendFactory` in `RuleExecutionContext`. Selection
 is credential-free; the invocation calls `prepare` once when its first model

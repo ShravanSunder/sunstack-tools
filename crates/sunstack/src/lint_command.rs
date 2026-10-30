@@ -95,7 +95,7 @@ async fn inspect(arguments: &LintArguments, cancellation: CancellationToken) -> 
                     relative.as_deref(),
                 ))
             } else {
-                output("Config and rule sets are valid.", 0)
+                json_output(&sunstack_lint::list_rules(&config, &checked, None))
             }
         }
     }
@@ -110,7 +110,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         {
             Ok(Ok(location)) => output(
                 &format!(
-                    "Created {}. Add a rule-set entry before running lint.",
+                    "Created {}. Add the rulebook, rule entries and evidence project before running lint.",
                     location.file.display()
                 ),
                 0,
@@ -130,18 +130,43 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         None if arguments.all => ScopeChoice::All,
         None => ScopeChoice::Default,
     };
-    let credential = provider_credentials::resolve().await;
+    let evidence_listing = match arguments.evidence {
+        Some(Some(kind)) => match sunstack_evidence::EvidenceKindName::new(kind) {
+            Ok(kind) => Some(Some(kind)),
+            Err(_) => {
+                return invalid(LintInvalid::at(
+                    "sunstack.lint.json",
+                    sunstack_lint::LintInvalidCode::Syntax,
+                    "invalid evidence kind",
+                ));
+            }
+        },
+        Some(None) => Some(None),
+        None => None,
+    };
+    let credential = if evidence_listing.is_some() {
+        None
+    } else {
+        provider_credentials::resolve().await
+    };
     let report = sunstack_lint::run(
         LintRequest {
             config_path: arguments.config,
             paths: arguments.paths,
             scope,
             max_warnings: arguments.max_warnings,
+            evidence_listing,
         },
         cancellation,
         credential,
     )
     .await;
+    if let Some(listing) = &report.evidence_listing {
+        return match serde_json::to_string_pretty(listing) {
+            Ok(text) => output(&text, report.status.exit_code()),
+            Err(_) => output("Unable to encode evidence listing.", 3),
+        };
+    }
     output(
         sunstack_lint::render(&report, arguments.format).trim_end_matches('\n'),
         report.status.exit_code(),

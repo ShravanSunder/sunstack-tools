@@ -1,0 +1,31 @@
+{
+  "K001": {
+    "name": "standard",
+    "evidence": "paragraph",
+    "severity": "error",
+    "questions": {
+      "complies": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "Is the statement true?"
+        }
+      }
+    },
+    "decision": {
+      "start": "complies",
+      "steps": {
+        "complies": {
+          "ask": "complies",
+          "yes_at_or_above": 0.8,
+          "no_at_or_below": 0.6,
+          "yes": "pass",
+          "no": {
+            "finding": "Statement is false.",
+            "at": "body"
+          }
+        }
+      }
+    }
+  }
+}

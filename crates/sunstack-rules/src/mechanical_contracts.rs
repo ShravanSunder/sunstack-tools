@@ -65,12 +65,6 @@ impl std::fmt::Debug for AstGrepRule {
     }
 }
 impl AstGrepRule {
-    pub(crate) fn dropped_key(
-        input: &serde_json::Value,
-    ) -> Result<Option<Vec<String>>, serde_json::Error> {
-        let rule = SerializableRule::deserialize(input)?;
-        Ok(missing_input_key(input, &serde_json::to_value(rule)?))
-    }
     pub(crate) fn compile(&self) -> Result<ast_grep_config::Rule, DiagnosticList> {
         DeserializeEnv::new(SupportLang::Markdown)
             .deserialize_rule(self.0.clone())

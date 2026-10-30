@@ -217,7 +217,6 @@ pub(crate) fn load_invocation(
             })
         }
     };
-    crate::rule_source_admission::admit_markdown_entries(&mut groups);
     Ok((groups, router, sources))
 }
 

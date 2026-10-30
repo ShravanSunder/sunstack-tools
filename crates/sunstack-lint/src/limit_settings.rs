@@ -5,8 +5,10 @@ use sunstack_decisions::{AccountingPolicy, AttemptSettings, RequestBudgetSetting
 use sunstack_evidence::{DiscoveryLimits, EvidenceDiscovery, InvocationLimits};
 use sunstack_rules::{ExecutionSettings, Speculation};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EffectiveLimits {
+    pub evidence_max_chars: u32,
+    pub request_max_chars: u32,
     pub max_files: u32,
     pub max_file_bytes: u64,
     pub max_total_bytes: u64,
@@ -26,6 +28,8 @@ pub struct EffectiveLimits {
 impl Default for EffectiveLimits {
     fn default() -> Self {
         Self {
+            evidence_max_chars: 6000,
+            request_max_chars: 20000,
             max_files: 2000,
             max_file_bytes: 1_048_576,
             max_total_bytes: 67_108_864,
@@ -47,6 +51,12 @@ impl Default for EffectiveLimits {
 impl From<&LintLimits> for EffectiveLimits {
     fn from(limits: &LintLimits) -> Self {
         let mut effective = Self::default();
+        if let Some(value) = limits.evidence_max_chars {
+            effective.evidence_max_chars = value.get();
+        }
+        if let Some(value) = limits.request_max_chars {
+            effective.request_max_chars = value.get();
+        }
         if let Some(value) = limits.max_files {
             effective.max_files = value.get();
         }

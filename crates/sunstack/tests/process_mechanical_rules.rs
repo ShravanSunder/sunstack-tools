@@ -1,76 +1,50 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
-#[path = "support/rule_source_fixture.rs"]
-mod source_fixture;
+#[path = "../../sunstack-rules/tests/support/rule_fixture.rs"]
+mod rule_fixture;
 mod support;
 use serde_json::{Value, json};
 use support::*;
 
-fn write_rules(root: &std::path::Path) {
-    std::fs::write(
-        root.join("teaching.md"),
-        "Require a description.<!-- K014 -->\n\nRequire clear paragraphs.<!-- K015 -->\n",
-    )
-    .unwrap();
-    std::fs::write(root.join("teaching.rules.json"),serde_json::to_vec(&json!({
-        "K014":{"name":"local.description","target":{"input":"skill","select":{"kind":"frontmatter_field","field":"description"}},"expect":{"present":true},"severity":"error"},
-        "K015":{"name":"local.peer","target":{"input":"skill","select":{"kind":"markdown_units","mode":"unit","units":["paragraph"]}},"expect":{"starts_with":"Use"}}
-    })).unwrap()).unwrap();
-}
-
-#[tokio::test]
-async fn a_nested_ast_grep_typo_is_skipped_while_a_valid_local_peer_still_runs() {
-    let (directory, input) = source_fixture::source_fixture();
+fn source_fixture() -> (tempfile::TempDir, Value) {
+    let directory = tempfile::tempdir().unwrap();
     let root = directory.path();
-    write_rules(root);
-    let mut rules: Value =
-        serde_json::from_slice(&std::fs::read(root.join("teaching.rules.json")).unwrap()).unwrap();
-    rules["K014"].as_object_mut().unwrap().remove("expect");
-    rules["K014"]["target"]["select"] =
+    let mut field = rule_fixture::rule("local.description");
+    field["severity"] = json!("error");
+    field["evidence"][0]["select"] = json!({"kind":"frontmatter_field","field":"description"});
+    field["verdict"] = json!({"kind":"mechanical","explanation":"Require a description.","check":{"kind":"expect","expect":{"present":true}}});
+    let mut peer = rule_fixture::rule("local.peer");
+    peer["evidence"][0]["select"] =
         json!({"kind":"markdown_units","mode":"unit","units":["paragraph"]});
-    rules["K014"]["ast_grep"] =
-        json!({"kind":"paragraph","inside":{"kind":"list_item","stop_by":"end"}});
-    std::fs::write(
-        root.join("teaching.rules.json"),
-        serde_json::to_vec_pretty(&rules).unwrap(),
-    )
-    .unwrap();
-    std::fs::write(root.join("missing-reviewed.md"), "Use the valid peer.\n").unwrap();
-    let wire = response(
-        &run_without_credential(
-            root,
-            "evaluate_rules",
-            source_fixture::runtime_input(input, "not-a-url"),
-        )
-        .await,
-        0,
-    );
-    let report = &wire["result"]["outcome"]["report"];
-    assert_eq!(report["rule_coverage"], "partial");
-    assert_eq!(report["skipped_rules"].as_array().unwrap().len(), 1);
-    let skipped = &report["skipped_rules"][0];
-    assert_eq!(skipped["kind"], "entry");
-    assert_eq!(skipped["key"], "K014");
-    assert!(
-        skipped["diagnostics"]["items"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|item| item["code"] == "unknown_field"
-                && item["location"]["field_path"] == json!(["ast_grep", "inside", "stop_by"]))
-    );
-    assert_eq!(report["occurrences"].as_array().unwrap().len(), 1);
-    assert_eq!(report["occurrences"][0]["key"]["rule_id"], "local.peer");
-    assert_eq!(report["occurrences"][0]["outcome"]["result"], "pass");
-    assert_eq!(report["measurements"]["model_requests"], 0);
+    peer["verdict"] = json!({"kind":"mechanical","explanation":"Require clear paragraphs.","check":{"kind":"expect","expect":{"starts_with":"Use"}}});
+    rule_fixture::write_set(root, &[field, peer], vec![]);
+    let mut value = serde_json::to_value(rule_fixture::input(root, "not-a-url")).unwrap();
+    value["definitions"]["rule_sets"][0]["binding_groups"][0]["bindings"]["subject"]["path"] =
+        json!("missing-reviewed.md");
+    value["repositories"][0]["input_paths"] = json!([{"kind":"glob","pattern":"**"}]);
+    (directory, value)
+}
+fn check_input(mut value: Value) -> Value {
+    for key in [
+        "package_bindings",
+        "origin",
+        "cursors",
+        "execution",
+        "backend",
+        "attempts",
+        "request_budget",
+    ] {
+        value.as_object_mut().unwrap().remove(key);
+    }
+    value["output"] = json!("assembled_rules");
+    value
 }
 #[tokio::test]
 async fn real_process_checks_and_prints_then_settles_frontmatter_without_credentials_or_a_constructible_backend()
  {
-    let (directory, input) = source_fixture::source_fixture();
+    let (directory, input) = source_fixture();
     let root = directory.path();
-    write_rules(root);
     let checked = response(
-        &run_without_credential(root, "check_rules", input.clone()).await,
+        &run_without_credential(root, "check_rules", check_input(input.clone())).await,
         0,
     );
     assert_eq!(checked["result"]["outcome"]["checked_rule_count"], 2);
@@ -81,7 +55,7 @@ async fn real_process_checks_and_prints_then_settles_frontmatter_without_credent
             .iter()
             .all(|rule| rule["definition"]["verdict"]["kind"] == "mechanical")
     );
-    let runtime = source_fixture::runtime_input(input, "not-a-url");
+    let runtime = input;
     for (text, exit, state, result) in [
         (
             "---\ndescription: null\n---\n\nUse this peer.\n",
@@ -149,7 +123,7 @@ fn field_absent_from_local_results(report: &Value, field: &str) -> bool {
 }
 
 #[tokio::test]
-async fn reviewed_mechanical_example_checks_prints_and_evaluates_without_a_credential() {
+async fn archived_marker_mechanical_example_is_refused_by_native_exec() {
     let root = workspace_root();
     let directory = root.join("docs/specs/2026-10-12-rust-rule-engine/examples");
     let check: Value = serde_json::from_slice(
@@ -158,25 +132,16 @@ async fn reviewed_mechanical_example_checks_prints_and_evaluates_without_a_crede
     .unwrap();
     let checked = response(
         &run_without_credential(&root, "check_rules", check["input"].clone()).await,
-        0,
+        2,
     );
-    assert_eq!(checked["result"]["outcome"]["checked_rule_count"], 2);
+    assert_eq!(checked["result"]["outcome"]["kind"], "refused");
     let input: Value = serde_json::from_slice(
         &std::fs::read(directory.join("mechanical.invocation.json")).unwrap(),
     )
     .unwrap();
     let wire = response(
         &run_without_credential(&root, "evaluate_rules", input).await,
-        0,
+        2,
     );
-    let report = &wire["result"]["outcome"]["report"];
-    assert_eq!(report["measurements"]["model_requests"], 0);
-    assert_eq!(report["occurrences"].as_array().unwrap().len(), 2);
-    assert!(
-        report["occurrences"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|result| result["kind"] == "checked" && result["outcome"]["result"] == "pass")
-    );
+    assert_eq!(wire["result"]["outcome"]["kind"], "invalid");
 }

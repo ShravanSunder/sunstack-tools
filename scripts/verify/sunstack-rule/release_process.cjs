@@ -233,7 +233,7 @@ async function captureProcess({
 		await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 		configBefore = fileSystem.readFileSync(configPath);
 		const config = JSON.parse(configBefore);
-		config.backend.endpoint = 'http://127.0.0.1:' + server.address().port + '/systemone';
+		config.decision_model.endpoint = 'http://127.0.0.1:' + server.address().port + '/systemone';
 		save(configPath, config);
 	}
 	let observation, frozenStdout, frozenStderr;

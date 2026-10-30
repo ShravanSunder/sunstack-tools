@@ -51,7 +51,7 @@ async function controllerCase(mode, testContext) {
 	fileSystem.mkdirSync(path.join(root, 'fixture'));
 	fileSystem.mkdirSync(path.join(root, 'installed'));
 	save(path.join(root, 'fixture/sunstack.lint.json'), {
-		backend: { endpoint: 'http://127.0.0.1:1' },
+		decision_model: { endpoint: 'http://127.0.0.1:1' },
 	});
 	const binary = path.join(root, 'installed/sunstack');
 	fileSystem.symlinkSync(process.execPath, binary);
@@ -121,7 +121,7 @@ process.stdout.write(${JSON.stringify(mode)}==='leak'?process.env.GH_TOKEN:'canc
 		const source = `const http=require('node:http'),fs=require('node:fs');
 if(process.env.GH_TOKEN)throw Error('controller token inherited');
 process.on('SIGINT',()=>process.stdout.write('cancelled-control\\n',()=>process.exit(4)));
-const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(path.join(root, 'fixture/sunstack.lint.json'))})).backend.endpoint;
+const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(path.join(root, 'fixture/sunstack.lint.json'))})).decision_model.endpoint;
 const body=JSON.stringify({state:{contents:{content001:'synthetic actual HTTP state'}},questions:{q1:{question:'held'}}});
 setTimeout(()=>{const request=http.request(endpoint,{method:'POST'},response=>{if(${JSON.stringify(mode)}==='late')process.stdout.write('late-refused:'+response.statusCode+'\\n',()=>process.exit(0));});request.on('error',()=>{});request.end(body);},50);`;
 		child = spawn(binary, ['-e', source], {

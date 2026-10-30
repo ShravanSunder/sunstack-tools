@@ -1,0 +1,1559 @@
+[
+  {
+    "name": "config-unknown",
+    "file": "skill-rules.config.json",
+    "offending": "unknown",
+    "reason": "config-unknown",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "unknown"
+        ],
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "config-rulebook",
+    "file": "skill-rules.config.json",
+    "offending": "rulebook",
+    "reason": "config-rulebook",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "rulebook"
+        ],
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "config-marker_prefix",
+    "file": "skill-rules.config.json",
+    "offending": "marker_prefix",
+    "reason": "config-marker_prefix",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "marker_prefix"
+        ],
+        "value": "kk"
+      }
+    ]
+  },
+  {
+    "name": "config-max_question_words",
+    "file": "skill-rules.config.json",
+    "offending": "max_question_words",
+    "reason": "config-max_question_words",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "max_question_words"
+        ],
+        "value": 0
+      }
+    ]
+  },
+  {
+    "name": "config-check",
+    "file": "skill-rules.config.json",
+    "offending": "check",
+    "reason": "config-check",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "check",
+          "files"
+        ],
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "missing-rulebook",
+    "file": "skill-rules.config.json",
+    "offending": "rulebook",
+    "reason": "required key missing",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "delete",
+        "path": [
+          "rulebook"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "missing-marker_prefix",
+    "file": "skill-rules.config.json",
+    "offending": "marker_prefix",
+    "reason": "required key missing",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "delete",
+        "path": [
+          "marker_prefix"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "missing-check",
+    "file": "skill-rules.config.json",
+    "offending": "check",
+    "reason": "required key missing",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "delete",
+        "path": [
+          "check"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "missing-evidence",
+    "file": "skill-rules.config.json",
+    "offending": "evidence",
+    "reason": "required key missing",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "delete",
+        "path": [
+          "evidence"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "missing-decision_model",
+    "file": "skill-rules.config.json",
+    "offending": "decision_model",
+    "reason": "required key missing",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "delete",
+        "path": [
+          "decision_model"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "old-rule_sets",
+    "file": "skill-rules.config.json",
+    "offending": "rule_sets",
+    "reason": "rulebook",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "rule_sets"
+        ],
+        "value": {}
+      }
+    ]
+  },
+  {
+    "name": "old-rules",
+    "file": "skill-rules.config.json",
+    "offending": "rules",
+    "reason": "severity",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "rules"
+        ],
+        "value": {}
+      }
+    ]
+  },
+  {
+    "name": "old-overrides",
+    "file": "skill-rules.config.json",
+    "offending": "overrides",
+    "reason": "severity",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "overrides"
+        ],
+        "value": {}
+      }
+    ]
+  },
+  {
+    "name": "old-ignore_patterns",
+    "file": "skill-rules.config.json",
+    "offending": "ignore_patterns",
+    "reason": "check",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "ignore_patterns"
+        ],
+        "value": {}
+      }
+    ]
+  },
+  {
+    "name": "old-backend",
+    "file": "skill-rules.config.json",
+    "offending": "backend",
+    "reason": "decision_model",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "backend"
+        ],
+        "value": {}
+      }
+    ]
+  },
+  {
+    "name": "config-duplicate",
+    "file": "skill-rules.config.json",
+    "offending": "marker_prefix",
+    "reason": "duplicate key",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "skill-rules.config.json",
+        "text": "{\n  \"rulebook\": [\n    {\n      \"markdown\": \"rulebook/steering.md\",\n      \"rules\": \"rulebook/steering.rules.json\"\n    }\n  ],\n  \"marker_prefix\": \"K\", \"marker_prefix\": \"K\",\n  \"check\": {\n    \"files\": [\n      \"skills/**/SKILL.md\"\n    ]\n  },\n  \"evidence\": {\n    \"ast_grep\": \"evidence/sgconfig.yml\",\n    \"kinds\": {\n      \"step\": {\n        \"rule\": \"step\",\n        \"fields\": {\n          \"heading\": {\n            \"from\": \"capture\",\n            \"regex\": \"^(?:###\\\\s+|[0-9]+[.)]\\\\s+\\\\*\\\\*)([^\\\\n]+)\\\\n?\"\n          },\n          \"completion\": {\n            \"from\": \"inside\",\n            \"rule\": \"completion\"\n          },\n          \"body\": {\n            \"from\": \"remainder\"\n          }\n        }\n      },\n      \"skill\": {\n        \"rule\": \"skill\",\n        \"fields\": {\n          \"description\": {\n            \"from\": \"yaml\",\n            \"key\": \"description\"\n          },\n          \"steps\": {\n            \"from\": \"same_file\",\n            \"rule\": \"step\"\n          }\n        }\n      },\n      \"load\": {\n        \"rule\": \"load\",\n        \"fields\": {\n          \"line\": {\n            \"from\": \"first_line\"\n          },\n          \"targets\": {\n            \"from\": \"target\",\n            \"regex\": \"`([^`]+)`\",\n            \"resolve\": \"path_or_skill\",\n            \"as_kind\": \"skill\"\n          }\n        }\n      },\n      \"branch\": {\n        \"rule\": \"branch\",\n        \"fields\": {\n          \"line\": {\n            \"from\": \"first_line\"\n          }\n        }\n      },\n      \"sentence\": {\n        \"rule\": \"sentence\",\n        \"fields\": {\n          \"body\": {\n            \"from\": \"remainder\"\n          },\n          \"headings\": {\n            \"from\": \"enclosing\",\n            \"rule\": \"section-heading\"\n          }\n        }\n      },\n      \"reference_section\": {\n        \"rule\": \"reference-section\",\n        \"fields\": {\n          \"heading\": {\n            \"from\": \"first_line\"\n          },\n          \"body\": {\n            \"from\": \"remainder\"\n          }\n        }\n      }\n    }\n  },\n  \"decision_model\": {\n    \"model\": \"openai/gpt-4.1-mini\",\n    \"endpoint\": \"http://127.0.0.1:9/systemone\"\n  }\n}\n"
+      }
+    ]
+  },
+  {
+    "name": "config-syntax",
+    "file": "skill-rules.config.json",
+    "offending": "",
+    "reason": "malformed JSON",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "skill-rules.config.json",
+        "text": "{\"rulebook\": [\n"
+      }
+    ]
+  },
+  {
+    "name": "marker-missing-entry",
+    "file": "rulebook/steering.md",
+    "offending": "K004",
+    "reason": "marker without entry",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "rulebook/steering.md",
+        "text": "# Steering standards\n\nEach workflow step states a checkable completion covering its obligations. <!-- K001 -->\n\nA skill description has at most 300 characters. <!-- K002 -->\n\nA skill description names when to use the skill. <!-- K003 -->\n\nExtra standard. <!-- K004 -->\n"
+      }
+    ]
+  },
+  {
+    "name": "entry-missing-marker",
+    "file": "rulebook/steering.rules.json",
+    "offending": "K003",
+    "reason": "entry without marker",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "rulebook/steering.md",
+        "text": "# Steering standards\n\nEach workflow step states a checkable completion covering its obligations. <!-- K001 -->\n\nA skill description has at most 300 characters. <!-- K002 -->\n\nA skill description names when to use the skill. \n"
+      }
+    ]
+  },
+  {
+    "name": "marker-duplicate",
+    "file": "rulebook/steering.md",
+    "offending": "K001",
+    "reason": "duplicate marker",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "rulebook/steering.md",
+        "text": "# Steering standards\n\nEach workflow step states a checkable completion covering its obligations. <!-- K001 -->\n\nA skill description has at most 300 characters. <!-- K002 -->\n\nA skill description names when to use the skill. <!-- K003 -->\n\nAnother standard. <!-- K001 -->\n"
+      }
+    ]
+  },
+  {
+    "name": "marker-forbidden-host",
+    "file": "rulebook/steering.md",
+    "offending": "K001",
+    "reason": "forbidden marker host",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "rulebook/steering.md",
+        "text": "# Steering standards\n\n> Each workflow step states a checkable completion covering its obligations. <!-- K001 -->\n\nA skill description has at most 300 characters. <!-- K002 -->\n\nA skill description names when to use the skill. <!-- K003 -->\n"
+      }
+    ]
+  },
+  {
+    "name": "marker-spaced-heading",
+    "file": "rulebook/steering.md",
+    "offending": "K004",
+    "reason": "heading spacing",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "rulebook/steering.md",
+        "text": "# Steering standards\n\nEach workflow step states a checkable completion covering its obligations. <!-- K001 -->\n\nA skill description has at most 300 characters. <!-- K002 -->\n\nA skill description names when to use the skill. <!-- K003 -->\n\n## Extra heading <!-- K004 -->\n"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K004"
+        ],
+        "value": {
+          "name": "spaced_heading",
+          "evidence": "skill",
+          "severity": "error",
+          "decision": {
+            "start": "under_300",
+            "steps": {
+              "under_300": {
+                "mechanical_check": {
+                  "tool": "max_chars",
+                  "field": "description",
+                  "max": 300
+                },
+                "yes": "pass",
+                "no": {
+                  "finding": "Over 300 characters.",
+                  "at": "description"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "marker-over-word-limit",
+    "file": "rulebook/steering.md",
+    "offending": "K001",
+    "reason": "standard over configured limit",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "rulebook/steering.md",
+        "text": "# Steering standards\n\nword word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word Each workflow step states a checkable completion covering its obligations. <!-- K001 -->\n\nA skill description has at most 300 characters. <!-- K002 -->\n\nA skill description names when to use the skill. <!-- K003 -->\n"
+      }
+    ]
+  },
+  {
+    "name": "duplicate-rule-name",
+    "file": "rulebook/steering.rules.json",
+    "offending": "step_completion",
+    "reason": "duplicate-rule-name",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K003",
+          "name"
+        ],
+        "value": "step_completion"
+      }
+    ]
+  },
+  {
+    "name": "entry-unknown-key",
+    "file": "rulebook/steering.rules.json",
+    "offending": "unknown",
+    "reason": "entry-unknown-key",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "unknown"
+        ],
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "undefined-kind",
+    "file": "rulebook/steering.rules.json",
+    "offending": "absent_kind",
+    "reason": "undefined-kind",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "evidence"
+        ],
+        "value": "absent_kind"
+      }
+    ]
+  },
+  {
+    "name": "reserved-field",
+    "file": "skill-rules.config.json",
+    "offending": "text",
+    "reason": "reserved-field",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "step",
+          "fields",
+          "text"
+        ],
+        "value": {
+          "from": "first_line"
+        }
+      }
+    ]
+  },
+  {
+    "name": "invalid-field-name",
+    "file": "skill-rules.config.json",
+    "offending": "BadField",
+    "reason": "invalid-field-name",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "step",
+          "fields",
+          "BadField"
+        ],
+        "value": {
+          "from": "first_line"
+        }
+      }
+    ]
+  },
+  {
+    "name": "unknown-kind-rule",
+    "file": "skill-rules.config.json",
+    "offending": "absent_rule",
+    "reason": "unknown-kind-rule",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "step",
+          "rule"
+        ],
+        "value": "absent_rule"
+      }
+    ]
+  },
+  {
+    "name": "unknown-field-rule",
+    "file": "skill-rules.config.json",
+    "offending": "absent_rule",
+    "reason": "unknown-field-rule",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "step",
+          "fields",
+          "completion",
+          "rule"
+        ],
+        "value": "absent_rule"
+      }
+    ]
+  },
+  {
+    "name": "field-regex",
+    "file": "skill-rules.config.json",
+    "offending": "regex",
+    "reason": "field-regex",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "step",
+          "fields",
+          "heading",
+          "regex"
+        ],
+        "value": "["
+      }
+    ]
+  },
+  {
+    "name": "kind-max-under-floor",
+    "file": "skill-rules.config.json",
+    "offending": "max_chars",
+    "reason": "kind-max-under-floor",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "step",
+          "max_chars"
+        ],
+        "value": 999
+      }
+    ]
+  },
+  {
+    "name": "evidence-max-under-floor",
+    "file": "skill-rules.config.json",
+    "offending": "evidence_max_chars",
+    "reason": "evidence-max-under-floor",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "limits"
+        ],
+        "value": {
+          "evidence_max_chars": 999
+        }
+      }
+    ]
+  },
+  {
+    "name": "as-kind-undefined",
+    "file": "skill-rules.config.json",
+    "offending": "as_kind",
+    "reason": "as-kind-undefined",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "load",
+          "fields",
+          "targets",
+          "as_kind"
+        ],
+        "value": "absent_kind"
+      }
+    ]
+  },
+  {
+    "name": "as-kind-has-target",
+    "file": "skill-rules.config.json",
+    "offending": "as_kind",
+    "reason": "as-kind-has-target",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "kinds",
+          "load",
+          "fields",
+          "targets",
+          "as_kind"
+        ],
+        "value": "load"
+      }
+    ]
+  },
+  {
+    "name": "question-invalid",
+    "file": "rulebook/steering.rules.json",
+    "offending": "type",
+    "reason": "question-invalid",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K003",
+          "questions",
+          "names_trigger",
+          "type"
+        ],
+        "value": "invalid"
+      }
+    ]
+  },
+  {
+    "name": "question-field-undefined",
+    "file": "rulebook/steering.rules.json",
+    "offending": "check",
+    "reason": "question-field-undefined",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K003",
+          "questions",
+          "names_trigger",
+          "instructions",
+          "check"
+        ],
+        "value": "absent_field"
+      }
+    ]
+  },
+  {
+    "name": "choice-too-few",
+    "file": "rulebook/steering.rules.json",
+    "offending": "criteria",
+    "reason": "choice-too-few",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "questions",
+          "kind",
+          "criteria",
+          "action"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "questions",
+          "kind",
+          "criteria",
+          "other"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "questions",
+          "kind",
+          "criteria",
+          "outcome"
+        ],
+        "value": "Only one option"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "routes",
+          "action"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "routes",
+          "other"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "routes",
+          "outcome"
+        ],
+        "value": "pass"
+      }
+    ]
+  },
+  {
+    "name": "score-too-few",
+    "file": "rulebook/steering.rules.json",
+    "offending": "criteria",
+    "reason": "score-too-few",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "questions",
+          "checkable",
+          "criteria"
+        ],
+        "value": [
+          "Only one level"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ask-undefined",
+    "file": "rulebook/steering.rules.json",
+    "offending": "ask",
+    "reason": "ask-undefined",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "ask"
+        ],
+        "value": "absent_question"
+      }
+    ]
+  },
+  {
+    "name": "combine-undefined",
+    "file": "rulebook/steering.rules.json",
+    "offending": "combine",
+    "reason": "combine-undefined",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "covers"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "checkable"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "absent_question"
+        ],
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "combine-choice",
+    "file": "rulebook/steering.rules.json",
+    "offending": "combine",
+    "reason": "combine-choice",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "covers"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "checkable"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "kind"
+        ],
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "choice-unrouted",
+    "file": "rulebook/steering.rules.json",
+    "offending": "routes",
+    "reason": "choice-unrouted",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "routes",
+          "other"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "routes",
+          "outcome"
+        ],
+        "value": "pass"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "routes",
+          "action"
+        ],
+        "value": "pass"
+      }
+    ]
+  },
+  {
+    "name": "choice-unknown-route",
+    "file": "rulebook/steering.rules.json",
+    "offending": "unknown",
+    "reason": "choice-unknown-route",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "routes",
+          "unknown"
+        ],
+        "value": "pass"
+      }
+    ]
+  },
+  {
+    "name": "weight-zero",
+    "file": "rulebook/steering.rules.json",
+    "offending": "combine",
+    "reason": "weight-zero",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "covers"
+        ],
+        "value": 0
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "checkable"
+        ],
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "weight-negative",
+    "file": "rulebook/steering.rules.json",
+    "offending": "combine",
+    "reason": "weight-negative",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "covers"
+        ],
+        "value": -1
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "checkable"
+        ],
+        "value": 2
+      }
+    ]
+  },
+  {
+    "name": "weights-sum",
+    "file": "rulebook/steering.rules.json",
+    "offending": "combine",
+    "reason": "weights-sum",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "combine",
+          "checkable"
+        ],
+        "value": 0.6
+      }
+    ]
+  },
+  {
+    "name": "threshold-negative",
+    "file": "rulebook/steering.rules.json",
+    "offending": "no_at_or_below",
+    "reason": "threshold-negative",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "no_at_or_below"
+        ],
+        "value": -0.1
+      }
+    ]
+  },
+  {
+    "name": "threshold-over-one",
+    "file": "rulebook/steering.rules.json",
+    "offending": "yes_at_or_above",
+    "reason": "threshold-over-one",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "yes_at_or_above"
+        ],
+        "value": 1.1
+      }
+    ]
+  },
+  {
+    "name": "threshold-equal",
+    "file": "rulebook/steering.rules.json",
+    "offending": "yes_at_or_above",
+    "reason": "threshold-equal",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "yes_at_or_above"
+        ],
+        "value": 0.6
+      }
+    ]
+  },
+  {
+    "name": "threshold-reversed",
+    "file": "rulebook/steering.rules.json",
+    "offending": "yes_at_or_above",
+    "reason": "threshold-reversed",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "yes_at_or_above"
+        ],
+        "value": 0.5
+      }
+    ]
+  },
+  {
+    "name": "probability-zero",
+    "file": "rulebook/steering.rules.json",
+    "offending": "min_probability",
+    "reason": "probability-zero",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "min_probability"
+        ],
+        "value": 0
+      }
+    ]
+  },
+  {
+    "name": "probability-over-one",
+    "file": "rulebook/steering.rules.json",
+    "offending": "min_probability",
+    "reason": "probability-over-one",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "kind",
+          "min_probability"
+        ],
+        "value": 1.1
+      }
+    ]
+  },
+  {
+    "name": "start-undefined",
+    "file": "rulebook/steering.rules.json",
+    "offending": "start",
+    "reason": "start-undefined",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "start"
+        ],
+        "value": "absent_step"
+      }
+    ]
+  },
+  {
+    "name": "step-undefined",
+    "file": "rulebook/steering.rules.json",
+    "offending": "yes",
+    "reason": "step-undefined",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "yes"
+        ],
+        "value": "absent_step"
+      }
+    ]
+  },
+  {
+    "name": "cycle",
+    "file": "rulebook/steering.rules.json",
+    "offending": "yes",
+    "reason": "cycle",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "yes"
+        ],
+        "value": "has_completion"
+      }
+    ]
+  },
+  {
+    "name": "nonterminal",
+    "file": "rulebook/steering.rules.json",
+    "offending": "no",
+    "reason": "nonterminal",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "no",
+          "finding"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "no",
+          "at"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tool-unknown",
+    "file": "rulebook/steering.rules.json",
+    "offending": "tool",
+    "reason": "tool-unknown",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "decision",
+          "steps",
+          "under_300",
+          "mechanical_check",
+          "tool"
+        ],
+        "value": "absent_tool"
+      }
+    ]
+  },
+  {
+    "name": "tool-field-undefined",
+    "file": "rulebook/steering.rules.json",
+    "offending": "field",
+    "reason": "tool-field-undefined",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "decision",
+          "steps",
+          "under_300",
+          "mechanical_check",
+          "field"
+        ],
+        "value": "absent_field"
+      }
+    ]
+  },
+  {
+    "name": "at-undefined",
+    "file": "rulebook/steering.rules.json",
+    "offending": "at",
+    "reason": "at-undefined",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K001",
+          "decision",
+          "steps",
+          "quality",
+          "no",
+          "at"
+        ],
+        "value": "absent_field"
+      }
+    ]
+  },
+  {
+    "name": "regex-target",
+    "file": "rulebook/steering.rules.json",
+    "offending": "targets",
+    "reason": "regex-target",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K002",
+          "severity"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "name"
+        ],
+        "value": "shape_check"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "evidence"
+        ],
+        "value": "load"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "decision",
+          "start"
+        ],
+        "value": "shape"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K002",
+          "decision",
+          "steps",
+          "under_300"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "decision",
+          "steps",
+          "shape"
+        ],
+        "value": {
+          "mechanical_check": {
+            "tool": "regex",
+            "field": "targets",
+            "pattern": "."
+          },
+          "yes": "pass",
+          "no": "pass"
+        }
+      }
+    ]
+  },
+  {
+    "name": "exists-text",
+    "file": "rulebook/steering.rules.json",
+    "offending": "description",
+    "reason": "exists-text",
+    "edits": [
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K002",
+          "severity"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "name"
+        ],
+        "value": "shape_check"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "decision",
+          "start"
+        ],
+        "value": "shape"
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "delete",
+        "path": [
+          "K002",
+          "decision",
+          "steps",
+          "under_300"
+        ]
+      },
+      {
+        "file": "rulebook/steering.rules.json",
+        "operation": "set",
+        "path": [
+          "K002",
+          "decision",
+          "steps",
+          "shape"
+        ],
+        "value": {
+          "mechanical_check": {
+            "tool": "file_exists",
+            "field": "description"
+          },
+          "yes": "pass",
+          "no": "pass"
+        }
+      }
+    ]
+  },
+  {
+    "name": "threshold-nonfinite",
+    "file": "rulebook/steering.rules.json",
+    "offending": "yes_at_or_above",
+    "reason": "nonfinite number",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "skill-rules.config.json",
+        "text": "{\n  \"rulebook\": [\n    {\n      \"markdown\": \"rulebook/steering.md\",\n      \"rules\": \"rulebook/steering.rules.json\"\n    }\n  ],\n  \"marker_prefix\": \"K\",\n  \"check\": {\n    \"files\": [\n      \"skills/**/SKILL.md\"\n    ]\n  },\n  \"evidence\": {\n    \"ast_grep\": \"evidence/sgconfig.yml\",\n    \"kinds\": {\n      \"step\": {\n        \"rule\": \"step\",\n        \"fields\": {\n          \"heading\": {\n            \"from\": \"capture\",\n            \"regex\": \"^(?:###\\\\s+|[0-9]+[.)]\\\\s+\\\\*\\\\*)([^\\\\n]+)\\\\n?\"\n          },\n          \"completion\": {\n            \"from\": \"inside\",\n            \"rule\": \"completion\"\n          },\n          \"body\": {\n            \"from\": \"remainder\"\n          }\n        }\n      },\n      \"skill\": {\n        \"rule\": \"skill\",\n        \"fields\": {\n          \"description\": {\n            \"from\": \"yaml\",\n            \"key\": \"description\"\n          },\n          \"steps\": {\n            \"from\": \"same_file\",\n            \"rule\": \"step\"\n          }\n        }\n      },\n      \"load\": {\n        \"rule\": \"load\",\n        \"fields\": {\n          \"line\": {\n            \"from\": \"first_line\"\n          },\n          \"targets\": {\n            \"from\": \"target\",\n            \"regex\": \"`([^`]+)`\",\n            \"resolve\": \"path_or_skill\",\n            \"as_kind\": \"skill\"\n          }\n        }\n      },\n      \"branch\": {\n        \"rule\": \"branch\",\n        \"fields\": {\n          \"line\": {\n            \"from\": \"first_line\"\n          }\n        }\n      },\n      \"sentence\": {\n        \"rule\": \"sentence\",\n        \"fields\": {\n          \"body\": {\n            \"from\": \"remainder\"\n          },\n          \"headings\": {\n            \"from\": \"enclosing\",\n            \"rule\": \"section-heading\"\n          }\n        }\n      },\n      \"reference_section\": {\n        \"rule\": \"reference-section\",\n        \"fields\": {\n          \"heading\": {\n            \"from\": \"first_line\"\n          },\n          \"body\": {\n            \"from\": \"remainder\"\n          }\n        }\n      }\n    }\n  },\n  \"decision_model\": {\n    \"model\": \"openai/gpt-4.1-mini\",\n    \"endpoint\": \"http://127.0.0.1:9/systemone\"\n  }\n}\n"
+      },
+      {
+        "operation": "text",
+        "file": "rulebook/steering.rules.json",
+        "text": "{\n  \"K001\": {\n    \"name\": \"step_completion\",\n    \"evidence\": \"step\",\n    \"questions\": {\n      \"kind\": {\n        \"type\": \"choice\",\n        \"instructions\": {\n          \"check\": \"completion\",\n          \"against\": \"body\",\n          \"task\": \"Classify what the completion describes.\"\n        },\n        \"criteria\": {\n          \"outcome\": \"An observable outcome.\",\n          \"action\": \"An action only.\",\n          \"other\": \"Neither an outcome nor an action.\"\n        }\n      },\n      \"covers\": {\n        \"type\": \"noul\",\n        \"instructions\": {\n          \"check\": \"completion\",\n          \"against\": \"body\",\n          \"task\": \"Does the completion cover every obligation?\"\n        }\n      },\n      \"checkable\": {\n        \"type\": \"score\",\n        \"instructions\": {\n          \"check\": \"completion\",\n          \"task\": \"How checkable is this completion?\"\n        },\n        \"criteria\": [\n          \"Not checkable.\",\n          \"Partly checkable.\",\n          \"Directly checkable.\"\n        ]\n      }\n    },\n    \"decision\": {\n      \"start\": \"has_completion\",\n      \"steps\": {\n        \"has_completion\": {\n          \"mechanical_check\": {\n            \"tool\": \"ast_grep\",\n            \"rule\": \"completion\"\n          },\n          \"yes\": \"kind\",\n          \"no\": {\n            \"finding\": \"Missing completion.\"\n          }\n        },\n        \"kind\": {\n          \"ask\": \"kind\",\n          \"min_probability\": 0.6,\n          \"routes\": {\n            \"outcome\": \"quality\",\n            \"action\": {\n              \"finding\": \"Completion describes only an action.\",\n              \"at\": \"completion\"\n            },\n            \"other\": {\n              \"finding\": \"Completion does not describe an outcome.\",\n              \"at\": \"completion\"\n            }\n          }\n        },\n        \"quality\": {\n          \"combine\": {\n            \"covers\": 0.6,\n            \"checkable\": 0.4\n          },\n          \"yes_at_or_above\": 1e9999,\n          \"no_at_or_below\": 0.6,\n          \"yes\": \"pass\",\n          \"no\": {\n            \"finding\": \"Completion is incomplete or not checkable.\",\n            \"at\": \"completion\"\n          }\n        }\n      }\n    }\n  },\n  \"K002\": {\n    \"name\": \"description_length\",\n    \"evidence\": \"skill\",\n    \"severity\": \"error\",\n    \"decision\": {\n      \"start\": \"under_300\",\n      \"steps\": {\n        \"under_300\": {\n          \"mechanical_check\": {\n            \"tool\": \"max_chars\",\n            \"field\": \"description\",\n            \"max\": 300\n          },\n          \"yes\": \"pass\",\n          \"no\": {\n            \"finding\": \"Over 300 characters.\",\n            \"at\": \"description\"\n          }\n        }\n      }\n    }\n  },\n  \"K003\": {\n    \"name\": \"description_trigger\",\n    \"evidence\": \"skill\",\n    \"questions\": {\n      \"names_trigger\": {\n        \"type\": \"noul\",\n        \"instructions\": {\n          \"check\": \"description\",\n          \"task\": \"Does the description name when to use this skill?\"\n        }\n      }\n    },\n    \"decision\": {\n      \"start\": \"names_trigger\",\n      \"steps\": {\n        \"names_trigger\": {\n          \"ask\": \"names_trigger\",\n          \"yes_at_or_above\": 0.8,\n          \"no_at_or_below\": 0.6,\n          \"yes\": \"pass\",\n          \"no\": {\n            \"finding\": \"Description does not name its trigger.\",\n            \"at\": \"description\"\n          }\n        }\n      }\n    }\n  }\n}\n"
+      }
+    ]
+  },
+  {
+    "name": "ast-rule-invalid",
+    "file": "evidence/rules/refusal.yml",
+    "offending": "broken",
+    "reason": "ast-rule-invalid",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "evidence/rules/refusal.yml",
+        "text": "{\"id\":\"broken\",\"language\":\"Markdown\",\"rule\":{\"kind\":\"not_a_node\"}}"
+      }
+    ]
+  },
+  {
+    "name": "non-markdown",
+    "file": "evidence/rules/refusal.yml",
+    "offending": "foreign",
+    "reason": "non-markdown",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "evidence/rules/refusal.yml",
+        "text": "{\"id\":\"foreign\",\"language\":\"Python\",\"rule\":{\"kind\":\"identifier\"}}"
+      }
+    ]
+  },
+  {
+    "name": "reserved-rule-id",
+    "file": "evidence/rules/refusal.yml",
+    "offending": "quoted",
+    "reason": "reserved-rule-id",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "evidence/rules/refusal.yml",
+        "text": "{\"id\":\"quoted\",\"language\":\"Markdown\",\"rule\":{\"kind\":\"paragraph\"}}"
+      }
+    ]
+  },
+  {
+    "name": "reserved-util-id",
+    "file": "evidence/utils/refusal.yml",
+    "offending": "quoted",
+    "reason": "reserved util",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "evidence/utils/refusal.yml",
+        "text": "{\"id\":\"quoted\",\"language\":\"Markdown\",\"rule\":{\"kind\":\"paragraph\"}}"
+      }
+    ]
+  },
+  {
+    "name": "ast-util-invalid",
+    "file": "evidence/utils/refusal.yml",
+    "offending": "broken_util",
+    "reason": "unknown utility",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "evidence/rules/util-use.yml",
+        "text": "{\"id\":\"util-use\",\"language\":\"Markdown\",\"rule\":{\"matches\":\"broken_util\"}}"
+      },
+      {
+        "operation": "text",
+        "file": "evidence/utils/refusal.yml",
+        "text": "{\"id\":\"broken_util\",\"language\":\"Markdown\",\"rule\":{\"matches\":\"absent_util\"}}"
+      }
+    ]
+  },
+  {
+    "name": "project-unknown-util",
+    "file": "evidence/rules/skill-files.yml",
+    "offending": "absent_util",
+    "reason": "project-unknown-util",
+    "edits": [
+      {
+        "operation": "text",
+        "file": "evidence/rules/skill-files.yml",
+        "text": "{\n  \"id\": \"skill\",\n  \"language\": \"Markdown\",\n  \"files\": [\n    \"**/SKILL.md\"\n  ],\n  \"rule\": {\n    \"matches\": \"absent_util\"\n  }\n}\n"
+      }
+    ]
+  },
+  {
+    "name": "missing-evidence-project",
+    "file": "skill-rules.config.json",
+    "offending": "absent.yml",
+    "reason": "missing-evidence-project",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "evidence",
+          "ast_grep"
+        ],
+        "value": "absent.yml"
+      }
+    ]
+  },
+  {
+    "name": "missing-rule-file",
+    "file": "skill-rules.config.json",
+    "offending": "absent.json",
+    "reason": "missing-rule-file",
+    "edits": [
+      {
+        "file": "skill-rules.config.json",
+        "operation": "set",
+        "path": [
+          "rulebook"
+        ],
+        "value": [
+          {
+            "markdown": "rulebook/steering.md",
+            "rules": "absent.json"
+          }
+        ]
+      }
+    ]
+  }
+]

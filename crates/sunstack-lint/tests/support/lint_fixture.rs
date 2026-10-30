@@ -4,15 +4,46 @@ use std::path::Path;
 use sunstack_lint::{LintRequest, ScopeChoice};
 pub fn write(root: &Path) -> Value {
     std::fs::create_dir_all(root.join("docs")).unwrap();
+    std::fs::create_dir_all(root.join("evidence/rules")).unwrap();
     std::fs::write(
         root.join("docs/one.md"),
         "---\ndescription: Wrong opening\n---\n\n# One\n",
     )
     .unwrap();
-    std::fs::write(root.join("set.json"),serde_json::to_vec_pretty(&json!({"schema_version":1,"name":"document standards","description":"fixture","inputs":{"subject":{"kind":"document"}},"applicability":[],"common_ruleset_instructions":"Evaluate the document.","rule_paths":["rules.jsonl"]})).unwrap()).unwrap();
-    std::fs::write(root.join("rules.jsonl"),serde_json::to_vec(&json!({"rule_id":"description","evidence":[{"id":"target","input":"subject","select":{"kind":"frontmatter_field","field":"description"}}],"target":"target","applicability":[],"questions":{},"verdict":{"kind":"mechanical","explanation":"Description must begin with Use when.","check":{"kind":"expect","expect":{"starts_with":"Use when"}}},"severity":"error"})).unwrap()).unwrap();
-    let config = json!({"$schema":"https://example.invalid/sunstack.lint.schema.json","rule_sets":{"docs":{"path":"set.json","files":["docs/*.md"]}}});
+    std::fs::write(root.join("evidence/sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.join("evidence/rules/skill.yml"),
+        "id: skill\nlanguage: Markdown\nrule: {matches: frontmatter}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("rulebook.md"),
+        "Description must begin with Use when. <!-- K001 -->\n",
+    )
+    .unwrap();
+    entry_file(
+        root,
+        &json!({"K001":{"name":"description","evidence":"skill","severity":"error","decision":{"start":"starts","steps":{"starts":{"mechanical_check":{"tool":"regex","field":"description","pattern":"^Use when"},"yes":"pass","no":{"finding":"Description must begin with Use when.","at":"description"}}}}}}),
+    );
+    let config = json!({"$schema":"https://example.invalid/sunstack.lint.schema.json","rulebook":[{"markdown":"rulebook.md","rules":"rules.json"}],"marker_prefix":"K","check":{"files":["docs/*.md"]},"evidence":{"ast_grep":"evidence/sgconfig.yml","kinds":{"skill":{"rule":"skill","fields":{"description":{"from":"yaml","key":"description"}}}}},"decision_model":{"model":"jev-latest"}});
     config_file(root, &config);
+    config
+}
+pub fn entry_file(root: &Path, entries: &Value) {
+    std::fs::write(
+        root.join("rules.json"),
+        serde_json::to_vec_pretty(entries).unwrap(),
+    )
+    .unwrap();
+}
+pub fn judged(root: &Path, endpoint: &str) -> Value {
+    let mut config = write(root);
+    config["decision_model"]["endpoint"] = json!(endpoint);
+    config_file(root, &config);
+    entry_file(
+        root,
+        &json!({"K001":{"name":"description","evidence":"skill","severity":"error","questions":{"complies":{"type":"noul","instructions":{"check":"description","task":"Does it comply?"}},"details":{"type":"noul","instructions":{"check":"description","task":"Is the evidence useful?"}}},"decision":{"start":"complies","steps":{"complies":{"ask":"complies","yes_at_or_above":0.8,"no_at_or_below":0.3,"yes":"pass","no":{"finding":"Description must begin with Use when.","at":"description"}}}}}}),
+    );
     config
 }
 pub fn config_file(root: &Path, config: &Value) {
@@ -28,6 +59,7 @@ pub fn request(root: &Path) -> LintRequest {
         paths: vec![],
         scope: ScopeChoice::All,
         max_warnings: None,
+        evidence_listing: None,
     }
 }
 pub fn commit(root: &Path, message: &str) {

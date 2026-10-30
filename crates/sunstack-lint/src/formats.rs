@@ -47,6 +47,9 @@ pub(crate) fn incomplete_text(reason: &IncompleteReason) -> &'static str {
         IncompleteReason::CoverageNone => "no rule coverage",
         IncompleteReason::ProviderFailure => "provider failure",
         IncompleteReason::RequestLimitReached => "request limit reached",
+        IncompleteReason::EvidenceUnavailable => "evidence unavailable",
+        IncompleteReason::EvidenceTooLarge => "evidence too large",
+        IncompleteReason::RequestTooLarge => "request too large",
     }
 }
 fn scope_text(scope: &ScopeReport) -> String {
@@ -69,7 +72,18 @@ fn status_text(status: LintStatus) -> &'static str {
         LintStatus::Incomplete => "Incomplete",
         LintStatus::Invalid => "Invalid input",
         LintStatus::Cancelled => "Cancelled",
+        LintStatus::Uncertain => "Uncertain",
     }
+}
+pub(crate) fn uncertain_text(result: &UncertainResult) -> String {
+    format!(
+        "Uncertain [{} {}] at step {}: state {}; answers {}",
+        result.rule.as_str(),
+        result.marker.as_str(),
+        result.step.as_str(),
+        serde_json::to_string(&result.state).unwrap_or_else(|_| "unavailable".into()),
+        serde_json::to_string(&result.answers).unwrap_or_else(|_| "unavailable".into())
+    )
 }
 fn human(report: &LintReport) -> String {
     let mut output = format!("Scope: {}\n", scope_text(&report.scope));
@@ -89,8 +103,17 @@ fn human(report: &LintReport) -> String {
             output,
             "{location}: {} [{}] {}",
             severity_name(finding.severity),
-            finding.rule.written(),
+            finding.rule.as_str(),
             finding.message
+        );
+    }
+    for result in &report.uncertain {
+        let _ = writeln!(
+            output,
+            "{}:{}: {}",
+            result.location.file.display(),
+            result.location.first_line,
+            uncertain_text(result)
         );
     }
     for diagnostic in &report.diagnostics {
@@ -113,7 +136,7 @@ fn human(report: &LintReport) -> String {
             incomplete
                 .rule
                 .as_ref()
-                .map_or_else(|| "run".into(), RuleSelector::written),
+                .map_or_else(|| "run".into(), |rule| rule.as_str().to_owned()),
             incomplete_text(&incomplete.reason)
         );
     }
@@ -176,7 +199,16 @@ fn github(report: &LintReport) -> String {
             "::{} {}::{}",
             transport_level(finding.severity),
             properties,
-            annotation_text(&format!("[{}] {}", finding.rule.written(), finding.message))
+            annotation_text(&format!("[{}] {}", finding.rule.as_str(), finding.message))
+        );
+    }
+    for result in &report.uncertain {
+        let _ = writeln!(
+            output,
+            "::notice file={},line={}::{}",
+            annotation_property(&result.location.file.display().to_string()),
+            result.location.first_line,
+            annotation_text(&uncertain_text(result))
         );
     }
     for diagnostic in &report.diagnostics {

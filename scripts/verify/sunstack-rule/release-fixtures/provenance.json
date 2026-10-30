@@ -1,5 +1,5 @@
 {
-  "basis": "retained literal S1/S4 fixtures previously hand-checked against adopted runner oracle; unchanged semantic fixture code from0f8e39f; runtime source/version/config set by driver",
+  "basis": "Historical S1/S4 capture for the former rule-set lint config. Hashes below describe that old capture, not the current migrated fixtures; current source and runtime proof must be declared separately.",
   "source_product": "0f8e39f44028c66b8ea7f2efd967200afed19f3a",
   "files": {
     "scripts/verify/sunstack-rule/release-fixtures/clean/sunstack.lint.json": "4bead3aebe50f66d062827df3329fdaf36ae4c757e34c681929faab64929d678",
@@ -23,5 +23,6 @@
     "scripts/verify/sunstack-rule/release-fixtures/cancel/docs/one.md": "7ad36881c5d097ed84d43e5b49cfcc957a563e2e55d3d1dd4d4e22f0733f8ac3",
     "scripts/verify/sunstack-rule/release-fixtures/cancel.expected.json": "bce836a1ef71ae6bb9a7f959dd09c380452bda062f491dbc98914f3497c4ec9d"
   },
-  "not_claimed": "fresh v5 runtime observation"
+  "not_claimed": "fresh v5 runtime observation",
+  "historical": true
 }

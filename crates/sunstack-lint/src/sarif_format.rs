@@ -1,6 +1,6 @@
 use crate::{
     LintReport, LintStatus, ScopeReport,
-    formats::{incomplete_text, transport_level},
+    formats::{incomplete_text, transport_level, uncertain_text},
 };
 use serde::Serialize;
 use std::path::Path;
@@ -115,7 +115,7 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
         .findings
         .iter()
         .map(|finding| SarifResult {
-            rule_id: finding.rule.written(),
+            rule_id: finding.rule.as_str().to_owned(),
             level: transport_level(finding.severity),
             message: SarifMessage {
                 text: &finding.message,
@@ -174,6 +174,26 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
                 .collect(),
         }
     }));
+    let uncertain_messages = report
+        .uncertain
+        .iter()
+        .map(uncertain_text)
+        .collect::<Vec<_>>();
+    notifications.extend(report.uncertain.iter().zip(&uncertain_messages).map(
+        |(result, message)| SarifNotification {
+            level: "note",
+            message: SarifMessage { text: message },
+            locations: vec![location(
+                &result.location.file,
+                Some(SarifRegion {
+                    start_line: result.location.first_line,
+                    start_column: Some(result.location.span.start_column),
+                    end_line: Some(result.location.span.end_line),
+                    end_column: Some(result.location.span.end_column),
+                }),
+            )],
+        },
+    ));
     serde_json::to_string_pretty(&SarifDocument {
         schema: "https://json.schemastore.org/sarif-2.1.0.json",
         version: "2.1.0",
@@ -189,7 +209,10 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
             invocations: vec![SarifInvocation {
                 execution_successful: matches!(
                     report.status,
-                    LintStatus::Clean | LintStatus::Findings | LintStatus::NothingSelected
+                    LintStatus::Clean
+                        | LintStatus::Findings
+                        | LintStatus::NothingSelected
+                        | LintStatus::Uncertain
                 ),
                 tool_execution_notifications: notifications,
             }],

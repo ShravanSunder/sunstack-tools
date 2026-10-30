@@ -111,10 +111,7 @@ pub async fn check_rules(
                             &mut diagnostics,
                             &located.source,
                             located.line,
-                            located
-                                .provenance
-                                .as_ref()
-                                .map_or(1, |source| source.entry_location.column),
+                            1,
                         );
                         break 'location;
                     }
@@ -136,14 +133,9 @@ pub async fn check_rules(
             diagnostics.extend(skipped.diagnostics().clone());
         }
         for located in &group.set.rules {
-            let source = match &located.provenance {
-                Some(provenance) => PrintedRuleSource::Markdown {
-                    provenance: provenance.clone(),
-                },
-                None => PrintedRuleSource::Jsonl {
-                    file: located.source.clone(),
-                    line: located.line,
-                },
+            let source = PrintedRuleSource::Jsonl {
+                file: located.source.clone(),
+                line: located.line,
             };
             printed.push(PrintedRule {
                 rule_set: group.set.path.clone(),

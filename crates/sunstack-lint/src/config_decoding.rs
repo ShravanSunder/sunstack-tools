@@ -56,7 +56,7 @@ impl<'de> Deserialize<'de> for UniqueJson {
         deserializer.deserialize_any(UniqueVisitor)
     }
 }
-pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<LintConfig, LintInvalid> {
+pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfig, LintInvalid> {
     let failure = |error: &serde_json::Error, path: Vec<String>| {
         let message = error.to_string();
         let code = if message.starts_with("duplicate key") {
@@ -82,7 +82,10 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<LintConfig
             column: Some(u32::try_from(error.column()).unwrap_or(u32::MAX)),
             json_path: path,
             code,
-            message: format!("Invalid sunstack.lint.json: {message}"),
+            message: format!(
+                "Invalid sunstack.lint.json: {}",
+                migration_message(&message)
+            ),
         }
     };
     let mut uniqueness = serde_json::Deserializer::from_str(text);
@@ -90,7 +93,7 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<LintConfig
         .map_err(|error| failure(error.inner(), path_fields(error.path())))?;
     uniqueness.end().map_err(|error| failure(&error, vec![]))?;
     let mut decoder = serde_json::Deserializer::from_str(text);
-    let mut config: LintConfig = serde_path_to_error::deserialize(&mut decoder)
+    let mut config: RulesConfig = serde_path_to_error::deserialize(&mut decoder)
         .map_err(|error| failure(error.inner(), path_fields(error.path())))?;
     decoder.end().map_err(|error| failure(&error, vec![]))?;
     config.source = Some(crate::config_contracts::ConfigSource {
@@ -100,37 +103,45 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<LintConfig
     validate_config_shape(&config)?;
     Ok(config)
 }
-pub(crate) fn validate_config_shape(config: &LintConfig) -> Result<(), LintInvalid> {
-    if config.rule_sets.is_empty() {
-        return Err(config_error(
-            config,
-            "rule_sets",
-            LintInvalidCode::Syntax,
-            "Add at least one rule-set entry.",
-        ));
-    }
-    for entry in config.rule_sets.values() {
-        if entry.path.as_os_str().is_empty() || entry.files.is_empty() {
-            return Err(config_error(
-                config,
-                "files",
-                LintInvalidCode::Syntax,
-                "Each entry needs a path and at least one file glob.",
-            ));
-        }
-    }
-    if config
-        .overrides
-        .iter()
-        .any(|block| block.files.is_empty() || block.rules.is_empty())
+pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInvalid> {
+    if config.rulebook.is_empty()
+        || config.check.files.is_empty()
+        || config.evidence.kinds.is_empty()
     {
         return Err(config_error(
             config,
-            "overrides",
+            "rulebook",
             LintInvalidCode::Syntax,
-            "Each override needs file globs and rule settings.",
+            "rulebook, check.files and evidence.kinds must be nonempty",
         ));
     }
+    if config
+        .rulebook
+        .iter()
+        .any(|pair| pair.markdown.as_os_str().is_empty() || pair.rules.as_os_str().is_empty())
+        || config.evidence.ast_grep.as_os_str().is_empty()
+    {
+        return Err(config_error(
+            config,
+            "rulebook",
+            LintInvalidCode::Syntax,
+            "configured paths must be nonempty",
+        ));
+    }
+    if config
+        .limits
+        .as_ref()
+        .and_then(|limits| limits.evidence_max_chars)
+        .is_some_and(|value| value.get() < 1000)
+    {
+        return Err(config_error(
+            config,
+            "evidence_max_chars",
+            LintInvalidCode::Syntax,
+            "evidence_max_chars must be at least 1000",
+        ));
+    }
+
     Ok(())
 }
 fn path_fields(path: &serde_path_to_error::Path) -> Vec<String> {
@@ -143,7 +154,7 @@ fn path_fields(path: &serde_path_to_error::Path) -> Vec<String> {
         .collect()
 }
 pub(crate) fn config_error(
-    config: &LintConfig,
+    config: &RulesConfig,
     key: &str,
     code: LintInvalidCode,
     message: impl Into<String>,
@@ -176,4 +187,19 @@ pub(crate) fn config_error(
         code,
         message: message.into(),
     }
+}
+
+fn migration_message(message: &str) -> String {
+    for (old, replacement) in [
+        ("rule_sets", "rulebook"),
+        ("rules", "severity in the rule file"),
+        ("overrides", "severity in the rule file"),
+        ("ignore_patterns", "check.ignore"),
+        ("backend", "decision_model"),
+    ] {
+        if message.starts_with(&format!("unknown field `{old}`")) {
+            return format!("{old} was replaced by {replacement}");
+        }
+    }
+    message.into()
 }

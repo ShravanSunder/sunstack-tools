@@ -1,15 +1,14 @@
-use crate::{
-    EffectiveLimits, EntryName, LintInvalid, LintInvalidCode, RuleSelector, SeveritySetting,
-    policy::{EffectiveSetting, SettingOrigin},
-};
+use crate::{EffectiveLimits, LintInvalid, LintInvalidCode};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf};
-use sunstack_decisions::{JudgmentAnswer, QuestionName, SharedEvidenceState};
-use sunstack_evidence::SourceSpan;
-use sunstack_rules::{Severity, VerdictBasis, VerdictResult};
-
+use sunstack_decisions::{NamedAnswerMap, SharedEvidenceState};
+use sunstack_evidence::{
+    EvidenceKindName, EvidencePiece, FieldName, MarkerId, PieceLocation, SourceSpan,
+};
+use sunstack_rules::{RuleId, RulebookSkippedRule, Severity, StepName};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum ScopeChoice {
     #[default]
     Default,
@@ -24,13 +23,16 @@ pub struct LintRequest {
     pub paths: Vec<PathBuf>,
     pub scope: ScopeChoice,
     pub max_warnings: Option<u32>,
+    #[serde(default)]
+    pub evidence_listing: Option<Option<sunstack_evidence::EvidenceKindName>>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum WidenedReason {
     ConfigChanged,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ScopeReport {
     #[serde(flatten)]
     pub kind: ScopeChoice,
@@ -38,6 +40,7 @@ pub struct ScopeReport {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum LintStatus {
     Clean,
     NothingSelected,
@@ -45,6 +48,7 @@ pub enum LintStatus {
     Incomplete,
     Invalid,
     Cancelled,
+    Uncertain,
 }
 impl LintStatus {
     pub fn exit_code(self) -> u8 {
@@ -54,25 +58,52 @@ impl LintStatus {
             Self::Invalid => 2,
             Self::Incomplete => 3,
             Self::Cancelled => 4,
+            Self::Uncertain => 5,
         }
     }
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
+pub enum SettingOrigin {
+    Authored,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Finding {
-    pub rule: RuleSelector,
+    pub rule: RuleId,
+    pub marker: MarkerId,
     pub file: PathBuf,
+    pub line: usize,
+    pub field: Option<FieldName>,
     pub span: Option<SourceSpan>,
     pub severity: Severity,
     pub severity_origin: SettingOrigin,
     pub message: String,
     pub judgment: Option<JudgmentSummary>,
 }
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct JudgmentSummary {
+    pub answers: NamedAnswerMap,
+    pub value: Option<f64>,
+    pub path_taken: Vec<StepName>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct UncertainResult {
+    pub rule: RuleId,
+    pub marker: MarkerId,
+    #[serde(rename = "where")]
+    pub location: PieceLocation,
+    pub step: StepName,
+    pub state: SharedEvidenceState,
+    pub answers: NamedAnswerMap,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SeverityCounts {
     pub error: u32,
     pub warn: u32,
 }
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ExclusionCounts {
     pub off: u32,
     pub ignored: u32,
@@ -82,6 +113,7 @@ pub struct ExclusionCounts {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum IncompleteReason {
     SelectionFailed,
     EvaluationFailed,
@@ -91,15 +123,22 @@ pub enum IncompleteReason {
     CoverageNone,
     ProviderFailure,
     RequestLimitReached,
+    EvidenceUnavailable,
+    EvidenceTooLarge,
+    RequestTooLarge,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct IncompletePart {
-    pub rule: Option<RuleSelector>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub field: Option<FieldName>,
+    pub rule: Option<RuleId>,
     pub file: Option<PathBuf>,
     pub reason: IncompleteReason,
 }
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UsageSummary {
+    /// Distinct logical checked/target content acquisitions; Git snapshot verification rereads are excluded.
+    pub checked_files_acquired: usize,
     pub model_requests: u32,
     pub input_tokens: Option<u64>,
     pub output_tokens: Option<u64>,
@@ -107,31 +146,7 @@ pub struct UsageSummary {
     pub cost_reported_requests: u32,
     pub cost_missing_requests: u32,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JudgmentSummary {
-    pub request_index: usize,
-    pub basis: VerdictBasis,
-    pub result: VerdictResult,
-    pub value: f64,
-    pub threshold: f64,
-    pub answers: Vec<ResolvedAnswer>,
-}
-/// Resolved values are mandatory; a reference alone cannot become a report answer.
-///
-/// ```compile_fail
-/// use sunstack_lint::ResolvedAnswer;
-/// use sunstack_decisions::QuestionName;
-/// use sunstack_rules::JudgmentReference;
-/// let question = QuestionName::new("q000001").unwrap();
-/// let reference = JudgmentReference { request_index: 0, question_name: question.clone() };
-/// let answer = ResolvedAnswer { question, answer: reference };
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResolvedAnswer {
-    pub question: QuestionName,
-    pub answer: JudgmentAnswer,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintDiagnostic {
     pub file: Option<PathBuf>,
     pub line: Option<u32>,
@@ -150,13 +165,25 @@ impl From<LintInvalid> for LintDiagnostic {
         }
     }
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct EvidenceListing {
+    pub version: String,
+    pub config: PathBuf,
+    pub scope: ScopeReport,
+    pub pieces: Vec<EvidencePiece>,
+    pub usage: UsageSummary,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintReport {
     pub version: String,
     pub config: PathBuf,
     pub scope: ScopeReport,
     pub status: LintStatus,
     pub findings: Vec<Finding>,
+    pub results: Vec<RulePieceResult>,
+    pub uncertain: Vec<UncertainResult>,
+    pub skipped_rules: Vec<RulebookSkippedRule>,
     pub counts: SeverityCounts,
     pub exclusions: ExclusionCounts,
     pub incomplete: Vec<IncompletePart>,
@@ -164,6 +191,8 @@ pub struct LintReport {
     pub evidence_seen: BTreeMap<usize, SharedEvidenceState>,
     pub limits: EffectiveLimits,
     pub diagnostics: Vec<LintDiagnostic>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence_listing: Option<EvidenceListing>,
 }
 impl LintReport {
     pub(crate) fn empty(config: PathBuf, scope: ScopeChoice, limits: EffectiveLimits) -> Self {
@@ -176,6 +205,9 @@ impl LintReport {
             },
             status: LintStatus::NothingSelected,
             findings: vec![],
+            results: vec![],
+            uncertain: vec![],
+            skipped_rules: vec![],
             counts: SeverityCounts::default(),
             exclusions: ExclusionCounts::default(),
             incomplete: vec![],
@@ -183,14 +215,39 @@ impl LintReport {
             evidence_seen: BTreeMap::new(),
             limits,
             diagnostics: vec![],
+            evidence_listing: None,
         }
     }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PieceOutcome {
+    Pass,
+    Finding,
+    NotApplicable,
+    Uncertain,
+    Incomplete,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct RulePieceResult {
+    pub name: RuleId,
+    pub marker: MarkerId,
+    pub file: PathBuf,
+    pub first_line: usize,
+    pub last_line: usize,
+    pub outcome: PieceOutcome,
+    pub step: Option<StepName>,
+}
+
+pub fn report_schema() -> schemars::Schema {
+    schemars::schema_for!(LintReport)
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RuleKind {
     Mechanical,
-    Judged,
+    Asking,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SourceLocation {
@@ -199,23 +256,17 @@ pub struct SourceLocation {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleListing {
-    pub rule: RuleSelector,
+    pub rule: RuleId,
+    pub marker: MarkerId,
     pub source: SourceLocation,
+    pub evidence: EvidenceKindName,
     pub kind: RuleKind,
-    pub authored: Severity,
-    pub configured: SeveritySetting,
-    pub for_file: Option<EffectiveSetting>,
+    pub severity: Severity,
+    pub standard: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum CheckResult {
     Valid { rules: Vec<RuleListing> },
     Invalid { diagnostics: Vec<LintDiagnostic> },
-}
-#[derive(Debug, Clone)]
-pub(crate) struct CheckedEntry {
-    pub name: EntryName,
-    pub path: PathBuf,
-    pub input: sunstack_evidence::SourceName,
-    pub rules: Vec<sunstack_rules::PrintedRule>,
 }

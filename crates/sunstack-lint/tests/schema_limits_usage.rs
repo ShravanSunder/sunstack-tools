@@ -4,7 +4,6 @@ mod fixture;
 use serde_json::{Value, json};
 use sunstack_decisions::{
     CancellationToken, DecisionRunOutcome, ExecutionReceipt, ExecutionUsage, ModelName,
-    NamedAnswerMap,
 };
 use sunstack_lint::*;
 use sunstack_rules::*;
@@ -47,9 +46,10 @@ async fn every_numeric_limit_accepts_its_exact_maximum_and_rejects_the_next_inte
         );
 
         // Preserve the overflow's authored decimal token for the native decoder.
+        let baseline_text = serde_json::to_string(&baseline).unwrap();
         let raw = format!(
-            "{{\"rule_sets\":{},\"limits\":{{\"{field}\":{overflow}}}}}",
-            baseline["rule_sets"]
+            "{},\"limits\":{{\"{field}\":{overflow}}}}}",
+            baseline_text.strip_suffix('}').unwrap()
         );
         let refused: Value = serde_json::from_str(&raw).unwrap();
         assert!(
@@ -119,53 +119,40 @@ fn all_limit_overrides_reach_their_native_settings_and_defaults_match_the_adopte
     );
 }
 
-fn usage_report(costs: &[Option<f64>]) -> RuleInvocationReport {
-    RuleInvocationReport {
-        rule_evaluations: vec![],
-        rule_coverage: RuleCoverage::Full,
-        skipped_rules: vec![],
-        origin: ReportedOrigin::Direct,
-        routing: RoutingReport::RuleSets,
-        groups: vec![],
-        occurrences: vec![],
+fn usage_report(costs: &[Option<f64>]) -> RulebookRun {
+    RulebookRun {
+        results: vec![],
         requests: costs
             .iter()
             .enumerate()
-            .map(|(index, cost)| RequestRecord {
-                index,
-                owner: RequestOwner::RuleSetGroup {
-                    rule_set: "set.json".into(),
-                    group: index,
-                    route: None,
-                },
-                mode: RequestMode::Rules,
-                questions: vec![],
-                prerequisites: vec![],
-                status: RequestStatus::Sent {
-                    outcome: DecisionRunOutcome::Completed {
-                        answers: NamedAnswerMap::default(),
-                        receipt: ExecutionReceipt {
-                            resolved_model: ModelName::new("fixture").unwrap(),
-                            usage: ExecutionUsage {
-                                input_tokens: 10,
-                                output_tokens: 2,
-                                cost_usd: *cost,
-                            },
+            .map(|(index, cost)| RulebookRequestRecord {
+                pair_index: index,
+                request: serde_json::from_value(
+                    json!({"questions":{"q":{"type":"noul","instructions":"Evaluate"}},"state":{}}),
+                )
+                .unwrap(),
+                outcome: DecisionRunOutcome::Completed {
+                    answers: serde_json::from_value(
+                        json!({"q":{"type":"noul","yes_probability":1.0}}),
+                    )
+                    .unwrap(),
+                    receipt: ExecutionReceipt {
+                        resolved_model: ModelName::new("fixture").unwrap(),
+                        usage: ExecutionUsage {
+                            input_tokens: 10,
+                            output_tokens: 2,
+                            cost_usd: *cost,
                         },
-                        attempts: vec![],
                     },
+                    attempts: vec![sunstack_decisions::InferenceAttemptRecord {
+                        ordinal: 1,
+                        evidence: sunstack_decisions::AttemptEvidence::Completed {
+                            http_status: 200,
+                        },
+                    }],
                 },
-                discarded: vec![],
             })
             .collect(),
-        captures: vec![],
-        change_selections: vec![],
-        cursors: vec![],
-        diagnostics: DiagnosticList::default(),
-        measurements: InvocationMeasurements {
-            model_requests: costs.len(),
-            ..InvocationMeasurements::default()
-        },
     }
 }
 #[test]
@@ -202,71 +189,87 @@ fn usage_sums_each_receipt_once_and_distinguishes_missing_cost_from_reported_zer
 }
 
 #[tokio::test]
-async fn schema_and_binary_agree_on_structure_but_loaded_reference_checks_stay_native() {
+async fn schema_and_native_decoder_agree_on_structure_but_loaded_checks_stay_native() {
     let root = tempfile::tempdir().unwrap();
     let baseline = fixture::write(root.path());
     let schema = serde_json::to_value(config_schema()).unwrap();
     let validator = jsonschema::options().offline().build(&schema).unwrap();
     assert!(validator.is_valid(&baseline));
-    for case in [
-        "unknown_root",
-        "unknown_entry",
-        "empty_entries",
-        "empty_files",
-        "empty_path",
-        "invalid_selector_shape",
-        "zero_limit",
-        "wrong_severity",
+    for (pointer, value) in [
+        ("/rulebook", json!([])),
+        ("/check/files", json!([])),
+        ("/limits", json!({"max_files":0})),
+        ("/decision_model/model", json!(null)),
+    ] {
+        let mut value_to_check = baseline.clone();
+        if pointer == "/limits" {
+            value_to_check["limits"] = value;
+        } else {
+            *value_to_check.pointer_mut(pointer).unwrap() = value;
+        }
+        assert!(!validator.is_valid(&value_to_check), "{pointer}");
+        fixture::config_file(root.path(), &value_to_check);
+        assert!(load_config(&discover_config(root.path(), None).unwrap()).is_err());
+    }
+    for key in [
+        "rule_sets",
+        "rules",
+        "overrides",
+        "ignore_patterns",
+        "backend",
+        "unknown",
     ] {
         let mut raw = baseline.clone();
-        match case {
-            "unknown_root" => raw["unknown"] = json!(true),
-            "unknown_entry" => raw["rule_sets"]["docs"]["unknown"] = json!(true),
-            "empty_entries" => raw["rule_sets"] = json!({}),
-            "empty_files" => raw["rule_sets"]["docs"]["files"] = json!([]),
-            "empty_path" => raw["rule_sets"]["docs"]["path"] = json!(""),
-            "invalid_selector_shape" => raw["rules"] = json!({"docs/":"error"}),
-            "zero_limit" => raw["limits"] = json!({"max_files":0}),
-            "wrong_severity" => raw["rules"] = json!({"docs/*":{"kind":"error"}}),
-            _ => panic!("case"),
-        }
-        assert!(!validator.is_valid(&raw), "schema accepted {case}");
+        raw[key] = json!({});
+        assert!(!validator.is_valid(&raw));
         fixture::config_file(root.path(), &raw);
-        let location = discover_config(root.path(), None).unwrap();
-        assert!(load_config(&location).is_err(), "decoder accepted {case}");
+        assert!(load_config(&discover_config(root.path(), None).unwrap()).is_err());
     }
-    for case in ["missing_file", "same_file", "unknown_rule", "bad_glob"] {
-        let mut raw = baseline.clone();
-        match case {
-            "missing_file" => raw["rule_sets"]["docs"]["path"] = json!("absent.json"),
-            "same_file" => raw["rule_sets"]["other"] = json!({"path":"./set.json","files":["**"]}),
-            "unknown_rule" => raw["rules"] = json!({"docs/missing":"warn"}),
-            "bad_glob" => raw["rule_sets"]["docs"]["files"] = json!(["["]),
-            _ => panic!("case"),
-        }
-        assert!(
-            validator.is_valid(&raw),
-            "schema tried to check loaded semantics for {case}"
-        );
-        fixture::config_file(root.path(), &raw);
-        let location = discover_config(root.path(), None).unwrap();
-        let config = match load_config(&location) {
-            Err(error) if case == "bad_glob" => {
-                assert_eq!(error.code, LintInvalidCode::BadGlob);
-                continue;
-            }
-            loaded => loaded.unwrap(),
-        };
-        assert!(
-            matches!(
-                check(&config, CancellationToken::new()).await,
-                CheckResult::Invalid { .. }
-            ),
-            "native check accepted {case}"
-        );
+    let mut missing = baseline;
+    missing["evidence"]["ast_grep"] = json!("missing.yml");
+    assert!(validator.is_valid(&missing));
+    fixture::config_file(root.path(), &missing);
+    let loaded = load_config(&discover_config(root.path(), None).unwrap()).unwrap();
+    assert!(matches!(
+        check(&loaded, CancellationToken::new()).await,
+        CheckResult::Invalid { .. }
+    ));
+}
+
+#[tokio::test]
+async fn report_schema_validates_real_pair_results_and_requires_their_typed_fields() {
+    let root = tempfile::tempdir().unwrap();
+    fixture::write(root.path());
+    let report = run(
+        fixture::request(root.path()),
+        CancellationToken::new(),
+        None,
+    )
+    .await;
+    let value = serde_json::to_value(&report).unwrap();
+    assert_eq!(value["results"].as_array().unwrap().len(), 1);
+    assert_eq!(value["results"][0]["outcome"], "finding");
+    assert_eq!(value["results"][0]["step"], "starts");
+    let schema = serde_json::to_value(report_schema()).unwrap();
+    let validator = jsonschema::options().offline().build(&schema).unwrap();
+    assert!(
+        validator.is_valid(&value),
+        "{:?}",
+        validator.iter_errors(&value).collect::<Vec<_>>()
+    );
+    let mut missing = value.clone();
+    missing.as_object_mut().unwrap().remove("results");
+    assert!(!validator.is_valid(&missing));
+    let mut wrong = value;
+    wrong["results"][0]["outcome"] = json!("unknown");
+    assert!(!validator.is_valid(&wrong));
+    let mut without_results = report.clone();
+    without_results.results.clear();
+    for format in [
+        OutputFormat::Default,
+        OutputFormat::Github,
+        OutputFormat::Sarif,
+    ] {
+        assert_eq!(render(&report, format), render(&without_results, format));
     }
-    let canonical: Value = json!({"$schema":"https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.1.0/sunstack.lint.schema.json","rule_sets":{"skills":{"path":"rules/skill-standards.ruleset.json","files":["plugins/**/SKILL.md"]}},"rules":{"skills/*":"error","skills/skill.load-result":"warn"},"overrides":[{"files":["plugins/**/retired-skills/**"],"rules":{"skills/*":"off"}}],"ignore_patterns":["tmp/**"],"backend":{"kind":"jev_openrouter","model":"jev-latest"}});
-    assert!(validator.is_valid(&canonical));
-    fixture::config_file(root.path(), &canonical);
-    assert!(load_config(&discover_config(root.path(), None).unwrap()).is_ok());
 }

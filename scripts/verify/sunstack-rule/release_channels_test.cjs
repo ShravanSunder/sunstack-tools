@@ -339,7 +339,7 @@ test('a real held request with a question map admits cancellation and retains it
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-held-control-'),
 	);
 	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
-	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
+	save(configPath, { decision_model: { endpoint: 'http://127.0.0.1:1' } });
 	const state = { contents: { content1: 'synthetic held state' }, evidence: {}, state_version: 1 };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
 	const source = `const fileSystem =require('node:fs'),http=require('node:http');
@@ -348,7 +348,7 @@ const config=JSON.parse(fileSystem.readFileSync(${JSON.stringify(configPath)}));
 const cancelled=()=>{process.removeAllListeners('SIGINT');process.stdout.write(JSON.stringify({...reference,version:'0.0.6',config:${JSON.stringify(configPath)}})+'\\n',()=>process.exit(4));};
 process.on('SIGINT',cancelled);process.on('SIGTERM',cancelled);
 const body=JSON.stringify({state,questions:{q000001:{question:'synthetic'}}});
-const request=http.request(config.backend.endpoint,{method:'POST',headers:{'content-length':Buffer.byteLength(body)}},()=>{});request.on('error',()=>{});request.end(body);`;
+const request=http.request(config.decision_model.endpoint,{method:'POST',headers:{'content-length':Buffer.byteLength(body)}},()=>{});request.on('error',()=>{});request.end(body);`;
 	const binary = path.join(root, 'sunstack');
 	fileSystem.writeFileSync(binary, source);
 	const result = await captureProcess({
@@ -368,13 +368,13 @@ test('an owned native in a separate process group is admitted without widening t
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-detached-control-'),
 	);
 	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
-	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
+	save(configPath, { decision_model: { endpoint: 'http://127.0.0.1:1' } });
 	const state = { contents: { content1: 'detached native held state' } };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
 	const binary = path.join(root, 'sunstack');
 	const source = `const fs=require('node:fs'),http=require('node:http');
 process.on('SIGINT',()=>process.stdout.write(JSON.stringify({...${JSON.stringify(reference)},version:'0.0.6',config:${JSON.stringify(configPath)}})+'\\n',()=>process.exit(4)));
-const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).backend.endpoint;
+const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).decision_model.endpoint;
 const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});request.end(JSON.stringify({state:${JSON.stringify(state)},questions:{question1:{question:'held'}}}));`;
 	fileSystem.writeFileSync(binary, source);
 	const wrapper = `const {spawn}=require('node:child_process');
@@ -421,7 +421,7 @@ test('an unrelated native with matching bytes cannot authorize a held request fr
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-unrelated-control-'),
 	);
 	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
-	save(configPath, { backend: { endpoint: 'http://127.0.0.1:1' } });
+	save(configPath, { decision_model: { endpoint: 'http://127.0.0.1:1' } });
 	const binary = path.join(root, 'sunstack');
 	const source = "process.stdout.write('decoy ready');setInterval(()=>{},1000);";
 	fileSystem.writeFileSync(binary, source);
@@ -443,7 +443,7 @@ test('an unrelated native with matching bytes cannot authorize a held request fr
 		decoy.once('error', reject);
 	});
 	const stranger = `const fs=require('node:fs'),http=require('node:http');
-const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).backend.endpoint;
+const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).decision_model.endpoint;
 const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});request.end(JSON.stringify({state:{contents:{}},questions:{question1:{question:'held'}}}));`;
 	const result = await captureProcess({
 		command: [process.execPath, '-e', stranger],

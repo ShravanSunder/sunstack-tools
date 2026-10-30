@@ -1,0 +1,24 @@
+{
+  "K001": {
+    "name": "standard",
+    "evidence": "paragraph",
+    "severity": "error",
+    "decision": {
+      "start": "must",
+      "steps": {
+        "must": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "body",
+            "text": "MUST"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Use MUST in each paragraph.",
+            "at": "body"
+          }
+        }
+      }
+    }
+  }
+}

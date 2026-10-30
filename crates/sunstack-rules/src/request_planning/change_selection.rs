@@ -268,18 +268,6 @@ fn dependencies(
             }),
         },
     ];
-    if let Some(provenance) = &located.provenance {
-        for path in [&provenance.markdown, &provenance.rules] {
-            if path != &located.source {
-                dependencies.push(SelectionDependency {
-                    role: DependencyRole::Definition,
-                    subject: DependencySubject::Evidence(ChangeComparisonSubject::DefinitionFile {
-                        path: path.clone(),
-                    }),
-                });
-            }
-        }
-    }
     for declaration in &rule.evidence {
         let role = if declaration.id == rule.target {
             DependencyRole::Target

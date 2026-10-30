@@ -1,0 +1,35 @@
+{
+  "id": "step",
+  "language": "Markdown",
+  "rule": {
+    "any": [
+      {
+        "matches": "numbered-heading-section"
+      },
+      {
+        "matches": "step-heading-section"
+      },
+      {
+        "matches": "bold-numbered-item"
+      },
+      {
+        "all": [
+          {
+            "matches": "numbered-item"
+          },
+          {
+            "inside": {
+              "kind": "section",
+              "has": {
+                "kind": "atx_heading",
+                "regex": "(?i)^##\\s+(?:workflow|steps|main path)\\b",
+                "stopBy": "neighbor"
+              },
+              "stopBy": "end"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2,7 +2,20 @@
 pub mod conversation_contracts;
 pub mod evidence_contracts;
 pub mod evidence_diagnostics;
+pub mod evidence_project_loading;
+pub mod standard_markdown_utils;
 pub mod structured_json;
+pub use evidence_project_loading::*;
+pub mod evidence_kind_contracts;
+pub use evidence_kind_contracts::*;
+pub mod checked_file_source;
+pub use checked_file_source::*;
+pub mod evidence_model_view;
+pub use evidence_model_view::*;
+pub mod evidence_piece_building;
+pub use evidence_piece_building::*;
+pub mod evidence_piece_picking;
+pub use evidence_piece_picking::*;
 
 pub use conversation_contracts::*;
 pub use evidence_contracts::*;

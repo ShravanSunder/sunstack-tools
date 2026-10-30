@@ -50,10 +50,13 @@ pub struct LintArguments {
     /// Fail when warning findings exceed this number.
     #[arg(long, conflicts_with_all = ["check", "rules", "init"])]
     pub max_warnings: Option<u32>,
-    /// Validate configuration and rule sets without reading targets.
+    /// Print picked evidence as JSON, optionally for one kind, without asking the model.
+    #[arg(long, num_args = 0..=1, value_name = "KIND", conflicts_with_all = ["check", "rules", "init"])]
+    pub evidence: Option<Option<String>>,
+    /// Validate configuration, rulebook and evidence project without reading checked files.
     #[arg(long, conflicts_with_all = ["rules", "init"])]
     pub check: bool,
-    /// List rules as JSON; optionally include effective settings for one file.
+    /// List rules as JSON; optionally name one file.
     #[arg(long, num_args = 0..=1, value_name = "FILE", conflicts_with = "init")]
     pub rules: Option<Option<PathBuf>>,
     /// Create a config skeleton in the current directory.

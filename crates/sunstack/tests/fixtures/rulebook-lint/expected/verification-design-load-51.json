@@ -1,0 +1,7 @@
+{
+  "rule": "load",
+  "file": "skills/verification-design/SKILL.md",
+  "start": 6146,
+  "end": 6445,
+  "text": "MUST load `references/choosing-the-observation.md` and return, for each obligation, the evidence class, the boundary where its wrong behavior stays real, the target, the journey or test that will observe it (existing, or needed with its entry and observation), each journey's lifetime, and any gap.\n"
+}
