@@ -68,7 +68,7 @@ pub(crate) fn occurrence_result(
         }
     }
     let applicability = applicability(&occurrence.entries, plan, state, indices);
-    if let Some(result) = crate::applicability_evaluation::stopped_occurrence(
+    if let Some(result) = crate::rule_evaluation::applicability_evaluation::stopped_occurrence(
         key.clone(),
         &applicability,
         selection.clone(),
@@ -109,7 +109,7 @@ pub(crate) fn occurrence_result(
             _ => occurrence
                 .target_selection
                 .as_ref()
-                .and_then(crate::request_state::resolve_target),
+                .and_then(crate::rule_evaluation::request_state::resolve_target),
         };
         let Some(target) = target else {
             return RuleOccurrenceResult::SelectionFailed {

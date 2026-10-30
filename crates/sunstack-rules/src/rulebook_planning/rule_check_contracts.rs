@@ -50,7 +50,7 @@ pub struct CheckRulesInput {
     pub repositories: Vec<RepositoryBinding>,
     pub payload_schemas: Vec<PayloadSchemaPath>,
     pub limits: InvocationLimits,
-    #[serde(default = "crate::invocation_contracts::no_discovery")]
+    #[serde(default = "crate::rule_definitions::invocation_contracts::no_discovery")]
     pub discovery: sunstack_evidence::EvidenceDiscovery,
     pub output: CheckRulesOutput,
 }

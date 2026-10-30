@@ -118,7 +118,11 @@ pub fn admit_rule_entry(
     };
     let mut errors = Vec::new();
     if !entry.questions.is_empty() {
-        if sunstack_decisions::judgment_validation::validate_questions(&entry.questions).is_err() {
+        if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
+            &entry.questions,
+        )
+        .is_err()
+        {
             errors.push(refusal(
                 "questions",
                 "question rejected by decision model schema",
@@ -478,7 +482,6 @@ pub(crate) fn normalized_answer(
 }
 
 #[cfg(test)]
-#[path = "rulebook_admission_test.rs"]
 mod tests;
 
 /// Admit selection questions at the decision boundary, leaving evidence model-free.
@@ -528,7 +531,11 @@ pub fn admit_selections(
             continue;
         };
         let questions = NamedQuestionMap::from([(question_name, question.clone())]);
-        if sunstack_decisions::judgment_validation::validate_questions(&questions).is_err() {
+        if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
+            &questions,
+        )
+        .is_err()
+        {
             errors.push(refusal(
                 format!("{path}.question"),
                 "selection question rejected by decision model schema",

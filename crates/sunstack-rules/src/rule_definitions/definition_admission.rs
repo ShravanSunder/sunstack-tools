@@ -1,4 +1,7 @@
-use crate::{definition_contracts::*, rule_diagnostics::*, strict_decoding::decode_definition};
+use crate::{
+    rule_definitions::definition_contracts::*, rule_definitions::rule_diagnostics::*,
+    rule_definitions::strict_decoding::decode_definition,
+};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
@@ -235,10 +238,12 @@ pub fn validate_rule_definition(
 pub(crate) fn validate_question(question: &JudgmentQuestion) -> Result<(), DiagnosticList> {
     let name = QuestionName::new("validation")
         .map_err(|_| refusal(RuleDiagnosticCode::InvalidConfiguration))?;
-    sunstack_decisions::judgment_validation::validate_request(&StructuredJudgmentRequest {
-        questions: BTreeMap::from([(name, question.clone())]),
-        state: SharedEvidenceState::Text("admission".into()),
-    })
+    sunstack_decisions::judgment_processing::judgment_validation::validate_request(
+        &StructuredJudgmentRequest {
+            questions: BTreeMap::from([(name, question.clone())]),
+            state: SharedEvidenceState::Text("admission".into()),
+        },
+    )
     .map_err(|diagnostic| sunstack_decisions::DiagnosticList::from(diagnostic).into())
 }
 pub(crate) fn threshold_valid(value: f64) -> bool {

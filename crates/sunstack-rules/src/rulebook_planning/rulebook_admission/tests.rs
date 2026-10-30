@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
-use crate::rulebook_test_support as fixture;
+use crate::rulebook_planning::rulebook_test_support as fixture;
 use serde_json::json;
 
 #[test]

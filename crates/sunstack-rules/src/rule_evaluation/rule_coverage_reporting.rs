@@ -1,5 +1,6 @@
 use crate::{
-    InvocationMeasurements, RuleCoverage, SkippedRule, invocation_admission::LoadedRuleSet,
+    InvocationMeasurements, RuleCoverage, SkippedRule,
+    rule_definitions::invocation_admission::LoadedRuleSet,
 };
 use std::collections::BTreeSet;
 

@@ -1,4 +1,4 @@
-use crate::{invocation_admission::admit_invocation, request_planning::*, *};
+use crate::{request_planning::*, rule_definitions::invocation_admission::admit_invocation, *};
 use std::{
     sync::Arc,
     time::{Duration, Instant},

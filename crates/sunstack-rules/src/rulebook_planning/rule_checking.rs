@@ -1,6 +1,6 @@
 use crate::{
-    input_binding::resolved_path,
-    invocation_admission::{load_invocation, mapped_declarations},
+    rule_definitions::input_binding::resolved_path,
+    rule_definitions::invocation_admission::{load_invocation, mapped_declarations},
     *,
 };
 use std::{collections::BTreeSet, path::Path};
@@ -8,7 +8,7 @@ use sunstack_evidence::{AdapterRegistry, EvidencePlanInput, EvidenceSession};
 use tokio_util::sync::CancellationToken;
 
 pub fn decode_check_rules(bytes: &[u8]) -> Result<CheckRulesInput, DiagnosticList> {
-    crate::strict_decoding::decode_definition(bytes, Path::new("<invocation>"), 1)
+    crate::rule_definitions::strict_decoding::decode_definition(bytes, Path::new("<invocation>"), 1)
 }
 
 fn refused(diagnostics: DiagnosticList) -> CheckRulesOutcome {
@@ -107,7 +107,7 @@ pub async fn check_rules(
                             matches!(source.spec, sunstack_evidence::SourceSpec::ChangeSet { .. })
                         })
                     }) {
-                        crate::definition_admission::locate_at(
+                        crate::rule_definitions::definition_admission::locate_at(
                             &mut diagnostics,
                             &located.source,
                             located.line,

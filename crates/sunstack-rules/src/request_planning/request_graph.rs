@@ -1,7 +1,7 @@
 use super::expansion_contracts::*;
 use super::plan_contracts::*;
 use crate::{
-    applicability_evaluation::{ConditionContext, evaluate_condition},
+    rule_evaluation::applicability_evaluation::{ConditionContext, evaluate_condition},
     *,
 };
 use std::collections::{BTreeMap, BTreeSet};

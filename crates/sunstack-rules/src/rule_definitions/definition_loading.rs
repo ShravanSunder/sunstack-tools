@@ -1,6 +1,6 @@
 use crate::{
-    definition_admission::locate, input_binding::resolved_path,
-    invocation_admission::LoadedRuleSet, *,
+    rule_definitions::definition_admission::locate, rule_definitions::input_binding::resolved_path,
+    rule_definitions::invocation_admission::LoadedRuleSet, *,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},

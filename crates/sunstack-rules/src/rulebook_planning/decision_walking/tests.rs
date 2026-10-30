@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 use super::*;
-use crate::rulebook_test_support as fixture;
+use crate::rulebook_planning::rulebook_test_support as fixture;
 use serde_json::json;
 use sunstack_evidence::{FieldUnavailable, project_model_view};
 

@@ -1,6 +1,7 @@
 use crate::{
     DiagnosticList, RuleDiagnostic, RuleDiagnosticCode, RuleEntryWire, RuleId, RulebookPair,
-    RulebookRule, RulebookSentence, admit_rule_entry, strict_decoding::decode_definition,
+    RulebookRule, RulebookSentence, admit_rule_entry,
+    rule_definitions::strict_decoding::decode_definition,
 };
 use schemars::JsonSchema;
 use serde::{
@@ -277,5 +278,4 @@ pub fn assemble_rulebook(
 }
 
 #[cfg(test)]
-#[path = "rulebook_assembly_test.rs"]
 mod tests;

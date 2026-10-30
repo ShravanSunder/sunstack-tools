@@ -1,5 +1,6 @@
 use crate::{
-    definition_contracts::*, invocation_contracts::*, rule_diagnostics::*, selection_contracts::*,
+    evidence_selection::selection_contracts::*, rule_definitions::definition_contracts::*,
+    rule_definitions::invocation_contracts::*, rule_definitions::rule_diagnostics::*,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

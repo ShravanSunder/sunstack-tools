@@ -1,4 +1,4 @@
-use crate::rule_diagnostics::*;
+use crate::rule_definitions::rule_diagnostics::*;
 use serde::{
     Deserialize, Deserializer,
     de::{MapAccess, SeqAccess, Visitor},

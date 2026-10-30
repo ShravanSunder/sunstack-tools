@@ -16,9 +16,13 @@ async fn a_missing_local_settlement_is_unresolved_and_incomplete_while_its_compl
     let input:RuleInvocationInput=serde_json::from_value(json!({"definition_root":root,"definitions":{"kind":"rule_sets","rule_sets":[{"path":"set.json","binding_groups":[{"bindings":{"subject":{"kind":"document","repository":"repo","path":"source.md"}}}]}]},"repositories":[{"key":"repo","root":root,"input_paths":[{"kind":"exact","path":"source.md"}],"change_scope":{"kind":"full"}}],"payload_schemas":[],"origin":{"kind":"direct"},"cursors":[],"execution":{"speculation":"off","max_concurrent_requests":1},"limits":{"max_files":8,"max_file_bytes":65536,"max_total_bytes":131072,"max_matches":20,"max_transcript_bytes":65536,"include_ignored":false},"backend":{"kind":"jev_openrouter","endpoint":"http://127.0.0.1:9","model":"jev-latest"},"attempts":sunstack_decisions::AttemptSettings::default(),"request_budget":{"max_input_tokens":100000,"max_request_bytes":100000,"max_questions":1,"max_requests":1,"safety_margin_tokens":32,"accounting_policy":"allow_estimated"}})).unwrap();
     let registry = AdapterRegistry::builtins().unwrap();
     let cancellation = CancellationToken::new();
-    let admitted = crate::invocation_admission::admit_invocation(&input, &registry, &cancellation)
-        .await
-        .unwrap();
+    let admitted = crate::rule_definitions::invocation_admission::admit_invocation(
+        &input,
+        &registry,
+        &cancellation,
+    )
+    .await
+    .unwrap();
     let mut session = EvidenceSession::open(admitted.evidence, registry, cancellation.clone())
         .await
         .unwrap();

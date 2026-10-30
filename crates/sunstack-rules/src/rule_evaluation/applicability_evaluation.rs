@@ -1,4 +1,4 @@
-use crate::{input_binding::AdmittedSources, *};
+use crate::{rule_definitions::input_binding::AdmittedSources, *};
 use sunstack_evidence::{
     AssistantSelection, ConversationBody, DeclarationId, EvidenceDeclaration, EvidenceRequirement,
     EvidenceSelection, EvidenceSession, Inclusion, MessageBlock, SelectionContent,

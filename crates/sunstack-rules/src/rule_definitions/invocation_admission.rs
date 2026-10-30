@@ -1,4 +1,6 @@
-use crate::{definition_loading::DefinitionLoader, input_binding::*, *};
+use crate::{
+    rule_definitions::definition_loading::DefinitionLoader, rule_definitions::input_binding::*, *,
+};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},

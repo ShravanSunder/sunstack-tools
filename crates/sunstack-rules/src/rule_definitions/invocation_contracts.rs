@@ -1,4 +1,4 @@
-use crate::definition_contracts::*;
+use crate::rule_definitions::definition_contracts::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroUsize, path::PathBuf};

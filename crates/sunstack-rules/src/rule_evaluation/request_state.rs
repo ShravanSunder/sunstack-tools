@@ -1,4 +1,4 @@
-use crate::{input_binding::AdmittedSources, *};
+use crate::{rule_definitions::input_binding::AdmittedSources, *};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use sunstack_decisions::{JudgmentQuestion, SharedEvidenceState, StructuredEntry};

@@ -1,4 +1,4 @@
-use crate::{invocation_admission::admit_invocation, request_planning::*, *};
+use crate::{request_planning::*, rule_definitions::invocation_admission::admit_invocation, *};
 use std::{
     collections::{BTreeMap, BTreeSet},
     time::Instant,
@@ -69,7 +69,7 @@ pub async fn prepare_rules(
     .await;
     build_request_graph(&mut plan, &input.execution);
     if cancellation.is_cancelled() {
-        crate::rule_execution::copy_evidence_measurements(
+        crate::rule_evaluation::rule_execution::copy_evidence_measurements(
             &mut measurements,
             session.close().measurements,
         );
@@ -91,7 +91,8 @@ pub async fn prepare_rules(
     let mut omitted = BTreeSet::new();
     let mut encoded_parts = BTreeMap::new();
     let mut position = 0;
-    let mut backend_session = crate::rule_backend_factory::RuleBackendSession::new(context.backend);
+    let mut backend_session =
+        crate::rule_evaluation::rule_backend_factory::RuleBackendSession::new(context.backend);
     while position < plan.requests.len() {
         let request = plan.requests[position].clone();
         position += 1;
@@ -305,7 +306,10 @@ pub async fn prepare_rules(
     measurements.local_elapsed_ms =
         u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
     let closed = session.close();
-    crate::rule_execution::copy_evidence_measurements(&mut measurements, closed.measurements);
+    crate::rule_evaluation::rule_execution::copy_evidence_measurements(
+        &mut measurements,
+        closed.measurements,
+    );
     let preparation = project_preparation(
         &plan,
         &state,

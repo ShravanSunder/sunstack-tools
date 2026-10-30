@@ -1,6 +1,7 @@
 use crate::{
     DiagnosticList, RuleDiagnostic, RuleDiagnosticCode, RuleId, RuleInvocationOutcome,
-    input_binding::resolved_path, invocation_admission::AdmittedGroup,
+    rule_definitions::input_binding::resolved_path,
+    rule_definitions::invocation_admission::AdmittedGroup,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},

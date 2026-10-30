@@ -186,7 +186,7 @@ pub(crate) fn project_prepared_evaluations(
                 .find(|index| plan.evaluations[index.0].authored_order == authored);
             let result = match record {
                 Some(index) if matches!(state.expansions[index.0], ExpansionState::Waiting) => {
-                    let on = plan.requests.iter().find(|request| matches!(request.purpose, RequestPurpose::Rules { group } if group.0 == position)).map(|request| crate::rule_preparation::waiting_on(plan, state, request)).unwrap_or_default();
+                    let on = plan.requests.iter().find(|request| matches!(request.purpose, RequestPurpose::Rules { group } if group.0 == position)).map(|request| crate::execution_preparation::rule_preparation::waiting_on(plan, state, request)).unwrap_or_default();
                     PreparedRuleEvaluation::WaitingForExpansion {
                         key: plan.evaluations[index.0].key.clone(),
                         on,

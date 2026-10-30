@@ -1,6 +1,6 @@
 use crate::{
     BinaryRoutes, DecisionMechanicalTool, DecisionRoute, DecisionStep, RulebookRule, Severity,
-    StepName, rulebook_admission::normalized_answer,
+    StepName, rulebook_planning::rulebook_admission::normalized_answer,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -325,7 +325,6 @@ fn mechanical_check(
 }
 
 #[cfg(test)]
-#[path = "decision_walking_test.rs"]
 mod tests;
 
 /// The shared referenced-field guard for rule and evidence-selection questions.
@@ -333,7 +332,7 @@ pub fn unavailable_question_field(
     questions: &sunstack_decisions::NamedQuestionMap,
     fields: &BTreeMap<FieldName, FieldValue>,
 ) -> Option<FieldName> {
-    crate::rulebook_admission::question_field_references(questions)
+    crate::rulebook_planning::rulebook_admission::question_field_references(questions)
         .into_iter()
         .find(|field| matches!(fields.get(field), Some(FieldValue::Unavailable { .. })))
 }
