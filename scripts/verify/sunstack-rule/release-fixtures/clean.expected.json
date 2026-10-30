@@ -9,6 +9,17 @@
     "kind": "clean"
   },
   "findings": [],
+  "results": [
+    {
+      "name": "standard",
+      "marker": "K001",
+      "file": "docs/one.md",
+      "first_line": 1,
+      "last_line": 1,
+      "outcome": "pass",
+      "step": "must"
+    }
+  ],
   "uncertain": [],
   "skipped_rules": [],
   "counts": {

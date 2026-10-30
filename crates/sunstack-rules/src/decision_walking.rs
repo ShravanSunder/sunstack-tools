@@ -47,6 +47,7 @@ pub enum RulebookResult {
     Incomplete {
         reason: RulebookIncompleteReason,
         field: Option<FieldName>,
+        step: Option<StepName>,
     },
 }
 #[derive(Debug, Clone)]
@@ -100,6 +101,13 @@ pub fn walk_decision(
     loop {
         let Some(step) = rule.decision.steps.get(&current) else {
             return incomplete(RulebookIncompleteReason::EvidenceUnavailable, None);
+        };
+        let incomplete = |reason, field| {
+            WalkOutcome::Settled(RulebookResult::Incomplete {
+                reason,
+                field,
+                step: Some(current.clone()),
+            })
         };
         path.push(current.clone());
         if !matches!(step, DecisionStep::Mechanical { .. })
@@ -231,11 +239,19 @@ pub fn walk_decision(
     }
 }
 fn incomplete(reason: RulebookIncompleteReason, field: Option<FieldName>) -> WalkOutcome {
-    WalkOutcome::Settled(RulebookResult::Incomplete { reason, field })
+    WalkOutcome::Settled(RulebookResult::Incomplete {
+        reason,
+        field,
+        step: None,
+    })
 }
 fn needs_answers(piece: &EvidencePiece, step: &StepName) -> WalkOutcome {
     match piece.model_view {
-        ModelView::TooLarge { .. } => incomplete(RulebookIncompleteReason::EvidenceTooLarge, None),
+        ModelView::TooLarge { .. } => WalkOutcome::Settled(RulebookResult::Incomplete {
+            reason: RulebookIncompleteReason::EvidenceTooLarge,
+            field: None,
+            step: Some(step.clone()),
+        }),
         ModelView::Bounded { .. } => WalkOutcome::NeedsAnswers { step: step.clone() },
     }
 }
@@ -253,7 +269,11 @@ fn uncertain(
             answers: answers.clone(),
             path_taken,
         }),
-        Err(_) => incomplete(RulebookIncompleteReason::EvidenceUnavailable, None),
+        Err(_) => WalkOutcome::Settled(RulebookResult::Incomplete {
+            reason: RulebookIncompleteReason::EvidenceUnavailable,
+            field: None,
+            step: Some(step),
+        }),
     }
 }
 fn binary_route(value: f64, routes: &BinaryRoutes) -> Option<&DecisionRoute> {

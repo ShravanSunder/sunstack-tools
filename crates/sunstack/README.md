@@ -57,6 +57,10 @@ default scope. Use `--all` for every configured target, `--since REV` for change
 since a revision including worktree edits, or name files or directories for full
 scope within those paths. Findings retain their rule, marker and source
 location. Available output formats are `default`, `json`, `github` and `sarif`.
+The JSON report includes `results`, one entry per evaluated rule/piece pair in
+logical report order. Each entry has the rule's `name` and marker, the piece's
+file and first and last line, its outcome (`pass`, `finding`, `not_applicable`,
+`uncertain` or `incomplete`) and its ending `step` (null before any step ran).
 
 The decision model is always configured and enabled for asking rules; there is
 no model-off switch. Ordinary runs with asking rules require an OpenRouter

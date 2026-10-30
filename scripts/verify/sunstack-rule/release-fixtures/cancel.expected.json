@@ -9,6 +9,17 @@
     "kind": "cancelled"
   },
   "findings": [],
+  "results": [
+    {
+      "name": "standard",
+      "marker": "K001",
+      "file": "docs/one.md",
+      "first_line": 1,
+      "last_line": 1,
+      "outcome": "incomplete",
+      "step": "complies"
+    }
+  ],
   "uncertain": [],
   "skipped_rules": [],
   "counts": {

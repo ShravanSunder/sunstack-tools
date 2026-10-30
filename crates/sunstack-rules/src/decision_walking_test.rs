@@ -124,7 +124,7 @@ fn too_large_only_blocks_an_asking_path_and_unavailable_field_is_contained() {
         },
     );
     assert!(
-        matches!(walk_decision(&rule,&piece,&fixture::index(),None),WalkOutcome::Settled(RulebookResult::Incomplete { reason:RulebookIncompleteReason::EvidenceUnavailable,field:Some(field) }) if field.as_str()=="description")
+        matches!(walk_decision(&rule,&piece,&fixture::index(),None),WalkOutcome::Settled(RulebookResult::Incomplete { reason:RulebookIncompleteReason::EvidenceUnavailable,field:Some(field), .. }) if field.as_str()=="description")
     );
 }
 

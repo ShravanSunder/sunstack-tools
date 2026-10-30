@@ -235,3 +235,41 @@ async fn schema_and_native_decoder_agree_on_structure_but_loaded_checks_stay_nat
         CheckResult::Invalid { .. }
     ));
 }
+
+#[tokio::test]
+async fn report_schema_validates_real_pair_results_and_requires_their_typed_fields() {
+    let root = tempfile::tempdir().unwrap();
+    fixture::write(root.path());
+    let report = run(
+        fixture::request(root.path()),
+        CancellationToken::new(),
+        None,
+    )
+    .await;
+    let value = serde_json::to_value(&report).unwrap();
+    assert_eq!(value["results"].as_array().unwrap().len(), 1);
+    assert_eq!(value["results"][0]["outcome"], "finding");
+    assert_eq!(value["results"][0]["step"], "starts");
+    let schema = serde_json::to_value(report_schema()).unwrap();
+    let validator = jsonschema::options().offline().build(&schema).unwrap();
+    assert!(
+        validator.is_valid(&value),
+        "{:?}",
+        validator.iter_errors(&value).collect::<Vec<_>>()
+    );
+    let mut missing = value.clone();
+    missing.as_object_mut().unwrap().remove("results");
+    assert!(!validator.is_valid(&missing));
+    let mut wrong = value;
+    wrong["results"][0]["outcome"] = json!("unknown");
+    assert!(!validator.is_valid(&wrong));
+    let mut without_results = report.clone();
+    without_results.results.clear();
+    for format in [
+        OutputFormat::Default,
+        OutputFormat::Github,
+        OutputFormat::Sarif,
+    ] {
+        assert_eq!(render(&report, format), render(&without_results, format));
+    }
+}

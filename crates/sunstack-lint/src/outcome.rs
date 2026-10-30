@@ -27,6 +27,26 @@ pub(crate) fn project_outcome(
         else {
             continue;
         };
+        let (outcome, step) = match &pair.result {
+            RulebookResult::Pass { path_taken } => (PieceOutcome::Pass, path_taken.last().cloned()),
+            RulebookResult::NotApplicable { path_taken } => {
+                (PieceOutcome::NotApplicable, path_taken.last().cloned())
+            }
+            RulebookResult::Finding { path_taken, .. } => {
+                (PieceOutcome::Finding, path_taken.last().cloned())
+            }
+            RulebookResult::Uncertain { step, .. } => (PieceOutcome::Uncertain, Some(step.clone())),
+            RulebookResult::Incomplete { step, .. } => (PieceOutcome::Incomplete, step.clone()),
+        };
+        report.results.push(RulePieceResult {
+            name: rule.name.clone(),
+            marker: rule.sentence.marker.clone(),
+            file: piece.location.file.clone(),
+            first_line: piece.location.first_line,
+            last_line: piece.location.last_line,
+            outcome,
+            step,
+        });
         match pair.result {
             RulebookResult::Pass { .. } => {}
             RulebookResult::NotApplicable { .. } => {
@@ -86,7 +106,7 @@ pub(crate) fn project_outcome(
                 state,
                 answers,
             }),
-            RulebookResult::Incomplete { reason, field } => {
+            RulebookResult::Incomplete { reason, field, .. } => {
                 report.incomplete.push(IncompletePart {
                     rule: Some(rule.name.clone()),
                     file: Some(piece.location.file.clone()),

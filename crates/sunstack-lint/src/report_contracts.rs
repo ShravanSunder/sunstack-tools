@@ -8,6 +8,7 @@ use sunstack_evidence::{
 use sunstack_rules::{RuleId, RulebookSkippedRule, Severity, StepName};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum ScopeChoice {
     #[default]
     Default,
@@ -27,10 +28,11 @@ pub struct LintRequest {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum WidenedReason {
     ConfigChanged,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ScopeReport {
     #[serde(flatten)]
     pub kind: ScopeChoice,
@@ -38,6 +40,7 @@ pub struct ScopeReport {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum LintStatus {
     Clean,
     NothingSelected,
@@ -62,10 +65,11 @@ impl LintStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum SettingOrigin {
     Authored,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Finding {
     pub rule: RuleId,
     pub marker: MarkerId,
@@ -78,13 +82,13 @@ pub struct Finding {
     pub message: String,
     pub judgment: Option<JudgmentSummary>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JudgmentSummary {
     pub answers: NamedAnswerMap,
     pub value: Option<f64>,
     pub path_taken: Vec<StepName>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UncertainResult {
     pub rule: RuleId,
     pub marker: MarkerId,
@@ -94,12 +98,12 @@ pub struct UncertainResult {
     pub state: SharedEvidenceState,
     pub answers: NamedAnswerMap,
 }
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SeverityCounts {
     pub error: u32,
     pub warn: u32,
 }
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ExclusionCounts {
     pub off: u32,
     pub ignored: u32,
@@ -109,6 +113,7 @@ pub struct ExclusionCounts {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(schemars::JsonSchema)]
 pub enum IncompleteReason {
     SelectionFailed,
     EvaluationFailed,
@@ -122,7 +127,7 @@ pub enum IncompleteReason {
     EvidenceTooLarge,
     RequestTooLarge,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct IncompletePart {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub field: Option<FieldName>,
@@ -130,7 +135,7 @@ pub struct IncompletePart {
     pub file: Option<PathBuf>,
     pub reason: IncompleteReason,
 }
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UsageSummary {
     /// Distinct logical checked/target content acquisitions; Git snapshot verification rereads are excluded.
     pub checked_files_acquired: usize,
@@ -141,7 +146,7 @@ pub struct UsageSummary {
     pub cost_reported_requests: u32,
     pub cost_missing_requests: u32,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintDiagnostic {
     pub file: Option<PathBuf>,
     pub line: Option<u32>,
@@ -161,7 +166,7 @@ impl From<LintInvalid> for LintDiagnostic {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EvidenceListing {
     pub version: String,
     pub config: PathBuf,
@@ -169,13 +174,14 @@ pub struct EvidenceListing {
     pub pieces: Vec<EvidencePiece>,
     pub usage: UsageSummary,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintReport {
     pub version: String,
     pub config: PathBuf,
     pub scope: ScopeReport,
     pub status: LintStatus,
     pub findings: Vec<Finding>,
+    pub results: Vec<RulePieceResult>,
     pub uncertain: Vec<UncertainResult>,
     pub skipped_rules: Vec<RulebookSkippedRule>,
     pub counts: SeverityCounts,
@@ -199,6 +205,7 @@ impl LintReport {
             },
             status: LintStatus::NothingSelected,
             findings: vec![],
+            results: vec![],
             uncertain: vec![],
             skipped_rules: vec![],
             counts: SeverityCounts::default(),
@@ -211,6 +218,30 @@ impl LintReport {
             evidence_listing: None,
         }
     }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PieceOutcome {
+    Pass,
+    Finding,
+    NotApplicable,
+    Uncertain,
+    Incomplete,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct RulePieceResult {
+    pub name: RuleId,
+    pub marker: MarkerId,
+    pub file: PathBuf,
+    pub first_line: usize,
+    pub last_line: usize,
+    pub outcome: PieceOutcome,
+    pub step: Option<StepName>,
+}
+
+pub fn report_schema() -> schemars::Schema {
+    schemars::schema_for!(LintReport)
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]

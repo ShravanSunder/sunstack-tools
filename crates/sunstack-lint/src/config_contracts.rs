@@ -118,6 +118,7 @@ pub struct ConfigLocation {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(JsonSchema)]
 pub enum LintInvalidCode {
     NoConfigFound,
     Syntax,

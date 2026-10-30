@@ -1,5 +1,6 @@
 use crate::{
-    RulebookIncompleteReason, RulebookResult, RulebookRule, WalkOutcome, piece_state, walk_decision,
+    RulebookIncompleteReason, RulebookResult, RulebookRule, StepName, WalkOutcome, piece_state,
+    walk_decision,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
@@ -38,10 +39,11 @@ pub struct RulebookRun {
     pub results: Vec<RulebookPairResult>,
     pub requests: Vec<RulebookRequestRecord>,
 }
-fn incomplete(reason: RulebookIncompleteReason) -> RulebookResult {
+fn incomplete(reason: RulebookIncompleteReason, step: Option<StepName>) -> RulebookResult {
     RulebookResult::Incomplete {
         reason,
         field: None,
+        step,
     }
 }
 
@@ -71,21 +73,26 @@ pub async fn run_rulebook(
             run.results.push(RulebookPairResult {
                 rule_index,
                 piece_index,
-                result: incomplete(RulebookIncompleteReason::ProviderFailure),
+                result: incomplete(RulebookIncompleteReason::ProviderFailure, None),
             });
             if cancellation.is_cancelled() {
-                run.results[pair_index].result = incomplete(RulebookIncompleteReason::Cancelled);
+                run.results[pair_index].result =
+                    incomplete(RulebookIncompleteReason::Cancelled, None);
                 continue;
             }
             let empty = FileMatchIndex::default();
             let index = indexes.get(&piece.location.file).unwrap_or(&empty);
-            match walk_decision(rule, piece, index, None) {
+            let pending_step = match walk_decision(rule, piece, index, None) {
                 WalkOutcome::Settled(result) => {
                     run.results[pair_index].result = result;
                     continue;
                 }
-                WalkOutcome::NeedsAnswers { .. } => {}
-            }
+                WalkOutcome::NeedsAnswers { step } => step,
+            };
+            run.results[pair_index].result = incomplete(
+                RulebookIncompleteReason::ProviderFailure,
+                Some(pending_step.clone()),
+            );
             let state = match piece_state(rule, piece) {
                 Ok(state) => state,
                 Err(_) => continue,
@@ -104,13 +111,17 @@ pub async fn run_rulebook(
                 Err(_) => continue,
             };
             if chars > settings.request_max_chars {
-                run.results[pair_index].result =
-                    incomplete(RulebookIncompleteReason::RequestTooLarge);
+                run.results[pair_index].result = incomplete(
+                    RulebookIncompleteReason::RequestTooLarge,
+                    Some(pending_step.clone()),
+                );
                 continue;
             }
             if requested >= settings.max_model_requests {
-                run.results[pair_index].result =
-                    incomplete(RulebookIncompleteReason::RequestLimitReached);
+                run.results[pair_index].result = incomplete(
+                    RulebookIncompleteReason::RequestLimitReached,
+                    Some(pending_step.clone()),
+                );
                 continue;
             }
             let Some(backend) = backend.clone() else {
@@ -121,7 +132,8 @@ pub async fn run_rulebook(
                 Err(_) => continue,
             };
             if cancellation.is_cancelled() {
-                run.results[pair_index].result = incomplete(RulebookIncompleteReason::Cancelled);
+                run.results[pair_index].result =
+                    incomplete(RulebookIncompleteReason::Cancelled, Some(pending_step));
                 continue;
             }
             requested += 1;
@@ -142,19 +154,22 @@ pub async fn run_rulebook(
                     DecisionRunOutcome::Completed { answers, .. } => {
                         match walk_decision(&rule, &piece, &index, Some(answers)) {
                             WalkOutcome::Settled(result) => result,
-                            WalkOutcome::NeedsAnswers { .. } => {
-                                incomplete(RulebookIncompleteReason::ProviderFailure)
-                            }
+                            WalkOutcome::NeedsAnswers { .. } => incomplete(
+                                RulebookIncompleteReason::ProviderFailure,
+                                Some(pending_step.clone()),
+                            ),
                         }
                     }
-                    DecisionRunOutcome::Cancelled { .. } => {
-                        incomplete(RulebookIncompleteReason::Cancelled)
-                    }
+                    DecisionRunOutcome::Cancelled { .. } => incomplete(
+                        RulebookIncompleteReason::Cancelled,
+                        Some(pending_step.clone()),
+                    ),
                     DecisionRunOutcome::InvalidRequest { .. }
                     | DecisionRunOutcome::ProviderFailure { .. }
-                    | DecisionRunOutcome::InvalidResponse { .. } => {
-                        incomplete(RulebookIncompleteReason::ProviderFailure)
-                    }
+                    | DecisionRunOutcome::InvalidResponse { .. } => incomplete(
+                        RulebookIncompleteReason::ProviderFailure,
+                        Some(pending_step),
+                    ),
                 };
                 (
                     pair_index,

@@ -58,6 +58,53 @@ fn settings(endpoint: &str) -> RulebookRunSettings {
         max_model_requests: 10,
     }
 }
+
+#[tokio::test]
+async fn incomplete_steps_distinguish_pre_walk_cancellation_from_a_request_guard() {
+    let rules = [rule()];
+    let pieces = pieces();
+    let cancellation = CancellationToken::new();
+    cancellation.cancel();
+    let cancelled = run_rulebook(
+        &rules,
+        &pieces,
+        &BTreeMap::new(),
+        settings("not-dispatched"),
+        None,
+        cancellation,
+    )
+    .await;
+    assert_eq!(cancelled.results.len(), 2);
+    assert!(cancelled.requests.is_empty());
+    for pair in cancelled.results {
+        assert!(matches!(
+            pair.result,
+            RulebookResult::Incomplete {
+                reason: RulebookIncompleteReason::Cancelled,
+                step: None,
+                ..
+            }
+        ));
+    }
+    let mut bounded = settings("not-dispatched");
+    bounded.request_max_chars = 1;
+    let guarded = run_rulebook(
+        &rules,
+        &pieces,
+        &BTreeMap::new(),
+        bounded,
+        None,
+        CancellationToken::new(),
+    )
+    .await;
+    assert_eq!(guarded.results.len(), 2);
+    assert!(guarded.requests.is_empty());
+    for pair in guarded.results {
+        assert!(
+            matches!(pair.result,RulebookResult::Incomplete {reason:RulebookIncompleteReason::RequestTooLarge,step:Some(step),..} if step.as_str() == "q")
+        );
+    }
+}
 struct OrderedBackend {
     inner: JevOpenRouterBackend,
     release_first: Arc<Notify>,
@@ -252,7 +299,7 @@ async fn ask_naming_an_unavailable_field_never_dispatches() {
         "an unavailable referenced field reached HTTP"
     );
     assert!(
-        matches!(&run.results[0].result,RulebookResult::Incomplete {reason:RulebookIncompleteReason::EvidenceUnavailable,field:Some(field)} if field.as_str()=="body")
+        matches!(&run.results[0].result,RulebookResult::Incomplete {reason:RulebookIncompleteReason::EvidenceUnavailable,field:Some(field), ..} if field.as_str()=="body")
     );
 }
 

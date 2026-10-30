@@ -126,6 +126,7 @@ async fn binary_lists_native_evidence_and_drives_worked_examples_and_uncertain_p
     assert_eq!(piece["where"]["span"]["byte_start"], 6114);
     assert_eq!(piece["where"]["span"]["byte_end"], 7909);
     let (report, bodies) = judged(root.path(), 0.58, 1).await;
+    assert_eq!(report["results"].as_array().unwrap().len(), 8);
     let finding = report["findings"]
         .as_array()
         .unwrap()
@@ -243,6 +244,16 @@ async fn assert_encoded_cap_blocks_only_large(root: &Path) {
             .any(|part| part["rule"] == "large" && part["reason"]["kind"] == "request_too_large")
     );
     assert_eq!(report["counts"]["error"], 0);
+    assert_eq!(report["results"].as_array().unwrap().len(), 2);
+    assert!(
+        report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|result| result["name"] == "large"
+                && result["outcome"] == "incomplete"
+                && result["step"] == "names_trigger")
+    );
 }
 
 #[tokio::test]
@@ -305,6 +316,52 @@ fn limit_fixture(fields: Value, decision: Value) -> tempfile::TempDir {
 }
 fn mechanical_graph(tool: Value) -> Value {
     json!({"start":"check","steps":{"check":{"mechanical_check":tool,"yes":"pass","no":{"finding":"Standard failed."}}}})
+}
+
+#[tokio::test]
+async fn json_results_distinguish_each_piece_outcome_and_ending_step_in_report_order() {
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        json!({"start":"gate","steps":{
+            "gate":{"mechanical_check":{"tool":"contains","field":"body","text":"skip"},"yes":"not_applicable","no":"classify"},
+            "classify":{"mechanical_check":{"tool":"contains","field":"body","text":"finding"},"yes":{"finding":"Wrong content."},"no":"local_pass"},
+            "local_pass":{"mechanical_check":{"tool":"contains","field":"body","text":"pass"},"yes":"pass","no":"quality"},
+            "quality":{"ask":"covers","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Low quality."}}
+        }}),
+    );
+    let path = root.path().join("rules.json");
+    let mut entries = read(&path);
+    entries["K001"]["questions"] = json!({"covers":{"type":"noul","instructions":{"check":"body","task":"Does the piece comply?"}}});
+    save(&path, &entries);
+    let cases = [
+        ("a-pass.md", "pass", "local_pass"),
+        ("b-skip.md", "not_applicable", "gate"),
+        ("c-finding.md", "finding", "classify"),
+        ("d-uncertain.md", "uncertain", "quality"),
+    ];
+    for (file, outcome, _) in cases {
+        std::fs::write(
+            root.path().join("docs").join(file),
+            format!(
+                "{}\n",
+                if outcome == "not_applicable" {
+                    "skip"
+                } else {
+                    outcome
+                }
+            ),
+        )
+        .unwrap();
+    }
+    let (report, bodies) = judged(root.path(), 0.79, 1).await;
+    assert_eq!(bodies.len(), 1);
+    let expected = cases.map(|(file,outcome,step)|json!({"name":"document_standard","marker":"K001","file":format!("docs/{file}"),"first_line":1,"last_line":1,"outcome":outcome,"step":step}));
+    assert_eq!(report["results"], json!(expected));
+    let typed: sunstack_lint::LintReport = serde_json::from_value(report.clone()).unwrap();
+    assert_eq!(serde_json::to_value(typed).unwrap(), report);
+    assert_eq!(report["exclusions"]["not_applicable"], 1);
+    assert_eq!(report["findings"].as_array().unwrap().len(), 1);
+    assert_eq!(report["uncertain"].as_array().unwrap().len(), 1);
 }
 
 #[tokio::test]

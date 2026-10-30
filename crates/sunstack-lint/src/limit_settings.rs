@@ -5,7 +5,7 @@ use sunstack_decisions::{AccountingPolicy, AttemptSettings, RequestBudgetSetting
 use sunstack_evidence::{DiscoveryLimits, EvidenceDiscovery, InvocationLimits};
 use sunstack_rules::{ExecutionSettings, Speculation};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EffectiveLimits {
     pub evidence_max_chars: u32,
     pub request_max_chars: u32,
