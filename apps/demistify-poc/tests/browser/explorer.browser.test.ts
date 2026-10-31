@@ -247,11 +247,37 @@ test('a narrow Explorer main heading link reveals detail through document target
 	view.scrollTo({ top: owner.getBoundingClientRect().top + view.scrollY + 100 });
 	const list = requiredElement(owner, '.ex-explorer-node-list');
 	// Narrow lists use the page scroller rather than an inner overflow box.
-	const listPosition = list.scrollTop;
-	const pagePosition = view.scrollY;
+	let listPosition = list.scrollTop;
+	let pagePosition = view.scrollY;
+	let capturedEntry = false;
 	expect(pagePosition).toBeGreaterThan(1000);
 	expect(insideViewport(link)).toBe(true);
+	// Measure actual click entry before the document's bubbling reveal handler.
+	view.addEventListener(
+		'click',
+		(event: MouseEvent): void => {
+			if (event.target !== link) return;
+			listPosition = list.scrollTop;
+			pagePosition = view.scrollY;
+			capturedEntry = insideViewport(link) && owner.getAttribute('data-mobile-view') === 'list';
+		},
+		{ capture: true, once: true },
+	);
+	let pointerScrollDistance = 0;
+	// A pre-action measurement must stay stale when scrolling precedes the click.
+	link.addEventListener(
+		'pointerdown',
+		(): void => {
+			const beforeScroll = view.scrollY;
+			view.scrollBy({ top: 4, behavior: 'instant' });
+			pointerScrollDistance = view.scrollY - beforeScroll;
+		},
+		{ once: true },
+	);
 	await frame.getByRole('link', { name: 'Open Explorer heading', exact: true }).click();
+	expect(capturedEntry).toBe(true);
+	expect(pointerScrollDistance).toBe(4);
+	expect(pagePosition).toBeGreaterThan(1000);
 	await expect.poll((): number => heading.getBoundingClientRect().width).toBeGreaterThan(0);
 	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
 	expect(new URL(fixture.URL).searchParams.has('ex.planning')).toBe(false);
