@@ -5,10 +5,10 @@ This route follows amended R30/R40 and U14/U16 at `9dfdb10` plus `a4696af` (WK1/
 Use the main skill's source/binary pinning and synthetic-only policy. The lasting rulebook entries and their `--case selection` mode keep their names and flags:
 
 ```sh
-node scripts/verify/sunstack-rule/rulebook-lint.ts --case selection \
+node scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts --case selection \
   --binary <frozen-binary> --sha256 <digest> --source-root <checkout> \
   --commit <full-head> --evidence <new-directory>
-node scripts/verify/sunstack-rule/rulebook-check-refusals.ts --case selection \
+node scripts/verify/sunstack-rule/rulebook/rulebook-check-refusals.ts --case selection \
   --binary <frozen-binary> --sha256 <digest> --source-root <checkout> \
   --commit <full-head> --evidence <another-new-directory>
 ```
@@ -46,7 +46,7 @@ WK3 keeps those seams distinct: non-list/empty/repeated shapes fail at decode an
 The standalone driver is lasting apparatus for the cutover comparison:
 
 ```sh
-node scripts/verify/sunstack-rule/within-kinds-equivalence.ts \
+node scripts/verify/sunstack-rule/selection/within-kinds-equivalence.ts \
   --baseline <frozen-v0.3.0-binary> --baseline-sha256 <baseline-digest> \
   --binary <new-frozen-binary> --sha256 <new-digest> \
   --source-root <checkout> --commit <full-head> --evidence <fresh-directory>

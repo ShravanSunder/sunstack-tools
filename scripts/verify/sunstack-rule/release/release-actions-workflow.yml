@@ -19,6 +19,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v4
+      - name: Install the locked controller dependency
+        run: pnpm install --frozen-lockfile
       - name: Download and authenticate the declared release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,6 +75,8 @@ jobs:
           cp scripts/verify/sunstack-rule/release/release-actions-control.ts bundle/
           cp scripts/verify/sunstack-rule/release/release-registry.ts bundle/
           cp scripts/verify/sunstack-rule/release/release-process.ts bundle/
+          mkdir -p bundle/node_modules
+          cp -RL node_modules/zod bundle/node_modules/zod
           cp -R scripts/verify/sunstack-rule/release/fixtures/cancel bundle/fixture
           cp scripts/verify/sunstack-rule/release/fixtures/cancel.expected.json bundle/
       - uses: actions/upload-artifact@v7
@@ -87,7 +96,7 @@ jobs:
           path: ${{ runner.temp }}/s4-input
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: '26'
           package-manager-cache: false
       - name: Start the earlier-step controller and install from its mirror
         env:
@@ -99,7 +108,7 @@ jobs:
           mkdir -p "$root/home"
           cp -R "$input/fixture" "$root/fixture"
           cp "$input/identity.json" "$root/identity.json"
-          node "$input/release_actions_control.cjs" start --root "$root" --assets "$input/assets" --identity "$input/identity.json" --repository "$GITHUB_REPOSITORY" --run "$GITHUB_RUN_ID" --head "$GITHUB_SHA" --workflow "$GITHUB_WORKFLOW"
+          node "$input/release-actions-control.ts" start --root "$root" --assets "$input/assets" --identity "$input/identity.json" --repository "$GITHUB_REPOSITORY" --run "$GITHUB_RUN_ID" --head "$GITHUB_SHA" --workflow "$GITHUB_WORKFLOW"
           python3 - <<'PY'
           import hashlib, json, os, pathlib, subprocess
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 's4-actions'
@@ -134,7 +143,7 @@ jobs:
           env -i PATH="$root/installed:/usr/bin:/bin" HOME="$root/home" OPENROUTER_API_KEY=SYNTHETIC_RUNNER_CONTROL_NOT_A_SECRET sunstack lint --all --format json
       - name: Freeze evidence and clean only observed owned resources
         if: ${{ always() }}
-        run: node "$RUNNER_TEMP/s4-input/release_actions_control.cjs" finish "$RUNNER_TEMP/s4-actions"
+        run: node "$RUNNER_TEMP/s4-input/release-actions-control.ts" finish "$RUNNER_TEMP/s4-actions"
       - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:

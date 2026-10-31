@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { type JsonObject } from './rulebook-fixture-support.ts';
+import { type JsonObject } from '../rulebook/rulebook-fixture-support.ts';
 import { requireUnionCounts } from './within-kinds-journey.ts';
 
 const expected = [{ file: 'fixture.md', matches: 4, pieces: 3, picked: 3 }];

@@ -6,10 +6,10 @@ import path from 'node:path';
 
 import { afterEach, expect, test } from 'vitest';
 
-import { hostedArgumentsSchema, observeHosted, readCredential } from './hosted-lint.ts';
-import { inspectStaticArm64 } from './hosted-process.ts';
 import { readObject } from '../rulebook/rulebook-fixture-support.ts';
 import { binaryDigest } from '../rulebook/rulebook-process.ts';
+import { hostedArgumentsSchema, observeHosted, readCredential } from './hosted-lint.ts';
+import { inspectStaticArm64 } from './hosted-process.ts';
 const temporary: string[] = [];
 function scratch(): string {
 	const root = filesystem.mkdtempSync(path.join(operatingSystem.tmpdir(), 'hosted-apparatus-'));
@@ -167,7 +167,11 @@ test.each(['lint-runner-rulebook.ts', 'hosted-lint.ts'])(
 	'help and missing target are side-effect free: %s',
 	(script) => {
 		const root = scratch();
-		const driver = path.join(import.meta.dirname, script);
+		const driver = path.join(
+			import.meta.dirname,
+			script === 'lint-runner-rulebook.ts' ? '../rulebook' : '.',
+			script,
+		);
 		const help = spawnSync(process.execPath, [driver, '--help'], { encoding: 'utf8' });
 		expect(help.status).toBe(0);
 		const evidence = path.join(root, 'missing');

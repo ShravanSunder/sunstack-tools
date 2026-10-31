@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 // Ordinary stream comparison shared by live grading and retained-raw regrading.
 
-
 interface StreamCapture {
 	readonly stdout: Buffer;
 	readonly stderr: Buffer;
@@ -26,7 +25,11 @@ function managerLine(route: string, line: string): boolean {
 	return false;
 }
 
-function compareStreams(native: StreamCapture, channel: StreamCapture, route: string): StreamComparison {
+function compareStreams(
+	native: StreamCapture,
+	channel: StreamCapture,
+	route: string,
+): StreamComparison {
 	assert.deepEqual(channel.stdout, native.stdout, 'stdout bytes differ from native');
 	const nativeLines = linesFrom(native.stderr),
 		channelLines = linesFrom(channel.stderr);

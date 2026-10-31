@@ -3,6 +3,7 @@ import filesystem from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
+import { runSelectionJourney } from '../selection/selection-journey.ts';
 import {
 	listingPieces,
 	location,
@@ -37,7 +38,6 @@ import {
 	type JsonObject,
 } from './rulebook-fixture-support.ts';
 import { declaredTarget, responseBody, RulebookProcess } from './rulebook-process.ts';
-import { runSelectionJourney } from '../selection/selection-journey.ts';
 
 export function scriptedReply(body: JsonObject, total = 0.58, confidence = 0.86): JsonObject {
 	const reply = responseBody(body);

@@ -22,8 +22,8 @@ import {
 	runSequence,
 	writeJson,
 	type JsonObject,
-} from './rulebook-fixture-support.ts';
-import { binaryDigest, confirmTarget, declaredTarget } from './rulebook-process.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
+import { binaryDigest, confirmTarget, declaredTarget } from '../rulebook/rulebook-process.ts';
 import { copySelectionFixture } from './selection-fixture.ts';
 import { scriptedSelectionReply } from './selection-reply.ts';
 

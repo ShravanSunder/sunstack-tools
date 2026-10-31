@@ -4,39 +4,75 @@ import fileSystem from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import zlib from 'node:zlib';
+
 import { z } from 'zod';
 // S4 private registry: name resolution and URL-only repacks; no upstream proxy.
 
-
-
-
-
-
-
 const packageMetadataSchema = z.looseObject({
-	name: z.string(), version: z.string(), bin: z.looseObject({ sunstack: z.string() }),
+	name: z.string(),
+	version: z.string(),
+	bin: z.looseObject({ sunstack: z.string() }),
 	artifactDownloadUrls: z.json(),
 });
 const dependencyMetadataSchema = z.looseObject({ name: z.string(), version: z.string() });
 const lockedDependencySchema = z.looseObject({ version: z.string(), integrity: z.string() });
-const shrinkwrapSchema = z.object({ packages: z.looseObject({ 'node_modules/detect-libc': lockedDependencySchema }) });
-const releaseDeclarationSchema = z.object({ older: z.object({ version: z.string() }), newer: z.object({ version: z.string() }) });
+const shrinkwrapSchema = z.object({
+	packages: z.looseObject({ 'node_modules/detect-libc': lockedDependencySchema }),
+});
+const releaseDeclarationSchema = z.object({
+	older: z.object({ version: z.string() }),
+	newer: z.object({ version: z.string() }),
+});
 type PackageMetadata = z.infer<typeof packageMetadataSchema>;
-interface ArchiveMember { readonly name: string; readonly kind: string; readonly header: Buffer; readonly data: Buffer; }
-interface RepackProof {
-	readonly original_tar_sha256: string; readonly adapted_tar_sha256: string;
-	readonly original: PackageMetadata; readonly adapted: PackageMetadata;
-	readonly before: Record<string, string>; readonly after: Record<string, string>; readonly changed: string[];
+interface ArchiveMember {
+	readonly name: string;
+	readonly kind: string;
+	readonly header: Buffer;
+	readonly data: Buffer;
 }
-interface RepackedPackage { readonly tarball: Buffer; readonly metadata: PackageMetadata; readonly proof: RepackProof; }
-interface RegistryRequest { readonly method: string | undefined; readonly path: string; readonly status: number; authorization_present?: boolean; sha256?: string; file?: string; }
-interface RegistryVersion extends Record<string, unknown> { readonly dist: { readonly tarball: string; readonly integrity: string }; }
-interface RegistryOptions { readonly assets: string; readonly declaration: unknown; readonly dependencyTar: string; readonly evidence: string; }
-interface RegistryService { readonly base: string; readonly requests: RegistryRequest[]; readonly close: () => Promise<void>; }
+interface RepackProof {
+	readonly original_tar_sha256: string;
+	readonly adapted_tar_sha256: string;
+	readonly original: PackageMetadata;
+	readonly adapted: PackageMetadata;
+	readonly before: Record<string, string>;
+	readonly after: Record<string, string>;
+	readonly changed: string[];
+}
+interface RepackedPackage {
+	readonly tarball: Buffer;
+	readonly metadata: PackageMetadata;
+	readonly proof: RepackProof;
+}
+interface RegistryRequest {
+	readonly method: string | undefined;
+	readonly path: string;
+	readonly status: number;
+	authorization_present?: boolean;
+	sha256?: string;
+	file?: string;
+}
+interface RegistryVersion extends Record<string, unknown> {
+	readonly dist: { readonly tarball: string; readonly integrity: string };
+}
+interface RegistryOptions {
+	readonly assets: string;
+	readonly declaration: unknown;
+	readonly dependencyTar: string;
+	readonly evidence: string;
+}
+interface RegistryService {
+	readonly base: string;
+	readonly requests: RegistryRequest[];
+	readonly close: () => Promise<void>;
+}
 
-const sha256 = (value: string | Buffer): string => crypto.createHash('sha256').update(value).digest('hex');
-const integrity = (value: string | Buffer): string => 'sha512-' + crypto.createHash('sha512').update(value).digest('base64');
-const save = (file: string, value: unknown): void => fileSystem.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
+const sha256 = (value: string | Buffer): string =>
+	crypto.createHash('sha256').update(value).digest('hex');
+const integrity = (value: string | Buffer): string =>
+	'sha512-' + crypto.createHash('sha512').update(value).digest('base64');
+const save = (file: string, value: unknown): void =>
+	fileSystem.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
 
 function unpackPackage(archive: Buffer): ArchiveMember[] {
 	const bytes = zlib.gunzipSync(archive, { maxOutputLength: 16 * 1024 * 1024 });
@@ -129,7 +165,12 @@ function repackPackage(archive: Buffer, version: string, mirror: string): Repack
 	};
 }
 
-async function startRegistry({ assets, declaration: rawDeclaration, dependencyTar, evidence }: RegistryOptions): Promise<RegistryService> {
+async function startRegistry({
+	assets,
+	declaration: rawDeclaration,
+	dependencyTar,
+	evidence,
+}: RegistryOptions): Promise<RegistryService> {
 	const declaration = releaseDeclarationSchema.parse(rawDeclaration);
 	fileSystem.mkdirSync(evidence, { recursive: true });
 	const requests: RegistryRequest[] = [];
@@ -193,7 +234,7 @@ async function startRegistry({ assets, declaration: rawDeclaration, dependencyTa
 		response.writeHead(status, { 'content-type': contentType, 'cache-control': 'no-store' });
 		if (request.method === 'HEAD') response.end();
 		else if (file) fileSystem.createReadStream(file).pipe(response);
-		else response.end(body || '{}');
+		else response.end(body ?? '{}');
 	});
 	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
 	const address = server.address();
@@ -246,9 +287,13 @@ async function startRegistry({ assets, declaration: rawDeclaration, dependencyTa
 		const dependency = fileSystem.readFileSync(dependencyTar);
 		assert.ok(lockedDependency);
 		assert.equal(integrity(dependency), lockedDependency.integrity);
-		const dependencyMember = unpackPackage(dependency).find((member) => member.name === 'package/package.json');
+		const dependencyMember = unpackPackage(dependency).find(
+			(member) => member.name === 'package/package.json',
+		);
 		assert.ok(dependencyMember);
-		const dependencyMetadata = dependencyMetadataSchema.parse(JSON.parse(dependencyMember.data.toString('utf8')));
+		const dependencyMetadata = dependencyMetadataSchema.parse(
+			JSON.parse(dependencyMember.data.toString('utf8')),
+		);
 		assert.equal(dependencyMetadata.name, 'detect-libc');
 		assert.equal(dependencyMetadata.version, '2.1.2');
 		const route = '/tarballs/detect-libc-2.1.2.tgz';

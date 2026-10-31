@@ -1,52 +1,108 @@
 import assert from 'node:assert/strict';
-import fileSystem from 'node:fs';
-import http from 'node:http';
-import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcessByStdio } from 'node:child_process';
-import type { Readable } from 'node:stream';
+import fileSystem from 'node:fs';
+import http from 'node:http';
 import type { Socket } from 'node:net';
+import path from 'node:path';
+import type { Readable } from 'node:stream';
+
 import { z } from 'zod';
+
 import { sha256, save } from './release-registry.ts';
 /* eslint-disable no-await-in-loop -- Each fixture and process must settle before the next owned cell begins. */
 // S4 real subprocess capture. Observation is frozen before owned cleanup.
 
-
-
-
-
-
-export interface ProcessMember { readonly pid: number; readonly parent: number; readonly group: number; readonly state: string; readonly started: string; readonly command: string; }
-export interface OwnershipCensus { readonly kind: 'established' | 'unestablished'; readonly initial_root: ProcessMember | null; readonly initial_group_members: ProcessMember[]; }
-interface OwnedTreeObserver { (): ProcessMember[]; ownership?: () => OwnershipCensus; }
-export interface StopRequest { readonly signal: NodeJS.Signals; readonly destination: 'pid' | 'group'; readonly expectation: string; }
-interface ProcessEnd { readonly code: number | null; readonly signal: NodeJS.Signals | null; readonly elapsed_ms: number; }
-interface NativeIdentity { readonly pid: number; readonly file: string; readonly sha256: string; }
-const heldRequestSchema = z.looseObject({ questions: z.record(z.string(), z.json()), state: z.json() });
+export interface ProcessMember {
+	readonly pid: number;
+	readonly parent: number;
+	readonly group: number;
+	readonly state: string;
+	readonly started: string;
+	readonly command: string;
+}
+export interface OwnershipCensus {
+	readonly kind: 'established' | 'unestablished';
+	readonly initial_root: ProcessMember | null;
+	readonly initial_group_members: ProcessMember[];
+}
+interface OwnedTreeObserver {
+	(): ProcessMember[];
+	ownership?: () => OwnershipCensus;
+}
+export interface StopRequest {
+	readonly signal: NodeJS.Signals;
+	readonly destination: 'pid' | 'group';
+	readonly expectation: string;
+}
+interface ProcessEnd {
+	readonly code: number | null;
+	readonly signal: NodeJS.Signals | null;
+	readonly elapsed_ms: number;
+}
+interface NativeIdentity {
+	readonly pid: number;
+	readonly file: string;
+	readonly sha256: string;
+}
+const heldRequestSchema = z.looseObject({
+	questions: z.record(z.string(), z.json()),
+	state: z.json(),
+});
 const lintConfigSchema = z.looseObject({ decision_model: z.looseObject({ endpoint: z.string() }) });
 type HeldRequest = z.infer<typeof heldRequestSchema>;
-interface StopObservation { readonly after_signal_ms: number; readonly exit: ProcessEnd | null; readonly close: ProcessEnd | null; readonly owned_tree: ProcessMember[]; readonly sockets: number; }
+interface StopObservation {
+	readonly after_signal_ms: number;
+	readonly exit: ProcessEnd | null;
+	readonly close: ProcessEnd | null;
+	readonly owned_tree: ProcessMember[];
+	readonly sockets: number;
+}
 export interface ProcessObservation {
-	readonly command: readonly string[]; readonly cwd: string; readonly pid: number | null;
-	readonly root_exit: ProcessEnd | null; readonly root_close: ProcessEnd | null;
-	readonly error: string | null; readonly elapsed_ms: number; readonly admitted_request: HeldRequest | null;
-	readonly signal_at_ms: number | null; readonly stop: StopRequest | null;
-	readonly owned_tree_at_readiness: ProcessMember[]; readonly native_identity_at_readiness: NativeIdentity[];
-	readonly timeline: StopObservation[]; readonly ownership: OwnershipCensus;
-	readonly survivors_before_cleanup: ProcessMember[] | null; readonly unestablished_group_members_before_cleanup: ProcessMember[] | null;
+	readonly command: readonly string[];
+	readonly cwd: string;
+	readonly pid: number | null;
+	readonly root_exit: ProcessEnd | null;
+	readonly root_close: ProcessEnd | null;
+	readonly error: string | null;
+	readonly elapsed_ms: number;
+	readonly admitted_request: HeldRequest | null;
+	readonly signal_at_ms: number | null;
+	readonly stop: StopRequest | null;
+	readonly owned_tree_at_readiness: ProcessMember[];
+	readonly native_identity_at_readiness: NativeIdentity[];
+	readonly timeline: StopObservation[];
+	readonly ownership: OwnershipCensus;
+	readonly survivors_before_cleanup: ProcessMember[] | null;
+	readonly unestablished_group_members_before_cleanup: ProcessMember[] | null;
 	readonly sockets_before_cleanup: number;
 }
-export interface ProcessCapture { readonly stdout: Buffer; readonly stderr: Buffer; readonly observation: ProcessObservation; }
+export interface ProcessCapture {
+	readonly stdout: Buffer;
+	readonly stderr: Buffer;
+	readonly observation: ProcessObservation;
+}
 export interface CaptureOptions {
-	readonly command: readonly string[]; readonly cwd: string; readonly environment: NodeJS.ProcessEnv; readonly stem: string;
-	readonly stop?: StopRequest | undefined; readonly expectedNativeSha?: string | undefined; readonly timeoutMs?: number;
+	readonly command: readonly string[];
+	readonly cwd: string;
+	readonly environment: NodeJS.ProcessEnv;
+	readonly stem: string;
+	readonly stop?: StopRequest | undefined;
+	readonly expectedNativeSha?: string | undefined;
+	readonly timeoutMs?: number;
 }
 type CapturedChild = ChildProcessByStdio<null, Readable, Readable>;
-const delay = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const delay = (milliseconds: number): Promise<void> =>
+	new Promise((resolve) => setTimeout(resolve, milliseconds));
 const noOwnedProcesses: OwnedTreeObserver = (): ProcessMember[] => [];
 
 function hasErrorCode(error: unknown, codes: readonly string[]): boolean {
-	return error instanceof Error && 'code' in error && typeof error.code === 'string' && codes.includes(error.code);
+	return (
+		error instanceof Error &&
+		'code' in error &&
+		typeof error.code === 'string' &&
+		codes.includes(error.code)
+	);
 }
 
 function processMembers(): ProcessMember[] {
@@ -57,12 +113,18 @@ function processMembers(): ProcessMember[] {
 		assert.equal(
 			result.status,
 			0,
-			'owned-group inspection unavailable: ' + (result.error?.message || result.stderr),
+			'owned-group inspection unavailable: ' +
+				(result.error?.message?.length ? result.error.message : result.stderr),
 		);
 		return result.stdout.split('\n').flatMap((line): ProcessMember[] => {
 			const fields = line.trim().split(/\s+/);
 			const [processId, parentId, processGroup, processState] = fields;
-			return fields.length >= 10 && processId && parentId && processGroup && processState && /^\d+$/.test(processId)
+			return fields.length >= 10 &&
+				processId &&
+				parentId &&
+				processGroup &&
+				processState &&
+				/^\d+$/.test(processId)
 				? [
 						{
 							pid: +processId,
@@ -117,10 +179,11 @@ function trackOwnedTree(rootPid: number): OwnedTreeObserver {
 		const root = members.find((member) => member.pid === rootPid);
 		if (!initialCensus) {
 			const established = root?.parent === process.pid;
-			const seeds = established && root ? [root] : members.filter((member) => member.group === rootPid);
+			const seeds =
+				established && root ? [root] : members.filter((member) => member.group === rootPid);
 			initialCensus = {
 				kind: established ? 'established' : 'unestablished',
-				initial_root: root || null,
+				initial_root: root ?? null,
 				initial_group_members: members.filter((member) => member.group === rootPid),
 			};
 			// A missed root is never proof of absence. Its still-existing group
@@ -145,7 +208,7 @@ function trackOwnedTree(rootPid: number): OwnedTreeObserver {
 		return members.filter((member) => owned.has(member.pid));
 	};
 	observe.ownership = () =>
-		initialCensus || { kind: 'unestablished', initial_root: null, initial_group_members: [] };
+		initialCensus ?? { kind: 'unestablished', initial_root: null, initial_group_members: [] };
 	return observe;
 }
 
@@ -203,7 +266,8 @@ async function captureProcess({
 	let rootExit: ProcessEnd | null = null;
 	let rootClose: ProcessEnd | null = null;
 	let errorText: string | undefined;
-	const stdout: Buffer[] = [], stderr: Buffer[] = [];
+	const stdout: Buffer[] = [],
+		stderr: Buffer[] = [];
 	const sockets = new Set<Socket>();
 	const timeline: StopObservation[] = [];
 	const deadlines: NodeJS.Timeout[] = [];
@@ -296,7 +360,7 @@ async function captureProcess({
 			command,
 			cwd,
 			environment: actualEnvironment,
-			stop: stop || null,
+			stop: stop ?? null,
 			timeout_ms: timeoutMs,
 		});
 		const executable = command[0];
@@ -341,7 +405,11 @@ async function captureProcess({
 				closed.then(() => false),
 				deadline(30000, false),
 			]);
-			assert.equal(readiness, true, errorText || 'no admitted request before stop');
+			assert.equal(
+				readiness,
+				true,
+				errorText?.length ? errorText : 'no admitted request before stop',
+			);
 			signalAt = elapsed();
 			assert.ok(child.pid);
 			if (stop.destination === 'group') ownedKill(child.pid, stop.signal);
@@ -359,12 +427,13 @@ async function captureProcess({
 				}
 			} else {
 				const result = await Promise.race([closed, failed, deadline(15000, 'timeout')]);
-				if (result !== 'closed') errorText = errorText || 'supported stop did not close within15s';
+				if (result !== 'closed')
+					errorText = errorText?.length ? errorText : 'supported stop did not close within15s';
 			}
 		} else {
 			const result = await Promise.race([closed, failed, deadline(timeoutMs, 'timeout')]);
 			if (result !== 'closed')
-				errorText = errorText || 'normal invocation did not close within bound';
+				errorText = errorText?.length ? errorText : 'normal invocation did not close within bound';
 		}
 	} catch (error) {
 		errorText = error instanceof Error ? error.stack : undefined;
@@ -377,7 +446,7 @@ async function captureProcess({
 		if (stop && stop.expectation !== 'no-cancelled-report' && sockets.size > 0) {
 			await Promise.race([socketsClosed, deadline(3000, false)]);
 		}
-		const ownership = observeOwned.ownership?.() || {
+		const ownership = observeOwned.ownership?.() ?? {
 			kind: 'unestablished',
 			initial_root: null,
 			initial_group_members: [],
@@ -391,16 +460,16 @@ async function captureProcess({
 		observation = {
 			command,
 			cwd,
-			pid: child?.pid || null,
+			pid: child?.pid ?? null,
 			root_exit: rootExit,
 			root_close: rootClose,
-			error: errorText || null,
+			error: errorText?.length ? errorText : null,
 			elapsed_ms: elapsed(),
-			admitted_request: admitted || null,
+			admitted_request: admitted ?? null,
 			signal_at_ms: signalAt ?? null,
-			stop: stop || null,
-			owned_tree_at_readiness: readyGroup || [],
-			native_identity_at_readiness: nativeIdentity || [],
+			stop: stop ?? null,
+			owned_tree_at_readiness: readyGroup ?? [],
+			native_identity_at_readiness: nativeIdentity ?? [],
 			timeline,
 			ownership,
 			survivors_before_cleanup: ownership.kind === 'established' ? before : null,

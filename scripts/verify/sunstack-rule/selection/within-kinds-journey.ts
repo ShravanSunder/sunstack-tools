@@ -14,8 +14,8 @@ import {
 	runSequence,
 	writeJson,
 	type JsonObject,
-} from './rulebook-fixture-support.ts';
-import { type RulebookProcess } from './rulebook-process.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
+import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { selectionPieces } from './selection-checks.ts';
 import { copySelectionFixture, writeChecked } from './selection-fixture.ts';
 import { scriptedSelectionReply } from './selection-reply.ts';

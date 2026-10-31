@@ -6,7 +6,6 @@ import { parseArgs } from 'node:util';
 
 import { z } from 'zod';
 
-import { inspectStaticArm64, runCommand } from './hosted-process.ts';
 import {
 	arrayValue,
 	configName,
@@ -21,6 +20,7 @@ import {
 	type JsonObject,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { binaryDigest } from '../rulebook/rulebook-process.ts';
+import { inspectStaticArm64, runCommand } from './hosted-process.ts';
 
 export const hostedArgumentsSchema = z.object({
 	evidence: z.string(),

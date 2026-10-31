@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { type JsonObject } from './rulebook-fixture-support.ts';
+import { type JsonObject } from '../rulebook/rulebook-fixture-support.ts';
 import { requireWithinEquivalence } from './within-kinds-equivalence.ts';
 
 function listing(): JsonObject {

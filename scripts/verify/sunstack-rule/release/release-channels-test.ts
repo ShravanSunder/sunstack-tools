@@ -1,35 +1,33 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fileSystem from 'node:fs';
 import operatingSystem from 'node:os';
 import path from 'node:path';
+import test from 'node:test';
 import zlib from 'node:zlib';
-import { unpackPackage, repackPackage, startRegistry, sha256, integrity, save } from './release-registry.ts';
-import { captureProcess, groupMembers, trackOwnedTree } from './release-process.ts';
+
+import { z } from 'zod';
+
 import { argumentsFrom, channelCommand, npmRoutes, expectedCellCount } from './release-channels.ts';
+import {
+	unpackPackage,
+	repackPackage,
+	startRegistry,
+	sha256,
+	integrity,
+	save,
+} from './release-registry.ts';
 import { assertReportMatches, stopExpectation, gradeStop } from './release-report-checks.ts';
-import { spawnSync, spawn } from 'node:child_process';
 import { compareStreams } from './release-streams.ts';
 /* eslint-disable no-await-in-loop -- Each fixture and process must settle before the next owned cell begins. */
 // Permanent apparatus controls; synthetic packages are never product proof.
 
-
-
-
-
-
-
-
-
-
-
-test('ordinary stream grading keeps native stderr lines whole and ordered with only manager extras', () => {
-
+void test('ordinary stream grading keeps native stderr lines whole and ordered with only manager extras', () => {
 	const native = {
 		stdout: Buffer.from('literal output\n'),
 		stderr: Buffer.from('native first\nnative second\n'),
 	};
-	const channel = (stderr) => ({
+	const channel = (stderr: string): { stdout: Buffer; stderr: Buffer } => ({
 		stdout: Buffer.from(native.stdout),
 		stderr: Buffer.from(stderr),
 	});
@@ -68,7 +66,7 @@ test('ordinary stream grading keeps native stderr lines whole and ordered with o
 	);
 });
 
-test('exec npx preserves literal arguments through the actual inner shell and keeps every invocation', () => {
+void test('exec npx preserves literal arguments through the actual inner shell and keeps every invocation', () => {
 	const root = fileSystem.mkdtempSync(path.join(operatingSystem.tmpdir(), 'sunstack-s4-exec-npx-'));
 	const binary = path.join(root, 'sunstack');
 	fileSystem.writeFileSync(
@@ -87,14 +85,16 @@ test('exec npx preserves literal arguments through the actual inner shell and ke
 	const prefix = ['/node', '/npx-cli.js', '--yes', '--package=@sunstack/cli@0.0.6', '-c'];
 	const command = channelCommand('exec-npx', prefix, words);
 	assert.deepEqual(command.slice(0, -1), prefix);
-	assert.match(command.at(-1), /^exec sunstack /);
-	const result = spawnSync('/bin/sh', ['-c', command.at(-1)], {
+	const innerCommand = command.at(-1);
+	assert.ok(innerCommand);
+	assert.match(innerCommand, /^exec sunstack /);
+	const result = spawnSync('/bin/sh', ['-c', innerCommand], {
 		cwd: root,
 		env: { PATH: root + ':/usr/bin:/bin' },
 		encoding: 'utf8',
 	});
 	assert.equal(result.status, 0, result.stderr);
-	assert.deepEqual(JSON.parse(result.stdout), words);
+	assert.deepEqual(z.array(z.string()).parse(JSON.parse(result.stdout)), words);
 	assert.equal(fileSystem.existsSync(path.join(root, 'forbidden')), false);
 	assert.deepEqual(
 		channelCommand('npx', ['/node', '/npx-cli.js', '--yes', '@sunstack/cli@0.0.6'], words),
@@ -111,18 +111,24 @@ test('exec npx preserves literal arguments through the actual inner shell and ke
 	assert.equal(expectedCellCount('npm'), 132);
 	assert.equal(expectedCellCount('shell'), 22);
 	for (const platform of ['linux', 'darwin']) {
-		for (const [signal, destination] of [
-			['SIGINT', 'group'],
-			['SIGINT', 'pid'],
-			['SIGTERM', 'pid'],
+		for (const { signal, destination } of [
+			{ signal: 'SIGINT', destination: 'group' },
+			{ signal: 'SIGINT', destination: 'pid' },
+			{ signal: 'SIGTERM', destination: 'pid' },
 		])
-			assert.equal(stopExpectation('exec-npx', signal, destination, platform), 'cancel4');
-		assert.equal(stopExpectation('exec-npx', 'SIGHUP', 'pid', platform), 'no-cancelled-report');
+			assert.equal(
+				stopExpectation({ route: 'exec-npx', signal, destination, platform }),
+				'cancel4',
+			);
+		assert.equal(
+			stopExpectation({ route: 'exec-npx', signal: 'SIGHUP', destination: 'pid', platform }),
+			'no-cancelled-report',
+		);
 	}
 });
 
-function archiveFrom(entries) {
-	const pieces = [];
+function archiveFrom(entries: Readonly<Record<string, string>>): Buffer {
+	const pieces: Buffer[] = [];
 	for (const [name, text] of Object.entries(entries)) {
 		const body = Buffer.from(text),
 			header = Buffer.alloc(512);
@@ -143,7 +149,7 @@ function archiveFrom(entries) {
 	return zlib.gzipSync(Buffer.concat([...pieces, Buffer.alloc(1024)]));
 }
 
-test('URL-only repack preserves all other members, including dotfiles, and rejects wrong identity', () => {
+void test('URL-only repack preserves all other members, including dotfiles, and rejects wrong identity', () => {
 	const input = archiveFrom({
 		'package/package.json': JSON.stringify({
 			name: '@sunstack/cli',
@@ -160,11 +166,13 @@ test('URL-only repack preserves all other members, including dotfiles, and rejec
 	assert.throws(() => repackPackage(input, '0.0.7', 'http://127.0.0.1:3'), /AssertionError/);
 	assert.throws(() => unpackPackage(archiveFrom({ 'package/../escape': 'bad' })), /AssertionError/);
 	const broken = zlib.gunzipSync(input);
-	broken[100] ^= 1;
+	const originalByte = broken[100];
+	assert.notEqual(originalByte, undefined);
+	broken[100] = (originalByte ?? 0) ^ 1;
 	assert.throws(() => unpackPackage(zlib.gzipSync(broken)), /checksum/);
 });
 
-test('real loopback registry resolves both exact versions and refuses unknown names and writes', async () => {
+void test('real loopback registry resolves both exact versions and refuses unknown names and writes', async () => {
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-registry-control-'),
 	);
@@ -173,10 +181,10 @@ test('real loopback registry resolves both exact versions and refuses unknown na
 	});
 	const dependencyFile = path.join(root, 'dependency.tgz');
 	fileSystem.writeFileSync(dependencyFile, dependency);
-	const declaration = {};
-	for (const [label, version] of [
-		['older', '0.0.6'],
-		['newer', '0.0.7'],
+	const declaration: Record<string, { version: string }> = {};
+	for (const { label, version } of [
+		{ label: 'older', version: '0.0.6' },
+		{ label: 'newer', version: '0.0.7' },
 	]) {
 		const folder = path.join(root, label);
 		fileSystem.mkdirSync(folder);
@@ -208,13 +216,28 @@ test('real loopback registry resolves both exact versions and refuses unknown na
 		evidence: path.join(root, 'proof'),
 	});
 	try {
-		const metadata = await (await fetch(service.base + '/@sunstack%2fcli')).json();
+		const metadata = z
+			.object({
+				'dist-tags': z.object({ latest: z.string() }),
+				versions: z.record(
+					z.string(),
+					z.object({ dist: z.object({ tarball: z.string(), integrity: z.string() }) }),
+				),
+			})
+			.parse(await (await fetch(service.base + '/@sunstack%2fcli')).json());
 		assert.equal(metadata['dist-tags'].latest, '0.0.7');
 		for (const version of ['0.0.6', '0.0.7']) {
-			const response = await fetch(metadata.versions[version].dist.tarball);
+			const entry = metadata.versions[version];
+			assert.ok(entry);
+			const response = await fetch(entry.dist.tarball);
 			const payload = Buffer.from(await response.arrayBuffer());
-			assert.equal(integrity(payload), metadata.versions[version].dist.integrity);
-			assert.equal(JSON.parse(unpackPackage(payload)[0].data).version, version);
+			assert.equal(integrity(payload), entry.dist.integrity);
+			const member = unpackPackage(payload)[0];
+			assert.ok(member);
+			assert.equal(
+				z.object({ version: z.string() }).parse(JSON.parse(member.data.toString('utf8'))).version,
+				version,
+			);
 		}
 		assert.equal((await fetch(service.base + '/missing')).status, 404);
 		assert.equal(
@@ -225,18 +248,39 @@ test('real loopback registry resolves both exact versions and refuses unknown na
 		await service.close();
 	}
 	assert.equal(
-		JSON.parse(fileSystem.readFileSync(path.join(root, 'proof/cleanup.json'))).listening,
+		z
+			.object({ listening: z.boolean() })
+			.parse(JSON.parse(fileSystem.readFileSync(path.join(root, 'proof/cleanup.json'), 'utf8')))
+			.listening,
 		false,
 	);
 });
 
-test('oracle distinguishes no-report limits, Linux npx group exit and pnpm HUP', () => {
-	assert.equal(stopExpectation('npx', 'SIGINT', 'group', 'linux'), 'cancelled-native/npx-int');
-	assert.equal(stopExpectation('npx', 'SIGINT', 'pid', 'linux'), 'no-cancelled-report');
-	assert.equal(stopExpectation('npx', 'SIGINT', 'pid', 'darwin'), 'cancel4');
-	assert.equal(stopExpectation('pnpm-dlx', 'SIGHUP', 'pid'), 'native-ended');
-	assert.equal(stopExpectation('global', 'SIGHUP', 'pid'), 'native-ended/caller-sighup');
-	assert.equal(stopExpectation('exec-script', 'SIGHUP', 'pid'), 'no-cancelled-report');
+void test('oracle distinguishes no-report limits, Linux npx group exit and pnpm HUP', () => {
+	assert.equal(
+		stopExpectation({ route: 'npx', signal: 'SIGINT', destination: 'group', platform: 'linux' }),
+		'cancelled-native/npx-int',
+	);
+	assert.equal(
+		stopExpectation({ route: 'npx', signal: 'SIGINT', destination: 'pid', platform: 'linux' }),
+		'no-cancelled-report',
+	);
+	assert.equal(
+		stopExpectation({ route: 'npx', signal: 'SIGINT', destination: 'pid', platform: 'darwin' }),
+		'cancel4',
+	);
+	assert.equal(
+		stopExpectation({ route: 'pnpm-dlx', signal: 'SIGHUP', destination: 'pid' }),
+		'native-ended',
+	);
+	assert.equal(
+		stopExpectation({ route: 'global', signal: 'SIGHUP', destination: 'pid' }),
+		'native-ended/caller-sighup',
+	);
+	assert.equal(
+		stopExpectation({ route: 'exec-script', signal: 'SIGHUP', destination: 'pid' }),
+		'no-cancelled-report',
+	);
 	assert.throws(() => argumentsFrom(['--channel', 'npm']), /required/);
 	const commit = 'a'.repeat(40);
 	const options = argumentsFrom([
@@ -257,10 +301,11 @@ test('oracle distinguishes no-report limits, Linux npx group exit and pnpm HUP',
 		'--pnpm',
 		'./pnpm',
 	]);
+	assert.ok(options);
 	assert.equal(options.commit, commit);
 });
 
-test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report in a limit cell', () => {
+void test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report in a limit cell', () => {
 	const result = {
 		stdout: Buffer.from('{}'),
 		observation: {
@@ -270,11 +315,40 @@ test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report i
 			root_close: { code: 4, signal: null },
 		},
 	};
-	assert.throws(() => gradeStop(result, 'cancel4', {}, '0.0.6', '/fixture'), /survivors/);
+	assert.throws(
+		() =>
+			gradeStop({
+				result,
+				expected: 'cancel4',
+				reference: {},
+				version: '0.0.6',
+				configPath: '/fixture',
+			}),
+		/survivors/,
+	);
 	result.stdout = Buffer.from('{"status":{"kind":"cancelled"}}');
-	assert.throws(() => gradeStop(result, 'no-cancelled-report', {}, '0.0.6', '/fixture'), /match/);
+	assert.throws(
+		() =>
+			gradeStop({
+				result,
+				expected: 'no-cancelled-report',
+				reference: {},
+				version: '0.0.6',
+				configPath: '/fixture',
+			}),
+		/match/,
+	);
 	result.stdout = Buffer.from('');
-	assert.equal(gradeStop(result, 'no-cancelled-report', {}, '0.0.6', '/fixture'), 'limit');
+	assert.equal(
+		gradeStop({
+			result,
+			expected: 'no-cancelled-report',
+			reference: {},
+			version: '0.0.6',
+			configPath: '/fixture',
+		}),
+		'limit',
+	);
 	const state = { contents: { content1: 'literal' } };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
 	const literalConfig = fileSystem.realpathSync(import.meta.filename);
@@ -289,225 +363,19 @@ test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report i
 		},
 	};
 	assert.throws(
-		() => gradeStop(mismatchedState, 'cancel4', reference, '0.0.6', literalConfig),
+		() =>
+			gradeStop({
+				result: mismatchedState,
+				expected: 'cancel4',
+				reference,
+				version: '0.0.6',
+				configPath: literalConfig,
+			}),
 		/actual sent state/,
 	);
 });
 
-test('real child capture retains streams and exit; timeout records live group before cleanup', async () => {
-	const root = fileSystem.mkdtempSync(
-		path.join(operatingSystem.tmpdir(), 'sunstack-s4-process-control-'),
-	);
-	const environment = { PATH: '/usr/bin:/bin', HOME: root };
-	const completed = await captureProcess({
-		command: [
-			process.execPath,
-			'-e',
-			"console.log('exact stdout');console.error('exact stderr');process.exit(3)",
-		],
-		cwd: root,
-		environment,
-		stem: path.join(root, 'completed'),
-	});
-	assert.equal(completed.stdout.toString(), 'exact stdout\n');
-	assert.equal(completed.stderr.toString(), 'exact stderr\n');
-	assert.equal(completed.observation.root_close.code, 3);
-	assert.equal(completed.observation.ownership.kind, 'established');
-	assert.deepEqual(completed.observation.survivors_before_cleanup, []);
-	const timedOut = await captureProcess({
-		command: [process.execPath, '-e', "console.log('partial sentinel');setInterval(()=>{},1000)"],
-		cwd: root,
-		environment,
-		stem: path.join(root, 'timeout'),
-		timeoutMs: 500,
-	});
-	assert.match(timedOut.observation.error, /within bound/);
-	assert.equal(timedOut.stdout.toString(), 'partial sentinel\n');
-	assert.ok(timedOut.observation.survivors_before_cleanup.length > 0);
-	assert.deepEqual(
-		JSON.parse(fileSystem.readFileSync(path.join(root, 'timeout.cleanup.json')))
-			.survivors_after_cleanup,
-		[],
-	);
-});
-
-test('a real held request with a question map admits cancellation and retains its exact state', async () => {
-	const root = fileSystem.mkdtempSync(
-		path.join(operatingSystem.tmpdir(), 'sunstack-s4-held-control-'),
-	);
-	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
-	save(configPath, { decision_model: { endpoint: 'http://127.0.0.1:1' } });
-	const state = { contents: { content1: 'synthetic held state' }, evidence: {}, state_version: 1 };
-	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
-	const source = `const fileSystem =require('node:fs'),http=require('node:http');
-const state=${JSON.stringify(state)},reference=${JSON.stringify(reference)};
-const config=JSON.parse(fileSystem.readFileSync(${JSON.stringify(configPath)}));
-const cancelled=()=>{process.removeAllListeners('SIGINT');process.stdout.write(JSON.stringify({...reference,version:'0.0.6',config:${JSON.stringify(configPath)}})+'\\n',()=>process.exit(4));};
-process.on('SIGINT',cancelled);process.on('SIGTERM',cancelled);
-const body=JSON.stringify({state,questions:{q000001:{question:'synthetic'}}});
-const request=http.request(config.decision_model.endpoint,{method:'POST',headers:{'content-length':Buffer.byteLength(body)}},()=>{});request.on('error',()=>{});request.end(body);`;
-	const binary = path.join(root, 'sunstack');
-	fileSystem.writeFileSync(binary, source);
-	const result = await captureProcess({
-		command: [process.execPath, binary],
-		cwd: root,
-		environment: { PATH: '/usr/bin:/bin', HOME: root },
-		stem: path.join(root, 'cancel'),
-		stop: { signal: 'SIGINT', destination: 'pid', expectation: 'cancel4' },
-		expectedNativeSha: sha256(Buffer.from(source)),
-	});
-	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', configPath), 'pass');
-	assert.deepEqual(result.observation.admitted_request.state, state);
-});
-
-test('an owned native in a separate process group is admitted without widening the signal destination', async () => {
-	const root = fileSystem.mkdtempSync(
-		path.join(operatingSystem.tmpdir(), 'sunstack-s4-detached-control-'),
-	);
-	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
-	save(configPath, { decision_model: { endpoint: 'http://127.0.0.1:1' } });
-	const state = { contents: { content1: 'detached native held state' } };
-	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
-	const binary = path.join(root, 'sunstack');
-	const source = `const fs=require('node:fs'),http=require('node:http');
-process.on('SIGINT',()=>process.stdout.write(JSON.stringify({...${JSON.stringify(reference)},version:'0.0.6',config:${JSON.stringify(configPath)}})+'\\n',()=>process.exit(4)));
-const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).decision_model.endpoint;
-const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});request.end(JSON.stringify({state:${JSON.stringify(state)},questions:{question1:{question:'held'}}}));`;
-	fileSystem.writeFileSync(binary, source);
-	const wrapper = `const {spawn}=require('node:child_process');
-const child=spawn(process.execPath,[${JSON.stringify(binary)}],{detached:true,stdio:['ignore',process.stdout,process.stderr]});
-process.on('SIGINT',()=>child.kill('SIGINT'));
-child.on('close',(code)=>process.exit(code));`;
-	const realKill = process.kill;
-	const signalTargets = [];
-	let result;
-	process.kill = (targetPid, signal) => {
-		signalTargets.push({ targetPid, signal });
-		return realKill(targetPid, signal);
-	};
-	try {
-		result = await captureProcess({
-			command: [process.execPath, '-e', wrapper],
-			cwd: root,
-			environment: { PATH: '/usr/bin:/bin', HOME: root },
-			stem: path.join(root, 'capture'),
-			stop: { signal: 'SIGINT', destination: 'group', expectation: 'cancel4' },
-			expectedNativeSha: sha256(Buffer.from(source)),
-		});
-	} finally {
-		process.kill = realKill;
-	}
-	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', configPath), 'pass');
-	assert.deepEqual(signalTargets, [{ targetPid: -result.observation.pid, signal: 'SIGINT' }]);
-	assert.equal(result.observation.stop.destination, 'group');
-	assert.ok(
-		result.observation.owned_tree_at_readiness.some(
-			(member) => member.group !== result.observation.pid,
-		),
-	);
-	assert.ok(
-		result.observation.native_identity_at_readiness.every(
-			(member) => member.pid !== result.observation.pid,
-		),
-	);
-});
-
-test('an unrelated native with matching bytes cannot authorize a held request from another process', async (testContext) => {
-
-	const root = fileSystem.mkdtempSync(
-		path.join(operatingSystem.tmpdir(), 'sunstack-s4-unrelated-control-'),
-	);
-	const configPath = path.join(fileSystem.realpathSync(root), 'sunstack.lint.json');
-	save(configPath, { decision_model: { endpoint: 'http://127.0.0.1:1' } });
-	const binary = path.join(root, 'sunstack');
-	const source = "process.stdout.write('decoy ready');setInterval(()=>{},1000);";
-	fileSystem.writeFileSync(binary, source);
-	const decoy = spawn(process.execPath, [binary], {
-		detached: true,
-		stdio: ['ignore', 'pipe', 'pipe'],
-	});
-	const closed = new Promise((resolve) => decoy.once('close', resolve));
-	testContext.after(async () => {
-		try {
-			process.kill(-decoy.pid, 'SIGKILL');
-		} catch (error) {
-			if (error.code !== 'ESRCH') throw error;
-		}
-		await closed;
-	});
-	await new Promise((resolve, reject) => {
-		decoy.stdout.once('data', resolve);
-		decoy.once('error', reject);
-	});
-	const stranger = `const fs=require('node:fs'),http=require('node:http');
-const endpoint=JSON.parse(fs.readFileSync(${JSON.stringify(configPath)})).decision_model.endpoint;
-const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});request.end(JSON.stringify({state:{contents:{}},questions:{question1:{question:'held'}}}));`;
-	const result = await captureProcess({
-		command: [process.execPath, '-e', stranger],
-		cwd: root,
-		environment: { PATH: '/usr/bin:/bin', HOME: root },
-		stem: path.join(root, 'refused'),
-		stop: { signal: 'SIGINT', destination: 'group', expectation: 'cancel4' },
-		expectedNativeSha: sha256(Buffer.from(source)),
-	});
-	assert.match(result.observation.error, /owned by the installed/);
-	assert.equal(result.observation.signal_at_ms, null);
-	assert.doesNotThrow(
-		() => process.kill(decoy.pid, 0),
-		'unrelated native must not be cleaned by the observer',
-	);
-});
-
-test('ownership census after root exit retains its live same-group child and refuses proven absence', async (testContext) => {
-
-	const root = fileSystem.mkdtempSync(
-		path.join(operatingSystem.tmpdir(), 'sunstack-s4-missed-root-'),
-	);
-	const childPidPath = path.join(root, 'child.pid');
-	const childSource = `require('node:fs').writeFileSync(${JSON.stringify(childPidPath)},String(process.pid));process.send('ready');setInterval(()=>{},1000);`;
-	const wrapperSource = `const child=require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(childSource)}],{stdio:['ignore','ignore','ignore','ipc']});child.once('message',()=>{console.log('exact completed output');process.exit(0);});`;
-	const wrapper = spawn(process.execPath, ['-e', wrapperSource], {
-		detached: true,
-		stdio: ['ignore', 'pipe', 'pipe'],
-	});
-	testContext.after(() => {
-		try {
-			process.kill(-wrapper.pid, 'SIGKILL');
-		} catch (error) {
-			if (error.code !== 'ESRCH') throw error;
-		}
-	});
-	let output = '';
-	wrapper.stdout.on('data', (chunk) => {
-		output += chunk;
-	});
-	const ending = await new Promise((resolve, reject) => {
-		wrapper.once('close', (code, signal) => resolve({ code, signal }));
-		wrapper.once('error', reject);
-	});
-	assert.deepEqual(ending, { code: 0, signal: null });
-	assert.equal(output, 'exact completed output\n');
-	const childPid = Number(fileSystem.readFileSync(childPidPath, 'utf8'));
-	const actualGroup = groupMembers(wrapper.pid);
-	assert.ok(
-		!actualGroup.some((member) => member.pid === wrapper.pid),
-		'root has exited and been reaped before the first ownership census',
-	);
-	assert.ok(
-		actualGroup.some((member) => member.pid === childPid),
-		'synchronized child remains in caller group',
-	);
-	const observe = trackOwnedTree(wrapper.pid);
-	const members = observe();
-	assert.ok(
-		members.some((member) => member.pid === childPid),
-		'missed root must not conceal its surviving caller-group child',
-	);
-	assert.equal(observe.ownership().kind, 'unestablished');
-	assert.equal(observe.ownership().initial_root, null);
-});
-
-test('report comparison accepts canonical config paths behind a symlinked fixture directory', () => {
+void test('report comparison accepts canonical config paths behind a symlinked fixture directory', () => {
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-config-alias-'),
 	);
@@ -522,14 +390,19 @@ test('report comparison accepts canonical config paths behind a symlinked fixtur
 	for (const kind of ['clean', 'findings', 'incomplete']) {
 		const reference = { status: { kind }, findings: [], counts: { error: 0, warn: 0 } };
 		const actual = { ...reference, version: '0.0.6', config: canonicalConfig };
-		assertReportMatches(actual, reference, '0.0.6', aliasConfig);
+		assertReportMatches({
+			actual,
+			reference,
+			version: '0.0.6',
+			configPath: aliasConfig,
+		});
 		assert.throws(() =>
-			assertReportMatches(
-				{ ...actual, config: path.join(physical, 'wrong.json') },
+			assertReportMatches({
+				actual: { ...actual, config: path.join(physical, 'wrong.json') },
 				reference,
-				'0.0.6',
-				aliasConfig,
-			),
+				version: '0.0.6',
+				configPath: aliasConfig,
+			}),
 		);
 	}
 	const state = { contents: { content001: 'literal held state' } };
@@ -546,5 +419,14 @@ test('report comparison accepts canonical config paths behind a symlinked fixtur
 			admitted_request: { state },
 		},
 	};
-	assert.equal(gradeStop(result, 'cancel4', reference, '0.0.6', aliasConfig), 'pass');
+	assert.equal(
+		gradeStop({
+			result,
+			expected: 'cancel4',
+			reference,
+			version: '0.0.6',
+			configPath: aliasConfig,
+		}),
+		'pass',
+	);
 });

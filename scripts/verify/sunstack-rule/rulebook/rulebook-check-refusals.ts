@@ -3,6 +3,10 @@ import filesystem from 'node:fs';
 import path from 'node:path';
 
 import {
+	observeSelectionRefusals,
+	prepareSelectionRefusals,
+} from '../selection/selection-refusals.ts';
+import {
 	configName,
 	configureEndpoint,
 	equal,
@@ -19,7 +23,6 @@ import {
 } from './rulebook-fixture-support.ts';
 import { declaredTarget, RulebookProcess } from './rulebook-process.ts';
 import { prepareCases, prepareFifo } from './rulebook-refusal-fixtures.ts';
-import { observeSelectionRefusals, prepareSelectionRefusals } from '../selection/selection-refusals.ts';
 
 function locatedInputs(root: string): Set<string> {
 	const files = [
