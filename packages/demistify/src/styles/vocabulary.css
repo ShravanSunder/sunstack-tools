@@ -231,6 +231,7 @@ ex-card .eyebrow {
 	font-family: var(--font-display);
 }
 .ex-card-head {
+	align-items: flex-start;
 	margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-5)) var(--space-2);
 	padding: var(--space-4) var(--space-5);
 	border-bottom: 1px solid var(--rule);
@@ -239,12 +240,17 @@ ex-card .eyebrow {
 }
 /* Room for the inspection buttons, only on cards that have them. */
 .ex-inspectable > .ex-card-head {
-	padding-right: var(--space-16);
+	padding-inline-end: calc(var(--space-16) + var(--space-5));
 }
 .ex-card-head strong {
+	max-inline-size: 100%;
+	overflow-wrap: anywhere;
 	font-size: var(--text-lg);
 	font-weight: 600;
 	line-height: 1.25;
+}
+.ex-card-head:has(> .ex-tone-icon) > strong {
+	max-inline-size: calc(100% - var(--text-xl) - var(--space-2));
 }
 .ex-card-pick {
 	font: 600 var(--text-2xs) var(--font-display);
@@ -735,7 +741,7 @@ ex-region {
 	padding: var(--space-4) var(--space-5) var(--space-6);
 	background: var(--surface-content);
 	border: 1px solid var(--rule);
-	border-top: 2px solid var(--tone, var(--rule));
+	border-top: 2px solid var(--tone, var(--accent));
 	border-radius: var(--radius-md);
 }
 ex-region > :is(.ex-region-head, ex-markdown, ex-callout) {

@@ -15,7 +15,7 @@ A card encloses one named thing. A callout draws attention to a consequence that
 <ex-stat value="2" label="Proposed ownership options" note="Source inventory; no execution observed"></ex-stat>
 ```
 
-`ex-card` accepts `title`, `tone`, `icon`, `tag`, bare `pick` and an optional inspection `label`. A missing card tone produces a checker warning; choose the meaning deliberately. `ex-callout` accepts `title`, `tone`, `icon` and `label`; its default tone is `note`. `ex-stat` requires `value` and `label`; `note` and `tone` are optional. Its attributes are text, not a second rich-content body.
+`ex-card` accepts `title`, `tone`, `icon`, `tag`, optional `series` (1–6), bare `pick` and an optional inspection `label`. A missing card tone produces a checker warning; choose the meaning deliberately. `ex-callout` accepts `title`, `tone`, `icon` and `label`; its default tone is `note`. `ex-stat` requires `value` and `label`; `note` and `tone` are optional. Its attributes are text, not a second rich-content body.
 
 | Meaning | Tone choices |
 | --- | --- |

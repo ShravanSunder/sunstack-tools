@@ -43,7 +43,7 @@ ex-card.ex-comment-target > :is(.ex-card-head, footer) {
 	padding-inline-end: var(--space-10);
 }
 ex-card.ex-comment-target.ex-inspectable > .ex-card-head {
-	padding-inline-end: calc(var(--space-16) + var(--space-10) - var(--space-5));
+	padding-inline-end: calc(var(--space-16) + var(--space-10));
 }
 .ex-comment-target > .ex-inspect-controls {
 	right: var(--space-10);
