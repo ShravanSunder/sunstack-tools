@@ -77,6 +77,9 @@ async fn incomplete_steps_distinguish_pre_walk_cancellation_from_a_request_guard
     assert_eq!(cancelled.results.len(), 2);
     assert!(cancelled.requests.is_empty());
     for pair in cancelled.results {
+        let row = serde_json::to_value(&pair.result).unwrap();
+        assert_eq!(row["path_taken"], json!([]));
+        assert_eq!(row["answers_read"], json!({}));
         assert!(matches!(
             pair.result,
             RulebookResult::Incomplete {
@@ -100,6 +103,9 @@ async fn incomplete_steps_distinguish_pre_walk_cancellation_from_a_request_guard
     assert_eq!(guarded.results.len(), 2);
     assert!(guarded.requests.is_empty());
     for pair in guarded.results {
+        let row = serde_json::to_value(&pair.result).unwrap();
+        assert_eq!(row["path_taken"], json!(["q"]));
+        assert_eq!(row["answers_read"], json!({}));
         assert!(
             matches!(pair.result,RulebookResult::Incomplete {reason:RulebookIncompleteReason::RequestTooLarge,step:Some(step),..} if step.as_str() == "q")
         );

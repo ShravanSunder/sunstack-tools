@@ -18,7 +18,7 @@ fn worked_step_uses_lazy_asking_combines_without_rounding_and_locates_the_comple
     let piece = fixture::piece();
     let index = fixture::index();
     assert!(
-        matches!(walk_decision(&rule,&piece,&index,None),WalkOutcome::NeedsAnswers { step } if step.as_str()=="kind")
+        matches!(walk_decision(&rule,&piece,&index,None),WalkOutcome::NeedsAnswers { step, .. } if step.as_str()=="kind")
     );
     let result = walk_decision(&rule, &piece, &index, Some(&answers(0.30, 0.86)));
     assert!(
@@ -299,4 +299,101 @@ fn uncertain_targets_use_existing_undefined_and_cycle_admission() {
             "{refusals:?}"
         );
     }
+}
+
+#[test]
+fn every_outcome_keeps_only_answers_read_and_incomplete_walk_history() {
+    let mechanical = json!({"mechanical_check":{"tool":"contains","field":"body","text":"Choose"},"yes":{"finding":"Read this section.","at":"body"},"no":"pass"});
+    let gate = json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"not_applicable"});
+    let supplied: NamedAnswerMap = serde_json::from_value(json!({"gate":{"type":"noul","yes_probability":0.9},"verdict":{"type":"noul","yes_probability":0.1}})).unwrap();
+    for (probability, unavailable, start, expected, path, read_gate) in [
+        (
+            0.9,
+            false,
+            "gate",
+            "finding",
+            json!(["gate", "verdict"]),
+            true,
+        ),
+        (0.1, false, "gate", "not_applicable", json!(["gate"]), true),
+        (
+            0.9,
+            true,
+            "gate",
+            "incomplete",
+            json!(["gate", "verdict"]),
+            true,
+        ),
+        (0.9, false, "verdict", "finding", json!(["verdict"]), false),
+    ] {
+        let mut rule = routed_rule(gate.clone(), mechanical.clone());
+        rule.decision.start = StepName::new(start).unwrap();
+        let mut piece = fixture::piece();
+        if unavailable {
+            piece.fields.insert(
+                FieldName::new("completion").unwrap(),
+                FieldValue::Unavailable {
+                    reason: FieldUnavailable::Unreadable,
+                },
+            );
+            let DecisionStep::Mechanical { tool, .. } = rule
+                .decision
+                .steps
+                .get_mut(&StepName::new("verdict").unwrap())
+                .unwrap()
+            else {
+                panic!()
+            };
+            *tool = DecisionMechanicalTool::Contains {
+                field: FieldName::new("completion").unwrap(),
+                text: "done".into(),
+            };
+        }
+        let mut answers = supplied.clone();
+        answers.insert(
+            sunstack_decisions::QuestionName::new("gate").unwrap(),
+            JudgmentAnswer::Noul {
+                yes_probability: probability,
+            },
+        );
+        let WalkOutcome::Settled(result) =
+            walk_decision(&rule, &piece, &fixture::index(), Some(&answers))
+        else {
+            panic!()
+        };
+        assert_eq!(
+            result.basis(),
+            if expected == "incomplete" {
+                None
+            } else if read_gate {
+                Some(Basis::Judged)
+            } else {
+                Some(Basis::Mechanical)
+            }
+        );
+        let value = serde_json::to_value(result).unwrap();
+        assert_eq!(value["result"], expected);
+        assert_eq!(value["path_taken"], path);
+        assert_eq!(
+            value["answers_read"],
+            if read_gate {
+                json!({"gate":{"type":"noul","yes_probability":probability}})
+            } else {
+                json!({})
+            }
+        );
+    }
+    let rule = routed_rule(gate_step(), verdict_step());
+    let supplied: NamedAnswerMap = serde_json::from_value(json!({"gate":{"type":"noul","yes_probability":0.5},"verdict":{"type":"noul","yes_probability":0.9}})).unwrap();
+    let WalkOutcome::Settled(result) =
+        walk_decision(&rule, &fixture::piece(), &fixture::index(), Some(&supplied))
+    else {
+        panic!()
+    };
+    assert!(matches!(result, RulebookResult::Pass { .. }));
+    assert_eq!(result.basis(), Some(Basis::Judged));
+    assert_eq!(
+        serde_json::to_value(result).unwrap()["answers_read"],
+        serde_json::to_value(supplied).unwrap()
+    );
 }

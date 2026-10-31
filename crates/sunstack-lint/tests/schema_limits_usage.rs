@@ -253,6 +253,10 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
     assert_eq!(value["results"].as_array().unwrap().len(), 1);
     assert_eq!(value["results"][0]["outcome"], "finding");
     assert_eq!(value["results"][0]["step"], "starts");
+    assert_eq!(value["results"][0]["path"], json!(["starts"]));
+    assert_eq!(value["results"][0]["basis"], "mechanical");
+    assert!(value["results"][0].get("answers").is_none());
+    assert_eq!(value["findings"][0]["basis"], "mechanical");
     let schema = serde_json::to_value(report_schema()).unwrap();
     let validator = jsonschema::options().offline().build(&schema).unwrap();
     assert!(
@@ -260,6 +264,18 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
         "{:?}",
         validator.iter_errors(&value).collect::<Vec<_>>()
     );
+    let mut missing = value.clone();
+    missing["results"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("path");
+    assert!(!validator.is_valid(&missing));
+    let mut missing = value.clone();
+    missing["findings"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("basis");
+    assert!(!validator.is_valid(&missing));
     let mut missing = value.clone();
     missing.as_object_mut().unwrap().remove("results");
     assert!(!validator.is_valid(&missing));

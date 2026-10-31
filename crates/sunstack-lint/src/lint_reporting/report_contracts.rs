@@ -5,7 +5,7 @@ use sunstack_decisions::{NamedAnswerMap, SharedEvidenceState};
 use sunstack_evidence::{
     EvidenceKindName, EvidencePiece, FieldName, MarkerId, PieceLocation, SourceSpan,
 };
-use sunstack_rules::{RuleId, RulebookSkippedRule, Severity, StepName};
+use sunstack_rules::{Basis, RuleId, RulebookSkippedRule, Severity, StepName};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -81,6 +81,7 @@ pub struct Finding {
     pub severity_origin: SettingOrigin,
     pub message: String,
     pub judgment: Option<JudgmentSummary>,
+    pub basis: Basis,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JudgmentSummary {
@@ -251,6 +252,11 @@ pub struct RulePieceResult {
     pub last_line: usize,
     pub outcome: PieceOutcome,
     pub step: Option<StepName>,
+    pub path: Vec<StepName>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis: Option<Basis>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
+    pub answers: NamedAnswerMap,
 }
 
 pub fn report_schema() -> schemars::Schema {

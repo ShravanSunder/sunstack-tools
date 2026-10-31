@@ -28,8 +28,10 @@ pub(crate) fn project_outcome(
             continue;
         };
         let (outcome, step) = match &pair.result {
-            RulebookResult::Pass { path_taken } => (PieceOutcome::Pass, path_taken.last().cloned()),
-            RulebookResult::NotApplicable { path_taken } => {
+            RulebookResult::Pass { path_taken, .. } => {
+                (PieceOutcome::Pass, path_taken.last().cloned())
+            }
+            RulebookResult::NotApplicable { path_taken, .. } => {
                 (PieceOutcome::NotApplicable, path_taken.last().cloned())
             }
             RulebookResult::Finding { path_taken, .. } => {
@@ -46,6 +48,9 @@ pub(crate) fn project_outcome(
             last_line: piece.location.last_line,
             outcome,
             step,
+            path: pair.result.path_taken().to_vec(),
+            answers: pair.result.answers_read().clone(),
+            basis: pair.result.basis(),
         });
         match pair.result {
             RulebookResult::Pass { .. } => {}
@@ -61,6 +66,7 @@ pub(crate) fn project_outcome(
                 path_taken,
                 answers,
                 value,
+                answers_read,
             } => {
                 match severity {
                     sunstack_rules::Severity::Error => {
@@ -91,6 +97,11 @@ pub(crate) fn project_outcome(
                         value,
                         path_taken,
                     }),
+                    basis: if answers_read.is_empty() {
+                        sunstack_rules::Basis::Mechanical
+                    } else {
+                        sunstack_rules::Basis::Judged
+                    },
                 });
             }
             RulebookResult::Uncertain {

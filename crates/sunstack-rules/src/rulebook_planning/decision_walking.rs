@@ -31,6 +31,7 @@ pub enum RulebookIncompleteReason {
 pub enum RulebookResult {
     Pass {
         path_taken: Vec<StepName>,
+        answers_read: NamedAnswerMap,
     },
     Finding {
         severity: Severity,
@@ -40,26 +41,77 @@ pub enum RulebookResult {
         path_taken: Vec<StepName>,
         answers: Option<NamedAnswerMap>,
         value: Option<f64>,
+        answers_read: NamedAnswerMap,
     },
     NotApplicable {
         path_taken: Vec<StepName>,
+        answers_read: NamedAnswerMap,
     },
     Uncertain {
         step: StepName,
         state: sunstack_decisions::SharedEvidenceState,
         answers: NamedAnswerMap,
         path_taken: Vec<StepName>,
+        answers_read: NamedAnswerMap,
     },
     Incomplete {
         reason: RulebookIncompleteReason,
         field: Option<FieldName>,
         step: Option<StepName>,
+        path_taken: Vec<StepName>,
+        answers_read: NamedAnswerMap,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Basis {
+    Mechanical,
+    Judged,
+}
+
+impl RulebookResult {
+    pub fn path_taken(&self) -> &[StepName] {
+        match self {
+            Self::Pass { path_taken, .. }
+            | Self::Finding { path_taken, .. }
+            | Self::NotApplicable { path_taken, .. }
+            | Self::Uncertain { path_taken, .. }
+            | Self::Incomplete { path_taken, .. } => path_taken,
+        }
+    }
+
+    pub fn answers_read(&self) -> &NamedAnswerMap {
+        match self {
+            Self::Pass { answers_read, .. }
+            | Self::Finding { answers_read, .. }
+            | Self::NotApplicable { answers_read, .. }
+            | Self::Uncertain { answers_read, .. }
+            | Self::Incomplete { answers_read, .. } => answers_read,
+        }
+    }
+
+    pub fn basis(&self) -> Option<Basis> {
+        match self {
+            Self::Incomplete { .. } => None,
+            Self::Pass { .. }
+            | Self::Finding { .. }
+            | Self::NotApplicable { .. }
+            | Self::Uncertain { .. } => Some(if self.answers_read().is_empty() {
+                Basis::Mechanical
+            } else {
+                Basis::Judged
+            }),
+        }
+    }
 }
 #[derive(Debug, Clone)]
 pub enum WalkOutcome {
     Settled(RulebookResult),
-    NeedsAnswers { step: StepName },
+    NeedsAnswers {
+        step: StepName,
+        path_taken: Vec<StepName>,
+    },
 }
 
 pub fn piece_state(
@@ -103,28 +155,44 @@ pub fn walk_decision(
 ) -> WalkOutcome {
     let mut current = rule.decision.start.clone();
     let mut path = Vec::new();
+    let mut answers_read = NamedAnswerMap::new();
     let mut combined_value = None;
     loop {
         let Some(step) = rule.decision.steps.get(&current) else {
-            return incomplete(RulebookIncompleteReason::EvidenceUnavailable, None);
+            return incomplete(
+                RulebookIncompleteReason::EvidenceUnavailable,
+                None,
+                path,
+                answers_read,
+            );
         };
-        let incomplete = |reason, field| {
+        path.push(current.clone());
+        let incomplete = |reason, field, answers_read: &NamedAnswerMap| {
             WalkOutcome::Settled(RulebookResult::Incomplete {
                 reason,
                 field,
                 step: Some(current.clone()),
+                path_taken: path.clone(),
+                answers_read: answers_read.clone(),
             })
         };
-        path.push(current.clone());
         if !matches!(step, DecisionStep::Mechanical { .. })
             && let Some(field) = unavailable_question_field(&rule.questions, &piece.fields)
         {
-            return incomplete(RulebookIncompleteReason::EvidenceUnavailable, Some(field));
+            return incomplete(
+                RulebookIncompleteReason::EvidenceUnavailable,
+                Some(field),
+                &answers_read,
+            );
         }
         if !matches!(step, DecisionStep::Mechanical { .. })
             && matches!(piece.model_view, ModelView::TooLarge { .. })
         {
-            return incomplete(RulebookIncompleteReason::EvidenceTooLarge, None);
+            return incomplete(
+                RulebookIncompleteReason::EvidenceTooLarge,
+                None,
+                &answers_read,
+            );
         }
         let route = match step {
             DecisionStep::Mechanical { tool, yes, no } => {
@@ -135,6 +203,7 @@ pub fn walk_decision(
                         return incomplete(
                             RulebookIncompleteReason::EvidenceUnavailable,
                             Some(field),
+                            &answers_read,
                         );
                     }
                 }
@@ -144,11 +213,21 @@ pub fn walk_decision(
                 question, routes, ..
             } => {
                 let Some(answers) = answers else {
-                    return needs_answers(piece, &current);
+                    return WalkOutcome::NeedsAnswers {
+                        step: current,
+                        path_taken: path,
+                    };
                 };
                 let Some(value) = normalized_answer(question, &rule.questions, answers) else {
-                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
+                    return incomplete(
+                        RulebookIncompleteReason::InvalidResponse,
+                        None,
+                        &answers_read,
+                    );
                 };
+                if let Some(answer) = answers.get(question) {
+                    answers_read.insert(question.clone(), answer.clone());
+                }
                 binary_route(value, routes).unwrap_or(&routes.uncertain)
             }
             DecisionStep::AskChoice {
@@ -158,7 +237,10 @@ pub fn walk_decision(
                 routes,
             } => {
                 let Some(answers) = answers else {
-                    return needs_answers(piece, &current);
+                    return WalkOutcome::NeedsAnswers {
+                        step: current,
+                        path_taken: path,
+                    };
                 };
                 let Some(JudgmentAnswer::Choice {
                     selected_label,
@@ -166,30 +248,55 @@ pub fn walk_decision(
                     ..
                 }) = answers.get(question)
                 else {
-                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
+                    return incomplete(
+                        RulebookIncompleteReason::InvalidResponse,
+                        None,
+                        &answers_read,
+                    );
                 };
                 let Some(probability) = probabilities.get(selected_label) else {
-                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
+                    return incomplete(
+                        RulebookIncompleteReason::InvalidResponse,
+                        None,
+                        &answers_read,
+                    );
                 };
+                if let Some(answer) = answers.get(question) {
+                    answers_read.insert(question.clone(), answer.clone());
+                }
                 if probability < min_probability {
                     uncertain
                 } else {
                     let Some(route) = routes.get(selected_label) else {
-                        return incomplete(RulebookIncompleteReason::InvalidResponse, None);
+                        return incomplete(
+                            RulebookIncompleteReason::InvalidResponse,
+                            None,
+                            &answers_read,
+                        );
                     };
                     route
                 }
             }
             DecisionStep::Combine { weights, routes } => {
                 let Some(answers) = answers else {
-                    return needs_answers(piece, &current);
+                    return WalkOutcome::NeedsAnswers {
+                        step: current,
+                        path_taken: path,
+                    };
                 };
                 let value = weights.iter().try_fold(0.0, |sum, (question, weight)| {
-                    normalized_answer(question, &rule.questions, answers)
-                        .map(|value| sum + weight * value)
+                    let value = normalized_answer(question, &rule.questions, answers)?;
+                    if let Some(answer) = answers.get(question) {
+                        answers_read.insert(question.clone(), answer.clone());
+                    }
+                    Some(sum + weight * value)
                 });
                 let Some(value) = value else {
-                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
+                    return incomplete(
+                        RulebookIncompleteReason::InvalidResponse,
+                        None,
+                        &answers_read,
+                    );
                 };
                 combined_value = Some(value);
                 binary_route(value, routes).unwrap_or(&routes.uncertain)
@@ -198,10 +305,16 @@ pub fn walk_decision(
         match route {
             DecisionRoute::Step(next) => current = next.clone(),
             DecisionRoute::Pass => {
-                return WalkOutcome::Settled(RulebookResult::Pass { path_taken: path });
+                return WalkOutcome::Settled(RulebookResult::Pass {
+                    path_taken: path,
+                    answers_read,
+                });
             }
             DecisionRoute::NotApplicable => {
-                return WalkOutcome::Settled(RulebookResult::NotApplicable { path_taken: path });
+                return WalkOutcome::Settled(RulebookResult::NotApplicable {
+                    path_taken: path,
+                    answers_read,
+                });
             }
             DecisionRoute::Uncertain => {
                 return uncertain(
@@ -210,6 +323,7 @@ pub fn walk_decision(
                     current,
                     answers.unwrap_or(&NamedAnswerMap::new()),
                     path,
+                    answers_read,
                 );
             }
             DecisionRoute::Finding(finding) => {
@@ -227,27 +341,25 @@ pub fn walk_decision(
                     path_taken: path,
                     answers: answers.cloned(),
                     value: combined_value,
+                    answers_read,
                 });
             }
         }
     }
 }
-fn incomplete(reason: RulebookIncompleteReason, field: Option<FieldName>) -> WalkOutcome {
+fn incomplete(
+    reason: RulebookIncompleteReason,
+    field: Option<FieldName>,
+    path_taken: Vec<StepName>,
+    answers_read: NamedAnswerMap,
+) -> WalkOutcome {
     WalkOutcome::Settled(RulebookResult::Incomplete {
         reason,
         field,
         step: None,
+        path_taken,
+        answers_read,
     })
-}
-fn needs_answers(piece: &EvidencePiece, step: &StepName) -> WalkOutcome {
-    match piece.model_view {
-        ModelView::TooLarge { .. } => WalkOutcome::Settled(RulebookResult::Incomplete {
-            reason: RulebookIncompleteReason::EvidenceTooLarge,
-            field: None,
-            step: Some(step.clone()),
-        }),
-        ModelView::Bounded { .. } => WalkOutcome::NeedsAnswers { step: step.clone() },
-    }
 }
 fn uncertain(
     rule: &RulebookRule,
@@ -255,6 +367,7 @@ fn uncertain(
     step: StepName,
     answers: &NamedAnswerMap,
     path_taken: Vec<StepName>,
+    answers_read: NamedAnswerMap,
 ) -> WalkOutcome {
     match piece_state(rule, piece) {
         Ok(state) => WalkOutcome::Settled(RulebookResult::Uncertain {
@@ -262,11 +375,14 @@ fn uncertain(
             state,
             answers: answers.clone(),
             path_taken,
+            answers_read,
         }),
         Err(_) => WalkOutcome::Settled(RulebookResult::Incomplete {
             reason: RulebookIncompleteReason::EvidenceUnavailable,
             field: None,
             step: Some(step),
+            path_taken,
+            answers_read,
         }),
     }
 }
