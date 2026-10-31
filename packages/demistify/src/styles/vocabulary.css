@@ -315,6 +315,37 @@ ex-card .eyebrow {
 	) {
 	margin-block-end: 0;
 }
+/* Rendered Markdown shares the enclosing body boundary, not its source carrier margins. */
+:is(ex-card, ex-region)
+	> ex-markdown
+	> :nth-child(
+		1 of :not(
+			script,
+			template,
+			[hidden],
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas
+		)
+	) {
+	margin-block-start: 0;
+}
+:is(ex-card, ex-region)
+	> ex-markdown
+	> :nth-last-child(
+		1 of :not(
+			script,
+			template,
+			[hidden],
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas
+		)
+	) {
+	margin-block-end: 0;
+}
 ex-card > :last-child:not(footer) {
 	margin-bottom: 0;
 }
@@ -779,7 +810,7 @@ ex-region {
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 	align-content: start;
 	column-gap: var(--space-12);
-	row-gap: var(--space-4);
+	row-gap: var(--space-10);
 	position: relative;
 	container-type: inline-size;
 	padding: var(--space-5);
@@ -798,11 +829,15 @@ ex-region[prepared] > :is(ex-markdown, p, ul, ol):not(.ex-flow-overlay, .ex-arro
 ex-region > * + * {
 	margin-top: 0;
 }
+/* Prose rhythm is separate from the full channel between component rows. */
+ex-region[prepared] > :is(ex-markdown, p, ul, ol) + :is(ex-markdown, p, ul, ol) {
+	margin-block-start: calc(var(--space-4) - var(--space-10));
+}
 ex-region[prepared] > .ex-region-head {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
-	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-1);
+	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) calc(var(--space-5) - var(--space-10));
 	padding: var(--space-4) var(--space-5);
 	border-bottom: 1px solid var(--rule);
 	border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
