@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import type { ChildProcessByStdio } from 'node:child_process';
 import { spawn, spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import fileSystem from 'node:fs';
 import operatingSystem from 'node:os';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import test, { type TestContext } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { z } from 'zod';
 
