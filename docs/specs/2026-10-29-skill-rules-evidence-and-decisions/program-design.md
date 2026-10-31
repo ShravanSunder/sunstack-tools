@@ -192,13 +192,17 @@ Three small changes, each inside an existing owner, with no new module and no ne
   - They are rule-only: not `MatchSource`, whose untagged `Rule | Kind` union would admit an undefined `kind` form.
   - `NeighbourCount` is a newtype that accepts 1 to 5 at decode.
   - `--check` validates the rule ID through the existing rule-ID path, and the kind dependency collector needs no change.
-- **The structure, recorded once.** `EvidenceProject::match_file` (`evidence_project_loading.rs`) already parses each file once with ast-grep's Markdown tree. While that tree is in hand, it also records structure in a new `FileMatchIndex` field, `siblings: BTreeMap<MatchRange, Vec<MatchRange>>`. For the parent of each matched node, the field keeps that parent's named children, in order, as ranges. The index stays plain ranges, serializable as today, and no second parse happens.
+- **The structure, recorded once, by node identity (corrected after recheck SR1 residual).** `EvidenceProject::match_file` (`evidence_project_loading.rs`) already parses each file once with ast-grep's Markdown tree. A byte range does not identify a syntax node: a one-item list and its list item can both span the same bytes, with different parents. So structure is keyed by the parser's own node identity, ast-grep-core 0.51's `Node::node_id()`, used only within that one parse. While the tree is in hand, `match_file` records two new `FileMatchIndex` fields:
+  - `match_nodes: BTreeMap<EvidenceRuleId, Vec<NodeKey>>`: each match's node, aligned one to one with `by_rule`'s ranges and sorted with them;
+  - `parents: BTreeMap<NodeKey, ParentEntry>`: for each matched node, its parent's ordered named children (`Node::parent()`, `Node::children()`, `Node::is_named()`), each as `{ node: NodeKey, range: MatchRange }`, plus the matched node's position among them.
+
+  `NodeKey` is a newtype over the id. No second parse happens.
 - **The value.** `local_fields` in `field_composition.rs` evaluates the field in four steps:
-  1. Find the parent entry whose children contain the piece's own range.
-  2. Walk forward (for `next`) or backward (for `previous`) from the piece's position, at most `count` children.
-  3. Keep a child while its range is one of `rule`'s matches in `by_rule`, and stop at the first that isn't.
-  4. Return `FieldValue::Texts` with those children's full texts and spans, in source order: an empty list when none qualifies, or when the piece has no recorded parent.
-- **What this gives.** Children of different lists, depths or sections never share a parent entry, so V22's negatives hold by construction. A blank line is not a node, so it doesn't stop the walk. The value never joins `taken`, so `remainder` is unchanged.
+  1. Take the piece's own node from the match it was built from: same rule, same position in `by_rule`.
+  2. Take that node's `ParentEntry` and walk forward (for `next`) or backward (for `previous`) from its position, at most `count` children.
+  3. Keep a child while that same node is one of `rule`'s matches (its key is in `match_nodes[rule]`), and stop at the first that isn't. A child is never matched by an equal range alone.
+  4. Return `FieldValue::Texts` with those children's full texts and spans, in source order: an empty list when none qualifies, or when the node has no parent.
+- **What this gives.** Two pieces with the same range but different nodes get each node's own neighbours. Children of different lists, depths or sections never share a parent, so V22's negatives hold by construction. A blank line is not a node, so it doesn't stop the walk. The value never joins `taken`, so `remainder` is unchanged.
 
 **`uncertain` route (R18).** The owner stays `rulebook_planning`.
 - `AskBinaryWire`, `AskChoiceWire` and `CombineStepWire` in `decision_graph_contracts.rs` gain `#[serde(default, skip_serializing_if = "Option::is_none")] uncertain: Option<RouteWire>`.
@@ -219,7 +223,7 @@ Three small changes, each inside an existing owner, with no new module and no ne
 
 | Seam (added) | Real | Faked | Observes |
 | --- | --- | --- | --- |
-| `match_file` and `field_composition` on copied sunstack files and small crafted ones | the parser, the builder, the standard utils | nothing | `siblings` entries; `next`/`previous` values and spans for V22's positives and negatives |
+| `match_file` and `field_composition` on copied sunstack files and small crafted ones | the parser, the builder, the standard utils | nothing | `match_nodes` and `parents` entries (the actual match-to-parent mapping); `next`/`previous` values and spans for V22's positives, negatives and the same-range list/item case |
 | `decision_walking` with supplied answers | the walk | answers | routes followed from in-band answers; the reported step (the one that ended the walk) in both the `uncertain` list and `results`; zero added requests |
 | `rulebook_run` and `selection_run` with the loopback backend | dispatch, the attempt controller | the HTTP endpoint (429, 503, refused, stalled, schema-invalid, missing question) | each incomplete reason with its class and status |
 | `sunstack lint` binary on a fixture with `decision_model.endpoint` at a closed port | everything | the endpoint | the JSON reason `connection` and the default line |
@@ -256,7 +260,7 @@ Three small changes, each inside an existing owner, with no new module and no ne
 | U8 | R26 status and exit | E11 | lint outcome | `LintStatus::exit_code` | `LintStatus::Uncertain` = 5 | precedence table | none | binary exit codes |
 | U2, U10 | R27 determinism | E6, E10 | piece building, dispatcher | ordering rules | ordered vectors | none | none | repeat runs, shuffled completion |
 | U12 | R28 skips | E3, E11 | rulebook_assembly + lint outcome | `RulebookAssembly.skipped` | `SkippedRule` (existing shape) | none | incomplete: coverage_partial | crafted bad entry |
-| U2 | R11 `next`/`previous` (31 Oct) | E7 | evidence_planning (contract, `FileMatchIndex.siblings`), evidence_piece_building (value) | rule-only `FieldSource::{Next, Previous}` with `NeighbourCount` 1–5; siblings recorded in `match_file`, walked in `local_fields` | `FieldValue::Texts` in source order, `field_composition.rs` | none | empty list when no neighbour qualifies; `--check` refuses count outside 1–5 and kind forms | V22 positives and negatives through the real builder |
+| U2 | R11 `next`/`previous` (31 Oct) | E7 | evidence_planning (contract, `FileMatchIndex.match_nodes` and `.parents` by node identity), evidence_piece_building (value) | rule-only `FieldSource::{Next, Previous}` with `NeighbourCount` 1–5; node keys and parent entries recorded in `match_file`, walked from the piece's own match in `local_fields` | `FieldValue::Texts` in source order, `field_composition.rs` | none | empty list when no neighbour qualifies; `--check` refuses count outside 1–5 and kind forms | V22 positives and negatives through the real builder |
 | U5 | R18 `uncertain` route (31 Oct) | E9 | decision_graph_contracts, decision_walking | optional wire `uncertain`; `BinaryRoutes.uncertain`, `AskChoice.uncertain` | `DecisionRoute`, default `Uncertain` | in-band answer → routed step | refused by `--check` when undefined or cyclic | walk tests with supplied answers; existing fixtures unchanged |
 | U18 | R44 incomplete reasons (31 Oct) | E10 | rulebook_run, selection_run; lint report | `DecisionRunOutcome` → reason, one to one | `RulebookIncompleteReason`, `SelectionIncompleteReason`, lint `IncompleteReason` with `failure_class`, `http_status?` | none | each class distinct | loopback failures; binary at a closed port |
 
