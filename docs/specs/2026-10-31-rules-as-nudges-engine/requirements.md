@@ -1,6 +1,6 @@
 # Requirements: the lint report as a nudge
 
-31 Oct 2026. Author: 🦁 Lead. Draft, not yet reviewed.
+31 Oct 2026. Author: 🦁 Lead. Accepted at Gate 1 (31 Oct) at `32a5883`, after an independent four-document review closed all thirteen findings.
 
 This is a normalized Requirements record for an engine change. Every row comes from already-settled meaning: the accepted skills design set "rules as nudges" in `ai-tools` (branch `skills/rules-as-nudges`, accepted-to-implement at `398d2190`, folder `docs/wip/skills-authoring/2026-10-31-rules-as-nudges/`) and the owner's words quoted there. No row adds owner meaning. The set is one concern, the lint report and the evidence behind it, so it carries no capability level.
 

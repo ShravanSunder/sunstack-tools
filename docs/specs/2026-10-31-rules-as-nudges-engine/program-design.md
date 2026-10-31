@@ -1,6 +1,6 @@
 # Program Design: the lint report as a nudge
 
-31 Oct 2026. Author: 🦁 Lead. Realizes [specification.md](specification.md) (E1-E8, R1-R10) for [requirements.md](requirements.md). Draft, not yet reviewed. Current behaviour cites the evidence pack (`engine-evidence/evidence-pack.md`, pinned `e8c6a13`; section numbers in brackets).
+31 Oct 2026. Author: 🦁 Lead. Realizes [specification.md](specification.md) (E1-E8, R1-R10) for [requirements.md](requirements.md). Accepted at Gate 1 (31 Oct) at `32a5883`, after independent review. Current behaviour cites the evidence pack (`engine-evidence/evidence-pack.md`, pinned `e8c6a13`; section numbers in brackets).
 
 ## What changes, in one picture
 

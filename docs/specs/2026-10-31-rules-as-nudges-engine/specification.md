@@ -1,6 +1,6 @@
 # Specification: the lint report as a nudge
 
-31 Oct 2026. Author: 🦁 Lead. Answers to [requirements.md](requirements.md) (U1-U10). Draft, not yet reviewed. Current-behaviour statements cite the evidence pack (`engine-evidence/evidence-pack.md` in the owner's memory-logs, pinned to `e8c6a13`), sections 1-11.
+31 Oct 2026. Author: 🦁 Lead. Answers to [requirements.md](requirements.md) (U1-U10). Accepted at Gate 1 (31 Oct) at `32a5883`, after independent review. Current-behaviour statements cite the evidence pack (`engine-evidence/evidence-pack.md` in the owner's memory-logs, pinned to `e8c6a13`), sections 1-11.
 
 ## The system and who reads it
 
