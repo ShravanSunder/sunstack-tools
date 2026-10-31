@@ -211,6 +211,19 @@ async function executableLaunches(options: {
 	}
 	return launches;
 }
+async function verifyMacosSignature(binary: string): Promise<void> {
+	await execute('/usr/bin/codesign', ['--verify', '--strict', '--verbose=2', binary]);
+	const result = await execute('/usr/bin/codesign', ['-dv', '--verbose=2', binary]);
+	const signature = result.stderr;
+	if (
+		!/^Identifier=dev\.shravansunder\.sunstack$/m.test(signature) ||
+		!/^TeamIdentifier=[A-Z0-9]+$/m.test(signature) ||
+		!/^Authority=Developer ID Application:/m.test(signature) ||
+		!/^CodeDirectory .*flags=.*runtime/m.test(signature)
+	)
+		throw new Error('macOS binary lacks the sunstack Developer ID signature with hardened runtime');
+	process.stdout.write('macOS Developer ID identifier, team and hardened runtime verified.\n');
+}
 async function verifyInstall(options: {
 	assets: string;
 	tag: string;
@@ -229,6 +242,7 @@ async function verifyInstall(options: {
 	const home = path.join(options.scratch, 'empty-home');
 	filesystem.mkdirSync(home);
 	const binary = await installFromMirror(options);
+	if (process.platform === 'darwin') await verifyMacosSignature(binary);
 	const launches = await executableLaunches({ ...options, binary });
 	await runInOrder(launches, async (launch): Promise<void> => {
 		const command = { launch, fixture, home };
