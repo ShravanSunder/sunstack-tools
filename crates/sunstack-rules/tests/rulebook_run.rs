@@ -340,3 +340,67 @@ async fn an_unreferenced_unavailable_field_is_omitted_while_the_named_available_
     assert!(state.get("heading").is_none());
     assert!(state.get("body").is_some());
 }
+
+#[tokio::test]
+async fn uncertain_handoff_reuses_the_one_request_with_all_questions() {
+    for routed in [false, true] {
+        let mut entry = fixture::entry_json("K001");
+        entry["questions"] = json!({"gate":{"type":"noul","instructions":{"check":"body","task":"Is it eligible?"}},"verdict":{"type":"noul","instructions":{"check":"body","task":"Does it comply?"}}});
+        entry["decision"] = json!({"start":"gate","steps":{"gate":{"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"not_applicable"},"verdict":{"ask":"verdict","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable"}}});
+        if routed {
+            entry["decision"]["steps"]["gate"]["uncertain"] = json!("verdict");
+        }
+        let entry: RuleEntryWire = serde_json::from_value(entry).unwrap();
+        let mut subject = rule();
+        subject.questions = entry.questions.clone();
+        subject.decision =
+            admit_rule_entry(&entry, &fixture::kinds(), &fixture::project()).unwrap();
+        let mut server = controlled::ControlledServer::start().await;
+        let settings = settings(&server.endpoint);
+        let backend =
+            Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_KEY").unwrap());
+        let operation = tokio::spawn(async move {
+            run_rulebook(
+                &[subject],
+                &[fixture::piece()],
+                &BTreeMap::new(),
+                settings,
+                Some(backend),
+                CancellationToken::new(),
+            )
+            .await
+        });
+        let request = server.next().await;
+        assert_eq!(
+            request.body["questions"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["gate", "verdict"]
+        );
+        request.noul(0.5);
+        let run = tokio::time::timeout(Duration::from_secs(3), operation)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(run.requests.len(), 1);
+        assert_eq!(server.finish().await, 1);
+        let RulebookResult::Uncertain {
+            step, path_taken, ..
+        } = &run.results[0].result
+        else {
+            panic!("{run:?}")
+        };
+        assert_eq!(step.as_str(), if routed { "verdict" } else { "gate" });
+        assert_eq!(
+            path_taken.iter().map(StepName::as_str).collect::<Vec<_>>(),
+            if routed {
+                vec!["gate", "verdict"]
+            } else {
+                vec!["gate"]
+            }
+        );
+    }
+}

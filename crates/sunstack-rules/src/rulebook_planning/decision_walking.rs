@@ -143,12 +143,10 @@ pub fn walk_decision(
                 let Some(value) = normalized_answer(question, &rule.questions, answers) else {
                     return incomplete(RulebookIncompleteReason::ProviderFailure, None);
                 };
-                let Some(route) = binary_route(value, routes) else {
-                    return uncertain(rule, piece, current, answers, path);
-                };
-                route
+                binary_route(value, routes).unwrap_or(&routes.uncertain)
             }
             DecisionStep::AskChoice {
+                uncertain,
                 question,
                 min_probability,
                 routes,
@@ -168,12 +166,13 @@ pub fn walk_decision(
                     return incomplete(RulebookIncompleteReason::ProviderFailure, None);
                 };
                 if probability < min_probability {
-                    return uncertain(rule, piece, current, answers, path);
+                    uncertain
+                } else {
+                    let Some(route) = routes.get(selected_label) else {
+                        return incomplete(RulebookIncompleteReason::ProviderFailure, None);
+                    };
+                    route
                 }
-                let Some(route) = routes.get(selected_label) else {
-                    return incomplete(RulebookIncompleteReason::ProviderFailure, None);
-                };
-                route
             }
             DecisionStep::Combine { weights, routes } => {
                 let Some(answers) = answers else {
@@ -187,10 +186,7 @@ pub fn walk_decision(
                     return incomplete(RulebookIncompleteReason::ProviderFailure, None);
                 };
                 combined_value = Some(value);
-                let Some(route) = binary_route(value, routes) else {
-                    return uncertain(rule, piece, current, answers, path);
-                };
-                route
+                binary_route(value, routes).unwrap_or(&routes.uncertain)
             }
         };
         match route {

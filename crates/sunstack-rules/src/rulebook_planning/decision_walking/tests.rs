@@ -201,3 +201,102 @@ fn mechanical_regex_and_contains_read_uncut_middle_and_length_reads_whole_field(
         Ok(false)
     );
 }
+
+#[test]
+fn ask_binary_accepts_an_optional_uncertain_route() {
+    let wire: crate::AskBinaryWire = serde_json::from_value(json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable","uncertain":"verdict"})).unwrap();
+    assert_eq!(serde_json::to_value(wire).unwrap()["uncertain"], "verdict");
+}
+
+fn routed_rule(gate: serde_json::Value, verdict: serde_json::Value) -> RulebookRule {
+    let mut entry = fixture::entry_json("K001");
+    entry["questions"] = json!({"gate":{"type":"noul","instructions":{"check":"body","task":"Is it eligible?"}},"verdict":{"type":"noul","instructions":{"check":"body","task":"Does it comply?"}}});
+    entry["decision"] = json!({"start":"gate","steps":{"gate":gate,"verdict":verdict}});
+    let wire: crate::RuleEntryWire = serde_json::from_value(entry).unwrap();
+    let mut rule = fixture::rule("K001");
+    rule.questions = wire.questions.clone();
+    rule.decision = crate::admit_rule_entry(&wire, &fixture::kinds(), &fixture::project()).unwrap();
+    rule
+}
+fn verdict_step() -> serde_json::Value {
+    json!({"ask":"verdict","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable"})
+}
+fn gate_step() -> serde_json::Value {
+    json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable","uncertain":"verdict"})
+}
+
+#[test]
+fn in_band_binary_and_combine_follow_the_uncertain_edge_and_report_the_final_step() {
+    for gate in [
+        gate_step(),
+        json!({"combine":{"gate":1.0},"yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable","uncertain":"verdict"}),
+    ] {
+        let rule = routed_rule(gate, verdict_step());
+        for (probability, expected) in [(0.9, "pass"), (0.5, "uncertain"), (0.1, "not_applicable")]
+        {
+            let answers=serde_json::from_value(json!({"gate":{"type":"noul","yes_probability":0.5},"verdict":{"type":"noul","yes_probability":probability}})).unwrap();
+            let WalkOutcome::Settled(result) =
+                walk_decision(&rule, &fixture::piece(), &fixture::index(), Some(&answers))
+            else {
+                panic!("unexpected request")
+            };
+            let result = serde_json::to_value(result).unwrap();
+            assert_eq!(result["result"], expected);
+            assert_eq!(result["path_taken"], json!(["gate", "verdict"]));
+            if expected == "uncertain" {
+                assert_eq!(result["step"], "verdict");
+            }
+        }
+    }
+}
+
+#[test]
+fn uncertain_choice_and_mechanical_terminal_keep_the_ending_step() {
+    let mut entry = fixture::entry_json("K001");
+    entry["decision"]["steps"]["kind"]["uncertain"] = json!("quality");
+    let wire: crate::RuleEntryWire = serde_json::from_value(entry).unwrap();
+    let mut rule = fixture::rule("K001");
+    rule.decision = crate::admit_rule_entry(&wire, &fixture::kinds(), &fixture::project()).unwrap();
+    let result = walk_decision(
+        &rule,
+        &fixture::piece(),
+        &fixture::index(),
+        Some(&answers((0.65 - 0.4) / 0.6, 0.55)),
+    );
+    assert!(
+        matches!(result,WalkOutcome::Settled(RulebookResult::Uncertain{step,path_taken,..}) if step.as_str()=="quality" && path_taken.iter().map(StepName::as_str).collect::<Vec<_>>()==vec!["has_completion","kind","quality"])
+    );
+    let mechanical = json!({"mechanical_check":{"tool":"contains","field":"body","text":"Choose"},"yes":"uncertain","no":"not_applicable"});
+    let mut rule = routed_rule(gate_step(), mechanical);
+    let answers=serde_json::from_value(json!({"gate":{"type":"noul","yes_probability":0.5},"verdict":{"type":"noul","yes_probability":0.9}})).unwrap();
+    let result = walk_decision(&rule, &fixture::piece(), &fixture::index(), Some(&answers));
+    assert!(
+        matches!(result,WalkOutcome::Settled(RulebookResult::Uncertain{step,path_taken,..}) if step.as_str()=="verdict" && path_taken.len()==2)
+    );
+    rule.decision.start = StepName::new("verdict").unwrap();
+    let result = walk_decision(&rule, &fixture::piece(), &fixture::index(), None);
+    assert!(
+        matches!(result,WalkOutcome::Settled(RulebookResult::Uncertain{step,path_taken,..}) if step.as_str()=="verdict" && path_taken.len()==1)
+    );
+}
+
+#[test]
+fn uncertain_targets_use_existing_undefined_and_cycle_admission() {
+    for target in ["missing", "names_trigger"] {
+        let mut entry = fixture::entry_json("K003");
+        entry["decision"]["steps"]["names_trigger"]["uncertain"] = json!(target);
+        let wire: crate::RuleEntryWire = serde_json::from_value(entry).unwrap();
+        let refusals =
+            crate::admit_rule_entry(&wire, &fixture::kinds(), &fixture::project()).unwrap_err();
+        assert!(
+            refusals
+                .iter()
+                .any(|r| r.message.contains(if target == "missing" {
+                    "missing"
+                } else {
+                    "cycle"
+                })),
+            "{refusals:?}"
+        );
+    }
+}
