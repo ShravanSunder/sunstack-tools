@@ -258,11 +258,12 @@ async function observeRefusals(observer: RulebookProcess, evidence: string): Pro
 			arguments: ['lint', '--config', configName, '--check'],
 			expectedExit: 2,
 		});
+		const text = Buffer.concat([result.stdout, result.stderr]).toString('utf8');
 		requireCondition(
-			Buffer.concat([result.stdout, result.stderr])
-				.toString('utf8')
-				.includes(`${path.join(root, configName)}:`),
-			'Field refusal lacks config location',
+			text.includes(`${path.join(root, configName)}:`) &&
+				/\.json:[1-9]\d*:/.test(text) &&
+				text.includes(name.startsWith('count') ? 'neighbour count' : 'unknown field `kind`'),
+			'Field refusal lacks its intended cause and config file:line',
 		);
 		equal(result.captures.length, 0, 'Refusal dispatched');
 	});
@@ -287,7 +288,9 @@ async function observeRefusals(observer: RulebookProcess, evidence: string): Pro
 			});
 			const text = Buffer.concat([result.stdout, result.stderr]).toString('utf8');
 			requireCondition(
-				text.includes(`${path.join(root, rulesName)}:`) && /\.json:\d+:/.test(text),
+				text.includes(`${path.join(root, rulesName)}:`) &&
+					/\.json:[1-9]\d*:/.test(text) &&
+					text.includes(target === 'missing' ? 'missing step' : 'cycle'),
 				'Route refusal lacks rules file:line',
 			);
 			equal(result.captures.length, 0, 'Route refusal dispatched');
