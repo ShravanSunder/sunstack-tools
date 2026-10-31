@@ -164,11 +164,63 @@ jobs:
       - name: Install dependencies
         run: |
           ${{ matrix.packages_install }}
+      - name: Derive the Developer ID signing identity
+        if: runner.os == 'macOS'
+        env:
+          CODESIGN_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CODESIGN_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$CODESIGN_CERTIFICATE" || -z "$CODESIGN_CERTIFICATE_PASSWORD" ]]; then
+            echo "The macOS release signing certificate and password are required" >&2
+            exit 1
+          fi
+          pkcs12_options=(-clcerts -nokeys)
+          if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+            pkcs12_options+=(-legacy)
+          fi
+          signing_identity="$(
+            printf '%s' "$CODESIGN_CERTIFICATE" | base64 --decode |
+              openssl pkcs12 "${pkcs12_options[@]}" -passin env:CODESIGN_CERTIFICATE_PASSWORD |
+              openssl x509 -noout -subject -nameopt multiline |
+              sed -n 's/^ *commonName *= *//p'
+          )"
+          if [[ "$signing_identity" != 'Developer ID Application: '* || "$signing_identity" == *$'\n'* ]]; then
+            echo "Expected one Developer ID Application certificate" >&2
+            exit 1
+          fi
+          echo "::add-mask::$signing_identity"
+          printf 'CODESIGN_IDENTITY=%s\n' "$signing_identity" >> "$GITHUB_ENV"
       - name: Build artifacts
+        env:
+          CODESIGN_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_BASE64 || '' }}
+          CODESIGN_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          CODESIGN_OPTIONS: runtime
         run: |
           # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
+      - name: Verify macOS archive signatures
+        if: runner.os == 'macOS'
+        env:
+          RELEASE_TARGETS: ${{ join(matrix.targets, ' ') }}
+        run: |
+          set -euo pipefail
+          for target in $RELEASE_TARGETS; do
+            signature_directory="$(mktemp -d "$RUNNER_TEMP/sunstack-signature.XXXXXX")"
+            tar -xzf "target/distrib/sunstack-${target}.tar.gz" -C "$signature_directory"
+            binary="$(find "$signature_directory" -type f -name sunstack)"
+            test -f "$binary"
+            codesign --verify --strict --verbose=2 "$binary"
+            signature="$(codesign -dv --verbose=2 "$binary" 2>&1)"
+            if ! grep -qx 'Identifier=dev.shravansunder.sunstack' <<< "$signature" ||
+              ! grep -Eq '^TeamIdentifier=[A-Z0-9]+$' <<< "$signature" ||
+              ! grep -q '^Authority=Developer ID Application:' <<< "$signature" ||
+              ! grep -q 'flags=.*runtime' <<< "$signature"; then
+              echo "macOS archive lacks the sunstack Developer ID signature with hardened runtime" >&2
+              exit 1
+            fi
+          done
       - name: Verify standalone archive linkage
         id: archive-linkage
         background: true
