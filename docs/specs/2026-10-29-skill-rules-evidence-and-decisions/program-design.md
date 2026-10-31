@@ -187,17 +187,25 @@ The decision model receives the standard, the piece's location and its bounded m
 
 Three small changes, each inside an existing owner, with no new module and no new dependency. Paths are at `origin/main` 7870513.
 
-**`next` and `previous` (R11).** The owner stays `evidence_piece_building`.
-- `FieldSource` in `sunstack-evidence/src/evidence_planning/evidence_kind_contracts.rs` gains `Next { #[serde(flatten)] of: MatchSource }` and `Previous { … }`, as the `from` values `next` and `previous`. They take the same `rule` as `inside`, `enclosing` and `same_file`, so `--check` validates the rule ID through the existing path.
-- `local_fields` in `field_composition.rs` evaluates them over the same `source_ranges(of, file, pieces)` candidates and ranges the other match sources use. A candidate qualifies when it doesn't overlap the piece and only whitespace lies between them (for `next`, the text from the piece's end to the candidate's start; for `previous`, from the candidate's end to the piece's start). It must also start at the piece's start column, the same column `source_span` already computes. Among qualifying candidates the outermost (the longest range) wins, and ties keep source order.
-- The value is `FieldValue::Text` with the candidate's whole text and its one span; `Absent` when none qualifies. It never joins `taken`, because it lies outside the piece, so `remainder` is unchanged.
-- No syntax-tree access is added: the field is defined over match ranges, like every other source.
+**`next` and `previous` (R11; corrected after review SR1, SR2 and SR5).** The owners stay `evidence_planning` (the contract and the file index) and `evidence_piece_building` (the value).
+- **The contract.** `FieldSource` in `sunstack-evidence/src/evidence_planning/evidence_kind_contracts.rs` gains `Next { rule: EvidenceRuleId, #[serde(default = "one")] count: NeighbourCount }` and `Previous { … }`, as the `from` values `next` and `previous`.
+  - They are rule-only: not `MatchSource`, whose untagged `Rule | Kind` union would admit an undefined `kind` form.
+  - `NeighbourCount` is a newtype that accepts 1 to 5 at decode.
+  - `--check` validates the rule ID through the existing rule-ID path, and the kind dependency collector needs no change.
+- **The structure, recorded once.** `EvidenceProject::match_file` (`evidence_project_loading.rs`) already parses each file once with ast-grep's Markdown tree. While that tree is in hand, it also records structure in a new `FileMatchIndex` field, `siblings: BTreeMap<MatchRange, Vec<MatchRange>>`. For the parent of each matched node, the field keeps that parent's named children, in order, as ranges. The index stays plain ranges, serializable as today, and no second parse happens.
+- **The value.** `local_fields` in `field_composition.rs` evaluates the field in four steps:
+  1. Find the parent entry whose children contain the piece's own range.
+  2. Walk forward (for `next`) or backward (for `previous`) from the piece's position, at most `count` children.
+  3. Keep a child while its range is one of `rule`'s matches in `by_rule`, and stop at the first that isn't.
+  4. Return `FieldValue::Texts` with those children's full texts and spans, in source order: an empty list when none qualifies, or when the piece has no recorded parent.
+- **What this gives.** Children of different lists, depths or sections never share a parent entry, so V22's negatives hold by construction. A blank line is not a node, so it doesn't stop the walk. The value never joins `taken`, so `remainder` is unchanged.
 
 **`uncertain` route (R18).** The owner stays `rulebook_planning`.
 - `AskBinaryWire`, `AskChoiceWire` and `CombineStepWire` in `decision_graph_contracts.rs` gain `#[serde(default, skip_serializing_if = "Option::is_none")] uncertain: Option<RouteWire>`.
 - The planned `BinaryRoutes` gains `uncertain: DecisionRoute`, and `DecisionStep::AskChoice` gains `uncertain: DecisionRoute`. Both default to `DecisionRoute::Uncertain` when the wire omits the route, so an existing graph plans to exactly today's behavior.
 - `DecisionStep::routes()` returns the `uncertain` route too, so the existing reachability and cycle checks in `--check` cover it without new code.
-- In `decision_walking.rs`, the two places that end `uncertain` on an in-band answer (`binary_route` returning `None`, and a choice under `min_probability`) follow the step's `uncertain` route instead. The walk records the step as the last in-band step. When the route is the `uncertain` terminal, or the walk later ends there, `uncertain(...)` reports that recorded step (R23).
+- In `decision_walking.rs`, the two places that end `uncertain` on an in-band answer (`binary_route` returning `None`, and a choice under `min_probability`) follow the step's `uncertain` route instead. No tracker is added (corrected after review SR3): `uncertain(...)` reports the step that ended the walk, as today, so the `uncertain` list and `results` keep R23's and R25's meaning. For a gate in band routed to its verdict, the verdict is the reported step when the verdict is in band.
+- **Compatibility.** A graph with no `uncertain` route keeps its routes, outcomes and reported steps exactly (corrected after review SR4). Its report can still change where R44 requires: a provider failure now carries its class, and an invalid answer is `invalid_response`. Routing regressions and R44 goldens are separate comparisons.
 - All of a rule's questions travel in one request (R20), so following the route never sends another request.
 
 **Incomplete reasons (R44).** The owners stay `rulebook_planning` (produced), `evidence_selection` (produced) and `lint_reporting` (reported).
@@ -211,8 +219,8 @@ Three small changes, each inside an existing owner, with no new module and no ne
 
 | Seam (added) | Real | Faked | Observes |
 | --- | --- | --- | --- |
-| `field_composition` on copied sunstack files | the builder, the standard utils | nothing | `next`/`previous` values and spans for the V22 cases |
-| `decision_walking` with supplied answers | the walk | answers | routes followed from in-band answers, the reported step, and zero added requests |
+| `match_file` and `field_composition` on copied sunstack files and small crafted ones | the parser, the builder, the standard utils | nothing | `siblings` entries; `next`/`previous` values and spans for V22's positives and negatives |
+| `decision_walking` with supplied answers | the walk | answers | routes followed from in-band answers; the reported step (the one that ended the walk) in both the `uncertain` list and `results`; zero added requests |
 | `rulebook_run` and `selection_run` with the loopback backend | dispatch, the attempt controller | the HTTP endpoint (429, 503, refused, stalled, schema-invalid, missing question) | each incomplete reason with its class and status |
 | `sunstack lint` binary on a fixture with `decision_model.endpoint` at a closed port | everything | the endpoint | the JSON reason `connection` and the default line |
 
@@ -248,7 +256,7 @@ Three small changes, each inside an existing owner, with no new module and no ne
 | U8 | R26 status and exit | E11 | lint outcome | `LintStatus::exit_code` | `LintStatus::Uncertain` = 5 | precedence table | none | binary exit codes |
 | U2, U10 | R27 determinism | E6, E10 | piece building, dispatcher | ordering rules | ordered vectors | none | none | repeat runs, shuffled completion |
 | U12 | R28 skips | E3, E11 | rulebook_assembly + lint outcome | `RulebookAssembly.skipped` | `SkippedRule` (existing shape) | none | incomplete: coverage_partial | crafted bad entry |
-| U2 | R11 `next`/`previous` (31 Oct) | E7 | evidence_piece_building | `FieldSource::{Next, Previous}` evaluated in `local_fields` | `FieldValue::Text` / `Absent`, `field_composition.rs` | none | absent when no neighbour qualifies | V22 cases on copied files |
+| U2 | R11 `next`/`previous` (31 Oct) | E7 | evidence_planning (contract, `FileMatchIndex.siblings`), evidence_piece_building (value) | rule-only `FieldSource::{Next, Previous}` with `NeighbourCount` 1–5; siblings recorded in `match_file`, walked in `local_fields` | `FieldValue::Texts` in source order, `field_composition.rs` | none | empty list when no neighbour qualifies; `--check` refuses count outside 1–5 and kind forms | V22 positives and negatives through the real builder |
 | U5 | R18 `uncertain` route (31 Oct) | E9 | decision_graph_contracts, decision_walking | optional wire `uncertain`; `BinaryRoutes.uncertain`, `AskChoice.uncertain` | `DecisionRoute`, default `Uncertain` | in-band answer → routed step | refused by `--check` when undefined or cyclic | walk tests with supplied answers; existing fixtures unchanged |
 | U18 | R44 incomplete reasons (31 Oct) | E10 | rulebook_run, selection_run; lint report | `DecisionRunOutcome` → reason, one to one | `RulebookIncompleteReason`, `SelectionIncompleteReason`, lint `IncompleteReason` with `failure_class`, `http_status?` | none | each class distinct | loopback failures; binary at a closed port |
 
