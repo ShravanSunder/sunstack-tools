@@ -24,6 +24,27 @@ export interface DeclaredTarget {
 	commit: string;
 	digest: string;
 }
+/** A released artifact has immutable bytes and a version, without claiming a local build commit. */
+export interface ReleasedTarget {
+	binary: string;
+	digest: string;
+	release: string;
+}
+export type ProcessTarget = DeclaredTarget | ReleasedTarget;
+
+export function releasedTarget(binary: string, digest: string, release: string): ReleasedTarget {
+	const target = { binary: path.resolve(binary), digest, release };
+	confirmProcessTarget(target);
+	const version = spawnSync(target.binary, ['--version'], { encoding: 'utf8', timeout: 10000 });
+	requireCondition(version.status === 0, 'Release version probe failed');
+	equal(version.stdout.trim(), `sunstack ${release}`, 'Release binary version differs');
+	return target;
+}
+function confirmProcessTarget(target: ProcessTarget): void {
+	if ('release' in target)
+		equal(binaryDigest(target.binary), target.digest, 'Released binary bytes changed');
+	else confirmTarget(target);
+}
 export interface CapturedRequest {
 	body: JsonObject;
 	raw: Buffer;
@@ -155,7 +176,7 @@ export function responseBody(body: JsonObject, probability = 0.91, choice = 'out
 	};
 }
 export class RulebookProcess {
-	readonly target: DeclaredTarget;
+	readonly target: ProcessTarget;
 	readonly evidence: string;
 	readonly captures: CapturedRequest[] = [];
 	readonly errors: string[] = [];
@@ -167,7 +188,7 @@ export class RulebookProcess {
 	reply: (body: JsonObject) => JsonObject = responseBody;
 	respond: ((request: CapturedRequest) => Promise<ControlledReply>) | undefined;
 	readonly events: { request: number; event: 'received' | 'responded' }[] = [];
-	constructor(target: DeclaredTarget, evidence: string) {
+	constructor(target: ProcessTarget, evidence: string) {
 		this.target = target;
 		this.evidence = evidence;
 		this.server = http.createServer((request, response) => {
@@ -181,7 +202,7 @@ export class RulebookProcess {
 		});
 	}
 	async start(): Promise<void> {
-		confirmTarget(this.target);
+		confirmProcessTarget(this.target);
 		filesystem.mkdirSync(this.evidence, { recursive: false });
 		filesystem.mkdirSync(path.join(this.evidence, 'http'));
 		await new Promise<void>((resolve, reject) => {
@@ -239,7 +260,7 @@ export class RulebookProcess {
 		this.events.push({ request: number, event: 'responded' });
 	}
 	async run(options: RunCase): Promise<ProcessResult> {
-		confirmTarget(this.target);
+		confirmProcessTarget(this.target);
 		const directory = path.join(this.evidence, options.name);
 		filesystem.mkdirSync(directory);
 		const home = path.join(directory, 'home');
@@ -294,7 +315,9 @@ export class RulebookProcess {
 			command,
 			cwd: options.root,
 			pid: child.pid ?? null,
-			commit: this.target.commit,
+			...('release' in this.target
+				? { artifact_release: this.target.release }
+				: { commit: this.target.commit }),
 			binary_sha256: this.target.digest,
 			exit_code: ending.code,
 			signal: ending.signal,
@@ -304,7 +327,7 @@ export class RulebookProcess {
 			cancel_on_request: options.cancel ?? false,
 			timed_out: timedOut,
 		});
-		confirmTarget(this.target);
+		confirmProcessTarget(this.target);
 		if (!options.arguments.includes('--init'))
 			equal(fixtureSnapshot(options.root), snapshot, 'Lint modified its input fixture');
 		requireCondition(!timedOut, `${options.name}: process did not settle in 30 seconds`);
@@ -331,7 +354,7 @@ export class RulebookProcess {
 			requests: this.captures.length,
 			events: this.events,
 		});
-		confirmTarget(this.target);
+		confirmProcessTarget(this.target);
 		requireCondition(
 			this.errors.length === 0,
 			`Loopback harness errors: ${this.errors.join('; ')}`,
