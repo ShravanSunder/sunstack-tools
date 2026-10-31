@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
-import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
+import { fixtureLocator, insideViewport, openFixture, requiredElement } from './fixture-page.ts';
 
 afterEach((): void => {
 	document.body.replaceChildren();
@@ -238,15 +238,35 @@ test('a narrow Explorer main heading link reveals detail through document target
 	const link = fixture.createElement('a');
 	link.href = `#${heading.id}`;
 	link.textContent = 'Open Explorer heading';
-	requiredElement(fixture, 'ex-document').prepend(link);
+	requiredElement(owner, '.ex-explorer-browser-header').append(link);
+	const introduction = fixture.createElement('div');
+	introduction.style.height = '1600px';
+	owner.before(introduction);
+	const view = fixture.defaultView;
+	if (!view) throw new Error('Missing fixture window');
+	view.scrollTo({ top: owner.getBoundingClientRect().top + view.scrollY + 100 });
+	const list = requiredElement(owner, '.ex-explorer-node-list');
+	// Narrow lists use the page scroller rather than an inner overflow box.
+	const listPosition = list.scrollTop;
+	const pagePosition = view.scrollY;
+	expect(pagePosition).toBeGreaterThan(1000);
+	expect(insideViewport(link)).toBe(true);
 	await frame.getByRole('link', { name: 'Open Explorer heading', exact: true }).click();
 	await expect.poll((): number => heading.getBoundingClientRect().width).toBeGreaterThan(0);
 	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
 	expect(new URL(fixture.URL).searchParams.has('ex.planning')).toBe(false);
+	const repeatLink = fixture.createElement('a');
+	repeatLink.href = `#${heading.id}`;
+	repeatLink.textContent = 'Reveal the same detail again';
+	heading.after(repeatLink);
+	await expect.poll((): number => Math.abs(view.scrollY - pagePosition)).toBeGreaterThan(2);
+	await frame.getByRole('link', { name: 'Reveal the same detail again', exact: true }).click();
 	await frame.getByRole('button', { name: 'Back to nodes', exact: true }).click();
 	await expect
 		.element(frame.getByRole('navigation', { name: 'Explore graph nodes', exact: true }))
 		.toBeVisible();
+	await expect.poll((): number => list.scrollTop).toBe(listPosition);
+	await expect.poll((): number => Math.abs(view.scrollY - pagePosition)).toBeLessThan(2);
 });
 
 test('a cold narrow Explorer main heading fragment waits for its controller and returns a visible list', async (): Promise<void> => {

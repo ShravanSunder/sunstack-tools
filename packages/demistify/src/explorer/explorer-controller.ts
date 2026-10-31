@@ -194,6 +194,13 @@ export class ExplorerController {
 	/** Internal fragment revelation keeps selection and address owned by this controller. */
 	revealTarget(target: Element): void {
 		if (!this.main.contains(target)) return;
+		if (this.mobileView === 'list') {
+			const bounds = this.browser.getBoundingClientRect();
+			if (bounds.bottom > 0 && bounds.top < window.innerHeight) {
+				this.listScrollTop = this.list.scrollTop;
+				this.listPageScrollY = window.scrollY;
+			}
+		}
 		this.mobileView = 'detail';
 		this.owner.dataset['mobileView'] = 'detail';
 		this.renderGraph();
