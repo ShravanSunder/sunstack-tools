@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.18.1
+
+### Patch Changes
+
+- 6ef376d: Correct card and region surfaces to the selected category-filled heading, neutral body and optional neutral footer. Preserve one body inset, paragraph flow, inspection clearance and review anchors.
+
 ## 1.18.0
 
 ### Minor Changes

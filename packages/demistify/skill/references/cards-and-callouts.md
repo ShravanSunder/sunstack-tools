@@ -25,15 +25,15 @@ A card encloses one named thing. A callout draws attention to a consequence that
 | Completion or future work | `done`, `planned` |
 | A supplied change | `changed`, `added`, `removed` |
 
-A tone supplies semantic color and a default icon. A curated subject `icon` overrides the pictured subject while retaining the tone. Use short explicit wording such as **Proposed**, **Recommended**, **Owner selected**, **Supplied source**, **Observed** or **Not executed** when the distinction matters. A colored dot alone does not communicate those facts.
+A tone supplies a default icon and semantic color on unclassified surfaces. A curated subject `icon` overrides the pictured subject while retaining the tone. Use short explicit wording such as **Proposed**, **Recommended**, **Owner selected**, **Supplied source**, **Observed** or **Not executed** when the distinction matters. A colored dot alone does not communicate those facts.
 
 Use `pick` only after the owner selects an option. It adds a separate Chosen label without changing the option's semantic tone. `tag` carries a short location, timing or tradeoff. Neither is a paragraph, a general inline badge or a substitute for evidence. A recommendation does not acquire `pick` merely because its author prefers it.
 
 ## Compose one useful unit
 
-Cards use 8px corners, one outer shadow and a darker header band. A direct native `<footer>` adds an optional matching lower band; leave it out when the card needs no footer. Keep body content directly inside the card so existing review targets retain their ancestry.
+Cards use 8px corners, one outer shadow and a darker header band. Body content has one shared 20 px outer inset, retaining normal paragraph spacing. A direct native `<footer>` adds an optional neutral lower area with 8 px vertical padding and no divider; leave it out when the card needs no footer. Keep body content directly inside the card so existing review targets retain their ancestry.
 
-Use `series="1"` through `series="6"` for an explicit category shared across cards and regions. These reuse the six Mermaid chart palette slots, with a subtle body tint and side edge. Omit `series` for a neutral surface. Invalid values are checker errors. Keep a visible category label (`tag` or body text); color alone is insufficient. Category never replaces `tone`, status text or the tone icon/top edge.
+Use `series="1"` through `series="6"` for an explicit category shared across cards and regions. These reuse the six Mermaid chart palette slots: one hue supplies the filled heading band, perimeter edges and direct heading icon. The heading uses a 10% category tint darkened 12% black; body and footer stay neutral. The top edge is 2 px; other edges are 1 px. Omit `series` for a neutral surface. Invalid values are checker errors. Keep a visible category label (`tag` or body text); color alone is insufficient. Keep `tone` and explicit status text or badges; on categorized cards the category supplies the border and heading-icon color. Unclassified cards retain their existing tone paint.
 
 ```html
 <ex-card title="Registry" tone="planned" series="2" tag="Store" icon="database">
