@@ -1,0 +1,102 @@
+{
+  "rulebook": [
+    {
+      "markdown": "rulebook/steering.md",
+      "rules": "rulebook/steering.rules.json"
+    }
+  ],
+  "marker_prefix": "K",
+  "check": {
+    "files": [
+      "skills/ops-observability-stack/SKILL.md",
+      "cases/*.md",
+      "data/*.json"
+    ]
+  },
+  "evidence": {
+    "ast_grep": "evidence/sgconfig.yml",
+    "kinds": {
+      "section": {
+        "rule": "located-section",
+        "fields": {
+          "heading": {
+            "from": "first_line"
+          },
+          "body": {
+            "from": "remainder",
+            "exclude": {
+              "rule": "all-section"
+            }
+          },
+          "targets": {
+            "from": "target",
+            "regex": "load `([^`]+)`",
+            "resolve": "path",
+            "opening_chars": 120
+          }
+        },
+        "max_chars": 30000
+      },
+      "gate": {
+        "rule": "gate-document",
+        "fields": {
+          "body": {
+            "from": "remainder"
+          }
+        },
+        "max_chars": 30000
+      },
+      "missing": {
+        "rule": "missing-document",
+        "fields": {
+          "body": {
+            "from": "remainder"
+          },
+          "broken": {
+            "from": "yaml",
+            "key": "broken"
+          }
+        },
+        "max_chars": 30000
+      },
+      "judged": {
+        "rule": "judged-document",
+        "fields": {
+          "body": {
+            "from": "remainder"
+          }
+        },
+        "max_chars": 30000
+      },
+      "capped": {
+        "rule": "cut-document",
+        "fields": {
+          "body": {
+            "from": "remainder"
+          },
+          "cut": {
+            "from": "first_line"
+          }
+        },
+        "max_chars": 1000
+      },
+      "question": {
+        "rule": "json-question",
+        "fields": {
+          "body": {
+            "from": "remainder"
+          }
+        },
+        "max_chars": 30000
+      }
+    }
+  },
+  "decision_model": {
+    "model": "jev-latest",
+    "endpoint": "http://127.0.0.1:9/systemone"
+  },
+  "limits": {
+    "request_max_chars": 50000,
+    "max_model_requests": 50
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "located-section",
+  "language": "Markdown",
+  "files": [
+    "skills/ops-observability-stack/SKILL.md"
+  ],
+  "rule": {
+    "all": [
+      {
+        "kind": "section"
+      },
+      {
+        "regex": "^# Ops Observability Stack"
+      }
+    ]
+  }
+}

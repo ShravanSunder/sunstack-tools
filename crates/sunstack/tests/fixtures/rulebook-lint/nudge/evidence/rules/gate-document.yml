@@ -1,0 +1,11 @@
+{
+  "id": "gate-document",
+  "language": "Markdown",
+  "files": [
+    "cases/drop.md",
+    "cases/pass.md"
+  ],
+  "rule": {
+    "kind": "document"
+  }
+}
