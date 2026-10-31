@@ -58,18 +58,24 @@ async fn real_cli_json_equals_the_library_and_each_format_preserves_the_finding(
     )
     .await;
     assert_eq!(cli, serde_json::to_value(library).unwrap());
+    let standard = root.path().canonicalize().unwrap().join("rulebook.md");
+    assert_eq!(
+        cli["findings"][0]["related"],
+        json!([{"label":"standard","file":standard,"first_line":1,"last_line":1}])
+    );
     let human = invoke(root.path(), &["--all"], 1).await;
+    let human = String::from_utf8(human.stdout).unwrap();
     assert!(
-        String::from_utf8(human.stdout).unwrap().contains(
+        human.contains(
             "docs/one.md:2:14: error [description] Description must begin with Use when."
         )
     );
     let github = invoke(root.path(), &["--all", "--format", "github"], 1).await;
-    assert!(
-        String::from_utf8(github.stdout)
-            .unwrap()
-            .contains("::error file=docs/one.md,line=2,col=14,")
-    );
+    let github = String::from_utf8(github.stdout).unwrap();
+    assert!(github.contains("::error file=docs/one.md,line=2,col=14,"));
+    let related_line = format!("  standard: {}:1", standard.display());
+    assert!(human.contains(&related_line));
+    assert!(github.contains(&related_line));
     let sarif: Value = serde_json::from_slice(
         &invoke(root.path(), &["--all", "--format", "sarif"], 1)
             .await

@@ -38,6 +38,18 @@ pub fn admit_rule_entry(
         )]);
     };
     let mut errors = Vec::new();
+    for (position, field) in entry.related.iter().enumerate() {
+        if !kind.fields.contains_key(field) {
+            errors.push(refusal(
+                ConfigPath::keys(["related"]).with_index(position),
+                format!(
+                    "entry {}: related names undefined field {}",
+                    entry.name.as_str(),
+                    field.as_str()
+                ),
+            ));
+        }
+    }
     if !entry.questions.is_empty() {
         if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
             &entry.questions,

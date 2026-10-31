@@ -82,6 +82,14 @@ pub struct Finding {
     pub message: String,
     pub judgment: Option<JudgmentSummary>,
     pub basis: Basis,
+    pub related: Vec<RelatedPlace>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct RelatedPlace {
+    pub label: String,
+    pub file: PathBuf,
+    pub first_line: usize,
+    pub last_line: usize,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JudgmentSummary {

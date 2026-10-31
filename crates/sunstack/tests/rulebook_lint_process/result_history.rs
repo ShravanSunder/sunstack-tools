@@ -1,6 +1,43 @@
 use super::*;
 
 #[tokio::test]
+async fn related_fields_are_admitted_only_when_the_entries_kind_defines_them() {
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":10})),
+    );
+    let path = root.path().join("rules.json");
+    let mut entries = read(&path);
+    entries["K001"]["related"] = json!(["missing_field"]);
+    save(&path, &entries);
+    let output = command(root.path()).arg("--check").output().await.unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    for part in [
+        "rules.json",
+        "document_standard",
+        "related",
+        "missing_field",
+    ] {
+        assert!(text.contains(part), "missing {part}: {text}");
+    }
+    entries["K001"]["related"] = json!(["body"]);
+    save(&path, &entries);
+    assert_eq!(
+        invoke(root.path(), &["--check"], 0)
+            .await
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
+#[tokio::test]
 async fn cut_fields_are_visible_in_requests_rows_and_uncertain_state_beside_authored_cut() {
     for over_cap in [false, true] {
         let root = limit_fixture(

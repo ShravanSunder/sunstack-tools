@@ -39,6 +39,14 @@ struct SarifResult<'a> {
     level: &'static str,
     message: SarifMessage<'a>,
     locations: Vec<SarifLocation>,
+    related_locations: Vec<SarifRelatedLocation<'a>>,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SarifRelatedLocation<'a> {
+    id: usize,
+    physical_location: SarifPhysicalLocation,
+    message: SarifMessage<'a>,
 }
 #[derive(Serialize)]
 struct SarifMessage<'a> {
@@ -131,6 +139,25 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
                     end_column: Some(span.end_column),
                 }),
             )],
+            related_locations: finding
+                .related
+                .iter()
+                .enumerate()
+                .map(|(position, place)| SarifRelatedLocation {
+                    id: position + 1,
+                    physical_location: location(
+                        &place.file,
+                        Some(SarifRegion {
+                            start_line: place.first_line,
+                            start_column: None,
+                            end_line: Some(place.last_line),
+                            end_column: None,
+                        }),
+                    )
+                    .physical_location,
+                    message: SarifMessage { text: &place.label },
+                })
+                .collect(),
         })
         .collect();
     let mut notifications = report

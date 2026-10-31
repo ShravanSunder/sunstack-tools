@@ -40,6 +40,7 @@ pub(crate) fn project_outcome(
             RulebookResult::Uncertain { step, .. } => (PieceOutcome::Uncertain, Some(step.clone())),
             RulebookResult::Incomplete { step, .. } => (PieceOutcome::Incomplete, step.clone()),
         };
+        let basis = pair.result.basis();
         report.results.push(RulePieceResult {
             name: rule.name.clone(),
             marker: rule.sentence.marker.clone(),
@@ -50,7 +51,7 @@ pub(crate) fn project_outcome(
             step,
             path: pair.result.path_taken().to_vec(),
             answers: pair.result.answers_read().clone(),
-            basis: pair.result.basis(),
+            basis,
             cut: match &piece.model_view {
                 sunstack_evidence::ModelView::Bounded { cut, .. } => cut.clone(),
                 sunstack_evidence::ModelView::TooLarge { .. } => vec![],
@@ -70,8 +71,11 @@ pub(crate) fn project_outcome(
                 path_taken,
                 answers,
                 value,
-                answers_read,
+                ..
             } => {
+                let Some(basis) = basis else {
+                    continue;
+                };
                 match severity {
                     sunstack_rules::Severity::Error => {
                         report.counts.error = report.counts.error.saturating_add(1)
@@ -101,11 +105,8 @@ pub(crate) fn project_outcome(
                         value,
                         path_taken,
                     }),
-                    basis: if answers_read.is_empty() {
-                        sunstack_rules::Basis::Mechanical
-                    } else {
-                        sunstack_rules::Basis::Judged
-                    },
+                    basis,
+                    related: related_places(rule, piece),
                 });
             }
             RulebookResult::Uncertain {
@@ -181,6 +182,51 @@ pub(crate) fn project_outcome(
         LintStatus::Clean
     };
     report
+}
+
+fn related_places(rule: &RulebookRule, piece: &EvidencePiece) -> Vec<RelatedPlace> {
+    use sunstack_evidence::{FieldValue, SourceRef};
+    let mut places = vec![RelatedPlace {
+        label: "standard".into(),
+        file: rule.sentence.rulebook.clone(),
+        first_line: rule.sentence.line,
+        last_line: rule.sentence.line,
+    }];
+    for name in &rule.related {
+        let Some(field) = piece.fields.get(name) else {
+            continue;
+        };
+        if let FieldValue::Targets { values } = field {
+            places.extend(values.iter().filter_map(|target| {
+                target.opening_last_line.map(|last_line| RelatedPlace {
+                    label: name.as_str().into(),
+                    file: target.path.clone(),
+                    first_line: 1,
+                    last_line,
+                })
+            }));
+        } else {
+            places.extend(field.spans().iter().filter_map(|span| {
+                let file = match &span.source {
+                    SourceRef::Document { path, .. }
+                    | SourceRef::RepositoryFile { path, .. }
+                    | SourceRef::Transcript { path, .. } => path.clone(),
+                    SourceRef::Payload { .. } => return None,
+                };
+                Some(RelatedPlace {
+                    label: name.as_str().into(),
+                    file,
+                    first_line: span.start_line,
+                    last_line: if span.end_column == 1 && span.end_line > span.start_line {
+                        span.end_line - 1
+                    } else {
+                        span.end_line
+                    },
+                })
+            }));
+        }
+    }
+    places
 }
 
 fn was_dispatched(outcome: &DecisionRunOutcome) -> bool {

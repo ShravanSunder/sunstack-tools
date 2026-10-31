@@ -277,6 +277,12 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
         .remove("basis");
     assert!(!validator.is_valid(&missing));
     let mut missing = value.clone();
+    missing["findings"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("related");
+    assert!(!validator.is_valid(&missing));
+    let mut missing = value.clone();
     missing.as_object_mut().unwrap().remove("results");
     assert!(!validator.is_valid(&missing));
     let mut wrong = value;

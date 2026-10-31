@@ -152,6 +152,15 @@ fn human(report: &LintReport) -> String {
             finding.rule.as_str(),
             finding.message
         );
+        for place in &finding.related {
+            let _ = writeln!(
+                output,
+                "  {}: {}:{}",
+                place.label,
+                place.file.display(),
+                place.first_line
+            );
+        }
     }
     let mut totals = std::collections::BTreeMap::<String, [usize; 5]>::new();
     for file in &report.file_counts {
@@ -294,6 +303,15 @@ fn github(report: &LintReport) -> String {
             properties,
             annotation_text(&format!("[{}] {}", finding.rule.as_str(), finding.message))
         );
+        for place in &finding.related {
+            let _ = writeln!(
+                output,
+                "  {}: {}:{}",
+                place.label,
+                place.file.display(),
+                place.first_line
+            );
+        }
     }
     for result in &report.uncertain {
         let _ = writeln!(
