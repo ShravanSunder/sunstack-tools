@@ -175,9 +175,13 @@ jobs:
             echo "The macOS release signing certificate and password are required" >&2
             exit 1
           fi
+          pkcs12_options=(-clcerts -nokeys)
+          if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+            pkcs12_options+=(-legacy)
+          fi
           signing_identity="$(
             printf '%s' "$CODESIGN_CERTIFICATE" | base64 --decode |
-              openssl pkcs12 -legacy -clcerts -nokeys -passin env:CODESIGN_CERTIFICATE_PASSWORD |
+              openssl pkcs12 "${pkcs12_options[@]}" -passin env:CODESIGN_CERTIFICATE_PASSWORD |
               openssl x509 -noout -subject -nameopt multiline |
               sed -n 's/^ *commonName *= *//p'
           )"
