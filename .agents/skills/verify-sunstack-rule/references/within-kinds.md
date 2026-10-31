@@ -35,6 +35,8 @@ WI2 adds one field-owner collision. A shorter kind `a` validly lies within `foo.
 
 Public path-string compatibility is a native SDK join. Inspect literal Display expectations on real admission/planner emissions, Key-versus-Index and Serde-map/sequence controls; keep the existing public spelling separate from structured identity. `LintDiagnostic` drops the SDK path fields, so this route does not invent a CLI path-field projection or claim the stderr check proves that spelling contract.
 
+The Lead's local-shape exception deliberately replaces six old short/generic paths with precise paths: `limits.evidence_max_chars`, `check.files`, `evidence.kinds`, `evidence.ast_grep`, and `rulebook.<index>.markdown` / `.rules`. An empty rulebook stays `rulebook`; compound failures retain deterministic precedence. Native exact path/coordinate controls own these SDK values. The existing default R24 refusal route additionally requires its low evidence-limit refusal to locate the actual nested key, rejecting a1:1 fallback introduced by a leaf-only structural path.
+
 Join the direct native constructor/decode/schema controls (including `minItems: 1` and `uniqueItems: true`), every-entry dependency/build-order controls, and the structural keyless/no-checked-source `check` route. A located refusal caused by an unrelated invalid field is insufficient. The binary journey does not replace the native schema or plan proof.
 
 WK3 keeps those seams distinct: non-list/empty/repeated shapes fail at decode and check; well-shaped lists with undefined entries or cycles decode successfully and fail the graph plan at admission/check. A direct decoder is not expected to resolve the containing-kind graph.
