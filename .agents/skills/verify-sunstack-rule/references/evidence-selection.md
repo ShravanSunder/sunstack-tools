@@ -15,9 +15,9 @@ Use the main skill's source/binary identity policy. Keep the product head and bi
 From the monorepo root:
 
 ```sh
-node scripts/verify/sunstack-rule/rulebook-lint.ts --case selection \
+node scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts --case selection \
   --prepare --source-root <product-checkout> --evidence <new-authorized-directory>
-node scripts/verify/sunstack-rule/rulebook-check-refusals.ts --case selection \
+node scripts/verify/sunstack-rule/rulebook/rulebook-check-refusals.ts --case selection \
   --prepare --source-root <product-checkout> --evidence <another-new-directory>
 ```
 

@@ -64,12 +64,12 @@ Preserve failures, safe diagnostics, attempt uncertainty and actual executed tes
 
 This current-runner route earns the 29 Oct rulebook Verification Design U6 hosted portion while preserving the earlier static Linux/no-CA boundary. Historical V routes above retain their own pins. **Draft until observed** on a separately declared static Linux arm64 release binary; this Verifier's no-hosted commission cannot execute it.
 
-Inputs: declared binary SHA256, source commit/version, the S0 rulebook fixture tree, cached pinned Alpine arm64 image from `hosted-lint.ts` (same digest as the container matrix), Docker networking and separately authorized hosted spend. The Lead supplies the existing owner-only regular credential file privately; its mode is 600 and the invoking user owns it. Its location and value never enter the skill, fixtures, process command or report. `scripts/verify/sunstack-rule/hosted-lint.ts` reads it only into one Docker command's environment, passes the variable by name and removes it afterwards. No credential is read in preparation mode.
+Inputs: declared binary SHA256, source commit/version, the S0 rulebook fixture tree, cached pinned Alpine arm64 image from `hosted-lint.ts` (same digest as the container matrix), Docker networking and separately authorized hosted spend. The Lead supplies the existing owner-only regular credential file privately; its mode is 600 and the invoking user owns it. Its location and value never enter the skill, fixtures, process command or report. `scripts/verify/sunstack-rule/hosted/hosted-lint.ts` reads it only into one Docker command's environment, passes the variable by name and removes it afterwards. No credential is read in preparation mode.
 
 From the monorepo root, directly with Node:
 
 ```sh
-node scripts/verify/sunstack-rule/hosted-lint.ts \
+node scripts/verify/sunstack-rule/hosted/hosted-lint.ts \
   --prepare --evidence <new-authorized-directory>
 ```
 
