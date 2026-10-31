@@ -1,6 +1,10 @@
 use super::*;
 pub(super) fn source_span(file: &MatchedFile, range: &MatchRange) -> SourceSpan {
-    crate::source_capture::source_span(&file.source, &file.text, range.start..range.end)
+    crate::source_acquisition::source_capture::source_span(
+        &file.source,
+        &file.text,
+        range.start..range.end,
+    )
 }
 
 fn first_line_range(file: &MatchedFile, range: &MatchRange) -> MatchRange {
@@ -173,7 +177,7 @@ fn yaml_field(file: &MatchedFile, range: &MatchRange, key: &str) -> FieldValue {
         source: file.source.clone(),
         text: file.text[range.start..range.end].into(),
     };
-    match crate::markdown_frontmatter::select_frontmatter(&document, key) {
+    match crate::document_evidence::markdown_frontmatter::select_frontmatter(&document, key) {
         Ok(SelectionContent::FrontmatterField { result }) => match *result {
             FrontmatterFieldContent::Present {
                 value: StructuredJson::String(value),

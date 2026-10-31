@@ -103,7 +103,7 @@ async fn check_lists_selected_and_contained_kinds_without_key_and_evidence_needs
             .as_array()
             .unwrap()
             .iter()
-            .any(|row| row["kind"] == "step" && row["within"] == "workflow_section")
+            .any(|row| row["kind"] == "step" && row["within"] == json!(["workflow_section"]))
     );
     let missing = no_key(root.path(), &["--all", "--evidence", "--format", "json"], 2).await;
     assert_eq!(missing["status"]["kind"], "invalid");
@@ -323,7 +323,7 @@ async fn deleting_only_parent_relative_target_selects_loader_and_keeps_missing_t
         let path = root.path().join("skill-rules.config.json");
         let mut config = read(&path);
         config["check"]["files"] = json!(["skills/loader/SKILL.md"]);
-        config["evidence"]["kinds"]["load"]["within"] = json!("workflow_section");
+        config["evidence"]["kinds"]["load"]["within"] = serde_json::json!(["workflow_section"]);
         let mut server = controlled::ControlledServer::start().await;
         config["decision_model"]["endpoint"] = json!(server.endpoint);
         save(&path, &config);
@@ -420,7 +420,7 @@ async fn deleting_only_absolute_in_root_target_selects_loader_and_preserves_raw_
         let path = root.path().join("skill-rules.config.json");
         let mut config = read(&path);
         config["check"]["files"] = json!(["skills/loader/SKILL.md"]);
-        config["evidence"]["kinds"]["load"]["within"] = json!("workflow_section");
+        config["evidence"]["kinds"]["load"]["within"] = serde_json::json!(["workflow_section"]);
         let mut server = controlled::ControlledServer::start().await;
         config["decision_model"]["endpoint"] = json!(server.endpoint);
         save(&path, &config);
@@ -478,5 +478,73 @@ async fn deleting_only_absolute_in_root_target_selects_loader_and_preserves_raw_
                 absolute_target.to_str().unwrap()
             );
         }
+    }
+}
+
+#[tokio::test]
+async fn within_lists_have_ordered_check_rows_and_located_refusals() {
+    let root = fixture();
+    let path = root.path().join("skill-rules.config.json");
+    let baseline = read(&path);
+    let mut valid = baseline.clone();
+    valid["evidence"]["kinds"]["standards_section"] = json!({"rule":"section","fields":{}});
+    valid["evidence"]["kinds"]["step"]["within"] = json!(["workflow_section", "standards_section"]);
+    save(&path, &valid);
+    let listing = no_key(root.path(), &["--check"], 0).await;
+    assert!(
+        listing
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row["kind"] == "step"
+                && row["within"] == json!(["workflow_section", "standards_section"]))
+    );
+    let mut omitted = valid.clone();
+    omitted["evidence"]["kinds"]["step"]
+        .as_object_mut()
+        .unwrap()
+        .remove("within");
+    save(&path, &omitted);
+    no_key(root.path(), &["--check"], 0).await;
+    for (within, cycle, message) in [
+        (json!(null), false, "within"),
+        (json!("workflow_section"), false, "within"),
+        (json!([]), false, "within"),
+        (
+            json!(["workflow_section", "workflow_section"]),
+            false,
+            "workflow_section",
+        ),
+        (
+            json!(["workflow_section", "missing"]),
+            false,
+            "undefined kind missing",
+        ),
+        (
+            json!(["workflow_section", "standards_section"]),
+            true,
+            "cycle",
+        ),
+    ] {
+        let mut invalid = valid.clone();
+        invalid["evidence"]["kinds"]["step"]["within"] = within;
+        if cycle {
+            invalid["evidence"]["kinds"]["standards_section"]["within"] = json!(["step"]);
+        }
+        save(&path, &invalid);
+        let output = tokio::time::timeout(
+            Duration::from_secs(10),
+            command(root.path()).arg("--check").output(),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        let diagnostics = String::from_utf8_lossy(&output.stderr);
+        assert!(diagnostics.contains(message), "{diagnostics}");
+        assert!(
+            diagnostics.contains("skill-rules.config.json:"),
+            "{diagnostics}"
+        );
     }
 }

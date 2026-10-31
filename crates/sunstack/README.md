@@ -89,7 +89,9 @@ skill-specific rules are test content.
 
 Add `select` to an evidence kind to ask one noul question about each mechanical
 candidate. Add `within` to keep a kind's matches only inside or equal to a final
-piece of another kind in the same file. This fragment belongs in `evidence.kinds`;
+piece of any listed kind in the same file. `within` is a nonempty list without
+repeated kinds, written as `["workflow_section"]` for one kind. A match inside
+several listed kinds produces one piece. This fragment belongs in `evidence.kinds`;
 the rule IDs must exist in the caller's ast-grep project:
 
 ```json
@@ -118,7 +120,7 @@ the rule IDs must exist in the caller's ast-grep project:
 	},
 	"step": {
 		"rule": "step",
-		"within": "workflow_section",
+		"within": ["workflow_section"],
 		"fields": { "body": { "from": "remainder" } }
 	},
 	"load": {

@@ -1,5 +1,5 @@
 #![allow(clippy::unwrap_used)]
-#[path = "../src/rulebook_test_support.rs"]
+#[path = "../src/rulebook_planning/rulebook_test_support.rs"]
 mod rule_fixture;
 
 use serde_json::{Value, json};

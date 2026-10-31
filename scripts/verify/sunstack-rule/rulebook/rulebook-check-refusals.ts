@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
 	configName,
 	configureEndpoint,
+	equal,
 	errorMessage,
 	journeyArguments,
 	runSequence,
@@ -147,6 +148,17 @@ export async function main(): Promise<void> {
 				requireCondition(
 					text.toLowerCase().includes('duplicate key') && text.includes(`:${line}:`),
 					'Duplicate key not located at its declaration',
+				);
+			}
+			if (entry.name === 'evidence-max-under-floor') {
+				const lines = filesystem.readFileSync(config, 'utf8').split('\n');
+				const keyLines = lines.flatMap((line, index) =>
+					line.startsWith('    "evidence_max_chars":') ? [index + 1] : [],
+				);
+				equal(keyLines.length, 1, 'Low evidence limit fixture must have one authored limit key');
+				requireCondition(
+					text.includes(`${path.resolve(config)}:${keyLines[0]}:5:`),
+					'Low evidence limit refusal must locate its actual key under limits',
 				);
 			}
 			if (entry.name.startsWith('old-'))

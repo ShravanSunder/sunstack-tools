@@ -1,0 +1,61 @@
+# Within one or more kinds: amended U14/U16 and W6
+
+This route follows amended R30/R40 and U14/U16 at `9dfdb10` plus `a4696af` (WK1/WK2), `2198c47` (WK3 proof seams), the W1–W6 commission and the Lead's path-policy amendments. All 29 selection refusals and the existing default R24/FIFO route were observed at `4086bcc1`, including separate WI2 field/planner owners and the nested low-limit key. c1 union/count/W6 observations are reused after checking the diagnostic-only conversion's applicability. Earlier counterexamples remain in the target's report. The expected containment is inclusive union over final pieces, with each match counted once. `within` accepts a nonempty list of distinct kind names in config order; only omission means no containment. Product code, Rust tests, canonical repo fixtures, exported schema and release notes have their own owners.
+
+Use the main skill's source/binary pinning and synthetic-only policy. The lasting rulebook entries and their `--case selection` mode keep their names and flags:
+
+```sh
+node scripts/verify/sunstack-rule/rulebook-lint.ts --case selection \
+  --binary <frozen-binary> --sha256 <digest> --source-root <checkout> \
+  --commit <full-head> --evidence <new-directory>
+node scripts/verify/sunstack-rule/rulebook-check-refusals.ts --case selection \
+  --binary <frozen-binary> --sha256 <digest> --source-root <checkout> \
+  --commit <full-head> --evidence <another-new-directory>
+```
+
+The Implementer's canonical selection fixture must already use one-item lists at the declared target. There is no automatic scalar-to-list compatibility adapter in the current-product journey. The sole intentionally authored scalar in the lasting refusal inventory is the old-form rejection case. Baseline scalar generation in the W6 comparator below is exclusively for the old executable.
+
+## Union and once-only observation
+
+`within-kinds-journey.ts`, called by rulebook lint selection mode, adds a small controlled skill and a reference with `## Standards`. The `sentence` kind names `['step', 'standards_section']`; that order also differs from alphabetical order, so its keyless `--check` listing must retain it exactly.
+
+The skill file has exactly four sentence-rule matches: a step-only item, a Standards-only paragraph, an item inside both, and an outside paragraph. A separate reference Standards item is the no-chosen-step-file control. Yes answers give three skill pieces and three picked pieces; no answers give two, while the raw match count stays four. The reference is always matches/pieces/picked 1/1/1. Both evidence and lint JSON must have those exact per-file `file_counts`, taken from fixture facts rather than derived from the returned piece list. `within-kinds-journey.test.ts` and retained-artifact sensitivity require a counter-only corruption to fail while the correct pieces stay identical.
+
+Exact file/byte-start records and source-range readback exclude outside text and duplicate overlap. The overlap contributes one piece and one mechanical lint result. Skill steps change from two to zero on no, dropping only the step-only guidance; both skill Standards pieces and the reference piece remain. Four total mechanical results become three. These controls reject first-container-only, intersection, duplicate overlap, raw unchosen-step behavior and counters that drift while pieces remain correct.
+
+## Check-only refusals
+
+Selection refusal mode retains canonical R40 cases and adds six isolated configs: scalar `within`, present null, empty list, repeated kind, undefined second entry and a cycle present only through the second entry. Each must exit 2, emit a related config/file/line diagnostic for its actual cause, dispatch nothing and need no key. A separate omitted-within control must succeed; clean listing includes the one-item list, and the union fixture lists both kinds in config order. Null must reach a non-list decode refusal rather than silently becoming omission. The cycle diagnostic names its path's kinds.
+
+For the cycle and undefined-container fixtures, the diagnostic must locate the owning evidence-kind key, with the exact authored line and column. An earlier matching string value or a nested field with the same name is not that key. These controlled two-space fixtures put kind keys at six-space indentation; the assertion checks that fixture invariant before comparing the location. Comparator tests and retained c0 wrong-location readback reject the earlier-value defect that the original generic location-presence check missed.
+
+WI1 adds four exact-location refusal cases: literal `a.b`, `a.fields.body` with a separate `a.fields.body` structural-path decoy, an ordinary kind and an escaped literal kind. Each names an undefined second container, exits2 without a key/request, and must point to its literal kind key. The last two control location preservation; they are still invalid configs, not successful admissions. A locator that splits the name on periods must fail the dotted/collision cases. Native compact/pretty and genuinely absent-path fallback tests join this binary observation; restricting valid names would violate the contract.
+
+WI2 adds one field-owner collision. A shorter kind `a` validly lies within `foo.fields.body`; a distinct literal kind `a.within.foo` has a body field reading an undefined kind. Check must retain both refusals: the field-source row locates that body's authored key and the planner row locates its owning kind. The earlier valid container entry is neither location. The comparator bounds the field lookup to the complete literal kind block of the controlled pretty fixture; native compact/pretty and reversed-order controls join it.
+
+Public path-string compatibility is a native SDK join. Inspect literal Display expectations on real admission/planner emissions, Key-versus-Index and Serde-map/sequence controls; keep the existing public spelling separate from structured identity. `LintDiagnostic` drops the SDK path fields, so this route does not invent a CLI path-field projection or claim the stderr check proves that spelling contract.
+
+The Lead's local-shape exception deliberately replaces six old short/generic paths with precise paths: `limits.evidence_max_chars`, `check.files`, `evidence.kinds`, `evidence.ast_grep`, and `rulebook.<index>.markdown` / `.rules`. An empty rulebook stays `rulebook`; compound failures retain deterministic precedence. Native exact path/coordinate controls own these SDK values. The existing default R24 refusal route additionally requires its low evidence-limit refusal to locate the actual nested key, rejecting a1:1 fallback introduced by a leaf-only structural path.
+
+Join the direct native constructor/decode/schema controls (including `minItems: 1` and `uniqueItems: true`), every-entry dependency/build-order controls, and the structural keyless/no-checked-source `check` route. A located refusal caused by an unrelated invalid field is insufficient. The binary journey does not replace the native schema or plan proof.
+
+WK3 keeps those seams distinct: non-list/empty/repeated shapes fail at decode and check; well-shaped lists with undefined entries or cycles decode successfully and fail the graph plan at admission/check. A direct decoder is not expected to resolve the containing-kind graph.
+
+## W6 one-item equivalence
+
+The standalone driver is lasting apparatus for the cutover comparison:
+
+```sh
+node scripts/verify/sunstack-rule/within-kinds-equivalence.ts \
+  --baseline <frozen-v0.3.0-binary> --baseline-sha256 <baseline-digest> \
+  --binary <new-frozen-binary> --sha256 <new-digest> \
+  --source-root <checkout> --commit <full-head> --evidence <fresh-directory>
+```
+
+It requires baseline version `sunstack 0.3.0` and both declared hashes. It copies the canonical rulebook selection fixture to one physical path and uses one owned loopback endpoint with fixed selected/no/uncertain answers. The reference executable gets the equivalent scalar config generated from the current one-item list; the new executable gets only the list. There is no product compatibility shim or runtime fallback.
+
+For each case, compare every serialized byte of `pieces`, `selections` and `file_counts`, retaining all nested fields, ranges and order; also compare exact ordered selection request bodies. No path, field or timing normalization is applied to those fields. Exits are 0/0/5 for selected/no/uncertain, respectively. A nonempty request and selection record must prove the fixture reached the model seam. A deliberately corrupted first piece's `where.first_line` must fail the same comparator, with the altered report and rejection receipt preserved. Passing equality without that negative control is incomplete W6 proof.
+
+Keep config variants, exact argv/hash/exit/stdout/stderr and raw requests, the successful equality receipt and planted failure. Children have the existing bounded lifecycle and held stdin; stop only owned child groups on timeout, close the loopback and verify both target hashes/source pins through the run. Remote model quality, real-key calls and release/install behavior remain unobserved. R42 on configs without `within` remains a separate compatibility contract.
+
+Return U14, U16 and W6 separately as supported/unsupported/unknown on the declared target, with native joins, raw evidence and any apparatus or product gap. No prepared fixture or unit-only comparator check is a live product pass. The Lead owns acceptance.

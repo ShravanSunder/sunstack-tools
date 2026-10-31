@@ -204,7 +204,7 @@ fn contained_kind_fields_read_only_final_pieces_and_remainder_excludes_strict_ch
     std::fs::write(root.path().join("doc.md"),"# Title\n\n## Parent\n\n1. Outer.\n\n### Chosen\n\n1. First.\n2. Second.\n\n### Other\n\n1. Third.\n").unwrap();
     let kinds=serde_json::from_value(serde_json::json!({
  "chosen":{"rule":"child","select":{"question":{},"yes_at_or_above":0.7,"no_at_or_below":0.3},"fields":{"heading":{"from":"first_line"}}},
- "step":{"rule":"item","within":"chosen","fields":{"body":{"from":"remainder"}}},
+ "step":{"rule":"item","within":["chosen"],"fields":{"body":{"from":"remainder"}}},
  "parent":{"rule":"parent","fields":{"heading":{"from":"first_line"},"body":{"from":"remainder","exclude":{"rule":"section"}},"steps":{"from":"inside","kind":"step"},"chosen":{"from":"same_file","kind":"chosen"}}}
  })).unwrap();
     let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
@@ -403,5 +403,176 @@ fn selected_candidates_coalesce_equal_ranges_without_changing_plain_kinds() {
             .unwrap()
             .candidates,
         1
+    );
+}
+
+#[test]
+fn containing_kinds_union_keeps_each_match_once_and_only_chosen_steps() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/union.yml"),
+        r#"id: workflow
+language: Markdown
+rule: {kind: section, has: {kind: atx_heading, regex: '^## Workflow', stopBy: neighbor}}
+---
+id: standards
+language: Markdown
+rule: {kind: section, has: {kind: atx_heading, regex: '^###? Standards', stopBy: neighbor}}
+---
+id: item
+language: Markdown
+rule: {kind: list_item}
+---
+id: sentence
+language: Markdown
+rule: {kind: paragraph}
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("skill.md"),
+        "# Skill\n\nOutside skill.\n\n## Workflow\n\n1. Step only.\n\n### Standards\n\n1. Both.\n\nStandards only.\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("reference.md"),
+        "# Reference\n\n## Standards\n\nReference guidance.\n",
+    )
+    .unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    for select_sentences in [false, true] {
+        for choose_workflow in [false, true] {
+            let mut definitions = serde_json::json!({
+                "workflow_section":{"rule":"workflow","select":{"question":{},"yes_at_or_above":0.7,"no_at_or_below":0.3},"fields":{}},
+                "step":{"rule":"item","within":["workflow_section"],"fields":{}},
+                "standards_section":{"rule":"standards","fields":{}},
+                "sentence":{"rule":"sentence","within":["step","standards_section"],"fields":{}}
+            });
+            if select_sentences {
+                definitions["sentence"]["select"] =
+                    serde_json::json!({"question":{},"yes_at_or_above":0.7,"no_at_or_below":0.3});
+            }
+            let kinds = serde_json::from_value(definitions).unwrap();
+            let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
+            let mut build = EvidenceBuild::start(
+                &project,
+                &kinds,
+                &["skill.md".into(), "reference.md".into()],
+                &mut source,
+                limits(),
+            )
+            .unwrap();
+            let mut chosen = ChosenCandidates::default();
+            let mut sentence_candidates = Vec::new();
+            let catalog = loop {
+                match build.advance(chosen, &mut source) {
+                    BuildStep::Done(catalog) => break catalog,
+                    BuildStep::NeedsSelection {
+                        kind, candidates, ..
+                    } => {
+                        if kind.as_str() == "sentence" {
+                            sentence_candidates = candidates
+                                .iter()
+                                .map(|candidate| candidate.first_line.clone())
+                                .collect();
+                        }
+                        chosen = ChosenCandidates(
+                            candidates
+                                .iter()
+                                .filter(|_| kind.as_str() == "sentence" || choose_workflow)
+                                .map(|candidate| candidate.id.clone())
+                                .collect(),
+                        );
+                    }
+                }
+            };
+            assert!(catalog.failures.is_empty());
+            let mut sentences = catalog
+                .pieces
+                .iter()
+                .filter(|piece| piece.kind.as_str() == "sentence")
+                .map(|piece| piece.text.trim().to_owned())
+                .collect::<Vec<_>>();
+            sentences.sort();
+            let expected = if choose_workflow {
+                vec![
+                    "Both.",
+                    "Reference guidance.",
+                    "Standards only.",
+                    "Step only.",
+                ]
+            } else {
+                vec!["Both.", "Reference guidance.", "Standards only."]
+            };
+            assert_eq!(
+                sentences, expected,
+                "selected sentence={select_sentences}, chosen workflow={choose_workflow}"
+            );
+            require_union_file_counts(&catalog.file_counts, choose_workflow);
+            let (picked, _) = pick_pieces(&catalog.pieces, &[], true, root.path());
+            assert_eq!(
+                picked
+                    .iter()
+                    .filter(|index| catalog.pieces[**index].kind.as_str() == "sentence")
+                    .count(),
+                if choose_workflow { 4 } else { 3 }
+            );
+            let (unpicked, _) = pick_pieces(&catalog.pieces, &[], false, root.path());
+            assert!(unpicked.is_empty());
+            let mut corrupted_counts = catalog.file_counts.clone();
+            corrupted_counts
+                .iter_mut()
+                .find(|entry| entry.file == std::path::Path::new("skill.md"))
+                .unwrap()
+                .kinds
+                .get_mut(&EvidenceKindName::new("sentence").unwrap())
+                .unwrap()
+                .pieces += 1;
+            assert!(
+                std::panic::catch_unwind(|| require_union_file_counts(
+                    &corrupted_counts,
+                    choose_workflow
+                ))
+                .is_err(),
+                "counter-only corruption must fail while catalog pieces remain untouched"
+            );
+            if select_sentences {
+                sentence_candidates.sort();
+                assert_eq!(sentence_candidates, expected);
+            }
+        }
+    }
+}
+
+fn require_union_file_counts(counts: &[FileCount], choose_workflow: bool) {
+    let sentence = EvidenceKindName::new("sentence").unwrap();
+    assert_eq!(counts.len(), 2);
+    let actual = counts
+        .iter()
+        .map(|entry| {
+            let count = &entry.kinds[&sentence];
+            (
+                entry.file.to_string_lossy().into_owned(),
+                count.matches,
+                count.pieces,
+                count.picked,
+                count.limited,
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        actual,
+        vec![
+            ("reference.md".into(), 1, 1, 0, false),
+            (
+                "skill.md".into(),
+                4,
+                if choose_workflow { 3 } else { 2 },
+                0,
+                false
+            )
+        ]
     );
 }

@@ -39,6 +39,17 @@ pub struct ControlledServer {
     requests: mpsc::UnboundedReceiver<PendingHttpRequest>,
     cancellation: CancellationToken,
     task: JoinHandle<usize>,
+    request_phase: RequestPhase,
+}
+
+// Process startup includes the debug-signing runner. Measured parallel startup
+// reached 2.1 s; keep headroom separate from the 3 s active-request assertion.
+const FIRST_REQUEST_STARTUP_TIMEOUT: Duration = Duration::from_secs(20);
+const ACTIVE_REQUEST_TIMEOUT: Duration = Duration::from_secs(3);
+
+enum RequestPhase {
+    AwaitingFirstRequest,
+    Active,
 }
 impl ControlledServer {
     pub async fn start() -> Self {
@@ -68,18 +79,30 @@ impl ControlledServer {
             requests,
             cancellation,
             task,
+            request_phase: RequestPhase::AwaitingFirstRequest,
         }
     }
     // Background responders wait until their owner ends the server lifetime.
     // recv is cancellation-safe when selected against that owner's stop signal.
     pub async fn receive(&mut self) -> PendingHttpRequest {
-        self.requests.recv().await.expect("server stopped")
+        let request = self.requests.recv().await.expect("server stopped");
+        self.request_phase = RequestPhase::Active;
+        request
     }
     pub async fn next(&mut self) -> PendingHttpRequest {
-        tokio::time::timeout(Duration::from_secs(3), self.requests.recv())
+        let (bound, failure) = match self.request_phase {
+            RequestPhase::AwaitingFirstRequest => (
+                FIRST_REQUEST_STARTUP_TIMEOUT,
+                "child startup did not reach the first HTTP request within 20 s",
+            ),
+            RequestPhase::Active => (
+                ACTIVE_REQUEST_TIMEOUT,
+                "active HTTP boundary was not reached within 3 s",
+            ),
+        };
+        tokio::time::timeout(bound, self.receive())
             .await
-            .expect("HTTP boundary was not reached")
-            .expect("server stopped")
+            .expect(failure)
     }
     pub async fn finish(self) -> usize {
         self.cancellation.cancel();

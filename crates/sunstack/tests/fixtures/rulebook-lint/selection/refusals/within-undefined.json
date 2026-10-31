@@ -52,7 +52,7 @@
       },
       "step": {
         "rule": "step",
-        "within": "missing",
+        "within": ["missing"],
         "fields": {
           "body": {
             "from": "remainder"

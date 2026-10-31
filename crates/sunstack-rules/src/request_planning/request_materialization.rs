@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    request_state::{
+    rule_evaluation::request_state::{
         build_request_state, select_owner_evidence, select_rule_evidence, wrap_question,
     },
     *,
@@ -179,7 +179,7 @@ pub(crate) async fn prepare_units(
                             }) {
                                 Some(selected) => match &selected.result.readiness {
                                     SelectionReadiness::Ready { content, .. } => {
-                                        crate::local_check_evaluation::settle_mechanical(
+                                        crate::rule_evaluation::local_check_evaluation::settle_mechanical(
                                             check,
                                             content,
                                             session,
