@@ -77,7 +77,7 @@ pub async fn run_rulebook_with_dispatcher(
             run.results.push(RulebookPairResult {
                 rule_index,
                 piece_index,
-                result: incomplete(RulebookIncompleteReason::ProviderFailure, None),
+                result: incomplete(RulebookIncompleteReason::InvalidResponse, None),
             });
             if dispatcher.is_cancelled() {
                 run.results[pair_index].result =
@@ -94,10 +94,12 @@ pub async fn run_rulebook_with_dispatcher(
                 WalkOutcome::NeedsAnswers { step } => step,
             };
             run.results[pair_index].result = incomplete(
-                RulebookIncompleteReason::ProviderFailure,
+                RulebookIncompleteReason::InvalidResponse,
                 Some(step.clone()),
             );
             let Ok(state) = piece_state(rule, piece) else {
+                run.results[pair_index].result =
+                    incomplete(RulebookIncompleteReason::EvidenceUnavailable, Some(step));
                 continue;
             };
             let request = StructuredJudgmentRequest {
@@ -117,9 +119,7 @@ pub async fn run_rulebook_with_dispatcher(
                         DispatchRefusal::RequestLimitReached => {
                             RulebookIncompleteReason::RequestLimitReached
                         }
-                        DispatchRefusal::InvalidRequest => {
-                            RulebookIncompleteReason::ProviderFailure
-                        }
+                        DispatchRefusal::InvalidRequest => RulebookIncompleteReason::InvalidRequest,
                     };
                     run.results[pair_index].result = incomplete(reason, Some(step));
                 }
@@ -140,18 +140,30 @@ pub async fn run_rulebook_with_dispatcher(
                 match walk_decision(rule, piece, index, Some(answers)) {
                     WalkOutcome::Settled(result) => result,
                     WalkOutcome::NeedsAnswers { .. } => {
-                        incomplete(RulebookIncompleteReason::ProviderFailure, Some(step))
+                        incomplete(RulebookIncompleteReason::InvalidResponse, Some(step))
                     }
                 }
             }
             DecisionRunOutcome::Cancelled { .. } => {
                 incomplete(RulebookIncompleteReason::Cancelled, Some(step))
             }
-            DecisionRunOutcome::InvalidRequest { .. }
-            | DecisionRunOutcome::ProviderFailure { .. }
-            | DecisionRunOutcome::InvalidResponse { .. } => {
-                incomplete(RulebookIncompleteReason::ProviderFailure, Some(step))
+            DecisionRunOutcome::InvalidRequest { .. } => {
+                incomplete(RulebookIncompleteReason::InvalidRequest, Some(step))
             }
+            DecisionRunOutcome::InvalidResponse { .. } => {
+                incomplete(RulebookIncompleteReason::InvalidResponse, Some(step))
+            }
+            DecisionRunOutcome::ProviderFailure {
+                failure_class,
+                http_status,
+                ..
+            } => incomplete(
+                RulebookIncompleteReason::ProviderFailure {
+                    failure_class: *failure_class,
+                    http_status: *http_status,
+                },
+                Some(step),
+            ),
         };
         run.results[pair_index].result = result;
         run.requests.push(RulebookRequestRecord {

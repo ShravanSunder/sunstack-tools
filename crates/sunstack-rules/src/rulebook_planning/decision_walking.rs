@@ -16,7 +16,13 @@ pub enum RulebookIncompleteReason {
     EvidenceUnavailable,
     EvidenceTooLarge,
     RequestTooLarge,
-    ProviderFailure,
+    ProviderFailure {
+        failure_class: sunstack_decisions::ProviderFailureClass,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        http_status: Option<u16>,
+    },
+    InvalidRequest,
+    InvalidResponse,
     RequestLimitReached,
     Cancelled,
 }
@@ -141,7 +147,7 @@ pub fn walk_decision(
                     return needs_answers(piece, &current);
                 };
                 let Some(value) = normalized_answer(question, &rule.questions, answers) else {
-                    return incomplete(RulebookIncompleteReason::ProviderFailure, None);
+                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
                 };
                 binary_route(value, routes).unwrap_or(&routes.uncertain)
             }
@@ -160,16 +166,16 @@ pub fn walk_decision(
                     ..
                 }) = answers.get(question)
                 else {
-                    return incomplete(RulebookIncompleteReason::ProviderFailure, None);
+                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
                 };
                 let Some(probability) = probabilities.get(selected_label) else {
-                    return incomplete(RulebookIncompleteReason::ProviderFailure, None);
+                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
                 };
                 if probability < min_probability {
                     uncertain
                 } else {
                     let Some(route) = routes.get(selected_label) else {
-                        return incomplete(RulebookIncompleteReason::ProviderFailure, None);
+                        return incomplete(RulebookIncompleteReason::InvalidResponse, None);
                     };
                     route
                 }
@@ -183,7 +189,7 @@ pub fn walk_decision(
                         .map(|value| sum + weight * value)
                 });
                 let Some(value) = value else {
-                    return incomplete(RulebookIncompleteReason::ProviderFailure, None);
+                    return incomplete(RulebookIncompleteReason::InvalidResponse, None);
                 };
                 combined_value = Some(value);
                 binary_route(value, routes).unwrap_or(&routes.uncertain)

@@ -122,7 +122,13 @@ pub enum IncompleteReason {
     PreparationFailed,
     CoveragePartial,
     CoverageNone,
-    ProviderFailure,
+    ProviderFailure {
+        failure_class: sunstack_decisions::ProviderFailureClass,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        http_status: Option<u16>,
+    },
+    InvalidRequest,
+    InvalidResponse,
     RequestLimitReached,
     EvidenceUnavailable,
     EvidenceTooLarge,

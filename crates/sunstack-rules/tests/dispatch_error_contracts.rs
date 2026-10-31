@@ -84,12 +84,15 @@ fn selection_error_display_does_not_change_serialized_reason_tags_or_payloads() 
             json!({"kind":"invalid_request"}),
         ),
         (
-            SelectionIncompleteReason::ProviderFailure,
-            json!({"kind":"provider_failure"}),
+            SelectionIncompleteReason::ProviderFailure {
+                failure_class: ProviderFailureClass::RateLimit,
+                http_status: Some(429),
+            },
+            json!({"kind":"provider_failure","failure_class":"rate_limit","http_status":429}),
         ),
         (
-            SelectionIncompleteReason::MalformedAnswer,
-            json!({"kind":"malformed_answer"}),
+            SelectionIncompleteReason::InvalidResponse,
+            json!({"kind":"invalid_response"}),
         ),
         (
             SelectionIncompleteReason::RequestLimitReached,

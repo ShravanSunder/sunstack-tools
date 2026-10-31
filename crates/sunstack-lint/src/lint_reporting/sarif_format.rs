@@ -161,19 +161,24 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
                 .collect(),
         })
         .collect::<Vec<_>>();
-    notifications.extend(report.incomplete.iter().map(|incomplete| {
-        SarifNotification {
-            level: "error",
-            message: SarifMessage {
-                text: incomplete_text(&incomplete.reason),
-            },
-            locations: incomplete
-                .file
-                .iter()
-                .map(|file| location(file, None))
-                .collect(),
-        }
-    }));
+    let incomplete_messages = report
+        .incomplete
+        .iter()
+        .map(|part| incomplete_text(&part.reason))
+        .collect::<Vec<_>>();
+    notifications.extend(report.incomplete.iter().zip(&incomplete_messages).map(
+        |(incomplete, message)| {
+            SarifNotification {
+                level: "error",
+                message: SarifMessage { text: message },
+                locations: incomplete
+                    .file
+                    .iter()
+                    .map(|file| location(file, None))
+                    .collect(),
+            }
+        },
+    ));
     let uncertain_messages = report
         .uncertain
         .iter()

@@ -139,7 +139,7 @@ pub async fn select_candidates(
         {
             outcomes.insert(
                 candidate.id.clone(),
-                incomplete(SelectionIncompleteReason::ProviderFailure),
+                incomplete(SelectionIncompleteReason::InvalidResponse),
             );
             let mut fields = candidate.fields.clone();
             fields.extend(shared.fields.clone());
@@ -217,7 +217,7 @@ pub async fn select_candidates(
                                 SelectionOutcome::Uncertain { yes }
                             }
                         }
-                        _ => incomplete(SelectionIncompleteReason::MalformedAnswer),
+                        _ => incomplete(SelectionIncompleteReason::InvalidResponse),
                     }
                 }
                 DecisionRunOutcome::Cancelled { .. } => {
@@ -227,11 +227,16 @@ pub async fn select_candidates(
                     incomplete(SelectionIncompleteReason::InvalidRequest)
                 }
                 DecisionRunOutcome::InvalidResponse { .. } => {
-                    incomplete(SelectionIncompleteReason::MalformedAnswer)
+                    incomplete(SelectionIncompleteReason::InvalidResponse)
                 }
-                DecisionRunOutcome::ProviderFailure { .. } => {
-                    incomplete(SelectionIncompleteReason::ProviderFailure)
-                }
+                DecisionRunOutcome::ProviderFailure {
+                    failure_class,
+                    http_status,
+                    ..
+                } => incomplete(SelectionIncompleteReason::ProviderFailure {
+                    failure_class: *failure_class,
+                    http_status: *http_status,
+                }),
             };
             outcomes.insert(id, outcome);
         }

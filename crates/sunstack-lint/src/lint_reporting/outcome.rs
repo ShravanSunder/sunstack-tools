@@ -121,8 +121,18 @@ pub(crate) fn project_outcome(
                         RulebookIncompleteReason::RequestTooLarge => {
                             IncompleteReason::RequestTooLarge
                         }
-                        RulebookIncompleteReason::ProviderFailure => {
-                            IncompleteReason::ProviderFailure
+                        RulebookIncompleteReason::ProviderFailure {
+                            failure_class,
+                            http_status,
+                        } => IncompleteReason::ProviderFailure {
+                            failure_class,
+                            http_status,
+                        },
+                        RulebookIncompleteReason::InvalidRequest => {
+                            IncompleteReason::InvalidRequest
+                        }
+                        RulebookIncompleteReason::InvalidResponse => {
+                            IncompleteReason::InvalidResponse
                         }
                         RulebookIncompleteReason::RequestLimitReached => {
                             IncompleteReason::RequestLimitReached

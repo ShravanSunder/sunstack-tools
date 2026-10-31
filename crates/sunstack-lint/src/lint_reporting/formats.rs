@@ -37,7 +37,7 @@ pub(crate) fn transport_level(severity: Severity) -> &'static str {
         Severity::Warn => "warning",
     }
 }
-pub(crate) fn incomplete_text(reason: &IncompleteReason) -> &'static str {
+pub(crate) fn incomplete_text(reason: &IncompleteReason) -> String {
     match reason {
         IncompleteReason::SelectionFailed => "selection failed",
         IncompleteReason::SelectionIncomplete => "selection incomplete",
@@ -46,12 +46,24 @@ pub(crate) fn incomplete_text(reason: &IncompleteReason) -> &'static str {
         IncompleteReason::PreparationFailed => "preparation failed",
         IncompleteReason::CoveragePartial => "partial rule coverage",
         IncompleteReason::CoverageNone => "no rule coverage",
-        IncompleteReason::ProviderFailure => "provider failure",
+        IncompleteReason::ProviderFailure {
+            failure_class,
+            http_status,
+        } => {
+            let class = provider_failure_name(*failure_class);
+            return match http_status {
+                Some(status) => format!("provider failure ({class}, HTTP {status})"),
+                None => format!("provider failure ({class})"),
+            };
+        }
+        IncompleteReason::InvalidRequest => "invalid request",
+        IncompleteReason::InvalidResponse => "invalid response",
         IncompleteReason::RequestLimitReached => "request limit reached",
         IncompleteReason::EvidenceUnavailable => "evidence unavailable",
         IncompleteReason::EvidenceTooLarge => "evidence too large",
         IncompleteReason::RequestTooLarge => "request too large",
     }
+    .into()
 }
 fn scope_text(scope: &ScopeReport) -> String {
     let scope_name = match &scope.kind {
@@ -290,5 +302,23 @@ pub fn render(report: &LintReport, format: OutputFormat) -> String {
             .unwrap_or_else(|_| "Unable to encode lint report.\n".into()),
         OutputFormat::Sarif => crate::lint_reporting::sarif_format::render_sarif(report)
             .unwrap_or_else(|_| "Unable to encode SARIF report.\n".into()),
+    }
+}
+
+fn provider_failure_name(class: sunstack_decisions::ProviderFailureClass) -> &'static str {
+    use sunstack_decisions::ProviderFailureClass;
+    match class {
+        ProviderFailureClass::ProviderRejectedRequest => "provider_rejected_request",
+        ProviderFailureClass::Authentication => "authentication",
+        ProviderFailureClass::Authorization => "authorization",
+        ProviderFailureClass::InsufficientCredits => "insufficient_credits",
+        ProviderFailureClass::ProviderResourceUnavailable => "provider_resource_unavailable",
+        ProviderFailureClass::RequestTooLarge => "request_too_large",
+        ProviderFailureClass::RateLimit => "rate_limit",
+        ProviderFailureClass::ProviderUnavailable => "provider_unavailable",
+        ProviderFailureClass::Timeout => "timeout",
+        ProviderFailureClass::Connection => "connection",
+        ProviderFailureClass::HttpError => "http_error",
+        ProviderFailureClass::UnexpectedProviderError => "unexpected_provider_error",
     }
 }

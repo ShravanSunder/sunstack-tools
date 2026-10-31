@@ -256,7 +256,10 @@ async fn request_limit_and_provider_failure_are_contained_to_their_pair() {
             assert!(matches!(
                 run.results[0].result,
                 RulebookResult::Incomplete {
-                    reason: RulebookIncompleteReason::ProviderFailure,
+                    reason: RulebookIncompleteReason::ProviderFailure {
+                        failure_class: ProviderFailureClass::ProviderRejectedRequest,
+                        http_status: Some(400)
+                    },
                     ..
                 }
             ));
@@ -403,4 +406,172 @@ async fn uncertain_handoff_reuses_the_one_request_with_all_questions() {
             }
         );
     }
+}
+
+#[tokio::test]
+async fn provider_rate_limit_preserves_its_class_and_status_in_the_rulebook_reason() {
+    let mut server = controlled::ControlledServer::start().await;
+    let settings = settings(&server.endpoint);
+    let backend =
+        Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_KEY").unwrap());
+    let operation = tokio::spawn(async move {
+        run_rulebook(
+            &[rule()],
+            &[fixture::piece()],
+            &BTreeMap::new(),
+            settings,
+            Some(backend),
+            CancellationToken::new(),
+        )
+        .await
+    });
+    server
+        .next()
+        .await
+        .respond(429, json!({"error":"controlled rate limit"}));
+    let run = tokio::time::timeout(Duration::from_secs(3), operation)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(server.finish().await, 1);
+    let result = serde_json::to_value(&run.results[0].result).unwrap();
+    assert_eq!(
+        result["reason"]["provider_failure"]["failure_class"],
+        "rate_limit"
+    );
+    assert_eq!(result["reason"]["provider_failure"]["http_status"], 429);
+}
+
+#[tokio::test]
+async fn incomplete_reasons_distinguish_provider_status_transport_and_invalid_answers() {
+    for case in ["unavailable", "schema", "missing", "timeout", "connection"] {
+        let mut server = controlled::ControlledServer::start().await;
+        let endpoint = if case == "connection" {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            format!("http://{}/v1/systemone", listener.local_addr().unwrap())
+        } else {
+            server.endpoint.clone()
+        };
+        let mut settings = settings(&endpoint);
+        settings.attempts.attempt_timeout_ms = 200;
+        let backend =
+            Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_KEY").unwrap());
+        let operation = tokio::spawn(async move {
+            run_rulebook(
+                &[rule()],
+                &[fixture::piece()],
+                &BTreeMap::new(),
+                settings,
+                Some(backend),
+                CancellationToken::new(),
+            )
+            .await
+        });
+        let held = if case == "connection" {
+            None
+        } else {
+            let request = server.next().await;
+            match case {
+                "unavailable" => {
+                    request.respond(503, json!({"error":"controlled unavailable"}));
+                    None
+                }
+                "schema" => {
+                    request.respond(200, json!({"answers":{"q":{"type":"noul","noul":7.0}}}));
+                    None
+                }
+                "missing" => {
+                    request.respond(200,json!({"model":"typesafe/controlled","answers":{},"usage":{"input_tokens":1,"output_tokens":1,"cost":0.001}}));
+                    None
+                }
+                "timeout" => Some(request),
+                other => panic!("{other}"),
+            }
+        };
+        let run = tokio::time::timeout(Duration::from_secs(3), operation)
+            .await
+            .unwrap()
+            .unwrap();
+        drop(held);
+        assert_eq!(server.finish().await, usize::from(case != "connection"));
+        let RulebookResult::Incomplete { reason, .. } = run.results[0].result else {
+            panic!("{run:?}")
+        };
+        let expected = match case {
+            "unavailable" => RulebookIncompleteReason::ProviderFailure {
+                failure_class: ProviderFailureClass::ProviderUnavailable,
+                http_status: Some(503),
+            },
+            "connection" => RulebookIncompleteReason::ProviderFailure {
+                failure_class: ProviderFailureClass::Connection,
+                http_status: None,
+            },
+            "timeout" => RulebookIncompleteReason::ProviderFailure {
+                failure_class: ProviderFailureClass::Timeout,
+                http_status: None,
+            },
+            _ => RulebookIncompleteReason::InvalidResponse,
+        };
+        assert_eq!(reason, expected, "{case}: {run:?}");
+        assert_eq!(run.requests.len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn a_locally_invalid_request_is_refused_before_http() {
+    let server = controlled::ControlledServer::start().await;
+    let settings = settings(&server.endpoint);
+    let backend =
+        Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_KEY").unwrap());
+    let mut subject = rule();
+    subject.questions.clear();
+    let run = run_rulebook(
+        &[subject],
+        &[fixture::piece()],
+        &BTreeMap::new(),
+        settings,
+        Some(backend),
+        CancellationToken::new(),
+    )
+    .await;
+    assert!(matches!(
+        run.results[0].result,
+        RulebookResult::Incomplete {
+            reason: RulebookIncompleteReason::InvalidRequest,
+            ..
+        }
+    ));
+    assert_eq!(server.finish().await, 0);
+    assert!(run.requests.is_empty());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn an_unrepresentable_piece_state_reports_evidence_unavailable_before_http() {
+    use std::os::unix::ffi::OsStringExt;
+    let server = controlled::ControlledServer::start().await;
+    let settings = settings(&server.endpoint);
+    let backend =
+        Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_KEY").unwrap());
+    let mut piece = fixture::piece();
+    piece.location.file = std::ffi::OsString::from_vec(vec![0xff]).into();
+    assert!(piece_state(&rule(), &piece).is_err());
+    let run = run_rulebook(
+        &[rule()],
+        &[piece],
+        &BTreeMap::new(),
+        settings,
+        Some(backend),
+        CancellationToken::new(),
+    )
+    .await;
+    assert!(matches!(
+        run.results[0].result,
+        RulebookResult::Incomplete {
+            reason: RulebookIncompleteReason::EvidenceUnavailable,
+            ..
+        }
+    ));
+    assert_eq!(server.finish().await, 0);
+    assert!(run.requests.is_empty());
 }
