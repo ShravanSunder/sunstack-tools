@@ -44,6 +44,8 @@ Regions belong inside the Board. Their `title`, `tone`, `icon` and `label` name 
 
 ## Independently optional layers
 
+Regions also accept `series="1"` through `series="6"` for an explicit category tint and side edge from the shared chart palette. Use the same slot as cards representing that category; omit it for neutral. Retain `tone` and a visible category label in the title or body. See `cards-and-callouts.md` for the category convention.
+
 Layers: `layer="proposed"` on any element (cards, arrows, diagrams) lets readers switch that layer off and on. Switches appear at the top; place `<ex-layers off="proposed"></ex-layers>` yourself to start a layer hidden. Use it for current versus proposed, or optional detail.
 
 ```html

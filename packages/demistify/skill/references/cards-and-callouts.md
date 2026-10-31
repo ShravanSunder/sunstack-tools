@@ -31,6 +31,17 @@ Use `pick` only after the owner selects an option. It adds a separate Chosen lab
 
 ## Compose one useful unit
 
+Cards use 8px corners, one outer shadow and a darker header band. A direct native `<footer>` adds an optional matching lower band; leave it out when the card needs no footer. Keep body content directly inside the card so existing review targets retain their ancestry.
+
+Use `series="1"` through `series="6"` for an explicit category shared across cards and regions. These reuse the six Mermaid chart palette slots, with a subtle body tint and side edge. Omit `series` for a neutral surface. Invalid values are checker errors. Keep a visible category label (`tag` or body text); color alone is insufficient. Category never replaces `tone`, status text or the tone icon/top edge.
+
+```html
+<ex-card title="Registry" tone="planned" series="2" tag="Store" icon="database">
+  <p>Retains lookup across reconnects.</p>
+  <footer>Store · proposed; expiry policy still needs review</footer>
+</ex-card>
+```
+
 A card/callout body can contain paragraphs, lists, bare Markdown, ordinary HTML, short code, figures, disclosures and rich child islands. Direct card/callout disclosures also adopt bare Markdown. Nested cards are technically possible; use them only when both boundaries name different useful units. For source carriers and literal markup, apply `content.md`.
 
 A framed option is useful when it is one independently named item:

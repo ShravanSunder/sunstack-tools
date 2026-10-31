@@ -52,6 +52,10 @@ const tone: AttributeSpec = oneOf('What kind of thing this is; sets icon and col
 const toneExpected: AttributeSpec = { ...tone, recommended: true };
 const icon = oneOf('What the thing is (a curated icon); the tone still colours it.', subjectIcons);
 const label = text('Name used by the inspector, tabs and routes.');
+const categorySeries = oneOf(
+	'Explicit category palette slot, separate from tone/status; omit for neutral.',
+	['1', '2', '3', '4', '5', '6'],
+);
 const columns: AttributeSpec = {
 	description: 'Most columns side by side (1–6); fewer when narrow, one on phones.',
 	type: { kind: 'number', min: 1, max: 6 },
@@ -165,6 +169,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		attributes: {
 			title: text('The specific thing, shown as the card heading.'),
 			tone: toneExpected,
+			series: categorySeries,
 			icon,
 			tag: text('Short tag beside the title, e.g. a tradeoff or location.'),
 			pick: flag('Marks the chosen option.'),
@@ -308,7 +313,13 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-region': {
 		description: 'A titled group on a board; children marked `detail` show when it opens.',
-		attributes: { title: text('Region heading.'), tone: toneExpected, icon, label },
+		attributes: {
+			title: text('Region heading.'),
+			tone: toneExpected,
+			series: categorySeries,
+			icon,
+			label,
+		},
 		childAttributes: { detail: flag('Hidden on the map until the region is opened.') },
 		within: ['ex-board'],
 	},

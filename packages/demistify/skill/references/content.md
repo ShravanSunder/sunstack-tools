@@ -60,7 +60,7 @@ Markdown tables receive their scroll wrapper automatically. An authored HTML tab
 </div>
 ```
 
-The wrapper supplies the neutral border and shared 8px corner radius; the table supplies its gray header and quiet stripes. A raw unwrapped HTML table does not gain that rounded enclosure. Preserve a real `thead` or a first header-only row. Do not add status colors or per-page border/radius overrides to reproduce the shared treatment. `layouts.md` owns Reading/Canvas and horizontal containment.
+Both native tables and wrappers use a neutral frame with shared 8px corners, a gray header and quiet stripes. Use the existing wrapper when wide columns need horizontal scrolling; a narrow native table needs no wrapper for its corners. Native corners are CSS-only, preserving saved comment target ancestry. Preserve a real `thead` or a first header-only row. Do not add status colors or per-page border/radius overrides to reproduce the shared treatment. `layouts.md` owns Reading/Canvas and horizontal containment.
 
 ## Optional detail stays local
 

@@ -1,8 +1,12 @@
+/* One map also travels with a graph canvas opened outside its Explorer in an inspector. */
+ex-explorer,
+.ex-explorer-canvas {
+	--explorer-phase: var(--chart-1);
+	--explorer-role: var(--chart-2);
+	--explorer-method: var(--chart-3);
+	--explorer-principle: var(--chart-4);
+}
 ex-explorer {
-	--explorer-phase: var(--keep);
-	--explorer-role: var(--patch);
-	--explorer-method: var(--strong);
-	--explorer-principle: var(--codex);
 	display: block;
 	container: ex-explorer / inline-size;
 	max-width: 1850px;
@@ -94,17 +98,21 @@ body:has(.ex-document-toolbar) .ex-explorer-browser {
 	display: block;
 	width: 100%;
 	text-align: left;
-	background: transparent;
 	border: 0;
-	border-left: 2px solid transparent;
-	border-radius: 0;
+	border-left: 2px solid var(--node-kind);
+	border-radius: var(--radius-md);
+	margin-block: var(--space-1);
 	font-size: var(--text-sm);
 	overflow-wrap: anywhere;
 }
 .ex-explorer-browser button[aria-current='true'] {
-	color: var(--accent);
-	background: var(--accent-soft);
-	border-left-color: var(--accent);
+	outline: 2px solid var(--ink-soft);
+	outline-offset: -2px;
+}
+.ex-explorer-browser details button small {
+	display: block;
+	color: var(--ink-soft);
+	font-size: var(--text-xs);
 }
 .ex-explorer-main {
 	min-width: 0;
@@ -182,10 +190,6 @@ body:has(.ex-document-toolbar) .ex-explorer-browser {
 	scrollbar-width: thin;
 }
 .ex-explorer-canvas {
-	--explorer-phase: var(--keep);
-	--explorer-role: var(--patch);
-	--explorer-method: var(--strong);
-	--explorer-principle: var(--codex);
 	position: relative;
 }
 .ex-explorer-column {
@@ -207,7 +211,7 @@ body:has(.ex-document-toolbar) .ex-explorer-browser {
 	color: var(--ink);
 	background: var(--surface-content);
 	border: 1px solid var(--rule);
-	border-radius: var(--radius-sm);
+	border-radius: var(--radius-md);
 	padding: var(--space-3);
 	cursor: pointer;
 	position: absolute;
@@ -218,24 +222,28 @@ body:has(.ex-document-toolbar) .ex-explorer-browser {
 	gap: var(--space-2);
 	border-left: 2px solid var(--node-kind, var(--accent));
 }
-.ex-explorer-node.ex-explorer-phase {
+.ex-explorer-phase {
 	--node-kind: var(--explorer-phase);
 }
-.ex-explorer-node.ex-explorer-role {
+.ex-explorer-role {
 	--node-kind: var(--explorer-role);
 }
-.ex-explorer-node.ex-explorer-method {
+.ex-explorer-method {
 	--node-kind: var(--explorer-method);
 }
-.ex-explorer-node.ex-explorer-principle {
+.ex-explorer-principle {
 	--node-kind: var(--explorer-principle);
 }
-.ex-explorer-node {
+.ex-explorer-node,
+.ex-explorer-browser details button {
 	border-left-color: var(--node-kind);
+	background: color-mix(in srgb, var(--node-kind) 10%, var(--surface-content));
 }
 .ex-explorer-node[aria-pressed='true'] {
 	border-color: var(--node-kind);
-	background: var(--surface-content);
+	background: color-mix(in srgb, var(--node-kind) 10%, var(--surface-content));
+	outline: 2px solid var(--ink-soft);
+	outline-offset: -2px;
 }
 .ex-explorer-node strong {
 	font: 600 var(--text-lg)/1.15 var(--font-display);
@@ -407,6 +415,7 @@ ex-explorer .ex-explorer-link {
 }
 .ex-explorer-sources {
 	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
 	padding: var(--space-5);
 	margin-block: var(--space-5);
 	background: var(--surface-content);

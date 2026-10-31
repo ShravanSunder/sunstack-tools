@@ -221,7 +221,12 @@ export class ExplorerController {
 			)) {
 				const button = document.createElement('button');
 				button.type = 'button';
+				button.className = `ex-explorer-${group.kind}`;
 				button.textContent = node.label;
+				button.setAttribute('aria-label', node.label);
+				const kindLabel = document.createElement('small');
+				kindLabel.textContent = group.label;
+				button.append(kindLabel);
 				button.title = node.description;
 				button.setAttribute('aria-current', String(node.id === this.selection));
 				button.addEventListener('click', (): void => this.select(node.id));
