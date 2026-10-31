@@ -114,15 +114,13 @@ test('a cold Trace attachment fragment reveals its row and remains contained on 
 	const source = requiredElement(fixture, '#source-step');
 	expect(source.hasAttribute('open')).toBe(false);
 	await fixtureLocator(frame, requiredElement(fixture, '#evidence-trace')).hover();
-	await frame
-		.getByRole('button', { name: 'Open Evidence trace in a sidebar', exact: true })
-		.click();
+	await frame.getByRole('button', { name: 'Expand Evidence trace', exact: true }).click();
 	await expect
 		.element(frame.getByRole('dialog', { name: 'Evidence trace', exact: true }))
 		.toBeVisible();
 	const ids = [...fixture.querySelectorAll('[id]')].map((element): string => element.id);
 	expect(new Set(ids).size).toBe(ids.length);
-	expect(source.hasAttribute('open')).toBe(false);
+	expect(source.hasAttribute('open')).toBe(true);
 	await userEvent.keyboard('{Escape}');
 	expect(source.hasAttribute('open')).toBe(false);
 	expect(requiredElement(fixture, '#source-step')).toBe(source);

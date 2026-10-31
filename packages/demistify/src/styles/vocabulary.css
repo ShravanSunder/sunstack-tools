@@ -248,10 +248,7 @@ ex-card .eyebrow {
 	border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
 	background: color-mix(in srgb, var(--surface-content) 94%, #000);
 }
-/* Room for the inspection buttons, only on cards that have them. */
-.ex-inspectable > .ex-card-head {
-	padding-inline-end: calc(var(--space-16) + var(--space-5));
-}
+
 .ex-card-head strong {
 	max-inline-size: 100%;
 	overflow-wrap: anywhere;
@@ -514,7 +511,7 @@ ex-code {
 	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	overflow: hidden;
+	overflow: visible;
 }
 .ex-code-head {
 	display: flex;
@@ -524,7 +521,7 @@ ex-code {
 	padding: var(--space-2) var(--space-3);
 	border-bottom: 1px solid var(--rule);
 	font: var(--text-sm) var(--font-mono);
-	padding-right: 76px;
+	border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
 }
 .ex-code-head strong {
 	min-width: 0;
@@ -539,6 +536,8 @@ ex-code {
 	font-size: var(--text-2xs);
 }
 .ex-code-lines {
+	border-radius: 0 0 calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px);
+	overflow: hidden;
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr) minmax(0, 36%);
 	font: var(--text-xs)/1.55 var(--font-mono);
@@ -1422,4 +1421,9 @@ ex-pre > pre {
 	.ex-presentation-marker {
 		animation: none;
 	}
+}
+
+/* Transparency affects only the enclosing body, leaving bands and controls opaque. */
+:is(ex-card, ex-region)[transparent-body] {
+	background: transparent;
 }

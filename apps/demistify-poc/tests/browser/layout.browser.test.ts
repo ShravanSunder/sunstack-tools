@@ -233,3 +233,27 @@ test('tree multiline text stays beside its first-line icon and preserves inline 
 		.element(frame.getByText('A nested child has the same alignment', { exact: false }))
 		.toBeVisible();
 });
+
+test('narrow enlargement hides only sidebar controls, fills the viewport and restores live content', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('layout');
+	const code = requiredElement(fixture, '#reading-code');
+	await expect.poll((): boolean => !!code.querySelector('.ex-code-head')).toBe(true);
+	code.scrollIntoView();
+	const head = requiredElement(code, '.ex-code-head');
+	const sidebar = requiredElement(code, '.ex-inspect-sidebar');
+	expect(fixture.defaultView?.getComputedStyle(sidebar).display).toBe('none');
+	await frame.getByRole('button', { name: 'Expand Short command', exact: true }).click();
+	const modal = frame.getByRole('dialog', { name: 'Short command', exact: true });
+	await expect.element(modal).toBeVisible();
+	const bounds = requiredElement(fixture, '.ex-inspect-dialog').getBoundingClientRect();
+	expect(bounds.left).toBeCloseTo(0, 0);
+	expect(bounds.width).toBeCloseTo(390, 0);
+	expect(bounds.height).toBeCloseTo(900, 0);
+	await modal.getByRole('button', { name: 'Close', exact: true }).click();
+	expect(requiredElement(code, '.ex-code-head')).toBe(head);
+	await page.viewport(1600, 1000);
+	await expect
+		.poll((): string | undefined => fixture.defaultView?.getComputedStyle(sidebar).display)
+		.not.toBe('none');
+});

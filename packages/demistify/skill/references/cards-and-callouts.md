@@ -15,7 +15,7 @@ A card encloses one named thing. A callout draws attention to a consequence that
 <ex-stat value="2" label="Proposed ownership options" note="Source inventory; no execution observed"></ex-stat>
 ```
 
-`ex-card` accepts `title`, `tone`, `icon`, `tag`, optional `series` (1–6), bare `pick` and an optional inspection `label`. A missing card tone produces a checker warning; choose the meaning deliberately. `ex-callout` accepts `title`, `tone`, `icon` and `label`; its default tone is `note`. `ex-stat` requires `value` and `label`; `note` and `tone` are optional. Its attributes are text, not a second rich-content body.
+`ex-card` accepts `title`, `tone`, `icon`, `tag`, optional `series` (1–6), bare `transparent-body`, bare `pick` and an optional inspection `label`. A missing card tone produces a checker warning; choose the meaning deliberately. `ex-callout` accepts `title`, `tone`, `icon` and `label`; its default tone is `note`. `ex-stat` requires `value` and `label`; `note` and `tone` are optional. Its attributes are text, not a second rich-content body.
 
 | Meaning | Tone choices |
 | --- | --- |
@@ -86,3 +86,5 @@ The existing shared `.chip` class is separate from `tag` and `pick`:
 It keeps its monospace text, leading dot and pill shape. IF a fact needs a normal-text status or category label, load `small-parts.md` and return supported badge markup for that supplied fact. Do not add `tone` to a native `span` or use a chip as a general semantic badge.
 
 Give every enclosure a useful unit name, distinguish title from body, and keep recommendation/chosen/source/observation labels faithful to the supplied facts. A missing tone, misleading Chosen label or repeated outer frame is a correction even when the markup parses.
+
+Use bare `transparent-body` on a card or region to clear only its body fill. Heading and optional footer keep their normal fills; category, border, spacing and review targets stay unchanged. Omit it for the default filled body.

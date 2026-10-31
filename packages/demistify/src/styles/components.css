@@ -104,9 +104,9 @@ ex-mermaid svg[data-xychart-colors] {
 }
 .ex-inspect-controls {
 	position: absolute;
-	top: var(--space-1);
+	top: -14px;
 	right: var(--space-1);
-	z-index: 2;
+	z-index: 10;
 	display: flex;
 	gap: var(--space-1);
 	opacity: 0;
@@ -165,12 +165,7 @@ ex-mermaid > .ex-inspect-controls {
 	opacity: 1;
 	pointer-events: auto;
 }
-.ex-inspectable > .ex-tab-bar {
-	padding-inline-end: var(--space-18);
-}
-.ex-inspectable > :is(h1, h2, h3, h4, h5, h6):first-child {
-	padding-inline-end: var(--space-16);
-}
+
 .ex-inspect-dialog {
 	width: calc(100vw - 48px);
 	height: calc(100dvh - 48px);
@@ -523,5 +518,24 @@ ex-layer.band > :first-child {
 	ex-layer.band > :first-child {
 		border-right: 0;
 		border-bottom: 1px solid var(--rule);
+	}
+}
+
+@media (max-width: 760px) {
+	.ex-inspect-controls > .ex-inspect-sidebar {
+		display: none;
+	}
+	.ex-inspect-controls:not(.ex-inspect-more) {
+		opacity: 1;
+		pointer-events: auto;
+	}
+	.ex-inspect-dialog:not([data-mode='sidebar']) {
+		width: 100vw;
+		height: 100dvh;
+		max-width: 100vw;
+		max-height: 100dvh;
+		margin: 0;
+		border: 0;
+		border-radius: 0;
 	}
 }

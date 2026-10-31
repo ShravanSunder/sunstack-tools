@@ -447,3 +447,61 @@ ex-explorer .ex-explorer-link {
 .ex-explorer-supplement > h2 {
 	font-size: var(--text-xl);
 }
+
+.ex-explorer-back {
+	display: none;
+}
+.ex-explorer-hint {
+	margin: var(--space-2) 0;
+	color: var(--ink-soft);
+	font-size: var(--text-sm);
+}
+.ex-explorer-browser details button {
+	position: relative;
+	padding-inline-end: var(--space-8);
+}
+.ex-explorer-node-caret {
+	position: absolute;
+	right: var(--space-3);
+	top: 50%;
+	transform: translateY(-50%);
+}
+ex-explorer {
+	scroll-margin-top: 56px;
+}
+@container ex-explorer (max-width: 760px) {
+	.ex-explorer-browser {
+		position: static;
+		max-height: none;
+		overflow: visible;
+	}
+	.ex-explorer-node-list {
+		overflow: visible;
+	}
+	ex-explorer:not([data-mobile-view='detail']) .ex-explorer-main {
+		display: none;
+	}
+	ex-explorer[data-mobile-view='detail'] .ex-explorer-browser {
+		display: none;
+	}
+	.ex-explorer-back {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-bottom: var(--space-4);
+	}
+}
+
+.ex-explorer-list-title {
+	display: none;
+}
+@container ex-explorer (max-width: 760px) {
+	.ex-explorer-list-title {
+		display: block;
+		margin: 0 0 var(--space-4);
+		font-size: var(--text-3xl);
+	}
+	body:has(.ex-document-toolbar) .ex-explorer-browser {
+		max-height: none;
+	}
+}

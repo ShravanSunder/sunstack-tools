@@ -118,3 +118,105 @@ test('explorer keeps modest arrowheads, soft routes and a fixed search header ab
 		.element(frame.getByRole('tab', { name: /^Connections/ }))
 		.toHaveAttribute('aria-selected', 'true');
 });
+
+test('narrow Explorer starts with nodes, preserves filtered selection on Back, and restores desktop graph', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('gallery', '', 'explorer.html');
+	const owner = requiredElement(fixture, '#planning');
+	await expect.poll((): boolean => owner.hasAttribute('data-ready')).toBe(true);
+	const browser = frame.getByRole('navigation', { name: 'Explore graph nodes', exact: true });
+	await expect.element(browser).toBeVisible();
+	expect(
+		fixture.defaultView?.getComputedStyle(requiredElement(owner, '.ex-explorer-main')).display,
+	).toBe('none');
+	const search = browser.getByRole('searchbox', { name: 'Find a node', exact: true });
+	await search.fill('program-design');
+	const node = browser.getByRole('button', { name: 'program-design', exact: true });
+	await expect.element(node).toBeVisible();
+	expect(requiredElement(owner, '.ex-explorer-node-caret').getAttribute('aria-hidden')).toBe(
+		'true',
+	);
+	await node.click();
+	await expect
+		.element(frame.getByRole('button', { name: 'Back to nodes', exact: true }))
+		.toHaveFocus();
+	await expect
+		.element(frame.getByRole('heading', { name: 'program-design', exact: true }))
+		.toBeVisible();
+	expect(
+		fixture.defaultView?.getComputedStyle(requiredElement(owner, '.ex-explorer-browser')).display,
+	).toBe('none');
+	await frame.getByRole('button', { name: 'Back to nodes', exact: true }).click();
+	await expect.element(search).toHaveValue('program-design');
+	await expect.element(node).toHaveFocus();
+	// Reenter detail: a graph sized while hidden must have real visible node boxes.
+	await node.click();
+	const selectedNode = (): Element => requiredElement(owner, '[data-node-id="program-design"]');
+	await expect.poll((): number => selectedNode().getBoundingClientRect().height).toBeGreaterThan(0);
+	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
+	await fixtureLocator(frame, selectedNode()).click();
+	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
+	// A graph selection outside the active filter has no visible selected list row.
+	const otherNode = requiredElement(
+		owner,
+		'.ex-explorer-node:not([data-node-id="program-design"])',
+	);
+	await fixtureLocator(frame, otherNode).click();
+	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
+	await frame.getByRole('button', { name: 'Back to nodes', exact: true }).click();
+	await expect.element(search).toHaveValue('program-design');
+	await expect.element(search).toHaveFocus();
+	expect(owner.querySelector('.ex-explorer-node-list [aria-current="true"]')).toBeNull();
+	await node.click();
+	await expect
+		.element(frame.getByRole('button', { name: 'Back to nodes', exact: true }))
+		.toHaveFocus();
+	const narrowCanvas = requiredElement(owner, '.ex-explorer-canvas');
+	const viewport = requiredElement(owner, '.ex-explorer-viewport');
+	// At this wide width the viewport exceeds the renderer's minimum column canvas.
+	await page.viewport(2300, 1000);
+	await expect
+		.poll((): boolean => requiredElement(owner, '.ex-explorer-canvas') !== narrowCanvas)
+		.toBe(true);
+	await expect
+		.poll((): number =>
+			Math.abs(
+				requiredElement(owner, '.ex-explorer-canvas').getBoundingClientRect().width -
+					viewport.clientWidth,
+			),
+		)
+		.toBeLessThan(2);
+	await expect.element(browser).toBeVisible();
+	expect(owner.querySelectorAll('h1.ex-explorer-list-title')).toHaveLength(0);
+});
+
+test.each(['program-design', '__issues'])(
+	'a cold narrow Explorer selection %s opens detail',
+	async (selection): Promise<void> => {
+		await page.viewport(390, 900);
+		const { document: fixture, frame } = await openFixture(
+			'gallery',
+			'',
+			`explorer.html?ex.planning=${selection}`,
+		);
+		const owner = requiredElement(fixture, '#planning');
+		await expect.poll((): boolean => owner.hasAttribute('data-ready')).toBe(true);
+		// Model an ordinary long document before a cold-linked Explorer.
+		const introduction = fixture.createElement('div');
+		introduction.style.height = '1600px';
+		owner.before(introduction);
+		owner.scrollIntoView({ block: 'start' });
+		expect(owner.getAttribute('data-mobile-view')).toBe('detail');
+		await expect
+			.element(frame.getByRole('button', { name: 'Back to nodes', exact: true }))
+			.toBeVisible();
+		expect(
+			fixture.defaultView?.getComputedStyle(requiredElement(owner, '.ex-explorer-browser')).display,
+		).toBe('none');
+		await frame.getByRole('button', { name: 'Back to nodes', exact: true }).click();
+		expect(owner.getAttribute('data-mobile-view')).toBe('list');
+		const search = requiredElement(owner, '.ex-explorer-browser input');
+		await expect.poll((): number => search.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+		await expect.poll((): number => search.getBoundingClientRect().bottom).toBeLessThanOrEqual(900);
+	},
+);

@@ -371,7 +371,7 @@ export function installIslandInspector(owner: HTMLElement): void {
 		const sidebar = createIconButton('sidebar-simple', `Open ${label} in a sidebar`, (): void =>
 			openInspector(owner, controls, { mode: 'sidebar' }),
 		);
-		sidebar.classList.add('ex-inspect-trigger');
+		sidebar.classList.add('ex-inspect-trigger', 'ex-inspect-sidebar');
 		controls.append(sidebar);
 	}
 	const expand = createIconButton('arrows-out', `Expand ${label}`, (): void =>

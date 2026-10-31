@@ -4,7 +4,7 @@ Sidebar inspection keeps the main explanation available. Fullscreen gives a larg
 
 ## Defaults and explicit choice
 
-Mermaid diagrams offer only the fullscreen (arrows-out) icon. Code, file trees and content comparisons normally offer sidebar/expand controls. On components that install the shared inspector, such as Card, Callout, Tabs, Trace and Pre, bare `zoom` requests whole-island controls and `zoom="none"` removes them. Grid and Flow arrange their children and do not install whole-container inspection buttons, even when a `zoom` attribute parses; use the supported child island's controls. Plain prose and stats need no enlargement.
+Mermaid diagrams offer only the fullscreen (arrows-out) icon. Code, file trees and content comparisons normally offer sidebar/expand controls on desktop. Shared enlargement controls float along the top edge without reserving heading width; scrollable diagrams keep controls inside their viewport. At 760px and below, the sidebar icon is hidden and Expand opens an edge-to-edge live-content modal. Independent comments remain available. Programmatic sidebar links and the More action retain their existing meaning. On components that install the shared inspector, such as Card, Callout, Tabs, Trace and Pre, bare `zoom` requests whole-island controls and `zoom="none"` removes them. Grid and Flow arrange their children and do not install whole-container inspection buttons, even when a `zoom` attribute parses; use the supported child island's controls. Plain prose and stats need no enlargement.
 
 ```html
 <ex-card id="recovery-contract" title="Recovery contract" label="Recovery contract" tone="note" icon="database" zoom>

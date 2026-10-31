@@ -57,3 +57,5 @@ Layers: `layer="proposed"` on any element (cards, arrows, diagrams) lets readers
 Layer names connect related elements and their switches; `off` is a space-separated list. Mark corresponding arrows with the same layer as their optional boxes. Use tabs/Compare for mutually exclusive alternatives; layers may be visible independently. Fragments and guided stops reveal a hidden target's containing layer.
 
 Use the main guide's lint pass for endpoint IDs and markup; retain the intended captions and layer content. Source-derived dependencies remain different from observed calls. An arrow passing a syntax check is not evidence that a real request crossed that boundary.
+
+Use bare `transparent-body` on a card or region to clear only its body fill. Heading and optional footer keep their normal fills; category, border, spacing and review targets stay unchanged. Omit it for the default filled body.
