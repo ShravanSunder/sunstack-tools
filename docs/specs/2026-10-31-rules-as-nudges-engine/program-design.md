@@ -64,7 +64,7 @@ Type conventions found: Serde-derived Rust structs and closed enums with `#[serd
 | E4 Related place | Report projection | `sunstack-lint` `lint_reporting` (modified) | `RelatedPlace { label, file, first_line, last_line }` in `report_contracts.rs` (new); rule entry `related: [FieldName]` in `rulebook_entry_wire.rs` (new field); SARIF `relatedLocations` in `sarif_format.rs` (new) | JSON list; SARIF location with `message.text = label`; default/GitHub one line each | derived | Serde struct; SARIF 2.1.0 schema |
 | E5 Basis | Decision walk | `sunstack-rules` (modified) | `Basis` enum (`mechanical \| judged`) beside `RulebookResult` (new) | JSON `basis` string on rows and findings | derived | closed enum |
 | E6 Piece | Piece building | `sunstack-evidence` (modified; `EvidencePiece`, `ModelView`, `LoadTarget`) | `evidence_kind_contracts.rs` (modified) | sent piece state gains the engine key `"cut-fields": [FieldName]` (a hyphenated key no `FieldName` can equal); `LoadTarget` gains `opening_cut: bool` (in the model state only when true) and `opening_last_line: Option<usize>` (native and evidence listing only; set for a non-empty path opening) | derived per run | Serde struct |
-| E7 Own text | Piece building | `sunstack-evidence` `evidence_piece_building` (modified) | `FieldSource::Target` gains `exclude: Option<ExcludeRule>` (same shape as the remainder's) in `evidence_kind_contracts.rs` (modified) | config: target field `exclude: { rule \| kind }` | derived | `deny_unknown_fields` wire |
+| E7 Own text | Piece building | `sunstack-evidence` `evidence_piece_building` (modified) | `FieldSource::Target` gains `exclude: Option<TargetExclude>` with `TargetExclude { rule: EvidenceRuleId }` (`deny_unknown_fields`; a rule only) in `evidence_kind_contracts.rs` (modified) | config: target field `exclude: { rule }`; `{ kind }` refused at `--check` naming the kind and field | derived | `deny_unknown_fields` wire |
 | E8 Checked JSON file | Evidence project | `sunstack-evidence` `evidence_planning/evidence_project_loading.rs` (modified) | `EvidenceLanguage` enum (`markdown \| json`) (new) | evidence rule `language: Json` admitted; a kind's language is its evidence rule's; file parsed per its applicable rules' language | derived | closed enum |
 
 Design-only concepts: the per-piece locator Choice (serves R2, E3); the own-text helper (R6, E7); the language enum (R8, E8). Each serves the row named.
@@ -120,7 +120,7 @@ impl RulebookResult {
 - `piece_state` adds the key `"cut-fields"` from the piece's model view when any field was cut [4]. Authored field keys are unchanged; an authored field named `cut` keeps its key.
 
 **Piece building** (`sunstack-evidence` `evidence_piece_building`). Owns what a piece holds. Changes when field sources change.
-- One helper `own_text_ranges(piece, exclude)` returns the piece's text ranges minus the excluded ranges; `finalize` and `target_paths` both scan only those ranges for a target field that declares `exclude` [5]. Without `exclude`, today's whole-text scan.
+- One helper `own_text_ranges(piece, exclude)` returns the piece's text ranges minus the excluded rule's matches, read from the file's raw match index (`source_ranges` of a `Rule`), so they are identical whether `target_paths` scans before selection (`lint_run.rs:345`) or `finalize` scans after it [5]. A kind's ranges come from finalized pieces (`mod.rs:599`), which `target_paths` can't see; that is why a target field excludes by rule only. Without `exclude`, today's whole-text scan.
 - `enclosing` and `same_file` accept `text: "full"`, returning the whole matched range's text and spans (default `first_line`) [6].
 - A path target with `as_kind` fills `fields` from the first piece of that kind in the resolved file, as the skill branch does today [6].
 - A path target records `opening_cut` (true when the file was longer than `opening_chars`) and, when its opening is non-empty, `opening_last_line` (the last line the opening covers). A skill target resolved by its fields, a target with `opening_chars: 0` and an unresolved target have no `opening_last_line`.
@@ -190,6 +190,7 @@ Call-path delta against today [1-4, 8]:
 | an authored field overwritten by cut metadata | unrepresentable: `"cut-fields"` contains a hyphen, which `FieldName` refuses | `FieldName` grammar |
 | a locator read by an `ask` or `combine` step | rejected at admission: locator names can't equal question names | admission |
 | a `yaml` field on a JSON kind; a field naming a rule of another language | rejected at admission | admission |
+| a target field whose two scans disagree on its own text | unrepresentable: `TargetExclude` holds a rule only, whose ranges both scans read from the same index | type |
 
 ## Trace
 

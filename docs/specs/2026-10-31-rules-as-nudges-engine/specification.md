@@ -86,9 +86,9 @@ Each row: the obligation (R), its observable contract (C), and what decides pass
 
 ### R6. A section's own loads (U6; E7)
 
-- **R6.** A target field may declare ranges to exclude, in the same way a remainder field does. A load inside an excluded range is never a target of that field, and change-based selection uses the same own text.
-- **C6.** In a config, a target field accepts `exclude` with the remainder's shape. The targets of a field with `exclude` come only from its own text, in the evidence listing, the sent state and change-based selection.
-- **V6.** On a fixture of an H1, a parent section and a child section where only the child loads `child.md`, with the section kind's target field excluding child sections: `child.md` is a target of the child only, not of the parent or the H1. Changing `child.md` selects the child's piece, not the parent's.
+- **R6.** A target field may declare ranges to exclude by naming an evidence rule, as a remainder field can. A load inside an excluded range is never a target of that field, and change-based selection uses the same own text. A target field can't exclude by kind: a kind's pieces are known only after selection, and change-based selection scans targets before it, so the two scans couldn't agree.
+- **C6.** In a config, a target field accepts `exclude: { "rule": <evidence rule> }`. `--check` refuses `exclude: { "kind": ... }` on a target field, naming the kind and field, exit 2. The targets of a field with `exclude` come only from its own text, in the evidence listing, the sent state and change-based selection.
+- **V6.** On a fixture of an H1, a parent section and a child section where only the child loads `child.md`, with the section kind's target field excluding the child-section rule: `child.md` is a target of the child only, not of the parent or the H1. Changing `child.md` selects the child's piece, not the parent's. `--check` refuses a target field with `exclude: { "kind": "section" }`, naming the field.
 
 ### R7. Fuller context fields (U7; E6)
 
