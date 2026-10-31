@@ -134,6 +134,11 @@ jobs:
         run: |
           rustup show active-toolchain
           rustup target add ${{ join(matrix.targets, ' ') }}
+      - name: Install Node for release linkage checks
+        uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+          package-manager-cache: false
       - name: Configure Apple SDK
         if: runner.os == 'macOS'
         run: |
@@ -167,7 +172,7 @@ jobs:
       - name: Verify standalone archive linkage
         id: archive-linkage
         background: true
-        run: python3 scripts/release/check_linkage.py target/distrib --target ${{ join(matrix.targets, ' --target ') }}
+        run: node scripts/release/check-linkage.ts target/distrib --target ${{ join(matrix.targets, ' --target ') }}
       - id: cargo-dist
         name: Post-build
         # We force bash here just because github makes it really hard to get values up
@@ -208,6 +213,12 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      # Global extra-artifacts run outside the per-target build-setup hook.
+      - name: Install Node for the lint schema extra-artifact
+        uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+          package-manager-cache: false
       - name: Install cached dist
         uses: actions/download-artifact@v8
         with:

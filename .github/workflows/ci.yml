@@ -93,6 +93,7 @@ jobs:
         background: true
         run: |
           pnpm exec vitest run scripts/verify/sunstack-rule/**/*.test.ts
+          node --test scripts/release/*-test.ts
           node --test scripts/verify/sunstack-rule/release/*-test.ts
       - name: Lint Rust workspace
         run: cargo clippy --locked --workspace --all-targets -- -D warnings

@@ -33,5 +33,5 @@ aarch64-apple-darwin = "macos-15"
 x86_64-apple-darwin = "macos-15"
 
 [[dist.extra-artifacts]]
-build = ["sh", "scripts/release/export-lint-schema.sh"]
+build = ["node", "scripts/release/export-lint-schema.ts"]
 artifacts = ["target/sunstack.lint.schema.json"]
