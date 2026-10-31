@@ -128,6 +128,44 @@ fn decode_containing_kinds<'de, D: serde::Deserializer<'de>>(
         .map(Some)
         .map_err(|error| serde::de::Error::custom(format!("within: {error}")))
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(try_from = "u8", into = "u8")]
+#[schemars(extend("minimum" = 1, "maximum" = 5))]
+pub struct NeighbourCount(u8);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("neighbour count must be between 1 and 5")]
+pub struct InvalidNeighbourCount;
+
+impl NeighbourCount {
+    pub fn new(value: u8) -> Result<Self, InvalidNeighbourCount> {
+        if (1..=5).contains(&value) {
+            Ok(Self(value))
+        } else {
+            Err(InvalidNeighbourCount)
+        }
+    }
+    pub const fn get(self) -> usize {
+        self.0 as usize
+    }
+}
+impl Default for NeighbourCount {
+    fn default() -> Self {
+        Self(1)
+    }
+}
+impl TryFrom<u8> for NeighbourCount {
+    type Error = InvalidNeighbourCount;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+impl From<NeighbourCount> for u8 {
+    fn from(value: NeighbourCount) -> Self {
+        value.0
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FieldSource {
@@ -146,6 +184,16 @@ pub enum FieldSource {
     SameFile {
         #[serde(flatten)]
         of: MatchSource,
+    },
+    Next {
+        rule: EvidenceRuleId,
+        #[serde(default)]
+        count: NeighbourCount,
+    },
+    Previous {
+        rule: EvidenceRuleId,
+        #[serde(default)]
+        count: NeighbourCount,
     },
     Yaml {
         key: String,
@@ -186,9 +234,11 @@ impl FieldSource {
             | Self::Capture { .. }
             | Self::Yaml { .. }
             | Self::Remainder { .. } => FieldShape::Text,
-            Self::Inside { .. } | Self::Enclosing { .. } | Self::SameFile { .. } => {
-                FieldShape::Texts
-            }
+            Self::Inside { .. }
+            | Self::Enclosing { .. }
+            | Self::SameFile { .. }
+            | Self::Next { .. }
+            | Self::Previous { .. } => FieldShape::Texts,
             Self::Target { .. } => FieldShape::Targets,
         }
     }
@@ -448,6 +498,16 @@ enum FieldSourceWire {
         #[serde(default, deserialize_with = "present_match_source")]
         kind: Option<EvidenceKindName>,
     },
+    Next {
+        rule: EvidenceRuleId,
+        #[serde(default)]
+        count: NeighbourCount,
+    },
+    Previous {
+        rule: EvidenceRuleId,
+        #[serde(default)]
+        count: NeighbourCount,
+    },
     Yaml {
         key: String,
     },
@@ -492,6 +552,8 @@ impl<'de> Deserialize<'de> for FieldSource {
             FieldSourceWire::SameFile { rule, kind } => Self::SameFile {
                 of: source(rule, kind)?,
             },
+            FieldSourceWire::Next { rule, count } => Self::Next { rule, count },
+            FieldSourceWire::Previous { rule, count } => Self::Previous { rule, count },
             FieldSourceWire::Yaml { key } => Self::Yaml { key },
             FieldSourceWire::Remainder { exclude } => Self::Remainder { exclude },
             FieldSourceWire::Target {

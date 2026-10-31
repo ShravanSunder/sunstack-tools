@@ -267,12 +267,13 @@ impl EvidenceBuild {
             let definition = &self.kinds[&kind];
             let mut pieces = Vec::new();
             for (path, file) in &self.matched {
-                for range in file
+                for (match_position, range) in file
                     .index
                     .by_rule
                     .get(&definition.rule)
                     .into_iter()
                     .flatten()
+                    .enumerate()
                 {
                     if let Some(parents) = &definition.within
                         && !self.catalog.pieces.iter().any(|piece| {
@@ -289,7 +290,13 @@ impl EvidenceBuild {
                     {
                         continue;
                     }
-                    let fields = local_fields(definition, file, range, &self.catalog.pieces);
+                    let fields = local_fields(
+                        definition,
+                        file,
+                        range,
+                        match_position,
+                        &self.catalog.pieces,
+                    );
                     let span = source_span(file, range);
                     let location = PieceLocation {
                         file: path.clone(),

@@ -58,6 +58,11 @@ pub fn admit_evidence_kinds(
                     }
                     _ => {}
                 },
+                FieldSource::Next { rule, .. } | FieldSource::Previous { rule, .. } => {
+                    if !project.rule_ids.contains(rule) {
+                        errors.push(refusal(&path, "unknown evidence rule"));
+                    }
+                }
                 FieldSource::Capture { regex } | FieldSource::Target { regex, .. } => {
                     match regex::Regex::new(regex) {
                         Err(_) => errors.push(refusal(&path, "invalid field regex")),
