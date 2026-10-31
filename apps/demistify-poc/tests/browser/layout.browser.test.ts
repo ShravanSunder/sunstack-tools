@@ -348,6 +348,10 @@ test('four tabs, Markdown first-heading text and multi-file paths remain clear o
 		).getBoundingClientRect();
 		const range = fixture.createRange();
 		range.selectNodeContents(heading);
+		expect(
+			[...range.getClientRects()].length,
+			'section heading must render glyphs',
+		).toBeGreaterThan(0);
 		for (const text of range.getClientRects()) {
 			expect(
 				Math.min(text.right, source.right) > Math.max(text.left, source.left) &&
@@ -376,6 +380,28 @@ test('bare Markdown section headings retain document margin rhythm and clear sou
 		.join('');
 	fixture.body.append(example);
 	await expect.poll((): number => example.querySelectorAll('ex-markdown[prepared]').length).toBe(5);
+	const outside = fixture.createElement('section');
+	outside.id = 'outside-sections';
+	outside.innerHTML = [
+		'Section heading 2 example',
+		'Delivery overview example',
+		'Choose the owner example',
+		'Review this change example',
+	]
+		.map(
+			(title): string =>
+				'<ex-markdown><script type="text/markdown">## ' + title + '</script></ex-markdown>',
+		)
+		.join('');
+	fixture.body.append(outside);
+	const aside = fixture.createElement('aside');
+	aside.innerHTML =
+		'<ex-markdown><script type="text/markdown">## Delivery architecture</script></ex-markdown>';
+	example.append(aside);
+	await expect.poll((): number => outside.querySelectorAll('ex-markdown[prepared]').length).toBe(4);
+	await expect.poll((): number => aside.querySelectorAll('ex-markdown[prepared]').length).toBe(1);
+	expect(outside.querySelectorAll('h2'), outside.innerHTML).toHaveLength(4);
+	expect(aside.querySelectorAll('h2'), aside.innerHTML).toHaveLength(1);
 	const section = requiredElement(example, 'ex-markdown h2');
 	const preceding = requiredElement(example, '#before-heading-2');
 	expect(
@@ -396,4 +422,29 @@ test('bare Markdown section headings retain document margin rhythm and clear sou
 			).toBe(false);
 		}
 	}
+	let reachesControlColumn = false;
+	for (const heading of [...outside.querySelectorAll('h2'), ...aside.querySelectorAll('h2')]) {
+		const markdown = heading.parentElement;
+		if (!markdown) throw new Error('Missing external Markdown owner');
+		expect(fixture.defaultView?.getComputedStyle(markdown).paddingTop).toBe('0px');
+		const control = requiredElement(markdown, '.ex-inspect-controls').getBoundingClientRect();
+		const range = fixture.createRange();
+		range.selectNodeContents(heading);
+		expect(
+			[...range.getClientRects()].length,
+			markdown.outerHTML + ' external h2 must render glyphs',
+		).toBeGreaterThan(0);
+		for (const text of range.getClientRects()) {
+			if (Math.min(text.right, control.right) > Math.max(text.left, control.left))
+				reachesControlColumn = true;
+			expect(
+				Math.min(text.right, control.right) > Math.max(text.left, control.left) &&
+					Math.min(text.bottom, control.bottom) > Math.max(text.top, control.top),
+				heading.textContent + ' outside section styling clears source rail',
+			).toBe(false);
+		}
+	}
+	expect(reachesControlColumn, 'external h2 fixture must reach the source-control column').toBe(
+		true,
+	);
 });

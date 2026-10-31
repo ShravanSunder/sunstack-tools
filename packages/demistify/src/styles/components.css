@@ -599,9 +599,9 @@ ex-markdown.ex-inspectable:has(
 	top: calc(var(--space-1) - var(--space-8));
 }
 
-/* Subheadings have no inner top inset; float their source rail above, without blocking margins. */
+/* Heading inset varies by context; float section/subheading source rails without blocking margins. */
 ex-markdown.ex-inspectable:has(
-		> :is(h3, h4, h5, h6):nth-child(1 of :not(script, template, [hidden], .ex-inspect-controls))
+		> :is(h2, h3, h4, h5, h6):nth-child(1 of :not(script, template, [hidden], .ex-inspect-controls))
 	)
 	> .ex-inspect-controls {
 	top: calc(var(--space-1) - var(--space-8));

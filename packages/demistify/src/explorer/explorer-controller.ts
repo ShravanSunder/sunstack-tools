@@ -94,6 +94,8 @@ export class ExplorerController {
 		issues.addEventListener('click', (): void => this.select('__issues'));
 		const listTitle = document.createElement('div');
 		listTitle.className = 'ex-explorer-list-title';
+		listTitle.setAttribute('role', 'heading');
+		listTitle.setAttribute('aria-level', '1');
 		listTitle.textContent = graphDocument.title;
 		const browserHeader = document.createElement('div');
 		browserHeader.className = 'ex-explorer-browser-header';
@@ -188,10 +190,13 @@ export class ExplorerController {
 		this.renderBrowser();
 		this.render();
 		bindTabKeyboard(this.tablist);
-		performance.mark(`demistify:explorer:${owner.id}:ready`);
-		owner.setAttribute('data-ready', '');
-		owner.removeAttribute('aria-busy');
-		owner.dispatchEvent(new CustomEvent('island-ready', { bubbles: true }));
+	}
+	/** Internal fragment revelation keeps selection and address owned by this controller. */
+	revealTarget(target: Element): void {
+		if (!this.main.contains(target)) return;
+		this.mobileView = 'detail';
+		this.owner.dataset['mobileView'] = 'detail';
+		this.renderGraph();
 	}
 	resume(): void {
 		this.resizeObserver.observe(this.viewport);

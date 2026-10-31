@@ -1,3 +1,4 @@
+import { ExplorerIsland } from '../islands/explorer.ts';
 import { GalleryIsland } from '../islands/gallery.ts';
 import { BoardIsland } from './board.ts';
 import { revealLayers } from './layers.ts';
@@ -20,6 +21,7 @@ export function revealElement(target: Element): void {
 				?.click();
 		if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
 		if (ancestor instanceof BoardIsland) ancestor.focusOn(target);
+		if (ancestor instanceof ExplorerIsland) ancestor.revealTarget(target);
 	}
 }
 
@@ -63,6 +65,7 @@ export function resolveTarget(
 			}
 			const target = targetElement(reference);
 			if (!target) return;
+			if (target.closest('ex-explorer[aria-busy="true"]')) return;
 			revealElement(target);
 			if (
 				target.matches(

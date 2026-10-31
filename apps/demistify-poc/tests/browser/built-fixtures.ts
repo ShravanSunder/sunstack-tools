@@ -28,6 +28,21 @@ export async function builtFixtures(): Promise<Plugin> {
 		join(snapshot, 'library'),
 		{ recursive: true },
 	);
+	// Keep the real built consumer on the same declared library snapshot as every fixture.
+	const surfacesHtml = await readFile(
+		resolve(
+			repositoryRoot,
+			'apps/demistify-poc/dist/experiments/html-islands-content-surfaces-live.html',
+		),
+		'utf8',
+	);
+	await mkdir(join(snapshot, 'content-surfaces'));
+	await writeFile(
+		join(snapshot, 'content-surfaces/index.html'),
+		surfacesHtml
+			.replaceAll('href="islands/', 'href="/__demistify/library/')
+			.replaceAll('src="islands/', 'src="/__demistify/library/'),
+	);
 	await Promise.all(
 		[
 			['navigation', 'navigation-markdown-fix'],

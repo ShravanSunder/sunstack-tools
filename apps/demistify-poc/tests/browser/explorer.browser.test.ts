@@ -126,6 +126,12 @@ test('narrow Explorer starts with nodes, preserves filtered selection on Back, a
 	await expect.poll((): boolean => owner.hasAttribute('data-ready')).toBe(true);
 	const browser = frame.getByRole('navigation', { name: 'Explore graph nodes', exact: true });
 	await expect.element(browser).toBeVisible();
+	const title = requiredElement(owner, '.ex-explorer-main > header h1').textContent;
+	if (!title) throw new Error('Missing Explorer title');
+	await expect
+		.element(browser.getByRole('heading', { name: title, level: 1, exact: true }))
+		.toBeVisible();
+	expect(owner.querySelectorAll('h1')).toHaveLength(1);
 	expect(
 		fixture.defaultView?.getComputedStyle(requiredElement(owner, '.ex-explorer-main')).display,
 	).toBe('none');
@@ -220,3 +226,67 @@ test.each(['program-design', '__issues'])(
 		await expect.poll((): number => search.getBoundingClientRect().bottom).toBeLessThanOrEqual(900);
 	},
 );
+
+test('a narrow Explorer main heading link reveals detail through document target resolution', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('gallery', '', 'explorer.html');
+	const owner = requiredElement(fixture, '#planning');
+	await expect.poll((): boolean => owner.hasAttribute('data-ready')).toBe(true);
+	const heading = requiredElement(owner, '.ex-explorer-main > header h1');
+	expect(heading.id).toBe('heading-how-the-job-is-composed');
+	expect(owner.getAttribute('data-mobile-view')).toBe('list');
+	const link = fixture.createElement('a');
+	link.href = `#${heading.id}`;
+	link.textContent = 'Open Explorer heading';
+	requiredElement(fixture, 'ex-document').prepend(link);
+	await frame.getByRole('link', { name: 'Open Explorer heading', exact: true }).click();
+	await expect.poll((): number => heading.getBoundingClientRect().width).toBeGreaterThan(0);
+	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
+	expect(new URL(fixture.URL).searchParams.has('ex.planning')).toBe(false);
+	await frame.getByRole('button', { name: 'Back to nodes', exact: true }).click();
+	await expect
+		.element(frame.getByRole('navigation', { name: 'Explore graph nodes', exact: true }))
+		.toBeVisible();
+});
+
+test('a cold narrow Explorer main heading fragment waits for its controller and returns a visible list', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture(
+		'gallery',
+		'#heading-how-the-job-is-composed',
+		'explorer.html',
+	);
+	const owner = requiredElement(fixture, '#planning');
+	await expect.poll((): boolean => owner.hasAttribute('data-ready')).toBe(true);
+	const heading = requiredElement(owner, '.ex-explorer-main > header h1');
+	await expect.poll((): number => heading.getBoundingClientRect().width).toBeGreaterThan(0);
+	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
+	expect(owner.getAttribute('aria-busy')).toBeNull();
+	await frame.getByRole('button', { name: 'Back to nodes', exact: true }).click();
+	const search = requiredElement(owner, '.ex-explorer-browser input');
+	await expect.poll((): number => search.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+	await expect.poll((): number => search.getBoundingClientRect().bottom).toBeLessThanOrEqual(900);
+});
+
+test('a cold authored Explorer intro fragment stays revealed after lazy mounting', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { frame } = await openFixture('gallery', '', 'explorer.html');
+	const iframe = document.querySelector<HTMLIFrameElement>('iframe[data-testid="explainer"]');
+	if (!iframe) throw new Error('Missing fixture frame');
+	// The real built consumer carries this authored target before the lazy controller loads.
+	iframe.src = '/__demistify/content-surfaces/index.html#explorer-reading-guide';
+	await expect
+		.poll((): boolean => !!iframe.contentDocument?.querySelector('#team-explorer[data-ready]'))
+		.toBe(true);
+	const fixture = iframe.contentDocument;
+	if (!fixture) throw new Error('Missing same-origin built demo');
+	const owner = requiredElement(fixture, '#team-explorer');
+	const target = requiredElement(owner, '#explorer-reading-guide');
+	await expect.poll((): number => target.getBoundingClientRect().width).toBeGreaterThan(0);
+	expect(owner.getAttribute('data-mobile-view')).toBe('detail');
+	expect(new URL(fixture.URL).searchParams.has('ex.team-explorer')).toBe(false);
+	await frame.getByRole('button', { name: 'Back to nodes', exact: true }).click();
+	const search = requiredElement(owner, '.ex-explorer-browser input');
+	await expect.poll((): number => search.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+	await expect.poll((): number => search.getBoundingClientRect().bottom).toBeLessThanOrEqual(900);
+});

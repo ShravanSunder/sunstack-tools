@@ -1,3 +1,4 @@
+import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { reportIssue } from '../core/issues.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
 import type { ExplorerController } from '../explorer/explorer-controller.ts';
@@ -20,6 +21,11 @@ export class ExplorerIsland extends HTMLElement {
 			.then(async ({ mountExplorer }): Promise<ReviewSourceResult> => {
 				const mounted = await mountExplorer(this);
 				this.controller = mounted.controller;
+				assignHeadingFragments(this);
+				performance.mark(`demistify:explorer:${this.id}:ready`);
+				this.setAttribute('data-ready', '');
+				this.removeAttribute('aria-busy');
+				this.dispatchEvent(new CustomEvent('island-ready', { bubbles: true }));
 				return { kind: 'loaded', source: mounted.source };
 			})
 			.catch((error: unknown): ReviewSourceResult => {
@@ -34,6 +40,10 @@ export class ExplorerIsland extends HTMLElement {
 				this.loading = false;
 			});
 		registerReviewSource(this, load);
+	}
+	/** Internal target-resolution delegate; no new authoring or navigation state. */
+	revealTarget(target: Element): void {
+		this.controller?.revealTarget(target);
 	}
 	disconnectedCallback(): void {
 		this.controller?.dispose();
