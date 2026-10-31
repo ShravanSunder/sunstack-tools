@@ -4,12 +4,12 @@ For the additive 30 Oct selected/contained-kind cases, load [evidence-selection.
 
 This journey drives the 29 Oct rulebook pipeline through the actual `sunstack lint` entry. Expected outcomes come from `docs/specs/2026-10-29-skill-rules-evidence-and-decisions/{specification,verification-design}.md`, especially R10–R15, R20–R28 and U2/U5/U8/U10/U12. The fixture is the Implementer's pinned S0 tree under `crates/sunstack/tests/fixtures/rulebook-lint/`; its `expected/` values come from the source copies and ast-grep 0.51.0, independently of the builder.
 
-Inputs: a declared source commit, local binary path and configuration/client, unchanged product sources and binary bytes, the pinned fixture tree, and a fresh authorized evidence directory. The current driver is `scripts/verify/sunstack-rule/rulebook-lint.ts`; read its header and `--help`. The entry returns the source-declared EvidenceListing envelope; finding locations use Finding.line and combined values use JudgmentSummary.value. Recheck these types at the declared S3 target. Fixture preparation establishes no product behavior.
+Inputs: a declared source commit, local binary path and configuration/client, unchanged product sources and binary bytes, the pinned fixture tree, and a fresh authorized evidence directory. The current driver is `scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts`; read its header and `--help`. The entry returns the source-declared EvidenceListing envelope; finding locations use Finding.line and combined values use JudgmentSummary.value. Recheck these types at the declared S3 target. Fixture preparation establishes no product behavior.
 
 From the monorepo root, directly with Node:
 
 ```sh
-node scripts/verify/sunstack-rule/rulebook-lint.ts \
+node scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts \
   --prepare --evidence <new-authorized-directory>
 ```
 
@@ -24,7 +24,7 @@ The driver observes these four parts:
 
 Before driving, readiness is a successful fixture `--check` and its known mechanical K002 error, as covered by S1. Keep per-child stdout, stderr, actual command/exit/PID, source commit and binary hash, raw HTTP bodies and harness cleanup evidence. The driver owns its process groups, responder and server; process completion and request events drive waits. Stop only those owned resources. Fixture copies are disposable after cited evidence is preserved; cleanup is governed by the assignment.
 
-Run `node scripts/verify/sunstack-rule/rulebook-boundaries.ts` with the same declared-target/evidence arguments for the supplemental U4 native `exec` old-key controls and the U2/U6 non-ASCII raw-versus-cut view probe. It accepts a valid native RuleSet first, then refuses each old marker-route header field without HTTP. Its Unicode case retains the middle token in 7,012 raw characters, omits it from the 6,000-character model view, and captures that exact view on the wire. These are observations through the binary; the exact request-cap boundary still joins the native tests below.
+Run `node scripts/verify/sunstack-rule/rulebook/rulebook-boundaries.ts` with the same declared-target/evidence arguments for the supplemental U4 native `exec` old-key controls and the U2/U6 non-ASCII raw-versus-cut view probe. It accepts a valid native RuleSet first, then refuses each old marker-route header field without HTTP. Its Unicode case retains the middle token in 7,012 raw characters, omits it from the 6,000-character model view, and captures that exact view on the wire. These are observations through the binary; the exact request-cap boundary still joins the native tests below.
 
 ## Required native joins and honest limits
 

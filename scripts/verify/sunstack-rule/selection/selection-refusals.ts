@@ -10,8 +10,8 @@ import {
 	runSequence,
 	writeJson,
 	type JsonObject,
-} from './rulebook-fixture-support.ts';
-import { type DeclaredTarget, RulebookProcess } from './rulebook-process.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
+import { type DeclaredTarget, RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { copySelectionFixture } from './selection-fixture.ts';
 
 export function prepareSelectionRefusals(options: {

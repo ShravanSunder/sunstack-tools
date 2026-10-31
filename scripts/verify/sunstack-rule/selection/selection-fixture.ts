@@ -11,7 +11,7 @@ import {
 	requireCondition,
 	writeJson,
 	type JsonObject,
-} from './rulebook-fixture-support.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
 export const selectionRelative = 'crates/sunstack/tests/fixtures/rulebook-lint/selection';
 export const researchFile = 'skills/practices-research/SKILL.md';
 export const presentationFile = 'skills/presentation-tui/SKILL.md';

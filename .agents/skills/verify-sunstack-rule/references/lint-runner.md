@@ -2,10 +2,10 @@
 
 Drive the current `sunstack lint` entry and compare findings, formats and exits with independently authored fixtures. The adopted oracle is the 29 Oct skill-rules Specification/Verification Design; the earlier runner's formats, scopes and native `exec` obligations remain applicable where that amendment preserves them. RuleSet severity overrides and an off switch are superseded behavior and now belong to refusal controls.
 
-The driver is `scripts/verify/sunstack-rule/lint-runner-rulebook.ts`. Read `--help`. It uses the new `rulebook`, `check`, `evidence` and `decision_model` config. Run directly with Node from the monorepo root:
+The driver is `scripts/verify/sunstack-rule/rulebook/lint-runner-rulebook.ts`. Read `--help`. It uses the new `rulebook`, `check`, `evidence` and `decision_model` config. Run directly with Node from the monorepo root:
 
 ```sh
-node scripts/verify/sunstack-rule/lint-runner-rulebook.ts \
+node scripts/verify/sunstack-rule/rulebook/lint-runner-rulebook.ts \
   --prepare --evidence <new-authorized-directory>
 ```
 

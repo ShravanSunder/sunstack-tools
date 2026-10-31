@@ -37,7 +37,7 @@ export type RefusalCase = z.infer<typeof caseSchema>;
 export function refusalCases(): RefusalCase[] {
 	const raw: unknown = JSON.parse(
 		filesystem.readFileSync(
-			path.join(import.meta.dirname, 'fixtures/rulebook-refusal-mutations.json'),
+			path.join(import.meta.dirname, '../fixtures/rulebook-refusal-mutations.json'),
 			'utf8',
 		),
 	);

@@ -1,33 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fileSystem from 'node:fs';
+import operatingSystem from 'node:os';
+import path from 'node:path';
+import zlib from 'node:zlib';
+import { unpackPackage, repackPackage, startRegistry, sha256, integrity, save } from './release-registry.ts';
+import { captureProcess, groupMembers, trackOwnedTree } from './release-process.ts';
+import { argumentsFrom, channelCommand, npmRoutes, expectedCellCount } from './release-channels.ts';
+import { assertReportMatches, stopExpectation, gradeStop } from './release-report-checks.ts';
+import { spawnSync, spawn } from 'node:child_process';
+import { compareStreams } from './release-streams.ts';
 /* eslint-disable no-await-in-loop -- Each fixture and process must settle before the next owned cell begins. */
 // Permanent apparatus controls; synthetic packages are never product proof.
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const operatingSystem = require('node:os');
-const path = require('node:path');
-const zlib = require('node:zlib');
-const {
-	unpackPackage,
-	repackPackage,
-	startRegistry,
-	sha256,
-	integrity,
-	save,
-} = require('./release_registry.cjs');
-const { captureProcess, groupMembers, trackOwnedTree } = require('./release_process.cjs');
-const {
-	assertReportMatches,
-	stopExpectation,
-	gradeStop,
-	argumentsFrom,
-	channelCommand,
-	npmRoutes,
-	expectedCellCount,
-} = require('./release_channels.cjs');
-const { spawnSync } = require('node:child_process');
+
+
+
+
+
+
+
+
+
+
 
 test('ordinary stream grading keeps native stderr lines whole and ordered with only manager extras', () => {
-	const { compareStreams } = require('./release_streams.cjs');
+
 	const native = {
 		stdout: Buffer.from('literal output\n'),
 		stderr: Buffer.from('native first\nnative second\n'),
@@ -280,7 +277,7 @@ test('a cleanup result cannot hide pre-cleanup survivors or a cancelled report i
 	assert.equal(gradeStop(result, 'no-cancelled-report', {}, '0.0.6', '/fixture'), 'limit');
 	const state = { contents: { content1: 'literal' } };
 	const reference = { status: { kind: 'cancelled' }, evidence_seen: { 0: state } };
-	const literalConfig = fileSystem.realpathSync(__filename);
+	const literalConfig = fileSystem.realpathSync(import.meta.filename);
 	const mismatchedState = {
 		stdout: Buffer.from(JSON.stringify({ ...reference, version: '0.0.6', config: literalConfig })),
 		observation: {
@@ -416,7 +413,7 @@ child.on('close',(code)=>process.exit(code));`;
 });
 
 test('an unrelated native with matching bytes cannot authorize a held request from another process', async (testContext) => {
-	const { spawn } = require('node:child_process');
+
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-unrelated-control-'),
 	);
@@ -462,7 +459,7 @@ const request=http.request(endpoint,{method:'POST'});request.on('error',()=>{});
 });
 
 test('ownership census after root exit retains its live same-group child and refuses proven absence', async (testContext) => {
-	const { spawn } = require('node:child_process');
+
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-missed-root-'),
 	);

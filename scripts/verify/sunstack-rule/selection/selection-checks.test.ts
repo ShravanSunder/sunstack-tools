@@ -1,7 +1,7 @@
 /** Challenge the verification comparators with literal public-contract examples. */
 import { expect, test } from 'vitest';
 
-import { objectValue, type JsonObject } from './rulebook-fixture-support.ts';
+import { objectValue, type JsonObject } from '../rulebook/rulebook-fixture-support.ts';
 import {
 	qualifiedSelectionQuestion,
 	requireCandidateKeys,

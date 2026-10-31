@@ -14,8 +14,8 @@ import {
 	writeJson,
 	type JourneyArguments,
 	type JsonObject,
-} from './rulebook-fixture-support.ts';
-import { declaredTarget, RulebookProcess } from './rulebook-process.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
+import { declaredTarget, RulebookProcess } from '../rulebook/rulebook-process.ts';
 import {
 	requireCandidateKeys,
 	requireSameShared,

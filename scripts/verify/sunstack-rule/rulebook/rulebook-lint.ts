@@ -37,7 +37,7 @@ import {
 	type JsonObject,
 } from './rulebook-fixture-support.ts';
 import { declaredTarget, responseBody, RulebookProcess } from './rulebook-process.ts';
-import { runSelectionJourney } from './selection-journey.ts';
+import { runSelectionJourney } from '../selection/selection-journey.ts';
 
 export function scriptedReply(body: JsonObject, total = 0.58, confidence = 0.86): JsonObject {
 	const reply = responseBody(body);

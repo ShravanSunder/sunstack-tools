@@ -19,8 +19,8 @@ import {
 	selectWorkedSkill,
 	writeJson,
 	type JsonObject,
-} from './rulebook-fixture-support.ts';
-import { binaryDigest } from './rulebook-process.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
+import { binaryDigest } from '../rulebook/rulebook-process.ts';
 
 export const hostedArgumentsSchema = z.object({
 	evidence: z.string(),

@@ -1,0 +1,28 @@
+{
+  "basis": "Historical S1/S4 capture for the former rule-set lint config. Hashes below describe that old capture, not the current migrated fixtures; current source and runtime proof must be declared separately.",
+  "source_product": "0f8e39f44028c66b8ea7f2efd967200afed19f3a",
+  "files": {
+    "scripts/verify/sunstack-rule/release/fixtures/clean/sunstack.lint.json": "4bead3aebe50f66d062827df3329fdaf36ae4c757e34c681929faab64929d678",
+    "scripts/verify/sunstack-rule/release/fixtures/clean/rules/set.json": "4528d13fda641164c590ca59b9f7d311e46570bb0d6460caa50bb64dcfcbff0f",
+    "scripts/verify/sunstack-rule/release/fixtures/clean/rules/rules.jsonl": "57695c169d259ad0ea812d93a9cc620977294c2e2a270d104b8e73ebe0896ddd",
+    "scripts/verify/sunstack-rule/release/fixtures/clean/docs/one.md": "3ad4209152f50b5f268fda8a7f726e93b87bb4fcd777e60518193965cdbb7847",
+    "scripts/verify/sunstack-rule/release/fixtures/clean.expected.json": "b58ea33aa8d39dd7dbb8e59cd1045c96665ce9ec9b1ba0ae6fa80518ceff3973",
+    "scripts/verify/sunstack-rule/release/fixtures/mechanical-error/sunstack.lint.json": "4bead3aebe50f66d062827df3329fdaf36ae4c757e34c681929faab64929d678",
+    "scripts/verify/sunstack-rule/release/fixtures/mechanical-error/rules/set.json": "4528d13fda641164c590ca59b9f7d311e46570bb0d6460caa50bb64dcfcbff0f",
+    "scripts/verify/sunstack-rule/release/fixtures/mechanical-error/rules/rules.jsonl": "57695c169d259ad0ea812d93a9cc620977294c2e2a270d104b8e73ebe0896ddd",
+    "scripts/verify/sunstack-rule/release/fixtures/mechanical-error/docs/one.md": "da244278b455a51da5f06aeb7440518cb927ee28c231be465f52dd193306104e",
+    "scripts/verify/sunstack-rule/release/fixtures/mechanical-error.expected.json": "62f2ec7e37c26aa044836e4d824aa5f178bfa44ce89512864dcb8404b5473959",
+    "scripts/verify/sunstack-rule/release/fixtures/error-plus-incomplete/sunstack.lint.json": "4bead3aebe50f66d062827df3329fdaf36ae4c757e34c681929faab64929d678",
+    "scripts/verify/sunstack-rule/release/fixtures/error-plus-incomplete/rules/set.json": "4528d13fda641164c590ca59b9f7d311e46570bb0d6460caa50bb64dcfcbff0f",
+    "scripts/verify/sunstack-rule/release/fixtures/error-plus-incomplete/rules/rules.jsonl": "78907cc4ca13be0e43afdfd52e62390e690057e0ef0a613dc4e37692f17f63c4",
+    "scripts/verify/sunstack-rule/release/fixtures/error-plus-incomplete/docs/one.md": "da244278b455a51da5f06aeb7440518cb927ee28c231be465f52dd193306104e",
+    "scripts/verify/sunstack-rule/release/fixtures/error-plus-incomplete.expected.json": "6df3ae084488adc564fbe7d788b19d975ed5de26f87792f86028a23d4e4409be",
+    "scripts/verify/sunstack-rule/release/fixtures/cancel/sunstack.lint.json": "4bead3aebe50f66d062827df3329fdaf36ae4c757e34c681929faab64929d678",
+    "scripts/verify/sunstack-rule/release/fixtures/cancel/rules/set.json": "4528d13fda641164c590ca59b9f7d311e46570bb0d6460caa50bb64dcfcbff0f",
+    "scripts/verify/sunstack-rule/release/fixtures/cancel/rules/rules.jsonl": "a6adde01928ffd2f700d7f601ee4851600de4b877473e37f888f61121761a37e",
+    "scripts/verify/sunstack-rule/release/fixtures/cancel/docs/one.md": "7ad36881c5d097ed84d43e5b49cfcc957a563e2e55d3d1dd4d4e22f0733f8ac3",
+    "scripts/verify/sunstack-rule/release/fixtures/cancel.expected.json": "bce836a1ef71ae6bb9a7f959dd09c380452bda062f491dbc98914f3497c4ec9d"
+  },
+  "not_claimed": "fresh v5 runtime observation",
+  "historical": true
+}

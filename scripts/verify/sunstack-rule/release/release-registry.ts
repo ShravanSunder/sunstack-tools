@@ -1,27 +1,55 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fileSystem from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import zlib from 'node:zlib';
+import { z } from 'zod';
 // S4 private registry: name resolution and URL-only repacks; no upstream proxy.
-const assert = require('node:assert/strict');
-const crypto = require('node:crypto');
-const fileSystem = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
-const zlib = require('node:zlib');
 
-const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
-const integrity = (value) => 'sha512-' + crypto.createHash('sha512').update(value).digest('base64');
-const save = (file, value) => fileSystem.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
 
-function unpackPackage(archive) {
+
+
+
+
+
+const packageMetadataSchema = z.looseObject({
+	name: z.string(), version: z.string(), bin: z.looseObject({ sunstack: z.string() }),
+	artifactDownloadUrls: z.json(),
+});
+const dependencyMetadataSchema = z.looseObject({ name: z.string(), version: z.string() });
+const lockedDependencySchema = z.looseObject({ version: z.string(), integrity: z.string() });
+const shrinkwrapSchema = z.object({ packages: z.looseObject({ 'node_modules/detect-libc': lockedDependencySchema }) });
+const releaseDeclarationSchema = z.object({ older: z.object({ version: z.string() }), newer: z.object({ version: z.string() }) });
+type PackageMetadata = z.infer<typeof packageMetadataSchema>;
+interface ArchiveMember { readonly name: string; readonly kind: string; readonly header: Buffer; readonly data: Buffer; }
+interface RepackProof {
+	readonly original_tar_sha256: string; readonly adapted_tar_sha256: string;
+	readonly original: PackageMetadata; readonly adapted: PackageMetadata;
+	readonly before: Record<string, string>; readonly after: Record<string, string>; readonly changed: string[];
+}
+interface RepackedPackage { readonly tarball: Buffer; readonly metadata: PackageMetadata; readonly proof: RepackProof; }
+interface RegistryRequest { readonly method: string | undefined; readonly path: string; readonly status: number; authorization_present?: boolean; sha256?: string; file?: string; }
+interface RegistryVersion extends Record<string, unknown> { readonly dist: { readonly tarball: string; readonly integrity: string }; }
+interface RegistryOptions { readonly assets: string; readonly declaration: unknown; readonly dependencyTar: string; readonly evidence: string; }
+interface RegistryService { readonly base: string; readonly requests: RegistryRequest[]; readonly close: () => Promise<void>; }
+
+const sha256 = (value: string | Buffer): string => crypto.createHash('sha256').update(value).digest('hex');
+const integrity = (value: string | Buffer): string => 'sha512-' + crypto.createHash('sha512').update(value).digest('base64');
+const save = (file: string, value: unknown): void => fileSystem.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
+
+function unpackPackage(archive: Buffer): ArchiveMember[] {
 	const bytes = zlib.gunzipSync(archive, { maxOutputLength: 16 * 1024 * 1024 });
-	const members = [];
+	const members: ArchiveMember[] = [];
 	for (let offset = 0; offset + 512 <= bytes.length;) {
 		const header = bytes.subarray(offset, offset + 512);
 		if (header.every((byte) => byte === 0)) break;
-		const text = (start, length) =>
+		const text = (start: number, length: number): string =>
 			header
 				.subarray(start, start + length)
 				.toString()
 				.replace(/\0.*$/s, '');
-		const octal = (start, length) => {
+		const octal = (start: number, length: number): number => {
 			const value = text(start, length).trim();
 			assert.match(value, /^[0-7]+$/);
 			return parseInt(value, 8);
@@ -54,17 +82,17 @@ function unpackPackage(archive) {
 	return members;
 }
 
-function repackPackage(archive, version, mirror) {
+function repackPackage(archive: Buffer, version: string, mirror: string): RepackedPackage {
 	const members = unpackPackage(archive);
 	const metadata = members.find((member) => member.name === 'package/package.json');
 	assert.ok(metadata);
-	const before = JSON.parse(metadata.data);
+	const before = packageMetadataSchema.parse(JSON.parse(metadata.data.toString('utf8')));
 	assert.equal(before.name, '@sunstack/cli');
 	assert.equal(before.version, version);
 	assert.equal(before.bin.sunstack, 'run-sunstack.js');
 	const after = { ...before, artifactDownloadUrls: [mirror] };
 	assert.deepEqual({ ...after, artifactDownloadUrls: before.artifactDownloadUrls }, before);
-	const chunks = [];
+	const chunks: Buffer[] = [];
 	for (const member of members) {
 		const data =
 			member === metadata ? Buffer.from(JSON.stringify(after, null, 2) + '\n') : member.data;
@@ -77,7 +105,7 @@ function repackPackage(archive, version, mirror) {
 	}
 	chunks.push(Buffer.alloc(1024));
 	const repacked = zlib.gzipSync(Buffer.concat(chunks));
-	const hashes = (list) =>
+	const hashes = (list: readonly ArchiveMember[]): Record<string, string> =>
 		Object.fromEntries(list.map((member) => [member.name, sha256(member.data)]));
 	const originalHashes = hashes(members),
 		adaptedHashes = hashes(unpackPackage(repacked));
@@ -101,24 +129,25 @@ function repackPackage(archive, version, mirror) {
 	};
 }
 
-async function startRegistry({ assets, declaration, dependencyTar, evidence }) {
+async function startRegistry({ assets, declaration: rawDeclaration, dependencyTar, evidence }: RegistryOptions): Promise<RegistryService> {
+	const declaration = releaseDeclarationSchema.parse(rawDeclaration);
 	fileSystem.mkdirSync(evidence, { recursive: true });
-	const requests = [],
-		packages = new Map(),
-		tarballs = new Map(),
-		files = new Map();
+	const requests: RegistryRequest[] = [];
+	const packages = new Map<string, Record<string, RegistryVersion>>();
+	const tarballs = new Map<string, Buffer>();
+	const files = new Map<string, string>();
 	const server = http.createServer((request, response) => {
-		let pathname;
+		let pathname: string;
 		try {
-			pathname = decodeURIComponent(new URL(request.url, base).pathname);
+			pathname = decodeURIComponent(new URL(z.string().parse(request.url), base).pathname);
 		} catch {
 			response.writeHead(400).end();
 			return;
 		}
-		let body,
-			file,
+		let body: Buffer | undefined,
+			file: string | undefined,
 			contentType = 'application/json';
-		if (!['GET', 'HEAD'].includes(request.method) || request.headers.authorization) {
+		if (!['GET', 'HEAD'].includes(request.method ?? '') || request.headers.authorization) {
 			requests.push({
 				method: request.method,
 				path: pathname,
@@ -157,7 +186,7 @@ async function startRegistry({ assets, declaration, dependencyTar, evidence }) {
 			}
 		}
 		const status = body || file ? 200 : 404;
-		const record = { method: request.method, path: pathname, status };
+		const record: RegistryRequest = { method: request.method, path: pathname, status };
 		if (body) record.sha256 = sha256(body);
 		if (file) record.file = file;
 		requests.push(record);
@@ -166,12 +195,15 @@ async function startRegistry({ assets, declaration, dependencyTar, evidence }) {
 		else if (file) fileSystem.createReadStream(file).pipe(response);
 		else response.end(body || '{}');
 	});
-	await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-	const base = 'http://127.0.0.1:' + server.address().port;
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	assert.ok(address && typeof address === 'object');
+	const base = 'http://127.0.0.1:' + address.port;
 	try {
-		const cliVersions = {};
-		let lockedDependency;
-		for (const label of ['older', 'newer']) {
+		const cliVersions: Record<string, RegistryVersion> = {};
+		let lockedDependency: z.infer<typeof lockedDependencySchema> | undefined;
+		const labels: readonly ('older' | 'newer')[] = ['older', 'newer'];
+		for (const label of labels) {
 			const version = declaration[label].version;
 			const archivePath = path.join(assets, label, 'sunstack-npm-package.tar.gz');
 			const archive = fileSystem.readFileSync(archivePath);
@@ -183,11 +215,13 @@ async function startRegistry({ assets, declaration, dependencyTar, evidence }) {
 				.map((line) => line.trim().split(/\s+/))
 				.filter((fields) => fields[1]?.replace(/^\*/, '') === 'sunstack-npm-package.tar.gz');
 			assert.equal(npmSum.length, 1, 'one authenticated unified npm checksum required');
-			assert.equal(sha256(archive), npmSum[0][0]);
+			const expectedSum = npmSum[0];
+			assert.ok(expectedSum);
+			assert.equal(sha256(archive), expectedSum[0]);
 			const original = unpackPackage(archive);
-			const lock = JSON.parse(
-				original.find((member) => member.name === 'package/npm-shrinkwrap.json').data,
-			);
+			const lockMember = original.find((member) => member.name === 'package/npm-shrinkwrap.json');
+			assert.ok(lockMember);
+			const lock = shrinkwrapSchema.parse(JSON.parse(lockMember.data.toString('utf8')));
 			const required = lock.packages['node_modules/detect-libc'];
 			assert.equal(required.version, '2.1.2');
 			if (lockedDependency) assert.deepEqual(required, lockedDependency);
@@ -210,10 +244,11 @@ async function startRegistry({ assets, declaration, dependencyTar, evidence }) {
 		}
 		packages.set('@sunstack/cli', cliVersions);
 		const dependency = fileSystem.readFileSync(dependencyTar);
+		assert.ok(lockedDependency);
 		assert.equal(integrity(dependency), lockedDependency.integrity);
-		const dependencyMetadata = JSON.parse(
-			unpackPackage(dependency).find((member) => member.name === 'package/package.json').data,
-		);
+		const dependencyMember = unpackPackage(dependency).find((member) => member.name === 'package/package.json');
+		assert.ok(dependencyMember);
+		const dependencyMetadata = dependencyMetadataSchema.parse(JSON.parse(dependencyMember.data.toString('utf8')));
 		assert.equal(dependencyMetadata.name, 'detect-libc');
 		assert.equal(dependencyMetadata.version, '2.1.2');
 		const route = '/tarballs/detect-libc-2.1.2.tgz';
@@ -237,18 +272,18 @@ async function startRegistry({ assets, declaration, dependencyTar, evidence }) {
 		return {
 			base,
 			requests,
-			close: async () => {
+			close: async (): Promise<void> => {
 				server.closeIdleConnections();
-				await new Promise((resolve) => server.close(resolve));
+				await new Promise<void>((resolve) => server.close(() => resolve()));
 				save(path.join(evidence, 'requests.json'), requests);
 				save(path.join(evidence, 'cleanup.json'), { listening: server.listening });
 			},
 		};
 	} catch (error) {
 		server.closeAllConnections();
-		await new Promise((resolve) => server.close(resolve));
+		await new Promise<void>((resolve) => server.close(() => resolve()));
 		throw error;
 	}
 }
 
-module.exports = { unpackPackage, repackPackage, startRegistry, sha256, integrity, save };
+export { unpackPackage, repackPackage, startRegistry, sha256, integrity, save };

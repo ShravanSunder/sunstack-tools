@@ -11,7 +11,7 @@ import {
 	textValue,
 	type JsonObject,
 	type JsonValue,
-} from './rulebook-fixture-support.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
 
 export const selectionOutcomeSchema = z.discriminatedUnion('kind', [
 	z.object({ kind: z.literal('selected'), yes: z.number() }),

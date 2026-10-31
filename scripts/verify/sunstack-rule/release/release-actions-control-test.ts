@@ -1,13 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fileSystem from 'node:fs';
+import operatingSystem from 'node:os';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { startController, validateTarget, safeOutput } from './release-actions-control.ts';
+import { sha256, save } from './release-registry.ts';
+import { settleGroup } from './release-process.ts';
 // Controller controls exercise real HTTP/processes and a fake gh, never the real cancel API.
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const operatingSystem = require('node:os');
-const path = require('node:path');
-const { spawn } = require('node:child_process');
-const { startController, validateTarget, safeOutput } = require('./release_actions_control.cjs');
-const { sha256, save } = require('./release_registry.cjs');
-const { settleGroup } = require('./release_process.cjs');
+
+
+
+
+
+
+
+
+
 const target = {
 	repository: 'ShravanSunder/sunstack-release-rehearsal',
 	run: '123456',

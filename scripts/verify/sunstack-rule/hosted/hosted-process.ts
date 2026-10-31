@@ -1,7 +1,7 @@
 /** Bounded owned child capture and the static arm64 ELF gate for hosted observation. */
 import { spawn } from 'node:child_process';
 
-import { requireCondition } from './rulebook-fixture-support.ts';
+import { requireCondition } from '../rulebook/rulebook-fixture-support.ts';
 
 export interface CommandResult {
 	stdout: Buffer;

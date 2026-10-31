@@ -1,14 +1,22 @@
 #!/usr/bin/env node
+import assert from 'node:assert/strict';
+import fileSystem from 'node:fs';
+import path from 'node:path';
+import http from 'node:http';
+import { spawn, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { sha256, save as  saveRaw } from './release-registry.ts';
+import { groupMembers } from './release-process.ts';
 /* eslint-disable no-await-in-loop -- Observation bounds and owned teardown are sequential. */
 // S4 Actions: an admitted real request triggers exactly one self-cancellation.
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const path = require('node:path');
-const http = require('node:http');
-const { spawn, execFile } = require('node:child_process');
-const { promisify } = require('node:util');
-const { sha256, save: saveRaw } = require('./release_registry.cjs');
-const { groupMembers } = require('./release_process.cjs');
+
+
+
+
+
+
+
+
 const execute = promisify(execFile);
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const privateRepository = 'ShravanSunder/sunstack-release-rehearsal';
@@ -381,7 +389,7 @@ async function main(words) {
 		assert.ok(process.env.GH_TOKEN, 'controller token required');
 		fileSystem.mkdirSync(options.root, { recursive: true });
 		const output = fileSystem.openSync(path.join(options.root, 'controller.log'), 'wx', 0o600);
-		const child = spawn(process.execPath, [__filename, 'serve', ...words], {
+		const child = spawn(process.execPath, [import.meta.filename, 'serve', ...words], {
 			detached: true,
 			stdio: ['ignore', output, output],
 			env: { PATH: process.env.PATH, GH_TOKEN: process.env.GH_TOKEN },
@@ -404,9 +412,9 @@ async function main(words) {
 	await startController({ ...options, target, token: process.env.GH_TOKEN });
 }
 
-if (require.main === module)
+if (import.meta.main)
 	main(process.argv.slice(2)).catch((error) => {
 		process.stderr.write(error.message + '\n');
 		process.exitCode = 2;
 	});
-module.exports = { startController, validateTarget, safeOutput };
+export { startController, validateTarget, safeOutput };

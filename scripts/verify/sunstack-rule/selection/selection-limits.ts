@@ -11,8 +11,8 @@ import {
 	requireCondition,
 	writeJson,
 	type JsonObject,
-} from './rulebook-fixture-support.ts';
-import { type RulebookProcess } from './rulebook-process.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
+import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import {
 	requireCandidateKeys,
 	requireSameShared,

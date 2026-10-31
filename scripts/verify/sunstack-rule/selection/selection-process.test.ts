@@ -5,8 +5,8 @@ import path from 'node:path';
 
 import { afterEach, expect, test } from 'vitest';
 
-import { baselineGit, gitCommand, parseObject, readObject } from './rulebook-fixture-support.ts';
-import { declaredTarget, RulebookProcess } from './rulebook-process.ts';
+import { baselineGit, gitCommand, parseObject, readObject } from '../rulebook/rulebook-fixture-support.ts';
+import { declaredTarget, RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { keepKinds } from './selection-fixture.ts';
 import { expectedSelectionState } from './selection-journey.ts';
 const roots: string[] = [];

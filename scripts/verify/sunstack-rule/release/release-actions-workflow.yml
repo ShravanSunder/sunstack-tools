@@ -65,11 +65,11 @@ jobs:
                       'binary_sha256': hashlib.sha256(native_bytes).hexdigest(), 'asset_sha256': digests}
           (bundle / 'identity.json').write_text(json.dumps(identity, indent=2) + '\n')
           PY
-          cp scripts/verify/sunstack-rule/release_actions_control.cjs bundle/
-          cp scripts/verify/sunstack-rule/release_registry.cjs bundle/
-          cp scripts/verify/sunstack-rule/release_process.cjs bundle/
-          cp -R scripts/verify/sunstack-rule/release-fixtures/cancel bundle/fixture
-          cp scripts/verify/sunstack-rule/release-fixtures/cancel.expected.json bundle/
+          cp scripts/verify/sunstack-rule/release/release-actions-control.ts bundle/
+          cp scripts/verify/sunstack-rule/release/release-registry.ts bundle/
+          cp scripts/verify/sunstack-rule/release/release-process.ts bundle/
+          cp -R scripts/verify/sunstack-rule/release/fixtures/cancel bundle/fixture
+          cp scripts/verify/sunstack-rule/release/fixtures/cancel.expected.json bundle/
       - uses: actions/upload-artifact@v7
         with:
           name: s4-cancellation-input

@@ -1,15 +1,55 @@
+import assert from 'node:assert/strict';
+import fileSystem from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import { spawn, spawnSync } from 'node:child_process';
+import type { ChildProcessByStdio } from 'node:child_process';
+import type { Readable } from 'node:stream';
+import type { Socket } from 'node:net';
+import { z } from 'zod';
+import { sha256, save } from './release-registry.ts';
 /* eslint-disable no-await-in-loop -- Each fixture and process must settle before the next owned cell begins. */
 // S4 real subprocess capture. Observation is frozen before owned cleanup.
-const assert = require('node:assert/strict');
-const fileSystem = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
-const { spawn, spawnSync } = require('node:child_process');
-const { sha256, save } = require('./release_registry.cjs');
-const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-const noOwnedProcesses = () => [];
 
-function processMembers() {
+
+
+
+
+
+export interface ProcessMember { readonly pid: number; readonly parent: number; readonly group: number; readonly state: string; readonly started: string; readonly command: string; }
+export interface OwnershipCensus { readonly kind: 'established' | 'unestablished'; readonly initial_root: ProcessMember | null; readonly initial_group_members: ProcessMember[]; }
+interface OwnedTreeObserver { (): ProcessMember[]; ownership?: () => OwnershipCensus; }
+export interface StopRequest { readonly signal: NodeJS.Signals; readonly destination: 'pid' | 'group'; readonly expectation: string; }
+interface ProcessEnd { readonly code: number | null; readonly signal: NodeJS.Signals | null; readonly elapsed_ms: number; }
+interface NativeIdentity { readonly pid: number; readonly file: string; readonly sha256: string; }
+const heldRequestSchema = z.looseObject({ questions: z.record(z.string(), z.json()), state: z.json() });
+const lintConfigSchema = z.looseObject({ decision_model: z.looseObject({ endpoint: z.string() }) });
+type HeldRequest = z.infer<typeof heldRequestSchema>;
+interface StopObservation { readonly after_signal_ms: number; readonly exit: ProcessEnd | null; readonly close: ProcessEnd | null; readonly owned_tree: ProcessMember[]; readonly sockets: number; }
+export interface ProcessObservation {
+	readonly command: readonly string[]; readonly cwd: string; readonly pid: number | null;
+	readonly root_exit: ProcessEnd | null; readonly root_close: ProcessEnd | null;
+	readonly error: string | null; readonly elapsed_ms: number; readonly admitted_request: HeldRequest | null;
+	readonly signal_at_ms: number | null; readonly stop: StopRequest | null;
+	readonly owned_tree_at_readiness: ProcessMember[]; readonly native_identity_at_readiness: NativeIdentity[];
+	readonly timeline: StopObservation[]; readonly ownership: OwnershipCensus;
+	readonly survivors_before_cleanup: ProcessMember[] | null; readonly unestablished_group_members_before_cleanup: ProcessMember[] | null;
+	readonly sockets_before_cleanup: number;
+}
+export interface ProcessCapture { readonly stdout: Buffer; readonly stderr: Buffer; readonly observation: ProcessObservation; }
+export interface CaptureOptions {
+	readonly command: readonly string[]; readonly cwd: string; readonly environment: NodeJS.ProcessEnv; readonly stem: string;
+	readonly stop?: StopRequest | undefined; readonly expectedNativeSha?: string | undefined; readonly timeoutMs?: number;
+}
+type CapturedChild = ChildProcessByStdio<null, Readable, Readable>;
+const delay = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const noOwnedProcesses: OwnedTreeObserver = (): ProcessMember[] => [];
+
+function hasErrorCode(error: unknown, codes: readonly string[]): boolean {
+	return error instanceof Error && 'code' in error && typeof error.code === 'string' && codes.includes(error.code);
+}
+
+function processMembers(): ProcessMember[] {
 	if (process.platform === 'darwin') {
 		const result = spawnSync('/bin/ps', ['-axo', 'pid=,ppid=,pgid=,stat=,lstart=,command='], {
 			encoding: 'utf8',
@@ -19,15 +59,16 @@ function processMembers() {
 			0,
 			'owned-group inspection unavailable: ' + (result.error?.message || result.stderr),
 		);
-		return result.stdout.split('\n').flatMap((line) => {
+		return result.stdout.split('\n').flatMap((line): ProcessMember[] => {
 			const fields = line.trim().split(/\s+/);
-			return fields.length >= 10 && /^\d+$/.test(fields[0])
+			const [processId, parentId, processGroup, processState] = fields;
+			return fields.length >= 10 && processId && parentId && processGroup && processState && /^\d+$/.test(processId)
 				? [
 						{
-							pid: +fields[0],
-							parent: +fields[1],
-							group: +fields[2],
-							state: fields[3],
+							pid: +processId,
+							parent: +parentId,
+							group: +processGroup,
+							state: processState,
 							started: fields.slice(4, 9).join(' '),
 							command: fields.slice(9).join(' '),
 						},
@@ -42,38 +83,41 @@ function processMembers() {
 			try {
 				const stat = fileSystem.readFileSync('/proc/' + name + '/stat', 'utf8');
 				const fields = stat.slice(stat.lastIndexOf(')') + 2).split(' ');
+				const [processState, parentId, processGroup] = fields;
+				const started = fields[19];
+				assert.ok(processState && parentId && processGroup && started);
 				return [
 					{
 						pid: +name,
-						parent: +fields[1],
-						group: +fields[2],
-						state: fields[0],
-						started: fields[19],
+						parent: +parentId,
+						group: +processGroup,
+						state: processState,
+						started,
 						command: fileSystem
 							.readFileSync('/proc/' + name + '/cmdline', 'utf8')
 							.replaceAll('\0', ' '),
 					},
 				];
 			} catch (error) {
-				if (error.code === 'ENOENT' || error.code === 'ESRCH') return [];
+				if (hasErrorCode(error, ['ENOENT', 'ESRCH'])) return [];
 				throw error;
 			}
 		});
 }
 
-function groupMembers(group) {
+function groupMembers(group: number): ProcessMember[] {
 	return processMembers().filter((member) => member.group === group);
 }
 
-function trackOwnedTree(rootPid) {
-	const knownStarts = new Map();
-	let initialCensus;
-	const observe = () => {
+function trackOwnedTree(rootPid: number): OwnedTreeObserver {
+	const knownStarts = new Map<number, string>();
+	let initialCensus: OwnershipCensus | undefined;
+	const observe: OwnedTreeObserver = (): ProcessMember[] => {
 		const members = processMembers();
 		const root = members.find((member) => member.pid === rootPid);
 		if (!initialCensus) {
 			const established = root?.parent === process.pid;
-			const seeds = established ? [root] : members.filter((member) => member.group === rootPid);
+			const seeds = established && root ? [root] : members.filter((member) => member.group === rootPid);
 			initialCensus = {
 				kind: established ? 'established' : 'unestablished',
 				initial_root: root || null,
@@ -105,7 +149,7 @@ function trackOwnedTree(rootPid) {
 	return observe;
 }
 
-async function settleOwnedTree(observe) {
+async function settleOwnedTree(observe: OwnedTreeObserver): Promise<ProcessMember[]> {
 	let members = observe();
 	for (let attempt = 0; attempt < 100 && members.length; attempt++) {
 		await delay(30);
@@ -114,7 +158,7 @@ async function settleOwnedTree(observe) {
 	return members;
 }
 
-async function settleGroup(group) {
+async function settleGroup(group: number): Promise<ProcessMember[]> {
 	let members = groupMembers(group);
 	for (let attempt = 0; attempt < 100 && members.length; attempt++) {
 		await delay(30);
@@ -123,15 +167,15 @@ async function settleGroup(group) {
 	return members;
 }
 
-function signalOwnedTarget(targetPid, signal) {
+function signalOwnedTarget(targetPid: number, signal: NodeJS.Signals): void {
 	try {
 		process.kill(targetPid, signal);
 	} catch (error) {
-		if (error.code !== 'ESRCH') throw error;
+		if (!hasErrorCode(error, ['ESRCH'])) throw error;
 	}
 }
 
-function ownedKill(group, signal) {
+function ownedKill(group: number, signal: NodeJS.Signals): void {
 	signalOwnedTarget(-group, signal);
 }
 
@@ -143,45 +187,44 @@ async function captureProcess({
 	stop,
 	expectedNativeSha,
 	timeoutMs = 120000,
-}) {
+}: CaptureOptions): Promise<ProcessCapture> {
 	// Refuse before spawning a product or held request when the host cannot
 	// supply process-group observations. A denied inspection is not no survivors.
 	groupMembers(process.pid);
 	fileSystem.mkdirSync(path.dirname(stem), { recursive: true });
 	const started = performance.now();
-	const elapsed = () => Math.round(performance.now() - started);
-	let child,
-		server,
-		admitted,
-		signalAt,
-		readyGroup,
-		nativeIdentity,
-		rootExit = null,
-		rootClose = null,
-		errorText;
-	const stdout = [],
-		stderr = [],
-		sockets = new Set(),
-		timeline = [];
-	const deadlines = [];
-	const deadline = (milliseconds, value) =>
-		new Promise((resolve) => {
+	const elapsed = (): number => Math.round(performance.now() - started);
+	let child: CapturedChild | undefined;
+	let server: http.Server | undefined;
+	let admitted: HeldRequest | undefined;
+	let signalAt: number | undefined;
+	let readyGroup: ProcessMember[] | undefined;
+	let nativeIdentity: NativeIdentity[] | undefined;
+	let rootExit: ProcessEnd | null = null;
+	let rootClose: ProcessEnd | null = null;
+	let errorText: string | undefined;
+	const stdout: Buffer[] = [], stderr: Buffer[] = [];
+	const sockets = new Set<Socket>();
+	const timeline: StopObservation[] = [];
+	const deadlines: NodeJS.Timeout[] = [];
+	const deadline = <TOutcome>(milliseconds: number, value: TOutcome): Promise<TOutcome> =>
+		new Promise<TOutcome>((resolve) => {
 			deadlines.push(setTimeout(() => resolve(value), milliseconds));
 		});
-	let readyResolve;
-	let socketsClosedResolve;
-	const socketsClosed = new Promise((resolve) => {
+	let readyResolve: ((value: boolean) => void) | undefined;
+	let socketsClosedResolve: ((value: boolean) => void) | undefined;
+	const socketsClosed = new Promise<boolean>((resolve) => {
 		socketsClosedResolve = resolve;
 	});
-	const ready = new Promise((resolve) => {
+	const ready = new Promise<boolean>((resolve) => {
 		readyResolve = resolve;
 	});
-	let configBefore;
-	let observeOwned = noOwnedProcesses;
+	let configBefore: Buffer | undefined;
+	let observeOwned: OwnedTreeObserver = noOwnedProcesses;
 	const configPath = path.join(cwd, 'sunstack.lint.json');
 	if (stop) {
 		server = http.createServer((request) => {
-			const chunks = [];
+			const chunks: Buffer[] = [];
 			let bytes = 0;
 			request.on('data', (chunk) => {
 				bytes += chunk.length;
@@ -190,7 +233,7 @@ async function captureProcess({
 			});
 			request.on('end', () => {
 				try {
-					admitted = JSON.parse(Buffer.concat(chunks));
+					admitted = heldRequestSchema.parse(JSON.parse(Buffer.concat(chunks).toString('utf8')));
 					assert.ok(
 						admitted.questions &&
 							!Array.isArray(admitted.questions) &&
@@ -208,7 +251,7 @@ async function captureProcess({
 								if (digest === expectedNativeSha)
 									nativeIdentity.push({ pid: member.pid, file: token, sha256: digest });
 							} catch (error) {
-								if (!['ENOENT', 'EACCES'].includes(error.code)) throw error;
+								if (!hasErrorCode(error, ['ENOENT', 'EACCES'])) throw error;
 							}
 						}
 					}
@@ -216,9 +259,11 @@ async function captureProcess({
 						nativeIdentity.length,
 						'held request must be owned by the installed release native process',
 					);
+					assert.ok(readyResolve);
 					readyResolve(true);
 				} catch (error) {
-					errorText = error.stack;
+					errorText = error instanceof Error ? error.stack : undefined;
+					assert.ok(readyResolve);
 					readyResolve(false);
 				}
 			});
@@ -227,16 +272,22 @@ async function captureProcess({
 			sockets.add(socket);
 			socket.on('close', () => {
 				sockets.delete(socket);
-				if (sockets.size === 0) socketsClosedResolve(true);
+				if (sockets.size === 0) {
+					assert.ok(socketsClosedResolve);
+					socketsClosedResolve(true);
+				}
 			});
 		});
-		await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+		const heldServer = server;
+		await new Promise<void>((resolve) => heldServer.listen(0, '127.0.0.1', resolve));
 		configBefore = fileSystem.readFileSync(configPath);
-		const config = JSON.parse(configBefore);
-		config.decision_model.endpoint = 'http://127.0.0.1:' + server.address().port + '/systemone';
+		const config = lintConfigSchema.parse(JSON.parse(configBefore.toString('utf8')));
+		const address = server.address();
+		assert.ok(address && typeof address === 'object');
+		config.decision_model.endpoint = 'http://127.0.0.1:' + address.port + '/systemone';
 		save(configPath, config);
 	}
-	let observation, frozenStdout, frozenStderr;
+	let observation: ProcessObservation, frozenStdout: Buffer, frozenStderr: Buffer;
 	try {
 		const actualEnvironment = stop
 			? { ...environment, OPENROUTER_API_KEY: 'SYNTHETIC_RUNNER_CONTROL_NOT_A_SECRET' }
@@ -248,7 +299,9 @@ async function captureProcess({
 			stop: stop || null,
 			timeout_ms: timeoutMs,
 		});
-		child = spawn(command[0], command.slice(1), {
+		const executable = command[0];
+		assert.ok(executable);
+		child = spawn(executable, command.slice(1), {
 			cwd,
 			env: actualEnvironment,
 			detached: true,
@@ -260,15 +313,17 @@ async function captureProcess({
 		}
 		child.stdout.on('data', (chunk) => stdout.push(chunk));
 		child.stderr.on('data', (chunk) => stderr.push(chunk));
-		let closedResolve, failedResolve;
-		const closed = new Promise((resolve) => {
+		let closedResolve: ((value: 'closed') => void) | undefined;
+		let failedResolve: ((value: 'spawn-error') => void) | undefined;
+		const closed = new Promise<'closed'>((resolve) => {
 			closedResolve = resolve;
 		});
-		const failed = new Promise((resolve) => {
+		const failed = new Promise<'spawn-error'>((resolve) => {
 			failedResolve = resolve;
 		});
 		child.on('error', (error) => {
 			errorText = error.stack;
+			assert.ok(failedResolve);
 			failedResolve('spawn-error');
 		});
 		child.on('exit', (code, signal) => {
@@ -276,6 +331,7 @@ async function captureProcess({
 		});
 		child.on('close', (code, signal) => {
 			rootClose = { code, signal, elapsed_ms: elapsed() };
+			assert.ok(closedResolve);
 			closedResolve('closed');
 		});
 		if (stop) {
@@ -287,6 +343,7 @@ async function captureProcess({
 			]);
 			assert.equal(readiness, true, errorText || 'no admitted request before stop');
 			signalAt = elapsed();
+			assert.ok(child.pid);
 			if (stop.destination === 'group') ownedKill(child.pid, stop.signal);
 			else process.kill(child.pid, stop.signal);
 			if (stop.expectation === 'no-cancelled-report') {
@@ -310,7 +367,7 @@ async function captureProcess({
 				errorText = errorText || 'normal invocation did not close within bound';
 		}
 	} catch (error) {
-		errorText = error.stack;
+		errorText = error instanceof Error ? error.stack : undefined;
 	} finally {
 		const before = child?.pid
 			? stop?.expectation === 'no-cancelled-report'
@@ -353,7 +410,7 @@ async function captureProcess({
 		fileSystem.writeFileSync(stem + '.stdout.log', frozenStdout);
 		fileSystem.writeFileSync(stem + '.stderr.log', frozenStderr);
 		save(stem + '.process.json', observation);
-		let after = [];
+		let after: ProcessMember[] = [];
 		if (child?.pid) {
 			if (observeOwned().length) {
 				ownedKill(child.pid, 'SIGINT');
@@ -370,7 +427,8 @@ async function captureProcess({
 		if (sockets.size > 0) await Promise.race([socketsClosed, deadline(3000, false)]);
 		if (server) {
 			server.closeAllConnections();
-			await new Promise((resolve) => server.close(resolve));
+			const heldServer = server;
+			await new Promise<void>((resolve) => heldServer.close(() => resolve()));
 		}
 		if (configBefore) fileSystem.writeFileSync(configPath, configBefore);
 		fileSystem.writeFileSync(stem + '.after-cleanup.stdout.log', Buffer.concat(stdout));
@@ -387,4 +445,4 @@ async function captureProcess({
 	return { stdout: frozenStdout, stderr: frozenStderr, observation };
 }
 
-module.exports = { captureProcess, groupMembers, settleGroup, trackOwnedTree };
+export { captureProcess, groupMembers, settleGroup, trackOwnedTree };

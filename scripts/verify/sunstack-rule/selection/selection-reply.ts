@@ -1,6 +1,6 @@
 /** Scripted native answers keyed by file and candidate, never inferred from product outcomes. */
-import { configName, objectValue, type JsonObject } from './rulebook-fixture-support.ts';
-import { responseBody } from './rulebook-process.ts';
+import { configName, objectValue, type JsonObject } from '../rulebook/rulebook-fixture-support.ts';
+import { responseBody } from '../rulebook/rulebook-process.ts';
 import { selectionState } from './selection-checks.ts';
 export interface SelectionReply {
 	probability: (file: string, key: string) => number;

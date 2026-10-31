@@ -1,12 +1,21 @@
+import assert from 'node:assert/strict';
 // Ordinary stream comparison shared by live grading and retained-raw regrading.
-const assert = require('node:assert/strict');
 
-function linesFrom(bytes) {
+
+interface StreamCapture {
+	readonly stdout: Buffer;
+	readonly stderr: Buffer;
+}
+interface StreamComparison {
+	readonly native_line_positions: number[];
+	readonly manager_extra_lines: string[];
+}
+function linesFrom(bytes: Buffer): string[] {
 	const text = bytes.toString();
 	return text === '' ? [] : (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n');
 }
 
-function managerLine(route, line) {
+function managerLine(route: string, line: string): boolean {
 	if (['exec-script', 'npx', 'exec-npx'].includes(route))
 		return /^npm (?:warn|error|notice|info|verbose|silly|http|timing)\b/.test(line);
 	if (route === 'pnpm-dlx')
@@ -17,12 +26,12 @@ function managerLine(route, line) {
 	return false;
 }
 
-function compareStreams(native, channel, route) {
+function compareStreams(native: StreamCapture, channel: StreamCapture, route: string): StreamComparison {
 	assert.deepEqual(channel.stdout, native.stdout, 'stdout bytes differ from native');
 	const nativeLines = linesFrom(native.stderr),
 		channelLines = linesFrom(channel.stderr);
-	const positions = [],
-		extras = [];
+	const positions: number[] = [],
+		extras: string[] = [];
 	for (const [index, line] of channelLines.entries()) {
 		if (positions.length < nativeLines.length && line === nativeLines[positions.length])
 			positions.push(index);
@@ -35,4 +44,4 @@ function compareStreams(native, channel, route) {
 	return { native_line_positions: positions, manager_extra_lines: extras };
 }
 
-module.exports = { compareStreams };
+export { compareStreams };

@@ -12,8 +12,8 @@ import {
 	objectValue,
 	requireCondition,
 	runSequence,
-} from './rulebook-fixture-support.ts';
-import { type RulebookProcess } from './rulebook-process.ts';
+} from '../rulebook/rulebook-fixture-support.ts';
+import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { selectionEntries, selectionPieces, selectionState } from './selection-checks.ts';
 import {
 	askingStepRule,

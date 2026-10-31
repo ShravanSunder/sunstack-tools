@@ -8,8 +8,8 @@ import { afterEach, expect, test } from 'vitest';
 
 import { hostedArgumentsSchema, observeHosted, readCredential } from './hosted-lint.ts';
 import { inspectStaticArm64 } from './hosted-process.ts';
-import { readObject } from './rulebook-fixture-support.ts';
-import { binaryDigest } from './rulebook-process.ts';
+import { readObject } from '../rulebook/rulebook-fixture-support.ts';
+import { binaryDigest } from '../rulebook/rulebook-process.ts';
 const temporary: string[] = [];
 function scratch(): string {
 	const root = filesystem.mkdtempSync(path.join(operatingSystem.tmpdir(), 'hosted-apparatus-'));
