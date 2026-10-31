@@ -1,6 +1,8 @@
 use crate::{
-    LintReport, LintStatus, ScopeReport,
-    lint_reporting::formats::{incomplete_text, transport_level, uncertain_text},
+    IncompleteReason, LintReport, LintStatus, ScopeReport,
+    lint_reporting::formats::{
+        incomplete_text, selection_incomplete_text, transport_level, uncertain_text,
+    },
 };
 use serde::Serialize;
 use std::path::Path;
@@ -164,7 +166,20 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
     let incomplete_messages = report
         .incomplete
         .iter()
-        .map(|part| incomplete_text(&part.reason))
+        .map(|part| {
+            let mut message = incomplete_text(&part.reason);
+            if matches!(part.reason, IncompleteReason::SelectionIncomplete) {
+                for detail in report
+                    .selections
+                    .iter()
+                    .filter_map(selection_incomplete_text)
+                {
+                    message.push('\n');
+                    message.push_str(&detail);
+                }
+            }
+            message
+        })
         .collect::<Vec<_>>();
     notifications.extend(report.incomplete.iter().zip(&incomplete_messages).map(
         |(incomplete, message)| {

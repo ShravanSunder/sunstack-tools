@@ -65,6 +65,39 @@ pub(crate) fn incomplete_text(reason: &IncompleteReason) -> String {
     }
     .into()
 }
+
+pub(crate) fn selection_incomplete_text(entry: &SelectionEntry) -> Option<String> {
+    use sunstack_rules::{SelectionIncompleteReason, SelectionOutcome};
+    let SelectionOutcome::Incomplete { reason } = &entry.outcome else {
+        return None;
+    };
+    let reason = match reason {
+        SelectionIncompleteReason::EvidenceUnavailable { .. } => {
+            IncompleteReason::EvidenceUnavailable
+        }
+        SelectionIncompleteReason::EvidenceTooLarge => IncompleteReason::EvidenceTooLarge,
+        SelectionIncompleteReason::RequestTooLarge { .. } => IncompleteReason::RequestTooLarge,
+        SelectionIncompleteReason::InvalidRequest => IncompleteReason::InvalidRequest,
+        SelectionIncompleteReason::ProviderFailure {
+            failure_class,
+            http_status,
+        } => IncompleteReason::ProviderFailure {
+            failure_class: *failure_class,
+            http_status: *http_status,
+        },
+        SelectionIncompleteReason::InvalidResponse => IncompleteReason::InvalidResponse,
+        SelectionIncompleteReason::RequestLimitReached => IncompleteReason::RequestLimitReached,
+        SelectionIncompleteReason::Cancelled => IncompleteReason::NotStarted,
+    };
+    Some(format!(
+        "{}:{} [{}]: selection incomplete ({})",
+        entry.location.file.display(),
+        entry.location.first_line,
+        entry.kind.as_str(),
+        incomplete_text(&reason)
+    ))
+}
+
 fn scope_text(scope: &ScopeReport) -> String {
     let scope_name = match &scope.kind {
         ScopeChoice::Default => "uncommitted (staged, unstaged and untracked)".into(),
@@ -159,6 +192,13 @@ fn human(report: &LintReport) -> String {
                 );
             }
         }
+    }
+    for detail in report
+        .selections
+        .iter()
+        .filter_map(selection_incomplete_text)
+    {
+        let _ = writeln!(output, "{detail}");
     }
     for result in &report.uncertain {
         let _ = writeln!(
