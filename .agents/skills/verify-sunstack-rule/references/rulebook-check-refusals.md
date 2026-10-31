@@ -7,7 +7,7 @@ This journey owns U9/R24's public boundary: the built `sunstack lint --config <p
 Inputs: the declared source/binary/configuration/client from the main skill, S0 fixture tree and a fresh authorized evidence directory. Read the script's header and `--help`. From the monorepo root:
 
 ```sh
-node scripts/verify/sunstack-rule/rulebook-check-refusals.ts \
+node scripts/verify/sunstack-rule/rulebook/rulebook-check-refusals.ts \
   --prepare --evidence <new-authorized-directory>
 ```
 

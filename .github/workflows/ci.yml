@@ -80,20 +80,21 @@ jobs:
         if: runner.os == 'Linux'
         background: true
         run: |
-          pnpm exec oxlint --type-aware --type-check --tsconfig scripts/verify/sunstack-rule/tsconfig.json --max-warnings 0 scripts/verify/sunstack-rule/*.ts
+          pnpm exec oxlint --type-aware --type-check --tsconfig scripts/verify/sunstack-rule/tsconfig.json --max-warnings 0 scripts/verify/sunstack-rule/**/*.ts
           pnpm exec oxlint --type-aware --type-check --tsconfig scripts/release/tsconfig.json --max-warnings 0 scripts/release/*.ts
       - name: Check scripts and workflow formatting
         id: scripts-format
         if: runner.os == 'Linux'
         background: true
-        run: pnpm exec oxfmt --check scripts/verify/sunstack-rule/*.ts scripts/verify/sunstack-rule/tsconfig.json scripts/release/*.ts scripts/release/tsconfig.json .github/workflows/ci.yml .github/workflows/release-cache.yml .github/workflows/steps/release-build-setup.yml
+        run: pnpm exec oxfmt --check scripts/verify/sunstack-rule/**/*.ts scripts/verify/sunstack-rule/tsconfig.json scripts/release/*.ts scripts/release/tsconfig.json .github/workflows/ci.yml .github/workflows/release-cache.yml .github/workflows/steps/release-build-setup.yml
       - name: Test scripts
         id: scripts-tests
         if: runner.os == 'Linux'
         background: true
         run: |
-          pnpm exec vitest run scripts/verify/sunstack-rule/*.test.ts
+          pnpm exec vitest run scripts/verify/sunstack-rule/**/*.test.ts
           node --test scripts/release/*-test.ts
+          node --test scripts/verify/sunstack-rule/release/*-test.ts
       - name: Lint Rust workspace
         run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - name: Test Rust workspace
