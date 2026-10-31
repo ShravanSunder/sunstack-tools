@@ -70,7 +70,7 @@ export async function builtFixtures(): Promise<Plugin> {
 		),
 	);
 	const searchPages = await Promise.all(
-		['index.html', 'evidence.html'].map(async (name) => ({
+		['index.html', 'evidence.html', 'reading.html'].map(async (name) => ({
 			filePath: join(snapshot, 'search', name),
 			html: await readFile(join(snapshot, 'search', name), 'utf8'),
 			markdownFiles: {},
