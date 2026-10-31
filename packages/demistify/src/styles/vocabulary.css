@@ -187,12 +187,12 @@ ex-card {
 	border: 1px solid var(--rule);
 	border-top: 2px solid var(--tone, var(--rule));
 	border-radius: var(--radius-md);
-	padding: var(--space-4) var(--space-5);
+	padding: var(--space-5);
 	font-size: var(--text-lg);
 	line-height: 1.55;
 	box-shadow: var(--shadow-float);
 }
-/* Explicit categories reuse the diagram palette; tone retains its own icon and top edge. */
+/* A declared category owns the surface paint; status remains explicit content. */
 :is(ex-card, ex-region)[series='1'] {
 	--surface-category: var(--chart-1);
 }
@@ -212,12 +212,22 @@ ex-card {
 	--surface-category: var(--chart-6);
 }
 :is(ex-card, ex-region)[series] {
-	background: color-mix(
+	--category-header-base: color-mix(
 		in srgb,
 		var(--surface-category, var(--surface-content)) 10%,
 		var(--surface-content)
 	);
-	border-inline-start: 3px solid var(--surface-category, var(--rule));
+	--category-edge: color-mix(in srgb, var(--surface-category, var(--rule)) 45%, var(--rule));
+	background: var(--surface-content);
+	border-color: var(--category-edge);
+	border-top-color: var(--surface-category, var(--rule));
+}
+:is(ex-card, ex-region)[series] > :is(.ex-card-head, .ex-region-head) > .ex-tone-icon {
+	color: var(--surface-category, var(--ink-soft));
+}
+:is(ex-card, ex-region)[series][prepared] > :is(.ex-card-head, .ex-region-head) {
+	background: color-mix(in srgb, var(--category-header-base) 88%, #000);
+	border-color: var(--category-edge);
 }
 ex-card .eyebrow {
 	color: var(--tone, var(--accent));
@@ -232,7 +242,7 @@ ex-card .eyebrow {
 }
 .ex-card-head {
 	align-items: flex-start;
-	margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-5)) var(--space-2);
+	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-5);
 	padding: var(--space-4) var(--space-5);
 	border-bottom: 1px solid var(--rule);
 	border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
@@ -268,18 +278,52 @@ ex-card .eyebrow {
 	border-radius: var(--radius-sm);
 	padding: 1px var(--space-1);
 }
-ex-card > :is(p, ul, ol) {
-	margin: var(--space-1) 0;
+/* The container owns one body inset; only its body boundaries lose outer margins. */
+:is(ex-card, ex-region)
+	> :nth-child(
+		1 of :not(
+			.ex-card-head,
+			.ex-region-head,
+			footer,
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas,
+			ex-arrow,
+			script,
+			template,
+			[hidden]
+		)
+	) {
+	margin-block-start: 0;
+}
+:is(ex-card, ex-region)
+	> :nth-last-child(
+		1 of :not(
+			.ex-card-head,
+			.ex-region-head,
+			footer,
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas,
+			ex-arrow,
+			script,
+			template,
+			[hidden]
+		)
+	) {
+	margin-block-end: 0;
 }
 ex-card > :last-child:not(footer) {
 	margin-bottom: 0;
 }
 ex-card > footer {
-	margin: var(--space-2) calc(-1 * var(--space-5)) calc(-1 * var(--space-4));
-	padding: var(--space-3) var(--space-5);
-	border-top: 1px solid var(--rule);
+	margin: var(--space-5) calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+	padding: var(--space-2) var(--space-5);
+	border: 0;
 	border-radius: 0 0 calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px);
-	background: color-mix(in srgb, var(--surface-content) 94%, #000);
+	background: var(--surface-content);
 	color: var(--ink-soft);
 	font-size: var(--text-sm);
 }
@@ -735,30 +779,39 @@ ex-region {
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 	align-content: start;
 	column-gap: var(--space-12);
-	row-gap: var(--space-10);
+	row-gap: var(--space-4);
 	position: relative;
 	container-type: inline-size;
-	padding: var(--space-4) var(--space-5) var(--space-6);
+	padding: var(--space-5);
 	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	border-top: 2px solid var(--tone, var(--accent));
 	border-radius: var(--radius-md);
 }
-ex-region > :is(.ex-region-head, ex-markdown, ex-callout) {
+ex-region > :is(.ex-region-head, ex-markdown, ex-callout, p, ul, ol) {
 	grid-column: 1 / -1;
 }
-ex-region > ex-markdown {
-	margin-top: -28px;
+ex-region[prepared] > :is(ex-markdown, p, ul, ol):not(.ex-flow-overlay, .ex-arrow-canvas) {
+	margin-block: 0;
+	max-width: none;
 }
 ex-region > * + * {
 	margin-top: 0;
 }
-.ex-region-head {
+ex-region[prepared] > .ex-region-head {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
-	margin: 0;
+	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-1);
+	padding: var(--space-4) var(--space-5);
+	border-bottom: 1px solid var(--rule);
+	border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+	background: color-mix(in srgb, var(--surface-content) 94%, #000);
 	font-size: var(--text-xl);
+}
+.ex-region-head > strong {
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
 }
 ex-board[data-mode='map'] .ex-region-head {
 	cursor: zoom-in;
