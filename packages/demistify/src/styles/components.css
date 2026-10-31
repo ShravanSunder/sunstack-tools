@@ -545,11 +545,9 @@ ex-tabs.ex-inspectable {
 	display: flow-root;
 }
 
-/* A Markdown surface starting with a heading has no band inset for its source rail. */
+/* A leading h1 has no section inset; other headings retain their margin collapse. */
 ex-markdown.ex-inspectable:has(
-		> :is(h1, h2, h3, h4, h5, h6):nth-child(
-			1 of :not(script, template, [hidden], .ex-inspect-controls)
-		)
+		> h1:nth-child(1 of :not(script, template, [hidden], .ex-inspect-controls))
 	) {
 	padding-block-start: var(--space-4);
 }
@@ -596,6 +594,14 @@ ex-markdown.ex-inspectable:has(
 		> :is(h1, h2, h3, h4, h5, h6):nth-child(
 			1 of :not(script, template, [hidden], .ex-inspect-controls)
 		)
+	)
+	> .ex-inspect-controls {
+	top: calc(var(--space-1) - var(--space-8));
+}
+
+/* Subheadings have no inner top inset; float their source rail above, without blocking margins. */
+ex-markdown.ex-inspectable:has(
+		> :is(h3, h4, h5, h6):nth-child(1 of :not(script, template, [hidden], .ex-inspect-controls))
 	)
 	> .ex-inspect-controls {
 	top: calc(var(--space-1) - var(--space-8));

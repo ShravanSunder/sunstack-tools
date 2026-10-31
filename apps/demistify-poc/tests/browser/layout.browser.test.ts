@@ -362,3 +362,38 @@ test('four tabs, Markdown first-heading text and multi-file paths remain clear o
 		expect(path.scrollWidth).toBeLessThanOrEqual(code.clientWidth + 1);
 	}
 });
+
+test('bare Markdown section headings retain document margin rhythm and clear source controls', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture } = await openFixture('layout');
+	const example = fixture.createElement('ex-document');
+	example.id = 'section-rhythm';
+	example.innerHTML = [2, 3, 4, 5, 6]
+		.map(
+			(level): string =>
+				`<ex-card id="before-heading-${level}" title="Before section" tone="note"><p>Existing content.</p></ex-card>\n\n${'#'.repeat(level)} Section heading ${level} for the delivery\n\nSection content.\n\n`,
+		)
+		.join('');
+	fixture.body.append(example);
+	await expect.poll((): number => example.querySelectorAll('ex-markdown[prepared]').length).toBe(5);
+	const section = requiredElement(example, 'ex-markdown h2');
+	const preceding = requiredElement(example, '#before-heading-2');
+	expect(
+		section.getBoundingClientRect().top - preceding.getBoundingClientRect().bottom,
+	).toBeCloseTo(40, 0);
+	for (const heading of example.querySelectorAll('ex-markdown > :is(h2,h3,h4,h5,h6)')) {
+		const markdown = heading.parentElement;
+		if (!markdown) throw new Error('Missing Markdown owner');
+		expect(fixture.defaultView?.getComputedStyle(markdown).paddingTop).toBe('0px');
+		const control = requiredElement(markdown, '.ex-inspect-controls').getBoundingClientRect();
+		const range = fixture.createRange();
+		range.selectNodeContents(heading);
+		for (const text of range.getClientRects()) {
+			expect(
+				Math.min(text.right, control.right) > Math.max(text.left, control.left) &&
+					Math.min(text.bottom, control.bottom) > Math.max(text.top, control.top),
+				heading.tagName + ' clears source rail',
+			).toBe(false);
+		}
+	}
+});
