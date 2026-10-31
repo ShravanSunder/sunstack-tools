@@ -298,5 +298,5 @@ pub struct KindListing {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub select: Option<sunstack_evidence::SelectionWire>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub within: Option<EvidenceKindName>,
+    pub within: Option<sunstack_evidence::ContainingKinds>,
 }

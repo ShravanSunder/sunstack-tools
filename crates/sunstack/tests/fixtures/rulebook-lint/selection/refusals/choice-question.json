@@ -49,7 +49,7 @@
       },
       "step": {
         "rule": "step",
-        "within": "workflow_section",
+        "within": ["workflow_section"],
         "fields": {
           "body": {
             "from": "remainder"

@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.0
+
+Release date: 2026-10-30.
+
+### Breaking
+
+- Set `within` to a nonempty list of distinct kinds, for example
+  `["step", "standards_section"]`. A match counts once inside any listed kind,
+  including overlapping containers. Rewrite `"within": "x"` as `"within": ["x"]`.
+  A present `null` or any non-list is refused; omit the key for no containment.
+
+### Fixed
+
+- Check refusals for undefined kinds, cycles and `within` entries point at the
+  actual kind or field, including names with dots. Cycle refusals name and point
+  at the first kind in the cycle.
+- Config refusals use the full setting path: `limits.evidence_max_chars`,
+  `check.files`, `evidence.kinds`, `evidence.ast_grep`,
+  `rulebook.<index>.markdown` and `rulebook.<index>.rules`.
+
+### Internal
+
+- Separate child startup waits from active test deadlines (#113).
+- Group Rust crate modules by responsibility (#110).
+- Batch repository metadata reads (#112).
+- Run CI on PRs and main, with cache writes only from main (#109, #111).
+
 ## 0.3.0
 
 Release date: 2026-10-30.

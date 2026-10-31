@@ -274,9 +274,9 @@ impl EvidenceBuild {
                     .into_iter()
                     .flatten()
                 {
-                    if let Some(parent) = &definition.within
+                    if let Some(parents) = &definition.within
                         && !self.catalog.pieces.iter().any(|piece| {
-                            &piece.kind == parent
+                            parents.as_slice().contains(&piece.kind)
                                 && piece.location.file == *path
                                 && match_within(
                                     range,
