@@ -14,13 +14,13 @@
   <h2>Cards</h2>
   <ex-grid cols="2">
     <ex-card id="design-card" title="Design" tone="note" icon="path" tag="Phase" series="1" zoom>
-      <p>Names the delivery outcome.</p><footer>Phase · current</footer>
+      <p>Names the delivery outcome.</p><p>Category and status are shown separately.</p><footer>Phase · current</footer>
     </ex-card>
     <ex-card id="builder-card" title="Builder" tone="planned" icon="user" tag="Role" series="2">
       <p>Implements the agreed change.</p><footer>Role · proposed</footer>
     </ex-card>
     <ex-card id="inspect-card" title="Inspect" tone="done" icon="test-tube" tag="Method" series="3">
-      <p>Checks the real interaction.</p>
+      Checks the real interaction.
     </ex-card>
     <ex-card id="ownership-card" title="One owner" tone="risk" icon="database" tag="Principle" series="4">
       <p>Keeps one authority for each fact.</p><footer>Principle · current; risk needs review</footer>
@@ -34,10 +34,34 @@
   </ex-grid>
   <h2>Ownership regions</h2>
   <ex-board cols="2">
-    <ex-region id="design-region" title="Design" tone="note" icon="path" series="1"><p>Phase · names the delivery outcome.</p></ex-region>
-    <ex-region id="builder-region" title="Builder" tone="planned" icon="user" series="2"><p>Role · implements the agreed change.</p></ex-region>
+    <ex-region id="design-region" title="Design" tone="note" icon="path" series="1">
+Phase · names the delivery outcome.
+
+Category and status are shown separately.
+</ex-region>
+    <ex-region id="builder-region" title="Builder · implements the agreed change" tone="planned" icon="user" series="2"><p>Role · implements the agreed change.</p><ex-card title="Builder" tone="planned" series="2" detail><p>Implements the agreed change.</p></ex-card></ex-region>
     <ex-region id="inspect-region" title="Inspect" tone="done" icon="test-tube" series="3"><p>Method · checks the real interaction.</p></ex-region>
     <ex-region id="ownership-region" title="One owner" tone="risk" icon="database" series="4"><p>Principle · keeps one authority for each fact.</p></ex-region>
+  </ex-board>
+  <h2>Stacked component channels</h2>
+  <ex-board cols="1" mode="map">
+    <ex-region id="delivery-channel" title="Design and Builder" tone="note" icon="path" series="1">
+      <ex-card id="channel-design" title="Design" tone="note" series="1"><p>Names the delivery outcome.</p></ex-card>
+      <ex-card id="channel-builder" title="Builder" tone="planned" series="2"><p>Implements the agreed change.</p></ex-card>
+      <ex-arrow from="channel-design" to="channel-builder" label="Delivery"></ex-arrow>
+    </ex-region>
+  </ex-board>
+  <h2>Mixed body composition</h2>
+  <ex-card id="mixed-design" title="Design" tone="note" series="1">
+Names the delivery outcome.
+<ex-code lang="text"><script type="text/plain">Design</script></ex-code>
+Category and status are shown separately.
+  </ex-card>
+  <ex-board cols="1">
+    <ex-region id="prose-design" title="Design" tone="note" series="1">
+      <p>Names the delivery outcome.</p>
+      <p>Category and status are shown separately.</p>
+    </ex-region>
   </ex-board>
   <h2>Native table</h2>
   <table id="native-surface-table">
