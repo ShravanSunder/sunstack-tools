@@ -5,7 +5,7 @@ import {
 	labelControl,
 } from '../core/controls.ts';
 import { createDebouncedAction } from '../core/debounce.ts';
-import { createIconButton } from '../core/icons.ts';
+import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { registerInspectionCopy } from '../islands/inspection-copy.ts';
 import { appendSources, connectionTable, supplementaryTable } from './explorer-tables.ts';
@@ -46,6 +46,9 @@ export class ExplorerController {
 	private readonly sources = document.createElement('aside');
 	private readonly resizeObserver: ResizeObserver;
 	private graphWidth = 0;
+	private mobileView: 'list' | 'detail' = 'list';
+	private listScrollTop = 0;
+	private listPageScrollY: number | undefined;
 
 	constructor(
 		private readonly owner: HTMLElement,
@@ -70,6 +73,11 @@ export class ExplorerController {
 		const urlSelection = new URL(location.href).searchParams.get(`ex.${owner.id}`);
 		if (urlSelection && (urlSelection === '__issues' || this.nodeById.has(urlSelection)))
 			this.selection = urlSelection;
+		this.mobileView =
+			urlSelection && (urlSelection === '__issues' || this.nodeById.has(urlSelection))
+				? 'detail'
+				: 'list';
+		owner.dataset['mobileView'] = this.mobileView;
 		this.mode = owner.getAttribute('view') === 'current' ? 'current' : 'proposed';
 		this.view = compositionView(graphDocument, this.selection, this.mode);
 		this.browser.className = 'ex-explorer-browser';
@@ -84,9 +92,17 @@ export class ExplorerController {
 			`Composition issues · ${graphDocument.nodes.filter((node): boolean => Boolean(node.issue)).length}`,
 		);
 		issues.addEventListener('click', (): void => this.select('__issues'));
+		const listTitle = document.createElement('div');
+		listTitle.className = 'ex-explorer-list-title';
+		listTitle.setAttribute('role', 'heading');
+		listTitle.setAttribute('aria-level', '1');
+		listTitle.textContent = graphDocument.title;
 		const browserHeader = document.createElement('div');
 		browserHeader.className = 'ex-explorer-browser-header';
-		browserHeader.append(this.searchField.element, issues);
+		const hint = document.createElement('p');
+		hint.className = 'ex-explorer-hint';
+		hint.textContent = 'Select a node to view details.';
+		browserHeader.append(listTitle, this.searchField.element, hint, issues);
 		this.list.className = 'ex-explorer-node-list';
 		this.browser.append(browserHeader, this.list);
 		const header = document.createElement('header');
@@ -99,6 +115,22 @@ export class ExplorerController {
 		);
 		header.append(title, description, ...authoredIntro);
 		this.main.className = 'ex-explorer-main';
+		const back = document.createElement('button');
+		back.type = 'button';
+		back.className = 'ex-explorer-back';
+		labelControl(back, 'arrow-left', 'Back to nodes');
+		back.addEventListener('click', (): void => {
+			this.mobileView = 'list';
+			owner.dataset['mobileView'] = 'list';
+			requestAnimationFrame((): void => {
+				this.list.scrollTop = this.listScrollTop;
+				const current = this.list.querySelector<HTMLElement>('[aria-current="true"]');
+				const focusTarget = current && current.getClientRects().length > 0 ? current : this.search;
+				focusTarget.focus({ preventScroll: true });
+				if (this.listPageScrollY === undefined) owner.scrollIntoView({ block: 'start' });
+				else window.scrollTo({ top: this.listPageScrollY });
+			});
+		});
 		this.heading.className = 'ex-explorer-heading';
 		this.breadcrumb.className = 'ex-explorer-history';
 		this.breadcrumb.setAttribute('aria-label', 'Selection history');
@@ -132,6 +164,7 @@ export class ExplorerController {
 		note.className = 'ex-explorer-caption';
 		note.textContent = graphDocument.note;
 		this.main.append(
+			back,
 			header,
 			this.overview,
 			this.heading,
@@ -153,16 +186,28 @@ export class ExplorerController {
 			this.renderGraph();
 		});
 		this.resizeObserver.observe(this.viewport);
+		this.resizeObserver.observe(this.owner);
 		this.renderBrowser();
 		this.render();
 		bindTabKeyboard(this.tablist);
-		performance.mark(`demistify:explorer:${owner.id}:ready`);
-		owner.setAttribute('data-ready', '');
-		owner.removeAttribute('aria-busy');
-		owner.dispatchEvent(new CustomEvent('island-ready', { bubbles: true }));
+	}
+	/** Internal fragment revelation keeps selection and address owned by this controller. */
+	revealTarget(target: Element): void {
+		if (!this.main.contains(target)) return;
+		if (this.mobileView === 'list') {
+			const bounds = this.browser.getBoundingClientRect();
+			if (bounds.bottom > 0 && bounds.top < window.innerHeight) {
+				this.listScrollTop = this.list.scrollTop;
+				this.listPageScrollY = window.scrollY;
+			}
+		}
+		this.mobileView = 'detail';
+		this.owner.dataset['mobileView'] = 'detail';
+		this.renderGraph();
 	}
 	resume(): void {
 		this.resizeObserver.observe(this.viewport);
+		this.resizeObserver.observe(this.owner);
 		this.renderGraph();
 	}
 	dispose(): void {
@@ -172,6 +217,13 @@ export class ExplorerController {
 	private readonly select = (id: string, pushHistory = true): void => {
 		const selectionStart = performance.now();
 		if (id !== '__issues' && !this.nodeById.has(id)) return;
+		if (this.mobileView === 'list') {
+			this.listScrollTop = this.list.scrollTop;
+			this.listPageScrollY = window.scrollY;
+		}
+		const enterDetail = this.owner.clientWidth <= 760 && this.mobileView === 'list';
+		this.mobileView = 'detail';
+		this.owner.dataset['mobileView'] = 'detail';
 		if (pushHistory && id !== this.selection) this.history.push(this.selection);
 		this.selection = id;
 		this.selectedEdge = '';
@@ -181,6 +233,11 @@ export class ExplorerController {
 		history.replaceState(null, '', pageUrl);
 		this.renderBrowser();
 		this.render();
+		if (enterDetail)
+			requestAnimationFrame((): void => {
+				this.main.querySelector<HTMLElement>('.ex-explorer-back')?.focus({ preventScroll: true });
+				this.owner.scrollIntoView({ block: 'start' });
+			});
 		performance.measure('demistify:explorer:selection-sync', {
 			start: selectionStart,
 			end: performance.now(),
@@ -226,7 +283,9 @@ export class ExplorerController {
 				button.setAttribute('aria-label', node.label);
 				const kindLabel = document.createElement('small');
 				kindLabel.textContent = group.label;
-				button.append(kindLabel);
+				const caret = createPhosphorIcon('caret-right');
+				caret.classList.add('ex-explorer-node-caret');
+				button.append(kindLabel, caret);
 				button.title = node.description;
 				button.setAttribute('aria-current', String(node.id === this.selection));
 				button.addEventListener('click', (): void => this.select(node.id));

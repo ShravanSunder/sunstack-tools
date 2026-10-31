@@ -2,12 +2,12 @@
 
 The Vitest Browser Mode scenarios exercise the built native Web Components in headless Chromium. Each case gets a fresh same-origin document. Vite serves copied runtime, theme, font, chunk and worker files as bytes, so the worker resolves beside the runtime just as it does for a plain HTML consumer. Tests do not import the runtime's TypeScript sources. An SVG outcome proves rendering; this suite does not separately assert that the worker, rather than the supported main-thread fallback, did the render.
 
-Build the library before testing. During concurrent work, use a frozen copy of the complete library dist directory instead of rebuilding another writer's target. `DEMISTIFY_BROWSER_ASSETS` selects that copy; without it, the harness snapshots `packages/demistify/dist`. The harness prints its private snapshot path and chooses a free loopback port. It does not use the PoC preview port.
+Build the library and the PoC with root `pnpm build` before testing. The harness also snapshots the built consumer page `apps/demistify-poc/dist/experiments/html-islands-content-surfaces-live.html` and points its assets at the snapshot library, so a library-only build fails the suite at startup and a stale PoC build serves an older page. During concurrent work, use a frozen copy of the complete library dist directory instead of rebuilding another writer's target. `DEMISTIFY_BROWSER_ASSETS` selects that copy; without it, the harness snapshots `packages/demistify/dist`. The override replaces library bytes only: the consumer page always comes from `apps/demistify-poc/dist`, so it must be built from the same source as the selected library. The harness prints its private snapshot path and chooses a free loopback port. It does not use the PoC preview port.
 
 From the monorepo root:
 
 ```sh
-pnpm --filter @sunstack/demistify build
+pnpm build
 PLAYWRIGHT_BROWSERS_PATH=/private/tmp/2026-10-demistify-browser-cache pnpm --filter @sunstack/demistify-poc exec playwright install chromium
 PLAYWRIGHT_BROWSERS_PATH=/private/tmp/2026-10-demistify-browser-cache pnpm test:browser
 ```

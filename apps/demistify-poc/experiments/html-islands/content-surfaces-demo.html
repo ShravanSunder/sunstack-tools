@@ -16,7 +16,7 @@
     <ex-card id="design-card" title="Design" tone="note" icon="path" tag="Phase" series="1" zoom>
       <p>Names the delivery outcome.</p><p>Category and status are shown separately.</p><footer>Phase · current</footer>
     </ex-card>
-    <ex-card id="builder-card" title="Builder" tone="planned" icon="user" tag="Role" series="2">
+    <ex-card id="builder-card" title="Builder" tone="planned" icon="user" tag="Role" series="2" transparent-body>
       <p>Implements the agreed change.</p><footer>Role · proposed</footer>
     </ex-card>
     <ex-card id="inspect-card" title="Inspect" tone="done" icon="test-tube" tag="Method" series="3">
@@ -29,7 +29,7 @@
   <h2>Optional categories</h2>
   <ex-grid cols="3">
     <ex-card title="Delivery" tone="note" series="5" tag="Delivery"><p>Fifth category slot.</p></ex-card>
-    <ex-card title="Support and delivery team" tone="note" series="6" tag="Shared responsibility" zoom><p>Sixth category slot.</p></ex-card>
+    <ex-card title="Support and delivery team" tone="note" series="6" tag="Shared responsibility" transparent-body zoom><p>Sixth category slot.</p></ex-card>
     <ex-card title="Unclassified" tone="note"><p>No series; neutral surface.</p></ex-card>
   </ex-grid>
   <h2>Ownership regions</h2>
@@ -58,11 +58,25 @@ Names the delivery outcome.
 Category and status are shown separately.
   </ex-card>
   <ex-board cols="1">
-    <ex-region id="prose-design" title="Design" tone="note" series="1">
+    <ex-region id="prose-design" title="Design" tone="note" series="1" transparent-body>
       <p>Names the delivery outcome.</p>
       <p>Category and status are shown separately.</p>
     </ex-region>
   </ex-board>
+  <h2>Shared inspection surfaces</h2>
+  <ex-tabs id="shared-tabs" label="Delivery views" zoom>
+    <section label="Design"><p>Names the delivery outcome.</p></section>
+    <section label="Builder"><p>Implements the agreed change.</p></section>
+  </ex-tabs>
+  <ex-file-tree id="shared-files" label="Illustrative delivery files"><script type="text/plain">delivery/
+├── design.md
+└── builder.md</script></ex-file-tree>
+  <ex-compare id="shared-compare" label="Delivery responsibilities">
+    <section label="Design"><section data-compare-row="responsibility"><p>Names the delivery outcome.</p></section></section>
+    <section label="Builder"><section data-compare-row="responsibility"><p>Implements the agreed change.</p></section></section>
+  </ex-compare>
+  <ex-mermaid id="shared-diagram" label="Delivery path"><script type="text/plain">flowchart LR
+  Design --> Builder</script></ex-mermaid>
   <h2>Native table</h2>
   <table id="native-surface-table">
     <thead><tr><th>Identity</th><th>Kind</th></tr></thead>
@@ -85,6 +99,7 @@ Category and status are shown separately.
   </div>
   <h2>Explorer</h2>
   <ex-explorer id="team-explorer" selected="design" view="proposed">
+    <p id="explorer-reading-guide">Selection follows the same identity in the graph, list and connection table.</p>
     <script type="application/json">
 {
   "version": 1,

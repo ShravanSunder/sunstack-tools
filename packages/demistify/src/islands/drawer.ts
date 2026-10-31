@@ -73,7 +73,16 @@ export function closeDrawer(): void {
 	delete document.documentElement.dataset['drawer'];
 	hidePresentation(session.panel);
 	session.content.restore();
-	if (session.returnFocus?.isConnected) session.returnFocus.focus({ preventScroll: true });
+	if (session.returnFocus?.isConnected) {
+		const trigger = session.returnFocus;
+		const visibleTarget =
+			trigger.getClientRects().length > 0
+				? trigger
+				: trigger
+						.closest('.ex-inspect-controls')
+						?.querySelector<HTMLElement>('.ex-inspect-trigger:not(.ex-inspect-sidebar)');
+		visibleTarget?.focus({ preventScroll: true });
+	}
 	window.dispatchEvent(new Event('resize'));
 }
 

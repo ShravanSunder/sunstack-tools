@@ -20,7 +20,7 @@ ex-choice legend {
 	padding-right: var(--space-10);
 	margin-bottom: var(--space-4);
 }
-ex-choice > .ex-inspect-controls {
+ex-choice > .ex-inspect-controls:not(.ex-inspect-more) {
 	right: var(--space-10);
 }
 .ex-choice-option,
@@ -34,21 +34,9 @@ ex-document[document-id],
 	padding-inline-end: var(--space-10);
 	min-height: var(--space-8);
 }
-.ex-comment-target:is(ex-callout, ex-card, ex-tree, ex-file-tree) {
-	padding-inline-end: var(--space-10);
-}
-/* Bands reach the frame while their text retains the body's comment gutter. */
-ex-card.ex-comment-target > :is(.ex-card-head, footer) {
-	margin-inline-end: calc(-1 * var(--space-10));
-	padding-inline-end: var(--space-10);
-}
-ex-card.ex-comment-target.ex-inspectable > .ex-card-head {
-	padding-inline-end: calc(var(--space-16) + var(--space-10));
-}
-ex-region[prepared] > .ex-region-head.ex-comment-target {
-	padding-inline-end: var(--space-10);
-}
-.ex-comment-target > .ex-inspect-controls {
+
+/* Component rails float above the band; prose keeps its existing local gutter. */
+.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
 	right: var(--space-10);
 }
 ex-option.ex-choice-option {
@@ -392,4 +380,40 @@ ex-option.ex-choice-option > input {
 	.ex-entity-comment {
 		transition: none;
 	}
+}
+
+ex-card.ex-comment-target {
+	padding-inline-end: var(--space-5);
+}
+ex-region[prepared] > .ex-region-head.ex-comment-target {
+	padding-inline-end: var(--space-5);
+}
+:is(
+		ex-card,
+		ex-callout,
+		ex-code,
+		ex-file-tree,
+		ex-tree,
+		ex-compare,
+		ex-tabs,
+		ex-zoom
+	).ex-comment-target
+	> .ex-entity-comment,
+ex-region > .ex-region-head.ex-comment-target > .ex-entity-comment {
+	top: -14px;
+	right: var(--space-1);
+	width: 28px;
+	min-width: 28px;
+	height: 28px;
+	background: var(--surface-content);
+	border-color: var(--rule);
+	z-index: 11;
+}
+ex-mermaid.ex-comment-target > .ex-entity-comment {
+	top: var(--space-1);
+}
+
+/* Tree rows have no heading band inset; preserve full label width below the rail. */
+ex-tree.ex-comment-target {
+	padding-block-start: var(--space-4);
 }

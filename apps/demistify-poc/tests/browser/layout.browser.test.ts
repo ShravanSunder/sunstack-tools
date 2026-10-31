@@ -233,3 +233,218 @@ test('tree multiline text stays beside its first-line icon and preserves inline 
 		.element(frame.getByText('A nested child has the same alignment', { exact: false }))
 		.toBeVisible();
 });
+
+test('narrow enlargement hides only sidebar controls, fills the viewport and restores live content', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('layout');
+	const code = requiredElement(fixture, '#reading-code');
+	await expect.poll((): boolean => !!code.querySelector('.ex-code-head')).toBe(true);
+	code.scrollIntoView();
+	const head = requiredElement(code, '.ex-code-head');
+	const sidebar = requiredElement(code, '.ex-inspect-sidebar');
+	expect(fixture.defaultView?.getComputedStyle(sidebar).display).toBe('none');
+	await frame.getByRole('button', { name: 'Expand Short command', exact: true }).click();
+	const modal = frame.getByRole('dialog', { name: 'Short command', exact: true });
+	await expect.element(modal).toBeVisible();
+	const bounds = requiredElement(fixture, '.ex-inspect-dialog').getBoundingClientRect();
+	expect(bounds.left).toBeCloseTo(0, 0);
+	expect(bounds.width).toBeCloseTo(390, 0);
+	expect(bounds.height).toBeCloseTo(900, 0);
+	await modal.getByRole('button', { name: 'Close', exact: true }).click();
+	expect(requiredElement(code, '.ex-code-head')).toBe(head);
+	await page.viewport(1600, 1000);
+	await expect
+		.poll((): string | undefined => fixture.defaultView?.getComputedStyle(sidebar).display)
+		.not.toBe('none');
+});
+
+test('swipe and free-board read canvases keep initially visible card rails inside their scroll clip', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture, frame } = await openFixture('layout');
+	const documentRoot = requiredElement(fixture, 'ex-document');
+	const examples = fixture.createElement('section');
+	examples.innerHTML =
+		'<ex-grid id="rail-swipe" swipe><ex-card title="First" tone="note" zoom><p>First card.</p></ex-card><ex-card title="Second" tone="note" zoom><p>Second card.</p></ex-card></ex-grid><ex-board id="rail-free"><div style="position:relative;width:700px;height:250px"><ex-card style="position:absolute;top:0;left:0;width:280px" title="Placed card" tone="note" zoom><p>Placed content.</p></ex-card></div></ex-board>';
+	documentRoot.append(examples);
+	await expect
+		.poll(
+			(): number => examples.querySelectorAll('.ex-inspect-controls > .ex-inspect-trigger').length,
+		)
+		.toBe(6);
+	await expect
+		.poll((): number => examples.querySelectorAll('ex-card > .ex-entity-comment').length)
+		.toBe(3);
+	for (const selector of ['#rail-swipe', '#rail-free > .ex-board-canvas']) {
+		const clip = requiredElement(examples, selector);
+		const card = requiredElement(clip, 'ex-card');
+		clip.scrollIntoView({ block: 'center' });
+		expect(card.querySelectorAll(':scope > .ex-entity-comment')).toHaveLength(1);
+		const top = clip.getBoundingClientRect().top;
+		for (const control of card.querySelectorAll(
+			'.ex-inspect-controls > button, :scope > .ex-entity-comment',
+		)) {
+			if (control.getBoundingClientRect().width === 0) continue;
+			expect(control.getBoundingClientRect().top).toBeGreaterThanOrEqual(top);
+		}
+	}
+	const board = requiredElement(examples, '#rail-free');
+	await fixtureLocator(frame, board).getByRole('button', { name: 'Map view', exact: true }).click();
+	await expect.poll((): string | null => board.getAttribute('data-mode')).toBe('map');
+	const placed = requiredElement(board, 'ex-card');
+	await expect
+		.poll(
+			(): number =>
+				requiredElement(
+					placed,
+					'.ex-inspect-trigger:not(.ex-inspect-sidebar)',
+				).getBoundingClientRect().top - board.getBoundingClientRect().top,
+		)
+		.toBeGreaterThanOrEqual(0);
+});
+
+test('four tabs, Markdown first-heading text and multi-file paths remain clear of floating controls', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture } = await openFixture('layout');
+	const examples = fixture.createElement('section');
+	examples.innerHTML =
+		'<ex-tabs id="four-tabs" label="Four views" zoom><section label="Design">First</section><section label="Build">Second</section><section label="Inspect">Third</section><section label="Deliver">Fourth</section></ex-tabs><ex-markdown id="first-heading"><script type="text/markdown"># A heading for the whole delivery</script></ex-markdown><ex-card id="headed-card" title="Card body" tone="note"><ex-markdown><script type="text/markdown"># First body heading</script></ex-markdown></ex-card><ex-board><ex-region id="headed-region" title="Region body" tone="note"><ex-markdown><script type="text/markdown"># First region heading</script></ex-markdown></ex-region></ex-board><ex-code id="long-path-diff" lang="diff"><script type="text/plain">diff --git a/verylongunbrokencomponentsegmentthatdoesnotfitinanarrowcolumn/design.ts b/verylongunbrokencomponentsegmentthatdoesnotfitinanarrowcolumn/design.ts\n--- a/verylongunbrokencomponentsegmentthatdoesnotfitinanarrowcolumn/design.ts\n+++ b/verylongunbrokencomponentsegmentthatdoesnotfitinanarrowcolumn/design.ts\n@@ -1 +1 @@\n-old\n+new\ndiff --git a/builder.ts b/builder.ts\n--- a/builder.ts\n+++ b/builder.ts\n@@ -1 +1 @@\n-old\n+new</script></ex-code>';
+	requiredElement(fixture, 'ex-document').append(examples);
+	await expect
+		.poll((): boolean => requiredElement(examples, '#first-heading').hasAttribute('prepared'))
+		.toBe(true);
+	await expect
+		.poll((): number => examples.querySelectorAll('#four-tabs [role="tab"]').length)
+		.toBe(4);
+	for (const selector of ['#four-tabs [role="tab"]', '#first-heading h1']) {
+		for (const label of examples.querySelectorAll(selector)) {
+			const owner = label.closest('ex-tabs,ex-markdown');
+			if (!owner) throw new Error('Missing control owner');
+			const range = fixture.createRange();
+			range.selectNodeContents(label);
+			const control = requiredElement(
+				owner,
+				'.ex-inspect-controls > .ex-inspect-trigger:not(.ex-inspect-sidebar)',
+			).getBoundingClientRect();
+			for (const text of range.getClientRects()) {
+				expect(
+					Math.min(text.right, control.right) > Math.max(text.left, control.left) &&
+						Math.min(text.bottom, control.bottom) > Math.max(text.top, control.top),
+					`${selector} text overlaps ${owner.localName} rail`,
+				).toBe(false);
+			}
+		}
+	}
+	for (const selector of ['#headed-card', '#headed-region']) {
+		const owner = requiredElement(examples, selector);
+		const band = requiredElement(owner, '.ex-card-head,.ex-region-head');
+		const heading = requiredElement(owner, 'ex-markdown h1');
+		expect(
+			Math.abs(heading.getBoundingClientRect().top - band.getBoundingClientRect().bottom - 20),
+			selector + ' retains one body inset',
+		).toBeLessThan(1);
+		const source = requiredElement(
+			owner,
+			'ex-markdown > .ex-inspect-controls',
+		).getBoundingClientRect();
+		const range = fixture.createRange();
+		range.selectNodeContents(heading);
+		expect(
+			[...range.getClientRects()].length,
+			'section heading must render glyphs',
+		).toBeGreaterThan(0);
+		for (const text of range.getClientRects()) {
+			expect(
+				Math.min(text.right, source.right) > Math.max(text.left, source.left) &&
+					Math.min(text.bottom, source.bottom) > Math.max(text.top, source.top),
+				selector + ' heading clears source rail',
+			).toBe(false);
+		}
+	}
+	const code = requiredElement(examples, '#long-path-diff');
+	await expect.poll((): number => code.querySelectorAll('.ex-code-file').length).toBe(2);
+	for (const path of code.querySelectorAll('.ex-code-file > summary')) {
+		expect(path.scrollWidth).toBeLessThanOrEqual(code.clientWidth + 1);
+	}
+});
+
+test('bare Markdown section headings retain document margin rhythm and clear source controls', async (): Promise<void> => {
+	await page.viewport(390, 900);
+	const { document: fixture } = await openFixture('layout');
+	const example = fixture.createElement('ex-document');
+	example.id = 'section-rhythm';
+	example.innerHTML = [2, 3, 4, 5, 6]
+		.map(
+			(level): string =>
+				`<ex-card id="before-heading-${level}" title="Before section" tone="note"><p>Existing content.</p></ex-card>\n\n${'#'.repeat(level)} Section heading ${level} for the delivery\n\nSection content.\n\n`,
+		)
+		.join('');
+	fixture.body.append(example);
+	await expect.poll((): number => example.querySelectorAll('ex-markdown[prepared]').length).toBe(5);
+	const outside = fixture.createElement('section');
+	outside.id = 'outside-sections';
+	outside.innerHTML = [
+		'Section heading 2 example',
+		'Delivery overview example',
+		'Choose the owner example',
+		'Review this change example',
+	]
+		.map(
+			(title): string =>
+				'<ex-markdown><script type="text/markdown">## ' + title + '</script></ex-markdown>',
+		)
+		.join('');
+	fixture.body.append(outside);
+	const aside = fixture.createElement('aside');
+	aside.innerHTML =
+		'<ex-markdown><script type="text/markdown">## Delivery architecture</script></ex-markdown>';
+	example.append(aside);
+	await expect.poll((): number => outside.querySelectorAll('ex-markdown[prepared]').length).toBe(4);
+	await expect.poll((): number => aside.querySelectorAll('ex-markdown[prepared]').length).toBe(1);
+	expect(outside.querySelectorAll('h2'), outside.innerHTML).toHaveLength(4);
+	expect(aside.querySelectorAll('h2'), aside.innerHTML).toHaveLength(1);
+	const section = requiredElement(example, 'ex-markdown h2');
+	const preceding = requiredElement(example, '#before-heading-2');
+	expect(
+		section.getBoundingClientRect().top - preceding.getBoundingClientRect().bottom,
+	).toBeCloseTo(40, 0);
+	for (const heading of example.querySelectorAll('ex-markdown > :is(h2,h3,h4,h5,h6)')) {
+		const markdown = heading.parentElement;
+		if (!markdown) throw new Error('Missing Markdown owner');
+		expect(fixture.defaultView?.getComputedStyle(markdown).paddingTop).toBe('0px');
+		const control = requiredElement(markdown, '.ex-inspect-controls').getBoundingClientRect();
+		const range = fixture.createRange();
+		range.selectNodeContents(heading);
+		for (const text of range.getClientRects()) {
+			expect(
+				Math.min(text.right, control.right) > Math.max(text.left, control.left) &&
+					Math.min(text.bottom, control.bottom) > Math.max(text.top, control.top),
+				heading.tagName + ' clears source rail',
+			).toBe(false);
+		}
+	}
+	let reachesControlColumn = false;
+	for (const heading of [...outside.querySelectorAll('h2'), ...aside.querySelectorAll('h2')]) {
+		const markdown = heading.parentElement;
+		if (!markdown) throw new Error('Missing external Markdown owner');
+		expect(fixture.defaultView?.getComputedStyle(markdown).paddingTop).toBe('0px');
+		const control = requiredElement(markdown, '.ex-inspect-controls').getBoundingClientRect();
+		const range = fixture.createRange();
+		range.selectNodeContents(heading);
+		expect(
+			[...range.getClientRects()].length,
+			markdown.outerHTML + ' external h2 must render glyphs',
+		).toBeGreaterThan(0);
+		for (const text of range.getClientRects()) {
+			if (Math.min(text.right, control.right) > Math.max(text.left, control.left))
+				reachesControlColumn = true;
+			expect(
+				Math.min(text.right, control.right) > Math.max(text.left, control.left) &&
+					Math.min(text.bottom, control.bottom) > Math.max(text.top, control.top),
+				heading.textContent + ' outside section styling clears source rail',
+			).toBe(false);
+		}
+	}
+	expect(reachesControlColumn, 'external h2 fixture must reach the source-control column').toBe(
+		true,
+	);
+});

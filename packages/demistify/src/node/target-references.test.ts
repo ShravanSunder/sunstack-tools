@@ -106,3 +106,25 @@ test('Markdown diagram targets resolve in their own file and across pages', asyn
 		]),
 	);
 });
+
+test('transparent-body is a supported boolean card and region option', async (): Promise<void> => {
+	const findings = await checkHtml(
+		'<ex-board><ex-region title="Region" tone="note" transparent-body><ex-card title="Card" tone="note" transparent-body>Body.</ex-card></ex-region></ex-board>',
+		{ diagrams: false },
+	);
+	expect(findings.filter((finding): boolean => finding.rule === 'attribute')).toEqual([]);
+});
+
+test('transparent-body is rejected outside its card and region owners', async (): Promise<void> => {
+	const findings = await checkHtml('<ex-callout tone="note" transparent-body>Body.</ex-callout>', {
+		diagrams: false,
+	});
+	expect(
+		findings.some(
+			(finding): boolean =>
+				finding.rule === 'attribute' &&
+				finding.severity === 'error' &&
+				finding.message.includes('transparent-body'),
+		),
+	).toBe(true);
+});
