@@ -8,6 +8,7 @@ import zlib from 'node:zlib';
 import { z } from 'zod';
 // S4 private registry: name resolution and URL-only repacks; no upstream proxy.
 
+const jsonObjectSchema = z.record(z.string(), z.unknown());
 const packageMetadataSchema = z.looseObject({
 	name: z.string(),
 	version: z.string(),
@@ -122,7 +123,14 @@ function repackPackage(archive: Buffer, version: string, mirror: string): Repack
 	const members = unpackPackage(archive);
 	const metadata = members.find((member) => member.name === 'package/package.json');
 	assert.ok(metadata);
-	const before = packageMetadataSchema.parse(JSON.parse(metadata.data.toString('utf8')));
+	const original = jsonObjectSchema.parse(JSON.parse(metadata.data.toString('utf8')));
+	const validated = packageMetadataSchema.parse(original);
+	// Validation supplies types; authored property order remains part of the repacked bytes.
+	const before = {
+		...original,
+		...validated,
+		bin: { ...jsonObjectSchema.parse(original['bin']), ...validated.bin },
+	};
 	assert.equal(before.name, '@sunstack/cli');
 	assert.equal(before.version, version);
 	assert.equal(before.bin.sunstack, 'run-sunstack.js');
@@ -291,9 +299,13 @@ async function startRegistry({
 			(member) => member.name === 'package/package.json',
 		);
 		assert.ok(dependencyMember);
-		const dependencyMetadata = dependencyMetadataSchema.parse(
+		const originalDependencyMetadata = jsonObjectSchema.parse(
 			JSON.parse(dependencyMember.data.toString('utf8')),
 		);
+		const dependencyMetadata = {
+			...originalDependencyMetadata,
+			...dependencyMetadataSchema.parse(originalDependencyMetadata),
+		};
 		assert.equal(dependencyMetadata.name, 'detect-libc');
 		assert.equal(dependencyMetadata.version, '2.1.2');
 		const route = '/tarballs/detect-libc-2.1.2.tgz';

@@ -172,12 +172,48 @@ void test('URL-only repack preserves all other members, including dotfiles, and 
 	assert.throws(() => unpackPackage(zlib.gzipSync(broken)), /checksum/);
 });
 
+void test('URL-only repack retains authored root and bin property order', () => {
+	const mirror = 'http://127.0.0.1:1234/older';
+	for (const metadata of [
+		{
+			description: 'Preserved description',
+			artifactDownloadUrls: ['https://example.invalid'],
+			custom: { second: true, first: 1 },
+			version: '0.0.6',
+			name: '@sunstack/cli',
+			bin: { sunstack: 'run-sunstack.js' },
+		},
+		{
+			name: '@sunstack/cli',
+			version: '0.0.6',
+			bin: { another: 'another.js', sunstack: 'run-sunstack.js' },
+			artifactDownloadUrls: ['https://example.invalid'],
+		},
+	]) {
+		const input = archiveFrom({ 'package/package.json': JSON.stringify(metadata) });
+		const output = repackPackage(input, '0.0.6', mirror);
+		const adapted = unpackPackage(output.tarball).find(
+			(member) => member.name === 'package/package.json',
+		);
+		assert.ok(adapted);
+		assert.equal(
+			adapted.data.toString('utf8'),
+			JSON.stringify({ ...metadata, artifactDownloadUrls: [mirror] }, null, 2) + '\n',
+			'validation must preserve authored metadata order while replacing only the URLs',
+		);
+	}
+});
+
 void test('real loopback registry resolves both exact versions and refuses unknown names and writes', async () => {
 	const root = fileSystem.mkdtempSync(
 		path.join(operatingSystem.tmpdir(), 'sunstack-s4-registry-control-'),
 	);
 	const dependency = archiveFrom({
-		'package/package.json': JSON.stringify({ name: 'detect-libc', version: '2.1.2' }),
+		'package/package.json': JSON.stringify({
+			description: 'Preserved dependency metadata',
+			version: '2.1.2',
+			name: 'detect-libc',
+		}),
 	});
 	const dependencyFile = path.join(root, 'dependency.tgz');
 	fileSystem.writeFileSync(dependencyFile, dependency);
@@ -226,6 +262,10 @@ void test('real loopback registry resolves both exact versions and refuses unkno
 			})
 			.parse(await (await fetch(service.base + '/@sunstack%2fcli')).json());
 		assert.equal(metadata['dist-tags'].latest, '0.0.7');
+		const dependencyMetadata = z
+			.record(z.string(), z.json())
+			.parse(await (await fetch(service.base + '/detect-libc/2.1.2')).json());
+		assert.deepEqual(Object.keys(dependencyMetadata), ['description', 'version', 'name', 'dist']);
 		for (const version of ['0.0.6', '0.0.7']) {
 			const entry = metadata.versions[version];
 			assert.ok(entry);
