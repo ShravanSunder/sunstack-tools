@@ -123,7 +123,7 @@ The located section is shortened to lines 14 to 19 so its locator answer can be 
 ```json
 {
   "version": "0.6.0",
-  "status": { "kind": "clean" },
+  "status": { "kind": "incomplete" },
   "findings": [
     {
       "rule": "placement.product-workflow",
@@ -184,7 +184,7 @@ The located section is shortened to lines 14 to 19 so its locator answer can be 
 }
 ```
 
-The first `incomplete` row walked a judged gate and stopped at a mechanical step on an unavailable field; the second stopped before any walk. Neither carries `basis`. The `evidence_seen` entry shows the sent state: `"cut-fields"` beside an authored field named `cut`, and a path target whose opening was shortened.
+The first `incomplete` row walked a judged gate and stopped at a mechanical step on an unavailable field; the second stopped before any walk. Neither carries `basis`, and their presence makes the run's status `incomplete` under R9's unchanged order. The `evidence_seen` entry shows the sent state: `"cut-fields"` beside an authored field named `cut`, and a path target whose opening was shortened.
 
 ## Non-goals and negative space
 
