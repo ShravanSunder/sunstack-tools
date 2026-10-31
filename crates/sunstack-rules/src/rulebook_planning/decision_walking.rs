@@ -125,6 +125,8 @@ pub fn piece_state(
         location: &'a sunstack_evidence::PieceLocation,
         #[serde(flatten)]
         fields: &'a BTreeMap<FieldName, sunstack_evidence::ModelFieldValue>,
+        #[serde(rename = "cut-fields", skip_serializing_if = "<[FieldName]>::is_empty")]
+        cut_fields: &'a [FieldName],
     }
     let empty = BTreeMap::new();
     let available_fields = match &piece.model_view {
@@ -144,6 +146,10 @@ pub fn piece_state(
         standard: &rule.sentence.standard,
         location: &piece.location,
         fields: &available_fields,
+        cut_fields: match &piece.model_view {
+            ModelView::Bounded { cut, .. } => cut,
+            ModelView::TooLarge { .. } => &[],
+        },
     })?)
 }
 

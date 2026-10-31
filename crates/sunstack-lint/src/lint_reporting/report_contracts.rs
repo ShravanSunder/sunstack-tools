@@ -257,6 +257,8 @@ pub struct RulePieceResult {
     pub basis: Option<Basis>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
     pub answers: NamedAnswerMap,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub cut: Vec<FieldName>,
 }
 
 pub fn report_schema() -> schemars::Schema {

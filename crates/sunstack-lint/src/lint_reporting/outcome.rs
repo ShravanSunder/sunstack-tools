@@ -51,6 +51,10 @@ pub(crate) fn project_outcome(
             path: pair.result.path_taken().to_vec(),
             answers: pair.result.answers_read().clone(),
             basis: pair.result.basis(),
+            cut: match &piece.model_view {
+                sunstack_evidence::ModelView::Bounded { cut, .. } => cut.clone(),
+                sunstack_evidence::ModelView::TooLarge { .. } => vec![],
+            },
         });
         match pair.result {
             RulebookResult::Pass { .. } => {}

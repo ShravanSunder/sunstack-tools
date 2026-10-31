@@ -1,6 +1,37 @@
 use super::*;
 
 #[tokio::test]
+async fn cut_fields_are_visible_in_requests_rows_and_uncertain_state_beside_authored_cut() {
+    for over_cap in [false, true] {
+        let root = limit_fixture(
+            json!({"body":{"from":"remainder"},"cut":{"from":"capture","regex":"^(authored cut)"}}),
+            json!({"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.95,"no_at_or_below":0.9,"yes":"pass","no":{"finding":"Needs work."}}}}),
+        );
+        let mut entries = read(&root.path().join("rules.json"));
+        entries["K001"]["questions"] = json!({"quality":{"type":"noul","instructions":{"check":"body","task":"Does it comply?"}}});
+        save(&root.path().join("rules.json"), &entries);
+        std::fs::write(
+            root.path().join("docs/one.md"),
+            format!(
+                "authored cut\n\n{}\n",
+                "x".repeat(if over_cap { 7000 } else { 20 })
+            ),
+        )
+        .unwrap();
+        let (report, bodies) = judged(root.path(), 0.9, 5).await;
+        assert_eq!(bodies.len(), 1);
+        let request: Value = serde_json::from_slice(&bodies[0]).unwrap();
+        let state = &request["state"];
+        assert_eq!(state["cut"], "authored cut");
+        let expected = over_cap.then(|| json!(["body"]));
+        assert_eq!(state.get("cut-fields"), expected.as_ref());
+        assert_eq!(report["results"][0].get("cut"), expected.as_ref());
+        assert_eq!(&report["evidence_seen"]["0"], state);
+        assert_eq!(&report["uncertain"][0]["state"], state);
+    }
+}
+
+#[tokio::test]
 async fn target_exclude_kind_is_a_located_check_refusal_and_rule_exclusion_is_admitted() {
     let root = limit_fixture(
         json!({"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","exclude":{"kind":"review"}}}),
