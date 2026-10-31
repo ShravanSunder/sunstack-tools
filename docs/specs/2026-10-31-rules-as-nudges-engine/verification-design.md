@@ -1,0 +1,44 @@
+# Verification Design: the lint report as a nudge
+
+31 Oct 2026. Author: 🦁 Lead. Plans proof for [requirements.md](requirements.md) U1-U10 against [specification.md](specification.md) R1-R10 (V1-V10) through the seams in [program-design.md](program-design.md). A plan: nothing here has been observed.
+
+## Proven by, for the owner
+
+| Need | Proven by | Stays unverified |
+| --- | --- | --- |
+| U1 a nudge lists the places the run read | The real `sunstack lint` runs a fixture rule that names related fields; its JSON and SARIF reports are read, and each finding lists the standard's line, then the loaded file and the heading, with the right files and lines. | Code-scanning tools' display of SARIF related locations |
+| U2 a nudge points at the line it's about | The walk is given a locate answer for line 17 on the frozen line-17 section and returns line 17; given an answer outside the section, it keeps the section's first line and says so. A one-time keyed run checks Jev's choice on the same piece. | Whether Jev picks the right line across many skills: the placement rule's labelled cases in the skills pull request decide that |
+| U3 passes and drops show their answers | Lint runs a fixture with a model gate that drops a piece and a judged pass; the report rows carry exactly the answers each walk read, and a mechanical row carries none. | none |
+| U4 every result says how it was reached | The same run's rows read `judged` for the gate-dropped piece and for a judged gate followed by a mechanical finding, `mechanical` for an all-mechanical path, and nothing for an incomplete row. | none |
+| U5 cuts show | A fixture body over the cap shows `cut: ["body"]` in the request sent to the model and in its row; a long loaded file shows `opening_cut`. | none |
+| U6 a section owns only its loads | On an H1, parent and child fixture, the child's load is a target of the child only; changing the loaded file selects the child alone. | none |
+| U7 fuller context when asked | A fixture asks for the full enclosing section and a reference's fields; both arrive with their spans; without the options, today's values. | none: no accepted rule uses it yet |
+| U8 JSON files are checked | Lint checks a fixture rules file with a JSON rule and reports a finding at the right line; `--check` refuses a JSON kind with a `yaml` field; a mixed run reports both kinds. | JSON field sources beyond those listed |
+| U9 severity and exits unchanged | Today's warning-limit check passes unchanged; a judged path ending in an authored `error` exits 1. | none |
+| U10 generic and additive | A 0.5.0 report fixture's fields read the same in the 0.6.0 report for the same input; the engine diff names no skill-specific term. | Consumers other than `ai-tools`' runner |
+
+## Shared observations
+
+- **S1. Nudge-report journey** (needed, lasting). Drives the release-built `sunstack lint --format json` and `--format sarif` from the repository root over fixture configs in its scratch, with a local fake decision backend serving fixed answers (the existing `TestServer` pattern in the engine's tests is the reference shape). Reads `findings[].related`, `.anchor`, `.basis`, `results[]` (`basis`, `path`, `answers`, `cut`) and SARIF `relatedLocations`. Home: `scripts/verify/sunstack-rule/` beside the current rulebook drivers, indexed in `verify-sunstack-rule`.
+- **S2. Check-refusal journey, extended** (existing: `references/rulebook-check-refusals.md`, lasting). Adds refusals for `related` naming an unknown field, `locate` naming a non-locate question, and `yaml` on a JSON kind; reads each diagnostic's file, entry path and field, and exit 2.
+- **S3. Focused crate tests** (no journey). The decision walk with fixed answers (answers read, basis, anchor), piece building (own text, full text, path fields, opening cut), the evidence project's JSON parsing, and the report schema.
+- **S4. Keyed line-17 check** (needed, temporary). One run of the release build with the real decision model over the frozen line-17 piece (`spike-1` copies in the owner's memory-logs) and a placement fixture rule with a locate question; reads the finding's line and `anchor`. The Lead holds the key; deleted after its evidence is kept.
+
+## Coverage rows
+
+Target for every row: `sunstack` built in release profile from the engine pull request's head on macOS arm64, signed as the release is, with fixture configs; the client is the CLI. `tests/skills` in `ai-tools` is not a target here.
+
+| U | R | Seam (Program Design) | Observation | Journey or test, lifetime | Passes when | A wrong build that fails | Reuses | Unverified |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| U1 | R1 | report projection, formats | S1 | S1, lasting | each finding's `related` is the standard (rulebook file, marker line) then targets (file, 1 to opening's last line) then heading spans, in that order; SARIF `relatedLocations` hold the same file, lines and labels; a rule with no `related` gives only the standard | a build that labels a target with the checked file, omits the standard, or reorders | `real_cli_json_equals_the_library_and_each_format_preserves_the_finding` for the primary location | SARIF viewers' rendering |
+| U2 | R2 | decision walk, rulebook run | S3 (walk with answer `L17` and with `L99`), S4 | S3 none; S4 temporary | answer `L17` gives line 17, `anchor: resolved`; `L99` and an over-limit field give the field's first line, `anchor: default`, no error; S4's finding sits on line 17 | a build that keeps the first span after a valid answer, or errors on an invalid one | `spanless_at_keeps_field_name_and_falls_back_to_piece_line` for the fallback | Jev's line choice beyond the one keyed piece |
+| U3 | R3 | decision walk, projection | S3 and S1 | S1 lasting | a gate drop row carries the gate's answer and `path`; a judged pass carries its answers; mechanical rows carry no `answers`; a two-question request whose walk reads only the gate shows only the gate's answer | a build that copies every obtained answer onto rows, or drops answers on passes | `uncertain_handoff_reuses_the_one_request_with_all_questions` for the one-request setup | none |
+| U4 | R4 | decision walk | S3 and S1 | S1 lasting | judged gate then mechanical finding: `basis: judged`; all mechanical: `mechanical`; incomplete row: no `basis` | a build that takes basis from the last step only | `in_band_binary_and_combine_follow_the_uncertain_edge...` for paths | none |
+| U5 | R5 | piece building, `piece_state` | S3 (request state through the fake backend) and S1 | S1 lasting | over-cap body: `cut: ["body"]` in the sent state and the row; under cap: no `cut`; long target opening: `opening_cut: true` | a build that cuts silently, or reports `cut` only in the evidence listing | model-view tests for the cut itself | none |
+| U6 | R6 | piece building | S3 | none | `child.md` is a target of the child only; a change to `child.md` picks the child's piece only; without `exclude`, today's targets | a build that excludes in `finalize` but not `target_paths`, or the reverse | `remainder_exclusions_are_local_to_each_field_and_its_spans` | none |
+| U7 | R7 | piece building | S3 | none | `text: "full"` gives the enclosing section's whole text and span; a path target with `as_kind` carries that kind's fields; defaults unchanged | a build that ignores the option or returns first lines | `pinned_step_fields_and_path_and_skill_loads_keep_their_sources` for defaults | none |
+| U8 | R8 | evidence project, admission | S3, S1 (mixed config), S2 | S1 and S2 lasting | the JSON rule's finding lands on the question's line in the rules file; a mixed run reports Markdown and JSON findings; `--check` refuses `yaml` on a JSON kind naming the field, exit 2 | a build that parses JSON as Markdown, or admits `yaml` on JSON | `non-Markdown util rejection` test, inverted for JSON | field sources beyond R8's list |
+| U9 | R9 | decision walk, projection | S1 | S1 lasting | warning-only run exits 0, exits 1 under `--max-warnings 0`; a judged path ending in an authored `error` exits 1 with `basis: judged`; a route overriding `warn` with `error` gives `error` | a build that changes exits or ignores route severity | `clean_named_paths_history_and_warning_limit_keep_exit_and_selection_semantics` | none |
+| U10 | R10 | report contracts, schema | structural check and S1 | none; S1 lasting | for one input, every field a 0.5.0 report carries appears unchanged in the 0.6.0 report; the generated schema adds only optional fields; the diff contains no skill, plugin, product or placement term in engine code | a build that renames a field, or makes a new field required | schema tests in `schema_limits_usage.rs` | other consumers |
+
+Rows S1 and S2 are the journeys to build or extend; S4 is the one temporary check. Every other row is decided by focused tests the plan writes, with no app launch.
