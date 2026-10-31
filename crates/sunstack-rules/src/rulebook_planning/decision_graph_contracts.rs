@@ -106,6 +106,8 @@ pub struct MechanicalStepWire {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AskBinaryWire {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uncertain: Option<RouteWire>,
     pub ask: QuestionName,
     pub yes_at_or_above: f64,
     pub no_at_or_below: f64,
@@ -115,6 +117,8 @@ pub struct AskBinaryWire {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AskChoiceWire {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uncertain: Option<RouteWire>,
     pub ask: QuestionName,
     pub min_probability: f64,
     pub routes: BTreeMap<ChoiceLabel, RouteWire>,
@@ -122,6 +126,8 @@ pub struct AskChoiceWire {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CombineStepWire {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uncertain: Option<RouteWire>,
     pub combine: BTreeMap<QuestionName, f64>,
     pub yes_at_or_above: f64,
     pub no_at_or_below: f64,
@@ -136,6 +142,7 @@ pub struct DecisionGraph {
 }
 #[derive(Debug, Clone)]
 pub struct BinaryRoutes {
+    pub uncertain: DecisionRoute,
     pub yes_at_or_above: f64,
     pub no_at_or_below: f64,
     pub yes: DecisionRoute,
@@ -158,6 +165,7 @@ pub enum DecisionStep {
         routes: BinaryRoutes,
     },
     AskChoice {
+        uncertain: DecisionRoute,
         question: QuestionName,
         min_probability: f64,
         routes: BTreeMap<ChoiceLabel, DecisionRoute>,
@@ -173,8 +181,10 @@ impl DecisionStep {
             Self::Mechanical { yes, no, .. } => vec![yes, no],
             Self::AskNoul { routes, .. }
             | Self::AskScore { routes, .. }
-            | Self::Combine { routes, .. } => vec![&routes.yes, &routes.no],
-            Self::AskChoice { routes, .. } => routes.values().collect(),
+            | Self::Combine { routes, .. } => vec![&routes.yes, &routes.no, &routes.uncertain],
+            Self::AskChoice {
+                routes, uncertain, ..
+            } => routes.values().chain(std::iter::once(uncertain)).collect(),
         }
     }
 }

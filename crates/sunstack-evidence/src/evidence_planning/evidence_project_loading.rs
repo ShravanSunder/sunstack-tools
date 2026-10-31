@@ -44,10 +44,29 @@ pub struct MatchRange {
     pub start: usize,
     pub end: usize,
 }
+/// Parser identity is meaningful only within one match_file parse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct NodeKey(pub usize);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ParentChild {
+    pub node: NodeKey,
+    pub range: MatchRange,
+    pub continuation: bool,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ParentEntry {
+    pub parent: NodeKey,
+    pub children: Vec<ParentChild>,
+    pub position: usize,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileMatchIndex {
     pub by_rule: BTreeMap<crate::EvidenceRuleId, Vec<MatchRange>>,
     pub limited: bool,
+    pub match_nodes: BTreeMap<crate::EvidenceRuleId, Vec<NodeKey>>,
+    pub parents: BTreeMap<NodeKey, ParentEntry>,
 }
 
 impl EvidenceProject {
@@ -63,15 +82,45 @@ impl EvidenceProject {
                     break;
                 }
                 let range = found.range();
-                spans.push(MatchRange {
-                    start: range.start,
-                    end: range.end,
-                });
+                let node = NodeKey(found.node_id());
+                if let Some(parent) = found.parent() {
+                    let children = parent
+                        .children()
+                        .filter(|child| child.is_named())
+                        .map(|child| {
+                            let range = child.range();
+                            ParentChild {
+                                node: NodeKey(child.node_id()),
+                                range: MatchRange {
+                                    start: range.start,
+                                    end: range.end,
+                                },
+                                continuation: child.kind() == "block_continuation",
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    if let Some(position) = children.iter().position(|child| child.node == node) {
+                        index.parents.entry(node).or_insert(ParentEntry {
+                            parent: NodeKey(parent.node_id()),
+                            children,
+                            position,
+                        });
+                    }
+                }
+                spans.push((
+                    MatchRange {
+                        start: range.start,
+                        end: range.end,
+                    },
+                    node,
+                ));
                 count = count.saturating_add(1);
             }
-            spans.sort_by_key(|span| (span.start, span.end));
+            spans.sort_by_key(|(span, _)| (span.start, span.end));
             if let Ok(id) = crate::EvidenceRuleId::new(rule.id.clone()) {
-                index.by_rule.insert(id, spans);
+                let (ranges, nodes) = spans.into_iter().unzip();
+                index.match_nodes.insert(id.clone(), nodes);
+                index.by_rule.insert(id, ranges);
             }
         }
         index

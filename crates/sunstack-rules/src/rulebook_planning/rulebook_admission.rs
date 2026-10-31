@@ -58,6 +58,11 @@ pub fn admit_evidence_kinds(
                     }
                     _ => {}
                 },
+                FieldSource::Next { rule, .. } | FieldSource::Previous { rule, .. } => {
+                    if !project.rule_ids.contains(rule) {
+                        errors.push(refusal(&path, "unknown evidence rule"));
+                    }
+                }
                 FieldSource::Capture { regex } | FieldSource::Target { regex, .. } => {
                     match regex::Regex::new(regex) {
                         Err(_) => errors.push(refusal(&path, "invalid field regex")),
@@ -270,8 +275,13 @@ fn admit_graph(
             DecisionStepWire::AskBinary(step) => {
                 let yes = route(&step.yes);
                 let no = route(&step.no);
+                let uncertain = step
+                    .uncertain
+                    .as_ref()
+                    .map_or(DecisionRoute::Uncertain, &mut route);
                 validate_thresholds(step.yes_at_or_above, step.no_at_or_below, &path, errors);
                 let routes = BinaryRoutes {
+                    uncertain,
                     yes_at_or_above: step.yes_at_or_above,
                     no_at_or_below: step.no_at_or_below,
                     yes,
@@ -302,6 +312,10 @@ fn admit_graph(
                     .iter()
                     .map(|(label, value)| (label.clone(), route(value)))
                     .collect::<BTreeMap<_, _>>();
+                let uncertain = step
+                    .uncertain
+                    .as_ref()
+                    .map_or(DecisionRoute::Uncertain, &mut route);
                 if !step.min_probability.is_finite()
                     || step.min_probability <= 0.0
                     || step.min_probability > 1.0
@@ -317,6 +331,7 @@ fn admit_graph(
                     )),
                 }
                 DecisionStep::AskChoice {
+                    uncertain,
                     question: step.ask.clone(),
                     min_probability: step.min_probability,
                     routes,
@@ -325,6 +340,10 @@ fn admit_graph(
             DecisionStepWire::Combine(step) => {
                 let yes = route(&step.yes);
                 let no = route(&step.no);
+                let uncertain = step
+                    .uncertain
+                    .as_ref()
+                    .map_or(DecisionRoute::Uncertain, &mut route);
                 validate_thresholds(step.yes_at_or_above, step.no_at_or_below, &path, errors);
                 if step.combine.is_empty()
                     || step.combine.values().any(|w| !w.is_finite() || *w <= 0.0)
@@ -349,6 +368,7 @@ fn admit_graph(
                 DecisionStep::Combine {
                     weights: step.combine.clone(),
                     routes: BinaryRoutes {
+                        uncertain,
                         yes_at_or_above: step.yes_at_or_above,
                         no_at_or_below: step.no_at_or_below,
                         yes,

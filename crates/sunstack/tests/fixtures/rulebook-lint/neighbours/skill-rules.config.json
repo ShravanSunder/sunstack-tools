@@ -1,0 +1,40 @@
+{
+  "rulebook": [
+    {
+      "markdown": "rulebook/steering.md",
+      "rules": "rulebook/steering.rules.json"
+    }
+  ],
+  "marker_prefix": "K",
+  "check": {
+    "files": [
+      "SKILL.md"
+    ]
+  },
+  "evidence": {
+    "ast_grep": "evidence/sgconfig.yml",
+    "kinds": {
+      "subject": {
+        "rule": "subject",
+        "fields": {
+          "body": {
+            "from": "first_line"
+          },
+          "next_lists": {
+            "from": "next",
+            "rule": "neighbour-list",
+            "count": 1
+          },
+          "previous_lists": {
+            "from": "previous",
+            "rule": "neighbour-list",
+            "count": 1
+          }
+        }
+      }
+    }
+  },
+  "decision_model": {
+    "model": "jev-latest"
+  }
+}

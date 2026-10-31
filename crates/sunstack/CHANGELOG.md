@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add rule-only `next` and `previous` evidence fields with a default `count` of 1
+  and a range of 1 through 5. Neighbours share the match's parent and retain
+  source order and spans; continuation nodes do not count or stop the walk.
+- Let ask and combine steps route uncertain answers to another decision step
+  using the same request's answers. Reports name the step that ended the walk.
+
+### Breaking
+
+- Incomplete provider-failure reasons require `failure_class` and carry
+  `http_status` when received. Requests refused by the engine use
+  `invalid_request`; answers that fail admission use `invalid_response`.
+  The default line includes the provider class and any HTTP status.
+- Rename selection's `malformed_answer` reason to `invalid_response` and carry
+  provider class/status in incomplete selection candidates. Update report
+  consumers for this hard cutover.
+
 ## 0.4.0
 
 Release date: 2026-10-30.

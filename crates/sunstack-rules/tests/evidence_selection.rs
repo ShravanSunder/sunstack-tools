@@ -517,7 +517,10 @@ async fn provider_failure_is_contained_to_its_file_while_the_other_file_selects(
             && matches!(
                 outcome,
                 SelectionOutcome::Incomplete {
-                    reason: SelectionIncompleteReason::ProviderFailure
+                    reason: SelectionIncompleteReason::ProviderFailure {
+                        failure_class: ProviderFailureClass::ProviderUnavailable,
+                        http_status: Some(500)
+                    }
                 }
             )
     }));
@@ -579,3 +582,6 @@ async fn unequal_candidates_share_one_independently_bounded_shared_view_in_each_
     );
     assert_eq!(server.finish().await, 2);
 }
+
+#[path = "evidence_selection/incomplete_reasons.rs"]
+mod incomplete_reasons;

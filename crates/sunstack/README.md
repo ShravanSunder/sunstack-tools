@@ -35,6 +35,27 @@ finding. Questions reach the model as authored, with one piece's bounded field
 view. The binary embeds six generic Markdown utilities; rulebooks, questions and
 domain-specific evidence rules belong to the caller.
 
+Evidence fields can use `next` or `previous` to collect full matching sibling
+texts and source spans. They name an ast-grep `rule`; `count` defaults to 1 and
+accepts 1 through 5. For example, a kind's `fields` can include:
+
+```json
+{
+	"following": { "from": "next", "rule": "list", "count": 1 },
+	"preceding": { "from": "previous", "rule": "list_item", "count": 2 }
+}
+```
+
+The walk stays within the match's direct parent and stops at the first
+nonmatching sibling. Blank-line and indentation continuation nodes do not stop
+or count toward the walk. Values stay in source order, including `previous`
+values. These sources accept only rule references and leave `remainder` intact.
+
+An ask or combine step can add `"uncertain": "verdict"` to route an in-band
+answer, or a choice below `min_probability`, to another step. The walk uses
+answers from the same request. Omitting the route ends uncertain at that step.
+Both the `uncertain` and `results` views report the step that ended the walk.
+
 Rulebook and ast-grep project paths resolve relative to the configuration file.
 Checked-file globs resolve from its Git repository root, or from the config
 directory outside Git. Without `--config`, lint searches the current directory
@@ -78,6 +99,19 @@ and 5 for uncertain decisions. Uncertainty retains the decision step, sent state
 and answers for the caller to inspect. Cancellation takes precedence over
 incomplete work, then findings, then uncertainty. A warning alone does not fail
 unless it exceeds `--max-warnings`.
+
+A failed provider request carries its class and, when received, its HTTP status
+in the incomplete reason:
+
+```json
+{ "kind": "provider_failure", "failure_class": "rate_limit", "http_status": 429 }
+```
+
+When no HTTP response arrived, `http_status` is omitted. The default output
+prints `provider failure (rate_limit, HTTP 429)` or
+`provider failure (connection)`. A request refused by the engine is
+`invalid_request`; an answer that fails admission is `invalid_response`.
+Incomplete selection candidates use these reason shapes too.
 
 See the checked-in [worked configuration](tests/fixtures/rulebook-lint/skill-rules.config.json)
 and its [rulebook entries](tests/fixtures/rulebook-lint/rulebook/steering.rules.json)

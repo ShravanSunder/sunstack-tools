@@ -1,4 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
+#[path = "../../sunstack-rules/tests/support/controlled_http.rs"]
+mod controlled;
 #[path = "support/lint_fixture.rs"]
 mod fixture;
 use serde_json::{Value, json};
@@ -272,5 +274,73 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
         OutputFormat::Sarif,
     ] {
         assert_eq!(render(&report, format), render(&without_results, format));
+    }
+}
+
+#[tokio::test]
+async fn report_schema_validates_real_provider_payloads_and_default_format_names_the_class() {
+    for connection in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let mut server = controlled::ControlledServer::start().await;
+        let endpoint = if connection {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            format!("http://{}/v1/systemone", listener.local_addr().unwrap())
+        } else {
+            server.endpoint.clone()
+        };
+        fixture::judged(root.path(), &endpoint);
+        let operation = tokio::spawn(run(
+            fixture::request(root.path()),
+            CancellationToken::new(),
+            Some("SYNTHETIC_LINT_CREDENTIAL".into()),
+        ));
+        if !connection {
+            for _ in 0..3 {
+                server
+                    .next()
+                    .await
+                    .respond(429, json!({"error":"controlled rate limit"}));
+            }
+        }
+        let report = tokio::time::timeout(std::time::Duration::from_secs(5), operation)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(server.finish().await, if connection { 0 } else { 3 });
+        assert_eq!(report.status, LintStatus::Incomplete);
+        let value = serde_json::to_value(&report).unwrap();
+        let reason = if connection {
+            json!({"kind":"provider_failure","failure_class":"connection"})
+        } else {
+            json!({"kind":"provider_failure","failure_class":"rate_limit","http_status":429})
+        };
+        assert_eq!(value["incomplete"][0]["reason"], reason);
+        let schema = report_schema();
+        let validator = jsonschema::validator_for(schema.as_value()).unwrap();
+        assert!(validator.is_valid(&value), "{value}");
+        let mut wrong = value.clone();
+        wrong["incomplete"][0]["reason"]
+            .as_object_mut()
+            .unwrap()
+            .remove("failure_class");
+        assert!(!validator.is_valid(&wrong));
+        let text = render(&report, OutputFormat::Default);
+        assert!(
+            text.contains(if connection {
+                "provider failure (connection)"
+            } else {
+                "provider failure (rate_limit, HTTP 429)"
+            }),
+            "{text}"
+        );
+        let sarif = render(&report, OutputFormat::Sarif);
+        assert!(
+            sarif.contains(if connection {
+                "provider failure (connection)"
+            } else {
+                "provider failure (rate_limit, HTTP 429)"
+            }),
+            "{sarif}"
+        );
     }
 }

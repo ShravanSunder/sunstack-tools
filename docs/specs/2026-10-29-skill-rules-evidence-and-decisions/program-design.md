@@ -1,6 +1,6 @@
 # Skill rules on evidence and decisions: program design
 
-How the engine realizes [Specification](specification.md) R1–R28 for [Requirements](requirements.md) U1–U12. The current-system map behind it is the 29 Oct engine map (crate paths below are at `origin/main` 010da0f).
+How the engine realizes [Specification](specification.md) R1–R28 and R44 for [Requirements](requirements.md) U1–U12 and U18. The current-system map behind it is the 29 Oct engine map (crate paths below are at `origin/main` 010da0f). The 31 Oct amendment (R11 `next`/`previous`, R18 `uncertain` route, R44) is in [its own section](#amendment-31-oct-2026), with paths at `origin/main` 7870513 after the module reorganization.
 
 ## What changes, in one picture
 
@@ -139,7 +139,9 @@ Illegal states are unrepresentable or refused at the trusted entry: a route to a
 | a piece's model view can't fit `max_chars` after R12's reduction | `evidence_model_view` | every rule on that piece | `Incomplete { evidence_too_large }` (R12); mechanical-only paths still settle from raw fields |
 | a skill name matches several checked skills | piece building | that target | `exists: false` with `candidates` (R11) |
 | request over `request_max_chars` (measured on the exact encoded body) | `rulebook_run` with the decision crate's body encoding | that pair | `Incomplete { request_too_large }` (R21) |
-| provider error, timeout, malformed answer | `run_judgments` (existing attempt controller and validation) | that pair | `Incomplete { provider_failure }` (R21); retries are the existing controller's |
+| provider error, timeout, refused connection | `run_judgments` (existing attempt controller) | that pair | `Incomplete { provider_failure, failure_class, http_status? }` (R44, amended 31 Oct); retries are the existing controller's |
+| answer fails admission, or lacks a question the walk reads | `run_judgments` validation; `decision_walking` | that pair | `Incomplete { invalid_response }` (R44) |
+| request refused before sending | `run_judgments` request validation | that pair | `Incomplete { invalid_request }` (R44) |
 | request limit reached | dispatcher | remaining pairs | `Incomplete { request_limit_reached }` |
 | cancellation (signal) | existing cancellation token | the run | `cancelled` (4); finished results kept |
 | a target outside the repository root | piece building | that target | `exists: false`, never read (R11) |
@@ -181,6 +183,51 @@ The decision model receives the standard, the piece's location and its bounded m
 | `sunstack lint` binary on fixture repositories | everything | the decision endpoint via `decision_model.endpoint` | exit codes, JSON report, `--check`, `--evidence` |
 | hosted run | everything, real OpenRouter | nothing | schema-valid answers, a complete report |
 
+## Amendment, 31 Oct 2026
+
+Three small changes, each inside an existing owner, with no new module and no new dependency. Paths are at `origin/main` 7870513.
+
+**`next` and `previous` (R11; corrected after review SR1, SR2 and SR5).** The owners stay `evidence_planning` (the contract and the file index) and `evidence_piece_building` (the value).
+- **The contract.** `FieldSource` in `sunstack-evidence/src/evidence_planning/evidence_kind_contracts.rs` gains `Next { rule: EvidenceRuleId, #[serde(default = "one")] count: NeighbourCount }` and `Previous { … }`, as the `from` values `next` and `previous`.
+  - They are rule-only: not `MatchSource`, whose untagged `Rule | Kind` union would admit an undefined `kind` form.
+  - `NeighbourCount` is a newtype that accepts 1 to 5 at decode.
+  - `--check` validates the rule ID through the existing rule-ID path, and the kind dependency collector needs no change.
+- **The structure, recorded once, by node identity (corrected after recheck SR1 residual).** `EvidenceProject::match_file` (`evidence_project_loading.rs`) already parses each file once with ast-grep's Markdown tree. A byte range does not identify a syntax node: a one-item list and its list item can both span the same bytes, with different parents. So structure is keyed by the parser's own node identity, ast-grep-core 0.51's `Node::node_id()`, used only within that one parse. While the tree is in hand, `match_file` records two new `FileMatchIndex` fields:
+  - `match_nodes: BTreeMap<EvidenceRuleId, Vec<NodeKey>>`: each match's node, aligned one to one with `by_rule`'s ranges and sorted with them;
+  - `parents: BTreeMap<NodeKey, ParentEntry>`: for each matched node, its parent's full ordered named children (`Node::parent()`, `Node::children()`, `Node::is_named()`), each as `{ node: NodeKey, range: MatchRange, continuation: bool }`, plus the matched node's position among them. `continuation` is true for a `block_continuation` node. Inside a list item, the parser gives the blank line and indent between two blocks as named `block_continuation` children, so a walk that counted every named child would stop between a paragraph and the fence after it. This was observed on ast-grep 0.51 and recorded in memory-logs `evidence-selection/continuation-node-probe.md` (corrected 31 Oct, at planning). The children are kept, not filtered out, so that a piece whose own node is a continuation (a rule over `block_continuation` is admitted under R10) still has a position to walk from (corrected after recheck 3, SR6).
+
+  `NodeKey` is a newtype over the id. No second parse happens.
+- **The value.** `local_fields` in `field_composition.rs` evaluates the field in four steps:
+  1. Take the piece's own node from the match it was built from: same rule, same position in `by_rule`.
+  2. Take that node's `ParentEntry` and walk forward (for `next`) or backward (for `previous`) from its position. Pass over every child marked `continuation` without counting it and without returning it; take at most `count` of the other children.
+  3. Keep a child while that same node is one of `rule`'s matches (its key is in `match_nodes[rule]`), and stop at the first that isn't. A child is never matched by an equal range alone.
+  4. Return `FieldValue::Texts` with those children's full texts and spans, in source order: an empty list when none qualifies, or when the node has no parent.
+- **What this gives.** Two pieces with the same range but different nodes get each node's own neighbours. Children of different lists, depths or sections never share a parent, so V22's negatives hold by construction. A blank line doesn't stop the walk: in a section it is not a node, and inside a list item the walk passes over its `block_continuation` node. A piece that is itself a continuation walks from its own position too. The value never joins `taken`, so `remainder` is unchanged.
+
+**`uncertain` route (R18).** The owner stays `rulebook_planning`.
+- `AskBinaryWire`, `AskChoiceWire` and `CombineStepWire` in `decision_graph_contracts.rs` gain `#[serde(default, skip_serializing_if = "Option::is_none")] uncertain: Option<RouteWire>`.
+- The planned `BinaryRoutes` gains `uncertain: DecisionRoute`, and `DecisionStep::AskChoice` gains `uncertain: DecisionRoute`. Both default to `DecisionRoute::Uncertain` when the wire omits the route, so an existing graph plans to exactly today's behavior.
+- `DecisionStep::routes()` returns the `uncertain` route too, so the existing reachability and cycle checks in `--check` cover it without new code.
+- In `decision_walking.rs`, the two places that end `uncertain` on an in-band answer (`binary_route` returning `None`, and a choice under `min_probability`) follow the step's `uncertain` route instead. No tracker is added (corrected after review SR3): `uncertain(...)` reports the step that ended the walk, as today, so the `uncertain` list and `results` keep R23's and R25's meaning. For a gate in band routed to its verdict, the verdict is the reported step when the verdict is in band.
+- **Compatibility.** A graph with no `uncertain` route keeps its routes, outcomes and reported steps exactly (corrected after review SR4). Its report can still change where R44 requires: a provider failure now carries its class, and an invalid answer is `invalid_response`. Routing regressions and R44 goldens are separate comparisons.
+- All of a rule's questions travel in one request (R20), so following the route never sends another request.
+
+**Incomplete reasons (R44).** The owners stay `rulebook_planning` (produced), `evidence_selection` (produced) and `lint_reporting` (reported).
+- `RulebookIncompleteReason` in `decision_walking.rs` changes from the bare `ProviderFailure` to `ProviderFailure { failure_class: ProviderFailureClass, http_status: Option<u16> }`, plus new `InvalidRequest` and `InvalidResponse` variants. `ProviderFailureClass` is the decision crate's existing enum (`decision_protocol/decision_contracts.rs:263`), reused unchanged.
+- `rulebook_run.rs` maps each finished request's `DecisionRunOutcome` one to one: `ProviderFailure { failure_class, http_status, .. }` carries both fields, `InvalidRequest` becomes `InvalidRequest`, `InvalidResponse` becomes `InvalidResponse`, and `Cancelled` stays `Cancelled`. `DispatchRefusal::InvalidRequest` becomes `InvalidRequest`.
+- The walk's missing-or-malformed-answer returns in `decision_walking.rs` (today `ProviderFailure`) become `InvalidResponse`, and so does a completed outcome whose answers still leave the walk needing answers.
+- The pair's placeholder result in `rulebook_run` is never reported (corrected 31 Oct, at planning). One path used to report it: `rulebook_run.rs:99`, where `piece_state` fails because the piece's state can't become the decision model's `SharedEvidenceState`. That path now gives `EvidenceUnavailable`, the reason the walk's own `uncertain()` already gives for the same error (`decision_walking.rs`). Every other path overwrites the placeholder.
+- `SelectionIncompleteReason` in `evidence_selection/selection_contracts.rs` changes the same way, mapped in `selection_run.rs`: `ProviderFailure` gains `failure_class` and `http_status`, `InvalidRequest` stays, and `MalformedAnswer` becomes `InvalidResponse`. R44 says an answer that failed admission gives `invalid_response` and that the same reasons apply to selection, so the 2026-10-30 R34 name `malformed_answer` is replaced (hard cutover).
+- In `sunstack-lint/src/lint_reporting/`, `report_contracts.rs` `IncompleteReason` mirrors the three shapes with serde tag `kind`, plus `failure_class` and `http_status` (`http_status` omitted when none); `outcome.rs` maps them through; `formats.rs` prints `provider failure (<class>[, HTTP <status>])`.
+- This is a hard cutover of the JSON report's incomplete reason. sunstack's `tests/skills` report schema is the known consumer and updates in the same release's pin bump.
+
+| Seam (added) | Real | Faked | Observes |
+| --- | --- | --- | --- |
+| `match_file` and `field_composition` on copied sunstack files and small crafted ones | the parser, the builder, the standard utils | nothing | `match_nodes` and `parents` entries (the actual match-to-parent mapping); `next`/`previous` values and spans for V22's positives, negatives and the same-range list/item case |
+| `decision_walking` with supplied answers | the walk | answers | routes followed from in-band answers; the reported step (the one that ended the walk) in both the `uncertain` list and `results`; zero added requests |
+| `rulebook_run` and `selection_run` with the loopback backend | dispatch, the attempt controller | the HTTP endpoint (429, 503, refused, stalled, schema-invalid, missing question) | each incomplete reason with its class and status |
+| `sunstack lint` binary on a fixture with `decision_model.endpoint` at a closed port | everything | the endpoint | the JSON reason `connection` and the default line |
+
 ## Trace
 
 | U | R | E | Owner | Interface | Shape and home | State | Failure | Proof |
@@ -213,5 +260,8 @@ The decision model receives the standard, the piece's location and its bounded m
 | U8 | R26 status and exit | E11 | lint outcome | `LintStatus::exit_code` | `LintStatus::Uncertain` = 5 | precedence table | none | binary exit codes |
 | U2, U10 | R27 determinism | E6, E10 | piece building, dispatcher | ordering rules | ordered vectors | none | none | repeat runs, shuffled completion |
 | U12 | R28 skips | E3, E11 | rulebook_assembly + lint outcome | `RulebookAssembly.skipped` | `SkippedRule` (existing shape) | none | incomplete: coverage_partial | crafted bad entry |
+| U2 | R11 `next`/`previous` (31 Oct) | E7 | evidence_planning (contract, `FileMatchIndex.match_nodes` and `.parents` by node identity), evidence_piece_building (value) | rule-only `FieldSource::{Next, Previous}` with `NeighbourCount` 1–5; node keys and parent entries recorded in `match_file`, walked from the piece's own match in `local_fields` | `FieldValue::Texts` in source order, `field_composition.rs` | none | empty list when no neighbour qualifies; `--check` refuses count outside 1–5 and kind forms | V22 positives and negatives through the real builder |
+| U5 | R18 `uncertain` route (31 Oct) | E9 | decision_graph_contracts, decision_walking | optional wire `uncertain`; `BinaryRoutes.uncertain`, `AskChoice.uncertain` | `DecisionRoute`, default `Uncertain` | in-band answer → routed step | refused by `--check` when undefined or cyclic | walk tests with supplied answers; existing fixtures unchanged |
+| U18 | R44 incomplete reasons (31 Oct) | E10 | rulebook_run, selection_run; lint report | `DecisionRunOutcome` → reason, one to one | `RulebookIncompleteReason`, `SelectionIncompleteReason`, lint `IncompleteReason` with `failure_class`, `http_status?` | none | each class distinct | loopback failures; binary at a closed port |
 
 Deviations and unresolved decisions: none. `decision_model.endpoint` exists for tests and alternative gateways, as lint's `backend.endpoint` does today.

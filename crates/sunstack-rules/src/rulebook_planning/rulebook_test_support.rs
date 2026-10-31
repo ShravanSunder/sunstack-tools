@@ -104,5 +104,6 @@ pub fn index() -> FileMatchIndex {
             }],
         )]),
         limited: false,
+        ..FileMatchIndex::default()
     }
 }

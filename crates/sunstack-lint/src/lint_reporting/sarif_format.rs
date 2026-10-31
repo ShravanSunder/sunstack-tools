@@ -1,6 +1,8 @@
 use crate::{
-    LintReport, LintStatus, ScopeReport,
-    lint_reporting::formats::{incomplete_text, transport_level, uncertain_text},
+    IncompleteReason, LintReport, LintStatus, ScopeReport,
+    lint_reporting::formats::{
+        incomplete_text, selection_incomplete_text, transport_level, uncertain_text,
+    },
 };
 use serde::Serialize;
 use std::path::Path;
@@ -161,19 +163,37 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
                 .collect(),
         })
         .collect::<Vec<_>>();
-    notifications.extend(report.incomplete.iter().map(|incomplete| {
-        SarifNotification {
-            level: "error",
-            message: SarifMessage {
-                text: incomplete_text(&incomplete.reason),
-            },
-            locations: incomplete
-                .file
-                .iter()
-                .map(|file| location(file, None))
-                .collect(),
-        }
-    }));
+    let incomplete_messages = report
+        .incomplete
+        .iter()
+        .map(|part| {
+            let mut message = incomplete_text(&part.reason);
+            if matches!(part.reason, IncompleteReason::SelectionIncomplete) {
+                for detail in report
+                    .selections
+                    .iter()
+                    .filter_map(selection_incomplete_text)
+                {
+                    message.push('\n');
+                    message.push_str(&detail);
+                }
+            }
+            message
+        })
+        .collect::<Vec<_>>();
+    notifications.extend(report.incomplete.iter().zip(&incomplete_messages).map(
+        |(incomplete, message)| {
+            SarifNotification {
+                level: "error",
+                message: SarifMessage { text: message },
+                locations: incomplete
+                    .file
+                    .iter()
+                    .map(|file| location(file, None))
+                    .collect(),
+            }
+        },
+    ));
     let uncertain_messages = report
         .uncertain
         .iter()

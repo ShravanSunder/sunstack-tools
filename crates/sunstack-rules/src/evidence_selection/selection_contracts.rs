@@ -107,9 +107,13 @@ pub enum SelectionIncompleteReason {
     #[error("selection request is invalid")]
     InvalidRequest,
     #[error("selection provider request failed")]
-    ProviderFailure,
-    #[error("selection answer is malformed")]
-    MalformedAnswer,
+    ProviderFailure {
+        failure_class: sunstack_decisions::ProviderFailureClass,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        http_status: Option<u16>,
+    },
+    #[error("selection answer is invalid")]
+    InvalidResponse,
     #[error("selection model request allowance is exhausted")]
     RequestLimitReached,
     #[error("selection was cancelled")]

@@ -21,6 +21,7 @@ pub(super) fn local_fields(
     definition: &EvidenceKindDefinition,
     file: &MatchedFile,
     range: &MatchRange,
+    match_position: usize,
     pieces: &[EvidencePiece],
 ) -> BTreeMap<FieldName, FieldValue> {
     let text = &file.text[range.start..range.end];
@@ -106,6 +107,16 @@ pub(super) fn local_fields(
                         .collect(),
                     spans: spans.iter().map(|span| source_span(file, span)).collect(),
                 }
+            }
+            FieldSource::Next { rule, count } | FieldSource::Previous { rule, count } => {
+                neighbour_field(
+                    definition,
+                    file,
+                    match_position,
+                    rule,
+                    *count,
+                    matches!(source, FieldSource::Previous { .. }),
+                )
             }
             FieldSource::Yaml { key } => yaml_field(file, range, key),
             FieldSource::Remainder { .. } | FieldSource::Target { .. } => continue,
@@ -209,5 +220,58 @@ fn yaml_field(file: &MatchedFile, range: &MatchRange, key: &str) -> FieldValue {
         _ => FieldValue::Unavailable {
             reason: FieldUnavailable::FrontmatterMalformed,
         },
+    }
+}
+
+fn neighbour_field(
+    definition: &EvidenceKindDefinition,
+    file: &MatchedFile,
+    match_position: usize,
+    rule: &crate::EvidenceRuleId,
+    count: crate::NeighbourCount,
+    previous: bool,
+) -> FieldValue {
+    let entry = file
+        .index
+        .match_nodes
+        .get(&definition.rule)
+        .and_then(|nodes| nodes.get(match_position))
+        .and_then(|node| file.index.parents.get(node));
+    let mut selected = Vec::new();
+    if let Some(entry) = entry {
+        let positions: Box<dyn Iterator<Item = usize>> = if previous {
+            Box::new((0..entry.position).rev())
+        } else {
+            Box::new(entry.position + 1..entry.children.len())
+        };
+        for position in positions {
+            let child = &entry.children[position];
+            if child.continuation {
+                continue;
+            }
+            if !file
+                .index
+                .match_nodes
+                .get(rule)
+                .is_some_and(|nodes| nodes.contains(&child.node))
+            {
+                break;
+            }
+            selected.push(child.range.clone());
+            if selected.len() == count.get() {
+                break;
+            }
+        }
+    }
+    selected.sort_by_key(|range| (range.start, range.end));
+    FieldValue::Texts {
+        values: selected
+            .iter()
+            .map(|range| file.text[range.start..range.end].into())
+            .collect(),
+        spans: selected
+            .iter()
+            .map(|range| source_span(file, range))
+            .collect(),
     }
 }

@@ -171,3 +171,30 @@ fn within_null_is_refused_while_omission_means_no_containment() {
     .unwrap_err();
     assert!(error.to_string().contains("within"), "{error}");
 }
+
+#[test]
+fn neighbour_schema_and_decode_agree_on_rule_only_counts() {
+    let schema = schemars::schema_for!(FieldSource);
+    let validator = jsonschema::validator_for(schema.as_value()).unwrap();
+    for from in ["next", "previous"] {
+        for count in [0, 1, 2, 5, 6] {
+            let value = serde_json::json!({"from": from, "rule": "paragraph", "count": count});
+            assert_eq!(
+                validator.is_valid(&value),
+                (1..=5).contains(&count),
+                "{value}"
+            );
+            assert_eq!(
+                serde_json::from_value::<FieldSource>(value.clone()).is_ok(),
+                validator.is_valid(&value),
+                "{value}"
+            );
+        }
+        for value in [
+            serde_json::json!({"from":from,"kind":"existing"}),
+            serde_json::json!({"from":from,"rule":"paragraph","kind":"existing"}),
+        ] {
+            assert!(!validator.is_valid(&value), "{value}");
+        }
+    }
+}
