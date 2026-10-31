@@ -316,8 +316,35 @@ ex-card .eyebrow {
 	margin-block-end: 0;
 }
 /* Rendered Markdown shares the enclosing body boundary, not its source carrier margins. */
-:is(ex-card, ex-region)
+ex-region
 	> ex-markdown
+	> :nth-child(
+		1 of :not(
+			script,
+			template,
+			[hidden],
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas
+		)
+	),
+ex-card
+	> ex-markdown:nth-child(
+		1 of :not(
+			.ex-card-head,
+			.ex-region-head,
+			footer,
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas,
+			ex-arrow,
+			script,
+			template,
+			[hidden]
+		)
+	)
 	> :nth-child(
 		1 of :not(
 			script,
@@ -331,8 +358,35 @@ ex-card .eyebrow {
 	) {
 	margin-block-start: 0;
 }
-:is(ex-card, ex-region)
+ex-region
 	> ex-markdown
+	> :nth-last-child(
+		1 of :not(
+			script,
+			template,
+			[hidden],
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas
+		)
+	),
+ex-card
+	> ex-markdown:nth-last-child(
+		1 of :not(
+			.ex-card-head,
+			.ex-region-head,
+			footer,
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas,
+			ex-arrow,
+			script,
+			template,
+			[hidden]
+		)
+	)
 	> :nth-last-child(
 		1 of :not(
 			script,
@@ -830,7 +884,9 @@ ex-region > * + * {
 	margin-top: 0;
 }
 /* Prose rhythm is separate from the full channel between component rows. */
-ex-region[prepared] > :is(ex-markdown, p, ul, ol) + :is(ex-markdown, p, ul, ol) {
+ex-region[prepared]
+	> :is(ex-markdown, p, ul, ol)
+	+ :is(ex-markdown, p, ul, ol):not(.ex-flow-overlay, .ex-arrow-canvas) {
 	margin-block-start: calc(var(--space-4) - var(--space-10));
 }
 ex-region[prepared] > .ex-region-head {
