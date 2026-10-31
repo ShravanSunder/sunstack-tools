@@ -412,3 +412,8 @@ ex-region > .ex-region-head.ex-comment-target > .ex-entity-comment {
 ex-mermaid.ex-comment-target > .ex-entity-comment {
 	top: var(--space-1);
 }
+
+/* Tree rows have no heading band inset; preserve full label width below the rail. */
+ex-tree.ex-comment-target {
+	padding-block-start: var(--space-4);
+}

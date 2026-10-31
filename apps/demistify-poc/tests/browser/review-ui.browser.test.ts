@@ -526,7 +526,10 @@ test('phone headings keep their order and toolbar controls clear an open drawer'
 	expect(requiredElement(fixture, '#width-code')).toBe(originalCode);
 	await expect
 		.poll((): string | null => fixture.activeElement?.getAttribute('aria-label') ?? null)
-		.toBe('Open Canvas code in a sidebar');
+		.toBe('Expand Canvas code');
+	await expect
+		.element(local.getByRole('button', { name: 'Expand Canvas code', exact: true }))
+		.toBeVisible();
 	for (const selector of ['.ex-search-trigger', '.ex-theme-toggle']) {
 		const control = requiredElement(fixture, selector).getBoundingClientRect();
 		expect(control.width).toBeGreaterThan(0);

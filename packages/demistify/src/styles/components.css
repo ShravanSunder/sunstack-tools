@@ -539,3 +539,64 @@ ex-layer.band > :first-child {
 		border-radius: 0;
 	}
 }
+
+/* Keep the tab bar's own top margin inside its inspection containing block. */
+ex-tabs.ex-inspectable {
+	display: flow-root;
+}
+
+/* A Markdown surface starting with a heading has no band inset for its source rail. */
+ex-markdown.ex-inspectable:has(
+		> :is(h1, h2, h3, h4, h5, h6):nth-child(
+			1 of :not(script, template, [hidden], .ex-inspect-controls)
+		)
+	) {
+	padding-block-start: var(--space-4);
+}
+
+/* A headed container already supplies the first body's rail clearance in its 20px gap. */
+:is(ex-card, ex-region)
+	> ex-markdown.ex-inspectable:nth-child(
+		1 of :not(
+			.ex-card-head,
+			.ex-region-head,
+			footer,
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas,
+			ex-arrow,
+			script,
+			template,
+			[hidden]
+		)
+	):has(
+		> :is(h1, h2, h3, h4, h5, h6):nth-child(
+			1 of :not(script, template, [hidden], .ex-inspect-controls)
+		)
+	) {
+	padding-block-start: 0;
+}
+:is(ex-card, ex-region)
+	> ex-markdown.ex-inspectable:nth-child(
+		1 of :not(
+			.ex-card-head,
+			.ex-region-head,
+			footer,
+			.ex-inspect-controls,
+			.ex-entity-comment,
+			.ex-flow-overlay,
+			.ex-arrow-canvas,
+			ex-arrow,
+			script,
+			template,
+			[hidden]
+		)
+	):has(
+		> :is(h1, h2, h3, h4, h5, h6):nth-child(
+			1 of :not(script, template, [hidden], .ex-inspect-controls)
+		)
+	)
+	> .ex-inspect-controls {
+	top: calc(var(--space-1) - var(--space-8));
+}
