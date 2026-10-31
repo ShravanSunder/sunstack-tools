@@ -4,6 +4,7 @@ import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
 import { runSelectionJourney } from '../selection/selection-journey.ts';
+import { runAmendmentJourney } from './rulebook-amendment.ts';
 import {
 	listingPieces,
 	location,
@@ -112,20 +113,21 @@ function requireUncertain(report: JsonObject, step: string): void {
 		'Uncertain sent state absent',
 	);
 }
+export const rulebookFixtureNames = [
+	'all-kinds',
+	'worked',
+	'uncertain-only',
+	'skip',
+	'malformed',
+	'missing-completion',
+	'changes',
+	'changed-load',
+	'rule-change',
+	'untracked',
+] as const;
 export function prepareRulebook(destination: string): void {
 	filesystem.mkdirSync(destination);
-	for (const name of [
-		'all-kinds',
-		'worked',
-		'uncertain-only',
-		'skip',
-		'malformed',
-		'missing-completion',
-		'changes',
-		'changed-load',
-		'rule-change',
-		'untracked',
-	]) {
+	for (const name of rulebookFixtureNames) {
 		const root = prepareFixture(
 			path.join(destination, name),
 			['uncertain-only', 'changes', 'untracked', 'missing-completion'].includes(name)
@@ -315,7 +317,10 @@ async function observeChanges(observer: RulebookProcess, fixtures: string): Prom
 		'Untracked skill not wholly picked',
 	);
 }
-async function observe(observer: RulebookProcess, fixtures: string): Promise<void> {
+export async function observeLegacyRulebook(
+	observer: RulebookProcess,
+	fixtures: string,
+): Promise<void> {
 	const root = path.join(fixtures, 'all-kinds');
 	configureEndpoint(root, observer.endpoint);
 	const listing = await observer.run({
@@ -484,6 +489,10 @@ export async function main(): Promise<void> {
 		'Rulebook lint: independently checked pieces, worked decisions, Git scope and peer skips.',
 	);
 	if (!options) return;
+	if (options.case.includes('amendment')) {
+		await runAmendmentJourney(options, false);
+		return;
+	}
 	if (options.case.includes('selection')) {
 		await runSelectionJourney(options);
 		return;
@@ -512,7 +521,7 @@ export async function main(): Promise<void> {
 	const observer = new RulebookProcess(target, path.join(evidence, 'run'));
 	await observer.start();
 	try {
-		await observe(observer, path.join(evidence, 'fixtures'));
+		await observeLegacyRulebook(observer, path.join(evidence, 'fixtures'));
 	} finally {
 		await observer.close();
 	}

@@ -6,6 +6,7 @@ import {
 	observeSelectionRefusals,
 	prepareSelectionRefusals,
 } from '../selection/selection-refusals.ts';
+import { runAmendmentJourney } from './rulebook-amendment.ts';
 import {
 	configName,
 	configureEndpoint,
@@ -43,6 +44,10 @@ export async function main(): Promise<void> {
 		'Rulebook --check: R24 refusals plus bounded no-writer FIFO, no key.',
 	);
 	if (!options) return;
+	if (options.case.includes('amendment')) {
+		await runAmendmentJourney(options, true);
+		return;
+	}
 	if (options.case.includes('selection')) {
 		if (options.prepare) {
 			prepareSelectionRefusals({

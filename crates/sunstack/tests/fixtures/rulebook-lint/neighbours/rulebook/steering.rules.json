@@ -1,0 +1,22 @@
+{
+  "K001": {
+    "name": "neighbours",
+    "evidence": "subject",
+    "decision": {
+      "start": "exists",
+      "steps": {
+        "exists": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "body",
+            "text": "Subject."
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Subject absent."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+id: subject
+language: Markdown
+rule:
+  all:
+    - kind: paragraph
+    - regex: ^Subject\.
