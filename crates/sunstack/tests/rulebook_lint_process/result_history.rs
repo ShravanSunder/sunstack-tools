@@ -1,6 +1,37 @@
 use super::*;
 
 #[tokio::test]
+async fn target_exclude_kind_is_a_located_check_refusal_and_rule_exclusion_is_admitted() {
+    let root = limit_fixture(
+        json!({"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","exclude":{"kind":"review"}}}),
+        mechanical_graph(json!({"tool":"file_exists","field":"targets"})),
+    );
+    let output = tokio::time::timeout(
+        Duration::from_secs(10),
+        command(root.path()).arg("--check").output(),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    for part in ["review", "targets", "exclude"] {
+        assert!(text.contains(part), "missing {part}: {text}");
+    }
+    let path = root.path().join("skill-rules.config.json");
+    let mut config = read(&path);
+    config["evidence"]["kinds"]["review"]["fields"]["targets"]["exclude"] =
+        json!({"rule":"paragraph"});
+    save(&path, &config);
+    let checked = invoke(root.path(), &["--check"], 0).await;
+    assert_eq!(checked.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
 async fn judged_pass_drop_and_incomplete_keep_the_walks_answers_not_the_requests() {
     let root = limit_fixture(
         json!({"body":{"from":"remainder"},"description":{"from":"yaml","key":"description"}}),

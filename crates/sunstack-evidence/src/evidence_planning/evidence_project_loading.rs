@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -33,8 +34,9 @@ impl ProjectRefusal {
     }
 }
 
+#[derive(Clone)]
 pub struct EvidenceProject {
-    pub rules: RuleCollection<SupportLang>,
+    pub rules: Arc<RuleCollection<SupportLang>>,
     pub rule_ids: BTreeSet<crate::EvidenceRuleId>,
     pub inputs: Vec<PathBuf>,
 }
@@ -243,7 +245,7 @@ pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, Proj
     let rules =
         RuleCollection::try_new(rules).map_err(|error| ProjectRefusal::at(config_path, error))?;
     Ok(EvidenceProject {
-        rules,
+        rules: Arc::new(rules),
         rule_ids,
         inputs,
     })

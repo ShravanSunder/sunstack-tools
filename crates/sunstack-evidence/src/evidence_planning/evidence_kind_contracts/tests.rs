@@ -198,3 +198,22 @@ fn neighbour_schema_and_decode_agree_on_rule_only_counts() {
         }
     }
 }
+
+#[test]
+fn target_exclusions_accept_a_rule_and_refuse_kind_and_unknown_keys() {
+    let schema = schemars::schema_for!(FieldSource);
+    let validator = jsonschema::validator_for(schema.as_value()).unwrap();
+    for (exclude, valid) in [
+        (serde_json::json!({"rule":"section"}), true),
+        (serde_json::json!({"kind":"section"}), false),
+        (
+            serde_json::json!({"rule":"section","kind":"section"}),
+            false,
+        ),
+        (serde_json::json!({"rule":"section","unknown":true}), false),
+    ] {
+        let value = serde_json::json!({"from":"target","regex":"`([^`]+)`","resolve":"path","exclude":exclude});
+        assert_eq!(validator.is_valid(&value), valid);
+        assert_eq!(serde_json::from_value::<FieldSource>(value).is_ok(), valid);
+    }
+}

@@ -93,6 +93,7 @@ fn kind_refusals_cover_rules_regex_sizes_and_one_level_composition() {
                 resolve: sunstack_evidence::EvidenceTargetResolution::Path,
                 opening_chars: 3000,
                 as_kind: Some(EvidenceKindName::new("load").unwrap()),
+                exclude: None,
             },
         );
     kinds

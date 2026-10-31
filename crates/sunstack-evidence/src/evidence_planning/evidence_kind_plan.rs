@@ -26,8 +26,8 @@ impl EvidenceKindPlan {
             for source in definition.fields.values() {
                 match source {
                     FieldSource::Inside { of }
-                    | FieldSource::Enclosing { of }
-                    | FieldSource::SameFile { of }
+                    | FieldSource::Enclosing { of, .. }
+                    | FieldSource::SameFile { of, .. }
                     | FieldSource::Remainder { exclude: Some(of) } => {
                         if let MatchSource::Kind { kind } = of {
                             dependencies.insert(kind.clone());

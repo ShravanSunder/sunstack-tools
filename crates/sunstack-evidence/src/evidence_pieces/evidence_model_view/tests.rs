@@ -102,6 +102,8 @@ fn target_openings_and_nested_skill_fields_are_bounded() {
                 candidates: vec![],
                 opening: Some("z".repeat(7000)),
                 fields: Some(fields(text("nested".repeat(1000)))),
+                opening_cut: false,
+                opening_last_line: Some(1),
             })
             .collect(),
     });
