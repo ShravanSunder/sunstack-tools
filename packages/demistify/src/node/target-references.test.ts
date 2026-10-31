@@ -2,6 +2,39 @@ import { expect, test } from 'vitest';
 
 import { checkHtml } from './check.ts';
 
+test.each(['ex-card', 'ex-region'])(
+	'%s accepts six category slots independently of tone and permits neutral surfaces',
+	async (tag): Promise<void> => {
+		// Arrange: the adopted category convention is 1–6; omission stays neutral.
+		const surfaces = ['', '1', '2', '3', '4', '5', '6']
+			.map(
+				(series): string =>
+					`<${tag} title="Gateway" tone="risk"${series ? ` series="${series}"` : ''}><p>Boundary · blocked.</p></${tag}>`,
+			)
+			.join('');
+		// Act: exercise the same vocabulary validation used by the CLI.
+		const findings = await checkHtml(`<ex-board>${surfaces}</ex-board>`, { diagrams: false });
+		// Assert: category does not replace the required semantic tone.
+		expect(findings.filter((finding): boolean => finding.rule === 'attribute')).toEqual([]);
+	},
+);
+
+test.each(['', '0', '7', '1.5', 'blue'])(
+	'the checker rejects category series "%s" on cards and regions',
+	async (series): Promise<void> => {
+		// Arrange: none of these authored values names an adopted chart slot.
+		const source = `<ex-board><ex-region title="Boundary" tone="note" series="${series}"><ex-card title="Gateway" tone="note" series="${series}"></ex-card></ex-region></ex-board>`;
+		// Act.
+		const findings = await checkHtml(source, { diagrams: false });
+		// Assert: each surface reports its invalid category at the authoring boundary.
+		const categories = findings.filter(
+			(finding): boolean => finding.rule === 'attribute' && finding.message.includes('series'),
+		);
+		expect(categories).toHaveLength(2);
+		expect(categories.every((finding): boolean => finding.severity === 'error')).toBe(true);
+	},
+);
+
 test.each([
 	'<script type="text/plain">first\nsecond\nlast</script>',
 	'<template>first\n&lt;/script&gt;\nlast</template>',

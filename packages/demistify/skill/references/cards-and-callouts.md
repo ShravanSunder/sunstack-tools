@@ -15,7 +15,7 @@ A card encloses one named thing. A callout draws attention to a consequence that
 <ex-stat value="2" label="Proposed ownership options" note="Source inventory; no execution observed"></ex-stat>
 ```
 
-`ex-card` accepts `title`, `tone`, `icon`, `tag`, bare `pick` and an optional inspection `label`. A missing card tone produces a checker warning; choose the meaning deliberately. `ex-callout` accepts `title`, `tone`, `icon` and `label`; its default tone is `note`. `ex-stat` requires `value` and `label`; `note` and `tone` are optional. Its attributes are text, not a second rich-content body.
+`ex-card` accepts `title`, `tone`, `icon`, `tag`, optional `series` (1–6), bare `pick` and an optional inspection `label`. A missing card tone produces a checker warning; choose the meaning deliberately. `ex-callout` accepts `title`, `tone`, `icon` and `label`; its default tone is `note`. `ex-stat` requires `value` and `label`; `note` and `tone` are optional. Its attributes are text, not a second rich-content body.
 
 | Meaning | Tone choices |
 | --- | --- |
@@ -30,6 +30,17 @@ A tone supplies semantic color and a default icon. A curated subject `icon` over
 Use `pick` only after the owner selects an option. It adds a separate Chosen label without changing the option's semantic tone. `tag` carries a short location, timing or tradeoff. Neither is a paragraph, a general inline badge or a substitute for evidence. A recommendation does not acquire `pick` merely because its author prefers it.
 
 ## Compose one useful unit
+
+Cards use 8px corners, one outer shadow and a darker header band. A direct native `<footer>` adds an optional matching lower band; leave it out when the card needs no footer. Keep body content directly inside the card so existing review targets retain their ancestry.
+
+Use `series="1"` through `series="6"` for an explicit category shared across cards and regions. These reuse the six Mermaid chart palette slots, with a subtle body tint and side edge. Omit `series` for a neutral surface. Invalid values are checker errors. Keep a visible category label (`tag` or body text); color alone is insufficient. Category never replaces `tone`, status text or the tone icon/top edge.
+
+```html
+<ex-card title="Registry" tone="planned" series="2" tag="Store" icon="database">
+  <p>Retains lookup across reconnects.</p>
+  <footer>Store · proposed; expiry policy still needs review</footer>
+</ex-card>
+```
 
 A card/callout body can contain paragraphs, lists, bare Markdown, ordinary HTML, short code, figures, disclosures and rich child islands. Direct card/callout disclosures also adopt bare Markdown. Nested cards are technically possible; use them only when both boundaries name different useful units. For source carriers and literal markup, apply `content.md`.
 

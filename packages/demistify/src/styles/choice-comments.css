@@ -37,6 +37,14 @@ ex-document[document-id],
 .ex-comment-target:is(ex-callout, ex-card, ex-tree, ex-file-tree) {
 	padding-inline-end: var(--space-10);
 }
+/* Bands reach the frame while their text retains the body's comment gutter. */
+ex-card.ex-comment-target > :is(.ex-card-head, footer) {
+	margin-inline-end: calc(-1 * var(--space-10));
+	padding-inline-end: var(--space-10);
+}
+ex-card.ex-comment-target.ex-inspectable > .ex-card-head {
+	padding-inline-end: calc(var(--space-16) + var(--space-10));
+}
 .ex-comment-target > .ex-inspect-controls {
 	right: var(--space-10);
 }

@@ -184,6 +184,19 @@ table {
 	width: 100%;
 	font-size: var(--text-md);
 }
+/* Round the native frame without inserting an ancestor into saved comment paths. */
+table:not(.tbl table, .ex-table-scroll table, .ex-explorer-table-scroll table) {
+	border-collapse: separate;
+	border-spacing: 0;
+	border: 1px solid var(--table-border);
+	border-radius: var(--radius-md);
+	overflow: clip;
+}
+table:not(.tbl table, .ex-table-scroll table, .ex-explorer-table-scroll table)
+	:is(thead > tr:last-child, tbody > tr:first-child:has(th):not(:has(td)))
+	> th {
+	border-bottom: 1px solid var(--table-border);
+}
 th,
 td {
 	text-align: left;
