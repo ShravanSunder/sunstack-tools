@@ -40,6 +40,51 @@ macro_rules! evidence_name {
     };
 }
 evidence_name!(EvidenceKindName, |_: &str| true);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(try_from = "Vec<EvidenceKindName>", into = "Vec<EvidenceKindName>")]
+#[schemars(extend("minItems" = 1, "uniqueItems" = true))]
+pub struct ContainingKinds(Vec<EvidenceKindName>);
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum InvalidContainingKinds {
+    #[error("within must contain at least one kind")]
+    Empty,
+    #[error("within repeats kind {}", .0.as_str())]
+    Repeated(EvidenceKindName),
+}
+
+impl ContainingKinds {
+    pub fn new(kinds: Vec<EvidenceKindName>) -> Result<Self, InvalidContainingKinds> {
+        if kinds.is_empty() {
+            return Err(InvalidContainingKinds::Empty);
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        for kind in &kinds {
+            if !seen.insert(kind) {
+                return Err(InvalidContainingKinds::Repeated(kind.clone()));
+            }
+        }
+        Ok(Self(kinds))
+    }
+
+    pub fn as_slice(&self) -> &[EvidenceKindName] {
+        &self.0
+    }
+}
+
+impl TryFrom<Vec<EvidenceKindName>> for ContainingKinds {
+    type Error = InvalidContainingKinds;
+    fn try_from(kinds: Vec<EvidenceKindName>) -> Result<Self, Self::Error> {
+        Self::new(kinds)
+    }
+}
+
+impl From<ContainingKinds> for Vec<EvidenceKindName> {
+    fn from(kinds: ContainingKinds) -> Self {
+        kinds.0
+    }
+}
 evidence_name!(EvidenceRuleId, |_: &str| true);
 impl std::borrow::Borrow<str> for EvidenceRuleId {
     fn borrow(&self) -> &str {
@@ -67,8 +112,21 @@ pub struct EvidenceKindDefinition {
     pub max_chars: Option<NonZeroU32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub select: Option<SelectionWire>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub within: Option<EvidenceKindName>,
+    #[serde(
+        default,
+        deserialize_with = "decode_containing_kinds",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "ContainingKinds")]
+    pub within: Option<ContainingKinds>,
+}
+
+fn decode_containing_kinds<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<ContainingKinds>, D::Error> {
+    ContainingKinds::deserialize(deserializer)
+        .map(Some)
+        .map_err(|error| serde::de::Error::custom(format!("within: {error}")))
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]

@@ -23,6 +23,7 @@ pub use evidence_execution::preparation_contracts::*;
 pub use evidence_piece_building::*;
 pub use evidence_pieces::evidence_model_view::*;
 pub use evidence_pieces::evidence_piece_picking::*;
+pub use evidence_planning::configuration_paths::*;
 pub use evidence_planning::evidence_admission::admit_evidence_declaration;
 pub use evidence_planning::evidence_contracts::*;
 pub use evidence_planning::evidence_diagnostics::*;

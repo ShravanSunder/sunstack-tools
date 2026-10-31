@@ -7,16 +7,16 @@ use sunstack_decisions::{
     JudgmentQuestion, NamedQuestionMap, QuestionName, StructuredEntry, StructuredJson,
 };
 use sunstack_evidence::{
-    EvidenceKindDefinition, EvidenceKindName, EvidenceProject, FieldName, FieldShape, FieldSource,
-    MatchSource,
+    ConfigPath, EvidenceKindDefinition, EvidenceKindName, EvidenceProject, FieldName, FieldShape,
+    FieldSource, MatchSource,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmissionRefusal {
-    pub field_path: String,
+    pub field_path: ConfigPath,
     pub message: String,
 }
-fn refusal(path: impl Into<String>, message: impl Into<String>) -> AdmissionRefusal {
+fn refusal(path: impl Into<ConfigPath>, message: impl Into<String>) -> AdmissionRefusal {
     AdmissionRefusal {
         field_path: path.into(),
         message: message.into(),
@@ -31,23 +31,20 @@ pub fn admit_evidence_kinds(
     let mut errors = Vec::new();
     if default_max_chars < 1000 {
         errors.push(refusal(
-            "limits.evidence_max_chars",
+            ConfigPath::keys(["limits", "evidence_max_chars"]),
             "must be at least 1000",
         ));
     }
     for (name, kind) in kinds {
-        let path = format!("evidence.kinds.{}", name.as_str());
+        let path = ConfigPath::keys(["evidence", "kinds", name.as_str()]);
         if !project.rule_ids.contains(&kind.rule) {
-            errors.push(refusal(format!("{path}.rule"), "unknown evidence rule"));
+            errors.push(refusal(path.with_key("rule"), "unknown evidence rule"));
         }
         if kind.max_chars.is_some_and(|n| n.get() < 1000) {
-            errors.push(refusal(
-                format!("{path}.max_chars"),
-                "must be at least 1000",
-            ));
+            errors.push(refusal(path.with_key("max_chars"), "must be at least 1000"));
         }
         for (field, source) in &kind.fields {
-            let path = format!("{path}.fields.{}", field.as_str());
+            let path = path.with_key("fields").with_key(field.as_str());
             match source {
                 FieldSource::Inside { of }
                 | FieldSource::Enclosing { of }
@@ -114,7 +111,10 @@ pub fn admit_rule_entry(
     project: &EvidenceProject,
 ) -> Result<DecisionGraph, Vec<AdmissionRefusal>> {
     let Some(kind) = kinds.get(&entry.evidence) else {
-        return Err(vec![refusal("evidence", "undefined evidence kind")]);
+        return Err(vec![refusal(
+            ConfigPath::keys(["evidence"]),
+            "undefined evidence kind",
+        )]);
     };
     let mut errors = Vec::new();
     if !entry.questions.is_empty() {
@@ -124,12 +124,12 @@ pub fn admit_rule_entry(
         .is_err()
         {
             errors.push(refusal(
-                "questions",
+                ConfigPath::keys(["questions"]),
                 "question rejected by decision model schema",
             ));
         }
         for (name, question) in &entry.questions {
-            let path = format!("questions.{}", name.as_str());
+            let path = ConfigPath::keys(["questions", name.as_str()]);
             let instructions = match question {
                 JudgmentQuestion::Choice {
                     instructions,
@@ -157,7 +157,7 @@ pub fn admit_rule_entry(
                         && !field_references_valid(value, kind)
                     {
                         errors.push(refusal(
-                            format!("{path}.instructions.{key}"),
+                            path.with_key("instructions").with_key(key),
                             "instruction must name defined fields",
                         ));
                     }
@@ -238,7 +238,7 @@ fn admit_graph(
 ) -> DecisionGraph {
     let mut steps = BTreeMap::new();
     for (name, step) in &wire.steps {
-        let path = format!("decision.steps.{}", name.as_str());
+        let path = ConfigPath::keys(["decision", "steps", name.as_str()]);
         let mut route = |route: &crate::RouteWire| match DecisionRoute::try_from(route.clone()) {
             Ok(route) => {
                 if let DecisionRoute::Finding(finding) = &route
@@ -360,14 +360,20 @@ fn admit_graph(
         steps.insert(name.clone(), admitted);
     }
     if !steps.contains_key(&wire.start) {
-        errors.push(refusal("decision.start", "start names a missing step"));
+        errors.push(refusal(
+            ConfigPath::keys(["decision", "start"]),
+            "start names a missing step",
+        ));
     }
     for step in steps.values() {
         for route in step.routes() {
             if let DecisionRoute::Step(name) = route
                 && !steps.contains_key(name)
             {
-                errors.push(refusal("decision.steps", "route names a missing step"));
+                errors.push(refusal(
+                    ConfigPath::keys(["decision", "steps"]),
+                    "route names a missing step",
+                ));
             }
         }
     }
@@ -380,7 +386,10 @@ fn admit_graph(
     // Refuse unreachable cycles too: every authored step must be well-formed.
     for name in graph.steps.keys() {
         if has_cycle(name, &graph, &mut visiting, &mut visited) {
-            errors.push(refusal("decision.steps", "decision graph contains a cycle"));
+            errors.push(refusal(
+                ConfigPath::keys(["decision", "steps"]),
+                "decision graph contains a cycle",
+            ));
             break;
         }
     }
@@ -412,7 +421,7 @@ fn has_cycle(
     visited.insert(name.clone());
     false
 }
-fn validate_thresholds(yes: f64, no: f64, path: &str, errors: &mut Vec<AdmissionRefusal>) {
+fn validate_thresholds(yes: f64, no: f64, path: &ConfigPath, errors: &mut Vec<AdmissionRefusal>) {
     if !yes.is_finite()
         || !no.is_finite()
         || !(0.0..=1.0).contains(&yes)
@@ -429,7 +438,7 @@ fn validate_tool(
     tool: &DecisionMechanicalTool,
     kind: &EvidenceKindDefinition,
     project: &EvidenceProject,
-    path: &str,
+    path: &ConfigPath,
     errors: &mut Vec<AdmissionRefusal>,
 ) {
     let (field, shapes): (&FieldName, &[FieldShape]) = match tool {
@@ -494,7 +503,7 @@ pub fn admit_selections(
         let Some(wire) = &kind.select else {
             continue;
         };
-        let path = format!("evidence.kinds.{}.select", name.as_str());
+        let path = ConfigPath::keys(["evidence", "kinds", name.as_str(), "select"]);
         validate_thresholds(
             wire.yes_at_or_above,
             wire.no_at_or_below,
@@ -504,7 +513,7 @@ pub fn admit_selections(
         for field in &wire.shared {
             if !matches!(kind.fields.get(field), Some(FieldSource::SameFile { .. })) {
                 errors.push(refusal(
-                    format!("{path}.shared"),
+                    path.with_key("shared"),
                     "shared must name a defined same_file field",
                 ));
             }
@@ -513,7 +522,7 @@ pub fn admit_selections(
             Ok(question) => question,
             Err(_) => {
                 errors.push(refusal(
-                    format!("{path}.question"),
+                    path.with_key("question"),
                     "selection question rejected by decision model schema",
                 ));
                 continue;
@@ -521,7 +530,7 @@ pub fn admit_selections(
         };
         if !matches!(question, JudgmentQuestion::Noul { .. }) {
             errors.push(refusal(
-                format!("{path}.question"),
+                path.with_key("question"),
                 "selection question must be noul",
             ));
             continue;
@@ -537,7 +546,7 @@ pub fn admit_selections(
         .is_err()
         {
             errors.push(refusal(
-                format!("{path}.question"),
+                path.with_key("question"),
                 "selection question rejected by decision model schema",
             ));
         }
@@ -551,7 +560,9 @@ pub fn admit_selections(
                     && !field_references_valid(value, kind)
                 {
                     errors.push(refusal(
-                        format!("{path}.question.instructions.{key}"),
+                        path.with_key("question")
+                            .with_key("instructions")
+                            .with_key(key),
                         "instruction must name defined fields",
                     ));
                 }
@@ -560,7 +571,7 @@ pub fn admit_selections(
         for field in question_field_references(&questions) {
             if matches!(kind.fields.get(&field), Some(FieldSource::Target { .. })) {
                 errors.push(refusal(
-                    format!("{path}.question"),
+                    path.with_key("question"),
                     "selection question cannot name a target field",
                 ));
             }
