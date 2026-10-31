@@ -21,11 +21,15 @@ async fn selection_preserves_provider_class_status_and_invalid_response_reasons(
         let mut settings = settings(&endpoint);
         settings.attempts.attempt_timeout_ms = 200;
         let mut dispatch = dispatcher(settings);
-        let operation = tokio::spawn(async move { select_candidates(&input, &mut dispatch).await });
+        let mut operation =
+            tokio::spawn(async move { select_candidates(&input, &mut dispatch).await });
         let held = if case == "connection" {
             None
         } else {
-            let request = server.next().await;
+            let request = tokio::select! {
+                request = server.next() => request,
+                outcome = &mut operation => panic!("{case}: selection ended before expected HTTP: {outcome:?}"),
+            };
             match case {
                 "rate_limit" => {
                     request.respond(429, json!({"error":"controlled rate limit"}));
