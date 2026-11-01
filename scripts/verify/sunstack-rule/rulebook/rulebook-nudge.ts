@@ -143,7 +143,8 @@ function relatedPlaces(root: string): JsonObject[] {
 			last_line: opening.replace(/\n$/, '').split('\n').length,
 		});
 	}
-	places.push({ label: 'heading', file: locatedFile, first_line: 6, last_line: 7 });
+	// The first-line field ends at the next line's column 1; its last touched line is 6.
+	places.push({ label: 'heading', file: locatedFile, first_line: 6, last_line: 6 });
 	return places;
 }
 function requireLocated(root: string, report: JsonObject, resolved: boolean): void {
