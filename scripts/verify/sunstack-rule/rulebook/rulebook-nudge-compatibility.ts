@@ -32,7 +32,7 @@ function requireReleaseSignature(binary: string): void {
 		process.platform === 'darwin' && process.arch === 'arm64',
 		'U10 target is macOS arm64',
 	);
-	const signature = spawnSync('codesign', ['-dv', binary], { encoding: 'utf8', timeout: 10000 });
+	const signature = spawnSync('codesign', ['-dvv', binary], { encoding: 'utf8', timeout: 10000 });
 	const verified = spawnSync('codesign', ['--verify', binary], {
 		encoding: 'utf8',
 		timeout: 10000,
