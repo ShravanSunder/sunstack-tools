@@ -2,7 +2,7 @@
 
 ## Rules-as-nudges: S1 and U10
 
-Use `--case nudge` for the accepted 31 Oct rules-as-nudges engine Specification R1-R10 and Verification Design U1-U10 (target-exclude clarification accepted at `a69fe47`). This additive mode is a **draft until driven on the declared signed release target**. It leaves the default, selection and amendment modes intact.
+Use `--case nudge` for the accepted 31 Oct rules-as-nudges engine Specification R1-R10 and Verification Design U1-U10 (target-exclude clarification accepted at `a69fe47`, locator order clarified at `6328647`). This additive mode drives a declared signed release target. It leaves the default, selection and amendment modes intact.
 
 ```sh
 node scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts \
@@ -19,6 +19,8 @@ For observation, omit `--prepare` and add `--binary <signed-release-binary> --so
 - Over-cap and under-cap bodies beside an authored cut field: exact request and evidence_seen state preserve the authored text, engine cut-fields and result cut. Mixed Markdown/JSON findings, the JSON question's source line, and a broken JSON file beside a valid one. Warning-only exit 0, warning-limit exit 1, judged authored-error exit 1 and route severity override.
 
 Retain raw requests, both output formats and every child receipt. The scripted server replaces only answers. S1 does not establish U6/U7, request-budget/enclosing locator cases, dispatch-refusal/pre-walk history, the schema or real model choice: inspect the declared target's S3 tests and the Lead's S4 evidence for those joins. A prepared fixture proves none of the product behavior.
+
+Related-file identities come from their owning sources: the standard uses the canonical rulebook path, while checked files and loads retain repository-relative paths. Related line ranges name the last line touched by a half-open span, so a heading ending at the next line's column 1 names only its heading line. Criteria comparison checks the complete line-label/text map; the native map's lexical wire order carries no numeric-order promise.
 
 U10 runs separately:
 

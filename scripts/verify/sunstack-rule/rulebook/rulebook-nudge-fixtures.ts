@@ -95,7 +95,12 @@ export function standardPlace(root: string, marker: string): JsonObject {
 			.split('\n')
 			.findIndex((value) => value.includes(`<!-- ${marker} -->`)) + 1;
 	requireCondition(line > 0, 'Standard marker lost');
-	return { label: 'standard', file: rulebookName, first_line: line, last_line: line };
+	return {
+		label: 'standard',
+		file: filesystem.realpathSync(path.join(root, rulebookName)),
+		first_line: line,
+		last_line: line,
+	};
 }
 export function locationBody(root: string): string {
 	// Frozen source: line 6 is the H1; own text ends before the first H2 at line 25.
