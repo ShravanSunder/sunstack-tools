@@ -1,0 +1,17 @@
+{
+  "id": "json-question",
+  "language": "Json",
+  "files": [
+    "data/*.json"
+  ],
+  "rule": {
+    "all": [
+      {
+        "kind": "pair"
+      },
+      {
+        "regex": "^\"missing_question\""
+      }
+    ]
+  }
+}

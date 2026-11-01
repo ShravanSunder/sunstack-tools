@@ -1,0 +1,10 @@
+{
+  "id": "json-object",
+  "language": "Json",
+  "files": [
+    "data/*.json"
+  ],
+  "rule": {
+    "kind": "object"
+  }
+}
