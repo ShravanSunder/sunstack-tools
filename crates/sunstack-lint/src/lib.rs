@@ -2,6 +2,8 @@
 pub mod configuration_loading;
 pub mod lint_execution;
 pub mod lint_reporting;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 
 pub use configuration_loading::config::*;
 pub use configuration_loading::config_contracts::*;

@@ -171,3 +171,7 @@ pub fn assess_request_budget(
         admitted_request: AdmittedBackendRequest { encoded, counts },
     }
 }
+
+#[cfg(test)]
+#[path = "request_budgeting_test.rs"]
+mod tests;

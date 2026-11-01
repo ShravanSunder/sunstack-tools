@@ -257,9 +257,6 @@ fn value_at<'a>(
     Some(value)
 }
 
-#[cfg(test)]
-mod tests;
-
 /// Selection views omit unavailable fields; the raw fields remain for the admission guard.
 pub fn selection_model_view(raw: &BTreeMap<FieldName, FieldValue>, max_chars: usize) -> ModelView {
     let available = raw
@@ -269,3 +266,7 @@ pub fn selection_model_view(raw: &BTreeMap<FieldName, FieldValue>, max_chars: us
         .collect();
     project_model_view(&available, max_chars)
 }
+
+#[cfg(test)]
+#[path = "evidence_model_view_test.rs"]
+mod tests;

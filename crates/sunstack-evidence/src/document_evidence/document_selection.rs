@@ -260,3 +260,7 @@ pub fn resolve_document_target(
         _ => TargetResolution::Unavailable,
     }
 }
+
+#[cfg(test)]
+#[path = "document_selection_test.rs"]
+mod tests;

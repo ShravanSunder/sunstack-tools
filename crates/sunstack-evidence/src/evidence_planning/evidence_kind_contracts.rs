@@ -360,9 +360,6 @@ pub fn match_within(inner: &MatchRange, outer: &MatchRange) -> bool {
     outer.start <= inner.start && inner.end <= outer.end
 }
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SelectionWire {
@@ -497,3 +494,7 @@ pub struct FileCount {
     pub file: PathBuf,
     pub kinds: BTreeMap<EvidenceKindName, KindCount>,
 }
+
+#[cfg(test)]
+#[path = "evidence_kind_contracts_test.rs"]
+mod tests;

@@ -474,9 +474,6 @@ pub(crate) fn normalized_answer(
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 /// Admit selection questions at the decision boundary, leaving evidence model-free.
 pub fn admit_selections(
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
@@ -574,3 +571,7 @@ pub fn admit_selections(
         Err(errors)
     }
 }
+
+#[cfg(test)]
+#[path = "rulebook_admission_test.rs"]
+mod tests;

@@ -101,3 +101,7 @@ pub enum MarkdownMarkerBinding {
         reason: MarkdownBindingRefusal,
     },
 }
+
+#[cfg(test)]
+#[path = "markdown_contracts_test.rs"]
+mod tests;

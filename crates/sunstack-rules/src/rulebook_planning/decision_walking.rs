@@ -495,9 +495,6 @@ fn mechanical_check(
     })
 }
 
-#[cfg(test)]
-mod tests;
-
 /// The shared referenced-field guard for rule and evidence-selection questions.
 pub fn unavailable_question_field(
     questions: &sunstack_decisions::NamedQuestionMap,
@@ -507,3 +504,7 @@ pub fn unavailable_question_field(
         .into_iter()
         .find(|field| matches!(fields.get(field), Some(FieldValue::Unavailable { .. })))
 }
+
+#[cfg(test)]
+#[path = "decision_walking_test.rs"]
+mod tests;

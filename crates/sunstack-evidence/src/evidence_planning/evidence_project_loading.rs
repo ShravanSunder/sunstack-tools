@@ -362,3 +362,7 @@ fn yaml_files(folder: &Path) -> Result<Vec<PathBuf>, ProjectRefusal> {
     files.sort();
     Ok(files)
 }
+
+#[cfg(test)]
+#[path = "evidence_project_loading_test.rs"]
+mod tests;

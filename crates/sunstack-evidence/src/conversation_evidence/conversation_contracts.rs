@@ -237,3 +237,7 @@ pub struct ConversationCapture {
     pub cursor: MonitoringCursor,
     pub(crate) previous_cursor: Option<MonitoringCursor>,
 }
+
+#[cfg(test)]
+#[path = "conversation_contracts_test.rs"]
+mod tests;

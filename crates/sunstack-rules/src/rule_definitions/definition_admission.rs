@@ -419,3 +419,7 @@ fn validate_pattern(pattern: &PresencePattern) -> Result<(), DiagnosticList> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "definition_admission_test.rs"]
+mod tests;

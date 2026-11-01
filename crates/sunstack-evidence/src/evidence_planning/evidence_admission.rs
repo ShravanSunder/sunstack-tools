@@ -154,3 +154,7 @@ pub fn admit_evidence_declaration(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "evidence_admission_test.rs"]
+mod tests;

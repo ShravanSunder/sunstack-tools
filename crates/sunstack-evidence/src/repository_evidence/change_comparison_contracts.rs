@@ -41,3 +41,7 @@ pub enum ChangeComparison {
     NoBeforeSide { reason: NoBeforeSideReason },
     Refused { diagnostics: DiagnosticList },
 }
+
+#[cfg(test)]
+#[path = "change_comparison_contracts_test.rs"]
+mod tests;
