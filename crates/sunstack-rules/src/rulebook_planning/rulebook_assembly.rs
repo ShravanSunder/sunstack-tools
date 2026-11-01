@@ -279,4 +279,5 @@ pub fn assemble_rulebook(
 }
 
 #[cfg(test)]
+#[path = "rulebook_assembly_test.rs"]
 mod tests;

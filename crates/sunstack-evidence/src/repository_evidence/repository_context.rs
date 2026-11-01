@@ -235,3 +235,7 @@ fn cutoff(cutoffs: &mut Vec<DiscoveryCutoff>, limit: DiscoveryLimit) {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "repository_context_test.rs"]
+mod tests;

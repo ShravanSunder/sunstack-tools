@@ -162,5 +162,7 @@ fn reaches_selected(
                 .any(|parent| reaches_selected(parent, kinds, dependencies, visited))
         })
 }
+
 #[cfg(test)]
+#[path = "evidence_kind_plan_test.rs"]
 mod tests;

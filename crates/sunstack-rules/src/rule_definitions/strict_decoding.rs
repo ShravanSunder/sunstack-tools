@@ -190,3 +190,7 @@ fn safe_field(field: &str) -> bool {
 pub fn decode_rule_invocation(bytes: &[u8]) -> Result<crate::RuleInvocationInput, DiagnosticList> {
     decode_definition(bytes, Path::new("<invocation>"), 1)
 }
+
+#[cfg(test)]
+#[path = "strict_decoding_test.rs"]
+mod tests;

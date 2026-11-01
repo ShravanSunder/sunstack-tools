@@ -89,4 +89,5 @@ pub(super) fn add_locators(
 }
 
 #[cfg(test)]
+#[path = "locator_questions_test.rs"]
 mod tests;

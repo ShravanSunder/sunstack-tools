@@ -273,3 +273,7 @@ pub fn summarize_usage(run: &RulebookRun) -> UsageSummary {
         .saturating_sub(usage.cost_reported_requests);
     usage
 }
+
+#[cfg(test)]
+#[path = "outcome_test.rs"]
+mod tests;

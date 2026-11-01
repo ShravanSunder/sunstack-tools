@@ -50,8 +50,6 @@ pub fn pick_pieces(
     }
     (picked, outside)
 }
-#[cfg(test)]
-mod tests;
 
 /// Selection considers a whole loading file whenever a hunk or a resolved target changed.
 pub fn selection_files_for_changes(
@@ -75,3 +73,7 @@ pub fn selection_files_for_changes(
         .cloned()
         .collect()
 }
+
+#[cfg(test)]
+#[path = "evidence_piece_picking_test.rs"]
+mod tests;

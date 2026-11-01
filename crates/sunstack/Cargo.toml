@@ -41,6 +41,9 @@ security-framework = "3.7.0"
 zbus-secret-service-keyring-store = { version = "1.0.1", features = ["rt-async-io-crypto-rust"] }
 
 [dev-dependencies]
+sunstack-decisions = { workspace = true, features = ["test-support"] }
+sunstack-lint = { workspace = true, features = ["test-support"] }
+sunstack-rules = { workspace = true, features = ["test-support"] }
 git2 = { version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
 tempfile = "3"
 rustix = { version = "1", features = ["fs"] }
@@ -49,3 +52,87 @@ tokio = { version = "1", features = ["process", "net", "sync"] }
 [[bin]]
 name = "sunstack"
 path = "src/main.rs"
+
+[[test]]
+name = "evidence_selection_process"
+path = "tests/e2e/evidence_selection_process.rs"
+
+[[test]]
+name = "hosted_journeys"
+path = "tests/e2e/hosted_journeys.rs"
+
+[[test]]
+name = "hosted_request_diagnosis"
+path = "tests/integration/hosted_request_diagnosis.rs"
+
+[[test]]
+name = "journey_measurements"
+path = "tests/e2e/journey_measurements.rs"
+
+[[test]]
+name = "lint_commands"
+path = "tests/e2e/lint_commands.rs"
+
+[[test]]
+name = "process_bounds"
+path = "tests/e2e/process_bounds.rs"
+
+[[test]]
+name = "process_cancellation"
+path = "tests/e2e/process_cancellation.rs"
+
+[[test]]
+name = "process_change_cancellation"
+path = "tests/e2e/process_change_cancellation.rs"
+
+[[test]]
+name = "process_change_scopes"
+path = "tests/e2e/process_change_scopes.rs"
+
+[[test]]
+name = "process_commands"
+path = "tests/e2e/process_commands.rs"
+
+[[test]]
+name = "process_connected_evidence"
+path = "tests/e2e/process_connected_evidence.rs"
+
+[[test]]
+name = "process_evidence_paths"
+path = "tests/e2e/process_evidence_paths.rs"
+
+[[test]]
+name = "process_journeys"
+path = "tests/e2e/process_journeys.rs"
+
+[[test]]
+name = "process_judgments"
+path = "tests/e2e/process_judgments.rs"
+
+[[test]]
+name = "process_mechanical_rules"
+path = "tests/e2e/process_mechanical_rules.rs"
+
+[[test]]
+name = "process_native_rule_admission"
+path = "tests/e2e/process_native_rule_admission.rs"
+
+[[test]]
+name = "process_protocol"
+path = "tests/e2e/process_protocol.rs"
+
+[[test]]
+name = "process_rule_cancellation"
+path = "tests/e2e/process_rule_cancellation.rs"
+
+[[test]]
+name = "process_rules"
+path = "tests/e2e/process_rules.rs"
+
+[[test]]
+name = "rulebook_lint_process"
+path = "tests/e2e/rulebook_lint_process.rs"
+
+[[test]]
+name = "credential_isolation"
+path = "tests/integration/credential_isolation.rs"

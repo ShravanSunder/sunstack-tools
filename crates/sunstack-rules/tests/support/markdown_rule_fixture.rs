@@ -1,9 +1,8 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::panic)]
-#[path = "rule_fixture.rs"]
-mod fixture;
 use serde_json::json;
 use std::path::Path;
 use sunstack_rules::RuleInvocationInput;
+use sunstack_rules::test_support::rule_fixture as fixture;
 
 pub fn input(root: &Path, endpoint: &str) -> RuleInvocationInput {
     for name in ["gated", "peer"] {

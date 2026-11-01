@@ -315,3 +315,7 @@ pub(crate) fn project_request_evidence(
         })
         .collect()
 }
+
+#[cfg(test)]
+#[path = "report_projection_test.rs"]
+mod tests;

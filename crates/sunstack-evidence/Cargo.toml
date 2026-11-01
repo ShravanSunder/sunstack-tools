@@ -35,3 +35,119 @@ git2 = { version = "=0.21.0", default-features = false, features = ["vendored-li
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+
+[[test]]
+name = "acquisition_limits"
+path = "tests/integration/acquisition_limits.rs"
+
+[[test]]
+name = "capture_mutation"
+path = "tests/integration/capture_mutation.rs"
+
+[[test]]
+name = "change_recency"
+path = "tests/integration/change_recency.rs"
+
+[[test]]
+name = "change_selection"
+path = "tests/integration/change_selection.rs"
+
+[[test]]
+name = "change_union"
+path = "tests/integration/change_union.rs"
+
+[[test]]
+name = "comparison_executor"
+path = "tests/integration/comparison_executor.rs"
+
+[[test]]
+name = "connected_excerpt_context"
+path = "tests/integration/connected_excerpt_context.rs"
+
+[[test]]
+name = "connected_groups"
+path = "tests/integration/connected_groups.rs"
+
+[[test]]
+name = "connected_preparation"
+path = "tests/integration/connected_preparation.rs"
+
+[[test]]
+name = "connected_scope_guards"
+path = "tests/integration/connected_scope_guards.rs"
+
+[[test]]
+name = "connected_session"
+path = "tests/integration/connected_session.rs"
+
+[[test]]
+name = "conversation_capture"
+path = "tests/integration/conversation_capture.rs"
+
+[[test]]
+name = "discovery_limits"
+path = "tests/integration/discovery_limits.rs"
+
+[[test]]
+name = "document_selection"
+path = "tests/integration/document_selection.rs"
+
+[[test]]
+name = "evidence_piece_picking"
+path = "tests/integration/evidence_piece_picking.rs"
+
+[[test]]
+name = "evidence_pieces"
+path = "tests/integration/evidence_pieces.rs"
+
+[[test]]
+name = "evidence_preparation"
+path = "tests/integration/evidence_preparation.rs"
+
+[[test]]
+name = "evidence_session"
+path = "tests/integration/evidence_session.rs"
+
+[[test]]
+name = "frozen_queries"
+path = "tests/integration/frozen_queries.rs"
+
+[[test]]
+name = "public_limits"
+path = "tests/integration/public_limits.rs"
+
+[[test]]
+name = "relationship_discovery"
+path = "tests/integration/relationship_discovery.rs"
+
+[[test]]
+name = "resolved_reports"
+path = "tests/integration/resolved_reports.rs"
+
+[[test]]
+name = "adapter_extension"
+path = "tests/integration/adapter_extension.rs"
+
+[[test]]
+name = "change_admission"
+path = "tests/integration/change_admission.rs"
+
+[[test]]
+name = "change_comparison"
+path = "tests/integration/change_comparison.rs"
+
+[[test]]
+name = "evidence_selection"
+path = "tests/integration/evidence_selection.rs"
+
+[[test]]
+name = "neighbour_fields"
+path = "tests/integration/neighbour_fields.rs"
+
+[[test]]
+name = "payload_inputs"
+path = "tests/integration/payload_inputs.rs"
+
+[[test]]
+name = "source_units"
+path = "tests/integration/source_units.rs"

@@ -209,3 +209,7 @@ impl InvocationOrigin {
 pub(crate) fn no_discovery() -> sunstack_evidence::EvidenceDiscovery {
     sunstack_evidence::EvidenceDiscovery::None {}
 }
+
+#[cfg(test)]
+#[path = "invocation_contracts_test.rs"]
+mod tests;

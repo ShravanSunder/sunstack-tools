@@ -8,6 +8,12 @@ pub mod evidence_planning;
 pub mod repository_evidence;
 pub mod source_acquisition;
 
+#[cfg(test)]
+extern crate self as sunstack_evidence;
+#[cfg(test)]
+#[path = "../tests/support/mod.rs"]
+mod test_support;
+
 pub use conversation_evidence::conversation_capture::*;
 pub use conversation_evidence::conversation_contracts::*;
 pub use conversation_evidence::conversation_selection::*;

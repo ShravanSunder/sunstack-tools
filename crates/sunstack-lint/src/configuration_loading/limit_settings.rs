@@ -154,3 +154,7 @@ impl EffectiveLimits {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "limit_settings_test.rs"]
+mod tests;

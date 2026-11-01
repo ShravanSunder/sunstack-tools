@@ -295,3 +295,7 @@ pub(crate) fn occurrence_result(
         },
     }
 }
+
+#[cfg(test)]
+#[path = "occurrence_reporting_test.rs"]
+mod tests;

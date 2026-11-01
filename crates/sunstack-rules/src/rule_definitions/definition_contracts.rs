@@ -279,3 +279,7 @@ fn noul_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
 fn choice_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
     primitive_schema(generator, "choice")
 }
+
+#[cfg(test)]
+#[path = "definition_contracts_test.rs"]
+mod tests;

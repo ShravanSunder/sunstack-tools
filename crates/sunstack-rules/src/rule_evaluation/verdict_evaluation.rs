@@ -91,3 +91,7 @@ pub fn evaluate_verdict(
         result,
     })
 }
+
+#[cfg(test)]
+#[path = "verdict_evaluation_test.rs"]
+mod tests;
