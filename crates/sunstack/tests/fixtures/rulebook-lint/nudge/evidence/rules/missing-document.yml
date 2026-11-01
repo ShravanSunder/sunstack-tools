@@ -1,0 +1,10 @@
+{
+  "id": "missing-document",
+  "language": "Markdown",
+  "files": [
+    "cases/missing.md"
+  ],
+  "rule": {
+    "kind": "document"
+  }
+}

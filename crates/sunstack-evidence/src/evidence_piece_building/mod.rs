@@ -74,6 +74,7 @@ fn read_cached_content(
 }
 
 pub struct EvidenceBuild {
+    project: EvidenceProject,
     kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     plan: crate::EvidenceKindPlan,
     position: usize,
@@ -94,6 +95,7 @@ impl EvidenceBuild {
     ) -> Result<Self, Vec<crate::KindPlanRefusal>> {
         let plan = EvidenceKindPlan::derive(kinds)?;
         let mut build = Self {
+            project: project.clone(),
             kinds: kinds.clone(),
             plan,
             position: 0,
@@ -122,6 +124,12 @@ impl EvidenceBuild {
                 }),
                 Ok(text) => {
                     let index = project.match_file(&path, &text, remaining);
+                    for language in &index.failed_languages {
+                        build.catalog.failures.push(EvidenceFileFailure {
+                            file: path.clone(),
+                            reason: format!("invalid {language:?} evidence"),
+                        });
+                    }
                     remaining = remaining
                         .saturating_sub(index.by_rule.values().map(Vec::len).sum::<usize>());
                     if index.limited {
@@ -191,22 +199,19 @@ impl EvidenceBuild {
                     .flatten()
                 {
                     for field in definition.fields.values() {
-                        let FieldSource::Target { regex, resolve, .. } = field else {
+                        let FieldSource::Target {
+                            regex,
+                            resolve,
+                            exclude,
+                            ..
+                        } = field
+                        else {
                             continue;
                         };
                         let Ok(pattern) = Regex::new(regex) else {
                             continue;
                         };
-                        for capture in pattern.captures_iter(&file.text[range.start..range.end]) {
-                            let Some(name) = capture
-                                .iter()
-                                .skip(1)
-                                .flatten()
-                                .find(|value| !value.as_str().is_empty())
-                                .map(|value| value.as_str())
-                            else {
-                                continue;
-                            };
+                        for name in target_names(&pattern, file, range, exclude.as_ref()) {
                             let use_path = match resolve {
                                 EvidenceTargetResolution::Path => true,
                                 EvidenceTargetResolution::Skill => false,
@@ -222,7 +227,7 @@ impl EvidenceBuild {
                                             && candidate
                                                 .parent()
                                                 .and_then(Path::file_name)
-                                                .is_some_and(|part| part == name)
+                                                .is_some_and(|part| part == name.as_str())
                                     })
                                     .cloned()
                                     .collect()
@@ -428,147 +433,6 @@ impl EvidenceBuild {
         }
         BuildStep::Done(catalog)
     }
-    fn finalize(
-        &mut self,
-        kind: &EvidenceKindName,
-        mut pieces: Vec<EvidencePiece>,
-        source: &mut dyn CheckedFileSource,
-    ) {
-        let definition = &self.kinds[kind];
-        for piece in &mut pieces {
-            for (field, field_source) in &definition.fields {
-                let FieldSource::Target {
-                    regex,
-                    resolve,
-                    opening_chars,
-                    as_kind,
-                } = field_source
-                else {
-                    continue;
-                };
-                let values = Regex::new(regex)
-                    .ok()
-                    .into_iter()
-                    .flat_map(|pattern| {
-                        pattern
-                            .captures_iter(&piece.text)
-                            .filter_map(|capture| {
-                                capture
-                                    .iter()
-                                    .skip(1)
-                                    .flatten()
-                                    .find(|value| !value.as_str().is_empty())
-                                    .map(|value| value.as_str().to_owned())
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                    .map(|name| {
-                        let use_path = match resolve {
-                            EvidenceTargetResolution::Path => true,
-                            EvidenceTargetResolution::Skill => false,
-                            EvidenceTargetResolution::PathOrSkill => name.ends_with(".md"),
-                        };
-                        let candidates = if use_path {
-                            vec![]
-                        } else {
-                            self.matched
-                                .keys()
-                                .filter(|candidate| {
-                                    candidate.file_name().is_some_and(|name| name == "SKILL.md")
-                                        && candidate
-                                            .parent()
-                                            .and_then(Path::file_name)
-                                            .is_some_and(|part| part == name.as_str())
-                                })
-                                .cloned()
-                                .collect::<Vec<_>>()
-                        };
-                        let path = if use_path {
-                            piece
-                                .location
-                                .file
-                                .parent()
-                                .unwrap_or(Path::new(""))
-                                .join(&name)
-                        } else {
-                            candidates
-                                .first()
-                                .cloned()
-                                .unwrap_or_else(|| PathBuf::from(&name).join("SKILL.md"))
-                        };
-                        let mut target = LoadTarget {
-                            name,
-                            path: path.clone(),
-                            exists: false,
-                            candidates: vec![],
-                            opening: None,
-                            fields: None,
-                        };
-                        if !use_path && candidates.len() != 1 {
-                            target.candidates = candidates;
-                            return Ok(target);
-                        }
-                        let Some(resolved) = source.resolve_file(&path) else {
-                            return Ok(target);
-                        };
-                        target.path = resolved.clone();
-                        if use_path {
-                            let content = if let Some(file) = self.matched.get(&resolved) {
-                                Ok(file.text.clone())
-                            } else {
-                                read_cached_content(
-                                    source,
-                                    &mut self.contents,
-                                    &mut self.total_bytes,
-                                    &resolved,
-                                    self.limits,
-                                )
-                            };
-                            let text = content.map_err(|_| FieldUnavailable::Unreadable)?;
-                            target.exists = true;
-                            target.opening = Some(text.chars().take(*opening_chars).collect());
-                        } else {
-                            target.exists = true;
-                            if let Some(as_kind) = as_kind {
-                                target.fields = self
-                                    .catalog
-                                    .pieces
-                                    .iter()
-                                    .find(|candidate| {
-                                        candidate.kind == *as_kind
-                                            && candidate.location.file == resolved
-                                    })
-                                    .map(|candidate| candidate.fields.clone());
-                            }
-                        }
-                        Ok(target)
-                    })
-                    .collect::<Result<Vec<_>, FieldUnavailable>>();
-                piece.fields.insert(
-                    field.clone(),
-                    match values {
-                        Ok(values) => FieldValue::Targets { values },
-                        Err(reason) => FieldValue::Unavailable { reason },
-                    },
-                );
-            }
-            piece.model_view = project_model_view(
-                &piece.fields,
-                definition
-                    .max_chars
-                    .map_or(self.limits.evidence_max_chars, |n| n.get() as usize),
-            );
-        }
-        for count in &mut self.catalog.file_counts {
-            if let Some(kind_count) = count.kinds.get_mut(kind) {
-                kind_count.pieces = pieces
-                    .iter()
-                    .filter(|piece| piece.location.file == count.file)
-                    .count();
-            }
-        }
-        self.catalog.pieces.extend(pieces);
-    }
 }
 pub fn build_pieces(
     project: &EvidenceProject,
@@ -614,5 +478,64 @@ fn source_ranges(
     }
 }
 
+fn own_text_ranges(
+    range: &MatchRange,
+    exclude: Option<&crate::TargetExclude>,
+    index: &FileMatchIndex,
+) -> Vec<MatchRange> {
+    let mut removed = exclude
+        .into_iter()
+        .flat_map(|exclude| index.by_rule.get(&exclude.rule))
+        .flatten()
+        .filter(|candidate| match_within(candidate, range) && *candidate != range)
+        .cloned()
+        .collect::<Vec<_>>();
+    removed.sort_by_key(|span| (span.start, span.end));
+    let mut ranges = Vec::new();
+    let mut cursor = range.start;
+    for span in removed {
+        if cursor < span.start {
+            ranges.push(MatchRange {
+                start: cursor,
+                end: span.start,
+            });
+        }
+        cursor = cursor.max(span.end);
+    }
+    if cursor < range.end {
+        ranges.push(MatchRange {
+            start: cursor,
+            end: range.end,
+        });
+    }
+    ranges
+}
+
+fn target_names(
+    pattern: &Regex,
+    file: &MatchedFile,
+    range: &MatchRange,
+    exclude: Option<&crate::TargetExclude>,
+) -> Vec<String> {
+    own_text_ranges(range, exclude, &file.index)
+        .into_iter()
+        .flat_map(|range| {
+            pattern
+                .captures_iter(&file.text[range.start..range.end])
+                .filter_map(|capture| {
+                    capture
+                        .iter()
+                        .skip(1)
+                        .flatten()
+                        .find(|value| !value.as_str().is_empty())
+                        .map(|value| value.as_str().to_owned())
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
 mod field_composition;
 use field_composition::{local_fields, source_span};
+
+mod target_loading;

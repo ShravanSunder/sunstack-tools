@@ -4,6 +4,10 @@ mod fixture;
 use serde_json::{Value, json};
 use sunstack_decisions::CancellationToken;
 use sunstack_lint::*;
+#[path = "lint_library/locator_formats.rs"]
+mod locator_formats;
+#[path = "lint_library/related_places.rs"]
+mod related_places;
 
 #[tokio::test]
 async fn invalid_rule_files_keep_the_native_file_line_and_column() {

@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 use sunstack_evidence::*;
+#[path = "evidence_pieces/nudge_context.rs"]
+mod nudge_context;
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../sunstack/tests/fixtures/rulebook-lint")
@@ -270,6 +272,15 @@ fn pinned_step_fields_and_path_and_skill_loads_keep_their_sources() {
     assert!(
         matches!(field(skill_load,"targets"), FieldValue::Targets { values } if values.iter().any(|target| target.name == "practices-research" && target.exists && target.fields.as_ref().unwrap().contains_key(&FieldName::new("description").unwrap())))
     );
+    if let FieldValue::Targets { values } = field(skill_load, "targets") {
+        let target = values
+            .iter()
+            .find(|target| target.name == "practices-research")
+            .unwrap();
+        assert!(target.opening.is_none());
+        assert!(target.opening_last_line.is_none());
+        assert!(!target.opening_cut);
+    }
     let skill = catalog
         .pieces
         .iter()

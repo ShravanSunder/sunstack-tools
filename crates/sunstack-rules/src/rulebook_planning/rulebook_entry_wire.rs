@@ -3,7 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use sunstack_decisions::NamedQuestionMap;
-use sunstack_evidence::{EvidenceKindName, MarkerId};
+use sunstack_evidence::{EvidenceKindName, FieldName, MarkerId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -15,6 +15,8 @@ pub struct RuleEntryWire {
     pub decision: DecisionGraphWire,
     #[serde(default)]
     pub severity: Severity,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub related: Vec<FieldName>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -37,4 +39,5 @@ pub struct RulebookRule {
     pub questions: NamedQuestionMap,
     pub decision: DecisionGraph,
     pub severity: Severity,
+    pub related: Vec<FieldName>,
 }

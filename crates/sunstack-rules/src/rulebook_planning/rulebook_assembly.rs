@@ -233,6 +233,7 @@ pub fn assemble_rulebook(
                         questions: entry.questions,
                         decision: graph,
                         severity: entry.severity,
+                        related: entry.related,
                     })
                 }
                 (_, entry, _) => assembly.skipped.push(RulebookSkippedRule {

@@ -3,6 +3,8 @@
 mod controlled;
 #[path = "../src/rulebook_planning/rulebook_test_support.rs"]
 mod fixture;
+#[path = "rulebook_run/incomplete_history.rs"]
+mod incomplete_history;
 use serde_json::json;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use sunstack_decisions::*;
@@ -56,6 +58,7 @@ fn settings(endpoint: &str) -> RulebookRunSettings {
         request_max_chars: 100000,
         max_concurrent_requests: 2,
         max_model_requests: 10,
+        max_locate_lines: 80,
     }
 }
 
@@ -77,6 +80,9 @@ async fn incomplete_steps_distinguish_pre_walk_cancellation_from_a_request_guard
     assert_eq!(cancelled.results.len(), 2);
     assert!(cancelled.requests.is_empty());
     for pair in cancelled.results {
+        let row = serde_json::to_value(&pair.result).unwrap();
+        assert_eq!(row["path_taken"], json!([]));
+        assert_eq!(row["answers_read"], json!({}));
         assert!(matches!(
             pair.result,
             RulebookResult::Incomplete {
@@ -100,6 +106,9 @@ async fn incomplete_steps_distinguish_pre_walk_cancellation_from_a_request_guard
     assert_eq!(guarded.results.len(), 2);
     assert!(guarded.requests.is_empty());
     for pair in guarded.results {
+        let row = serde_json::to_value(&pair.result).unwrap();
+        assert_eq!(row["path_taken"], json!(["q"]));
+        assert_eq!(row["answers_read"], json!({}));
         assert!(
             matches!(pair.result,RulebookResult::Incomplete {reason:RulebookIncompleteReason::RequestTooLarge,step:Some(step),..} if step.as_str() == "q")
         );
@@ -453,7 +462,7 @@ async fn incomplete_reasons_distinguish_provider_status_transport_and_invalid_an
             server.endpoint.clone()
         };
         let mut settings = settings(&endpoint);
-        settings.attempts.attempt_timeout_ms = 200;
+        settings.attempts.attempt_timeout_ms = if case == "timeout" { 200 } else { 5000 };
         let backend =
             Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_KEY").unwrap());
         let operation = tokio::spawn(async move {

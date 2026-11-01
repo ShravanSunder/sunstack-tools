@@ -41,6 +41,7 @@ pub fn rule(marker: &str) -> RulebookRule {
         questions: entry.questions,
         decision: graph,
         severity: entry.severity,
+        related: entry.related,
     }
 }
 pub fn piece() -> EvidencePiece {

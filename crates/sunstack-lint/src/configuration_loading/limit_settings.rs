@@ -7,6 +7,7 @@ use sunstack_rules::{ExecutionSettings, Speculation};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EffectiveLimits {
+    pub max_locate_lines: u32,
     pub evidence_max_chars: u32,
     pub request_max_chars: u32,
     pub max_files: u32,
@@ -28,6 +29,7 @@ pub struct EffectiveLimits {
 impl Default for EffectiveLimits {
     fn default() -> Self {
         Self {
+            max_locate_lines: 80,
             evidence_max_chars: 6000,
             request_max_chars: 20000,
             max_files: 2000,
@@ -51,6 +53,9 @@ impl Default for EffectiveLimits {
 impl From<&LintLimits> for EffectiveLimits {
     fn from(limits: &LintLimits) -> Self {
         let mut effective = Self::default();
+        if let Some(value) = limits.max_locate_lines {
+            effective.max_locate_lines = value.get();
+        }
         if let Some(value) = limits.evidence_max_chars {
             effective.evidence_max_chars = value.get();
         }

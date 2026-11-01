@@ -78,6 +78,19 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
         } else {
             LintInvalidCode::Syntax
         };
+        let field_context = match path.segments() {
+            [
+                ConfigPathSegment::Key(evidence),
+                ConfigPathSegment::Key(kinds),
+                _,
+                ConfigPathSegment::Key(fields),
+                _,
+                ..,
+            ] if evidence == "evidence" && kinds == "kinds" && fields == "fields" => {
+                format!(" ({path})")
+            }
+            _ => String::new(),
+        };
         LintInvalid {
             file: location.file.clone(),
             line: Some(u32::try_from(error.line()).unwrap_or(u32::MAX)),
@@ -92,7 +105,7 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
                 .collect(),
             code,
             message: format!(
-                "Invalid sunstack.lint.json: {}",
+                "Invalid sunstack.lint.json: {}{field_context}",
                 migration_message(&message)
             ),
         }

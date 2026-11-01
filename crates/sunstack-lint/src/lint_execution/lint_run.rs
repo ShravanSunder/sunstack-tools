@@ -323,6 +323,7 @@ pub async fn run_with_source(
         request_max_chars: report.limits.request_max_chars as usize,
         max_concurrent_requests: report.limits.max_concurrent_requests as usize,
         max_model_requests: report.limits.max_model_requests as usize,
+        max_locate_lines: report.limits.max_locate_lines as usize,
     };
 
     let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation.clone());

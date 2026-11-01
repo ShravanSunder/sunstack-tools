@@ -23,92 +23,8 @@ fn refusal(path: impl Into<ConfigPath>, message: impl Into<String>) -> Admission
     }
 }
 
-pub fn admit_evidence_kinds(
-    kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
-    project: &EvidenceProject,
-    default_max_chars: usize,
-) -> Vec<AdmissionRefusal> {
-    let mut errors = Vec::new();
-    if default_max_chars < 1000 {
-        errors.push(refusal(
-            ConfigPath::keys(["limits", "evidence_max_chars"]),
-            "must be at least 1000",
-        ));
-    }
-    for (name, kind) in kinds {
-        let path = ConfigPath::keys(["evidence", "kinds", name.as_str()]);
-        if !project.rule_ids.contains(&kind.rule) {
-            errors.push(refusal(path.with_key("rule"), "unknown evidence rule"));
-        }
-        if kind.max_chars.is_some_and(|n| n.get() < 1000) {
-            errors.push(refusal(path.with_key("max_chars"), "must be at least 1000"));
-        }
-        for (field, source) in &kind.fields {
-            let path = path.with_key("fields").with_key(field.as_str());
-            match source {
-                FieldSource::Inside { of }
-                | FieldSource::Enclosing { of }
-                | FieldSource::SameFile { of }
-                | FieldSource::Remainder { exclude: Some(of) } => match of {
-                    MatchSource::Rule { rule } if !project.rule_ids.contains(rule) => {
-                        errors.push(refusal(&path, "unknown evidence rule"))
-                    }
-                    MatchSource::Kind { kind } if !kinds.contains_key(kind) => {
-                        errors.push(refusal(&path, "undefined evidence kind"))
-                    }
-                    _ => {}
-                },
-                FieldSource::Next { rule, .. } | FieldSource::Previous { rule, .. } => {
-                    if !project.rule_ids.contains(rule) {
-                        errors.push(refusal(&path, "unknown evidence rule"));
-                    }
-                }
-                FieldSource::Capture { regex } | FieldSource::Target { regex, .. } => {
-                    match regex::Regex::new(regex) {
-                        Err(_) => errors.push(refusal(&path, "invalid field regex")),
-                        Ok(pattern) if pattern.captures_len() < 2 => {
-                            errors.push(refusal(&path, "field regex needs a capture group"))
-                        }
-                        Ok(_) => {}
-                    }
-                    if let FieldSource::Target {
-                        as_kind: Some(target_kind),
-                        ..
-                    } = source
-                    {
-                        match kinds.get(target_kind) {
-                            None => errors.push(refusal(&path, "as_kind names an undefined kind")),
-                            Some(target)
-                                if target
-                                    .fields
-                                    .values()
-                                    .any(|s| matches!(s, FieldSource::Target { .. })) =>
-                            {
-                                errors.push(refusal(&path, "as_kind must name a target-free kind"))
-                            }
-                            Some(_) => {}
-                        }
-                    }
-                }
-                FieldSource::FirstLine {}
-                | FieldSource::Yaml { .. }
-                | FieldSource::Remainder { exclude: None } => {}
-            }
-        }
-    }
-    if let Err(refusals) = sunstack_evidence::EvidenceKindPlan::derive(kinds) {
-        errors.extend(
-            refusals
-                .into_iter()
-                .map(|error| refusal(error.field, error.message)),
-        );
-    }
-    if let Err(refusals) = admit_selections(kinds) {
-        errors.extend(refusals);
-    }
-
-    errors
-}
+mod evidence_kind_admission;
+pub use evidence_kind_admission::admit_evidence_kinds;
 
 pub fn admit_rule_entry(
     entry: &RuleEntryWire,
@@ -122,6 +38,18 @@ pub fn admit_rule_entry(
         )]);
     };
     let mut errors = Vec::new();
+    for (position, field) in entry.related.iter().enumerate() {
+        if !kind.fields.contains_key(field) {
+            errors.push(refusal(
+                ConfigPath::keys(["related"]).with_index(position),
+                format!(
+                    "entry {}: related names undefined field {}",
+                    entry.name.as_str(),
+                    field.as_str()
+                ),
+            ));
+        }
+    }
     if !entry.questions.is_empty() {
         if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
             &entry.questions,
@@ -175,6 +103,7 @@ pub fn admit_rule_entry(
         &entry.questions,
         kind,
         project,
+        &entry.name,
         &mut errors,
     );
     if errors.is_empty() {
@@ -239,9 +168,11 @@ fn admit_graph(
     questions: &NamedQuestionMap,
     kind: &EvidenceKindDefinition,
     project: &EvidenceProject,
+    entry_name: &crate::RuleId,
     errors: &mut Vec<AdmissionRefusal>,
 ) -> DecisionGraph {
     let mut steps = BTreeMap::new();
+    let mut locator_names = questions.keys().cloned().collect::<BTreeSet<_>>();
     for (name, step) in &wire.steps {
         let path = ConfigPath::keys(["decision", "steps", name.as_str()]);
         let mut route = |route: &crate::RouteWire| match DecisionRoute::try_from(route.clone()) {
@@ -253,6 +184,39 @@ fn admit_graph(
                         .is_some_and(|field| !kind.fields.contains_key(field))
                 {
                     errors.push(refusal(&path, "finding at names an undefined field"));
+                }
+                if let DecisionRoute::Finding(finding) = &route
+                    && let Some(locator) = &finding.locate
+                {
+                    let locator_path = path.with_key("locate");
+                    let context = format!(
+                        "entry {} route {} locate",
+                        entry_name.as_str(),
+                        name.as_str()
+                    );
+                    if finding.at.is_none() {
+                        errors.push(refusal(&locator_path, format!("{context} requires at")));
+                    }
+                    if !locator_names.insert(locator.name.clone()) {
+                        errors.push(refusal(
+                            locator_path.with_key("name"),
+                            format!(
+                                "{context} name {} collides with a question or locator",
+                                locator.name.as_str()
+                            ),
+                        ));
+                    }
+                    if !locator.min_probability.is_finite()
+                        || locator.min_probability <= 0.0
+                        || locator.min_probability > 1.0
+                    {
+                        errors.push(refusal(
+                            locator_path.with_key("min_probability"),
+                            format!(
+                                "{context} min_probability must be greater than 0 and at most 1"
+                            ),
+                        ));
+                    }
                 }
                 route
             }

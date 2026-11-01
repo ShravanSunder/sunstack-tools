@@ -1,6 +1,12 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 #[path = "../../sunstack-rules/tests/support/controlled_http.rs"]
 mod controlled;
+#[path = "rulebook_lint_process/json_evidence.rs"]
+mod json_evidence;
+#[path = "rulebook_lint_process/locator_anchors.rs"]
+mod locator_anchors;
+#[path = "rulebook_lint_process/result_history.rs"]
+mod result_history;
 mod support;
 use serde_json::{Value, json};
 use std::{
@@ -355,7 +361,17 @@ async fn json_results_distinguish_each_piece_outcome_and_ending_step_in_report_o
     }
     let (report, bodies) = judged(root.path(), 0.79, 1).await;
     assert_eq!(bodies.len(), 1);
-    let expected = cases.map(|(file,outcome,step)|json!({"name":"document_standard","marker":"K001","file":format!("docs/{file}"),"first_line":1,"last_line":1,"outcome":outcome,"step":step}));
+    let expected = cases.map(|(file,outcome,step)| {
+        let path = match step {
+            "gate" => json!(["gate"]),
+            "classify" => json!(["gate", "classify"]),
+            "local_pass" => json!(["gate", "classify", "local_pass"]),
+            _ => json!(["gate", "classify", "local_pass", "quality"]),
+        };
+        let mut row = json!({"name":"document_standard","marker":"K001","file":format!("docs/{file}"),"first_line":1,"last_line":1,"outcome":outcome,"step":step,"path":path,"basis":if outcome == "uncertain" { "judged" } else { "mechanical" }});
+        if outcome == "uncertain" { row["answers"] = json!({"covers":{"type":"noul","yes_probability":0.65}}); }
+        row
+    });
     assert_eq!(report["results"], json!(expected));
     let typed: sunstack_lint::LintReport = serde_json::from_value(report.clone()).unwrap();
     assert_eq!(serde_json::to_value(typed).unwrap(), report);

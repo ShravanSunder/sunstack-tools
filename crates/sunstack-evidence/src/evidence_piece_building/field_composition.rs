@@ -69,8 +69,20 @@ pub(super) fn local_fields(
                 }
             }
             FieldSource::Inside { of }
-            | FieldSource::Enclosing { of }
-            | FieldSource::SameFile { of } => {
+            | FieldSource::Enclosing { of, .. }
+            | FieldSource::SameFile { of, .. } => {
+                let full_text = matches!(
+                    source,
+                    FieldSource::Inside { .. }
+                        | FieldSource::Enclosing {
+                            text: crate::ContextText::Full,
+                            ..
+                        }
+                        | FieldSource::SameFile {
+                            text: crate::ContextText::Full,
+                            ..
+                        }
+                );
                 let mut selected = source_ranges(of, file, pieces)
                     .into_iter()
                     .filter(|candidate| match source {
@@ -87,6 +99,8 @@ pub(super) fn local_fields(
                     .map(|candidate| {
                         if matches!(source, FieldSource::Inside { .. }) {
                             taken.push(candidate.clone());
+                        }
+                        if full_text {
                             candidate.clone()
                         } else {
                             first_line_range(file, candidate)
@@ -98,7 +112,7 @@ pub(super) fn local_fields(
                         .iter()
                         .map(|span| {
                             let text = &file.text[span.start..span.end];
-                            if matches!(source, FieldSource::Inside { .. }) {
+                            if full_text {
                                 text.into()
                             } else {
                                 text.trim_end_matches(['\r', '\n']).into()

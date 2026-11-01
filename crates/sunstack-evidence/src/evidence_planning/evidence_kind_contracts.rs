@@ -180,10 +180,14 @@ pub enum FieldSource {
     Enclosing {
         #[serde(flatten)]
         of: MatchSource,
+        #[serde(default, skip_serializing_if = "ContextText::is_first_line")]
+        text: ContextText,
     },
     SameFile {
         #[serde(flatten)]
         of: MatchSource,
+        #[serde(default, skip_serializing_if = "ContextText::is_first_line")]
+        text: ContextText,
     },
     Next {
         rule: EvidenceRuleId,
@@ -209,9 +213,29 @@ pub enum FieldSource {
         opening_chars: usize,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         as_kind: Option<EvidenceKindName>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        exclude: Option<TargetExclude>,
     },
 }
-fn default_opening_chars() -> usize {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TargetExclude {
+    pub rule: EvidenceRuleId,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextText {
+    #[default]
+    FirstLine,
+    Full,
+}
+impl ContextText {
+    fn is_first_line(&self) -> bool {
+        *self == Self::FirstLine
+    }
+}
+pub(super) fn default_opening_chars() -> usize {
     3000
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -288,6 +312,9 @@ pub struct LoadTarget {
     pub opening: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fields: Option<BTreeMap<FieldName, FieldValue>>,
+    pub opening_cut: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opening_last_line: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -469,104 +496,4 @@ pub struct SelectionCount {
 pub struct FileCount {
     pub file: PathBuf,
     pub kinds: BTreeMap<EvidenceKindName, KindCount>,
-}
-
-// Decode the closed field envelope before resolving its exclusive rule/kind source.
-// Serde's deny_unknown_fields cannot recognize a flattened untagged enum here.
-#[derive(Deserialize)]
-#[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]
-enum FieldSourceWire {
-    FirstLine {},
-    Capture {
-        regex: String,
-    },
-    Inside {
-        #[serde(default, deserialize_with = "present_match_source")]
-        rule: Option<EvidenceRuleId>,
-        #[serde(default, deserialize_with = "present_match_source")]
-        kind: Option<EvidenceKindName>,
-    },
-    Enclosing {
-        #[serde(default, deserialize_with = "present_match_source")]
-        rule: Option<EvidenceRuleId>,
-        #[serde(default, deserialize_with = "present_match_source")]
-        kind: Option<EvidenceKindName>,
-    },
-    SameFile {
-        #[serde(default, deserialize_with = "present_match_source")]
-        rule: Option<EvidenceRuleId>,
-        #[serde(default, deserialize_with = "present_match_source")]
-        kind: Option<EvidenceKindName>,
-    },
-    Next {
-        rule: EvidenceRuleId,
-        #[serde(default)]
-        count: NeighbourCount,
-    },
-    Previous {
-        rule: EvidenceRuleId,
-        #[serde(default)]
-        count: NeighbourCount,
-    },
-    Yaml {
-        key: String,
-    },
-    Remainder {
-        exclude: Option<MatchSource>,
-    },
-    Target {
-        regex: String,
-        resolve: EvidenceTargetResolution,
-        #[serde(default = "default_opening_chars")]
-        opening_chars: usize,
-        as_kind: Option<EvidenceKindName>,
-    },
-}
-// Missing source keys use the field default; a present key must decode as T,
-// so an explicit null cannot disappear into Option's missing-key state.
-fn present_match_source<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    T::deserialize(deserializer).map(Some)
-}
-impl<'de> Deserialize<'de> for FieldSource {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let source = |rule, kind| match (rule, kind) {
-            (Some(rule), None) => Ok(MatchSource::Rule { rule }),
-            (None, Some(kind)) => Ok(MatchSource::Kind { kind }),
-            _ => Err(serde::de::Error::custom(
-                "field source needs exactly one of rule or kind",
-            )),
-        };
-        Ok(match FieldSourceWire::deserialize(deserializer)? {
-            FieldSourceWire::FirstLine {} => Self::FirstLine {},
-            FieldSourceWire::Capture { regex } => Self::Capture { regex },
-            FieldSourceWire::Inside { rule, kind } => Self::Inside {
-                of: source(rule, kind)?,
-            },
-            FieldSourceWire::Enclosing { rule, kind } => Self::Enclosing {
-                of: source(rule, kind)?,
-            },
-            FieldSourceWire::SameFile { rule, kind } => Self::SameFile {
-                of: source(rule, kind)?,
-            },
-            FieldSourceWire::Next { rule, count } => Self::Next { rule, count },
-            FieldSourceWire::Previous { rule, count } => Self::Previous { rule, count },
-            FieldSourceWire::Yaml { key } => Self::Yaml { key },
-            FieldSourceWire::Remainder { exclude } => Self::Remainder { exclude },
-            FieldSourceWire::Target {
-                regex,
-                resolve,
-                opening_chars,
-                as_kind,
-            } => Self::Target {
-                regex,
-                resolve,
-                opening_chars,
-                as_kind,
-            },
-        })
-    }
 }

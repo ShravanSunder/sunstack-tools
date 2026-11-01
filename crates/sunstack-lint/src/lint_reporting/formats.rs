@@ -1,6 +1,6 @@
 use crate::{InvalidConfigValue, *};
 use std::{fmt::Write, str::FromStr};
-use sunstack_rules::Severity;
+use sunstack_rules::{Anchor, Severity};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum OutputFormat {
@@ -134,17 +134,12 @@ pub(crate) fn uncertain_text(result: &UncertainResult) -> String {
 fn human(report: &LintReport) -> String {
     let mut output = format!("Scope: {}\n", scope_text(&report.scope));
     for finding in &report.findings {
-        let location = finding.span.as_ref().map_or_else(
-            || finding.file.display().to_string(),
-            |span| {
-                format!(
-                    "{}:{}:{}",
-                    finding.file.display(),
-                    span.start_line,
-                    span.start_column
-                )
-            },
-        );
+        let column = if finding.anchor == Anchor::Resolved {
+            1
+        } else {
+            finding.span.as_ref().map_or(1, |span| span.start_column)
+        };
+        let location = format!("{}:{}:{column}", finding.file.display(), finding.line);
         let _ = writeln!(
             output,
             "{location}: {} [{}] {}",
@@ -152,6 +147,15 @@ fn human(report: &LintReport) -> String {
             finding.rule.as_str(),
             finding.message
         );
+        for place in &finding.related {
+            let _ = writeln!(
+                output,
+                "  {}: {}:{}",
+                place.label,
+                place.file.display(),
+                place.first_line
+            );
+        }
     }
     let mut totals = std::collections::BTreeMap::<String, [usize; 5]>::new();
     for file in &report.file_counts {
@@ -280,12 +284,16 @@ fn github(report: &LintReport) -> String {
             "file={}",
             annotation_property(&finding.file.display().to_string())
         );
-        if let Some(span) = &finding.span {
+        if finding.anchor == Anchor::Resolved {
+            let _ = write!(properties, ",line={},col=1", finding.line);
+        } else if let Some(span) = &finding.span {
             let _ = write!(
                 properties,
                 ",line={},col={},endLine={},endColumn={}",
-                span.start_line, span.start_column, span.end_line, span.end_column
+                finding.line, span.start_column, span.end_line, span.end_column
             );
+        } else {
+            let _ = write!(properties, ",line={}", finding.line);
         }
         let _ = writeln!(
             output,
@@ -294,6 +302,15 @@ fn github(report: &LintReport) -> String {
             properties,
             annotation_text(&format!("[{}] {}", finding.rule.as_str(), finding.message))
         );
+        for place in &finding.related {
+            let _ = writeln!(
+                output,
+                "  {}: {}:{}",
+                place.label,
+                place.file.display(),
+                place.first_line
+            );
+        }
     }
     for result in &report.uncertain {
         let _ = writeln!(

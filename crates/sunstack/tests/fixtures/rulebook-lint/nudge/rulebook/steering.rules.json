@@ -1,0 +1,244 @@
+{
+  "K001": {
+    "name": "nudge.location",
+    "evidence": "section",
+    "related": [
+      "targets",
+      "heading"
+    ],
+    "questions": {
+      "gate": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "Does this section need a nudge?"
+        }
+      }
+    },
+    "decision": {
+      "start": "gate",
+      "steps": {
+        "gate": {
+          "ask": "gate",
+          "yes_at_or_above": 0.7,
+          "no_at_or_below": 0.3,
+          "yes": {
+            "finding": "Review the selected line.",
+            "at": "body",
+            "locate": {
+              "name": "anchor_line",
+              "task": "Choose the line about this finding.",
+              "min_probability": 0.7
+            }
+          },
+          "no": "pass"
+        }
+      }
+    }
+  },
+  "K002": {
+    "name": "nudge.history",
+    "evidence": "gate",
+    "questions": {
+      "gate": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "Is this piece applicable?"
+        }
+      },
+      "unused": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "This answer must remain unread."
+        }
+      }
+    },
+    "decision": {
+      "start": "gate",
+      "steps": {
+        "gate": {
+          "ask": "gate",
+          "yes_at_or_above": 0.7,
+          "no_at_or_below": 0.3,
+          "yes": "pass",
+          "no": "not_applicable"
+        }
+      }
+    }
+  },
+  "K003": {
+    "name": "nudge.incomplete",
+    "evidence": "missing",
+    "questions": {
+      "gate": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "Is this piece applicable?"
+        }
+      }
+    },
+    "decision": {
+      "start": "gate",
+      "steps": {
+        "gate": {
+          "ask": "gate",
+          "yes_at_or_above": 0.7,
+          "no_at_or_below": 0.3,
+          "yes": "missing",
+          "no": "not_applicable"
+        },
+        "missing": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "broken",
+            "text": "required"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Required evidence missing.",
+            "at": "body"
+          }
+        }
+      }
+    }
+  },
+  "K004": {
+    "name": "nudge.judged_error",
+    "evidence": "judged",
+    "severity": "error",
+    "questions": {
+      "gate": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "Is this piece applicable?"
+        }
+      }
+    },
+    "decision": {
+      "start": "gate",
+      "steps": {
+        "gate": {
+          "ask": "gate",
+          "yes_at_or_above": 0.7,
+          "no_at_or_below": 0.3,
+          "yes": "mechanical",
+          "no": "not_applicable"
+        },
+        "mechanical": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "body",
+            "text": "required"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Authored judged error.",
+            "at": "body"
+          }
+        }
+      }
+    }
+  },
+  "K005": {
+    "name": "nudge.mechanical",
+    "evidence": "section",
+    "decision": {
+      "start": "mechanical",
+      "steps": {
+        "mechanical": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "body",
+            "text": "impossible-required-token"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Review the selected line.",
+            "at": "body",
+            "locate": {
+              "name": "anchor_line",
+              "task": "Choose the line about this finding.",
+              "min_probability": 0.7
+            }
+          }
+        }
+      }
+    }
+  },
+  "K006": {
+    "name": "nudge.cut",
+    "evidence": "capped",
+    "questions": {
+      "gate": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "Does this body need a nudge?"
+        }
+      }
+    },
+    "decision": {
+      "start": "gate",
+      "steps": {
+        "gate": {
+          "ask": "gate",
+          "yes_at_or_above": 0.7,
+          "no_at_or_below": 0.3,
+          "yes": {
+            "finding": "Body inspected.",
+            "at": "body"
+          },
+          "no": "pass"
+        }
+      }
+    }
+  },
+  "K007": {
+    "name": "nudge.json",
+    "evidence": "question",
+    "decision": {
+      "start": "has_check",
+      "steps": {
+        "has_check": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "body",
+            "text": "\"check\""
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Question names no checked field.",
+            "at": "body"
+          }
+        }
+      }
+    }
+  },
+  "K008": {
+    "name": "nudge.route_error",
+    "evidence": "judged",
+    "severity": "warn",
+    "decision": {
+      "start": "mechanical",
+      "steps": {
+        "mechanical": {
+          "mechanical_check": {
+            "tool": "contains",
+            "field": "body",
+            "text": "required"
+          },
+          "yes": "pass",
+          "no": {
+            "finding": "Route error overrides warn.",
+            "at": "body",
+            "severity": "error"
+          }
+        }
+      }
+    }
+  }
+}

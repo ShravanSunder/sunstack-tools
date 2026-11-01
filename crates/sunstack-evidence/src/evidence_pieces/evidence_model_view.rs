@@ -27,6 +27,9 @@ fn model_field(field: &FieldValue) -> ModelFieldValue {
                     if let Some(opening) = &target.opening {
                         fields.insert("opening".into(), ModelFieldValue::Text(opening.clone()));
                     }
+                    if target.opening_cut {
+                        fields.insert("opening_cut".into(), ModelFieldValue::Boolean(true));
+                    }
                     if let Some(nested) = &target.fields {
                         fields.insert(
                             "fields".into(),

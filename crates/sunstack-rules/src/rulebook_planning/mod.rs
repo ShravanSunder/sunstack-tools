@@ -1,5 +1,6 @@
 pub mod decision_graph_contracts;
 pub mod decision_walking;
+mod locator_questions;
 pub mod rule_check_contracts;
 pub mod rule_checking;
 pub mod rulebook_admission;

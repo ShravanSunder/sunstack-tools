@@ -197,6 +197,7 @@ async fn held_selection_and_rule_replies_obey_the_same_concurrency_limit() {
             request_max_chars: 20000,
             max_concurrent_requests: concurrency,
             max_model_requests: 4,
+            max_locate_lines: 80,
         };
         let (send, mut entered) = mpsc::unbounded_channel();
         let active = Arc::new(AtomicUsize::new(0));

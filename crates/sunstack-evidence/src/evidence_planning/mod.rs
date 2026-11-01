@@ -6,3 +6,4 @@ pub mod evidence_kind_contracts;
 pub mod evidence_kind_plan;
 pub(crate) mod evidence_plan_decoding;
 pub mod evidence_project_loading;
+mod field_source_decoding;
