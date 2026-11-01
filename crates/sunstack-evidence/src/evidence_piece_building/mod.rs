@@ -124,6 +124,12 @@ impl EvidenceBuild {
                 }),
                 Ok(text) => {
                     let index = project.match_file(&path, &text, remaining);
+                    for language in &index.failed_languages {
+                        build.catalog.failures.push(EvidenceFileFailure {
+                            file: path.clone(),
+                            reason: format!("invalid {language:?} evidence"),
+                        });
+                    }
                     remaining = remaining
                         .saturating_sub(index.by_rule.values().map(Vec::len).sum::<usize>());
                     if index.limited {

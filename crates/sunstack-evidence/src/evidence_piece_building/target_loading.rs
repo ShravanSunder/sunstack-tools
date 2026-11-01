@@ -180,9 +180,17 @@ impl EvidenceBuild {
             path: path.into(),
             content_identity: content_digest(text.as_bytes()),
         };
+        let language = self
+            .project
+            .language_for_rule(&self.kinds.get(as_kind)?.rule)?;
         let file = MatchedFile {
             text: text.into(),
-            index: self.project.match_file(path, text, self.limits.max_matches),
+            index: self.project.match_file_as_language(
+                path,
+                text,
+                self.limits.max_matches,
+                language,
+            ),
             source,
         };
         let mut pieces = Vec::new();

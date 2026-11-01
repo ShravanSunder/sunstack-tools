@@ -58,7 +58,7 @@ fn project_matches_equal_native_scan_in_both_directions() {
 }
 
 #[test]
-fn reserved_util_and_non_markdown_language_are_refused() {
+fn reserved_utils_and_other_evidence_languages_are_refused() {
     for util in [
         "id: quoted\nlanguage: Markdown\nrule: {kind: paragraph}\n",
         "id: example\nlanguage: Markdown\nutils: {quoted: {kind: paragraph}}\nrule: {matches: quoted}\n",
@@ -73,6 +73,69 @@ fn reserved_util_and_non_markdown_language_are_refused() {
         std::fs::create_dir(dir.path().join("utils")).unwrap();
         std::fs::write(dir.path().join("utils/invalid.yml"), util).unwrap();
         assert!(load_evidence_project(&dir.path().join("sgconfig.yml")).is_err());
+    }
+}
+
+#[test]
+fn json_projects_use_json_nodes_and_source_ranges() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/json.yml"),
+        "id: pair\nlanguage: Json\nrule: {kind: pair}\n",
+    )
+    .unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let text = "{\n  \"first\": true,\n  \"second\": false\n}\n";
+    let index = project.match_file(std::path::Path::new("rules.json"), text, 100);
+    let spans = &index.by_rule["pair"];
+    assert_eq!(
+        spans
+            .iter()
+            .map(|range| &text[range.start..range.end])
+            .collect::<Vec<_>>(),
+        ["\"first\": true", "\"second\": false"]
+    );
+    assert_eq!(index.parents.len(), 2);
+}
+
+#[test]
+fn json_utils_are_admitted_and_all_other_languages_remain_refused() {
+    use ast_grep_language::{LanguageExt, SupportLang};
+    for language in SupportLang::all_langs() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("utils")).unwrap();
+        std::fs::write(
+            root.path().join("sgconfig.yml"),
+            "ruleDirs: []\nutilDirs: [utils]\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join("utils/rule.yml"),
+            format!("id: caller_util\nlanguage: {language}\nrule: {{regex: example}}\n"),
+        )
+        .unwrap();
+        assert_eq!(
+            load_evidence_project(&root.path().join("sgconfig.yml")).is_ok(),
+            matches!(language, SupportLang::Markdown | SupportLang::Json),
+            "{language}"
+        );
+        std::fs::create_dir(root.path().join("rules")).unwrap();
+        std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+        let root_kind = language.ast_grep("").root().kind().into_owned();
+        std::fs::write(
+            root.path().join("rules/rule.yml"),
+            format!("id: caller_rule\nlanguage: {language}\nrule: {{kind: {root_kind}, regex: example}}\n"),
+        )
+        .unwrap();
+        let rule_result = load_evidence_project(&root.path().join("sgconfig.yml"));
+        assert_eq!(
+            rule_result.is_ok(),
+            matches!(language, SupportLang::Markdown | SupportLang::Json),
+            "rule {language}: {:?}",
+            rule_result.err()
+        );
     }
 }
 

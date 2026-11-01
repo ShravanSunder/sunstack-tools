@@ -170,3 +170,33 @@ fn path_target_fields_and_opening_metadata_match_what_was_read() {
         json!(null)
     );
 }
+
+#[test]
+fn path_as_kind_uses_its_json_grammar_on_the_already_acquired_target() {
+    let root = context_fixture();
+    std::fs::write(
+        root.path().join("rules/json.yml"),
+        "id: json_pair\nlanguage: Json\nrule: {kind: pair}\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("doc.md"), "Read `target.txt`.\n").unwrap();
+    std::fs::write(root.path().join("target.txt"), "{\"name\":\"Value\"}\n").unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let kinds = serde_json::from_value(json!({"load":{"rule":"paragraph","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","as_kind":"json_reference"}}},"json_reference":{"rule":"json_pair","fields":{"content":{"from":"first_line"}}}})).unwrap();
+    let mut source = RecordingSource::new(root.path());
+    let catalog = build_pieces(&project, &kinds, &["doc.md".into()], &mut source, limits());
+    assert!(catalog.failures.is_empty());
+    let FieldValue::Targets { values } = field(&catalog.pieces[0], "targets") else {
+        panic!()
+    };
+    let fields = values[0].fields.as_ref().unwrap();
+    let FieldValue::Text { value, spans } = &fields[&FieldName::new("content").unwrap()] else {
+        panic!()
+    };
+    assert_eq!(value, "\"name\":\"Value\"");
+    assert_eq!((spans[0].byte_start, spans[0].byte_end), (1, 15));
+    assert_eq!(
+        source.reads,
+        [PathBuf::from("doc.md"), PathBuf::from("target.txt")]
+    );
+}

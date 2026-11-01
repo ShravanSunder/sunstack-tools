@@ -22,6 +22,46 @@ pub fn admit_evidence_kinds(
         }
         for (field, source) in &kind.fields {
             let path = path.with_key("fields").with_key(field.as_str());
+            if let Some(language) = project.language_for_rule(&kind.rule) {
+                use sunstack_evidence::EvidenceLanguage;
+                let context = format!("kind {} field {}", name.as_str(), field.as_str());
+                if language == EvidenceLanguage::Json && matches!(source, FieldSource::Yaml { .. })
+                {
+                    errors.push(refusal(
+                        &path,
+                        format!("{context}: yaml is not supported on JSON evidence"),
+                    ));
+                }
+                let referenced = match source {
+                    FieldSource::Inside { of }
+                    | FieldSource::Enclosing { of, .. }
+                    | FieldSource::SameFile { of, .. }
+                    | FieldSource::Remainder { exclude: Some(of) } => match of {
+                        MatchSource::Rule { rule } => project.language_for_rule(rule),
+                        MatchSource::Kind { kind } => kinds
+                            .get(kind)
+                            .and_then(|kind| project.language_for_rule(&kind.rule)),
+                    },
+                    FieldSource::Next { rule, .. } | FieldSource::Previous { rule, .. } => {
+                        project.language_for_rule(rule)
+                    }
+                    FieldSource::Target {
+                        exclude: Some(exclude),
+                        ..
+                    } => project.language_for_rule(&exclude.rule),
+                    FieldSource::FirstLine { .. }
+                    | FieldSource::Capture { .. }
+                    | FieldSource::Yaml { .. }
+                    | FieldSource::Remainder { exclude: None }
+                    | FieldSource::Target { exclude: None, .. } => None,
+                };
+                if referenced.is_some_and(|referenced| referenced != language) {
+                    errors.push(refusal(
+                        &path,
+                        format!("{context}: referenced rule or kind has another evidence language"),
+                    ));
+                }
+            }
             match source {
                 FieldSource::Inside { of }
                 | FieldSource::Enclosing { of, .. }
