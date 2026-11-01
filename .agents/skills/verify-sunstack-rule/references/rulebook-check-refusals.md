@@ -2,14 +2,14 @@
 
 ## Rules-as-nudges: S2
 
-Use this entry's `--case nudge` for the accepted 31 Oct rules-as-nudges Specification and VD S2, including U6's rule-only target exclusion (`a69fe47`). This mode is a **draft pending observation on the declared signed release build**; the existing refusal inventories remain unchanged.
+Use this entry's `--case nudge` for the accepted 31 Oct rules-as-nudges Specification and VD S2, including U6's rule-only target exclusion (`a69fe47`). This mode drives a declared signed release build; the existing refusal inventories remain unchanged.
 
 ```sh
 node scripts/verify/sunstack-rule/rulebook/rulebook-check-refusals.ts \
   --case nudge --prepare --evidence <new-authorized-directory>
 ```
 
-For observation, omit `--prepare` and add the declared `--binary`, `--source-root`, full `--commit` and `--sha256`. The driver verifies the macOS debug signature and brackets children with source/hash checks. It accepts a clean nudge fixture and a JSON kind with all nine admitted sources (first_line, capture, inside, enclosing, same_file, next, previous, remainder, target), including a cross-language target as_kind and min_probability 1. Every check sends zero requests without a real or synthetic key.
+For observation, omit `--prepare` and add the declared `--binary`, `--source-root`, full `--commit` and `--sha256`. The driver verifies the macOS debug signature and brackets children with source/hash checks. It accepts a clean nudge fixture and a JSON kind with all nine admitted sources (first_line, capture, inside, enclosing, same_file, next, previous, remainder, target), including a cross-language target as_kind and min_probability 1. The as_kind names a target-free kind, preserving the existing prohibition on transitive loads. Every check sends zero requests without a real or synthetic key.
 
 Ten otherwise-valid fixtures change one construct each: unknown related field; locator without at; locator/question name collision; two locator names colliding; min_probability 0, negative and above 1; yaml on a JSON kind; JSON inside naming a Markdown rule; target exclude naming a kind. Each must exit 2 and locate the mutated file, identifying its entry/kind and field. The manifest records the required identifiers independently of diagnostics. Missing files, an unrelated refusal, a timeout or a harness exception cannot count as the intended rejection. Preserve stdout/stderr, child receipts, manifest and zero-request evidence. `--prepare` alone runs no product.
 

@@ -135,7 +135,7 @@ function allSources(root: string): void {
 				from: 'target',
 				regex: '"([^" ]+\\.md)"',
 				resolve: 'path',
-				as_kind: 'section',
+				as_kind: 'gate',
 				exclude: { rule: 'json-pair' },
 			},
 		};
