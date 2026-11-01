@@ -462,7 +462,7 @@ async fn incomplete_reasons_distinguish_provider_status_transport_and_invalid_an
             server.endpoint.clone()
         };
         let mut settings = settings(&endpoint);
-        settings.attempts.attempt_timeout_ms = 200;
+        settings.attempts.attempt_timeout_ms = if case == "timeout" { 200 } else { 5000 };
         let backend =
             Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_KEY").unwrap());
         let operation = tokio::spawn(async move {
