@@ -104,6 +104,23 @@ This plans how each proof obligation in the [Specification](specification.md) ge
 - Run `gh pr view` for each PR and record its head, base, draft state, mergeable state, and that it is unmerged.
 - For slice 5, run `git merge-base --is-ancestor 39957959 <head>` in `ai-tools`.
 
+**V12 — batch bundling** (R22, R23).
+
+- Arrange (permanent test, `bundle-command.test.ts`, against the test loopback release): `site/index.html` and `site/guide/details.html`. They link to each other, read Markdown files beside them, and carry a search index from `demistify index`.
+- Act: `bundle --out-dir out site/index.html site/guide/details.html`.
+- Assert:
+  - it exits 0 and writes `out/index.html` and `out/guide/details.html`;
+  - the test server logged each library file fetched exactly once;
+  - both outputs check with 0 errors and 0 warnings.
+- Act and assert: add an `<img>` to `details.html` and rerun with a new output directory. It exits 1 naming `details.html`, and the output directory is not created, even though `index.html` alone would bundle.
+- Act and assert: these cases fail as `output-collides-with-source`, with the sources byte-identical:
+  - `--out-dir site`;
+  - the same source given twice;
+  - `site/Index.html` beside `site/other/../index.html` on macOS.
+- Act and assert: two pages bound to different bases fail as `bindings-differ` before any release request. The same two pages with `--library` bundle.
+- Slice 3 adds: both outputs pass `verify --no-network`, and in Chromium the link in `out/index.html` opens `out/guide/details.html` from disk.
+- Falsifier: a batch that writes `index.html` even though `details.html` fails, that flattens `guide/`, or that fetches the runtime once per page.
+
 ## Gates for every implementation slice
 
 - `pnpm check` (lint, format and type checking) and `pnpm test`, with command, counts and exit code.
@@ -125,6 +142,7 @@ This plans how each proof obligation in the [Specification](specification.md) ge
 | V9 | R17, R18 | fresh-agent RED and GREEN | local guide; released guide | 4, 5 |
 | V10 | R19 | journey run | clean worktree | 4 |
 | V11 | R20, R21 | GitHub state | both repositories | each |
+| V12 | R22, R23 | permanent | test loopback, spawned CLI, real Chromium | 2 (verify step in 3) |
 
 ## Not proven by agents
 
