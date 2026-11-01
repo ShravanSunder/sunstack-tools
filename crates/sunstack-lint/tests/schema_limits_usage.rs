@@ -29,6 +29,7 @@ async fn every_numeric_limit_accepts_its_exact_maximum_and_rejects_the_next_inte
         ),
         ("attempt_timeout_seconds", u64::from(u32::MAX), "4294967296"),
         ("max_concurrent_requests", u64::from(u32::MAX), "4294967296"),
+        ("max_locate_lines", u64::from(u32::MAX), "4294967296"),
     ] {
         let mut admitted = baseline.clone();
         admitted["limits"] = json!({field: maximum});
@@ -73,8 +74,9 @@ async fn every_numeric_limit_accepts_its_exact_maximum_and_rejects_the_next_inte
 
 #[test]
 fn all_limit_overrides_reach_their_native_settings_and_defaults_match_the_adopted_table() {
-    let authored:LintLimits=serde_json::from_value(json!({"max_files":3,"max_file_bytes":17,"max_total_bytes":57,"max_matches":7,"max_model_requests":11,"max_input_tokens_per_request":123,"attempt_timeout_seconds":4,"max_concurrent_requests":2})).unwrap();
+    let authored:LintLimits=serde_json::from_value(json!({"max_files":3,"max_file_bytes":17,"max_total_bytes":57,"max_matches":7,"max_model_requests":11,"max_input_tokens_per_request":123,"attempt_timeout_seconds":4,"max_concurrent_requests":2,"max_locate_lines":12})).unwrap();
     let effective = EffectiveLimits::from(&authored);
+    assert_eq!(effective.max_locate_lines, 12);
     let native = effective.invocation_limits().unwrap();
     let budget = effective.request_budget().unwrap();
     let attempts = effective.attempts().unwrap();
@@ -93,6 +95,7 @@ fn all_limit_overrides_reach_their_native_settings_and_defaults_match_the_adopte
     assert_eq!(attempts.attempt_timeout_ms, 4000);
     assert_eq!(execution.max_concurrent_requests.get(), 2);
     let defaults = EffectiveLimits::default();
+    assert_eq!(defaults.max_locate_lines, 80);
     assert_eq!(
         (
             defaults.max_files,
@@ -257,6 +260,7 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
     assert_eq!(value["results"][0]["basis"], "mechanical");
     assert!(value["results"][0].get("answers").is_none());
     assert_eq!(value["findings"][0]["basis"], "mechanical");
+    assert_eq!(value["findings"][0]["anchor"], "default");
     let schema = serde_json::to_value(report_schema()).unwrap();
     let validator = jsonschema::options().offline().build(&schema).unwrap();
     assert!(
@@ -282,6 +286,15 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
         .unwrap()
         .remove("related");
     assert!(!validator.is_valid(&missing));
+    let mut missing = value.clone();
+    missing["findings"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("anchor");
+    assert!(!validator.is_valid(&missing));
+    let mut bad_anchor = value.clone();
+    bad_anchor["findings"][0]["anchor"] = json!("unknown");
+    assert!(!validator.is_valid(&bad_anchor));
     let mut missing = value.clone();
     missing.as_object_mut().unwrap().remove("results");
     assert!(!validator.is_valid(&missing));

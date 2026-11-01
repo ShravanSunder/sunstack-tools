@@ -42,6 +42,7 @@ pub enum RulebookResult {
         answers: Option<NamedAnswerMap>,
         value: Option<f64>,
         answers_read: NamedAnswerMap,
+        anchor: Anchor,
     },
     NotApplicable {
         path_taken: Vec<StepName>,
@@ -68,6 +69,13 @@ pub enum RulebookResult {
 pub enum Basis {
     Mechanical,
     Judged,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Anchor {
+    Resolved,
+    Default,
 }
 
 impl RulebookResult {
@@ -333,12 +341,50 @@ pub fn walk_decision(
                 );
             }
             DecisionRoute::Finding(finding) => {
-                let line = finding
+                let mut line = finding
                     .at
                     .as_ref()
                     .and_then(|field| piece.fields.get(field))
                     .and_then(|field| field.spans().first())
                     .map_or(piece.location.first_line, |span| span.start_line);
+                let mut anchor = Anchor::Default;
+                if let Some(locator) = &finding.locate
+                    && let Some(
+                        answer @ JudgmentAnswer::Choice {
+                            selected_label,
+                            probabilities,
+                            ..
+                        },
+                    ) = answers.and_then(|answers| answers.get(&locator.name))
+                {
+                    answers_read.insert(locator.name.clone(), answer.clone());
+                    if probabilities
+                        .get(selected_label)
+                        .is_some_and(|probability| *probability >= locator.min_probability)
+                        && let Some(selected_line) = selected_label
+                            .as_str()
+                            .strip_prefix('L')
+                            .and_then(|label| label.parse::<usize>().ok())
+                        && (piece.location.first_line..=piece.location.last_line)
+                            .contains(&selected_line)
+                        && finding
+                            .at
+                            .as_ref()
+                            .and_then(|field| piece.fields.get(field))
+                            .is_some_and(|field| {
+                                field.spans().iter().any(|span| {
+                                    span.source == piece.location.span.source
+                                        && selected_line >= span.start_line
+                                        && (selected_line < span.end_line
+                                            || (selected_line == span.end_line
+                                                && span.end_column > 1))
+                                })
+                            })
+                    {
+                        line = selected_line;
+                        anchor = Anchor::Resolved;
+                    }
+                }
                 return WalkOutcome::Settled(RulebookResult::Finding {
                     severity: finding.severity.unwrap_or(rule.severity),
                     message: finding.finding.clone(),
@@ -348,6 +394,7 @@ pub fn walk_decision(
                     answers: answers.cloned(),
                     value: combined_value,
                     answers_read,
+                    anchor,
                 });
             }
         }

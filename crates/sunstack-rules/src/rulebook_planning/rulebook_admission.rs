@@ -103,6 +103,7 @@ pub fn admit_rule_entry(
         &entry.questions,
         kind,
         project,
+        &entry.name,
         &mut errors,
     );
     if errors.is_empty() {
@@ -167,9 +168,11 @@ fn admit_graph(
     questions: &NamedQuestionMap,
     kind: &EvidenceKindDefinition,
     project: &EvidenceProject,
+    entry_name: &crate::RuleId,
     errors: &mut Vec<AdmissionRefusal>,
 ) -> DecisionGraph {
     let mut steps = BTreeMap::new();
+    let mut locator_names = questions.keys().cloned().collect::<BTreeSet<_>>();
     for (name, step) in &wire.steps {
         let path = ConfigPath::keys(["decision", "steps", name.as_str()]);
         let mut route = |route: &crate::RouteWire| match DecisionRoute::try_from(route.clone()) {
@@ -181,6 +184,39 @@ fn admit_graph(
                         .is_some_and(|field| !kind.fields.contains_key(field))
                 {
                     errors.push(refusal(&path, "finding at names an undefined field"));
+                }
+                if let DecisionRoute::Finding(finding) = &route
+                    && let Some(locator) = &finding.locate
+                {
+                    let locator_path = path.with_key("locate");
+                    let context = format!(
+                        "entry {} route {} locate",
+                        entry_name.as_str(),
+                        name.as_str()
+                    );
+                    if finding.at.is_none() {
+                        errors.push(refusal(&locator_path, format!("{context} requires at")));
+                    }
+                    if !locator_names.insert(locator.name.clone()) {
+                        errors.push(refusal(
+                            locator_path.with_key("name"),
+                            format!(
+                                "{context} name {} collides with a question or locator",
+                                locator.name.as_str()
+                            ),
+                        ));
+                    }
+                    if !locator.min_probability.is_finite()
+                        || locator.min_probability <= 0.0
+                        || locator.min_probability > 1.0
+                    {
+                        errors.push(refusal(
+                            locator_path.with_key("min_probability"),
+                            format!(
+                                "{context} min_probability must be greater than 0 and at most 1"
+                            ),
+                        ));
+                    }
                 }
                 route
             }

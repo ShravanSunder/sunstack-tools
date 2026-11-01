@@ -3,6 +3,8 @@ use super::*;
 use crate::rulebook_planning::rulebook_test_support as fixture;
 use serde_json::json;
 use sunstack_evidence::{FieldUnavailable, project_model_view};
+#[path = "tests/locator_answers.rs"]
+mod locator_answers;
 
 fn answers(covers: f64, choice_probability: f64) -> NamedAnswerMap {
     serde_json::from_value(json!({

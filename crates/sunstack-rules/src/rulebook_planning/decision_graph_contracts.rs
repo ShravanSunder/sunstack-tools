@@ -50,6 +50,15 @@ pub struct FindingRoute {
     pub severity: Option<Severity>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<FieldName>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locate: Option<Locator>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Locator {
+    pub name: QuestionName,
+    pub task: String,
+    pub min_probability: f64,
 }
 #[derive(Debug, Clone)]
 pub enum DecisionRoute {

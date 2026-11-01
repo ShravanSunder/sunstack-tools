@@ -71,6 +71,7 @@ pub(crate) fn project_outcome(
                 path_taken,
                 answers,
                 value,
+                anchor,
                 ..
             } => {
                 let Some(basis) = basis else {
@@ -107,6 +108,7 @@ pub(crate) fn project_outcome(
                     }),
                     basis,
                     related: related_places(rule, piece),
+                    anchor,
                 });
             }
             RulebookResult::Uncertain {

@@ -17,6 +17,7 @@ pub struct RulebookRunSettings {
     pub request_max_chars: usize,
     pub max_concurrent_requests: usize,
     pub max_model_requests: usize,
+    pub max_locate_lines: usize,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RulebookPairResult {
@@ -112,10 +113,11 @@ pub async fn run_rulebook_with_dispatcher(
                 );
                 continue;
             };
-            let request = StructuredJudgmentRequest {
+            let mut request = StructuredJudgmentRequest {
                 questions: rule.questions.clone(),
                 state,
             };
+            super::locator_questions::add_locators(rule, piece, dispatcher, &mut request);
             match dispatcher.submit(request).await {
                 Ok(id) => {
                     pending.insert(id, (pair_index, step, path_taken));

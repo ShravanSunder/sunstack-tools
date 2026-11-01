@@ -270,6 +270,7 @@ async fn sdk_invalid_request_reaches_the_existing_lint_formatter_boundary() {
         request_max_chars: 20000,
         max_concurrent_requests: 1,
         max_model_requests: 200,
+        max_locate_lines: 80,
     };
     let backend = Arc::new(
         JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_SELECTION_KEY").unwrap(),

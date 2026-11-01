@@ -5,7 +5,7 @@ use sunstack_decisions::{NamedAnswerMap, SharedEvidenceState};
 use sunstack_evidence::{
     EvidenceKindName, EvidencePiece, FieldName, MarkerId, PieceLocation, SourceSpan,
 };
-use sunstack_rules::{Basis, RuleId, RulebookSkippedRule, Severity, StepName};
+use sunstack_rules::{Anchor, Basis, RuleId, RulebookSkippedRule, Severity, StepName};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -83,6 +83,7 @@ pub struct Finding {
     pub judgment: Option<JudgmentSummary>,
     pub basis: Basis,
     pub related: Vec<RelatedPlace>,
+    pub anchor: Anchor,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RelatedPlace {

@@ -1,6 +1,8 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 #[path = "../../sunstack-rules/tests/support/controlled_http.rs"]
 mod controlled;
+#[path = "rulebook_lint_process/locator_anchors.rs"]
+mod locator_anchors;
 #[path = "rulebook_lint_process/result_history.rs"]
 mod result_history;
 mod support;

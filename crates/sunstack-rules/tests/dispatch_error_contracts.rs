@@ -23,6 +23,7 @@ fn settings(endpoint: &str) -> RulebookRunSettings {
         request_max_chars: 20000,
         max_concurrent_requests: 1,
         max_model_requests: 100,
+        max_locate_lines: 80,
     }
 }
 

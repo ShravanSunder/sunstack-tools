@@ -3,6 +3,8 @@
 mod controlled;
 #[path = "../src/rulebook_planning/rulebook_test_support.rs"]
 mod fixture;
+#[path = "rulebook_run/incomplete_history.rs"]
+mod incomplete_history;
 use serde_json::json;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use sunstack_decisions::*;
@@ -56,6 +58,7 @@ fn settings(endpoint: &str) -> RulebookRunSettings {
         request_max_chars: 100000,
         max_concurrent_requests: 2,
         max_model_requests: 10,
+        max_locate_lines: 80,
     }
 }
 
