@@ -25,7 +25,7 @@ The assessment stage sits where the map found the only clean boundary: after evi
 | B. Extend `select` to choice questions | reuses selection | `select` keeps or drops pieces per file; it can't reach a reference's unit or give several rules one answer (map Q3, Q6) | rejected |
 | C. The caller answers first and injects results | no engine change | a workaround the owner forbids; answers outside the run's budget, cancellation and report | rejected |
 
-Open for the owner (see Requirements): a model per assessment, and the existing skill-aware resolver. If the owner keeps per-assessment models, the dispatcher keeps its one shared allowance and cancellation and holds one backend per distinct model setting (`model_request_dispatch.rs:24–47`); each request names its model. Reopens: if units ever need variable depth or nesting.
+Settled by the owner (decisions 8 and 9, see Requirements): assessments use the run's one model through the existing dispatcher and backend (`model_request_dispatch.rs:24–47`), and the existing skill-aware resolver is later work. Reopens: if a second model is needed for one assessment, or units ever need variable depth or nesting.
 
 ## Where each entity lives
 

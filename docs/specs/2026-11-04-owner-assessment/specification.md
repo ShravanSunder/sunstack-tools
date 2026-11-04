@@ -22,7 +22,7 @@
 | Slot | Meaning |
 | --- | --- |
 | identity rule | one declared assessment name |
-| relationships | asks about exactly one unit kind; has 2..n options; has one `min_probability`; names its decision model, or uses the run's (open for the owner: see Requirements) |
+| relationships | asks about exactly one unit kind; has 2..n options; has one `min_probability`; is answered by the run's decision model (owner decision 8) |
 | invariants | its question is a choice question in the same shape rule questions use |
 
 ### E3: Owner answer
@@ -94,9 +94,9 @@ A rule without `requires` behaves exactly as before on every file, whether or no
 
 ### R7: Nothing skill-specific in the engine
 
-`kind: obligation · links: U4, V7 · status: authorized as the accepted R5 states it; its scope over the existing resolver is open for the owner`
+`kind: obligation · links: U4, V7 · status: authorized; scope set by owner decision 9`
 
-The change adds no reference to skills, `SKILL.md`, or any caller's option names to engine code, and the schema names only generic terms. The accepted skills design (R5 at `2a94295a`) also asks that the release carry nothing skill-specific, which covers the existing `Skill`/`PathOrSkill` target resolver. Until the owner decides whether this release makes that resolver caller-declared or leaves it as later work (Requirements, open item 2), this obligation stands as accepted, and the plan cannot mark it met while the resolver remains.
+The change adds no reference to skills, `SKILL.md`, or any caller's option names to engine code, and the schema names only generic terms. The existing `Skill`/`PathOrSkill` target resolver is outside this release by the owner's decision 9 ("Later work, logged"), which supersedes that part of the accepted R5.
 
 ## Proof obligations
 
@@ -108,4 +108,4 @@ The change adds no reference to skills, `SKILL.md`, or any caller's option names
 | V4 | R4 | an unsure answer gives no gated results, one listed skip, exit 5; a failed question gives exit 3; a file in no unit gives a `no_owner` skip | R4 |
 | V5 | R5 | an existing rulebook without gates gives byte-identical results with and without unit declarations, including an ungated choice step that routes to `not_applicable` with its answers (basis judged) | the existing journeys' outputs |
 | V6 | R6 | each refusal in R6 is produced, path-tagged, by `--check` | R6 |
-| V7 | R7 | the diff adds no skill word or caller option name to engine code; and, unless the owner accepts the resolver as later work, the release has no skill-specific resolver | the diff; the owner decision |
+| V7 | R7 | the diff adds no skill word or caller option name to engine code | the diff |

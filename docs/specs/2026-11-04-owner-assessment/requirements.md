@@ -46,7 +46,7 @@ Units, questions, options and rule gates are declared by the caller. This change
 
 **Out:** caching answers across runs; evidence-listing mode (it exits before rules run, and asks no unit questions).
 
-**Open, for the owner** (the accepted skills design at `2a94295a` includes both; narrowing either needs the owner's supersession):
+**Settled by the owner** (each supersedes part of the accepted skills design at `2a94295a`):
 
-- **A model per assessment.** The accepted contract lets each assessment name its decision model. This set keeps it until the owner says otherwise.
-- **The existing skill-aware target resolver.** The accepted R5 says the engine release carries nothing skill-specific; the engine already has `Skill`/`PathOrSkill` and `SKILL.md` lookup in its target loader. Either this release makes that resolver caller-declared, or the owner accepts it as later work.
+- **One model for the run.** Assessments use the run's `decision_model`; no per-assessment model. Authority: owner, 4 Nov (review 00facfd0 of the skills design page), decision 8, "One model for the run".
+- **The existing skill-aware target resolver is later work.** This release adds nothing skill-specific; the existing `Skill`/`PathOrSkill` resolver and its `SKILL.md` lookup stay until a later change, logged in ai-tools `docs/wip/skills-authoring/2026-11-03-skill-rules-task-log/out-of-scope.md`. Authority: owner, 4 Nov (review 00facfd0 of the skills design page), decision 9, "Later work, logged".
