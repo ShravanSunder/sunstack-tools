@@ -9,7 +9,7 @@ The config a caller writes, with the skills repository's filter as the example (
   "kind": {
     "per": "plugins/*/skills/{name}",
     "reads": { "file": "SKILL.md", "kind": "skill", "field": "description" },
-    "question": { "type": "choice", "task": "What is this skill's work for?",
+    "question": { "type": "choice", "instructions": { "task": "What is this skill's work for?" },
                   "criteria": { "general": "…", "role": "…", "domain": "…", "tool_manual": "…", "repo_specific": "…" } },
     "min_probability": 0.7
   }
@@ -39,7 +39,7 @@ and on a rule entry, `"only_when": { "kind": ["general", "role", "domain"] }`.
 | --- | --- |
 | identity rule | one declared filter name |
 | relationships | has one `per` pattern and one `reads` (file, evidence kind, field); has one choice question whose 2..n criteria labels are its answers; has one `min_probability`; is answered by the run's decision model (owner decision 8) |
-| invariants | its question is a choice question in the same shape rule questions use |
+| invariants | its question is a choice question in the same shape rule questions use (`instructions` plus `criteria`; no other top-level key) |
 
 ### E3: Filter answer
 
