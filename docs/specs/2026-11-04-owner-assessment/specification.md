@@ -50,7 +50,7 @@ and on a rule entry, `"only_when": { "kind": ["general", "role", "domain"] }`.
 | identity rule | one filter, one folder, one run |
 | relationships | read by every gated rule on that folder's files in that run |
 | invariants | asked at most once per run; never reused from another run, even in the same process with the same filter and folder |
-| observable states | `judged` (the response's selected answer has probability at or above `min_probability`, equality included), `unsure` (the selected answer's probability is below it, whatever the other answers' probabilities), `incomplete` (the question failed, or the folder is undescribed or ambiguous) |
+| observable states | `judged` (the response's selected answer has probability at or above `min_probability`, equality included), `unsure` (the selected answer's probability is below it, whatever the other answers' probabilities), `incomplete` (the question failed; the folder is undescribed or ambiguous; or its `reads` field is absent, unavailable or too large for a request, in which case no question is sent) |
 
 ### E4: Gate
 
@@ -86,7 +86,7 @@ and on a rule entry, `"only_when": { "kind": ["general", "role", "domain"] }`.
 
 `kind: obligation · links: U1, E1, E2, E3, V1`
 
-For each filter, a lint run asks its question once for each folder that has at least one checked file a gated rule reads, using the folder's `reads` piece, and asks it for no other folder. The report lists every answer with its folder, filter, state, chosen answer and probability when judged, and the model.
+For each filter, a lint run asks its question once for each folder that has at least one checked file a gated rule reads, using the folder's `reads` piece, and asks it for no other folder. The report lists every answer with its folder, filter, state, chosen answer, every answer's probability (for judged answers too, not only unsure ones), whether its input was cut, the model asked for and the model that answered.
 
 ### R2: A member reaches its folder's answer
 
@@ -104,7 +104,7 @@ Before a gated rule's first step, mechanical or asking, it reads its file's fold
 
 `kind: obligation · links: U3, E5, V4`
 
-If a gated rule's file has an `unsure` or `incomplete` answer, or lies in no folder of the gate's filter, then the rule gives no result for that file, and the report lists a skip with the rule, file, filter, folder when there is one, the reason, and the answers' probabilities when there are any. An `unsure` answer makes the run uncertain (exit 5) unless it is already failed, incomplete or cancelled. An `incomplete` answer makes it incomplete (exit 3).
+If a gated rule's file has an `unsure` or `incomplete` answer, or lies in no folder of the gate's filter, then the rule gives no result for that file, and the report lists a skip with the rule, file, filter, folder when there is one, the reason, and the answers' probabilities when there are any. An `unsure` answer makes the run uncertain (exit 5) unless it is already failed, incomplete or cancelled. An `incomplete` answer makes it incomplete (exit 3). A gated rule's file in no folder makes it incomplete (exit 3) too, because that rule could not be checked there; a judged exclusion stays `not_applicable` and changes no status.
 
 ### R5: Ungated rules are unchanged
 
@@ -116,13 +116,19 @@ A rule without `only_when` behaves exactly as before on every file, whether or n
 
 `kind: obligation · links: U1, U2, U5, V6`
 
-`--check` and a real run refuse, with a path-tagged reason: a `per` pattern without exactly one `{name}` segment, or with `**`; a `reads` with no file, or naming an evidence kind or field that doesn't exist; a question that isn't a choice with at least two criteria; `min_probability` outside (0, 1]; an `only_when` with no filter or more than one, naming an unknown filter, or whose answers are empty, repeat, or name an answer the filter's question doesn't have; an evidence kind with both `rule` and `inline_rule`, or neither; an `inline_rule` that doesn't parse as one ast-grep rule, or that declares its own `id`. A refused rule entry is skipped as today, which makes `--check` invalid.
+`--check` and a real run refuse, with a path-tagged reason: a `per` pattern without exactly one `{name}` segment, or with `**`; a `reads` with no file, or naming an evidence kind or field that doesn't exist; a `reads.field` whose source does not give one text (`first_line`, `capture`, `yaml` or `remainder`); a `reads.kind` that has `select` or `within`; a question that isn't a choice with at least two criteria; `min_probability` outside (0, 1]; an `only_when` with no filter or more than one, naming an unknown filter, or whose answers are empty, repeat, or name an answer the filter's question doesn't have; an evidence kind with both `rule` and `inline_rule`, or neither; an `inline_rule` that doesn't parse as one ast-grep rule, or that declares its own `id`. A refused rule entry is skipped as today, which makes `--check` invalid.
 
 ### R7: Nothing skill-specific in the engine
 
 `kind: obligation · links: U4, V7 · status: authorized; scope set by owner decision 9`
 
 The change adds no reference to skills, `SKILL.md`, or any caller's answer names to engine code, and the schema names only generic terms. The existing `Skill`/`PathOrSkill` target resolver is outside this release by the owner's decision 9 ("Later work, logged"), which supersedes that part of the accepted R5.
+
+### R9: A filter asks only about usable text
+
+`kind: obligation · links: U1, U3, E1, E3, V9`
+
+A filter reads its one text field through the same model view rule pieces use, with the `reads` kind's `max_chars` and the run's limits. If the field is absent or unavailable (malformed frontmatter, not a string, unreadable), or the view is too large for a request, the answer is `incomplete` with that reason and no question is sent; the engine never asks about the folder from its path alone. A cut value is sent marked as cut, exactly as a rule piece's would be, and the answer records the cut.
 
 ### R8: An inline rule matches like a named one
 
@@ -141,4 +147,5 @@ An evidence kind may give `inline_rule`, a one-line YAML string holding one ast-
 | V5 | R5 | an existing rulebook without gates gives byte-identical results with and without filters declared, including an ungated choice step that routes to `not_applicable` with its answers (basis judged) | the existing journeys' outputs |
 | V6 | R6 | each refusal in R6 is produced, path-tagged, by `--check` | R6 |
 | V7 | R7 | the diff adds no skill word or caller answer name to engine code | the diff |
+| V9 | R9 | a description that is absent, not a string, or in malformed frontmatter gives `incomplete` with that reason and sends no request; a view over the request limit gives `incomplete` with no request; a long description cut by `max_chars` is sent with its cut marked, and the answer records the cut; `--check` refuses a `reads.field` from `same_file` or `target`, and a `reads.kind` with `select` | R9; the existing model view |
 | V8 | R8 | a kind with an inline rule and the same kind pointing to the same rule in a rule file collect byte-identical pieces and fields on the same fixture files | the named-rule run |
