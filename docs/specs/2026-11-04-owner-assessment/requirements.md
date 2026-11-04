@@ -44,4 +44,9 @@ Units, questions, options and rule gates are declared by the caller. This change
 
 **In:** config sections for units and questions; a rule-entry gate; the assessment stage in a lint run; report and schema additions; admission refusals; tests and verification journeys for them; a release.
 
-**Out:** the existing `Skill`/`PathOrSkill` target resolver (already skill-aware; a later change); per-question decision models (the run's one `decision_model` applies); caching answers across runs; evidence-listing mode (it exits before rules run, and asks no unit questions).
+**Out:** caching answers across runs; evidence-listing mode (it exits before rules run, and asks no unit questions).
+
+**Open, for the owner** (the accepted skills design at `2a94295a` includes both; narrowing either needs the owner's supersession):
+
+- **A model per assessment.** The accepted contract lets each assessment name its decision model. This set keeps it until the owner says otherwise.
+- **The existing skill-aware target resolver.** The accepted R5 says the engine release carries nothing skill-specific; the engine already has `Skill`/`PathOrSkill` and `SKILL.md` lookup in its target loader. Either this release makes that resolver caller-declared, or the owner accepts it as later work.
