@@ -92,11 +92,11 @@ A rule without `requires` behaves exactly as before on every file, whether or no
 
 `--check` and a real run refuse, with a path-tagged reason: a unit root pattern without exactly one `{owner}` segment, or with `**`; a unit with no describing file; a unit with no members; a describing kind or field that doesn't exist; an assessment naming an unknown unit; an assessment question that isn't a choice with at least two options; `min_probability` outside (0, 1]; a gate naming an unknown assessment; a gate whose `accept` is empty, repeats an option, or names an option the assessment doesn't have. A refused rule entry is skipped as today, which makes `--check` invalid.
 
-### R7: Nothing skill-specific is added
+### R7: Nothing skill-specific in the engine
 
-`kind: obligation · links: U4, V7`
+`kind: obligation · links: U4, V7 · status: authorized as the accepted R5 states it; its scope over the existing resolver is open for the owner`
 
-The change adds no reference to skills, `SKILL.md`, or any caller's option names to engine code; the schema names only generic terms.
+The change adds no reference to skills, `SKILL.md`, or any caller's option names to engine code, and the schema names only generic terms. The accepted skills design (R5 at `2a94295a`) also asks that the release carry nothing skill-specific, which covers the existing `Skill`/`PathOrSkill` target resolver. Until the owner decides whether this release makes that resolver caller-declared or leaves it as later work (Requirements, open item 2), this obligation stands as accepted, and the plan cannot mark it met while the resolver remains.
 
 ## Proof obligations
 
@@ -108,4 +108,4 @@ The change adds no reference to skills, `SKILL.md`, or any caller's option names
 | V4 | R4 | an unsure answer gives no gated results, one listed skip, exit 5; a failed question gives exit 3; a file in no unit gives a `no_owner` skip | R4 |
 | V5 | R5 | an existing rulebook without gates gives byte-identical results with and without unit declarations, including an ungated choice step that routes to `not_applicable` with its answers (basis judged) | the existing journeys' outputs |
 | V6 | R6 | each refusal in R6 is produced, path-tagged, by `--check` | R6 |
-| V7 | R7 | the diff adds no skill word or caller option name to engine code | the diff |
+| V7 | R7 | the diff adds no skill word or caller option name to engine code; and, unless the owner accepts the resolver as later work, the release has no skill-specific resolver | the diff; the owner decision |
