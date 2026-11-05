@@ -498,7 +498,11 @@ pub async fn run_with_source(
                 .pieces
                 .iter()
                 .enumerate()
-                .filter(|(index, piece)| piece.kind == rule.kind && !picked_set.contains(index))
+                .filter(|(index, piece)| {
+                    checked_files.contains(&piece.location.file)
+                        && piece.kind == rule.kind
+                        && !picked_set.contains(index)
+                })
                 .count()
         })
         .sum::<usize>();
@@ -511,6 +515,7 @@ pub async fn run_with_source(
             catalog
                 .matches
                 .keys()
+                .filter(|file| checked_files.contains(*file))
                 .filter(|file| {
                     !catalog
                         .pieces

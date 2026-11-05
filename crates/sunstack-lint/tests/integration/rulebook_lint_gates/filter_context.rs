@@ -63,6 +63,10 @@ async fn reference_only_run_loads_context_through_the_checked_source_without_con
     pending.respond(200,json!({"model":"typesafe/controlled","answers":{"filter":{"type":"choice","choice":"a","confidence":0.9,"probabilities":{"a":0.9,"b":0.1}}},"usage":{"input_tokens":1,"output_tokens":1}}));
     let report = task.await.unwrap();
     assert_eq!(server.finish().await, 1);
+    assert_eq!(
+        report.exclusions.outside_change_scope, 0,
+        "context is not an unchecked rule pair: {report:?}"
+    );
     assert!(
         reads
             .lock()
@@ -140,6 +144,10 @@ async fn description_change_reaches_selection_and_final_picking_for_the_member()
     let report = task.await.unwrap();
     assert_eq!(server.finish().await, 2);
     assert_eq!(report.results.len(), 1, "{report:?}");
+    assert_eq!(
+        report.exclusions.zero_matches, 1,
+        "only the unselected checked sibling contributes, not either context file"
+    );
     assert_eq!(
         report.results[0].file,
         Path::new("packages/one/references/member.md")
