@@ -48,7 +48,13 @@ fn target_exclusions_apply_to_both_scans_and_only_the_child_owns_its_load() {
         before_spans: vec![],
         after_spans: vec![],
     }];
-    let (picked, outside) = pick_pieces(&catalog.pieces, &changes, false, root.path());
+    let (picked, outside) = pick_pieces(
+        &catalog.pieces,
+        &changes,
+        false,
+        root.path(),
+        &Default::default(),
+    );
     assert_eq!(outside, 2);
     assert_eq!(
         picked

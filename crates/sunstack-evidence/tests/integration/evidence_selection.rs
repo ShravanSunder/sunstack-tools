@@ -501,7 +501,8 @@ rule: {kind: paragraph}
                 "selected sentence={select_sentences}, chosen workflow={choose_workflow}"
             );
             require_union_file_counts(&catalog.file_counts, choose_workflow);
-            let (picked, _) = pick_pieces(&catalog.pieces, &[], true, root.path());
+            let (picked, _) =
+                pick_pieces(&catalog.pieces, &[], true, root.path(), &Default::default());
             assert_eq!(
                 picked
                     .iter()
@@ -509,7 +510,13 @@ rule: {kind: paragraph}
                     .count(),
                 if choose_workflow { 4 } else { 3 }
             );
-            let (unpicked, _) = pick_pieces(&catalog.pieces, &[], false, root.path());
+            let (unpicked, _) = pick_pieces(
+                &catalog.pieces,
+                &[],
+                false,
+                root.path(),
+                &Default::default(),
+            );
             assert!(unpicked.is_empty());
             let mut corrupted_counts = catalog.file_counts.clone();
             corrupted_counts

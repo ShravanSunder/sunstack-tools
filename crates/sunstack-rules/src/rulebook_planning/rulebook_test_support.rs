@@ -28,8 +28,9 @@ pub fn entry_json(marker: &str) -> serde_json::Value {
 }
 pub fn rule(marker: &str) -> RulebookRule {
     let entry = entry(marker);
-    let graph = admit_rule_entry(&entry, &kinds(), &project()).unwrap();
+    let graph = admit_rule_entry(&entry, &kinds(), &project(), &Default::default()).unwrap();
     RulebookRule {
+        gate: None,
         name: entry.name,
         sentence: RulebookSentence {
             marker: MarkerId::new(marker).unwrap(),

@@ -8,6 +8,8 @@ use sunstack_decisions::CancellationToken;
 use sunstack_evidence::{CheckedFileSource, CheckedReadError, FilesystemCheckedSource};
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
+#[path = "rulebook_lint_gates/filter_context.rs"]
+mod filter_context;
 struct RecordingSource {
     inner: FilesystemCheckedSource,
     reads: Arc<Mutex<Vec<PathBuf>>>,

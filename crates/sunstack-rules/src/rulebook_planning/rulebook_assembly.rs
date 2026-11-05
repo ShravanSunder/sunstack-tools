@@ -72,6 +72,7 @@ pub fn assemble_rulebook(
     max_question_words: usize,
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     project: &EvidenceProject,
+    filters: &crate::FilterRegistry,
 ) -> Result<RulebookAssembly, DiagnosticList> {
     let mut assembly = RulebookAssembly {
         rules: vec![],
@@ -201,7 +202,7 @@ pub fn assemble_rulebook(
                 ));
             }
             let graph = if let Some(entry) = &entry {
-                match admit_rule_entry(entry, kinds, project) {
+                match admit_rule_entry(entry, kinds, project, filters) {
                     Ok(graph) => Some(graph),
                     Err(refusals) => {
                         for refusal in refusals {
@@ -222,6 +223,10 @@ pub fn assemble_rulebook(
             match (bound, entry, graph) {
                 (Some(binding), Some(entry), Some(graph)) if errors.items.is_empty() => {
                     assembly.rules.push(RulebookRule {
+                        gate: entry
+                            .only_when
+                            .as_ref()
+                            .and_then(|wire| crate::admit_only_when(wire, filters).ok()),
                         name: entry.name,
                         sentence: RulebookSentence {
                             marker: binding.marker.id.clone(),

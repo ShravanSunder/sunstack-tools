@@ -10,6 +10,7 @@ use sunstack_rules::{RulebookAssembly, RulebookPair, admit_evidence_kinds, assem
 use tokio_util::sync::CancellationToken;
 
 pub(crate) struct CheckedRulebook {
+    pub filters: sunstack_rules::FilterRegistry,
     pub project: EvidenceProject,
     pub assembly: RulebookAssembly,
     pub inputs: Vec<PathBuf>,
@@ -72,6 +73,22 @@ pub(crate) fn load_checked_rulebook(
         .as_ref()
         .map(EffectiveLimits::from)
         .unwrap_or_default();
+    let filters = sunstack_rules::admit_filters(&config.filters, &config.evidence.kinds).map_err(
+        |errors| {
+            errors
+                .into_iter()
+                .map(|error| {
+                    config_error(
+                        config,
+                        &error.field_path,
+                        LintInvalidCode::Syntax,
+                        format!("{}: {}", error.field_path, error.message),
+                    )
+                    .into()
+                })
+                .collect::<Vec<LintDiagnostic>>()
+        },
+    )?;
     let errors = admit_evidence_kinds(
         &config.evidence.kinds,
         &project,
@@ -105,6 +122,7 @@ pub(crate) fn load_checked_rulebook(
         config.max_question_words.get() as usize,
         &config.evidence.kinds,
         &project,
+        &filters,
     )
     .map_err(|errors| native_diagnostics(config, errors))?;
     let mut inputs = project.inputs.clone();
@@ -131,6 +149,7 @@ pub(crate) fn load_checked_rulebook(
                 .collect::<Vec<LintDiagnostic>>()
         })?;
     Ok(CheckedRulebook {
+        filters,
         selections,
         project,
         assembly,

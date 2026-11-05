@@ -44,6 +44,7 @@ fn bad_entry_is_skipped_while_peers_keep_their_bound_visible_standards() {
         400,
         &fixture::kinds(),
         &fixture::project(),
+        &Default::default(),
     )
     .unwrap();
     assert_eq!(result.rules.len(), 2);
@@ -80,6 +81,7 @@ fn marker_entry_pairing_is_checked_both_ways_and_duplicate_names_skip_both() {
         400,
         &fixture::kinds(),
         &fixture::project(),
+        &Default::default(),
     )
     .unwrap();
     assert_eq!(result.rules.len(), 1);
@@ -102,6 +104,7 @@ fn marker_entry_pairing_is_checked_both_ways_and_duplicate_names_skip_both() {
         400,
         &fixture::kinds(),
         &fixture::project(),
+        &Default::default(),
     )
     .unwrap();
     assert!(result.rules.is_empty());

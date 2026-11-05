@@ -9,6 +9,10 @@ use sunstack_decisions::CancellationToken;
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_rules::test_support::controlled_http as controlled;
 use tokio::process::Command;
+#[path = "lint_commands/filter_admission.rs"]
+mod filter_admission;
+#[path = "lint_commands/filter_runtime.rs"]
+mod filter_runtime;
 #[path = "../support/mod.rs"]
 mod support;
 

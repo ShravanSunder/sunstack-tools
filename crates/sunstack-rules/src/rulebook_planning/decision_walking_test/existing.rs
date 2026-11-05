@@ -304,7 +304,13 @@ fn routed_rule(gate: serde_json::Value, verdict: serde_json::Value) -> RulebookR
     let wire: crate::RuleEntryWire = serde_json::from_value(entry).unwrap();
     let mut rule = fixture::rule("K001");
     rule.questions = wire.questions.clone();
-    rule.decision = crate::admit_rule_entry(&wire, &fixture::kinds(), &fixture::project()).unwrap();
+    rule.decision = crate::admit_rule_entry(
+        &wire,
+        &fixture::kinds(),
+        &fixture::project(),
+        &Default::default(),
+    )
+    .unwrap();
     rule
 }
 fn verdict_step() -> serde_json::Value {
@@ -345,7 +351,13 @@ fn uncertain_choice_and_mechanical_terminal_keep_the_ending_step() {
     entry["decision"]["steps"]["kind"]["uncertain"] = json!("quality");
     let wire: crate::RuleEntryWire = serde_json::from_value(entry).unwrap();
     let mut rule = fixture::rule("K001");
-    rule.decision = crate::admit_rule_entry(&wire, &fixture::kinds(), &fixture::project()).unwrap();
+    rule.decision = crate::admit_rule_entry(
+        &wire,
+        &fixture::kinds(),
+        &fixture::project(),
+        &Default::default(),
+    )
+    .unwrap();
     let result = walk_decision(
         &rule,
         &fixture::piece(),
@@ -375,8 +387,13 @@ fn uncertain_targets_use_existing_undefined_and_cycle_admission() {
         let mut entry = fixture::entry_json("K003");
         entry["decision"]["steps"]["names_trigger"]["uncertain"] = json!(target);
         let wire: crate::RuleEntryWire = serde_json::from_value(entry).unwrap();
-        let refusals =
-            crate::admit_rule_entry(&wire, &fixture::kinds(), &fixture::project()).unwrap_err();
+        let refusals = crate::admit_rule_entry(
+            &wire,
+            &fixture::kinds(),
+            &fixture::project(),
+            &Default::default(),
+        )
+        .unwrap_err();
         assert!(
             refusals
                 .iter()

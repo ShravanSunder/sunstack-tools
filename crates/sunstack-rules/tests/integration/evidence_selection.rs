@@ -295,6 +295,7 @@ async fn selection_and_rule_work_share_one_request_allowance_and_rule_results_st
             &[piece.clone(), piece],
             &BTreeMap::new(),
             &mut dispatch,
+            &Default::default(),
         )
         .await;
         (selected, rules, dispatch.records)

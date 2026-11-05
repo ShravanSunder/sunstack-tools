@@ -95,6 +95,7 @@ async fn real_git_hunk_picks_only_step_three_and_a_changed_target_picks_its_load
         &changes(&fixture).await,
         false,
         fixture.directory.path(),
+        &Default::default(),
     );
     assert_eq!(outside, 5);
     assert_eq!(picked.len(), 1);
@@ -113,6 +114,7 @@ async fn real_git_hunk_picks_only_step_three_and_a_changed_target_picks_its_load
         &changes(&fixture).await,
         false,
         fixture.directory.path(),
+        &Default::default(),
     );
     assert!(
         picked
@@ -144,6 +146,7 @@ async fn an_untracked_skill_is_wholly_changed() {
         &changes(&fixture).await,
         false,
         fixture.directory.path(),
+        &Default::default(),
     );
     assert_eq!(picked.len(), 6);
     assert_eq!(outside, 0);

@@ -89,6 +89,8 @@ pub struct DecisionModelSettings {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RulesConfig {
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub filters: std::collections::BTreeMap<sunstack_rules::FilterName, sunstack_rules::FilterWire>,
     #[serde(default, rename = "$schema", skip_serializing_if = "Option::is_none")]
     pub schema: Option<String>,
     #[schemars(length(min = 1))]

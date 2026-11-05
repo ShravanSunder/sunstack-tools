@@ -39,6 +39,16 @@ pub(crate) fn transport_level(severity: Severity) -> &'static str {
 }
 pub(crate) fn incomplete_text(reason: &IncompleteReason) -> String {
     match reason {
+        IncompleteReason::Filter { filter, reason } => {
+            return format!(
+                "filter {}: {}",
+                filter.as_str(),
+                serde_json::to_string(reason).unwrap_or_else(|_| "incomplete".into())
+            );
+        }
+        IncompleteReason::NoFilterFolder { filter } => {
+            return format!("filter {}: no folder", filter.as_str());
+        }
         IncompleteReason::SelectionFailed => "selection failed",
         IncompleteReason::SelectionIncomplete => "selection incomplete",
         IncompleteReason::EvaluationFailed => "evaluation failed",
@@ -133,6 +143,25 @@ pub(crate) fn uncertain_text(result: &UncertainResult) -> String {
 }
 fn human(report: &LintReport) -> String {
     let mut output = format!("Scope: {}\n", scope_text(&report.scope));
+    for answer in &report.filter_answers {
+        let state = serde_json::to_string(&answer.state).unwrap_or_else(|_| "incomplete".into());
+        let _ = writeln!(
+            output,
+            "Filter {} at {}: {state}",
+            answer.filter.as_str(),
+            answer.folder.display()
+        );
+    }
+    for skip in &report.filter_skips {
+        let _ = writeln!(
+            output,
+            "Skipped [{}] {}: filter {} ({:?})",
+            skip.rule.as_str(),
+            skip.file.display(),
+            skip.filter.as_str(),
+            skip.why
+        );
+    }
     for finding in &report.findings {
         let column = if finding.anchor == Anchor::Resolved {
             1

@@ -30,6 +30,7 @@ pub fn admit_rule_entry(
     entry: &RuleEntryWire,
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     project: &EvidenceProject,
+    filters: &crate::FilterRegistry,
 ) -> Result<DecisionGraph, Vec<AdmissionRefusal>> {
     let Some(kind) = kinds.get(&entry.evidence) else {
         return Err(vec![refusal(
@@ -38,6 +39,11 @@ pub fn admit_rule_entry(
         )]);
     };
     let mut errors = Vec::new();
+    if let Some(gate) = &entry.only_when
+        && let Err(error) = crate::admit_only_when(gate, filters)
+    {
+        errors.push(error);
+    }
     for (position, field) in entry.related.iter().enumerate() {
         if !kind.fields.contains_key(field) {
             errors.push(refusal(

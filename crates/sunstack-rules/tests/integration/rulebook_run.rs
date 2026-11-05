@@ -19,7 +19,13 @@ fn rule() -> RulebookRule {
     let entry: RuleEntryWire = serde_json::from_value(entry).unwrap();
     let mut rule = fixture::rule("K001");
     rule.questions = entry.questions.clone();
-    rule.decision = admit_rule_entry(&entry, &fixture::kinds(), &fixture::project()).unwrap();
+    rule.decision = admit_rule_entry(
+        &entry,
+        &fixture::kinds(),
+        &fixture::project(),
+        &Default::default(),
+    )
+    .unwrap();
     rule
 }
 fn pieces() -> Vec<EvidencePiece> {
@@ -364,8 +370,13 @@ async fn uncertain_handoff_reuses_the_one_request_with_all_questions() {
         let entry: RuleEntryWire = serde_json::from_value(entry).unwrap();
         let mut subject = rule();
         subject.questions = entry.questions.clone();
-        subject.decision =
-            admit_rule_entry(&entry, &fixture::kinds(), &fixture::project()).unwrap();
+        subject.decision = admit_rule_entry(
+            &entry,
+            &fixture::kinds(),
+            &fixture::project(),
+            &Default::default(),
+        )
+        .unwrap();
         let mut server = controlled::ControlledServer::start().await;
         let settings = settings(&server.endpoint);
         let backend =

@@ -12,6 +12,32 @@ pub(crate) fn project_outcome(
     cancelled: bool,
 ) -> LintReport {
     let selected = run.results.len();
+    for answer in &report.filter_answers {
+        if let sunstack_rules::FilterAnswerState::Incomplete { reason } = &answer.state {
+            report.incomplete.push(IncompletePart {
+                rule: None,
+                file: Some(answer.folder.clone()),
+                field: None,
+                reason: IncompleteReason::Filter {
+                    filter: answer.filter.clone(),
+                    reason: reason.clone(),
+                },
+            });
+        }
+    }
+    for skip in &run.skips {
+        if matches!(skip.why, sunstack_rules::FilterSkipReason::NoFolder) {
+            report.incomplete.push(IncompletePart {
+                rule: Some(skip.rule.clone()),
+                file: Some(skip.file.clone()),
+                field: None,
+                reason: IncompleteReason::NoFilterFolder {
+                    filter: skip.filter.clone(),
+                },
+            });
+        }
+    }
+    report.filter_skips = run.skips.clone();
     let acquired = report.usage.checked_files_acquired;
     report.usage = summarize_usage(&run);
     report.usage.checked_files_acquired = acquired;
@@ -42,6 +68,13 @@ pub(crate) fn project_outcome(
         };
         let basis = pair.result.basis();
         report.results.push(RulePieceResult {
+            reason: match &pair.result {
+                RulebookResult::NotApplicable {
+                    reason: reason @ sunstack_rules::NotApplicableReason::Filter { .. },
+                    ..
+                } => Some(reason.clone()),
+                _ => None,
+            },
             name: rule.name.clone(),
             marker: rule.sentence.marker.clone(),
             file: piece.location.file.clone(),
@@ -169,7 +202,12 @@ pub(crate) fn project_outcome(
         || max_warnings.is_some_and(|maximum| report.counts.warn > maximum)
     {
         LintStatus::Findings
-    } else if !report.uncertain.is_empty()
+    } else if report.filter_answers.iter().any(|answer| {
+        matches!(
+            answer.state,
+            sunstack_rules::FilterAnswerState::Unsure { .. }
+        )
+    }) || !report.uncertain.is_empty()
         || report.selections.iter().any(|entry| {
             matches!(
                 entry.outcome,
@@ -184,6 +222,54 @@ pub(crate) fn project_outcome(
         LintStatus::Clean
     };
     report
+}
+
+pub(crate) fn project_selections(
+    catalog: &mut sunstack_evidence::EvidenceCatalog,
+    report: &mut LintReport,
+) {
+    report.selections.sort_by(|left, right| {
+        (
+            &left.location.file,
+            &left.kind,
+            left.location.span.byte_start,
+        )
+            .cmp(&(
+                &right.location.file,
+                &right.kind,
+                right.location.span.byte_start,
+            ))
+    });
+    for entry in &report.selections {
+        if let Some(count) = catalog
+            .file_counts
+            .iter_mut()
+            .find(|count| count.file == entry.location.file)
+            .and_then(|count| count.kinds.get_mut(&entry.kind))
+            .and_then(|count| count.selection.as_mut())
+        {
+            count.asked += 1;
+            match entry.outcome {
+                sunstack_rules::SelectionOutcome::Selected { .. } => count.selected += 1,
+                sunstack_rules::SelectionOutcome::NotSelected { .. } => count.not_selected += 1,
+                sunstack_rules::SelectionOutcome::Uncertain { .. } => count.uncertain += 1,
+                sunstack_rules::SelectionOutcome::Incomplete { .. } => count.incomplete += 1,
+            }
+        }
+    }
+    if report.selections.iter().any(|entry| {
+        matches!(
+            entry.outcome,
+            sunstack_rules::SelectionOutcome::Incomplete { .. }
+        )
+    }) {
+        report.incomplete.push(IncompletePart {
+            rule: None,
+            file: None,
+            field: None,
+            reason: IncompleteReason::SelectionIncomplete,
+        });
+    }
 }
 
 fn related_places(rule: &RulebookRule, piece: &EvidencePiece) -> Vec<RelatedPlace> {
@@ -277,3 +363,25 @@ pub fn summarize_usage(run: &RulebookRun) -> UsageSummary {
 #[cfg(test)]
 #[path = "outcome_test.rs"]
 mod tests;
+
+pub(crate) fn selection_usage(
+    dispatcher: &sunstack_rules::ModelRequestDispatch,
+    acquired: usize,
+) -> UsageSummary {
+    let run = sunstack_rules::RulebookRun {
+        skips: vec![],
+        results: vec![],
+        requests: dispatcher
+            .records
+            .iter()
+            .map(|record| sunstack_rules::RulebookRequestRecord {
+                pair_index: record.id,
+                request: record.request.clone(),
+                outcome: record.outcome.clone(),
+            })
+            .collect(),
+    };
+    let mut usage = crate::lint_reporting::outcome::summarize_usage(&run);
+    usage.checked_files_acquired = acquired;
+    usage
+}
