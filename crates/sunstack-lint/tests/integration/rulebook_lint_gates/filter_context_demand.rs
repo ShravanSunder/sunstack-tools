@@ -147,3 +147,62 @@ async fn within_and_selection_removed_gated_pieces_do_not_demand_context() {
     assert!(report.filter_answers.is_empty());
     assert_eq!(report.results.len(), 1);
 }
+
+#[tokio::test]
+async fn checked_files_keep_all_slots_before_context_at_the_exact_checked_count_limit() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = configured(root.path());
+    for folder in ["unused", "second"] {
+        std::fs::create_dir_all(root.path().join(format!("packages/{folder}"))).unwrap();
+        std::fs::write(
+            root.path().join(format!("packages/{folder}/member.md")),
+            "# Heading only\n\nok paragraph.\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join(format!("packages/{folder}/about.md")),
+            "---\ndescription: Context\n---\n",
+        )
+        .unwrap();
+    }
+    config["limits"] = json!({"max_files":2});
+    fixture::config_file(root.path(), &config);
+    let (reader, reads) = source(root.path());
+    let report = run_with_source(
+        fixture::request(root.path()),
+        CancellationToken::new(),
+        Some("SYNTHETIC".into()),
+        Some(reader),
+    )
+    .await;
+    let observed = reads
+        .lock()
+        .unwrap()
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        observed,
+        [
+            PathBuf::from("packages/second/member.md"),
+            PathBuf::from("packages/unused/member.md")
+        ]
+        .into()
+    );
+    assert_eq!(report.usage.checked_files_acquired, 2);
+    assert_eq!(report.results.len(), 2);
+    assert!(
+        report
+            .results
+            .iter()
+            .all(|row| row.name.as_str() == "ungated")
+    );
+    assert_eq!(report.filter_skips.len(), 2);
+    assert_eq!(report.filter_answers.len(), 2);
+    assert_eq!(report.status, LintStatus::Incomplete);
+    assert!(report.diagnostics.iter().all(|row| {
+        row.file
+            .as_ref()
+            .is_some_and(|file| file.ends_with("about.md"))
+    }));
+}

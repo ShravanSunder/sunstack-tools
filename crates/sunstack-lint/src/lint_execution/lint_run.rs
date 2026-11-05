@@ -500,7 +500,12 @@ pub async fn run_with_source(
                 .count();
         }
     }
-    report.file_counts = catalog.file_counts.clone();
+    report.file_counts = catalog
+        .file_counts
+        .iter()
+        .filter(|count| checked_files.contains(&count.file))
+        .cloned()
+        .collect();
     let outside = checked
         .assembly
         .rules

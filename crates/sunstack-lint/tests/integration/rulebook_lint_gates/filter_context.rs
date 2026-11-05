@@ -64,6 +64,14 @@ async fn reference_only_run_loads_context_through_the_checked_source_without_con
     let report = task.await.unwrap();
     assert_eq!(server.finish().await, 1);
     assert_eq!(
+        report
+            .file_counts
+            .iter()
+            .map(|count| count.file.as_path())
+            .collect::<Vec<_>>(),
+        vec![Path::new("packages/one/references/member.md")]
+    );
+    assert_eq!(
         report.exclusions.outside_change_scope, 0,
         "context is not an unchecked rule pair: {report:?}"
     );
@@ -152,4 +160,39 @@ async fn description_change_reaches_selection_and_final_picking_for_the_member()
         report.results[0].file,
         Path::new("packages/one/references/member.md")
     );
+}
+
+#[tokio::test]
+async fn explicitly_checked_context_keeps_public_counts_and_rule_results() {
+    let root = tempfile::tempdir().unwrap();
+    let mut server = ControlledServer::start().await;
+    let mut config = configured(root.path());
+    config["check"]["files"] = json!(["packages/*/references/*.md", "packages/*/about.md"]);
+    config["decision_model"]["endpoint"] = json!(server.endpoint);
+    fixture::config_file(root.path(), &config);
+    let (reader, reads) = source(root.path());
+    let mut task = tokio::spawn(run_with_source(
+        fixture::request(root.path()),
+        CancellationToken::new(),
+        Some("SYNTHETIC".into()),
+        Some(reader),
+    ));
+    let pending = tokio::select! {pending=server.next()=>pending,result=&mut task=>panic!("no filter question: {result:?}")};
+    pending.respond(200,json!({"model":"typesafe/controlled","answers":{"filter":{"type":"choice","choice":"a","confidence":0.9,"probabilities":{"a":0.9,"b":0.1}}},"usage":{"input_tokens":1,"output_tokens":1}}));
+    let report = task.await.unwrap();
+    assert_eq!(server.finish().await, 1);
+    assert_eq!(
+        report
+            .file_counts
+            .iter()
+            .map(|count| count.file.as_path())
+            .collect::<Vec<_>>(),
+        vec![
+            Path::new("packages/one/about.md"),
+            Path::new("packages/one/references/member.md")
+        ]
+    );
+    assert_eq!(report.results.len(), 2);
+    assert_eq!(report.usage.checked_files_acquired, 2);
+    assert_eq!(reads.lock().unwrap().len(), 2);
 }

@@ -146,6 +146,15 @@ async fn real_cli_filter_answers_skips_status_schema_and_keyless_surfaces() {
             String::from_utf8_lossy(&output.stderr)
         );
         let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(
+            value["file_counts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|count| count["file"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            vec!["packages/one/references/member.md"]
+        );
         let report: LintReport = serde_json::from_value(value.clone()).unwrap();
         let human = sunstack_lint::render(&report, OutputFormat::Default);
         assert!(
