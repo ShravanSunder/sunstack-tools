@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Verification · User needs</title>
+		<link rel="stylesheet" href="library/theme.css" />
+		<link rel="stylesheet" href="studies.css" />
+		<link rel="stylesheet" href="study-controls.css" />
+		<link rel="stylesheet" href="requirements.css" />
+		<script type="module" src="library/runtime.js"></script>
+		<script type="module" src="components/register.js"></script>
+	</head>
+	<body>
+		<ex-nav for="content"
+			><nav slot="pages" aria-label="Experiments">
+				<a href="index.html">Requirements and call-path experiments</a
+				><a href="requirements.html">Start from the user need</a
+				><a href="execution.html">From a call to the need it serves</a>
+			</nav></ex-nav
+		><ex-document id="content"
+			><h1>Verification</h1>
+			<p>
+				Start with what the person needs to do. Group related needs by capability; selecting a need
+				keeps its specification rule, program-design owner and verification observation together.
+			</p>
+			<ex-callout title="Illustrative design and results" tone="note" icon="file"
+				><p>
+					These six needs and their pass/fail observations are examples for comparing the interface.
+					They are not assertions about the current picker or another shipped product.
+				</p></ex-callout
+			>
+			<lab-requirement-browser data-width="canvas"></lab-requirement-browser
+		></ex-document>
+		<script type="application/json" data-lab-records>
+			[
+				{
+					"kind": "scenario",
+					"id": "V1",
+					"title": "Dialog input scenario",
+					"specifications": ["S1"],
+					"bodyRef": "body-V1",
+					"summaryRef": "body-V1"
+				},
+				{
+					"kind": "scenario",
+					"id": "V2",
+					"title": "Background pointer scenario",
+					"specifications": ["S2"],
+					"bodyRef": "body-V2",
+					"summaryRef": "summary-V2"
+				},
+				{
+					"kind": "scenario",
+					"id": "V3",
+					"title": "Shortcut correspondence",
+					"specifications": ["S3"],
+					"bodyRef": "body-V3",
+					"summaryRef": "body-V3"
+				},
+				{
+					"kind": "scenario",
+					"id": "V4",
+					"title": "Selection scenario",
+					"specifications": ["S4"],
+					"bodyRef": "body-V4",
+					"summaryRef": "body-V4"
+				},
+				{
+					"kind": "scenario",
+					"id": "V5",
+					"title": "Overlay boundary scenario",
+					"specifications": ["S5"],
+					"bodyRef": "body-V5",
+					"summaryRef": "body-V5"
+				},
+				{
+					"kind": "scenario",
+					"id": "V6",
+					"title": "Start refusal scenario",
+					"specifications": ["S6"],
+					"bodyRef": "body-V6",
+					"summaryRef": "body-V6"
+				},
+				{
+					"kind": "scenario",
+					"id": "V2-keyboard",
+					"title": "Background keyboard scenario",
+					"specifications": ["S2"],
+					"bodyRef": "body-V2-keyboard",
+					"summaryRef": "summary-V2-keyboard"
+				},
+				{
+					"kind": "observation",
+					"id": "O1",
+					"scenario": "V1",
+					"outcome": "Pass",
+					"bodyRef": "body-O1",
+					"summaryRef": "body-O1"
+				},
+				{
+					"kind": "observation",
+					"id": "O2",
+					"scenario": "V2",
+					"outcome": "Fail",
+					"bodyRef": "body-O2",
+					"summaryRef": "body-O2"
+				},
+				{
+					"kind": "observation",
+					"id": "O3",
+					"scenario": "V3",
+					"outcome": "Pass",
+					"bodyRef": "body-O3",
+					"summaryRef": "body-O3"
+				},
+				{
+					"kind": "observation",
+					"id": "O4",
+					"scenario": "V4",
+					"outcome": "Partial",
+					"bodyRef": "body-O4",
+					"summaryRef": "body-O4"
+				}
+			]
+		</script>
+		<template id="body-V1"
+			><p>Open a dialog, type a character, inspect both input values.</p></template
+		>
+		<template id="body-V2"
+			><p id="summary-V2">Open the menu and activate an underlying action by pointer.</p>
+			<section class="lab-proof-design">
+				<ex-trace title="Proposed check · not run" data-width="reading">
+					<details tone="planned" icon="test-tube">
+						<summary>Open the modal menu in a named candidate</summary>
+						<p>
+							A candidate build, platform/client, configuration and UI input driver must be
+							supplied. C1 still needs to describe the pointer path.
+						</p>
+					</details>
+					<details tone="planned" icon="test-tube">
+						<summary>Activate the underlying action by pointer</summary>
+						<p>
+							Deliver the input through the ordinary UI while the menu is modal. Keep the UI entry,
+							modal routing and action effect real.
+						</p>
+					</details>
+					<details tone="planned" icon="test-tube">
+						<summary>No background action after input completes</summary>
+						<p>
+							Against S2, inspect the observable background-action effect only after input
+							processing has completed. C1 must identify both signals; absence before completion is
+							inconclusive.
+						</p>
+					</details>
+				</ex-trace>
+				<details>
+					<summary>Driver, failure case and proof limits</summary>
+					<div class="ex-table-scroll">
+						<table>
+							<thead>
+								<tr>
+									<th>Proof-plan field</th>
+									<th>Proposed check / current gap</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Reference</td>
+									<td>S2 · pointer case, while the menu is modal.</td>
+								</tr>
+								<tr>
+									<td>Trigger</td>
+									<td>
+										Pointer activation aimed at a lower-scope session action through the ordinary
+										UI.
+									</td>
+								</tr>
+								<tr>
+									<td>Passing observation</td>
+									<td>
+										No background session action occurs. C1 must identify the effect to inspect and
+										when input processing has completed; absence before completion is inconclusive.
+									</td>
+								</tr>
+								<tr>
+									<td>Failure the check must catch</td>
+									<td>
+										A pointer activation starts a background session action while the menu is modal.
+									</td>
+								</tr>
+								<tr>
+									<td>Target and driver</td>
+									<td>
+										Needed: a named candidate build, platform/client, configuration and a driver
+										delivering the intended UI input.
+									</td>
+								</tr>
+								<tr>
+									<td>Real / substitute boundary</td>
+									<td>
+										Keep the UI entry, modal routing and action effect real. A test that calls only
+										a routing helper leaves the UI entry unproven; an automated journey may supply
+										that input through the real UI.
+									</td>
+								</tr>
+								<tr>
+									<td>Reuse and limits</td>
+									<td>
+										No applicable existing check is declared by this fixture. A pure-rule test alone
+										leaves input wiring and the assembled UI unproven.
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</details>
+			</section></template
+		>
+		<template id="body-V3"
+			><p>Compare the displayed shortcut with the registered binding.</p></template
+		>
+		<template id="body-V4"
+			><p>Arrow through options, commit one and inspect the result.</p></template
+		>
+		<template id="body-V5"
+			><p>Open the dialog above a wide-glyph row and capture the boundary.</p></template
+		>
+		<template id="body-V6"><p>Refuse a start, inspect the draft, then retry.</p></template>
+		<template id="body-V2-keyboard"
+			><p id="summary-V2-keyboard">Block a background shortcut while the menu owns input.</p>
+			<section class="lab-proof-design">
+				<ex-trace title="Proposed check · not run" data-width="reading">
+					<details tone="planned" icon="test-tube">
+						<summary>Open the modal menu in a named candidate</summary>
+						<p>
+							A candidate build, platform/client, configuration and UI input driver must be
+							supplied. C1 still needs to describe the menu’s input ownership.
+						</p>
+					</details>
+					<details tone="planned" icon="test-tube">
+						<summary>Press the background action’s shortcut</summary>
+						<p>
+							Deliver the input through the ordinary UI while the menu is modal. Keep the UI entry,
+							modal routing and action effect real.
+						</p>
+					</details>
+					<details tone="planned" icon="test-tube">
+						<summary>No background action after input completes</summary>
+						<p>
+							Against S2, inspect the observable background-action effect only after input
+							processing has completed. C1 must identify both signals; absence before completion is
+							inconclusive.
+						</p>
+					</details>
+				</ex-trace>
+				<details>
+					<summary>Driver, failure case and proof limits</summary>
+					<div class="ex-table-scroll">
+						<table>
+							<thead>
+								<tr>
+									<th>Proof-plan field</th>
+									<th>Proposed check / current gap</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Reference</td>
+									<td>S2 · keyboard case, while the menu is modal.</td>
+								</tr>
+								<tr>
+									<td>Trigger</td>
+									<td>
+										The real shortcut aimed at a lower-scope session action through the ordinary UI.
+									</td>
+								</tr>
+								<tr>
+									<td>Passing observation</td>
+									<td>
+										No background session action occurs. C1 must identify the effect to inspect and
+										when input processing has completed; absence before completion is inconclusive.
+									</td>
+								</tr>
+								<tr>
+									<td>Failure the check must catch</td>
+									<td>
+										A keyboard shortcut starts a background session action while the menu is modal.
+									</td>
+								</tr>
+								<tr>
+									<td>Target and driver</td>
+									<td>
+										Needed: a named candidate build, platform/client, configuration and a driver
+										delivering the intended UI input.
+									</td>
+								</tr>
+								<tr>
+									<td>Real / substitute boundary</td>
+									<td>
+										Keep the UI entry, modal routing and action effect real. A test that calls only
+										a routing helper leaves the UI entry unproven; an automated journey may supply
+										that input through the real UI.
+									</td>
+								</tr>
+								<tr>
+									<td>Reuse and limits</td>
+									<td>
+										No applicable existing check is declared by this fixture. A pure-rule test alone
+										leaves input wiring and the assembled UI unproven.
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</details>
+			</section></template
+		>
+		<template id="body-O1"
+			><p>Example run: the dialog changed; the background field did not.</p></template
+		>
+		<template id="body-O2"
+			><p>Example run: the background action fired. This need remains unmet.</p></template
+		>
+		<template id="body-O3"
+			><p>Example run: the displayed and registered shortcut agree.</p></template
+		>
+		<template id="body-O4"
+			><p>Example run: arrows move correctly; commit has not been observed.</p></template
+		>
+	</body>
+</html>

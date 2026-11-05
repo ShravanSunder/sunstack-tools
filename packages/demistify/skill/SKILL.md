@@ -98,3 +98,7 @@ A source check does not establish visual or interaction behavior. Report a faile
 Return the file link and a brief lint result; mention a limitation only when it affects opening or using the document. When comparing efficiency, count authored content and shared library costs separately. Source bytes/tokens are not model input/output/thinking usage or billed dollars. Loading public assets does not publish the document; publish only within the user's authorized scope.
 
 The task is complete when the requested document is prepared for its intended delivery method and its changed HTML passes lint. Exercise interactions only when the task explicitly requests that verification.
+
+### Non-modal bottom workspaces
+
+Use `<ex-drawer id="workspace" label="Related documents">` for a large bottom workspace that stays interactive beside Comments. Put a header and a body with classes `ex-inspect-header` and `ex-inspect-body` inside it. The drawer owns its geometry, entry animation, Escape and focus return; the document owns the content. A controller opens it with `drawer.show()` and closes it with `drawer.close()`, or toggles its `open` attribute. Listen for `close` to restore local view state. Outside presses keep it open. `size="content"` gives an individual detail sheet above its parent workspace. Keep the drawer in the original document DOM so comment targets and text selections retain their identity. Opening it from a modal enlargement first returns that content to its document. Reduced-motion settings disable the shared drawer animation.

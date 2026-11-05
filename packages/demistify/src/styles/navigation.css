@@ -1,5 +1,6 @@
 /* One document header, one independently scrollable outline and fixed reader controls. */
 body:has(ex-nav) {
+	--ex-document-toolbar-height: 44px;
 	padding-top: 56px;
 }
 ex-nav {
@@ -17,7 +18,7 @@ ex-nav {
 	display: flex;
 	align-items: center;
 	gap: var(--space-4);
-	height: 44px;
+	height: var(--ex-document-toolbar-height);
 	padding: var(--space-1) var(--space-3);
 	border-bottom: 1px solid var(--rule);
 	background: var(--surface-page);

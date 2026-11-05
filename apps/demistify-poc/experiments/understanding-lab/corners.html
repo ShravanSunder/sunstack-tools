@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>One family of content containers</title>
+		<link rel="stylesheet" href="library/theme.css" />
+		<link rel="stylesheet" href="studies.css?revision=title-alignment" />
+		<script type="module" src="library/runtime.js"></script>
+		<script type="module" src="components/register.js"></script>
+	</head>
+	<body>
+		<ex-nav for="content"
+			><nav slot="pages" aria-label="Experiments">
+				<a href="index.html">Four ways to make a design easier to understand</a
+				><a href="corners.html">One family of content containers</a
+				><a href="color.html">Color that keeps its meaning</a
+				><a href="requirements.html">Start from the user need</a
+				><a href="execution.html">From a call to the need it serves</a>
+			</nav></ex-nav
+		><ex-document id="content"
+			><h1>One family of content containers</h1>
+			<p>
+				The corner decision is settled: 8 px for ordinary content containers. Compare three
+				treatments of the same card side by side, with one base palette and identical content.
+			</p>
+			<lab-corner-study></lab-corner-study>
+			<h2 id="proposal">The chosen convention</h2>
+			<p>
+				Use the shared 8 px radius for ordinary content containers, including cards, panels, tables
+				and selected-item details. Keep 4 px for small inset elements and compact controls, circles
+				for round controls, and diagram shapes where they carry meaning. Any other container radius
+				needs a specific reason. This records the chosen convention; production styles are
+				unchanged.
+			</p>
+			<p>
+				The square selected-item source panel in the supplied Explorer view does not consistently
+				use the radius already present on nearby Explorer surfaces. The first production repair
+				would belong to that container's shared style.
+			</p></ex-document
+		>
+	</body>
+</html>

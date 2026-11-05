@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test } from 'vitest';
-import { page, userEvent } from 'vitest/browser';
+import { commands, page, userEvent } from 'vitest/browser';
 
 import { commentStorageKey } from '../../../../packages/demistify/src/core/comment-store.ts';
-import { fixtureLocator, requiredElement } from './fixture-page.ts';
+import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import { readChoiceResponse, readCurrentReview, openReviewFixture } from './review-fixture.ts';
 
 const identity = { documentId: 'demistify-choice-fixture', documentRevision: 'r1' };
@@ -11,6 +11,7 @@ beforeEach((): void => {
 });
 afterEach(async (): Promise<void> => {
 	document.body.replaceChildren();
+	await commands.setReducedMotion('no-preference');
 	await page.viewport(1600, 1000);
 });
 
@@ -315,3 +316,242 @@ test('a second independently authored page uses the same response and local revi
 	]);
 	expect(readCurrentReview(fixture).documentId).toBe('demistify-independent-review');
 });
+
+test.each([1600, 390])(
+	'a non-modal bottom workspace keeps its comment composer usable at %ipx',
+	async (width): Promise<void> => {
+		// Arrange: the live document owns both the workspace content and its comment target.
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openReviewFixture();
+		const root = requiredElement(fixture, 'ex-document');
+		const trigger = fixture.createElement('button');
+		trigger.textContent = 'Open workspace';
+		const workspace = fixture.createElement('ex-drawer');
+		workspace.setAttribute('label', 'Related documents');
+		workspace.innerHTML =
+			'<header class="ex-inspect-header"><strong>Related documents</strong><button type="button">Close workspace</button></header><div class="ex-inspect-body"><p id="workspace-rule">Background actions stay blocked.</p></div>';
+		trigger.addEventListener('click', (): void => workspace.setAttribute('open', ''));
+		workspace
+			.querySelector('button')
+			?.addEventListener('click', (): void => workspace.removeAttribute('open'));
+		const enlargement = fixture.createElement('ex-zoom');
+		enlargement.setAttribute('label', 'Workspace host');
+		enlargement.setAttribute('zoom', '');
+		enlargement.append(trigger, workspace);
+		root.append(enlargement);
+
+		// Act: use the visible workspace and its ordinary Comments control.
+		await fixtureLocator(frame, enlargement).hover();
+		await frame.getByRole('button', { name: 'Expand Workspace host', exact: true }).click();
+		await fixtureLocator(frame, trigger).click();
+		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
+		expect(fixture.querySelector('dialog:modal')).toBeNull();
+		expect(fixture.defaultView?.getComputedStyle(workspace).animationName).toBe('ex-drawer-enter');
+		await expect
+			.poll((): boolean => !!workspace.querySelector('#workspace-rule > [data-comment-control]'))
+			.toBe(true);
+		await fixtureLocator(
+			frame,
+			requiredElement(workspace, '#workspace-rule > [data-comment-control]'),
+		).click();
+		await frame
+			.getByRole('textbox', { name: 'Your comment', exact: true })
+			.fill('Check the pointer path.');
+
+		// Assert: Comments has real editable focus, while the same workspace remains open.
+		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Your comment');
+		expect(
+			fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
+		).toBe('Check the pointer path.');
+		expect(workspace.matches(':popover-open')).toBe(true);
+		expect(root.contains(requiredElement(workspace, '#workspace-rule'))).toBe(true);
+		await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+		expect(readCurrentReview(fixture).comments).toEqual([
+			expect.objectContaining({
+				body: 'Check the pointer path.',
+				anchor: {
+					kind: 'entity',
+					targetId: 'workspace-rule',
+					label: 'Background actions stay blocked.',
+				},
+			}),
+		]);
+		const commentsPanel = requiredElement(fixture, '.ex-comments-body').parentElement;
+		if (!commentsPanel) throw new Error('Comments panel is missing.');
+		expect(fixture.defaultView?.getComputedStyle(commentsPanel).animationName).toBe(
+			'ex-drawer-enter',
+		);
+		await commands.setReducedMotion('reduce');
+		expect(fixture.defaultView?.getComputedStyle(workspace).animationName).toBe('none');
+		expect(fixture.defaultView?.getComputedStyle(commentsPanel).animationName).toBe('none');
+		if (width >= 900) {
+			const comments = requiredElement(fixture, 'aside.ex-drawer');
+			expect(workspace.getBoundingClientRect().right).toBeLessThanOrEqual(
+				comments.getBoundingClientRect().left + 1,
+			);
+		}
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		expect(workspace.matches(':popover-open')).toBe(true);
+		await frame.getByRole('button', { name: 'Close workspace', exact: true }).click();
+		expect(workspace.matches(':popover-open')).toBe(false);
+		expect(fixture.activeElement).toBe(trigger);
+	},
+);
+
+test.each([1440, 390])(
+	'the built requirements workspace keeps calls, Comments and related documents connected at %ipx',
+	async (width): Promise<void> => {
+		// Arrange: load the prepared collection and the actual application controller.
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'understanding',
+			'',
+			'requirements.html?need=U2&stage=program-design',
+		);
+		await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
+		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
+		// Geometry is asserted after the shared entrance transition reaches its final position.
+		await expect
+			.poll((): number => workspace.getBoundingClientRect().bottom)
+			.toBeCloseTo(fixture.defaultView?.innerHeight ?? 0, 0);
+		const bounds = workspace.getBoundingClientRect();
+		expect(bounds.top).toBeGreaterThan(0);
+		expect(bounds.top).toBeCloseTo(
+			requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
+			0,
+		);
+		expect(bounds.bottom).toBeCloseTo(fixture.defaultView?.innerHeight ?? 0, 0);
+		expect(bounds.left).toBeGreaterThanOrEqual(0);
+		expect(bounds.right).toBeLessThanOrEqual(width);
+		fixture.documentElement.dataset['theme'] = 'dark';
+		const darkFill = fixture.defaultView?.getComputedStyle(workspace).backgroundColor;
+		fixture.documentElement.dataset['theme'] = 'light';
+		expect(fixture.defaultView?.getComputedStyle(workspace).backgroundColor).not.toBe(darkFill);
+
+		// Act: choose a real call, inspect its narrow sheet, and navigate by keyboard.
+		const firstCall = requiredElement(workspace, 'button[data-frame="0"]');
+		await fixtureLocator(frame, firstCall).click();
+		if (width < 900)
+			await frame.getByRole('button', { name: 'Close call details', exact: true }).click();
+		await userEvent.keyboard('{ArrowDown}');
+		expect(workspace.querySelector('button[data-frame="1"]')?.getAttribute('aria-pressed')).toBe(
+			'true',
+		);
+		await fixtureLocator(
+			frame,
+			requiredElement(workspace, '[data-call-index="1"] [data-comment-control]'),
+		).click();
+		await frame
+			.getByRole('textbox', { name: 'Your comment', exact: true })
+			.fill('Inspect the routing boundary.');
+
+		// Assert: commenting does not replace the workspace or lose U2's document context.
+		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Your comment');
+		expect(workspace.matches(':popover-open')).toBe(true);
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await frame.getByRole('button', { name: 'Back to Program Design', exact: true }).click();
+		await expect
+			.element(frame.getByRole('button', { name: 'Program Design', exact: true }))
+			.toHaveAttribute('aria-pressed', 'true');
+		const viewButtons = [...fixture.querySelectorAll('.lab-document-switcher button')];
+		const widths = viewButtons.map((button): number => button.getBoundingClientRect().width);
+		expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
+		expect(fixture.querySelectorAll('.lab-document-switcher [aria-pressed="true"]')).toHaveLength(
+			1,
+		);
+		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
+			'U2 · Input ownership',
+		);
+		await frame.getByRole('button', { name: 'View together', exact: true }).click();
+		const comparison = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		expect(comparison.matches(':popover-open')).toBe(true);
+		expect(comparison.textContent).toContain('S2 · Blocked background actions');
+		await fixtureLocator(
+			frame,
+			requiredElement(
+				comparison,
+				'.lab-expanded-design .lab-related-record p [data-comment-control]',
+			),
+		).click();
+		await frame
+			.getByRole('textbox', { name: 'Your comment', exact: true })
+			.fill('Keep the declared design gap visible.');
+		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Your comment');
+		expect(comparison.matches(':popover-open')).toBe(true);
+	},
+);
+
+test.each([1440, 390])(
+	'the rule reader follows record links and returns from calls to its design at %ipx',
+	async (width): Promise<void> => {
+		// Arrange: enter the second experiment through the same built component.
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'understanding',
+			'',
+			'requirements.html?need=U2&reading=rule-path',
+		);
+		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
+		const design = requiredElement(workspace, '#related-record-C1');
+		expect(design.closest('details')?.open).toBe(false);
+		expect(
+			[...workspace.querySelectorAll('.lab-rule-facts dt')].map((cell) => cell.textContent),
+		).toEqual(['Stimulus', 'Aimed at', 'Required outcome']);
+		expect(
+			[...workspace.querySelectorAll('.lab-rule-facts dd')].map((cell) => cell.textContent),
+		).toEqual([
+			'Pointer activationKeyboard shortcut',
+			'A lower-scope session action',
+			'No background action',
+		]);
+
+		// Act: follow the design link, then inspect the existing call browser.
+		await frame.getByRole('link', { name: 'C1', exact: true }).click();
+		expect(design.closest('details')?.open).toBe(true);
+		expect(design.textContent).toContain('Pointer entry, menu ownership');
+		await fixtureLocator(frame, requiredElement(design, '[data-action="open-calls"]')).click();
+		await frame.getByRole('button', { name: 'Back to related documents', exact: true }).click();
+
+		// Assert: the same design is open and focused, with the need and reading mode retained.
+		const returnedDesign = requiredElement(workspace, '#related-record-C1');
+		expect(returnedDesign.closest('details')?.open).toBe(true);
+		expect(fixture.activeElement).toBe(
+			requiredElement(returnedDesign, '[data-action="open-calls"]'),
+		);
+		await frame.getByRole('link', { name: 'V2', exact: true }).click();
+		const pointer = requiredElement(workspace, '#related-record-V2');
+		expect(pointer.closest('details')?.open).toBe(true);
+		expect(pointer.textContent).toContain('Example run: the background action fired.');
+		expect(requiredElement(workspace, '#related-record-V2-keyboard').textContent).toContain(
+			'Not run',
+		);
+		await frame.getByRole('link', { name: 'V2-keyboard', exact: true }).click();
+		const keyboardCase = requiredElement(workspace, '#related-record-V2-keyboard');
+		const readingBounds = requiredElement(
+			workspace,
+			'.lab-related-content',
+		).getBoundingClientRect();
+		expect(fixture.activeElement).toBe(keyboardCase);
+		expect(keyboardCase.getBoundingClientRect().top).toBeGreaterThanOrEqual(readingBounds.top);
+		expect(keyboardCase.getBoundingClientRect().bottom).toBeLessThanOrEqual(readingBounds.bottom);
+		await fixtureLocator(
+			frame,
+			requiredElement(pointer, '.lab-example-outcome p [data-comment-control]'),
+		).click();
+		await frame
+			.getByRole('textbox', { name: 'Your comment', exact: true })
+			.fill('Which target produced this example?');
+		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Your comment');
+		expect(workspace.matches(':popover-open')).toBe(true);
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await frame.getByRole('button', { name: '1 · Documents', exact: true }).click();
+		expect(workspace.querySelector('.lab-expanded-grid')).not.toBeNull();
+		expect(workspace.querySelector('.lab-rule-reader')).toBeNull();
+		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
+		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
+			'U2 · Input ownership',
+		);
+	},
+);

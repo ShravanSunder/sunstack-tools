@@ -86,6 +86,7 @@ ex-trace {
 .ex-trace-body {
 	min-width: 0;
 	margin: 0 var(--space-2) var(--space-3) var(--space-10);
+	font: 400 var(--text-md)/1.55 var(--font-body);
 }
 .ex-trace-body > :first-child {
 	margin-top: 0;
@@ -102,6 +103,7 @@ ex-trace {
 		grid-row: 2;
 	}
 	.ex-trace-body {
-		margin-inline-start: var(--space-6);
+		/* Align with the summary text after its icon, padding and narrow gap. */
+		margin-inline-start: calc(20px + 2 * var(--space-2));
 	}
 }

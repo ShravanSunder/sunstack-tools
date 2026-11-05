@@ -76,6 +76,12 @@ export async function builtFixtures(): Promise<Plugin> {
 			);
 		}),
 	);
+	await cp(
+		resolve(repositoryRoot, 'apps/demistify-poc/public/experiments/understanding-lab'),
+		join(snapshot, 'understanding'),
+		{ recursive: true },
+	);
+	await cp(join(snapshot, 'library'), join(snapshot, 'understanding/library'), { recursive: true });
 	const reviewHtml = await readFile(join(snapshot, 'review/index.html'), 'utf8');
 	await writeFile(
 		join(snapshot, 'review/boundary.html'),
