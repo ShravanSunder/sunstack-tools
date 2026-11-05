@@ -128,8 +128,8 @@ function reportFixture(scenario: FilterScenario = 'judged'): JsonObject {
 	if (scenario === 'unsure') {
 		excluded['state'] = 'unsure';
 		excluded['probabilities'] = { eligible: 0.3, blocked: 0.7 };
-		delete excluded['answer'];
-		delete excluded['probability'];
+		excluded['answer'] = 'eligible';
+		excluded['probability'] = 0.3;
 	}
 	if (scenario === 'failed') {
 		excluded['state'] = 'incomplete';
@@ -286,4 +286,36 @@ test('skip ordering is not an oracle when identity and contents are unchanged', 
 	const report = reportFixture('unsure');
 	arrayValue(report['filter_skips']).reverse();
 	expect(() => requireFilterReport(report, 'unsure')).not.toThrow();
+});
+
+test.each([
+	[
+		'missing selected answer',
+		(answer: JsonObject) => {
+			delete answer['answer'];
+		},
+	],
+	[
+		'missing selected probability',
+		(answer: JsonObject) => {
+			delete answer['probability'];
+		},
+	],
+	[
+		'maximum-probability label substituted',
+		(answer: JsonObject) => {
+			answer['answer'] = 'blocked';
+			answer['probability'] = 0.7;
+		},
+	],
+	[
+		'confidence substituted for selected probability',
+		(answer: JsonObject) => {
+			answer['probability'] = 0.99;
+		},
+	],
+])('unsure report rejects %s', (_name, mutate) => {
+	const report = reportFixture('unsure');
+	mutate(objectValue(arrayValue(report['filter_answers'])[1]));
+	expect(() => requireFilterReport(report, 'unsure')).toThrow();
 });

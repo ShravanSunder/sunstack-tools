@@ -31,6 +31,8 @@ import {
 
 export const filtersOracle =
 	'dd92e2c:docs/specs/2026-11-04-owner-assessment/verification-design.md';
+const filtersProgramDesign =
+	'906fc9ed83f9bd1b7bb4c59b82b891a960d4343a:docs/specs/2026-11-04-owner-assessment/program-design.md';
 export const includedFolder = 'plugins/one/skills/review';
 export const excludedFolder = 'plugins/two/skills/review';
 export const includedMembers = ['one.md', 'two.md', 'three.md'].map(
@@ -267,10 +269,16 @@ export function requireFilterReport(report: JsonObject, scenario: FilterScenario
 						: { eligible: 0.1, blocked: 0.9 },
 				'Probabilities lost',
 			);
-			if (!(excluded && scenario === 'unsure')) {
-				equal(entry['answer'], excluded ? 'blocked' : 'eligible', 'Selected answer replaced');
-				equal(entry['probability'], excluded ? 0.9 : 0.7, 'Wrong selected probability');
-			}
+			equal(
+				entry['answer'],
+				excluded && scenario !== 'unsure' ? 'blocked' : 'eligible',
+				'Selected answer replaced',
+			);
+			equal(
+				entry['probability'],
+				!excluded ? 0.7 : scenario === 'unsure' ? 0.3 : 0.9,
+				'Wrong selected probability',
+			);
 		}
 	}
 	const rows = arrayValue(report['results']).map(objectValue);
@@ -474,6 +482,7 @@ export async function runFiltersJourney(options: JourneyArguments): Promise<void
 		writeJson(path.join(evidence, 'prepared.json'), {
 			product_observed: false,
 			oracle: filtersOracle,
+			program_design: filtersProgramDesign,
 			scenarios: [...scenarios, 'ungated'],
 		});
 		process.stdout.write('Prepared filters fixtures; product unobserved\n');
@@ -496,6 +505,7 @@ export async function runFiltersJourney(options: JourneyArguments): Promise<void
 		commit: target.commit,
 		binary_sha256: target.digest,
 		oracle: filtersOracle,
+		program_design: filtersProgramDesign,
 		scenarios: [...scenarios, 'ungated'],
 		required_native_joins: [
 			'pre-walk gate',
