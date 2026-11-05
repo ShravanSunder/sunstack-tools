@@ -8,7 +8,6 @@ use sunstack_rules::{FilterName, FilterRegistry, RulebookRule};
 pub(crate) struct FilterFolderPlan {
     pub folders: BTreeMap<(FilterName, PathBuf), Vec<PathBuf>>,
     pub dependencies: BTreeMap<PathBuf, Vec<PathBuf>>,
-    pub context_files: BTreeSet<PathBuf>,
 }
 
 pub(crate) fn resolve_filter_folders(
@@ -28,7 +27,6 @@ pub(crate) fn resolve_filter_folders(
         for file in files {
             if let Some((folder, _)) = filter.per.folder_for(file) {
                 let context = folder.join(&filter.reads.file);
-                result.context_files.insert(context.clone());
                 result
                     .dependencies
                     .entry(file.clone())
@@ -45,6 +43,49 @@ pub(crate) fn resolve_filter_folders(
     result
 }
 
+fn demanded_members(
+    filter: &FilterName,
+    members: &[PathBuf],
+    rules: &[RulebookRule],
+    checked_pieces: &[sunstack_evidence::EvidencePiece],
+) -> Vec<PathBuf> {
+    members
+        .iter()
+        .filter(|file| {
+            rules.iter().any(|rule| {
+                rule.gate
+                    .as_ref()
+                    .is_some_and(|gate| &gate.filter == filter)
+                    && checked_pieces
+                        .iter()
+                        .any(|piece| &piece.location.file == *file && piece.kind == rule.kind)
+            })
+        })
+        .cloned()
+        .collect()
+}
+
+pub(crate) fn demanded_context_files(
+    plan: &FilterFolderPlan,
+    filters: &FilterRegistry,
+    rules: &[RulebookRule],
+    checked_pieces: &[sunstack_evidence::EvidencePiece],
+) -> Vec<PathBuf> {
+    plan.folders
+        .iter()
+        .filter_map(|((filter, folder), members)| {
+            if demanded_members(filter, members, rules, checked_pieces).is_empty() {
+                return None;
+            }
+            filters
+                .get(filter)
+                .map(|definition| folder.join(&definition.reads.file))
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
 pub(crate) fn bind_reads_pieces(
     plan: &FilterFolderPlan,
     filters: &FilterRegistry,
@@ -56,20 +97,7 @@ pub(crate) fn bind_reads_pieces(
         .iter()
         .filter_map(|((filter, folder), members)| {
             let definition = filters.get(filter)?;
-            let demanded = members
-                .iter()
-                .filter(|file| {
-                    rules.iter().any(|rule| {
-                        rule.gate
-                            .as_ref()
-                            .is_some_and(|gate| &gate.filter == filter)
-                            && checked_pieces.iter().any(|piece| {
-                                &piece.location.file == *file && piece.kind == rule.kind
-                            })
-                    })
-                })
-                .cloned()
-                .collect::<Vec<_>>();
+            let demanded = demanded_members(filter, members, rules, checked_pieces);
             if demanded.is_empty() {
                 return None;
             }

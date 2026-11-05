@@ -2,6 +2,69 @@ use super::*;
 use sunstack_lint::{LintReport, OutputFormat};
 
 #[tokio::test]
+async fn unused_description_cannot_change_a_successful_heading_only_cli_run() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = fixture::write(root.path());
+    std::fs::create_dir_all(root.path().join("packages/unused")).unwrap();
+    std::fs::write(
+        root.path().join("packages/unused/member.md"),
+        "# Heading only\n",
+    )
+    .unwrap();
+    config["check"]["files"] = json!(["packages/*/member.md"]);
+    config["limits"] = json!({"max_files":1});
+    config["evidence"]["kinds"]["heading"] = json!({"inline_rule":"{language: Markdown, rule: {kind: atx_heading}}","fields":{"body":{"from":"first_line"}}});
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify"},"criteria":{"a":"A","b":"B"}},"min_probability":0.7}});
+    config["decision_model"]["endpoint"] = json!("http://127.0.0.1:1/v1/systemone");
+    fixture::config_file(root.path(), &config);
+    let mut entries: Value =
+        serde_json::from_slice(&std::fs::read(root.path().join("rules.json")).unwrap()).unwrap();
+    entries["K001"]["only_when"] = json!({"purpose":["a"]});
+    entries["K002"] = json!({"name":"heading","evidence":"heading","decision":{"start":"check","steps":{"check":{"mechanical_check":{"tool":"contains","field":"body","text":"Heading"},"yes":"pass","no":"not_applicable"}}}});
+    fixture::entry_file(root.path(), &entries);
+    std::fs::write(
+        root.path().join("rulebook.md"),
+        "Check descriptions. <!-- K001 -->\n\nCheck headings. <!-- K002 -->\n",
+    )
+    .unwrap();
+    let mut outcomes = Vec::new();
+    for present in [false, true] {
+        if present {
+            std::fs::write(
+                root.path().join("packages/unused/about.md"),
+                "---\ndescription: Unused\n---\n",
+            )
+            .unwrap();
+        }
+        let output = tokio::time::timeout(
+            Duration::from_secs(10),
+            command(root.path())
+                .args(["--all", "--format", "json"])
+                .env("OPENROUTER_API_KEY", "SYNTHETIC")
+                .output(),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            output.status.code(),
+            Some(0),
+            "{} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["status"]["kind"], "clean");
+        assert_eq!(report["filter_answers"], json!([]));
+        assert_eq!(report["filter_skips"], json!([]));
+        assert_eq!(report["incomplete"], json!([]));
+        assert_eq!(report["usage"]["checked_files_acquired"], 1);
+        outcomes.push(report["results"].clone());
+    }
+    assert_eq!(outcomes[0], outcomes[1]);
+}
+
+#[tokio::test]
 async fn real_cli_filter_answers_skips_status_schema_and_keyless_surfaces() {
     for scenario in [
         "unsure",

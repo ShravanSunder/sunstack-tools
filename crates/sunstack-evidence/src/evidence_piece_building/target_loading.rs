@@ -150,9 +150,12 @@ impl EvidenceBuild {
         }
         for count in &mut self.catalog.file_counts {
             if let Some(kind_count) = count.kinds.get_mut(kind) {
-                kind_count.pieces = pieces
+                kind_count.pieces = self
+                    .catalog
+                    .pieces
                     .iter()
-                    .filter(|piece| piece.location.file == count.file)
+                    .chain(&pieces)
+                    .filter(|piece| piece.kind == *kind && piece.location.file == count.file)
                     .count();
             }
         }

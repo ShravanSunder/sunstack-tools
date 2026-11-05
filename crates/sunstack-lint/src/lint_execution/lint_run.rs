@@ -312,11 +312,6 @@ pub async fn run_with_source(
     } else {
         super::filter_folders::FilterFolderPlan::default()
     };
-    for context in &folder_plan.context_files {
-        if !checked_files.contains(context) {
-            files.push(context.clone());
-        }
-    }
     let kinds = config.evidence.kinds.clone();
     let limits = PieceBuildLimits {
         max_files: report.limits.max_files as usize,
@@ -441,24 +436,41 @@ pub async fn run_with_source(
             }
         }
     };
+    let (demanded, _) = pick_pieces(
+        &catalog.pieces,
+        &changes,
+        full,
+        &selection.root,
+        &folder_plan.dependencies,
+    );
+    let demanded = demanded
+        .into_iter()
+        .filter_map(|index| catalog.pieces.get(index).cloned())
+        .collect::<Vec<_>>();
+    let context_files = super::filter_folders::demanded_context_files(
+        &folder_plan,
+        &checked.filters,
+        &checked.assembly.rules,
+        &demanded,
+    );
+    if !context_files.is_empty() {
+        let extended = tokio::task::spawn_blocking(move || {
+            let catalog = build.add_context_files(&context_files, &mut source);
+            (source, catalog)
+        })
+        .await;
+        match extended {
+            Ok((next_source, next_catalog)) => {
+                source = next_source;
+                catalog = next_catalog;
+            }
+            Err(_) => return failed(report, "context evidence building failed"),
+        }
+    }
     crate::lint_reporting::outcome::project_selections(&mut catalog, &mut report);
     let acquired = source.checked_files_acquired();
     report.usage.checked_files_acquired = acquired;
-    for failure in &catalog.failures {
-        report.diagnostics.push(LintDiagnostic {
-            file: Some(failure.file.clone()),
-            line: None,
-            column: None,
-            code: LintInvalidCode::Syntax,
-            message: failure.reason.clone(),
-        });
-        report.incomplete.push(IncompletePart {
-            rule: None,
-            file: Some(failure.file.clone()),
-            field: None,
-            reason: IncompleteReason::SelectionFailed,
-        });
-    }
+    crate::lint_reporting::outcome::project_evidence_failures(&catalog, &mut report);
     let (picked, _) = pick_pieces(
         &catalog.pieces,
         &changes,

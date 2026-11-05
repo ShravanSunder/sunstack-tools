@@ -106,82 +106,7 @@ impl EvidenceBuild {
             catalog: EvidenceCatalog::default(),
             pending: None,
         };
-        let mut paths = files.to_vec();
-        paths.sort();
-        paths.dedup();
-        let mut remaining = limits.max_matches;
-        for path in paths {
-            match read_cached_content(
-                source,
-                &mut build.contents,
-                &mut build.total_bytes,
-                &path,
-                limits,
-            ) {
-                Err(error) => build.catalog.failures.push(EvidenceFileFailure {
-                    file: path,
-                    reason: error.to_string(),
-                }),
-                Ok(text) => {
-                    let index = project.match_file(&path, &text, remaining);
-                    for language in &index.failed_languages {
-                        build.catalog.failures.push(EvidenceFileFailure {
-                            file: path.clone(),
-                            reason: format!("invalid {language:?} evidence"),
-                        });
-                    }
-                    remaining = remaining
-                        .saturating_sub(index.by_rule.values().map(Vec::len).sum::<usize>());
-                    if index.limited {
-                        build.catalog.failures.push(EvidenceFileFailure {
-                            file: path.clone(),
-                            reason: "max_matches".into(),
-                        });
-                    }
-                    let Ok(repository) = RepositoryId::new("checked_repository") else {
-                        continue;
-                    };
-                    let source_ref = SourceRef::Document {
-                        repository,
-                        path: path.clone(),
-                        content_identity: content_digest(text.as_bytes()),
-                    };
-                    let counts = kinds
-                        .iter()
-                        .map(|(name, kind)| {
-                            (
-                                name.clone(),
-                                KindCount {
-                                    matches: index
-                                        .by_rule
-                                        .get(&kind.matcher.rule_id(name))
-                                        .map_or(0, Vec::len),
-                                    limited: index.limited,
-                                    selection: kind
-                                        .select
-                                        .as_ref()
-                                        .map(|_| SelectionCount::default()),
-                                    ..KindCount::default()
-                                },
-                            )
-                        })
-                        .collect();
-                    build.catalog.file_counts.push(FileCount {
-                        file: path.clone(),
-                        kinds: counts,
-                    });
-                    build.catalog.matches.insert(path.clone(), index.clone());
-                    build.matched.insert(
-                        path,
-                        MatchedFile {
-                            text,
-                            index,
-                            source: source_ref,
-                        },
-                    );
-                }
-            }
-        }
+        build.scan_files(files, source);
         Ok(build)
     }
 
@@ -273,65 +198,7 @@ impl EvidenceBuild {
         while let Some(kind) = self.plan.order.get(self.position).cloned() {
             self.position += 1;
             let definition = &self.kinds[&kind];
-            let mut pieces = Vec::new();
-            for (path, file) in &self.matched {
-                for (match_position, range) in file
-                    .index
-                    .by_rule
-                    .get(&definition.matcher.rule_id(&kind))
-                    .into_iter()
-                    .flatten()
-                    .enumerate()
-                {
-                    if let Some(parents) = &definition.within
-                        && !self.catalog.pieces.iter().any(|piece| {
-                            parents.as_slice().contains(&piece.kind)
-                                && piece.location.file == *path
-                                && match_within(
-                                    range,
-                                    &MatchRange {
-                                        start: piece.location.span.byte_start,
-                                        end: piece.location.span.byte_end,
-                                    },
-                                )
-                        })
-                    {
-                        continue;
-                    }
-                    let fields = local_fields(
-                        &definition.matcher.rule_id(&kind),
-                        definition,
-                        file,
-                        range,
-                        match_position,
-                        &self.catalog.pieces,
-                    );
-                    let span = source_span(file, range);
-                    let location = PieceLocation {
-                        file: path.clone(),
-                        first_line: span.start_line,
-                        last_line: file.text.as_bytes()
-                            [..range.end.saturating_sub(1).max(range.start)]
-                            .iter()
-                            .filter(|b| **b == b'\n')
-                            .count()
-                            + 1,
-                        span,
-                    };
-                    pieces.push(EvidencePiece {
-                        kind: kind.clone(),
-                        location,
-                        text: file.text[range.start..range.end].into(),
-                        model_view: project_model_view(
-                            &fields,
-                            definition
-                                .max_chars
-                                .map_or(self.limits.evidence_max_chars, |n| n.get() as usize),
-                        ),
-                        fields,
-                    });
-                }
-            }
+            let mut pieces = self.pieces_for_kind(&kind, &self.matched.keys().cloned().collect());
             if let Some(selection) = &definition.select {
                 // AST nodes may share a byte range; E13 identifies the candidate
                 // by kind, file and range, before keys, counts and pending pieces.
@@ -409,33 +276,7 @@ impl EvidenceBuild {
             }
             self.finalize(&kind, pieces, source);
         }
-        let mut catalog = self.catalog.clone();
-        catalog.pieces.sort_by(|left, right| {
-            (
-                &left.kind,
-                &left.location.file,
-                left.location.span.byte_start,
-            )
-                .cmp(&(
-                    &right.kind,
-                    &right.location.file,
-                    right.location.span.byte_start,
-                ))
-        });
-        for (file, content) in &self.contents {
-            if let Err(
-                error
-                @ (CheckedReadError::TotalBytesExceeded | CheckedReadError::FileCountExceeded),
-            ) = content
-                && !catalog.failures.iter().any(|failure| failure.file == *file)
-            {
-                catalog.failures.push(EvidenceFileFailure {
-                    file: file.clone(),
-                    reason: error.to_string(),
-                });
-            }
-        }
-        BuildStep::Done(catalog)
+        BuildStep::Done(self.finished_catalog())
     }
 }
 pub fn build_pieces(
@@ -543,3 +384,5 @@ mod field_composition;
 use field_composition::{local_fields, source_span};
 
 mod target_loading;
+
+mod context_loading;

@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 use sunstack_evidence::*;
+#[path = "evidence_pieces/demanded_context.rs"]
+mod demanded_context;
 #[path = "evidence_pieces/nudge_context.rs"]
 mod nudge_context;
 

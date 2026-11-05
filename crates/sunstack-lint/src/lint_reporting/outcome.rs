@@ -385,3 +385,24 @@ pub(crate) fn selection_usage(
     usage.checked_files_acquired = acquired;
     usage
 }
+
+pub(crate) fn project_evidence_failures(
+    catalog: &sunstack_evidence::EvidenceCatalog,
+    report: &mut LintReport,
+) {
+    for failure in &catalog.failures {
+        report.diagnostics.push(LintDiagnostic {
+            file: Some(failure.file.clone()),
+            line: None,
+            column: None,
+            code: LintInvalidCode::Syntax,
+            message: failure.reason.clone(),
+        });
+        report.incomplete.push(IncompletePart {
+            rule: None,
+            file: Some(failure.file.clone()),
+            field: None,
+            reason: IncompleteReason::SelectionFailed,
+        });
+    }
+}
