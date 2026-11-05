@@ -12,6 +12,7 @@ import {
 	requireRepeatedRequests,
 	requireRequestPiece,
 } from './rulebook-evidence-checks.ts';
+import { runFiltersJourney } from './rulebook-filters.ts';
 import {
 	arrayValue,
 	baselineGit,
@@ -487,9 +488,13 @@ export async function observeLegacyRulebook(
 }
 export async function main(): Promise<void> {
 	const options = journeyArguments(
-		'Rulebook lint: independently checked pieces, worked decisions, Git scope and peer skips.',
+		'Rulebook lint: independently checked pieces, worked decisions, Git scope and peer skips.\n--case filters selects the D1 two-folder filter/gate journey.',
 	);
 	if (!options) return;
+	if (options.case.includes('filters')) {
+		await runFiltersJourney(options);
+		return;
+	}
 	if (options.case.includes('nudge')) {
 		await runNudgeJourney(options);
 		return;
