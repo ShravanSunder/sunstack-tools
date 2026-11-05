@@ -34,6 +34,7 @@ pub struct RulebookRequestRecord {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RulebookRun {
+    pub skips: Vec<crate::FilterSkip>,
     pub results: Vec<RulebookPairResult>,
     pub requests: Vec<RulebookRequestRecord>,
 }
@@ -61,15 +62,24 @@ pub async fn run_rulebook(
     cancellation: CancellationToken,
 ) -> RulebookRun {
     let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation);
-    run_rulebook_with_dispatcher(rules, pieces, indexes, &mut dispatcher).await
+    run_rulebook_with_dispatcher(
+        rules,
+        pieces,
+        indexes,
+        &mut dispatcher,
+        &crate::FilterAnswers::default(),
+    )
+    .await
 }
 pub async fn run_rulebook_with_dispatcher(
     rules: &[RulebookRule],
     pieces: &[EvidencePiece],
     indexes: &BTreeMap<PathBuf, FileMatchIndex>,
     dispatcher: &mut ModelRequestDispatch,
+    filters: &crate::FilterAnswers,
 ) -> RulebookRun {
     let mut run = RulebookRun {
+        skips: vec![],
         results: vec![],
         requests: vec![],
     };
@@ -80,6 +90,31 @@ pub async fn run_rulebook_with_dispatcher(
             .enumerate()
             .filter(|(_, piece)| piece.kind == rule.kind)
         {
+            match crate::gate_for(rule, filters, &piece.location.file) {
+                crate::GateOutcome::Walk => {}
+                crate::GateOutcome::Exclude(reason) => {
+                    run.results.push(RulebookPairResult {
+                        rule_index,
+                        piece_index,
+                        result: RulebookResult::NotApplicable {
+                            reason,
+                            path_taken: vec![],
+                            answers_read: BTreeMap::new(),
+                        },
+                    });
+                    continue;
+                }
+                crate::GateOutcome::Skip(skip) => {
+                    if !run.skips.iter().any(|prior| {
+                        prior.rule == skip.rule
+                            && prior.file == skip.file
+                            && prior.filter == skip.filter
+                    }) {
+                        run.skips.push(skip);
+                    }
+                    continue;
+                }
+            }
             let pair_index = run.results.len();
             run.results.push(RulebookPairResult {
                 rule_index,
@@ -93,7 +128,7 @@ pub async fn run_rulebook_with_dispatcher(
             }
             let empty = FileMatchIndex::default();
             let index = indexes.get(&piece.location.file).unwrap_or(&empty);
-            let (step, path_taken) = match walk_decision(rule, piece, index, None) {
+            let (step, path_taken) = match first_walk(rule, piece, index) {
                 WalkOutcome::Settled(result) => {
                     run.results[pair_index].result = result;
                     continue;
@@ -194,3 +229,15 @@ pub async fn run_rulebook_with_dispatcher(
     run.requests.sort_by_key(|record| record.pair_index);
     run
 }
+
+fn first_walk(rule: &RulebookRule, piece: &EvidencePiece, index: &FileMatchIndex) -> WalkOutcome {
+    #[cfg(test)]
+    FIRST_WALKS.with(|walks| walks.set(walks.get() + 1));
+    walk_decision(rule, piece, index, None)
+}
+
+#[cfg(test)]
+thread_local! { static FIRST_WALKS:std::cell::Cell<usize>=const {std::cell::Cell::new(0)}; }
+#[cfg(test)]
+#[path = "rulebook_run_test.rs"]
+mod tests;

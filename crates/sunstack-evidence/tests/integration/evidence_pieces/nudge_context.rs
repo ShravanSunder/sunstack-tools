@@ -18,7 +18,7 @@ fn target_exclusions_apply_to_both_scans_and_only_the_child_owns_its_load() {
     )
     .unwrap();
     std::fs::write(root.path().join("child.md"), "Loaded child.\n").unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
     let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
     // Every document piece excludes the only paragraph containing a load.
     let excluded = serde_json::from_value(json!({"document":{"rule":"document","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","exclude":{"rule":"paragraph"}}}}})).unwrap();
@@ -48,7 +48,13 @@ fn target_exclusions_apply_to_both_scans_and_only_the_child_owns_its_load() {
         before_spans: vec![],
         after_spans: vec![],
     }];
-    let (picked, outside) = pick_pieces(&catalog.pieces, &changes, false, root.path());
+    let (picked, outside) = pick_pieces(
+        &catalog.pieces,
+        &changes,
+        false,
+        root.path(),
+        &Default::default(),
+    );
     assert_eq!(outside, 2);
     assert_eq!(
         picked
@@ -80,7 +86,7 @@ fn full_enclosing_and_same_file_text_preserve_the_whole_matched_span() {
     let root = context_fixture();
     let text = "# Title\n\n## Parent\n\nParent body.\n\n### Child\n\nChild body.\n";
     std::fs::write(root.path().join("doc.md"), text).unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
     let kinds = serde_json::from_value(json!({"child":{"rule":"child","fields":{"enclosing":{"from":"enclosing","rule":"document","text":"full"},"same":{"from":"same_file","rule":"document","text":"full"},"heading":{"from":"enclosing","rule":"document"}}}})).unwrap();
     let catalog = build_pieces(
         &project,
@@ -111,7 +117,7 @@ fn path_target_fields_and_opening_metadata_match_what_was_read() {
     std::fs::write(root.path().join("doc.md"), "Read `target.md`.\n").unwrap();
     let target_text = "# Target\n\nDetails.\n";
     std::fs::write(root.path().join("target.md"), target_text).unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
     for (cap, opening, cut, last) in [
         (100, target_text, false, json!(3)),
         (10, "# Target\n\n", true, json!(2)),
@@ -181,7 +187,7 @@ fn path_as_kind_uses_its_json_grammar_on_the_already_acquired_target() {
     .unwrap();
     std::fs::write(root.path().join("doc.md"), "Read `target.txt`.\n").unwrap();
     std::fs::write(root.path().join("target.txt"), "{\"name\":\"Value\"}\n").unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
     let kinds = serde_json::from_value(json!({"load":{"rule":"paragraph","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","as_kind":"json_reference"}}},"json_reference":{"rule":"json_pair","fields":{"content":{"from":"first_line"}}}})).unwrap();
     let mut source = RecordingSource::new(root.path());
     let catalog = build_pieces(&project, &kinds, &["doc.md".into()], &mut source, limits());

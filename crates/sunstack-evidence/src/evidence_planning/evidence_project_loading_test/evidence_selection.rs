@@ -8,7 +8,7 @@ fn fixture() -> PathBuf {
 #[test]
 fn numbered_h2_stages_are_cut_by_the_embedded_util() {
     let root = fixture();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
     let text = std::fs::read_to_string(root.join("skills/spec-program-review/SKILL.md")).unwrap();
     let index = project.match_file(std::path::Path::new("SKILL.md"), &text, 10000);
     let stages = index.by_rule[&EvidenceRuleId::new("step").unwrap()]

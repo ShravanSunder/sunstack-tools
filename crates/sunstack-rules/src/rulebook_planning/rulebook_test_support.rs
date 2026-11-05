@@ -7,7 +7,7 @@ pub fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../sunstack/tests/fixtures/rulebook-lint")
 }
 pub fn project() -> EvidenceProject {
-    load_evidence_project(&fixture().join("evidence/sgconfig.yml")).unwrap()
+    load_evidence_project(&fixture().join("evidence/sgconfig.yml"), &[], None).unwrap()
 }
 pub fn kinds() -> BTreeMap<EvidenceKindName, EvidenceKindDefinition> {
     let config: serde_json::Value = serde_json::from_str(
@@ -28,8 +28,9 @@ pub fn entry_json(marker: &str) -> serde_json::Value {
 }
 pub fn rule(marker: &str) -> RulebookRule {
     let entry = entry(marker);
-    let graph = admit_rule_entry(&entry, &kinds(), &project()).unwrap();
+    let graph = admit_rule_entry(&entry, &kinds(), &project(), &Default::default()).unwrap();
     RulebookRule {
+        gate: None,
         name: entry.name,
         sentence: RulebookSentence {
             marker: MarkerId::new(marker).unwrap(),

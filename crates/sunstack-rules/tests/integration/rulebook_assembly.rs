@@ -8,7 +8,7 @@ mod fixture {
             .join("../sunstack/tests/fixtures/rulebook-lint")
     }
     pub fn project() -> EvidenceProject {
-        load_evidence_project(&fixture().join("evidence/sgconfig.yml")).unwrap()
+        load_evidence_project(&fixture().join("evidence/sgconfig.yml"), &[], None).unwrap()
     }
     pub fn kinds() -> std::collections::BTreeMap<EvidenceKindName, EvidenceKindDefinition> {
         let value: serde_json::Value = serde_json::from_str(
@@ -44,6 +44,7 @@ fn bad_entry_is_skipped_while_peers_keep_their_bound_visible_standards() {
         400,
         &fixture::kinds(),
         &fixture::project(),
+        &Default::default(),
     )
     .unwrap();
     assert_eq!(result.rules.len(), 2);
@@ -80,6 +81,7 @@ fn marker_entry_pairing_is_checked_both_ways_and_duplicate_names_skip_both() {
         400,
         &fixture::kinds(),
         &fixture::project(),
+        &Default::default(),
     )
     .unwrap();
     assert_eq!(result.rules.len(), 1);
@@ -102,6 +104,7 @@ fn marker_entry_pairing_is_checked_both_ways_and_duplicate_names_skip_both() {
         400,
         &fixture::kinds(),
         &fixture::project(),
+        &Default::default(),
     )
     .unwrap();
     assert!(result.rules.is_empty());

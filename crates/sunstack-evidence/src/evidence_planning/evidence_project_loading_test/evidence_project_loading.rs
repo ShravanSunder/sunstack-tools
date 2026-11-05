@@ -22,7 +22,7 @@ fn fixture() -> PathBuf {
 #[test]
 fn project_matches_equal_native_scan_in_both_directions() {
     let root = fixture();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
     let oracle: Oracle = serde_json::from_str(
         &std::fs::read_to_string(root.join("expected/scan-oracle.json")).unwrap(),
     )
@@ -72,7 +72,7 @@ fn reserved_utils_and_other_evidence_languages_are_refused() {
         .unwrap();
         std::fs::create_dir(dir.path().join("utils")).unwrap();
         std::fs::write(dir.path().join("utils/invalid.yml"), util).unwrap();
-        assert!(load_evidence_project(&dir.path().join("sgconfig.yml")).is_err());
+        assert!(load_evidence_project(&dir.path().join("sgconfig.yml"), &[], None).is_err());
     }
 }
 
@@ -86,7 +86,7 @@ fn json_projects_use_json_nodes_and_source_ranges() {
         "id: pair\nlanguage: Json\nrule: {kind: pair}\n",
     )
     .unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
     let text = "{\n  \"first\": true,\n  \"second\": false\n}\n";
     let index = project.match_file(std::path::Path::new("rules.json"), text, 100);
     let spans = &index.by_rule["pair"];
@@ -117,7 +117,7 @@ fn json_utils_are_admitted_and_all_other_languages_remain_refused() {
         )
         .unwrap();
         assert_eq!(
-            load_evidence_project(&root.path().join("sgconfig.yml")).is_ok(),
+            load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).is_ok(),
             matches!(language, SupportLang::Markdown | SupportLang::Json),
             "{language}"
         );
@@ -129,7 +129,7 @@ fn json_utils_are_admitted_and_all_other_languages_remain_refused() {
             format!("id: caller_rule\nlanguage: {language}\nrule: {{kind: {root_kind}, regex: example}}\n"),
         )
         .unwrap();
-        let rule_result = load_evidence_project(&root.path().join("sgconfig.yml"));
+        let rule_result = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None);
         assert_eq!(
             rule_result.is_ok(),
             matches!(language, SupportLang::Markdown | SupportLang::Json),
@@ -178,7 +178,7 @@ fn standard_utils_each_match_positive_and_reject_negative_shapes() {
             format!("id: example\nlanguage: Markdown\nrule: {{matches: {id}}}\n"),
         )
         .unwrap();
-        let project = load_evidence_project(&dir.path().join("sgconfig.yml")).unwrap();
+        let project = load_evidence_project(&dir.path().join("sgconfig.yml"), &[], None).unwrap();
         assert_eq!(
             project
                 .match_file(std::path::Path::new("example.md"), positive, 10)
@@ -210,7 +210,7 @@ fn missing_util_bad_rule_glob_and_reserved_rule_are_rejected_at_load() {
         std::fs::write(dir.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
         std::fs::write(dir.path().join("rules/invalid.yml"), rule).unwrap();
         assert!(
-            load_evidence_project(&dir.path().join("sgconfig.yml")).is_err(),
+            load_evidence_project(&dir.path().join("sgconfig.yml"), &[], None).is_err(),
             "{rule}"
         );
     }
@@ -226,7 +226,7 @@ fn yaml_parser_refusals_preserve_the_vendors_line_and_column() {
         "id: broken\nlanguage: Markdown\nrule:\n  kind: [\n",
     )
     .unwrap();
-    let error = load_evidence_project(&directory.path().join("sgconfig.yml"))
+    let error = load_evidence_project(&directory.path().join("sgconfig.yml"), &[], None)
         .err()
         .unwrap();
     assert!(error.path.ends_with("rules/broken.yml"));

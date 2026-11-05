@@ -150,9 +150,12 @@ impl EvidenceBuild {
         }
         for count in &mut self.catalog.file_counts {
             if let Some(kind_count) = count.kinds.get_mut(kind) {
-                kind_count.pieces = pieces
+                kind_count.pieces = self
+                    .catalog
+                    .pieces
                     .iter()
-                    .filter(|piece| piece.location.file == count.file)
+                    .chain(&pieces)
+                    .filter(|piece| piece.kind == *kind && piece.location.file == count.file)
                     .count();
             }
         }
@@ -182,7 +185,7 @@ impl EvidenceBuild {
         };
         let language = self
             .project
-            .language_for_rule(&self.kinds.get(as_kind)?.rule)?;
+            .language_for_rule(&self.kinds.get(as_kind)?.matcher.rule_id(as_kind))?;
         let file = MatchedFile {
             text: text.into(),
             index: self.project.match_file_as_language(
@@ -199,7 +202,7 @@ impl EvidenceBuild {
             for (position, range) in file
                 .index
                 .by_rule
-                .get(&definition.rule)
+                .get(&definition.matcher.rule_id(kind))
                 .into_iter()
                 .flatten()
                 .enumerate()
@@ -218,7 +221,14 @@ impl EvidenceBuild {
                 {
                     continue;
                 }
-                let fields = local_fields(definition, &file, range, position, &pieces);
+                let fields = local_fields(
+                    &definition.matcher.rule_id(kind),
+                    definition,
+                    &file,
+                    range,
+                    position,
+                    &pieces,
+                );
                 if kind == as_kind {
                     return Some(fields);
                 }

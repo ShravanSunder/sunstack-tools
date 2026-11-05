@@ -8,7 +8,15 @@ fn worked_entries_are_admitted_and_every_graph_refusal_is_detected_before_walk()
     let kinds = fixture::kinds();
     let project = fixture::project();
     for marker in ["K001", "K002", "K003"] {
-        assert!(admit_rule_entry(&fixture::entry(marker), &kinds, &project).is_ok());
+        assert!(
+            admit_rule_entry(
+                &fixture::entry(marker),
+                &kinds,
+                &project,
+                &Default::default()
+            )
+            .is_ok()
+        );
     }
     let cases = [
         ("/evidence", json!("undefined")),
@@ -55,7 +63,10 @@ fn worked_entries_are_admitted_and_every_graph_refusal_is_detected_before_walk()
             *entry.pointer_mut(path).unwrap() = value;
         }
         let wire: crate::RuleEntryWire = serde_json::from_value(entry).unwrap();
-        assert!(admit_rule_entry(&wire, &kinds, &project).is_err(), "{path}");
+        assert!(
+            admit_rule_entry(&wire, &kinds, &project, &Default::default()).is_err(),
+            "{path}"
+        );
     }
 }
 
@@ -73,7 +84,7 @@ fn mechanical_tools_refuse_field_shape_mismatches_and_invalid_regex() {
         let mut entry = fixture::entry_json("K001");
         entry["decision"]["steps"]["has_completion"]["mechanical_check"] = tool;
         let entry = serde_json::from_value(entry).unwrap();
-        assert!(admit_rule_entry(&entry, &kinds, &project).is_err());
+        assert!(admit_rule_entry(&entry, &kinds, &project, &Default::default()).is_err());
     }
 }
 
@@ -99,7 +110,9 @@ fn kind_refusals_cover_rules_regex_sizes_and_one_level_composition() {
     kinds
         .get_mut(&EvidenceKindName::new("step").unwrap())
         .unwrap()
-        .rule = sunstack_evidence::EvidenceRuleId::new("missing").unwrap();
+        .matcher = sunstack_evidence::KindMatcher::Named(
+        sunstack_evidence::EvidenceRuleId::new("missing").unwrap(),
+    );
     kinds
         .get_mut(&EvidenceKindName::new("skill").unwrap())
         .unwrap()

@@ -1,6 +1,7 @@
 //! Admit authored definitions, plan evidence-backed requests, and reduce native answers in authored order.
 pub mod evidence_selection;
 pub mod execution_preparation;
+pub mod filters;
 mod request_planning;
 pub mod rule_definitions;
 pub mod rule_evaluation;
@@ -12,6 +13,9 @@ pub use evidence_selection::selection_contracts::*;
 pub use evidence_selection::selection_run::*;
 pub use execution_preparation::preparation_contracts::*;
 pub use execution_preparation::rule_preparation::*;
+pub use filters::filter_gate::*;
+pub use filters::filter_plan::*;
+pub use filters::filter_run::*;
 pub use rule_definitions::definition_admission::*;
 pub use rule_definitions::definition_contracts::*;
 pub use rule_definitions::definition_loading::{LocatedRuleDefinition, ValidatedRuleFile};

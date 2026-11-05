@@ -72,6 +72,10 @@ pub(crate) fn decode_definition<T: serde::de::DeserializeOwned>(
             RuleDiagnosticCode::MalformedJson
         };
         let mut diagnostic = RuleDiagnostic::new(code);
+        if path.iter().any(|field| field == "only_when") {
+            diagnostic.guidance =
+                "only_when must name exactly one filter with an array of answers.".into();
+        }
         // Only these fixed migration messages may cross the diagnostic privacy boundary.
         if message.starts_with("unknown field `rule_sources`") {
             diagnostic.guidance =
@@ -134,6 +138,11 @@ fn safe_field(field: &str) -> bool {
     matches!(
         field,
         "instructions"
+            | "filters"
+            | "per"
+            | "reads"
+            | "only_when"
+            | "inline_rule"
             | "criteria"
             | "schema_version"
             | "name"

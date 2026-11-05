@@ -3,6 +3,10 @@ use serde_json::json;
 use sunstack_decisions::CancellationToken;
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
+#[path = "config_diagnostic_paths/filter_admission.rs"]
+mod filter_admission;
+#[path = "config_diagnostic_paths/inline_rules.rs"]
+mod inline_rules;
 
 async fn assert_kind_refusal_location(scenario: &str) {
     let root = tempfile::tempdir().unwrap();

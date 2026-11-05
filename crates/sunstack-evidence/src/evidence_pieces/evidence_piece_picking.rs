@@ -12,6 +12,7 @@ pub fn pick_pieces(
     changes: &[CapturedChange],
     full: bool,
     repository_root: &std::path::Path,
+    dependencies: &std::collections::BTreeMap<std::path::PathBuf, Vec<std::path::PathBuf>>,
 ) -> (Vec<usize>, usize) {
     let mut picked = Vec::new();
     let mut outside = 0;
@@ -40,7 +41,10 @@ pub fn pick_pieces(
                             == Some(&change.path)
                     })
                 });
-                checked_hunk || changed_target
+                let changed_context = dependencies
+                    .get(&piece.location.file)
+                    .is_some_and(|inputs| inputs.contains(&change.path));
+                checked_hunk || changed_target || changed_context
             });
         if selected {
             picked.push(index);

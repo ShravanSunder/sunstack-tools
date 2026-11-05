@@ -3,11 +3,14 @@ use crate::{
     *,
 };
 use std::path::{Path, PathBuf};
-use sunstack_evidence::{EvidenceProject, load_evidence_project};
+use sunstack_evidence::{
+    ConfigPath, EvidenceProject, InlineRule, KindMatcher, load_evidence_project,
+};
 use sunstack_rules::{RulebookAssembly, RulebookPair, admit_evidence_kinds, assemble_rulebook};
 use tokio_util::sync::CancellationToken;
 
 pub(crate) struct CheckedRulebook {
+    pub filters: sunstack_rules::FilterRegistry,
     pub project: EvidenceProject,
     pub assembly: RulebookAssembly,
     pub inputs: Vec<PathBuf>,
@@ -25,19 +28,67 @@ pub(crate) fn load_checked_rulebook(
 ) -> Result<CheckedRulebook, Vec<LintDiagnostic>> {
     validate_config_shape(config).map_err(|error| vec![error.into()])?;
     let base = config_directory(config);
-    let project =
-        load_evidence_project(&base.join(&config.evidence.ast_grep)).map_err(|error| {
-            let mut diagnostic =
-                LintInvalid::at(error.path, LintInvalidCode::Syntax, error.message);
-            diagnostic.line = u32::try_from(error.line).ok();
-            diagnostic.column = error.column.and_then(|column| u32::try_from(column).ok());
-            vec![diagnostic.into()]
-        })?;
+    let inline_rules = config
+        .evidence
+        .kinds
+        .iter()
+        .filter_map(|(kind, definition)| match &definition.matcher {
+            KindMatcher::Named(_) => None,
+            KindMatcher::Inline { text } => Some(InlineRule {
+                kind: kind.clone(),
+                text: text.clone(),
+                origin: ConfigPath::keys(["evidence", "kinds", kind.as_str(), "inline_rule"]),
+            }),
+        })
+        .collect::<Vec<_>>();
+    let source_path = config
+        .source
+        .as_ref()
+        .map(|source| source.location.file.as_path())
+        .unwrap_or_else(|| Path::new("sunstack.lint.json"));
+    let project = load_evidence_project(
+        &base.join(&config.evidence.ast_grep),
+        &inline_rules,
+        Some(source_path),
+    )
+    .map_err(|error| {
+        if let Some(origin) = &error.origin {
+            return vec![
+                config_error(
+                    config,
+                    origin,
+                    LintInvalidCode::Syntax,
+                    format!("{origin}: {}", error.message),
+                )
+                .into(),
+            ];
+        }
+        let mut diagnostic = LintInvalid::at(error.path, LintInvalidCode::Syntax, error.message);
+        diagnostic.line = u32::try_from(error.line).ok();
+        diagnostic.column = error.column.and_then(|column| u32::try_from(column).ok());
+        vec![diagnostic.into()]
+    })?;
     let limits = config
         .limits
         .as_ref()
         .map(EffectiveLimits::from)
         .unwrap_or_default();
+    let filters = sunstack_rules::admit_filters(&config.filters, &config.evidence.kinds).map_err(
+        |errors| {
+            errors
+                .into_iter()
+                .map(|error| {
+                    config_error(
+                        config,
+                        &error.field_path,
+                        LintInvalidCode::Syntax,
+                        format!("{}: {}", error.field_path, error.message),
+                    )
+                    .into()
+                })
+                .collect::<Vec<LintDiagnostic>>()
+        },
+    )?;
     let errors = admit_evidence_kinds(
         &config.evidence.kinds,
         &project,
@@ -71,6 +122,7 @@ pub(crate) fn load_checked_rulebook(
         config.max_question_words.get() as usize,
         &config.evidence.kinds,
         &project,
+        &filters,
     )
     .map_err(|errors| native_diagnostics(config, errors))?;
     let mut inputs = project.inputs.clone();
@@ -97,6 +149,7 @@ pub(crate) fn load_checked_rulebook(
                 .collect::<Vec<LintDiagnostic>>()
         })?;
     Ok(CheckedRulebook {
+        filters,
         selections,
         project,
         assembly,

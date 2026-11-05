@@ -135,7 +135,12 @@ pub async fn run_with_source(
         .kinds
         .values()
         .any(|kind| kind.select.is_some());
-    let model_work = selected || (request.evidence_listing.is_none() && asking);
+    let gated = checked
+        .assembly
+        .rules
+        .iter()
+        .any(|rule| rule.gate.is_some());
+    let model_work = selected || (request.evidence_listing.is_none() && (asking || gated));
     let key = api_key.as_deref().filter(|key| !key.trim().is_empty());
     if model_work && key.is_none() {
         return invalid(
@@ -294,6 +299,19 @@ pub async fn run_with_source(
         },
     };
     let mut source = FrozenCheckedSource::new(frozen, fallback);
+    let checked_files = files
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    let folder_plan = if request.evidence_listing.is_none() {
+        super::filter_folders::resolve_filter_folders(
+            &checked.filters,
+            &checked.assembly.rules,
+            &files,
+        )
+    } else {
+        super::filter_folders::FilterFolderPlan::default()
+    };
     let kinds = config.evidence.kinds.clone();
     let limits = PieceBuildLimits {
         max_files: report.limits.max_files as usize,
@@ -329,7 +347,7 @@ pub async fn run_with_source(
     let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation.clone());
     let definitions = checked.selections;
     let project = checked.project;
-    let scope_files = files.clone();
+    let scope_files = checked_files.iter().cloned().collect::<Vec<_>>();
     let started = tokio::task::spawn_blocking(move || {
         let build = EvidenceBuild::start(&project, &kinds, &files, &mut source, limits);
         (build, source)
@@ -342,8 +360,12 @@ pub async fn run_with_source(
     };
     let scope_changes = changes.clone();
     let repository_root = selection.root.clone();
+    let dependencies = folder_plan.dependencies.clone();
     let prepared = tokio::task::spawn_blocking(move || {
-        let targets = build.target_paths(&source, &repository_root);
+        let mut targets = build.target_paths(&source, &repository_root);
+        for (file, inputs) in dependencies {
+            targets.entry(file).or_default().extend(inputs);
+        }
         let files = selection_files_for_changes(&scope_files, &targets, &scope_changes, full);
         (build, source, files)
     })
@@ -414,65 +436,52 @@ pub async fn run_with_source(
             }
         }
     };
-    report.selections.sort_by(|left, right| {
-        (
-            &left.location.file,
-            &left.kind,
-            left.location.span.byte_start,
-        )
-            .cmp(&(
-                &right.location.file,
-                &right.kind,
-                right.location.span.byte_start,
-            ))
-    });
-    for entry in &report.selections {
-        if let Some(count) = catalog
-            .file_counts
-            .iter_mut()
-            .find(|count| count.file == entry.location.file)
-            .and_then(|count| count.kinds.get_mut(&entry.kind))
-            .and_then(|count| count.selection.as_mut())
-        {
-            count.asked += 1;
-            match entry.outcome {
-                SelectionOutcome::Selected { .. } => count.selected += 1,
-                SelectionOutcome::NotSelected { .. } => count.not_selected += 1,
-                SelectionOutcome::Uncertain { .. } => count.uncertain += 1,
-                SelectionOutcome::Incomplete { .. } => count.incomplete += 1,
+    let (demanded, _) = pick_pieces(
+        &catalog.pieces,
+        &changes,
+        full,
+        &selection.root,
+        &folder_plan.dependencies,
+    );
+    let demanded = demanded
+        .into_iter()
+        .filter_map(|index| catalog.pieces.get(index).cloned())
+        .collect::<Vec<_>>();
+    let context_files = super::filter_folders::demanded_context_files(
+        &folder_plan,
+        &checked.filters,
+        &checked.assembly.rules,
+        &demanded,
+    );
+    if !context_files.is_empty() {
+        let extended = tokio::task::spawn_blocking(move || {
+            let catalog = build.add_context_files(&context_files, &mut source);
+            (source, catalog)
+        })
+        .await;
+        match extended {
+            Ok((next_source, next_catalog)) => {
+                source = next_source;
+                catalog = next_catalog;
             }
+            Err(_) => return failed(report, "context evidence building failed"),
         }
     }
-    if report
-        .selections
-        .iter()
-        .any(|entry| matches!(entry.outcome, SelectionOutcome::Incomplete { .. }))
-    {
-        report.incomplete.push(IncompletePart {
-            rule: None,
-            file: None,
-            field: None,
-            reason: IncompleteReason::SelectionIncomplete,
-        });
-    }
+    crate::lint_reporting::outcome::project_selections(&mut catalog, &mut report);
     let acquired = source.checked_files_acquired();
     report.usage.checked_files_acquired = acquired;
-    for failure in &catalog.failures {
-        report.diagnostics.push(LintDiagnostic {
-            file: Some(failure.file.clone()),
-            line: None,
-            column: None,
-            code: LintInvalidCode::Syntax,
-            message: failure.reason.clone(),
-        });
-        report.incomplete.push(IncompletePart {
-            rule: None,
-            file: Some(failure.file.clone()),
-            field: None,
-            reason: IncompleteReason::SelectionFailed,
-        });
-    }
-    let (picked, _) = pick_pieces(&catalog.pieces, &changes, full, &selection.root);
+    crate::lint_reporting::outcome::project_evidence_failures(&catalog, &mut report);
+    let (picked, _) = pick_pieces(
+        &catalog.pieces,
+        &changes,
+        full,
+        &selection.root,
+        &folder_plan.dependencies,
+    );
+    let picked = picked
+        .into_iter()
+        .filter(|index| checked_files.contains(&catalog.pieces[*index].location.file))
+        .collect::<Vec<_>>();
     let picked_set = picked
         .iter()
         .copied()
@@ -491,7 +500,12 @@ pub async fn run_with_source(
                 .count();
         }
     }
-    report.file_counts = catalog.file_counts.clone();
+    report.file_counts = catalog
+        .file_counts
+        .iter()
+        .filter(|count| checked_files.contains(&count.file))
+        .cloned()
+        .collect();
     let outside = checked
         .assembly
         .rules
@@ -501,7 +515,11 @@ pub async fn run_with_source(
                 .pieces
                 .iter()
                 .enumerate()
-                .filter(|(index, piece)| piece.kind == rule.kind && !picked_set.contains(index))
+                .filter(|(index, piece)| {
+                    checked_files.contains(&piece.location.file)
+                        && piece.kind == rule.kind
+                        && !picked_set.contains(index)
+                })
                 .count()
         })
         .sum::<usize>();
@@ -514,6 +532,7 @@ pub async fn run_with_source(
             catalog
                 .matches
                 .keys()
+                .filter(|file| checked_files.contains(*file))
                 .filter(|file| {
                     !catalog
                         .pieces
@@ -538,11 +557,11 @@ pub async fn run_with_source(
             config: report.config.clone(),
             scope: report.scope.clone(),
             pieces,
-            usage: selection_usage(&dispatcher, acquired),
+            usage: crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired),
             selections: report.selections.clone(),
             file_counts: report.file_counts.clone(),
         });
-        report.usage = selection_usage(&dispatcher, acquired);
+        report.usage = crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired);
         report.status = if cancellation.is_cancelled() {
             LintStatus::Cancelled
         } else if !report.incomplete.is_empty() {
@@ -558,11 +577,29 @@ pub async fn run_with_source(
         };
         return report;
     }
+    let folders = super::filter_folders::bind_reads_pieces(
+        &folder_plan,
+        &checked.filters,
+        &checked.assembly.rules,
+        &pieces,
+        &catalog,
+    );
+    let filter_answers = sunstack_rules::ask_filters(
+        &checked.filters,
+        &folders,
+        &catalog.pieces,
+        &config.evidence.kinds,
+        report.limits.evidence_max_chars as usize,
+        &mut dispatcher,
+    )
+    .await;
+    report.filter_answers = filter_answers.entries.clone();
     let run = run_rulebook_with_dispatcher(
         &checked.assembly.rules,
         &pieces,
         &catalog.matches,
         &mut dispatcher,
+        &filter_answers,
     )
     .await;
     let mut report = crate::lint_reporting::outcome::project_outcome(
@@ -573,24 +610,6 @@ pub async fn run_with_source(
         request.max_warnings,
         cancellation.is_cancelled(),
     );
-    report.usage = selection_usage(&dispatcher, acquired);
+    report.usage = crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired);
     report
-}
-
-fn selection_usage(dispatcher: &ModelRequestDispatch, acquired: usize) -> UsageSummary {
-    let run = sunstack_rules::RulebookRun {
-        results: vec![],
-        requests: dispatcher
-            .records
-            .iter()
-            .map(|record| sunstack_rules::RulebookRequestRecord {
-                pair_index: record.id,
-                request: record.request.clone(),
-                outcome: record.outcome.clone(),
-            })
-            .collect(),
-    };
-    let mut usage = crate::lint_reporting::outcome::summarize_usage(&run);
-    usage.checked_files_acquired = acquired;
-    usage
 }

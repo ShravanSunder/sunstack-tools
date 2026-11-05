@@ -8,6 +8,13 @@ use sunstack_evidence::{EvidenceKindName, FieldName, MarkerId};
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleEntryWire {
+    #[serde(
+        default,
+        deserialize_with = "present_only_when",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "crate::OnlyWhenWire")]
+    pub only_when: Option<crate::OnlyWhenWire>,
     pub name: RuleId,
     pub evidence: EvidenceKindName,
     #[serde(default)]
@@ -17,6 +24,12 @@ pub struct RuleEntryWire {
     pub severity: Severity,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub related: Vec<FieldName>,
+}
+
+fn present_only_when<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<crate::OnlyWhenWire>, D::Error> {
+    crate::OnlyWhenWire::deserialize(deserializer).map(Some)
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -33,6 +46,7 @@ pub struct RulebookSentence {
 }
 #[derive(Debug, Clone)]
 pub struct RulebookRule {
+    pub gate: Option<crate::OnlyWhenGate>,
     pub name: RuleId,
     pub sentence: RulebookSentence,
     pub kind: EvidenceKindName,

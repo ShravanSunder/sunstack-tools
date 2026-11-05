@@ -27,7 +27,7 @@ fn input(file: &str) -> SelectionInput {
         serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
     kinds.retain(|kind, _| kind.as_str() == "workflow_section");
     let selection = admit_selections(&kinds).unwrap().remove(0);
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
     let file = PathBuf::from(format!("skills/{file}/SKILL.md"));
     let mut source = FilesystemCheckedSource::new(&root).unwrap();
     let mut build = EvidenceBuild::start(
@@ -295,6 +295,7 @@ async fn selection_and_rule_work_share_one_request_allowance_and_rule_results_st
             &[piece.clone(), piece],
             &BTreeMap::new(),
             &mut dispatch,
+            &Default::default(),
         )
         .await;
         (selected, rules, dispatch.records)
