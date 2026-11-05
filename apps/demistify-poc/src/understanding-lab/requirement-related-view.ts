@@ -42,6 +42,7 @@ export class RequirementRelatedView extends HTMLElement {
 			new URLSearchParams(location.search).get('reading') === 'rule-path'
 				? 'rule-path'
 				: 'documents';
+		if (view === 'documents') this.writeReadingAddress();
 		this.returnNeed = undefined;
 		this.returnRecord = undefined;
 		this.innerHTML =
@@ -50,6 +51,9 @@ export class RequirementRelatedView extends HTMLElement {
 		drawer?.addEventListener('close', (): void => {
 			const context = this.context;
 			if (!context || !this.isConnected) return;
+			const address = new URL(location.href);
+			address.searchParams.delete('reading');
+			history.replaceState(history.state, '', address);
 			updateRequirementAddress(context.need.id, false, context.stage);
 			const returnNeed = this.returnNeed;
 			this.replaceChildren();
@@ -74,9 +78,7 @@ export class RequirementRelatedView extends HTMLElement {
 			const reading = event.target.closest<HTMLElement>('[data-reading]')?.dataset['reading'];
 			if (reading === 'documents' || reading === 'rule-path') {
 				this.reading = reading;
-				const address = new URL(location.href);
-				address.searchParams.set('reading', reading);
-				history.replaceState(history.state, '', address);
+				this.writeReadingAddress();
 				this.renderContent();
 				this.querySelector<HTMLElement>(`[data-reading="${reading}"]`)?.focus({
 					preventScroll: true,
@@ -97,6 +99,7 @@ export class RequirementRelatedView extends HTMLElement {
 						event.target.closest<HTMLElement>('[data-record-id]')?.dataset['recordId'];
 				this.view = action === 'open-calls' ? 'calls' : 'documents';
 				updateRequirementAddress(this.context.need.id, false, this.context.stage);
+				if (this.view === 'documents') this.writeReadingAddress();
 				this.renderContent();
 				const content = this.querySelector<HTMLElement>('.lab-related-content');
 				if (content) content.scrollTop = 0;
@@ -139,6 +142,12 @@ export class RequirementRelatedView extends HTMLElement {
 			this.returnNeed = needId;
 			this.querySelector<DrawerIsland>('ex-drawer')?.close();
 		});
+	}
+
+	private writeReadingAddress(): void {
+		const address = new URL(location.href);
+		address.searchParams.set('reading', this.reading);
+		history.replaceState(history.state, '', address);
 	}
 
 	private renderContent(): void {

@@ -464,6 +464,7 @@ test.each([1440, 390])(
 			'U2 · Input ownership',
 		);
 		await frame.getByRole('button', { name: 'View together', exact: true }).click();
+		expect(new URL(fixture.URL).searchParams.get('reading')).toBe('documents');
 		const comparison = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
 		expect(comparison.matches(':popover-open')).toBe(true);
 		expect(comparison.textContent).toContain('S2 · Blocked background actions');
@@ -554,6 +555,38 @@ test.each([1440, 390])(
 		expect(workspace.querySelector('.lab-expanded-grid')).not.toBeNull();
 		expect(workspace.querySelector('.lab-rule-reader')).toBeNull();
 		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
+		expect(new URL(fixture.URL).searchParams.has('reading')).toBe(false);
+		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
+			'U2 · Input ownership',
+		);
+	},
+);
+
+test.each(['specification', 'program-design', 'verification'])(
+	'a standalone document page opens call details from its narrow workspace: %s',
+	async (documentPage): Promise<void> => {
+		// Arrange: use the real stage page, including its own stylesheet bindings.
+		await page.viewport(390, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'understanding',
+			'',
+			`${documentPage}.html?need=U2`,
+		);
+		await frame.getByRole('button', { name: 'Program Design', exact: true }).click();
+		await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
+		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+
+		// Act: select a call through the same control used on the Requirements page.
+		await fixtureLocator(frame, requiredElement(workspace, 'button[data-frame="0"]')).click();
+		const detail = requiredElement(workspace, 'ex-drawer.lab-call-detail-sheet');
+		await expect.poll((): boolean => detail.matches(':popover-open')).toBe(true);
+		expect(detail.textContent).toContain('handleKey');
+
+		// Assert: the compact detail sheet and its parent close independently.
+		await frame.getByRole('button', { name: 'Close call details', exact: true }).click();
+		expect(workspace.matches(':popover-open')).toBe(true);
+		await frame.getByRole('button', { name: 'Back to Program Design', exact: true }).click();
+		expect(fixture.querySelector('ex-drawer.lab-related-drawer')).toBeNull();
 		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
 			'U2 · Input ownership',
 		);
