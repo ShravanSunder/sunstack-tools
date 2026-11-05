@@ -160,7 +160,7 @@ export class RequirementBrowser extends HTMLElement {
 		this.bindHistory();
 		this.render();
 		const reading = new URLSearchParams(location.search).get('reading');
-		if (reading === 'documents' || reading === 'rule-path') {
+		if (reading === 'documents') {
 			this.querySelector<RequirementRelatedView>('lab-requirement-related')?.open();
 			return;
 		}

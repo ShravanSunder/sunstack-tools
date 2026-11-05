@@ -183,7 +183,7 @@ export class ExecutionReview extends HTMLElement {
 		if (!this.stack.frames.some((frame): boolean => frame.id === frameId)) return;
 		this.clearPreview();
 		this.selection = { kind: 'frame', frameId };
-		updateCallAddress(this.stack.id, frameId);
+		this.writeAddress(frameId);
 		this.updatePanels();
 	}
 	private chooseStack(stackId: string, focusPicker = false): void {
@@ -194,11 +194,16 @@ export class ExecutionReview extends HTMLElement {
 		this.stackId = stack.id;
 		this.selection = { kind: 'frame', frameId: last.id };
 		this.expandedSupport = false;
-		updateCallAddress(stack.id, last.id);
+		this.writeAddress(last.id);
 		this.render();
 		if (focusPicker)
 			this.querySelector<HTMLElement>('lab-search-picker summary')?.focus({ preventScroll: true });
 		else this.focus({ preventScroll: true });
+	}
+	private writeAddress(frameId: string): void {
+		// Embedded calls keep local selection; the document browser owns its address.
+		if (this.closest('lab-requirement-related')) return;
+		updateCallAddress(this.stack.id, frameId);
 	}
 	private onKey(event: KeyboardEvent): void {
 		if (

@@ -17,7 +17,7 @@ Open `http://127.0.0.1:4196/experiments/understanding-lab/index.html`.
 | `requirements.html` | Capability groups, searchable picker, neutral cards and a quiet detail panel | Previous/Next, responsive list/detail, scoped keys, exact need and stage addresses  |
 | `execution.html`    | Searchable stack selection, nested calls and right-hand details              | Three illustrative stacks, supporting-call disclosure and hover-only detail preview |
 
-Completed studies: [`corners.html`](corners.html) and [`color.html`](color.html). Their files remain inspectable, but they are no longer active index or page-menu entries. The selected need offers equal-size Overview, Specification, Program Design and Verification controls. The separate related-documents action opens a non-modal bottom workspace: `requirements.html?need=U2&reading=documents` compares documents together, while `reading=rule-path` reads a rule and its related design/checks in order. Both use the same authored records. The call-stack action opens the same workspace and returns to the originating view. Independent style/component integration review remains pending.
+Completed studies: [`corners.html`](corners.html) and [`color.html`](color.html). Their files remain inspectable, but they are no longer active index or page-menu entries. The selected need offers equal-size Overview, Specification, Program Design and Verification controls. The separate related-documents action opens a non-modal bottom workspace: `requirements.html?need=U2&reading=documents` shows the linked Specification, Program Design and Verification records together. The related workspace has one document view. The call-stack action opens the same workspace and returns to the originating view. Independent style/component integration review remains pending.
 
 The Gateway/Registry/Session records, requirements, source addresses and observations are authored illustrative fixtures. They are not an assessment of a shipped product or a measured runtime trace. A green example does not prove a product requirement. Supporting calls without a direct requirement mapping never borrow another call's result.
 
@@ -78,3 +78,5 @@ Metadata names identities and forward references. Rich explanation stays in the 
 ```
 
 C1 is shared rather than copied for U1 and U2. V2 and V2-keyboard are separate scenarios; an observation attaches to its scenario. Missing observation means Not run, rather than a stored passing result. The preparation script and schema are experimental app inputs, not a universal public graph API.
+
+Document cards and the normal title/control header use the app-private `--lab-document-surface`: a 1% white lift over the page in dark mode and the existing white surface in light mode. The full workspace header, need rows and controls retain `--surface-content`; this does not redefine the shared library token. Verification procedure steps start open, with deeper driver and proof-limit details collapsed.

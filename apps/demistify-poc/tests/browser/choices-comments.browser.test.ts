@@ -423,9 +423,25 @@ test.each([1440, 390])(
 		);
 		expect(bounds.bottom).toBeCloseTo(fixture.defaultView?.innerHeight ?? 0, 0);
 		expect(bounds.left).toBeGreaterThanOrEqual(0);
+		expect(new URL(fixture.URL).searchParams.get('need')).toBe('U2');
 		expect(bounds.right).toBeLessThanOrEqual(width);
 		fixture.documentElement.dataset['theme'] = 'dark';
 		const darkFill = fixture.defaultView?.getComputedStyle(workspace).backgroundColor;
+		const darkDocument = fixture.defaultView?.getComputedStyle(
+			requiredElement(fixture, '.lab-stage-record'),
+		).backgroundColor;
+		expect(
+			fixture.defaultView?.getComputedStyle(requiredElement(fixture, '.lab-document-header'))
+				.backgroundColor,
+		).toBe(darkDocument);
+		const actionFill = fixture.defaultView?.getComputedStyle(
+			requiredElement(fixture, '.lab-document-actions button'),
+		).backgroundColor;
+		expect(actionFill).not.toBe(darkDocument);
+		expect(
+			fixture.defaultView?.getComputedStyle(requiredElement(workspace, '.lab-related-header'))
+				.backgroundColor,
+		).toBe(actionFill);
 		fixture.documentElement.dataset['theme'] = 'light';
 		expect(fixture.defaultView?.getComputedStyle(workspace).backgroundColor).not.toBe(darkFill);
 
@@ -438,6 +454,9 @@ test.each([1440, 390])(
 		expect(workspace.querySelector('button[data-frame="1"]')?.getAttribute('aria-pressed')).toBe(
 			'true',
 		);
+		expect(new URL(fixture.URL).searchParams.get('need')).toBe('U2');
+		expect(new URL(fixture.URL).searchParams.has('stack')).toBe(false);
+		expect(new URL(fixture.URL).searchParams.has('call')).toBe(false);
 		await fixtureLocator(
 			frame,
 			requiredElement(workspace, '[data-call-index="1"] [data-comment-control]'),
@@ -484,50 +503,55 @@ test.each([1440, 390])(
 );
 
 test.each([1440, 390])(
-	'the rule reader follows record links and returns from calls to its design at %ipx',
+	'the document reader keeps source links, expanded proof and call context at %ipx',
 	async (width): Promise<void> => {
-		// Arrange: enter the second experiment through the same built component.
+		// Arrange: the related workspace has one document view, without an experiment selector.
 		await page.viewport(width, 1000);
 		const { document: fixture, frame } = await openFixture(
 			'understanding',
 			'',
-			'requirements.html?need=U2&reading=rule-path',
+			'requirements.html?need=U2&reading=documents',
 		);
-		// The toolbar can be ready before the app mounts its drawer.
 		await expect
 			.poll((): boolean => !!fixture.querySelector('ex-drawer.lab-related-drawer'))
 			.toBe(true);
 		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
 		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
-		const design = requiredElement(workspace, '#related-record-C1');
-		expect(design.closest('details')?.open).toBe(false);
-		expect(
-			[...workspace.querySelectorAll('.lab-rule-facts dt')].map((cell) => cell.textContent),
-		).toEqual(['Stimulus', 'Aimed at', 'Required outcome']);
-		expect(
-			[...workspace.querySelectorAll('.lab-rule-facts dd')].map((cell) => cell.textContent),
-		).toEqual([
-			'Pointer activationKeyboard shortcut',
-			'A lower-scope session action',
-			'No background action',
-		]);
+		expect(workspace.querySelector('.lab-reading-experiment')).toBeNull();
+		expect(workspace.querySelector('.lab-expanded-grid')).not.toBeNull();
+		if (width < 760) {
+			const designCard = requiredElement(workspace, '.lab-expanded-design').getBoundingClientRect();
+			const proofCard = requiredElement(workspace, '.lab-expanded-proof').getBoundingClientRect();
+			expect(designCard.width).toBeGreaterThan(width * 0.8);
+			expect(proofCard.left).toBeCloseTo(designCard.left, 0);
+			expect(proofCard.top).toBeGreaterThanOrEqual(designCard.bottom);
+			expect(
+				requiredElement(workspace, '.lab-specification-cases').getBoundingClientRect().width,
+			).toBeGreaterThan(width * 0.8);
+		}
 
-		// Act: follow the design link, then inspect the existing call browser.
-		await frame.getByRole('link', { name: 'C1', exact: true }).click();
+		// Act: reveal the design's source locally, then inspect its call browser.
+		await fixtureLocator(frame, requiredElement(workspace, 'a[href="#related-record-C1"]')).click();
+		const design = requiredElement(workspace, '#related-record-C1');
 		expect(design.closest('details')?.open).toBe(true);
 		expect(design.textContent).toContain('Pointer entry, menu ownership');
-		await fixtureLocator(frame, requiredElement(design, '[data-action="open-calls"]')).click();
+		expect(fixture.activeElement).toBe(design);
+		await fixtureLocator(
+			frame,
+			requiredElement(workspace, '.lab-expanded-design [data-action="open-calls"]'),
+		).click();
+		await fixtureLocator(frame, requiredElement(workspace, 'button[data-frame="0"]')).click();
+		if (width < 900)
+			await frame.getByRole('button', { name: 'Close call details', exact: true }).click();
+		expect(new URL(fixture.URL).searchParams.get('need')).toBe('U2');
+		expect(new URL(fixture.URL).searchParams.get('reading')).toBe('documents');
 		await frame.getByRole('button', { name: 'Back to related documents', exact: true }).click();
 
-		// Assert: the same design is open and focused, with the need and reading mode retained.
-		const returnedDesign = requiredElement(workspace, '#related-record-C1');
-		expect(returnedDesign.closest('details')?.open).toBe(true);
-		expect(fixture.activeElement).toBe(
-			requiredElement(returnedDesign, '[data-action="open-calls"]'),
-		);
-		await frame.getByRole('link', { name: 'V2', exact: true }).click();
+		// Assert: return retains the same need; each source link reveals its own record.
+		expect(workspace.querySelector('.lab-expanded-grid')).not.toBeNull();
+		await fixtureLocator(frame, requiredElement(workspace, 'a[href="#related-record-V2"]')).click();
 		const pointer = requiredElement(workspace, '#related-record-V2');
-		expect(pointer.closest('details')?.open).toBe(true);
+		expect(fixture.activeElement).toBe(pointer);
 		expect(pointer.textContent).toContain('Example run: the background action fired.');
 		const proofSteps = [
 			...pointer.querySelectorAll<HTMLDetailsElement>('ex-trace > ol > li > details'),
@@ -537,20 +561,20 @@ test.each([1440, 390])(
 		expect(pointer.querySelector<HTMLDetailsElement>('.lab-proof-design > details')?.open).toBe(
 			false,
 		);
-		expect(requiredElement(workspace, '#related-record-V2-keyboard').textContent).toContain(
-			'Not run',
-		);
-		await frame.getByRole('link', { name: 'V2-keyboard', exact: true }).click();
-		const keyboardCase = requiredElement(workspace, '#related-record-V2-keyboard');
+		const keyboard = requiredElement(workspace, '#related-record-V2-keyboard');
+		expect(keyboard.textContent).toContain('Not run');
+		await fixtureLocator(
+			frame,
+			requiredElement(workspace, 'a[href="#related-record-V2-keyboard"]'),
+		).click();
+		expect(fixture.activeElement).toBe(keyboard);
 		const readingBounds = requiredElement(
 			workspace,
 			'.lab-related-content',
 		).getBoundingClientRect();
-		expect(fixture.activeElement).toBe(keyboardCase);
-		expect(keyboardCase.getBoundingClientRect().top).toBeGreaterThanOrEqual(readingBounds.top);
-		// Expanded procedure text can exceed the viewport; its selected heading must be visible.
+		expect(keyboard.getBoundingClientRect().top).toBeGreaterThanOrEqual(readingBounds.top);
 		expect(
-			requiredElement(keyboardCase, '.lab-related-record-title').getBoundingClientRect().bottom,
+			requiredElement(keyboard, '.lab-related-record-title').getBoundingClientRect().bottom,
 		).toBeLessThanOrEqual(readingBounds.bottom);
 		await fixtureLocator(
 			frame,
@@ -562,9 +586,6 @@ test.each([1440, 390])(
 		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Your comment');
 		expect(workspace.matches(':popover-open')).toBe(true);
 		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
-		await frame.getByRole('button', { name: '1 · Documents', exact: true }).click();
-		expect(workspace.querySelector('.lab-expanded-grid')).not.toBeNull();
-		expect(workspace.querySelector('.lab-rule-reader')).toBeNull();
 		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
 		expect(new URL(fixture.URL).searchParams.has('reading')).toBe(false);
 		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
@@ -572,6 +593,27 @@ test.each([1440, 390])(
 		);
 	},
 );
+
+test('removing the document browser closes its workspace and clears its opening hint', async (): Promise<void> => {
+	// Arrange: open the real workspace inside the owning document component.
+	await page.viewport(1440, 1000);
+	const { document: fixture, frame } = await openFixture(
+		'understanding',
+		'',
+		'requirements.html?need=U2',
+	);
+	await frame.getByRole('button', { name: 'View together', exact: true }).click();
+	expect(new URL(fixture.URL).searchParams.get('reading')).toBe('documents');
+	const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+
+	// Act: exercise the browser's real DOM disconnect lifecycle, as a host replacement does.
+	requiredElement(fixture, 'lab-requirement-browser').remove();
+
+	// Assert: the closing hint is removed without rewriting the current requirement.
+	expect(workspace.matches(':popover-open')).toBe(false);
+	expect(new URL(fixture.URL).searchParams.has('reading')).toBe(false);
+	expect(new URL(fixture.URL).searchParams.get('need')).toBe('U2');
+});
 
 test.each(['specification', 'program-design', 'verification'])(
 	'a standalone document page opens call details from its narrow workspace: %s',

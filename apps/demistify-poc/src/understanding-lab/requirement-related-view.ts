@@ -1,5 +1,5 @@
 import type { DrawerIsland } from '../../../../packages/demistify/src/islands/drawer.ts';
-import { relatedRequirementMarkup, ruleRequirementMarkup } from './requirement-related-markup.js';
+import { relatedRequirementMarkup } from './requirement-related-markup.js';
 import { updateRequirementAddress, type RequirementStage } from './study-links.js';
 import { icon, safeText } from './study-markup.js';
 import type { RequirementExample } from './study-model.js';
@@ -12,22 +12,12 @@ interface RelatedViewContext {
 
 type RelatedView = 'documents' | 'calls';
 
-function readingAnchorForRecord(target: HTMLElement): HTMLElement {
-	const disclosure = target.closest('details');
-	const firstRecord = disclosure?.querySelector(':scope > .ex-trace-body > .lab-related-record');
-	return target.closest('.lab-rule-reader') && firstRecord === target
-		? (disclosure?.querySelector<HTMLElement>(':scope > summary') ?? target)
-		: target;
-}
-
 /** A combined reading view, independent of the component's ordinary enlargement. */
 export class RequirementRelatedView extends HTMLElement {
 	private context: RelatedViewContext | undefined;
 	private view: RelatedView = 'documents';
 	private entryView: RelatedView = 'documents';
-	private reading: 'documents' | 'rule-path' = 'documents';
 	private returnNeed: string | undefined;
-	private returnRecord: string | undefined;
 	private initialized = false;
 
 	configure(context: RelatedViewContext): void {
@@ -38,22 +28,18 @@ export class RequirementRelatedView extends HTMLElement {
 		if (!this.context || this.querySelector('ex-drawer[open]')) return;
 		this.view = view;
 		this.entryView = view;
-		this.reading =
-			new URLSearchParams(location.search).get('reading') === 'rule-path'
-				? 'rule-path'
-				: 'documents';
 		if (view === 'documents') this.writeReadingAddress();
 		this.returnNeed = undefined;
-		this.returnRecord = undefined;
 		this.innerHTML =
 			'<ex-drawer class="lab-related-drawer" label="Related documents" aria-labelledby="related-view-title"><header class="ex-inspect-header lab-related-header"></header><div class="ex-inspect-body lab-related-content"></div></ex-drawer>';
 		const drawer = this.querySelector<DrawerIsland>('ex-drawer');
 		drawer?.addEventListener('close', (): void => {
 			const context = this.context;
-			if (!context || !this.isConnected) return;
+			if (!context) return;
 			const address = new URL(location.href);
 			address.searchParams.delete('reading');
 			history.replaceState(history.state, '', address);
+			if (!this.isConnected) return;
 			updateRequirementAddress(context.need.id, false, context.stage);
 			const returnNeed = this.returnNeed;
 			this.replaceChildren();
@@ -75,16 +61,6 @@ export class RequirementRelatedView extends HTMLElement {
 			// The parent owns the normal pane; actions in this workspace stay local.
 			event.stopPropagation();
 			const action = event.target.closest<HTMLElement>('[data-action]')?.dataset['action'];
-			const reading = event.target.closest<HTMLElement>('[data-reading]')?.dataset['reading'];
-			if (reading === 'documents' || reading === 'rule-path') {
-				this.reading = reading;
-				this.writeReadingAddress();
-				this.renderContent();
-				this.querySelector<HTMLElement>(`[data-reading="${reading}"]`)?.focus({
-					preventScroll: true,
-				});
-				return;
-			}
 			if (action === 'close-related') {
 				this.querySelector<DrawerIsland>('ex-drawer')?.close();
 				return;
@@ -94,28 +70,12 @@ export class RequirementRelatedView extends HTMLElement {
 					this.querySelector<DrawerIsland>('ex-drawer')?.close();
 					return;
 				}
-				if (action === 'open-calls')
-					this.returnRecord =
-						event.target.closest<HTMLElement>('[data-record-id]')?.dataset['recordId'];
 				this.view = action === 'open-calls' ? 'calls' : 'documents';
 				updateRequirementAddress(this.context.need.id, false, this.context.stage);
 				if (this.view === 'documents') this.writeReadingAddress();
 				this.renderContent();
 				const content = this.querySelector<HTMLElement>('.lab-related-content');
 				if (content) content.scrollTop = 0;
-				if (action === 'back-from-calls' && this.returnRecord) {
-					const target = this.querySelector<HTMLElement>(
-						`#related-record-${CSS.escape(this.returnRecord)}`,
-					);
-					const disclosure = target?.closest('details');
-					if (disclosure) disclosure.open = true;
-					if (target) readingAnchorForRecord(target).scrollIntoView({ block: 'start' });
-					target
-						?.querySelector<HTMLElement>('[data-action="open-calls"]')
-						?.focus({ preventScroll: true });
-					this.returnRecord = undefined;
-					return;
-				}
 				this.querySelector<HTMLElement>(
 					'[data-action="back-from-calls"], [data-action="open-calls"]',
 				)?.focus({ preventScroll: true });
@@ -127,7 +87,7 @@ export class RequirementRelatedView extends HTMLElement {
 				const target = this.querySelector<HTMLElement>(`#${CSS.escape(source.hash.slice(1))}`);
 				const disclosure = target?.closest('details');
 				if (disclosure) disclosure.open = true;
-				if (target) readingAnchorForRecord(target).scrollIntoView({ block: 'start' });
+				if (target) target.scrollIntoView({ block: 'start' });
 				target?.focus({ preventScroll: true });
 				return;
 			}
@@ -146,7 +106,7 @@ export class RequirementRelatedView extends HTMLElement {
 
 	private writeReadingAddress(): void {
 		const address = new URL(location.href);
-		address.searchParams.set('reading', this.reading);
+		address.searchParams.set('reading', 'documents');
 		history.replaceState(history.state, '', address);
 	}
 
@@ -165,6 +125,6 @@ export class RequirementRelatedView extends HTMLElement {
 		if (!content) return;
 		content.innerHTML = calls
 			? '<lab-execution-review></lab-execution-review>'
-			: `<div class="lab-reading-experiment" data-width="${this.reading === 'rule-path' ? 'reading' : 'canvas'}"><span>Reading experiment</span><div class="lab-reading-options lab-toggle-group" role="group" aria-label="Reading experiment"><button type="button" data-reading="documents" aria-pressed="${this.reading === 'documents'}">1 · Documents</button><button type="button" data-reading="rule-path" aria-pressed="${this.reading === 'rule-path'}">2 · Follow the rule</button></div></div>${this.reading === 'rule-path' ? ruleRequirementMarkup(this.context.need) : relatedRequirementMarkup(this.context.need)}`;
+			: relatedRequirementMarkup(this.context.need);
 	}
 }

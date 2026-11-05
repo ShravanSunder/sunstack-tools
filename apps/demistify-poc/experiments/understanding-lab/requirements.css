@@ -2,9 +2,16 @@ lab-requirement-browser {
 	container: requirements-view / inline-size;
 	font: 400 var(--text-md)/1.55 var(--font-body);
 }
-lab-requirement-browser,
-.ex-inspect-dialog:has(.lab-requirements-inspector) {
-	--lab-surface-group: color-mix(in srgb, var(--surface-page) 96%, var(--ink));
+:root {
+	--lab-document-surface: var(--surface-content);
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--lab-document-surface: color-mix(in srgb, var(--surface-page) 99%, #fff);
+	}
+}
+:root[data-theme='dark'] {
+	--lab-document-surface: color-mix(in srgb, var(--surface-page) 99%, #fff);
 }
 .lab-requirements-inspector {
 	display: block;
@@ -22,7 +29,7 @@ lab-requirement-browser,
 	padding: var(--space-5) var(--space-5) 0;
 	border-bottom: 1px solid var(--rule);
 	border-radius: var(--radius-md) var(--radius-md) 0 0;
-	background: transparent;
+	background: var(--lab-document-surface);
 }
 .lab-document-subject > small {
 	color: var(--ink-soft);
@@ -118,7 +125,7 @@ lab-requirement-related {
 	gap: var(--space-4);
 	padding: var(--space-4) var(--space-6);
 	border-bottom: 1px solid var(--rule);
-	background: var(--lab-surface-group);
+	background: var(--surface-content);
 }
 .lab-related-header small {
 	color: var(--ink-soft);
@@ -186,43 +193,6 @@ lab-requirement-related {
 	margin: 0 0 var(--space-5);
 	color: var(--ink-soft);
 }
-.lab-reading-experiment {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--space-3);
-	margin-bottom: var(--space-5);
-	font-size: var(--text-sm);
-	color: var(--ink-soft);
-}
-.lab-reading-experiment button {
-	min-height: 44px;
-}
-.lab-reading-options {
-	--lab-toggle-columns: 2;
-	width: min(100%, 360px);
-}
-.lab-rule-reader .lab-record-links {
-	border-top: 0;
-	padding-top: 0;
-	margin-top: 0;
-}
-.lab-rule-reader ex-trace .lab-related-record {
-	margin-top: var(--space-3);
-}
-.lab-rule-facts {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-	gap: var(--space-2) var(--space-3);
-	margin-block: var(--space-3) var(--space-4);
-}
-.lab-rule-facts dt {
-	color: var(--ink-soft);
-	font-size: var(--text-sm);
-}
-.lab-rule-facts dd {
-	margin: 0;
-}
 .lab-expanded-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -257,7 +227,7 @@ lab-requirement-related {
 	padding: var(--space-6);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	background: var(--surface-content);
+	background: var(--lab-document-surface);
 }
 .lab-expanded-grid > .lab-expanded-specification {
 	grid-column: 1 / -1;
@@ -332,13 +302,6 @@ lab-requirement-related {
 	}
 }
 @media (max-width: 760px) {
-	/* Rich document attachments use the card width; their own inner controls keep their insets. */
-	.lab-rule-sequence > .ex-trace-list > li > details > .ex-trace-body {
-		margin-inline: 0;
-	}
-	.lab-rule-sequence > .ex-trace-list > li::before {
-		display: none;
-	}
 	.lab-related-toolbar {
 		display: none;
 	}
@@ -349,7 +312,6 @@ lab-requirement-related {
 		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-4);
 	}
-
 	.lab-related-header,
 	.lab-related-content {
 		padding: var(--space-4);
@@ -556,7 +518,7 @@ lab-requirement-related {
 	padding: var(--space-4);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	background: var(--surface-content);
+	background: var(--lab-document-surface);
 }
 .lab-stage-summary-heading,
 .lab-stage-record-heading {
