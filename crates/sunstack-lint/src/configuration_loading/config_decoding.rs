@@ -79,6 +79,7 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
             LintInvalidCode::Syntax
         };
         let field_context = match path.segments() {
+            [ConfigPathSegment::Key(filters), ..] if filters == "filters" => format!(" ({path})"),
             [
                 ConfigPathSegment::Key(evidence),
                 ConfigPathSegment::Key(kinds),

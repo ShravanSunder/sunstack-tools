@@ -45,6 +45,7 @@ pub enum RulebookResult {
         anchor: Anchor,
     },
     NotApplicable {
+        reason: NotApplicableReason,
         path_taken: Vec<StepName>,
         answers_read: NamedAnswerMap,
     },
@@ -61,6 +62,17 @@ pub enum RulebookResult {
         step: Option<StepName>,
         path_taken: Vec<StepName>,
         answers_read: NamedAnswerMap,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum NotApplicableReason {
+    Route,
+    Filter {
+        filter: crate::FilterName,
+        answer: sunstack_decisions::ChoiceLabel,
+        probability: f64,
     },
 }
 
@@ -101,6 +113,10 @@ impl RulebookResult {
 
     pub fn basis(&self) -> Option<Basis> {
         match self {
+            Self::NotApplicable {
+                reason: NotApplicableReason::Filter { .. },
+                ..
+            } => Some(Basis::Judged),
             Self::Incomplete { .. } => None,
             Self::Pass { .. }
             | Self::Finding { .. }
@@ -326,6 +342,7 @@ pub fn walk_decision(
             }
             DecisionRoute::NotApplicable => {
                 return WalkOutcome::Settled(RulebookResult::NotApplicable {
+                    reason: NotApplicableReason::Route,
                     path_taken: path,
                     answers_read,
                 });

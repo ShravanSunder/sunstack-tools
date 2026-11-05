@@ -1,5 +1,38 @@
 # Rulebook lint: pieces, decisions and changed evidence
 
+## Filters: one answer per folder and gated rules
+
+The R1 Program Design correction at `906fc9e` requires unsure answers to retain their selected answer and probability as well as all probabilities. The driver enforces that correction: its unsure case must report `eligible` at 0.3, never substitute `blocked` at 0.7 or confidence 0.99. Prepared/live receipts name the adopted Program Design revision alongside the Verification Design pin below.
+
+Program Design `d250799` also governs context demand: plan path dependencies before selection, acquire context only after selected/contained/picked checked pieces establish a gated rule's demand. Join `rulebook_lint_gates/filter_context_demand.rs` for missing/present unused descriptions, real filesystem read records, demanded missing-context failure, and raw matches removed by selection or containment. Join `evidence_pieces/demanded_context.rs` for cumulative file/byte/match budgets, repeated context and reuse of a context already acquired as a target. The heading-only CLI control in `lint_commands/filter_runtime.rs` must stay clean with one acquisition and no filter state whether the unused description exists or not. Keep the description-only Git regression in `filter_context.rs`: it must reach selected-member selection and final picking. A reported zero request count alone does not prove that unused context was never acquired.
+
+This lasting journey follows the filters Specification R1–R9 and Verification Design OD at `dd92e2c`. Use a Lead-declared signed candidate and join its native proof below. The entry is `scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts --case filters`; `rulebook-filters.ts` owns its isolated fixture and assertions. The calling client is Node; real `sunstack lint`, config loading, extraction, filter dispatch, gating, reports and exits stay real. A loopback responder supplies only synthetic model answers. No hosted key or classification-accuracy claim is involved.
+
+Prepare without running a product:
+
+```sh
+node scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts \
+  --case filters --prepare --evidence <new-authorized-directory>
+```
+
+For observation, omit `--prepare` and add `--binary <absolute-candidate> --source-root <checkout> --commit <full-head> --sha256 <digest>`. Use a separately declared, unchanged candidate after E5; the entry checks source identity and binary bytes around every child. On macOS the binary needs the verified Developer ID debug signature described below; `scripts/cargo-debug-signing-runner.sh --sign-only <binary>` applies the repository identity. Candidate signing and a local journey do not prove release publication.
+
+The fixture has two folders with the same display name under different parents, three checked members in one and one member with three paragraph pieces in the other. Each folder's `overview.md` supplies exactly one description field through an inline frontmatter kind. Context-only sentinel text is absent from filter requests. Two gated rules share each folder answer: one mechanical and one asking.
+
+The driver observes these paths:
+
+- Judged inclusion/exclusion: exactly one filter question per full folder identity; only included members send rule questions. Included mechanical/asking rules pass; excluded pairs report judged `not_applicable` with the filter's reason. The included Choice selects `eligible` at exactly 0.7; the excluded folder selects `blocked` at 0.9.
+- Unsure: the excluded folder selects `eligible` with probability 0.3 while `blocked` has 0.7 and confidence is 0.99. It gives no gated results, one skip per rule/file despite three pieces, and exit 5.
+- Failed question: a controlled nonretryable HTTP refusal gives incomplete filter state, skips and exit 3. A folderless file gives `no_folder`, no filter request and exit 3.
+- Member-only path argument: its folder description reaches the filter while context-only files produce no rule results; the other folder is never asked.
+- Ungated compatibility: on the same candidate and fixture path, filters absent versus declared with no gates preserve ordered public results, findings, uncertainty, counts and request bodies. No filter question is sent.
+
+Each normal fixture first passes keyless `lint --check` with zero requests. A judged full run with known pass/exclusion rows establishes usable readiness; `--version` or fixture preparation alone does not. Preserve per-child command, cwd, PID, stdout, stderr, exit and source/binary identity, exact HTTP bodies and the harness teardown record. The entry owns its child and loopback server, waits for process/request completion, and closes them in `finally`. Keep evidence after owned teardown; failures retain their output and never write a pass receipt.
+
+Required native joins at the same candidate remain: zero real walks on excluded/skipped pairs (HTTP cannot observe mechanical execution); same-process answer freshness; change-only description dependencies before selected-kind selection and final picking; all R6 path-tagged refusals and process exit 2; R9 missing/unavailable/ambiguous input, actual projector cut metadata and encoded request cap; shared request allowance/cancellation/usage; activation before acquisition; human/SARIF output and emitted-payload schema checks. The binary journey does not substitute for these. Controlled responses leave live inference accuracy unverified.
+
+The colocated `rulebook-filters.test.ts` plants wrong request/report identities, counts and outcomes to check assertion sensitivity. Run it with `pnpm exec vitest run scripts/verify/sunstack-rule/rulebook/rulebook-filters.test.ts`; apply the verification apparatus TypeScript/OXC gates in `SKILL.md`. These checks exercise the driver, not product behavior.
+
 ## Rules-as-nudges: S1 and U10
 
 Use `--case nudge` for the accepted 31 Oct rules-as-nudges engine Specification R1-R10 and Verification Design U1-U10 (target-exclude clarification accepted at `a69fe47`, locator order clarified at `6328647`). This additive mode drives a declared signed release target. It leaves the default, selection and amendment modes intact.

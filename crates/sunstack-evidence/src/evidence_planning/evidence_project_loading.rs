@@ -10,6 +10,7 @@ use std::{
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("{}: {message}", path.display())]
 pub struct ProjectRefusal {
+    pub origin: Option<crate::ConfigPath>,
     pub path: PathBuf,
     pub message: String,
     pub line: usize,
@@ -18,6 +19,7 @@ pub struct ProjectRefusal {
 impl ProjectRefusal {
     fn at(path: &Path, message: impl ToString) -> Self {
         Self {
+            origin: None,
             path: path.into(),
             message: message.to_string(),
             line: 1,
@@ -32,6 +34,26 @@ impl ProjectRefusal {
         }
         refusal
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct InlineRule {
+    pub kind: crate::EvidenceKindName,
+    pub text: String,
+    pub origin: crate::ConfigPath,
+}
+
+#[derive(Deserialize)]
+struct InlineRuleWire {
+    #[serde(default, deserialize_with = "refuse_inline_id")]
+    #[serde(rename = "id")]
+    _id: (),
+    #[serde(flatten)]
+    rule: ast_grep_config::SerializableRuleConfig<SupportLang>,
+}
+
+fn refuse_inline_id<'de, D: serde::Deserializer<'de>>(_: D) -> Result<(), D::Error> {
+    Err(serde::de::Error::custom("inline_rule must not declare id"))
 }
 
 #[derive(Clone)]
@@ -207,7 +229,11 @@ struct ProjectSettings {
 }
 
 /// Load the consumer project and the embedded Markdown utils into one registration.
-pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, ProjectRefusal> {
+pub fn load_evidence_project(
+    config_path: &Path,
+    inline_rules: &[InlineRule],
+    rules_config_path: Option<&Path>,
+) -> Result<EvidenceProject, ProjectRefusal> {
     let read = |path: &Path| {
         std::fs::read_to_string(path).map_err(|error| ProjectRefusal::at(path, error))
     };
@@ -269,6 +295,31 @@ pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, Proj
     let mut rules = Vec::new();
     let mut rule_ids = BTreeSet::new();
     let mut rule_languages = BTreeMap::new();
+    let mut register = |wire: ast_grep_config::SerializableRuleConfig<SupportLang>, path: &Path| {
+        refuse_reserved_local_utils(&wire.core, &reserved_ids, path)?;
+        let rule = ast_grep_config::RuleConfig::try_from(wire, &globals)
+            .map_err(|error| ProjectRefusal::at(path, error))?;
+        if reserved_ids.contains(rule.id.as_str()) {
+            return Err(ProjectRefusal::at(
+                path,
+                format!("reserved standard util ID: {}", rule.id),
+            ));
+        }
+        let language = EvidenceLanguage::from_support(rule.language).ok_or_else(|| {
+            ProjectRefusal::at(path, "only Markdown and JSON evidence is supported")
+        })?;
+        let id = crate::EvidenceRuleId::new(rule.id.clone())
+            .map_err(|error| ProjectRefusal::at(path, error))?;
+        if !rule_ids.insert(id.clone()) {
+            return Err(ProjectRefusal::at(
+                path,
+                format!("duplicate evidence rule ID: {}", rule.id),
+            ));
+        }
+        rule_languages.insert(id, language);
+        rules.push(rule);
+        Ok(())
+    };
     for folder in &settings.rule_dirs {
         for path in yaml_files(&base.join(folder))? {
             let loaded = ast_grep_config::from_multiple::<
@@ -284,36 +335,26 @@ pub fn load_evidence_project(config_path: &Path) -> Result<EvidenceProject, Proj
                 )
             })?;
             for wire in loaded {
-                refuse_reserved_local_utils(&wire.core, &reserved_ids, &path)?;
-                let rule = ast_grep_config::RuleConfig::try_from(wire, &globals)
-                    .map_err(|error| ProjectRefusal::at(&path, error))?;
-                if reserved_ids.contains(rule.id.as_str()) {
-                    return Err(ProjectRefusal::at(
-                        &path,
-                        format!("reserved standard util ID: {}", rule.id),
-                    ));
-                }
-                if EvidenceLanguage::from_support(rule.language).is_none() {
-                    return Err(ProjectRefusal::at(
-                        &path,
-                        "only Markdown and JSON evidence is supported",
-                    ));
-                }
-                let id = crate::EvidenceRuleId::new(rule.id.clone())
-                    .map_err(|error| ProjectRefusal::at(&path, error))?;
-                if !rule_ids.insert(id.clone()) {
-                    return Err(ProjectRefusal::at(
-                        &path,
-                        format!("duplicate evidence rule ID: {}", rule.id),
-                    ));
-                }
-                if let Some(language) = EvidenceLanguage::from_support(rule.language) {
-                    rule_languages.insert(id, language);
-                }
-                rules.push(rule);
+                register(wire, &path)?;
             }
             inputs.push(path);
         }
+    }
+    for inline in inline_rules {
+        let path = rules_config_path.unwrap_or(config_path);
+        let mut compile = || {
+            let mut wire: InlineRuleWire = ast_grep_config::from_str(&inline.text)
+                .map_err(|error| ProjectRefusal::at(path, error))?;
+            wire.rule.id = inline.kind.as_str().to_owned();
+            register(wire.rule, path)
+        };
+        compile().map_err(|mut refusal| {
+            refusal.origin = Some(inline.origin.clone());
+            refusal
+        })?;
+    }
+    if !inline_rules.is_empty() {
+        inputs.push(rules_config_path.unwrap_or(config_path).to_owned());
     }
     let rules =
         RuleCollection::try_new(rules).map_err(|error| ProjectRefusal::at(config_path, error))?;

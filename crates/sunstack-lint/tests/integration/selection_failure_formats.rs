@@ -227,7 +227,8 @@ async fn sdk_invalid_request_reaches_the_existing_lint_formatter_boundary() {
         json!({"type":"choice","instructions":"Evaluate the candidate.","criteria":{}}),
     )
     .unwrap();
-    let project = load_evidence_project(&root.path().join("evidence/sgconfig.yml")).unwrap();
+    let project =
+        load_evidence_project(&root.path().join("evidence/sgconfig.yml"), &[], None).unwrap();
     let file = PathBuf::from("skills/practices-research/SKILL.md");
     let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
     let mut build = EvidenceBuild::start(

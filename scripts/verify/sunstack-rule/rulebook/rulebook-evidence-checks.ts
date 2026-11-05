@@ -77,9 +77,15 @@ export function requireRequestPiece(options: {
 	const fields = Object.fromEntries(
 		Object.entries(objectValue(view['fields'])).filter(([name]) => !unavailable.has(name)),
 	);
+	const cut = arrayValue(view['cut']);
 	equal(
 		options.state,
-		{ standard: options.standard, where: options.piece['where'], ...fields },
+		{
+			standard: options.standard,
+			where: options.piece['where'],
+			...fields,
+			...(cut.length > 0 ? { 'cut-fields': cut } : {}),
+		},
 		'Request state differs from exactly one piece model view',
 	);
 }

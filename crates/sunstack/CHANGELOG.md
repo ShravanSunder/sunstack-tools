@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.7.0
+
+Release date: 2026-11-05.
+
+### Added
+
+- Declare `filters` to group checked files by folder and ask one native Choice
+  question about a configured text field per folder per run. Context files use
+  the checked source and limits; changes to them select affected members,
+  including evidence that needs selection.
+- Rule entries accept `only_when` to run only for named filter answers. Excluded
+  rules report a judged `not_applicable` reason before any decision step runs.
+  Unsure, incomplete and folderless checks are listed as skips; unsure runs exit
+  5, while failed filter requests and folderless checks exit 3.
+- Evidence kinds accept either a named `rule` or an `inline_rule` YAML string.
+  Inline matchers use the kind name as their rule ID, retain native matching and
+  field behavior, and locate refusals at the owning configuration key.
+- JSON reports expose `filter_answers`, `filter_skips` and result reasons.
+  Answers retain their probabilities, requested and resolved model names and
+  input-cut provenance. Default output lists answers and skips; SARIF continues
+  to represent findings rather than skips.
+
+### Breaking
+
+- The report schema requires the filter answer and skip collections. Older
+  reports do not validate against the 0.7.0 schema.
+- Native evidence kind definitions now carry `KindMatcher`; project loading
+  takes inline rules and their configuration source. Native rule admission,
+  assembly and shared-dispatch execution receive their filter context.
+
 ## 0.6.0
 
 Release date: 2026-10-31.

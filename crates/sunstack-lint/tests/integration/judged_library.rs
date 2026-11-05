@@ -3,6 +3,8 @@ use serde_json::json;
 use sunstack_decisions::{CancellationToken, JudgmentAnswer};
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
+#[path = "judged_library/filters.rs"]
+mod filters;
 use sunstack_rules::test_support::controlled_http as controlled;
 #[tokio::test]
 async fn reachable_models_require_a_key_and_reports_resolve_real_answers_evidence_and_optional_cost()

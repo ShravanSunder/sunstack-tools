@@ -104,30 +104,34 @@ pub struct EvidenceSettings {
     pub kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
+#[serde(
+    try_from = "super::kind_matcher_decoding::EvidenceKindWire",
+    into = "super::kind_matcher_decoding::EvidenceKindWire"
+)]
+#[schemars(with = "super::kind_matcher_decoding::EvidenceKindWire")]
 pub struct EvidenceKindDefinition {
-    pub rule: EvidenceRuleId,
+    pub matcher: KindMatcher,
     pub fields: BTreeMap<FieldName, FieldSource>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_chars: Option<NonZeroU32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub select: Option<SelectionWire>,
-    #[serde(
-        default,
-        deserialize_with = "decode_containing_kinds",
-        skip_serializing_if = "Option::is_none"
-    )]
-    #[schemars(with = "ContainingKinds")]
     pub within: Option<ContainingKinds>,
 }
 
-fn decode_containing_kinds<'de, D: serde::Deserializer<'de>>(
-    deserializer: D,
-) -> Result<Option<ContainingKinds>, D::Error> {
-    ContainingKinds::deserialize(deserializer)
-        .map(Some)
-        .map_err(|error| serde::de::Error::custom(format!("within: {error}")))
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum KindMatcher {
+    Named(EvidenceRuleId),
+    Inline { text: String },
 }
+
+impl KindMatcher {
+    pub fn rule_id(&self, kind: &EvidenceKindName) -> EvidenceRuleId {
+        match self {
+            Self::Named(rule) => rule.clone(),
+            Self::Inline { .. } => EvidenceRuleId(kind.0.clone()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "u8", into = "u8")]
 #[schemars(extend("minimum" = 1, "maximum" = 5))]

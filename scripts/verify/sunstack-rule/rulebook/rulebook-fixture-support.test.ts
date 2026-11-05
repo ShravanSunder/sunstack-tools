@@ -148,12 +148,19 @@ test('request comparator rejects raw middle, extra piece and changed standard', 
 		standard: 'Literal standard.',
 		where: piece['where'] ?? null,
 		body: 'BEGIN[cut]END',
+		'cut-fields': ['body'],
 	};
 	requireRequestPiece({ state, piece, standard: 'Literal standard.', questions: {} });
+	const missingCutFields = { ...state };
+	delete missingCutFields['cut-fields'];
 	for (const changed of [
+		missingCutFields,
 		{ ...state, body: 'BEGIN_PRIVATE_MIDDLE_END' },
 		{ ...state, second_piece: { body: 'Another piece' } },
 		{ ...state, standard: 'Wrong standard.' },
+		{ ...state, 'cut-fields': [] },
+		{ ...state, 'cut-fields': ['wrong'] },
+		{ ...state, 'cut-fields': ['body', 'extra'] },
 	])
 		expect(() =>
 			requireRequestPiece({ state: changed, piece, standard: 'Literal standard.', questions: {} }),

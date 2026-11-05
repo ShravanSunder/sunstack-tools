@@ -5,6 +5,30 @@ use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
 use sunstack_rules::test_support::controlled_http as controlled;
 
+#[test]
+fn filter_schema_preserves_native_choice_shape_and_probability_bounds() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = fixture::write(root.path());
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify"},"criteria":{"a":"A","b":"B"}},"min_probability":0.83}});
+    let schema = serde_json::to_value(config_schema()).unwrap();
+    let validator = jsonschema::options().offline().build(&schema).unwrap();
+    assert!(validator.is_valid(&config));
+    for value in [json!(0), json!(-0.1), json!(1.01)] {
+        let mut invalid = config.clone();
+        invalid["filters"]["purpose"]["min_probability"] = value;
+        assert!(!validator.is_valid(&invalid));
+    }
+    for question in [
+        json!({"type":"noul","instructions":{}}),
+        json!({"type":"choice","instructions":{},"criteria":{"one":"Only one"}}),
+        json!({"type":"choice","task":"Wrong envelope","criteria":{"a":"A","b":"B"}}),
+    ] {
+        let mut invalid = config.clone();
+        invalid["filters"]["purpose"]["question"] = question;
+        assert!(!validator.is_valid(&invalid), "{invalid}");
+    }
+}
+
 #[tokio::test]
 async fn every_numeric_limit_accepts_its_exact_maximum_and_rejects_the_next_integer() {
     let root = tempfile::tempdir().unwrap();

@@ -125,6 +125,13 @@ pub struct ExclusionCounts {
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
 pub enum IncompleteReason {
+    Filter {
+        filter: sunstack_rules::FilterName,
+        reason: sunstack_rules::FilterIncomplete,
+    },
+    NoFilterFolder {
+        filter: sunstack_rules::FilterName,
+    },
     SelectionFailed,
     SelectionIncomplete,
     EvaluationFailed,
@@ -195,6 +202,8 @@ pub struct EvidenceListing {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintReport {
+    pub filter_answers: Vec<sunstack_rules::FilterAnswer>,
+    pub filter_skips: Vec<sunstack_rules::FilterSkip>,
     pub version: String,
     pub config: PathBuf,
     pub scope: ScopeReport,
@@ -218,6 +227,8 @@ pub struct LintReport {
 impl LintReport {
     pub(crate) fn empty(config: PathBuf, scope: ScopeChoice, limits: EffectiveLimits) -> Self {
         Self {
+            filter_answers: vec![],
+            filter_skips: vec![],
             version: env!("CARGO_PKG_VERSION").into(),
             config,
             scope: ScopeReport {
@@ -254,6 +265,8 @@ pub enum PieceOutcome {
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RulePieceResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<sunstack_rules::NotApplicableReason>,
     pub name: RuleId,
     pub marker: MarkerId,
     pub file: PathBuf,

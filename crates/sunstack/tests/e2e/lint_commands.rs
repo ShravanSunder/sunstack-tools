@@ -9,6 +9,10 @@ use sunstack_decisions::CancellationToken;
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_rules::test_support::controlled_http as controlled;
 use tokio::process::Command;
+#[path = "lint_commands/filter_admission.rs"]
+mod filter_admission;
+#[path = "lint_commands/filter_runtime.rs"]
+mod filter_runtime;
 #[path = "../support/mod.rs"]
 mod support;
 
@@ -109,6 +113,27 @@ async fn config_check_admits_integer_type_maxima_and_refuses_the_next_integers()
         std::fs::write(root.path().join("sunstack.lint.json"), raw).unwrap();
         invoke(root.path(), &["--check"], 2).await;
     }
+}
+
+#[tokio::test]
+async fn inline_rule_check_exits_two_with_the_owning_config_path() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = fixture::write(root.path());
+    config["evidence"]["kinds"]["a_valid"] =
+        json!({"inline_rule":"{language: Markdown, rule: {matches: frontmatter}}","fields":{}});
+    config["evidence"]["kinds"]["b_bad"] =
+        json!({"inline_rule":"{language: Markdown, rule: [","fields":{}});
+    fixture::config_file(root.path(), &config);
+
+    let output = invoke(root.path(), &["--check"], 2).await;
+
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(text.contains("evidence.kinds.b_bad.inline_rule"), "{text}");
+    assert!(text.contains("sunstack.lint.json"), "{text}");
 }
 
 #[tokio::test]
