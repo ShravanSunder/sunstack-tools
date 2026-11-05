@@ -492,6 +492,10 @@ test.each([1440, 390])(
 			'',
 			'requirements.html?need=U2&reading=rule-path',
 		);
+		// The toolbar can be ready before the app mounts its drawer.
+		await expect
+			.poll((): boolean => !!fixture.querySelector('ex-drawer.lab-related-drawer'))
+			.toBe(true);
 		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
 		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
 		const design = requiredElement(workspace, '#related-record-C1');
