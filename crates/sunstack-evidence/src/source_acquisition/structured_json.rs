@@ -53,3 +53,7 @@ impl StructuredJson {
         Some(current)
     }
 }
+
+#[cfg(test)]
+#[path = "structured_json_test.rs"]
+mod tests;

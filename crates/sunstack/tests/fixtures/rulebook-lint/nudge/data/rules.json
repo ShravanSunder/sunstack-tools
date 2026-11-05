@@ -1,0 +1,34 @@
+{
+  "K101": {
+    "questions": {
+      "valid_question": {
+        "type": "noul",
+        "instructions": {
+          "check": "body",
+          "task": "A valid question."
+        }
+      }
+    }
+  },
+  "K102": {
+    "questions": {
+      "missing_question": {
+        "type": "noul",
+        "instructions": {
+          "task": "This question names no field."
+        }
+      }
+    }
+  },
+  "K103": {
+    "questions": {
+      "other_question": {
+        "type": "noul",
+        "instructions": {
+          "check": "heading",
+          "task": "Another valid question."
+        }
+      }
+    }
+  }
+}

@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[features]
+test-support = []
+
 [lints]
 workspace = true
 
@@ -25,6 +28,32 @@ git2 = { version = "=0.21.0", default-features = false, features = ["vendored-li
 chrono = "0.4"
 
 [dev-dependencies]
+sunstack-lint = { path = ".", features = ["test-support"] }
+sunstack-rules = { workspace = true, features = ["test-support"] }
 tempfile = "3"
 jsonschema = { version = "=0.57.0", default-features = false }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time"] }
+
+[[test]]
+name = "judged_library"
+path = "tests/integration/judged_library.rs"
+
+[[test]]
+name = "lint_library"
+path = "tests/integration/lint_library.rs"
+
+[[test]]
+name = "rulebook_lint_gates"
+path = "tests/integration/rulebook_lint_gates.rs"
+
+[[test]]
+name = "selection_failure_formats"
+path = "tests/integration/selection_failure_formats.rs"
+
+[[test]]
+name = "config_diagnostic_paths"
+path = "tests/integration/config_diagnostic_paths.rs"
+
+[[test]]
+name = "schema_limits_usage"
+path = "tests/integration/schema_limits_usage.rs"

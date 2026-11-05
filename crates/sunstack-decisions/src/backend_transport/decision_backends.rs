@@ -278,4 +278,5 @@ pub fn encode_judgment_body(
 }
 
 #[cfg(test)]
-mod adapter_cancellation_tests;
+#[path = "decision_backends_test.rs"]
+mod tests;

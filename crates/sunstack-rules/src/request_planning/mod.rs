@@ -33,8 +33,3 @@ pub(crate) use preparation_reporting::*;
 
 mod change_selection;
 pub(crate) use change_selection::*;
-
-#[cfg(test)]
-mod comparison_gate_order_tests;
-#[cfg(test)]
-mod local_reporting_tests;

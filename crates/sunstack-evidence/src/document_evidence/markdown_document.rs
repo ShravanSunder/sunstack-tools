@@ -404,3 +404,7 @@ fn append_projection(output: &mut String, visible: &str, prefix: Option<&str>, s
     }
     output.push_str(visible);
 }
+
+#[cfg(test)]
+#[path = "markdown_document_test.rs"]
+mod tests;

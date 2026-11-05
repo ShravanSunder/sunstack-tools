@@ -307,3 +307,7 @@ fn seed_neighborhood(
         bytes_scanned: discovery.bytes_scanned,
     }
 }
+
+#[cfg(test)]
+#[path = "semantic_chunks_test.rs"]
+mod tests;

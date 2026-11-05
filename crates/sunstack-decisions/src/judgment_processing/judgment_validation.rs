@@ -268,3 +268,7 @@ pub(crate) fn decode_jev_response(
         .collect();
     validate_response(request, answers, receipt)
 }
+
+#[cfg(test)]
+#[path = "judgment_validation_test.rs"]
+mod tests;

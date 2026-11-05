@@ -99,3 +99,7 @@ pub fn init_config(directory: &Path) -> Result<ConfigLocation, LintInvalid> {
         })?;
     locate(path)
 }
+
+#[cfg(test)]
+#[path = "config_test.rs"]
+mod tests;

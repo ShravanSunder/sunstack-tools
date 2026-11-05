@@ -134,3 +134,7 @@ pub struct SelectionInput {
     pub shared: Vec<sunstack_evidence::SharedView>,
     pub files: std::collections::BTreeSet<std::path::PathBuf>,
 }
+
+#[cfg(test)]
+#[path = "selection_contracts_test.rs"]
+mod tests;

@@ -254,3 +254,7 @@ fn markdown_units(
     }
     Ok(units)
 }
+
+#[cfg(test)]
+#[path = "source_units_test.rs"]
+mod tests;

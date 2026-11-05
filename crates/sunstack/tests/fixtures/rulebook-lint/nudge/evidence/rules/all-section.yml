@@ -1,0 +1,10 @@
+{
+  "id": "all-section",
+  "language": "Markdown",
+  "files": [
+    "**/*.md"
+  ],
+  "rule": {
+    "kind": "section"
+  }
+}

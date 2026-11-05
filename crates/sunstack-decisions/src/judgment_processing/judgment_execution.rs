@@ -234,3 +234,7 @@ fn cancelled_before_dispatch(
     });
     cancelled(attempts)
 }
+
+#[cfg(test)]
+#[path = "judgment_execution_test.rs"]
+mod tests;

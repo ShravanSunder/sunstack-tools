@@ -109,3 +109,7 @@ fn schema_owned_field(field: &str) -> bool {
             | "max_local_time_ms"
     )
 }
+
+#[cfg(test)]
+#[path = "evidence_plan_decoding_test.rs"]
+mod tests;

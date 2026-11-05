@@ -1,0 +1,10 @@
+{
+  "id": "judged-document",
+  "language": "Markdown",
+  "files": [
+    "cases/judged.md"
+  ],
+  "rule": {
+    "kind": "document"
+  }
+}

@@ -144,3 +144,7 @@ pub enum EvidencePlanOutcome {
         measurements: EvidenceMeasurements,
     },
 }
+
+#[cfg(test)]
+#[path = "preparation_contracts_test.rs"]
+mod tests;

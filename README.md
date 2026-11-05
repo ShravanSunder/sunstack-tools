@@ -84,7 +84,7 @@ runtime failures after the release assets are available.
 brew install shravansunder/taps/sunstack
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/latest/download/sunstack-installer.sh | sh
 # Pin a version by downloading that release's installer:
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.5.0/sunstack-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ShravanSunder/sunstack-tools/releases/download/v0.6.0/sunstack-installer.sh | sh
 npm i -D @sunstack/cli
 node_modules/.bin/sunstack --version
 ```

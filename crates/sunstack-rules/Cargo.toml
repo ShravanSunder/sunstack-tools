@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[features]
+test-support = ["dep:git2", "dep:tempfile", "tokio/net", "tokio/io-util"]
+
 [lints]
 workspace = true
 
@@ -23,10 +26,185 @@ regex = "1"
 ast-grep-core = "=0.51.0"
 ast-grep-language = "=0.51.0"
 ast-grep-config = "=0.51.0"
+git2 = { version = "=0.21.0", default-features = false, features = ["vendored-libgit2"], optional = true }
+tempfile = { version = "3", optional = true }
 
 [dev-dependencies]
+sunstack-rules = { path = ".", features = ["test-support"] }
 git2 = { version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
 tempfile = "3"
 proptest = "1"
 jsonschema = { version = "=0.57.0", default-features = false }
 tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "test-util"] }
+
+[[test]]
+name = "binding_groups"
+path = "tests/integration/binding_groups.rs"
+
+[[test]]
+name = "budget_splitting"
+path = "tests/integration/budget_splitting.rs"
+
+[[test]]
+name = "carried_gate_execution"
+path = "tests/integration/carried_gate_execution.rs"
+
+[[test]]
+name = "change_reasons"
+path = "tests/integration/change_reasons.rs"
+
+[[test]]
+name = "change_selection"
+path = "tests/integration/change_selection.rs"
+
+[[test]]
+name = "completed_equivalence"
+path = "tests/integration/completed_equivalence.rs"
+
+[[test]]
+name = "condition_execution"
+path = "tests/integration/condition_execution.rs"
+
+[[test]]
+name = "condition_ordering"
+path = "tests/integration/condition_ordering.rs"
+
+[[test]]
+name = "condition_patterns"
+path = "tests/integration/condition_patterns.rs"
+
+[[test]]
+name = "connected_rules"
+path = "tests/integration/connected_rules.rs"
+
+[[test]]
+name = "consumer_reuse"
+path = "tests/integration/consumer_reuse.rs"
+
+[[test]]
+name = "contract_schemas"
+path = "tests/integration/contract_schemas.rs"
+
+[[test]]
+name = "deferred_markdown_change_scope"
+path = "tests/integration/deferred_markdown_change_scope.rs"
+
+[[test]]
+name = "deferred_markdown_expansion"
+path = "tests/integration/deferred_markdown_expansion.rs"
+
+[[test]]
+name = "empty_markdown_expansion_gates"
+path = "tests/integration/empty_markdown_expansion_gates.rs"
+
+[[test]]
+name = "evidence_refusal"
+path = "tests/integration/evidence_refusal.rs"
+
+[[test]]
+name = "evidence_selection_concurrency"
+path = "tests/integration/evidence_selection_concurrency.rs"
+
+[[test]]
+name = "failure_reduction"
+path = "tests/integration/failure_reduction.rs"
+
+[[test]]
+name = "first_rule_request"
+path = "tests/integration/first_rule_request.rs"
+
+[[test]]
+name = "gated_mechanical_rules"
+path = "tests/integration/gated_mechanical_rules.rs"
+
+[[test]]
+name = "generated_markdown_expansion"
+path = "tests/integration/generated_markdown_expansion.rs"
+
+[[test]]
+name = "hosted_rules"
+path = "tests/integration/hosted_rules.rs"
+
+[[test]]
+name = "mechanical_admission"
+path = "tests/integration/mechanical_admission.rs"
+
+[[test]]
+name = "mechanical_ast_grep"
+path = "tests/integration/mechanical_ast_grep.rs"
+
+[[test]]
+name = "mechanical_execution"
+path = "tests/integration/mechanical_execution.rs"
+
+[[test]]
+name = "mixed_mechanical_expansion"
+path = "tests/integration/mixed_mechanical_expansion.rs"
+
+[[test]]
+name = "native_contract_schemas"
+path = "tests/integration/native_contract_schemas.rs"
+
+[[test]]
+name = "native_rule_policy"
+path = "tests/integration/native_rule_policy.rs"
+
+[[test]]
+name = "router_execution"
+path = "tests/integration/router_execution.rs"
+
+[[test]]
+name = "router_identity"
+path = "tests/integration/router_identity.rs"
+
+[[test]]
+name = "router_planning"
+path = "tests/integration/router_planning.rs"
+
+[[test]]
+name = "rule_backend_factory"
+path = "tests/integration/rule_backend_factory.rs"
+
+[[test]]
+name = "rule_preparation"
+path = "tests/integration/rule_preparation.rs"
+
+[[test]]
+name = "rulebook_assembly"
+path = "tests/integration/rulebook_assembly.rs"
+
+[[test]]
+name = "rulebook_run"
+path = "tests/integration/rulebook_run.rs"
+
+[[test]]
+name = "scope_dependencies"
+path = "tests/integration/scope_dependencies.rs"
+
+[[test]]
+name = "staged_conditions"
+path = "tests/integration/staged_conditions.rs"
+
+[[test]]
+name = "staged_gate_execution"
+path = "tests/integration/staged_gate_execution.rs"
+
+[[test]]
+name = "transcript_request"
+path = "tests/integration/transcript_request.rs"
+
+[[test]]
+name = "admission_preflight"
+path = "tests/integration/admission_preflight.rs"
+
+[[test]]
+name = "evidence_selection"
+path = "tests/integration/evidence_selection.rs"
+
+[[test]]
+name = "milestone_two_contracts"
+path = "tests/integration/milestone_two_contracts.rs"
+
+[[test]]
+name = "strict_fielded_inputs"
+path = "tests/integration/strict_fielded_inputs.rs"

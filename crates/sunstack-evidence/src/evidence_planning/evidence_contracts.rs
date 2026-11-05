@@ -407,3 +407,7 @@ pub enum TargetResolution {
     Deleted,
     Unavailable,
 }
+
+#[cfg(test)]
+#[path = "evidence_contracts_test.rs"]
+mod tests;

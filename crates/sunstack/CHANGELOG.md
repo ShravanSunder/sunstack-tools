@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.6.0
+
+Release date: 2026-10-31.
+
+### Added
+
+- Findings carry related places, beginning with the rule's standard, and a
+  mechanical or judged basis. JSON, SARIF, default and GitHub output retain the
+  files and lines of the evidence the run read.
+- Finding routes can declare a `locate` Choice question. A selection meeting its
+  probability threshold resolves the line inside its field and piece; `span`
+  stays intact. `max_locate_lines` defaults to 80, and locators fit within the
+  existing request budgets while preserving every authored question.
+- Every result retains its walked `path` and the model `answers` it read,
+  including passes, gate exclusions and incomplete walks. Completed results
+  carry `basis`; cut model fields appear in row `cut` and state `cut-fields`.
+- Target fields accept rule-only `exclude` ranges. Enclosing and same-file
+  fields accept `text: "full"`, and path targets can collect `as_kind` fields.
+  Shortened target openings carry `opening_cut`.
+- Evidence projects admit JSON rules and utils alongside Markdown. JSON uses
+  the existing field sources except `yaml`; field references stay within their
+  language, while `as_kind` can select either grammar. A malformed JSON file is
+  incomplete without preventing valid files from being checked.
+
+### Breaking
+
+- The report schema requires `related`, `anchor` and `basis` on findings and
+  `path` on result rows. Readers that ignore new fields retain the meaning of
+  existing fields; older reports do not validate against the 0.6.0 schema.
+
 ## 0.5.0
 
 Release date: 2026-10-31.

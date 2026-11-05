@@ -5,6 +5,8 @@ mod request_planning;
 pub mod rule_definitions;
 pub mod rule_evaluation;
 pub mod rulebook_planning;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 
 pub use evidence_selection::selection_contracts::*;
 pub use evidence_selection::selection_run::*;

@@ -276,3 +276,7 @@ pub(crate) enum MutableRepositoryFile {
         blob: Option<GitObjectId>,
     },
 }
+
+#[cfg(test)]
+#[path = "change_contracts_test.rs"]
+mod tests;

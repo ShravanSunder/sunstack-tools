@@ -149,3 +149,7 @@ impl ModelRequestDispatch {
         completed
     }
 }
+
+#[cfg(test)]
+#[path = "model_request_dispatch_test.rs"]
+mod tests;

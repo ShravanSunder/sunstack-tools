@@ -1,5 +1,37 @@
 # Rulebook lint: pieces, decisions and changed evidence
 
+## Rules-as-nudges: S1 and U10
+
+Use `--case nudge` for the accepted 31 Oct rules-as-nudges engine Specification R1-R10 and Verification Design U1-U10 (target-exclude clarification accepted at `a69fe47`, locator order clarified at `6328647`). This additive mode drives a declared signed release target. It leaves the default, selection and amendment modes intact.
+
+```sh
+node scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts \
+  --case nudge --prepare --evidence <new-authorized-directory>
+```
+
+For observation, omit `--prepare` and add `--binary <signed-release-binary> --source-root <product-checkout> --commit <full-head> --sha256 <digest>`. The paired Implementer declares that target at the plan's batch boundary after the version slice, integration gate and apparatus merge. The driver checks the verified Developer ID debug signature and unchanged source/hash. Each prepared fixture must pass `lint --check` without requests before the real run. No real key is used.
+
+`rulebook-nudge.ts` drives fourteen isolated fixture variants through real lint. The line-17 input is a byte-preserving copy of the spike's frozen `ops-observability-stack` tree, with provenance in the fixture README. Expected questions, complete sent states, locations and result rows come from the Specification and fixture files. Its controls cover:
+
+- Resolved line 17, low-confidence/default line 7, over-line-limit omission, unoffered-label invalid_response through the real native validator, and an all-mechanical located route with zero requests. The finding's span stays the body span. JSON and SARIF exact request bytes agree; SARIF uses line 17 and preserves ordered related places.
+- Standard, loaded opening ranges and heading spans in related order; a rule without related fields lists only its standard. Long loaded openings expose opening_cut. Native joins cover fields-only, unresolved and empty-opening omissions.
+- A two-question request whose gate alone is read, judged pass/drop, judged gate then unavailable mechanical field, judged gate then authored-error mechanical finding, and mechanical-only findings. Exact rows require paths, only read answers, correct basis, and basis absence for incomplete.
+- Over-cap and under-cap bodies beside an authored cut field: exact request and evidence_seen state preserve the authored text, engine cut-fields and result cut. Mixed Markdown/JSON findings, the JSON question's source line, and a broken JSON file beside a valid one. Warning-only exit 0, warning-limit exit 1, judged authored-error exit 1 and route severity override.
+
+Retain raw requests, both output formats and every child receipt. The scripted server replaces only answers. S1 does not establish U6/U7, request-budget/enclosing locator cases, dispatch-refusal/pre-walk history, the schema or real model choice: inspect the declared target's S3 tests and the Lead's S4 evidence for those joins. A prepared fixture proves none of the product behavior.
+
+Related-file identities come from their owning sources: the standard uses the canonical rulebook path, while checked files and loads retain repository-relative paths. Related line ranges name the last line touched by a half-open span, so a heading ending at the next line's column 1 names only its heading line. Criteria comparison checks the complete line-label/text map; the native map's lexical wire order carries no numeric-order promise.
+
+U10 runs separately:
+
+```sh
+node scripts/verify/sunstack-rule/rulebook/rulebook-nudge-compatibility.ts --help
+```
+
+Supply the signed 0.5.0 release artifact and its SHA256 (`--baseline`, `--baseline-sha256`), plus the current signed release binary/source/full commit/hash and a fresh `--evidence`. A release artifact is identified by version, signature and bytes; the driver claims no local source commit for it. Both binaries lint the **same path**, the existing K001-K003 legacy fixture, with the same scripted answers. It compares every old report field and value recursively, including emitted object-key and array order. Additions are allowed; root version must be 0.6.0. It compares exact request multisets without sorting the report and rejects a planted changed step. Permanent comparator checks also reject removed/renamed/reordered fields, integer-key order changes, changed outcomes/locations/counts/types and duplicate keys. Schema validation and the engine diff's generic vocabulary remain separate S3/source joins. No version normalization or legacy-field omission is allowed.
+
+The nudge --check controls are in [rulebook-check-refusals.md](rulebook-check-refusals.md#rules-as-nudges-s2).
+
 For the additive 30 Oct selected/contained-kind cases, load [evidence-selection.md](evidence-selection.md) and use this entry's `--case selection` mode. The default journey below keeps its existing expectations; a prepared selection fixture is not a product pass.
 
 This journey drives the 29 Oct rulebook pipeline through the actual `sunstack lint` entry. Expected outcomes come from `docs/specs/2026-10-29-skill-rules-evidence-and-decisions/{specification,verification-design}.md`, especially R10–R15, R20–R28 and U2/U5/U8/U10/U12. The fixture is the Implementer's pinned S0 tree under `crates/sunstack/tests/fixtures/rulebook-lint/`; its `expected/` values come from the source copies and ast-grep 0.51.0, independently of the builder.

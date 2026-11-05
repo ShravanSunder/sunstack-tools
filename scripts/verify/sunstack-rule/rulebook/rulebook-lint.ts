@@ -38,6 +38,7 @@ import {
 	writeJson,
 	type JsonObject,
 } from './rulebook-fixture-support.ts';
+import { runNudgeJourney } from './rulebook-nudge.ts';
 import { declaredTarget, responseBody, RulebookProcess } from './rulebook-process.ts';
 
 export function scriptedReply(body: JsonObject, total = 0.58, confidence = 0.86): JsonObject {
@@ -489,6 +490,10 @@ export async function main(): Promise<void> {
 		'Rulebook lint: independently checked pieces, worked decisions, Git scope and peer skips.',
 	);
 	if (!options) return;
+	if (options.case.includes('nudge')) {
+		await runNudgeJourney(options);
+		return;
+	}
 	if (options.case.includes('amendment')) {
 		await runAmendmentJourney(options, false);
 		return;

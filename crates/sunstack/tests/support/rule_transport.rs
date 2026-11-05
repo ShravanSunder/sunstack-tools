@@ -1,11 +1,10 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-#[path = "../../../sunstack-rules/tests/support/controlled_http.rs"]
-pub mod controlled;
 use serde_json::{Value, json};
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
 };
+pub use sunstack_rules::test_support::controlled_http as controlled;
 use tokio::{sync::oneshot, task::JoinHandle};
 
 #[derive(Clone, Copy)]

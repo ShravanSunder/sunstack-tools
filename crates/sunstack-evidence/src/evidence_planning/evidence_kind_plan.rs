@@ -26,8 +26,8 @@ impl EvidenceKindPlan {
             for source in definition.fields.values() {
                 match source {
                     FieldSource::Inside { of }
-                    | FieldSource::Enclosing { of }
-                    | FieldSource::SameFile { of }
+                    | FieldSource::Enclosing { of, .. }
+                    | FieldSource::SameFile { of, .. }
                     | FieldSource::Remainder { exclude: Some(of) } => {
                         if let MatchSource::Kind { kind } = of {
                             dependencies.insert(kind.clone());
@@ -162,5 +162,7 @@ fn reaches_selected(
                 .any(|parent| reaches_selected(parent, kinds, dependencies, visited))
         })
 }
+
 #[cfg(test)]
+#[path = "evidence_kind_plan_test.rs"]
 mod tests;

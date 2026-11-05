@@ -92,3 +92,7 @@ impl AdmittedPayload {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "payload_inputs_test.rs"]
+mod tests;

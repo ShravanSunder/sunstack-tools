@@ -423,3 +423,7 @@ where
     }
     deserializer.deserialize_map(UniqueMapVisitor(std::marker::PhantomData))
 }
+
+#[cfg(test)]
+#[path = "decision_contracts_test.rs"]
+mod tests;

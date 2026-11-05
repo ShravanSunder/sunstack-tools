@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Rules as nudges: the engine</title>
+  <link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+  <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+  <ex-nav for="content"></ex-nav>
+  <ex-document id="content">
+    <h1>Rules as nudges: the engine</h1>
+
+    <p>The engine half of the accepted "rules as nudges" design. <code>sunstack lint</code> 0.6.0 tells the agent running a rule what it saw, on which line, how it was decided, and where else to read; and it checks JSON files, so the rule files themselves get rules. Every change is additive: a field a report carries today keeps its name and meaning, <code>warn</code> stays the nudge, and the engine still knows nothing about skills.</p>
+
+    <h2 id="before-after">One nudge, before and after</h2>
+    <p>Line 17 of <code>ops-observability-stack/SKILL.md</code>, the placement rule's nudge on the signed 0.5.0 engine and in the design.</p>
+    <ex-mermaid id="one-nudge" label="One nudge, before and after" data-width="canvas"><script type="text/plain">
+flowchart LR
+  subgraph after["0.6.0: the same section"]
+    direction TB
+    a1["Line 17, anchor resolved<br/>'routes into one product's own workflow'"] --> a2["Basis: judged<br/>routes_product, yes 0.87"]
+    a2 --> a3["Read: the standard<br/>calls-and-placement.md line 31"]
+    a3 --> a4["Read: the loaded file<br/>agentstudio-loop.md lines 1 to 40"]
+  end
+  subgraph before["0.5.0 today"]
+    direction TB
+    b1["Line 7<br/>the section's first line"] --> b2["Message, warn, and the<br/>finding's answers and path"]
+    b2 --> b3["No basis, no answers on passes or drops,<br/>nowhere else to read"]
+  end
+  class b1,b2,b3 slot5
+  class a1,a2,a3,a4 slot3
+</script></ex-mermaid>
+    <p>Today's finding already carries its answers and path. What it lacks is the line inside the section, an explicit basis, the answers behind passes and drops, and the places to read: the standard that makes this a concern and the file the section loads. A place the run never read never appears as a link.</p>
+
+    <h2 id="new-fields">What the report gains</h2>
+    <table>
+      <thead><tr><th>Field</th><th>On</th><th>Tells the agent</th><th>Need</th></tr></thead>
+      <tbody>
+        <tr><td><code>line</code>, <code>anchor</code></td><td>finding</td><td>the line the nudge is about; <code>resolved</code> when Jev confidently picked a line inside the section, <code>default</code> when it kept today's line</td><td>U2</td></tr>
+        <tr><td><code>related</code></td><td>finding</td><td>the standard's own line first, then the places the run read with a line range: loaded files' openings, the heading; SARIF carries them as related locations</td><td>U1</td></tr>
+        <tr><td><code>basis</code></td><td>finding, every completed result row</td><td><code>mechanical</code>, or <code>judged</code> when any step on the path read a model's answer; absent on incomplete rows</td><td>U4</td></tr>
+        <tr><td><code>answers</code>, <code>path</code></td><td>result rows</td><td>the answers the walk actually read and the steps it took, passes, gate drops and incomplete rows included</td><td>U3</td></tr>
+        <tr><td><code>cut</code>, <code>"cut-fields"</code>, <code>opening_cut</code></td><td>result rows, sent state, targets</td><td>which fields the model saw shortened, so a cut shows as a gap and not as "fine"; the sent state's key can't clash with an authored field</td><td>U5</td></tr>
+      </tbody>
+    </table>
+    <p>Three changes sit behind the report rather than in it: a section's loads are the loads in its own text, not its child sections' (U6); a rule can ask for the full enclosing section or a loaded file's fields (U7, sequenced last because no accepted rule needs it yet); and lint reads JSON evidence with every existing field source except <code>yaml</code>, which <code>--check</code> refuses on a JSON kind (U8). Severity, status and exit codes don't change, and a finding's existing <code>span</code> keeps its meaning (U9, U10).</p>
+
+    <h2 id="where">Where each change lands</h2>
+    <ex-mermaid id="where-changes-land" label="Where each change lands" data-width="canvas"><script type="text/plain">
+flowchart TD
+  project["evidence: Evidence project<br/>JSON grammar, U8"] --> build["evidence: Piece building<br/>own loads U6, full text U7, cut U5"]
+  build --> run["rules: Rulebook run<br/>adds each locator as a Choice, U2"]
+  admission["rules: Rule admission<br/>related fields, locators"] --> run
+  checkcmd["lint: --check<br/>refuses yaml on JSON, U8"] --> admission
+  run --> decisions["decisions: Choice, Noul, Score<br/>unchanged"]
+  run --> walk["rules: Decision walk<br/>answers read U3, basis U4, anchor U2"]
+  walk --> projection["lint: Report projection<br/>related U1, rows U3 to U5"]
+  projection --> formats["lint: JSON and SARIF<br/>related locations, U1"]
+  class project,build slot1
+  class admission,run,walk slot2
+  class checkcmd,projection,formats slot3
+  class decisions slot6
+</script></ex-mermaid>
+    <p>Blue is <code>sunstack-evidence</code>, amber is <code>sunstack-rules</code>, teal is <code>sunstack-lint</code>. Each change is an addition to the part that already owns it. The decision walk owns what a result is and how it was reached; piece building owns what a piece holds; the report projection owns what readers see. A locator is written on a finding route and sent as an ordinary Choice question built for each piece, so the decision crate doesn't change.</p>
+
+    <h2 id="line-17-path">Line 17's path through the engine</h2>
+    <ex-mermaid id="line-17-path-diagram" label="Line 17's path through the engine" data-width="canvas"><script type="text/plain">
+sequenceDiagram
+  participant Lint as lint run
+  participant Build as piece building
+  participant Run as rulebook run
+  participant Jev as decision model
+  participant Walk as decision walk
+  participant Proj as report projection
+  Lint->>Build: the section, with the loads in its own text
+  Build-->>Run: piece, its opening span and any cut
+  Run->>Jev: one request: the rule's questions and the locator, a choice of the body's lines in 6 to 58
+  Jev-->>Run: answers, locator: line 17, confident
+  Run->>Walk: walk again with the answers
+  Walk-->>Proj: finding on line 17, resolved; path, answers read, judged
+  Proj-->>Lint: finding with related places; result row with basis, path, answers, cut
+</script></ex-mermaid>
+    <p>Still one request per piece: the locator rides along with the rule's own questions, and only on requests the walk already needs. A low-confidence pick, a field longer than the locate limit, or an all-mechanical path keeps today's line and says <code>default</code>. A reply that picks a line it wasn't offered is refused like any malformed answer, so that piece shows as incomplete.</p>
+
+    <h2 id="sample">The sample report</h2>
+    <p>The contract the skill text will cite. Values are illustrative; field names and shapes are fixed by the Specification.</p>
+    <details>
+      <summary>Sample report JSON: the located finding, its row, an incomplete row and the sent state</summary>
+      <pre><code>{
+  "version": "0.6.0",
+  "findings": [
+    {
+      "rule": "placement.product-workflow", "marker": "K003",
+      "file": "plugins/sunstack-dev/skills/ops-observability-stack/SKILL.md",
+      "line": 17, "anchor": "resolved", "field": "body",
+      "severity": "warn", "basis": "judged",
+      "message": "This section routes into one product's own workflow; read the loaded file and decide where it belongs.",
+      "related": [
+        { "label": "standard", "file": "plugins/skill-authoring/skills/domain-skill-crafting/references/calls-and-placement.md", "first_line": 31, "last_line": 31 },
+        { "label": "targets", "file": "plugins/sunstack-dev/skills/ops-observability-stack/references/agentstudio-loop.md", "first_line": 1, "last_line": 40 }
+      ]
+    }
+  ],
+  "results": [
+    { "marker": "K003", "first_line": 14, "last_line": 19, "outcome": "finding",
+      "basis": "judged", "path": ["routes_product", "example_or_own_infrastructure"],
+      "answers": {
+        "routes_product": { "type": "noul", "yes_probability": 0.87 },
+        "example_or_own_infrastructure": { "type": "noul", "yes_probability": 0.10 },
+        "product_line": { "type": "choice", "selected_label": "L17", "confidence": 0.78,
+                          "probabilities": { "L15": 0.05, "L16": 0.08, "L17": 0.78, "L18": 0.05, "L19": 0.04 } } } },
+    { "marker": "K004", "first_line": 3, "last_line": 3, "outcome": "pass",
+      "basis": "mechanical", "path": ["length"] },
+    { "marker": "K005", "first_line": 20, "last_line": 31, "outcome": "incomplete",
+      "path": ["is_procedure", "has_example"], "answers": { "is_procedure": { "type": "noul", "yes_probability": 0.91 } } }
+  ],
+  "evidence_seen": {
+    "3": { "body": "Prefer the project's own clean task ...", "cut": "an authored field named cut keeps its key",
+           "targets": [ { "path": ".../cleanup-loop.md", "exists": true, "opening": "# Cleanup loop ...", "opening_cut": true } ],
+           "cut-fields": ["body"] }
+  }
+}</code></pre>
+      <p>An excerpt: rows here leave out unchanged fields such as <code>name</code>, <code>file</code> and <code>step</code>, the finding leaves out its <code>judgment</code>, which keeps today's shape, and the sent state leaves out <code>standard</code> and <code>where</code>. The Specification's copy below shows every new field and shape with complete objects; its located section is shortened to lines 14 to 19 so the locator's answer can list every offered line.</p>
+    </details>
+
+    <h2 id="proof">How each need will be proven</h2>
+    <p>A plan; nothing has run yet. Two existing journeys are extended, the plan writes focused tests, and one keyed check runs once.</p>
+    <table>
+      <thead><tr><th>Observation</th><th>What it runs</th><th>Decides</th></tr></thead>
+      <tbody>
+        <tr><td>Rulebook-lint journey, nudge case</td><td>the real <code>sunstack lint</code> binary over a nudge fixture, with scripted model answers; reads the JSON and SARIF reports</td><td>U1, U3, U4, U5, U8, U9, U10</td></tr>
+        <tr><td>Check-refusal journey, extended</td><td><code>--check</code> on an unknown related field, a locator without its field or with a clashing name, <code>yaml</code> on a JSON kind, a JSON field naming a Markdown rule; and a JSON kind using every admitted source</td><td>U1, U2, U8</td></tr>
+        <tr><td>Focused engine tests</td><td>the walk with fixed answers, the request's locators, piece building in both target scans, JSON parsing, the report schema; the existing binary test gains judged pass and drop cases and the new fields</td><td>U2 to U8, U10</td></tr>
+        <tr><td>One keyed check</td><td>the release build with the real Jev on the frozen line-17 section</td><td>U2: does Jev pick line 17</td></tr>
+      </tbody>
+    </table>
+    <p>U10's known-good reference is the signed 0.5.0 binary's report on the same fixture and answers: every field it carries must read the same in 0.6.0, except <code>version</code>, which must read <code>0.6.0</code>.</p>
+
+    <ex-callout title="Still open" tone="question" icon="bell">
+      <p>The first independent review found one blocker and ten other gaps; the four documents are corrected and its recheck is next. After it, Gate 1 accepts both designs at named revisions. Whether Jev picks the right line across many skills is for the placement rule's labelled cases in the skills pull request, not this engine change.</p>
+    </ex-callout>
+
+    <h2 id="full-design">The full design</h2>
+    <p>The four documents, for the detail behind each diagram.</p>
+    <details>
+      <summary>Requirements: who reads the report, U1 to U10, the goal boundary</summary>
+      <ex-markdown id="requirements" label="Requirements" src="./requirements.md"></ex-markdown>
+    </details>
+    <details>
+      <summary>Specification: entities, R1 to R10 with their proof, the sample report</summary>
+      <ex-markdown id="specification" label="Specification" src="./specification.md"></ex-markdown>
+    </details>
+    <details>
+      <summary>Program Design: components, the native contract, line 17's path, failure and compatibility</summary>
+      <ex-markdown id="program-design" label="Program Design" src="./program-design.md"></ex-markdown>
+    </details>
+    <details>
+      <summary>Verification Design: how each need is proven, and what stays unverified</summary>
+      <ex-markdown id="verification-design" label="Verification Design" src="./verification-design.md"></ex-markdown>
+    </details>
+
+    <ex-presentation id="tour" title="The engine in three pictures"
+      description="One nudge before and after, where each change lands, line 17's path.">
+      <ex-step to="one-nudge">Today's nudge points at the section start; it has the finding's answers but no basis, no pass or drop history and nowhere else to read. 0.6.0 adds the line, the basis and the places to read.</ex-step>
+      <ex-step to="where-changes-land">Each change is an addition to the part that already owns it; the decision crate doesn't change.</ex-step>
+      <ex-step to="line-17-path-diagram">One request per piece; the locator rides along, a low-confidence pick keeps today's line, and a malformed reply is refused as today.</ex-step>
+    </ex-presentation>
+  </ex-document>
+</body>
+</html>

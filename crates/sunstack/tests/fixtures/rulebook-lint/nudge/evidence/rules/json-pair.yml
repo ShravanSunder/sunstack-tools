@@ -1,0 +1,10 @@
+{
+  "id": "json-pair",
+  "language": "Json",
+  "files": [
+    "data/*.json"
+  ],
+  "rule": {
+    "kind": "pair"
+  }
+}

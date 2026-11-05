@@ -1,0 +1,11 @@
+{
+  "id": "cut-document",
+  "language": "Markdown",
+  "files": [
+    "cases/long.md",
+    "cases/short.md"
+  ],
+  "rule": {
+    "kind": "document"
+  }
+}

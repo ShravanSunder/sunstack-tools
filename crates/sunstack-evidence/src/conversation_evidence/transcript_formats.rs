@@ -122,3 +122,7 @@ pub fn validate_adapter_output(output: &AdapterOutput, committed_bytes: u64) -> 
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "transcript_formats_test.rs"]
+mod tests;

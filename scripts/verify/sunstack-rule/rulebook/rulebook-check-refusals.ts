@@ -22,6 +22,7 @@ import {
 	writeJson,
 	type JsonObject,
 } from './rulebook-fixture-support.ts';
+import { runNudgeRefusals } from './rulebook-nudge-refusals.ts';
 import { declaredTarget, RulebookProcess } from './rulebook-process.ts';
 import { prepareCases, prepareFifo } from './rulebook-refusal-fixtures.ts';
 
@@ -44,6 +45,10 @@ export async function main(): Promise<void> {
 		'Rulebook --check: R24 refusals plus bounded no-writer FIFO, no key.',
 	);
 	if (!options) return;
+	if (options.case.includes('nudge')) {
+		await runNudgeRefusals(options);
+		return;
+	}
 	if (options.case.includes('amendment')) {
 		await runAmendmentJourney(options, true);
 		return;

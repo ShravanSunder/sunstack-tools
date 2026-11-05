@@ -3,6 +3,8 @@
 pub mod backend_transport;
 pub mod decision_protocol;
 pub mod judgment_processing;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 
 pub use backend_transport::decision_backends::*;
 pub use decision_protocol::decision_contracts::*;
