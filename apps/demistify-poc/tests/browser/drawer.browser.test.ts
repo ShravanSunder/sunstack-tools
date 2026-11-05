@@ -30,11 +30,75 @@ test('Escape closes a nested stack picker before its bottom workspace', async ()
 	expect(picker.hasAttribute('open')).toBe(false);
 	expect(workspace.matches(':popover-open')).toBe(true);
 	expect(fixture.activeElement).toBe(summary);
-	// Leave the picker, then an unhandled Escape belongs to the workspace.
-	await userEvent.keyboard('{Tab}{Escape}');
+	// Once the picker is closed, Escape on its summary belongs to the workspace.
+	await userEvent.keyboard('{Escape}');
 	expect(workspace.matches(':popover-open')).toBe(false);
 	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Open call stack');
 });
+
+test.each([1024, 1440, 1600])(
+	'the open workspace keeps desktop reader controls reachable at %ipx',
+	async (width): Promise<void> => {
+		// Arrange: the real desktop page normally floats its reader controls at the bottom.
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'understanding',
+			'',
+			'requirements.html?need=U2',
+		);
+		await frame.getByRole('button', { name: 'View together', exact: true }).click();
+		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
+		await expect.poll((): number => workspace.getBoundingClientRect().bottom).toBeCloseTo(1000, 0);
+
+		// Assert: pointer hit testing, not a scripted click, establishes that each control is exposed.
+		for (const selector of ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger']) {
+			const control = requiredElement(fixture, selector);
+			const controlBounds = control.getBoundingClientRect();
+			const target = fixture.elementFromPoint(
+				controlBounds.left + controlBounds.width / 2,
+				controlBounds.top + controlBounds.height / 2,
+			);
+			expect(target === control || (target !== null && control.contains(target))).toBe(true);
+		}
+		const bounds = workspace.getBoundingClientRect();
+		expect(bounds.top).toBeCloseTo(
+			requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
+			0,
+		);
+		expect(bounds.left).toBe(0);
+		expect(bounds.right).toBe(width);
+
+		// Act: exercise the same live controls with real pointer clicks.
+		fixture.documentElement.dataset['theme'] = 'dark';
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-theme-toggle')).click();
+		expect(fixture.documentElement.dataset['theme']).toBe('light');
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-comments-trigger')).click();
+		await expect
+			.element(frame.getByRole('button', { name: 'Close comments', exact: true }))
+			.toBeVisible();
+		expect(workspace.matches(':popover-open')).toBe(true);
+		for (const selector of ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger']) {
+			const control = requiredElement(fixture, selector);
+			const controlBounds = control.getBoundingClientRect();
+			const target = fixture.elementFromPoint(
+				controlBounds.left + controlBounds.width / 2,
+				controlBounds.top + controlBounds.height / 2,
+			);
+			expect(target === control || (target !== null && control.contains(target))).toBe(true);
+		}
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-search-trigger')).click();
+		expect(fixture.querySelector('dialog:modal')).not.toBeNull();
+		await userEvent.keyboard('{Escape}');
+		await expect.poll(() => fixture.querySelector('dialog:modal')).toBeNull();
+		expect(workspace.matches(':popover-open')).toBe(true);
+		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
+		expect(requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect().bottom).toBe(
+			1000 - 12,
+		);
+	},
+);
 
 test.each([
 	['execution.html', 'light'],
@@ -50,6 +114,8 @@ test.each([
 		fixture.documentElement.dataset['theme'] = theme;
 		if (file.startsWith('requirements'))
 			await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
+		// The shared document toolbar can precede the app controller's module upgrade.
+		await expect.poll(() => fixture.querySelector('button[data-frame="0"]')).not.toBeNull();
 		await fixtureLocator(frame, requiredElement(fixture, 'button[data-frame="0"]')).click();
 		const sheet = requiredElement(fixture, 'ex-drawer.lab-call-detail-sheet');
 		await expect.poll((): boolean => sheet.matches(':popover-open')).toBe(true);
@@ -114,3 +180,51 @@ test.each(['large', 'content'])(
 		expect(fixture.body.dataset['closeCount']).toBe('2');
 	},
 );
+
+test('a workspace keeps a live walkthrough and newly reported authoring issues reachable', async (): Promise<void> => {
+	// Arrange: use existing library controls, including ones created after the workspace opens.
+	const { document: fixture, frame } = await openFixture('navigation', '', 'index.html?ex-check');
+	const workspace = fixture.createElement('ex-drawer');
+	workspace.setAttribute('label', 'Overlay coexistence');
+	workspace.setAttribute('open', '');
+	workspace.innerHTML =
+		'<header class="ex-inspect-header"><strong>Workspace</strong><button type="button">Close workspace</button></header><div class="ex-inspect-body"><p>Keep reader controls available.</p></div>';
+	requiredElement(fixture, 'ex-document').append(workspace);
+	await expect.poll(() => workspace.matches(':popover-open')).toBe(true);
+	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
+	await frame.getByRole('option', { name: /Implementation plan/ }).click();
+	const invalidBadge = fixture.createElement('ex-badge');
+	invalidBadge.setAttribute('tone', 'unsupported');
+	invalidBadge.textContent = 'Authoring diagnostic probe';
+	requiredElement(fixture, 'ex-document').append(invalidBadge);
+	await expect.poll(() => fixture.querySelector('.ex-issues button')).not.toBeNull();
+
+	// Assert: neither the active player nor the diagnostic panel sits behind the top layer.
+	const verifyOverlays = (): void => {
+		for (const selector of ['.ex-route-player button', '.ex-issues button']) {
+			const control = requiredElement(fixture, selector);
+			const bounds = control.getBoundingClientRect();
+			const target = fixture.elementFromPoint(
+				bounds.left + bounds.width / 2,
+				bounds.top + bounds.height / 2,
+			);
+			expect.soft(target === control || (target !== null && control.contains(target))).toBe(true);
+		}
+	};
+	verifyOverlays();
+	const sheet = fixture.createElement('ex-drawer');
+	sheet.setAttribute('size', 'content');
+	sheet.setAttribute('open', '');
+	sheet.innerHTML =
+		'<header class="ex-inspect-header"><strong>Nested details</strong></header><div class="ex-inspect-body"><p>Reader controls remain above this sheet too.</p></div>';
+	workspace.append(sheet);
+	await expect.poll(() => sheet.matches(':popover-open')).toBe(true);
+	verifyOverlays();
+	sheet.removeAttribute('open');
+	await frame.getByRole('button', { name: 'Close walkthrough', exact: true }).click();
+	expect(workspace.matches(':popover-open')).toBe(true);
+	workspace.removeAttribute('open');
+	expect(requiredElement(fixture, '.ex-route-player').parentElement).toBe(fixture.body);
+	expect(requiredElement(fixture, '.ex-issues').parentElement).toBe(fixture.body);
+	expect(fixture.querySelector('.ex-drawer-reader-overlays:popover-open')).toBeNull();
+});

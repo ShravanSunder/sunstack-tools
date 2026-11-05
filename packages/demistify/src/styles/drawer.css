@@ -123,3 +123,20 @@ ex-drawer.ex-drawer::backdrop {
 	background: transparent;
 	pointer-events: none;
 }
+
+/* Original floating overlays retain their viewport geometry and relative z-order. */
+.ex-drawer-reader-overlays[popover] {
+	position: fixed;
+	inset: 0;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	overflow: visible;
+	background: transparent;
+	pointer-events: none;
+}
+.ex-drawer-reader-overlays > :is(.ex-route-player, .ex-issues) {
+	pointer-events: auto;
+}

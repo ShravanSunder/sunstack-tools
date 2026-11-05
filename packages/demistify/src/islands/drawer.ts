@@ -15,6 +15,39 @@ const defaultWidth = 460;
 let drawer: HTMLElement | undefined;
 let current: DrawerSession | undefined;
 const bottomDrawers: DrawerIsland[] = [];
+let readerOverlayHost: HTMLElement | undefined;
+let readerOverlayObserver: MutationObserver | undefined;
+const readerOverlayOrigins = new Map<HTMLElement, Comment>();
+
+/** Keep the existing floating player and diagnostics above a top-layer workspace, without copies. */
+function synchronizeReaderOverlays(raise = false): void {
+	if (bottomDrawers.length === 0) {
+		readerOverlayObserver?.disconnect();
+		for (const [overlay, origin] of readerOverlayOrigins) origin.replaceWith(overlay);
+		readerOverlayOrigins.clear();
+		if (readerOverlayHost?.matches(':popover-open')) readerOverlayHost.hidePopover();
+		return;
+	}
+	if (!readerOverlayHost) {
+		readerOverlayHost = document.createElement('div');
+		readerOverlayHost.className = 'ex-drawer-reader-overlays';
+		readerOverlayHost.popover = 'manual';
+		document.body.append(readerOverlayHost);
+	}
+	for (const overlay of document.body.querySelectorAll<HTMLElement>(
+		':scope > .ex-route-player, :scope > .ex-issues',
+	)) {
+		const origin = document.createComment('reader overlay origin');
+		overlay.before(origin);
+		readerOverlayOrigins.set(overlay, origin);
+		readerOverlayHost.append(overlay);
+	}
+	if (raise && readerOverlayHost.matches(':popover-open')) readerOverlayHost.hidePopover();
+	if (!readerOverlayHost.matches(':popover-open')) readerOverlayHost.showPopover();
+	readerOverlayObserver ??= new MutationObserver((): void => synchronizeReaderOverlays());
+	// Diagnostics may be reported after opening. Only watch direct body additions while active.
+	readerOverlayObserver.observe(document.body, { childList: true });
+}
 
 function hidePresentation(panel: HTMLElement): void {
 	if (panel instanceof HTMLDialogElement) {
@@ -242,6 +275,7 @@ export class DrawerIsland extends HTMLElement {
 		this.setAttribute('open', '');
 		this.reflectingOpen = false;
 		this.showPopover();
+		synchronizeReaderOverlays(true);
 		this.querySelector<HTMLElement>('[autofocus],button')?.focus({ preventScroll: true });
 		window.dispatchEvent(new Event('resize'));
 	}
@@ -251,6 +285,7 @@ export class DrawerIsland extends HTMLElement {
 		if (index < 0) return;
 		for (const nested of bottomDrawers.slice(index + 1).toReversed()) nested.close();
 		bottomDrawers.splice(index, 1);
+		synchronizeReaderOverlays();
 		if (this.matches(':popover-open')) this.hidePopover();
 		this.hidden = true;
 		this.reflectingOpen = true;

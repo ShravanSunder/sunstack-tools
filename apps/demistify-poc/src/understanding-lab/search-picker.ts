@@ -73,6 +73,7 @@ export class SearchPicker extends HTMLElement {
 			'keydown',
 			(event): void => {
 				if (event.key === 'Escape') {
+					if (!this.querySelector('details')?.open) return;
 					event.preventDefault();
 					this.close();
 					this.querySelector('summary')?.focus();
