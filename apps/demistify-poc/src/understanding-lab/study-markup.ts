@@ -1,4 +1,4 @@
-import type { RequirementExample } from './study-model.js';
+import type { ScenarioOutcome } from './collection-data.ts';
 
 export function safeText(value: string): string {
 	return value
@@ -12,7 +12,7 @@ export function icon(name: string): string {
 	return `<i class="ph ph-${safeText(name)}" aria-hidden="true"></i>`;
 }
 
-export function outcomeBadge(outcome: RequirementExample['outcome'], label?: string): string {
+export function outcomeBadge(outcome: ScenarioOutcome, label?: string): string {
 	const tone =
 		outcome === 'Pass'
 			? 'done'
@@ -22,19 +22,6 @@ export function outcomeBadge(outcome: RequirementExample['outcome'], label?: str
 					? 'question'
 					: 'planned';
 	return `<ex-badge tone="${tone}"${label ? ` aria-label="${safeText(label)}" title="${safeText(label)}"` : ''}>${outcome}</ex-badge>`;
-}
-
-/** The same chain is used beside a requirement and beside the frame that serves it. */
-export function coverageChain(
-	requirement: RequirementExample,
-	includeNeed: boolean = true,
-): string {
-	return `<div class="lab-coverage-chain" aria-label="Need to observation">
-		${includeNeed ? `<section data-stage="need"><small>Requirement · ${requirement.id}</small><strong>${safeText(requirement.title)}</strong><p>${safeText(requirement.need)}</p></section>` : ''}
-		<section data-stage="rule" id="specification-${requirement.id}"><small>Specification</small><strong>${safeText(requirement.obligation)}</strong></section>
-		<section data-stage="owner" id="program-design-${requirement.id}"><small>Program design</small><strong>${safeText(requirement.owner)}</strong></section>
-		<section data-stage="proof" id="verification-${requirement.id}"><small>Verification</small><strong>${safeText(requirement.proof)}</strong>${outcomeBadge(requirement.outcome)}<p>${safeText(requirement.observation)}</p></section>
-	</div>`;
 }
 
 export function bindStudyChoices(element: HTMLElement, select: (value: string) => void): void {

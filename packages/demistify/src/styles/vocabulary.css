@@ -1134,7 +1134,7 @@ ex-document img:not(a img, ex-compare[slider] img) {
    panel, as tall as fits (caption room kept), at most twice a photo's or diagram's natural size.
    Container height units and pixels scale with the zoom; a percentage does not, so it takes the
    factor. The shape comes from the inspector (describeShape). */
-.ex-inspect-body {
+.ex-inspect-body:not(ex-drawer > .ex-inspect-body) {
 	container-type: size;
 }
 .ex-inspect-body:not(ex-drawer > .ex-inspect-body) :is(img, ex-mermaid > svg) {

@@ -1,4 +1,9 @@
-import { readCollection, type PreparedCollection, type PreparedRecord } from './collection-data.ts';
+import {
+	readCollection,
+	type PreparedCollection,
+	type PreparedRecord,
+	type ScenarioOutcome,
+} from './collection-data.ts';
 import type { RequirementStage } from './study-links.ts';
 import { icon, outcomeBadge, safeText } from './study-markup.ts';
 import type { RequirementExample } from './study-model.js';
@@ -24,7 +29,7 @@ export function recordsForNeed(
 export function scenarioOutcome(
 	collection: PreparedCollection,
 	scenarioId: string,
-): RequirementExample['outcome'] {
+): ScenarioOutcome {
 	const observation = collection.records.find(
 		({ record }) => record.kind === 'observation' && record.scenario === scenarioId,
 	);

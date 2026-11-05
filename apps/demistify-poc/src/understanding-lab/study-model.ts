@@ -2,17 +2,13 @@ import type { z } from 'zod';
 
 import type { frameSchema } from './collection-data.ts';
 import { readCollection, type PreparedCollection, type PreparedRecord } from './collection-data.ts';
-import { recordsForNeed, scenarioOutcome } from './requirement-stages.ts';
+import { recordsForNeed } from './requirement-stages.ts';
 export interface RequirementExample {
 	readonly id: string;
 	readonly capability: string;
 	readonly title: string;
 	readonly need: string;
-	readonly obligation: string;
 	readonly owner: string;
-	readonly proof: string;
-	readonly outcome: 'Pass' | 'Fail' | 'Partial' | 'Not run';
-	readonly observation: string;
 }
 
 export interface OwnerExample {
@@ -76,23 +72,13 @@ export function deriveStudyModel(collection: PreparedCollection): {
 	const requirements = collection.records.flatMap((item): RequirementExample[] => {
 		const record = item.record;
 		if (record.kind !== 'need') return [];
-		const scenarios = recordsForNeed(collection, record.id, 'verification');
-		const first = scenarios[0];
-		const observation = collection.records.find(
-			({ record: evidence }) =>
-				evidence.kind === 'observation' && evidence.scenario === first?.record.id,
-		);
 		return [
 			{
 				id: record.id,
 				title: record.title,
 				capability: record.capability,
 				need: item.summary,
-				obligation: summary(recordsForNeed(collection, record.id, 'specification')),
 				owner: summary(recordsForNeed(collection, record.id, 'program-design')),
-				proof: summary(scenarios),
-				outcome: first ? scenarioOutcome(collection, first.record.id) : 'Not run',
-				observation: observation?.summary ?? 'No observation is attached.',
 			},
 		];
 	});

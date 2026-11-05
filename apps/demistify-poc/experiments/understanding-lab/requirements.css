@@ -153,35 +153,6 @@ lab-requirement-related {
 .lab-call-workspace .lab-frame-detail {
 	top: 0;
 }
-.lab-related-toolbar {
-	display: flex;
-	flex: none;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--space-3);
-	padding: var(--space-3) var(--space-6) 0;
-	font-size: var(--text-sm);
-	color: var(--ink-soft);
-}
-.lab-related-toolbar[hidden] {
-	display: none;
-}
-.lab-layout-options {
-	display: flex;
-	gap: var(--space-1);
-}
-.lab-layout-options button {
-	min-height: 36px;
-	font-size: var(--text-sm);
-	font-weight: 500;
-	border-color: transparent;
-	background: transparent;
-}
-.lab-layout-options button[aria-pressed='true'] {
-	border-color: var(--rule);
-	background: var(--surface-content);
-	color: var(--ink);
-}
 .lab-related-content {
 	min-height: 0;
 	padding: var(--space-5) var(--space-6) var(--space-6);
@@ -261,12 +232,6 @@ lab-requirement-related {
 	color: var(--ink-soft);
 	font-size: var(--text-sm);
 }
-.lab-related-review-note {
-	border-inline-start: 2px solid var(--rule);
-	padding-inline-start: var(--space-3);
-	color: var(--ink-soft);
-	font-size: var(--text-sm);
-}
 .lab-related-need {
 	padding: 0;
 	border: 0;
@@ -302,9 +267,6 @@ lab-requirement-related {
 	}
 }
 @media (max-width: 760px) {
-	.lab-related-toolbar {
-		display: none;
-	}
 	.lab-expanded-grid {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -330,13 +292,6 @@ lab-requirement-related {
 		border-inline: 0;
 		border-radius: 0;
 	}
-	.lab-expanded-sources {
-		margin-inline: var(--space-4);
-	}
-	.lab-related-toolbar {
-		padding: var(--space-3) var(--space-4) 0;
-	}
-	.lab-layout-options button,
 	.lab-related-header > button {
 		min-height: 44px;
 	}
@@ -416,19 +371,6 @@ lab-requirement-related {
 	border-radius: var(--radius-md);
 	background: transparent;
 }
-.lab-requirement-detail .lab-coverage-chain > section {
-	border: none;
-	border-inline-start: 3px solid var(--stage-color);
-	border-radius: 0;
-	background: transparent;
-	padding: var(--space-2) var(--space-4);
-}
-.lab-requirement-detail .lab-coverage-chain > section + section {
-	margin-top: var(--space-3);
-}
-.lab-requirement-detail .lab-coverage-chain strong {
-	font-weight: 600;
-}
 
 @container requirements-view (max-width: 740px) {
 	.lab-requirement-shell {
@@ -439,9 +381,6 @@ lab-requirement-related {
 	.lab-requirement-layout {
 		--requirements-compact: 1;
 		grid-template-columns: minmax(0, 1fr);
-	}
-	.lab-requirement-pagination .lab-key-hint {
-		display: none;
 	}
 	.lab-requirement-pagination {
 		justify-content: space-between;
@@ -466,12 +405,6 @@ lab-requirement-related {
 	}
 	[data-mobile-view='detail'] .lab-back-to-needs {
 		display: inline-flex;
-	}
-	[data-mobile-view='detail'] .lab-requirement-toolbar {
-		position: sticky;
-		top: var(--space-12);
-		z-index: 2;
-		background: var(--surface-page);
 	}
 	[data-mobile-view='detail'] .lab-requirement-pagination {
 		background: var(--surface-page);
@@ -503,9 +436,6 @@ lab-requirement-related {
 	}
 	.lab-document-panel > .lab-need-statement {
 		margin-inline: var(--space-4);
-	}
-	.lab-requirement-detail .lab-coverage-chain > section {
-		scroll-margin-top: 120px;
 	}
 }
 
@@ -619,15 +549,6 @@ lab-requirement-related {
 }
 .lab-example-outcome p {
 	margin-block: var(--space-2);
-}
-.lab-stage-paths {
-	margin-bottom: var(--space-4);
-}
-.lab-stage-paths .lab-navigation-action {
-	border-color: transparent;
-	background: transparent;
-	color: var(--accent);
-	font-size: var(--text-sm);
 }
 .lab-proof-design {
 	margin-top: var(--space-5);

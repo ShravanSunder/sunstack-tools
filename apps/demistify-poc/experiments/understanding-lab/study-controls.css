@@ -155,28 +155,12 @@ lab-search-picker {
 	opacity: 0.4;
 	cursor: default;
 }
-.lab-key-hint {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-1);
-	color: var(--ink-soft);
-	font-size: var(--text-sm);
-}
-.lab-key-hint kbd {
-	font: inherit;
-	border: 1px solid var(--rule);
-	border-radius: var(--radius-sm);
-	padding: 1px 5px;
-}
 .lab-position {
 	min-width: 44px;
 	text-align: center;
 	white-space: nowrap;
 	color: var(--ink-soft);
 	font-size: var(--text-sm);
-}
-.lab-coverage-chain > section {
-	scroll-margin-top: var(--space-16);
 }
 @media (max-width: 560px) {
 	.lab-focus-surface {

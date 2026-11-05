@@ -161,7 +161,6 @@ window.addEventListener(
 			return;
 		const bottom = bottomDrawers.at(-1);
 		if (current && (!bottom || current.panel.contains(document.activeElement))) closeDrawer();
-		else if (bottom) bottom.close();
 		else return;
 		event.preventDefault();
 		event.stopPropagation();
@@ -169,10 +168,22 @@ window.addEventListener(
 	{ capture: true },
 );
 
+// Bottom workspaces let nested controls consume Escape before closing their container.
+window.addEventListener('keydown', (event: KeyboardEvent): void => {
+	if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog:modal'))
+		return;
+	const bottom = bottomDrawers.at(-1);
+	if (!bottom) return;
+	bottom.close();
+	event.preventDefault();
+	event.stopPropagation();
+});
+
 /** A live, non-modal workspace using the same drawer presentation as Comments and inspection. */
 export class DrawerIsland extends HTMLElement {
 	private returnFocus: HTMLElement | null = null;
 	private reflectingOpen = false;
+	private initialized = false;
 
 	static get observedAttributes(): string[] {
 		return ['open'];
@@ -188,22 +199,24 @@ export class DrawerIsland extends HTMLElement {
 		this.setAttribute('role', 'dialog');
 		if (!this.hasAttribute('aria-label'))
 			this.setAttribute('aria-label', this.getAttribute('label') ?? 'Details');
+		this.initialized = true;
 		if (this.open) this.show();
 		else this.hidden = true;
 	}
 
 	attributeChangedCallback(): void {
-		if (!this.isConnected || this.reflectingOpen) return;
+		if (!this.isConnected || !this.initialized || this.reflectingOpen) return;
 		if (this.open) this.show();
 		else this.close();
 	}
 
 	disconnectedCallback(): void {
 		this.close();
+		this.initialized = false;
 	}
 
 	show(): void {
-		if (!this.isConnected || this.matches(':popover-open')) return;
+		if (!this.isConnected || !this.initialized || bottomDrawers.includes(this)) return;
 		// Leave an ordinary modal enlargement before opening an interactive workspace.
 		const modal = this.closest<HTMLDialogElement>('dialog:modal');
 		if (modal) {

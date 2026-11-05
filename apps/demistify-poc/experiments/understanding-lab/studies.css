@@ -7,7 +7,6 @@ lab-execution-review {
 	max-width: var(--width-canvas);
 }
 .lab-study-toolbar,
-.lab-capability-filters,
 .lab-category-legend {
 	display: flex;
 	flex-wrap: wrap;
@@ -15,9 +14,7 @@ lab-execution-review {
 	align-items: center;
 	margin-block: var(--space-5);
 }
-.lab-study-toolbar button,
-.lab-capability-filters button,
-.lab-call-heading > button {
+.lab-study-toolbar button {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -30,15 +27,10 @@ lab-execution-review {
 	font: 600 var(--text-md)/1.4 var(--font-body);
 	cursor: pointer;
 }
-.lab-study-toolbar button[aria-pressed='true'],
-.lab-capability-filters button[aria-pressed='true'] {
+.lab-study-toolbar button[aria-pressed='true'] {
 	border-color: var(--accent);
 	color: var(--ink);
 	background: var(--accent-soft);
-}
-.lab-capability-filters button > span {
-	font-size: var(--text-sm);
-	color: var(--ink-soft);
 }
 :is(lab-corner-study, lab-color-study, lab-requirement-browser, lab-execution-review)
 	button:focus-visible {
@@ -267,74 +259,11 @@ lab-execution-review {
 .lab-need-statement {
 	font-size: var(--text-xl);
 }
-.lab-detail-link {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-2);
-	margin-top: var(--space-5);
-}
-.lab-coverage-chain {
-	display: grid;
-	gap: var(--space-3);
-}
-.lab-coverage-chain > section {
-	border: 1px solid var(--rule);
-	border-inline-start: 3px solid var(--stage-color);
-	border-radius: var(--radius-md);
-	padding: var(--space-4);
-	background: color-mix(in srgb, var(--stage-color) 5%, var(--surface-page));
-}
-[data-stage='need'] {
-	--stage-color: var(--chart-1);
-}
-[data-stage='rule'] {
-	--stage-color: var(--chart-2);
-}
-[data-stage='owner'] {
-	--stage-color: var(--chart-3);
-}
-[data-stage='proof'] {
-	--stage-color: var(--patch);
-}
-.lab-coverage-chain small,
-.lab-coverage-chain strong {
-	display: block;
-}
-.lab-coverage-chain small {
-	color: var(--ink-soft);
-	font-size: var(--text-sm);
-	margin-bottom: var(--space-2);
-}
-.lab-coverage-chain p {
-	font-size: var(--text-md);
-	margin-bottom: 0;
-}
-.lab-coverage-chain ex-badge {
-	margin-top: var(--space-3);
-}
 .lab-execution-layout {
 	display: grid;
 	grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
 	gap: var(--space-6);
 	align-items: start;
-}
-.lab-call-heading {
-	display: flex;
-	align-items: start;
-	justify-content: space-between;
-	gap: var(--space-4);
-	margin-bottom: var(--space-5);
-}
-.lab-call-heading .lab-local-heading {
-	margin: 0;
-}
-.lab-call-heading p {
-	margin-bottom: 0;
-	font-size: var(--text-md);
-	color: var(--ink-soft);
-}
-.lab-call-heading > button {
-	flex: none;
 }
 .lab-call-stack {
 	list-style: none;
@@ -360,8 +289,7 @@ lab-execution-review {
 	padding: var(--space-4);
 	cursor: pointer;
 }
-.lab-call-stack button[data-frame][aria-current='true'],
-.lab-coverage-list button[data-need][aria-current='true'] {
+.lab-call-stack button[data-frame][aria-current='true'] {
 	border-color: var(--accent);
 	background: var(--accent-soft);
 }
@@ -372,8 +300,7 @@ lab-execution-review {
 	overflow-wrap: anywhere;
 }
 .lab-call-surface,
-.lab-frame-detail,
-.lab-coverage-chain > section {
+.lab-frame-detail {
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
@@ -395,36 +322,10 @@ lab-execution-review {
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-sm);
 }
-.lab-evidence-section {
-	margin-top: var(--space-8);
-}
-.lab-evidence-section .lab-coverage-chain {
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.lab-coverage-list {
-	display: grid;
-	gap: var(--space-3);
-}
-.lab-coverage-list button[data-need] {
-	display: flex;
-	justify-content: space-between;
-	gap: var(--space-4);
-	text-align: start;
-	padding: var(--space-4);
-	border: 1px solid var(--rule);
-	border-radius: var(--radius-md);
-	background: var(--surface-content);
-	color: var(--ink);
-	font: var(--text-base)/1.5 var(--font-body);
-	cursor: pointer;
-}
 @media (max-width: 850px) {
 	.lab-requirement-layout,
 	.lab-execution-layout {
 		grid-template-columns: 1fr;
-	}
-	.lab-evidence-section .lab-coverage-chain {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 @media (max-width: 560px) {
@@ -432,8 +333,7 @@ lab-execution-review {
 		margin-inline-start: calc(var(--frame-depth) * 8px);
 	}
 	.lab-corner-samples,
-	.lab-owner-flow,
-	.lab-evidence-section .lab-coverage-chain {
+	.lab-owner-flow {
 		grid-template-columns: 1fr;
 	}
 	.lab-inline-arrow {
@@ -447,9 +347,6 @@ lab-execution-review {
 	}
 	.lab-row-description {
 		grid-column: 2;
-	}
-	.lab-call-heading {
-		flex-direction: column;
 	}
 	.lab-requirement-detail,
 	.lab-frame-detail {
@@ -473,12 +370,6 @@ lab-execution-review {
 
 .lab-local-heading {
 	font: 600 var(--text-xl)/1.35 var(--font-heading);
-}
-
-.lab-coverage-list ex-badge {
-	flex: none;
-	white-space: nowrap;
-	align-self: center;
 }
 
 .lab-card-comparison[data-surface='bands'] .lab-container-sample > :is(header, .lab-sample-foot) {

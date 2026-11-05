@@ -390,7 +390,10 @@ test.each([1600, 390])(
 				comments.getBoundingClientRect().left + 1,
 			);
 		}
-		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		fixture.querySelector<HTMLButtonElement>('button[aria-label="Close comments"]')?.focus();
+		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Close comments');
+		await userEvent.keyboard('{Escape}');
+		expect(fixture.querySelector('.ex-comments-body')?.parentElement?.hidden ?? true).toBe(true);
 		expect(workspace.matches(':popover-open')).toBe(true);
 		await frame.getByRole('button', { name: 'Close workspace', exact: true }).click();
 		expect(workspace.matches(':popover-open')).toBe(false);

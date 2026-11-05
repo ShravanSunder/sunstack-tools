@@ -4,6 +4,7 @@ const identity = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
 const body = { bodyRef: identity, summaryRef: identity };
 const text = z.string().min(1);
 export const outcomeSchema = z.enum(['Pass', 'Fail', 'Partial', 'Not run']);
+export type ScenarioOutcome = z.infer<typeof outcomeSchema>;
 export const frameSchema = z.strictObject({
 	kind: z.literal('frame'),
 	id: identity,
