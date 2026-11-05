@@ -2,7 +2,7 @@
 
 ## 0.7.0
 
-Unreleased.
+Release date: 2026-11-05.
 
 ### Added
 
