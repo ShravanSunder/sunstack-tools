@@ -14,7 +14,7 @@ pub fn admit_evidence_kinds(
     }
     for (name, kind) in kinds {
         let path = ConfigPath::keys(["evidence", "kinds", name.as_str()]);
-        if !project.rule_ids.contains(&kind.rule) {
+        if !project.rule_ids.contains(&kind.matcher.rule_id(name)) {
             errors.push(refusal(path.with_key("rule"), "unknown evidence rule"));
         }
         if kind.max_chars.is_some_and(|n| n.get() < 1000) {
@@ -22,7 +22,7 @@ pub fn admit_evidence_kinds(
         }
         for (field, source) in &kind.fields {
             let path = path.with_key("fields").with_key(field.as_str());
-            if let Some(language) = project.language_for_rule(&kind.rule) {
+            if let Some(language) = project.language_for_rule(&kind.matcher.rule_id(name)) {
                 use sunstack_evidence::EvidenceLanguage;
                 let context = format!("kind {} field {}", name.as_str(), field.as_str());
                 if language == EvidenceLanguage::Json && matches!(source, FieldSource::Yaml { .. })
@@ -38,9 +38,9 @@ pub fn admit_evidence_kinds(
                     | FieldSource::SameFile { of, .. }
                     | FieldSource::Remainder { exclude: Some(of) } => match of {
                         MatchSource::Rule { rule } => project.language_for_rule(rule),
-                        MatchSource::Kind { kind } => kinds
-                            .get(kind)
-                            .and_then(|kind| project.language_for_rule(&kind.rule)),
+                        MatchSource::Kind { kind } => kinds.get(kind).and_then(|definition| {
+                            project.language_for_rule(&definition.matcher.rule_id(kind))
+                        }),
                     },
                     FieldSource::Next { rule, .. } | FieldSource::Previous { rule, .. } => {
                         project.language_for_rule(rule)

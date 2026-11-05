@@ -15,7 +15,7 @@ fn selection_admission_refuses_each_crafted_cause_and_accepts_the_canonical_conf
     )
     .unwrap();
     let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
     assert!(admit_evidence_kinds(&kinds, &project, 6000).is_empty());
     for (name, expected) in [
         ("choice-question", "noul"),

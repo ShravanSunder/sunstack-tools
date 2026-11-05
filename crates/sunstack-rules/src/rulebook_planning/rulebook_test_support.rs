@@ -7,7 +7,7 @@ pub fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../sunstack/tests/fixtures/rulebook-lint")
 }
 pub fn project() -> EvidenceProject {
-    load_evidence_project(&fixture().join("evidence/sgconfig.yml")).unwrap()
+    load_evidence_project(&fixture().join("evidence/sgconfig.yml"), &[], None).unwrap()
 }
 pub fn kinds() -> BTreeMap<EvidenceKindName, EvidenceKindDefinition> {
     let config: serde_json::Value = serde_json::from_str(

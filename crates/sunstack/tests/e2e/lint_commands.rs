@@ -112,6 +112,27 @@ async fn config_check_admits_integer_type_maxima_and_refuses_the_next_integers()
 }
 
 #[tokio::test]
+async fn inline_rule_check_exits_two_with_the_owning_config_path() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = fixture::write(root.path());
+    config["evidence"]["kinds"]["a_valid"] =
+        json!({"inline_rule":"{language: Markdown, rule: {matches: frontmatter}}","fields":{}});
+    config["evidence"]["kinds"]["b_bad"] =
+        json!({"inline_rule":"{language: Markdown, rule: [","fields":{}});
+    fixture::config_file(root.path(), &config);
+
+    let output = invoke(root.path(), &["--check"], 2).await;
+
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(text.contains("evidence.kinds.b_bad.inline_rule"), "{text}");
+    assert!(text.contains("sunstack.lint.json"), "{text}");
+}
+
+#[tokio::test]
 async fn nested_config_reports_binding_root_paths_in_every_format_and_incomplete_parts() {
     let root = tempfile::tempdir().unwrap();
     let nested = root.path().join("config");

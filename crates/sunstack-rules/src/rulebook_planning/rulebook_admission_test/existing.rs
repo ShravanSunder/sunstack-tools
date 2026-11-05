@@ -99,7 +99,9 @@ fn kind_refusals_cover_rules_regex_sizes_and_one_level_composition() {
     kinds
         .get_mut(&EvidenceKindName::new("step").unwrap())
         .unwrap()
-        .rule = sunstack_evidence::EvidenceRuleId::new("missing").unwrap();
+        .matcher = sunstack_evidence::KindMatcher::Named(
+        sunstack_evidence::EvidenceRuleId::new("missing").unwrap(),
+    );
     kinds
         .get_mut(&EvidenceKindName::new("skill").unwrap())
         .unwrap()

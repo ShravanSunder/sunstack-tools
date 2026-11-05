@@ -152,7 +152,10 @@ impl EvidenceBuild {
                             (
                                 name.clone(),
                                 KindCount {
-                                    matches: index.by_rule.get(&kind.rule).map_or(0, Vec::len),
+                                    matches: index
+                                        .by_rule
+                                        .get(&kind.matcher.rule_id(name))
+                                        .map_or(0, Vec::len),
                                     limited: index.limited,
                                     selection: kind
                                         .select
@@ -190,11 +193,11 @@ impl EvidenceBuild {
     ) -> BTreeMap<PathBuf, Vec<PathBuf>> {
         let mut targets = BTreeMap::<PathBuf, Vec<PathBuf>>::new();
         for (path, file) in &self.matched {
-            for definition in self.kinds.values() {
+            for (kind, definition) in &self.kinds {
                 for range in file
                     .index
                     .by_rule
-                    .get(&definition.rule)
+                    .get(&definition.matcher.rule_id(kind))
                     .into_iter()
                     .flatten()
                 {
@@ -275,7 +278,7 @@ impl EvidenceBuild {
                 for (match_position, range) in file
                     .index
                     .by_rule
-                    .get(&definition.rule)
+                    .get(&definition.matcher.rule_id(&kind))
                     .into_iter()
                     .flatten()
                     .enumerate()
@@ -296,6 +299,7 @@ impl EvidenceBuild {
                         continue;
                     }
                     let fields = local_fields(
+                        &definition.matcher.rule_id(&kind),
                         definition,
                         file,
                         range,

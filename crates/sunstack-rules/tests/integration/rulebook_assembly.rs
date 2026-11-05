@@ -8,7 +8,7 @@ mod fixture {
             .join("../sunstack/tests/fixtures/rulebook-lint")
     }
     pub fn project() -> EvidenceProject {
-        load_evidence_project(&fixture().join("evidence/sgconfig.yml")).unwrap()
+        load_evidence_project(&fixture().join("evidence/sgconfig.yml"), &[], None).unwrap()
     }
     pub fn kinds() -> std::collections::BTreeMap<EvidenceKindName, EvidenceKindDefinition> {
         let value: serde_json::Value = serde_json::from_str(

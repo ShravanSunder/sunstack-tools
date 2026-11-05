@@ -18,6 +18,7 @@ fn first_line_range(file: &MatchedFile, range: &MatchRange) -> MatchRange {
 }
 
 pub(super) fn local_fields(
+    matcher_rule: &crate::EvidenceRuleId,
     definition: &EvidenceKindDefinition,
     file: &MatchedFile,
     range: &MatchRange,
@@ -124,7 +125,7 @@ pub(super) fn local_fields(
             }
             FieldSource::Next { rule, count } | FieldSource::Previous { rule, count } => {
                 neighbour_field(
-                    definition,
+                    matcher_rule,
                     file,
                     match_position,
                     rule,
@@ -238,7 +239,7 @@ fn yaml_field(file: &MatchedFile, range: &MatchRange, key: &str) -> FieldValue {
 }
 
 fn neighbour_field(
-    definition: &EvidenceKindDefinition,
+    matcher_rule: &crate::EvidenceRuleId,
     file: &MatchedFile,
     match_position: usize,
     rule: &crate::EvidenceRuleId,
@@ -248,7 +249,7 @@ fn neighbour_field(
     let entry = file
         .index
         .match_nodes
-        .get(&definition.rule)
+        .get(matcher_rule)
         .and_then(|nodes| nodes.get(match_position))
         .and_then(|node| file.index.parents.get(node));
     let mut selected = Vec::new();

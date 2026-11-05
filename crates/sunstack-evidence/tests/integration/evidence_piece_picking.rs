@@ -16,7 +16,7 @@ fn build(root: &std::path::Path, files: &[PathBuf]) -> EvidenceCatalog {
     .unwrap();
     let kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition> =
         serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
-    let project = load_evidence_project(&source.join("evidence/sgconfig.yml")).unwrap();
+    let project = load_evidence_project(&source.join("evidence/sgconfig.yml"), &[], None).unwrap();
     build_pieces(
         &project,
         &kinds,
