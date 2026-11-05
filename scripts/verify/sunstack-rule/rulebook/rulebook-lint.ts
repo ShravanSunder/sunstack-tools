@@ -456,6 +456,37 @@ export async function observeLegacyRulebook(
 	);
 	const skipped = path.join(fixtures, 'skip');
 	configureEndpoint(skipped, observer.endpoint);
+	const entryPath = path.join(skipped, rulesName);
+	const markdownPath = path.join(skipped, rulebookName);
+	const originalEntries = filesystem.readFileSync(entryPath);
+	const originalMarkdown = filesystem.readFileSync(markdownPath);
+	const peerEntries = readObject(entryPath);
+	requireCondition('K004' in peerEntries, 'Invalid-peer fixture lost K004');
+	delete peerEntries['K004'];
+	let peerBaseline: JsonObject;
+	try {
+		writeJson(entryPath, peerEntries);
+		filesystem.writeFileSync(
+			markdownPath,
+			originalMarkdown
+				.toString('utf8')
+				.split('\n')
+				.map((line) => (line.includes('<!-- K004 -->') ? '' : line))
+				.join('\n'),
+		);
+		const peer = await observer.report({
+			root: skipped,
+			name: 'skip-peer-baseline',
+			arguments: lintArguments('--all'),
+			expectedExit: 1,
+			credential: true,
+		});
+		requireWorkedResults(peer.report);
+		peerBaseline = peer.report;
+	} finally {
+		filesystem.writeFileSync(entryPath, originalEntries);
+		filesystem.writeFileSync(markdownPath, originalMarkdown);
+	}
 	const partial = await observer.report({
 		root: skipped,
 		name: 'skip',
@@ -464,7 +495,7 @@ export async function observeLegacyRulebook(
 		credential: true,
 	});
 	equal(reportStatus(partial.report), 'incomplete', 'Skip lost incomplete status');
-	equal(partial.report['findings'], baseline.report['findings'], 'Bad entry changed peer findings');
+	equal(partial.report['findings'], peerBaseline['findings'], 'Bad entry changed peer findings');
 	requireCondition(arrayValue(partial.report['skipped_rules']).length > 0, 'Skipped entry absent');
 	requireCondition(
 		arrayValue(partial.report['incomplete']).some(

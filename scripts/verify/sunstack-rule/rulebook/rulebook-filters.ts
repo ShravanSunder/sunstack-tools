@@ -251,8 +251,9 @@ export function requireFilterReport(report: JsonObject, scenario: FilterScenario
 			equal(entry['resolved_model'], null, 'Failed request fabricated a responding model');
 			const reason = objectValue(entry['reason']);
 			equal(reason['kind'], 'request', 'Failure reason lost');
-			equal(objectValue(reason['reason'])['kind'], 'provider_failure', 'Provider failure lost');
-			equal(objectValue(reason['reason'])['http_status'], 400, 'Wrong HTTP failure');
+			const failure = objectValue(objectValue(reason['reason'])['provider_failure']);
+			equal(failure['failure_class'], 'provider_rejected_request', 'Provider failure lost');
+			equal(failure['http_status'], 400, 'Wrong HTTP failure');
 		} else {
 			equal(entry['resolved_model'], 'typesafe/controlled-rulebook', 'Resolved model lost');
 			equal(

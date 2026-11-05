@@ -4,7 +4,7 @@
 
 The R1 Program Design correction at `906fc9e` requires unsure answers to retain their selected answer and probability as well as all probabilities. The driver enforces that correction: its unsure case must report `eligible` at 0.3, never substitute `blocked` at 0.7 or confidence 0.99. Prepared/live receipts name this design revision alongside the Verification Design pin below.
 
-This lasting journey follows the filters Specification R1–R9 and Verification Design OD at `dd92e2c`. It is a **draft pending the Lead's E5 candidate declaration and first drive**. The entry is `scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts --case filters`; `rulebook-filters.ts` owns its isolated fixture and assertions. The calling client is Node; real `sunstack lint`, config loading, extraction, filter dispatch, gating, reports and exits stay real. A loopback responder supplies only synthetic model answers. No hosted key or classification-accuracy claim is involved.
+This lasting journey follows the filters Specification R1–R9 and Verification Design OD at `dd92e2c`. Use a Lead-declared signed candidate and join its native proof below. The entry is `scripts/verify/sunstack-rule/rulebook/rulebook-lint.ts --case filters`; `rulebook-filters.ts` owns its isolated fixture and assertions. The calling client is Node; real `sunstack lint`, config loading, extraction, filter dispatch, gating, reports and exits stay real. A loopback responder supplies only synthetic model answers. No hosted key or classification-accuracy claim is involved.
 
 Prepare without running a product:
 

@@ -136,7 +136,9 @@ function reportFixture(scenario: FilterScenario = 'judged'): JsonObject {
 		excluded['resolved_model'] = null;
 		excluded['reason'] = {
 			kind: 'request',
-			reason: { kind: 'provider_failure', http_status: 400 },
+			reason: {
+				provider_failure: { failure_class: 'provider_rejected_request', http_status: 400 },
+			},
 		};
 	}
 	const rows: JsonObject[] = [];
@@ -319,3 +321,16 @@ test.each([
 	mutate(objectValue(arrayValue(report['filter_answers'])[1]));
 	expect(() => requireFilterReport(report, 'unsure')).toThrow();
 });
+
+test.each([
+	['http_status', 429],
+	['failure_class', 'connection'],
+] as const)(
+	'failed filter check rejects changed %s in the native external-tag envelope',
+	(field, value) => {
+		const report = reportFixture('failed');
+		const reason = objectValue(objectValue(arrayValue(report['filter_answers'])[1])['reason']);
+		objectValue(objectValue(reason['reason'])['provider_failure'])[field] = value;
+		expect(() => requireFilterReport(report, 'failed')).toThrow();
+	},
+);
