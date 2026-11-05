@@ -32,7 +32,7 @@ import {
 export const filtersOracle =
 	'dd92e2c:docs/specs/2026-11-04-owner-assessment/verification-design.md';
 const filtersProgramDesign =
-	'906fc9ed83f9bd1b7bb4c59b82b891a960d4343a:docs/specs/2026-11-04-owner-assessment/program-design.md';
+	'd25079900b0a79e164d893ff559ec28d39181bb3:docs/specs/2026-11-04-owner-assessment/program-design.md';
 export const includedFolder = 'plugins/one/skills/review';
 export const excludedFolder = 'plugins/two/skills/review';
 export const includedMembers = ['one.md', 'two.md', 'three.md'].map(
