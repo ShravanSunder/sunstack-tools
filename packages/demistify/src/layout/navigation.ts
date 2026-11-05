@@ -1,3 +1,4 @@
+import type { SearchDestination } from '../core/document-search.ts';
 import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { createIconButton } from '../core/icons.ts';
 import { anchorPopover } from '../core/popover-position.ts';
@@ -112,18 +113,19 @@ export class HeadingNavigation extends HTMLElement {
 			...this.pageLinks,
 			...this.querySelectorAll<HTMLAnchorElement>('[slot="presentations"] a[href]'),
 		];
-		this.documentSearch = new DocumentSearch(() =>
+		const searchDestinations = (): readonly SearchDestination[] =>
 			collectSearchDestinations({
 				contentRoot: this.contentRoot ?? document.body,
 				links: searchLinks,
 				indexed,
 				pageTitle: this.pageName(),
-			}),
-		);
+			});
+		this.documentSearch = new DocumentSearch(searchDestinations);
 		this.documentSearch.connect();
 		if (
-			document.querySelector('ex-presentation[id]') ||
-			this.querySelector('[slot="presentations"] a')
+			searchDestinations().some(
+				(entry): boolean => entry.kind === 'walkthrough' || entry.kind === 'journey',
+			)
 		) {
 			this.presentationsButton = createIconButton('path', 'Browse walkthroughs', (): void =>
 				this.documentSearch?.open('walkthroughs', this.presentationsButton),

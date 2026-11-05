@@ -22,7 +22,7 @@ Repeat the same page list on every collection page. Its first link is Home; the 
 
 This example's companion `index.html` must exist and repeat the list. The library creates the top Pages dropdown, breadcrumb and heading outline; hand-authored breadcrumb UI is unnecessary. Home uses the built-in house icon. Real h2–h6 headings supply outline sections, with the current page as its label. Captions stay out of that outline.
 
-Keep explicit `ex-nav` on pages offering a Walkthrough or Gallery Journey, even a single page/path. It creates their visible launcher. The `ex-presentation` declaration is hidden; relative page links alone do not declare a collection or reveal a path launcher. Path construction belongs to `tours.md`.
+Keep explicit `ex-nav` on every indexed collection page, including peers without a local Walkthrough or Gallery Journey, and on a single page offering a path. It creates their visible launcher. The `ex-presentation` declaration is hidden; relative page links alone do not declare a collection or reveal a path launcher. Path construction belongs to `tours.md`.
 
 ## Use stable, scoped targets
 
@@ -38,15 +38,19 @@ The resolver reveals containing tabs, disclosures and layers and waits for lazy 
 
 Cmd/Ctrl-K or the search button beside the bottom theme control opens pages/headings search. Heading rows show page and ancestor context above the matching title. Walkthrough rows show source-page context, title, a concise authored description and the appropriate path/images icon. Use meaningful labels rather than a separate type column.
 
-The current page's live headings and authored Pages links work without an index. Other pages' headings and descriptions require an embedded index generated from explicit local inputs:
+The current page's live headings and authored Pages links work without an index. Other pages' headings, Walkthroughs and Gallery Journeys require an embedded index generated from explicit local inputs:
 
 ```sh
 pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz index index.html details.html
 ```
 
+Include every delivered page in that input list, even pages with no local path. Each receives the shared destinations, so its Walkthroughs button and W chooser can open paths on their owning pages. Keep each path declaration at its source; repeating the Pages links does not require copying path definitions or adding a second path list. Without an index, discovery uses local paths and explicit presentation links. No automatic filesystem discovery occurs.
+
 The command reads local inputs, including referenced local Markdown and the exact retained source written by `embed`, prepares the collection and writes each listed HTML file **in place**. It does not fetch sibling HTML in the reader's browser. Give searchable Markdown islands stable IDs before running it. It retains explicit IDs and assigns stable native heading IDs. Search matches titles and heading ancestry, not whole-page prose or general fuzzy text.
 
 After changing a heading, source, page path or walkthrough description, regenerate both the source snapshot and search index as appropriate. For direct-file readers, embed each live-source page first, then index the delivered collection. Indexing adds generated data, so a byte comparison with an unindexed fresh embed alone is not a like-for-like freshness check: apply the same indexing transform to the regenerated collection before comparing, or compare the exact source carriers and index destinations separately. Keep the live source pages and files as the authority; do not manually edit generated index data.
+
+For generation and edits, read the retained source wrappers and affected Markdown rather than dumping generated readers or index payloads into model context. Let the tools embed and index the complete explicit collection; report files processed, destination counts and actionable issues. After a local edit, update its source, regenerate affected snapshots and reindex/check every delivered page. Keep the full-collection freshness comparison above; smaller authoring context does not reduce the validation scope.
 
 ## Keyboard ownership
 
@@ -62,4 +66,4 @@ After changing a heading, source, page path or walkthrough description, regenera
 
 The bottom button shows ⌘K on Mac and Ctrl-K elsewhere. Editing fields, composing text, open dialogs/popovers and modified browser commands retain their keys. Tabs and Galleries own their local arrow behavior. Do not install a competing document shortcut handler or capture OS/browser commands outside document focus.
 
-Finish with an ordinary page link, a cold scoped heading/node fragment, a contextual search result from another page, and a renamed heading after regeneration. Confirm chooser focus returns, descriptions remain current, and Pages/outline remain available after leaving a guided path. A successful static check does not prove native links exist or search data is fresh.
+Finish with an ordinary page link, a cold scoped heading/node fragment, a contextual search result from another page, and a renamed heading after regeneration. For an indexed collection, start the same shared path from a page with no local path. Confirm chooser focus returns, descriptions remain current, and Pages/outline remain available after leaving a guided path. A successful static check does not prove native links exist or search data is fresh.
