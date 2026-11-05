@@ -529,6 +529,14 @@ test.each([1440, 390])(
 		const pointer = requiredElement(workspace, '#related-record-V2');
 		expect(pointer.closest('details')?.open).toBe(true);
 		expect(pointer.textContent).toContain('Example run: the background action fired.');
+		const proofSteps = [
+			...pointer.querySelectorAll<HTMLDetailsElement>('ex-trace > ol > li > details'),
+		];
+		expect(proofSteps).toHaveLength(3);
+		expect(proofSteps.map((step) => step.open)).toEqual([true, true, true]);
+		expect(pointer.querySelector<HTMLDetailsElement>('.lab-proof-design > details')?.open).toBe(
+			false,
+		);
 		expect(requiredElement(workspace, '#related-record-V2-keyboard').textContent).toContain(
 			'Not run',
 		);
@@ -540,7 +548,10 @@ test.each([1440, 390])(
 		).getBoundingClientRect();
 		expect(fixture.activeElement).toBe(keyboardCase);
 		expect(keyboardCase.getBoundingClientRect().top).toBeGreaterThanOrEqual(readingBounds.top);
-		expect(keyboardCase.getBoundingClientRect().bottom).toBeLessThanOrEqual(readingBounds.bottom);
+		// Expanded procedure text can exceed the viewport; its selected heading must be visible.
+		expect(
+			requiredElement(keyboardCase, '.lab-related-record-title').getBoundingClientRect().bottom,
+		).toBeLessThanOrEqual(readingBounds.bottom);
 		await fixtureLocator(
 			frame,
 			requiredElement(pointer, '.lab-example-outcome p [data-comment-control]'),
