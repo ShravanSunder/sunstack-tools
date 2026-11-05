@@ -228,3 +228,41 @@ test('a workspace keeps a live walkthrough and newly reported authoring issues r
 	expect(requiredElement(fixture, '.ex-issues').parentElement).toBe(fixture.body);
 	expect(fixture.querySelector('.ex-drawer-reader-overlays:popover-open')).toBeNull();
 });
+
+test.each(['body', 'modal'])(
+	'closing a workspace respects the player owner moving it to %s',
+	async (destination): Promise<void> => {
+		// Arrange: borrow the existing live player, just as a real walkthrough workspace does.
+		const { document: fixture } = await openFixture('navigation');
+		const player = requiredElement(fixture, '.ex-route-player');
+		const workspace = fixture.createElement('ex-drawer');
+		workspace.setAttribute('open', '');
+		workspace.innerHTML = '<div class="ex-inspect-body"><p>Workspace</p></div>';
+		requiredElement(fixture, 'ex-document').append(workspace);
+		await expect.poll(() => player.parentElement?.className).toBe('ex-drawer-reader-overlays');
+		const modal = fixture.createElement('dialog');
+
+		// Act: exercise the same DOM transfer performed by route.ts's player owner.
+		if (destination === 'body') {
+			fixture.body.append(player);
+			await expect.poll(() => player.parentElement?.className).toBe('ex-drawer-reader-overlays');
+		} else {
+			fixture.body.append(modal);
+			modal.showModal();
+			modal.append(player);
+		}
+		workspace.removeAttribute('open');
+
+		// Assert: return only content still borrowed, with no abandoned origin markers.
+		expect(player.parentElement).toBe(destination === 'body' ? fixture.body : modal);
+		const comments = fixture.createTreeWalker(fixture.body, NodeFilter.SHOW_COMMENT);
+		const remainingOrigins: Node[] = [];
+		let comment = comments.nextNode();
+		while (comment) {
+			if (comment.textContent === 'reader overlay origin') remainingOrigins.push(comment);
+			comment = comments.nextNode();
+		}
+		expect(remainingOrigins).toHaveLength(0);
+		if (modal.open) modal.close();
+	},
+);

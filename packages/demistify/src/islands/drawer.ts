@@ -23,7 +23,10 @@ const readerOverlayOrigins = new Map<HTMLElement, Comment>();
 function synchronizeReaderOverlays(raise = false): void {
 	if (bottomDrawers.length === 0) {
 		readerOverlayObserver?.disconnect();
-		for (const [overlay, origin] of readerOverlayOrigins) origin.replaceWith(overlay);
+		for (const [overlay, origin] of readerOverlayOrigins) {
+			if (overlay.parentElement === readerOverlayHost) origin.replaceWith(overlay);
+			else origin.remove();
+		}
 		readerOverlayOrigins.clear();
 		if (readerOverlayHost?.matches(':popover-open')) readerOverlayHost.hidePopover();
 		return;
@@ -37,6 +40,7 @@ function synchronizeReaderOverlays(raise = false): void {
 	for (const overlay of document.body.querySelectorAll<HTMLElement>(
 		':scope > .ex-route-player, :scope > .ex-issues',
 	)) {
+		readerOverlayOrigins.get(overlay)?.remove();
 		const origin = document.createComment('reader overlay origin');
 		overlay.before(origin);
 		readerOverlayOrigins.set(overlay, origin);
