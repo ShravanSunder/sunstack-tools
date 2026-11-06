@@ -218,7 +218,7 @@ flowchart LR
 <li>that folder's <code>SKILL.md</code>, for the filter;</li>
 <li>every file it loads, even one outside the paths the rulebook checks.</li>
 </ul>
-<p>The cost is a copy per revision used, removed when the run ends.</p>
+<p>Each copy is made a Git repository of its own (<code>git init</code> inside the copy only), so lint finds the repository root exactly as in a real checkout, even when the config sits deep inside it, as ai-tools' does. The real repository is never touched. The cost is a copy per revision used, removed when the run ends.</p>
 <p><strong>Matching:</strong> each case gets exactly one outcome.</p>
 <ul>
 <li><strong>A rule case</strong> matches that rule's results whose piece overlaps its lines in its file:
