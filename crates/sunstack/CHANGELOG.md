@@ -2,7 +2,7 @@
 
 ## 0.7.1
 
-Unreleased.
+Release date: 2026-11-06.
 
 - Refuse `limits.max_locate_lines` above the provider's 255-option Choice cap
   during config checking. Filter declarations above that cap are refused at
