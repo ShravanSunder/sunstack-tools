@@ -20,7 +20,7 @@ Select a node, compare Current and Proposed, then inspect its evidence.
 
 ## The graph document, version 1
 
-The library's parser fixes this format. Every field is required unless marked optional, and text fields may be empty. `nodes` needs at least one entry, and every node names a declared group, so `groups` can't be empty either; `edges`, `tables` and the `sources` and `nodes` lists may be empty:
+The library's parser fixes this format. Every field is required unless marked optional, and text fields may be empty. The top-level `nodes` array needs at least one entry, and every node names a declared group, so the top-level `groups` array can't be empty either. The top-level `edges` and `tables` arrays may be empty, and so may every `sources` list and the node-reference `nodes` lists inside table rows and cells:
 
 - top level: `version` (`1`), `sourceBase` (an HTTP or HTTPS URL that source links resolve against), `title`, `description`, `note`, and the arrays `groups`, `nodes`, `edges` and `tables`;
 - a group: `id`, `label` (the visible category name) and `kind`, one of `phase`, `role`, `method` or `principle`, which picks a category tint below and does not name the subject;
