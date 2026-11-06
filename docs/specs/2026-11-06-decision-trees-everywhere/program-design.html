@@ -20,26 +20,34 @@
 <ex-document id="content">
 <h1>Program design: which part of sunstack does what</h1>
 
-<p><strong>In short:</strong> filters move onto the same tree format rules already use, with their own kind of ending: a label instead of pass or warning. Rules and filters gain a <code>reference</code> section, which sunstack copies into every request's state. A question that needs text the request doesn't have ends as a gap, not a pass. The human output stops printing request text and gives each line an id, so an agent can ask for one line's detail. A new <code>sunstack lint cases</code> command runs labelled real cases through the same path lint uses. In ai-tools, the kind filter and the product-workflow rule are rebuilt on this, the TS gate is removed, and agents run <code>sunstack lint</code> directly.</p>
+<p><strong>In short:</strong></p>
+<ul>
+<li><strong>Filters</strong> move onto the same tree format rules already use. They declare their own list of labels, and their tree ends in one of those labels or "unsure".</li>
+<li><strong>Reference:</strong> rules and filters gain a <code>reference</code> section, which sunstack copies into every request's state.</li>
+<li><strong>Collection:</strong> a tree can check whether its text was fully collected, and a rule never passes on a "no" about text that wasn't.</li>
+<li><strong>Output:</strong> the human output stops printing request text and gives each line an id. A saved report keeps every request and answer, so any result can be re-checked.</li>
+<li><strong>Proof:</strong> a new <code>sunstack lint cases</code> command runs labelled real cases through lint's own path, with their real surrounding text, and accounts for every case.</li>
+<li><strong>In ai-tools:</strong> the two rules are rebuilt on this, the active rulebook holds only the rules meant to be on, the TS gate is removed, and agents run <code>sunstack lint</code> directly.</li>
+</ul>
 
 <ex-callout title="Proposed design, not built" tone="decision">
-<p>Nothing here is implemented. Two reviews and the plan come next, then your yes.</p>
+<p>Nothing here is implemented. Reviews and the plan come first, then your yes.</p>
 </ex-callout>
 
 <h2 id="parts">The parts that change</h2>
 <ex-mermaid id="component-tree" label="Where each change lives"><script type="text/plain">
 flowchart TB
   subgraph tools["sunstack-tools (engine, release 0.8.0)"]
-    defs["rule and filter loading<br/>sunstack-rules: rule_definitions, rulebook_planning<br/>accepts reference and filter trees; refuses bad names and routes"]
-    walk["tree walking<br/>sunstack-rules: decision_walking<br/>one walker, two kinds of ending"]
+    defs["rule and filter loading<br/>sunstack-rules: rule_definitions, rulebook_planning<br/>reference, filter labels and trees; refuses bad names and routes"]
+    walk["tree walking<br/>sunstack-rules: decision_walking<br/>one walker, two kinds of ending; 'complete' check"]
     filt["filters<br/>sunstack-rules: filters<br/>one request per folder, then walk the filter's tree"]
-    state["request building<br/>piece_state and filter request_for<br/>evidence + reference; gaps named"]
+    state["request building<br/>piece_state and filter request_for<br/>evidence + reference; gaps and cuts named"]
     evid["text collection<br/>sunstack-evidence: target loading<br/>skill-name loads get an opening too"]
-    out["lint output<br/>sunstack-lint: lint_reporting<br/>short lines with ids, --report, lint show"]
+    out["lint output and saved report<br/>sunstack-lint: lint_reporting<br/>short lines with ids, --report, lint show"]
     cases["case runs (new)<br/>sunstack-lint: case_runs<br/>sunstack lint cases"]
   end
   subgraph aitools["ai-tools (uses 0.8.0)"]
-    book["rulebook<br/>kind filter tree, product-workflow tree,<br/>their reference and case files"]
+    book["active rulebook<br/>kind filter tree, product-workflow tree,<br/>mechanical checks; held rules outside it"]
     agents["AGENTS.md and skills<br/>agents run sunstack lint;<br/>skills teach the new shape"]
     gone["TS adoption gate<br/>removed"]
   end
@@ -64,22 +72,39 @@ flowchart TB
 </script></ex-mermaid>
 <p>Colours: blue for trees, amber for what Jev is shown, teal for what agents read, violet for proof, rose for ai-tools, green for removed.</p>
 
+<h2 id="standard">How each tree meets the decision-model standard</h2>
+<p>These are the five parts <code>domain-decision-models</code> requires, and what each tree does for each. Details follow below.</p>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Part</th><th>What the standard asks</th><th>Kind filter</th><th>Product-workflow rule</th></tr></thead>
+<tbody>
+<tr><td><strong>Questions</strong></td><td>Each asks one fact the evidence can show. A pick question only picks between labels that can't both be true.</td><td>Q1: which one of three kinds of primary work. Q2: which one of three kinds of guidance. Both are exclusive picks.</td><td>Q1: is there a procedure that belongs to one product? Q2: is every such procedure only a labelled example? Two separate facts, each standing alone.</td></tr>
+<tr><td><strong>State</strong></td><td>The text being judged, plus reference material the questions share. Nothing the judgment doesn't use. Never the expected answer.</td><td>The description and the <code>SKILL.md</code> opening, plus <code>reference</code> (kind definitions and examples). No folder name.</td><td>The section's body, heading, headings and loaded-file openings (skills included), plus <code>reference</code> (your U16 rows as examples). The file and lines stay in <code>where</code>, as today.</td></tr>
+<tr><td><strong>Statistic</strong></td><td>Every bar names the number it reads and its comparison. A pick question's bar suits its label count. No accuracy claimed from a probability.</td><td>Both questions read the top label's probability among 3 labels, against a bar set for 3 labels</td><td>Both questions read P(yes) with inclusive yes and no bars. The line-finder reads its top line's probability, which only places the line.</td></tr>
+<tr><td><strong>Policy</strong></td><td>Code combines answers. An unknown never passes. A warning the evidence can't settle is a nudge. Missing text is never read as absence.</td><td>Labels come only from the tree's endings; either question below its bar → unsure, skipped and listed</td><td>Q1 yes and Q2 no → a nudge to read and decide. Q1 no on fully collected text → pass. Q1 no on incomplete text → unsure. Any in-between → unsure.</td></tr>
+<tr><td><strong>Proof</strong></td><td>Held-out cases, frozen design, compared with today's version, within one model version. Measures kept apart.</td><td>Development cases set the bar. Frozen held-out folders: no wrong kind.</td><td>U17's case floors; bars set on development cases. Frozen held-out run: zero false warnings, every real mistake warns.</td></tr>
+</tbody>
+</table>
+</div>
+
 <h2 id="choices">The choices, and why</h2>
 <div class="ex-table-scroll" data-width="canvas">
 <table>
 <thead><tr><th>Question</th><th>Chosen</th><th>Not chosen, and why</th><th>What it costs</th></tr></thead>
 <tbody>
-<tr><td>How does a filter become a tree?</td><td>A filter uses the same tree format as a rule: the same steps, the same bars, the same walker. Only its endings differ: a label, or <code>unsure</code>.</td><td><strong>Filters that feed other filters</strong> (one filter per level): more config and a request per level, for the same result. <strong>A longer single question</strong>: fails U23.</td><td>A new filter shape; the old one is refused (hard cutover)</td></tr>
-<tr><td>Where do examples go?</td><td>A <code>reference</code> section on the rule or filter. Sunstack copies it into the request's state, under <code>reference</code>, next to the text being judged.</td><td><strong>Inside the question wording</strong>: what you rejected; it made the questions long and fragile. <strong>A separate field next to the questions</strong>: Jev's request has no such field. TypeSafe's State page puts "related context, examples" in state.</td><td>Requests get bigger; reference counts toward the size limit</td></tr>
-<tr><td>How does a rule author prove a rule?</td><td>A thin <code>sunstack lint cases</code> command that runs labelled real cases through lint's own path and counts the results. It is not a gate.</td><td><strong>Keep the TS runner in ai-tools</strong>: it only helps this repo, and it's the tooling you objected to. <strong>A gate inside lint</strong>: lint's results would depend on stored scores.</td><td>One new command to keep in step with lint</td></tr>
-<tr><td>How does an agent get detail without a flood?</td><td>Short lines, each with an id. <code>--report &lt;file&gt;</code> saves the full report, and <code>sunstack lint show &lt;file&gt; &lt;id&gt;</code> prints one entry.</td><td><strong>Run again with <code>--format json</code></strong>: pays for every Jev call twice. <strong>A hidden cache file</strong>: new state nobody asked for.</td><td>The agent passes <code>--report</code> when it wants detail later</td></tr>
-<tr><td>What does a gap look like?</td><td>The state lists the fields it couldn't fill. A step whose question needs one of them ends as incomplete, naming the field.</td><td><strong>Drop the field silently</strong>: today's behaviour, which lets "nothing found" pass.</td><td>More results listed as incomplete until collection is fixed</td></tr>
+<tr><td>How does a filter become a tree?</td><td>A filter uses the same tree format as a rule: the same steps, the same bars, the same walker. It declares its labels, and its tree ends in one of them or <code>unsure</code>.</td><td><strong>Filters that feed other filters</strong> (one filter per level): more config and a request per level, for the same result. <strong>A longer single question</strong>: fails U23.</td><td>A new filter shape; the old one is refused (hard cutover)</td></tr>
+<tr><td>Where do examples go?</td><td>A <code>reference</code> section on the rule or filter, copied unchanged into <code>state.reference</code>. Questions point at their own part, such as <code>reference.examples.routes_product</code>.</td><td><strong>Inside the question wording</strong>: what you rejected; it made the questions long and fragile. TypeSafe also allows that, so this is our convention, not a TypeSafe rule. <strong>A separate request field</strong>: Jev's request has none.</td><td>Requests get bigger; every question in the request sees all of it, so keep it to what those questions need</td></tr>
+<tr><td>How is missing or shortened text caught?</td><td>A mechanical check, <code>complete</code>, says whether a field was fully collected, including every loaded file's opening inside it. Trees use it on the "no" path, and missing fields still end incomplete.</td><td><strong>Treat any cut as incomplete</strong>: throws away positive findings that were plainly seen. <strong>Leave it to the question's wording</strong>: the model can't know what it wasn't shown.</td><td>More unsure results where text is long, until collection is widened</td></tr>
+<tr><td>How does a rule author prove a rule?</td><td>A thin <code>sunstack lint cases</code> command that runs labelled real cases through lint's own path, with their real surrounding files. It is not a gate.</td><td><strong>Keep the TS runner in ai-tools</strong>: it only helps this repo, and it's the tooling you objected to. <strong>A gate inside lint</strong>: lint's results would depend on stored scores.</td><td>One new command to keep in step with lint</td></tr>
+<tr><td>How does an agent get detail without a flood?</td><td>Short lines, each with an id. <code>--report &lt;file&gt;</code> saves every request and result, and <code>sunstack lint show &lt;file&gt; &lt;id&gt;</code> prints one entry.</td><td><strong>Run again with <code>--format json</code></strong>: pays for every Jev call twice. <strong>A hidden cache file</strong>: new state nobody asked for.</td><td>The agent passes <code>--report</code> when it wants detail later</td></tr>
+<tr><td>How do the other judged rules stay off?</td><td>The active rulebook holds only the rules meant to be on. Held rules, and the markers that bind them to their sentences, move to a held file outside the config.</td><td><strong>A new "disabled" switch in the engine</strong>: new machinery for something the file layout already does. <strong>Keep the wrapper hiding them</strong>: what you objected to.</td><td>Re-activating a rule means moving its entry and marker back</td></tr>
 </tbody>
 </table>
 </div>
 
 <h2 id="filter-path">What happens when a filter judges a folder</h2>
-<p>Today (<code>filter_run.rs:73-130</code>, <code>223-239</code>): one request per folder, holding one field and the folder's path. Then one answer is compared with one cut-off. Proposed: the request holds the fields the filter declares and its reference, but no folder path. All the filter's questions go in that one request, and then the tree is walked.</p>
+<p>Today (<code>filter_run.rs:73-130</code>, <code>223-239</code>), each folder gets one request holding one field and the folder's path. One answer is then compared with one cut-off.</p>
+<p>Proposed: the request holds the fields the filter declares and its reference, but no folder path. All of the filter's questions go in that one request, and then the tree is walked.</p>
 <ex-mermaid id="filter-call" label="Filter: today and proposed"><script type="text/plain">
 sequenceDiagram
   participant Lint as lint run
@@ -96,98 +121,152 @@ sequenceDiagram
   Jev-->>Filt: answers
   Note over Filt: today: one answer vs min_probability<br/>proposed: walk the filter's tree
   Filt->>Walk: answers + filter tree
-  Walk-->>Filt: label | unsure | incomplete, with path
+  Walk-->>Filt: Judged(label) | Unsure | Incomplete, each with path and answers
   Lint->>Gate: each gated rule's piece
-  Gate-->>Lint: walk | exclude (label not listed) | skip (unsure or incomplete, with path)
+  Gate-->>Lint: Walk | Exclude(label) | Skip(unsure or incomplete, with path)
 </script></ex-mermaid>
+<p><strong>The filter's contract</strong> (D3):</p>
+<ul>
+<li>A filter declares <code>labels</code>, its only possible answers, such as <code>general</code>, <code>role</code>, <code>domain</code>, <code>tool_manual</code> and <code>repo_specific</code>.</li>
+<li>Every tree ending is <code>{"label": &lt;one of labels&gt;}</code> or <code>unsure</code>. A rule's <code>only_when</code> may name only declared labels. Anything else is refused at load.</li>
+<li>A question's own options, such as "reusable guidance", are not filter labels and can never be an answer.</li>
+<li>The outcome is one of three closed shapes: <code>Judged {label, path, answers}</code>, <code>Unsure {step, path, answers}</code> or <code>Incomplete {reason, field?, path, answers}</code>.</li>
+<li>The gate turns that into <code>Walk</code>, <code>Exclude {label}</code> or <code>Skip {unsure | incomplete, path}</code>.</li>
+<li>No combined confidence is invented for the final label. Each step's own answer is kept.</li>
+</ul>
 
-<h2 id="rule-path">What a rule's request carries</h2>
-<p>Today (<code>decision_walking.rs:162-198</code>): <code>standard</code>, <code>where</code>, the evidence fields, and <code>cut-fields</code>. Fields that couldn't be read are dropped silently. Proposed: the same, plus <code>reference</code> and <code>unavailable-fields</code>. Before a question is used, the walker checks every field it names. If one is unavailable, the result is incomplete, naming that field.</p>
+<h2 id="rule-path">What a request carries</h2>
+<p>Today (<code>decision_walking.rs:162-198</code>), a rule's request carries <code>standard</code>, <code>where</code>, the evidence fields and <code>cut-fields</code>. Fields that couldn't be read are dropped silently.</p>
+<p>Proposed: the same, plus <code>reference</code> and <code>unavailable-fields</code>. A loaded file whose opening was shortened keeps its existing <code>opening_cut</code> mark. The line-finder's question rides in the same request, as it does today (<code>rulebook_run.rs:149-165</code>). No second call is made.</p>
 <div class="ex-table-scroll" data-width="canvas">
 <table>
 <thead><tr><th>State key</th><th>Holds</th><th>Today</th><th>Proposed</th></tr></thead>
 <tbody>
-<tr><td><code>standard</code></td><td>The marked sentence the rule checks</td><td>yes</td><td>unchanged</td></tr>
+<tr><td><code>standard</code></td><td>The marked sentence the rule checks</td><td>yes</td><td>unchanged; filters have none</td></tr>
 <tr><td><code>where</code></td><td>File and line range of the piece (rules only)</td><td>yes</td><td>unchanged for rules; filters no longer send a folder path</td></tr>
 <tr><td>evidence fields</td><td>Text collected for the piece, by name</td><td>yes</td><td>unchanged</td></tr>
 <tr><td><code>cut-fields</code></td><td>Fields shortened to fit</td><td>yes</td><td>unchanged</td></tr>
 <tr><td><code>unavailable-fields</code></td><td>Fields that couldn't be collected, with why</td><td>no (silently dropped)</td><td>new</td></tr>
-<tr><td><code>reference</code></td><td>The rule's or filter's reference, by name</td><td>no</td><td>new</td></tr>
+<tr><td><code>reference</code></td><td>The rule's or filter's reference, unchanged</td><td>no</td><td>new</td></tr>
 </tbody>
 </table>
 </div>
-<p>These six names are reserved. An evidence field or reference entry with one of these names is refused when the rulebook loads (R9). Questions name a reference entry as <code>reference.&lt;name&gt;</code> in their context, the same way they name an evidence field (R4, R11).</p>
+<p><strong>Reserved names:</strong> these six are reserved. An evidence field or reference entry with one of these names is refused when the rulebook loads (R9). Questions name what they read: an evidence field, or a path under <code>reference</code> (R4, R11).</p>
+<p><strong>Never in state:</strong> a case's expected answer, spans, hashes, and anything the questions don't read. Those stay in the saved report.</p>
+<p><strong>The <code>complete</code> check</strong> (D2) is a new mechanical step. It reads one field and answers yes only when all of these hold:</p>
+<ul>
+<li>the field wasn't cut;</li>
+<li>it isn't unavailable;</li>
+<li>every loaded file or skill inside it resolved, with an opening that wasn't cut.</li>
+</ul>
+<p>Like every mechanical step, it sends nothing to Jev. A tree uses it before passing on a "no".</p>
+
+<h2 id="report">What the saved report keeps</h2>
+<p>Today the report keeps each request's state (<code>evidence_seen</code>) and the answers each walk read. It doesn't keep the questions as sent, answers the walk didn't read, or the model that answered (<code>sunstack-driver</code> facts). The engine already holds all of this internally (<code>RulebookRun.requests</code>).</p>
+<p>Proposed: <code>--report &lt;file&gt;</code> writes, beside the usual results:</p>
+<ul>
+<li><code>requests</code>: each with its id, its rule or filter, its piece or folder, the exact state, the questions in the order sent, every answer returned, and the requested and resolved model, or why it wasn't sent;</li>
+<li><code>rulebook_files</code>: the path and content hash of every config and rule file used, so the tree and bars behind each result are known;</li>
+<li>on each result: its route, the ids of its requests, and any gap.</li>
+</ul>
+<p>Because all of a tree's questions are asked together, a saved report can re-walk any result under a changed bar without asking Jev again. Changed wording or changed evidence needs a fresh run, and the report says so.</p>
 
 <h2 id="output-path">What an agent reads</h2>
-<p>Today (<code>formats.rs:136-156</code>): each folder's filter answer prints as JSON, and each unsure result prints its whole request state, including the section text, plus every answer. On the all-skills run last week that would have been 191 section texts. Proposed:</p>
+<p>Today (<code>formats.rs:136-156</code>), each folder's filter answer prints as JSON. Each unsure result prints its whole request state, including the section text, plus every answer. On the all-skills run last week, that would have been 191 section texts. Proposed:</p>
 <div class="ex-table-scroll" data-width="canvas">
 <table>
 <thead><tr><th>Line</th><th>Example</th></tr></thead>
 <tbody>
-<tr><td>Warning</td><td><code>plugins/sunstack-dev/skills/ops-observability-stack/SKILL.md:17:1: warn [general-skill.overfits-to-product-workflow] routes the agent into one product's own workflow #3</code>, then <code>  target: …/references/agentstudio-loop.md:1</code></td></tr>
+<tr><td>Warning (a nudge)</td><td><code>plugins/sunstack-dev/skills/ops-observability-stack/SKILL.md:17:1: warn [general-skill.overfits-to-product-workflow] sends the agent into one product's own procedure; read the line and loaded file, then decide whether it belongs in that product's repository #3</code>, then <code>  target: …/references/agentstudio-loop.md:1</code></td></tr>
 <tr><td>Unsure</td><td><code>…/SKILL.md:40-58: unsure [rule] at step routes_product: 0.52 is between 0.35 and 0.65 #7</code></td></tr>
+<tr><td>Not fully read</td><td><code>…/SKILL.md:6-24: unsure [rule] no product procedure seen, but targets were not fully read (opening cut) #8</code></td></tr>
 <tr><td>Gap</td><td><code>…/SKILL.md:6-24: incomplete [rule] targets unavailable: skill not found #9</code></td></tr>
 <tr><td>Filter summary</td><td><code>Filter kind: 61 general, 6 role, 4 domain, 3 tool_manual, 1 repo_specific; 2 unsure (listed below)</code>, then one line per unsure or incomplete folder</td></tr>
-<tr><td>Detail on request</td><td><code>sunstack lint --report run.json …</code> then <code>sunstack lint show run.json 7</code>: that entry's route, answers, bars and pointers</td></tr>
+<tr><td>Detail on request</td><td><code>sunstack lint --report run.json …</code>, then <code>sunstack lint show run.json 7</code>: that entry's route, answers, bars, requests and pointers</td></tr>
 </tbody>
 </table>
 </div>
-<p>The counts in the filter example are made up, to show the shape only. JSON, GitHub and SARIF outputs keep their full content.</p>
+<p>The numbers in these examples are made up, to show the shape only. JSON, GitHub and SARIF outputs keep their full content.</p>
 
 <h2 id="case-path">How a case run works</h2>
 <p>This path is new. It has no predecessor in sunstack; today it lives in ai-tools' TS runner.</p>
 <ex-mermaid id="case-call" label="sunstack lint cases"><script type="text/plain">
 flowchart LR
-  file["cases file<br/>for, file, revision, lines or folder,<br/>text hash, expected, set"] --> load["read each case's text<br/>git show revision:file"]
-  load --> stale{"text hash<br/>matches?"}
-  stale -- no --> listed["listed as stale,<br/>not scored"]
-  stale -- yes --> tree["temporary tree:<br/>current rulebook files<br/>+ case texts at their paths"]
-  tree --> lint["the normal lint run<br/>on those files only"]
-  lint --> match["match results to cases<br/>by rule and line range, or filter and folder"]
-  match --> counts["per rule or filter: right, false warning,<br/>missed, unsure, incomplete; each case's route"]
+  file["case file<br/>rule cases and filter cases;<br/>recorded bars"] --> stale{"each case's text<br/>matches its hash<br/>at its revision?"}
+  stale -- no --> listed["listed: stale"]
+  stale -- yes --> tree["temporary tree per revision:<br/>the files the rulebook checks, at that revision<br/>+ today's rulebook files on top"]
+  tree --> lint["the normal lint run,<br/>on the case files"]
+  lint --> match["match each case to its result"]
+  match --> out["per rule or filter:<br/>right, false warning or wrong label, missed,<br/>unsure, incomplete; and the listed cases"]
 </script></ex-mermaid>
-<p>It writes nothing that lint reads. It uses the rulebook as it is now against the case texts as they were at their revisions, which is what an author wants: does today's rule get these real cases right?</p>
+<p><strong>A case file</strong> (D4) holds:</p>
+<ul>
+<li><strong>Rule cases:</strong> <code>{kind: "rule", rule, file, revision, lines, text_sha256, expected: "warn" | "pass", set, label_from: "owner-fix" | "blind-agents"}</code>.</li>
+<li><strong>Filter cases:</strong> <code>{kind: "filter", filter, folder, revision, reads_sha256, expected_label, set, label_from}</code>.</li>
+<li><strong>The rule's bars</strong> as recorded beside the development cases that set them: <code>bars: [{step, value, set_from: [case ids]}]</code> (U18).</li>
+<li>An optional <code>repository</code> path, for cases from another local checkout (U19).</li>
+</ul>
+<p><strong>The surrounding text:</strong> for each revision, the run copies every file the rulebook checks as it was at that revision (with <code>git archive</code>), then puts today's rulebook files on top. A case therefore sees its own skill folder, that folder's <code>SKILL.md</code> for the filter, and the files it loads, all from the case's revision.</p>
+<p><strong>Matching:</strong> each case gets exactly one outcome.</p>
+<ul>
+<li><strong>A rule case</strong> matches that rule's results whose piece overlaps its lines in its file:
+  <ul>
+  <li>none → <em>no matching piece</em>;</li>
+  <li>more than one → <em>more than one matching piece</em>;</li>
+  <li>excluded by the filter → <em>filter excluded</em>;</li>
+  <li>otherwise its result is scored against the expected one: right, false warning, missed, unsure or incomplete.</li>
+  </ul></li>
+<li><strong>A filter case</strong> is scored right, wrong label, unsure or incomplete.</li>
+<li>Every case appears in the counts or in the listed cases, never neither.</li>
+<li>If a rule's current bars differ from its recorded bars, the run says the bars are unassessed (U18).</li>
+</ul>
+<p>It writes nothing that lint reads.</p>
+<p><strong>Today's version as the baseline:</strong> 0.8.0 refuses today's filter shape, so the old rules can't run through <code>lint cases</code>. Instead, the verify driver runs the released 0.7.1 binary with ai-tools main's rulebook on the same temporary trees. It applies the same matching to 0.7.1's JSON report. The comparison names both engine versions and the model each run resolved to.</p>
 
 <h2 id="ai-tools-trees">The two rebuilt trees in ai-tools</h2>
-<p>These are shapes, not final wording. Each question is written once from the standard and your U16 rulings, checked by an independent decision-model review, and proven once on held-out cases. There are no wording rounds.</p>
+<p>These are shapes, not final wording. Each question is written once from the standard and your U16 rulings. An independent decision-model review checks the tree. Bars are set on the development cases (U18), then the frozen tree is proven once on held-out cases. There are no wording rounds.</p>
 
 <h3 id="kind-tree">Kind filter</h3>
-<p>Jev is shown each skill's description and the opening of its <code>SKILL.md</code> body, plus a reference holding the five kind definitions and worked examples. Jev isn't shown the folder name. Both questions go in one request.</p>
+<p>Jev is shown each skill's description and the opening of its <code>SKILL.md</code> body. It also sees a reference holding the five kind definitions and worked examples. It isn't shown the folder name. Both questions go in one request.</p>
 <ex-mermaid id="kind-tree-view" label="Kind filter tree"><script type="text/plain">
 flowchart TB
-  q1{"What is the skill's primary work?<br/>(pick one)"} -- "reusable guidance" --> q2{"What kind of guidance?<br/>(pick one)"}
-  q1 -- "operating one tool through its interface" --> tm["tool_manual"]
-  q1 -- "one product's own procedure" --> rs["repo_specific"]
-  q1 -- "not sure enough" --> u1["unsure: skipped and listed"]
-  q2 -- "a workflow or practice" --> g["general"]
-  q2 -- "a standing team job" --> r["role"]
-  q2 -- "standards for a subject" --> d["domain"]
-  q2 -- "not sure enough" --> u2["unsure: skipped and listed"]
+  q1{"Q1 What is the skill's primary work?<br/>(pick 1 of 3; top label's probability ≥ bar)"} -- "reusable guidance" --> q2{"Q2 What kind of guidance?<br/>(pick 1 of 3; top label's probability ≥ bar)"}
+  q1 -- "operating one tool through its interface" --> tm["label: tool_manual"]
+  q1 -- "one product's own procedure" --> rs["label: repo_specific"]
+  q1 -- "top label below bar" --> u1["unsure: skipped and listed"]
+  q2 -- "a workflow or practice" --> g["label: general"]
+  q2 -- "a standing team job" --> r["label: role"]
+  q2 -- "standards for a subject" --> d["label: domain"]
+  q2 -- "top label below bar" --> u2["unsure: skipped and listed"]
 </script></ex-mermaid>
+<p><strong>Statistic:</strong> both questions read the top label's probability among 3 labels. A bar of p, for example, means a confidence of (p − 1/3) ÷ (2/3), which is not accuracy. The bars start at the engine's usual 0.6 for a pick question and are set on the development cases; a starting bar never switches the filter on. Q2's answer is read only when Q1 picked "reusable guidance"; otherwise it's asked but unused.</p>
 
 <h3 id="k002-tree">Product-workflow rule</h3>
 <p>Jev is shown each section's body, heading and headings, plus the opening of each file or skill the section loads. The reference holds your U16 rows as worked examples, each with its answer and why.</p>
 <ex-mermaid id="k002-tree-view" label="Product-workflow rule tree"><script type="text/plain">
 flowchart TB
-  gap{"any field it needs<br/>unavailable?"} -- yes --> inc["incomplete: gap named"]
-  gap -- no --> q1{"Does the section send the agent into, or work through,<br/>a procedure that belongs to one product, real or made up?<br/>(yes / no)"}
-  q1 -- no --> pass1["pass"]
+  q1{"Q1 Does the section send the agent into, or work through,<br/>a procedure that belongs to one product, real or made up?<br/>(P(yes): yes at ≥ bar, no at ≤ bar)"}
+  q1 -- yes --> q2{"Q2 Is every product procedure in this section named only<br/>as a labelled example of a general instruction, such as 'for example'?<br/>(P(yes): yes at ≥ bar, no at ≤ bar)"}
+  q1 -- no --> c{"complete: body and every<br/>loaded opening fully read?"}
+  c -- yes --> pass1["pass"]
+  c -- no --> uns0["unsure: no procedure seen,<br/>but not all text was read"]
   q1 -- "in-between" --> uns1["unsure"]
-  q1 -- yes --> q2{"Is every product procedure in this section named only<br/>as a labelled example of a general instruction, such as 'for example'?<br/>(yes / no)"}
   q2 -- yes --> pass2["pass (U16 row 3)"]
   q2 -- "in-between" --> uns2["unsure"]
-  q2 -- no --> loc["warn on the section, pointing at the line<br/>with the unlabelled product procedure"]
+  q2 -- no --> nudge["warn (a nudge): read the line and the loaded file,<br/>then decide whether it belongs in that product's repository"]
 </script></ex-mermaid>
+<p><strong>Statistic:</strong> Q1 and Q2 read the probability of yes. At or above the yes bar is yes, at or below the no bar is no, both inclusive, and in between is unsure. Bars start at the engine's usual 0.7 and 0.3 and are set on the development cases. The line-finder reads its top line's probability against its own bar, and that only places the warning's line; it never decides pass or warn.</p>
+<p><strong>Policy:</strong> a warning needs Q1 yes and Q2 no. The warning is worded as a nudge, because the text can show a product's procedure but can't settle where it belongs. A "no" from Q1 passes only on fully read text. Any in-between answer is unsure. A field that couldn't be collected at all ends incomplete.</p>
 <div class="ex-table-scroll" data-width="canvas">
 <table>
 <thead><tr><th>Your U16 row</th><th>Question 1</th><th>Question 2</th><th>Result</th></tr></thead>
 <tbody>
 <tr><td>1 · a product's own command</td><td>yes</td><td>no</td><td>warn</td></tr>
 <tr><td>2 · loads a product's own workflow file</td><td>yes (seen through the loaded file's opening)</td><td>no</td><td>warn</td></tr>
-<tr><td>3 · labelled example</td><td>yes</td><td>yes</td><td>pass (if question 1 says no, question 2 isn't asked, and it passes)</td></tr>
+<tr><td>3 · labelled example</td><td>yes</td><td>yes</td><td>pass (if question 1 says no on fully read text, question 2 isn't read, and it passes)</td></tr>
 <tr><td>4 · worked or made-up product example, not labelled</td><td>yes</td><td>no</td><td>warn</td></tr>
 <tr><td>5 · quotes a real product mistake</td><td>yes</td><td>no</td><td>warn</td></tr>
-<tr><td>6 to 9 · subject's tool, tool used as meant, toolkit's shared tools, ordinary command</td><td>no</td><td>not asked</td><td>pass</td></tr>
+<tr><td>6 to 9 · subject's tool, tool used as meant, toolkit's shared tools, ordinary command</td><td>no</td><td>not read</td><td>pass</td></tr>
 <tr><td>10 · a product's own skill about its own product</td><td>not asked</td><td>not asked</td><td>not judged: the kind filter marks it tool manual or repository-specific</td></tr>
 <tr><td>11 · a description naming products as users</td><td>not this rule</td><td>not this rule</td><td>not covered here: the description rule's job, which stays off</td></tr>
 <tr><td>12 · a product's skill sending agents into another product</td><td>no real case yet</td><td>no real case yet</td><td>waits for a real case, as you ruled</td></tr>
@@ -196,11 +275,11 @@ flowchart TB
 </div>
 <p>This keeps the current rule's two-question shape and fixes the review's findings:</p>
 <ul>
-<li>It sees the content of loaded skills, not only loaded files (F1).</li>
+<li>It sees the content of loaded skills, not only loaded files, and it never passes on text it didn't fully read (F1, D2).</li>
 <li>Its second question is a separate fact, so it can't contradict the first (F3).</li>
-<li>Each question stands on its own: Jev answers both in one request without seeing the other's answer, so neither refers back to the other.</li>
-<li>Its line-finder uses the same boundary as question 2 (F6).</li>
-<li>The toolkit's shared tools are part of question 1's definition, through the reference examples, not a separate escape route.</li>
+<li>Each question stands on its own. Jev answers both in one request without seeing the other's answer, so neither refers back to the other.</li>
+<li>Its line-finder uses the same boundary as Q2 (F6).</li>
+<li>The toolkit's shared tools are part of Q1's definition, through the reference examples, not a separate escape route.</li>
 </ul>
 
 <h2 id="binding">Where each thing lives</h2>
@@ -209,16 +288,17 @@ flowchart TB
 <thead><tr><th>Thing</th><th>Owner</th><th>Home</th><th>Shape</th><th>Kept</th></tr></thead>
 <tbody>
 <tr><td>E1 Rulebook</td><td>sunstack-lint configuration loading</td><td>existing, modified: <code>config_contracts.rs</code>; <code>RulebookPair</code></td><td>config JSON; <code>filters</code> entries take the new filter shape</td><td>file in repo</td></tr>
-<tr><td>E2 Tree</td><td>sunstack-rules rulebook planning</td><td>existing, modified: <code>decision_graph_contracts.rs</code></td><td>steps shared; ending type depends on the owner: rule endings (pass, finding, uncertain, not_applicable) or filter endings (<code>{"label": …}</code>, <code>unsure</code>)</td><td>file in repo</td></tr>
+<tr><td>E2 Tree</td><td>sunstack-rules rulebook planning</td><td>existing, modified: <code>decision_graph_contracts.rs</code></td><td>steps shared, plus the new mechanical <code>complete</code> check; the ending type depends on the owner: rule endings (pass, finding, uncertain, not_applicable) or filter endings (<code>{"label": …}</code>, <code>unsure</code>)</td><td>file in repo</td></tr>
 <tr><td>E3 Question</td><td>sunstack-decisions</td><td>existing: <code>JudgmentQuestion</code>, <code>NamedQuestionMap</code></td><td>unchanged</td><td>file in repo</td></tr>
-<tr><td>E4 Filter</td><td>sunstack-rules filters</td><td>existing, modified: <code>FilterWire</code>, <code>FilterPlan</code> in <code>filter_plan.rs</code></td><td><code>{per, reads: {file, kind, fields: [names]}, questions, decision, reference?}</code>; <code>question</code> and <code>min_probability</code> removed</td><td>file in repo</td></tr>
+<tr><td>E4 Filter</td><td>sunstack-rules filters</td><td>existing, modified: <code>FilterWire</code>, <code>FilterPlan</code> in <code>filter_plan.rs</code></td><td><code>{per, reads: {file, kind, fields: [names]}, labels: [names], questions, decision, reference?}</code>; <code>question</code> and <code>min_probability</code> removed</td><td>file in repo</td></tr>
 <tr><td>E5 Rule</td><td>sunstack-rules rulebook planning</td><td>existing, modified: <code>RuleEntryWire</code>, <code>RulebookRule</code></td><td>adds optional <code>reference</code></td><td>file in repo</td></tr>
-<tr><td>E6 Piece</td><td>sunstack-evidence</td><td>existing, modified: target loading</td><td>a resolved skill-name target gets an <code>opening</code>, as a path target does</td><td>derived each run</td></tr>
-<tr><td>E7 Reference</td><td>sunstack-rules rule definitions</td><td>new: <code>ReferenceMaterial</code></td><td>map of name to any JSON value; names may not be reserved state keys</td><td>file in repo</td></tr>
-<tr><td>E8 Request</td><td>sunstack-decisions; built by sunstack-rules</td><td>existing: <code>StructuredJudgmentRequest</code>; builders modified</td><td>state as in the state-key table above</td><td>in the JSON report</td></tr>
-<tr><td>E9 Result</td><td>sunstack-rules</td><td>existing: <code>RulebookResult</code>; modified: <code>FilterAnswerState</code></td><td>filter <code>Judged</code> gains <code>label</code>, <code>path_taken</code>, <code>answers</code>; <code>Incomplete</code> may name a field</td><td>in the JSON report</td></tr>
-<tr><td>E10 Warning</td><td>sunstack-lint reporting</td><td>existing, modified: report findings</td><td>adds an <code>id</code> number, unique within one report</td><td>printed; in the report file when asked</td></tr>
-<tr><td>E11 Case</td><td>sunstack-lint case runs</td><td>new: <code>case_runs</code> module</td><td><code>{for, file, revision, lines | folder, text_sha256, expected, set: development | held_out}</code></td><td>case files live in the repo that owns the rulebook</td></tr>
+<tr><td>E6 Piece</td><td>sunstack-evidence</td><td>existing, modified: target loading</td><td>a resolved skill-name target gets an <code>opening</code> and <code>opening_cut</code>, as a path target does</td><td>derived each run</td></tr>
+<tr><td>E7 Reference</td><td>sunstack-rules rule definitions</td><td>new: <code>ReferenceMaterial</code></td><td>a JSON object; its top-level names can't be reserved state keys</td><td>file in repo</td></tr>
+<tr><td>E8 Request</td><td>sunstack-decisions; built by sunstack-rules</td><td>existing: <code>StructuredJudgmentRequest</code>; builders modified</td><td>state as in the state-key table above</td><td>in the saved report</td></tr>
+<tr><td>E9 Result</td><td>sunstack-rules</td><td>existing: <code>RulebookResult</code>; modified: <code>FilterAnswerState</code> → <code>Judged | Unsure | Incomplete</code>, each with path and answers</td><td>as in the filter contract above</td><td>in the saved report</td></tr>
+<tr><td>E10 Warning</td><td>sunstack-lint reporting</td><td>existing, modified: report findings</td><td>adds an <code>id</code> number, unique within one report</td><td>printed; in the saved report when asked</td></tr>
+<tr><td>E11 Case</td><td>sunstack-lint case runs</td><td>new: <code>case_runs</code> module</td><td>rule and filter cases, plus recorded bars, as above</td><td>case files live in the repo that owns the rulebook</td></tr>
+<tr><td>E12 Saved report</td><td>sunstack-lint reporting</td><td>existing <code>LintReport</code>, modified: adds <code>requests</code> and <code>rulebook_files</code></td><td>as in "What the saved report keeps"</td><td>the file the caller names</td></tr>
 </tbody>
 </table>
 </div>
@@ -228,29 +308,40 @@ flowchart TB
 <table>
 <thead><tr><th>What happens</th><th>Who notices</th><th>Result</th></tr></thead>
 <tbody>
-<tr><td>Rulebook in the old filter shape, a reserved name, a missing route, or an unnamed field</td><td>rule and filter loading</td><td>refused with the field and what to change; run status invalid</td></tr>
+<tr><td>Rulebook in the old filter shape, an undeclared label, a reserved name, a missing route, or an unnamed field</td><td>rule and filter loading</td><td>refused with the field and what to change; run status invalid</td></tr>
 <tr><td>Request too big once the reference is added</td><td>the request size check</td><td>not sent; incomplete, "too large"</td></tr>
 <tr><td>A field a question needs couldn't be collected</td><td>the tree walker</td><td>incomplete, naming the field, listed apart</td></tr>
+<tr><td>Text was cut, or a loaded opening was cut or unresolved</td><td>the <code>complete</code> check</td><td>a "no" can't pass: unsure, saying what wasn't fully read</td></tr>
 <tr><td>Jev's reply is invalid or missing</td><td>the request dispatcher, as today</td><td>incomplete</td></tr>
-<tr><td>A case's text changed since its revision</td><td>case runs</td><td>stale, not scored</td></tr>
+<tr><td>A case's text changed since its revision, or a case matches no piece or several</td><td>case runs</td><td>listed with why, not scored</td></tr>
 <tr><td>Unknown id given to <code>lint show</code></td><td>lint show</td><td>error naming the id and the report's id range</td></tr>
 </tbody>
 </table>
 </div>
-<p>Nothing runs concurrently that didn't before. The existing dispatcher still batches requests. Nothing new is stored, apart from the report file a caller asks for.</p>
+<p>Nothing runs concurrently that didn't before. The existing dispatcher still batches requests. Nothing new is stored, apart from the report file a caller asks for and the temporary trees a case run removes when done.</p>
 
 <h2 id="ai-tools-changes">What changes in ai-tools</h2>
 <ul>
-<li><strong>Rulebook:</strong> the kind filter and the product-workflow rule are rebuilt as above, with their reference. The skill evidence kind gains an <code>opening</code> field for the filter. Section targets resolve skills to their openings.</li>
-<li><strong>Cases:</strong> the existing real scenarios for these two are converted into case files, in development and held-out sets. The held-out cases stay unseen until the frozen run.</li>
+<li><strong>Rulebook:</strong>
+  <ul>
+  <li>The kind filter and the product-workflow rule are rebuilt as above, with their reference.</li>
+  <li>The skill evidence kind gains an <code>opening</code> field for the filter, and section targets resolve skills to their openings.</li>
+  </ul></li>
+<li><strong>Active rules only</strong> (D7): the config lists rulebook file pairs, and each pair's markers bind to its entries. So:
+  <ul>
+  <li>The general-skill pair keeps only the product-workflow rule. The two other judged rules' entries move to <code>rules/held/</code>, and their <code>&lt;!-- K… --&gt;</code> marker comments come out of <code>general-skill.md</code>, recorded in the held file beside the sentence each belongs to. The sentences themselves don't change.</li>
+  <li>The descriptions pair keeps its three mechanical checks, and its two judged rules move the same way.</li>
+  <li>The three pairs whose rules are all judged leave the config. Their files stay as they are.</li>
+  </ul>
+  Bringing a rule back means moving its entry and marker back.</li>
+<li><strong>Cases:</strong> the existing real scenarios for these two become case files, in development and held-out sets. Their labels come from your fixes or blind agent labels. The held-out cases stay unseen until the frozen run.</li>
 <li><strong>Removed:</strong> the adoption gate (<code>adopted.json</code>, floors, held-back custody, <code>adoption.ts</code>, <code>scenario-adoption.ts</code>, <code>adopt-rule-scenario.ts</code>) and the <code>rules</code> wrapper command.</li>
-<li><strong>Agents:</strong> <code>AGENTS.md</code> tells agents to run <code>sunstack lint --config plugins/skill-authoring/skills/domain-skill-crafting/rules/skill-rules.config.json [paths]</code>, with <code>--report</code> when they want detail.</li>
+<li><strong>Agents:</strong> <code>AGENTS.md</code> tells agents to run <code>sunstack lint --config plugins/skill-authoring/skills/domain-skill-crafting/rules/skill-rules.config.json [paths]</code>, adding <code>--report</code> when they want detail.</li>
 <li><strong>Skills:</strong>
   <ul>
   <li><code>domain-decision-models</code>: its state and examples line changes, its worked trees show these two trees, and its driver facts name 0.8.0.</li>
-  <li><code>skill-rules</code>: teaches filter trees, reference and case runs.</li>
+  <li><code>skill-rules</code>: teaches filter labels and trees, reference, the <code>complete</code> check and case runs.</li>
   </ul></li>
-<li><strong>The other eight judged rules</strong> leave the config, with their entries kept for rebuilding later.</li>
 </ul>
 
 <h2 id="trace">Every rule, its owner and its proof</h2>
@@ -258,39 +349,44 @@ flowchart TB
 <table>
 <thead><tr><th>U</th><th>R</th><th>E</th><th>Owner</th><th>Interface</th><th>Shape and home</th><th>State</th><th>Failure</th><th>Proof seam</th></tr></thead>
 <tbody>
-<tr><td>U23</td><td>R1 filter is a tree</td><td>E4, E2</td><td>filters</td><td>rulebook load (<code>admit_filters</code>)</td><td>new <code>FilterWire</code>, <code>filter_plan.rs</code></td><td>none: loaded config</td><td>old shape refused</td><td>load: accepted and refused configs</td></tr>
-<tr><td>U13</td><td>R2 judged once per folder</td><td>E4, E9</td><td>filters</td><td><code>ask_filters</code></td><td>one <code>FilterAnswer</code> per folder</td><td>per run</td><td>none: no new failure</td><td>lint run: request count per folder</td></tr>
-<tr><td>U14</td><td>R3 unsure folder skipped and listed</td><td>E4, E9</td><td>filter gate</td><td><code>GateOutcome::Skip</code></td><td>skip carries the route</td><td>per run</td><td>none: no new failure</td><td>lint run on an unsure folder</td></tr>
-<tr><td>U24</td><td>R4 questions name what they read</td><td>E3, E8</td><td>rulebook admission</td><td>field-name check</td><td>evidence fields + <code>reference.*</code></td><td>none: loaded config</td><td>unknown name refused</td><td>load: refused configs</td></tr>
+<tr><td>U23</td><td>R1 filter is a tree</td><td>E4, E2</td><td>filters</td><td>rulebook load (<code>admit_filters</code>)</td><td>new <code>FilterWire</code> with <code>labels</code>, <code>filter_plan.rs</code></td><td>none: loaded config</td><td>old shape or undeclared label refused</td><td>load: accepted and refused configs</td></tr>
+<tr><td>U13</td><td>R2 judged once per folder</td><td>E4, E9</td><td>filters</td><td><code>ask_filters</code></td><td>one filter result per folder</td><td>per run</td><td>none: no new failure</td><td>lint run: request count per folder</td></tr>
+<tr><td>U14</td><td>R3 unsure folder skipped and listed</td><td>E4, E9</td><td>filter gate</td><td><code>Skip {unsure, path}</code></td><td>closed gate outcomes</td><td>per run</td><td>none: no new failure</td><td>lint run on an unsure folder</td></tr>
+<tr><td>U24</td><td>R4 questions name what they read</td><td>E3, E8</td><td>rulebook admission</td><td>field-name check</td><td>evidence fields + <code>reference.*</code> paths</td><td>none: loaded config</td><td>unknown name refused</td><td>load: refused configs</td></tr>
 <tr><td>U24</td><td>R5 every answer has a route</td><td>E2, E3</td><td>tree admission</td><td>route check by question type</td><td><code>decision_graph_contracts.rs</code></td><td>none: loaded config</td><td>missing route refused</td><td>load: refused configs</td></tr>
 <tr><td>U23, U24</td><td>R6 answers combine only through steps</td><td>E2</td><td>tree walker</td><td>shared walk</td><td><code>path_taken</code></td><td>per run</td><td>none: no new failure</td><td>walk: fixed answers give fixed routes</td></tr>
-<tr><td>U23, U24, U16</td><td>R7 rebuilt filter and rule</td><td>E4, E5</td><td>ai-tools rulebook</td><td>config and rule entries</td><td><code>skill-rules.config.json</code>, <code>general-skill.rules.json</code></td><td>none: loaded config</td><td>none: no new failure</td><td>decision-model review; held-out case run</td></tr>
-<tr><td>U25</td><td>R8 reference reaches the request</td><td>E7, E8</td><td>request builders</td><td><code>piece_state</code>, filter <code>request_for</code></td><td><code>state.reference.&lt;name&gt;</code></td><td>per request</td><td>none: no new failure</td><td>request in the JSON report</td></tr>
+<tr><td>U23, U24, U16</td><td>R7 rebuilt filter and rule</td><td>E4, E5</td><td>ai-tools rulebook</td><td>config and rule entries</td><td><code>skill-rules.config.json</code>, <code>general-skill.rules.json</code></td><td>none: loaded config</td><td>none: no new failure</td><td>decision-model review; development and held-out case runs</td></tr>
+<tr><td>U25</td><td>R8 reference reaches the request</td><td>E7, E8</td><td>request builders</td><td><code>piece_state</code>, filter <code>request_for</code></td><td><code>state.reference</code></td><td>per request</td><td>none: no new failure</td><td>requests in the saved report</td></tr>
 <tr><td>U25</td><td>R9 reserved names refused</td><td>E7</td><td>rulebook admission</td><td>name check</td><td>six reserved keys</td><td>none: loaded config</td><td>clash refused</td><td>load: refused configs</td></tr>
 <tr><td>U25, U3</td><td>R10 reference counts toward size</td><td>E7, E8</td><td>request size check</td><td>existing dispatcher limit</td><td>request bytes</td><td>per request</td><td>too large: incomplete</td><td>lint run with an oversized reference</td></tr>
-<tr><td>U25</td><td>R11 questions name their reference</td><td>E3, E7</td><td>rulebook admission</td><td>field-name check</td><td><code>reference.&lt;name&gt;</code> in context</td><td>none: loaded config</td><td>unknown name refused</td><td>load: refused configs</td></tr>
-<tr><td>U17</td><td>R12 case run uses lint's path</td><td>E11, E9</td><td>case runs</td><td><code>sunstack lint cases</code></td><td>case report: counts and routes</td><td>per run</td><td>stale listed</td><td>same text: case result equals lint result</td></tr>
+<tr><td>U25</td><td>R11 questions name their reference</td><td>E3, E7</td><td>rulebook admission</td><td>field-name check</td><td><code>reference.&lt;path&gt;</code> in context</td><td>none: loaded config</td><td>unknown name refused</td><td>load: refused configs</td></tr>
+<tr><td>U17, U19, U20, U21</td><td>R12 case run uses lint's path and context</td><td>E11, E9</td><td>case runs</td><td><code>sunstack lint cases</code></td><td>case file; temporary tree per revision; one outcome per case</td><td>per run (temporary trees removed)</td><td>stale, unmatched, ambiguous, excluded listed</td><td>same text: case result equals lint result; every case accounted for</td></tr>
 <tr><td>U17, U26</td><td>R13 not a gate</td><td>E11</td><td>case runs</td><td>separate command</td><td>none: writes nothing lint reads</td><td>none: nothing stored</td><td>none: no new failure</td><td>lint output unchanged after a case run</td></tr>
 <tr><td>U19</td><td>R14 real text, fixed revision</td><td>E11</td><td>case runs</td><td>revision and text hash</td><td>case fields</td><td>per run</td><td>stale, not scored</td><td>a drifted case is listed stale</td></tr>
-<tr><td>U18</td><td>R15 bars live in the rule's tree</td><td>E2, E11</td><td>tree and case report</td><td>bar crossed in the route</td><td>step bars</td><td>none: loaded config</td><td>none: no new failure</td><td>case report names the bar</td></tr>
+<tr><td>U18</td><td>R15 bars in the tree, recorded with their cases</td><td>E2, E11</td><td>tree; case runs</td><td>recorded <code>bars</code> in the case file</td><td>step bars; <code>bars[].set_from</code></td><td>file in repo</td><td>changed bar: "unassessed"</td><td>case report names bars and their cases</td></tr>
 <tr><td>U27, U1</td><td>R16 one short line per warning</td><td>E10</td><td>lint reporting</td><td>human output</td><td><code>file:line:col: warn [rule] reason #id</code> + pointers</td><td>none: printed</td><td>none: no new failure</td><td>real run output on ai-tools</td></tr>
-<tr><td>U27</td><td>R17 detail for one warning</td><td>E10, E9</td><td>lint reporting</td><td><code>--report</code>, <code>lint show</code></td><td>one report entry</td><td>report file</td><td>unknown id: error</td><td>show returns that entry alone</td></tr>
+<tr><td>U27</td><td>R17 detail for one warning</td><td>E10, E12</td><td>lint reporting</td><td><code>--report</code>, <code>lint show</code></td><td>one report entry with its requests</td><td>report file</td><td>unknown id: error</td><td>show returns that entry alone</td></tr>
 <tr><td>U3, U5</td><td>R18 skips, unsure, gaps apart</td><td>E9</td><td>lint reporting</td><td>human output</td><td>one line each, no request text</td><td>none: printed</td><td>none: no new failure</td><td>real run output on ai-tools</td></tr>
 <tr><td>U4</td><td>R19 run status order</td><td>E9</td><td>lint outcome</td><td><code>LintStatus</code> (<code>outcome.rs:208-233</code>)</td><td>existing order kept</td><td>per run</td><td>existing</td><td>status cases</td></tr>
 <tr><td>U26</td><td>R20 agents run lint directly</td><td>none: instruction text</td><td>ai-tools</td><td><code>AGENTS.md</code></td><td>command line</td><td>none: text</td><td>none: no new failure</td><td>real run with the documented command</td></tr>
 <tr><td>U28</td><td>R21 decision-model skill teaches it</td><td>none: skill text</td><td>ai-tools sunstack-dev</td><td><code>domain-decision-models</code></td><td>skill text</td><td>none: text</td><td>none: no new failure</td><td>text check</td></tr>
 <tr><td>U28</td><td>R22 rule-writing skill teaches it</td><td>none: skill text</td><td>ai-tools skill-authoring</td><td><code>skill-rules</code></td><td>skill text</td><td>none: text</td><td>none: no new failure</td><td>text check</td></tr>
-<tr><td>U3, U21, U24</td><td>R23 missing text is a gap</td><td>E6, E8, E9</td><td>request builders, walker, target loading</td><td><code>unavailable-fields</code>; incomplete naming the field</td><td>state key; result reason</td><td>per run</td><td>gap listed</td><td>lint run on a section loading a missing skill</td></tr>
-<tr><td>U13, U24</td><td>R24 filter reads declared fields only</td><td>E4, E8</td><td>filters</td><td><code>request_for</code></td><td><code>reads.fields</code>; folder in the record</td><td>per request</td><td>none: no new failure</td><td>request in the JSON report has no folder</td></tr>
+<tr><td>U3, U20, U21, U24</td><td>R23 incomplete text never passes</td><td>E6, E8, E9</td><td>request builders, walker, target loading</td><td><code>unavailable-fields</code>; <code>complete</code> check; <code>opening_cut</code></td><td>state keys; mechanical step</td><td>per run</td><td>missing: incomplete; cut: unsure on "no"</td><td>lint runs on cut, unresolved and missing loads</td></tr>
+<tr><td>U13, U24</td><td>R24 filter reads declared fields only</td><td>E4, E8</td><td>filters</td><td><code>request_for</code></td><td><code>reads.fields</code>; folder in the record</td><td>per request</td><td>none: no new failure</td><td>filter requests in the saved report have no folder</td></tr>
+<tr><td>U17</td><td>R25 U17's case floors before warning</td><td>E11</td><td>ai-tools cases; case runs</td><td>case file sets and labels</td><td><code>set</code>, <code>label_from</code>, must-pass cases</td><td>file in repo</td><td>short: rule stays off, lacks listed</td><td>development case run; held-out run</td></tr>
+<tr><td>U24</td><td>R26 every bar names its number</td><td>E2</td><td>tree admission; ai-tools rulebook</td><td>step bars by question type</td><td>Noul yes/no bars; pick top-label bar</td><td>none: loaded config</td><td>none: no new failure</td><td>decision-model review; load checks</td></tr>
+<tr><td>U24, U27</td><td>R27 saved report can re-check any result</td><td>E12</td><td>lint reporting</td><td><code>--report</code></td><td><code>requests</code>, <code>rulebook_files</code></td><td>report file</td><td>none: no new failure</td><td>explain five results from the file alone</td></tr>
+<tr><td>U26, U10</td><td>R28 only intended rules are active</td><td>E1</td><td>ai-tools rulebook</td><td>config pairs; <code>rules/held/</code></td><td>active pairs and entries</td><td>file in repo</td><td>none: no new failure</td><td><code>sunstack lint --rules</code> list; no held rule dispatches</td></tr>
 </tbody>
 </table>
 </div>
 
 <details><summary>Assumptions this design rests on</summary>
 <ul>
-<li>A rule's questions about one piece already go in one request, and the line-finder adds a second. Filters copy the first half of that.</li>
-<li>Lint can run on a temporary tree holding the current rulebook files plus case texts. If the evidence loader turns out to need the real repository root, case runs need a different way to read case text. That is checked first in the plan.</li>
-<li>The Jev Advisor's answer on where examples belong was still pending when this was written. The reviewer and TypeSafe's State page both put them in request state.</li>
+<li>A rule's questions about one piece, including the line-finder, already go in one request (<code>rulebook_run.rs:149-165</code>). Filters copy that.</li>
+<li>Lint can run on a temporary tree that holds the rulebook's checked files at a revision, with today's rulebook files on top. The case run's first step checks this.</li>
+<li>The released 0.7.1 binary stays available for the baseline run.</li>
+<li>Both the Jev Advisor and the reviewer put examples in request state. TypeSafe's State page allows it. Neither source claims it makes answers steadier, so only the held-out run speaks to that.</li>
 </ul></details>
 </ex-document>
 </body>

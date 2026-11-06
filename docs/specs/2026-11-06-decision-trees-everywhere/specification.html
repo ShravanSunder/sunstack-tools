@@ -29,8 +29,8 @@
 <tbody>
 <tr><td><strong>trees</strong></td><td>Every Jev judgment is a tree of one-fact questions, filters included</td><td><a href="#r1">R1</a> to <a href="#r7">R7</a>, <a href="#r23">R23</a>, <a href="#r24">R24</a></td></tr>
 <tr><td><strong>examples</strong></td><td>Examples written once in the rulebook reach Jev next to the text it judges</td><td><a href="#r8">R8</a> to <a href="#r11">R11</a></td></tr>
-<tr><td><strong>proof</strong></td><td>A rule is shown to work on real cases, through sunstack, before it is switched on</td><td><a href="#r12">R12</a> to <a href="#r15">R15</a></td></tr>
-<tr><td><strong>agent-use</strong></td><td>Agents run <code>sunstack lint</code> and get short, pointed warnings</td><td><a href="#r16">R16</a> to <a href="#r20">R20</a></td></tr>
+<tr><td><strong>proof</strong></td><td>A rule is shown to work on real cases, through sunstack, before it is switched on</td><td><a href="#r12">R12</a> to <a href="#r15">R15</a>, <a href="#r25">R25</a> to <a href="#r27">R27</a></td></tr>
+<tr><td><strong>agent-use</strong></td><td>Agents run <code>sunstack lint</code> and get short, pointed warnings</td><td><a href="#r16">R16</a> to <a href="#r20">R20</a>, <a href="#r28">R28</a></td></tr>
 <tr><td><strong>teaching</strong></td><td>The skills teach this way</td><td><a href="#r21">R21</a>, <a href="#r22">R22</a></td></tr>
 </tbody>
 </table>
@@ -68,10 +68,11 @@ erDiagram
 <tr id="e5"><td><strong>E5 Rule</strong></td><td>Decides, for each piece, whether a standard holds</td><td>Same name in the rulebook</td><td>Its tree ends in pass, warning, unsure or not applicable</td></tr>
 <tr id="e6"><td><strong>E6 Piece</strong></td><td>One bit of text a rule judges, such as a section or a description, collected by its pattern</td><td>Same file, same line range, same kind of piece</td><td>Belongs to one file</td></tr>
 <tr id="e7"><td><strong>E7 Reference</strong></td><td>Examples and fixed explanation written in the rulebook for one filter or rule. An example is: the text, the right answer, and why.</td><td>Same name under the same filter or rule</td><td>Written by the author, never taken from the piece; never holds the expected answer for the piece being judged</td></tr>
-<tr id="e8"><td><strong>E8 Request</strong></td><td>What one Jev call carries: the text being judged and the reference, plus questions. A tree's questions about the same text go in one call; a follow-up, such as finding the exact line, can add another.</td><td>Same filter or rule, same piece or folder, same call in the run</td><td>Shows Jev only the named text and reference; fits the size limit or isn't sent</td></tr>
+<tr id="e8"><td><strong>E8 Request</strong></td><td>What one Jev call carries: the text being judged and the reference, plus questions. All of a tree's questions about the same text go in one call, including the question that finds the exact line. No second call is made just because the walk reached a warning.</td><td>Same filter or rule, same piece or folder, same run</td><td>Shows Jev only the named text and reference; fits the size limit or isn't sent</td></tr>
 <tr id="e9"><td><strong>E9 Result</strong></td><td>Where one tree ended for one piece (a rule) or one folder (a filter), from the answers of zero or more requests. A result belongs to exactly one rule or one filter: a label, pass, warning, unsure, not applicable, or incomplete, with the route taken</td><td>Same filter or rule, same piece or folder, same run</td><td>Keeps enough to replay why it ended where it did</td></tr>
 <tr id="e10"><td><strong>E10 Warning</strong></td><td>A result shown to an agent: a line with file and lines, rule and reason, and a way to see more</td><td>Same rule, same piece</td><td>Fails a run only when the caller set a warning limit and it is exceeded (U4)</td></tr>
-<tr id="e11"><td><strong>E11 Case</strong></td><td>Real skill text at a fixed git revision, with the result one rule or filter should give, labelled by someone other than that rule</td><td>Same text, revision and rule</td><td>Is either a development case or a held-out case, never both</td></tr>
+<tr id="e11"><td><strong>E11 Case</strong></td><td>Real skill text at a fixed git revision, with the result one rule or filter should give, labelled by someone other than that rule: a rule case expects warn or pass for a line range; a filter case expects a label for a folder</td><td>Same rule or filter, same revision, same line range or folder</td><td>Is either a development case or a held-out case, never both; its expected result is never shown to Jev</td></tr>
+<tr id="e12"><td><strong>E12 Saved report</strong></td><td>The file a lint run writes when asked: every result, and every request exactly as sent with what came back</td><td>Same run</td><td>Enough to re-check any result without asking Jev again</td></tr>
 </tbody>
 </table>
 </div>
@@ -89,7 +90,7 @@ erDiagram
 <tr id="r5"><td>R5</td><td>Every answer a step's question can give has a route, by question type. A yes/no question routes yes, no and in-between. A pick question routes each label it can pick, plus "not sure enough" when its top label is below the bar. A scale question routes each of its ranges, plus "not sure enough". A step missing one of these routes is refused at load.</td><td>Some possible answer has no defined end</td><td>U24</td></tr>
 <tr id="r6"><td>R6</td><td>A tree can ask several questions and combine their answers only through its steps. Which answer wins is visible in the tree, never inside a question.</td><td>The combination of two answers can't be read off the tree</td><td>U23, U24</td></tr>
 <tr id="r7"><td>R7</td><td>In the ai-tools rulebook, the kind filter and the product-workflow rule are each rebuilt as trees of one-fact questions, and pass an independent decision-model review with no high finding.</td><td>A rebuilt question still asks two things, or a review finds a high finding</td><td>U23, U24, U16</td></tr>
-<tr id="r23"><td>R23</td><td>When a question needs text the request doesn't have, such as a load whose file wasn't read or a piece cut short, the result says so as a gap. It never passes as if the problem were absent.</td><td>A section that loads a skill is passed without that skill's text ever being shown</td><td>U3, U21, U24</td></tr>
+<tr id="r23"><td>R23</td><td>A tree can check whether the text a question reads was fully collected. That covers the piece itself, and each loaded file or skill's opening inside it: not cut short, not missing, not unresolved. A field that couldn't be collected at all ends the step incomplete, naming it. A rule never passes on a "no" answer about text that wasn't fully collected. That answer ends unsure, because absence wasn't shown.</td><td>A section whose loaded file was cut before its decisive line passes; a section that loads a skill passes without that skill's text being shown</td><td>U3, U20, U21, U24</td></tr>
 <tr id="r24"><td>R24</td><td>A filter reads the named fields it declares from each folder, such as a description and an opening. Anything Jev isn't meant to judge, such as the folder's name, stays out of the request and is kept only in the record.</td><td>A filter can see only the description, or a folder name that hints at the answer reaches Jev</td><td>U13, U24</td></tr>
 </tbody>
 </table>
@@ -115,10 +116,19 @@ erDiagram
 <table>
 <thead><tr><th>Rule</th><th>What must be true</th><th>You'd notice it's broken when</th><th>From</th></tr></thead>
 <tbody>
-<tr id="r12"><td>R12</td><td>Sunstack can run a file of cases (E11) through the same path <code>lint</code> uses. For each rule or filter it reports right, false warning, missed, unsure and incomplete, separately.</td><td>Case results differ from what lint gives on the same text, or the five counts are merged</td><td>U17</td></tr>
+<tr id="r12"><td>R12</td><td>Sunstack can run a file of cases (E11) through the same path <code>lint</code> uses, with the same surrounding text lint would see: the case's skill folder and the files it loads, at the case's revision. Every case gets exactly one outcome, and every case counts. Scored outcomes are right, false warning, missed, unsure and incomplete. Cases that can't be scored are listed with why: stale, no matching piece, more than one matching piece, or not judged because the filter excluded the folder. The counts are reported per rule or filter, separately.</td><td>Case results differ from what lint gives on the same text, a case silently drops out of the counts, or the counts are merged</td><td>U17, U19, U20, U21</td></tr>
 <tr id="r13"><td>R13</td><td>A case run changes nothing about what <code>lint</code> warns. It is a tool the author uses before switching a rule on, not a gate inside lint.</td><td>Lint hides or shows a rule depending on stored case results</td><td>U17, U26</td></tr>
 <tr id="r14"><td>R14</td><td>Cases name real skill text at a fixed git revision. A case whose text no longer matches its revision is reported as stale, not scored.</td><td>A made-up or drifted case counts toward a score</td><td>U19</td></tr>
-<tr id="r15"><td>R15</td><td>Each rule's bars, the probabilities its steps compare, are written in its own tree, and the case report names which bar each result crossed.</td><td>A bar lives anywhere but the rule's tree</td><td>U18</td></tr>
+<tr id="r15"><td>R15</td><td>Each rule's bars, the probabilities its steps compare, are written in its own tree, and the case report names which bar each result crossed. Each bar's value is recorded beside the development cases that justify it. A rule still on an unassessed starting bar isn't switched on.</td><td>A bar lives anywhere but the rule's tree, or a bar has no cases behind it</td><td>U18</td></tr>
+<tr id="r25"><td>R25</td><td>Before a judged rule warns anyone, its cases meet U17:
+<ul>
+<li>at least 3 real mistakes, each of which must warn, including the text before a real fix;</li>
+<li>at least 3 good texts, each of which must pass, including the text after the fix;</li>
+<li>at least 3 near misses;</li>
+<li>a held-out set it is never tuned on.</li>
+</ul>
+Every wrong warning it once gave on a real skill becomes a case that must pass: unsure doesn't count. Labels come from your own fixes where you made one, otherwise from agents labelling blind, with disagreements sent to you. A rule short of these stays off, with what it lacks listed.</td><td>A rule warns with fewer cases, a former wrong warning comes back unsure and is counted fine, or a label came from the rule itself</td><td>U17</td></tr>
+<tr id="r26"><td>R26</td><td>Every bar says which number it reads and how it compares. A yes/no question reads the probability of yes: at or above the yes bar is yes, at or below the no bar is no, in between is unsure, both ends inclusive. A pick question reads its top label's probability against a bar chosen for its number of labels. No result claims to be accurate or calibrated from a probability. Accuracy is claimed only from labelled case counts, within one model version.</td><td>A bar doesn't say what it compares, one bar is reused across question types, or a high probability is reported as "accurate"</td><td>U24</td></tr>
 </tbody>
 </table>
 </div>
@@ -131,9 +141,19 @@ erDiagram
 <tbody>
 <tr id="r16"><td>R16</td><td>Each warning (E10) is one line: file, line or line range, rule and a one-sentence reason. Related files appear as file:line pointers, not as copied text.</td><td>A warning prints the judged text or the model's answers inline</td><td>U27, U1</td></tr>
 <tr id="r17"><td>R17</td><td>An agent can ask for one warning's detail (the route, the answers and bars, the pointers) without reading the whole report.</td><td>Getting detail on one warning needs the full report</td><td>U27</td></tr>
+<tr id="r27"><td>R27</td><td>A saved report (E12) keeps, for every request:
+<ul>
+<li>the exact state and questions as sent;</li>
+<li>every answer that came back;</li>
+<li>the model asked for and the model that answered;</li>
+<li>which rulebook files, by content, gave the tree and bars;</li>
+<li>each result's route and any gaps.</li>
+</ul>
+From the file alone, anyone can re-check why a pass, warning, unsure, skip or incomplete ended where it did, without asking Jev again.</td><td>A result in the saved report can't be explained without re-running, or the answering model is missing</td><td>U24, U27</td></tr>
 <tr id="r18"><td>R18</td><td>Skipped folders, unsure results and text not read are listed apart from warnings, each with its reason.</td><td>An unsure result looks like a pass, or a skip is silent</td><td>U3, U5</td></tr>
 <tr id="r19"><td>R19</td><td>The run's status goes to the most serious thing that happened, in this order: invalid input (the rulebook or paths couldn't be used), then cancelled, then incomplete, then failed (an error-severity rule's finding, or warnings past a limit the caller set with <code>--max-warnings</code>), then unsure, then clean. Warnings with no limit set never fail a run. Unsure is its own status, neither clean nor failed, and applies only when nothing above it happened.</td><td>A run reports failed because of warnings with no limit set, an unsure run reports clean, or unsure hides an error</td><td>U4</td></tr>
 <tr id="r20"><td>R20</td><td>In ai-tools, agents are told to run <code>sunstack lint</code> directly with the repo's rulebook. Nothing between lint and the agent hides or adds results.</td><td>An agent's instructions point at a wrapper, or a switched-on rule's warnings are hidden</td><td>U26</td></tr>
+<tr id="r28"><td>R28</td><td>The ai-tools rulebook that agents run holds exactly the rules meant to be on: the kind filter, the product-workflow rule and the mechanical description checks. Rules kept for rebuilding later live outside it and can't produce results.</td><td>A rule meant to be off gives a warning on a direct lint run</td><td>U26, U10</td></tr>
 </tbody>
 </table>
 </div>
@@ -158,7 +178,8 @@ erDiagram
 <tr id="c1"><td>C1 Rulebook format</td><td>Rule authors, any repo</td><td>Filters and rules both declare questions, a tree and optional reference</td><td>A rulebook in the old filter shape, a clashing name, a missing in-between route or an unnamed part is refused at load, with what to change (R1, R4, R5, R9)</td></tr>
 <tr id="c2"><td>C2 What Jev is sent</td><td>Jev, and anyone replaying a result</td><td>The text being judged and the reference, by name, with the questions</td><td>Too large: not sent, reported incomplete (R10)</td></tr>
 <tr id="c3"><td>C3 Lint output</td><td>Agents</td><td>One line per warning; skips and unsure listed apart; detail for one warning on request</td><td>The status follows R19's order: invalid, cancelled, incomplete, failed (errors, or warnings past a set limit), unsure, clean (R16 to R19)</td></tr>
-<tr id="c4"><td>C4 Case run</td><td>Rule authors</td><td>Five separate counts per rule or filter, plus each case's route</td><td>A stale case is listed, not scored (R12 to R15)</td></tr>
+<tr id="c4"><td>C4 Case run</td><td>Rule authors</td><td>Five separate counts per rule or filter, every case accounted for, plus each case's route</td><td>Stale, unmatched, ambiguous and filter-excluded cases are listed with why, not scored (R12 to R15)</td></tr>
+<tr id="c5"><td>C5 Saved report</td><td>Agents, rule authors, you</td><td>Every request as sent, its answers and models, and every result's route (R27)</td><td>Asking <code>lint show</code> for an id the report doesn't have is an error naming the valid range</td></tr>
 </tbody>
 </table>
 </div>
@@ -171,8 +192,10 @@ erDiagram
 <tbody>
 <tr><td>V1</td><td>R1 to R6, R8 to R11, R23, R24</td><td>Each refused rulebook is refused with its message, and each accepted rulebook produces the requests and routes its tree says</td><td>The tree as written, and the sunstack rulebook format</td></tr>
 <tr><td>V2</td><td>R7</td><td>An independent decision-model review of the rebuilt filter and rule finds no high finding</td><td>The decision-model skill and your Oct 31 Jev patterns</td></tr>
-<tr><td>V3</td><td>R7, R12, R14</td><td>The rebuilt filter and rule, frozen, run once on held-out cases: no false warnings, and their right, missed and unsure counts reported, compared with the current versions</td><td>Case labels from people other than the rule</td></tr>
-<tr><td>V4</td><td>R12, R13, R15</td><td>The same text gives the same result through lint and through a case run, and lint output doesn't change with stored case results</td><td>Lint's own result on that text</td></tr>
+<tr><td>V3</td><td>R7, R12, R14, R25, R26</td><td>The rebuilt filter and rule meet R25 on their development cases. Frozen, they then run once on held-out cases: no false warnings, every held-out real mistake warns, every case accounted for. The results are compared with today's versions run on the same cases.</td><td>Case labels from your fixes or blind agents, never from the rule</td></tr>
+<tr><td>V4</td><td>R12, R13, R15</td><td>The same text gives the same result through lint and through a case run. Lint's output doesn't change with stored case results. A planted always-unsure rule fails R25's must-warn cases.</td><td>Lint's own result on that text; the case labels</td></tr>
+<tr><td>V7</td><td>R27</td><td>From a saved report alone, one pass, warning, unsure, filter skip and incomplete can each be explained: state, questions, answers, bars, models</td><td>The run's requests as the engine sent them</td></tr>
+<tr><td>V8</td><td>R28</td><td>The final ai-tools rulebook lists exactly the intended rules, and with scripted answers no rule meant to be off produces a result</td><td>R28's list</td></tr>
 <tr><td>V5</td><td>R16 to R20</td><td>A real lint run on ai-tools skills shows only one-line warnings with file:line, lists skips and unsure apart, gives the status R19's order sets (warnings without a limit don't fail; unsure applies only when nothing more serious happened), and the detail for one warning comes back alone</td><td>U27's words: summary first, detail on request</td></tr>
 <tr><td>V6</td><td>R21, R22</td><td>Both skills say what R21 and R22 say, with no line saying the opposite</td><td>R21 and R22</td></tr>
 </tbody>

@@ -20,66 +20,112 @@
 <ex-document id="content">
 <h1>Verification design: how we'll know it works</h1>
 
-<p>For each requirement: what will be done, and what will be seen. Nothing here has been run yet; this is the plan for proof. Most of it is checked by engine tests with scripted Jev answers, which prove the mechanics but not judgment quality. How well the rebuilt rules judge is shown on real cases with real Jev: first the development cases, where the bars are set (U18), then one frozen held-out run. Neither proves quality on every skill; they show it on these cases.</p>
+<p>For each requirement: what will be done, and what will be seen. Nothing here has been run yet; this is the plan for proof.</p>
+<ul>
+<li><strong>The mechanics</strong> are mostly checked by engine tests with scripted Jev answers. They prove the mechanics, but not judgment quality.</li>
+<li><strong>How well the rebuilt rules judge</strong> is shown on real cases with real Jev. First come the development cases, where the bars are set (U18). Then comes one frozen held-out run, compared with today's version.</li>
+<li>Neither proves quality on every skill; they show it on these cases, for the model version that answered.</li>
+</ul>
 
 <ex-callout title="When a rebuilt rule is switched on" tone="decision" icon="shield-check">
-<p>A rebuilt rule goes into the config as a warning only when all four hold:</p>
+<p>A rebuilt rule goes into the config as a warning only when all five hold:</p>
 <ol>
-<li>Its development cases meet U17: at least 3 real mistakes, 3 good texts and 3 near misses, with a held-out set kept apart. A rule short of these stays off, with what it lacks listed.</li>
-<li>Its bars are set on the development cases and recorded beside them (U18). Its questions are written once from the standard, not reworded to fit.</li>
-<li>With everything frozen, every development real mistake warns, including the text before a real fix. Every good text and quiet near miss stays quiet, including the text after the fix.</li>
-<li>The frozen held-out run gives <strong>zero false warnings</strong>, and every real mistake in it warns. No result is left incomplete by the engine itself.</li>
+<li><strong>Its development cases meet U17:</strong>
+  <ul>
+  <li>at least 3 real mistakes, 3 good texts and 3 near misses;</li>
+  <li>a held-out set kept apart;</li>
+  <li>labels from your own fixes where you made one, otherwise from agents labelling blind, with their disagreements sent to you.</li>
+  </ul>
+  A rule short of these stays off, with what it lacks listed.</li>
+<li><strong>Its bars are set on the development cases</strong> and recorded beside them in the case file (U18). Its questions are written once from the standard, not reworded to fit.</li>
+<li><strong>With everything frozen, on the development cases:</strong>
+  <ul>
+  <li>every real mistake warns, including the text before a real fix;</li>
+  <li>every good text passes, including the text after the fix;</li>
+  <li>every former wrong warning on a real skill passes. Unsure doesn't count for these.</li>
+  </ul></li>
+<li><strong>The frozen held-out run</strong> gives <strong>zero false warnings</strong>, and every real mistake in it warns.</li>
+<li><strong>No result is left incomplete</strong> by the engine itself.</li>
 </ol>
-<p>Unsure on a quiet case is allowed; unsure on a real mistake is not. This follows U17 and your ruling to warn only when sure ("details in file, warn if true", 6 Nov). The product-workflow rule's held-out set holds only quiet passages today, so for that rule the held-out run can show only that it stays quiet. Its catching of real mistakes is shown on the development cases.</p>
-<p>The kind filter is switched on when its held-out folders give no wrong kind. Unsure is allowed, since it skips and lists the folder (U14).</p>
+<p>Unsure is allowed only on a quiet near miss; it is never allowed on a real mistake or a must-pass case. This follows U17 and your ruling to warn only when sure ("details in file, warn if true", 6 Nov). The product-workflow rule's held-out set holds only quiet passages today, so for that rule the held-out run can show only that it stays quiet. Its catching of real mistakes is shown on the development cases.</p>
+<p>The kind filter is switched on when its held-out folders give no wrong kind. Unsure is allowed there, since it skips and lists the folder (U14).</p>
 </ex-callout>
 
 <h2 id="cards">Proven by</h2>
 
 <ex-grid cols="2">
 <ex-card title="U23 · Every Jev judgment is a tree, filters included" tone="planned" icon="git-branch">
-<p><strong>Proven by:</strong> a rulebook with a one-question filter is refused, and a filter written as a tree loads. The kind filter then judges every ai-tools skill folder once, ending in a label or unsure, with the route kept for each.</p>
-<p><strong>Unverified:</strong> trees with many levels; only two-level trees are tried.</p>
+<p><strong>Proven by:</strong> a rulebook with a one-question filter, or a filter ending in a label it didn't declare, is refused. A filter written as a tree loads. The kind filter then judges every ai-tools skill folder once, ending in a declared label or unsure, with the route kept for each.</p>
+<p><strong>Unverified:</strong> trees deeper than two levels.</p>
 </ex-card>
 <ex-card title="U24 · Trees follow the decision-model standard" tone="planned" icon="path">
-<p><strong>Proven by:</strong> an independent decision-model review of both rebuilt trees finds no high finding. Rulebooks that miss a route, or name text a question won't have, are refused.</p>
-<p><strong>Unverified:</strong> whether the questions are well worded is judged by the review and the held-out run, not by a test.</p>
+<p><strong>Proven by:</strong> an independent decision-model review of both rebuilt trees finds no high finding on questions, state, statistic, policy or proof. Rulebooks that miss a route, name text a question won't have, or leave a bar without its comparison are refused.</p>
+<p><strong>Unverified:</strong> wording quality beyond what the review and the case runs show.</p>
 </ex-card>
 <ex-card title="U25 · Examples in the rulebook reach Jev" tone="planned" icon="book-open">
-<p><strong>Proven by:</strong> a lint run's saved report shows each request carrying the rule's reference unchanged under <code>reference</code>. A clashing name is refused, and an oversized one is reported as too large.</p>
-<p><strong>Unverified:</strong> whether examples in state make Jev's answers steadier; TypeSafe doesn't claim it. Only the held-out run speaks to it.</p>
+<p><strong>Proven by:</strong> a saved report shows each request carrying the rule's reference unchanged under <code>reference</code>. A clashing name is refused, and an oversized one is reported as too large.</p>
+<p><strong>Unverified:</strong> whether examples in state make Jev's answers steadier; TypeSafe doesn't claim it. Only the case runs speak to it.</p>
 </ex-card>
 <ex-card title="U26 · Any agent running sunstack lint gets the help" tone="planned" icon="terminal">
-<p><strong>Proven by:</strong> running the exact command <code>AGENTS.md</code> gives, on ai-tools skills, shows the switched-on rules' warnings with nothing in between. No reference to the old wrapper remains.</p>
+<p><strong>Proven by:</strong> running the exact command <code>AGENTS.md</code> gives, on ai-tools skills, shows the switched-on rules' warnings with nothing in between. Only the intended rules can produce results, and no reference to the old wrapper remains.</p>
 <p><strong>Unverified:</strong> other repositories; the command is generic, but only ai-tools is run.</p>
 </ex-card>
 <ex-card title="U27 · Summary first, detail on request" tone="planned" icon="file">
-<p><strong>Proven by:</strong> the human output on a real run has one short line per warning, unsure or gap, with file:line and an id, and no section text. <code>lint show</code> on one id returns just that entry.</p>
+<p><strong>Proven by:</strong> the human output on a real run has one short line per warning, unsure or gap, with file:line and an id, and no section text. <code>lint show</code> on one id returns just that entry. From the saved report alone, five kinds of result can each be explained.</p>
 <p><strong>Unverified:</strong> how agents use it day to day.</p>
 </ex-card>
 <ex-card title="U28 · The skills teach this way" tone="planned" icon="book-open">
-<p><strong>Proven by:</strong> both skills read as R21 and R22 say, with no line saying examples belong only in the question or teaching a one-question filter. The ai-tools skill tests pass.</p>
+<p><strong>Proven by:</strong> both skills read as R21 and R22 say. No line says examples belong only in the question, and none teaches a one-question filter. The ai-tools skill tests pass.</p>
 <p><strong>Unverified:</strong> whether a fresh agent follows the skills well; behaviour tests are out of scope here.</p>
 </ex-card>
 <ex-card title="U13, U14 · Kind judged once; unsure skipped and listed" tone="planned" icon="folder">
-<p><strong>Proven by:</strong> with scripted answers, each folder gets exactly one filter request, every gated rule in it reads that one result, and an unsure folder's rules don't run and are listed with the route.</p>
-<p><strong>Unverified:</strong> none beyond the scripted answers; the held-out run covers real answers.</p>
+<p><strong>Proven by:</strong> with scripted answers:</p>
+<ul>
+<li>each folder gets exactly one filter request;</li>
+<li>every gated rule in it reads that one result;</li>
+<li>an unsure folder's rules don't run, and the folder is listed with its route.</li>
+</ul>
+<p>Then the kind filter's case run with real Jev.</p>
+<p><strong>Unverified:</strong> none beyond the cases.</p>
 </ex-card>
 <ex-card title="U16 · General skills only; an example told from a leak" tone="planned" icon="shield-check">
-<p><strong>Proven by:</strong> rows 1 to 9 through the product-workflow rule. Real cases for each give the result in your table on the development cases, with zero false warnings on the held-out run. Row 10 through the kind filter: a product's own skill comes out as a tool manual or repository-specific and isn't judged.</p>
-<p><strong>Unverified:</strong> row 11, a description naming products. That's the description rule's job, and it stays off in this design. Row 12 has no real case yet, and mixed sections are tested only where the cases have them.</p>
+<p><strong>Proven by:</strong> rows 1, 2 and 4 to 9 through the product-workflow rule. Real cases for each give the result in your table on the development cases, and the held-out run gives zero false warnings. Row 10 through the kind filter: a product's own skill comes out as a tool manual or repository-specific and isn't judged.</p>
+<p><strong>Unverified:</strong></p>
+<ul>
+<li>Row 3, a labelled example: it has no real case yet, so it needs one before it counts as covered.</li>
+<li>Row 11, a description naming products: that's the description rule's job, and it stays off.</li>
+<li>Row 12 has no real case yet.</li>
+<li>Mixed sections are tested only where the cases have them.</li>
+</ul>
 </ex-card>
 <ex-card title="U17, U18, U19 · Real cases first; bars per rule; real text" tone="planned" icon="test-tube">
-<p><strong>Proven by:</strong> the same text gives the same result through <code>lint</code> and through <code>lint cases</code>. A case whose text changed is listed as stale. The report names the bar each result crossed, and lint's output is the same before and after a case run.</p>
+<p><strong>Proven by:</strong></p>
+<ul>
+<li>The same text gives the same result through <code>lint</code> and through <code>lint cases</code>, with the case's real skill folder and loaded files around it.</li>
+<li>Every case is counted or listed with why.</li>
+<li>A planted always-unsure rule fails the must-warn and must-pass cases.</li>
+<li>A changed bar shows as unassessed, and a drifted case is listed stale.</li>
+<li>Lint's output is the same before and after a case run.</li>
+</ul>
 <p><strong>Unverified:</strong> case files in other repositories.</p>
 </ex-card>
-<ex-card title="U1, U3, U4, U5, U21 · Nudges, gaps and run status" tone="planned" icon="bell">
-<p><strong>Proven by:</strong> a section that loads a missing skill ends as a gap naming the field, never a pass. The run status follows R19's order, through the existing status tests plus one case where unsure and an error happen together.</p>
+<ex-card title="U1, U3, U4, U5, U20, U21 · Nudges, gaps and run status" tone="planned" icon="bell">
+<p><strong>Proven by:</strong></p>
+<ul>
+<li>A section loading a missing skill ends incomplete, naming it.</li>
+<li>A section whose loaded file was cut, answered "no", ends unsure, never pass.</li>
+<li>A warning reads as a nudge to read and decide.</li>
+<li>The run status follows R19's order, including one case where unsure and an error happen together.</li>
+</ul>
 <p><strong>Unverified:</strong> nothing beyond the listed cases.</p>
+</ex-card>
+<ex-card title="U10 · Only the intended rules run" tone="planned" icon="lock">
+<p><strong>Proven by:</strong> <code>sunstack lint --rules</code> on the final config lists the kind filter, the product-workflow rule and the three mechanical checks, and nothing else. With scripted answers, no held rule produces a result.</p>
+<p><strong>Unverified:</strong> none.</p>
 </ex-card>
 </ex-grid>
 
-<p>U2, U6 to U12, U15, U20 and U22 aren't changed by this design. Their existing proof stands.</p>
+<p>U2, U6 to U9, U11, U12, U15 and U22 aren't changed by this design. Their existing proof stands.</p>
 
 <h2 id="observations">The observations</h2>
 <p>Several requirements share one observation. Each is described once here.</p>
@@ -87,16 +133,17 @@
 <table>
 <thead><tr><th>Observation</th><th>What is done and seen</th><th>Where</th><th>A wrong build that fails it</th><th>Kind</th></tr></thead>
 <tbody>
-<tr id="o1"><td><strong>O1 Load checks</strong></td><td>A set of rulebooks is loaded: one-question filter, missing route per question type, unknown field name, unknown reference name, reserved-name clash, and a good tree filter and rule. Each bad one is refused with its field and message; the good ones load.</td><td>sunstack-rules integration tests, beside <code>rulebook_assembly.rs</code>; new tests needed</td><td>The old filter shape still loads; a pick question with a missing label route loads</td><td>focused test, lasting</td></tr>
-<tr id="o2"><td><strong>O2 Requests sent</strong></td><td>A lint run with a scripted Jev backend records each request. Rule requests carry <code>reference</code> unchanged and list <code>unavailable-fields</code>. Filter requests carry the declared fields and reference, with no folder path, and all of a filter's questions in one request.</td><td>sunstack-rules integration tests using <code>test_support/controlled_http.rs</code>; new tests needed</td><td>Reference missing or altered; a folder name in a filter request; one request per filter question</td><td>focused test, lasting</td></tr>
-<tr id="o3"><td><strong>O3 Routes walked</strong></td><td>Fixed scripted answers walk fixed routes, for rules and filters: each label, each in-between, a gap field, and a contradiction in the rebuilt trees ending unsure.</td><td>sunstack-rules integration tests, as <code>native_rule_policy.rs</code> does today</td><td>An in-between answer passes; a filter ends in a label it doesn't have</td><td>focused test, lasting</td></tr>
+<tr id="o1"><td><strong>O1 Load checks</strong></td><td>A set of rulebooks is loaded. Each bad one is refused with its field and message; a good tree filter and a good rule load. The bad ones:<ul><li>a one-question filter;</li><li>a filter ending in an undeclared label, or ending in a question's own option such as "reusable guidance";</li><li><code>only_when</code> naming an undeclared label;</li><li>a missing route, for each question type;</li><li>an unknown field name, or an unknown reference path;</li><li>a reserved-name clash.</li></ul></td><td>sunstack-rules integration tests, beside <code>rulebook_assembly.rs</code>; new tests needed</td><td>The old filter shape still loads; an intermediate option leaks out as a kind; a pick question with a missing label route loads</td><td>focused test, lasting</td></tr>
+<tr id="o2"><td><strong>O2 Requests sent</strong></td><td>A lint run with a scripted Jev backend records each request.<ul><li>Rule requests carry <code>reference</code> unchanged and list <code>unavailable-fields</code>. A rule with a line-finder sends one request, holding all its questions.</li><li>Filter requests carry the declared fields and reference, no folder path, and all of a filter's questions in one request.</li><li>A skill-name load carries its opening and <code>opening_cut</code>.</li></ul></td><td>sunstack-rules integration tests using <code>test_support/controlled_http.rs</code>; new tests needed</td><td>Reference missing or altered; a folder name in a filter request; a second request for the line-finder; a skill load with no opening</td><td>focused test, lasting</td></tr>
+<tr id="o3"><td><strong>O3 Routes walked</strong></td><td>Fixed scripted answers walk fixed routes, for rules and filters:<ul><li>each label, and each in-between answer;</li><li>a root unsure and a second-level unsure, each with its real route and no made-up label;</li><li>a field that couldn't be collected (incomplete);</li><li>a "no" on a cut body, a cut loaded opening, and an unresolved load (each unsure);</li><li>a "no" on fully read text (pass);</li><li>Q1 yes with Q2 no (a nudge).</li></ul></td><td>sunstack-rules integration tests, as <code>native_rule_policy.rs</code> does today</td><td>An in-between answer passes; a "no" on cut text passes; a filter ends in a label it doesn't have</td><td>focused test, lasting</td></tr>
 <tr id="o4"><td><strong>O4 Filter journey</strong></td><td>The verify skill's filters journey, updated for tree filters, runs the real <code>sunstack</code> binary on fixture folders with scripted answers. It checks one request per folder, gated rules walking, excluded or skipped, and skips listed with routes.</td><td><code>verify-sunstack-rule</code>, filters section of <code>references/rulebook-lint.md</code>, <code>rulebook-filters.ts</code>; needed: update for tree filters</td><td>Two requests for one folder; an unsure folder's rule runs</td><td>journey, lasting</td></tr>
-<tr id="o5"><td><strong>O5 What an agent reads</strong></td><td>The real binary runs on fixtures with scripted answers, giving one warning, one unsure, one gap and one unsure folder. The human output has one line each, with id and file:line, and no request text. <code>--report</code> plus <code>lint show</code> returns one entry. Then one real keyed run on ai-tools skills shows the same shape.</td><td>verify journey (lasting, scripted); one keyed run (temporary)</td><td>An unsure line prints the section text; <code>show</code> prints the whole report</td><td>journey, lasting + temporary</td></tr>
-<tr id="o6"><td><strong>O6 Case runs</strong></td><td>A case file covers a warn, a pass, a filter label, an unsure and a stale case. <code>lint cases</code> counts each correctly. For the same text, the lint result equals the case result. Lint's output on the repo is byte-identical before and after the case run.</td><td>sunstack-lint integration tests; verify journey needed</td><td>A case run changes lint's output; a stale case is scored</td><td>focused test + journey, lasting</td></tr>
-<tr id="o7"><td><strong>O7 Rebuilt trees, independent review</strong></td><td>A fresh reviewer runs decision-model-review on both rebuilt trees, against the decision-model skill and your 31 Oct patterns notes.</td><td>review report</td><td>Any high finding</td><td>review, once</td></tr>
-<tr id="o8"><td><strong>O8 Frozen held-out run</strong></td><td>Questions, reference, evidence and bars are frozen. The held-out case files run once, with real Jev, for the rebuilt and for today's filter and rule. Every case is counted: right, false warning, missed, unsure, incomplete. Kind results are reported apart from warnings, and the resolved model is recorded.</td><td><code>sunstack lint cases</code> on ai-tools; temporary</td><td>Any false warning, or an engine-caused incomplete</td><td>real run, temporary, once</td></tr>
+<tr id="o5"><td><strong>O5 What an agent reads, and the saved report</strong></td><td>The real binary runs on fixtures with scripted answers, giving one pass, warning, unsure, filter skip and incomplete.<ul><li>The human output has one line each, with id and file:line, and no request text.</li><li><code>lint show</code> returns one entry.</li><li>From the saved report alone, each of the five results can be explained: its state, questions, answers, bars, models and rulebook files.</li></ul>Then one real keyed run on ai-tools skills shows the same shape.</td><td>verify journey (lasting, scripted); one keyed run (temporary)</td><td>An unsure line prints the section text; <code>show</code> prints the whole report; a result can't be explained without re-running</td><td>journey, lasting + temporary</td></tr>
+<tr id="o6"><td><strong>O6 Case runs</strong></td><td>A case file covers each kind of case, and <code>lint cases</code> gives each one its outcome. The cases:<ul><li>a warn, a pass and a must-pass;</li><li>a filter label, and a wrong filter label;</li><li>an unsure, and a stale case;</li><li>a case matching no piece, one matching two pieces, and one in a folder the filter excluded;</li><li>a case in a skill reference, whose filter and loaded file come from its revision;</li><li>a changed bar.</li></ul>Every case is counted or listed. For the same text, lint's result equals the case result. Lint's output is byte-identical before and after. A planted always-unsure rule fails.</td><td>sunstack-lint integration tests; verify journey needed</td><td>A case drops out of the counts; a case run changes lint's output; a stale case is scored; an always-unsure rule passes</td><td>focused test + journey, lasting</td></tr>
+<tr id="o7"><td><strong>O7 Rebuilt trees, independent review</strong></td><td>A fresh reviewer runs decision-model-review on both rebuilt trees, covering questions, state, statistic, policy and proof, against the decision-model skill and your 31 Oct patterns notes.</td><td>review report</td><td>Any high finding</td><td>review, once</td></tr>
+<tr id="o8"><td><strong>O8 Development and frozen held-out runs</strong></td><td>First the development cases run with real Jev; the bars are set there and recorded in the case file. Then questions, reference, evidence and bars are frozen.<ul><li>The held-out cases run once through <code>lint cases</code>.</li><li>Today's filter and rule run on the same cases, through the verify driver: the released 0.7.1 binary with ai-tools main's rulebook, matched the same way.</li><li>Every case is counted. Kind results are reported apart from warnings.</li><li>The model that answered is recorded for every request; the two runs are compared only within one model version, or the difference is named.</li></ul></td><td><code>sunstack lint cases</code> on ai-tools; verify driver for the baseline; temporary</td><td>Any false warning; a missed real mistake; a must-pass case unsure; an engine-caused incomplete</td><td>real run, temporary, once</td></tr>
 <tr id="o9"><td><strong>O9 Skill text and tests</strong></td><td>R21's and R22's statements are found in the two skills, with no contrary line. <code>pnpm --dir tests/skills test</code> passes, and no file references the removed wrapper.</td><td>ai-tools</td><td>The skill still says examples go only in the question</td><td>structural, lasting tests</td></tr>
 <tr id="o10"><td><strong>O10 Run status</strong></td><td>The existing status tests, plus one with unsure and an error together, which must report failed.</td><td><code>crates/sunstack-lint/tests/integration/lint_library.rs</code> and friends; reused, one added</td><td>Unsure hides an error</td><td>reused test, lasting</td></tr>
+<tr id="o11"><td><strong>O11 Active rules</strong></td><td><code>sunstack lint --rules</code> on the final ai-tools config lists exactly the intended rules. A scripted run over all skills shows no result from a held rule. The held file keeps every moved entry and marker.</td><td>ai-tools; scripted run</td><td>A held rule warns; a moved marker is lost</td><td>structural + scripted run, lasting</td></tr>
 </tbody>
 </table>
 </div>
@@ -106,28 +153,29 @@
 <table>
 <thead><tr><th>U</th><th>R</th><th>Seam (program design)</th><th>Observation</th><th>Target</th><th>Passes when</th><th>Unverified</th></tr></thead>
 <tbody>
-<tr><td>U23</td><td>R1, R6</td><td>rulebook load; tree walker</td><td>O1, O3, O4</td><td>sunstack 0.8.0 candidate</td><td>Old shape refused; tree filter loads and walks to labels</td><td>Trees deeper than two levels</td></tr>
-<tr><td>U24</td><td>R4, R5, R6, R7, R23, R24</td><td>admission; walker; request builders</td><td>O1, O2, O3, O7</td><td>0.8.0 candidate; ai-tools rulebook</td><td>Refusals as listed; no high review finding</td><td>Wording quality beyond the review and O8</td></tr>
+<tr><td>U23</td><td>R1, R6</td><td>rulebook load; tree walker</td><td>O1, O3, O4</td><td>sunstack 0.8.0 candidate</td><td>Old shape and undeclared labels refused; tree filter walks to declared labels</td><td>Trees deeper than two levels</td></tr>
+<tr><td>U24</td><td>R4, R5, R6, R7, R23, R24, R26</td><td>admission; walker; request builders</td><td>O1, O2, O3, O7</td><td>0.8.0 candidate; ai-tools rulebook</td><td>Refusals as listed; no high review finding on any of the five parts</td><td>Wording quality beyond the review and O8</td></tr>
 <tr><td>U25</td><td>R8, R9, R10, R11</td><td>request builders; admission; size check</td><td>O1, O2</td><td>0.8.0 candidate</td><td>Reference unchanged in state; clash refused; oversize incomplete</td><td>Effect on answer steadiness</td></tr>
-<tr><td>U26</td><td>R13, R20</td><td>case runs; ai-tools AGENTS.md</td><td>O5 (keyed), O6, O9</td><td>released 0.8.0 in ai-tools</td><td>Documented command shows warnings; case run changes nothing</td><td>Other repositories</td></tr>
-<tr><td>U27</td><td>R16, R17</td><td>lint reporting</td><td>O5</td><td>0.8.0 candidate; then release on ai-tools</td><td>One line each with id; no request text; show returns one entry</td><td>Day-to-day agent use</td></tr>
+<tr><td>U26</td><td>R13, R20, R28</td><td>case runs; AGENTS.md; active rulebook</td><td>O5 (keyed), O6, O9, O11</td><td>released 0.8.0 in ai-tools</td><td>Documented command shows warnings; only intended rules run; case run changes nothing</td><td>Other repositories</td></tr>
+<tr><td>U27</td><td>R16, R17, R27</td><td>lint reporting; saved report</td><td>O5</td><td>0.8.0 candidate; then release on ai-tools</td><td>One line each with id; no request text; show returns one entry; five results explained from the file</td><td>Day-to-day agent use</td></tr>
 <tr><td>U28</td><td>R21, R22</td><td>ai-tools skills</td><td>O9</td><td>ai-tools branch</td><td>Statements present; no contrary line; tests pass</td><td>Fresh-agent behaviour</td></tr>
-<tr><td>U13</td><td>R2, R24</td><td>ask_filters; request_for</td><td>O2, O4</td><td>0.8.0 candidate</td><td>One request per folder; no folder name in it</td><td>none</td></tr>
+<tr><td>U13</td><td>R2, R24</td><td>ask_filters; request_for</td><td>O2, O4, O8</td><td>0.8.0 candidate; ai-tools</td><td>One request per folder; no folder name; no wrong kind on held-out folders</td><td>none</td></tr>
 <tr><td>U14</td><td>R3</td><td>filter gate</td><td>O4</td><td>0.8.0 candidate</td><td>Unsure folder skipped and listed with route</td><td>none</td></tr>
-<tr><td>U16</td><td>R7</td><td>ai-tools rulebook</td><td>O7, O8</td><td>released 0.8.0 in ai-tools</td><td>Rows 1 to 9: your table's results on development cases, zero false warnings held-out; row 10: excluded by the kind filter</td><td>Row 11 (description rule, off); row 12; mixed sections not in the cases</td></tr>
-<tr><td>U17</td><td>R12, R13</td><td>case runs</td><td>O6, O8</td><td>0.8.0 candidate; ai-tools</td><td>Lint result equals case result; lint unchanged after</td><td>Other repositories' cases</td></tr>
-<tr><td>U18</td><td>R15</td><td>tree bars; case report</td><td>O6</td><td>0.8.0 candidate</td><td>Report names the bar crossed</td><td>none</td></tr>
-<tr><td>U19</td><td>R14</td><td>case runs</td><td>O6</td><td>0.8.0 candidate</td><td>A drifted case listed stale, not scored</td><td>none</td></tr>
-<tr><td>U1, U3, U5</td><td>R16, R18, R23</td><td>lint reporting; walker</td><td>O3, O5</td><td>0.8.0 candidate</td><td>Gaps, unsure and skips listed apart, never as pass</td><td>none</td></tr>
+<tr><td>U16</td><td>R7</td><td>ai-tools rulebook</td><td>O7, O8</td><td>released 0.8.0 in ai-tools</td><td>Rows 1, 2, 4 to 9: your table's results on development cases, zero false warnings held-out; row 10: excluded by the kind filter</td><td>Row 3 needs a real case; row 11 (description rule, off); row 12; mixed sections not in the cases</td></tr>
+<tr><td>U17</td><td>R12, R13, R25</td><td>case runs; case file</td><td>O6, O8</td><td>0.8.0 candidate; ai-tools</td><td>Floors met; must-warn warns; must-pass passes; held-out zero false warnings; every case accounted for</td><td>Other repositories' cases</td></tr>
+<tr><td>U18</td><td>R15</td><td>tree bars; recorded bars</td><td>O6, O8</td><td>0.8.0 candidate; ai-tools</td><td>Each bar recorded with its development cases; a changed bar shows unassessed</td><td>none</td></tr>
+<tr><td>U19</td><td>R12, R14</td><td>case runs</td><td>O6</td><td>0.8.0 candidate</td><td>A drifted case is listed stale; text and context come from the case's revision</td><td>none</td></tr>
+<tr><td>U20, U21</td><td>R12, R23</td><td>target loading; <code>complete</code> check; case context</td><td>O2, O3, O6</td><td>0.8.0 candidate</td><td>Skill loads get openings; cut or unresolved text can't pass; cases see their loaded files</td><td>Long loaded files beyond the opening end unsure, not judged</td></tr>
+<tr><td>U1, U3, U5</td><td>R16, R18, R23</td><td>lint reporting; walker</td><td>O3, O5</td><td>0.8.0 candidate</td><td>Gaps, unsure and skips listed apart, never as pass; warnings worded as nudges</td><td>none</td></tr>
 <tr><td>U4</td><td>R19</td><td>lint outcome</td><td>O10</td><td>0.8.0 candidate</td><td>Status follows R19's order</td><td>none</td></tr>
-<tr><td>U21</td><td>R23</td><td>target loading; walker</td><td>O2, O3, O5</td><td>0.8.0 candidate</td><td>A skill-name load gets an opening; a missing one is a named gap</td><td>Very long loaded files beyond the opening</td></tr>
+<tr><td>U10</td><td>R28</td><td>active rulebook; held file</td><td>O11</td><td>ai-tools branch</td><td>Only intended rules listed and producing results</td><td>none</td></tr>
 </tbody>
 </table>
 </div>
 </details>
 
 <details><summary>What the scripted-answer tests don't show</summary>
-<p>Scripted answers prove that sunstack builds, walks and reports correctly. They say nothing about whether Jev answers the questions well. Only O7 (the review) and O8 (the frozen held-out run with real Jev) speak to judgment. O8 runs once. If it fails, the rule stays off, and the next attempt needs fresh held-out cases. There is no rewording against the same cases.</p>
+<p>Scripted answers prove that sunstack builds, walks and reports correctly. They say nothing about whether Jev answers the questions well. Only O7 (the review) and O8 (the development and frozen held-out runs with real Jev) speak to judgment. The held-out run happens once. If it fails, the rule stays off, and the next attempt needs fresh held-out cases. There is no rewording against the same cases. A high probability on one answer says nothing about accuracy; only the case counts do, for the model version that answered.</p>
 </details>
 </ex-document>
 </body>
