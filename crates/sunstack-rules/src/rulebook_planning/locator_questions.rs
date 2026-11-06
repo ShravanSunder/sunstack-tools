@@ -30,6 +30,46 @@ fn candidate_lines(piece: &EvidencePiece, field: &FieldName) -> BTreeMap<usize, 
     lines
 }
 
+pub(super) fn plan_locator_omissions(
+    rule: &RulebookRule,
+    piece: &EvidencePiece,
+    max_lines: usize,
+) -> Result<
+    BTreeMap<sunstack_decisions::QuestionName, crate::LocatorOmission>,
+    crate::ChoiceOptionsExceeded,
+> {
+    let mut omissions = BTreeMap::new();
+    for step in rule.decision.steps.values() {
+        for route in step.routes() {
+            let DecisionRoute::Finding(finding) = route else {
+                continue;
+            };
+            let (Some(locator), Some(field)) = (&finding.locate, &finding.at) else {
+                continue;
+            };
+            let count = candidate_lines(piece, field).len();
+            if count > max_lines {
+                omissions.insert(
+                    locator.name.clone(),
+                    crate::LocatorOmission {
+                        locator: locator.name.clone(),
+                        field: field.clone(),
+                        reason: crate::LocatorOmissionReason::LineLimit,
+                        candidate_lines: count,
+                        limit: max_lines,
+                    },
+                );
+            } else if count > crate::MAX_CHOICE_OPTIONS {
+                return Err(crate::ChoiceOptionsExceeded {
+                    options: count,
+                    limit: crate::MAX_CHOICE_OPTIONS,
+                });
+            }
+        }
+    }
+    Ok(omissions)
+}
+
 pub(super) fn add_locators(
     rule: &RulebookRule,
     piece: &EvidencePiece,

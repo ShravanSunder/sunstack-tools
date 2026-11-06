@@ -4,6 +4,8 @@ use sunstack_rules::test_support::controlled_http as controlled;
 mod fixture;
 #[path = "rulebook_run/incomplete_history.rs"]
 mod incomplete_history;
+#[path = "rulebook_run/locator_limits.rs"]
+mod locator_limits;
 use serde_json::json;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use sunstack_decisions::*;

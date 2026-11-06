@@ -5,6 +5,8 @@ use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
 #[path = "lint_library/locator_formats.rs"]
 mod locator_formats;
+#[path = "lint_library/locator_omission.rs"]
+mod locator_omission;
 #[path = "lint_library/related_places.rs"]
 mod related_places;
 

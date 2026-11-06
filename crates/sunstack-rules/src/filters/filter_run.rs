@@ -191,7 +191,8 @@ pub async fn ask_filters(
                                 DispatchRefusal::RequestLimitReached => FilterIncomplete::Request {
                                     reason: RulebookIncompleteReason::RequestLimitReached,
                                 },
-                                DispatchRefusal::InvalidRequest => FilterIncomplete::Request {
+                                DispatchRefusal::ChoiceOptionsExceeded(_)
+                                | DispatchRefusal::InvalidRequest => FilterIncomplete::Request {
                                     reason: RulebookIncompleteReason::InvalidRequest,
                                 },
                             },

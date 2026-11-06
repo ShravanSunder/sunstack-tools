@@ -111,7 +111,9 @@ async fn send_group(
                 DispatchRefusal::RequestLimitReached => {
                     SelectionIncompleteReason::RequestLimitReached
                 }
-                DispatchRefusal::InvalidRequest => SelectionIncompleteReason::InvalidRequest,
+                DispatchRefusal::ChoiceOptionsExceeded(_) | DispatchRefusal::InvalidRequest => {
+                    SelectionIncompleteReason::InvalidRequest
+                }
             };
             for candidate in candidates {
                 outcomes.insert(candidate.id.clone(), incomplete(reason.clone()));

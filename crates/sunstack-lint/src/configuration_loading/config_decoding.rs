@@ -198,6 +198,19 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
         ));
     }
 
+    if config
+        .limits
+        .as_ref()
+        .and_then(|limits| limits.max_locate_lines)
+        .is_some_and(|limit| limit.get() as usize > sunstack_rules::MAX_CHOICE_OPTIONS)
+    {
+        return Err(config_error(
+            config,
+            &ConfigPath::keys(["limits", "max_locate_lines"]),
+            LintInvalidCode::Syntax,
+            "limits.max_locate_lines must be at most 255 (provider Choice option limit)",
+        ));
+    }
     Ok(())
 }
 fn path_fields(path: &serde_path_to_error::Path) -> ConfigPath {

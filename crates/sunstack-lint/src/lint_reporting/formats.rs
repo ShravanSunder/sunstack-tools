@@ -39,6 +39,9 @@ pub(crate) fn transport_level(severity: Severity) -> &'static str {
 }
 pub(crate) fn incomplete_text(reason: &IncompleteReason) -> String {
     match reason {
+        IncompleteReason::ChoiceOptionsExceeded { options, limit } => {
+            return format!("choice has {options} options; maximum is {limit}");
+        }
         IncompleteReason::Filter { filter, reason } => {
             return format!(
                 "filter {}: {}",
@@ -176,6 +179,15 @@ fn human(report: &LintReport) -> String {
             finding.rule.as_str(),
             finding.message
         );
+        if let Some(omission) = &finding.locator_omitted {
+            let _ = writeln!(
+                output,
+                "  locator {} omitted: {} candidate lines exceed limit {}; using default line",
+                omission.locator.as_str(),
+                omission.candidate_lines,
+                omission.limit
+            );
+        }
         for place in &finding.related {
             let _ = writeln!(
                 output,

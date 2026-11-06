@@ -71,6 +71,8 @@ pub enum SettingOrigin {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Finding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locator_omitted: Option<sunstack_rules::LocatorOmission>,
     pub rule: RuleId,
     pub marker: MarkerId,
     pub file: PathBuf,
@@ -125,6 +127,10 @@ pub struct ExclusionCounts {
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
 pub enum IncompleteReason {
+    ChoiceOptionsExceeded {
+        options: usize,
+        limit: usize,
+    },
     Filter {
         filter: sunstack_rules::FilterName,
         reason: sunstack_rules::FilterIncomplete,
@@ -265,6 +271,8 @@ pub enum PieceOutcome {
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RulePieceResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locator_omitted: Option<sunstack_rules::LocatorOmission>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<sunstack_rules::NotApplicableReason>,
     pub name: RuleId,
