@@ -63,7 +63,7 @@ function report(scenario: LocatorScenario): JsonObject {
 		...(affected ? { locator_omitted: evidence } : {}),
 	});
 	return {
-		status: { kind: scenario === 'pass' ? 'clean' : 'findings' },
+		status: { kind: 'clean' },
 		incomplete: [],
 		results: omitted
 			? [row('documents/peer.md', false), row(subjectFile, true)]

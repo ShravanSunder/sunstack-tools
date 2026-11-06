@@ -1,6 +1,6 @@
 # Locator option cap and omitted-location evidence
 
-This journey is **draft until driven on a declared locator-limit candidate**. Its oracle is the 6 Nov bounded repair commission and Lead disposition, plus the existing nudge Specification R2/C2: Choice criteria has at most 255 options; the locator shares the piece's request, and an omitted locator falls back to the existing line with a default anchor. The repair adds generic evidence on the affected reached result so that fallback cannot be mistaken for a model-observed line.
+Use this journey on a declared locator-limit candidate. Its oracle is the 6 Nov bounded repair commission and Lead disposition, plus the existing nudge Specification R2/C2: Choice criteria has at most 255 options; the locator shares the piece's request, and an omitted locator falls back to the existing line with a default anchor. The repair adds generic evidence on the affected reached result so that fallback cannot be mistaken for a model-observed line.
 
 The standalone driver is `scripts/verify/sunstack-rule/rulebook/locator-limits.ts`; read its `--help`. It reuses the existing pinned-source/binary process owner and loopback responder. Config admission, native backend, file extraction, request construction, response validation, result projection and process exit stay real. Only remote answers are scripted; no hosted credentials or accuracy claim is involved.
 
@@ -15,7 +15,7 @@ The authored Markdown fixtures have paragraph candidates at known lines starting
 
 The driver checks:
 
-- Limits 254 and 255 pass keyless `--check`; 256, 1000 and zero exit2 with `limits.max_locate_lines`; no check dispatches. Omitting the setting retains default80.
+- Limits 254 and 255 pass keyless `--check`; 256 and 1000 exit2 with `limits.max_locate_lines`; zero retains its native nonzero-number refusal/exit2. No check dispatches. Omitting the setting retains default80. Native decoder tests separately assert the structured path for zero as well as the new cap failures.
 - With 254/255 candidate lines, the actual HTTP request contains the exact line-label/text map and unchanged authored question. Selecting offered L5 above the locator threshold yields line5/resolved.
 - The 256-line subject sends the authored question with no locator and reports default line3 with `locator_omitted: {locator, field, reason, candidate_lines, limit}` on the reached finding result. The peer resolves normally and receives no omission. The unchosen branch's locator is never reported as read or omitted on the reached result.
 - A low-probability offered answer, a finding route without a locator, a pass and an all-mechanical route retain their distinct behavior. None acquires over-line-limit evidence merely because its anchor is default or another route's request planning omitted a locator. Mechanical work sends no request.

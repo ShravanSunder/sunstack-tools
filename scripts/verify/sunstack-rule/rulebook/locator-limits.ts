@@ -224,11 +224,7 @@ export function requireLocatorRequests(
 }
 
 export function requireLocatorReport(report: JsonObject, scenario: LocatorScenario): void {
-	equal(
-		objectValue(report['status'])['kind'],
-		scenario === 'pass' ? 'clean' : 'findings',
-		'Wrong finding/pass status',
-	);
+	equal(objectValue(report['status'])['kind'], 'clean', 'Warning-only/pass status changed');
 	const results = arrayValue(report['results']).map(objectValue);
 	equal(results.length, scenario === 'over-limit' ? 2 : 1, 'Missing or duplicate result');
 	const findings = arrayValue(report['findings']).map(objectValue);
@@ -299,12 +295,17 @@ async function observeAdmission(observer: RulebookProcess, root: string): Promis
 			expectedExit: limit === 254 || limit === 255 ? 0 : 2,
 		});
 		equal(result.captures.length, 0, 'Admission dispatched HTTP');
-		if (limit !== 254 && limit !== 255)
+		if (limit > 255)
 			requireCondition(
 				(result.stdout.toString('utf8') + result.stderr.toString('utf8')).includes(
 					'limits.max_locate_lines',
 				),
 				'Refusal lost exact field path',
+			);
+		if (limit === 0)
+			requireCondition(
+				result.stderr.toString('utf8').includes('expected a nonzero'),
+				'Zero limit lost its native nonzero refusal',
 			);
 	});
 	configure(root, (config) => {
