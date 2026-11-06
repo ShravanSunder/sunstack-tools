@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Specification · User needs</title>
+		<link rel="stylesheet" href="library/theme.css" />
+		<link rel="stylesheet" href="studies.css" />
+		<link rel="stylesheet" href="study-controls.css" />
+		<link rel="stylesheet" href="requirements.css" />
+		<link rel="stylesheet" href="execution.css" />
+		<script type="module" src="library/runtime.js"></script>
+		<script type="module" src="components/register.js"></script>
+	</head>
+	<body>
+		<ex-nav for="content"
+			><nav slot="pages" aria-label="Experiments">
+				<a href="index.html">Requirements and call-path experiments</a
+				><a href="requirements.html">Start from the user need</a
+				><a href="execution.html">From a call to the need it serves</a>
+			</nav></ex-nav
+		><ex-document id="content"
+			><h1>Specification</h1>
+			<p>
+				Start with what the person needs to do. Group related needs by capability; selecting a need
+				keeps its specification rule, program-design owner and verification observation together.
+			</p>
+			<ex-callout title="Illustrative design and results" tone="note" icon="file"
+				><p>
+					These six needs and their pass/fail observations are examples for comparing the interface.
+					They are not assertions about the current picker or another shipped product.
+				</p></ex-callout
+			>
+			<lab-requirement-browser data-width="canvas"></lab-requirement-browser
+		></ex-document>
+		<script type="application/json" data-lab-records>
+			[
+				{
+					"kind": "specification",
+					"id": "S1",
+					"title": "Active input scope",
+					"needs": ["U1"],
+					"bodyRef": "body-S1",
+					"summaryRef": "summary-S1"
+				},
+				{
+					"kind": "specification",
+					"id": "S2",
+					"title": "Blocked background actions",
+					"needs": ["U2"],
+					"bodyRef": "body-S2",
+					"summaryRef": "summary-S2"
+				},
+				{
+					"kind": "specification",
+					"id": "S3",
+					"title": "Registered shortcut",
+					"needs": ["U3"],
+					"bodyRef": "body-S3",
+					"summaryRef": "summary-S3"
+				},
+				{
+					"kind": "specification",
+					"id": "S4",
+					"title": "Keyboard selection",
+					"needs": ["U4"],
+					"bodyRef": "body-S4",
+					"summaryRef": "summary-S4"
+				},
+				{
+					"kind": "specification",
+					"id": "S5",
+					"title": "Opaque overlay boundary",
+					"needs": ["U5"],
+					"bodyRef": "body-S5",
+					"summaryRef": "summary-S5"
+				},
+				{
+					"kind": "specification",
+					"id": "S6",
+					"title": "Retained draft",
+					"needs": ["U6"],
+					"bodyRef": "body-S6",
+					"summaryRef": "summary-S6"
+				}
+			]
+		</script>
+		<template id="body-S1"
+			><p id="summary-S1">Only the top active scope may receive this input event.</p>
+			<h5>Conditions and observable rule</h5>
+			<p>
+				With a dialog open and both inputs initially empty, one character changes only the dialog
+				input; the background value stays empty.
+			</p></template
+		>
+		<template id="body-S2"
+			><p id="summary-S2">A modal scope blocks lower-scope key and pointer actions.</p>
+			<h5>Conditions and observable rule</h5>
+			<p>
+				While the menu is modal, pointer activation and keyboard shortcuts aimed at lower-scope
+				session actions produce no background action.
+			</p>
+			<figure class="lab-specification-cases" data-width="reading">
+				<figcaption>While the menu is modal</figcaption>
+				<div class="ex-table-scroll">
+					<table>
+						<thead>
+							<tr>
+								<th>Stimulus</th>
+								<th>Aimed at</th>
+								<th>Required outcome</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="s2-pointer">
+								<td>Pointer activation</td>
+								<td>A lower-scope session action</td>
+								<td>No background action</td>
+							</tr>
+							<tr id="s2-keyboard">
+								<td>Keyboard shortcut</td>
+								<td>A lower-scope session action</td>
+								<td>No background action</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</figure></template
+		>
+		<template id="body-S3"
+			><p id="summary-S3">Help and dispatch use the same action registration.</p>
+			<h5>Conditions and observable rule</h5>
+			<p>
+				For every registered command, Help displays the same key used by shortcut dispatch; an
+				unregistered key is not shown as available.
+			</p></template
+		>
+		<template id="body-S4"
+			><p id="summary-S4">Arrow keys move the active option; Enter commits it.</p>
+			<h5>Conditions and observable rule</h5>
+			<p>
+				With at least two machine options, ArrowDown changes the active row without committing;
+				Enter commits exactly that active machine.
+			</p></template
+		>
+		<template id="body-S5"
+			><p id="summary-S5">The overlay covers its bounds and reserves its left edge.</p>
+			<h5>Conditions and observable rule</h5>
+			<p>
+				With a wide glyph behind an open dialog, the overlay frame paints its full boundary and
+				reserves the left edge without exposed background text.
+			</p></template
+		>
+		<template id="body-S6"
+			><p id="summary-S6">A refused start retains the draft and shows the refusal.</p>
+			<h5>Conditions and observable rule</h5>
+			<p>
+				After a refused start result, the refusal is visible and all draft fields retain their
+				entered values before the next retry.
+			</p></template
+		>
+	</body>
+</html>

@@ -1,0 +1,142 @@
+/* Drawer: a docked panel that takes space; the page narrows beside it and keeps scrolling. */
+:root {
+	--ex-drawer-used-width: 0px;
+}
+:root[data-drawer] {
+	--ex-drawer-used-width: min(var(--ex-drawer-width, 460px), 70vw);
+}
+
+.ex-drawer {
+	position: fixed;
+	inset: 0 0 0 auto;
+	margin: 0;
+	padding: 0;
+	z-index: 15;
+	width: var(--ex-drawer-used-width);
+	display: flex;
+	flex-direction: column;
+	background: var(--surface-content);
+	color: var(--ink);
+	border: 0;
+	border-left: 1px solid var(--rule);
+	box-shadow: var(--shadow-edge);
+}
+.ex-drawer[hidden] {
+	display: none;
+}
+.ex-drawer > .ex-inspect-body {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	padding: var(--space-5);
+}
+.ex-drawer-handle {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -4px;
+	width: 8px;
+	cursor: col-resize;
+	z-index: 1;
+}
+.ex-drawer-handle:is(:hover, :focus-visible) {
+	background: var(--accent);
+	opacity: 0.5;
+	outline: none;
+}
+:root[data-drawer] body {
+	padding-inline-end: calc(var(--ex-drawer-used-width) + 20px);
+}
+:root[data-drawer] .ex-issues {
+	right: calc(var(--ex-drawer-used-width) + 12px);
+}
+:root[data-drawer] .ex-route-player {
+	left: calc((100vw - var(--ex-drawer-used-width)) / 2);
+	width: min(640px, calc(100vw - var(--ex-drawer-used-width) - 24px));
+}
+:root[data-resizing] {
+	cursor: col-resize;
+	user-select: none;
+}
+@media (max-width: 899px) {
+	:root[data-drawer] {
+		--ex-drawer-used-width: 0px;
+	}
+	:root[data-drawer] body {
+		padding-inline-end: var(--space-5);
+	}
+}
+@media (max-width: 760px) {
+	:root[data-drawer] body:has(ex-document) {
+		padding-inline-end: var(--space-2);
+	}
+}
+.ex-drawer:not([hidden]),
+.ex-inspect-dialog[data-mode='sidebar'][open] {
+	animation: ex-drawer-enter var(--motion-base) var(--ease-out);
+}
+@keyframes ex-drawer-enter {
+	from {
+		opacity: 0;
+		transform: translate(var(--drawer-enter-x, var(--space-6)), var(--drawer-enter-y, 0px));
+	}
+	to {
+		opacity: 1;
+		transform: translate(0, 0);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.ex-drawer:not([hidden]),
+	.ex-inspect-dialog[data-mode='sidebar'][open] {
+		animation: none;
+	}
+}
+
+/* Bottom workspaces stay non-modal and leave room for the independent Comments rail. */
+ex-drawer.ex-drawer {
+	--drawer-enter-x: 0px;
+	--drawer-enter-y: var(--space-6);
+	inset: auto var(--ex-drawer-used-width, 0px) 0 0;
+	width: auto;
+	height: calc(100dvh - var(--ex-document-toolbar-height, 0px));
+	max-width: none;
+	max-height: calc(100dvh - var(--ex-document-toolbar-height, 0px));
+	border: 1px solid var(--rule);
+	border-bottom: 0;
+	border-radius: var(--radius-md) var(--radius-md) 0 0;
+	z-index: 14;
+}
+ex-drawer.ex-drawer[size='content'] {
+	left: max(0px, calc((100vw - var(--ex-drawer-used-width, 0px) - 720px) / 2));
+	right: calc(
+		var(--ex-drawer-used-width, 0px) +
+			max(0px, calc((100vw - var(--ex-drawer-used-width, 0px) - 720px) / 2))
+	);
+	height: auto;
+	max-height: 80dvh;
+}
+ex-drawer.ex-drawer > header {
+	flex: none;
+}
+ex-drawer.ex-drawer::backdrop {
+	background: transparent;
+	pointer-events: none;
+}
+
+/* Original floating overlays retain their viewport geometry and relative z-order. */
+.ex-drawer-reader-overlays[popover] {
+	position: fixed;
+	inset: 0;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	overflow: visible;
+	background: transparent;
+	pointer-events: none;
+}
+.ex-drawer-reader-overlays > :is(.ex-route-player, .ex-issues) {
+	pointer-events: auto;
+}

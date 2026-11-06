@@ -7,6 +7,6 @@
 }
 
 /* Inspection has one pan/zoom viewport; main-page diagrams keep their own local scrolling. */
-.ex-inspect-body ex-mermaid {
+.ex-inspect-body:not(ex-drawer > .ex-inspect-body) ex-mermaid {
 	overflow: visible;
 }
