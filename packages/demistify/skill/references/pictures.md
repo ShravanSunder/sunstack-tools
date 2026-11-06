@@ -107,6 +107,7 @@ For two same-size pictures, `ex-compare slider` overlays its two labeled childre
   <img src="checkout-after.png" alt="Checkout with one merged address field" label="After">
 </ex-compare>
 ```
- For rich alternatives, shared topic rows or a larger set with pair selection, use [content comparisons](comparisons.md); that form supports any number of alternative sections.
+
+For rich alternatives, shared topic rows or a larger set with pair selection, use [content comparisons](comparisons.md); that form supports any number of alternative sections.
 
 Preserve supplied image paths, capture metadata and captions. Use the main guide's lint pass; Gallery controls, keyboard navigation, transitions and state retention are library regression responsibilities. Inspect only an explicitly requested view or reported defect.

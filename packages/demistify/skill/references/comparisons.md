@@ -29,4 +29,4 @@ Sidebar inspection is an independent interactive copy; fullscreen uses the live 
 
 The existing `slider` form remains for two same-size pictures; see [pictures](pictures.md). It is a different comparison task from aligning rich topic rows.
 
-Complete when every alternative uses the same topic keys, an omitted topic stays visibly not supplied, and the initial pair isn't presented as a decision. Use the main guide's lint pass.
+Complete when the chosen form holds and the initial pair isn't presented as a decision. For aligned topics, every topic section in every alternative has a key, a shared meaning shares one key, and a topic an alternative lacks shows as **Not supplied** rather than an invented placeholder. For independent alternatives, the topic sections stay unkeyed and no alignment is implied. Use the main guide's lint pass.

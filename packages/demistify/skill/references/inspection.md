@@ -27,7 +27,7 @@ The inspector preserves readable typography and local overflow. A diagram too wi
 
 ## Bottom workspaces
 
-Use `ex-drawer` for a large bottom workspace that stays interactive beside Comments, such as related documents a reader keeps open while reading. It is in the source library and not yet in the hosted v1 runtime or guide, so use it only at a binding whose guide documents it, such as a named local source preview.
+Use `ex-drawer` for a large bottom workspace that stays interactive beside Comments, such as related documents a reader keeps open while reading. Use it only at a binding whose guide documents it.
 
 ```html
 <ex-drawer id="related-documents" label="Related documents" open>
