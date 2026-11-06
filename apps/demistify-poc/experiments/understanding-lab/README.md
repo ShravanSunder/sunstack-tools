@@ -80,3 +80,7 @@ Metadata names identities and forward references. Rich explanation stays in the 
 C1 is shared rather than copied for U1 and U2. V2 and V2-keyboard are separate scenarios; an observation attaches to its scenario. Missing observation means Not run, rather than a stored passing result. The preparation script and schema are experimental app inputs, not a universal public graph API.
 
 Document cards and the normal title/control header use the app-private `--lab-document-surface`: a 1% white lift over the page in dark mode and the existing white surface in light mode. The full workspace header, need rows and controls retain `--surface-content`; this does not redefine the shared library token. Verification procedure steps start open, with deeper driver and proof-limit details collapsed.
+
+### Collection entry
+
+Each prepared reader collection has at least one user need and one nonempty call stack. The preparer rejects missing entries before writing output. Valid need/stack/call addresses retain their selection behavior. Without a valid address, the browsers start with the first authored need, first authored stack and its first frame, in source order. No example-specific identity is required. An unmapped need retains its own explicit call-mapping gap while the available stack remains usable; it never inherits another need's observation.

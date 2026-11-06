@@ -68,6 +68,7 @@ const summary = (records: readonly PreparedRecord[]): string =>
 export function deriveStudyModel(collection: PreparedCollection): {
 	requirements: readonly RequirementExample[];
 	callStacks: readonly CallStackExample[];
+	entry: { readonly needId: string; readonly stackId: string; readonly frameId: string };
 } {
 	const requirements = collection.records.flatMap((item): RequirementExample[] => {
 		const record = item.record;
@@ -99,7 +100,16 @@ export function deriveStudyModel(collection: PreparedCollection): {
 			},
 		];
 	});
-	return { requirements, callStacks };
+	const need = requirements[0];
+	const stack = callStacks[0];
+	const frame = stack?.frames[0];
+	if (!need || !stack || !frame)
+		throw new Error('A reader collection needs a user need and a nonempty call stack.');
+	return {
+		requirements,
+		callStacks,
+		entry: { needId: need.id, stackId: stack.id, frameId: frame.id },
+	};
 }
 export function loadStudyModel(): ReturnType<typeof deriveStudyModel> {
 	return deriveStudyModel(readCollection());

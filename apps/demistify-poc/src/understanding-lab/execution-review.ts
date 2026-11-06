@@ -10,12 +10,12 @@ type CallSelection =
 	| { readonly kind: 'unmapped-need'; readonly needId: string }
 	| { readonly kind: 'missing-call'; readonly requestedId: string };
 
-const { requirements, callStacks } = loadStudyModel();
+const { requirements, callStacks, entry } = loadStudyModel();
 
 /** One stack selection owns the nested path; hover previews detail without changing its meaning. */
 export class ExecutionReview extends HTMLElement {
-	private stackId = 'start-session';
-	private selection: CallSelection = { kind: 'frame', frameId: 'input-owner-route' };
+	private stackId = entry.stackId;
+	private selection: CallSelection = { kind: 'frame', frameId: entry.frameId };
 	private hoveredFrameId: string | undefined;
 	private pendingHoverId: string | undefined;
 	private hoverTimer: ReturnType<typeof setTimeout> | undefined;

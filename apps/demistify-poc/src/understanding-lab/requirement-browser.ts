@@ -11,7 +11,7 @@ import {
 import { icon, restoreStudyFocusAfterRender, safeText } from './study-markup.js';
 import { loadStudyModel, type RequirementExample } from './study-model.js';
 
-const { requirements } = loadStudyModel();
+const { requirements, entry } = loadStudyModel();
 const documentViews = [
 	{ id: 'requirement', label: 'Overview' },
 	{ id: 'specification', label: 'Specification' },
@@ -21,7 +21,7 @@ const documentViews = [
 
 /** The normal browser owns the selected need and document; enlargement keeps this same view. */
 export class RequirementBrowser extends HTMLElement {
-	private selectedId = 'U1';
+	private selectedId = entry.needId;
 	private capability = 'All needs';
 	private stage: RequirementStage | undefined;
 	private mobileView: 'list' | 'detail' = 'list';

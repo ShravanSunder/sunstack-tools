@@ -122,6 +122,10 @@ export async function prepareUnderstandingPages(
 		if (byId.has(prepared.record.id)) throw new Error(`Duplicate record ${prepared.record.id}`);
 		byId.set(prepared.record.id, prepared);
 	}
+	if (!records.some(({ record }) => record.kind === 'need'))
+		throw new Error('A reader collection needs at least one user need.');
+	if (!records.some(({ record }) => record.kind === 'stack'))
+		throw new Error('A reader collection needs at least one call stack.');
 	for (const { record } of records)
 		for (const [target, kind] of references(record)) {
 			if (byId.get(target)?.record.kind !== kind)

@@ -12,7 +12,8 @@ export async function openFixture(
 		| 'review'
 		| 'palette'
 		| 'default-comments'
-		| 'understanding',
+		| 'understanding'
+		| 'understanding-collection',
 	fragment = '',
 	file = 'index.html',
 ): Promise<{ readonly document: Document; readonly frame: ReturnType<typeof page.frameLocator> }> {
