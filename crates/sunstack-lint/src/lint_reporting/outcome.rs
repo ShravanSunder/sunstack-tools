@@ -68,6 +68,12 @@ pub(crate) fn project_outcome(
         };
         let basis = pair.result.basis();
         report.results.push(RulePieceResult {
+            locator_omitted: match &pair.result {
+                RulebookResult::Finding {
+                    locator_omitted, ..
+                } => locator_omitted.clone(),
+                _ => None,
+            },
             reason: match &pair.result {
                 RulebookResult::NotApplicable {
                     reason: reason @ sunstack_rules::NotApplicableReason::Filter { .. },
@@ -97,6 +103,7 @@ pub(crate) fn project_outcome(
                     report.exclusions.not_applicable.saturating_add(1)
             }
             RulebookResult::Finding {
+                locator_omitted,
                 severity,
                 message,
                 line,
@@ -125,6 +132,7 @@ pub(crate) fn project_outcome(
                     .cloned()
                     .unwrap_or_else(|| piece.location.span.clone());
                 report.findings.push(Finding {
+                    locator_omitted,
                     rule: rule.name.clone(),
                     marker: rule.sentence.marker.clone(),
                     file: piece.location.file.clone(),
@@ -163,6 +171,9 @@ pub(crate) fn project_outcome(
                     file: Some(piece.location.file.clone()),
                     field,
                     reason: match reason {
+                        RulebookIncompleteReason::ChoiceOptionsExceeded { options, limit } => {
+                            IncompleteReason::ChoiceOptionsExceeded { options, limit }
+                        }
                         RulebookIncompleteReason::EvidenceUnavailable => {
                             IncompleteReason::EvidenceUnavailable
                         }

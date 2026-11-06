@@ -13,6 +13,10 @@ use sunstack_evidence::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RulebookIncompleteReason {
+    ChoiceOptionsExceeded {
+        options: usize,
+        limit: usize,
+    },
     EvidenceUnavailable,
     EvidenceTooLarge,
     RequestTooLarge,
@@ -34,6 +38,8 @@ pub enum RulebookResult {
         answers_read: NamedAnswerMap,
     },
     Finding {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        locator_omitted: Option<LocatorOmission>,
         severity: Severity,
         message: String,
         line: usize,
@@ -63,6 +69,21 @@ pub enum RulebookResult {
         path_taken: Vec<StepName>,
         answers_read: NamedAnswerMap,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct LocatorOmission {
+    pub locator: sunstack_decisions::QuestionName,
+    pub field: FieldName,
+    pub reason: LocatorOmissionReason,
+    pub candidate_lines: usize,
+    pub limit: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum LocatorOmissionReason {
+    LineLimit,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -182,6 +203,16 @@ pub fn walk_decision(
     piece: &EvidencePiece,
     index: &FileMatchIndex,
     answers: Option<&NamedAnswerMap>,
+) -> WalkOutcome {
+    walk_decision_with_omissions(rule, piece, index, answers, &BTreeMap::new())
+}
+
+pub(crate) fn walk_decision_with_omissions(
+    rule: &RulebookRule,
+    piece: &EvidencePiece,
+    index: &FileMatchIndex,
+    answers: Option<&NamedAnswerMap>,
+    omissions: &BTreeMap<sunstack_decisions::QuestionName, LocatorOmission>,
 ) -> WalkOutcome {
     let mut current = rule.decision.start.clone();
     let mut path = Vec::new();
@@ -403,6 +434,11 @@ pub fn walk_decision(
                     }
                 }
                 return WalkOutcome::Settled(RulebookResult::Finding {
+                    locator_omitted: finding
+                        .locate
+                        .as_ref()
+                        .and_then(|locator| omissions.get(&locator.name))
+                        .cloned(),
                     severity: finding.severity.unwrap_or(rule.severity),
                     message: finding.finding.clone(),
                     line,

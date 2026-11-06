@@ -1,6 +1,7 @@
 use crate::{
     DispatchRefusal, ModelRequestDispatch, RulebookIncompleteReason, RulebookResult, RulebookRule,
-    StepName, WalkOutcome, piece_state, walk_decision,
+    StepName, WalkOutcome, piece_state,
+    rulebook_planning::decision_walking::walk_decision_with_omissions,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
@@ -128,7 +129,12 @@ pub async fn run_rulebook_with_dispatcher(
             }
             let empty = FileMatchIndex::default();
             let index = indexes.get(&piece.location.file).unwrap_or(&empty);
-            let (step, path_taken) = match first_walk(rule, piece, index) {
+            let omissions = super::locator_questions::plan_locator_omissions(
+                rule,
+                piece,
+                dispatcher.settings.max_locate_lines,
+            );
+            let (step, path_taken) = match first_walk(rule, piece, index, &omissions) {
                 WalkOutcome::Settled(result) => {
                     run.results[pair_index].result = result;
                     continue;
@@ -152,13 +158,24 @@ pub async fn run_rulebook_with_dispatcher(
                 questions: rule.questions.clone(),
                 state,
             };
-            super::locator_questions::add_locators(rule, piece, dispatcher, &mut request);
-            match dispatcher.submit(request).await {
+            let submitted =
+                match super::locator_questions::add_locators(rule, piece, dispatcher, &mut request)
+                {
+                    Ok(()) => dispatcher.submit(request).await,
+                    Err(error) => Err(DispatchRefusal::ChoiceOptionsExceeded(error)),
+                };
+            match submitted {
                 Ok(id) => {
-                    pending.insert(id, (pair_index, step, path_taken));
+                    pending.insert(id, (pair_index, step, path_taken, omissions));
                 }
                 Err(refusal) => {
                     let reason = match refusal {
+                        DispatchRefusal::ChoiceOptionsExceeded(error) => {
+                            RulebookIncompleteReason::ChoiceOptionsExceeded {
+                                options: error.options,
+                                limit: error.limit,
+                            }
+                        }
                         DispatchRefusal::Cancelled => RulebookIncompleteReason::Cancelled,
                         DispatchRefusal::RequestTooLarge => {
                             RulebookIncompleteReason::RequestTooLarge
@@ -174,7 +191,7 @@ pub async fn run_rulebook_with_dispatcher(
         }
     }
     for record in dispatcher.drain().await {
-        let Some((pair_index, step, path_taken)) = pending.remove(&record.id) else {
+        let Some((pair_index, step, path_taken, omissions)) = pending.remove(&record.id) else {
             continue;
         };
         let pair = &run.results[pair_index];
@@ -184,7 +201,7 @@ pub async fn run_rulebook_with_dispatcher(
         let index = indexes.get(&piece.location.file).unwrap_or(&empty);
         let result = match &record.outcome {
             DecisionRunOutcome::Completed { answers, .. } => {
-                match walk_decision(rule, piece, index, Some(answers)) {
+                match walk_decision_with_omissions(rule, piece, index, Some(answers), &omissions) {
                     WalkOutcome::Settled(result) => result,
                     WalkOutcome::NeedsAnswers { .. } => incomplete(
                         RulebookIncompleteReason::InvalidResponse,
@@ -230,10 +247,15 @@ pub async fn run_rulebook_with_dispatcher(
     run
 }
 
-fn first_walk(rule: &RulebookRule, piece: &EvidencePiece, index: &FileMatchIndex) -> WalkOutcome {
+fn first_walk(
+    rule: &RulebookRule,
+    piece: &EvidencePiece,
+    index: &FileMatchIndex,
+    omissions: &BTreeMap<sunstack_decisions::QuestionName, crate::LocatorOmission>,
+) -> WalkOutcome {
     #[cfg(test)]
     FIRST_WALKS.with(|walks| walks.set(walks.get() + 1));
-    walk_decision(rule, piece, index, None)
+    walk_decision_with_omissions(rule, piece, index, None, omissions)
 }
 
 #[cfg(test)]

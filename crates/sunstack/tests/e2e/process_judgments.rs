@@ -142,3 +142,69 @@ async fn real_binary_keeps_configured_provider_attempts_finite() {
     );
     assert_eq!(count, 3);
 }
+
+#[tokio::test]
+async fn exec_public_choice_255_completes_and_256_refuses_before_http() {
+    use sunstack_decisions::{ChoiceLabel, JudgmentQuestion, QuestionName, StructuredEntry};
+    for count in [255, 256] {
+        let mut input = mixed_input("unused");
+        let JudgmentQuestion::Choice { criteria, .. } = input
+            .request
+            .questions
+            .get_mut(&QuestionName::new("native_choice").unwrap())
+            .unwrap()
+        else {
+            panic!()
+        };
+        for index in 2..count {
+            criteria.insert(
+                ChoiceLabel::new(format!("option{index}")).unwrap(),
+                StructuredEntry::Null,
+            );
+        }
+        let probabilities = criteria
+            .keys()
+            .map(|label| {
+                (
+                    label.as_str().to_owned(),
+                    if label.as_str() == "alpha" { 1.0 } else { 0.0 },
+                )
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let mut reply = decision_fixtures::response();
+        reply["answers"]["native_choice"]["probabilities"] =
+            serde_json::to_value(probabilities).unwrap();
+        let mut server = TestServer::start(vec![HttpReply::json(reply)]).await;
+        input.backend = decision_fixtures::selection(&server.endpoint);
+        let output = run(
+            &workspace_root(),
+            "run_judgments",
+            serde_json::to_value(input).unwrap(),
+        )
+        .await;
+        let capture = server.captures.try_recv().ok();
+        let calls = server.finish().await;
+        if count == 255 {
+            let wire = response(&output, 0);
+            assert_eq!(wire["result"]["outcome"]["kind"], "completed");
+            assert_eq!(calls, 1);
+            let body: serde_json::Value = serde_json::from_slice(&capture.unwrap().body).unwrap();
+            assert_eq!(
+                body["questions"]["native_choice"]["criteria"]
+                    .as_object()
+                    .unwrap()
+                    .len(),
+                255
+            );
+        } else {
+            assert_eq!(calls, 0, "oversized exec request reached HTTP");
+            let wire = response(&output, 2);
+            let diagnostic = &wire["result"]["outcome"]["diagnostics"]["items"][0];
+            assert_eq!(diagnostic["code"], "invalid_choice");
+            assert_eq!(diagnostic["origin"], "request");
+            assert_eq!(diagnostic["retry_advice"]["kind"], "repair_request");
+            let guidance = diagnostic["guidance"].as_str().unwrap();
+            assert!(guidance.contains("256") && guidance.contains("255"));
+        }
+    }
+}

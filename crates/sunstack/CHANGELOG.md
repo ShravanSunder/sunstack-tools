@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.1
+
+Release date: 2026-11-06.
+
+- Refuse `limits.max_locate_lines` above the provider's 255-option Choice cap
+  during config checking. Filter declarations above that cap are refused at
+  `filters.<name>.question.criteria`, with their option count and limit.
+  Native rule, filter, direct decision and exec requests refuse oversized
+  Choice questions locally before any HTTP call; filter results retain the
+  count and limit. Unreached locators preserve mechanical outcomes.
+- Findings and result rows carry optional `locator_omitted` evidence when a
+  reached locator exceeds the configured line limit: locator name, field,
+  reason, candidate-line count and limit. The established default line and
+  anchor remain intact; default output explains that fallback.
+
 ## 0.7.0
 
 Release date: 2026-11-05.

@@ -48,7 +48,7 @@ impl JsonSchema for GlobPattern {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LintLimits {
-    #[schemars(extend("maximum" = u32::MAX))]
+    #[schemars(extend("maximum" = sunstack_decisions::MAX_CHOICE_OPTIONS))]
     pub max_locate_lines: Option<NonZeroU32>,
     #[schemars(range(min = 1000))]
     pub evidence_max_chars: Option<NonZeroU32>,

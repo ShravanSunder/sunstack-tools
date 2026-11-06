@@ -5,6 +5,74 @@ use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
 use sunstack_rules::test_support::controlled_http as controlled;
 
+#[tokio::test]
+async fn locator_line_limit_admission_matches_provider_choice_boundary() {
+    let root = tempfile::tempdir().unwrap();
+    let baseline = fixture::write(root.path());
+    let schema = serde_json::to_value(config_schema()).unwrap();
+    let validator = jsonschema::options().offline().build(&schema).unwrap();
+    assert_eq!(EffectiveLimits::default().max_locate_lines, 80);
+    for count in [0, 254, 255, 256, 1000] {
+        let mut value = baseline.clone();
+        value["limits"] = json!({"max_locate_lines":count});
+        fixture::config_file(root.path(), &value);
+        let location = discover_config(root.path(), None).unwrap();
+        assert_eq!(
+            validator.is_valid(&value),
+            (1..=255).contains(&count),
+            "schema {count}"
+        );
+        let loaded = load_config(&location);
+        if (1..=255).contains(&count) {
+            assert!(matches!(
+                check(&loaded.unwrap(), CancellationToken::new()).await,
+                CheckResult::Valid { .. }
+            ));
+        } else {
+            let error = loaded.unwrap_err();
+            assert!(
+                error
+                    .json_path
+                    .join(".")
+                    .contains("limits.max_locate_lines"),
+                "{error:?}"
+            );
+            if count > 255 {
+                let text = std::fs::read_to_string(&location.file).unwrap();
+                let offset = text.find("\"max_locate_lines\"").unwrap();
+                let prefix = &text[..offset];
+                assert_eq!(
+                    error.line,
+                    Some(
+                        u32::try_from(prefix.bytes().filter(|byte| *byte == b'\n').count() + 1)
+                            .unwrap()
+                    )
+                );
+                assert_eq!(
+                    error.column,
+                    Some(
+                        u32::try_from(prefix.rsplit('\n').next().unwrap().chars().count() + 1)
+                            .unwrap()
+                    )
+                );
+            } else {
+                assert!(error.line.is_some_and(|line| line > 1));
+            }
+        }
+    }
+    let mut config = load_config(&{
+        fixture::config_file(root.path(), &baseline);
+        discover_config(root.path(), None).unwrap()
+    })
+    .unwrap();
+    config.limits = Some(serde_json::from_value(json!({"max_locate_lines":1000})).unwrap());
+    let CheckResult::Invalid { diagnostics } = check(&config, CancellationToken::new()).await
+    else {
+        panic!("native check bypassed cap")
+    };
+    assert!(diagnostics[0].message.contains("limits.max_locate_lines"));
+}
+
 #[test]
 fn filter_schema_preserves_native_choice_shape_and_probability_bounds() {
     let root = tempfile::tempdir().unwrap();
@@ -48,7 +116,7 @@ async fn every_numeric_limit_accepts_its_exact_maximum_and_rejects_the_next_inte
         ),
         ("attempt_timeout_seconds", u64::from(u32::MAX), "4294967296"),
         ("max_concurrent_requests", u64::from(u32::MAX), "4294967296"),
-        ("max_locate_lines", u64::from(u32::MAX), "4294967296"),
+        ("max_locate_lines", 255, "256"),
     ] {
         let mut admitted = baseline.clone();
         admitted["limits"] = json!({field: maximum});

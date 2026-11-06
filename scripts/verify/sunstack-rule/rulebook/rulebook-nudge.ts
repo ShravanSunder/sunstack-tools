@@ -196,7 +196,30 @@ async function observeLocation(observer: RulebookProcess, fixtures: string): Pro
 		requireOneRow(observed.report, {
 			...expectedRow(root, 'K001', locatedFile, 'finding', ['gate'], 'judged'),
 			answers: normalizedAnswers(capture.body, mode),
+			...(mode === 'over-limit'
+				? {
+						locator_omitted: {
+							locator: 'anchor_line',
+							field: 'body',
+							reason: 'line_limit',
+							candidate_lines: 18,
+							limit: 1,
+						},
+					}
+				: {}),
 		});
+		if (mode === 'over-limit')
+			equal(
+				objectValue(arrayValue(observed.report['findings'])[0])['locator_omitted'],
+				{
+					locator: 'anchor_line',
+					field: 'body',
+					reason: 'line_limit',
+					candidate_lines: 18,
+					limit: 1,
+				},
+				'Over-limit finding omission evidence differs',
+			);
 		if (mode === 'resolved') {
 			const sarif = await observer.report({
 				root,

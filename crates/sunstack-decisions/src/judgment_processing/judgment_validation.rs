@@ -2,7 +2,42 @@ use crate::{decision_protocol::decision_contracts::*, decision_protocol::decisio
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
+pub const MAX_CHOICE_OPTIONS: usize = 255;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("choice has {options} options; maximum is {limit}")]
+pub struct ChoiceOptionsExceeded {
+    pub options: usize,
+    pub limit: usize,
+}
+
+pub fn validate_choice_options(questions: &NamedQuestionMap) -> Result<(), ChoiceOptionsExceeded> {
+    for question in questions.values() {
+        if let JudgmentQuestion::Choice { criteria, .. } = question
+            && criteria.len() > MAX_CHOICE_OPTIONS
+        {
+            return Err(ChoiceOptionsExceeded {
+                options: criteria.len(),
+                limit: MAX_CHOICE_OPTIONS,
+            });
+        }
+    }
+    Ok(())
+}
+
+impl From<ChoiceOptionsExceeded> for DecisionDiagnostic {
+    fn from(error: ChoiceOptionsExceeded) -> Self {
+        let mut diagnostic = Self::request(DecisionDiagnosticCode::InvalidChoice);
+        diagnostic.guidance = error.to_string();
+        diagnostic.location = DecisionDiagnosticLocation::Field {
+            field_path: vec!["questions".into(), "criteria".into()],
+        };
+        diagnostic
+    }
+}
+
 pub fn validate_request(request: &StructuredJudgmentRequest) -> Result<(), DecisionDiagnostic> {
+    validate_choice_options(&request.questions).map_err(DecisionDiagnostic::from)?;
     validate_questions(&request.questions)
 }
 

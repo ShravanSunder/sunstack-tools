@@ -5,6 +5,8 @@ use tokio::{sync::Semaphore, task::JoinSet};
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DispatchRefusal {
+    #[error(transparent)]
+    ChoiceOptionsExceeded(#[from] ChoiceOptionsExceeded),
     #[error("request exceeds the configured size limit")]
     RequestTooLarge,
     #[error("model request allowance is exhausted")]
@@ -54,6 +56,7 @@ impl ModelRequestDispatch {
         request: &StructuredJudgmentRequest,
     ) -> Result<(), crate::SelectionIncompleteReason> {
         use crate::SelectionIncompleteReason as Reason;
+        validate_choice_options(&request.questions).map_err(|_| Reason::InvalidRequest)?;
         let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
         let body = encode_judgment_body(request, model).map_err(|_| Reason::InvalidRequest)?;
         let chars = std::str::from_utf8(&body)
@@ -96,6 +99,7 @@ impl ModelRequestDispatch {
         if self.is_cancelled() {
             return Err(DispatchRefusal::Cancelled);
         }
+        validate_choice_options(&request.questions)?;
         let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
         let body =
             encode_judgment_body(&request, model).map_err(|_| DispatchRefusal::InvalidRequest)?;

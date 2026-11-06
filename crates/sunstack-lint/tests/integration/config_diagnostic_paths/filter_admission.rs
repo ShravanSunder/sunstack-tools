@@ -123,3 +123,54 @@ async fn only_when_refusals_skip_the_entry_and_name_the_gate_field() {
         );
     }
 }
+
+#[tokio::test]
+async fn filter_choice_admission_refuses_256_at_exact_criteria_path_with_count_and_limit() {
+    for count in [255, 256] {
+        let root = tempfile::tempdir().unwrap();
+        let mut config = fixture::write(root.path());
+        let mut declaration = filter();
+        declaration["question"]["criteria"] = serde_json::to_value(
+            (0..count)
+                .map(|index| (format!("option{index}"), "Option"))
+                .collect::<std::collections::BTreeMap<_, _>>(),
+        )
+        .unwrap();
+        config["filters"] = json!({"kind":declaration});
+        let schema = serde_json::to_value(config_schema()).unwrap();
+        let validator = jsonschema::validator_for(&schema).unwrap();
+        assert_eq!(validator.is_valid(&config), count == 255);
+        fixture::config_file(root.path(), &config);
+        let loaded = load_config(&discover_config(root.path(), None).unwrap()).unwrap();
+        let checked = check(&loaded, CancellationToken::new()).await;
+        if count == 255 {
+            assert!(matches!(checked, CheckResult::Valid { .. }));
+        } else {
+            let CheckResult::Invalid { diagnostics } = checked else {
+                panic!("accepted256")
+            };
+            assert!(
+                diagnostics.iter().any(|diagnostic| diagnostic
+                    .message
+                    .contains("filters.kind.question.criteria")
+                    && diagnostic.message.contains("256")
+                    && diagnostic.message.contains("255")),
+                "{diagnostics:?}"
+            );
+            let report = run(
+                fixture::request(root.path()),
+                CancellationToken::new(),
+                None,
+            )
+            .await;
+            assert_eq!(report.status, LintStatus::Invalid);
+            assert!(report.diagnostics.iter().any(|diagnostic| {
+                diagnostic
+                    .message
+                    .contains("filters.kind.question.criteria")
+                    && diagnostic.message.contains("256")
+                    && diagnostic.message.contains("255")
+            }));
+        }
+    }
+}
