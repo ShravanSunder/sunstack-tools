@@ -2,7 +2,7 @@
 
 ## Public exec Choice boundary (F1–F3 correction)
 
-The companion `scripts/verify/sunstack-rule/rulebook/exec-choice-limits.ts` is **draft until driven on a declared correction candidate**. The Lead's 6 Nov correction disposition extends the cap to public decision APIs and actual `exec RunJudgments`: a single authoritative255 cap belongs to the decisions crate's existing Choice validation/encoding owner. Native API and filter paths below are separate required joins.
+The companion `scripts/verify/sunstack-rule/rulebook/exec-choice-limits.ts` is operable on a declared correction candidate. The Lead's 6 Nov correction disposition extends the cap to public decision APIs and actual `exec RunJudgments`: a single authoritative255 cap belongs to the decisions crate's existing Choice validation/encoding owner. Native API and filter paths below are separate required joins.
 
 ```sh
 node scripts/verify/sunstack-rule/rulebook/exec-choice-limits.ts \
@@ -17,7 +17,7 @@ Required F2 join: native settings1000 with256body lines must preserve mechanical
 
 Required F3 joins follow the Lead's explicit admission/runtime split. Config filter criteria256 is refused by --check **and lint** with its exact owning question.criteria path and count/limit, while255 is admitted. A direct/native filter call that legitimately bypasses declaration admission must reach ask_filters and preserve `choice_options_exceeded:{options:256,limit:255}` through filter_answers, actual report serialization/schema and human incomplete output, with zero HTTP. A255 positive must dispatch and become judged. Config-invalid exit2 does not prove the runtime mapper; no config is rewritten to bypass admission for that claim. An unrelated ready peer should retain its established result.
 
-The colocated `exec-choice-limits.test.ts` plants protocol errors, provider failures, extra dispatch, truncated255 options and missing/wrong diagnostic counts. Its apparatus green does not establish product behavior. The existing locator/nudge drives remain useful but never stand in for public API/exec or filter diagnostic proof. Controlled answers do not prove hosted inference quality. Until the correction head is declared and these routes/native joins are checked, F1–F3 remain open.
+The colocated `exec-choice-limits.test.ts` plants protocol errors, provider failures, extra dispatch, truncated255 options, missing/wrong diagnostic counts and the incorrect string form of the tagged `retry_advice: {kind: "repair_request"}` object. Its apparatus green does not establish product behavior. The existing locator/nudge drives remain useful but never stand in for public API/exec or filter diagnostic proof. Controlled answers do not prove hosted inference quality. Every observation must declare its correction head and check these routes/native joins before reporting F1–F3 support.
 
 ## Locator rulebook path
 

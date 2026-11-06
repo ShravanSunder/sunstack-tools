@@ -49,7 +49,7 @@ function refused(): { report: JsonObject; captures: CapturedRequest[]; count: 25
 							{
 								origin: 'request',
 								code: 'invalid_choice',
-								retry_advice: 'repair_request',
+								retry_advice: { kind: 'repair_request' },
 								guidance: 'Choice has 256 options; maximum is 255.',
 							},
 						],
@@ -82,6 +82,7 @@ test('positive control rejects zero dispatch, missing option and incomplete comp
 test.each([
 	['origin', 'response'],
 	['code', 'invalid_configuration'],
+	['retry_advice', 'repair_request'],
 	['retry_advice', 'do_not_retry'],
 	['guidance', 'Repair request.'],
 	['guidance', 'Choice has 255 options; maximum is 255.'],

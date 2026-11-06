@@ -126,7 +126,7 @@ export function requireExecChoiceOutcome(options: {
 				(diagnostic) =>
 					diagnostic['origin'] === 'request' &&
 					diagnostic['code'] === 'invalid_choice' &&
-					diagnostic['retry_advice'] === 'repair_request' &&
+					objectValue(diagnostic['retry_advice'])['kind'] === 'repair_request' &&
 					/\b256\b/.test(textValue(diagnostic['guidance'])) &&
 					/\b255\b/.test(textValue(diagnostic['guidance'])),
 			),
