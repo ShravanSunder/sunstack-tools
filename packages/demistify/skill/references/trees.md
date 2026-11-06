@@ -4,6 +4,17 @@
 
 Choose from the input: hierarchical Markdown becomes `ex-tree`; an exact monospace/TUI drawing becomes `ex-pre`. Use `ex-file-tree` only for a plain repository-path illustration. A literal drawing needs no terminal emulator or per-document styling.
 
+An `ex-file-tree` shows its plain-text source as written, so put the paths, indented as the tree should read, in a direct `text/plain` script:
+
+```html
+<ex-file-tree label="Changed files"><script type="text/plain">
+src/
+  session/
+    registry.ts
+    connection.ts
+</script></ex-file-tree>
+```
+
 ```html
 <ex-tree title="Delivery work" icon="rocket"><script type="text/markdown">
 - [Session ownership](#requirements--ownership-table)

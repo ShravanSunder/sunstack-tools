@@ -308,6 +308,7 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	'ex-tabs': {
 		description: 'Views as tabs; each child <section label> is one view.',
 		attributes: { columns: flag('Shows the views side by side when they fit.'), label },
+		childAttributes: { label, icon },
 	},
 	'ex-board': {
 		description:

@@ -25,4 +25,28 @@ Sidebar content is an independent interactive copy; fullscreen uses the live con
 
 The inspector preserves readable typography and local overflow. A diagram too wide to read should scroll rather than shrink labels below the shared floor. Long prose stays readable rather than inheriting a larger whole-page heading scale. Use the shared surface, corner radius and elevation; add no per-document shadow or modal implementation.
 
+## Bottom workspaces
+
+Use `ex-drawer` for a large bottom workspace that stays interactive beside Comments, such as related documents a reader keeps open while reading. Use it only at a binding whose guide documents it.
+
+```html
+<ex-drawer id="related-documents" label="Related documents" open>
+  <header class="ex-inspect-header"><strong>Related documents</strong></header>
+  <div class="ex-inspect-body">
+    <p>The recovery runbook and the session contract stay beside the explanation.</p>
+  </div>
+</ex-drawer>
+```
+
+`label` is required and names the workspace. Put a header and a body with classes `ex-inspect-header` and `ex-inspect-body` inside it. The drawer owns its geometry, entry animation, Escape and focus return; the document owns the content. Keep the drawer in the original document DOM so comment targets and text selections keep their identity. Outside presses keep it open, and reduced-motion settings disable its animation.
+
+Its lifecycle:
+
+- A static `open` attribute shows it when the page loads; without `open` it starts hidden.
+- Escape closes the latest workspace unless a control inside it used the key first. Closing returns focus to where it came from and fires a `close` event.
+- Nothing in plain document markup opens it later or reopens it after a close. Triggering is application-embedding API: a page controller calls `drawer.show()` and `drawer.close()`, or toggles `open`, and listens for `close` to restore its own view state. An ordinary declarative document adds no such script. When nothing on the page can reopen the drawer and readers must reach its content again after closing it, put that content in the document flow or a native disclosure instead of the drawer, so the page keeps one copy of it and its IDs.
+- `size="content"` opens a detail sheet above its parent workspace, while a large workspace closes the others. Opening one from a modal enlargement first returns that content to its document.
+
+Complete when the drawer has its `label`, header and body, its initial state is the one the task needs, and either the page names the controller that reopens it or its content is fine to leave closed once dismissed; content readers must return to without a controller sits in the document flow or a native disclosure instead.
+
 The library owns inspection and state-restoration regression tests. Routine authors use the documented controls and the main guide's lint pass. Inspect an interaction only when requested or when diagnosing a reported defect.

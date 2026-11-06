@@ -32,3 +32,5 @@ Keep three facts distinct:
 ```
 
 Put observable consequences and refusal checks in their own corresponding topic row. Retain exact supplied code in one code/diff island and link to it from the explanation. Name the source basis and missing runtime observations next to the view. Do not invent callers, translate every branch into a stack frame, or imply captured execution or automatic frame matching. When actual runtime evidence exists, identify that evidence separately from the source-derived view.
+
+Complete when calls, branches and unknown execution stay distinct, every caller and branch comes from the supplied source, and the missing runtime observation is named beside the view. Use the main guide's lint pass; it checks the markup, not the execution.

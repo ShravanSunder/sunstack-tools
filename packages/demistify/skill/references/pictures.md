@@ -91,7 +91,7 @@ Authors can explicitly request other facets using `filters="tags release"` with 
 </script>
 ```
 
-`field` names the `data-…` suffix; values come from the figures, not a second option list. Icons use the library's curated subject names. Within a facet, selections are OR; across facets and search, they are AND. Search/filter changes settle after a shared 200ms debounce. Reset and direct navigation are immediate. An unchanged selected image keeps its DOM node and zoom.
+`field` names the `data-…` suffix; values come from the figures, not a second option list. Icons use the library's curated subject names. Within a facet, selections are OR; across facets and search, they are AND. Search and filter changes settle after a short delay; reset and direct navigation are immediate. An unchanged selected image keeps its DOM node and zoom.
 
 A caption is native HTML or a Markdown island inside `figcaption`. Use normal paragraphs, emphasis, links, lists or code as the evidence needs; headings stay out of the page outline. Keep it about the picture rather than rebuilding a second viewer or application. A Markdown-file caption follows the main guide's live/embedded source rules. Images remain ordinary relative paths or HTTPS URLs, including in Markdown captions.
 
@@ -99,6 +99,15 @@ Left/Right moves between logical screens/states and preserves the viewport categ
 
 For a captioned user journey, target the existing figure IDs from `ex-presentation`/`ex-step`; see [ordered walkthroughs](tours.md). The existing player floats beneath the gallery with reserved space. Add the `variations` flag only when readers should switch sizes through a button group or Up/Down. Without it, each authored step uses its exact capture. A missing variation stays on its step and displays the gap. Closing restores the gallery's previous browse state.
 
-For two same-size pictures, `ex-compare slider` overlays its two labeled children with a draggable divider. Use it instead of a gallery when before/after reveal is the whole task. For rich alternatives, shared topic rows or a larger set with pair selection, use [content comparisons](comparisons.md); that form supports any number of alternative sections.
+For two same-size pictures, `ex-compare slider` overlays its two labeled children with a draggable divider. Use it instead of a gallery when before/after reveal is the whole task. It takes exactly two direct children, each an `img` or a `figure`, and each child's `label` names its side:
+
+```html
+<ex-compare slider label="Checkout form">
+  <img src="checkout-before.png" alt="Checkout with separate address fields" label="Before">
+  <img src="checkout-after.png" alt="Checkout with one merged address field" label="After">
+</ex-compare>
+```
+
+For rich alternatives, shared topic rows or a larger set with pair selection, use [content comparisons](comparisons.md); that form supports any number of alternative sections.
 
 Preserve supplied image paths, capture metadata and captions. Use the main guide's lint pass; Gallery controls, keyboard navigation, transitions and state retention are library regression responsibilities. Inspect only an explicitly requested view or reported defect.

@@ -13,6 +13,8 @@ Pages are separate HTML documents. Tabs switch peer views in one place. A native
 
 Use the supplied library base, normally `https://demistify.getagentstudio.dev/v1/`. Read `authoring/SKILL.md` from that base once; use its API and keep theme, runtime and CLI on that same base. Do not reload the guide recursively or audit release hashes for routine authoring. Experimental v1 can change. A source preview uses its matching local build and names absent release metadata instead of claiming a published binding.
 
+IF the supplied content contains actual secrets or credentials, real personal or customer records or security-sensitive detail, or the user, its source markings or an applicable handling policy classify it private, load the runtime-trust section of `references/content.md` before writing the shell and return the trusted binding and opening method it names.
+
 ```html
 <!doctype html>
 <html lang="en">
@@ -41,7 +43,7 @@ Completion: the binding and opening method are concrete, supplied sources are pr
 
 ## 2. Choose the views and load their detail
 
-Two widths share one left edge from 1.10.0. **Reading** holds prose at 760px; **Canvas** gives visuals up to 1600px. Text remains left aligned. Document headings and dividers follow Reading; a wide view and its controls stay together. Earlier bindings follow their own guide. Set `data-width="reading"` or `data-width="canvas"` on the whole component or native layout wrapper when choosing explicitly.
+Two widths share one left edge. **Reading** holds prose at 760px; **Canvas** gives visuals up to 1600px. Text remains left aligned. Document headings and dividers follow Reading; a wide view and its controls stay together. Earlier bindings follow their own guide. Set `data-width="reading"` or `data-width="canvas"` on the whole component or native layout wrapper when choosing explicitly.
 
 For each matching condition below, load the named reference and return its authored result. The references own syntax, configuration, controls and composition; a list of component names is not the result.
 
@@ -53,7 +55,8 @@ For each matching condition below, load the named reference and return its autho
 | A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and exact supplied values |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior |
-| A Mermaid view or Mermaid fence | `references/diagrams.md` | Supported family, safe source and readable, resolving targets |
+| A large bottom workspace beside Comments, such as related documents | `references/inspection.md` | Drawer markup, its initial state and lifecycle, and who reopens it after a close |
+| A Mermaid view, Mermaid fence or numeric chart | `references/diagrams.md` | Supported family, including the chart's, safe source and readable, resolving targets |
 | Code, a diff or line notes | `references/code.md` | Exact source and notes on displayed file/row numbers |
 | Ownership regions, routed arrows or optional layers | `references/maps.md` | Reading/map choice, real endpoints and room for complete captions |
 | A picture, screenshot collection or image slider | `references/pictures.md` | Ordinary figures or a dedicated Gallery page with logical groups, variation categories and actual capture metadata |
@@ -74,9 +77,9 @@ Use stable island IDs and meaningful document headings. Keep the small `ex-nav` 
 
 A card groups one named option, component or finding. A callout highlights a proposal, decision, risk, question or unverified outcome; a subject icon says what it concerns. A recommendation is not an owner's chosen option. Local optional detail uses `details`/`summary`, not a Walkthrough. Rich content may nest, but another frame must add meaning: a tabbed alternative containing a Flow rarely needs a large outer card around the Flow's own cards.
 
-Use the generated vocabulary at the matching binding for accepted attributes and values. Do not invent elements, tone names or CSS variants from a screenshot. Gallery browsing belongs on its own page: one `ex-gallery` directly inside `ex-document`, optionally after one h1. Put navigation and hidden path declarations beside the document; an explanation uses an ordinary picture or a link there. The matching authoring checker reports `gallery-page` for embedded or multiple galleries; runtime support for older compositions does not make them valid authoring.
+Take accepted elements, attributes and values from this guide's references. For an editor or a lookup, the binding root also serves generated metadata beside `runtime.js` (for v1, `https://demistify.getagentstudio.dev/v1/custom-elements.json` and `html-custom-data.json`); it lists each element's own attributes, while some child attributes, such as a tab section's `label` and `icon`, live only in the references and the checker. Do not invent elements, tone names or CSS variants from a screenshot. Gallery browsing belongs on its own page: one `ex-gallery` directly inside `ex-document`, optionally after one h1. Put navigation and hidden path declarations beside the document; an explanation uses an ordinary picture or a link there. The matching authoring checker reports `gallery-page` for embedded or multiple galleries; runtime support for older compositions does not make them valid authoring.
 
-Completion: facts occur once, navigation resolves to the intended content, proposal/evidence labels are honest, and ordinary examples contain reader content rather than state-retention test inputs.
+Completion: facts occur once, navigation resolves to the intended content, and proposal/evidence labels are honest.
 
 ## 4. Lint the final files once
 
@@ -98,7 +101,3 @@ A source check does not establish visual or interaction behavior. Report a faile
 Return the file link and a brief lint result; mention a limitation only when it affects opening or using the document. When comparing efficiency, count authored content and shared library costs separately. Source bytes/tokens are not model input/output/thinking usage or billed dollars. Loading public assets does not publish the document; publish only within the user's authorized scope.
 
 The task is complete when the requested document is prepared for its intended delivery method and its changed HTML passes lint. Exercise interactions only when the task explicitly requests that verification.
-
-### Non-modal bottom workspaces
-
-Use `<ex-drawer id="workspace" label="Related documents">` for a large bottom workspace that stays interactive beside Comments. Put a header and a body with classes `ex-inspect-header` and `ex-inspect-body` inside it. The drawer owns its geometry, entry animation, Escape and focus return; the document owns the content. A controller opens it with `drawer.show()` and closes it with `drawer.close()`, or toggles its `open` attribute. Listen for `close` to restore local view state. Outside presses keep it open. `size="content"` gives an individual detail sheet above its parent workspace. Keep the drawer in the original document DOM so comment targets and text selections retain their identity. Opening it from a modal enlargement first returns that content to its document. Reduced-motion settings disable the shared drawer animation.

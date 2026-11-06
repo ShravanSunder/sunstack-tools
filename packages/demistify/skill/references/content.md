@@ -2,6 +2,12 @@
 
 Use ordinary document flow for the explanation. `ex-markdown` gives Markdown an explicit source boundary, inspectable original text and stable heading scope. It is not an application or an automatic file browser.
 
+## Runtime trust for sensitive content
+
+Content is sensitive when it contains actual secrets or credentials, real personal or customer records or security-sensitive detail, or when the user, its source markings or an applicable handling policy classify it private. An ordinary internal engineering or design explanation, including one that discusses security concepts, keeps the documented binding when it contains none of those and isn't classified private: being internal, unreleased or local, or a request to keep the output local, doesn't make content sensitive on its own. Decide from what was supplied; don't search for credentials or invent a classification.
+
+A page bound to a hosted library runs that library's code in the reader's browser, and the hosted `/v1/` path can change under the page. For an ordinary explanation that is the documented binding. When the content is sensitive, bind the page to a trusted complete copy of the matching distribution kept beside it, with theme, runtime and CLI pointed at that copy and the page served over HTTP. Copy the whole distribution, including hashed chunks, worker, fonts and icons; `runtime.js` and `theme.css` alone leave lazy dependencies on the network. When no trusted complete copy is available, return that gap instead of binding the content to the hosted runtime. A single-file bundle from the source library's `bundleStandaloneHtml` counts as checked only after the binding's checker passes it; when the checker rejects its inlined library as missing the external theme and runtime tags, return that exact validation gap, never an exemption, and use the complete local distribution over HTTP for a checked reader. Return the trusted binding and opening method you chose.
+
 ## Choose a source carrier
 
 Bare Markdown is adopted inside `ex-document`, its `section`/`article` descendants, and card/callout bodies. A plain `div` is not a general Markdown host. Use an explicit island when the surrounding HTML does not adopt Markdown, when the source needs an ID, or when it contains literal `<`:
@@ -29,7 +35,15 @@ Use `src` when a real file owns the prose:
 
 A literal closing-script delimiter ends a raw HTML script before the component can read it. For Markdown containing that delimiter, keep the original `.md` file and use the documented embedding transform; do not truncate or rewrite supplied text. For exact plain-text drawings and their template carrier, use `trees.md`. Code/diff carriers are in `code.md`.
 
+Inline JSON, such as a supplied Explorer graph, goes in a `<script type="application/json">` carrier. Serialize the value as JSON, then replace every literal `<` in the serialized text with the six characters `\u003c`. `JSON.parse` reads them back as `<`, so every value stays exact, and no closing-script delimiter, in any letter case, can end the carrier early. This is a JSON escape, not HTML-entity encoding: a script's text is never entity-decoded, so `&lt;` would stay in the parsed value as four literal characters. Leave `&`, quotes and other characters as JSON serialization writes them.
+
+```html
+<script type="application/json">{"label":"Retry waits for \u003c/script> in the log"}</script>
+```
+
 Rich content you carry onto a page keeps its meaning along with its text: keep the supported attributes and states that carry meaning, such as a status, an icon or a disclosure's initial `open` state. Change a carried form or state only when the request or the reader's task calls for it, never for a composition default alone; the change keeps the meaning, and a brief note beside the content names it. A value no supported attribute can encode stays as visible text beside its component, with the same note. Keep whitespace that carries structure or literal content; other whitespace and harmless markup may change without a note. Each supplied ID stays on the element the source gave it to: the carrier's on its island, wrapper or `template`, an inner element's on that element. No ID is copied or moved, and every authored HTML ID on the page is unique, including IDs inside `template` content.
+
+Legacy elements (`ex-zoom`, `ex-decision`, `ex-diagram-diff`, `ex-timeline` and `ex-layer`) still render and pass the check, and carried legacy markup follows the carried-form rule above. Delivery, revision or conversion keeps it unless the request or the reader's task calls for a change; touching its section, or moving its page into a collection, is not that call. New content uses the current forms this guide teaches. When modernization is requested, choose by the reader's purpose among the current inspection, choice, comparison, trace and layer features, keep the facts and states, and name the change beside it; no legacy tag maps one-to-one onto a current one.
 
 ## Prepare a double-click reader
 
@@ -44,7 +58,7 @@ Run with Node 26+; the CLI tarball includes its dependencies. Keep output beside
 
 After editing a known live source, regenerate its reader and collection index when present. Routine delivery needs no second temporary copy or byte-comparison pass. Use a comparison only to investigate a stale-output defect or an explicit freshness-proof request.
 
-Ordinary relative HTML links, fragments and picture paths work when their files travel together. Inline supplied Explorer JSON or use an allowed HTTPS data URL for direct-file delivery; embedding Markdown does not prepare Explorer data. HTTPS assets need a network. Truly offline delivery needs the complete matching local distribution or the source API's standalone bundle, not just `runtime.js` and `theme.css`.
+Ordinary relative HTML links, fragments and picture paths work when their files travel together. Inline supplied Explorer JSON or use an allowed HTTPS data URL for direct-file delivery; embedding Markdown does not prepare Explorer data. HTTPS assets need a network. Truly offline delivery needs the complete matching local distribution or the source API's standalone bundle, not just `runtime.js` and `theme.css`; the runtime-trust section above says when that bundle counts as checked.
 
 ## Tables use the shared surface
 

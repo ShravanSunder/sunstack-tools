@@ -70,11 +70,11 @@ Clicking noninteractive title, Markdown body or card background selects or toggl
 
 ## Choose the response view and optional detail
 
-Cards use Reading width by default. Supporting extras open through the native inspector: a compact 32px-high button with the shared document icon and visible **Details** label follows the title with an 8px gap and flows beside wrapped title text. Opening it marks the complete source card, leaves its answer unchanged and returns focus on close. Use the existing inspector; no page script or second detail viewer is needed.
+Cards use Reading width by default. Supporting extras open through the native inspector: a compact button with the shared document icon and visible **Details** label follows the title and flows beside wrapped title text. Opening it marks the complete source card, leaves its answer unchanged and returns focus on close. Use the existing inspector; no page script or second detail viewer is needed.
 
 Use `view="table"` on the choice when short corresponding option bodies benefit from aligned selectable rows. The same option declarations become a Canvas-width native table; narrow scrolling stays inside the table boundary. Do not invent extra column or criteria attributes. Use `details="inline"` when extras should expand locally beneath an option, accepting that they move later content down. Both variations retain separate selection, detail and feedback actions.
 
-Keep full diagrams and their headings in extras. Opening or closing extras must leave document navigation unchanged. `inspection.md` owns shared sidebar/fullscreen controls and state-return behavior; `layouts.md` owns Reading/Canvas and narrow containment.
+Keep full diagrams and their headings in extras. Opening or closing extras must leave document navigation unchanged. IF the extras need sidebar or fullscreen inspection, load `inspection.md` and return its controls and state-return behavior; IF they need an explicit width or narrow containment, load `layouts.md` and return the Reading or Canvas choice.
 
 ## Use defaults, then choose deliberate overrides
 

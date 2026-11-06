@@ -36,7 +36,7 @@ The shared layout adds a larger Reading↔Canvas gap on roomy documents and a co
 </ex-grid>
 ```
 
-Grid children can be ordinary HTML or islands. A grid does not make every item a card, assign reading order, or infer semantic groups. Keep DOM order meaningful when its columns collapse. If a hand-positioned map rather than responsive reading is the purpose, use `maps.md`.
+Plan each row you intend: the items meant to sit together must fit within `cols`. Spans that equal `cols` fill the row, a smaller total leaves room on purpose, and a total above `cols` wraps the last item onto the next line. For example, a two-column summary beside two single-column stats needs `cols="4"`, or the two stats nested in one column. Grid children can be ordinary HTML or islands. A grid does not make every item a card, assign reading order, or infer semantic groups. Keep DOM order meaningful when its columns collapse. If a hand-positioned map rather than responsive reading is the purpose, use `maps.md`.
 
 ## Tabs switch peer alternatives
 
@@ -60,3 +60,5 @@ Tabs are selected by click or Arrow/Home/End, with local tab-bar overflow when n
 Use `ex-compare` instead when corresponding topics must align across alternatives; use a disclosure for optional depth beneath the current explanation. Keep sequential documents as Pages when that is their actual relationship.
 
 Keep the bar and panels on one width and related controls with their content. Preserve readable DOM order and the shared prose measure; avoid fixed heights or overflow clipping that hide content. For retained interaction in sidebar/fullscreen, load `inspection.md` and return the supported inspection choice and the intended reader behavior.
+
+Complete when the items meant for each grid row fit within its columns, every width comes from the shared Reading or Canvas choice, and tabs hold peer views under short labels. Use the main guide's lint pass.

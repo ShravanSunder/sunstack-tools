@@ -11,7 +11,7 @@ if (!session) return { kind: 'missing' };
 </ex-code>
 ```
 
-`title` names the source, `lang` selects its presentation and `start` defaults to 1. `label` supplies an inspection name. `lang="diff"` colors added/removed rows. The source belongs in a direct `text/plain` script; writing literal code as parsed child HTML can destroy `<`, `&` or markup-like text. For a literal closing-script delimiter use the decoded template carrier described in `trees.md`, keeping its formatter-ignore comment. Do not rewrite supplied code to make its carrier work.
+`title` names the source and `start` defaults to 1. `label` supplies an inspection name. `lang` is a free display label shown beside the title. `lang="diff"`, or any source line that starts with `@@`, selects unified-diff handling with colored added and removed rows, whatever another `lang` says. Other code shows as plain text: there is no syntax highlighting and no list of languages. The source belongs in a direct `text/plain` script; writing literal code as parsed child HTML can destroy `<`, `&` or markup-like text. IF the code contains a literal closing-script delimiter, load `trees.md` and return its decoded template carrier, with its formatter-ignore comment. Do not rewrite supplied code to make its carrier work.
 
 Common indentation and surrounding blank space are normalized for display. The displayed excerpt is not a promise of byte-for-byte original-file preservation; retain the original file when exact leading/trailing bytes matter. Inspect complete source as well as colored output.
 
