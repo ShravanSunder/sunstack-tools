@@ -153,7 +153,7 @@ sequenceDiagram
 </tbody>
 </table>
 </div>
-<p><strong>Reserved names:</strong> these six are reserved. An evidence field or reference entry with one of these names is refused when the rulebook loads (R9). Questions name what they read: an evidence field, or a path under <code>reference</code> (R4, R11).</p>
+<p><strong>Reserved names:</strong> the five literal keys above (<code>standard</code>, <code>where</code>, <code>cut-fields</code>, <code>unavailable-fields</code>, <code>reference</code>) are reserved. An evidence field or reference entry with one of these names is refused when the rulebook loads (R9). Questions name what they read: an evidence field, or a path under <code>reference</code> (R4, R11).</p>
 <p><strong>Never in state:</strong> a case's expected answer, spans, hashes, and anything the questions don't read. Those stay in the saved report.</p>
 <p><strong>The <code>complete</code> check</strong> (D2) is a new mechanical step. It reads one field and answers yes only when all of these hold:</p>
 <ul>
@@ -394,7 +394,7 @@ flowchart TB
 <tr><td>U23, U24</td><td>R6 answers combine only through steps</td><td>E2</td><td>tree walker</td><td>shared walk</td><td><code>path_taken</code></td><td>per run</td><td>none: no new failure</td><td>walk: fixed answers give fixed routes</td></tr>
 <tr><td>U23, U24, U16</td><td>R7 rebuilt filter and rule</td><td>E4, E5</td><td>ai-tools rulebook</td><td>config and rule entries</td><td><code>skill-rules.config.json</code>, <code>general-skill.rules.json</code></td><td>none: loaded config</td><td>none: no new failure</td><td>decision-model review; development and held-out case runs</td></tr>
 <tr><td>U25</td><td>R8 reference reaches the request</td><td>E7, E8</td><td>request builders</td><td><code>piece_state</code>, filter <code>request_for</code></td><td><code>state.reference</code></td><td>per request</td><td>none: no new failure</td><td>requests in the saved report</td></tr>
-<tr><td>U25</td><td>R9 reserved names refused</td><td>E7</td><td>rulebook admission</td><td>name check</td><td>six reserved keys</td><td>none: loaded config</td><td>clash refused</td><td>load: refused configs</td></tr>
+<tr><td>U25</td><td>R9 reserved names refused</td><td>E7</td><td>rulebook admission</td><td>name check</td><td>five reserved keys</td><td>none: loaded config</td><td>clash refused</td><td>load: refused configs</td></tr>
 <tr><td>U25, U3</td><td>R10 reference counts toward size</td><td>E7, E8</td><td>request size check</td><td>existing dispatcher limit</td><td>request bytes</td><td>per request</td><td>too large: incomplete</td><td>lint run with an oversized reference</td></tr>
 <tr><td>U25</td><td>R11 questions name their reference</td><td>E3, E7</td><td>rulebook admission</td><td>field-name check</td><td><code>reference.&lt;path&gt;</code> in context</td><td>none: loaded config</td><td>unknown name refused</td><td>load: refused configs</td></tr>
 <tr><td>U17, U19, U20, U21</td><td>R12 case run uses lint's path and context</td><td>E11, E9</td><td>case runs</td><td><code>sunstack lint cases</code></td><td>case file; temporary tree per revision; one outcome per case</td><td>per run (temporary trees removed)</td><td>stale, unmatched, ambiguous, excluded listed</td><td>same text: case result equals lint result; every case accounted for</td></tr>
