@@ -1,5 +1,23 @@
 # @sunstack/demistify
 
+## 1.20.0
+
+### Minor Changes
+
+- 2f8db1d: Add reusable non-modal bottom drawers that preserve document and Comments interaction, share drawer motion and focus handling, and support nested content sheets. Align shared table and Trace presentation with the document workspace examples.
+
+### Patch Changes
+
+- 52eee5b: Teach the authoring guide's content reference to keep the meaning of rich content carried onto a page along with its text: supported attributes and states such as status, icon and a disclosure's initial `open` state. A carried form or state changes only when the request or the reader's task calls for it, keeping its meaning with a brief adjacent note; an unsupported value stays as visible text with the same note. Structural or literal whitespace is kept. Each supplied ID stays on the element the source gave it to, with no copied or moved IDs and every ID unique, including `template` content. Name each component once in its own title while surrounding summaries and headings name the larger question.
+- 0d27bde: Repair the authoring guide after its holistic audit:
+
+  - Bottom workspaces are routed to `inspection.md`, which documents the drawer's markup, lifecycle and its application-embedding trigger boundary. Numeric charts are reachable from the Mermaid row.
+  - Explorer documents the version-1 graph format from its parser, with a valid example.
+  - Inline JSON carriers encode `<` as `\u003c`. Sensitive content binds to a trusted complete distribution. The guide now says a standalone bundle counts as checked only after the binding's checker passes it; on the exercised source, the final bundle failed that check (its inlined theme and runtime were reported as missing), and this change doesn't repair that route. Carried legacy markup is kept unless a change is requested.
+  - Code `lang` behavior is described as implemented. File-tree and image-slider examples are added. Routine authoring adds no interaction journey, while requested verification, defect diagnosis and caller-required checks remain. Stops are added to traces, call paths, layouts and comparisons.
+  - Lab-era and measurement-only text is removed.
+  - Tab section `label` and `icon` are now checked, so an unknown tab icon is reported.
+
 ## 1.19.0
 
 ### Minor Changes
