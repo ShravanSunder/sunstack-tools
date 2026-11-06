@@ -29,6 +29,8 @@ Use `src` when a real file owns the prose:
 
 A literal closing-script delimiter ends a raw HTML script before the component can read it. For Markdown containing that delimiter, keep the original `.md` file and use the documented embedding transform; do not truncate or rewrite supplied text. For exact plain-text drawings and their template carrier, use `trees.md`. Code/diff carriers are in `code.md`.
 
+Rich content you carry onto a page keeps its meaning along with its text: keep the supported attributes and states that carry meaning, such as a status, an icon or a disclosure's initial `open` state. Change a carried form or state only when the request or the reader's task calls for it, never for a composition default alone; the change keeps the meaning, and a brief note beside the content names it. A value no supported attribute can encode stays as visible text beside its component, with the same note. Keep whitespace that carries structure or literal content; other whitespace and harmless markup may change without a note. Each supplied ID stays on the element the source gave it to: the carrier's on its island, wrapper or `template`, an inner element's on that element. No ID is copied or moved, and every authored HTML ID on the page is unique, including IDs inside `template` content.
+
 ## Prepare a double-click reader
 
 Browsers block sibling-file fetches from `file:` pages. Embed local Markdown while authoring, retaining the HTTPS library links:
@@ -74,6 +76,6 @@ A disclosure is a concise summary followed by useful optional depth:
 </details>
 ```
 
-It can contain ordinary HTML, Markdown islands, code, diagrams, lists, tables and other useful views. Use an explicit Markdown island inside a plain disclosure if writing Markdown. Keep its opening compact; an immediate document-sized heading and large section gap make optional explanation look like an unrelated page. `open` starts it expanded. A disclosure does not create guided stops or download behavior. Gallery browsing belongs on a separate linked page; `traces.md` adds an ordered evidence sequence when that ordering matters.
+It can contain ordinary HTML, Markdown islands, code, diagrams, lists, tables and other useful views. Use an explicit Markdown island inside a plain disclosure if writing Markdown. Keep its opening compact; an immediate document-sized heading and large section gap make optional explanation look like an unrelated page. A component names itself once, in its own title; the summary, heading or lead-in around it names the larger question it answers instead of repeating that title, and the document headings navigation needs stay. `open` starts it expanded. A disclosure does not create guided stops or download behavior. Gallery browsing belongs on a separate linked page; `traces.md` adds an ordered evidence sequence when that ordering matters.
 
 Preserve complete supplied text/data and source-relative paths. Use the main guide's lint pass; opening tables, links and disclosures is not a separate authoring gate.
