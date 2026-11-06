@@ -1,5 +1,26 @@
 # Locator option cap and omitted-location evidence
 
+## Public exec Choice boundary (F1–F3 correction)
+
+The companion `scripts/verify/sunstack-rule/rulebook/exec-choice-limits.ts` is **draft until driven on a declared correction candidate**. The Lead's 6 Nov correction disposition extends the cap to public decision APIs and actual `exec RunJudgments`: a single authoritative255 cap belongs to the decisions crate's existing Choice validation/encoding owner. Native API and filter paths below are separate required joins.
+
+```sh
+node scripts/verify/sunstack-rule/rulebook/exec-choice-limits.ts \
+  --prepare --evidence <new-directory-outside-Git>
+```
+
+For observation omit `--prepare` and supply the same declared `--binary`, `--source-root`, full `--commit`, `--sha256` and fresh `--evidence` arguments as the locator journey. Read its `--help`. The script sends one actual native protocol envelope on stdin to `sunstack exec`, with generous fitting request budgets, disabled real credentials and a synthetic loopback key. The255 control is readiness: exactly one captured HTTP request with every authored label/text, complete returned Choice probabilities, one attempt and the controlled model receipt. The256 control must exit2 with an `operation_result/run_judgments` containing local `invalid_request`, request-origin `invalid_choice`, repair-request advice and diagnostic guidance naming actual256/maximum255; zero HTTP and no attempted inference or answers. A protocol error, provider422, missing key, budget failure or byte-identity mismatch cannot satisfy this check. Preserve input JSON alongside stdout/stderr/process/request/teardown records. This proves the exec path, not merely a serializer helper.
+
+Required F1 native joins: call **both** exported `run_judgments` and `run_admitted_judgments`, each with255/completed/HTTP and256/local diagnostic/zeroHTTP. The admitted route's negative setup uses independently encoded bytes and matching real backend identity/public budget admission, so a new encoder rejection in setup cannot masquerade as testing that entry. Keep the returned diagnostic's actual count/limit and exclude unrelated invalid-configuration or body-mismatch errors.
+
+Required F2 join: native settings1000 with256body lines must preserve mechanical pass, not_applicable and unlocated finding when the oversized located route is untaken, with exact path/basis and zero HTTP. Retain actual-needed256 local refusal and intentional mechanically reached over-configured-limit omission; these are different causes.
+
+Required F3 joins follow the Lead's explicit admission/runtime split. Config filter criteria256 is refused by --check **and lint** with its exact owning question.criteria path and count/limit, while255 is admitted. A direct/native filter call that legitimately bypasses declaration admission must reach ask_filters and preserve `choice_options_exceeded:{options:256,limit:255}` through filter_answers, actual report serialization/schema and human incomplete output, with zero HTTP. A255 positive must dispatch and become judged. Config-invalid exit2 does not prove the runtime mapper; no config is rewritten to bypass admission for that claim. An unrelated ready peer should retain its established result.
+
+The colocated `exec-choice-limits.test.ts` plants protocol errors, provider failures, extra dispatch, truncated255 options and missing/wrong diagnostic counts. Its apparatus green does not establish product behavior. The existing locator/nudge drives remain useful but never stand in for public API/exec or filter diagnostic proof. Controlled answers do not prove hosted inference quality. Until the correction head is declared and these routes/native joins are checked, F1–F3 remain open.
+
+## Locator rulebook path
+
 Use this journey on a declared locator-limit candidate. Its oracle is the 6 Nov bounded repair commission and Lead disposition, plus the existing nudge Specification R2/C2: Choice criteria has at most 255 options; the locator shares the piece's request, and an omitted locator falls back to the existing line with a default anchor. The repair adds generic evidence on the affected reached result so that fallback cannot be mistaken for a model-observed line.
 
 The standalone driver is `scripts/verify/sunstack-rule/rulebook/locator-limits.ts`; read its `--help`. It reuses the existing pinned-source/binary process owner and loopback responder. Config admission, native backend, file extraction, request construction, response validation, result projection and process exit stay real. Only remote answers are scripted; no hosted credentials or accuracy claim is involved.
