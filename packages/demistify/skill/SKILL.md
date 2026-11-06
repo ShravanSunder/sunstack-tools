@@ -13,7 +13,7 @@ Pages are separate HTML documents. Tabs switch peer views in one place. A native
 
 Use the supplied library base, normally `https://demistify.getagentstudio.dev/v1/`. Read `authoring/SKILL.md` from that base once; use its API and keep theme, runtime and CLI on that same base. Do not reload the guide recursively or audit release hashes for routine authoring. Experimental v1 can change. A source preview uses its matching local build and names absent release metadata instead of claiming a published binding.
 
-IF the supplied content or the request may carry nonpublic material, load the runtime-trust section of `references/content.md` before writing the shell and return its sensitivity decision with the trusted binding and opening method it names.
+IF the supplied content contains actual secrets or credentials, real personal or customer records or security-sensitive detail, or the user, its source markings or an applicable handling policy classify it private, load the runtime-trust section of `references/content.md` before writing the shell and return the trusted binding and opening method it names.
 
 ```html
 <!doctype html>
