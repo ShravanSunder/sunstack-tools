@@ -20,7 +20,7 @@ Select a node, compare Current and Proposed, then inspect its evidence.
 
 ## The graph document, version 1
 
-The library's parser fixes this format. Every field is required unless marked optional; text fields may be empty, and arrays may be empty except `nodes`:
+The library's parser fixes this format. Every field is required unless marked optional, and text fields may be empty. `nodes` needs at least one entry, and every node names a declared group, so `groups` can't be empty either; `edges`, `tables` and the `sources` and `nodes` lists may be empty:
 
 - top level: `version` (`1`), `sourceBase` (an HTTP or HTTPS URL that source links resolve against), `title`, `description`, `note`, and the arrays `groups`, `nodes`, `edges` and `tables`;
 - a group: `id`, `label` (the visible category name) and `kind`, one of `phase`, `role`, `method` or `principle`, which picks a category tint below and does not name the subject;
@@ -29,7 +29,7 @@ The library's parser fixes this format. Every field is required unless marked op
 - a table: `id`, `title`, optional `label` and `icon`, `description`, `placement` (`overview` or `details`), `filter` (`all` or `selection`), `columns`, and `rows`; a row has `id`, `nodes` and one cell per column, and a cell has `text`, `nodes` and `sources`;
 - a source: `label`, `href` (resolved against `sourceBase`; HTTP or HTTPS only) and `text`, the quoted passage.
 
-IDs are non-empty and unique among groups, nodes, edges, tables and each table's rows. A node can't use the reserved ID `__issues`, and a details table can't use `connections` or `used-by`. Every referenced node and group exists, and every row has as many cells as its table has columns.
+IDs are non-empty and unique within each collection: the groups, the nodes, the edges, the tables, and each table's rows. The parser checks each collection separately, so the same ID may appear in two different collections. A node can't use the reserved ID `__issues`, and a details table can't use `connections` or `used-by`. Every referenced node and group exists, and every row has as many cells as its table has columns.
 
 ```html
 <ex-explorer id="release" selected="build">

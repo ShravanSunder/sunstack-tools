@@ -4,7 +4,7 @@ Use ordinary document flow for the explanation. `ex-markdown` gives Markdown an 
 
 ## Runtime trust for sensitive content
 
-A page bound to a hosted library runs that library's code in the reader's browser, and the hosted `/v1/` path can change under the page. For an ordinary explanation that is the documented binding. When the content is sensitive or private, bind the page to a trusted complete copy of the matching distribution kept beside it, with theme, runtime and CLI pointed at that copy and the page served over HTTP, or deliver the source API's standalone bundle where that route is available to you. Copy the whole distribution, including hashed chunks, worker, fonts and icons; `runtime.js` and `theme.css` alone leave lazy dependencies on the network. When no trusted complete copy is available, return that gap instead of binding the content to the hosted runtime. Return the trusted binding and opening method you chose.
+A page bound to a hosted library runs that library's code in the reader's browser, and the hosted `/v1/` path can change under the page. For an ordinary explanation that is the documented binding. When the content is sensitive or private, bind the page to a trusted complete copy of the matching distribution kept beside it, with theme, runtime and CLI pointed at that copy and the page served over HTTP. Copy the whole distribution, including hashed chunks, worker, fonts and icons; `runtime.js` and `theme.css` alone leave lazy dependencies on the network. When no trusted complete copy is available, return that gap instead of binding the content to the hosted runtime. The source library's `bundleStandaloneHtml` exists, but its final single-file bundle does not currently pass the authoring check, which reports the external theme and runtime as missing and warns about library styles. That is a validation gap, never a passed final check or an exemption: a fully checked private reader uses the complete local distribution over HTTP, and when standalone delivery is required, return that exact gap. Return the trusted binding and opening method you chose.
 
 ## Choose a source carrier
 
@@ -56,7 +56,7 @@ Run with Node 26+; the CLI tarball includes its dependencies. Keep output beside
 
 After editing a known live source, regenerate its reader and collection index when present. Routine delivery needs no second temporary copy or byte-comparison pass. Use a comparison only to investigate a stale-output defect or an explicit freshness-proof request.
 
-Ordinary relative HTML links, fragments and picture paths work when their files travel together. Inline supplied Explorer JSON or use an allowed HTTPS data URL for direct-file delivery; embedding Markdown does not prepare Explorer data. HTTPS assets need a network. Truly offline delivery needs the complete matching local distribution or the source API's standalone bundle, not just `runtime.js` and `theme.css`.
+Ordinary relative HTML links, fragments and picture paths work when their files travel together. Inline supplied Explorer JSON or use an allowed HTTPS data URL for direct-file delivery; embedding Markdown does not prepare Explorer data. HTTPS assets need a network. Truly offline delivery needs the complete matching local distribution or the source API's standalone bundle, not just `runtime.js` and `theme.css`; the runtime-trust section above states that bundle's current check gap.
 
 ## Tables use the shared surface
 

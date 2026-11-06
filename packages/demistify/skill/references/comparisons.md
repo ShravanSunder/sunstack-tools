@@ -25,7 +25,7 @@ For a larger set, add `choose` to show two content selectors, anchored like gall
 
 Comparisons grow to fit their content in normal document flow; the page owns vertical scrolling and column headings stay sticky. Nested viewers such as code retain their own local controls. Narrow layouts stack alternatives and retain their topic order. A heading, fragment or walkthrough target inside a hidden alternative reveals that alternative and updates its selector/tab.
 
-Sidebar inspection is an independent interactive copy; fullscreen uses the live content and returns it. When the user requests verification, exercise nested state, choice, deep links and inspection for the actual composition being authored. A source comparison does not establish that either implementation ran.
+Sidebar inspection is an independent interactive copy; fullscreen uses the live content and returns it. When the user requests verification or a concrete defect is being diagnosed, exercise nested state, choice, deep links and inspection for the actual composition being authored. A source comparison does not establish that either implementation ran.
 
 The existing `slider` form remains for two same-size pictures; see [pictures](pictures.md). It is a different comparison task from aligning rich topic rows.
 
