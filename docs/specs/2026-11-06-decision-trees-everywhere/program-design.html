@@ -184,10 +184,13 @@ flowchart TB
 <tbody>
 <tr><td>1 · a product's own command</td><td>yes</td><td>no</td><td>warn</td></tr>
 <tr><td>2 · loads a product's own workflow file</td><td>yes (seen through the loaded file's opening)</td><td>no</td><td>warn</td></tr>
-<tr><td>3 · labelled example</td><td>yes or no</td><td>yes</td><td>pass</td></tr>
+<tr><td>3 · labelled example</td><td>yes</td><td>yes</td><td>pass (if question 1 says no, question 2 isn't asked, and it passes)</td></tr>
 <tr><td>4 · worked or made-up product example, not labelled</td><td>yes</td><td>no</td><td>warn</td></tr>
 <tr><td>5 · quotes a real product mistake</td><td>yes</td><td>no</td><td>warn</td></tr>
-<tr><td>6 to 9 · subject's tool, tool used as meant, toolkit's shared tools, ordinary command</td><td>no</td><td>not used</td><td>pass</td></tr>
+<tr><td>6 to 9 · subject's tool, tool used as meant, toolkit's shared tools, ordinary command</td><td>no</td><td>not asked</td><td>pass</td></tr>
+<tr><td>10 · a product's own skill about its own product</td><td>not asked</td><td>not asked</td><td>not judged: the kind filter marks it tool manual or repository-specific</td></tr>
+<tr><td>11 · a description naming products as users</td><td>not this rule</td><td>not this rule</td><td>not covered here: the description rule's job, which stays off</td></tr>
+<tr><td>12 · a product's skill sending agents into another product</td><td>no real case yet</td><td>no real case yet</td><td>waits for a real case, as you ruled</td></tr>
 </tbody>
 </table>
 </div>

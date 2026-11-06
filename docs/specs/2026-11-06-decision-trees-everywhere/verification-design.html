@@ -20,10 +20,18 @@
 <ex-document id="content">
 <h1>Verification design: how we'll know it works</h1>
 
-<p>For each requirement: what will be done, and what will be seen. Nothing here has been run yet; this is the plan for proof. Most of it is checked by engine tests with scripted Jev answers, which prove the mechanics but not judgment quality. Judgment quality is proven once, at the end, by a frozen held-out run with real Jev.</p>
+<p>For each requirement: what will be done, and what will be seen. Nothing here has been run yet; this is the plan for proof. Most of it is checked by engine tests with scripted Jev answers, which prove the mechanics but not judgment quality. How well the rebuilt rules judge is shown on real cases with real Jev: first the development cases, where the bars are set (U18), then one frozen held-out run. Neither proves quality on every skill; they show it on these cases.</p>
 
 <ex-callout title="When a rebuilt rule is switched on" tone="decision" icon="shield-check">
-<p>The rebuilt kind filter and product-workflow rule go into the config as warnings only after their frozen held-out case run shows <strong>zero false warnings</strong> and no result left incomplete by the engine itself. Missed and unsure counts are reported to you but don't block. This follows your ruling to warn only when sure ("details in file, warn if true", 6 Nov).</p>
+<p>A rebuilt rule goes into the config as a warning only when all four hold:</p>
+<ol>
+<li>Its development cases meet U17: at least 3 real mistakes, 3 good texts and 3 near misses, with a held-out set kept apart. A rule short of these stays off, with what it lacks listed.</li>
+<li>Its bars are set on the development cases and recorded beside them (U18). Its questions are written once from the standard, not reworded to fit.</li>
+<li>With everything frozen, every development real mistake warns, including the text before a real fix. Every good text and quiet near miss stays quiet, including the text after the fix.</li>
+<li>The frozen held-out run gives <strong>zero false warnings</strong>, and every real mistake in it warns. No result is left incomplete by the engine itself.</li>
+</ol>
+<p>Unsure on a quiet case is allowed; unsure on a real mistake is not. This follows U17 and your ruling to warn only when sure ("details in file, warn if true", 6 Nov). The product-workflow rule's held-out set holds only quiet passages today, so for that rule the held-out run can show only that it stays quiet. Its catching of real mistakes is shown on the development cases.</p>
+<p>The kind filter is switched on when its held-out folders give no wrong kind. Unsure is allowed, since it skips and lists the folder (U14).</p>
 </ex-callout>
 
 <h2 id="cards">Proven by</h2>
@@ -58,8 +66,8 @@
 <p><strong>Unverified:</strong> none beyond the scripted answers; the held-out run covers real answers.</p>
 </ex-card>
 <ex-card title="U16 · General skills only; an example told from a leak" tone="planned" icon="shield-check">
-<p><strong>Proven by:</strong> the frozen held-out run: real cases for each of your U16 rows give the result in your table, with zero false warnings.</p>
-<p><strong>Unverified:</strong> row 12, which has no real case yet; mixed sections beyond those in the cases.</p>
+<p><strong>Proven by:</strong> rows 1 to 9 through the product-workflow rule. Real cases for each give the result in your table on the development cases, with zero false warnings on the held-out run. Row 10 through the kind filter: a product's own skill comes out as a tool manual or repository-specific and isn't judged.</p>
+<p><strong>Unverified:</strong> row 11, a description naming products. That's the description rule's job, and it stays off in this design. Row 12 has no real case yet, and mixed sections are tested only where the cases have them.</p>
 </ex-card>
 <ex-card title="U17, U18, U19 · Real cases first; bars per rule; real text" tone="planned" icon="test-tube">
 <p><strong>Proven by:</strong> the same text gives the same result through <code>lint</code> and through <code>lint cases</code>. A case whose text changed is listed as stale. The report names the bar each result crossed, and lint's output is the same before and after a case run.</p>
@@ -106,7 +114,7 @@
 <tr><td>U28</td><td>R21, R22</td><td>ai-tools skills</td><td>O9</td><td>ai-tools branch</td><td>Statements present; no contrary line; tests pass</td><td>Fresh-agent behaviour</td></tr>
 <tr><td>U13</td><td>R2, R24</td><td>ask_filters; request_for</td><td>O2, O4</td><td>0.8.0 candidate</td><td>One request per folder; no folder name in it</td><td>none</td></tr>
 <tr><td>U14</td><td>R3</td><td>filter gate</td><td>O4</td><td>0.8.0 candidate</td><td>Unsure folder skipped and listed with route</td><td>none</td></tr>
-<tr><td>U16</td><td>R7</td><td>ai-tools rulebook</td><td>O7, O8</td><td>released 0.8.0 in ai-tools</td><td>Held-out: zero false warnings; U16 rows give your table's results</td><td>Row 12; mixed sections not in the cases</td></tr>
+<tr><td>U16</td><td>R7</td><td>ai-tools rulebook</td><td>O7, O8</td><td>released 0.8.0 in ai-tools</td><td>Rows 1 to 9: your table's results on development cases, zero false warnings held-out; row 10: excluded by the kind filter</td><td>Row 11 (description rule, off); row 12; mixed sections not in the cases</td></tr>
 <tr><td>U17</td><td>R12, R13</td><td>case runs</td><td>O6, O8</td><td>0.8.0 candidate; ai-tools</td><td>Lint result equals case result; lint unchanged after</td><td>Other repositories' cases</td></tr>
 <tr><td>U18</td><td>R15</td><td>tree bars; case report</td><td>O6</td><td>0.8.0 candidate</td><td>Report names the bar crossed</td><td>none</td></tr>
 <tr><td>U19</td><td>R14</td><td>case runs</td><td>O6</td><td>0.8.0 candidate</td><td>A drifted case listed stale, not scored</td><td>none</td></tr>

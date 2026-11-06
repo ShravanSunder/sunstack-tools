@@ -50,8 +50,8 @@ erDiagram
   RULE ||--o{ REFERENCE : carries
   RULE }o--o| FILTER : "runs only when"
   RULE ||--o{ PIECE : judges
-  RULE ||--o{ RESULT : "one per piece it judges"
-  FILTER ||--o{ RESULT : "one per folder"
+  RULE |o--o{ RESULT : "one per piece it judges"
+  FILTER |o--o{ RESULT : "one per folder"
   RESULT ||--o{ REQUEST : "from zero or more"
   RESULT ||--o| WARNING : "may be"
   CASE }o--|| RULE : "labels a result of"
@@ -69,7 +69,7 @@ erDiagram
 <tr id="e6"><td><strong>E6 Piece</strong></td><td>One bit of text a rule judges, such as a section or a description, collected by its pattern</td><td>Same file, same line range, same kind of piece</td><td>Belongs to one file</td></tr>
 <tr id="e7"><td><strong>E7 Reference</strong></td><td>Examples and fixed explanation written in the rulebook for one filter or rule. An example is: the text, the right answer, and why.</td><td>Same name under the same filter or rule</td><td>Written by the author, never taken from the piece; never holds the expected answer for the piece being judged</td></tr>
 <tr id="e8"><td><strong>E8 Request</strong></td><td>What one Jev call carries: the text being judged and the reference, plus questions. A tree's questions about the same text go in one call; a follow-up, such as finding the exact line, can add another.</td><td>Same filter or rule, same piece or folder, same call in the run</td><td>Shows Jev only the named text and reference; fits the size limit or isn't sent</td></tr>
-<tr id="e9"><td><strong>E9 Result</strong></td><td>Where one tree ended for one piece or folder, from the answers of one or more requests: a label, pass, warning, unsure, not applicable, or incomplete, with the route taken</td><td>Same filter or rule, same piece or folder, same run</td><td>Keeps enough to replay why it ended where it did</td></tr>
+<tr id="e9"><td><strong>E9 Result</strong></td><td>Where one tree ended for one piece (a rule) or one folder (a filter), from the answers of zero or more requests. A result belongs to exactly one rule or one filter: a label, pass, warning, unsure, not applicable, or incomplete, with the route taken</td><td>Same filter or rule, same piece or folder, same run</td><td>Keeps enough to replay why it ended where it did</td></tr>
 <tr id="e10"><td><strong>E10 Warning</strong></td><td>A result shown to an agent: a line with file and lines, rule and reason, and a way to see more</td><td>Same rule, same piece</td><td>Fails a run only when the caller set a warning limit and it is exceeded (U4)</td></tr>
 <tr id="e11"><td><strong>E11 Case</strong></td><td>Real skill text at a fixed git revision, with the result one rule or filter should give, labelled by someone other than that rule</td><td>Same text, revision and rule</td><td>Is either a development case or a held-out case, never both</td></tr>
 </tbody>
