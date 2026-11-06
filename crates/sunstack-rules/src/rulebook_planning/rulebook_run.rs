@@ -129,24 +129,11 @@ pub async fn run_rulebook_with_dispatcher(
             }
             let empty = FileMatchIndex::default();
             let index = indexes.get(&piece.location.file).unwrap_or(&empty);
-            let omissions = match super::locator_questions::plan_locator_omissions(
+            let omissions = super::locator_questions::plan_locator_omissions(
                 rule,
                 piece,
                 dispatcher.settings.max_locate_lines,
-            ) {
-                Ok(omissions) => omissions,
-                Err(error) => {
-                    run.results[pair_index].result = incomplete(
-                        RulebookIncompleteReason::ChoiceOptionsExceeded {
-                            options: error.options,
-                            limit: error.limit,
-                        },
-                        None,
-                        vec![],
-                    );
-                    continue;
-                }
-            };
+            );
             let (step, path_taken) = match first_walk(rule, piece, index, &omissions) {
                 WalkOutcome::Settled(result) => {
                     run.results[pair_index].result = result;
@@ -171,8 +158,13 @@ pub async fn run_rulebook_with_dispatcher(
                 questions: rule.questions.clone(),
                 state,
             };
-            super::locator_questions::add_locators(rule, piece, dispatcher, &mut request);
-            match dispatcher.submit(request).await {
+            let submitted =
+                match super::locator_questions::add_locators(rule, piece, dispatcher, &mut request)
+                {
+                    Ok(()) => dispatcher.submit(request).await,
+                    Err(error) => Err(DispatchRefusal::ChoiceOptionsExceeded(error)),
+                };
+            match submitted {
                 Ok(id) => {
                     pending.insert(id, (pair_index, step, path_taken, omissions));
                 }

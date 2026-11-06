@@ -111,7 +111,7 @@ pub enum JudgmentQuestion {
     Choice {
         instructions: StructuredEntry,
         #[serde(deserialize_with = "unique_map")]
-        #[schemars(extend("minProperties" = 1))]
+        #[schemars(extend("minProperties" = 1, "maxProperties" = crate::MAX_CHOICE_OPTIONS))]
         criteria: BTreeMap<ChoiceLabel, StructuredEntry>,
     },
     Score {

@@ -176,3 +176,42 @@ async fn final_authored_choice_cardinality_is_checked_before_dispatch() {
         }
     }
 }
+
+#[tokio::test]
+async fn unreached_oversized_locator_preserves_mechanical_settlement_without_http() {
+    for selected in [
+        json!("pass"),
+        json!("not_applicable"),
+        json!({"finding":"Mechanical finding.","at":"body"}),
+    ] {
+        let mut entry = fixture::entry_json("K001");
+        entry["questions"] = json!({});
+        entry["decision"] = json!({"start":"check","steps":{"check":{"mechanical_check":{"tool":"contains","field":"body","text":"line 1"},"yes":selected,"no":{"finding":"Unreached.","at":"body","locate":{"name":"unused","task":"Choose line","min_probability":0.7}}}}});
+        let wire: RuleEntryWire = serde_json::from_value(entry).unwrap();
+        let mut rule = fixture::rule("K001");
+        rule.questions = wire.questions.clone();
+        rule.decision = admit_rule_entry(
+            &wire,
+            &fixture::kinds(),
+            &fixture::project(),
+            &Default::default(),
+        )
+        .unwrap();
+        let (run, bodies) = observed(rule, vec![line_piece(256)], 1000, 0.9).await;
+        assert!(bodies.is_empty());
+        assert!(run.requests.is_empty());
+        assert_eq!(run.results[0].result.basis(), Some(Basis::Mechanical));
+        let value = serde_json::to_value(run).unwrap();
+        assert_eq!(
+            value["results"][0]["result"],
+            if selected.is_object() {
+                "finding"
+            } else {
+                selected.as_str().unwrap()
+            }
+        );
+        assert_eq!(value["results"][0]["path_taken"], json!(["check"]));
+        assert!(value["results"][0].get("locator_omitted").is_none());
+        assert_eq!(value["results"][0]["answers_read"], json!({}));
+    }
+}

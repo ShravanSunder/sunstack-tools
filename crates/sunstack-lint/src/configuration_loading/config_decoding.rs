@@ -202,7 +202,7 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
         .limits
         .as_ref()
         .and_then(|limits| limits.max_locate_lines)
-        .is_some_and(|limit| limit.get() as usize > sunstack_rules::MAX_CHOICE_OPTIONS)
+        .is_some_and(|limit| limit.get() as usize > sunstack_decisions::MAX_CHOICE_OPTIONS)
     {
         return Err(config_error(
             config,

@@ -3,31 +3,6 @@ use std::sync::Arc;
 use sunstack_decisions::*;
 use tokio::{sync::Semaphore, task::JoinSet};
 
-pub const MAX_CHOICE_OPTIONS: usize = 255;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-#[error("choice has {options} options; maximum is {limit}")]
-pub struct ChoiceOptionsExceeded {
-    pub options: usize,
-    pub limit: usize,
-}
-
-pub(crate) fn validate_choice_options(
-    request: &StructuredJudgmentRequest,
-) -> Result<(), ChoiceOptionsExceeded> {
-    for question in request.questions.values() {
-        if let JudgmentQuestion::Choice { criteria, .. } = question
-            && criteria.len() > MAX_CHOICE_OPTIONS
-        {
-            return Err(ChoiceOptionsExceeded {
-                options: criteria.len(),
-                limit: MAX_CHOICE_OPTIONS,
-            });
-        }
-    }
-    Ok(())
-}
-
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DispatchRefusal {
     #[error(transparent)]
@@ -81,7 +56,7 @@ impl ModelRequestDispatch {
         request: &StructuredJudgmentRequest,
     ) -> Result<(), crate::SelectionIncompleteReason> {
         use crate::SelectionIncompleteReason as Reason;
-        validate_choice_options(request).map_err(|_| Reason::InvalidRequest)?;
+        validate_choice_options(&request.questions).map_err(|_| Reason::InvalidRequest)?;
         let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
         let body = encode_judgment_body(request, model).map_err(|_| Reason::InvalidRequest)?;
         let chars = std::str::from_utf8(&body)
@@ -124,7 +99,7 @@ impl ModelRequestDispatch {
         if self.is_cancelled() {
             return Err(DispatchRefusal::Cancelled);
         }
-        validate_choice_options(&request)?;
+        validate_choice_options(&request.questions)?;
         let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
         let body =
             encode_judgment_body(&request, model).map_err(|_| DispatchRefusal::InvalidRequest)?;

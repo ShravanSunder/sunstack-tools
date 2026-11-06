@@ -50,7 +50,7 @@ pub struct FilterWire {
     #[schemars(length(min = 1))]
     pub per: String,
     pub reads: ReadsSpec,
-    #[schemars(extend("properties"={"type":{"const":"choice"},"criteria":{"minProperties":2}}))]
+    #[schemars(extend("properties"={"type":{"const":"choice"},"criteria":{"minProperties":2,"maxProperties":sunstack_decisions::MAX_CHOICE_OPTIONS}}))]
     pub question: JudgmentQuestion,
     #[schemars(extend("exclusiveMinimum"=0,"maximum"=1))]
     pub min_probability: f64,
@@ -190,7 +190,9 @@ pub fn admit_filters(
         };
         if let Ok(question_name) = QuestionName::new("filter") {
             let questions = BTreeMap::from([(question_name, wire.question.clone())]);
-            if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
+            if let Err(error) = sunstack_decisions::validate_choice_options(&questions) {
+                refuse("question.criteria", &error.to_string());
+            } else if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
                 &questions,
             )
             .is_err()

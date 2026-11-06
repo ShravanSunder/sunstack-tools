@@ -161,7 +161,7 @@ async fn locators_fit_only_after_every_authored_question_and_respect_each_reques
             questions: authored.clone(),
             state: piece_state(&rule, &piece).unwrap(),
         };
-        add_locators(&rule, &piece, &dispatcher, &mut request);
+        add_locators(&rule, &piece, &dispatcher, &mut request).unwrap();
         let sent = ["fits", "exact_lines", "one_line"].contains(&case);
         assert_eq!(request.questions.len(), if sent { 4 } else { 3 }, "{case}");
         for (name, question) in &authored {

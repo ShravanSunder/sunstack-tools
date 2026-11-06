@@ -34,10 +34,7 @@ pub(super) fn plan_locator_omissions(
     rule: &RulebookRule,
     piece: &EvidencePiece,
     max_lines: usize,
-) -> Result<
-    BTreeMap<sunstack_decisions::QuestionName, crate::LocatorOmission>,
-    crate::ChoiceOptionsExceeded,
-> {
+) -> BTreeMap<sunstack_decisions::QuestionName, crate::LocatorOmission> {
     let mut omissions = BTreeMap::new();
     for step in rule.decision.steps.values() {
         for route in step.routes() {
@@ -59,15 +56,10 @@ pub(super) fn plan_locator_omissions(
                         limit: max_lines,
                     },
                 );
-            } else if count > crate::MAX_CHOICE_OPTIONS {
-                return Err(crate::ChoiceOptionsExceeded {
-                    options: count,
-                    limit: crate::MAX_CHOICE_OPTIONS,
-                });
             }
         }
     }
-    Ok(omissions)
+    omissions
 }
 
 pub(super) fn add_locators(
@@ -75,7 +67,7 @@ pub(super) fn add_locators(
     piece: &EvidencePiece,
     dispatcher: &ModelRequestDispatch,
     request: &mut StructuredJudgmentRequest,
-) {
+) -> Result<(), sunstack_decisions::ChoiceOptionsExceeded> {
     for step in rule.decision.steps.values() {
         let routes: Vec<&DecisionRoute> = match step {
             DecisionStep::Mechanical { yes, no, .. } => vec![yes, no],
@@ -121,11 +113,13 @@ pub(super) fn add_locators(
                     criteria,
                 },
             );
+            sunstack_decisions::validate_choice_options(&candidate.questions)?;
             if dispatcher.assess_selection(&candidate).is_ok() {
                 *request = candidate;
             }
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]

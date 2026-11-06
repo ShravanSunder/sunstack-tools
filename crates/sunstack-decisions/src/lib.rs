@@ -10,6 +10,9 @@ pub use backend_transport::decision_backends::*;
 pub use decision_protocol::decision_contracts::*;
 pub use decision_protocol::decision_diagnostics::*;
 pub use judgment_processing::judgment_execution::*;
+pub use judgment_processing::judgment_validation::{
+    ChoiceOptionsExceeded, MAX_CHOICE_OPTIONS, validate_choice_options,
+};
 pub use judgment_processing::request_budgeting::*;
 pub use tokio_util::sync::CancellationToken;
 #[cfg(test)]
