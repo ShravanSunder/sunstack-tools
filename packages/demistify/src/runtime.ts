@@ -5,6 +5,7 @@ import { ChoiceIsland, OptionIsland } from './islands/choice.ts';
 import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
 import { CommentsIsland } from './islands/comments.ts';
 import { CompareIsland, DiagramDiffIsland } from './islands/compare.ts';
+import { DrawerIsland } from './islands/drawer.ts';
 import { EvidenceTraceIsland } from './islands/evidence-trace.ts';
 import { ExplorerIsland } from './islands/explorer.ts';
 import { FileTreeIsland } from './islands/file-tree.ts';
@@ -44,6 +45,7 @@ for (const [tagName, constructor] of [
 	['ex-arrow', ArrowIsland],
 	['ex-tabs', TabsIsland],
 	['ex-zoom', ZoomIsland],
+	['ex-drawer', DrawerIsland],
 	['ex-decision', DecisionIsland],
 	['ex-callout', CalloutIsland],
 	['ex-compare', CompareIsland],

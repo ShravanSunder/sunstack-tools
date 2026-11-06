@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>From a call to the need it serves</title>
+		<link rel="stylesheet" href="library/theme.css" />
+		<link rel="stylesheet" href="studies.css" />
+		<link rel="stylesheet" href="study-controls.css" />
+		<link rel="stylesheet" href="execution.css" />
+		<script type="module" src="library/runtime.js"></script>
+		<script type="module" src="components/register.js?revision=call-preview"></script>
+	</head>
+	<body>
+		<ex-nav for="content"
+			><nav slot="pages" aria-label="Experiments">
+				<a href="index.html">Requirements and call-path experiments</a
+				><a href="requirements.html">Start from the user need</a
+				><a href="execution.html">From a call to the need it serves</a>
+			</nav></ex-nav
+		><ex-document id="content"
+			><h1>From a call to the need it serves</h1>
+			<p>
+				A source-derived call chain answers who calls whom; a runtime stack answers which
+				invocations are active at an instant. A sequence diagram answers who exchanges messages over
+				time. This nested call model keeps the callers visible and links each mapped call back to
+				its user need.
+			</p>
+			<ex-callout title="Source model and synthetic evidence" tone="note" icon="code"
+				><p>
+					The calls, source addresses and verification results are illustrative. This page contains
+					no captured runtime stack or timing measurement. Branches are shown inside a frame, rather
+					than invented as additional calls.
+				</p></ex-callout
+			>
+			<lab-execution-review data-width="canvas"></lab-execution-review
+		></ex-document>
+		<script type="application/json" data-lab-records>
+			[
+				{
+					"kind": "frame",
+					"id": "handle-key",
+					"name": "handleKey(event)",
+					"category": "Input",
+					"source": "screen.ts:24",
+					"responsibility": "Receive one key event.",
+					"statement": "inputOwner.route(event);",
+					"requirement": "U1"
+				},
+				{
+					"kind": "frame",
+					"id": "input-owner-route",
+					"name": "InputOwner.route(event)",
+					"branch": "Active dialog → resolve here; otherwise block background dispatch.",
+					"category": "Input",
+					"source": "input-owner.ts:42",
+					"responsibility": "Choose the single active input scope.",
+					"statement": "const scope = scopes.top();",
+					"requirement": "U1"
+				},
+				{
+					"kind": "frame",
+					"id": "event-bridge-forward",
+					"name": "EventBridge.forward(event)",
+					"category": "Plumbing",
+					"supporting": true,
+					"source": "event-bridge.ts:16",
+					"responsibility": "Forward the event to the chosen scope.",
+					"statement": "return selectedScope.handle(event);"
+				},
+				{
+					"kind": "frame",
+					"id": "scope-adapter-handle",
+					"name": "ScopeAdapter.handle(event)",
+					"category": "Plumbing",
+					"supporting": true,
+					"source": "scope-adapter.ts:28",
+					"responsibility": "Adapt the event to the scope interface.",
+					"statement": "return dialogScope.resolve(event);"
+				},
+				{
+					"kind": "frame",
+					"id": "dialog-scope-resolve",
+					"name": "DialogScope.resolve(event)",
+					"category": "Resolution",
+					"source": "dialog-scope.ts:31",
+					"responsibility": "Resolve an action inside the dialog.",
+					"statement": "return bindings.find(event.key);",
+					"requirement": "U2"
+				},
+				{
+					"kind": "frame",
+					"id": "action-registry-invoke",
+					"name": "ActionRegistry.invoke(action)",
+					"category": "Action",
+					"source": "action-registry.ts:58",
+					"responsibility": "Run the registered action once.",
+					"statement": "return action.run(dialogDraft);",
+					"requirement": "U3"
+				},
+				{
+					"kind": "frame",
+					"id": "start-session-run",
+					"name": "StartSession.run(draft)",
+					"category": "Action",
+					"source": "start-session.ts:19",
+					"responsibility": "Return a result while retaining the draft on refusal.",
+					"statement": "return startSession(draft);",
+					"requirement": "U6"
+				},
+				{
+					"kind": "frame",
+					"id": "action-registry-shortcut",
+					"name": "ActionRegistry.resolveShortcut(event)",
+					"category": "Action",
+					"source": "action-registry.ts:33",
+					"responsibility": "Find the action registered for this key.",
+					"statement": "return shortcuts.get(event.key);",
+					"requirement": "U3"
+				},
+				{
+					"kind": "frame",
+					"id": "help-panel-open",
+					"name": "HelpPanel.open(action)",
+					"category": "Resolution",
+					"source": "help-panel.ts:27",
+					"responsibility": "Show the command and its registered shortcut.",
+					"statement": "return renderHelp(action.label, action.shortcut);",
+					"requirement": "U3"
+				},
+				{
+					"kind": "frame",
+					"id": "select-list-move",
+					"name": "SelectList.move(direction)",
+					"category": "Resolution",
+					"source": "select-list.ts:46",
+					"responsibility": "Move the active option by one row.",
+					"statement": "activeOption = nextOption(direction);",
+					"requirement": "U4"
+				},
+				{
+					"kind": "frame",
+					"id": "select-list-commit",
+					"name": "SelectList.commit(option)",
+					"category": "Action",
+					"source": "select-list.ts:62",
+					"responsibility": "Commit the active machine when Enter is pressed.",
+					"statement": "return chooseMachine(activeOption);",
+					"requirement": "U4"
+				},
+				{
+					"kind": "stack",
+					"id": "start-session",
+					"title": "Start a session",
+					"description": "Route input through the active dialog and start the requested session.",
+					"primaryNeed": "U6",
+					"frames": [
+						"handle-key",
+						"input-owner-route",
+						"event-bridge-forward",
+						"scope-adapter-handle",
+						"dialog-scope-resolve",
+						"action-registry-invoke",
+						"start-session-run"
+					]
+				},
+				{
+					"kind": "stack",
+					"id": "open-help",
+					"title": "Open Help",
+					"description": "Resolve the registered shortcut and show the command with its actual key.",
+					"primaryNeed": "U3",
+					"frames": [
+						"handle-key",
+						"input-owner-route",
+						"action-registry-shortcut",
+						"help-panel-open"
+					]
+				},
+				{
+					"kind": "stack",
+					"id": "choose-machine",
+					"title": "Choose a machine",
+					"description": "Move the active option and commit the selected machine.",
+					"primaryNeed": "U4",
+					"frames": ["handle-key", "input-owner-route", "select-list-move", "select-list-commit"]
+				}
+			]
+		</script>
+	</body>
+</html>

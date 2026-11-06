@@ -74,9 +74,10 @@ test('enlarging a Reading code block uses the inspection width and restores its 
 	expect.soft(content.getBoundingClientRect().width).toBeGreaterThan(originalWidth + 100);
 	expect.soft(Math.abs(content.getBoundingClientRect().width - availableWidth)).toBeLessThan(2);
 	await modal.getByRole('button', { name: 'Close', exact: true }).click();
+	// The native close event restores the live nodes after close() has returned.
+	await expect.poll(() => code.querySelector('.ex-code-head')).toBe(originalContent);
 	expect(code.getAttribute('data-width')).toBe('reading');
 	expect(code.getBoundingClientRect().width).toBeCloseTo(originalWidth, 0);
-	expect(requiredElement(code, '.ex-code-head')).toBe(originalContent);
 });
 
 test('sequence messages remain readable in both themes and on a narrow screen', async (): Promise<void> => {

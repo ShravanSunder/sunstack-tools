@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Color that keeps its meaning</title>
+		<link rel="stylesheet" href="library/theme.css" />
+		<link rel="stylesheet" href="studies.css" />
+		<script type="module" src="library/runtime.js"></script>
+		<script type="module" src="components/register.js"></script>
+	</head>
+	<body>
+		<ex-nav for="content"
+			><nav slot="pages" aria-label="Experiments">
+				<a href="index.html">Requirements and call-path experiments</a
+				><a href="corners.html">One family of content containers</a
+				><a href="color.html">Color that keeps its meaning</a
+				><a href="requirements.html">Start from the user need</a
+				><a href="execution.html">From a call to the need it serves</a>
+			</nav></ex-nav
+		><ex-document id="content"
+			><h1>Color that keeps its meaning</h1>
+			<p>
+				Color should answer “what kind of thing is this?” consistently across views. Here Boundary,
+				Store and State each have an explicit palette slot. Selecting an item changes its outline,
+				not its category.
+			</p>
+			<lab-color-study></lab-color-study>
+			<h2 id="meaning">Keep category, status and selection independent</h2>
+			<p>
+				Mermaid currently assigns its six palette slots by encountered identity order. It does not
+				infer domain types. Explorer's current kinds have another mapping. A shared convention needs
+				a declared category mapping, visible labels and stable identity—not a promise that any
+				colored box means success.
+			</p>
+			<p>
+				The chosen card treatment is a subtle tint. A diagram can use stronger fills from the same
+				palette; card titles and icons stay neutral, while selection and status remain independent.
+			</p></ex-document
+		>
+	</body>
+</html>

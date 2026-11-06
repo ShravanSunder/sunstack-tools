@@ -7,6 +7,8 @@ import type { Plugin } from 'vite';
 
 import { indexCollectionSearch } from '../../../../packages/demistify/src/node/collection-search.ts';
 import { embedMarkdownFiles } from '../../../../packages/demistify/src/node/markdown-files.ts';
+import { prepareUnderstandingPages } from '../../scripts/collect-understanding-records.ts';
+import { writeCollectionFixture } from '../collection-fixture.ts';
 import { installDefaultCommentsFixtures } from './default-comments-fixtures.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -75,6 +77,23 @@ export async function builtFixtures(): Promise<Plugin> {
 					}),
 			);
 		}),
+	);
+	await cp(
+		resolve(repositoryRoot, 'apps/demistify-poc/public/experiments/understanding-lab'),
+		join(snapshot, 'understanding'),
+		{ recursive: true },
+	);
+	await cp(join(snapshot, 'library'), join(snapshot, 'understanding/library'), { recursive: true });
+	const collectionSource = join(snapshot, 'collection-source');
+	await writeCollectionFixture(collectionSource);
+	const collectionFixture = await prepareUnderstandingPages(collectionSource);
+	await cp(join(snapshot, 'understanding'), join(snapshot, 'understanding-collection'), {
+		recursive: true,
+	});
+	await Promise.all(
+		[...collectionFixture.pages].map(([file, html]) =>
+			writeFile(join(snapshot, 'understanding-collection', file), html),
+		),
 	);
 	const reviewHtml = await readFile(join(snapshot, 'review/index.html'), 'utf8');
 	await writeFile(

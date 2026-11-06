@@ -74,6 +74,14 @@ export const layoutAttributes: Readonly<Record<string, AttributeSpec>> = {
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
+	'ex-drawer': {
+		description: 'An animated non-modal bottom workspace that can stay open beside Comments.',
+		attributes: {
+			label: text('Accessible name of the workspace.', true),
+			open: flag('Show the drawer; outside presses keep it open.'),
+			size: oneOf('A large workspace (default), or a nested content sheet.', ['large', 'content']),
+		},
+	},
 	'ex-choice': {
 		description: 'One question with native single or multiple response options.',
 		attributes: {

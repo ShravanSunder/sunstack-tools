@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Start from the user need</title>
+		<link rel="stylesheet" href="library/theme.css" />
+		<link rel="stylesheet" href="studies.css" />
+		<link rel="stylesheet" href="study-controls.css" />
+		<link rel="stylesheet" href="requirements.css" />
+		<link rel="stylesheet" href="execution.css" />
+		<script type="module" src="library/runtime.js"></script>
+		<script type="module" src="components/register.js"></script>
+	</head>
+	<body>
+		<ex-nav for="content"
+			><nav slot="pages" aria-label="Experiments">
+				<a href="index.html">Requirements and call-path experiments</a
+				><a href="requirements.html">Start from the user need</a
+				><a href="execution.html">From a call to the need it serves</a>
+			</nav></ex-nav
+		><ex-document id="content"
+			><h1>Start from the user need</h1>
+			<p>
+				Start with what the person needs to do. Group related needs by capability; selecting a need
+				keeps its specification rule, program-design owner and verification observation together.
+			</p>
+			<ex-callout title="Illustrative design and results" tone="note" icon="file"
+				><p>
+					These six needs and their pass/fail observations are examples for comparing the interface.
+					They are not assertions about the current picker or another shipped product.
+				</p></ex-callout
+			>
+			<ex-zoom class="lab-requirements-inspector" label="User requirements" zoom data-width="canvas"
+				><lab-requirement-browser data-width="canvas"></lab-requirement-browser></ex-zoom
+		></ex-document>
+		<script type="application/json" data-lab-records>
+			[
+				{
+					"kind": "need",
+					"id": "U1",
+					"title": "Type into the active surface",
+					"capability": "Input ownership",
+					"bodyRef": "body-U1",
+					"summaryRef": "body-U1"
+				},
+				{
+					"kind": "need",
+					"id": "U2",
+					"title": "Keep background actions inactive",
+					"capability": "Input ownership",
+					"bodyRef": "body-U2",
+					"summaryRef": "body-U2"
+				},
+				{
+					"kind": "need",
+					"id": "U3",
+					"title": "Find the command and its real key",
+					"capability": "Actions and navigation",
+					"bodyRef": "body-U3",
+					"summaryRef": "body-U3"
+				},
+				{
+					"kind": "need",
+					"id": "U4",
+					"title": "Navigate every choice by keyboard",
+					"capability": "Actions and navigation",
+					"bodyRef": "body-U4",
+					"summaryRef": "body-U4"
+				},
+				{
+					"kind": "need",
+					"id": "U5",
+					"title": "Read the whole dialog cleanly",
+					"capability": "Overlays",
+					"bodyRef": "body-U5",
+					"summaryRef": "body-U5"
+				},
+				{
+					"kind": "need",
+					"id": "U6",
+					"title": "Keep the draft when a request fails",
+					"capability": "Recovery",
+					"bodyRef": "body-U6",
+					"summaryRef": "body-U6"
+				}
+			]
+		</script>
+		<template id="body-U1"><p>When I open a dialog, my typing belongs to that dialog.</p></template>
+		<template id="body-U2"
+			><p>An open menu must not trigger a session action behind it.</p></template
+		>
+		<template id="body-U3"
+			><p>Help should show the key that actually runs each command.</p></template
+		>
+		<template id="body-U4"><p>I can choose a machine without switching to the mouse.</p></template>
+		<template id="body-U5"><p>Text behind a dialog must not leak through its frame.</p></template>
+		<template id="body-U6"
+			><p>If starting a session fails, keep what I entered so I can retry.</p></template
+		>
+	</body>
+</html>

@@ -225,7 +225,7 @@ ex-mermaid > .ex-inspect-controls {
 	max-width: none;
 	margin-inline: 0;
 }
-.ex-inspect-body .ex-inspect-controls {
+.ex-inspect-body:not(ex-drawer > .ex-inspect-body) .ex-inspect-controls {
 	display: none;
 }
 .ex-arrow-canvas {

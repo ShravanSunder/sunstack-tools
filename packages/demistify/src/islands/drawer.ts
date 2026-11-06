@@ -14,6 +14,44 @@ const minimumWidth = 320;
 const defaultWidth = 460;
 let drawer: HTMLElement | undefined;
 let current: DrawerSession | undefined;
+const bottomDrawers: DrawerIsland[] = [];
+let readerOverlayHost: HTMLElement | undefined;
+let readerOverlayObserver: MutationObserver | undefined;
+const readerOverlayOrigins = new Map<HTMLElement, Comment>();
+
+/** Keep the existing floating player and diagnostics above a top-layer workspace, without copies. */
+function synchronizeReaderOverlays(raise = false): void {
+	if (bottomDrawers.length === 0) {
+		readerOverlayObserver?.disconnect();
+		for (const [overlay, origin] of readerOverlayOrigins) {
+			if (overlay.parentElement === readerOverlayHost) origin.replaceWith(overlay);
+			else origin.remove();
+		}
+		readerOverlayOrigins.clear();
+		if (readerOverlayHost?.matches(':popover-open')) readerOverlayHost.hidePopover();
+		return;
+	}
+	if (!readerOverlayHost) {
+		readerOverlayHost = document.createElement('div');
+		readerOverlayHost.className = 'ex-drawer-reader-overlays';
+		readerOverlayHost.popover = 'manual';
+		document.body.append(readerOverlayHost);
+	}
+	for (const overlay of document.body.querySelectorAll<HTMLElement>(
+		':scope > .ex-route-player, :scope > .ex-issues',
+	)) {
+		readerOverlayOrigins.get(overlay)?.remove();
+		const origin = document.createComment('reader overlay origin');
+		overlay.before(origin);
+		readerOverlayOrigins.set(overlay, origin);
+		readerOverlayHost.append(overlay);
+	}
+	if (raise && readerOverlayHost.matches(':popover-open')) readerOverlayHost.hidePopover();
+	if (!readerOverlayHost.matches(':popover-open')) readerOverlayHost.showPopover();
+	readerOverlayObserver ??= new MutationObserver((): void => synchronizeReaderOverlays());
+	// Diagnostics may be reported after opening. Only watch direct body additions while active.
+	readerOverlayObserver.observe(document.body, { childList: true });
+}
 
 function hidePresentation(panel: HTMLElement): void {
 	if (panel instanceof HTMLDialogElement) {
@@ -87,7 +125,7 @@ export function closeDrawer(): void {
 }
 
 export function isDrawerOpen(): boolean {
-	return current !== undefined;
+	return current !== undefined || bottomDrawers.length > 0;
 }
 
 function createDrawer(): HTMLElement {
@@ -121,15 +159,6 @@ function createDrawer(): HTMLElement {
 		window.dispatchEvent(new Event('resize'));
 	});
 	panel.append(handle);
-	window.addEventListener(
-		'keydown',
-		(event: KeyboardEvent): void => {
-			if (event.key !== 'Escape' || !current || document.querySelector('dialog[open]')) return;
-			event.stopPropagation();
-			closeDrawer();
-		},
-		{ capture: true },
-	);
 	document.body.append(panel);
 	if (!document.documentElement.style.getPropertyValue('--ex-drawer-width')) setWidth(defaultWidth);
 	return panel;
@@ -160,4 +189,114 @@ export function openDrawer(
 		.querySelector<HTMLButtonElement>('button:last-of-type')
 		?.focus({ preventScroll: true });
 	return close;
+}
+
+window.addEventListener(
+	'keydown',
+	(event: KeyboardEvent): void => {
+		if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog:modal'))
+			return;
+		const bottom = bottomDrawers.at(-1);
+		if (current && (!bottom || current.panel.contains(document.activeElement))) closeDrawer();
+		else return;
+		event.preventDefault();
+		event.stopPropagation();
+	},
+	{ capture: true },
+);
+
+// Bottom workspaces let nested controls consume Escape before closing their container.
+window.addEventListener('keydown', (event: KeyboardEvent): void => {
+	if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog:modal'))
+		return;
+	const bottom = bottomDrawers.at(-1);
+	if (!bottom) return;
+	bottom.close();
+	event.preventDefault();
+	event.stopPropagation();
+});
+
+/** A live, non-modal workspace using the same drawer presentation as Comments and inspection. */
+export class DrawerIsland extends HTMLElement {
+	private returnFocus: HTMLElement | null = null;
+	private reflectingOpen = false;
+	private initialized = false;
+
+	static get observedAttributes(): string[] {
+		return ['open'];
+	}
+
+	get open(): boolean {
+		return this.hasAttribute('open');
+	}
+
+	connectedCallback(): void {
+		this.classList.add('ex-drawer');
+		this.popover = 'manual';
+		this.setAttribute('role', 'dialog');
+		if (!this.hasAttribute('aria-label'))
+			this.setAttribute('aria-label', this.getAttribute('label') ?? 'Details');
+		this.initialized = true;
+		if (this.open) this.show();
+		else this.hidden = true;
+	}
+
+	attributeChangedCallback(): void {
+		if (!this.isConnected || !this.initialized || this.reflectingOpen) return;
+		if (this.open) this.show();
+		else this.close();
+	}
+
+	disconnectedCallback(): void {
+		this.close();
+		this.initialized = false;
+	}
+
+	show(): void {
+		if (!this.isConnected || !this.initialized || bottomDrawers.includes(this)) return;
+		// Leave an ordinary modal enlargement before opening an interactive workspace.
+		const modal = this.closest<HTMLDialogElement>('dialog:modal');
+		if (modal) {
+			const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+			modal.addEventListener(
+				'close',
+				(): void => {
+					this.show();
+					this.returnFocus = trigger;
+				},
+				{ once: true },
+			);
+			modal.close();
+			return;
+		}
+		if (this.getAttribute('size') !== 'content')
+			for (const existing of bottomDrawers.toReversed()) existing.close();
+		this.returnFocus =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		bottomDrawers.push(this);
+		this.hidden = false;
+		this.reflectingOpen = true;
+		this.setAttribute('open', '');
+		this.reflectingOpen = false;
+		this.showPopover();
+		synchronizeReaderOverlays(true);
+		this.querySelector<HTMLElement>('[autofocus],button')?.focus({ preventScroll: true });
+		window.dispatchEvent(new Event('resize'));
+	}
+
+	close(): void {
+		const index = bottomDrawers.indexOf(this);
+		if (index < 0) return;
+		for (const nested of bottomDrawers.slice(index + 1).toReversed()) nested.close();
+		bottomDrawers.splice(index, 1);
+		synchronizeReaderOverlays();
+		if (this.matches(':popover-open')) this.hidePopover();
+		this.hidden = true;
+		this.reflectingOpen = true;
+		this.removeAttribute('open');
+		this.reflectingOpen = false;
+		if (this.returnFocus?.isConnected) this.returnFocus.focus({ preventScroll: true });
+		this.dispatchEvent(new Event('close'));
+		window.dispatchEvent(new Event('resize'));
+	}
 }

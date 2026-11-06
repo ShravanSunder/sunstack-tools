@@ -5,7 +5,7 @@
 	"description": "Five independent presentation experiments and Demistify showcases",
 	"type": "module",
 	"scripts": {
-		"build": "node scripts/build-experiments.ts && vite build",
+		"build": "node scripts/build-experiments.ts && node scripts/build-understanding-lab.ts && vite build",
 		"dev:serve": "vite --host 127.0.0.1",
 		"preview": "vite preview --host 127.0.0.1",
 		"islands:package": "node scripts/build-experiments.ts --reuse-runtime --islands-only",

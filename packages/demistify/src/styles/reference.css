@@ -184,6 +184,9 @@ table {
 	width: 100%;
 	font-size: var(--text-md);
 }
+tbody {
+	background: var(--surface-page);
+}
 /* Round the native frame without inserting an ancestor into saved comment paths. */
 table:not(.tbl table, .ex-table-scroll table, .ex-explorer-table-scroll table) {
 	border-collapse: separate;
