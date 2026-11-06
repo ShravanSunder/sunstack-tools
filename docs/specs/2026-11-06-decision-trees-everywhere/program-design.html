@@ -173,7 +173,7 @@ flowchart TB
   gap -- no --> q1{"Does the section send the agent into, or work through,<br/>a procedure that belongs to one product, real or made up?<br/>(yes / no)"}
   q1 -- no --> pass1["pass"]
   q1 -- "in-between" --> uns1["unsure"]
-  q1 -- yes --> q2{"Is every such product named only as a labelled example<br/>of a general instruction, such as 'for example'?<br/>(yes / no)"}
+  q1 -- yes --> q2{"Is every product procedure in this section named only<br/>as a labelled example of a general instruction, such as 'for example'?<br/>(yes / no)"}
   q2 -- yes --> pass2["pass (U16 row 3)"]
   q2 -- "in-between" --> uns2["unsure"]
   q2 -- no --> loc["warn on the section, pointing at the line<br/>with the unlabelled product procedure"]
@@ -198,6 +198,7 @@ flowchart TB
 <ul>
 <li>It sees the content of loaded skills, not only loaded files (F1).</li>
 <li>Its second question is a separate fact, so it can't contradict the first (F3).</li>
+<li>Each question stands on its own: Jev answers both in one request without seeing the other's answer, so neither refers back to the other.</li>
 <li>Its line-finder uses the same boundary as question 2 (F6).</li>
 <li>The toolkit's shared tools are part of question 1's definition, through the reference examples, not a separate escape route.</li>
 </ul>
