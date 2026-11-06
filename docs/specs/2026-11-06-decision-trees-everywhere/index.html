@@ -15,6 +15,7 @@
     <a href="specification.html">Specification</a>
     <a href="program-design.html">Program design</a>
     <a href="verification-design.html">Verification design</a>
+    <a href="plans/2026-11-06-decision-trees-everywhere.html">Plan</a>
   </nav>
 </ex-nav>
 <ex-document id="content">
@@ -23,7 +24,10 @@
 <p><strong>The fix:</strong> sunstack treats every Jev judgment the same way. Choosing which skills a rule reads, and deciding whether a rule warns, both become a small tree of questions that each ask one thing. Examples are written in the rule files, and sunstack hands them to Jev with the text it is judging. A rule proves itself on real cases inside sunstack. Then agents just run <code>sunstack lint</code> and get short warnings that point at files and lines.</p>
 
 <ex-callout title="Open with you" tone="question" icon="chat-circle">
-<p>Confirm or correct the five parts on the <a href="requirements.html#parts">Requirements page</a>. Nothing else is waiting on you yet.</p>
+<ol>
+<li><strong>The five parts:</strong> confirm or correct how I grouped what you asked for, on the <a href="requirements.html#parts">Requirements page</a>.</li>
+<li><strong>Descriptions that name products (your U16 row 11):</strong> this needs the description rule, which is one of the eight judged rules this design leaves off. <strong>Recommended:</strong> rebuild it next, the same way, as the first rule after this. That leaves your row 11 uncovered until then. If you want it in this round instead, say so, and it joins as a third rebuilt rule with its own cases.</li>
+</ol>
 </ex-callout>
 
 <h2 id="picture">One picture</h2>

@@ -15,6 +15,7 @@
     <a href="specification.html">Specification</a>
     <a href="program-design.html">Program design</a>
     <a href="verification-design.html">Verification design</a>
+    <a href="plans/2026-11-06-decision-trees-everywhere.html">Plan</a>
   </nav>
 </ex-nav>
 <ex-document id="content">
@@ -78,10 +79,10 @@ flowchart TB
 <table>
 <thead><tr><th>Part</th><th>What the standard asks</th><th>Kind filter</th><th>Product-workflow rule</th></tr></thead>
 <tbody>
-<tr><td><strong>Questions</strong></td><td>Each asks one fact the evidence can show. A pick question only picks between labels that can't both be true.</td><td>Q1: which one of three kinds of primary work. Q2: which one of three kinds of guidance. Both are exclusive picks.</td><td>Q1: is there a procedure that belongs to one product? Q2: is every such procedure only a labelled example? Two separate facts, each standing alone.</td></tr>
-<tr><td><strong>State</strong></td><td>The text being judged, plus reference material the questions share. Nothing the judgment doesn't use. Never the expected answer.</td><td>The description and the <code>SKILL.md</code> opening, plus <code>reference</code> (kind definitions and examples). No folder name.</td><td>The section's body, heading, headings and loaded-file openings (skills included), plus <code>reference</code> (your U16 rows as examples). The file and lines stay in <code>where</code>, as today.</td></tr>
-<tr><td><strong>Statistic</strong></td><td>Every bar names the number it reads and its comparison. A pick question's bar suits its label count. No accuracy claimed from a probability.</td><td>Both questions read the top label's probability among 3 labels, against a bar set for 3 labels</td><td>Both questions read P(yes) with inclusive yes and no bars. The line-finder reads its top line's probability, which only places the line.</td></tr>
-<tr><td><strong>Policy</strong></td><td>Code combines answers. An unknown never passes. A warning the evidence can't settle is a nudge. Missing text is never read as absence.</td><td>Labels come only from the tree's endings; either question below its bar → unsure, skipped and listed</td><td>Q1 yes and Q2 no → a nudge to read and decide. Q1 no on fully collected text → pass. Q1 no on incomplete text → unsure. Any in-between → unsure.</td></tr>
+<tr><td><strong>Questions</strong></td><td>Each asks one fact the evidence can show. A pick question only picks between labels that can't both be true.</td><td>Q1: which one of three kinds of primary work. Q2: which one of three kinds of guidance. Both are exclusive picks.</td><td>Q1: is there concrete material that belongs to one product? Q2: is all of it shown only as labelled examples? Q3: are all those products made up? Three separate facts, each standing alone.</td></tr>
+<tr><td><strong>State</strong></td><td>The text being judged, plus reference material the questions share. Nothing the judgment doesn't use. Never the expected answer.</td><td>The description and the <code>SKILL.md</code> opening, plus <code>reference</code> (kind definitions and examples). No folder name.</td><td>The section's body, heading, headings and loaded-file openings (skills included), plus <code>reference</code> (your U16 rows as examples). No file name or location: no question reads them, so they stay in the record.</td></tr>
+<tr><td><strong>Statistic</strong></td><td>Every bar names the number it reads and its comparison. A pick question's bar suits its label count. No accuracy claimed from a probability.</td><td>Both questions read the selected label's probability among 3 labels (TypeSafe's choice is the highest-probability label), against a bar set for 3 labels</td><td>All three questions read P(yes) with inclusive yes and no bars. The line-finder reads its selected line's probability, which only places the line.</td></tr>
+<tr><td><strong>Policy</strong></td><td>Code combines answers. An unknown never passes. A warning the evidence can't settle is a nudge. Missing text is never read as absence.</td><td>Labels come only from the tree's endings; either question below its bar â unsure, skipped and listed</td><td>Product material that isn't a labelled made-up example â a nudge to read and decide. Both pass routes ("none found", and "all labelled and made up") need fully collected text, otherwise unsure. Any in-between answer the walk reads â unsure.</td></tr>
 <tr><td><strong>Proof</strong></td><td>Held-out cases, frozen design, compared with today's version, within one model version. Measures kept apart.</td><td>Development cases set the bar. Frozen held-out folders: no wrong kind.</td><td>U17's case floors; bars set on development cases. Frozen held-out run: zero false warnings, every real mistake warns.</td></tr>
 </tbody>
 </table>
@@ -105,6 +106,7 @@ flowchart TB
 <h2 id="filter-path">What happens when a filter judges a folder</h2>
 <p>Today (<code>filter_run.rs:73-130</code>, <code>223-239</code>), each folder gets one request holding one field and the folder's path. One answer is then compared with one cut-off.</p>
 <p>Proposed: the request holds the fields the filter declares and its reference, but no folder path. All of the filter's questions go in that one request, and then the tree is walked.</p>
+<p>Each eligible folder gets one request. As today, a folder whose declared file is missing, ambiguous, unreadable or too large gets no request. It ends incomplete, with that reason.</p>
 <ex-mermaid id="filter-call" label="Filter: today and proposed"><script type="text/plain">
 sequenceDiagram
   participant Lint as lint run
@@ -143,7 +145,7 @@ sequenceDiagram
 <thead><tr><th>State key</th><th>Holds</th><th>Today</th><th>Proposed</th></tr></thead>
 <tbody>
 <tr><td><code>standard</code></td><td>The marked sentence the rule checks</td><td>yes</td><td>unchanged; filters have none</td></tr>
-<tr><td><code>where</code></td><td>File and line range of the piece (rules only)</td><td>yes</td><td>unchanged for rules; filters no longer send a folder path</td></tr>
+<tr><td><code>where</code></td><td>File and line range of the piece (rules only)</td><td>yes, always</td><td>sent only when one of the rule's questions names it; otherwise kept in the record. Filters never send a folder path.</td></tr>
 <tr><td>evidence fields</td><td>Text collected for the piece, by name</td><td>yes</td><td>unchanged</td></tr>
 <tr><td><code>cut-fields</code></td><td>Fields shortened to fit</td><td>yes</td><td>unchanged</td></tr>
 <tr><td><code>unavailable-fields</code></td><td>Fields that couldn't be collected, with why</td><td>no (silently dropped)</td><td>new</td></tr>
@@ -166,10 +168,14 @@ sequenceDiagram
 <p>Proposed: <code>--report &lt;file&gt;</code> writes, beside the usual results:</p>
 <ul>
 <li><code>requests</code>: each with its id, its rule or filter, its piece or folder, the exact state, the questions in the order sent, every answer returned, and the requested and resolved model, or why it wasn't sent;</li>
-<li><code>rulebook_files</code>: the path and content hash of every config and rule file used, so the tree and bars behind each result are known;</li>
+<li><code>rulebook_files</code>: the path, content hash and full content of every config and rule file used. The tree and bars behind each result travel with the report, even if the rulebook later changes;</li>
 <li>on each result: its route, the ids of its requests, and any gap.</li>
 </ul>
-<p>Because all of a tree's questions are asked together, a saved report can re-walk any result under a changed bar without asking Jev again. Changed wording or changed evidence needs a fresh run, and the report says so.</p>
+<p>Because all of a tree's questions are asked together, a saved report can re-walk any result under a changed bar without asking Jev again. Two limits:</p>
+<ul>
+<li>A rule the filter excluded was never asked, so it can't be re-walked; the report marks it.</li>
+<li>Changed wording or changed evidence needs a fresh run.</li>
+</ul>
 
 <h2 id="output-path">What an agent reads</h2>
 <p>Today (<code>formats.rs:136-156</code>), each folder's filter answer prints as JSON. Each unsure result prints its whole request state, including the section text, plus every answer. On the all-skills run last week, that would have been 191 section texts. Proposed:</p>
@@ -177,12 +183,12 @@ sequenceDiagram
 <table>
 <thead><tr><th>Line</th><th>Example</th></tr></thead>
 <tbody>
-<tr><td>Warning (a nudge)</td><td><code>plugins/sunstack-dev/skills/ops-observability-stack/SKILL.md:17:1: warn [general-skill.overfits-to-product-workflow] sends the agent into one product's own procedure; read the line and loaded file, then decide whether it belongs in that product's repository #3</code>, then <code>  target: …/references/agentstudio-loop.md:1</code></td></tr>
-<tr><td>Unsure</td><td><code>…/SKILL.md:40-58: unsure [rule] at step routes_product: 0.52 is between 0.35 and 0.65 #7</code></td></tr>
-<tr><td>Not fully read</td><td><code>…/SKILL.md:6-24: unsure [rule] no product procedure seen, but targets were not fully read (opening cut) #8</code></td></tr>
-<tr><td>Gap</td><td><code>…/SKILL.md:6-24: incomplete [rule] targets unavailable: skill not found #9</code></td></tr>
+<tr><td>Warning (a nudge)</td><td><code>plugins/sunstack-dev/skills/ops-observability-stack/SKILL.md:17:1: warn [general-skill.overfits-to-product-workflow] sends the agent into one product's own procedure; read the line and loaded file, then decide whether it belongs in that product's repository #3</code>, then <code>  target: â¦/references/agentstudio-loop.md:1</code></td></tr>
+<tr><td>Unsure</td><td><code>â¦/SKILL.md:40-58: unsure [rule] at step routes_product: 0.52 is between 0.35 and 0.65 #7</code></td></tr>
+<tr><td>Not fully read</td><td><code>â¦/SKILL.md:6-24: unsure [rule] no product procedure seen, but targets were not fully read (opening cut) #8</code></td></tr>
+<tr><td>Gap</td><td><code>â¦/SKILL.md:6-24: incomplete [rule] targets unavailable: skill not found #9</code></td></tr>
 <tr><td>Filter summary</td><td><code>Filter kind: 61 general, 6 role, 4 domain, 3 tool_manual, 1 repo_specific; 2 unsure (listed below)</code>, then one line per unsure or incomplete folder</td></tr>
-<tr><td>Detail on request</td><td><code>sunstack lint --report run.json …</code>, then <code>sunstack lint show run.json 7</code>: that entry's route, answers, bars, requests and pointers</td></tr>
+<tr><td>Detail on request</td><td><code>sunstack lint --report run.json â¦</code>, then <code>sunstack lint show run.json 7</code>: that entry's route, answers, bars, requests and pointers</td></tr>
 </tbody>
 </table>
 </div>
@@ -194,7 +200,7 @@ sequenceDiagram
 flowchart LR
   file["case file<br/>rule cases and filter cases;<br/>recorded bars"] --> stale{"each case's text<br/>matches its hash<br/>at its revision?"}
   stale -- no --> listed["listed: stale"]
-  stale -- yes --> tree["temporary tree per revision:<br/>the files the rulebook checks, at that revision<br/>+ today's rulebook files on top"]
+  stale -- yes --> tree["temporary tree per revision:<br/>the whole repository at that revision<br/>+ today's rulebook files on top"]
   tree --> lint["the normal lint run,<br/>on the case files"]
   lint --> match["match each case to its result"]
   match --> out["per rule or filter:<br/>right, false warning or wrong label, missed,<br/>unsure, incomplete; and the listed cases"]
@@ -206,14 +212,20 @@ flowchart LR
 <li><strong>The rule's bars</strong> as recorded beside the development cases that set them: <code>bars: [{step, value, set_from: [case ids]}]</code> (U18).</li>
 <li>An optional <code>repository</code> path, for cases from another local checkout (U19).</li>
 </ul>
-<p><strong>The surrounding text:</strong> for each revision, the run copies every file the rulebook checks as it was at that revision (with <code>git archive</code>), then puts today's rulebook files on top. A case therefore sees its own skill folder, that folder's <code>SKILL.md</code> for the filter, and the files it loads, all from the case's revision.</p>
+<p><strong>The surrounding text:</strong> for each revision, the run copies the whole repository as it was at that revision (with <code>git archive</code>), then puts today's rulebook files on top. A case therefore sees all of these from the case's revision:</p>
+<ul>
+<li>its own skill folder;</li>
+<li>that folder's <code>SKILL.md</code>, for the filter;</li>
+<li>every file it loads, even one outside the paths the rulebook checks.</li>
+</ul>
+<p>The cost is a copy per revision used, removed when the run ends.</p>
 <p><strong>Matching:</strong> each case gets exactly one outcome.</p>
 <ul>
 <li><strong>A rule case</strong> matches that rule's results whose piece overlaps its lines in its file:
   <ul>
-  <li>none → <em>no matching piece</em>;</li>
-  <li>more than one → <em>more than one matching piece</em>;</li>
-  <li>excluded by the filter → <em>filter excluded</em>;</li>
+  <li>none â <em>no matching piece</em>;</li>
+  <li>more than one â <em>more than one matching piece</em>;</li>
+  <li>excluded by the filter â <em>filter excluded</em>;</li>
   <li>otherwise its result is scored against the expected one: right, false warning, missed, unsure or incomplete.</li>
   </ul></li>
 <li><strong>A filter case</strong> is scored right, wrong label, unsure or incomplete.</li>
@@ -227,58 +239,81 @@ flowchart LR
 <p>These are shapes, not final wording. Each question is written once from the standard and your U16 rulings. An independent decision-model review checks the tree. Bars are set on the development cases (U18), then the frozen tree is proven once on held-out cases. There are no wording rounds.</p>
 
 <h3 id="kind-tree">Kind filter</h3>
-<p>Jev is shown each skill's description and the opening of its <code>SKILL.md</code> body. It also sees a reference holding the five kind definitions and worked examples. It isn't shown the folder name. Both questions go in one request.</p>
+<p>Jev is shown each skill's description and the opening of its <code>SKILL.md</code> body. It also sees a reference holding the five kind definitions and worked examples. It isn't shown the folder name. Both questions go in one request, and each stands on its own.</p>
 <ex-mermaid id="kind-tree-view" label="Kind filter tree"><script type="text/plain">
 flowchart TB
-  q1{"Q1 What is the skill's primary work?<br/>(pick 1 of 3; top label's probability ≥ bar)"} -- "reusable guidance" --> q2{"Q2 What kind of guidance?<br/>(pick 1 of 3; top label's probability ≥ bar)"}
-  q1 -- "operating one tool through its interface" --> tm["label: tool_manual"]
-  q1 -- "one product's own procedure" --> rs["label: repo_specific"]
-  q1 -- "top label below bar" --> u1["unsure: skipped and listed"]
+  q1{"Q1 What is this skill's primary work?<br/>(pick 1 of 3; selected label's probability ≥ bar)"} -- "reusable guidance" --> q2{"Q2 What kind of reusable guidance does it give?<br/>(pick 1 of 3; selected label's probability ≥ bar)"}
+  q1 -- "operating a public tool through its interface" --> tm["label: tool_manual"]
+  q1 -- "one repository's own procedure" --> rs["label: repo_specific"]
+  q1 -- "below bar" --> u1["unsure: skipped and listed"]
   q2 -- "a workflow or practice" --> g["label: general"]
   q2 -- "a standing team job" --> r["label: role"]
   q2 -- "standards for a subject" --> d["label: domain"]
-  q2 -- "top label below bar" --> u2["unsure: skipped and listed"]
+  q2 -- "below bar" --> u2["unsure: skipped and listed"]
 </script></ex-mermaid>
-<p><strong>Statistic:</strong> both questions read the top label's probability among 3 labels. A bar of p, for example, means a confidence of (p − 1/3) ÷ (2/3), which is not accuracy. The bars start at the engine's usual 0.6 for a pick question and are set on the development cases; a starting bar never switches the filter on. Q2's answer is read only when Q1 picked "reusable guidance"; otherwise it's asked but unused.</p>
+<p><strong>The boundaries</strong> are written once in the reference, so the three options can't overlap:</p>
+<ul>
+<li><strong>Reusable guidance:</strong> a practice, standing job or standards meant for work in many repositories.</li>
+<li><strong>Operating a public tool:</strong> teaches using a tool or platform made for many users and repositories, through its public commands or API.</li>
+<li><strong>One repository's own procedure:</strong> one repository or product's own operating, development or verification steps, including its own private command-line tool or scripts. A repository's own tool counts here, not as a public tool.</li>
+</ul>
+<p><strong>Statistic:</strong> both questions read the selected label's probability among 3 labels; TypeSafe's choice is always the highest-probability label. A bar of p means a confidence of (p − 1/3) ÷ (2/3), which is not accuracy. The bars start at the engine's usual 0.6 for a pick question and are set on the development cases. A starting bar never switches the filter on.</p>
+<p><strong>Policy:</strong> Q2 is read only when Q1 picked reusable guidance; otherwise it's asked but unused. Labels come only from the tree's endings. Either question below its bar ends unsure, and the folder is skipped and listed (U14).</p>
 
 <h3 id="k002-tree">Product-workflow rule</h3>
-<p>Jev is shown each section's body, heading and headings, plus the opening of each file or skill the section loads. The reference holds your U16 rows as worked examples, each with its answer and why.</p>
+<p>Jev is shown each section's body, heading and headings, plus the opening of each file or skill the section loads. The reference holds your U16 rows as worked examples, each with its answer and why. The three questions go in one request with the line-finder, and each stands on its own.</p>
 <ex-mermaid id="k002-tree-view" label="Product-workflow rule tree"><script type="text/plain">
 flowchart TB
-  q1{"Q1 Does the section send the agent into, or work through,<br/>a procedure that belongs to one product, real or made up?<br/>(P(yes): yes at ≥ bar, no at ≤ bar)"}
-  q1 -- yes --> q2{"Q2 Is every product procedure in this section named only<br/>as a labelled example of a general instruction, such as 'for example'?<br/>(P(yes): yes at ≥ bar, no at ≤ bar)"}
-  q1 -- no --> c{"complete: body and every<br/>loaded opening fully read?"}
-  c -- yes --> pass1["pass"]
-  c -- no --> uns0["unsure: no procedure seen,<br/>but not all text was read"]
+  q1{"Q1 Does this section contain concrete material that belongs to one product,<br/>real or made up: its own commands, steps, files, paths, state or a quoted mistake,<br/>as an instruction, a worked example or a quote?"}
+  q1 -- no --> c1{"complete: body and every<br/>loaded opening fully read?"}
+  c1 -- yes --> pass1["pass"]
+  c1 -- no --> uns0["unsure: none seen,<br/>but not all text was read"]
   q1 -- "in-between" --> uns1["unsure"]
-  q2 -- yes --> pass2["pass (U16 row 3)"]
-  q2 -- "in-between" --> uns2["unsure"]
-  q2 -- no --> nudge["warn (a nudge): read the line and the loaded file,<br/>then decide whether it belongs in that product's repository"]
+  q1 -- yes --> q2{"Q2 Is every piece of product material in this section<br/>shown only as a labelled example of a general instruction,<br/>such as 'for example'?"}
+  q2 -- no --> nudge["warn (a nudge)"]
+  q2 -- yes --> q3{"Q3 Is every product whose material appears<br/>in this section made up, not a real product?"}
+  q2 -- "in-between" --> q3b{"Q3, read<br/>as a trigger"}
+  q3b -- no --> nudge
+  q3b -- "yes or in-between" --> uns2["unsure"]
+  q3 -- no --> nudge
+  q3 -- "in-between" --> uns3["unsure"]
+  q3 -- yes --> c2{"complete: body and every<br/>loaded opening fully read?"}
+  c2 -- yes --> pass2["pass: only labelled made-up examples"]
+  c2 -- no --> uns4["unsure: none unlabelled seen,<br/>but not all text was read"]
 </script></ex-mermaid>
-<p><strong>Statistic:</strong> Q1 and Q2 read the probability of yes. At or above the yes bar is yes, at or below the no bar is no, both inclusive, and in between is unsure. Bars start at the engine's usual 0.7 and 0.3 and are set on the development cases. The line-finder reads its top line's probability against its own bar, and that only places the warning's line; it never decides pass or warn.</p>
-<p><strong>Policy:</strong> a warning needs Q1 yes and Q2 no. The warning is worded as a nudge, because the text can show a product's procedure but can't settle where it belongs. A "no" from Q1 passes only on fully read text. Any in-between answer is unsure. A field that couldn't be collected at all ends incomplete.</p>
+<p><strong>The warning</strong> is worded as a nudge, because the text can show a product's own material but can't settle where it belongs: "this section shows one product's own material; read the line and the loaded file, then decide whether it belongs in that product's repository". It points at the line the line-finder picks, using the same boundary as Q2 and Q3.</p>
+<p><strong>Statistic:</strong> all three questions read the probability of yes. At or above the yes bar is yes, at or below the no bar is no, both inclusive, and in between is unsure. The bars start at the engine's usual 0.7 and 0.3 and are set on the development cases. The line-finder reads its selected line's probability against its own bar; that only places the warning's line, never decides pass or warn.</p>
+<p><strong>Policy:</strong></p>
+<ul>
+<li>A warning needs Q1 yes, and either trigger known: Q2 no (something not labelled), or Q3 no (a real product's material). That's an OR of two known triggers.</li>
+<li>An unknown Q2 doesn't hide a known Q3 no.</li>
+<li>Both pass routes need fully read text, otherwise unsure. Absence can't be shown on text that wasn't read.</li>
+<li>Any in-between answer the walk reads ends unsure.</li>
+<li>A field that couldn't be collected at all ends incomplete.</li>
+</ul>
 <div class="ex-table-scroll" data-width="canvas">
 <table>
-<thead><tr><th>Your U16 row</th><th>Question 1</th><th>Question 2</th><th>Result</th></tr></thead>
+<thead><tr><th>Your U16 row</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Result</th></tr></thead>
 <tbody>
-<tr><td>1 · a product's own command</td><td>yes</td><td>no</td><td>warn</td></tr>
-<tr><td>2 · loads a product's own workflow file</td><td>yes (seen through the loaded file's opening)</td><td>no</td><td>warn</td></tr>
-<tr><td>3 · labelled example</td><td>yes</td><td>yes</td><td>pass (if question 1 says no on fully read text, question 2 isn't read, and it passes)</td></tr>
-<tr><td>4 · worked or made-up product example, not labelled</td><td>yes</td><td>no</td><td>warn</td></tr>
-<tr><td>5 · quotes a real product mistake</td><td>yes</td><td>no</td><td>warn</td></tr>
-<tr><td>6 to 9 · subject's tool, tool used as meant, toolkit's shared tools, ordinary command</td><td>no</td><td>not read</td><td>pass</td></tr>
-<tr><td>10 · a product's own skill about its own product</td><td>not asked</td><td>not asked</td><td>not judged: the kind filter marks it tool manual or repository-specific</td></tr>
-<tr><td>11 · a description naming products as users</td><td>not this rule</td><td>not this rule</td><td>not covered here: the description rule's job, which stays off</td></tr>
-<tr><td>12 · a product's skill sending agents into another product</td><td>no real case yet</td><td>no real case yet</td><td>waits for a real case, as you ruled</td></tr>
+<tr><td>1 · a product's own command</td><td>yes</td><td>no</td><td>not needed</td><td>warn</td></tr>
+<tr><td>2 · loads a product's own workflow file</td><td>yes (seen through the loaded file's opening)</td><td>no</td><td>not needed</td><td>warn</td></tr>
+<tr><td>3 · a product named as a labelled example</td><td>no (a name, no material)</td><td>not read</td><td>not read</td><td>pass, if fully read</td></tr>
+<tr><td>3 and 4's line · a labelled, made-up worked example</td><td>yes</td><td>yes</td><td>yes</td><td>pass, if fully read</td></tr>
+<tr><td>4 · a worked or made-up product example, not labelled</td><td>yes</td><td>no</td><td>not needed</td><td>warn</td></tr>
+<tr><td>5 · quotes a real product mistake</td><td>yes</td><td>yes or no</td><td>no (a real product)</td><td>warn</td></tr>
+<tr><td>6 to 9 · subject's tool, tool used as meant, toolkit's shared tools, ordinary command</td><td>no</td><td>not read</td><td>not read</td><td>pass, if fully read</td></tr>
+<tr><td>10 · a product's own skill about its own product</td><td>not asked</td><td>not asked</td><td>not asked</td><td>not judged: the kind filter marks it tool manual or repository-specific</td></tr>
+<tr><td>11 · a description naming products as users</td><td>not this rule</td><td>not this rule</td><td>not this rule</td><td>not covered here: the description rule's job, open with you</td></tr>
+<tr><td>12 · a product's skill sending agents into another product</td><td>no real case yet</td><td></td><td></td><td>waits for a real case, as you ruled</td></tr>
 </tbody>
 </table>
 </div>
-<p>This keeps the current rule's two-question shape and fixes the review's findings:</p>
+<p>This keeps the current rule's question-then-exemption shape and fixes what the reviews found:</p>
 <ul>
-<li>It sees the content of loaded skills, not only loaded files, and it never passes on text it didn't fully read (F1, D2).</li>
-<li>Its second question is a separate fact, so it can't contradict the first (F3).</li>
-<li>Each question stands on its own. Jev answers both in one request without seeing the other's answer, so neither refers back to the other.</li>
-<li>Its line-finder uses the same boundary as Q2 (F6).</li>
+<li>It sees the content of loaded skills, not only loaded files, and neither pass route works on text it didn't fully read (F1, D2).</li>
+<li>Its questions are separate facts, so they can't contradict each other (F3).</li>
+<li>Q1 covers worked examples and quotes, not only procedures. That matches U16 rows 4 and 5.</li>
+<li>Its line-finder uses the same boundary as Q2 and Q3 (F6).</li>
 <li>The toolkit's shared tools are part of Q1's definition, through the reference examples, not a separate escape route.</li>
 </ul>
 
@@ -288,14 +323,14 @@ flowchart TB
 <thead><tr><th>Thing</th><th>Owner</th><th>Home</th><th>Shape</th><th>Kept</th></tr></thead>
 <tbody>
 <tr><td>E1 Rulebook</td><td>sunstack-lint configuration loading</td><td>existing, modified: <code>config_contracts.rs</code>; <code>RulebookPair</code></td><td>config JSON; <code>filters</code> entries take the new filter shape</td><td>file in repo</td></tr>
-<tr><td>E2 Tree</td><td>sunstack-rules rulebook planning</td><td>existing, modified: <code>decision_graph_contracts.rs</code></td><td>steps shared, plus the new mechanical <code>complete</code> check; the ending type depends on the owner: rule endings (pass, finding, uncertain, not_applicable) or filter endings (<code>{"label": …}</code>, <code>unsure</code>)</td><td>file in repo</td></tr>
+<tr><td>E2 Tree</td><td>sunstack-rules rulebook planning</td><td>existing, modified: <code>decision_graph_contracts.rs</code></td><td>steps shared, plus the new mechanical <code>complete</code> check; the ending type depends on the owner: rule endings (pass, finding, uncertain, not_applicable) or filter endings (<code>{"label": â¦}</code>, <code>unsure</code>)</td><td>file in repo</td></tr>
 <tr><td>E3 Question</td><td>sunstack-decisions</td><td>existing: <code>JudgmentQuestion</code>, <code>NamedQuestionMap</code></td><td>unchanged</td><td>file in repo</td></tr>
 <tr><td>E4 Filter</td><td>sunstack-rules filters</td><td>existing, modified: <code>FilterWire</code>, <code>FilterPlan</code> in <code>filter_plan.rs</code></td><td><code>{per, reads: {file, kind, fields: [names]}, labels: [names], questions, decision, reference?}</code>; <code>question</code> and <code>min_probability</code> removed</td><td>file in repo</td></tr>
 <tr><td>E5 Rule</td><td>sunstack-rules rulebook planning</td><td>existing, modified: <code>RuleEntryWire</code>, <code>RulebookRule</code></td><td>adds optional <code>reference</code></td><td>file in repo</td></tr>
 <tr><td>E6 Piece</td><td>sunstack-evidence</td><td>existing, modified: target loading</td><td>a resolved skill-name target gets an <code>opening</code> and <code>opening_cut</code>, as a path target does</td><td>derived each run</td></tr>
 <tr><td>E7 Reference</td><td>sunstack-rules rule definitions</td><td>new: <code>ReferenceMaterial</code></td><td>a JSON object; its top-level names can't be reserved state keys</td><td>file in repo</td></tr>
 <tr><td>E8 Request</td><td>sunstack-decisions; built by sunstack-rules</td><td>existing: <code>StructuredJudgmentRequest</code>; builders modified</td><td>state as in the state-key table above</td><td>in the saved report</td></tr>
-<tr><td>E9 Result</td><td>sunstack-rules</td><td>existing: <code>RulebookResult</code>; modified: <code>FilterAnswerState</code> → <code>Judged | Unsure | Incomplete</code>, each with path and answers</td><td>as in the filter contract above</td><td>in the saved report</td></tr>
+<tr><td>E9 Result</td><td>sunstack-rules</td><td>existing: <code>RulebookResult</code>; modified: <code>FilterAnswerState</code> â <code>Judged | Unsure | Incomplete</code>, each with path and answers</td><td>as in the filter contract above</td><td>in the saved report</td></tr>
 <tr><td>E10 Warning</td><td>sunstack-lint reporting</td><td>existing, modified: report findings</td><td>adds an <code>id</code> number, unique within one report</td><td>printed; in the saved report when asked</td></tr>
 <tr><td>E11 Case</td><td>sunstack-lint case runs</td><td>new: <code>case_runs</code> module</td><td>rule and filter cases, plus recorded bars, as above</td><td>case files live in the repo that owns the rulebook</td></tr>
 <tr><td>E12 Saved report</td><td>sunstack-lint reporting</td><td>existing <code>LintReport</code>, modified: adds <code>requests</code> and <code>rulebook_files</code></td><td>as in "What the saved report keeps"</td><td>the file the caller names</td></tr>
@@ -329,7 +364,7 @@ flowchart TB
   </ul></li>
 <li><strong>Active rules only</strong> (D7): the config lists rulebook file pairs, and each pair's markers bind to its entries. So:
   <ul>
-  <li>The general-skill pair keeps only the product-workflow rule. The two other judged rules' entries move to <code>rules/held/</code>, and their <code>&lt;!-- K… --&gt;</code> marker comments come out of <code>general-skill.md</code>, recorded in the held file beside the sentence each belongs to. The sentences themselves don't change.</li>
+  <li>The general-skill pair keeps only the product-workflow rule. The two other judged rules' entries move to <code>rules/held/</code>, and their <code>&lt;!-- Kâ¦ --&gt;</code> marker comments come out of <code>general-skill.md</code>, recorded in the held file beside the sentence each belongs to. The sentences themselves don't change.</li>
   <li>The descriptions pair keeps its three mechanical checks, and its two judged rules move the same way.</li>
   <li>The three pairs whose rules are all judged leave the config. Their files stay as they are.</li>
   </ul>
@@ -372,10 +407,10 @@ flowchart TB
 <tr><td>U28</td><td>R21 decision-model skill teaches it</td><td>none: skill text</td><td>ai-tools sunstack-dev</td><td><code>domain-decision-models</code></td><td>skill text</td><td>none: text</td><td>none: no new failure</td><td>text check</td></tr>
 <tr><td>U28</td><td>R22 rule-writing skill teaches it</td><td>none: skill text</td><td>ai-tools skill-authoring</td><td><code>skill-rules</code></td><td>skill text</td><td>none: text</td><td>none: no new failure</td><td>text check</td></tr>
 <tr><td>U3, U20, U21, U24</td><td>R23 incomplete text never passes</td><td>E6, E8, E9</td><td>request builders, walker, target loading</td><td><code>unavailable-fields</code>; <code>complete</code> check; <code>opening_cut</code></td><td>state keys; mechanical step</td><td>per run</td><td>missing: incomplete; cut: unsure on "no"</td><td>lint runs on cut, unresolved and missing loads</td></tr>
-<tr><td>U13, U24</td><td>R24 filter reads declared fields only</td><td>E4, E8</td><td>filters</td><td><code>request_for</code></td><td><code>reads.fields</code>; folder in the record</td><td>per request</td><td>none: no new failure</td><td>filter requests in the saved report have no folder</td></tr>
+<tr><td>U13, U24</td><td>R24 filter reads declared fields only</td><td>E4, E8</td><td>filters</td><td><code>request_for</code></td><td><code>reads.fields</code>; folder in the record; rule <code>where</code> only when a question names it</td><td>per request</td><td>none: no new failure</td><td>filter requests in the saved report have no folder</td></tr>
 <tr><td>U17</td><td>R25 U17's case floors before warning</td><td>E11</td><td>ai-tools cases; case runs</td><td>case file sets and labels</td><td><code>set</code>, <code>label_from</code>, must-pass cases</td><td>file in repo</td><td>short: rule stays off, lacks listed</td><td>development case run; held-out run</td></tr>
 <tr><td>U24</td><td>R26 every bar names its number</td><td>E2</td><td>tree admission; ai-tools rulebook</td><td>step bars by question type</td><td>Noul yes/no bars; pick top-label bar</td><td>none: loaded config</td><td>none: no new failure</td><td>decision-model review; load checks</td></tr>
-<tr><td>U24, U27</td><td>R27 saved report can re-check any result</td><td>E12</td><td>lint reporting</td><td><code>--report</code></td><td><code>requests</code>, <code>rulebook_files</code></td><td>report file</td><td>none: no new failure</td><td>explain five results from the file alone</td></tr>
+<tr><td>U24, U27</td><td>R27 saved report can re-check any result</td><td>E12</td><td>lint reporting</td><td><code>--report</code></td><td><code>requests</code>, <code>rulebook_files</code> with content</td><td>report file</td><td>none: no new failure</td><td>explain five results from the file alone</td></tr>
 <tr><td>U26, U10</td><td>R28 only intended rules are active</td><td>E1</td><td>ai-tools rulebook</td><td>config pairs; <code>rules/held/</code></td><td>active pairs and entries</td><td>file in repo</td><td>none: no new failure</td><td><code>sunstack lint --rules</code> list; no held rule dispatches</td></tr>
 </tbody>
 </table>

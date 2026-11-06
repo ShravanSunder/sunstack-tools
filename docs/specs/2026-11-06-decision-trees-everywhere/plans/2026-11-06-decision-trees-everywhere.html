@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan: decision trees everywhere</title>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content">
+  <nav slot="pages" aria-label="Pages">
+    <a href="../index.html">Overview</a>
+    <a href="../requirements.html">Requirements</a>
+    <a href="../specification.html">Specification</a>
+    <a href="../program-design.html">Program design</a>
+    <a href="../verification-design.html">Verification design</a>
+    <a href="2026-11-06-decision-trees-everywhere.html">Plan</a>
+  </nav>
+</ex-nav>
+<ex-document id="content">
+<h1>Plan: fix the engine, then use it</h1>
+
+<p>Two pull requests, one per repository:</p>
+<ol>
+<li><strong>sunstack-tools</strong> gets the engine changes and releases 0.8.0. I release it under your 30 Oct grant.</li>
+<li><strong>ai-tools</strong> then moves to 0.8.0. It rebuilds the two rules, keeps only the intended rules active, removes the TS gate, points agents at <code>sunstack lint</code> and updates the skills. You merge this one.</li>
+</ol>
+<p>Nothing starts until you say yes to this plan.</p>
+
+<ex-mermaid id="steps" label="The steps in order"><script type="text/plain">
+flowchart LR
+  subgraph A["PR 1 · sunstack-tools → release 0.8.0"]
+    s1["S1 reference in state;<br/>where only when named"] --> s3["S3 filters as trees,<br/>declared labels"]
+    s2["S2 gaps, complete check,<br/>skill loads get openings"] --> s3
+    s3 --> s4["S4 short output,<br/>saved report, lint show"]
+    s3 --> s5["S5 lint cases"]
+    s4 --> s5
+    s4 --> s6["S6 journeys, status test,<br/>release 0.8.0"]
+    s5 --> s6
+  end
+  subgraph B["PR 2 · ai-tools (you merge)"]
+    t1["T1 active rulebook on 0.8.0;<br/>held rules moved out"] --> t2["T2 case files,<br/>labels, recorded bars"]
+    t1 --> t3["T3 TS gate removed,<br/>AGENTS.md"]
+    t4["T4 skills teach it"]
+    t2 --> t5["T5 review, development run,<br/>freeze, held-out run, switch on"]
+    t3 --> t5
+    t4 --> t5
+  end
+  s6 --> t1
+  class s1 slot2
+  class s2 slot2
+  class s3 slot1
+  class s4 slot3
+  class s5 slot4
+  class s6 slot6
+  class t1 slot5
+  class t2 slot4
+  class t3 slot5
+  class t4 slot5
+  class t5 slot6
+</script></ex-mermaid>
+
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Step</th><th>What changes</th><th>Rules it serves</th><th>Proof it earns</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td>Rules and filters accept <code>reference</code>, copied unchanged into <code>state.reference</code> and counted toward size. Reserved names and unknown reference paths are refused. A rule's <code>where</code> is sent only when a question names it.</td><td>R4, R8 to R11, R24</td><td>O1, O2</td></tr>
+<tr><td>S2</td><td>State lists <code>unavailable-fields</code>, and a question naming one ends incomplete. The new mechanical <code>complete</code> check covers cut fields and cut or unresolved loaded openings. Skill-name loads get an opening and <code>opening_cut</code>.</td><td>R23</td><td>O2, O3</td></tr>
+<tr><td>S3</td><td>The new filter shape: declared <code>labels</code>, questions and a tree, with endings in those labels or <code>unsure</code>. One request per eligible folder, with declared fields and no folder name. The outcome shapes are closed, and the gate turns them into walk, exclude or skip. The old shape, undeclared labels and question options used as endings are refused.</td><td>R1 to R3, R5, R6, R24, R26</td><td>O1, O2, O3</td></tr>
+<tr><td>S4</td><td>Human output: short lines with ids, no request text, warnings as nudges, a filter summary. <code>--report</code> saves every request, answer and model, plus the rulebook files' content; <code>lint show</code> prints one entry.</td><td>R16 to R18, R27</td><td>O5 (scripted)</td></tr>
+<tr><td>S5</td><td><code>sunstack lint cases</code>. First step: confirm lint runs on a temporary tree. Then:<ul><li>rule and filter cases, and recorded bars;</li><li>the whole repository at each revision, with today's rulebook on top;</li><li>matching, with every case counted or listed;</li><li>the unassessed-bar check.</li></ul></td><td>R12 to R15, R25</td><td>O6</td></tr>
+<tr><td>S6</td><td>Verify journeys updated: filters (O4), output and report (O5) and cases (O6). One status test added (O10). Release 0.8.0, signed and checked.</td><td>R19, and the journeys for all of the above</td><td>O4, O5, O6, O10</td></tr>
+<tr><td>T1</td><td>ai-tools on 0.8.0:<ul><li>the kind filter tree with its labels, boundaries and reference;</li><li>the three-question product-workflow tree with its reference;</li><li>the skill evidence kind gains <code>opening</code>;</li><li>the active pairs hold only the intended rules, and the held entries and markers move to <code>rules/held/</code>.</li></ul></td><td>R7, R24, R28</td><td>O11</td></tr>
+<tr><td>T2</td><td>The existing real scenarios for these two become case files, in development and held-out sets. Labels come from your fixes or blind agents, with disagreements to you. Former wrong warnings become must-pass cases. The held-out cases stay unseen.</td><td>R12, R14, R25</td><td>feeds O8</td></tr>
+<tr><td>T3</td><td>The adoption gate and <code>rules</code> wrapper are removed. Each affected test is kept, repaired or removed, with its reason. <code>AGENTS.md</code> gives the direct command.</td><td>R13, R20</td><td>O5 (keyed), O9</td></tr>
+<tr><td>T4</td><td><code>domain-decision-models</code> and <code>skill-rules</code> are rewritten for the new shape:<ul><li>examples in state, as our convention;</li><li>filter labels and trees;</li><li>the <code>complete</code> check;</li><li>case runs;</li><li>worked trees for these two rules.</li></ul></td><td>R21, R22</td><td>O9</td></tr>
+<tr><td>T5</td><td>In order:<ol><li>an independent decision-model review of both trees;</li><li>the development run, which sets the bars and records them;</li><li>freeze;</li><li>the held-out run, plus the 0.7.1 baseline through the verify driver;</li><li>switch on, only under the five conditions in the Verification Design;</li><li>one keyed run on all skills, to show what agents now see.</li></ol></td><td>R7, R15, R25, U16</td><td>O7, O8, O5 (keyed)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="who">Who does what</h2>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Job</th><th>Who</th><th>Why that choice</th></tr></thead>
+<tbody>
+<tr><td>PR 1, S1 to S6</td><td>🐒 Implementer Sidekick (Sol, high) in a sunstack-tools worktree</td><td>Several engine owners change together; your standing choice of Sol high for implementation</td></tr>
+<tr><td>PR 2, T1 to T3</td><td>🐒 Implementer Sidekick (Sol, high) in an ai-tools worktree</td><td>Config, cases and removals</td></tr>
+<tr><td>T4 skill text</td><td>The Opus skill writer</td><td>Your standing choice: Opus writes skills</td></tr>
+<tr><td>Proof observations O4 to O6, O8, O11</td><td>🔬 Verifier Sidekick (Sol, high), paired with each Implementer</td><td>The plan's real-path proof. The same model family as the Implementer is a named gap: no other approved route.</td></tr>
+<tr><td>O7, and each PR's review</td><td>🔎 Reviewer Sidekick (Sol, xhigh), fresh for each</td><td>A different model family from me</td></tr>
+<tr><td>Keyed runs (O5 keyed, O8)</td><td>Me, through the existing key route</td><td>The key never goes to a helper</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="risks">Risks and when the plan stops</h2>
+<ul>
+<li><strong>S5's first step</strong> confirms that lint runs on a temporary copy of the repository. If it can't, S5 stops and the case-reading design comes back to you; no workaround is built.</li>
+<li><strong>A rule may not meet U17's case floors.</strong> Then it stays off, and you see what it lacks. No made-up cases are added.</li>
+<li><strong>The held-out run may show a false warning or a missed real mistake.</strong> Then that rule stays off and you see the results. The next try needs fresh held-out cases, and there is no rewording against the same cases.</li>
+<li><strong>Any change to a public rulebook field beyond this design</strong> stops the work and comes back as a design change.</li>
+<li><strong>Removing the TS gate</strong> touches tests that check it. Each one gets keep, repair or remove with its reason, in PR 2.</li>
+</ul>
+
+<details><summary>The plan record (for agents)</summary>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<tbody>
+<tr><th>Plan</th><td><code>docs/specs/2026-11-06-decision-trees-everywhere/plans/2026-11-06-decision-trees-everywhere.html</code> (HTML, not Markdown, by your instruction)</td></tr>
+<tr><th>Originating planner</th><td>plan-implementation</td></tr>
+<tr><th>Supersedes</th><td>none</td></tr>
+<tr><th>Governing basis</th><td>Reviewed four-document design on sunstack-tools <code>docs/decision-trees-everywhere</code>: requirements.html, specification.html, program-design.html and verification-design.html. The four-document review and its verification are recorded on the work trace.</td></tr>
+<tr><th>Delivery context</th><td>Terminal <code>pr-ready-unmerged</code> for ai-tools (you merge). The engine PR may be merged and released by me, under your 30 Oct grant. Grouping: <code>single:engine-then-use</code>. PR topology: one PR per repository, two in all, since the work spans two repositories.</td></tr>
+<tr><th>Planned at</th><td>sunstack-tools origin/main <code>0d27bde</code>; ai-tools origin/main <code>87fb8b38</code></td></tr>
+<tr><th>Requirement → proof</th><td>R1 to R6, R24, R26: S1, S3 (O1 to O3). R23: S2 (O2, O3). R8 to R11: S1 (O1, O2). R16 to R18, R27: S4 (O5). R12 to R15, R25: S5, T2, T5 (O6, O8). R19: S6 (O10). R7: T1, T5 (O7, O8). R13, R20: T3 (O9, O5 keyed). R21, R22: T4 (O9). R28: T1 (O11).</td></tr>
+<tr><th>Quality commands</th><td><strong>sunstack-tools:</strong> <code>cargo fmt --all -- --check</code>; <code>cargo clippy --workspace --all-targets -- -D warnings</code>; <code>cargo nextest run --locked --workspace</code>; verify journeys with <code>node scripts/verify/sunstack-rule/rulebook/&lt;driver&gt;.ts</code>; release binaries signed and checked with <code>codesign</code>.<br><strong>ai-tools:</strong> <code>pnpm --dir tests/skills test</code>; <code>pnpm --dir tests/skills typecheck</code>; <code>claude plugin validate .</code>; <code>sunstack lint --check</code> and <code>--rules</code> on the final config.</td></tr>
+<tr><th>Not in scope</th><td>The other eight judged rules (the description rule is one of them; see the overview); loops or menus in trees; any gate in lint; Jev changes; pressure tests.</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+</ex-document>
+</body>
+</html>

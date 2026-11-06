@@ -15,6 +15,7 @@
     <a href="specification.html">Specification</a>
     <a href="program-design.html">Program design</a>
     <a href="verification-design.html">Verification design</a>
+    <a href="plans/2026-11-06-decision-trees-everywhere.html">Plan</a>
   </nav>
 </ex-nav>
 <ex-document id="content">
@@ -91,7 +92,7 @@ erDiagram
 <tr id="r6"><td>R6</td><td>A tree can ask several questions and combine their answers only through its steps. Which answer wins is visible in the tree, never inside a question.</td><td>The combination of two answers can't be read off the tree</td><td>U23, U24</td></tr>
 <tr id="r7"><td>R7</td><td>In the ai-tools rulebook, the kind filter and the product-workflow rule are each rebuilt as trees of one-fact questions, and pass an independent decision-model review with no high finding.</td><td>A rebuilt question still asks two things, or a review finds a high finding</td><td>U23, U24, U16</td></tr>
 <tr id="r23"><td>R23</td><td>A tree can check whether the text a question reads was fully collected. That covers the piece itself, and each loaded file or skill's opening inside it: not cut short, not missing, not unresolved. A field that couldn't be collected at all ends the step incomplete, naming it. A rule never passes on a "no" answer about text that wasn't fully collected. That answer ends unsure, because absence wasn't shown.</td><td>A section whose loaded file was cut before its decisive line passes; a section that loads a skill passes without that skill's text being shown</td><td>U3, U20, U21, U24</td></tr>
-<tr id="r24"><td>R24</td><td>A filter reads the named fields it declares from each folder, such as a description and an opening. Anything Jev isn't meant to judge, such as the folder's name, stays out of the request and is kept only in the record.</td><td>A filter can see only the description, or a folder name that hints at the answer reaches Jev</td><td>U13, U24</td></tr>
+<tr id="r24"><td>R24</td><td>A filter reads the named fields it declares from each folder, such as a description and an opening. A request carries only what its questions read. The file or folder's name and location are sent only when a question names them. Anything else stays out of the request and is kept only in the record.</td><td>A filter can see only the description, or a folder or file name that hints at the answer reaches Jev unasked</td><td>U13, U24</td></tr>
 </tbody>
 </table>
 </div>
@@ -127,8 +128,8 @@ erDiagram
 <li>at least 3 near misses;</li>
 <li>a held-out set it is never tuned on.</li>
 </ul>
-Every wrong warning it once gave on a real skill becomes a case that must pass: unsure doesn't count. Labels come from your own fixes where you made one, otherwise from agents labelling blind, with disagreements sent to you. A rule short of these stays off, with what it lacks listed.</td><td>A rule warns with fewer cases, a former wrong warning comes back unsure and is counted fine, or a label came from the rule itself</td><td>U17</td></tr>
-<tr id="r26"><td>R26</td><td>Every bar says which number it reads and how it compares. A yes/no question reads the probability of yes: at or above the yes bar is yes, at or below the no bar is no, in between is unsure, both ends inclusive. A pick question reads its top label's probability against a bar chosen for its number of labels. No result claims to be accurate or calibrated from a probability. Accuracy is claimed only from labelled case counts, within one model version.</td><td>A bar doesn't say what it compares, one bar is reused across question types, or a high probability is reported as "accurate"</td><td>U24</td></tr>
+Every wrong warning it once gave on a real skill becomes a case that must pass: unsure doesn't count. A must-warn or must-pass case that ends incomplete, stale, unmatched, ambiguous or excluded by the filter hasn't met its obligation. An invalid or missing reply from Jev counts the same way. Labels come from your own fixes where you made one, otherwise from agents labelling blind, with disagreements sent to you. A rule short of these stays off, with what it lacks listed.</td><td>A rule warns with fewer cases, a former wrong warning comes back unsure and is counted fine, or a label came from the rule itself</td><td>U17</td></tr>
+<tr id="r26"><td>R26</td><td>Every bar says which number it reads and how it compares. A yes/no question reads the probability of yes: at or above the yes bar is yes, at or below the no bar is no, in between is unsure, both ends inclusive. A pick question reads the probability of the label Jev selected, which TypeSafe defines as its highest-probability label, against a bar chosen for its number of labels. No result claims to be accurate or calibrated from a probability. Accuracy is claimed only from labelled case counts, within one model version, and no improvement is claimed across two model versions.</td><td>A bar doesn't say what it compares, one bar is reused across question types, or a high probability is reported as "accurate"</td><td>U24</td></tr>
 </tbody>
 </table>
 </div>
@@ -146,10 +147,10 @@ Every wrong warning it once gave on a real skill becomes a case that must pass: 
 <li>the exact state and questions as sent;</li>
 <li>every answer that came back;</li>
 <li>the model asked for and the model that answered;</li>
-<li>which rulebook files, by content, gave the tree and bars;</li>
+<li>the content of every rulebook file used, so the tree and bars behind each result travel with the report;</li>
 <li>each result's route and any gaps.</li>
 </ul>
-From the file alone, anyone can re-check why a pass, warning, unsure, skip or incomplete ended where it did, without asking Jev again.</td><td>A result in the saved report can't be explained without re-running, or the answering model is missing</td><td>U24, U27</td></tr>
+From the file alone, anyone can re-check why a pass, warning, unsure, skip or incomplete ended where it did, without asking Jev again, even if the rulebook has since changed. A rule the filter excluded was never asked, so the report says it can't be re-walked.</td><td>A result in the saved report can't be explained without re-running, or the answering model is missing</td><td>U24, U27</td></tr>
 <tr id="r18"><td>R18</td><td>Skipped folders, unsure results and text not read are listed apart from warnings, each with its reason.</td><td>An unsure result looks like a pass, or a skip is silent</td><td>U3, U5</td></tr>
 <tr id="r19"><td>R19</td><td>The run's status goes to the most serious thing that happened, in this order: invalid input (the rulebook or paths couldn't be used), then cancelled, then incomplete, then failed (an error-severity rule's finding, or warnings past a limit the caller set with <code>--max-warnings</code>), then unsure, then clean. Warnings with no limit set never fail a run. Unsure is its own status, neither clean nor failed, and applies only when nothing above it happened.</td><td>A run reports failed because of warnings with no limit set, an unsure run reports clean, or unsure hides an error</td><td>U4</td></tr>
 <tr id="r20"><td>R20</td><td>In ai-tools, agents are told to run <code>sunstack lint</code> directly with the repo's rulebook. Nothing between lint and the agent hides or adds results.</td><td>An agent's instructions point at a wrapper, or a switched-on rule's warnings are hidden</td><td>U26</td></tr>
