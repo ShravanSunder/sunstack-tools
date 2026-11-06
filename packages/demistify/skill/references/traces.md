@@ -54,3 +54,5 @@ Put peer attachments directly after the summary in reading order. A short explan
 The cells combine ordinary HTML, the existing compact `.chip` label and a native link. Each attachment remains independently readable and retains its own controls. Use the same sibling composition inside a tab panel; the tab selects the view and its content provides the explanation.
 
 For source-derived call changes, compose this with [comparison](comparisons.md) and follow [call paths](call-paths.md). A Trace does not capture a runtime stack.
+
+Complete when each step is a native `details` with a native `summary`, its status label names the evidence kind, and its attachments are the supplied evidence. Use the main guide's lint pass; it checks the markup, not that any step ran.

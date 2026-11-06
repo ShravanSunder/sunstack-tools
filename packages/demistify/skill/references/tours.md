@@ -4,7 +4,7 @@ A Walkthrough serves guided explanation, not a download link or local disclosure
 
 Inspect the existing content before writing a path: island IDs, Markdown headings, diagram-local node names and any containing tab/detail/layer. Content lives there once; presentations only reference it.
 
-Keep `<ex-nav></ex-nav>` on the page even when it has only one path and no collection links. It supplies the visible Walkthroughs launcher; the path declaration below stays hidden. Use the launch control to start the path during verification.
+Keep `<ex-nav></ex-nav>` on the page even when it has only one path and no collection links. It supplies the visible Walkthroughs launcher; the path declaration below stays hidden. When verification is requested, start the path with that launch control.
 
 ```html
 <ex-presentation id="review" title="Session review"
@@ -40,7 +40,7 @@ Relative narration links resolve from the page that declares the path, including
 
 Use IDs exactly, including case. Qualify Mermaid nodes when names repeat: a bare `Registry` does not identify which diagram you intend. Mermaid fences inside Markdown island `requirements` get IDs `requirements--diagram-1`, `requirements--diagram-2`, in fence order. Its first fence's Registry node is `requirements--diagram-1--Registry`. Confirm the rendered target and recheck links after inserting or reordering fences. For a durable authored heading slug, give the HTML heading an explicit ID.
 
-The shared resolver reveals containing tabs, details and layers, then waits for Markdown or diagrams to render. Missing destinations produce a visible player error. The player carries the path when navigating between HTML pages, so normal cross-file continuation does not require fetching sibling HTML. Keep ordinary page/fragment links too. Use the current ex-presentation/ex-step contract; do not wrap content or recreate the old ex-route form.
+The shared resolver reveals containing tabs, details and layers, then waits for Markdown or diagrams to render. Missing destinations produce a visible player error. The player carries the path when navigating between HTML pages, so normal cross-file continuation does not require fetching sibling HTML. Keep ordinary page/fragment links too. Use the current ex-presentation/ex-step contract and leave the content where it lives.
 
 **Walkthrough** is the general name: it may span pages and mix text, diagrams and gallery pictures. **Gallery Journey** describes a picture-only walkthrough over gallery figures, using the same player. It may reference more than one gallery or page; it is not a separate route engine or a restriction on what a general walkthrough may contain.
 

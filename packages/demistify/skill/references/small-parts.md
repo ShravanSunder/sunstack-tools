@@ -2,7 +2,7 @@
 
 Use small parts when a compact comparison helps the reader scan facts. When the requested row combines identity, status, checks and comparable phase measurements, use one native table for the complete combination: authored identity/avatar, status badge, exact checks count centered in its ring with the subject beside it, total duration and named phase bars. Keep status separate from count and timing. A complete count does not imply success. Ordinary prose and values remain useful when a visual comparison adds nothing.
 
-## C: combine identity, checks and timing
+## Combine identity, checks and timing
 
 Keep the supplied fields together: person and workspace, run and identifier, authored state, exact checks count, duration and timing. The header names the shared phase order, and the caption states the share scale once. A compact timing cell contains only the bar and one line of exact values. Its accessible description retains the observation, scale, phase names and values. Shared colors keep each phase recognizable across views.
 
@@ -94,7 +94,7 @@ Keep the supplied fields together: person and workspace, run and identifier, aut
 </div>
 ```
 
-The initials, names, workspace, run, status, count and duration are supplied author content; the renderer does not infer identity or outcome. The bars use the default `scale="share"`, so they compare phase composition without implying equal total durations. Each row keeps Connect in slot 1, Work in slot 2 and Transfer in slot 3. The header supplies the shared visible names and order while each compact breakdown retains exact values alongside its bar. Keep the repeated run title and share explanation out of each cell. Compare a promoted recipe with its selected experiment using the same records and fields before claiming it matches. Use the library's shared styles; do not add page-specific paint.
+The initials, names, workspace, run, status, count and duration are supplied author content; the renderer does not infer identity or outcome. The bars use the default `scale="share"`, so they compare phase composition without implying equal total durations. Each row keeps Connect in slot 1, Work in slot 2 and Transfer in slot 3. The header supplies the shared visible names and order while each compact breakdown retains exact values alongside its bar. Keep the repeated run title and share explanation out of each cell. Use the library's shared styles; do not add page-specific paint.
 
 ## Identity in a cell, sentence or Trace
 

@@ -31,9 +31,9 @@ Use `pick` only after the owner selects an option. It adds a separate Chosen lab
 
 ## Compose one useful unit
 
-Cards use 8px corners, one outer shadow and a darker header band. Body content has one shared 20 px outer inset, retaining normal paragraph spacing. A direct native `<footer>` adds an optional neutral lower area with 8 px vertical padding and no divider; leave it out when the card needs no footer. Keep body content directly inside the card so existing review targets retain their ancestry.
+Cards use one outer shadow and a darker header band. Body content keeps one shared inset with normal paragraph spacing. A direct native `<footer>` adds an optional neutral lower area with no divider; leave it out when the card needs no footer. Keep body content directly inside the card so existing review targets retain their ancestry.
 
-Use `series="1"` through `series="6"` for an explicit category shared across cards and regions. These reuse the six Mermaid chart palette slots: one hue supplies the filled heading band, perimeter edges and direct heading icon. The heading uses a 10% category tint darkened 12% black; body and footer stay neutral. The top edge is 2 px; other edges are 1 px. Omit `series` for a neutral surface. Invalid values are checker errors. Keep a visible category label (`tag` or body text); color alone is insufficient. Keep `tone` and explicit status text or badges; on categorized cards the category supplies the border and heading-icon color. Unclassified cards retain their existing tone paint.
+Use `series="1"` through `series="6"` for an explicit category shared across cards and regions. These reuse the six Mermaid chart palette slots: one hue supplies the filled heading band, perimeter edges and direct heading icon; body and footer stay neutral. Omit `series` for a neutral surface. Invalid values are checker errors. Keep a visible category label (`tag` or body text); color alone is insufficient. Keep `tone` and explicit status text or badges; on categorized cards the category supplies the border and heading-icon color. Unclassified cards retain their existing tone paint.
 
 ```html
 <ex-card title="Registry" tone="planned" series="2" tag="Store" icon="database">

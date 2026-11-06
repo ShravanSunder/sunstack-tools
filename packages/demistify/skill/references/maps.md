@@ -42,9 +42,9 @@ Hand-placed layout: an `ex-board` without regions keeps your own layout, with ar
 
 Regions belong inside the Board. Their `title`, `tone`, `icon` and `label` name the group; children marked `detail` are optional map detail rather than a separate page or path. The reading view preserves document flow; the map view exposes spatial overview and pan/zoom. A hand-placed canvas must leave real channels around boxes, not hide overflow to make it fit. Free Board arrows additionally accept `from-anchor`/`to-anchor` as `left`, `right`, `top` or `bottom`; Flow chooses its own ports. Free-map captions do not inherit Flow's measured multiline layout, so leave enough space for their captions.
 
-## Independently optional layers
+Regions also accept `series="1"` through `series="6"` for one category hue from the shared chart palette across the heading band, perimeter and heading icon. Body prose stays neutral with one 20 px outer inset. Use the same slot as cards representing that category; omit it for neutral. Retain `tone` and a visible category label in the title or body. IF a region carries a category or needs a transparent body, load `cards-and-callouts.md` and return its category convention or its `transparent-body` rule.
 
-Regions also accept `series="1"` through `series="6"` for one category hue from the shared chart palette across the heading band, perimeter and heading icon. Body prose stays neutral with one 20 px outer inset. Use the same slot as cards representing that category; omit it for neutral. Retain `tone` and a visible category label in the title or body. See `cards-and-callouts.md` for the category convention.
+## Independently optional layers
 
 Layers: `layer="proposed"` on any element (cards, arrows, diagrams) lets readers switch that layer off and on. Switches appear at the top; place `<ex-layers off="proposed"></ex-layers>` yourself to start a layer hidden. Use it for current versus proposed, or optional detail.
 
@@ -57,5 +57,3 @@ Layers: `layer="proposed"` on any element (cards, arrows, diagrams) lets readers
 Layer names connect related elements and their switches; `off` is a space-separated list. Mark corresponding arrows with the same layer as their optional boxes. Use tabs/Compare for mutually exclusive alternatives; layers may be visible independently. Fragments and guided stops reveal a hidden target's containing layer.
 
 Use the main guide's lint pass for endpoint IDs and markup; retain the intended captions and layer content. Source-derived dependencies remain different from observed calls. An arrow passing a syntax check is not evidence that a real request crossed that boundary.
-
-Use bare `transparent-body` on a card or region to clear only its body fill. Heading and optional footer keep their normal fills; category, border, spacing and review targets stay unchanged. Omit it for the default filled body.
