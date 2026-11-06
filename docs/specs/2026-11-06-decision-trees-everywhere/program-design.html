@@ -133,7 +133,7 @@ sequenceDiagram
 <li>Every tree ending is <code>{"label": &lt;one of labels&gt;}</code> or <code>unsure</code>. A rule's <code>only_when</code> may name only declared labels. Anything else is refused at load.</li>
 <li>A question's own options, such as "reusable guidance", are not filter labels and can never be an answer.</li>
 <li>The outcome is one of three closed shapes: <code>Judged {label, path, answers}</code>, <code>Unsure {step, path, answers}</code> or <code>Incomplete {reason, field?, path, answers}</code>.</li>
-<li>The gate turns that into <code>Walk</code>, <code>Exclude {label}</code> or <code>Skip {unsure | incomplete, path}</code>.</li>
+<li>The gate turns that into <code>Walk</code>, <code>Exclude {label}</code> or <code>Skip {unsure | incomplete, path, locations}</code>, where <code>locations</code> lists each gated piece the skip covered, so a skip has real line numbers and case matching can tell an unmatched or ambiguous case from a skipped one.</li>
 <li>No combined confidence is invented for the final label. Each step's own answer is kept.</li>
 </ul>
 
