@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Specification: decision trees everywhere</title>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content">
+  <nav slot="pages" aria-label="Pages">
+    <a href="index.html">Overview</a>
+    <a href="requirements.html">Requirements</a>
+    <a href="specification.html">Specification</a>
+    <a href="program-design.html">Program design</a>
+    <a href="verification-design.html">Verification design</a>
+  </nav>
+</ex-nav>
+<ex-document id="content">
+<h1>Specification: what must be true when it works</h1>
+
+<p>This page says what a rule author, an agent and you will be able to see when the work is done. It doesn't say how sunstack is built inside; that's the program design. Each rule below is numbered (R1, R2 …). Each says what you would notice if it were broken.</p>
+
+<h2 id="parts">The five parts and their rules</h2>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Part</th><th>What you get</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td><strong>trees</strong></td><td>Every Jev judgment is a tree of one-fact questions, filters included</td><td><a href="#r1">R1</a> to <a href="#r7">R7</a>, <a href="#r23">R23</a>, <a href="#r24">R24</a></td></tr>
+<tr><td><strong>examples</strong></td><td>Examples written once in the rulebook reach Jev next to the text it judges</td><td><a href="#r8">R8</a> to <a href="#r11">R11</a></td></tr>
+<tr><td><strong>proof</strong></td><td>A rule is shown to work on real cases, through sunstack, before it is switched on</td><td><a href="#r12">R12</a> to <a href="#r15">R15</a></td></tr>
+<tr><td><strong>agent-use</strong></td><td>Agents run <code>sunstack lint</code> and get short, pointed warnings</td><td><a href="#r16">R16</a> to <a href="#r20">R20</a></td></tr>
+<tr><td><strong>teaching</strong></td><td>The skills teach this way</td><td><a href="#r21">R21</a>, <a href="#r22">R22</a></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="things">The things these rules talk about</h2>
+<p>Every rule below is about these things, so their meaning is fixed here once.</p>
+
+<ex-mermaid id="things-map" label="How the things relate"><script type="text/plain">
+erDiagram
+  RULEBOOK ||--o{ FILTER : declares
+  RULEBOOK ||--o{ RULE : declares
+  FILTER ||--|| TREE : "decided by"
+  RULE ||--|| TREE : "decided by"
+  TREE ||--|{ QUESTION : asks
+  FILTER ||--o{ REFERENCE : carries
+  RULE ||--o{ REFERENCE : carries
+  RULE }o--o| FILTER : "runs only when"
+  RULE ||--o{ PIECE : judges
+  RULE ||--o{ RESULT : "one per piece it judges"
+  FILTER ||--o{ RESULT : "one per folder"
+  RESULT ||--o{ REQUEST : "from zero or more"
+  RESULT ||--o| WARNING : "may be"
+  CASE }o--|| RULE : "labels a result of"
+</script></ex-mermaid>
+
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Thing</th><th>What it is</th><th>Two are the same when</th><th>Always true</th></tr></thead>
+<tbody>
+<tr id="e1"><td><strong>E1 Rulebook</strong></td><td>One config file and the rule files it lists, used for a lint run</td><td>Same config path and same file contents</td><td>Every filter and rule name in it is unique</td></tr>
+<tr id="e2"><td><strong>E2 Tree</strong></td><td>The questions and the steps between them that decide one filter's or one rule's result</td><td>Same owner: one tree per filter, one per rule</td><td>Every step leads somewhere; every answer a question can give has a route (R5)</td></tr>
+<tr id="e3"><td><strong>E3 Question</strong></td><td>One thing Jev judges: a yes/no, a pick from labels that can't both be true, or a place on a scale</td><td>Same name in the same tree</td><td>Asks one fact; names the parts of the request it reads</td></tr>
+<tr id="e4"><td><strong>E4 Filter</strong></td><td>Decides a label for each folder, such as what kind of skill it holds</td><td>Same name in the rulebook</td><td>Judged once per folder per run; its tree ends in one of its labels or "unsure"</td></tr>
+<tr id="e5"><td><strong>E5 Rule</strong></td><td>Decides, for each piece, whether a standard holds</td><td>Same name in the rulebook</td><td>Its tree ends in pass, warning, unsure or not applicable</td></tr>
+<tr id="e6"><td><strong>E6 Piece</strong></td><td>One bit of text a rule judges, such as a section or a description, collected by its pattern</td><td>Same file, same line range, same kind of piece</td><td>Belongs to one file</td></tr>
+<tr id="e7"><td><strong>E7 Reference</strong></td><td>Examples and fixed explanation written in the rulebook for one filter or rule. An example is: the text, the right answer, and why.</td><td>Same name under the same filter or rule</td><td>Written by the author, never taken from the piece; never holds the expected answer for the piece being judged</td></tr>
+<tr id="e8"><td><strong>E8 Request</strong></td><td>What one Jev call carries: the text being judged and the reference, plus questions. A tree's questions about the same text go in one call; a follow-up, such as finding the exact line, can add another.</td><td>Same filter or rule, same piece or folder, same call in the run</td><td>Shows Jev only the named text and reference; fits the size limit or isn't sent</td></tr>
+<tr id="e9"><td><strong>E9 Result</strong></td><td>Where one tree ended for one piece or folder, from the answers of one or more requests: a label, pass, warning, unsure, not applicable, or incomplete, with the route taken</td><td>Same filter or rule, same piece or folder, same run</td><td>Keeps enough to replay why it ended where it did</td></tr>
+<tr id="e10"><td><strong>E10 Warning</strong></td><td>A result shown to an agent: a line with file and lines, rule and reason, and a way to see more</td><td>Same rule, same piece</td><td>Fails a run only when the caller set a warning limit and it is exceeded (U4)</td></tr>
+<tr id="e11"><td><strong>E11 Case</strong></td><td>Real skill text at a fixed git revision, with the result one rule or filter should give, labelled by someone other than that rule</td><td>Same text, revision and rule</td><td>Is either a development case or a held-out case, never both</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="trees">trees</h2>
+<p>For: rule authors, and you. When this part works, every Jev judgment can be drawn as a small tree, and a filter is no longer a single big question.</p>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Rule</th><th>What must be true</th><th>You'd notice it's broken when</th><th>From</th></tr></thead>
+<tbody>
+<tr id="r1"><td>R1</td><td>A filter (E4) is written as questions and a tree (E2) whose ends are its labels or "unsure". A filter written as one question with no tree is refused when the rulebook loads, with a message saying what to change.</td><td>A one-question filter still loads, or a tree end names a label the filter doesn't have</td><td>U23</td></tr>
+<tr id="r2"><td>R2</td><td>A filter is judged once per folder per run. Every rule gated on it uses that one result.</td><td>Two rules in the same folder see different kinds, or the filter is asked twice for one folder</td><td>U13</td></tr>
+<tr id="r3"><td>R3</td><td>When a filter's tree ends in "unsure", the rules gated on it don't run in that folder. The folder is listed as skipped, with the route that led there.</td><td>A rule runs on an unsure folder, or the skip isn't listed</td><td>U14</td></tr>
+<tr id="r4"><td>R4</td><td>Every question names the parts of the request it reads. A question that names a part its request won't have is refused at load.</td><td>A question reads text it never named, or a typo in a name only shows up at run time</td><td>U24</td></tr>
+<tr id="r5"><td>R5</td><td>Every answer a step's question can give has a route, by question type. A yes/no question routes yes, no and in-between. A pick question routes each label it can pick, plus "not sure enough" when its top label is below the bar. A scale question routes each of its ranges, plus "not sure enough". A step missing one of these routes is refused at load.</td><td>Some possible answer has no defined end</td><td>U24</td></tr>
+<tr id="r6"><td>R6</td><td>A tree can ask several questions and combine their answers only through its steps. Which answer wins is visible in the tree, never inside a question.</td><td>The combination of two answers can't be read off the tree</td><td>U23, U24</td></tr>
+<tr id="r7"><td>R7</td><td>In the ai-tools rulebook, the kind filter and the product-workflow rule are each rebuilt as trees of one-fact questions, and pass an independent decision-model review with no high finding.</td><td>A rebuilt question still asks two things, or a review finds a high finding</td><td>U23, U24, U16</td></tr>
+<tr id="r23"><td>R23</td><td>When a question needs text the request doesn't have, such as a load whose file wasn't read or a piece cut short, the result says so as a gap. It never passes as if the problem were absent.</td><td>A section that loads a skill is passed without that skill's text ever being shown</td><td>U3, U21, U24</td></tr>
+<tr id="r24"><td>R24</td><td>A filter reads the named fields it declares from each folder, such as a description and an opening. Anything Jev isn't meant to judge, such as the folder's name, stays out of the request and is kept only in the record.</td><td>A filter can see only the description, or a folder name that hints at the answer reaches Jev</td><td>U13, U24</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="examples">examples</h2>
+<p>For: rule authors. When this part works, examples are written once in the rulebook, and the question wording stays short.</p>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Rule</th><th>What must be true</th><th>You'd notice it's broken when</th><th>From</th></tr></thead>
+<tbody>
+<tr id="r8"><td>R8</td><td>A filter or rule can carry named reference (E7). Sunstack puts it, unchanged and under its name, into every request (E8) for that filter or rule, next to the text being judged.</td><td>A request for that rule lacks the reference, or the reference reaches Jev altered</td><td>U25</td></tr>
+<tr id="r9"><td>R9</td><td>A reference name that clashes with a part of the text being judged, or with a name sunstack reserves, is refused at load.</td><td>Reference silently overwrites the text being judged</td><td>U25</td></tr>
+<tr id="r10"><td>R10</td><td>Reference counts toward the request size limit. A request that won't fit is reported as incomplete ("too large"), never cut short and sent.</td><td>Jev is sent a request with part of the reference missing</td><td>U25, U3</td></tr>
+<tr id="r11"><td>R11</td><td>A question names the reference it uses, the same way it names the text being judged (R4).</td><td>A question depends on reference it never named</td><td>U25</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="proof">proof</h2>
+<p>For: rule authors, and you. When this part works, anyone writing a rulebook can show a rule works without building their own test tool.</p>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Rule</th><th>What must be true</th><th>You'd notice it's broken when</th><th>From</th></tr></thead>
+<tbody>
+<tr id="r12"><td>R12</td><td>Sunstack can run a file of cases (E11) through the same path <code>lint</code> uses. For each rule or filter it reports right, false warning, missed, unsure and incomplete, separately.</td><td>Case results differ from what lint gives on the same text, or the five counts are merged</td><td>U17</td></tr>
+<tr id="r13"><td>R13</td><td>A case run changes nothing about what <code>lint</code> warns. It is a tool the author uses before switching a rule on, not a gate inside lint.</td><td>Lint hides or shows a rule depending on stored case results</td><td>U17, U26</td></tr>
+<tr id="r14"><td>R14</td><td>Cases name real skill text at a fixed git revision. A case whose text no longer matches its revision is reported as stale, not scored.</td><td>A made-up or drifted case counts toward a score</td><td>U19</td></tr>
+<tr id="r15"><td>R15</td><td>Each rule's bars, the probabilities its steps compare, are written in its own tree, and the case report names which bar each result crossed.</td><td>A bar lives anywhere but the rule's tree</td><td>U18</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="agent-use">agent-use</h2>
+<p>For: agents running <code>sunstack lint</code>. When this part works, an agent reads a few short lines and opens only what it needs.</p>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Rule</th><th>What must be true</th><th>You'd notice it's broken when</th><th>From</th></tr></thead>
+<tbody>
+<tr id="r16"><td>R16</td><td>Each warning (E10) is one line: file, line or line range, rule and a one-sentence reason. Related files appear as file:line pointers, not as copied text.</td><td>A warning prints the judged text or the model's answers inline</td><td>U27, U1</td></tr>
+<tr id="r17"><td>R17</td><td>An agent can ask for one warning's detail (the route, the answers and bars, the pointers) without reading the whole report.</td><td>Getting detail on one warning needs the full report</td><td>U27</td></tr>
+<tr id="r18"><td>R18</td><td>Skipped folders, unsure results and text not read are listed apart from warnings, each with its reason.</td><td>An unsure result looks like a pass, or a skip is silent</td><td>U3, U5</td></tr>
+<tr id="r19"><td>R19</td><td>The run's status goes to the most serious thing that happened, in this order: invalid input (the rulebook or paths couldn't be used), then cancelled, then incomplete, then failed (an error-severity rule's finding, or warnings past a limit the caller set with <code>--max-warnings</code>), then unsure, then clean. Warnings with no limit set never fail a run. Unsure is its own status, neither clean nor failed, and applies only when nothing above it happened.</td><td>A run reports failed because of warnings with no limit set, an unsure run reports clean, or unsure hides an error</td><td>U4</td></tr>
+<tr id="r20"><td>R20</td><td>In ai-tools, agents are told to run <code>sunstack lint</code> directly with the repo's rulebook. Nothing between lint and the agent hides or adds results.</td><td>An agent's instructions point at a wrapper, or a switched-on rule's warnings are hidden</td><td>U26</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="teaching">teaching</h2>
+<p>For: anyone writing a rule or a decision model. When this part works, the skills teach what the engine does.</p>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Rule</th><th>What must be true</th><th>You'd notice it's broken when</th><th>From</th></tr></thead>
+<tbody>
+<tr id="r21"><td>R21</td><td>The decision-model skill says that, in sunstack, examples and fixed explanation are written in the rulebook and reach Jev in the request's state. A question's wording carries what its answers mean. It names this as our convention: TypeSafe also allows examples inside a question. Its worked trees show the rebuilt filter and product-workflow rule, not the old two-question rule.</td><td>The skill still says examples go in the question, or still teaches the old rule</td><td>U28</td></tr>
+<tr id="r22"><td>R22</td><td>The rule-writing skill teaches writing a filter as a tree, carrying reference, and running cases through sunstack.</td><td>The skill teaches a one-question filter or a separate test tool</td><td>U28</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="contracts">What each consumer can rely on</h2>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Surface</th><th>Who relies on it</th><th>Normal</th><th>When something is wrong</th></tr></thead>
+<tbody>
+<tr id="c1"><td>C1 Rulebook format</td><td>Rule authors, any repo</td><td>Filters and rules both declare questions, a tree and optional reference</td><td>A rulebook in the old filter shape, a clashing name, a missing in-between route or an unnamed part is refused at load, with what to change (R1, R4, R5, R9)</td></tr>
+<tr id="c2"><td>C2 What Jev is sent</td><td>Jev, and anyone replaying a result</td><td>The text being judged and the reference, by name, with the questions</td><td>Too large: not sent, reported incomplete (R10)</td></tr>
+<tr id="c3"><td>C3 Lint output</td><td>Agents</td><td>One line per warning; skips and unsure listed apart; detail for one warning on request</td><td>The status follows R19's order: invalid, cancelled, incomplete, failed (errors, or warnings past a set limit), unsure, clean (R16 to R19)</td></tr>
+<tr id="c4"><td>C4 Case run</td><td>Rule authors</td><td>Five separate counts per rule or filter, plus each case's route</td><td>A stale case is listed, not scored (R12 to R15)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Old shape:</strong> the current one-question filter and the reference-free rule format aren't kept alongside the new one. The ai-tools rulebook moves to the new shape in the same change. This is a hard cutover, as you asked: no backward compatibility.</p>
+
+<h2 id="proofs">What decides pass or fail</h2>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Proof</th><th>For</th><th>Passes when</th><th>Judged against</th></tr></thead>
+<tbody>
+<tr><td>V1</td><td>R1 to R6, R8 to R11, R23, R24</td><td>Each refused rulebook is refused with its message, and each accepted rulebook produces the requests and routes its tree says</td><td>The tree as written, and the sunstack rulebook format</td></tr>
+<tr><td>V2</td><td>R7</td><td>An independent decision-model review of the rebuilt filter and rule finds no high finding</td><td>The decision-model skill and your Oct 31 Jev patterns</td></tr>
+<tr><td>V3</td><td>R7, R12, R14</td><td>The rebuilt filter and rule, frozen, run once on held-out cases: no false warnings, and their right, missed and unsure counts reported, compared with the current versions</td><td>Case labels from people other than the rule</td></tr>
+<tr><td>V4</td><td>R12, R13, R15</td><td>The same text gives the same result through lint and through a case run, and lint output doesn't change with stored case results</td><td>Lint's own result on that text</td></tr>
+<tr><td>V5</td><td>R16 to R20</td><td>A real lint run on ai-tools skills shows only one-line warnings with file:line, lists skips and unsure apart, gives the status R19's order sets (warnings without a limit don't fail; unsure applies only when nothing more serious happened), and the detail for one warning comes back alone</td><td>U27's words: summary first, detail on request</td></tr>
+<tr><td>V6</td><td>R21, R22</td><td>Both skills say what R21 and R22 say, with no line saying the opposite</td><td>R21 and R22</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="not">What this won't do</h2>
+<ul>
+<li>No loops, menus or memory inside a tree. A tree is fixed: it asks its questions and walks its steps.</li>
+<li>No gate in lint that hides rules based on stored test results.</li>
+<li>No change to Jev itself, and no new kinds of question.</li>
+<li>No rebuilding the other eight judged rules here. They stay off until each is rebuilt the same way.</li>
+</ul>
+
+<details><summary>What still needs settling</summary>
+<ul>
+<li>Which names sunstack reserves in a request (R9). This is decided in program design, and must be written down for authors.</li>
+<li>For the product-workflow rule: one section can contain several procedures, so one answer for the whole section may mix them. Whether a piece should be one procedure rather than one section is a program-design question for R7.</li>
+</ul>
+</details>
+</ex-document>
+</body>
+</html>

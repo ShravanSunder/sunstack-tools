@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Requirements: decision trees everywhere</title>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content">
+  <nav slot="pages" aria-label="Pages">
+    <a href="index.html">Overview</a>
+    <a href="requirements.html">Requirements</a>
+    <a href="specification.html">Specification</a>
+    <a href="program-design.html">Program design</a>
+    <a href="verification-design.html">Verification design</a>
+  </nav>
+</ex-nav>
+<ex-document id="content">
+<h1>Requirements: what you asked for</h1>
+
+<p>Every time sunstack asks Jev to judge something, it should ask a small tree of simple questions. That covers deciding which skills a rule reads, and deciding whether a rule warns. Examples belong in the rule files, and sunstack hands them to Jev. A rule proves itself on real cases inside sunstack. Then any agent that runs <code>sunstack lint</code> gets short warnings that point at files and lines.</p>
+
+<ex-callout title="Proposed: please confirm or correct the five parts" tone="question" icon="chat-circle">
+<p>I grouped what you asked for into the five parts below. You haven't named these parts yourself. If you'd split them differently, say so and the rows move. No row text changes.</p>
+</ex-callout>
+
+<h2 id="parts">The five parts</h2>
+
+<ex-mermaid id="parts-map" label="Who uses each part"><script type="text/plain">
+flowchart LR
+  author["Rule author<br/>(writes a rulebook)"] --> trees["trees<br/>every Jev judgment is a tree"]
+  author --> examples["examples<br/>written in the rulebook,<br/>handed to Jev"]
+  author --> proof["proof<br/>a rule works on real cases<br/>before agents see it"]
+  agent["Agent running<br/>sunstack lint"] --> use["agent-use<br/>short warnings with<br/>file and line"]
+  writer["Skill writer"] --> teaching["teaching<br/>skills teach this way"]
+  class trees slot1
+  class examples slot2
+  class proof slot3
+  class use slot4
+  class teaching slot5
+</script></ex-mermaid>
+
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Part</th><th>What you get</th><th>Rows</th></tr></thead>
+<tbody>
+<tr><td><strong>trees</strong></td><td>Every Jev judgment is a tree of simple questions that each ask one thing. That covers which skills a rule reads and what the rule decides.</td><td><a href="#u23">U23</a>, <a href="#u24">U24</a>; carried: U11, U13, U14, U16, U20 to U22</td></tr>
+<tr><td><strong>examples</strong></td><td>Examples and reference text are written once in the rulebook. Jev sees them next to the text it is judging, not pasted into the question.</td><td><a href="#u25">U25</a></td></tr>
+<tr><td><strong>proof</strong></td><td>A rule shows it works on real labelled cases, run through sunstack itself, before agents see its warnings.</td><td>carried: U17, U18, U19</td></tr>
+<tr><td><strong>agent-use</strong></td><td>Any agent that runs <code>sunstack lint</code> gets short warnings: a summary line, the file and line, and details only if it asks.</td><td><a href="#u26">U26</a>, <a href="#u27">U27</a>; carried: U1 to U6</td></tr>
+<tr><td><strong>teaching</strong></td><td>The decision-model skill and the rule-writing skill teach exactly this way of building rules.</td><td><a href="#u28">U28</a></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="who">Who this is for</h2>
+<ul>
+<li><strong>Agents running <code>sunstack lint</code></strong> on skills, in this repo or any other. They need warnings they can act on without flooding their context.</li>
+<li><strong>Rule authors</strong>: whoever writes a rulebook, in any repository. They need to build a rule as a tree, give Jev examples, and prove the rule without writing their own test tooling.</li>
+<li><strong>You</strong>, the owner. You need rules that work, so the work can move on to usable skills and the next parts.</li>
+</ul>
+
+<h2 id="today">What goes wrong today</h2>
+<ul>
+<li>The kind filter is one big five-way question. Its options each pack several conditions, and sunstack can't make a filter a tree at all.</li>
+<li>The product-workflow rule's first question asks three things at once. Its examples are pasted into the question wording.</li>
+<li>A week was spent rewording questions to move scores, not designing them.</li>
+<li>Proof lived in a separate tool in this repo that hid every judged rule, so no agent got a single judged warning.</li>
+</ul>
+
+<h2 id="rows">The new rows</h2>
+<p>Each row's sentence is my summary. Under it, "Your words" quotes your messages from 6 November, with spelling tidied and swearing removed. These rows add to the 22 rows below; they don't replace them.</p>
+
+<h3 id="u23">U23 · Every Jev judgment is a tree, filters included <small>(trees)</small></h3>
+<p>Deciding which skills a rule reads and deciding what a rule finds are both trees of small questions. A single big question across every answer doesn't count.</p>
+<details><summary>Your words</summary>
+<ul>
+<li>"why did the jev advisor not critically evaluate how you filter with jev and how rules are decided with jev? i said specifically a tree"</li>
+<li>"what does decision tree even mean?"</li>
+</ul>
+<p>Also the Jev patterns notes you shared on 31 Oct (not your own wording): compose small probabilistic decisions, and classify level by level "instead of asking one enormous Choice across all leaves".</p></details>
+
+<h3 id="u24">U24 · Trees follow the decision-model standard <small>(trees)</small></h3>
+<p>Each tree gets the five parts right: the questions, what Jev is shown, what each number means, the policy code applies, and the proof. Reworded questions don't count as design.</p>
+<details><summary>Your words</summary>
+<ul>
+<li>"are we using decision trees and jev standard practices or not"</li>
+<li>On the five parts: "are you actually using this? … you are not doing any of this"</li>
+<li>"i did not tell you to do rewording things"</li>
+</ul></details>
+
+<h3 id="u25">U25 · Examples live in the rulebook, and sunstack hands them to Jev <small>(examples)</small></h3>
+<p>A rule or filter carries its examples and reference text in the rulebook. When sunstack builds each request, it puts them where Jev expects them: next to the text being judged.</p>
+<details><summary>Your words</summary>
+<ul>
+<li>"shouldn't examples be in state?"</li>
+<li>"if anything we need examples in config or rules so we provide that in state or wherever in compilation"</li>
+<li>"fix the skill" (the decision-model skill had said examples go in the question)</li>
+</ul></details>
+
+<h3 id="u26">U26 · Any agent running sunstack lint gets the help <small>(agent-use)</small></h3>
+<p>The warnings come from <code>sunstack lint</code> itself, so they help any agent in any repository. They don't depend on a wrapper in this repo.</p>
+<details><summary>Your words</summary>
+<ul>
+<li>"why would this not help any agent that runs sunstack lint"</li>
+<li>"why do we not have something usable to move on to usable skills and next parts?"</li>
+<li>"why are you creating this machinery"</li>
+</ul></details>
+
+<h3 id="u27">U27 · Evidence reaches an agent as pointers: summary first, detail on request <small>(agent-use)</small></h3>
+<p>An agent first gets short lines naming the file and line numbers. The fuller evidence is a step away if it wants to check. Nothing is dumped straight into its context.</p>
+<details><summary>Your words</summary>
+<ul>
+<li>"all evidence to agent should be file links with file numbers … we can't dump directly into context … we need phonebook system with summary and then details if agent wants to check more"</li>
+<li>"is this some test shim? or in the actual cli?"</li>
+</ul></details>
+
+<h3 id="u28">U28 · The skills teach this way <small>(teaching)</small></h3>
+<p>The decision-model skill and the rule-writing skill teach trees of one-fact questions, examples in the rulebook handed over by sunstack, and proof through sunstack. Today the decision-model skill says the opposite about examples.</p>
+<details><summary>Your words</summary>
+<ul><li>"fix the skill?"</li><li>"why you did not follow the skill"</li></ul></details>
+
+<h2 id="carried">The 22 accepted rows still hold</h2>
+<p>These come from the skill-rules requirements on ai-tools main. Each row there is marked authorized and its parts were confirmed by you; the document as a whole is still marked draft. Their text stays there; this design only realizes them in the engine. The two that change most in how they're met:</p>
+<ul>
+<li><a href="https://github.com/ShravanSunder/sunstack/blob/main/docs/specs/2026-11-03-skill-rules/requirements/rule-making.md#u11-the-engine-stays-generic">U11 · the engine stays generic</a>. It carries your standing direction from 28 Oct, paraphrased there: fix the engine and release it, and never bend skills, runner or rules around an engine gap.</li>
+<li><a href="https://github.com/ShravanSunder/sunstack/blob/main/docs/specs/2026-11-03-skill-rules/requirements/rule-tests.md#u17-real-scenarios-come-before-any-nudge">U17 · real scenarios come before any nudge</a>. This now runs inside sunstack, not in a separate tool.</li>
+</ul>
+<details><summary>All 22, by part</summary>
+<div class="ex-table-scroll">
+<table>
+<thead><tr><th>Part</th><th>Accepted rows</th></tr></thead>
+<tbody>
+<tr><td>trees</td><td>U11 engine stays generic · U13 a skill's kind is judged once · U14 an unsure kind is skipped and listed · U16 the general-skill rules judge general skills only, and know an example from a leak · U20 a rule names its chunk and its edges · U21 generalization and the general-skill rules leave nothing unread · U22 a wrong reading is fixed where the text was collected</td></tr>
+<tr><td>proof</td><td>U17 real scenarios before any nudge · U18 each rule's bars are its own · U19 scenarios are real skill text</td></tr>
+<tr><td>agent-use</td><td>U1 a result is a nudge · U2 a rule can nudge without deciding · U3 what wasn't read is shown apart · U4 a nudge never fails a run · U5 a pass says one thing · U6 nudges are read, not obeyed</td></tr>
+<tr><td>not touched by this design</td><td>U7 each skill makes its part clear · U8 rule files get rules · U9 a rule names its mistake · U10 the rule list follows your decisions · U12 two review-skill evals · U15 description standards apply to every skill</td></tr>
+</tbody>
+</table>
+</div>
+<p>Source: <a href="https://github.com/ShravanSunder/sunstack/blob/main/docs/specs/2026-11-03-skill-rules/requirements/index.md">skill-rules requirements on ai-tools main</a>.</p>
+</details>
+
+<h2 id="not">What this design won't do</h2>
+<ul>
+<li><strong>No rewording rounds</strong> to push scores. Questions change only when the standard says their shape is wrong.</li>
+<li><strong>No test or adoption tooling in the ai-tools wrapper.</strong> Whatever proof is needed lives in sunstack. The current gate is removed.</li>
+<li><strong>No new rules.</strong> The kind filter and the product-workflow rule are rebuilt first. The other eight judged rules stay off and are rebuilt the same way afterwards, one at a time.</li>
+<li><strong>No pressure tests or behavior replays</strong>, except the two real review-skill evals U12 already allows.</li>
+</ul>
+</ex-document>
+</body>
+</html>

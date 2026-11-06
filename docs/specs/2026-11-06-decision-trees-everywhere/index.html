@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Decision trees everywhere</title>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content">
+  <nav slot="pages" aria-label="Pages">
+    <a href="index.html">Overview</a>
+    <a href="requirements.html">Requirements</a>
+    <a href="specification.html">Specification</a>
+    <a href="program-design.html">Program design</a>
+    <a href="verification-design.html">Verification design</a>
+  </nav>
+</ex-nav>
+<ex-document id="content">
+<h1>Decision trees everywhere</h1>
+
+<p><strong>The fix:</strong> sunstack treats every Jev judgment the same way. Choosing which skills a rule reads, and deciding whether a rule warns, both become a small tree of questions that each ask one thing. Examples are written in the rule files, and sunstack hands them to Jev with the text it is judging. A rule proves itself on real cases inside sunstack. Then agents just run <code>sunstack lint</code> and get short warnings that point at files and lines.</p>
+
+<ex-callout title="Open with you" tone="question" icon="chat-circle">
+<p>Confirm or correct the five parts on the <a href="requirements.html#parts">Requirements page</a>. Nothing else is waiting on you yet.</p>
+</ex-callout>
+
+<h2 id="picture">One picture</h2>
+<ex-mermaid id="model" label="One shape for every Jev judgment"><script type="text/plain">
+flowchart LR
+  book["Rulebook<br/>what to collect, examples,<br/>questions, the tree"] --> engine["sunstack builds one request<br/>text being judged + examples"]
+  engine --> jev["Jev answers each<br/>one-fact question"]
+  jev --> walk["sunstack walks the tree<br/>with fixed bars"]
+  walk --> filter["filter: which kind<br/>of skill this is"]
+  walk --> rule["rule: pass, warning<br/>or unsure"]
+  rule --> agent["agent reads short lines:<br/>file:line and why"]
+  class book slot1
+  class engine slot2
+  class jev slot3
+  class walk slot2
+  class agent slot4
+</script></ex-mermaid>
+
+<h2 id="wrong">What was wrong</h2>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Part of a decision model</th><th>Kind filter today</th><th>Product-workflow rule today</th></tr></thead>
+<tbody>
+<tr><td>Questions: one fact each</td><td>One five-way question whose options each pack several conditions</td><td>First question asks three things at once</td></tr>
+<tr><td>What Jev is shown</td><td>The description only</td><td>The section's text. Examples were pasted into the question wording.</td></tr>
+<tr><td>What each number means</td><td>One cut-off on main (0.7), not tied to what a wrong skip costs. Later experiments tried other cut-offs on 56 cases.</td><td>Cut-offs on main (0.7 and 0.3), not tied to what a false warning costs. Later experiments tried others on 32 cases.</td></tr>
+<tr><td>The tree code walks</td><td>None: sunstack lets a filter ask only one question</td><td>A real tree</td></tr>
+<tr><td>Proof</td><td>Test cases looked at, then more rounds</td><td>The held-out cases never ran; many rewording rounds</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="documents">The four documents</h2>
+<div class="ex-table-scroll">
+<table>
+<thead><tr><th>Document</th><th>Answers</th><th>State</th></tr></thead>
+<tbody>
+<tr><td><a href="requirements.html">Requirements</a></td><td>What you asked for, in your words</td><td>Written</td></tr>
+<tr><td><a href="specification.html">Specification</a></td><td>What must be true when it works</td><td>Written</td></tr>
+<tr><td><a href="program-design.html">Program design</a></td><td>Which part of sunstack does what</td><td>Written</td></tr>
+<tr><td><a href="verification-design.html">Verification design</a></td><td>How we'll know each part works</td><td>Written</td></tr>
+</tbody>
+</table>
+</div>
+<p>After all four, one independent review reads them together. Then the plan page shows the steps and pull requests, for your yes before anything is built.</p>
+</ex-document>
+</body>
+</html>
