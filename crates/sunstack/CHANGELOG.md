@@ -2,7 +2,7 @@
 
 ## 0.8.2
 
-Release date: 2026-11-06.
+Release date: 2026-11-07.
 
 - Rule cases match exact first and last piece lines, including filter-skip locations.
   Nested sections keep distinct identities; partial or spanning ranges are unmatched.
