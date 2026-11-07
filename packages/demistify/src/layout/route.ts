@@ -142,7 +142,7 @@ class RoutePlayer {
 					))
 			)
 				return;
-			if (document.querySelector(':popover-open')) return;
+			if (document.querySelector(':popover-open:not(.ex-drawer[data-presentation="map"])')) return;
 			if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
 				event.preventDefault();
 				this.step(event.key === 'ArrowRight' ? 1 : -1);

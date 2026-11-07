@@ -85,7 +85,7 @@ export async function builtFixtures(): Promise<Plugin> {
 		join(snapshot, 'show-me-work/reader-controls.html'),
 		storyControls.replace(
 			'<ex-document id="work">',
-			'<ex-nav for="work"></ex-nav><ex-presentation id="story-walkthrough" title="Read the story" description="Inspect the supplied account and its record."><ex-step to="story-main">Read the supplied account.</ex-step></ex-presentation><ex-document id="work">',
+			'<ex-nav for="work"></ex-nav><ex-presentation id="story-walkthrough" title="Read the story" description="Inspect the supplied account and its record."><ex-step to="story-main">Read the supplied account.</ex-step><ex-step to="story-other">Read the independent verification account.</ex-step></ex-presentation><ex-document id="work">',
 		),
 	);
 	await cp(

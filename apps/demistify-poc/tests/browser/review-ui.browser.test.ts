@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
 afterEach(async (): Promise<void> => {
@@ -128,7 +129,7 @@ test.each([
 			fixture.documentElement.clientWidth,
 		);
 		await page.screenshot({
-			path: `../../../../tmp/verification/demistify/show-me-s1/folds-${width}-${theme}.png`,
+			path: browserScreenshotPath(`folds-${width}-${theme}.png`),
 		});
 		// Act: native folding does not navigate; a separate native link follows its destination.
 		await fixtureLocator(frame, disclosure).click();
@@ -171,7 +172,7 @@ test.each([
 		}
 		tree.scrollIntoView({ block: 'center' });
 		await page.screenshot({
-			path: `../../../../tmp/verification/demistify/show-me-s1/links-${width}-${theme}.png`,
+			path: browserScreenshotPath(`links-${width}-${theme}.png`),
 		});
 	},
 );

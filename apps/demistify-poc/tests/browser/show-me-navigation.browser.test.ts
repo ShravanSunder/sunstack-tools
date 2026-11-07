@@ -9,6 +9,98 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test.each([1280, 390])(
+	'Map keeps Pages and search keyboard launchers usable at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'show-me-work',
+			'',
+			'reader-controls.html',
+		);
+		await frame.getByRole('button', { name: 'Map', exact: true }).click();
+		const trigger = requiredElement(fixture, '.ex-map-trigger');
+		const verifySearchShortcut = async (shortcut: string): Promise<void> => {
+			await userEvent.keyboard(shortcut);
+			await expect
+				.element(frame.getByRole('dialog', { name: 'Search documents', exact: true }))
+				.toBeVisible();
+			await userEvent.keyboard('{Escape}');
+			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		};
+		await verifySearchShortcut('{Control>}k{/Control}');
+		await verifySearchShortcut('{Meta>}k{/Meta}');
+		await userEvent.keyboard('p');
+		await expect
+			.poll((): boolean => requiredElement(fixture, '.ex-pages-panel').matches(':popover-open'))
+			.toBe(true);
+		await frame.getByRole('button', { name: 'Browse pages', exact: true }).click();
+		await expect
+			.poll((): boolean => requiredElement(fixture, '.ex-pages-panel').matches(':popover-open'))
+			.toBe(false);
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		await userEvent.keyboard('w');
+		await expect.element(frame.getByRole('option', { name: /Read the story/ })).toBeVisible();
+		await userEvent.keyboard('{Escape}');
+	},
+);
+
+test.each([1280, 390])(
+	'Map keeps an active walkthrough keyboard path usable at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'show-me-work',
+			'',
+			'reader-controls.html',
+		);
+		await fixtureLocator(frame, requiredElement(fixture, 'h1')).click();
+		await userEvent.keyboard('w');
+		await frame.getByRole('option', { name: /Read the story/ }).click();
+		await expect
+			.poll((): string | null => requiredElement(fixture, '.ex-route-count').textContent)
+			.toBe('1 / 2');
+		await frame.getByRole('button', { name: 'Map', exact: true }).click();
+		// Move native focus out of the non-modal rail without activating another overlay.
+		const moveFocusOutsideMap = async (remaining: number): Promise<void> => {
+			if (!fixture.activeElement?.closest('.ex-drawer')) return;
+			if (remaining === 0) throw new Error('Keyboard focus did not leave the non-modal Map.');
+			await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+			await moveFocusOutsideMap(remaining - 1);
+		};
+		await moveFocusOutsideMap(6);
+		expect(fixture.activeElement?.closest('.ex-drawer')).toBeNull();
+		expect(requiredElement(fixture, '.ex-map-trigger').getAttribute('aria-expanded')).toBe('true');
+		await userEvent.keyboard('{ArrowRight}');
+		await expect
+			.poll((): string | null => requiredElement(fixture, '.ex-route-count').textContent)
+			.toBe('2 / 2');
+		await expect.poll((): string => fixture.location.hash).toBe('#story-other');
+	},
+);
+
+test('Map keeps gallery arrow navigation usable from the page', async (): Promise<void> => {
+	await page.viewport(1280, 1000);
+	const { document: fixture, frame } = await openFixture('gallery');
+	const root = requiredElement(fixture, 'ex-document');
+	root.id ||= 'gallery-map-scope';
+	// Integration input adds an authored Map to the existing real gallery, without cloning output.
+	const map = fixture.createElement('ex-map');
+	map.setAttribute('for', root.id);
+	map.innerHTML =
+		'<ex-tree label="Gallery destinations"><script type="text/markdown">- [Gallery](#proof-gallery)</script></ex-tree>';
+	root.append(map);
+	await frame.getByRole('button', { name: 'Map', exact: true }).click();
+	const gallery = requiredElement(fixture, '#proof-gallery');
+	await fixtureLocator(frame, requiredElement(gallery, '.ex-gallery-title')).click();
+	await userEvent.keyboard('{ArrowRight}');
+	await expect
+		.poll((): string | null =>
+			requiredElement(gallery, '.ex-gallery-preview img').getAttribute('alt'),
+		)
+		.toBe('Settings Mobile');
+});
+
 test.each([
 	{
 		name: 'ui',

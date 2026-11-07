@@ -120,7 +120,11 @@ export class DocumentSearch {
 			)
 		)
 			return;
-		if (this.dialog.open || document.querySelector('dialog[open], :popover-open')) return;
+		if (
+			this.dialog.open ||
+			document.querySelector('dialog[open], :popover-open:not(.ex-drawer[data-presentation="map"])')
+		)
+			return;
 		const command = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
 		const key = !event.metaKey && !event.ctrlKey ? event.key.toLowerCase() : '';
 		if (!command && key !== 'p' && key !== 'w') return;
