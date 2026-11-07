@@ -4,7 +4,7 @@
 - [Specification: stories stay readable and reachable](specification.md)
 - [Program Design: shared presentation over native story content](program-design.md)
 - [Verification Design: prove the shared page through its real reader](verification-design.md)
-- [Implementation plan: deliver the shared story and Map composition](plans/2026-11-07-shared-story-map.md)
+- [Implementation plan: deliver the shared story and Map composition, including M](plans/2026-11-07-shared-story-map-with-shortcut.md)
 
 ## Reading path: read a story and its record
 

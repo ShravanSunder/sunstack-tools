@@ -19,6 +19,8 @@ The design-documents Lead's 7 November commission quotes the owner: “ok i thin
 
 One later correction governs the frozen file: the panel title and accessible name are **Map**, replacing **Outline**. Basis: the owner's “its more a Map no nto otulien”, confirmed by the commissioning Lead in Router push `01a1b60d-e12c-7180-a6fe-8bbef31fca40`. The reference's executable file has not been edited.
 
+The 7 November shortcut addition also governs U3: the owner asked “whats the shorcut to map liek ocmments”, then “maybe m fo rmap”. His design-documents Lead recorded this in owner-decision row `01a1b74b-a7ef-7ee0-9844-02621be6e5ec`, project `01a1635f-5d9d-70e4-bfc7-6d96c1a210e7`, and relayed it in pushes `01a1b749-e306-7e62-92e3-e47b77f4814b` and `01a1b74b-da9e-7ee1-a6c2-94d03ddff4c0`. The Map is opened or closed by its button or M, using the same protected-input policy as the existing Comments C shortcut. This adds no second panel or state owner.
+
 The UI view is the approved desktop page with Map closed and the narrow page with Map open, supplied as inert PNGs `approved-1400-map-closed.png` and `approved-400-map-open.png`. They show the compact story title and metadata, headline, labelled rows, showpiece, closed record fold, category section header and right Map panel. The narrow capture has the old Outline header; the correction above takes precedence. Captures describe appearance, not new interaction observations.
 
 ## Who needs this

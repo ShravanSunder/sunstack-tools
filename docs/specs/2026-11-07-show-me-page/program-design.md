@@ -113,6 +113,8 @@ These shapes live with the scope and document-link helpers respectively. A local
 
 ## How a Map link reaches an open story
 
+The U3/R5 M shortcut is owned by `MapIsland`, alongside its existing button/toggle. A document key listener is installed only while that valid Map is connected, uses the same protected-input predicate as Comments C, and calls the same `toggle`; disconnect removes it. Its trigger declares `aria-keyshortcuts="M"` and a tooltip. M uses the existing sidebar take/restore/focus edge, including when the live Map trigger is in a standard phone Comments header. No separate shortcut state, dispatch store or sidebar path is introduced. The source audit found no existing M/KeyM command.
+
 ```mermaid
 flowchart TD
   A[Activate narrow Map link] --> B[Close narrow Map]

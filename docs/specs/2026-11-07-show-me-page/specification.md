@@ -27,6 +27,8 @@ The Map reaches a story by its stable ID. Stories can be open or folded; their e
 
 ## Contract and proof obligations
 
+The 7 November U3 shortcut addition extends R5/C5: M toggles the same Map as its button. Like Comments C, it ignores an already prevented event, composing input, repeats, Meta/Ctrl/Alt combinations and editable input/textarea/select/contenteditable/textbox targets; uppercase M is accepted. It can replace Comments when focus is not editing, and C can replace Map through the existing shared panel. No Map on a page means no M action. The Map trigger exposes the shortcut accessibly. Ordinary key behavior in protected targets remains native.
+
 Each R row is an independent pass/fail obligation. Its C identifier names the observable contract in that row; its V identifier names the authoritative proof obligation, not a chosen test route.
 
 | Obligation | Required observable behavior and failure case | Need / entities | Contract / proof obligation |

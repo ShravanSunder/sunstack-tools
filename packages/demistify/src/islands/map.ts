@@ -16,6 +16,25 @@ export class MapIsland extends HTMLElement {
 	private unregisterControl: (() => void) | undefined;
 	private treeObserver: MutationObserver | undefined;
 	private membershipObserver: MutationObserver | undefined;
+	private events: AbortController | undefined;
+	private readonly handleShortcut = (event: KeyboardEvent): void => {
+		if (
+			event.defaultPrevented ||
+			event.isComposing ||
+			event.repeat ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.altKey ||
+			event.key.toLowerCase() !== 'm' ||
+			(event.target instanceof Element &&
+				event.target.closest(
+					'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]',
+				))
+		)
+			return;
+		event.preventDefault();
+		this.toggle();
+	};
 	private readonly followLink = (event: MouseEvent): void => {
 		if (
 			event.defaultPrevented ||
@@ -85,6 +104,11 @@ export class MapIsland extends HTMLElement {
 			this.setAttribute('prepared', '');
 		}
 		if (!this.root || !this.tree) return;
+		this.events?.abort();
+		this.events = new AbortController();
+		document.addEventListener('keydown', this.handleShortcut, { signal: this.events.signal });
+		this.trigger.title = 'Show or hide Map (M)';
+		this.trigger.setAttribute('aria-keyshortcuts', 'M');
 		this.unregisterControl?.();
 		this.unregisterControl = registerReaderControl('map', this.trigger);
 		this.tree.addEventListener('click', this.followLink, true);
@@ -103,6 +127,7 @@ export class MapIsland extends HTMLElement {
 	}
 
 	disconnectedCallback(): void {
+		this.events?.abort();
 		this.closePanel?.();
 		this.unregisterControl?.();
 		this.unregisterControl = undefined;
