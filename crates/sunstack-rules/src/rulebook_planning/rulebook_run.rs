@@ -40,7 +40,15 @@ pub struct UnsentRulebookRequest {
     pub reason: RulebookIncompleteReason,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreparedRulebookRequest {
+    pub request_id: usize,
+    pub rule_index: usize,
+    pub piece_index: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RulebookRun {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub prepared: Vec<PreparedRulebookRequest>,
     pub not_sent: Vec<UnsentRulebookRequest>,
     pub skips: Vec<crate::FilterSkip>,
     pub results: Vec<RulebookPairResult>,
@@ -87,6 +95,7 @@ pub async fn run_rulebook_with_dispatcher(
     filters: &crate::FilterAnswers,
 ) -> RulebookRun {
     let mut run = RulebookRun {
+        prepared: vec![],
         not_sent: vec![],
         skips: vec![],
         results: vec![],
@@ -99,7 +108,16 @@ pub async fn run_rulebook_with_dispatcher(
             .enumerate()
             .filter(|(_, piece)| piece.kind == rule.kind)
         {
-            match crate::gate_for(rule, filters, &piece.location.file) {
+            match if dispatcher.is_preparing()
+                && rule.gate.as_ref().is_none_or(|gate| {
+                    filters
+                        .folders
+                        .contains_key(&(gate.filter.clone(), piece.location.file.clone()))
+                }) {
+                crate::GateOutcome::Walk
+            } else {
+                crate::gate_for(rule, filters, &piece.location.file)
+            } {
                 crate::GateOutcome::Walk => {}
                 crate::GateOutcome::Exclude(reason) => {
                     run.results.push(RulebookPairResult {
@@ -179,7 +197,17 @@ pub async fn run_rulebook_with_dispatcher(
                 };
             match submitted {
                 Ok(id) => {
-                    pending.insert(id, (pair_index, step, path_taken, omissions));
+                    if dispatcher.is_preparing() {
+                        // The placeholder is not a result: no answer or verdict exists yet.
+                        run.results.truncate(pair_index);
+                        run.prepared.push(PreparedRulebookRequest {
+                            request_id: id,
+                            rule_index,
+                            piece_index,
+                        });
+                    } else {
+                        pending.insert(id, (pair_index, step, path_taken, omissions));
+                    }
                 }
                 Err(refusal) => {
                     let reason = match refusal {

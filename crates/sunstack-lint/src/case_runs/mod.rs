@@ -38,6 +38,59 @@ pub async fn run_cases(
     executable: &Path,
     cancellation: CancellationToken,
 ) -> Result<CasesReport, String> {
+    run_cases_internal(
+        file_path,
+        config_path,
+        set,
+        executable,
+        cancellation,
+        CaseExecution::Ordinary,
+    )
+    .await
+}
+pub async fn prepare_cases(
+    file_path: &Path,
+    config_path: Option<&Path>,
+    set: Option<&str>,
+    executable: &Path,
+    cancellation: CancellationToken,
+    selections_from: Option<&Path>,
+) -> Result<CasesReport, String> {
+    let selections_from = selections_from
+        .map(|path| path.canonicalize().map_err(|error| error.to_string()))
+        .transpose()?;
+    if let Some(path) = &selections_from {
+        crate::lint_reporting::selection_sources::read_selection_records(path)?;
+    }
+    run_cases_internal(
+        file_path,
+        config_path,
+        set,
+        executable,
+        cancellation,
+        CaseExecution::Prepare { selections_from },
+    )
+    .await
+}
+pub(super) enum CaseExecution {
+    Ordinary,
+    Prepare {
+        selections_from: Option<std::path::PathBuf>,
+    },
+}
+impl CaseExecution {
+    fn is_preparing(&self) -> bool {
+        matches!(self, Self::Prepare { .. })
+    }
+}
+async fn run_cases_internal(
+    file_path: &Path,
+    config_path: Option<&Path>,
+    set: Option<&str>,
+    executable: &Path,
+    cancellation: CancellationToken,
+    mode: CaseExecution,
+) -> Result<CasesReport, String> {
     let file_path = file_path
         .canonicalize()
         .map_err(|error| error.to_string())?;
@@ -93,6 +146,9 @@ pub async fn run_cases(
     let mut runs = Vec::new();
     for revision in revisions {
         if cancellation.is_cancelled() {
+            if mode.is_preparing() {
+                break;
+            }
             return Err("case run cancelled".into());
         }
         let case_files = selected
@@ -154,7 +210,9 @@ pub async fn run_cases(
                     .collect::<BTreeSet<_>>()
                     .into_iter()
                     .collect::<Vec<_>>();
-                match snapshots::lint(executable, &snapshot, &input_paths, &cancellation).await {
+                match snapshots::lint(executable, &snapshot, &input_paths, &cancellation, &mode)
+                    .await
+                {
                     Ok(report) => {
                         runs.push(RevisionRun {
                             revision: revision.clone(),
@@ -174,6 +232,10 @@ pub async fn run_cases(
         }
     }
     let mut report = CasesReport {
+        preparation: mode.is_preparing().then_some(PreparedCasesReport {
+            mode: PrepareMode::Prepare,
+            status: LintStatus::Prepared,
+        }),
         not_selected: file
             .cases
             .iter()
@@ -206,8 +268,26 @@ pub async fn run_cases(
                 vec![],
             )
         } else if let (Some(snapshot), Some(run)) = (snapshot, run) {
-            let (outcome, id) = matching::score(case, snapshot, &run.report);
-            let crossings = id
+            let dependency = match &case.subject {
+                CaseSubject::Rule { rule, file, .. } => checked
+                    .assembly
+                    .rules
+                    .iter()
+                    .find(|entry| &entry.name == rule)
+                    .map(|entry| (entry.kind.clone(), file.clone())),
+                CaseSubject::Filter { filter, folder, .. } => checked
+                    .filters
+                    .get(filter)
+                    .map(|entry| (entry.reads.kind.clone(), folder.join(&entry.reads.file))),
+            };
+            let (outcome, id) = if mode.is_preparing() {
+                matching::prepare(case, snapshot, &run.report, dependency.as_ref())
+            } else {
+                matching::score(case, snapshot, &run.report)
+            };
+            let crossings = (!mode.is_preparing())
+                .then_some(id)
+                .flatten()
                 .and_then(|id| {
                     run.report
                         .results
@@ -310,5 +390,68 @@ pub async fn run_cases(
             bars: crossings,
         });
     }
+    if let Some(preparation) = &mut report.preparation {
+        preparation.status = if report
+            .runs
+            .iter()
+            .any(|run| run.report.status == LintStatus::Invalid)
+        {
+            LintStatus::Invalid
+        } else if cancellation.is_cancelled()
+            || report
+                .runs
+                .iter()
+                .any(|run| run.report.status == LintStatus::Cancelled)
+        {
+            LintStatus::Cancelled
+        } else if !report.errors.is_empty()
+            || report
+                .cases
+                .iter()
+                .any(|case| matches!(case.outcome, CaseOutcome::Incomplete { .. }))
+            || report
+                .runs
+                .iter()
+                .any(|run| run.report.status == LintStatus::Incomplete)
+        {
+            LintStatus::Incomplete
+        } else if report
+            .runs
+            .iter()
+            .any(|run| run.report.status == LintStatus::Findings)
+            || report
+                .cases
+                .iter()
+                .any(|case| !matches!(case.outcome, CaseOutcome::Prepared))
+        {
+            LintStatus::Findings
+        } else {
+            LintStatus::Prepared
+        };
+    }
     Ok(report)
+}
+
+/// A prepared case report uses its stable case-array order, not colliding nested request IDs.
+pub fn show_prepared_case(
+    report: &CasesReport,
+    ordinal: usize,
+) -> Result<serde_json::Value, String> {
+    if report.preparation.is_none() {
+        return Err("case readback requires a prepared report".into());
+    }
+    let case = ordinal
+        .checked_sub(1)
+        .and_then(|index| report.cases.get(index))
+        .ok_or_else(|| format!("unknown case ordinal {ordinal}"))?;
+    let mut detail = serde_json::json!({"case": case, "revision": case.definition.revision});
+    if let Some(id) = case.result_id {
+        let run = report
+            .runs
+            .iter()
+            .find(|run| run.revision == case.definition.revision)
+            .ok_or_else(|| "case revision evidence is missing".to_string())?;
+        detail["detail"] = crate::lint_reporting::saved_reports::show(&run.report, id)?;
+    }
+    Ok(detail)
 }

@@ -467,6 +467,11 @@ pub struct SharedView {
 #[derive(Debug, Clone, Default)]
 pub struct ChosenCandidates(pub std::collections::BTreeSet<CandidateId>);
 #[derive(Debug, Clone)]
+pub struct DeferredEvidenceKind {
+    pub kind: EvidenceKindName,
+    pub file: PathBuf,
+}
+#[derive(Debug, Clone)]
 pub enum BuildStep {
     NeedsSelection {
         kind: EvidenceKindName,

@@ -307,6 +307,9 @@ pub(crate) fn project_selections(
         {
             count.asked += 1;
             match entry.outcome {
+                sunstack_rules::SelectionOutcome::Prepared { .. } => {
+                    count.asked -= 1;
+                }
                 sunstack_rules::SelectionOutcome::Selected { .. } => count.selected += 1,
                 sunstack_rules::SelectionOutcome::NotSelected { .. } => count.not_selected += 1,
                 sunstack_rules::SelectionOutcome::Uncertain { .. } => count.uncertain += 1,
@@ -426,6 +429,7 @@ pub(crate) fn selection_usage(
     acquired: usize,
 ) -> UsageSummary {
     let run = sunstack_rules::RulebookRun {
+        prepared: vec![],
         not_sent: vec![],
         skips: vec![],
         results: vec![],

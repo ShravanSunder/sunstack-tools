@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0
+
+Release date: 2026-11-07.
+
+- `lint --prepare FILE` and `lint cases --prepare FILE` save exact model requests
+  and evidence without credentials or provider dispatch, with explicit gates and
+  unanswered selection dependencies. Clean preparation exits 6.
+- Ordinary saved reports and JSON output retain selection requests and answers.
+  `--prepare --selections-from REPORT` continues from identical recorded selection
+  inputs with an exact resolved-model pin and explicit source provenance.
+- `lint show` reads prepared requests, saved selections and prepared case ordinals
+  using only the saved report. Existing ordinary human output and result ids stay
+  unchanged.
+
 ## 0.8.3
 
 Release date: 2026-11-07.

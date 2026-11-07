@@ -22,6 +22,45 @@ pub struct DispatchedRequest {
     pub request: StructuredJudgmentRequest,
     pub outcome: DecisionRunOutcome,
 }
+#[derive(Debug, Clone)]
+pub struct PreparedModelRequest {
+    pub id: usize,
+    pub request: StructuredJudgmentRequest,
+}
+#[derive(Debug, Clone)]
+pub struct SelectionRequestOwner {
+    pub request_id: usize,
+    pub selection_kind: sunstack_evidence::EvidenceKindName,
+    pub file: std::path::PathBuf,
+    pub candidates: Vec<sunstack_evidence::SelectionCandidate>,
+    pub shared: sunstack_evidence::SharedView,
+}
+#[derive(Debug, Clone)]
+pub struct RecordedSelection {
+    pub source_request_id: usize,
+    pub source_revision: Option<String>,
+    pub selection_kind: sunstack_evidence::EvidenceKindName,
+    pub request: StructuredJudgmentRequest,
+    pub input_sha256: String,
+    pub outcome: DecisionRunOutcome,
+}
+#[derive(Debug, Clone)]
+pub struct ReusedSelection {
+    pub request_id: usize,
+    pub source_request_id: usize,
+    pub source_revision: Option<String>,
+    pub outcome: DecisionRunOutcome,
+}
+pub fn selection_input_hash(
+    request: &StructuredJudgmentRequest,
+) -> Result<String, serde_json::Error> {
+    serde_json::to_vec(request).map(|bytes| sunstack_evidence::content_digest(&bytes))
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DispatchMode {
+    Execute,
+    Prepare,
+}
 /// One request allowance, concurrency owner and receipt list for selection and rule work.
 pub struct ModelRequestDispatch {
     pub settings: RulebookRunSettings,
@@ -30,7 +69,13 @@ pub struct ModelRequestDispatch {
     semaphore: Arc<Semaphore>,
     tasks: JoinSet<DispatchedRequest>,
     requested: usize,
+    next_request_id: usize,
     pub records: Vec<DispatchedRequest>,
+    mode: DispatchMode,
+    pub prepared: Vec<PreparedModelRequest>,
+    pub selection_requests: Vec<SelectionRequestOwner>,
+    recorded_selections: Vec<RecordedSelection>,
+    pub reused_selections: Vec<ReusedSelection>,
 }
 impl ModelRequestDispatch {
     pub fn new(
@@ -45,8 +90,92 @@ impl ModelRequestDispatch {
             cancellation,
             tasks: JoinSet::new(),
             requested: 0,
+            next_request_id: 0,
             records: vec![],
+            mode: DispatchMode::Execute,
+            prepared: vec![],
+            selection_requests: vec![],
+            recorded_selections: vec![],
+            reused_selections: vec![],
         }
+    }
+    pub fn prepare_only(mut self) -> Self {
+        self.mode = DispatchMode::Prepare;
+        self
+    }
+    pub fn is_preparing(&self) -> bool {
+        self.mode == DispatchMode::Prepare
+    }
+    pub fn with_recorded_selections(mut self, records: Vec<RecordedSelection>) -> Self {
+        self.recorded_selections = records;
+        self
+    }
+    pub fn reuse_selection(
+        &mut self,
+        kind: &sunstack_evidence::EvidenceKindName,
+        request: &StructuredJudgmentRequest,
+    ) -> Option<(usize, DecisionRunOutcome)> {
+        if !self.is_preparing() || self.is_cancelled() {
+            return None;
+        }
+        self.assess_selection(request).ok()?;
+        let hash = selection_input_hash(request).ok()?;
+        let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
+        let mut matches = self.recorded_selections.iter().filter(|record| record.source_request_id > 0
+            && &record.selection_kind == kind && record.input_sha256 == hash
+            && selection_input_hash(&record.request).ok().as_ref() == Some(&hash)
+            && matches!(&record.outcome, DecisionRunOutcome::Completed { receipt, .. } if &receipt.resolved_model == model));
+        let record = matches.next()?.clone();
+        let DecisionRunOutcome::Completed {
+            answers, receipt, ..
+        } = &record.outcome
+        else {
+            return None;
+        };
+        let recorded_answers = serde_json::to_vec(answers).ok()?;
+        for other in matches {
+            let DecisionRunOutcome::Completed {
+                answers, receipt, ..
+            } = &other.outcome
+            else {
+                return None;
+            };
+            sunstack_decisions::judgment_processing::judgment_validation::validate_response(
+                request,
+                answers.clone(),
+                receipt.clone(),
+            )
+            .ok()?;
+            if serde_json::to_vec(answers).ok()? != recorded_answers {
+                return None;
+            }
+        }
+        sunstack_decisions::judgment_processing::judgment_validation::validate_response(
+            request,
+            answers.clone(),
+            receipt.clone(),
+        )
+        .ok()?;
+        let input = RunJudgmentsInput {
+            request: request.clone(),
+            backend: self.settings.backend.clone(),
+            attempts: self.settings.attempts.clone(),
+            request_budget: self.settings.request_budget.clone(),
+        };
+        prepare_judgments(&input, self.backend.as_deref()?).ok()?;
+        let id = self.next_request_id;
+        self.next_request_id += 1;
+        self.prepared.push(PreparedModelRequest {
+            id,
+            request: request.clone(),
+        });
+        self.reused_selections.push(ReusedSelection {
+            request_id: id,
+            source_request_id: record.source_request_id,
+            source_revision: record.source_revision.clone(),
+            outcome: record.outcome.clone(),
+        });
+        Some((id, record.outcome))
     }
     pub fn is_cancelled(&self) -> bool {
         self.cancellation.is_cancelled()
@@ -117,18 +246,28 @@ impl ModelRequestDispatch {
             .backend
             .clone()
             .ok_or(DispatchRefusal::InvalidRequest)?;
-        let permit = tokio::select! {biased;_=self.cancellation.cancelled()=>return Err(DispatchRefusal::Cancelled),permit=self.semaphore.clone().acquire_owned()=>permit.map_err(|_|DispatchRefusal::InvalidRequest)?};
-        if self.is_cancelled() {
-            return Err(DispatchRefusal::Cancelled);
-        }
-        let id = self.requested;
-        self.requested += 1;
         let input = RunJudgmentsInput {
             request: request.clone(),
             backend: self.settings.backend.clone(),
             attempts: self.settings.attempts.clone(),
             request_budget: self.settings.request_budget.clone(),
         };
+        if self.is_preparing() {
+            prepare_judgments(&input, backend.as_ref())
+                .map_err(|_| DispatchRefusal::InvalidRequest)?;
+            let id = self.next_request_id;
+            self.next_request_id += 1;
+            self.requested += 1;
+            self.prepared.push(PreparedModelRequest { id, request });
+            return Ok(id);
+        }
+        let permit = tokio::select! {biased;_=self.cancellation.cancelled()=>return Err(DispatchRefusal::Cancelled),permit=self.semaphore.clone().acquire_owned()=>permit.map_err(|_|DispatchRefusal::InvalidRequest)?};
+        if self.is_cancelled() {
+            return Err(DispatchRefusal::Cancelled);
+        }
+        let id = self.next_request_id;
+        self.next_request_id += 1;
+        self.requested += 1;
         let cancellation = self.cancellation.clone();
         self.tasks.spawn(async move {
             let _permit = permit;

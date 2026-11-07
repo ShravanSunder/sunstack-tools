@@ -71,11 +71,19 @@ pub struct FilterAnswer {
 }
 #[derive(Debug, Clone, Default)]
 pub struct FilterAnswers {
+    pub prepared: Vec<PreparedFilterRecord>,
     pub entries: Vec<FilterAnswer>,
     pub folders: BTreeMap<(FilterName, PathBuf), PathBuf>,
     pub requests: Vec<FilterRequestRecord>,
     pub not_sent: Vec<UnsentFilterRequest>,
     pub pieces: BTreeMap<(FilterName, PathBuf), EvidencePiece>,
+}
+#[derive(Debug, Clone)]
+pub struct PreparedFilterRecord {
+    pub request_id: usize,
+    pub filter: FilterName,
+    pub folder: PathBuf,
+    pub piece: EvidencePiece,
 }
 
 struct PreparedFilterRequest {
@@ -121,6 +129,23 @@ fn filter_piece_for(
     piece.model_view = project_model_view(&piece.fields, max_chars);
     Ok(piece)
 }
+/// Hash raw declared reads before any model-view cuts or rulebook reference is added.
+pub fn filter_reads_hash(
+    fields: &BTreeMap<sunstack_evidence::FieldName, FieldValue>,
+) -> Result<String, FilterIncomplete> {
+    let ModelView::Bounded {
+        fields: unprojected,
+        ..
+    } = project_model_view(fields, usize::MAX)
+    else {
+        return Err(FilterIncomplete::ReadsTooLarge);
+    };
+    serde_json::to_vec(&unprojected)
+        .map(|bytes| sunstack_evidence::content_digest(&bytes))
+        .map_err(|_| FilterIncomplete::Request {
+            reason: RulebookIncompleteReason::InvalidRequest,
+        })
+}
 fn request_for(
     plan: &FilterPlan,
     piece: EvidencePiece,
@@ -148,20 +173,7 @@ fn request_for(
         };
         fields.insert(field.clone(), value);
     }
-    let ModelView::Bounded {
-        fields: unprojected,
-        ..
-    } = project_model_view(&fields, usize::MAX)
-    else {
-        return Err(failure(FilterIncomplete::ReadsTooLarge));
-    };
-    let reads_sha256 = serde_json::to_vec(&unprojected)
-        .map(|bytes| sunstack_evidence::content_digest(&bytes))
-        .map_err(|_| {
-            failure(FilterIncomplete::Request {
-                reason: RulebookIncompleteReason::InvalidRequest,
-            })
-        })?;
+    let reads_sha256 = filter_reads_hash(&fields).map_err(failure)?;
     let ModelView::Bounded { fields, cut } = &piece.model_view else {
         return Err(failure(FilterIncomplete::ReadsTooLarge));
     };
@@ -362,6 +374,15 @@ pub async fn ask_filters(
                 answer.input_cut = prepared.input_cut;
                 match dispatcher.submit(prepared.request.clone()).await {
                     Ok(id) => {
+                        if dispatcher.is_preparing() {
+                            result.prepared.push(PreparedFilterRecord {
+                                request_id: id,
+                                filter: folder.filter.clone(),
+                                folder: folder.folder.clone(),
+                                piece: prepared.piece,
+                            });
+                            continue;
+                        }
                         pending.insert(id, (position, prepared.piece));
                     }
                     Err(refusal) => {

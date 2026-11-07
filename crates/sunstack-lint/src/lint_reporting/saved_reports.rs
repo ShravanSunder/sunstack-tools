@@ -37,10 +37,176 @@ fn push_request(
         owner,
         requested_model: model.clone(),
         resolved_model,
+        input_sha256: None,
+        selection_evidence: None,
         request,
         outcome,
     });
     id
+}
+pub(crate) fn capture_prepared_requests(
+    report: &mut LintReport,
+    dispatcher: &sunstack_rules::ModelRequestDispatch,
+    run: &[sunstack_rules::PreparedRulebookRequest],
+    filters: &FilterAnswers,
+    rules: &[RulebookRule],
+    pieces: &[EvidencePiece],
+) -> Result<(), String> {
+    let BackendSelection::JevOpenrouter { model, .. } = &dispatcher.settings.backend;
+    // Prepared IDs share the show namespace with actual mechanical results.
+    let offset = report.results.len()
+        + report.filter_answers.len()
+        + report.filter_skips.len()
+        + report.requests.len()
+        + 1;
+    for record in &dispatcher.prepared {
+        let rule = run
+            .iter()
+            .find(|pair| pair.request_id == record.id)
+            .and_then(|pair| Some((rules.get(pair.rule_index)?, pieces.get(pair.piece_index)?)));
+        let filter = filters
+            .prepared
+            .iter()
+            .find(|item| item.request_id == record.id);
+        let selection = dispatcher
+            .selection_requests
+            .iter()
+            .find(|item| item.request_id == record.id);
+        let (owner, gate, evidence) = if let Some((rule, piece)) = rule {
+            (
+                RequestOwner::Rule {
+                    rule: rule.name.clone(),
+                    piece: piece.location.clone(),
+                },
+                rule.gate.as_ref().map(|gate| PreparedGate {
+                    filter: gate.filter.clone(),
+                    labels: gate.answers.clone(),
+                }),
+                Some(piece.clone()),
+            )
+        } else if let Some(filter) = filter {
+            (
+                RequestOwner::Filter {
+                    filter: filter.filter.clone(),
+                    folder: filter.folder.clone(),
+                },
+                None,
+                Some(filter.piece.clone()),
+            )
+        } else if let Some(selection) = selection {
+            (
+                RequestOwner::Selection {
+                    selection_kind: selection.selection_kind.clone(),
+                    file: selection.file.clone(),
+                },
+                None,
+                None,
+            )
+        } else {
+            return Err("prepared request has no owner".into());
+        };
+        let id = offset + record.id;
+        if let Some(piece) = evidence {
+            report.piece_evidence.insert(
+                id,
+                SavedPieceEvidence {
+                    piece,
+                    matches: Default::default(),
+                },
+            );
+        }
+        let reused = dispatcher
+            .reused_selections
+            .iter()
+            .find(|item| item.request_id == record.id);
+        let resolved_model = reused.and_then(|record| match &record.outcome {
+            DecisionRunOutcome::Completed { receipt, .. } => Some(receipt.resolved_model.clone()),
+            _ => None,
+        });
+        let outcome = reused.map_or_else(
+            || SavedRequestOutcome::Prepared {
+                status: PreparedRequestStatus::Prepared,
+                gate,
+            },
+            |record| SavedRequestOutcome::FromReport {
+                status: RecordedRequestStatus::FromReport,
+                source_request_id: record.source_request_id,
+                source_revision: record.source_revision.clone(),
+                outcome: record.outcome.clone(),
+            },
+        );
+        report.requests.push(SavedRequest {
+            id,
+            owner,
+            requested_model: model.clone(),
+            resolved_model,
+            input_sha256: Some(sunstack_evidence::content_digest(
+                &serde_json::to_vec(&record.request).map_err(|error| error.to_string())?,
+            )),
+            selection_evidence: selection.map(|selection| SelectionRequestEvidence {
+                candidates: selection.candidates.clone(),
+                shared: selection.shared.clone(),
+            }),
+            request: record.request.clone(),
+            outcome,
+        });
+    }
+    if let Some(preparation) = &mut report.preparation {
+        for dependency in &mut preparation.needs_answer {
+            dependency.waits_on.request_id += offset;
+        }
+    }
+    for entry in &mut report.selections {
+        if let sunstack_rules::SelectionOutcome::Prepared { request_id } = &mut entry.outcome {
+            *request_id += offset;
+        }
+    }
+    Ok(())
+}
+pub(crate) fn capture_selection_requests(
+    report: &mut LintReport,
+    dispatcher: &sunstack_rules::ModelRequestDispatch,
+) -> Result<(), String> {
+    let BackendSelection::JevOpenrouter { model, .. } = &dispatcher.settings.backend;
+    let offset = report.results.len()
+        + report.filter_answers.len()
+        + report.filter_skips.len()
+        + report.requests.len()
+        + 1;
+    for (index, owner) in dispatcher.selection_requests.iter().enumerate() {
+        let Some(record) = dispatcher
+            .records
+            .iter()
+            .find(|record| record.id == owner.request_id)
+        else {
+            continue;
+        };
+        let resolved_model = match &record.outcome {
+            DecisionRunOutcome::Completed { receipt, .. } => Some(receipt.resolved_model.clone()),
+            _ => None,
+        };
+        report.requests.push(SavedRequest {
+            id: offset + index,
+            owner: RequestOwner::Selection {
+                selection_kind: owner.selection_kind.clone(),
+                file: owner.file.clone(),
+            },
+            requested_model: model.clone(),
+            resolved_model,
+            input_sha256: Some(sunstack_evidence::content_digest(
+                &serde_json::to_vec(&record.request).map_err(|error| error.to_string())?,
+            )),
+            selection_evidence: Some(SelectionRequestEvidence {
+                candidates: owner.candidates.clone(),
+                shared: owner.shared.clone(),
+            }),
+            request: record.request.clone(),
+            outcome: SavedRequestOutcome::Run {
+                outcome: record.outcome.clone(),
+            },
+        });
+    }
+    Ok(())
 }
 /// Capture complete requests before projection reduces answers to those the walk read.
 pub(crate) fn capture_requests(
@@ -127,21 +293,33 @@ pub(crate) fn capture_requests(
 }
 /// Read one result using only the saved file, without config discovery, credentials or network.
 pub fn show(report: &LintReport, id: usize) -> Result<serde_json::Value, String> {
-    let (result, requests, finding, rewalkable, gap) = if let Some(result) =
-        report.results.iter().find(|result| result.id == id)
+    if report.preparation.is_some()
+        && let Some(request) = report.requests.iter().find(|request| {
+            request.id == id
+                && matches!(
+                    request.outcome,
+                    SavedRequestOutcome::Prepared { .. } | SavedRequestOutcome::FromReport { .. }
+                )
+        })
     {
-        let excluded = matches!(
-            result.reason,
-            Some(sunstack_rules::NotApplicableReason::Filter { .. })
+        return Ok(
+            serde_json::json!({"request": request, "evidence": report.piece_evidence.get(&id), "rulebook_files": report.rulebook_files}),
         );
-        (
-            serde_json::to_value(result),
-            &result.request_ids,
-            report.findings.iter().find(|finding| finding.id == id),
-            !excluded
-                && (result.gap.is_none()
-                    || result.request_ids.iter().any(|id| {
-                        report.requests.iter().any(|request| {
+    }
+    let (result, requests, finding, rewalkable, gap) =
+        if let Some(result) = report.results.iter().find(|result| result.id == id) {
+            let excluded = matches!(
+                result.reason,
+                Some(sunstack_rules::NotApplicableReason::Filter { .. })
+            );
+            (
+                serde_json::to_value(result),
+                &result.request_ids,
+                report.findings.iter().find(|finding| finding.id == id),
+                !excluded
+                    && (result.gap.is_none()
+                        || result.request_ids.iter().any(|id| {
+                            report.requests.iter().any(|request| {
                             request.id == *id
                                 && matches!(request.owner, RequestOwner::Rule { .. })
                                 && matches!(
@@ -152,17 +330,18 @@ pub fn show(report: &LintReport, id: usize) -> Result<serde_json::Value, String>
                                     }
                                 )
                         })
-                    })),
-            excluded
-                .then_some("rule excluded by filter; rule was never asked and cannot be re-walked"),
-        )
-    } else if let Some(result) = report.filter_answers.iter().find(|result| result.id == id) {
-        (
-            serde_json::to_value(result),
-            &result.request_ids,
-            None,
-            result.request_ids.iter().any(|id| {
-                report.requests.iter().any(|request| {
+                        })),
+                excluded.then_some(
+                    "rule excluded by filter; rule was never asked and cannot be re-walked",
+                ),
+            )
+        } else if let Some(result) = report.filter_answers.iter().find(|result| result.id == id) {
+            (
+                serde_json::to_value(result),
+                &result.request_ids,
+                None,
+                result.request_ids.iter().any(|id| {
+                    report.requests.iter().any(|request| {
                     request.id == *id
                         && matches!(
                             request.outcome,
@@ -171,25 +350,32 @@ pub fn show(report: &LintReport, id: usize) -> Result<serde_json::Value, String>
                             }
                         )
                 })
-            }),
-            None,
-        )
-    } else if let Some(result) = report.filter_skips.iter().find(|result| result.id == id) {
-        (
-            serde_json::to_value(result),
-            &result.request_ids,
-            None,
-            false,
-            Some("rule skipped by filter; rule was never asked and cannot be re-walked"),
-        )
-    } else {
-        let count = report.results.len() + report.filter_answers.len() + report.filter_skips.len();
-        return Err(if count == 0 {
-            format!("unknown result id {id}; report has no results")
+                }),
+                None,
+            )
+        } else if let Some(result) = report.filter_skips.iter().find(|result| result.id == id) {
+            (
+                serde_json::to_value(result),
+                &result.request_ids,
+                None,
+                false,
+                Some("rule skipped by filter; rule was never asked and cannot be re-walked"),
+            )
+        } else if let Some(request) = report.requests.iter().find(|request| {
+            request.id == id && matches!(request.owner, RequestOwner::Selection { .. })
+        }) {
+            return Ok(
+                serde_json::json!({"request": request, "rulebook_files": report.rulebook_files}),
+            );
         } else {
-            format!("unknown result id {id}; valid range: 1..={count}")
-        });
-    };
+            let count =
+                report.results.len() + report.filter_answers.len() + report.filter_skips.len();
+            return Err(if count == 0 {
+                format!("unknown result id {id}; report has no results")
+            } else {
+                format!("unknown result id {id}; valid range: 1..={count}")
+            });
+        };
     let requests = report
         .requests
         .iter()

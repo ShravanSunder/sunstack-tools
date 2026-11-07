@@ -21,8 +21,18 @@ impl<T> std::ops::Deref for IdentifiedResult<T> {
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RequestOwner {
-    Rule { rule: RuleId, piece: PieceLocation },
-    Filter { filter: FilterName, folder: PathBuf },
+    Selection {
+        selection_kind: sunstack_evidence::EvidenceKindName,
+        file: PathBuf,
+    },
+    Rule {
+        rule: RuleId,
+        piece: PieceLocation,
+    },
+    Filter {
+        filter: FilterName,
+        folder: PathBuf,
+    },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -37,8 +47,34 @@ pub enum RequestNotSentReason {
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum SavedRequestOutcome {
-    Run { outcome: DecisionRunOutcome },
-    NotSent { reason: RequestNotSentReason },
+    Run {
+        outcome: DecisionRunOutcome,
+    },
+    NotSent {
+        reason: RequestNotSentReason,
+    },
+    FromReport {
+        status: RecordedRequestStatus,
+        source_request_id: usize,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        source_revision: Option<String>,
+        outcome: DecisionRunOutcome,
+    },
+    Prepared {
+        status: PreparedRequestStatus,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        gate: Option<PreparedGate>,
+    },
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PreparedRequestStatus {
+    Prepared,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct PreparedGate {
+    pub filter: FilterName,
+    pub labels: std::collections::BTreeSet<sunstack_decisions::ChoiceLabel>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SavedRequest {
@@ -46,9 +82,18 @@ pub struct SavedRequest {
     pub owner: RequestOwner,
     pub requested_model: ModelName,
     pub resolved_model: Option<ModelName>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection_evidence: Option<SelectionRequestEvidence>,
     pub request: StructuredJudgmentRequest,
     #[serde(flatten)]
     pub outcome: SavedRequestOutcome,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct SelectionRequestEvidence {
+    pub candidates: Vec<sunstack_evidence::SelectionCandidate>,
+    pub shared: sunstack_evidence::SharedView,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RulebookFile {
@@ -64,4 +109,10 @@ pub struct SavedPieceEvidence {
         sunstack_evidence::EvidenceRuleId,
         Vec<sunstack_evidence::MatchRange>,
     >,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RecordedRequestStatus {
+    FromReport,
 }

@@ -87,6 +87,50 @@ pub struct EvidenceBuild {
     pending: Option<(EvidenceKindName, Vec<EvidencePiece>)>,
 }
 impl EvidenceBuild {
+    /// Keep unanswered candidates out of selection resolution while independent work advances.
+    pub fn defer_selection(
+        &mut self,
+        unresolved: &std::collections::BTreeSet<CandidateId>,
+    ) -> Vec<crate::DeferredEvidenceKind> {
+        let Some((root, pending)) = &mut self.pending else {
+            return vec![];
+        };
+        let root = root.clone();
+        let files = unresolved
+            .iter()
+            .map(|candidate| candidate.file.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        pending.retain(|piece| {
+            !unresolved.contains(&CandidateId {
+                kind: root.clone(),
+                file: piece.location.file.clone(),
+                span: piece.location.span.clone(),
+            })
+        });
+        let mut dependent = std::collections::BTreeSet::from([root]);
+        for kind in &self.plan.order {
+            if self
+                .plan
+                .depends_on
+                .get(kind)
+                .is_some_and(|parents| parents.iter().any(|parent| dependent.contains(parent)))
+            {
+                dependent.insert(kind.clone());
+            }
+        }
+        dependent
+            .into_iter()
+            .flat_map(|kind| {
+                files
+                    .iter()
+                    .cloned()
+                    .map(move |file| crate::DeferredEvidenceKind {
+                        kind: kind.clone(),
+                        file,
+                    })
+            })
+            .collect()
+    }
     pub fn start(
         project: &EvidenceProject,
         kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,

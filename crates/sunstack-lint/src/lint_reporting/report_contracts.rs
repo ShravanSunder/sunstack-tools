@@ -44,6 +44,7 @@ pub struct ScopeReport {
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
 pub enum LintStatus {
+    Prepared,
     Clean,
     NothingSelected,
     Findings,
@@ -61,6 +62,7 @@ impl LintStatus {
             Self::Incomplete => 3,
             Self::Cancelled => 4,
             Self::Uncertain => 5,
+            Self::Prepared => 6,
         }
     }
 }
@@ -212,6 +214,8 @@ pub struct EvidenceListing {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintReport {
+    #[serde(default, flatten)]
+    pub preparation: Option<PreparedReport>,
     pub piece_evidence: BTreeMap<usize, crate::SavedPieceEvidence>,
     pub requests: Vec<SavedRequest>,
     pub rulebook_files: Vec<RulebookFile>,
@@ -240,6 +244,7 @@ pub struct LintReport {
 impl LintReport {
     pub(crate) fn empty(config: PathBuf, scope: ScopeChoice, limits: EffectiveLimits) -> Self {
         Self {
+            preparation: None,
             piece_evidence: BTreeMap::new(),
             requests: vec![],
             rulebook_files: vec![],
@@ -268,6 +273,27 @@ impl LintReport {
             evidence_listing: None,
         }
     }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct PreparedReport {
+    pub mode: PrepareMode,
+    pub needs_answer: Vec<NeedsSelectionAnswer>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PrepareMode {
+    Prepare,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct NeedsSelectionAnswer {
+    pub kind: EvidenceKindName,
+    pub file: PathBuf,
+    pub waits_on: SelectionDependency,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct SelectionDependency {
+    pub selection_kind: EvidenceKindName,
+    pub request_id: usize,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
