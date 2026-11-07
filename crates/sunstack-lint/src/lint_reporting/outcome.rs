@@ -13,7 +13,7 @@ pub(crate) fn project_outcome(
 ) -> LintReport {
     let selected = run.results.len();
     for answer in &report.filter_answers {
-        if let sunstack_rules::FilterAnswerState::Incomplete { reason } = &answer.state {
+        if let sunstack_rules::FilterAnswerState::Incomplete { reason, .. } = &answer.state {
             report.incomplete.push(IncompletePart {
                 rule: None,
                 file: Some(answer.folder.clone()),
@@ -37,7 +37,16 @@ pub(crate) fn project_outcome(
             });
         }
     }
-    report.filter_skips = run.skips.clone();
+    report.filter_skips = run
+        .skips
+        .iter()
+        .cloned()
+        .map(|value| IdentifiedResult {
+            id: 0,
+            request_ids: vec![],
+            value,
+        })
+        .collect();
     let acquired = report.usage.checked_files_acquired;
     report.usage = summarize_usage(&run);
     report.usage.checked_files_acquired = acquired;
@@ -67,7 +76,42 @@ pub(crate) fn project_outcome(
             RulebookResult::Incomplete { step, .. } => (PieceOutcome::Incomplete, step.clone()),
         };
         let basis = pair.result.basis();
+        let id = report.results.len() + 1;
+        report.piece_evidence.insert(
+            id,
+            SavedPieceEvidence {
+                piece: piece.clone(),
+                matches: Default::default(),
+            },
+        );
+        let request_ids = report
+            .requests
+            .iter()
+            .filter_map(|record| match &record.owner {
+                RequestOwner::Rule {
+                    rule: name,
+                    piece: location,
+                } if name == &rule.name && location == &piece.location => Some(record.id),
+                RequestOwner::Filter { filter, folder }
+                    if rule
+                        .gate
+                        .as_ref()
+                        .is_some_and(|gate| &gate.filter == filter)
+                        && piece.location.file.starts_with(folder) =>
+                {
+                    Some(record.id)
+                }
+                _ => None,
+            })
+            .collect();
         report.results.push(RulePieceResult {
+            text_sha256: None,
+            id,
+            request_ids,
+            gap: match &pair.result {
+                RulebookResult::Incomplete { reason, .. } => Some(*reason),
+                _ => None,
+            },
             locator_omitted: match &pair.result {
                 RulebookResult::Finding {
                     locator_omitted, ..
@@ -132,6 +176,7 @@ pub(crate) fn project_outcome(
                     .cloned()
                     .unwrap_or_else(|| piece.location.span.clone());
                 report.findings.push(Finding {
+                    id,
                     locator_omitted,
                     rule: rule.name.clone(),
                     marker: rule.sentence.marker.clone(),
@@ -158,6 +203,7 @@ pub(crate) fn project_outcome(
                 answers,
                 ..
             } => report.uncertain.push(UncertainResult {
+                id,
                 rule: rule.name.clone(),
                 marker: rule.sentence.marker.clone(),
                 location: piece.location.clone(),
@@ -170,40 +216,40 @@ pub(crate) fn project_outcome(
                     rule: Some(rule.name.clone()),
                     file: Some(piece.location.file.clone()),
                     field,
-                    reason: match reason {
-                        RulebookIncompleteReason::ChoiceOptionsExceeded { options, limit } => {
-                            IncompleteReason::ChoiceOptionsExceeded { options, limit }
-                        }
-                        RulebookIncompleteReason::EvidenceUnavailable => {
-                            IncompleteReason::EvidenceUnavailable
-                        }
-                        RulebookIncompleteReason::EvidenceTooLarge => {
-                            IncompleteReason::EvidenceTooLarge
-                        }
-                        RulebookIncompleteReason::RequestTooLarge => {
-                            IncompleteReason::RequestTooLarge
-                        }
-                        RulebookIncompleteReason::ProviderFailure {
-                            failure_class,
-                            http_status,
-                        } => IncompleteReason::ProviderFailure {
-                            failure_class,
-                            http_status,
-                        },
-                        RulebookIncompleteReason::InvalidRequest => {
-                            IncompleteReason::InvalidRequest
-                        }
-                        RulebookIncompleteReason::InvalidResponse => {
-                            IncompleteReason::InvalidResponse
-                        }
-                        RulebookIncompleteReason::RequestLimitReached => {
-                            IncompleteReason::RequestLimitReached
-                        }
-                        RulebookIncompleteReason::Cancelled => IncompleteReason::NotStarted,
-                    },
+                    reason: rulebook_incomplete_reason(reason),
                 })
             }
         }
+    }
+    for (offset, answer) in report.filter_answers.iter_mut().enumerate() {
+        answer.id = report.results.len() + offset + 1;
+        answer.request_ids = report
+            .requests
+            .iter()
+            .filter_map(|record| match &record.owner {
+                RequestOwner::Filter { filter, folder }
+                    if filter == &answer.filter && folder == &answer.folder =>
+                {
+                    Some(record.id)
+                }
+                _ => None,
+            })
+            .collect();
+    }
+    for (offset, skip) in report.filter_skips.iter_mut().enumerate() {
+        skip.id = report.results.len() + report.filter_answers.len() + offset + 1;
+        skip.request_ids = report
+            .requests
+            .iter()
+            .filter_map(|record| match &record.owner {
+                RequestOwner::Filter { filter, folder }
+                    if filter == &skip.filter && Some(folder) == skip.folder.as_ref() =>
+                {
+                    Some(record.id)
+                }
+                _ => None,
+            })
+            .collect();
     }
     report.status = if cancelled {
         LintStatus::Cancelled
@@ -380,6 +426,7 @@ pub(crate) fn selection_usage(
     acquired: usize,
 ) -> UsageSummary {
     let run = sunstack_rules::RulebookRun {
+        not_sent: vec![],
         skips: vec![],
         results: vec![],
         requests: dispatcher
@@ -415,5 +462,27 @@ pub(crate) fn project_evidence_failures(
             field: None,
             reason: IncompleteReason::SelectionFailed,
         });
+    }
+}
+
+pub(crate) fn rulebook_incomplete_reason(reason: RulebookIncompleteReason) -> IncompleteReason {
+    match reason {
+        RulebookIncompleteReason::ChoiceOptionsExceeded { options, limit } => {
+            IncompleteReason::ChoiceOptionsExceeded { options, limit }
+        }
+        RulebookIncompleteReason::EvidenceUnavailable => IncompleteReason::EvidenceUnavailable,
+        RulebookIncompleteReason::EvidenceTooLarge => IncompleteReason::EvidenceTooLarge,
+        RulebookIncompleteReason::RequestTooLarge => IncompleteReason::RequestTooLarge,
+        RulebookIncompleteReason::ProviderFailure {
+            failure_class,
+            http_status,
+        } => IncompleteReason::ProviderFailure {
+            failure_class,
+            http_status,
+        },
+        RulebookIncompleteReason::InvalidRequest => IncompleteReason::InvalidRequest,
+        RulebookIncompleteReason::InvalidResponse => IncompleteReason::InvalidResponse,
+        RulebookIncompleteReason::RequestLimitReached => IncompleteReason::RequestLimitReached,
+        RulebookIncompleteReason::Cancelled => IncompleteReason::NotStarted,
     }
 }

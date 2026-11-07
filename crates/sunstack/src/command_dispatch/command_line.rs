@@ -16,7 +16,7 @@ pub struct CommandLine {
 #[derive(Subcommand)]
 pub enum RunnerCommand {
     /// Lint a repository using sunstack.lint.json.
-    Lint(LintArguments),
+    Lint(Box<LintArguments>),
     /// Execute one native JSON request from standard input.
     Exec,
     /// Manage the OpenRouter credential in the OS credential store.
@@ -34,6 +34,11 @@ pub enum CredentialCommand {
 
 #[derive(Args)]
 pub struct LintArguments {
+    #[command(subcommand)]
+    pub command: Option<LintCommand>,
+    /// Save complete requests, model receipts and rulebook files for later inspection.
+    #[arg(long, value_name = "FILE", conflicts_with_all = ["check", "rules", "init", "evidence"])]
+    pub report: Option<PathBuf>,
     /// Files or directories to check; named paths default to full scope.
     #[arg(conflicts_with_all = ["check", "rules", "init"])]
     pub paths: Vec<PathBuf>,
@@ -62,4 +67,16 @@ pub struct LintArguments {
     /// Create a config skeleton in the current directory.
     #[arg(long)]
     pub init: bool,
+}
+
+#[derive(Subcommand)]
+pub enum LintCommand {
+    /// Score revision-bound cases using today's rulebook through ordinary lint.
+    Cases {
+        file: PathBuf,
+        #[arg(long)]
+        set: Option<String>,
+    },
+    /// Explain one numbered result using only a saved report.
+    Show { file: PathBuf, id: usize },
 }

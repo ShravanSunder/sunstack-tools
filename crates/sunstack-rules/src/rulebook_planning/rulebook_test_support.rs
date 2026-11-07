@@ -30,6 +30,7 @@ pub fn rule(marker: &str) -> RulebookRule {
     let entry = entry(marker);
     let graph = admit_rule_entry(&entry, &kinds(), &project(), &Default::default()).unwrap();
     RulebookRule {
+        reference: entry.reference,
         gate: None,
         name: entry.name,
         sentence: RulebookSentence {

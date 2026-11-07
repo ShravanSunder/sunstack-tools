@@ -77,22 +77,22 @@ async fn locator_line_limit_admission_matches_provider_choice_boundary() {
 fn filter_schema_preserves_native_choice_shape_and_probability_bounds() {
     let root = tempfile::tempdir().unwrap();
     let mut config = fixture::write(root.path());
-    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify"},"criteria":{"a":"A","b":"B"}},"min_probability":0.83}});
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","fields":["description"]},"labels":["a","b"],"questions":{"filter":{"type":"choice","instructions":{"task":"Classify","check":"description"},"criteria":{"a":"A","b":"B"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.83,"routes":{"a":{"label":"a"},"b":{"label":"b"}},"uncertain":"unsure"}}}}});
     let schema = serde_json::to_value(config_schema()).unwrap();
     let validator = jsonschema::options().offline().build(&schema).unwrap();
     assert!(validator.is_valid(&config));
     for value in [json!(0), json!(-0.1), json!(1.01)] {
         let mut invalid = config.clone();
-        invalid["filters"]["purpose"]["min_probability"] = value;
+        invalid["filters"]["purpose"]["decision"]["steps"]["filter"]["min_probability"] = value;
         assert!(!validator.is_valid(&invalid));
     }
     for question in [
-        json!({"type":"noul","instructions":{}}),
+        json!({"type":"noul","task":"Wrong envelope"}),
         json!({"type":"choice","instructions":{},"criteria":{"one":"Only one"}}),
         json!({"type":"choice","task":"Wrong envelope","criteria":{"a":"A","b":"B"}}),
     ] {
         let mut invalid = config.clone();
-        invalid["filters"]["purpose"]["question"] = question;
+        invalid["filters"]["purpose"]["questions"]["filter"] = question;
         assert!(!validator.is_valid(&invalid), "{invalid}");
     }
 }
@@ -268,11 +268,7 @@ async fn report_schema_validates_real_pair_results_and_requires_their_typed_fiel
     assert!(!validator.is_valid(&wrong));
     let mut without_results = report.clone();
     without_results.results.clear();
-    for format in [
-        OutputFormat::Default,
-        OutputFormat::Github,
-        OutputFormat::Sarif,
-    ] {
+    for format in [OutputFormat::Github, OutputFormat::Sarif] {
         assert_eq!(render(&report, format), render(&without_results, format));
     }
 }

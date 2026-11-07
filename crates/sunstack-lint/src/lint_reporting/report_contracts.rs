@@ -1,4 +1,6 @@
-use crate::{EffectiveLimits, LintInvalid, LintInvalidCode};
+use crate::{
+    EffectiveLimits, IdentifiedResult, LintInvalid, LintInvalidCode, RulebookFile, SavedRequest,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf};
 use sunstack_decisions::{NamedAnswerMap, SharedEvidenceState};
@@ -71,6 +73,7 @@ pub enum SettingOrigin {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Finding {
+    pub id: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locator_omitted: Option<sunstack_rules::LocatorOmission>,
     pub rule: RuleId,
@@ -102,6 +105,7 @@ pub struct JudgmentSummary {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UncertainResult {
+    pub id: usize,
     pub rule: RuleId,
     pub marker: MarkerId,
     #[serde(rename = "where")]
@@ -208,8 +212,11 @@ pub struct EvidenceListing {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintReport {
-    pub filter_answers: Vec<sunstack_rules::FilterAnswer>,
-    pub filter_skips: Vec<sunstack_rules::FilterSkip>,
+    pub piece_evidence: BTreeMap<usize, crate::SavedPieceEvidence>,
+    pub requests: Vec<SavedRequest>,
+    pub rulebook_files: Vec<RulebookFile>,
+    pub filter_answers: Vec<IdentifiedResult<sunstack_rules::FilterAnswer>>,
+    pub filter_skips: Vec<IdentifiedResult<sunstack_rules::FilterSkip>>,
     pub version: String,
     pub config: PathBuf,
     pub scope: ScopeReport,
@@ -233,6 +240,9 @@ pub struct LintReport {
 impl LintReport {
     pub(crate) fn empty(config: PathBuf, scope: ScopeChoice, limits: EffectiveLimits) -> Self {
         Self {
+            piece_evidence: BTreeMap::new(),
+            requests: vec![],
+            rulebook_files: vec![],
             filter_answers: vec![],
             filter_skips: vec![],
             version: env!("CARGO_PKG_VERSION").into(),
@@ -271,6 +281,11 @@ pub enum PieceOutcome {
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RulePieceResult {
+    pub text_sha256: Option<String>,
+    pub id: usize,
+    pub request_ids: Vec<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gap: Option<sunstack_rules::RulebookIncompleteReason>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locator_omitted: Option<sunstack_rules::LocatorOmission>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

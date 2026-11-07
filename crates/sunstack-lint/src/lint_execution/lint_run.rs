@@ -107,6 +107,11 @@ pub async fn run_with_source(
             ),
         );
     }
+    report.rulebook_files =
+        match crate::lint_reporting::saved_reports::capture_files(&checked.inputs) {
+            Ok(files) => files,
+            Err(_) => return failed(report, "rulebook snapshot unavailable"),
+        };
     report.skipped_rules = checked.assembly.skipped.clone();
     if !report.skipped_rules.is_empty() {
         report.incomplete.push(IncompletePart {
@@ -589,11 +594,21 @@ pub async fn run_with_source(
         &folders,
         &catalog.pieces,
         &config.evidence.kinds,
+        &catalog.matches,
         report.limits.evidence_max_chars as usize,
         &mut dispatcher,
     )
     .await;
-    report.filter_answers = filter_answers.entries.clone();
+    report.filter_answers = filter_answers
+        .entries
+        .iter()
+        .cloned()
+        .map(|value| IdentifiedResult {
+            id: 0,
+            request_ids: vec![],
+            value,
+        })
+        .collect();
     let run = run_rulebook_with_dispatcher(
         &checked.assembly.rules,
         &pieces,
@@ -602,6 +617,14 @@ pub async fn run_with_source(
         &filter_answers,
     )
     .await;
+    crate::lint_reporting::saved_reports::capture_requests(
+        &mut report,
+        &run,
+        &filter_answers,
+        &checked.assembly.rules,
+        &pieces,
+        &dispatcher.settings.backend,
+    );
     let mut report = crate::lint_reporting::outcome::project_outcome(
         run,
         &checked.assembly.rules,
@@ -610,6 +633,31 @@ pub async fn run_with_source(
         request.max_warnings,
         cancellation.is_cancelled(),
     );
+    for answer in &report.filter_answers {
+        if let Some(piece) = filter_answers
+            .pieces
+            .get(&(answer.filter.clone(), answer.folder.clone()))
+        {
+            report.piece_evidence.insert(
+                answer.id,
+                SavedPieceEvidence {
+                    piece: piece.clone(),
+                    matches: Default::default(),
+                },
+            );
+        }
+    }
+    for saved in report.piece_evidence.values_mut() {
+        if let Some(index) = catalog.matches.get(&saved.piece.location.file) {
+            saved.matches = index.by_rule.clone();
+        }
+    }
+    for result in &mut report.results {
+        result.text_sha256 = catalog
+            .piece_text_hashes
+            .get(&(result.file.clone(), result.first_line, result.last_line))
+            .cloned();
+    }
     report.usage = crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired);
     report
 }

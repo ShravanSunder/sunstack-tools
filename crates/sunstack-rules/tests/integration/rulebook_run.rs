@@ -15,9 +15,8 @@ use tokio::sync::Notify;
 
 fn rule() -> RulebookRule {
     let mut entry = fixture::entry_json("K001");
-    entry["questions"] =
-        json!({"q":{"type":"noul","instructions":{"check":"body","task":"Does it comply?"}}});
-    entry["decision"] = json!({"start":"q","steps":{"q":{"ask":"q","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Not compliant.","at":"body"}}}});
+    entry["questions"] = json!({"q":{"type":"noul","instructions":{"check":"body","context":["where"],"task":"Does it comply?"}}});
+    entry["decision"] = json!({"start":"q","steps":{"q":{"ask":"q","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Not compliant.","at":"body"},"uncertain":"uncertain"}}});
     let entry: RuleEntryWire = serde_json::from_value(entry).unwrap();
     let mut rule = fixture::rule("K001");
     rule.questions = entry.questions.clone();
@@ -365,7 +364,7 @@ async fn uncertain_handoff_reuses_the_one_request_with_all_questions() {
     for routed in [false, true] {
         let mut entry = fixture::entry_json("K001");
         entry["questions"] = json!({"gate":{"type":"noul","instructions":{"check":"body","task":"Is it eligible?"}},"verdict":{"type":"noul","instructions":{"check":"body","task":"Does it comply?"}}});
-        entry["decision"] = json!({"start":"gate","steps":{"gate":{"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"not_applicable"},"verdict":{"ask":"verdict","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable"}}});
+        entry["decision"] = json!({"start":"gate","steps":{"gate":{"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"not_applicable","uncertain":"uncertain"},"verdict":{"ask":"verdict","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable","uncertain":"uncertain"}}});
         if routed {
             entry["decision"]["steps"]["gate"]["uncertain"] = json!("verdict");
         }

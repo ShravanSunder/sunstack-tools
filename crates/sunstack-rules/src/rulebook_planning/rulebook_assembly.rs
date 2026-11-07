@@ -223,6 +223,7 @@ pub fn assemble_rulebook(
             match (bound, entry, graph) {
                 (Some(binding), Some(entry), Some(graph)) if errors.items.is_empty() => {
                     assembly.rules.push(RulebookRule {
+                        reference: entry.reference,
                         gate: entry
                             .only_when
                             .as_ref()

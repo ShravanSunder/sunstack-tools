@@ -1,7 +1,7 @@
 use super::*;
 
 fn filter() -> serde_json::Value {
-    json!({"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"What is this work for?"},"criteria":{"general":"General work","role":"A role","domain":"A domain","tool_manual":"A tool","repo_specific":"One product"}},"min_probability":0.7})
+    json!({"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","fields":["description"]},"labels":["general","role","domain","tool_manual","repo_specific"],"questions":{"filter":{"type":"choice","instructions":{"task":"What is this work for?","check":"description"},"criteria":{"general":"General work","role":"A role","domain":"A domain","tool_manual":"A tool","repo_specific":"One product"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.7,"routes":{"general":{"label":"general"},"role":{"label":"role"},"domain":{"label":"domain"},"tool_manual":{"label":"tool_manual"},"repo_specific":{"label":"repo_specific"}},"uncertain":"unsure"}}}})
 }
 
 #[tokio::test]
@@ -22,20 +22,32 @@ async fn filters_admit_native_choice_and_refuse_each_invalid_declaration_at_its_
         ("/per", json!("{name}/{name}"), "per"),
         ("/reads/file", json!(""), "reads.file"),
         ("/reads/kind", json!("missing"), "reads.kind"),
-        ("/reads/field", json!("missing"), "reads.field"),
+        ("/reads/fields", json!(["missing"]), "reads.fields"),
         (
-            "/question",
+            "/questions/filter",
             json!({"type":"noul","instructions":{}}),
-            "question",
+            "questions.filter",
         ),
-        ("/question/criteria", json!({"one":"Only one"}), "question"),
         (
-            "/question",
-            json!({"type":"choice","task":"Wrong envelope","criteria":{"one":"One","two":"Two"}}),
-            "question",
+            "/questions/filter/criteria",
+            json!({"one":"Only one"}),
+            "questions.filter",
         ),
-        ("/min_probability", json!(0), "min_probability"),
-        ("/min_probability", json!(1.01), "min_probability"),
+        (
+            "/questions/filter",
+            json!({"type":"choice","task":"Wrong envelope","criteria":{"one":"One","two":"Two"}}),
+            "questions.filter",
+        ),
+        (
+            "/decision/steps/filter/min_probability",
+            json!(0),
+            "decision.steps.filter",
+        ),
+        (
+            "/decision/steps/filter/min_probability",
+            json!(1.01),
+            "decision.steps.filter",
+        ),
     ] {
         let mut config = baseline.clone();
         *config["filters"]["kind"].pointer_mut(pointer).unwrap() = bad;
@@ -68,7 +80,7 @@ async fn filters_admit_native_choice_and_refuse_each_invalid_declaration_at_its_
         else {
             panic!()
         };
-        assert!(diagnostics[0].message.contains("filters.kind.reads.field"));
+        assert!(diagnostics[0].message.contains("filters.kind.reads.fields"));
     }
     for field in ["select", "within"] {
         let mut config = baseline.clone();
@@ -130,9 +142,26 @@ async fn filter_choice_admission_refuses_256_at_exact_criteria_path_with_count_a
         let root = tempfile::tempdir().unwrap();
         let mut config = fixture::write(root.path());
         let mut declaration = filter();
-        declaration["question"]["criteria"] = serde_json::to_value(
+        declaration["questions"]["filter"]["criteria"] = serde_json::to_value(
             (0..count)
                 .map(|index| (format!("option{index}"), "Option"))
+                .collect::<std::collections::BTreeMap<_, _>>(),
+        )
+        .unwrap();
+        declaration["labels"] = serde_json::to_value(
+            (0..count)
+                .map(|index| format!("option{index}"))
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        declaration["decision"]["steps"]["filter"]["routes"] = serde_json::to_value(
+            (0..count)
+                .map(|index| {
+                    (
+                        format!("option{index}"),
+                        json!({"label":format!("option{index}")}),
+                    )
+                })
                 .collect::<std::collections::BTreeMap<_, _>>(),
         )
         .unwrap();
@@ -152,7 +181,7 @@ async fn filter_choice_admission_refuses_256_at_exact_criteria_path_with_count_a
             assert!(
                 diagnostics.iter().any(|diagnostic| diagnostic
                     .message
-                    .contains("filters.kind.question.criteria")
+                    .contains("filters.kind.questions.filter.criteria")
                     && diagnostic.message.contains("256")
                     && diagnostic.message.contains("255")),
                 "{diagnostics:?}"
@@ -167,7 +196,7 @@ async fn filter_choice_admission_refuses_256_at_exact_criteria_path_with_count_a
             assert!(report.diagnostics.iter().any(|diagnostic| {
                 diagnostic
                     .message
-                    .contains("filters.kind.question.criteria")
+                    .contains("filters.kind.questions.filter.criteria")
                     && diagnostic.message.contains("256")
                     && diagnostic.message.contains("255")
             }));

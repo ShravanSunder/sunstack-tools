@@ -42,10 +42,10 @@ async fn cut_fields_are_visible_in_requests_rows_and_uncertain_state_beside_auth
     for over_cap in [false, true] {
         let root = limit_fixture(
             json!({"body":{"from":"remainder"},"cut":{"from":"capture","regex":"^(authored cut)"}}),
-            json!({"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.95,"no_at_or_below":0.9,"yes":"pass","no":{"finding":"Needs work."}}}}),
+            json!({"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.95,"no_at_or_below":0.9,"yes":"pass","no":{"finding":"Needs work."},"uncertain":"uncertain"}}}),
         );
         let mut entries = read(&root.path().join("rules.json"));
-        entries["K001"]["questions"] = json!({"quality":{"type":"noul","instructions":{"check":"body","task":"Does it comply?"}}});
+        entries["K001"]["questions"] = json!({"quality":{"type":"noul","instructions":{"check":"body","context":["cut"],"task":"Does it comply?"}}});
         save(&root.path().join("rules.json"), &entries);
         std::fs::write(
             root.path().join("docs/one.md"),
@@ -104,13 +104,13 @@ async fn judged_pass_drop_and_incomplete_keep_the_walks_answers_not_the_requests
     let root = limit_fixture(
         json!({"body":{"from":"remainder"},"description":{"from":"yaml","key":"description"}}),
         json!({"start":"gate","steps":{
-            "gate":{"ask":"gate","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":"check","no":"not_applicable"},
+            "gate":{"ask":"gate","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":"check","no":"not_applicable","uncertain":"uncertain"},
             "check":{"mechanical_check":{"tool":"contains","field":"description","text":"finding"},"yes":{"finding":"Read the standard."},"no":"pass"}
         }}),
     );
     let mut entries = read(&root.path().join("rules.json"));
     entries["K001"]["questions"] = json!({
-        "gate":{"type":"noul","instructions":{"check":"body","task":"Does it apply?"}},
+        "gate":{"type":"noul","instructions":{"check":"body","context":["where"],"task":"Does it apply?"}},
         "unused":{"type":"noul","instructions":{"check":"body","task":"Not read on this path."}}
     });
     save(&root.path().join("rules.json"), &entries);
@@ -162,12 +162,15 @@ async fn judged_pass_drop_and_incomplete_keep_the_walks_answers_not_the_requests
         ("b-pass.md", "pass", "check", json!(["gate", "check"]), 0.9),
         ("c-finding.md", "finding", "check", json!(["gate", "check"]), 0.9),
         ("d-incomplete.md", "incomplete", "check", json!(["gate", "check"]), 0.9),
-    ].map(|(file, outcome, step, path, probability)| {
+    ].into_iter().enumerate().map(|(index, (file, outcome, step, path, probability))| {
         let mut row = json!({"name":"document_standard","marker":"K001","file":format!("docs/{file}"),"first_line":1,"last_line":4,"outcome":outcome,"step":step,"path":path,"answers":{"gate":{"type":"noul","yes_probability":probability}}});
-        if outcome != "incomplete" { row["basis"] = json!("judged"); }
+        if outcome != "incomplete" { row["basis"] = json!("judged"); } else { row["gap"] = json!("evidence_unavailable"); }
+        row["id"] = json!(index + 1);
+        row["request_ids"] = json!([index + 1]);
+        row["text_sha256"] = json!(sunstack_evidence::content_digest(&std::fs::read(root.path().join("docs").join(file)).unwrap()));
         row
     });
-    assert_eq!(report["results"], json!(expected));
+    assert_eq!(report["results"], json!(expected.collect::<Vec<_>>()));
     assert_eq!(report["findings"][0]["basis"], "judged");
     assert_eq!(
         report["incomplete"][0]["reason"]["kind"],

@@ -279,9 +279,25 @@ fn pinned_step_fields_and_path_and_skill_loads_keep_their_sources() {
             .iter()
             .find(|target| target.name == "practices-research")
             .unwrap();
-        assert!(target.opening.is_none());
-        assert!(target.opening_last_line.is_none());
-        assert!(!target.opening_cut);
+        assert_eq!(target.path, Path::new("skills/practices-research/SKILL.md"));
+        let source_text =
+            std::fs::read_to_string(root.join("skills/practices-research/SKILL.md")).unwrap();
+        let sunstack_evidence::FieldSource::Target { opening_chars, .. } = &settings.kinds
+            [&EvidenceKindName::new("load").unwrap()]
+            .fields[&FieldName::new("targets").unwrap()]
+        else {
+            panic!("fixture targets must use the target collector")
+        };
+        let expected_opening: String = source_text.chars().take(*opening_chars).collect();
+        assert_eq!(target.opening.as_ref(), Some(&expected_opening));
+        assert_eq!(
+            target.opening_last_line,
+            Some(expected_opening.lines().count())
+        );
+        assert_eq!(
+            target.opening_cut,
+            source_text.chars().count() > *opening_chars
+        );
     }
     let skill = catalog
         .pieces

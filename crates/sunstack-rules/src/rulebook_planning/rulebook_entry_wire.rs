@@ -1,9 +1,11 @@
 use crate::{DecisionGraph, DecisionGraphWire, RuleId, Severity};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 use sunstack_decisions::NamedQuestionMap;
 use sunstack_evidence::{EvidenceKindName, FieldName, MarkerId};
+
+pub type ReferenceMaterial = BTreeMap<String, sunstack_decisions::StructuredJson>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -19,6 +21,8 @@ pub struct RuleEntryWire {
     pub evidence: EvidenceKindName,
     #[serde(default)]
     pub questions: NamedQuestionMap,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub reference: ReferenceMaterial,
     pub decision: DecisionGraphWire,
     #[serde(default)]
     pub severity: Severity,
@@ -46,6 +50,7 @@ pub struct RulebookSentence {
 }
 #[derive(Debug, Clone)]
 pub struct RulebookRule {
+    pub reference: ReferenceMaterial,
     pub gate: Option<crate::OnlyWhenGate>,
     pub name: RuleId,
     pub sentence: RulebookSentence,

@@ -10,7 +10,7 @@ fn configured(root: &Path) -> Value {
         "heading":{"inline_rule":"{language: Markdown, rule: {kind: atx_heading}}","fields":{"body":{"from":"first_line"}}},
         "description":{"inline_rule":"{language: Markdown, rule: {matches: frontmatter}}","fields":{"description":{"from":"yaml","key":"description"}}}
     });
-    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"description","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify description"},"criteria":{"a":"A","b":"B"}},"min_probability":0.7}});
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"description","fields":["description"]},"labels":["a","b"],"questions":{"filter":{"type":"choice","instructions":{"task":"Classify description","check":"description"},"criteria":{"a":"A","b":"B"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.7,"routes":{"a":{"label":"a"},"b":{"label":"b"}},"uncertain":"unsure"}}}}});
     config["decision_model"]["endpoint"] = json!("http://127.0.0.1:1/v1/systemone");
     fixture::entry_file(
         root,

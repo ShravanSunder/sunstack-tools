@@ -6,7 +6,7 @@ fn located_fixture(case: &str) -> (tempfile::TempDir, String) {
     let decision = if case == "mechanical" {
         json!({"start":"check","steps":{"check":{"mechanical_check":{"tool":"contains","field":"heading","text":"Subject"},"yes":finding,"no":"pass"}}})
     } else {
-        json!({"start":"gate","steps":{"gate":{"ask":"gate","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":finding,"no":"pass"}}})
+        json!({"start":"gate","steps":{"gate":{"ask":"gate","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":finding,"no":"pass","uncertain":"uncertain"}}})
     };
     let root = limit_fixture(
         json!({"heading":{"from":"first_line"},"body":{"from":"remainder"},"enclosing":{"from":"enclosing","rule":"document","text":"full"}}),
@@ -154,6 +154,13 @@ async fn locator_anchors_follow_requested_probabilities_and_leave_the_field_span
                     "body"
                 };
                 assert_eq!(question["instructions"]["check"], field);
+                if case == "enclosing" {
+                    assert_eq!(
+                        request["state"]["enclosing"],
+                        json!([&text]),
+                        "locator-only field must be present in the sole request"
+                    );
+                }
                 assert_eq!(question["criteria"]["L17"], "Target line.");
                 let offered = question["criteria"]
                     .as_object()

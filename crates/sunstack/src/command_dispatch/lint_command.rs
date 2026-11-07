@@ -1,5 +1,5 @@
 use crate::{
-    command_dispatch::command_line::LintArguments,
+    command_dispatch::command_line::{LintArguments, LintCommand},
     process_runtime::process_signals::{ProcessSignals, operational_message},
 };
 use std::{
@@ -103,6 +103,47 @@ async fn inspect(arguments: &LintArguments, cancellation: CancellationToken) -> 
     }
 }
 async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> ExitCode {
+    if let Some(LintCommand::Show { file, id }) = &arguments.command {
+        let report = std::fs::read(file)
+            .map_err(|error| error.to_string())
+            .and_then(|bytes| {
+                serde_json::from_slice::<sunstack_lint::LintReport>(&bytes)
+                    .map_err(|error| error.to_string())
+            });
+        return match report
+            .and_then(|report| sunstack_lint::lint_reporting::saved_reports::show(&report, *id))
+        {
+            Ok(detail) => json_output(&detail),
+            Err(error) => {
+                let _ = writeln!(io::stderr().lock(), "sunstack: {error}");
+                ExitCode::from(2)
+            }
+        };
+    }
+    if let Some(LintCommand::Cases { file, set }) = &arguments.command {
+        let executable = match std::env::current_exe() {
+            Ok(path) => path,
+            Err(_) => return output("Cannot locate sunstack executable.", 3),
+        };
+        return match sunstack_lint::case_runs::run_cases(
+            file,
+            arguments.config.as_deref(),
+            set.as_deref(),
+            &executable,
+            cancellation,
+        )
+        .await
+        {
+            Ok(report) => match serde_json::to_string_pretty(&report) {
+                Ok(text) => output(&text, report.exit_code()),
+                Err(_) => output("Unable to encode case report.", 3),
+            },
+            Err(error) => {
+                let _ = writeln!(io::stderr().lock(), "sunstack: {error}");
+                ExitCode::from(2)
+            }
+        };
+    }
     if arguments.init {
         return match tokio::task::spawn_blocking(|| {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -159,6 +200,15 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         credential,
     )
     .await;
+    if let Some(path) = &arguments.report {
+        let saved = serde_json::to_vec_pretty(&report)
+            .map_err(|error| error.to_string())
+            .and_then(|bytes| std::fs::write(path, bytes).map_err(|error| error.to_string()));
+        if let Err(error) = saved {
+            let _ = writeln!(io::stderr().lock(), "sunstack: cannot save report: {error}");
+            return ExitCode::from(3);
+        }
+    }
     if let Some(listing) = &report.evidence_listing {
         return match serde_json::to_string_pretty(listing) {
             Ok(text) => output(&text, report.status.exit_code()),

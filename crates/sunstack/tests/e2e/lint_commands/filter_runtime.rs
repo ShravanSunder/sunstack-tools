@@ -14,7 +14,7 @@ async fn unused_description_cannot_change_a_successful_heading_only_cli_run() {
     config["check"]["files"] = json!(["packages/*/member.md"]);
     config["limits"] = json!({"max_files":1});
     config["evidence"]["kinds"]["heading"] = json!({"inline_rule":"{language: Markdown, rule: {kind: atx_heading}}","fields":{"body":{"from":"first_line"}}});
-    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify"},"criteria":{"a":"A","b":"B"}},"min_probability":0.7}});
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","fields":["description"]},"labels":["a","b"],"questions":{"filter":{"type":"choice","instructions":{"task":"Classify","check":"description"},"criteria":{"a":"A","b":"B"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.7,"routes":{"a":{"label":"a"},"b":{"label":"b"}},"uncertain":"unsure"}}}}});
     config["decision_model"]["endpoint"] = json!("http://127.0.0.1:1/v1/systemone");
     fixture::config_file(root.path(), &config);
     let mut entries: Value =
@@ -92,7 +92,7 @@ async fn real_cli_filter_answers_skips_status_schema_and_keyless_surfaces() {
         )
         .unwrap();
         config["check"]["files"] = json!(["packages/*/references/*.md"]);
-        config["filters"] = json!({"purpose":{"per":if scenario=="no_folder" {"other/{name}"}else{"packages/{name}"},"reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify"},"criteria":{"a":"A","b":"B"}},"min_probability":0.7}});
+        config["filters"] = json!({"purpose":{"per":if scenario=="no_folder" {"other/{name}"}else{"packages/{name}"},"reads":{"file":"about.md","kind":"skill","fields":["description"]},"labels":["a","b"],"questions":{"filter":{"type":"choice","instructions":{"task":"Classify","check":"description"},"criteria":{"a":"A","b":"B"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.7,"routes":{"a":{"label":"a"},"b":{"label":"b"}},"uncertain":"unsure"}}}}});
         let mut entries: Value =
             serde_json::from_slice(&std::fs::read(root.path().join("rules.json")).unwrap())
                 .unwrap();
@@ -159,9 +159,9 @@ async fn real_cli_filter_answers_skips_status_schema_and_keyless_surfaces() {
         let human = sunstack_lint::render(&report, OutputFormat::Default);
         assert!(
             human.contains(if scenario == "no_folder" {
-                "Skipped"
+                "skipped"
             } else {
-                "Filter purpose"
+                "Filters:"
             }),
             "{human}"
         );

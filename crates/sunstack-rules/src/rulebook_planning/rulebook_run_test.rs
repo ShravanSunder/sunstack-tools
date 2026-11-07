@@ -39,7 +39,10 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
         };
         let mut dispatcher = ModelRequestDispatch::new(settings, None, CancellationToken::new());
         let mut answers = FilterAnswers {
+            pieces: Default::default(),
+            not_sent: vec![],
             entries: vec![],
+            requests: vec![],
             folders: BTreeMap::from([(
                 (filter.clone(), piece.location.file.clone()),
                 "folder".into(),
@@ -47,20 +50,24 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
         };
         for state in [
             FilterAnswerState::Judged {
-                answer: b.clone(),
-                probability: 0.8,
-                probabilities: BTreeMap::from([(a.clone(), 0.2), (b.clone(), 0.8)]),
+                label: b.clone(),
+                path: vec![],
+                answers: BTreeMap::new(),
             },
             FilterAnswerState::Unsure {
-                answer: ChoiceLabel::new("a").unwrap(),
-                probability: 0.3,
-                probabilities: BTreeMap::from([(a.clone(), 0.3), (b.clone(), 0.7)]),
+                step: crate::StepName::new("kind").unwrap(),
+                path: vec![],
+                answers: BTreeMap::new(),
             },
             FilterAnswerState::Incomplete {
                 reason: FilterIncomplete::ReadsAbsent,
+                field: None,
+                path: vec![],
+                answers: BTreeMap::new(),
             },
         ] {
             answers.entries = vec![FilterAnswer {
+                reads_sha256: None,
                 filter: filter.clone(),
                 folder: "folder".into(),
                 input_cut: false,
@@ -94,9 +101,9 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
             }
         }
         answers.entries[0].state = FilterAnswerState::Judged {
-            answer: a.clone(),
-            probability: 0.7,
-            probabilities: BTreeMap::from([(a, 0.7), (b, 0.3)]),
+            label: a.clone(),
+            path: vec![],
+            answers: BTreeMap::new(),
         };
         FIRST_WALKS.with(|walks| walks.set(0));
         let run = run_rulebook_with_dispatcher(

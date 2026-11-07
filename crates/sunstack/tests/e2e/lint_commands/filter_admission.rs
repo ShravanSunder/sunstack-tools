@@ -4,7 +4,7 @@ use super::*;
 async fn filter_declarations_and_gates_refuse_through_real_check_and_run() {
     let root = tempfile::tempdir().unwrap();
     let mut baseline = fixture::write(root.path());
-    baseline["filters"] = json!({"kind":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify work"},"criteria":{"general":"General","role":"Role","domain":"Domain","tool_manual":"Tool","repo_specific":"Product"}},"min_probability":0.83}});
+    baseline["filters"] = json!({"kind":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","fields":["description"]},"labels":["general","role","domain","tool_manual","repo_specific"],"questions":{"filter":{"type":"choice","instructions":{"task":"Classify work","check":"description"},"criteria":{"general":"General","role":"Role","domain":"Domain","tool_manual":"Tool","repo_specific":"Product"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.83,"routes":{"general":{"label":"general"},"role":{"label":"role"},"domain":{"label":"domain"},"tool_manual":{"label":"tool_manual"},"repo_specific":{"label":"repo_specific"}},"uncertain":"unsure"}}}}});
     fixture::config_file(root.path(), &baseline);
     invoke(root.path(), &["--check"], 0).await;
     for (pointer, value, path) in [
@@ -13,25 +13,37 @@ async fn filter_declarations_and_gates_refuse_through_real_check_and_run() {
         ("/per", json!("{name}/{name}"), "per"),
         (
             "/reads",
-            json!({"kind":"skill","field":"description"}),
+            json!({"kind":"skill","fields":["description"]}),
             "reads",
         ),
         ("/reads/file", json!(""), "reads.file"),
         ("/reads/kind", json!("unknown"), "reads.kind"),
-        ("/reads/field", json!("unknown"), "reads.field"),
+        ("/reads/fields", json!(["unknown"]), "reads.fields"),
         (
-            "/question",
-            json!({"type":"noul","instructions":{}}),
-            "question",
+            "/questions/filter",
+            json!({"type":"noul","instructions":{"check":"description"}}),
+            "decision.steps.filter",
         ),
-        ("/question/criteria", json!({"one":"One"}), "question"),
         (
-            "/question",
+            "/questions/filter/criteria",
+            json!({"one":"One"}),
+            "questions.filter",
+        ),
+        (
+            "/questions/filter",
             json!({"type":"choice","task":"Wrong","criteria":{"one":"One","two":"Two"}}),
-            "question",
+            "questions.filter",
         ),
-        ("/min_probability", json!(0), "min_probability"),
-        ("/min_probability", json!(1.1), "min_probability"),
+        (
+            "/decision/steps/filter/min_probability",
+            json!(0),
+            "decision.steps.filter",
+        ),
+        (
+            "/decision/steps/filter/min_probability",
+            json!(1.1),
+            "decision.steps.filter",
+        ),
     ] {
         let mut config = baseline.clone();
         *config["filters"]["kind"].pointer_mut(pointer).unwrap() = value;

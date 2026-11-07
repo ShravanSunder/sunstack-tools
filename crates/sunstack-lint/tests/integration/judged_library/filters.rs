@@ -15,7 +15,7 @@ fn setup(root: &Path, endpoint: &str) -> Value {
     config["evidence"]["kinds"]["member"] =
         json!({"rule":"member","fields":{"description":{"from":"first_line"}}});
     config["check"]["files"] = json!(["packages/*/references/*.md"]);
-    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify purpose"},"criteria":{"a":"A","b":"B"}},"min_probability":0.7}});
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","fields":["description"]},"labels":["a","b"],"questions":{"filter":{"type":"choice","instructions":{"task":"Classify purpose","check":"description"},"criteria":{"a":"A","b":"B"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.7,"routes":{"a":{"label":"a"},"b":{"label":"b"}},"uncertain":"unsure"}}}}});
     config["decision_model"]["endpoint"] = json!(endpoint);
     for folder in ["one", "two"] {
         std::fs::create_dir_all(root.join(format!("packages/{folder}/references"))).unwrap();
@@ -84,17 +84,22 @@ async fn filter_selected_probability_controls_skips_exclusions_and_same_process_
     let (unsure, bodies) = execute(root.path(), server, 0.3, "a").await;
     assert_eq!(bodies.len(), 2, "{unsure:?}");
     assert!(
-        bodies
-            .iter()
-            .all(|body| body["questions"]["filter"] == config["filters"]["purpose"]["question"])
+        bodies.iter().all(|body| body["questions"]["filter"]
+            == config["filters"]["purpose"]["questions"]["filter"])
     );
     assert_eq!(unsure.status, LintStatus::Uncertain);
     let unsure = serde_json::to_value(unsure).unwrap();
     assert_eq!(unsure["filter_skips"].as_array().unwrap().len(), 2);
     assert!(unsure["results"].as_array().unwrap().is_empty());
     assert_eq!(unsure["filter_answers"][0]["state"], "unsure");
-    assert_eq!(unsure["filter_answers"][0]["answer"], "a");
-    assert_eq!(unsure["filter_answers"][0]["probability"], 0.3);
+    assert_eq!(
+        unsure["filter_answers"][0]["answers"]["filter"]["selected_label"],
+        "a"
+    );
+    assert_eq!(
+        unsure["filter_answers"][0]["answers"]["filter"]["probabilities"]["a"],
+        0.3
+    );
 
     let server = ControlledServer::start().await;
     config["decision_model"]["endpoint"] = json!(server.endpoint);
@@ -125,7 +130,7 @@ async fn filter_selected_probability_controls_skips_exclusions_and_same_process_
         assert_eq!(result["outcome"], "not_applicable");
         assert_eq!(result["basis"], "judged");
         assert_eq!(result["reason"]["kind"], "filter");
-        assert_eq!(result["reason"]["answer"], "b");
+        assert_eq!(result["reason"]["label"], "b");
         assert_eq!(result["path"], json!([]));
     }
 }
@@ -201,14 +206,17 @@ async fn filters_send_only_the_projected_field_and_preserve_cut_metadata_and_enc
         config["evidence"]["kinds"]["skill"]["fields"]["secret"] =
             json!({"from":"yaml","key":"secret"});
         config["evidence"]["kinds"]["skill"]["max_chars"] = json!(1000);
-        config["filters"]["purpose"]["reads"]["field"] = json!("folder");
-        config["filters"]["purpose"]["min_probability"] = json!(0.83);
+        config["filters"]["purpose"]["reads"]["fields"] = json!(["folder"]);
+        config["filters"]["purpose"]["questions"]["filter"]["instructions"]["check"] =
+            json!("folder");
+        config["filters"]["purpose"]["decision"]["steps"]["filter"]["min_probability"] =
+            json!(0.83);
         fixture::config_file(root.path(), &config);
         std::fs::write(root.path().join("packages/one/about.md"),format!("---\ndescription: {description}\nsecret: NOT_FOR_THE_MODEL\n---\n\nNOT_FOR_THE_MODEL\n")).unwrap();
         let (report, bodies) = execute(root.path(), server, 0.85, "a").await;
         assert_eq!(bodies.len(), 1);
         let state = &bodies[0]["state"];
-        assert_eq!(state["where"]["folder"], "packages/one");
+        assert!(state.get("where").is_none());
         assert!(
             state["folder"]
                 .as_str()
@@ -228,7 +236,7 @@ async fn filters_send_only_the_projected_field_and_preserve_cut_metadata_and_enc
             "typesafe/controlled"
         );
         assert_eq!(
-            value["filter_answers"][0]["probabilities"]["b"],
+            value["filter_answers"][0]["answers"]["filter"]["probabilities"]["b"],
             json!(1.0 - 0.85)
         );
         let server = ControlledServer::start().await;
@@ -285,7 +293,7 @@ async fn selection_filter_and_rule_share_the_request_allowance_and_usage() {
             serde_json::from_slice(&std::fs::read(root.path().join("rules.json")).unwrap())
                 .unwrap();
         entries["K001"]["questions"] = json!({"complies":{"type":"noul","instructions":{"task":"Complies?","check":"description"}}});
-        entries["K001"]["decision"] = json!({"start":"ask","steps":{"ask":{"ask":"complies","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable"}}});
+        entries["K001"]["decision"] = json!({"start":"ask","steps":{"ask":{"ask":"complies","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable","uncertain":"uncertain"}}});
         fixture::entry_file(root.path(), &entries);
         fixture::config_file(root.path(), &config);
         let (report, bodies) = execute(root.path(), server, 0.9, "a").await;
@@ -319,8 +327,8 @@ async fn ungated_choice_exclusion_is_identical_with_filters_absent_or_declared()
     let mut entries: Value =
         serde_json::from_slice(&std::fs::read(root.path().join("rules.json")).unwrap()).unwrap();
     entries["K001"].as_object_mut().unwrap().remove("only_when");
-    entries["K001"]["questions"] = json!({"verdict":{"type":"choice","instructions":{"task":"Judge member"},"criteria":{"a":"A","b":"B"}}});
-    entries["K001"]["decision"] = json!({"start":"verdict","steps":{"verdict":{"ask":"verdict","min_probability":0.7,"routes":{"a":"pass","b":"not_applicable"}}}});
+    entries["K001"]["questions"] = json!({"verdict":{"type":"choice","instructions":{"task":"Judge member","check":"description"},"criteria":{"a":"A","b":"B"}}});
+    entries["K001"]["decision"] = json!({"start":"verdict","steps":{"verdict":{"ask":"verdict","min_probability":0.7,"routes":{"a":"pass","b":"not_applicable"},"uncertain":"uncertain"}}});
     fixture::entry_file(root.path(), &entries);
     fixture::config_file(root.path(), &config);
     let (baseline, requests) = execute(root.path(), server, 0.2, "b").await;
@@ -337,6 +345,25 @@ async fn ungated_choice_exclusion_is_identical_with_filters_absent_or_declared()
     assert_eq!(declared_requests, requests);
     assert!(declared.filter_answers.is_empty());
     assert!(declared.filter_skips.is_empty());
+    let mut declared = serde_json::to_value(declared).unwrap();
+    let mut baseline = serde_json::to_value(baseline).unwrap();
+    for (report, has_filters) in [(&mut baseline, false), (&mut declared, true)] {
+        let config = report["rulebook_files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|file| {
+                file["path"]
+                    .as_str()
+                    .unwrap()
+                    .ends_with("sunstack.lint.json")
+            })
+            .unwrap();
+        let config: Value = serde_json::from_str(config["content"].as_str().unwrap()).unwrap();
+        assert_eq!(config.get("filters").is_some(), has_filters);
+        // Saved source provenance changes with the declaration; behavior and requests must not.
+        report.as_object_mut().unwrap().remove("rulebook_files");
+    }
     assert_eq!(
         serde_json::to_vec(&declared).unwrap(),
         serde_json::to_vec(&baseline).unwrap()
@@ -431,12 +458,18 @@ async fn two_gated_rules_share_answers_across_three_member_files_and_a_second_fo
     assert_eq!(report.results.len(), 8);
     assert_eq!(report.counts.error, 8);
     assert!(report.filter_skips.is_empty());
-    assert_eq!(
+    assert!(
         bodies
             .iter()
-            .map(|body| body["state"]["where"]["folder"].as_str().unwrap())
+            .all(|body| body["state"].get("where").is_none())
+    );
+    assert_eq!(
+        report
+            .filter_answers
+            .iter()
+            .map(|answer| answer.folder.to_string_lossy().to_string())
             .collect::<std::collections::BTreeSet<_>>(),
-        ["packages/one", "packages/two"].into()
+        ["packages/one".into(), "packages/two".into()].into()
     );
 }
 

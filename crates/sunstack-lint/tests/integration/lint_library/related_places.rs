@@ -56,6 +56,9 @@ async fn related_places_preserve_standard_target_and_heading_order_and_only_read
             expected
                 .push(json!({"label":"targets","file":"target.md","first_line":1,"last_line":3}));
         }
+        if case == "skill" {
+            expected.push(json!({"label":"targets","file":"references/reference/SKILL.md","first_line":1,"last_line":3}));
+        }
         if case != "standard" {
             expected
                 .push(json!({"label":"heading","file":"docs/one.md","first_line":1,"last_line":1}));

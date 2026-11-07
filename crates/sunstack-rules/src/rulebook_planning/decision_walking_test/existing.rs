@@ -1,5 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 use super::super::*;
+use crate::DecisionStep;
 use crate::rulebook_planning::rulebook_test_support as fixture;
 use serde_json::json;
 use sunstack_evidence::{FieldUnavailable, project_model_view};
@@ -8,7 +9,7 @@ mod locator_answers {
 
     #[test]
     fn reached_locators_read_their_answer_while_unreached_and_left_out_locators_keep_the_default() {
-        let gate = json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"pass"});
+        let gate = json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"pass","uncertain":"uncertain"});
         let verdict = json!({"mechanical_check":{"tool":"contains","field":"body","text":"line"},"yes":{"finding":"Read here.","at":"body","locate":{"name":"focus_line","task":"Choose a line.","min_probability":0.7}},"no":"pass"});
         let mut rule = routed_rule(gate, verdict);
         let mut piece = fixture::piece();
@@ -314,7 +315,7 @@ fn routed_rule(gate: serde_json::Value, verdict: serde_json::Value) -> RulebookR
     rule
 }
 fn verdict_step() -> serde_json::Value {
-    json!({"ask":"verdict","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable"})
+    json!({"ask":"verdict","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable","uncertain":"uncertain"})
 }
 fn gate_step() -> serde_json::Value {
     json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":"not_applicable","uncertain":"verdict"})
@@ -410,7 +411,7 @@ fn uncertain_targets_use_existing_undefined_and_cycle_admission() {
 #[test]
 fn every_outcome_keeps_only_answers_read_and_incomplete_walk_history() {
     let mechanical = json!({"mechanical_check":{"tool":"contains","field":"body","text":"Choose"},"yes":{"finding":"Read this section.","at":"body"},"no":"pass"});
-    let gate = json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"not_applicable"});
+    let gate = json!({"ask":"gate","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"verdict","no":"not_applicable","uncertain":"uncertain"});
     let supplied: NamedAnswerMap = serde_json::from_value(json!({"gate":{"type":"noul","yes_probability":0.9},"verdict":{"type":"noul","yes_probability":0.1}})).unwrap();
     for (probability, unavailable, start, expected, path, read_gate) in [
         (

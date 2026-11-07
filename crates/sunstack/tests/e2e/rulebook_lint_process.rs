@@ -1,11 +1,17 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 use sunstack_rules::test_support::controlled_http as controlled;
+#[path = "rulebook_lint_process/case_runs.rs"]
+mod case_runs;
+#[path = "rulebook_lint_process/collected_state.rs"]
+mod collected_state;
 #[path = "rulebook_lint_process/json_evidence.rs"]
 mod json_evidence;
 #[path = "rulebook_lint_process/locator_anchors.rs"]
 mod locator_anchors;
 #[path = "rulebook_lint_process/result_history.rs"]
 mod result_history;
+#[path = "rulebook_lint_process/saved_reports.rs"]
+mod saved_reports;
 #[path = "../support/mod.rs"]
 mod support;
 use serde_json::{Value, json};
@@ -81,6 +87,14 @@ fn model_response(body: &Value, combine: f64) -> Value {
     json!({"model":"typesafe/controlled","answers":answers,"usage":{"input_tokens":20,"output_tokens":5,"cost":0.001}})
 }
 async fn judged(root: &Path, combine: f64, exit: i32) -> (Value, Vec<Vec<u8>>) {
+    judged_with_args(root, combine, exit, &[]).await
+}
+async fn judged_with_args(
+    root: &Path,
+    combine: f64,
+    exit: i32,
+    args: &[&str],
+) -> (Value, Vec<Vec<u8>>) {
     let mut server = controlled::ControlledServer::start().await;
     let config_path = root.join("skill-rules.config.json");
     let mut config = read(&config_path);
@@ -88,6 +102,7 @@ async fn judged(root: &Path, combine: f64, exit: i32) -> (Value, Vec<Vec<u8>>) {
     save(&config_path, &config);
     let child = command(root)
         .args(["--all", "--format", "json"])
+        .args(args)
         .env("OPENROUTER_API_KEY", "SYNTHETIC_RULEBOOK_KEY")
         .output();
     let mut operation = tokio::spawn(child);
@@ -190,9 +205,18 @@ async fn binary_lists_native_evidence_and_drives_worked_examples_and_uncertain_p
     ] {
         let rendered = sunstack_lint::render(&typed, format);
         assert!(
-            rendered.contains("quality") && rendered.contains("checkable"),
-            "uncertain step and evidence missing: {format:?}"
+            rendered.contains("quality"),
+            "uncertain step missing: {format:?}"
         );
+        if format == sunstack_lint::OutputFormat::Default {
+            assert!(!rendered.contains("checkable"));
+            assert!(rendered.contains(&format!("#{}", typed.uncertain[0].id)));
+        } else {
+            assert!(
+                rendered.contains("checkable"),
+                "machine format must retain answers: {format:?}"
+            );
+        }
     }
 }
 
@@ -332,7 +356,7 @@ async fn json_results_distinguish_each_piece_outcome_and_ending_step_in_report_o
             "gate":{"mechanical_check":{"tool":"contains","field":"body","text":"skip"},"yes":"not_applicable","no":"classify"},
             "classify":{"mechanical_check":{"tool":"contains","field":"body","text":"finding"},"yes":{"finding":"Wrong content."},"no":"local_pass"},
             "local_pass":{"mechanical_check":{"tool":"contains","field":"body","text":"pass"},"yes":"pass","no":"quality"},
-            "quality":{"ask":"covers","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Low quality."}}
+            "quality":{"ask":"covers","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Low quality."},"uncertain":"uncertain"}
         }}),
     );
     let path = root.path().join("rules.json");
@@ -361,7 +385,7 @@ async fn json_results_distinguish_each_piece_outcome_and_ending_step_in_report_o
     }
     let (report, bodies) = judged(root.path(), 0.79, 1).await;
     assert_eq!(bodies.len(), 1);
-    let expected = cases.map(|(file,outcome,step)| {
+    let expected = cases.into_iter().enumerate().map(|(index,(file,outcome,step))| {
         let path = match step {
             "gate" => json!(["gate"]),
             "classify" => json!(["gate", "classify"]),
@@ -370,9 +394,12 @@ async fn json_results_distinguish_each_piece_outcome_and_ending_step_in_report_o
         };
         let mut row = json!({"name":"document_standard","marker":"K001","file":format!("docs/{file}"),"first_line":1,"last_line":1,"outcome":outcome,"step":step,"path":path,"basis":if outcome == "uncertain" { "judged" } else { "mechanical" }});
         if outcome == "uncertain" { row["answers"] = json!({"covers":{"type":"noul","yes_probability":0.65}}); }
+        row["id"] = json!(index + 1);
+        row["request_ids"] = if outcome == "uncertain" { json!([1]) } else { json!([]) };
+        row["text_sha256"] = json!(sunstack_evidence::content_digest(&std::fs::read(root.path().join("docs").join(file)).unwrap()));
         row
     });
-    assert_eq!(report["results"], json!(expected));
+    assert_eq!(report["results"], json!(expected.collect::<Vec<_>>()));
     let typed: sunstack_lint::LintReport = serde_json::from_value(report.clone()).unwrap();
     assert_eq!(serde_json::to_value(typed).unwrap(), report);
     assert_eq!(report["exclusions"]["not_applicable"], 1);
@@ -385,7 +412,7 @@ async fn literal_cut_looking_tail_reaches_the_real_asking_path() {
     for tail in ["ordinary author text", "[cut: literal author text]"] {
         let root = limit_fixture(
             json!({"items":{"from":"same_file","rule":"paragraph"}}),
-            json!({"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Needs work."}}}}),
+            json!({"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.8,"no_at_or_below":0.6,"yes":"pass","no":{"finding":"Needs work."},"uncertain":"uncertain"}}}),
         );
         let mut entries = read(&root.path().join("rules.json"));
         entries["K001"]["questions"] = json!({"quality":{"type":"noul","instructions":{"check":"items","task":"Does this document meet the standard?"}}});

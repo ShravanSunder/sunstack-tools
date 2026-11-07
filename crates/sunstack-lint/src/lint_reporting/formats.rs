@@ -146,23 +146,43 @@ pub(crate) fn uncertain_text(result: &UncertainResult) -> String {
 }
 fn human(report: &LintReport) -> String {
     let mut output = format!("Scope: {}\n", scope_text(&report.scope));
-    for answer in &report.filter_answers {
-        let state = serde_json::to_string(&answer.state).unwrap_or_else(|_| "incomplete".into());
+    if !report.filter_answers.is_empty() {
+        let mut labels = std::collections::BTreeMap::<String, usize>::new();
+        let mut unsure = 0;
+        let mut incomplete = 0;
+        for answer in &report.filter_answers {
+            match &answer.state {
+                sunstack_rules::FilterAnswerState::Judged { label, .. } => {
+                    *labels
+                        .entry(format!("{}={}", answer.filter.as_str(), label.as_str()))
+                        .or_default() += 1
+                }
+                sunstack_rules::FilterAnswerState::Unsure { .. } => unsure += 1,
+                sunstack_rules::FilterAnswerState::Incomplete { .. } => incomplete += 1,
+            }
+        }
+        let counts = labels
+            .into_iter()
+            .map(|(label, count)| format!("{label}: {count}"))
+            .collect::<Vec<_>>()
+            .join(", ");
         let _ = writeln!(
             output,
-            "Filter {} at {}: {state}",
-            answer.filter.as_str(),
-            answer.folder.display()
+            "Filters: {counts}; {unsure} unsure, {incomplete} incomplete"
         );
     }
     for skip in &report.filter_skips {
         let _ = writeln!(
             output,
-            "Skipped [{}] {}: filter {} ({:?})",
-            skip.rule.as_str(),
+            "{}:{}: skipped [{}] filter {} ({:?}) #{}",
             skip.file.display(),
+            skip.locations
+                .first()
+                .map_or(1, |location| location.first_line),
+            skip.rule.as_str(),
             skip.filter.as_str(),
-            skip.why
+            skip.why,
+            skip.id
         );
     }
     for finding in &report.findings {
@@ -174,10 +194,11 @@ fn human(report: &LintReport) -> String {
         let location = format!("{}:{}:{column}", finding.file.display(), finding.line);
         let _ = writeln!(
             output,
-            "{location}: {} [{}] {}",
+            "{location}: {} [{}] {} #{}",
             severity_name(finding.severity),
             finding.rule.as_str(),
-            finding.message
+            finding.message,
+            finding.id
         );
         if let Some(omission) = &finding.locator_omitted {
             let _ = writeln!(
@@ -248,11 +269,31 @@ fn human(report: &LintReport) -> String {
     for result in &report.uncertain {
         let _ = writeln!(
             output,
-            "{}:{}: {}",
+            "{}:{}-{}: unsure [{}] at step {} #{}",
             result.location.file.display(),
             result.location.first_line,
-            uncertain_text(result)
+            result.location.last_line,
+            result.rule.as_str(),
+            result.step.as_str(),
+            result.id
         );
+    }
+    for result in &report.results {
+        if let Some(gap) = &result.gap {
+            let reason = incomplete_text(
+                &crate::lint_reporting::outcome::rulebook_incomplete_reason(*gap),
+            );
+            let _ = writeln!(
+                output,
+                "{}:{}-{}: incomplete [{}] {} #{}",
+                result.file.display(),
+                result.first_line,
+                result.last_line,
+                result.name.as_str(),
+                reason,
+                result.id
+            );
+        }
     }
     for diagnostic in &report.diagnostics {
         let _ = writeln!(
@@ -267,7 +308,7 @@ fn human(report: &LintReport) -> String {
             diagnostic.message
         );
     }
-    for incomplete in &report.incomplete {
+    for incomplete in report.incomplete.iter().filter(|part| part.rule.is_none()) {
         let _ = writeln!(
             output,
             "Incomplete: {} ({})",

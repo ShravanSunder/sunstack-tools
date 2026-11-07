@@ -181,6 +181,30 @@ impl EvidenceBuild {
                     right.location.span.byte_start,
                 ))
         });
+        for piece in &catalog.pieces {
+            if let Some(file) = self.matched.get(&piece.location.file) {
+                let text = file
+                    .text
+                    .split_inclusive('\n')
+                    .skip(piece.location.first_line.saturating_sub(1))
+                    .take(
+                        piece
+                            .location
+                            .last_line
+                            .saturating_sub(piece.location.first_line)
+                            + 1,
+                    )
+                    .collect::<String>();
+                catalog.piece_text_hashes.insert(
+                    (
+                        piece.location.file.clone(),
+                        piece.location.first_line,
+                        piece.location.last_line,
+                    ),
+                    content_digest(text.as_bytes()),
+                );
+            }
+        }
         for (file, content) in &self.contents {
             if let Err(
                 error
