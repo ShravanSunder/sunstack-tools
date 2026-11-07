@@ -364,5 +364,22 @@ test.each([1280, 390])(
 		});
 		await expect.poll((): string => fixture.getSelection()?.toString() ?? '').not.toBe('');
 		expect(text.textContent).toContain(fixture.getSelection()?.toString());
+		const summary = requiredElement(fixture, '#story-main > summary');
+		summary.scrollIntoView({ block: 'center', behavior: 'instant' });
+		const titleRect = firstTextRect(requiredElement(summary, '.ex-story-title'));
+		await commands.dragReviewSelection({
+			startX: titleRect.left + 1,
+			startY: titleRect.top + titleRect.height / 2,
+			endX: titleRect.left + 100,
+			endY: titleRect.top + titleRect.height / 2,
+		});
+		await expect.poll((): string => fixture.getSelection()?.toString() ?? '').not.toBe('');
+		expect(summary.textContent).toContain(fixture.getSelection()?.toString());
+		expect(requiredElement(fixture, '#story-main').hasAttribute('open')).toBe(true);
+		expect(fixture.activeElement).toBe(summary);
+		await userEvent.keyboard('{Enter}');
+		expect(requiredElement(fixture, '#story-main').hasAttribute('open')).toBe(false);
+		await userEvent.keyboard(' ');
+		expect(requiredElement(fixture, '#story-main').hasAttribute('open')).toBe(true);
 	},
 );

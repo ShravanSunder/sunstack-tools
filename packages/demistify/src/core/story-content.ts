@@ -76,8 +76,20 @@ export function prepareStoryDisclosure(
 	metadata: string | undefined,
 ): void {
 	const summary = details.querySelector(':scope > summary');
-	if (!summary || details.classList.contains('ex-story-disclosure')) return;
+	if (!(summary instanceof HTMLElement) || details.classList.contains('ex-story-disclosure'))
+		return;
 	details.classList.add('ex-story-disclosure');
+	summary.addEventListener('click', (event: MouseEvent): void => {
+		const selection = summary.ownerDocument.getSelection();
+		// A drag selects the account's title; Enter/Space and ordinary clicks still toggle it.
+		if (
+			event.detail > 0 &&
+			selection &&
+			!selection.isCollapsed &&
+			selection.containsNode(summary, true)
+		)
+			event.preventDefault();
+	});
 	const label = document.createElement('span');
 	label.className = 'ex-story-title';
 	label.append(...Array.from(summary.childNodes));
