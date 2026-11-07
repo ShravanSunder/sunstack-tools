@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.1
+
+Release date: 2026-11-06.
+
+- Filters accept list-shaped text fields, including `same_file` openings, alongside
+  scalar text. Requests preserve bounded lists and cut metadata; input hashes and
+  saved reports retain the raw declared values.
+
 ## 0.8.0
 
 Release date: 2026-11-06.

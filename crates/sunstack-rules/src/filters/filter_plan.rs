@@ -193,11 +193,12 @@ pub fn admit_filters(
             errors.push(AdmissionRefusal {field_path:path.with_key("reads").with_key("kind"),message:"filter reads must be a directly collected kind, not selected or within another kind".into()});
         }
         for field in &fields {
-            if !kind
-                .fields
-                .get(field)
-                .is_some_and(|source| source.shape() == sunstack_evidence::FieldShape::Text)
-                || RESERVED_STATE_KEYS.contains(&field.as_str())
+            if !kind.fields.get(field).is_some_and(|source| {
+                matches!(
+                    source.shape(),
+                    sunstack_evidence::FieldShape::Text | sunstack_evidence::FieldShape::Texts
+                )
+            }) || RESERVED_STATE_KEYS.contains(&field.as_str())
             {
                 errors.push(AdmissionRefusal {
                     field_path: path.with_key("reads").with_key("fields"),

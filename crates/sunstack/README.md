@@ -62,7 +62,9 @@ Filters declare `per`, `reads: {file, kind, fields: [names]}`, `labels`,
 as rules and end in `{ "label": "declared-name" }` or `"unsure"`. Question
 option names are not filter endings. All of a folder's questions go in one
 request; a gate uses the resulting label. The old `question`, `reads.field` and
-filter-level `min_probability` shape is refused.
+filter-level `min_probability` shape is refused. Declared reads accept scalar
+text and lists of text, including `same_file` matches; lists keep their shape
+in request state, raw input hashes and saved evidence.
 
 Each question names the fields or reference paths it reads with `check`,
 `against` or `context` in its instructions. Fixed `reference` material reaches
