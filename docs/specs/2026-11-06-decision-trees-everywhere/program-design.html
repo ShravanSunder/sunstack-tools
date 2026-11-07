@@ -207,7 +207,8 @@ flowchart LR
 </script></ex-mermaid>
 <p><strong>A case file</strong> (D4) holds:</p>
 <ul>
-<li><strong>Rule cases:</strong> <code>{kind: "rule", rule, file, revision, lines, text_sha256, expected: "warn" | "pass", set, label_from: "owner-fix" | "blind-agents"}</code>.</li>
+<li><strong>Rule cases:</strong> <code>{kind: "rule", rule, file, revision, lines, text_sha256, expected: "warn" | "pass", set, label_from: "owner-fix" | "owner-ruling" | "blind-agents"}</code>.</li>
+<li><code>owner-fix</code> means your own real text fix (it feeds before/after pairs); <code>owner-ruling</code> means a label you set by a ruling, such as a U16 row, recorded beside the case; <code>blind-agents</code> means independent agent labels, with disagreements sent to you.</li>
 <li><strong>Filter cases:</strong> <code>{kind: "filter", filter, folder, revision, reads_sha256, expected_label, set, label_from}</code>. <code>reads_sha256</code> hashes the compact JSON of the filter's declared field values as the filter collected them in the run, and is carried on each filter result in the saved report. A rule case's <code>text_sha256</code> is checked against exactly the case's own lines, read from the file at the case's revision; the rule result's own hash covers its whole piece and is kept only as a record, since a case may match a piece wider than its lines. Either way, a case goes stale only when the text it names changes.</li>
 <li><strong>The rule's bars</strong> as recorded beside the development cases that set them: <code>bars: [{for, step, bound, value, set_from: [case ids]}]</code>, where <code>for</code> names the rule or filter and <code>bound</code> is <code>yes_at_or_above</code>, <code>no_at_or_below</code> or <code>min_probability</code> (U18).</li>
 <li>An optional <code>repository</code> path, for cases from another local checkout (U19).</li>
