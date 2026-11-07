@@ -61,6 +61,7 @@ pub struct EvidenceProject {
     pub rules: Arc<RuleCollection<SupportLang>>,
     pub rule_ids: BTreeSet<crate::EvidenceRuleId>,
     pub inputs: Vec<PathBuf>,
+    rule_directories: Vec<PathBuf>,
     rule_languages: BTreeMap<crate::EvidenceRuleId, EvidenceLanguage>,
 }
 
@@ -119,6 +120,10 @@ pub struct FileMatchIndex {
 }
 
 impl EvidenceProject {
+    /// Declared rule directories resolved against the ast-grep config directory.
+    pub fn rule_directories(&self) -> &[PathBuf] {
+        &self.rule_directories
+    }
     pub fn language_for_rule(&self, rule: &crate::EvidenceRuleId) -> Option<EvidenceLanguage> {
         self.rule_languages.get(rule).copied()
     }
@@ -362,6 +367,11 @@ pub fn load_evidence_project(
         rules: Arc::new(rules),
         rule_ids,
         inputs,
+        rule_directories: settings
+            .rule_dirs
+            .iter()
+            .map(|folder| base.join(folder))
+            .collect(),
         rule_languages,
     })
 }

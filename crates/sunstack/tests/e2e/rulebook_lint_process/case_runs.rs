@@ -66,7 +66,7 @@ async fn cases_use_historical_source_and_account_for_wrong_stale_and_missing_row
     );
 }
 
-fn commit_tree(root: &Path) -> String {
+pub(super) fn commit_tree(root: &Path) -> String {
     let repository = git2::Repository::init(root).unwrap();
     let mut index = repository.index().unwrap();
     index

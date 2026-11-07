@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 use sunstack_rules::test_support::controlled_http as controlled;
+#[path = "rulebook_lint_process/case_overlay.rs"]
+mod case_overlay;
 #[path = "rulebook_lint_process/case_runs.rs"]
 mod case_runs;
 #[path = "rulebook_lint_process/collected_state.rs"]
