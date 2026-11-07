@@ -20,7 +20,7 @@ import {
 import { prepareReportFixture, gapReportFile, skippedReportFolder } from './rulebook-report.ts';
 
 export const casesOracle =
-	'aa2f850:docs/specs/2026-11-06-decision-trees-everywhere/verification-design.html#o6';
+	'0567445:docs/specs/2026-11-06-decision-trees-everywhere/verification-design.html#o6';
 export const casesConfigName = 'configuration/skill-rules.config.json';
 export const historicReferenceFile = `${includedFolder}/references/history.md`;
 export const historicalOpening = 'HISTORICAL_EXTERNAL_OPENING_SENTINEL.\n';
@@ -29,6 +29,9 @@ export const historicalDescription = 'General instructions for an included folde
 const ambiguousFile = `${includedFolder}/notes/ambiguous.md`;
 const unmatchedFile = `${includedFolder}/notes/unmatched.md`;
 const mustPassFile = `${includedFolder}/notes/must-pass.md`;
+export const unrelatedFolder = 'plugins/unrelated/skills/no-case';
+export const unrelatedDescription = 'Unrelated folder guidance.';
+export const unrelatedMember = `${unrelatedFolder}/notes/one.md`;
 
 function contentHash(text: string): string {
 	return createHash('sha256').update(text).digest('hex');
@@ -70,6 +73,15 @@ function fileAt(index: number): string {
 /** Whole-repository revisions distinguish historical filter and external load context from today's files. */
 export function prepareCasesFixture(destination: string): JsonObject {
 	prepareReportFixture(destination);
+	filesystem.mkdirSync(path.join(destination, unrelatedFolder, 'notes'), { recursive: true });
+	filesystem.writeFileSync(
+		path.join(destination, unrelatedFolder, 'overview.md'),
+		`---\ndescription: ${unrelatedDescription}\nopening: Unrelated opening.\n---\n`,
+	);
+	filesystem.writeFileSync(
+		path.join(destination, unrelatedMember),
+		'Approved UNRELATED_CASE_SCOPE_SENTINEL.\n',
+	);
 	filesystem.mkdirSync(path.join(destination, includedFolder, 'references'), { recursive: true });
 	filesystem.mkdirSync(path.join(destination, 'external'), { recursive: true });
 	filesystem.writeFileSync(path.join(destination, 'external/context.md'), historicalOpening);
@@ -145,6 +157,14 @@ export function prepareCasesFixture(destination: string): JsonObject {
 			id: 'unsure',
 			file: fileAt(2),
 			revision: historical,
+			expected: 'pass',
+		}),
+		ruleCase({
+			root: destination,
+			id: 'filter-skipped-must-pass',
+			file: `${skippedReportFolder}/notes/one.md`,
+			revision: historical,
+			lines: [5, 5],
 			expected: 'pass',
 		}),
 		ruleCase({
@@ -287,6 +307,17 @@ export function prepareCasesFixture(destination: string): JsonObject {
 		historical,
 		current,
 		config: casesConfigName,
+		checked_files: [
+			...includedMembers,
+			gapReportFile,
+			mustPassFile,
+			ambiguousFile,
+			unmatchedFile,
+			historicReferenceFile,
+			excludedMember,
+			`${skippedReportFolder}/notes/one.md`,
+			unrelatedMember,
+		],
 		rule_cases: cases,
 		filter_cases: filterCases,
 		expected_dispositions: {
@@ -294,6 +325,7 @@ export function prepareCasesFixture(destination: string): JsonObject {
 			'must-pass': 'right',
 			'must-warn': 'right',
 			unsure: 'unsure',
+			'filter-skipped-must-pass': 'unsure',
 			incomplete: 'incomplete',
 			stale: 'stale',
 			unmatched: 'no_matching_piece',

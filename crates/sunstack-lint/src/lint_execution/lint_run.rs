@@ -633,6 +633,20 @@ pub async fn run_with_source(
         request.max_warnings,
         cancellation.is_cancelled(),
     );
+    for answer in &report.filter_answers {
+        if let Some(piece) = filter_answers
+            .pieces
+            .get(&(answer.filter.clone(), answer.folder.clone()))
+        {
+            report.piece_evidence.insert(
+                answer.id,
+                SavedPieceEvidence {
+                    piece: piece.clone(),
+                    matches: Default::default(),
+                },
+            );
+        }
+    }
     for saved in report.piece_evidence.values_mut() {
         if let Some(index) = catalog.matches.get(&saved.piece.location.file) {
             saved.matches = index.by_rule.clone();

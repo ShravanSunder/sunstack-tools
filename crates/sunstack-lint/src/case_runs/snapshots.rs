@@ -136,7 +136,7 @@ pub(super) fn prepare(
 async fn invoke(
     executable: &Path,
     snapshot: &RevisionSnapshot,
-    evidence: bool,
+    paths: &[PathBuf],
     cancellation: &CancellationToken,
 ) -> Result<std::process::Output, String> {
     let mut command = tokio::process::Command::new(executable);
@@ -145,12 +145,9 @@ async fn invoke(
         .arg("lint")
         .arg("--config")
         .arg(&snapshot.config)
-        .arg("--all");
-    if evidence {
-        command.arg("--evidence");
-    } else {
-        command.args(["--format", "json"]);
-    }
+        .args(["--format", "json"])
+        .arg("--")
+        .args(paths);
     command.kill_on_drop(true);
     tokio::select! {
         biased;
@@ -161,9 +158,13 @@ async fn invoke(
 pub(super) async fn lint(
     executable: &Path,
     snapshot: &RevisionSnapshot,
+    paths: &[PathBuf],
     cancellation: &CancellationToken,
 ) -> Result<LintReport, String> {
-    let output = invoke(executable, snapshot, false, cancellation).await?;
+    if paths.is_empty() {
+        return Err("no existing selected case paths at this revision".into());
+    }
+    let output = invoke(executable, snapshot, paths, cancellation).await?;
     serde_json::from_slice(&output.stdout).map_err(|error| {
         format!(
             "normal lint report unavailable: {error}; {}",

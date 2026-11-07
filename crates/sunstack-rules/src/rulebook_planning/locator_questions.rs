@@ -67,7 +67,7 @@ pub(super) fn add_locators(
     piece: &EvidencePiece,
     dispatcher: &ModelRequestDispatch,
     request: &mut StructuredJudgmentRequest,
-) -> Result<(), sunstack_decisions::ChoiceOptionsExceeded> {
+) -> Result<(), crate::DispatchRefusal> {
     for step in rule.decision.steps.values() {
         let routes: Vec<&DecisionRoute> = match step {
             DecisionStep::Mechanical { yes, no, .. } => vec![yes, no],
@@ -113,7 +113,14 @@ pub(super) fn add_locators(
                     criteria,
                 },
             );
-            sunstack_decisions::validate_choice_options(&candidate.questions)?;
+            candidate.state = super::decision_walking::piece_state_for_questions(
+                rule,
+                piece,
+                &candidate.questions,
+            )
+            .map_err(|_| crate::DispatchRefusal::InvalidRequest)?;
+            sunstack_decisions::validate_choice_options(&candidate.questions)
+                .map_err(crate::DispatchRefusal::ChoiceOptionsExceeded)?;
             if dispatcher.assess_selection(&candidate).is_ok() {
                 *request = candidate;
             }

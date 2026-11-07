@@ -154,6 +154,13 @@ async fn locator_anchors_follow_requested_probabilities_and_leave_the_field_span
                     "body"
                 };
                 assert_eq!(question["instructions"]["check"], field);
+                if case == "enclosing" {
+                    assert_eq!(
+                        request["state"]["enclosing"],
+                        json!([&text]),
+                        "locator-only field must be present in the sole request"
+                    );
+                }
                 assert_eq!(question["criteria"]["L17"], "Target line.");
                 let offered = question["criteria"]
                     .as_object()

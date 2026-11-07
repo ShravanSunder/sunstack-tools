@@ -111,19 +111,43 @@ pub async fn run_cases(
             &files,
             &case_files,
         ) {
-            Ok(snapshot) => match snapshots::lint(executable, &snapshot, &cancellation).await {
-                Ok(report) => {
-                    runs.push(RevisionRun {
-                        revision: revision.clone(),
-                        resolved_revision: snapshot.resolved_revision.clone(),
-                        report,
-                    });
-                    snapshots.insert(revision, snapshot);
+            Ok(snapshot) => {
+                let input_paths = selected
+                    .iter()
+                    .filter(|case| case.revision == revision)
+                    .filter_map(|case| {
+                        let path = match &case.subject {
+                            CaseSubject::Rule { file, .. }
+                                if snapshot.tree.join(file).is_file() =>
+                            {
+                                file
+                            }
+                            CaseSubject::Filter { folder, .. }
+                                if snapshot.tree.join(folder).is_dir() =>
+                            {
+                                folder
+                            }
+                            _ => return None,
+                        };
+                        Some(path.clone())
+                    })
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                match snapshots::lint(executable, &snapshot, &input_paths, &cancellation).await {
+                    Ok(report) => {
+                        runs.push(RevisionRun {
+                            revision: revision.clone(),
+                            resolved_revision: snapshot.resolved_revision.clone(),
+                            report,
+                        });
+                        snapshots.insert(revision, snapshot);
+                    }
+                    Err(error) => {
+                        errors.insert(revision, error);
+                    }
                 }
-                Err(error) => {
-                    errors.insert(revision, error);
-                }
-            },
+            }
             Err(error) => {
                 errors.insert(revision, error);
             }
@@ -161,7 +185,7 @@ pub async fn run_cases(
                         .find(|result| result.id == id)
                         .map(|result| {
                             bars::crossings(
-                                result.name.as_str(),
+                                bars::BarOwner::Rule(&result.name),
                                 &result.path,
                                 &result.answers,
                                 &checked,
@@ -190,7 +214,26 @@ pub async fn run_cases(
                                             ..
                                         } => (path, answers),
                                     };
-                                    bars::crossings(result.filter.as_str(), path, answers, &checked)
+                                    bars::crossings(
+                                        bars::BarOwner::Filter(&result.filter),
+                                        path,
+                                        answers,
+                                        &checked,
+                                    )
+                                })
+                        })
+                        .or_else(|| {
+                            run.report
+                                .filter_skips
+                                .iter()
+                                .find(|skip| skip.id == id)
+                                .map(|skip| {
+                                    bars::crossings(
+                                        bars::BarOwner::Filter(&skip.filter),
+                                        &skip.path,
+                                        &skip.answers,
+                                        &checked,
+                                    )
                                 })
                         })
                 })

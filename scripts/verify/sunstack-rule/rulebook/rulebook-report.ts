@@ -34,6 +34,10 @@ import {
 	type JourneyArguments,
 } from './rulebook-fixture-support.ts';
 import {
+	prepareMechanicalFilterFixture,
+	observeMechanicalFilter,
+} from './rulebook-mechanical-filter.ts';
+import {
 	declaredTarget,
 	responseBody,
 	RulebookProcess,
@@ -42,7 +46,7 @@ import {
 } from './rulebook-process.ts';
 
 export const reportOracle =
-	'aa2f850:docs/specs/2026-11-06-decision-trees-everywhere/verification-design.html#o5';
+	'0567445:docs/specs/2026-11-06-decision-trees-everywhere/verification-design.html#o5';
 export const skippedReportFolder = 'plugins/three/skills/review';
 export const skippedDescription = 'Uncertain report guidance.';
 export const gapReportFile = `${includedFolder}/notes/four.md`;
@@ -142,6 +146,17 @@ export function requireReportRequestShape(body: JsonObject): void {
 	} else {
 		requireCondition(!('where' in state), 'Unasked rule location leaked');
 		equal(state['reference'], reportRuleReference, 'Reference changed');
+		equal(
+			state['locator_context'],
+			state['body'],
+			'Generated locator-only field is absent from the shared request',
+		);
+		const locator = objectValue(objectValue(body['questions'])['focus_line']);
+		equal(
+			objectValue(locator['instructions'])['check'],
+			'locator_context',
+			'Locator checked the wrong named field',
+		);
 	}
 	requireCondition(!JSON.stringify(state).includes(excludedFolder), 'Folder path leaked');
 }
@@ -401,6 +416,28 @@ export async function runReportJourney(options: JourneyArguments): Promise<void>
 	const evidence = path.resolve(options.evidence);
 	filesystem.mkdirSync(evidence);
 	const root = prepareReportFixture(path.join(evidence, 'fixture'));
+	// O5 alone adds a generated locator field; O6 reuses the unmodified fixture builder.
+	configure(root, (config) => {
+		objectValue(
+			objectValue(objectValue(objectValue(config['evidence'])['kinds'])['subject'])['fields'],
+		)['locator_context'] = { from: 'remainder' };
+	});
+	const rules = readObject(path.join(root, rulesName));
+	const finding = objectValue(
+		objectValue(objectValue(objectValue(rules['K002'])['decision'])['steps'])['approved'],
+	);
+	finding['no'] = {
+		...objectValue(finding['no']),
+		['at']: 'locator_context',
+		locate: {
+			name: 'focus_line',
+			task: 'Choose the line that needs attention.',
+			min_probability: 0.7,
+		},
+	};
+	writeJson(path.join(root, rulesName), rules);
+	const mechanicalRoot = path.join(evidence, 'mechanical-filter-fixture');
+	prepareMechanicalFilterFixture(mechanicalRoot);
 	if (options.prepare) {
 		writeJson(path.join(evidence, 'prepared.json'), {
 			product_observed: false,
@@ -515,6 +552,7 @@ export async function runReportJourney(options: JourneyArguments): Promise<void>
 			requireSingleDetail(detail, row, report);
 			equal(detail, details.get(id), 'Saved explanation depends on changed/deleted rulebook');
 		});
+		await observeMechanicalFilter(observer, mechanicalRoot, evidence);
 	} finally {
 		await observer.close();
 	}

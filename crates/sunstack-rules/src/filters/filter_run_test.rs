@@ -43,7 +43,7 @@ fn tree_filter_requests_only_declared_text_and_reference_without_folder_identity
         members: vec![],
         reads: ReadsPiece::One(0),
     };
-    let prepared = request_for(
+    let collected = filter_piece_for(
         &plan,
         &folder,
         &[piece()],
@@ -52,6 +52,7 @@ fn tree_filter_requests_only_declared_text_and_reference_without_folder_identity
     )
     .ok()
     .unwrap();
+    let prepared = request_for(&plan, collected).ok().unwrap();
     let request = serde_json::to_value(prepared.request).unwrap();
     assert_eq!(request["questions"].as_object().unwrap().len(), 2);
     assert_eq!(

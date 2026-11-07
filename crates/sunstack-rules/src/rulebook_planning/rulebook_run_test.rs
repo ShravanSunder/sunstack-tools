@@ -39,6 +39,7 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
         };
         let mut dispatcher = ModelRequestDispatch::new(settings, None, CancellationToken::new());
         let mut answers = FilterAnswers {
+            pieces: Default::default(),
             not_sent: vec![],
             entries: vec![],
             requests: vec![],

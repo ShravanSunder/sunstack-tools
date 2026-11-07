@@ -1,6 +1,6 @@
 # Decision trees: reports and case runs
 
-Use the Specification, Program Design and Verification Design at `aa2f85061e5cf7c4aec9e2959b278e497cf86e36`, under `docs/specs/2026-11-06-decision-trees-everywhere/`. O4's filter recipe is in [rulebook-lint.md](rulebook-lint.md#filters-tree-routes-and-shared-gates-o4). Preparation proves no product behavior.
+Use the Specification, Program Design and Verification Design at `05674456542773666901e651210130f55879ab17`, under `docs/specs/2026-11-06-decision-trees-everywhere/`. O4's filter recipe is in [rulebook-lint.md](rulebook-lint.md#filters-tree-routes-and-shared-gates-o4). Preparation proves no product behavior.
 
 ## Entry and readiness
 
@@ -25,6 +25,8 @@ Drive `sunstack lint show <report> <id>` for each required result kind. Require 
 
 This catches copied section text, altered/missing saved requests, requested model substituted for responding model, lost unused answers/tree/bars, show returning every entry and explanation depending on current files. The keyed ai-tools run stays separate Lead-owned evidence.
 
+The generated locator checks `locator_context`, a field absent from authored questions. Require that field in the sole rule request and saved request, with the locator's question beside the authored verdict. A separate filter fixture declares a long opening used only by mechanical contains and AST-match steps. Require one filter request that omits the opening, a saved raw opening containing its middle control token, a cut projection without that token, and the collected AST matches under the filter ID in `piece_evidence`. `lint show` must retain that evidence and identical detail after deleting its source context, match rule and rulebook files. Raw data and matches reconstruct the mechanical route; a completed model answer alone cannot.
+
 ## O6: cases through lint
 
 Isolated Git revisions hold a whole small repository with its config in `configuration/skill-rules.config.json`. The ordinary comparison archives initialize fresh Git metadata only inside those disposable trees, preserving the normal repository root for nested config; they copy no real repository metadata and use no worktree-add path. The historical revision has a skill reference, folder filter context and a loaded file outside checked paths. The current revision changes all three. Captured requests distinguish historical context from today's files. Match using real case ranges/hashes. Normal lint records each filter result's `reads_sha256` (compact JSON of collected unprojected declared field values, lexical keys, without reference/cut metadata/folder). Filter cases compare that hash. Rule cases hash exactly their own archived source lines with line endings retained; a rule result's full-piece `text_sha256` is provenance. `--evidence` is not used to widen context collection. Recorded bars explicitly name `for`, `step`, `bound`, `value` and `set_from`.
@@ -32,6 +34,8 @@ Isolated Git revisions hold a whole small repository with its config in `configu
 Cover warn/pass/must-pass, right/wrong filter labels, unsure/stale/unmatched/ambiguous/excluded, historical context and changed bars. Every ID occurs exactly once in a scored outcome or listed disposition; assert identities and exact counts. Excluded must-pass does not meet its obligation. Compare lint/cases on identical text; ordinary lint bytes before/after stay identical. Changed bars are unassessed. An always-unsure planted rule fails both must-warn and must-pass.
 
 Case labels/hashes/spans stay out of model requests. Authored reference examples can contain their own labels; compare exact state instead of banning the word `expected`. Keep case output/requests, revision/hash identity, before/after bytes, changed-bar and always-unsure evidence. Cases write nothing lint reads.
+
+An unrelated checked folder remains in both complete archives. Compare case runs with ordinary lint on authored selected rule files and checked members of selected filter folders, never `--all`. A held-out-only selected rule case has a two-request limit: one filter plus one rule; all development cases remain unselected. Require exact HTTP equality with direct named-path lint and no unrelated-folder request. Repeat with the same result and unchanged threshold but held-out, different-owner and unknown `set_from` IDs; only the affected bar must be unassessed with a reason. Valid development provenance stays assessed. A known unsure filter-skipped rule case must retain its actual Choice bar and probability, while unmatched/ambiguous cases have no invented crossing.
 
 This catches missing cases, scoring stale/ambiguous cases, excluded cases counted as success, reading current historical dependencies, missing external loads, stored results gating lint and always-unsure satisfying must-pass.
 

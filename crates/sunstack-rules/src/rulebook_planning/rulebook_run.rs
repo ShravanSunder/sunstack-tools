@@ -175,7 +175,7 @@ pub async fn run_rulebook_with_dispatcher(
                 match super::locator_questions::add_locators(rule, piece, dispatcher, &mut request)
                 {
                     Ok(()) => dispatcher.submit(request.clone()).await,
-                    Err(error) => Err(DispatchRefusal::ChoiceOptionsExceeded(error)),
+                    Err(refusal) => Err(refusal),
                 };
             match submitted {
                 Ok(id) => {

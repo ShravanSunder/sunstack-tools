@@ -75,6 +75,7 @@ pub struct FilterAnswers {
     pub folders: BTreeMap<(FilterName, PathBuf), PathBuf>,
     pub requests: Vec<FilterRequestRecord>,
     pub not_sent: Vec<UnsentFilterRequest>,
+    pub pieces: BTreeMap<(FilterName, PathBuf), EvidencePiece>,
 }
 
 struct PreparedFilterRequest {
@@ -87,13 +88,13 @@ struct FilterRequestFailure {
     reason: FilterIncomplete,
     field: Option<sunstack_evidence::FieldName>,
 }
-fn request_for(
+fn filter_piece_for(
     plan: &FilterPlan,
     folder: &FilterFolder,
     pieces: &[EvidencePiece],
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     default_max_chars: usize,
-) -> Result<PreparedFilterRequest, FilterRequestFailure> {
+) -> Result<EvidencePiece, FilterRequestFailure> {
     let failure = |reason| FilterRequestFailure {
         reason,
         field: None,
@@ -110,6 +111,24 @@ fn request_for(
         .get(index)
         .ok_or_else(|| failure(FilterIncomplete::Undescribed))?
         .clone();
+    piece
+        .fields
+        .retain(|field, _| plan.reads.fields.contains(field));
+    let max_chars = kinds
+        .get(&plan.reads.kind)
+        .and_then(|kind| kind.max_chars)
+        .map_or(default_max_chars, |limit| limit.get() as usize);
+    piece.model_view = project_model_view(&piece.fields, max_chars);
+    Ok(piece)
+}
+fn request_for(
+    plan: &FilterPlan,
+    piece: EvidencePiece,
+) -> Result<PreparedFilterRequest, FilterRequestFailure> {
+    let failure = |reason| FilterRequestFailure {
+        reason,
+        field: None,
+    };
     let mut fields = BTreeMap::new();
     for field in &plan.reads.fields {
         let value = match piece.fields.get(field) {
@@ -129,10 +148,6 @@ fn request_for(
         };
         fields.insert(field.clone(), value);
     }
-    let max_chars = kinds
-        .get(&plan.reads.kind)
-        .and_then(|kind| kind.max_chars)
-        .map_or(default_max_chars, |limit| limit.get() as usize);
     let ModelView::Bounded {
         fields: unprojected,
         ..
@@ -147,8 +162,6 @@ fn request_for(
                 reason: RulebookIncompleteReason::InvalidRequest,
             })
         })?;
-    piece.fields = fields;
-    piece.model_view = project_model_view(&piece.fields, max_chars);
     let ModelView::Bounded { fields, cut } = &piece.model_view else {
         return Err(failure(FilterIncomplete::ReadsTooLarge));
     };
@@ -334,7 +347,15 @@ pub async fn ask_filters(
                 None,
             ),
         };
-        match request_for(plan, folder, pieces, kinds, default_max_chars) {
+        let prepared =
+            filter_piece_for(plan, folder, pieces, kinds, default_max_chars).and_then(|piece| {
+                result.pieces.insert(
+                    (folder.filter.clone(), folder.folder.clone()),
+                    piece.clone(),
+                );
+                request_for(plan, piece)
+            });
+        match prepared {
             Err(failure) => answer.state = incomplete_state(failure.reason, failure.field),
             Ok(prepared) => {
                 answer.reads_sha256 = Some(prepared.reads_sha256);

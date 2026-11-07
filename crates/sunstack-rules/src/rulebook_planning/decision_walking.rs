@@ -4,7 +4,7 @@ use crate::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use sunstack_decisions::{JudgmentAnswer, NamedAnswerMap};
+use sunstack_decisions::{JudgmentAnswer, NamedAnswerMap, NamedQuestionMap};
 use sunstack_evidence::{
     EvidencePiece, FieldName, FieldValue, FileMatchIndex, MatchRange, ModelView, match_within,
 };
@@ -161,6 +161,14 @@ pub fn piece_state(
     rule: &RulebookRule,
     piece: &EvidencePiece,
 ) -> Result<sunstack_decisions::SharedEvidenceState, serde_json::Error> {
+    piece_state_for_questions(rule, piece, &rule.questions)
+}
+
+pub(super) fn piece_state_for_questions(
+    rule: &RulebookRule,
+    piece: &EvidencePiece,
+    questions: &NamedQuestionMap,
+) -> Result<sunstack_decisions::SharedEvidenceState, serde_json::Error> {
     #[derive(Serialize)]
     struct RequestLocation<'a> {
         file: &'a std::path::Path,
@@ -182,8 +190,7 @@ pub fn piece_state(
         #[serde(rename = "cut-fields", skip_serializing_if = "<[FieldName]>::is_empty")]
         cut_fields: &'a [FieldName],
     }
-    let references =
-        crate::rulebook_planning::rulebook_admission::question_state_paths(&rule.questions);
+    let references = crate::rulebook_planning::rulebook_admission::question_state_paths(questions);
     let empty = BTreeMap::new();
     let available_fields = match &piece.model_view {
         ModelView::Bounded { fields, .. } => fields
