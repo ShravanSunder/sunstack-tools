@@ -20,7 +20,7 @@ import {
 import { prepareReportFixture, gapReportFile, skippedReportFolder } from './rulebook-report.ts';
 
 export const casesOracle =
-	'0567445:docs/specs/2026-11-06-decision-trees-everywhere/verification-design.html#o6';
+	'2fea5950c4055c37f7541e1d7d0d00f928c25047:docs/specs/2026-11-06-decision-trees-everywhere/verification-design.html#o6';
 export const casesConfigName = 'configuration/skill-rules.config.json';
 export const historicReferenceFile = `${includedFolder}/references/history.md`;
 export const historicalOpening = 'HISTORICAL_EXTERNAL_OPENING_SENTINEL.\n';
@@ -329,7 +329,8 @@ export function prepareCasesFixture(destination: string): JsonObject {
 			incomplete: 'incomplete',
 			stale: 'stale',
 			unmatched: 'no_matching_piece',
-			ambiguous: 'more_than_one_matching_piece',
+			// Retain the legacy ID: neither paragraph exactly spans its authored [1,3] range.
+			ambiguous: 'no_matching_piece',
 			'excluded-must-pass': 'filter_excluded',
 			'historical-reference': 'right',
 			'current-pass': 'right',

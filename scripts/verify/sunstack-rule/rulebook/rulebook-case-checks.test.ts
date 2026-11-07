@@ -21,6 +21,7 @@ const expected = {
 	stale: 'stale',
 	ambiguous: 'more_than_one_matching_piece',
 	excluded: 'filter_excluded',
+	'spanning-range': 'no_matching_piece',
 };
 function dispositions(): CaseDisposition[] {
 	return [
@@ -29,6 +30,7 @@ function dispositions(): CaseDisposition[] {
 		{ id: 'stale', disposition: 'stale' },
 		{ id: 'ambiguous', disposition: 'more_than_one_matching_piece' },
 		{ id: 'excluded', disposition: 'filter_excluded' },
+		{ id: 'spanning-range', disposition: 'no_matching_piece' },
 	];
 }
 test('case accounting accepts allowed result order while retaining every identity', () => {
@@ -49,6 +51,12 @@ test.each([
 		'stale case scored',
 		(rows: CaseDisposition[]) => {
 			rows[2] = { id: 'stale', disposition: 'right' };
+		},
+	],
+	[
+		'spanning range mistaken for exact-duplicate ambiguity',
+		(rows: CaseDisposition[]) => {
+			rows[5] = { id: 'spanning-range', disposition: 'more_than_one_matching_piece' };
 		},
 	],
 	[
