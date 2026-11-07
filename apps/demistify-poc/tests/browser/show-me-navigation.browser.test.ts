@@ -222,6 +222,66 @@ test.each([1280, 390])(
 );
 
 test.each([1280, 390])(
+	'all original reader controls stay usable with Map and a bottom workspace at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'show-me-work',
+			'',
+			'reader-controls.html',
+		);
+		const controls = [
+			'.ex-presentations-trigger',
+			'.ex-theme-toggle',
+			'.ex-search-trigger',
+			'.ex-comments-trigger',
+			'.ex-map-trigger',
+			'.ex-pages-trigger',
+		];
+		const verifyHitTargets = (): void => {
+			for (const selector of controls) {
+				const element = requiredElement(fixture, selector),
+					rect = element.getBoundingClientRect();
+				expect(rect.width).toBeGreaterThan(0);
+				const hit = fixture.elementFromPoint(
+					rect.left + rect.width / 2,
+					rect.top + rect.height / 2,
+				);
+				expect(hit === element || (hit !== null && element.contains(hit))).toBe(true);
+			}
+		};
+		verifyHitTargets();
+		// Component setup opens the independent workspace; every subsequent control action is native.
+		const workspace = fixture.createElement('ex-drawer');
+		workspace.setAttribute('label', 'Reader controls workspace');
+		workspace.setAttribute('open', '');
+		workspace.innerHTML =
+			'<header class="ex-inspect-header"><strong>Workspace</strong></header><div class="ex-inspect-body"><p>Retain the reader controls.</p></div>';
+		requiredElement(fixture, 'ex-document').append(workspace);
+		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
+		verifyHitTargets();
+		await frame.getByRole('button', { name: 'Map', exact: true }).click();
+		verifyHitTargets();
+		await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
+		await expect.element(frame.getByRole('option', { name: /Read the story/ })).toBeVisible();
+		await userEvent.keyboard('{Escape}');
+		expect(requiredElement(fixture, '.ex-map-trigger').getAttribute('aria-expanded')).toBe('true');
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-search-trigger')).click();
+		expect(fixture.querySelector('dialog:modal')).not.toBeNull();
+		await userEvent.keyboard('{Escape}');
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-theme-toggle')).click();
+		verifyHitTargets();
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-comments-trigger')).click();
+		await frame.getByRole('button', { name: 'Map', exact: true }).click();
+		verifyHitTargets();
+		await frame.getByRole('button', { name: 'Close Map', exact: true }).click();
+		expect(workspace.matches(':popover-open')).toBe(true);
+		verifyHitTargets();
+		workspace.removeAttribute('open');
+	},
+);
+
+test.each([1280, 390])(
 	'cold encoded entry links open only their owning native folds at %ipx',
 	async (width): Promise<void> => {
 		await page.viewport(width, 1000);

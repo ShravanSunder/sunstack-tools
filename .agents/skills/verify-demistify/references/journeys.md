@@ -1,6 +1,6 @@
 # Demistify journeys
 
-For the planned shared story/section/Map composition, use [show-me-work.md](show-me-work.md). It is a draft awaiting the frozen S3 target and the product-owned fixture/cases; it does not change the existing journeys below.
+For the shared story/section/Map composition, use [show-me-work.md](show-me-work.md). Its fixture and permanent browser cases exist; `node apps/demistify-poc/scripts/verify-story-map.ts` runs those cases against an already built target. Its supplementary native-host route remains a draft where cases are unobserved; report those gaps. It does not change the existing journeys below.
 
 The [owner task list](../../../../docs/wip/demystify/2026-10-16-fixes-todo.md) supplies the expected outcomes. The adopted clarification is: sidebar/source inspection retains main content; fullscreen may move live content and must restore the same nodes/state on Close/Escape. Source pointers locate entry paths, not observed results. Recheck them at the pinned build.
 

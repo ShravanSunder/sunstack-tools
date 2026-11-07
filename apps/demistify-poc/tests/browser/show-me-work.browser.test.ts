@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
 const readingViews = [
@@ -71,7 +72,7 @@ test.each(readingViews)(
 		const titleBounds = requiredElement(fixture, '#story-main > summary').getBoundingClientRect();
 		expect(titleBounds.top).toBeGreaterThanOrEqual(headerBounds.bottom);
 		await page.screenshot({
-			path: `../../../../tmp/verification/demistify/show-me-s2/story-${width}-${theme}.png`,
+			path: browserScreenshotPath(`story-${width}-${theme}.png`),
 		});
 	},
 );
@@ -102,7 +103,7 @@ test.each(readingViews)(
 				requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
 			);
 		await page.screenshot({
-			path: `../../../../tmp/verification/demistify/show-me-s3/map-${width}-${theme}.png`,
+			path: browserScreenshotPath(`map-${width}-${theme}.png`),
 		});
 		await fixtureLocator(frame, requiredElement(fixture, '.ex-comments-trigger')).click();
 		await expect
@@ -227,7 +228,7 @@ test.each(readingViews)(
 			behavior: 'instant',
 		});
 		await page.screenshot({
-			path: `../../../../tmp/verification/demistify/show-me-s2/record-${width}-${theme}.png`,
+			path: browserScreenshotPath(`record-${width}-${theme}.png`),
 		});
 		expect(requiredElement(fixture, '#other-record').hasAttribute('open')).toBe(false);
 		await frame.getByRole('button', { name: 'Expand all stories', exact: true }).click();
