@@ -68,13 +68,13 @@ pub struct RecordedBar {
     pub value: f64,
     pub set_from: Vec<String>,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BarState {
     Assessed,
     Unassessed,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BarAssessment {
     #[serde(rename = "for")]
     pub owner: String,
@@ -86,7 +86,7 @@ pub struct BarAssessment {
     pub state: BarState,
     pub reason: Option<String>,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BarCrossing {
     pub step: StepName,
     pub bound: BarBound,
@@ -94,9 +94,10 @@ pub struct BarCrossing {
     pub observed: Option<f64>,
     pub crossed: Option<bool>,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum CaseOutcome {
+    Prepared,
     Right,
     FalseWarning,
     Missed,
@@ -112,6 +113,7 @@ pub enum CaseOutcome {
 impl CaseOutcome {
     pub(super) fn key(&self) -> &'static str {
         match self {
+            Self::Prepared => "prepared",
             Self::Right => "right",
             Self::FalseWarning => "false_warning",
             Self::Missed => "missed",
@@ -126,7 +128,7 @@ impl CaseOutcome {
         }
     }
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaseResult {
     pub id: String,
     #[serde(rename = "case")]
@@ -135,14 +137,16 @@ pub struct CaseResult {
     pub result_id: Option<usize>,
     pub bars: Vec<BarCrossing>,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RevisionRun {
     pub revision: String,
     pub resolved_revision: String,
     pub report: LintReport,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CasesReport {
+    #[serde(default, flatten)]
+    pub preparation: Option<PreparedCasesReport>,
     pub errors: BTreeMap<String, String>,
     pub not_selected: Vec<String>,
     pub by_rule: BTreeMap<RuleId, BTreeMap<String, usize>>,
@@ -152,8 +156,16 @@ pub struct CasesReport {
     pub bars: Vec<BarAssessment>,
     pub runs: Vec<RevisionRun>,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreparedCasesReport {
+    pub mode: crate::PrepareMode,
+    pub status: crate::LintStatus,
+}
 impl CasesReport {
     pub fn exit_code(&self) -> u8 {
+        if let Some(preparation) = &self.preparation {
+            return preparation.status.exit_code();
+        }
         if self
             .cases
             .iter()

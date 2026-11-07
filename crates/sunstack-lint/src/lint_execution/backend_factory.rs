@@ -30,3 +30,21 @@ pub(crate) fn prepare_backend(
             )
         })
 }
+
+pub(crate) fn prepare_encoding_backend(
+    config: &RulesConfig,
+) -> Result<Arc<dyn DecisionBackend>, LintInvalid> {
+    JevOpenRouterBackend::for_preparation(backend_selection(config))
+        .map(|backend| -> Arc<dyn DecisionBackend> { Arc::new(backend) })
+        .map_err(|_| {
+            LintInvalid::at(
+                config
+                    .source
+                    .as_ref()
+                    .map(|source| source.location.file.clone())
+                    .unwrap_or_else(|| "sunstack.lint.json".into()),
+                LintInvalidCode::Syntax,
+                "decision_model endpoint is invalid",
+            )
+        })
+}

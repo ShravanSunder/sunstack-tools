@@ -92,8 +92,50 @@ async fn send_group(
             return;
         }
     };
+    if let Some((id, recorded)) = dispatcher.reuse_selection(&selection.kind, &request) {
+        dispatcher
+            .selection_requests
+            .push(crate::SelectionRequestOwner {
+                request_id: id,
+                selection_kind: selection.kind.clone(),
+                file: shared.file.clone(),
+                candidates: candidates
+                    .iter()
+                    .map(|candidate| (*candidate).clone())
+                    .collect(),
+                shared: shared.clone(),
+            });
+        for candidate in candidates {
+            outcomes.insert(
+                candidate.id.clone(),
+                outcome_for(selection, candidate.key.as_str(), &recorded),
+            );
+        }
+        return;
+    }
     match dispatcher.submit(request).await {
         Ok(id) => {
+            dispatcher
+                .selection_requests
+                .push(crate::SelectionRequestOwner {
+                    request_id: id,
+                    selection_kind: selection.kind.clone(),
+                    file: shared.file.clone(),
+                    candidates: candidates
+                        .iter()
+                        .map(|candidate| (*candidate).clone())
+                        .collect(),
+                    shared: shared.clone(),
+                });
+            if dispatcher.is_preparing() {
+                for candidate in candidates {
+                    outcomes.insert(
+                        candidate.id.clone(),
+                        SelectionOutcome::Prepared { request_id: id },
+                    );
+                }
+                return;
+            }
             pending.insert(
                 id,
                 candidates
@@ -145,6 +187,14 @@ pub async fn select_candidates(
             );
             let mut fields = candidate.fields.clone();
             fields.extend(shared.fields.clone());
+            if dispatcher.is_preparing()
+                && fields
+                    .values()
+                    .any(sunstack_evidence::FieldValue::is_selection_pending)
+            {
+                outcomes.insert(candidate.id.clone(), SelectionOutcome::Deferred);
+                continue;
+            }
             if let Some(field) = unavailable_question_field(&questions, &fields) {
                 outcomes.insert(
                     candidate.id.clone(),
@@ -203,45 +253,51 @@ pub async fn select_candidates(
             continue;
         };
         for (id, key) in candidates {
-            let outcome = match &record.outcome {
-                DecisionRunOutcome::Completed { answers, .. } => {
-                    let answer = QuestionName::new(key)
-                        .ok()
-                        .and_then(|name| answers.get(&name));
-                    match answer {
-                        Some(JudgmentAnswer::Noul { yes_probability }) => {
-                            let yes = *yes_probability;
-                            if yes >= input.selection.yes_at_or_above {
-                                SelectionOutcome::Selected { yes }
-                            } else if yes <= input.selection.no_at_or_below {
-                                SelectionOutcome::NotSelected { yes }
-                            } else {
-                                SelectionOutcome::Uncertain { yes }
-                            }
-                        }
-                        _ => incomplete(SelectionIncompleteReason::InvalidResponse),
-                    }
-                }
-                DecisionRunOutcome::Cancelled { .. } => {
-                    incomplete(SelectionIncompleteReason::Cancelled)
-                }
-                DecisionRunOutcome::InvalidRequest { .. } => {
-                    incomplete(SelectionIncompleteReason::InvalidRequest)
-                }
-                DecisionRunOutcome::InvalidResponse { .. } => {
-                    incomplete(SelectionIncompleteReason::InvalidResponse)
-                }
-                DecisionRunOutcome::ProviderFailure {
-                    failure_class,
-                    http_status,
-                    ..
-                } => incomplete(SelectionIncompleteReason::ProviderFailure {
-                    failure_class: *failure_class,
-                    http_status: *http_status,
-                }),
-            };
+            let outcome = outcome_for(&input.selection, &key, &record.outcome);
             outcomes.insert(id, outcome);
         }
     }
     outcomes
+}
+
+fn outcome_for(
+    selection: &AdmittedSelection,
+    key: &str,
+    record: &DecisionRunOutcome,
+) -> SelectionOutcome {
+    match record {
+        DecisionRunOutcome::Completed { answers, .. } => {
+            let answer = QuestionName::new(key)
+                .ok()
+                .and_then(|name| answers.get(&name));
+            match answer {
+                Some(JudgmentAnswer::Noul { yes_probability }) => {
+                    let yes = *yes_probability;
+                    if yes >= selection.yes_at_or_above {
+                        SelectionOutcome::Selected { yes }
+                    } else if yes <= selection.no_at_or_below {
+                        SelectionOutcome::NotSelected { yes }
+                    } else {
+                        SelectionOutcome::Uncertain { yes }
+                    }
+                }
+                _ => incomplete(SelectionIncompleteReason::InvalidResponse),
+            }
+        }
+        DecisionRunOutcome::Cancelled { .. } => incomplete(SelectionIncompleteReason::Cancelled),
+        DecisionRunOutcome::InvalidRequest { .. } => {
+            incomplete(SelectionIncompleteReason::InvalidRequest)
+        }
+        DecisionRunOutcome::InvalidResponse { .. } => {
+            incomplete(SelectionIncompleteReason::InvalidResponse)
+        }
+        DecisionRunOutcome::ProviderFailure {
+            failure_class,
+            http_status,
+            ..
+        } => incomplete(SelectionIncompleteReason::ProviderFailure {
+            failure_class: *failure_class,
+            http_status: *http_status,
+        }),
+    }
 }
