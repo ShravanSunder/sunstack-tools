@@ -137,7 +137,8 @@ pub(crate) fn project_outcome(
             basis,
             cut: match &piece.model_view {
                 sunstack_evidence::ModelView::Bounded { cut, .. } => cut.clone(),
-                sunstack_evidence::ModelView::TooLarge { .. } => vec![],
+                sunstack_evidence::ModelView::TooLarge { .. }
+                | sunstack_evidence::ModelView::SelectionPending => vec![],
             },
         });
         match pair.result {
@@ -307,7 +308,8 @@ pub(crate) fn project_selections(
         {
             count.asked += 1;
             match entry.outcome {
-                sunstack_rules::SelectionOutcome::Prepared { .. } => {
+                sunstack_rules::SelectionOutcome::Prepared { .. }
+                | sunstack_rules::SelectionOutcome::Deferred => {
                     count.asked -= 1;
                 }
                 sunstack_rules::SelectionOutcome::Selected { .. } => count.selected += 1,

@@ -255,6 +255,7 @@ fn human(report: &LintReport) -> String {
                             && matches!(
                                 entry.outcome,
                                 sunstack_rules::SelectionOutcome::Prepared { .. }
+                                    | sunstack_rules::SelectionOutcome::Deferred
                             )
                     })
                     .count();

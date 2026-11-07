@@ -214,7 +214,10 @@ pub(super) fn prepare(
         [] => {}
         _ => return (CaseOutcome::MoreThanOneMatchingPiece, None),
     }
-    if let Some((kind, file)) = dependency
+    let (outcome, id) = score(case, snapshot, report);
+    if id.is_none()
+        && !matches!(outcome, CaseOutcome::MoreThanOneMatchingPiece)
+        && let Some((kind, file)) = dependency
         && let Some(wait) = report.preparation.as_ref().and_then(|preparation| {
             preparation
                 .needs_answer
@@ -233,7 +236,6 @@ pub(super) fn prepare(
             None,
         );
     }
-    let (outcome, id) = score(case, snapshot, report);
     let outcome = match outcome {
         CaseOutcome::Right
         | CaseOutcome::FalseWarning

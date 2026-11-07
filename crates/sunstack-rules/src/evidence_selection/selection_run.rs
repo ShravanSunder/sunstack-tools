@@ -187,6 +187,14 @@ pub async fn select_candidates(
             );
             let mut fields = candidate.fields.clone();
             fields.extend(shared.fields.clone());
+            if dispatcher.is_preparing()
+                && fields
+                    .values()
+                    .any(sunstack_evidence::FieldValue::is_selection_pending)
+            {
+                outcomes.insert(candidate.id.clone(), SelectionOutcome::Deferred);
+                continue;
+            }
             if let Some(field) = unavailable_question_field(&questions, &fields) {
                 outcomes.insert(
                     candidate.id.clone(),

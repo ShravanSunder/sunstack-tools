@@ -486,8 +486,11 @@ async fn run_internal(
                     let unresolved = outcomes
                         .iter()
                         .filter_map(|(candidate, outcome)| {
-                            matches!(outcome, SelectionOutcome::Prepared { .. })
-                                .then_some(candidate.clone())
+                            matches!(
+                                outcome,
+                                SelectionOutcome::Prepared { .. } | SelectionOutcome::Deferred
+                            )
+                            .then_some(candidate.clone())
                         })
                         .collect();
                     let deferred = build.defer_selection(&unresolved);

@@ -88,3 +88,47 @@ fn prepared_matching_keeps_duplicate_exact_requests_ambiguous_and_known_exclusio
         (CaseOutcome::FilterExcluded, Some(7))
     ));
 }
+
+#[test]
+fn selection_dependency_does_not_hide_a_known_result_on_an_independent_field() {
+    let file = std::path::PathBuf::from("docs/one.md");
+    let snapshot = super::super::snapshots::snapshot_for_matching_tests(BTreeMap::from([(
+        file.clone(),
+        Ok("First line.\n".into()),
+    )]))
+    .unwrap();
+    let case:LintCase=serde_json::from_value(json!({"id":"known","kind":"rule","rule":"known","file":file,"revision":"fixture","lines":[1,1],"text_sha256":sunstack_evidence::content_digest(b"First line.\n"),"expected":"pass","set":"development","label_from":"blind-agents"})).unwrap();
+    let mut report = LintReport::empty(
+        Default::default(),
+        ScopeChoice::All,
+        EffectiveLimits::default(),
+    );
+    report.results.push(serde_json::from_value(json!({"text_sha256":null,"id":7,"request_ids":[],"name":"known","marker":"K001","file":file,"first_line":1,"last_line":1,"outcome":"pass","step":null,"path":[]})).unwrap());
+    let kind = sunstack_evidence::EvidenceKindName::new("document").unwrap();
+    report.preparation = Some(crate::PreparedReport {
+        mode: crate::PrepareMode::Prepare,
+        needs_answer: vec![crate::NeedsSelectionAnswer {
+            kind: kind.clone(),
+            file: file.clone(),
+            waits_on: crate::SelectionDependency {
+                selection_kind: sunstack_evidence::EvidenceKindName::new("selected_sections")
+                    .unwrap(),
+                request_id: 1,
+            },
+        }],
+    });
+    let dependency = (kind, file);
+    let (outcome, id) = prepare(&case, &snapshot, &report, Some(&dependency));
+    assert!(
+        matches!(outcome, CaseOutcome::Prepared),
+        "a different field's pending selection hid the known mechanical result"
+    );
+    assert_eq!(id, Some(7));
+    let mut duplicate = report.results[0].clone();
+    duplicate.id = 8;
+    report.results.push(duplicate);
+    assert!(matches!(
+        prepare(&case, &snapshot, &report, Some(&dependency)),
+        (CaseOutcome::MoreThanOneMatchingPiece, None)
+    ));
+}

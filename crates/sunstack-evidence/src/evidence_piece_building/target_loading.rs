@@ -141,11 +141,26 @@ impl EvidenceBuild {
                     },
                 );
             }
-            piece.model_view = project_model_view(
-                &piece.fields,
-                definition
-                    .max_chars
-                    .map_or(self.limits.evidence_max_chars, |n| n.get() as usize),
+            piece.model_view = self.matched.get(&piece.location.file).map_or_else(
+                || {
+                    project_model_view(
+                        &piece.fields,
+                        definition
+                            .max_chars
+                            .map_or(self.limits.evidence_max_chars, |n| n.get() as usize),
+                    )
+                },
+                |file| {
+                    self.project_fields(
+                        &definition,
+                        file,
+                        &MatchRange {
+                            start: piece.location.span.byte_start,
+                            end: piece.location.span.byte_end,
+                        },
+                        &piece.fields,
+                    )
+                },
             );
         }
         for count in &mut self.catalog.file_counts {

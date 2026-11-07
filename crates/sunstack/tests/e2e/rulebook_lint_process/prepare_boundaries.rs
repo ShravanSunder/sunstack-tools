@@ -393,3 +393,81 @@ async fn prepare_keeps_every_potentially_admitted_rule_with_gate_metadata() {
     assert_eq!(report["needs_answer"], json!([]));
     assert_eq!(report["usage"]["model_requests"], 0);
 }
+
+#[tokio::test]
+async fn failed_prepare_admission_reserves_the_same_allowance_as_ordinary_execution() {
+    let root = limit_fixture(
+        json!({"body":{"from":"first_line"}}),
+        json!({"start":"quality","steps":{"quality":{
+        "ask":"quality","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":"pass","no":{"finding":"Needs work."},"uncertain":"uncertain"}}}),
+    );
+    std::fs::write(root.path().join("docs/one.md"), "Plain text.\n").unwrap();
+    let mut rules = read(&root.path().join("rules.json"));
+    rules["K001"]["questions"] = json!({"quality":{"type":"noul","instructions":{"check":"body","context":["reference"],"task":"Check text"}}});
+    rules["K001"]["reference"] = json!({"long":"x".repeat(3000)});
+    rules["K002"] = rules["K001"].clone();
+    rules["K002"]["name"] = json!("small_second");
+    rules["K002"].as_object_mut().unwrap().remove("reference");
+    rules["K002"]["questions"]["quality"]["instructions"]
+        .as_object_mut()
+        .unwrap()
+        .remove("context");
+    save(&root.path().join("rules.json"), &rules);
+    std::fs::write(
+        root.path().join("rulebook.md"),
+        "Large first. <!-- K001 -->\nSmall second. <!-- K002 -->\n",
+    )
+    .unwrap();
+    let mut server = controlled::ControlledServer::start().await;
+    let mut config = read(&root.path().join("skill-rules.config.json"));
+    config["decision_model"]["endpoint"] = json!(server.endpoint);
+    config["limits"] = json!({"max_model_requests":2,"max_input_tokens_per_request":1000,"request_max_chars":20000});
+    save(&root.path().join("skill-rules.config.json"), &config);
+    let (positive, captures) = prepared_cli::answered(
+        root.path(),
+        &mut server,
+        &["--all", "--report", "two-slots.json"],
+        |body| reply(body, true),
+    )
+    .await;
+    assert_eq!(positive.status.code(), Some(3));
+    assert_eq!(captures.len(), 1);
+    config["limits"]["max_model_requests"] = json!(1);
+    save(&root.path().join("skill-rules.config.json"), &config);
+    let (ordinary, captured) = prepared_cli::answered(
+        root.path(),
+        &mut server,
+        &["--all", "--report", "one-slot.json"],
+        |body| reply(body, true),
+    )
+    .await;
+    assert_eq!(ordinary.status.code(), Some(3));
+    assert!(captured.is_empty());
+    let output = prepared_cli::keyless(
+        root.path(),
+        &mut server,
+        &["--all", "--prepare", "prepared.json"],
+    )
+    .await;
+    assert_eq!(output.status.code(), Some(3));
+    let normal = read(&root.path().join("one-slot.json"));
+    let prepared = read(&root.path().join("prepared.json"));
+    assert!(
+        !prepared["requests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry["status"] == "prepared"),
+        "oversized first request did not reserve the sole allowance"
+    );
+    for report in [&normal, &prepared] {
+        let second = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|entry| entry["name"] == "small_second")
+            .unwrap();
+        assert_eq!(second["gap"], "request_limit_reached");
+    }
+    assert_eq!(server.finish().await, 1);
+}

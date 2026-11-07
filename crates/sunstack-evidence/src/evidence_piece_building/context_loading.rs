@@ -128,7 +128,7 @@ impl EvidenceBuild {
                 {
                     continue;
                 }
-                let fields = local_fields(
+                let mut fields = local_fields(
                     &definition.matcher.rule_id(kind),
                     definition,
                     file,
@@ -136,6 +136,7 @@ impl EvidenceBuild {
                     match_position,
                     &self.catalog.pieces,
                 );
+                self.defer_fields(definition, file, range, &mut fields);
                 let span = source_span(file, range);
                 let location = PieceLocation {
                     file: path.clone(),
@@ -151,12 +152,7 @@ impl EvidenceBuild {
                     kind: kind.clone(),
                     location,
                     text: file.text[range.start..range.end].into(),
-                    model_view: project_model_view(
-                        &fields,
-                        definition
-                            .max_chars
-                            .map_or(self.limits.evidence_max_chars, |n| n.get() as usize),
-                    ),
+                    model_view: self.project_fields(definition, file, range, &fields),
                     fields,
                 });
             }

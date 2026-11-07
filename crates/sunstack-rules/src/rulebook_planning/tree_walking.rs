@@ -66,6 +66,15 @@ pub(crate) fn walk_tree(request: TreeWalkRequest<'_>) -> TreeWalkOutcome {
             );
         }
         if !matches!(step, DecisionStep::Mechanical { .. })
+            && matches!(request.piece.model_view, ModelView::SelectionPending)
+        {
+            return incomplete(
+                RulebookIncompleteReason::EvidenceUnavailable,
+                None,
+                &answers_read,
+            );
+        }
+        if !matches!(step, DecisionStep::Mechanical { .. })
             && matches!(request.piece.model_view, ModelView::TooLarge { .. })
         {
             return incomplete(

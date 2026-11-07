@@ -85,6 +85,7 @@ pub struct EvidenceBuild {
     limits: PieceBuildLimits,
     catalog: EvidenceCatalog,
     pending: Option<(EvidenceKindName, Vec<EvidencePiece>)>,
+    unresolved_selections: std::collections::BTreeSet<CandidateId>,
 }
 impl EvidenceBuild {
     /// Keep unanswered candidates out of selection resolution while independent work advances.
@@ -96,6 +97,8 @@ impl EvidenceBuild {
             return vec![];
         };
         let root = root.clone();
+        self.unresolved_selections
+            .extend(unresolved.iter().cloned());
         let files = unresolved
             .iter()
             .map(|candidate| candidate.file.clone())
@@ -150,6 +153,7 @@ impl EvidenceBuild {
             limits,
             catalog: EvidenceCatalog::default(),
             pending: None,
+            unresolved_selections: Default::default(),
         };
         build.scan_files(files, source);
         Ok(build)
@@ -431,3 +435,4 @@ use field_composition::{local_fields, source_span};
 mod target_loading;
 
 mod context_loading;
+mod deferred_fields;

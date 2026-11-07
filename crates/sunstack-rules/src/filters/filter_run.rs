@@ -368,7 +368,19 @@ pub async fn ask_filters(
                 request_for(plan, piece)
             });
         match prepared {
-            Err(failure) => answer.state = incomplete_state(failure.reason, failure.field),
+            Err(failure) => {
+                if dispatcher.is_preparing()
+                    && matches!(
+                        failure.reason,
+                        FilterIncomplete::ReadsUnavailable {
+                            reason: FieldUnavailable::SelectionPending
+                        }
+                    )
+                {
+                    continue;
+                }
+                answer.state = incomplete_state(failure.reason, failure.field);
+            }
             Ok(prepared) => {
                 answer.reads_sha256 = Some(prepared.reads_sha256);
                 answer.input_cut = prepared.input_cut;

@@ -208,7 +208,7 @@ pub(super) fn piece_state_for_questions(
             })
             .map(|(name, value)| (name.clone(), value.clone()))
             .collect(),
-        ModelView::TooLarge { .. } => empty,
+        ModelView::TooLarge { .. } | ModelView::SelectionPending => empty,
     };
     serde_json::from_value(serde_json::to_value(PieceState {
         standard: &rule.sentence.standard,
@@ -234,7 +234,7 @@ pub(super) fn piece_state_for_questions(
         fields: &available_fields,
         cut_fields: match &piece.model_view {
             ModelView::Bounded { cut, .. } => cut,
-            ModelView::TooLarge { .. } => &[],
+            ModelView::TooLarge { .. } | ModelView::SelectionPending => &[],
         },
     })?)
 }
@@ -449,6 +449,11 @@ pub(super) fn mechanical_check(
         | DecisionMechanicalTool::FileExists { field }
         | DecisionMechanicalTool::Complete { field } => field,
     };
+    if matches!(tool, DecisionMechanicalTool::Complete { .. })
+        && matches!(piece.model_view, ModelView::SelectionPending)
+    {
+        return Err(field.clone());
+    }
     let value = piece.fields.get(field);
     if matches!(value, Some(FieldValue::Unavailable { .. })) {
         return Err(field.clone());

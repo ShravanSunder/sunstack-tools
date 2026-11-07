@@ -167,6 +167,32 @@ pub async fn run_rulebook_with_dispatcher(
             );
             let (step, path_taken) = match first_walk(rule, piece, index, &omissions) {
                 WalkOutcome::Settled(result) => {
+                    let field = match &result {
+                        RulebookResult::Incomplete { field, .. }
+                        | RulebookResult::Finding { field, .. } => field.as_ref(),
+                        _ => None,
+                    };
+                    let pending_field = field
+                        .and_then(|field| piece.fields.get(field))
+                        .is_some_and(sunstack_evidence::FieldValue::is_selection_pending);
+                    let pending_projection = matches!(
+                        piece.model_view,
+                        sunstack_evidence::ModelView::SelectionPending
+                    ) && matches!(
+                        &result,
+                        RulebookResult::Incomplete {
+                            reason: RulebookIncompleteReason::EvidenceUnavailable,
+                            ..
+                        }
+                    ) && field
+                        .and_then(|field| piece.fields.get(field))
+                        .is_none_or(|value| {
+                            !matches!(value, sunstack_evidence::FieldValue::Unavailable { .. })
+                        });
+                    if dispatcher.is_preparing() && (pending_field || pending_projection) {
+                        run.results.truncate(pair_index);
+                        continue;
+                    }
                     run.results[pair_index].result = result;
                     continue;
                 }
@@ -177,6 +203,13 @@ pub async fn run_rulebook_with_dispatcher(
                 Some(step.clone()),
                 path_taken.clone(),
             );
+            if dispatcher.is_preparing() && rule.decision.steps.values().flat_map(|step| step.routes())
+                .any(|route| matches!(route, crate::DecisionRoute::Finding(finding)
+                    if finding.locate.is_some() && finding.at.as_ref().and_then(|field| piece.fields.get(field))
+                        .is_some_and(sunstack_evidence::FieldValue::is_selection_pending))) {
+                run.results.truncate(pair_index);
+                continue;
+            }
             let Ok(state) = piece_state(rule, piece) else {
                 run.results[pair_index].result = incomplete(
                     RulebookIncompleteReason::EvidenceUnavailable,

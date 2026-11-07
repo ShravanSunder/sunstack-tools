@@ -293,11 +293,20 @@ pub enum FieldValue {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FieldUnavailable {
+    SelectionPending,
     FrontmatterMalformed,
     NotAString,
     Unreadable,
 }
 impl FieldValue {
+    pub fn is_selection_pending(&self) -> bool {
+        matches!(
+            self,
+            Self::Unavailable {
+                reason: FieldUnavailable::SelectionPending
+            }
+        )
+    }
     pub fn spans(&self) -> &[SourceSpan] {
         match self {
             Self::Text { spans, .. } | Self::Texts { spans, .. } => spans,
@@ -350,6 +359,7 @@ pub enum ModelFieldValue {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum ModelView {
+    SelectionPending,
     Bounded {
         fields: BTreeMap<FieldName, ModelFieldValue>,
         cut: Vec<FieldName>,

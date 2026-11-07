@@ -31,6 +31,7 @@ import {
 	prepareSelectionFixture,
 } from './prepare-fixtures.ts';
 import { compactJson, jsonSlice } from './raw-json.ts';
+import { observeReviewControls } from './review-controls.ts';
 import { observeSelectionReplay } from './selection-replay.ts';
 
 const optionSchema = z.object({
@@ -216,6 +217,12 @@ export async function observePrepare(options: z.infer<typeof optionSchema>): Pro
 			prepareExit: options['prepare-exit'],
 		});
 		await observePrepareCases({ observer, evidence });
+		await observeReviewControls({
+			observer,
+			evidence,
+			source: target.source,
+			prepareExit: options['prepare-exit'],
+		});
 		const first = objectValue(arrayValue(saved['results'])[0]);
 		const selectedId = String(numberValue(first['id']));
 		const show = await observer.run({

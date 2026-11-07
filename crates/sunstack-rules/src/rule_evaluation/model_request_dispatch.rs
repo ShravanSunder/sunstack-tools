@@ -253,11 +253,12 @@ impl ModelRequestDispatch {
             request_budget: self.settings.request_budget.clone(),
         };
         if self.is_preparing() {
+            // Ordinary execution reserves its allowance before local admission runs.
+            self.requested += 1;
             prepare_judgments(&input, backend.as_ref())
                 .map_err(|_| DispatchRefusal::InvalidRequest)?;
             let id = self.next_request_id;
             self.next_request_id += 1;
-            self.requested += 1;
             self.prepared.push(PreparedModelRequest { id, request });
             return Ok(id);
         }
