@@ -23,6 +23,8 @@ import { renderThemedDiagram } from '../render/diagram.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
 import { renderChoiceTitle, renderMarkdownContent } from '../render/markdown-content.ts';
 import { checkAttributes, closest, taughtElements, vocabulary } from '../vocabulary.ts';
+import { checkMapMarkup } from './map-markup.ts';
+import { checkStoryMarkup } from './story-markup.ts';
 
 type Element = DefaultTreeAdapterMap['element'];
 type ParentNode = DefaultTreeAdapterMap['parentNode'];
@@ -45,7 +47,6 @@ const elementAliases: Readonly<Record<string, string>> = {
 	'ex-diagram': 'ex-mermaid',
 	'ex-chart': 'ex-mermaid (xychart-beta)',
 	'ex-graph': 'ex-mermaid',
-	'ex-section': 'ex-grid or a heading',
 	'ex-row': 'ex-grid',
 	'ex-columns': 'ex-grid',
 	'ex-box': 'ex-card',
@@ -242,6 +243,8 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			...(edit ? { edit } : {}),
 		});
 	};
+	for (const problem of checkStoryMarkup(elements))
+		report(problem.element, 'error', problem.rule, problem.message);
 
 	// Ids outside SVG, and words in diagram sources (route steps may target diagram nodes).
 	const ids = new Map<string, Element>();
@@ -320,6 +323,8 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			const owner = elements.find((element): boolean => element.tagName === 'ex-markdown');
 			if (owner) ids.set(target, owner);
 		}
+	for (const problem of checkMapMarkup(elements, new Set(ids.keys())))
+		report(problem.element, problem.severity ?? 'error', problem.rule, problem.message);
 
 	const engine =
 		options.diagrams !== false &&

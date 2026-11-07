@@ -5,6 +5,7 @@
  */
 import { subjectIconAliases, subjectIcons } from './core/subject-icons.ts';
 import { toneAliases, type ToneName, toneNames } from './core/tone-names.ts';
+import { storyElementVocabulary } from './story-vocabulary.ts';
 
 export { type ToneName, toneNames };
 
@@ -74,6 +75,7 @@ export const layoutAttributes: Readonly<Record<string, AttributeSpec>> = {
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
+	...storyElementVocabulary({ icon, tone, series: categorySeries }),
 	'ex-drawer': {
 		description: 'An animated non-modal bottom workspace that can stay open beside Comments.',
 		attributes: {

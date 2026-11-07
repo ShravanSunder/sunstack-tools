@@ -1,0 +1,91 @@
+.ex-reader-controls {
+	position: fixed;
+	left: var(--space-4);
+	bottom: var(--space-3);
+	z-index: 7;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: max-content;
+	max-width: calc(100vw - var(--space-8) - var(--ex-drawer-used-width, 0px));
+}
+.ex-reader-controls[hidden] {
+	display: none;
+}
+.ex-reader-controls > .ex-icon-button {
+	position: static;
+	margin: 0;
+	flex: none;
+}
+.ex-map-trigger[aria-expanded='true'] {
+	color: var(--accent);
+	background: var(--selection-surface);
+	border-color: transparent;
+}
+@media (max-width: 760px) {
+	.ex-reader-controls {
+		top: calc(env(safe-area-inset-top, 0px) + 5px);
+		right: var(--space-2);
+		bottom: auto;
+		left: auto;
+	}
+	.ex-document-toolbar {
+		padding-inline-end: calc(var(--ex-reader-controls-width, 122px) + var(--space-4));
+	}
+	.ex-reader-controls .ex-search-trigger {
+		width: 34px;
+		padding-inline: 0;
+		justify-content: center;
+	}
+	.ex-reader-controls :is(kbd, .ex-shortcut-hint) {
+		display: none;
+	}
+	/* Standard phone sheets retain their hidden underlying controls. Map's live trigger
+	   has already moved into the sheet header and remains independently reachable. */
+	:root:has(dialog.ex-inspect-dialog[data-mode='sidebar'][open]) .ex-reader-controls {
+		display: none;
+	}
+	:root:has(dialog.ex-inspect-dialog[data-mode='sidebar'][open]) .ex-document-toolbar {
+		padding-inline-end: var(--space-3);
+	}
+}
+:root:has(ex-drawer:popover-open) .ex-reader-controls {
+	top: calc(env(safe-area-inset-top, 0px) + 5px);
+	right: calc(var(--ex-drawer-used-width, 0px) + var(--space-2));
+	bottom: auto;
+	left: auto;
+}
+:root:has(ex-drawer:popover-open) .ex-document-toolbar {
+	padding-inline-end: calc(var(--ex-reader-controls-width, 122px) + var(--space-4));
+}
+:root:has(ex-drawer:popover-open) .ex-reader-controls .ex-search-trigger {
+	width: 34px;
+	padding-inline: 0;
+	justify-content: center;
+}
+:root:has(ex-drawer:popover-open) .ex-reader-controls :is(kbd, .ex-shortcut-hint) {
+	display: none;
+}
+@media (max-width: 899px) {
+	:root:has(.ex-drawer[data-presentation='map']:not([hidden])) .ex-reader-controls {
+		top: calc(env(safe-area-inset-top, 0px) + 5px);
+		right: var(--space-2);
+		bottom: auto;
+		left: auto;
+	}
+	:root:has(.ex-drawer[data-presentation='map']:not([hidden])) .ex-document-toolbar {
+		padding-inline-end: calc(var(--ex-reader-controls-width, 122px) + var(--space-4));
+	}
+	:root:has(.ex-drawer[data-presentation='map']:not([hidden]))
+		.ex-reader-controls
+		.ex-search-trigger {
+		width: 34px;
+		padding-inline: 0;
+		justify-content: center;
+	}
+	:root:has(.ex-drawer[data-presentation='map']:not([hidden]))
+		.ex-reader-controls
+		:is(kbd, .ex-shortcut-hint) {
+		display: none;
+	}
+}

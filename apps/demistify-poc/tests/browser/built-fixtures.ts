@@ -52,6 +52,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['gallery', 'integrated-review'],
 			['explorer', 'round-13-inspection'],
 			['ui', 'review-ui'],
+			['show-me-work', 'show-me-work'],
 			['search', 'command-search'],
 			['review', 'choices-comments'],
 			['palette', 'diagram-colors'],

@@ -25,7 +25,9 @@ src/
 </script></ex-tree>
 ```
 
-A leading tone (`done:`, `risk:`) supplies the item's meaning/icon; `[x]`/`[ ]` supply checklist states. A leading chevron folds a branch. Labels remain normal text, wrapping beneath the label with the icon on its first line; no trailing +N badge is needed. A Markdown link creates a separate trailing go-to icon. The label or whole row does not become a navigation link. `layout="map"` shows the hierarchy left to right, with an outline on narrow screens.
+A leading tone (`done:`, `risk:`) supplies the item's meaning/icon; `[x]`/`[ ]` supply checklist states. An unformatted leading `folded:` starts a branch closed: `- folded: risk: Branch`, followed by indented children. A native checklist prefix comes first: `- [ ] folded: Branch`. Unmarked branches start open. A marker on a leaf, inside inline code or emphasis stays literal; `▸` and `›` are literal characters, and a leading `>` keeps its Markdown blockquote meaning. Labels wrap beneath the text with the icon on its first line; no trailing +N badge is needed.
+
+A Markdown link creates a separate trailing go-to icon. Same-document links with a nonempty fragment use an in-page jump icon; another page or external URL retains the outbound arrow, even when it has a fragment. Fragment-only, relative and absolute URLs are compared against the actual page address. The label or whole row does not become a navigation link. `layout="map"` shows the hierarchy left to right, with an outline on narrow screens.
 
 Inspect every authored link's real destination. Use a stable island ID, scoped Markdown heading or scoped Mermaid node as taught by the main guide. Folding a branch and following its link are independent actions.
 

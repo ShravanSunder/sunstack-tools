@@ -137,6 +137,38 @@ ex-drawer.ex-drawer::backdrop {
 	background: transparent;
 	pointer-events: none;
 }
-.ex-drawer-reader-overlays > :is(.ex-route-player, .ex-issues) {
+.ex-drawer-reader-overlays > :is(.ex-route-player, .ex-issues, .ex-reader-controls) {
 	pointer-events: auto;
+}
+
+ex-map {
+	display: none;
+}
+.ex-drawer[data-presentation='map'] {
+	height: 100dvh;
+	max-width: none;
+	max-height: 100dvh;
+	overflow: visible;
+}
+.ex-drawer[data-presentation='map']::backdrop {
+	background: transparent;
+	pointer-events: none;
+}
+.ex-map-body {
+	font-size: var(--text-md);
+}
+.ex-map-count {
+	color: var(--ink-soft);
+	font: 400 var(--text-sm)/1.5 var(--font-body);
+}
+@media (max-width: 899px) {
+	.ex-drawer[data-presentation='map'] {
+		inset: var(--ex-document-toolbar-height, 0px) 0 0;
+		width: auto;
+		height: calc(100dvh - var(--ex-document-toolbar-height, 0px));
+		max-height: calc(100dvh - var(--ex-document-toolbar-height, 0px));
+	}
+	.ex-drawer[data-presentation='map'] > .ex-drawer-handle {
+		display: none;
+	}
 }

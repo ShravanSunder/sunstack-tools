@@ -6,7 +6,7 @@ import {
 	type PageComment,
 	type ReviewEnvelope,
 } from '../core/review-model.ts';
-import { openDrawer } from './drawer.ts';
+import { openDrawer, type DrawerContent } from './drawer.ts';
 
 interface CommentsViewOptions {
 	readonly review: () => ReviewEnvelope;
@@ -142,17 +142,15 @@ export class CommentsView {
 
 	open(): void {
 		if (this.closePanel) return;
-		this.closePanel = openDrawer(
-			'Comments',
-			(): { header: HTMLElement; body: HTMLElement; restore: () => void } => ({
-				header: this.header,
-				body: this.body,
-				restore: (): void => {
-					this.closePanel = undefined;
-					this.options.visibility(false);
-				},
-			}),
-		);
+		this.closePanel = openDrawer('Comments', (): DrawerContent => ({
+			presentation: { kind: 'standard' },
+			header: this.header,
+			body: this.body,
+			restore: (): void => {
+				this.closePanel = undefined;
+				this.options.visibility(false);
+			},
+		}));
 		this.options.visibility(true);
 	}
 	toggle(): void {

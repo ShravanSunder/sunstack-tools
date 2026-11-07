@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shared story and record example</title>
+  <link rel="stylesheet" href="/experiments/islands/theme.css">
+  <script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+<ex-document id="work">
+  <h1>Shared story and record example</h1>
+  <p>Illustrative content for checking shared presentation. These are supplied examples, not claims about a shipped product.</p>
+  <details id="ordinary-notes"><summary>Names used here</summary><p>This ordinary note is outside story bulk actions.</p></details>
+  <h2>What it means for you <ex-fold-toggle for="work"></ex-fold-toggle></h2>
+  <ex-section id="for-you" title="For you to decide" icon="user" series="5"></ex-section>
+  <ex-section id="delivery" title="What's done / what's next" icon="clock" series="2">
+    <ex-story subject="Renderer" time="Illustrative" icon="package" tone="done">
+      <details id="story-main" open>
+        <summary>One story retains its supporting record</summary>
+        <p slot="headline">The reader sees the account before opening the evidence.</p>
+        <div slot="happened">The supplied account keeps <strong id="rich-account">rich inline meaning</strong> and a <a href="#entry-one">record link</a>.</div>
+        <div slot="for-you">Read the account and inspect its supporting entry.</div>
+        <div slot="next">Use the same native controls at narrow width.</div>
+        <div slot="showpiece">
+          <table><thead><tr><th>Input</th><th>Required result</th></tr></thead><tbody><tr><td>Rich account</td><td>Retained once</td></tr></tbody></table>
+          <ex-mermaid id="story-diagram" label="Supplied record path"><script type="text/plain">
+flowchart LR
+  Input[Supplied input] --> Record[Retained record]
+          </script></ex-mermaid>
+          <details id="attachment-note"><summary>Attachment explanation</summary><p>This disclosure belongs to the attachment and stays outside bulk actions.</p></details>
+        </div>
+        <details id="main-more" slot="more"><summary>More</summary><p>Optional background remains local to this story.</p></details>
+        <details id="main-record" slot="record">
+          <summary>The record: 2 entries</summary>
+          <details id="entry-one"><summary>The supplied source observation</summary><p id="entry-one-body">The complete first entry is retained, including <code>session.identity</code>.</p></details>
+          <details id="entry-two"><summary>The supplied comparison</summary><p>The complete second entry retains its <a href="#entry-one">reference to the first</a>.</p></details>
+        </details>
+      </details>
+    </ex-story>
+    <details id="smaller" slot="smaller">
+      <summary>1 smaller</summary>
+      <ex-story subject="Routine" time="Illustrative" icon="file">
+        <details id="story-minor">
+          <summary>A carried closed story stays closed</summary>
+          <p slot="headline">This story's supplied closed state is intentional.</p>
+          <div slot="happened">A routine detail is grouped at the section's end.</div>
+          <div slot="for-you">Nothing.</div>
+          <div slot="next">Keep this group's full record available.</div>
+          <details id="minor-record" slot="record"><summary>The record: 0 entries</summary><p>No supporting entries were supplied.</p></details>
+        </details>
+      </ex-story>
+    </details>
+  </ex-section>
+  <ex-section id="changes" title="What changed and why" icon="git-branch" series="3">
+    <ex-grid cols="2"><section><h3>Decisions for you</h3><p>No illustrative decision is waiting.</p></section><section><h3>Calls made during the work</h3><p>The example keeps ordinary HTML for the two columns.</p></section></ex-grid>
+  </ex-section>
+  <ex-section id="verification" title="What was verified, and what was missed" icon="test-tube" series="4">
+    <ex-story subject="Checks" time="Illustrative" icon="test-tube">
+      <details id="story-other" open>
+        <summary>Another section has its own fold scope</summary>
+        <p slot="headline">Collapsing Delivery does not collapse this story.</p>
+        <div slot="happened">The example has a separate verification section.</div>
+        <div slot="for-you">Read the scope boundary.</div>
+        <div slot="next">Inspect the actual observed result, once one exists.</div>
+        <details id="other-record" slot="record"><summary>The record: 0 entries</summary><p>No observation is asserted by this example.</p></details>
+      </details>
+    </ex-story>
+  </ex-section>
+  <ex-map for="work">
+    <ex-tree id="work-map" label="Map"><script type="text/markdown">
+- [Needs you](#for-you)
+- folded: Where the work is
+  - done: [Renderer part](#story-main)
+  - planned: [Routine part](#story-minor)
+- [What's done / what's next](#delivery)
+  - [Main story](#story-main)
+  - [Routine story](#story-minor)
+  - [Encoded routine destination](#%73tory-minor)
+- [What changed and why](#changes)
+- [What was verified, and what was missed](#verification)
+  - [Verification story](#story-other)
+    </script></ex-tree>
+  </ex-map>
+</ex-document>
+</body>
+</html>

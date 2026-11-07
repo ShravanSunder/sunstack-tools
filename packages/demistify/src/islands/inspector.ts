@@ -101,6 +101,7 @@ interface InspectionContent {
 	readonly header: HTMLElement;
 	readonly body: HTMLElement;
 	readonly restore: () => void;
+	readonly presentation: { readonly kind: 'standard' };
 }
 
 /**
@@ -196,6 +197,7 @@ function takeContent(
 	for (const detail of detailStates) detail.element.hidden = false;
 	for (const disclosure of disclosureStates) disclosure.element.open = true;
 	return {
+		presentation: { kind: 'standard' },
 		header,
 		body,
 		restore: (): void => {

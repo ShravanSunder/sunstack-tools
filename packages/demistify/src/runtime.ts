@@ -12,11 +12,14 @@ import { FileTreeIsland } from './islands/file-tree.ts';
 import { GalleryIsland } from './islands/gallery.ts';
 import { ZoomIsland } from './islands/inspector.ts';
 import { DecisionIsland, LayerIsland, TimelineIsland } from './islands/legacy.ts';
+import { MapIsland } from './islands/map.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
 import { PreformattedIsland } from './islands/preformatted.ts';
 import { BadgeIsland, BreakdownIsland, ProgressIsland } from './islands/small-parts.ts';
 import { StatIsland } from './islands/stat.ts';
+import { FoldToggleIsland, SectionIsland } from './islands/story-section.ts';
+import { StoryIsland } from './islands/story.ts';
 import { TabsIsland } from './islands/tabs.ts';
 import { TreeIsland } from './islands/tree.ts';
 import { ArrowIsland } from './layout/arrows.ts';
@@ -37,6 +40,9 @@ for (const [tagName, constructor] of [
 	['ex-board', BoardIsland],
 	['ex-region', RegionIsland],
 	['ex-trace', EvidenceTraceIsland],
+	['ex-story', StoryIsland],
+	['ex-section', SectionIsland],
+	['ex-fold-toggle', FoldToggleIsland],
 	['ex-markdown', MarkdownIsland],
 	['ex-option', OptionIsland],
 	['ex-choice', ChoiceIsland],
@@ -57,6 +63,7 @@ for (const [tagName, constructor] of [
 	['ex-pre', PreformattedIsland],
 	['ex-explorer', ExplorerIsland],
 	['ex-tree', TreeIsland],
+	['ex-map', MapIsland],
 	['ex-card', CardIsland],
 	['ex-grid', GridIsland],
 	['ex-flow', FlowIsland],

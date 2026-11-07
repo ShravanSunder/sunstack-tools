@@ -1,7 +1,9 @@
 import { adoptBareMarkdown } from '../core/bare-markdown.ts';
+import { classifyDocumentLink } from '../core/document-links.ts';
 import { createIconButton } from '../core/icons.ts';
 import { captureReviewDocument, installDefaultComments } from '../core/review-document.ts';
 import { installIslandInspector, openIsland } from '../islands/inspector.ts';
+import { registerReaderControl } from './reader-controls.ts';
 import { resolveTarget } from './target-resolution.ts';
 export { revealElement } from './target-resolution.ts';
 import { revealElement } from './target-resolution.ts';
@@ -47,7 +49,7 @@ export class DocumentIsland extends StructuralIsland {
 			const toggle = createIconButton('circle-half', 'Switch light or dark theme', (): void => {});
 			toggle.dataset['exTheme'] = '';
 			toggle.classList.add('ex-theme-toggle');
-			document.body.append(toggle);
+			registerReaderControl('theme', toggle);
 		}
 	}
 }
@@ -104,8 +106,29 @@ export function installDocumentBehavior(): void {
 		}
 		const targetLink = event.target.closest('a');
 		const href = targetLink?.getAttribute('href');
-		if (!href?.startsWith('#')) return;
-		const targetElement = document.getElementById(href.slice(1));
+		if (
+			!href ||
+			!targetLink ||
+			event.defaultPrevented ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.altKey ||
+			event.shiftKey ||
+			targetLink.hasAttribute('download') ||
+			(targetLink.getAttribute('target') &&
+				targetLink.getAttribute('target')?.toLowerCase() !== '_self')
+		)
+			return;
+		const destination = classifyDocumentLink(
+			href,
+			new URL(document.URL),
+			new URL(document.baseURI),
+		);
+		if (destination.kind !== 'local') return;
+		const targetElement = document.getElementById(destination.reference);
 		if (targetElement) revealElement(targetElement);
+		// An identical fragment emits no hashchange, but must still reveal a manually folded target.
+		if (destination.url.hash === location.hash) revealFragment();
 	});
 }

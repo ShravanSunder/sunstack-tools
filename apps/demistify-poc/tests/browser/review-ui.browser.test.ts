@@ -78,6 +78,104 @@ test('mixed tree rows align their labels and keep disclosure, meaning and naviga
 	await expect.element(toggle).toHaveAttribute('aria-expanded', 'true');
 });
 
+test.each([
+	{ width: 1600, theme: 'light' },
+	{ width: 1600, theme: 'dark' },
+	{ width: 390, theme: 'light' },
+	{ width: 390, theme: 'dark' },
+])(
+	'plain folded branches preserve tones, checklist and literal labels independently of navigation at $width in $theme',
+	async ({ width, theme }): Promise<void> => {
+		// Arrange: the real Markdown renderer receives marked, unmarked and formatted controls.
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'tree-folds.html');
+		fixture.documentElement.dataset['theme'] = theme;
+		const tree = requiredElement(fixture, '#folding-tree');
+		await expect.poll((): boolean => tree.hasAttribute('prepared')).toBe(true);
+		const rowNamed = (name: string): Element => {
+			const row = [...tree.querySelectorAll('.ex-tree-node')].find((candidate): boolean =>
+				(candidate.querySelector('.ex-tree-label')?.textContent ?? '').includes(name),
+			);
+			if (!row) throw new Error(`Missing tree row: ${name}`);
+			return row;
+		};
+		const deferred = rowNamed('Deferred branch');
+		const disclosure = requiredElement(deferred, 'button');
+		// Assert the initial state before any input; the old renderer opens this branch.
+		expect(disclosure.getAttribute('aria-expanded')).toBe('false');
+		expect(deferred.closest('li')?.getAttribute('tone')).toBe('risk');
+		expect(deferred.querySelector('.ex-tree-label')?.textContent?.trim()).toBe('Deferred branch');
+		expect(
+			requiredElement(rowNamed('Checklist branch'), 'button').getAttribute('aria-expanded'),
+		).toBe('false');
+		expect(rowNamed('Checklist branch').closest('li')?.getAttribute('tone')).toBe('planned');
+		for (const name of [
+			'Open branch',
+			'Code branch',
+			'Formatted branch',
+			'Quoted branch',
+			'Literal branch',
+		])
+			expect(requiredElement(rowNamed(name), 'button').getAttribute('aria-expanded')).toBe('true');
+		expect(rowNamed('Leaf marker').querySelector('.ex-tree-label')?.textContent?.trim()).toBe(
+			'folded: Leaf marker',
+		);
+		expect(rowNamed('Code branch').querySelector('code')?.textContent).toBe('folded:');
+		expect(rowNamed('Formatted branch').querySelector('em')?.textContent).toBe('folded:');
+		expect(rowNamed('Quoted branch').querySelector('blockquote')?.textContent).toContain('folded:');
+		expect(rowNamed('Literal branch').querySelector('.ex-tree-label')?.textContent).toContain('▸');
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(
+			fixture.documentElement.clientWidth,
+		);
+		await page.screenshot({
+			path: `../../../../tmp/verification/demistify/show-me-s1/folds-${width}-${theme}.png`,
+		});
+		// Act: native folding does not navigate; a separate native link follows its destination.
+		await fixtureLocator(frame, disclosure).click();
+		expect(disclosure.getAttribute('aria-expanded')).toBe('true');
+		expect(fixture.location.hash).toBe('');
+		await fixtureLocator(frame, requiredElement(deferred, 'a')).click();
+		await expect.poll((): string => fixture.location.hash).toBe('#tree-target');
+		expect(disclosure.getAttribute('aria-expanded')).toBe('true');
+	},
+);
+
+test.each([
+	{ width: 1600, theme: 'light' },
+	{ width: 1600, theme: 'dark' },
+	{ width: 390, theme: 'light' },
+	{ width: 390, theme: 'dark' },
+])(
+	'tree destinations use packaged jump glyphs only for the actual same document at $width in $theme',
+	async ({ width, theme }): Promise<void> => {
+		// Arrange: relative and fragment-only inputs use the real built runtime and icon subset.
+		await page.viewport(width, 1000);
+		const { document: fixture } = await openFixture('ui', '', 'tree-folds.html');
+		fixture.documentElement.dataset['theme'] = theme;
+		const tree = requiredElement(fixture, '#destination-tree');
+		await expect.poll((): boolean => tree.hasAttribute('prepared')).toBe(true);
+		for (const [name, iconName] of [
+			['Fragment destination', 'arrow-bend-down-right'],
+			['Relative destination', 'arrow-bend-down-right'],
+			['Other page destination', 'arrow-up-right'],
+			['External destination', 'arrow-up-right'],
+		]) {
+			const link = tree.querySelector(`a[aria-label="Go to ${name}"]`);
+			if (!link) throw new Error(`Missing destination: ${name}`);
+			const icon = link.querySelector(`.ph-${iconName}`);
+			// Assert the selected glyph is actually in the packaged CSS, not merely a class.
+			expect(icon).not.toBeNull();
+			if (!icon) throw new Error(`Missing destination icon: ${name}`);
+			expect(fixture.defaultView?.getComputedStyle(icon, '::before').content).not.toBe('none');
+			expect(link.getAttribute('href')).toContain('#');
+		}
+		tree.scrollIntoView({ block: 'center' });
+		await page.screenshot({
+			path: `../../../../tmp/verification/demistify/show-me-s1/links-${width}-${theme}.png`,
+		});
+	},
+);
+
 test('actual page movement releases an explicit section without wheel or keyboard events', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const fixtureWindow = fixture.defaultView;

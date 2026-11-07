@@ -1,7 +1,12 @@
-interface DrawerContent {
+import { setModalControlHost } from '../layout/reader-controls.ts';
+
+export type DrawerPresentation = { readonly kind: 'standard' } | { readonly kind: 'map' };
+
+export interface DrawerContent {
 	readonly header: HTMLElement;
 	readonly body: HTMLElement;
 	readonly restore: () => void;
+	readonly presentation: DrawerPresentation;
 }
 interface DrawerSession {
 	readonly identity: symbol;
@@ -38,7 +43,7 @@ function synchronizeReaderOverlays(raise = false): void {
 		document.body.append(readerOverlayHost);
 	}
 	for (const overlay of document.body.querySelectorAll<HTMLElement>(
-		':scope > .ex-route-player, :scope > .ex-issues',
+		':scope > .ex-route-player, :scope > .ex-issues, :scope > .ex-reader-controls',
 	)) {
 		readerOverlayOrigins.get(overlay)?.remove();
 		const origin = document.createComment('reader overlay origin');
@@ -58,6 +63,7 @@ function hidePresentation(panel: HTMLElement): void {
 		if (panel.open) panel.close();
 		panel.remove();
 	} else {
+		if (panel.matches(':popover-open')) panel.hidePopover();
 		panel.hidden = true;
 		panel.replaceChildren(panel.firstElementChild ?? '');
 	}
@@ -66,6 +72,7 @@ function hidePresentation(panel: HTMLElement): void {
 function showPresentation(session: DrawerSession): void {
 	const { panel, content, identity, label } = session;
 	panel.setAttribute('aria-label', label);
+	panel.dataset['presentation'] = content.presentation.kind;
 	panel.append(content.header, content.body);
 	panel.hidden = false;
 	if (panel instanceof HTMLDialogElement) {
@@ -80,20 +87,41 @@ function showPresentation(session: DrawerSession): void {
 		);
 		document.body.append(panel);
 		panel.showModal();
+	} else if (content.presentation.kind === 'map') {
+		// Keep this non-modal rail above an independently open bottom workspace.
+		panel.popover = 'manual';
+		if (!panel.matches(':popover-open')) panel.showPopover();
+	} else {
+		panel.removeAttribute('popover');
 	}
+}
+
+function presentationPanel(content: DrawerContent): HTMLElement {
+	return content.presentation.kind === 'standard' && window.innerWidth < 900
+		? document.createElement('dialog')
+		: (drawer ??= createDrawer());
+}
+
+function placeModalControls(session: DrawerSession): void {
+	setModalControlHost(
+		session.panel instanceof HTMLDialogElement ? session.content.header : undefined,
+	);
 }
 
 /** Rehome the same live session when the viewport crosses the native sheet boundary. */
 function adaptPresentation(): void {
 	const session = current;
-	if (!session || session.panel instanceof HTMLDialogElement === window.innerWidth < 900) return;
+	if (!session) return;
+	const needsDialog = session.content.presentation.kind === 'standard' && window.innerWidth < 900;
+	if (session.panel instanceof HTMLDialogElement === needsDialog) return;
 	const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-	const panel =
-		window.innerWidth < 900 ? document.createElement('dialog') : (drawer ??= createDrawer());
+	setModalControlHost(undefined);
+	const panel = presentationPanel(session.content);
 	const next = { ...session, panel };
 	current = next;
 	showPresentation(next);
 	hidePresentation(session.panel);
+	placeModalControls(next);
 	if (focused?.isConnected) focused.focus({ preventScroll: true });
 }
 window.addEventListener('resize', adaptPresentation);
@@ -109,6 +137,7 @@ export function closeDrawer(): void {
 	if (!session) return;
 	current = undefined;
 	delete document.documentElement.dataset['drawer'];
+	setModalControlHost(undefined);
 	hidePresentation(session.panel);
 	session.content.restore();
 	if (session.returnFocus?.isConnected) {
@@ -172,18 +201,18 @@ export function openDrawer(
 	const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	const returnFocus = active && current?.panel.contains(active) ? current.returnFocus : active;
 	closeDrawer();
-	const panel =
-		window.innerWidth < 900 ? document.createElement('dialog') : (drawer ??= createDrawer());
 	const identity = Symbol('sidebar-session');
 	const close = (): void => {
 		if (current?.identity === identity) closeDrawer();
 	};
 	const content = take(close);
 	if (!content) return close;
+	const panel = presentationPanel(content);
 	const session: DrawerSession = { identity, label, content, panel, returnFocus };
 	current = session;
 	document.documentElement.dataset['drawer'] = '';
 	showPresentation(session);
+	placeModalControls(session);
 	window.dispatchEvent(new Event('resize'));
 	content.header
 		.querySelector<HTMLButtonElement>('button:last-of-type')

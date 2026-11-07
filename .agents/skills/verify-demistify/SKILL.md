@@ -63,8 +63,11 @@ Read [journey instructions and source map](references/journeys.md) for the selec
 
 IF the claim includes choices or comments, load `references/choices-comments.md` and return the declared target, selected O1/O2 cases, deciding observations with evidence paths, and every unobserved case/gap. Use that return in the evidence/limits report below; selecting cases without observing them is not coverage.
 
+IF the claim covers the planned shared story/section/Map composition, read [the drafted show-me-work journey](references/show-me-work.md). Its O1/O2/O3/O5 route is not yet operable or observed; require the frozen S3 target and product-owned fixture/cases named there.
+
 | Journey                          | Deciding observation                                                                                                                                                                                                                   |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared story/section/Map (draft) | Native story content, scoped folds/counts, Map/Comments and layout against the adopted S3 target; fixture and candidate observation pending |
 | Presentations/pages/fragments    | Cold and same-page links reveal the correct presentation/tab; selected-only content and grouped navigation remain useful                                                                                                               |
 | Markdown/Mermaid/source          | Referenced text and real SVG render; source text/reference stay exact while main content stays rendered                                                                                                                                |
 | Diagram layout/inspection        | Local scrolling reaches both ends without page overflow, displacement, lost controls or arrow/node drift; fullscreen restores state                                                                                                    |

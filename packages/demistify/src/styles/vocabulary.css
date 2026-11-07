@@ -194,22 +194,22 @@ ex-card {
 	box-shadow: var(--shadow-float);
 }
 /* A declared category owns the surface paint; status remains explicit content. */
-:is(ex-card, ex-region)[series='1'] {
+:is(ex-card, ex-region, ex-section)[series='1'] {
 	--surface-category: var(--chart-1);
 }
-:is(ex-card, ex-region)[series='2'] {
+:is(ex-card, ex-region, ex-section)[series='2'] {
 	--surface-category: var(--chart-2);
 }
-:is(ex-card, ex-region)[series='3'] {
+:is(ex-card, ex-region, ex-section)[series='3'] {
 	--surface-category: var(--chart-3);
 }
-:is(ex-card, ex-region)[series='4'] {
+:is(ex-card, ex-region, ex-section)[series='4'] {
 	--surface-category: var(--chart-4);
 }
-:is(ex-card, ex-region)[series='5'] {
+:is(ex-card, ex-region, ex-section)[series='5'] {
 	--surface-category: var(--chart-5);
 }
-:is(ex-card, ex-region)[series='6'] {
+:is(ex-card, ex-region, ex-section)[series='6'] {
 	--surface-category: var(--chart-6);
 }
 :is(ex-card, ex-region)[series] {

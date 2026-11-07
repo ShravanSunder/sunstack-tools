@@ -8,6 +8,7 @@ export async function openFixture(
 		| 'embedded'
 		| 'gallery'
 		| 'ui'
+		| 'show-me-work'
 		| 'search'
 		| 'review'
 		| 'palette'

@@ -134,17 +134,6 @@ ex-nav {
 .ex-heading-panel[data-empty] {
 	display: none;
 }
-.ex-theme-toggle {
-	position: fixed;
-	left: 60px;
-	bottom: 12px;
-	z-index: 7;
-	background: var(--surface-content);
-	border-radius: var(--radius-md);
-}
-body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle {
-	left: 16px;
-}
 @media (min-width: 1440px) {
 	:root[data-outline='true'] body:has(ex-nav) {
 		padding-inline-start: 288px;
@@ -190,140 +179,28 @@ ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	font: 400 13px/1 var(--font-body);
 }
 .ex-search-trigger {
-	position: fixed;
-	left: 104px;
-	bottom: 12px;
-	z-index: 7;
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-2);
 	width: auto;
 	padding-inline: var(--space-2);
-	background: var(--surface-content);
-	border-radius: var(--radius-md);
 }
 .ex-search-trigger kbd {
 	color: var(--ink-soft);
 	font: 400 13px/1 var(--font-body);
 }
-body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
-	left: 60px;
-}
-/* On a phone the floating controls would cover the text; they join the top toolbar instead. */
-.ex-comments-trigger {
-	position: fixed;
-	left: 216px;
-	bottom: 12px;
-	z-index: 7;
-}
-body:not(:has(.ex-presentations-trigger)) .ex-comments-trigger {
-	left: 172px;
-}
-:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger) {
+:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger, .ex-map-trigger) {
 	border-radius: var(--radius-pill);
 	border-color: var(--rule);
 	background: var(--surface-content);
 	color: var(--ink-soft);
 }
-:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger):hover {
+:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger, .ex-map-trigger):hover {
 	color: var(--ink);
 	border-color: var(--ink-soft);
-}
-/* A top-layer workspace leaves the existing toolbar exposed. Dock its reader controls there,
-   using the phone placement, without changing the workspace geometry or moving live DOM. */
-@media (min-width: 761px) {
-	:root:has(ex-drawer:popover-open) body .ex-document-toolbar {
-		padding-right: 172px;
-	}
-	:root:has(ex-drawer:popover-open) body:not(:has(.ex-presentations-trigger)) .ex-document-toolbar {
-		padding-right: 132px;
-	}
-	:root:has(ex-drawer:popover-open)
-		:is(.ex-presentations-trigger, .ex-theme-toggle, .ex-search-trigger, .ex-comments-trigger) {
-		top: calc(env(safe-area-inset-top, 0px) + 5px);
-		bottom: auto;
-		left: auto;
-	}
-	:root:has(ex-drawer:popover-open) .ex-search-trigger {
-		right: calc(var(--ex-drawer-used-width, 0px) + 8px);
-		width: 34px;
-		padding-inline: 0;
-		justify-content: center;
-	}
-	:root:has(ex-drawer:popover-open) .ex-theme-toggle {
-		right: calc(var(--ex-drawer-used-width, 0px) + 48px);
-	}
-	:root:has(ex-drawer:popover-open) .ex-presentations-trigger {
-		right: calc(var(--ex-drawer-used-width, 0px) + 88px);
-	}
-	:root:has(ex-drawer:popover-open) .ex-comments-trigger {
-		right: calc(var(--ex-drawer-used-width, 0px) + 128px);
-	}
-	:root:has(ex-drawer:popover-open) body:not(:has(.ex-presentations-trigger)) .ex-comments-trigger {
-		right: calc(var(--ex-drawer-used-width, 0px) + 88px);
-	}
-	:root:has(ex-drawer:popover-open)
-		:is(.ex-search-trigger kbd, .ex-presentations-trigger .ex-shortcut-hint) {
-		display: none;
-	}
 }
 @media (max-width: 760px) {
 	body:has(ex-document) {
 		padding-inline: var(--space-2);
-	}
-	body .ex-comments-trigger,
-	body:not(:has(.ex-presentations-trigger)) .ex-comments-trigger {
-		left: auto;
-		right: 128px;
-		top: calc(env(safe-area-inset-top, 0px) + 5px);
-		bottom: auto;
-	}
-	body:not(:has(.ex-presentations-trigger)) .ex-comments-trigger {
-		right: 88px;
-	}
-	body:has(ex-comments) .ex-document-toolbar {
-		padding-right: 172px;
-	}
-	body:has(ex-comments):not(:has(.ex-presentations-trigger)) .ex-document-toolbar {
-		padding-right: 132px;
-	}
-	:root[data-drawer] .ex-comments-trigger {
-		display: none;
-	}
-	body .ex-presentations-trigger,
-	body .ex-theme-toggle,
-	body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle,
-	body .ex-search-trigger,
-	body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
-		top: calc(env(safe-area-inset-top, 0px) + 5px);
-		bottom: auto;
-		left: auto;
-	}
-	body .ex-search-trigger,
-	body:not(:has(.ex-presentations-trigger)) .ex-search-trigger {
-		right: 8px;
-		width: 34px;
-		padding-inline: 0;
-		justify-content: center;
-	}
-	body .ex-theme-toggle,
-	body:not(:has(.ex-presentations-trigger)) .ex-theme-toggle {
-		right: 48px;
-	}
-	body .ex-presentations-trigger {
-		right: 88px;
-	}
-	:is(.ex-search-trigger kbd, .ex-presentations-trigger .ex-shortcut-hint) {
-		display: none;
-	}
-	.ex-document-toolbar {
-		padding-right: 132px;
-	}
-	/* An open drawer takes the right of a phone screen; its own close control is the way back. */
-	:root[data-drawer] :is(.ex-presentations-trigger, .ex-theme-toggle, .ex-search-trigger) {
-		display: none;
-	}
-	:root[data-drawer] .ex-document-toolbar {
-		padding-right: var(--space-3);
 	}
 }

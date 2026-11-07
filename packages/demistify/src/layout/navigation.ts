@@ -3,6 +3,7 @@ import { createIconButton } from '../core/icons.ts';
 import { anchorPopover } from '../core/popover-position.ts';
 import { DocumentSearch } from './command-search.ts';
 import { createDocumentToolbar, type DocumentToolbar } from './page-navigation.ts';
+import { registerReaderControl } from './reader-controls.ts';
 import { collectSearchDestinations, readSearchIndex } from './search-destinations.ts';
 
 export class HeadingNavigation extends HTMLElement {
@@ -13,6 +14,7 @@ export class HeadingNavigation extends HTMLElement {
 	private contentRoot: HTMLElement | undefined;
 	private pageLinks: readonly HTMLAnchorElement[] = [];
 	private presentationsButton: HTMLButtonElement | undefined;
+	private unregisterPresentations: (() => void) | undefined;
 	private documentSearch: DocumentSearch | undefined;
 	private documentToolbar: DocumentToolbar | undefined;
 	private headingButton: HTMLButtonElement | undefined;
@@ -96,7 +98,11 @@ export class HeadingNavigation extends HTMLElement {
 			if (this.documentToolbar)
 				document.body.append(this.documentToolbar.element, this.documentToolbar.pagePanel);
 			this.documentSearch?.connect();
-			if (this.presentationsButton) document.body.append(this.presentationsButton);
+			if (this.presentationsButton)
+				this.unregisterPresentations = registerReaderControl(
+					'walkthrough',
+					this.presentationsButton,
+				);
 			this.connectObservers();
 			return;
 		}
@@ -133,7 +139,7 @@ export class HeadingNavigation extends HTMLElement {
 			hint.className = 'ex-shortcut-hint';
 			hint.textContent = 'W';
 			this.presentationsButton.append(hint);
-			document.body.append(this.presentationsButton);
+			this.unregisterPresentations = registerReaderControl('walkthrough', this.presentationsButton);
 		}
 		this.documentToolbar = createDocumentToolbar(this.pageLinks);
 		const navigationPanel = document.createElement('nav');
@@ -321,7 +327,8 @@ export class HeadingNavigation extends HTMLElement {
 		this.documentToolbar?.element.remove();
 		this.documentToolbar?.pagePanel.remove();
 		this.documentSearch?.disconnect();
-		this.presentationsButton?.remove();
+		this.unregisterPresentations?.();
+		this.unregisterPresentations = undefined;
 		if (this.scheduledFrame !== undefined) cancelAnimationFrame(this.scheduledFrame);
 		this.scheduledFrame = undefined;
 		this.changingPopover = false;
