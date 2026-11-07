@@ -236,3 +236,85 @@ async fn saved_filter_keeps_raw_mechanical_fields_and_matches_after_folder_delet
             .contains(sentinel)
     );
 }
+
+#[tokio::test]
+async fn filter_text_list_reads_keep_projection_raw_hash_and_saved_evidence() {
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
+    );
+    let openings = [
+        "Opening guidance.\n".to_string(),
+        format!(
+            "{} RAW_LIST_MIDDLE {}\n",
+            "x".repeat(1700),
+            "y".repeat(1700)
+        ),
+    ];
+    std::fs::write(root.path().join("docs/one.md"), "Checked member.\n").unwrap();
+    std::fs::write(
+        root.path().join("docs/about.md"),
+        format!(
+            "---\ndescription: Portable description\n---\n\n{}\n{}",
+            openings[0], openings[1]
+        ),
+    )
+    .unwrap();
+    std::fs::write(root.path().join("evidence/rules/pieces.yml"), "id: document\nlanguage: Markdown\nrule: {kind: document}\n---\nid: opening\nlanguage: Markdown\nrule: {kind: paragraph}\n").unwrap();
+    let path = root.path().join("skill-rules.config.json");
+    let mut config = read(&path);
+    config["check"]["files"] = json!(["docs/one.md"]);
+    config["evidence"]["kinds"]["folder"] = json!({"rule":"document","max_chars":1000,"fields":{"description":{"from":"yaml","key":"description"},"opening":{"from":"same_file","rule":"opening","text":"full"}}});
+    config["filters"] = json!({"purpose":{"per":"{name}","reads":{"file":"about.md","kind":"folder","fields":["opening","description"]},"labels":["eligible","blocked"],"questions":{"quality":{"type":"noul","instructions":{"check":"opening","context":["description"]}}},"decision":{"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":{"label":"eligible"},"no":{"label":"blocked"},"uncertain":"unsure"}}}}});
+    save(&path, &config);
+    let path = root.path().join("rules.json");
+    let mut entries = read(&path);
+    entries["K001"]["only_when"] = json!({"purpose":["eligible"]});
+    save(&path, &entries);
+
+    let (report, bodies) = judged_with_args(root.path(), 0.9, 1, &["--report", "run.json"]).await;
+
+    assert_eq!(
+        bodies.len(),
+        1,
+        "one filter call, mechanical rule makes none"
+    );
+    let request: Value = serde_json::from_slice(&bodies[0]).unwrap();
+    assert_eq!(request["state"]["description"], "Portable description");
+    let projected = request["state"]["opening"].as_array().unwrap();
+    assert_eq!(projected.len(), 2);
+    assert_eq!(projected[0], openings[0]);
+    assert!(!request.to_string().contains("RAW_LIST_MIDDLE"));
+    assert_eq!(request["state"]["cut-fields"], json!(["opening"]));
+    assert!(request["state"].get("where").is_none());
+    let filter = &report["filter_answers"][0];
+    assert_eq!(filter["label"], "eligible");
+    assert_eq!(filter["input_cut"], true);
+    let raw = json!({"description":"Portable description","opening":openings});
+    assert_eq!(
+        filter["reads_sha256"],
+        sunstack_evidence::content_digest(&serde_json::to_vec(&raw).unwrap())
+    );
+    let id = filter["id"].as_u64().unwrap().to_string();
+    assert_eq!(
+        report["piece_evidence"][&id]["piece"]["fields"]["opening"]["values"],
+        raw["opening"]
+    );
+    assert_eq!(report["requests"][0]["request"]["state"], request["state"]);
+    assert_eq!(read(&root.path().join("run.json")), report);
+    std::fs::remove_file(root.path().join("docs/about.md")).unwrap();
+    std::fs::remove_file(root.path().join("skill-rules.config.json")).unwrap();
+    let detail = support::isolated_command(root.path())
+        .current_dir(root.path())
+        .args(["lint", "show", "run.json", &id])
+        .output()
+        .await
+        .unwrap();
+    assert_eq!(detail.status.code(), Some(0));
+    let detail: Value = serde_json::from_slice(&detail.stdout).unwrap();
+    assert_eq!(detail["result"]["reads_sha256"], filter["reads_sha256"]);
+    assert_eq!(
+        detail["evidence"]["piece"]["fields"]["opening"]["values"],
+        raw["opening"]
+    );
+}

@@ -76,6 +76,10 @@ async fn filter_declarations_and_gates_refuse_through_real_check_and_run() {
             _ => unreachable!(),
         }
         fixture::config_file(root.path(), &config);
+        if variant == "same_file" {
+            invoke(root.path(), &["--check"], 0).await;
+            continue;
+        }
         let output = invoke(root.path(), &["--check"], 2).await;
         assert!(
             format!(

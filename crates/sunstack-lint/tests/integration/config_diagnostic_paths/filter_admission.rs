@@ -76,6 +76,13 @@ async fn filters_admit_native_choice_and_refuse_each_invalid_declaration_at_its_
         config["evidence"]["kinds"]["skill"]["fields"]["description"] = source;
         fixture::config_file(root.path(), &config);
         let loaded = load_config(&location).unwrap();
+        if config["evidence"]["kinds"]["skill"]["fields"]["description"]["from"] == "same_file" {
+            assert!(matches!(
+                check(&loaded, CancellationToken::new()).await,
+                CheckResult::Valid { .. }
+            ));
+            continue;
+        }
         let CheckResult::Invalid { diagnostics } = check(&loaded, CancellationToken::new()).await
         else {
             panic!()
