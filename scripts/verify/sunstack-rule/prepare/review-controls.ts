@@ -14,7 +14,7 @@ import {
 	type JsonObject,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { type RulebookProcess, responseBody } from '../rulebook/rulebook-process.ts';
-import { researchFile } from '../selection/selection-fixture.ts';
+import { observeDuplicateRange } from './duplicate-view.ts';
 import {
 	preparedInventory,
 	requireRequestParity,
@@ -56,7 +56,7 @@ async function observeProjectionDependency(options: {
 	});
 	assert.equal(ordinary.captures.length, 13);
 	const ordinaryRaw = filesystem.readFileSync(ordinaryFile, 'utf8');
-	const plain = byRule(requests(ordinaryRaw), 'independent_document_name')[0];
+	const plain = byRule(requests(ordinaryRaw), 'plain_document_name')[0];
 	assert.ok(plain);
 	const cutFields = arrayValue(objectValue(objectValue(plain['request'])['state'])['cut-fields']);
 	assert.ok(
@@ -76,7 +76,7 @@ async function observeProjectionDependency(options: {
 	const pending = requests(waitingRaw);
 	assert.equal(byRule(pending, 'composed_sections').length, 0);
 	assert.equal(
-		byRule(pending, 'independent_document_name').length,
+		byRule(pending, 'plain_document_name').length,
 		0,
 		'Unknown sibling fields fabricated the shared model-view cut metadata',
 	);
@@ -115,13 +115,6 @@ export async function observeReviewControls(options: {
 	const composedRoot = path.join(evidence, 'composed-selection-fixture');
 	composedSelectionFixture(composedRoot, options.source);
 	configureEndpoint(composedRoot, observer.endpoint);
-	const possibleChars =
-		Array.from(filesystem.readFileSync(path.join(composedRoot, researchFile), 'utf8')).length +
-		Array.from('practices-research').length;
-	assert.ok(
-		possibleChars < 6000,
-		'Wide independent-field fixture can activate shared projection cuts',
-	);
 	const configArguments = ['lint', '--config', prepareConfig];
 	await observer.run({
 		root: composedRoot,
@@ -151,16 +144,22 @@ export async function observeReviewControls(options: {
 		'Independent kind stopped progressing',
 	);
 	assert.equal(
-		byRule(pending, 'independent_document_name').length,
-		1,
-		'Independent field on composed kind stopped progressing',
+		byRule(pending, 'plain_document_name').length,
+		0,
+		'A selection-pending sibling fabricated a wide model view',
 	);
 	assert.ok(
 		arrayValue(parseObject(waitingRaw)['needs_answer'])
 			.map(objectValue)
 			.some((entry) => entry['kind'] === 'z_composed'),
 	);
-	assert.equal(preparedInventory(waitingRaw).size, 6);
+	assert.equal(preparedInventory(waitingRaw).size, 5);
+	const mechanical = arrayValue(parseObject(waitingRaw)['results'])
+		.map(objectValue)
+		.filter((result) => result['name'] === 'known_document_name');
+	assert.equal(mechanical.length, 1, 'Selection uncertainty suppressed known raw mechanical work');
+	assert.equal(mechanical[0]?.['outcome'], 'pass');
+	assert.deepEqual(mechanical[0]?.['request_ids'], []);
 	const ordinaryFile = path.join(evidence, 'composed.ordinary.json');
 	const normal = await observer.run({
 		root: composedRoot,
@@ -172,7 +171,7 @@ export async function observeReviewControls(options: {
 	assert.equal(normal.captures.length, 13);
 	const ordinaryRaw = filesystem.readFileSync(ordinaryFile, 'utf8');
 	const ordinaryRequests = requests(ordinaryRaw);
-	const widePlain = byRule(ordinaryRequests, 'independent_document_name')[0];
+	const widePlain = byRule(ordinaryRequests, 'plain_document_name')[0];
 	assert.ok(widePlain);
 	assert.ok(
 		!('cut-fields' in objectValue(objectValue(widePlain['request'])['state'])),
@@ -215,6 +214,7 @@ export async function observeReviewControls(options: {
 		root: composedRoot,
 		prepareExit: options.prepareExit,
 	});
+	await observeDuplicateRange({ observer, evidence, prepareExit: options.prepareExit });
 	const budgetRoot = path.join(evidence, 'failed-admission-fixture');
 	failedAdmissionFixture(budgetRoot);
 	configureEndpoint(budgetRoot, observer.endpoint);
@@ -319,7 +319,8 @@ export async function observeReviewControls(options: {
 		composed_selection: {
 			deferred_composed: true,
 			independent_kind: 4,
-			independent_field: 1,
+			same_kind_plain_request_deferred: true,
+			known_raw_mechanical_result: true,
 			replay_payloads: 13,
 			projection_budget: { wide: 6000, bounded: 1000, plain_waits_under_bounded_view: true },
 		},

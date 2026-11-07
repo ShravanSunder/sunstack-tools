@@ -4,68 +4,13 @@ impl EvidenceBuild {
     pub(super) fn project_fields(
         &self,
         definition: &EvidenceKindDefinition,
-        file: &MatchedFile,
-        range: &MatchRange,
         fields: &BTreeMap<FieldName, FieldValue>,
     ) -> crate::ModelView {
         let limit = definition
             .max_chars
             .map_or(self.limits.evidence_max_chars, |value| value.get() as usize);
         if fields.values().any(FieldValue::is_selection_pending) {
-            let upper_bound = fields
-                .iter()
-                .map(|(name, value)| {
-                    if !value.is_selection_pending() {
-                        let known = BTreeMap::from([(name.clone(), value.clone())]);
-                        return match project_model_view(&known, usize::MAX) {
-                            crate::ModelView::Bounded { fields, .. } => {
-                                fields.values().map(crate::model_value_chars).sum()
-                            }
-                            _ => usize::MAX,
-                        };
-                    }
-                    let Some(source) = definition.fields.get(name) else {
-                        return usize::MAX;
-                    };
-                    let (of, full) = match source {
-                        FieldSource::Inside { of } => (of, true),
-                        FieldSource::SameFile { of, text }
-                        | FieldSource::Enclosing { of, text } => {
-                            (of, *text == crate::ContextText::Full)
-                        }
-                        FieldSource::Remainder { .. } => {
-                            return file.text[range.start..range.end].chars().count();
-                        }
-                        _ => return usize::MAX,
-                    };
-                    let mut possible = source_ranges(of, file, &self.catalog.pieces);
-                    if let MatchSource::Kind { kind } = of {
-                        possible.extend(self.unresolved_ranges(kind, file));
-                    }
-                    possible.sort_by_key(|span| (span.start, span.end));
-                    possible.dedup_by_key(|span| (span.start, span.end));
-                    possible
-                        .iter()
-                        .filter(|span| match source {
-                            FieldSource::Inside { .. } => match_within(span, range),
-                            FieldSource::Enclosing { .. } => match_within(range, span),
-                            _ => true,
-                        })
-                        .map(|span| {
-                            let text = &file.text[span.start..span.end];
-                            if full {
-                                text.chars().count()
-                            } else {
-                                text.lines().next().unwrap_or("").chars().count()
-                            }
-                        })
-                        .sum()
-                })
-                .fold(0usize, usize::saturating_add);
-            // Unknown siblings can change cuts (including cut-fields metadata) in the shared view.
-            if upper_bound > limit {
-                return crate::ModelView::SelectionPending;
-            }
+            return crate::ModelView::SelectionPending;
         }
         project_model_view(fields, limit)
     }

@@ -94,16 +94,19 @@ async fn composed_selected_fields_wait_without_blocking_independent_fields_and_r
             .iter()
             .any(|entry| entry["outcome"]["kind"] == "deferred")
     );
-    for name in ["plain_document", "independent"] {
-        assert_eq!(
-            requests
-                .iter()
-                .filter(|request| request["owner"]["rule"] == name)
-                .count(),
-            2,
-            "{name}"
-        );
-    }
+    assert!(
+        !requests
+            .iter()
+            .any(|request| request["owner"]["rule"] == "plain_document"),
+        "any pending sibling makes the whole model view wait, regardless of its size"
+    );
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| request["owner"]["rule"] == "independent")
+            .count(),
+        2
+    );
     assert!(
         unknown["needs_answer"]
             .as_array()
@@ -179,8 +182,7 @@ async fn composed_selected_fields_wait_without_blocking_independent_fields_and_r
             .unwrap()
             .contains("practices-research")
     );
-    // Projection shares the kind's field budget: an unknown sibling can affect even a
-    // question that reads only plain text. It must wait rather than invent a bounded view.
+    // Pending siblings defer the whole view at every budget; replay restores ordinary cuts.
     config["evidence"]["kinds"]["document"]["max_chars"] = json!(1000);
     save(&root.path().join("skill-rules.config.json"), &config);
     let (bounded, bounded_captures) = prepared_cli::answered(root.path(), &mut server,

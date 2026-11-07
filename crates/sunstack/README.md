@@ -145,8 +145,9 @@ A selected kind's unanswered selection prevents its dependent pieces from being
 built. `needs_answer` lists each affected kind/file and the selection request id
 it waits on; independent evidence still builds. Composed `same_file`, `inside`
 and `enclosing` fields remain selection-pending, including remainder subtraction.
-A request also waits when unknown fields could change the shared model-view
-budget or cuts; independent fields progress when the whole possible view fits.
+If any field in the model view is selection-pending, the whole model request
+waits, including questions that read only another field. No size estimate is
+used. Requests whose model view has no pending field continue normally.
 Ordinary `--report` and JSON
 output now retain selection requests, answers, requested/resolved models, input
 hashes and raw selection evidence, alongside their existing rule/filter entries.

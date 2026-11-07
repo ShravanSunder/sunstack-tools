@@ -471,3 +471,104 @@ async fn failed_prepare_admission_reserves_the_same_allowance_as_ordinary_execut
     }
     assert_eq!(server.finish().await, 1);
 }
+
+#[tokio::test]
+async fn duplicate_known_ranges_cannot_make_a_selection_pending_view_look_bounded() {
+    // Two legitimate non-selected matches share the exact 800-character source range.
+    let root = limit_fixture(
+        json!({"plain":{"from":"first_line"},
+        "pending":{"from":"same_file","kind":"known_context","text":"full"}}),
+        json!({"start":"quality","steps":{"quality":{"ask":"quality","yes_at_or_above":0.8,
+            "no_at_or_below":0.2,"yes":"pass","no":{"finding":"Needs work."},"uncertain":"uncertain"}}}),
+    );
+    let mut matchers =
+        std::fs::read_to_string(root.path().join("evidence/rules/pieces.yml")).unwrap();
+    matchers.push_str("\n---\nid: duplicated-context\nlanguage: Markdown\nrule: {any: [{kind: document}, {kind: paragraph}]}\n");
+    std::fs::write(root.path().join("evidence/rules/pieces.yml"), matchers).unwrap();
+    std::fs::write(root.path().join("docs/one.md"), "x".repeat(800)).unwrap();
+    let mut rules = read(&root.path().join("rules.json"));
+    rules["K001"]["questions"] = json!({"quality":{"type":"noul","instructions":{"check":"plain","task":"Check plain evidence"}}});
+    save(&root.path().join("rules.json"), &rules);
+    let mut server = controlled::ControlledServer::start().await;
+    let mut config = read(&root.path().join("skill-rules.config.json"));
+    config["decision_model"]["endpoint"] = json!(server.endpoint);
+    config["decision_model"]["model"] = json!("typesafe/controlled");
+    config["evidence"]["kinds"]["review"]["max_chars"] = json!(2000);
+    config["evidence"]["kinds"]["known_context"] = json!({"rule":"duplicated-context","within":["selected_context"],"fields":{"body":{"from":"first_line"}}});
+    config["evidence"]["kinds"]["selected_context"] = json!({"rule":"document","fields":{"body":{"from":"first_line"}},
+        "select":{"question":{"type":"noul","instructions":{"check":"body","task":"Select this context?"}},"yes_at_or_above":0.8,"no_at_or_below":0.2}});
+    save(&root.path().join("skill-rules.config.json"), &config);
+    let (ordinary, captures) = prepared_cli::answered(
+        root.path(),
+        &mut server,
+        &["--all", "--report", "ordinary-duplicates.json"],
+        |body| reply(body, true),
+    )
+    .await;
+    assert_eq!(
+        ordinary.status.code(),
+        Some(0),
+        "{} {}",
+        String::from_utf8_lossy(&ordinary.stdout),
+        String::from_utf8_lossy(&ordinary.stderr)
+    );
+    assert_eq!(captures.len(), 2);
+    let normal = read(&root.path().join("ordinary-duplicates.json"));
+    let piece = normal["piece_evidence"]
+        .as_object()
+        .unwrap()
+        .values()
+        .find(|entry| entry["piece"]["kind"] == "review")
+        .unwrap();
+    assert_eq!(
+        piece["piece"]["fields"]["pending"]["values"],
+        json!(["x".repeat(800), "x".repeat(800)])
+    );
+    let normal_request = normal["requests"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["owner"]["kind"] == "rule")
+        .unwrap();
+    assert!(
+        !normal_request["request"]["state"]["cut-fields"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    let output = prepared_cli::keyless(
+        root.path(),
+        &mut server,
+        &["--all", "--prepare", "pending-duplicates.json"],
+    )
+    .await;
+    assert_eq!(output.status.code(), Some(6));
+    let pending = read(&root.path().join("pending-duplicates.json"));
+    assert!(
+        !pending["requests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry["owner"]["kind"] == "rule"),
+        "deduplicating known ranges understated the real view and fabricated a bounded request"
+    );
+    let replay = prepared_cli::keyless(
+        root.path(),
+        &mut server,
+        &[
+            "--all",
+            "--prepare",
+            "replay-duplicates.json",
+            "--selections-from",
+            "ordinary-duplicates.json",
+        ],
+    )
+    .await;
+    assert_eq!(replay.status.code(), Some(6));
+    prepared_cli::assert_wire_parity(
+        &std::fs::read(root.path().join("replay-duplicates.json")).unwrap(),
+        &std::fs::read(root.path().join("ordinary-duplicates.json")).unwrap(),
+        &captures,
+    );
+    assert_eq!(server.finish().await, 2);
+}

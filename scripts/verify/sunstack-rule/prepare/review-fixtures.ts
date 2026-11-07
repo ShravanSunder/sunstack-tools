@@ -58,11 +58,29 @@ export function composedSelectionFixture(root: string, sourceRoot: string): void
 	const rules = readObject(path.join(root, prepareRules));
 	rules['K002'] = judgedFixtureRule('composed_sections', 'z_composed', 'selected_sections');
 	rules['K003'] = judgedFixtureRule('independent_heading', 'z_independent', 'body');
-	rules['K004'] = judgedFixtureRule('independent_document_name', 'z_composed', 'document_name');
+	rules['K004'] = judgedFixtureRule('plain_document_name', 'z_composed', 'document_name');
+	rules['K005'] = {
+		name: 'known_document_name',
+		evidence: 'z_composed',
+		decision: {
+			start: 'known',
+			steps: {
+				known: {
+					mechanical_check: {
+						tool: 'contains',
+						field: 'document_name',
+						text: 'practices-research',
+					},
+					yes: 'pass',
+					['no']: { finding: 'Known document name was lost.' },
+				},
+			},
+		},
+	};
 	writeJson(path.join(root, prepareRules), rules);
 	filesystem.writeFileSync(
 		path.join(root, 'rulebook.md'),
-		'Read step evidence. <!-- K001 -->\n\nRead selected section evidence. <!-- K002 -->\n\nRead independent heading evidence. <!-- K003 -->\n\nRead independent name evidence. <!-- K004 -->\n',
+		'Read step evidence. <!-- K001 -->\n\nRead selected section evidence. <!-- K002 -->\n\nRead independent heading evidence. <!-- K003 -->\n\nRead document-name evidence. <!-- K004 -->\n\nKeep known raw name evidence. <!-- K005 -->\n',
 	);
 }
 export function failedAdmissionFixture(root: string): void {
