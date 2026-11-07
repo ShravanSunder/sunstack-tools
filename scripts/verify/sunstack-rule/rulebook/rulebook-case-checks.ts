@@ -43,6 +43,7 @@ export function requireCasesReport(options: {
 	definitions: readonly JsonObject[];
 	expected: Readonly<Record<string, string>>;
 	notSelected?: readonly string[];
+	expectedErrors?: Readonly<Record<string, string>>;
 }): void {
 	const { report, definitions, expected } = options;
 	const rows = arrayValue(report['cases']).map(objectValue);
@@ -53,7 +54,7 @@ export function requireCasesReport(options: {
 		})),
 		expected,
 	});
-	equal(report['errors'], {}, 'Case revision failed before evaluation');
+	equal(report['errors'], options.expectedErrors ?? {}, 'Case revision diagnostics differ');
 	equal(
 		arrayValue(report['not_selected']).map(textValue).toSorted(),
 		[...(options.notSelected ?? [])].toSorted(),
@@ -82,9 +83,16 @@ export function requireCasesReport(options: {
 		const group = groups[owner] ?? {};
 		incrementCount(group, outcome);
 		groups[owner] = group;
-		if (['stale', 'no_matching_piece', 'more_than_one_matching_piece'].includes(outcome)) {
+		if (
+			['stale', 'no_matching_piece', 'more_than_one_matching_piece', 'not_judged'].includes(outcome)
+		) {
 			equal(row['result_id'], null, 'Unmatched/stale case was scored against an invented result');
 			equal(row['bars'], [], 'Unmatched/stale case invented bar crossings');
+			if (outcome === 'not_judged')
+				requireCondition(
+					textValue(objectValue(row['outcome'])['reason']).length > 0,
+					'Not-judged case lost its reason',
+				);
 		} else
 			requireCondition(typeof row['result_id'] === 'number', 'Scored case lost its result link');
 		if (typeof row['result_id'] === 'number') {

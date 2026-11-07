@@ -117,6 +117,31 @@ function publicCaseFixture(): Parameters<typeof requireCasesReport>[0] {
 test('public case report accounts by rule and filter and retains the original definitions', () => {
 	expect(() => requireCasesReport(publicCaseFixture())).not.toThrow();
 });
+function notJudgedCaseFixture(): Parameters<typeof requireCasesReport>[0] {
+	const fixture = publicCaseFixture();
+	const row = objectValue(arrayValue(fixture.report['cases'])[0]);
+	row['outcome'] = { kind: 'not_judged', reason: 'selected path is a symlink' };
+	row['result_id'] = null;
+	fixture.expected = { ...fixture.expected, good: 'not_judged' };
+	fixture.report['counts'] = { not_judged: 1, stale: 1, wrong_label: 1 };
+	fixture.report['by_rule'] = { 'fixture-rule': { not_judged: 1, stale: 1 } };
+	return fixture;
+}
+test('unjudged alias stays listed with a reason outside scored outcomes', () => {
+	expect(() => requireCasesReport(notJudgedCaseFixture())).not.toThrow();
+});
+test.each(['reason', 'result_id', 'bars', 'counts'])(
+	'unjudged alias checker refuses invented or lost %s',
+	(field) => {
+		const fixture = notJudgedCaseFixture();
+		const row = objectValue(arrayValue(fixture.report['cases'])[0]);
+		if (field === 'reason') objectValue(row['outcome'])['reason'] = '';
+		else if (field === 'result_id') row['result_id'] = 1;
+		else if (field === 'bars') row['bars'] = [{ step: 'invented' }];
+		else fixture.report['counts'] = { right: 1, stale: 1, wrong_label: 1 };
+		expect(() => requireCasesReport(fixture)).toThrow();
+	},
+);
 function skippedRuleCaseFixture(): Parameters<typeof requireCasesReport>[0] {
 	const fixture = publicCaseFixture();
 	const first = fixture.definitions[0];

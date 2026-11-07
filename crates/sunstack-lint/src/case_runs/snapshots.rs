@@ -1,7 +1,7 @@
 use crate::{LintReport, RulebookFile};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     process::Command,
 };
 use tokio_util::sync::CancellationToken;
@@ -11,6 +11,7 @@ pub(super) struct RevisionSnapshot {
     _directory: tempfile::TempDir,
     pub tree: PathBuf,
     pub config: PathBuf,
+    pub symlink_paths: BTreeSet<PathBuf>,
     pub sources: BTreeMap<PathBuf, Result<String, String>>,
     pub resolved_revision: String,
 }
@@ -39,6 +40,24 @@ fn relative_input(root: &Path, path: &Path) -> Result<PathBuf, String> {
             )
         })
 }
+// Inspect the authored path before today's overlay can replace historical links.
+fn traverses_symlink(tree: &Path, selected_path: &Path) -> Result<bool, String> {
+    let mut path = tree.to_path_buf();
+    for component in selected_path.components() {
+        match component {
+            Component::CurDir => continue,
+            Component::Normal(name) => path.push(name),
+            _ => return Err("selected path must stay inside the snapshot".into()),
+        }
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.file_type().is_symlink() => return Ok(true),
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    Ok(false)
+}
 pub(super) fn prepare(
     repository: &Path,
     revision: &str,
@@ -46,6 +65,7 @@ pub(super) fn prepare(
     config: &Path,
     files: &[RulebookFile],
     case_files: &BTreeSet<PathBuf>,
+    selected_paths: &BTreeSet<PathBuf>,
 ) -> Result<RevisionSnapshot, String> {
     let repository_handle =
         git2::Repository::open(repository).map_err(|error| error.to_string())?;
@@ -81,8 +101,17 @@ pub(super) fn prepare(
         Command::new("git").arg("init").arg("--quiet").arg(&tree),
         "disposable snapshot root metadata",
     )?;
+    let symlink_paths = selected_paths
+        .iter()
+        .filter_map(|path| match traverses_symlink(&tree, path) {
+            Ok(true) => Some(Ok(path.clone())),
+            Ok(false) => None,
+            Err(error) => Some(Err(error)),
+        })
+        .collect::<Result<BTreeSet<_>, String>>()?;
     let sources = case_files
         .iter()
+        .filter(|file| !symlink_paths.contains(*file))
         .map(|file| {
             let source = tree
                 .join(file)
@@ -130,6 +159,7 @@ pub(super) fn prepare(
         tree,
         config,
         sources,
+        symlink_paths,
         resolved_revision: commit.id().to_string(),
     })
 }
@@ -162,7 +192,7 @@ pub(super) async fn lint(
     cancellation: &CancellationToken,
 ) -> Result<LintReport, String> {
     if paths.is_empty() {
-        return Err("no existing selected case paths at this revision".into());
+        return Err("no judgeable selected case paths at this revision".into());
     }
     let output = invoke(executable, snapshot, paths, cancellation).await?;
     serde_json::from_slice(&output.stdout).map_err(|error| {

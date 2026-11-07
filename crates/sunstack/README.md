@@ -131,8 +131,12 @@ where `bound` is `yes_at_or_above`, `no_at_or_below` or `min_probability`.
 
 Case runs archive the whole repository at each revision, initialize Git metadata
 inside each disposable copy so nested configs retain the repository root, overlay
-today's config and rule inputs, and invoke ordinary lint. Rule cases match exactly one piece
-that overlaps their lines after checking the case's own archived line hash.
+today's config and rule inputs, and invoke ordinary lint on selected case paths.
+A selected file or folder that is or traverses a historical symlink is listed as
+`not_judged` with reason `selected path is a symlink`, no result link and no crossed
+bars. It never selects the link's target. Context loads retain their usual behavior.
+Rule cases match exactly one piece that overlaps their lines after checking the
+case's own archived line hash.
 Every selected case is counted or listed, with per-rule and per-filter counts,
 result links and crossed bars. A changed or unrecorded bar is unassessed. The
 command writes no adoption state and changes no ordinary lint inputs.

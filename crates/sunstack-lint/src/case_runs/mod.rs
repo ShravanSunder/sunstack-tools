@@ -103,6 +103,14 @@ pub async fn run_cases(
                 _ => None,
             })
             .collect::<BTreeSet<_>>();
+        let selected_paths = selected
+            .iter()
+            .filter(|case| case.revision == revision)
+            .map(|case| match &case.subject {
+                CaseSubject::Rule { file, .. } => file.clone(),
+                CaseSubject::Filter { folder, .. } => folder.clone(),
+            })
+            .collect::<BTreeSet<_>>();
         match snapshots::prepare(
             &repository,
             &revision,
@@ -110,12 +118,20 @@ pub async fn run_cases(
             &location.file,
             &files,
             &case_files,
+            &selected_paths,
         ) {
             Ok(snapshot) => {
                 let input_paths = selected
                     .iter()
                     .filter(|case| case.revision == revision)
                     .filter_map(|case| {
+                        let selected_path = match &case.subject {
+                            CaseSubject::Rule { file, .. } => file,
+                            CaseSubject::Filter { folder, .. } => folder,
+                        };
+                        if snapshot.symlink_paths.contains(selected_path) {
+                            return None;
+                        }
                         let path = match &case.subject {
                             CaseSubject::Rule { file, .. }
                                 if snapshot.tree.join(file).is_file() =>
@@ -141,12 +157,12 @@ pub async fn run_cases(
                             resolved_revision: snapshot.resolved_revision.clone(),
                             report,
                         });
-                        snapshots.insert(revision, snapshot);
                     }
                     Err(error) => {
-                        errors.insert(revision, error);
+                        errors.insert(revision.clone(), error);
                     }
                 }
+                snapshots.insert(revision, snapshot);
             }
             Err(error) => {
                 errors.insert(revision, error);
@@ -169,13 +185,23 @@ pub async fn run_cases(
         errors,
     };
     for case in selected {
-        let (outcome, result_id, crossings) = if let Some(snapshot) = snapshots.get(&case.revision)
-        {
-            let run = report
-                .runs
-                .iter()
-                .find(|run| run.revision == case.revision)
-                .ok_or_else(|| "revision report missing".to_string())?;
+        let snapshot = snapshots.get(&case.revision);
+        let selected_path = match &case.subject {
+            CaseSubject::Rule { file, .. } => file,
+            CaseSubject::Filter { folder, .. } => folder,
+        };
+        let run = report.runs.iter().find(|run| run.revision == case.revision);
+        let selected_symlink =
+            snapshot.is_some_and(|snapshot| snapshot.symlink_paths.contains(selected_path));
+        let (outcome, result_id, crossings) = if selected_symlink {
+            (
+                CaseOutcome::NotJudged {
+                    reason: "selected path is a symlink".into(),
+                },
+                None,
+                vec![],
+            )
+        } else if let (Some(snapshot), Some(run)) = (snapshot, run) {
             let (outcome, id) = matching::score(case, snapshot, &run.report);
             let crossings = id
                 .and_then(|id| {

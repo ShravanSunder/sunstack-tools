@@ -18,7 +18,8 @@ Unreleased.
 - `lint cases FILE [--set SET]` checks revision-bound rule and filter cases through
   ordinary lint on whole-repository copies with today's rulebook overlaid. It
   reports per-owner counts, stale/unmatched/excluded cases and unassessed bars,
-  without changing files used by ordinary lint.
+  without changing files used by ordinary lint. Selected historical symlink paths
+  are listed as not judged, without following them into a different lint scope.
 
 ## 0.7.1
 

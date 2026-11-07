@@ -21,6 +21,7 @@ import {
 	historicalDescription,
 	unrelatedDescription,
 } from './rulebook-case-fixtures.ts';
+import { prepareSymlinkCasesFixture, observeSymlinkCasePaths } from './rulebook-case-symlinks.ts';
 import {
 	arrayValue,
 	equal,
@@ -177,9 +178,12 @@ export async function runCasesJourney(options: JourneyArguments): Promise<void> 
 	filesystem.mkdirSync(evidence);
 	const root = path.join(evidence, 'fixture');
 	const prepared = prepareCasesFixture(root);
+	const symlinkRoot = path.join(evidence, 'symlink-fixture');
+	const symlinkPrepared = prepareSymlinkCasesFixture(symlinkRoot);
 	const definitions = caseDefinitions(prepared);
 	const input = path.join(evidence, 'cases.json');
 	writeJson(path.join(evidence, 'prepared.json'), prepared);
+	writeJson(path.join(evidence, 'symlink-prepared.json'), symlinkPrepared);
 	writeJson(input, caseFile(prepared, root));
 	if (options.prepare) {
 		process.stdout.write('Prepared case revision fixtures; product unobserved\n');
@@ -312,6 +316,11 @@ export async function runCasesJourney(options: JourneyArguments): Promise<void> 
 		requireCaseRequests(unsureReport, unsure.captures, true);
 		observer.respond = ({ body }) => Promise.resolve(casesReply(body, false));
 		await runCaseControls({ observer, root, evidence, prepared, definitions });
+		const symlinkConfigPath = path.join(symlinkRoot, casesConfigName);
+		const symlinkConfig = readObject(symlinkConfigPath);
+		objectValue(symlinkConfig['decision_model'])['endpoint'] = observer.endpoint;
+		writeJson(symlinkConfigPath, symlinkConfig);
+		await observeSymlinkCasePaths(observer, symlinkRoot, symlinkPrepared, evidence);
 		const after = await observer.run({
 			root,
 			name: 'lint-after',

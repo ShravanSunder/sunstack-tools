@@ -283,3 +283,103 @@ async fn selected_case_scope_preserves_the_same_two_request_budget_as_named_lint
             .all(|body| !String::from_utf8_lossy(body).contains("UNRELATED_"))
     );
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn selected_rule_symlink_inputs_are_listed_without_judging_their_targets() {
+    for case_file in ["docs/alias.md", "linked-docs/one.md"] {
+        let root = limit_fixture(
+            json!({"body":{"from":"remainder"}}),
+            json!({"start":"quality","steps":{"quality":{"ask":"covers","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":"pass","no":{"finding":"Read the instruction."},"uncertain":"uncertain"}}}),
+        );
+        let source = "SYMLINK_FILE_TARGET_SENTINEL.\n";
+        std::fs::write(root.path().join("docs/one.md"), source).unwrap();
+        std::os::unix::fs::symlink("one.md", root.path().join("docs/alias.md")).unwrap();
+        std::os::unix::fs::symlink("docs", root.path().join("linked-docs")).unwrap();
+        let path = root.path().join("rules.json");
+        let mut entries = read(&path);
+        entries["K001"]["questions"] =
+            json!({"covers":{"type":"noul","instructions":{"check":"body"}}});
+        save(&path, &entries);
+        let path = root.path().join("skill-rules.config.json");
+        let mut config = read(&path);
+        config["decision_model"]["endpoint"] = json!("http://127.0.0.1:9/v1/systemone");
+        save(&path, &config);
+        let revision = commit_tree(root.path());
+        save(
+            &root.path().join("cases.json"),
+            &json!({"cases":[{"id":"alias-file","kind":"rule","rule":"document_standard","file":case_file,"revision":revision,"lines":[1,1],"text_sha256":sunstack_evidence::content_digest(source.as_bytes()),"expected":"pass","set":"development","label_from":"blind-agents"}],"bars":[]}),
+        );
+        let (report, bodies) =
+            judged_with_args(root.path(), 0.94, 1, &["cases", "cases.json"]).await;
+        assert_eq!(report["cases"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            report["cases"][0]["outcome"],
+            json!({"kind":"not_judged","reason":"selected path is a symlink"}),
+            "{case_file}"
+        );
+        assert_eq!(report["cases"][0]["result_id"], Value::Null);
+        assert_eq!(report["cases"][0]["bars"], json!([]));
+        assert!(
+            bodies.is_empty(),
+            "a selected alias must not judge its target"
+        );
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn selected_filter_symlink_to_snapshot_ancestor_never_widens_lint_scope() {
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
+    );
+    for folder in ["a", "b"] {
+        std::fs::create_dir_all(root.path().join("packages").join(folder)).unwrap();
+        std::fs::write(
+            root.path().join("packages").join(folder).join("about.md"),
+            format!("---\ndescription: UNRELATED_{folder}_FOLDER\n---\n"),
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join("packages").join(folder).join("member.md"),
+            "Unrelated checked member.\n",
+        )
+        .unwrap();
+    }
+    std::fs::write(
+        root.path().join("about.md"),
+        "---\ndescription: ROOT_ALIAS_FOLDER_SENTINEL\n---\n",
+    )
+    .unwrap();
+    std::os::unix::fs::symlink("..", root.path().join("packages/alias")).unwrap();
+    let path = root.path().join("skill-rules.config.json");
+    let mut config = read(&path);
+    config["check"]["files"] = json!(["packages/*/member.md"]);
+    config["decision_model"]["endpoint"] = json!("http://127.0.0.1:9/v1/systemone");
+    config["evidence"]["kinds"]["folder"] =
+        json!({"rule":"document","fields":{"description":{"from":"yaml","key":"description"}}});
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"folder","fields":["description"]},"labels":["eligible","blocked"],"questions":{"quality":{"type":"noul","instructions":{"check":"description"}}},"decision":{"start":"purpose","steps":{"purpose":{"ask":"quality","yes_at_or_above":0.7,"no_at_or_below":0.3,"yes":{"label":"eligible"},"no":{"label":"blocked"},"uncertain":"unsure"}}}}});
+    save(&path, &config);
+    let path = root.path().join("rules.json");
+    let mut entries = read(&path);
+    entries["K001"]["only_when"] = json!({"purpose":["eligible"]});
+    save(&path, &entries);
+    let revision = commit_tree(root.path());
+    save(
+        &root.path().join("cases.json"),
+        &json!({"cases":[{"id":"alias-folder","kind":"filter","filter":"purpose","folder":"packages/alias","revision":revision,"reads_sha256":sunstack_evidence::content_digest(&serde_json::to_vec(&json!({"description":"ROOT_ALIAS_FOLDER_SENTINEL"})).unwrap()),"expected_label":"eligible","set":"development","label_from":"blind-agents"}],"bars":[]}),
+    );
+    let (report, bodies) = judged_with_args(root.path(), 0.94, 1, &["cases", "cases.json"]).await;
+    assert_eq!(report["cases"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        report["cases"][0]["outcome"],
+        json!({"kind":"not_judged","reason":"selected path is a symlink"})
+    );
+    assert_eq!(report["cases"][0]["result_id"], Value::Null);
+    assert_eq!(report["cases"][0]["bars"], json!([]));
+    assert!(
+        bodies.is_empty(),
+        "ancestor alias must not judge unrelated folders"
+    );
+}
