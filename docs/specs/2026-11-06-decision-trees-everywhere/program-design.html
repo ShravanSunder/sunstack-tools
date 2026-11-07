@@ -221,7 +221,7 @@ flowchart LR
 <p>Each copy is made a Git repository of its own (<code>git init</code> inside the copy only), so lint finds the repository root exactly as in a real checkout, even when the config sits deep inside it, as ai-tools' does. The real repository is never touched. The cost is a copy per revision used, removed when the run ends.</p>
 <p><strong>Matching:</strong> each case gets exactly one outcome.</p>
 <ul>
-<li><strong>A rule case</strong> matches that rule's results whose piece overlaps its lines in its file:
+<li><strong>A rule case</strong> matches that rule's result whose piece has exactly the case's line range in its file. Sections nest (a document's whole section contains its subsections), so overlap would make most cases ambiguous; an exact range names one piece:
   <ul>
   <li>none → <em>no matching piece</em>;</li>
   <li>more than one → <em>more than one matching piece</em>;</li>
