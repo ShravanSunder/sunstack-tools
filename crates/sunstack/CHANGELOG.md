@@ -2,7 +2,7 @@
 
 ## 0.8.0
 
-Unreleased.
+Release date: 2026-11-06.
 
 - Filters now use named questions and the shared decision-tree walker, with
   declared label endings or unsure. The old single-question filter shape is refused.
