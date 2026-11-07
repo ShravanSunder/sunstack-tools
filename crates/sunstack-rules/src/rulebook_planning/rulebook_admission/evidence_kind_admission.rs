@@ -22,6 +22,12 @@ pub fn admit_evidence_kinds(
         }
         for (field, source) in &kind.fields {
             let path = path.with_key("fields").with_key(field.as_str());
+            if RESERVED_STATE_KEYS.contains(&field.as_str()) {
+                errors.push(refusal(
+                    &path,
+                    "evidence field name is a reserved state key",
+                ));
+            }
             if let Some(language) = project.language_for_rule(&kind.matcher.rule_id(name)) {
                 use sunstack_evidence::EvidenceLanguage;
                 let context = format!("kind {} field {}", name.as_str(), field.as_str());

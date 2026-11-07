@@ -94,25 +94,25 @@ impl EvidenceBuild {
                             return Ok(target);
                         };
                         target.path = resolved.clone();
+                        let content = if let Some(file) = self.matched.get(&resolved) {
+                            Ok(file.text.clone())
+                        } else {
+                            read_cached_content(
+                                source,
+                                &mut self.contents,
+                                &mut self.total_bytes,
+                                &resolved,
+                                self.limits,
+                            )
+                        };
+                        let text = content.map_err(|_| FieldUnavailable::Unreadable)?;
+                        target.exists = true;
+                        let opening: String = text.chars().take(*opening_chars).collect();
+                        target.opening_cut = text.chars().count() > *opening_chars;
+                        target.opening_last_line =
+                            (!opening.is_empty()).then(|| opening.lines().count());
+                        target.opening = Some(opening);
                         if use_path {
-                            let content = if let Some(file) = self.matched.get(&resolved) {
-                                Ok(file.text.clone())
-                            } else {
-                                read_cached_content(
-                                    source,
-                                    &mut self.contents,
-                                    &mut self.total_bytes,
-                                    &resolved,
-                                    self.limits,
-                                )
-                            };
-                            let text = content.map_err(|_| FieldUnavailable::Unreadable)?;
-                            target.exists = true;
-                            let opening: String = text.chars().take(*opening_chars).collect();
-                            target.opening_cut = text.chars().count() > *opening_chars;
-                            target.opening_last_line =
-                                (!opening.is_empty()).then(|| opening.lines().count());
-                            target.opening = Some(opening);
                             if let Some(as_kind) = as_kind {
                                 target.fields = self.path_target_fields(&resolved, &text, as_kind);
                             }

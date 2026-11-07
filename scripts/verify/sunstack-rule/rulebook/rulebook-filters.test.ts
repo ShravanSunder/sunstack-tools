@@ -1,81 +1,86 @@
-/** Known wrong captures must fail the same checks used by the real filters journey. */
 import { expect, test } from 'vitest';
 
 import {
+	descriptions,
+	openings,
 	excludedFolder,
-	filterReply,
 	includedFolder,
-	requireFilterReport,
+	includedMembers,
+	filterQuestions,
+	filterReference,
+	filterReply,
 	requireFilterRequests,
-	type FilterScenario,
+	requireFilterReport,
+	requireFilterWalk,
 } from './rulebook-filters.ts';
-import { arrayValue, objectValue, type JsonObject } from './rulebook-fixture-support.ts';
+import { arrayValue, textValue, objectValue, type JsonObject } from './rulebook-fixture-support.ts';
 import { type CapturedRequest } from './rulebook-process.ts';
-
 function capture(body: JsonObject): CapturedRequest {
 	return { body, raw: Buffer.from(JSON.stringify(body)) };
 }
-function filterCapture(folder: string, description: string): CapturedRequest {
+function filterCapture(folder: string): CapturedRequest {
 	return capture({
-		questions: {
-			filter: {
-				type: 'choice',
-				instructions: { task: 'Classify this description for the fixture rules.' },
-				criteria: { eligible: 'General instructions.', blocked: 'Specific instructions.' },
-			},
+		questions: filterQuestions,
+		state: {
+			description: descriptions.get(folder) ?? '',
+			opening: openings.get(folder) ?? '',
+			reference: filterReference,
+			'unavailable-fields': {},
 		},
-		state: { where: { folder }, description },
 	});
 }
 function judgedCaptures(): CapturedRequest[] {
 	return [
-		filterCapture(includedFolder, 'General instructions for an included folder.'),
-		filterCapture(excludedFolder, 'Specific instructions for an excluded folder.'),
-		...['one.md', 'two.md', 'three.md'].map((name) =>
+		filterCapture(includedFolder),
+		filterCapture(excludedFolder),
+		...includedMembers.map((file) =>
 			capture({
 				questions: { verdict: { type: 'noul' } },
-				state: {
-					where: { file: `${includedFolder}/notes/${name}` },
-					body: 'Approved instruction.',
-				},
+				state: { where: { file }, body: 'Approved instruction.' },
 			}),
 		),
 	];
 }
-
-test('request check accepts concurrent arrival order without changing folder/file identities', () => {
-	const captures = judgedCaptures().toReversed();
-	expect(() => requireFilterRequests(captures, 'judged')).not.toThrow();
+test('accepts both questions in one request per folder in any arrival order', () => {
+	// Arrange / Act / Assert: HTTP completion order is not report order.
+	expect(() => requireFilterRequests(judgedCaptures().toReversed(), 'judged')).not.toThrow();
 });
 test.each([
-	['a question per gated rule', (rows: CapturedRequest[]) => rows.push(rows[0] ?? capture({}))],
-	['a missing folder', (rows: CapturedRequest[]) => rows.splice(1, 1)],
 	[
-		'capture name used instead of full folder identity',
+		'duplicate folder request',
+		(rows: CapturedRequest[]) => rows.push(filterCapture(includedFolder)),
+	],
+	['missing folder', (rows: CapturedRequest[]) => rows.splice(1, 1)],
+	[
+		'unasked folder path',
 		(rows: CapturedRequest[]) => {
 			const first = rows[0];
-			expect(first).toBeDefined();
-			if (first) objectValue(objectValue(first.body['state'])['where'])['folder'] = 'review';
+			if (first) objectValue(first.body['state'])['where'] = { folder: includedFolder };
 		},
 	],
 	[
-		'whole context body sent',
+		'undeclared context',
 		(rows: CapturedRequest[]) => {
 			const first = rows[0];
 			if (first) objectValue(first.body['state'])['body'] = 'CONTEXT_ONLY_SENTINEL';
 		},
 	],
 	[
-		'authored Choice changed',
+		'reference changed',
+		(rows: CapturedRequest[]) => {
+			const first = rows[0];
+			if (first) objectValue(first.body['state'])['reference'] = { wrong: true };
+		},
+	],
+	[
+		'split questions',
 		(rows: CapturedRequest[]) => {
 			const first = rows[0];
 			if (first)
-				objectValue(objectValue(objectValue(first.body['questions'])['filter'])['instructions'])[
-					'task'
-				] = 'wrong';
+				first.body['questions'] = { scope: objectValue(first.body['questions'])['scope'] ?? null };
 		},
 	],
-	['allowed rules never asked', (rows: CapturedRequest[]) => rows.splice(2)],
+	['missing eligible requests', (rows: CapturedRequest[]) => rows.splice(2)],
 	[
 		'excluded rule asked',
 		(rows: CapturedRequest[]) =>
@@ -86,251 +91,255 @@ test.each([
 				}),
 			),
 	],
-])('request check rejects %s', (_name, mutate) => {
+])('rejects %s', (_name, mutate) => {
 	const captures = judgedCaptures();
 	mutate(captures);
 	expect(() => requireFilterRequests(captures, 'judged')).toThrow();
 });
-test('folderless check rejects an accidental request instead of trusting exit 3', () => {
+test('folderless refusal cannot pass with accidental requests', () => {
 	expect(() => requireFilterRequests([], 'folderless')).not.toThrow();
 	expect(() => requireFilterRequests(judgedCaptures(), 'folderless')).toThrow();
 });
-test('scripted Choice deliberately separates confidence, selected probability and maximum', () => {
-	const request = filterCapture(excludedFolder, 'Specific instructions for an excluded folder.');
-	const reply = filterReply(request.body, 'unsure');
-	expect(objectValue(reply['answers'])['filter']).toEqual({
-		type: 'choice',
-		choice: 'eligible',
-		confidence: 0.99,
-		probabilities: { eligible: 0.3, blocked: 0.7 },
-	});
+test.each([
+	['root-unsure', 'scope'],
+	['unsure', 'style'],
+] as const)('scripts %s at the intended tree depth', (scenario, name) => {
+	const reply = filterReply(filterCapture(excludedFolder).body, scenario);
+	const answer = objectValue(objectValue(reply['answers'])[name]);
+	expect(answer['confidence']).toBe(0.99);
+	expect(Math.max(...Object.values(objectValue(answer['probabilities'])).map(Number))).toBe(0.5);
 });
 
-function reportFixture(scenario: FilterScenario = 'judged'): JsonObject {
-	const answer = {
+function walkFixture(
+	scenario: 'judged' | 'root-unsure' | 'unsure' | 'failed',
+): Parameters<typeof requireFilterWalk>[0] {
+	const request = filterCapture(excludedFolder);
+	return {
+		scenario,
+		folder: excludedFolder,
+		state: scenario === 'judged' ? 'judged' : scenario === 'failed' ? 'incomplete' : 'unsure',
+		label: scenario === 'judged' ? 'blocked' : undefined,
+		path: scenario === 'failed' ? [] : scenario === 'unsure' ? ['scope', 'style'] : ['scope'],
+		step: scenario === 'root-unsure' ? 'scope' : scenario === 'unsure' ? 'style' : undefined,
+		answers:
+			scenario === 'failed'
+				? {}
+				: Object.fromEntries(
+						Object.entries(objectValue(filterReply(request.body, scenario)['answers'])).map(
+							([name, value]) => {
+								const raw = objectValue(value);
+								return [
+									name,
+									{
+										type: 'choice',
+										selected_label: raw['choice'] ?? null,
+										confidence: raw['confidence'] ?? null,
+										probabilities: raw['probabilities'] ?? null,
+									},
+								];
+							},
+						),
+					),
+	};
+}
+test.each(['judged', 'root-unsure', 'unsure', 'failed'] as const)(
+	'accepts the authored %s tree route',
+	(scenario) => {
+		expect(() => requireFilterWalk(walkFixture(scenario))).not.toThrow();
+	},
+);
+test.each([
+	[
+		'wrong terminal label',
+		(walk: Parameters<typeof requireFilterWalk>[0]) => {
+			walk.label = 'reusable';
+		},
+	],
+	[
+		'invented route',
+		(walk: Parameters<typeof requireFilterWalk>[0]) => {
+			walk.path = ['scope', 'style'];
+		},
+	],
+	[
+		'changed answer',
+		(walk: Parameters<typeof requireFilterWalk>[0]) => {
+			walk.answers['scope'] = {
+				type: 'choice',
+				choice: 'other',
+				confidence: 1,
+				probabilities: { reusable: 0, product: 0, other: 1 },
+			};
+		},
+	],
+])('rejects %s', (_name, mutate) => {
+	const walk = walkFixture('judged');
+	mutate(walk);
+	expect(() => requireFilterWalk(walk)).toThrow();
+});
+test.each(['root-unsure', 'unsure'] as const)(
+	'rejects fabricated labels and wrong steps for %s',
+	(scenario) => {
+		const walk = walkFixture(scenario);
+		walk.label = 'eligible';
+		expect(() => requireFilterWalk(walk)).toThrow();
+		walk.label = undefined;
+		walk.step = 'made_up';
+		expect(() => requireFilterWalk(walk)).toThrow();
+	},
+);
+
+function reportFixture(scenario: 'judged' | 'root-unsure' | 'unsure' | 'failed'): JsonObject {
+	const judgedAnswer: JsonObject = {
+		type: 'choice',
+		selected_label: 'reusable',
+		confidence: 0.99,
+		probabilities: { reusable: 0.9, product: 0.05, other: 0.05 },
+	};
+	const styleAnswer: JsonObject = {
+		type: 'choice',
+		selected_label: 'approved',
+		confidence: 0.99,
+		probabilities: { approved: 0.9, blocked: 0.05, other: 0.05 },
+	};
+	const included: JsonObject = {
 		filter: 'category',
 		folder: includedFolder,
+		input_cut: false,
 		requested_model: 'typesafe/requested-filters',
 		resolved_model: 'typesafe/controlled-rulebook',
-		input_cut: false,
 		state: 'judged',
-		answer: 'eligible',
-		probability: 0.7,
-		probabilities: { eligible: 0.7, blocked: 0.3 },
+		label: 'eligible',
+		path: ['scope', 'style'],
+		answers: { scope: judgedAnswer, style: styleAnswer },
 	};
+	const excludedWalk = walkFixture(scenario);
 	const excluded: JsonObject = {
-		...answer,
+		filter: 'category',
 		folder: excludedFolder,
-		answer: 'blocked',
-		probability: 0.9,
-		probabilities: { eligible: 0.1, blocked: 0.9 },
+		input_cut: false,
+		requested_model: 'typesafe/requested-filters',
+		resolved_model: scenario === 'failed' ? null : 'typesafe/controlled-rulebook',
+		state: textValue(excludedWalk.state),
+		path: scenario === 'failed' ? [] : scenario === 'unsure' ? ['scope', 'style'] : ['scope'],
+		answers: excludedWalk.answers,
 	};
-	if (scenario === 'unsure') {
-		excluded['state'] = 'unsure';
-		excluded['probabilities'] = { eligible: 0.3, blocked: 0.7 };
-		excluded['answer'] = 'eligible';
-		excluded['probability'] = 0.3;
-	}
-	if (scenario === 'failed') {
-		excluded['state'] = 'incomplete';
-		excluded['resolved_model'] = null;
+	if (scenario === 'judged') excluded['label'] = 'blocked';
+	if (scenario === 'root-unsure' || scenario === 'unsure')
+		excluded['step'] = scenario === 'root-unsure' ? 'scope' : 'style';
+	if (scenario === 'failed')
 		excluded['reason'] = {
 			kind: 'request',
 			reason: {
 				provider_failure: { failure_class: 'provider_rejected_request', http_status: 400 },
 			},
 		};
-	}
-	const rows: JsonObject[] = [];
-	for (const [name, marker, basis] of [
-		['mechanical_gate', 'K001', 'mechanical'],
-		['asking_gate', 'K002', 'judged'],
-	] as const) {
-		if (scenario !== 'folderless')
-			for (const file of scenario === 'member' ? ['one.md'] : ['one.md', 'three.md', 'two.md'])
-				rows.push({
-					name,
-					marker,
-					file: `${includedFolder}/notes/${file}`,
-					first_line: 1,
-					outcome: 'pass',
-					basis,
-				});
+	const results: JsonObject[] = [];
+	for (const name of ['mechanical_gate', 'asking_gate']) {
+		for (const file of includedMembers) results.push({ name, file, outcome: 'pass' });
 		if (scenario === 'judged')
 			for (const firstLine of [1, 3, 5])
-				rows.push({
+				results.push({
 					name,
-					marker,
 					file: `${excludedFolder}/notes/one.md`,
 					first_line: firstLine,
 					outcome: 'not_applicable',
-					basis: 'judged',
-					reason: { kind: 'filter', filter: 'category', answer: 'blocked', probability: 0.9 },
+					reason: { kind: 'filter', filter: 'category', label: 'blocked' },
 				});
 	}
-	const skipped = ['unsure', 'failed', 'folderless'].includes(scenario);
 	return {
 		status: {
-			kind:
-				scenario === 'unsure'
-					? 'uncertain'
-					: scenario === 'failed' || scenario === 'folderless'
-						? 'incomplete'
-						: 'clean',
+			kind: scenario === 'judged' ? 'clean' : scenario === 'failed' ? 'incomplete' : 'uncertain',
 		},
 		findings: [],
 		uncertain: [],
 		counts: { error: 0, warn: 0 },
 		exclusions: { not_applicable: scenario === 'judged' ? 6 : 0 },
-		results: rows,
-		filter_answers:
-			scenario === 'folderless' ? [] : scenario === 'member' ? [answer] : [answer, excluded],
-		filter_skips: skipped
-			? ['mechanical_gate', 'asking_gate'].map((rule) => ({
-					rule,
-					filter: 'category',
-					folder: scenario === 'folderless' ? null : excludedFolder,
-					file:
-						scenario === 'folderless' ? 'elsewhere/unowned.md' : `${excludedFolder}/notes/one.md`,
-					why:
-						scenario === 'folderless'
-							? 'no_folder'
-							: scenario === 'failed'
-								? 'incomplete'
-								: 'unsure',
-					probabilities: scenario === 'unsure' ? { eligible: 0.3, blocked: 0.7 } : null,
-				}))
-			: [],
-		incomplete:
-			scenario === 'failed'
-				? [{ rule: null, file: excludedFolder, reason: { kind: 'filter', filter: 'category' } }]
-				: scenario === 'folderless'
-					? ['mechanical_gate', 'asking_gate'].map((rule) => ({
-							rule,
-							file: 'elsewhere/unowned.md',
-							reason: { kind: 'no_filter_folder', filter: 'category' },
-						}))
-					: [],
+		results,
+		filter_answers: [included, excluded],
+		filter_skips:
+			scenario === 'judged'
+				? []
+				: ['mechanical_gate', 'asking_gate'].map((rule) => ({
+						rule,
+						file: `${excludedFolder}/notes/one.md`,
+						filter: 'category',
+						folder: excludedFolder,
+						why: scenario === 'failed' ? 'incomplete' : 'unsure',
+						path: excluded['path'] ?? [],
+						answers: excludedWalk.answers,
+						locations: [1, 3, 5].map((firstLine) => ({
+							file: `${excludedFolder}/notes/one.md`,
+							first_line: firstLine,
+							last_line: firstLine,
+						})),
+					})),
+		incomplete: scenario === 'failed' ? [{ reason: 'controlled failure' }] : [],
 	};
 }
-
-test.each(['judged', 'unsure', 'failed', 'folderless', 'member'] as const)(
-	'report check accepts independently authored %s outcome',
+test.each(['judged', 'root-unsure', 'unsure', 'failed'] as const)(
+	'accepts the public %s report',
 	(scenario) => {
 		expect(() => requireFilterReport(reportFixture(scenario), scenario)).not.toThrow();
 	},
 );
 test.each([
 	[
-		'all gated pairs omitted',
+		'lost skipped piece locations',
 		(report: JsonObject) => {
-			report['results'] = [];
+			objectValue(arrayValue(report['filter_skips'])[0])['locations'] = [];
 		},
 	],
 	[
-		'wrong status',
+		'duplicate skip',
 		(report: JsonObject) => {
-			report['status'] = { kind: 'nothing_selected' };
+			const skips = arrayValue(report['filter_skips']);
+			skips.push(skips[0] ?? null);
 		},
 	],
 	[
-		'missing answer',
+		'lost skip route',
 		(report: JsonObject) => {
-			arrayValue(report['filter_answers']).pop();
+			objectValue(arrayValue(report['filter_skips'])[0])['path'] = [];
 		},
 	],
 	[
-		'missing probabilities',
+		'invented unsure label',
 		(report: JsonObject) => {
-			delete objectValue(arrayValue(report['filter_answers'])[0])['probabilities'];
+			objectValue(arrayValue(report['filter_answers'])[1])['label'] = 'eligible';
 		},
 	],
 	[
-		'resolved model copied from requested',
+		'changed answering model',
 		(report: JsonObject) => {
 			objectValue(arrayValue(report['filter_answers'])[0])['resolved_model'] =
 				'typesafe/requested-filters';
 		},
 	],
 	[
-		'mechanical exclusion basis',
+		'fabricated combined probability',
 		(report: JsonObject) => {
-			objectValue(arrayValue(report['results'])[3])['basis'] = 'mechanical';
+			objectValue(arrayValue(report['filter_answers'])[0])['probability'] = 0.9;
 		},
 	],
 	[
-		'lost exclusion reason',
+		'missing included pairs',
 		(report: JsonObject) => {
-			delete objectValue(arrayValue(report['results'])[3])['reason'];
+			report['results'] = [];
 		},
 	],
 	[
-		'changed result order',
+		'skipped rule walked',
 		(report: JsonObject) => {
-			arrayValue(report['results']).reverse();
+			arrayValue(report['results']).push({
+				name: 'asking_gate',
+				file: `${excludedFolder}/notes/one.md`,
+				outcome: 'pass',
+			});
 		},
 	],
-])('report check rejects %s', (_name, mutate) => {
-	const report = reportFixture();
+])('public report rejects %s', (_name, mutate) => {
+	const report = reportFixture('unsure');
 	mutate(report);
-	expect(() => requireFilterReport(report, 'judged')).toThrow();
-});
-test('unsure skip deduplication check rejects one skip per piece and a fabricated result', () => {
-	const report = reportFixture('unsure');
-	const skips = arrayValue(report['filter_skips']);
-	skips.push(skips[0] ?? null);
-	expect(() => requireFilterReport(report, 'unsure')).toThrow();
-	skips.pop();
-	arrayValue(report['results']).push({ file: `${excludedFolder}/notes/one.md`, outcome: 'pass' });
 	expect(() => requireFilterReport(report, 'unsure')).toThrow();
 });
-test('skip ordering is not an oracle when identity and contents are unchanged', () => {
-	const report = reportFixture('unsure');
-	arrayValue(report['filter_skips']).reverse();
-	expect(() => requireFilterReport(report, 'unsure')).not.toThrow();
-});
-
-test.each([
-	[
-		'missing selected answer',
-		(answer: JsonObject) => {
-			delete answer['answer'];
-		},
-	],
-	[
-		'missing selected probability',
-		(answer: JsonObject) => {
-			delete answer['probability'];
-		},
-	],
-	[
-		'maximum-probability label substituted',
-		(answer: JsonObject) => {
-			answer['answer'] = 'blocked';
-			answer['probability'] = 0.7;
-		},
-	],
-	[
-		'confidence substituted for selected probability',
-		(answer: JsonObject) => {
-			answer['probability'] = 0.99;
-		},
-	],
-])('unsure report rejects %s', (_name, mutate) => {
-	const report = reportFixture('unsure');
-	mutate(objectValue(arrayValue(report['filter_answers'])[1]));
-	expect(() => requireFilterReport(report, 'unsure')).toThrow();
-});
-
-test.each([
-	['http_status', 429],
-	['failure_class', 'connection'],
-] as const)(
-	'failed filter check rejects changed %s in the native external-tag envelope',
-	(field, value) => {
-		const report = reportFixture('failed');
-		const reason = objectValue(objectValue(arrayValue(report['filter_answers'])[1])['reason']);
-		objectValue(objectValue(reason['reason'])['provider_failure'])[field] = value;
-		expect(() => requireFilterReport(report, 'failed')).toThrow();
-	},
-);

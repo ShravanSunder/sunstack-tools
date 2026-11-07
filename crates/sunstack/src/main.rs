@@ -10,7 +10,7 @@ use std::process::ExitCode;
 async fn main() -> ExitCode {
     match CommandLine::parse().command {
         RunnerCommand::Exec => operation_protocol::exec_protocol::run().await,
-        RunnerCommand::Lint(arguments) => command_dispatch::lint_command::run(arguments).await,
+        RunnerCommand::Lint(arguments) => command_dispatch::lint_command::run(*arguments).await,
         RunnerCommand::Credentials {
             command: CredentialCommand::Save,
         } => process_runtime::provider_credentials::save_command().await,

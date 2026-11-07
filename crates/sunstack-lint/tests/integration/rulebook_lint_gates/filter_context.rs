@@ -15,7 +15,7 @@ fn configured(root: &Path) -> Value {
     )
     .unwrap();
     config["check"]["files"] = json!(["packages/*/references/*.md"]);
-    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","field":"description"},"question":{"type":"choice","instructions":{"task":"Classify"},"criteria":{"a":"A","b":"B"}},"min_probability":0.7}});
+    config["filters"] = json!({"purpose":{"per":"packages/{name}","reads":{"file":"about.md","kind":"skill","fields":["description"]},"labels":["a","b"],"questions":{"filter":{"type":"choice","instructions":{"task":"Classify","check":"description"},"criteria":{"a":"A","b":"B"}}},"decision":{"start":"filter","steps":{"filter":{"ask":"filter","min_probability":0.7,"routes":{"a":{"label":"a"},"b":{"label":"b"}},"uncertain":"unsure"}}}}});
     let mut entries: Value =
         serde_json::from_slice(&std::fs::read(root.join("rules.json")).unwrap()).unwrap();
     entries["K001"]["only_when"] = json!({"purpose":["a"]});
@@ -195,4 +195,44 @@ async fn explicitly_checked_context_keeps_public_counts_and_rule_results() {
     assert_eq!(report.results.len(), 2);
     assert_eq!(report.usage.checked_files_acquired, 2);
     assert_eq!(reads.lock().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn unsure_filter_and_ungated_error_keep_findings_status_and_both_results() {
+    let root = tempfile::tempdir().unwrap();
+    let mut server = ControlledServer::start().await;
+    let mut config = configured(root.path());
+    config["decision_model"]["endpoint"] = json!(server.endpoint);
+    fixture::config_file(root.path(), &config);
+    let mut entries: Value =
+        serde_json::from_slice(&std::fs::read(root.path().join("rules.json")).unwrap()).unwrap();
+    entries["K002"] = entries["K001"].clone();
+    entries["K002"].as_object_mut().unwrap().remove("only_when");
+    entries["K002"]["name"] = json!("independent_error");
+    fixture::entry_file(root.path(), &entries);
+    std::fs::write(
+        root.path().join("rulebook.md"),
+        "Check description. <!-- K001 -->\n\nCheck independent description. <!-- K002 -->\n",
+    )
+    .unwrap();
+    let mut task = tokio::spawn(run(
+        fixture::request(root.path()),
+        CancellationToken::new(),
+        Some("SYNTHETIC".into()),
+    ));
+    let pending = tokio::select! {pending=server.next()=>pending, result=&mut task=>panic!("filter not asked: {:?}", result.unwrap())};
+    pending.respond(200, json!({"model":"typesafe/controlled","answers":{"filter":{"type":"choice","choice":"a","confidence":0.6,"probabilities":{"a":0.6,"b":0.4}}},"usage":{"input_tokens":1,"output_tokens":1}}));
+    let report = task.await.unwrap();
+    assert_eq!(server.finish().await, 1);
+    assert_eq!(report.status, LintStatus::Findings);
+    assert_eq!(report.status.exit_code(), 1);
+    assert_eq!(report.filter_skips.len(), 1);
+    assert!(matches!(
+        report.filter_answers[0].state,
+        sunstack_rules::FilterAnswerState::Unsure { .. }
+    ));
+    assert_eq!(report.findings.len(), 1);
+    assert_eq!(report.findings[0].rule.as_str(), "independent_error");
+    assert_eq!(report.counts.error, 1);
+    assert!(report.incomplete.is_empty());
 }

@@ -7,7 +7,6 @@ use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
 };
-use sunstack_decisions::ChoiceLabel;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -18,12 +17,14 @@ pub enum FilterSkipReason {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FilterSkip {
+    pub locations: Vec<sunstack_evidence::PieceLocation>,
     pub rule: RuleId,
     pub file: PathBuf,
     pub filter: FilterName,
     pub folder: Option<PathBuf>,
     pub why: FilterSkipReason,
-    pub probabilities: Option<BTreeMap<ChoiceLabel, f64>>,
+    pub path: Vec<crate::StepName>,
+    pub answers: sunstack_decisions::NamedAnswerMap,
 }
 pub enum GateOutcome {
     Walk,
@@ -36,12 +37,14 @@ pub fn gate_for(rule: &RulebookRule, answers: &FilterAnswers, file: &Path) -> Ga
     };
     let folder = answers.folders.get(&(gate.filter.clone(), file.to_owned()));
     let mut skip = FilterSkip {
+        locations: vec![],
         rule: rule.name.clone(),
         file: file.into(),
         filter: gate.filter.clone(),
         folder: folder.cloned(),
         why: FilterSkipReason::NoFolder,
-        probabilities: None,
+        path: vec![],
+        answers: BTreeMap::new(),
     };
     let Some(folder) = folder else {
         return GateOutcome::Skip(skip);
@@ -51,27 +54,29 @@ pub fn gate_for(rule: &RulebookRule, answers: &FilterAnswers, file: &Path) -> Ga
         .iter()
         .find(|answer| answer.filter == gate.filter && &answer.folder == folder);
     match answer.map(|answer| &answer.state) {
-        Some(FilterAnswerState::Judged {
-            answer,
-            probability,
-            ..
-        }) => {
-            if gate.answers.contains(answer) {
+        Some(FilterAnswerState::Judged { label, .. }) => {
+            if gate.answers.contains(label) {
                 GateOutcome::Walk
             } else {
                 GateOutcome::Exclude(NotApplicableReason::Filter {
                     filter: gate.filter.clone(),
-                    answer: answer.clone(),
-                    probability: *probability,
+                    label: label.clone(),
                 })
             }
         }
-        Some(FilterAnswerState::Unsure { probabilities, .. }) => {
+        Some(FilterAnswerState::Unsure { path, answers, .. }) => {
             skip.why = FilterSkipReason::Unsure;
-            skip.probabilities = Some(probabilities.clone());
+            skip.path = path.clone();
+            skip.answers = answers.clone();
             GateOutcome::Skip(skip)
         }
-        Some(FilterAnswerState::Incomplete { .. }) | None => {
+        Some(FilterAnswerState::Incomplete { path, answers, .. }) => {
+            skip.path = path.clone();
+            skip.answers = answers.clone();
+            skip.why = FilterSkipReason::Incomplete;
+            GateOutcome::Skip(skip)
+        }
+        None => {
             skip.why = FilterSkipReason::Incomplete;
             GateOutcome::Skip(skip)
         }

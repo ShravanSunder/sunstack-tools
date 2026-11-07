@@ -12,3 +12,7 @@ pub use configuration_loading::limit_settings::*;
 pub use lint_execution::lint_run::{run, run_with_source};
 pub use lint_reporting::formats::{OutputFormat, render};
 pub use lint_reporting::report_contracts::*;
+
+pub use lint_reporting::saved_report_contracts::*;
+
+pub mod case_runs;

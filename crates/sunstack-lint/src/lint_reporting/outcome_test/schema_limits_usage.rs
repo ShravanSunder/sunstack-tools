@@ -5,6 +5,7 @@ use sunstack_rules::*;
 
 fn usage_report(costs: &[Option<f64>]) -> RulebookRun {
     RulebookRun {
+        not_sent: vec![],
         skips: vec![],
         results: vec![],
         requests: costs

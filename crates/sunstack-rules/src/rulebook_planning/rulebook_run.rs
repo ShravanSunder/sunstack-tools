@@ -34,7 +34,14 @@ pub struct RulebookRequestRecord {
     pub outcome: DecisionRunOutcome,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnsentRulebookRequest {
+    pub pair_index: usize,
+    pub request: StructuredJudgmentRequest,
+    pub reason: RulebookIncompleteReason,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RulebookRun {
+    pub not_sent: Vec<UnsentRulebookRequest>,
     pub skips: Vec<crate::FilterSkip>,
     pub results: Vec<RulebookPairResult>,
     pub requests: Vec<RulebookRequestRecord>,
@@ -80,6 +87,7 @@ pub async fn run_rulebook_with_dispatcher(
     filters: &crate::FilterAnswers,
 ) -> RulebookRun {
     let mut run = RulebookRun {
+        not_sent: vec![],
         skips: vec![],
         results: vec![],
         requests: vec![],
@@ -105,12 +113,17 @@ pub async fn run_rulebook_with_dispatcher(
                     });
                     continue;
                 }
-                crate::GateOutcome::Skip(skip) => {
-                    if !run.skips.iter().any(|prior| {
+                crate::GateOutcome::Skip(mut skip) => {
+                    if let Some(prior) = run.skips.iter_mut().find(|prior| {
                         prior.rule == skip.rule
                             && prior.file == skip.file
                             && prior.filter == skip.filter
                     }) {
+                        if !prior.locations.contains(&piece.location) {
+                            prior.locations.push(piece.location.clone());
+                        }
+                    } else {
+                        skip.locations.push(piece.location.clone());
                         run.skips.push(skip);
                     }
                     continue;
@@ -161,7 +174,7 @@ pub async fn run_rulebook_with_dispatcher(
             let submitted =
                 match super::locator_questions::add_locators(rule, piece, dispatcher, &mut request)
                 {
-                    Ok(()) => dispatcher.submit(request).await,
+                    Ok(()) => dispatcher.submit(request.clone()).await,
                     Err(error) => Err(DispatchRefusal::ChoiceOptionsExceeded(error)),
                 };
             match submitted {
@@ -185,6 +198,11 @@ pub async fn run_rulebook_with_dispatcher(
                         }
                         DispatchRefusal::InvalidRequest => RulebookIncompleteReason::InvalidRequest,
                     };
+                    run.not_sent.push(UnsentRulebookRequest {
+                        pair_index,
+                        request,
+                        reason,
+                    });
                     run.results[pair_index].result = incomplete(reason, Some(step), path_taken);
                 }
             }

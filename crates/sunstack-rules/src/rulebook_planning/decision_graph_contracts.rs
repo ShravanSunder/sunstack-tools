@@ -14,7 +14,9 @@ pub struct InvalidStepName;
 impl StepName {
     pub fn new(value: impl Into<String>) -> Result<Self, InvalidStepName> {
         let value = value.into();
-        if value.is_empty() || ["pass", "not_applicable", "uncertain"].contains(&value.as_str()) {
+        if value.is_empty()
+            || ["pass", "not_applicable", "uncertain", "unsure"].contains(&value.as_str())
+        {
             Err(InvalidStepName)
         } else {
             Ok(Self(value))
@@ -41,6 +43,12 @@ impl From<StepName> for String {
 pub enum RouteWire {
     Named(String),
     Finding(FindingRoute),
+    Label(LabelRoute),
+}
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct LabelRoute {
+    pub label: ChoiceLabel,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -67,16 +75,18 @@ pub enum DecisionRoute {
     NotApplicable,
     Uncertain,
     Finding(FindingRoute),
+    Label(ChoiceLabel),
 }
 impl TryFrom<RouteWire> for DecisionRoute {
     type Error = InvalidStepName;
     fn try_from(route: RouteWire) -> Result<Self, Self::Error> {
         Ok(match route {
             RouteWire::Finding(finding) => Self::Finding(finding),
+            RouteWire::Label(route) => Self::Label(route.label),
             RouteWire::Named(name) => match name.as_str() {
                 "pass" => Self::Pass,
                 "not_applicable" => Self::NotApplicable,
-                "uncertain" => Self::Uncertain,
+                "uncertain" | "unsure" => Self::Uncertain,
                 _ => Self::Step(StepName::new(name)?),
             },
         })
@@ -90,6 +100,7 @@ pub enum DecisionMechanicalTool {
     Contains { field: FieldName, text: String },
     MaxChars { field: FieldName, max: usize },
     FileExists { field: FieldName },
+    Complete { field: FieldName },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -129,6 +140,7 @@ pub struct AskChoiceWire {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uncertain: Option<RouteWire>,
     pub ask: QuestionName,
+    #[schemars(extend("exclusiveMinimum" = 0.0, "maximum" = 1.0))]
     pub min_probability: f64,
     pub routes: BTreeMap<ChoiceLabel, RouteWire>,
 }

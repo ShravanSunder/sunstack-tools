@@ -25,6 +25,13 @@ fn refusal(path: impl Into<ConfigPath>, message: impl Into<String>) -> Admission
 
 mod evidence_kind_admission;
 pub use evidence_kind_admission::admit_evidence_kinds;
+pub(crate) const RESERVED_STATE_KEYS: [&str; 5] = [
+    "standard",
+    "where",
+    "cut-fields",
+    "unavailable-fields",
+    "reference",
+];
 
 pub fn admit_rule_entry(
     entry: &RuleEntryWire,
@@ -39,6 +46,16 @@ pub fn admit_rule_entry(
         )]);
     };
     let mut errors = Vec::new();
+    for name in entry.reference.keys() {
+        if RESERVED_STATE_KEYS.contains(&name.as_str())
+            || kind.fields.keys().any(|field| field.as_str() == name)
+        {
+            errors.push(refusal(
+                ConfigPath::keys(["reference", name]),
+                "reference name clashes with a reserved state key or evidence field",
+            ));
+        }
+    }
     if let Some(gate) = &entry.only_when
         && let Err(error) = crate::admit_only_when(gate, filters)
     {
@@ -56,19 +73,49 @@ pub fn admit_rule_entry(
             ));
         }
     }
-    if !entry.questions.is_empty() {
+    admit_questions(
+        &entry.questions,
+        kind,
+        &entry.reference,
+        &ConfigPath::keys(["questions"]),
+        &mut errors,
+    );
+    let graph = admit_graph(
+        &entry.decision,
+        &entry.questions,
+        kind,
+        project,
+        entry.name.as_str(),
+        &mut errors,
+        None,
+    );
+    if errors.is_empty() {
+        Ok(graph)
+    } else {
+        Err(errors)
+    }
+}
+
+pub(crate) fn admit_questions(
+    questions: &NamedQuestionMap,
+    kind: &EvidenceKindDefinition,
+    reference: &crate::ReferenceMaterial,
+    root: &ConfigPath,
+    errors: &mut Vec<AdmissionRefusal>,
+) {
+    if !questions.is_empty() {
         if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
-            &entry.questions,
+            questions,
         )
         .is_err()
         {
             errors.push(refusal(
-                ConfigPath::keys(["questions"]),
+                root.clone(),
                 "question rejected by decision model schema",
             ));
         }
-        for (name, question) in &entry.questions {
-            let path = ConfigPath::keys(["questions", name.as_str()]);
+        for (name, question) in questions {
+            let path = root.with_key(name.as_str());
             let instructions = match question {
                 JudgmentQuestion::Choice {
                     instructions,
@@ -91,50 +138,100 @@ pub fn admit_rule_entry(
                 JudgmentQuestion::Noul { instructions, .. } => instructions,
             };
             if let StructuredEntry::Object(instructions) = instructions {
+                if !["check", "against", "context"]
+                    .iter()
+                    .any(|key| instructions.contains_key(*key))
+                {
+                    errors.push(refusal(
+                        path.with_key("instructions"),
+                        "question must name its fields with check/context",
+                    ));
+                }
                 for (key, value) in instructions {
                     if ["check", "against", "context"].contains(&key.as_str())
-                        && !field_references_valid(value, kind)
+                        && !field_references_valid(value, kind, reference)
                     {
                         errors.push(refusal(
                             path.with_key("instructions").with_key(key),
-                            "instruction must name defined fields",
+                            "instruction must name defined fields or existing reference paths with check/context",
                         ));
                     }
                 }
+            } else {
+                errors.push(refusal(path.with_key("instructions"), "question must name its fields with check/context; plain-text instructions are no longer supported"));
             }
         }
     }
-    let graph = admit_graph(
-        &entry.decision,
-        &entry.questions,
-        kind,
-        project,
-        &entry.name,
-        &mut errors,
-    );
-    if errors.is_empty() {
-        Ok(graph)
-    } else {
-        Err(errors)
-    }
 }
 
-fn field_references_valid(value: &StructuredJson, kind: &EvidenceKindDefinition) -> bool {
+fn field_references_valid(
+    value: &StructuredJson,
+    kind: &EvidenceKindDefinition,
+    reference: &crate::ReferenceMaterial,
+) -> bool {
     let contains = |name: &str| {
+        if [
+            "standard",
+            "where",
+            "where.file",
+            "where.first_line",
+            "where.last_line",
+        ]
+        .contains(&name)
+        {
+            return true;
+        }
+        if name == "reference" {
+            return !reference.is_empty();
+        }
+        if let Some(path) = name.strip_prefix("reference.") {
+            let mut parts = path.split('.');
+            let Some(mut current) = parts.next().and_then(|key| reference.get(key)) else {
+                return false;
+            };
+            for key in parts {
+                current = match current {
+                    StructuredJson::Object(fields) => match fields.get(key) {
+                        Some(value) => value,
+                        None => return false,
+                    },
+                    StructuredJson::Array(fields) => match key
+                        .parse::<usize>()
+                        .ok()
+                        .and_then(|index| fields.get(index))
+                    {
+                        Some(value) => value,
+                        None => return false,
+                    },
+                    _ => return false,
+                };
+            }
+            return true;
+        }
         FieldName::new(name)
             .ok()
             .is_some_and(|name| kind.fields.contains_key(&name))
     };
     match value {
         StructuredJson::Text(name) => contains(name),
-        StructuredJson::Array(names) => names
-            .iter()
-            .all(|name| matches!(name, StructuredJson::Text(name) if contains(name))),
+        StructuredJson::Array(names) => {
+            !names.is_empty()
+                && names
+                    .iter()
+                    .all(|name| matches!(name, StructuredJson::Text(name) if contains(name)))
+        }
         _ => false,
     }
 }
 
 pub(crate) fn question_field_references(questions: &NamedQuestionMap) -> BTreeSet<FieldName> {
+    question_state_paths(questions)
+        .into_iter()
+        .filter_map(|name| FieldName::new(name).ok())
+        .collect()
+}
+
+pub(crate) fn question_state_paths(questions: &NamedQuestionMap) -> BTreeSet<String> {
     let mut fields = BTreeSet::new();
     for question in questions.values() {
         let instructions = match question {
@@ -159,9 +256,7 @@ pub(crate) fn question_field_references(questions: &NamedQuestionMap) -> BTreeSe
                     _ => vec![],
                 };
                 for name in values {
-                    if let Ok(field) = FieldName::new(name) {
-                        fields.insert(field);
-                    }
+                    fields.insert(name.to_owned());
                 }
             }
         }
@@ -169,20 +264,43 @@ pub(crate) fn question_field_references(questions: &NamedQuestionMap) -> BTreeSe
     fields
 }
 
-fn admit_graph(
+pub(crate) fn admit_graph(
     wire: &DecisionGraphWire,
     questions: &NamedQuestionMap,
     kind: &EvidenceKindDefinition,
     project: &EvidenceProject,
-    entry_name: &crate::RuleId,
+    entry_name: &str,
     errors: &mut Vec<AdmissionRefusal>,
+    filter_labels: Option<&BTreeSet<sunstack_decisions::ChoiceLabel>>,
 ) -> DecisionGraph {
     let mut steps = BTreeMap::new();
     let mut locator_names = questions.keys().cloned().collect::<BTreeSet<_>>();
     for (name, step) in &wire.steps {
         let path = ConfigPath::keys(["decision", "steps", name.as_str()]);
-        let mut route = |route: &crate::RouteWire| match DecisionRoute::try_from(route.clone()) {
+        let missing_unsure = match step {
+            DecisionStepWire::AskBinary(step) => step.uncertain.is_none(),
+            DecisionStepWire::AskChoice(step) => step.uncertain.is_none(),
+            DecisionStepWire::Combine(step) => step.uncertain.is_none(),
+            DecisionStepWire::Mechanical(_) => false,
+        };
+        if missing_unsure {
+            errors.push(refusal(
+                path.with_key("uncertain"),
+                "every model step requires an explicit in-between/not-sure route",
+            ));
+        }
+        let mut route = |wire_route: &crate::RouteWire| match DecisionRoute::try_from(
+            wire_route.clone(),
+        ) {
             Ok(route) => {
+                match (&route, filter_labels) {
+                    (DecisionRoute::Label(label), Some(labels)) if labels.contains(label) => {},
+                    (DecisionRoute::Label(_), _) => errors.push(refusal(&path, "label ending must name a declared filter label; rule trees cannot end in a label")),
+                    (DecisionRoute::Pass | DecisionRoute::NotApplicable | DecisionRoute::Finding(_), Some(_)) => errors.push(refusal(&path, "filter tree ends only in a declared label or unsure")),
+                    (DecisionRoute::Uncertain, Some(_)) if !matches!(wire_route, crate::RouteWire::Named(name) if name == "unsure") => errors.push(refusal(&path, "filter unsure ending must be written unsure")),
+                    (DecisionRoute::Uncertain, None) if matches!(wire_route, crate::RouteWire::Named(name) if name == "unsure") => errors.push(refusal(&path, "rule unsure ending must be written uncertain")),
+                    _ => {},
+                }
                 if let DecisionRoute::Finding(finding) = &route
                     && finding
                         .at
@@ -195,11 +313,7 @@ fn admit_graph(
                     && let Some(locator) = &finding.locate
                 {
                     let locator_path = path.with_key("locate");
-                    let context = format!(
-                        "entry {} route {} locate",
-                        entry_name.as_str(),
-                        name.as_str()
-                    );
+                    let context = format!("entry {} route {} locate", entry_name, name.as_str());
                     if finding.at.is_none() {
                         errors.push(refusal(&locator_path, format!("{context} requires at")));
                     }
@@ -449,6 +563,10 @@ fn validate_tool(
         }
         DecisionMechanicalTool::MaxChars { field, .. } => (field, &[FieldShape::Text]),
         DecisionMechanicalTool::FileExists { field } => (field, &[FieldShape::Targets]),
+        DecisionMechanicalTool::Complete { field } => (
+            field,
+            &[FieldShape::Text, FieldShape::Texts, FieldShape::Targets],
+        ),
     };
     if !kind
         .fields
@@ -462,7 +580,8 @@ fn validate_tool(
     }
 }
 
-pub(crate) fn normalized_answer(
+/// Read the binary statistic using the authored question's scale.
+pub fn normalized_answer(
     question: &QuestionName,
     questions: &NamedQuestionMap,
     answers: &sunstack_decisions::NamedAnswerMap,
@@ -544,7 +663,7 @@ pub fn admit_selections(
         {
             for key in ["check", "against", "context"] {
                 if let Some(value) = instructions.get(key)
-                    && !field_references_valid(value, kind)
+                    && !field_references_valid(value, kind, &Default::default())
                 {
                     errors.push(refusal(
                         path.with_key("question")

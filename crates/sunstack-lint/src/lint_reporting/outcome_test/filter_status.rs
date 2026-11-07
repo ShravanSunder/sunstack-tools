@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 use super::super::*;
-use sunstack_decisions::{ChoiceLabel, ModelName};
+use sunstack_decisions::ModelName;
 use sunstack_rules::{
     FilterAnswer, FilterAnswerState, FilterIncomplete, FilterName, FilterSkip, FilterSkipReason,
 };
@@ -19,27 +19,33 @@ fn filter_status_preserves_cancelled_incomplete_findings_and_uncertainty_priorit
             EffectiveLimits::default(),
         );
         report.counts.error = u32::from(findings);
-        report.filter_answers.push(FilterAnswer {
-            filter: FilterName::new("purpose").unwrap(),
-            folder: "packages/one".into(),
-            input_cut: false,
-            requested_model: ModelName::new("jev-latest").unwrap(),
-            resolved_model: None,
-            state: FilterAnswerState::Unsure {
-                answer: ChoiceLabel::new("a").unwrap(),
-                probability: 0.3,
-                probabilities: std::collections::BTreeMap::from([
-                    (ChoiceLabel::new("a").unwrap(), 0.3),
-                    (ChoiceLabel::new("b").unwrap(), 0.7),
-                ]),
+        report.filter_answers.push(IdentifiedResult {
+            id: 1,
+            request_ids: vec![],
+            value: FilterAnswer {
+                reads_sha256: None,
+                filter: FilterName::new("purpose").unwrap(),
+                folder: "packages/one".into(),
+                input_cut: false,
+                requested_model: ModelName::new("jev-latest").unwrap(),
+                resolved_model: None,
+                state: FilterAnswerState::Unsure {
+                    step: sunstack_rules::StepName::new("purpose").unwrap(),
+                    path: vec![sunstack_rules::StepName::new("purpose").unwrap()],
+                    answers: Default::default(),
+                },
             },
         });
         if incomplete {
-            report.filter_answers[0].state = FilterAnswerState::Incomplete {
+            report.filter_answers[0].value.state = FilterAnswerState::Incomplete {
                 reason: FilterIncomplete::ReadsAbsent,
+                field: None,
+                path: vec![],
+                answers: Default::default(),
             };
         }
         let run = RulebookRun {
+            not_sent: vec![],
             results: vec![],
             requests: vec![],
             skips: vec![],
@@ -53,15 +59,18 @@ fn filter_status_preserves_cancelled_incomplete_findings_and_uncertainty_priorit
         EffectiveLimits::default(),
     );
     let run = RulebookRun {
+        not_sent: vec![],
         results: vec![],
         requests: vec![],
         skips: vec![FilterSkip {
+            locations: vec![],
             rule: sunstack_rules::RuleId::new("check").unwrap(),
             file: "outside.md".into(),
             filter: FilterName::new("purpose").unwrap(),
             folder: None,
             why: FilterSkipReason::NoFolder,
-            probabilities: None,
+            path: vec![],
+            answers: Default::default(),
         }],
     };
     let report = project_outcome(run, &[], &[], report, None, false);
@@ -97,14 +106,38 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
             reads: ReadsSpec {
                 file: "about.md".into(),
                 kind: EvidenceKindName::new("skill").unwrap(),
-                field: FieldName::new("body").unwrap(),
+                fields: vec![FieldName::new("body").unwrap()],
             },
             answers: criteria.keys().cloned().collect(),
-            question: JudgmentQuestion::Choice {
-                instructions: StructuredEntry::Null,
-                criteria,
+            questions: BTreeMap::from([(
+                QuestionName::new("filter").unwrap(),
+                JudgmentQuestion::Choice {
+                    instructions: serde_json::from_value(json!({"check":"body"})).unwrap(),
+                    criteria,
+                },
+            )]),
+            reference: BTreeMap::new(),
+            decision: DecisionGraph {
+                start: StepName::new("purpose").unwrap(),
+                steps: BTreeMap::from([(
+                    StepName::new("purpose").unwrap(),
+                    DecisionStep::AskChoice {
+                        question: QuestionName::new("filter").unwrap(),
+                        min_probability: 0.7,
+                        routes: (0..count)
+                            .map(|index| {
+                                (
+                                    ChoiceLabel::new(format!("option{index}")).unwrap(),
+                                    DecisionRoute::Label(
+                                        ChoiceLabel::new(format!("option{index}")).unwrap(),
+                                    ),
+                                )
+                            })
+                            .collect(),
+                        uncertain: DecisionRoute::Uncertain,
+                    },
+                )]),
             },
-            min_probability: 0.7,
         };
         let span = SourceSpan {
             source: SourceRef::Document {
@@ -178,6 +211,7 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
                 }],
                 &[piece],
                 &BTreeMap::new(),
+                &BTreeMap::new(),
                 1000,
                 &mut dispatcher,
             )
@@ -197,9 +231,18 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
             ScopeChoice::All,
             EffectiveLimits::default(),
         );
-        report.filter_answers = answers.entries;
+        report.filter_answers = answers
+            .entries
+            .into_iter()
+            .map(|value| IdentifiedResult {
+                id: 1,
+                request_ids: vec![],
+                value,
+            })
+            .collect();
         let peer_step = StepName::new("peer_check").unwrap();
         let peer_rule = RulebookRule {
+            reference: BTreeMap::new(),
             gate: None,
             name: RuleId::new("peer").unwrap(),
             sentence: RulebookSentence {

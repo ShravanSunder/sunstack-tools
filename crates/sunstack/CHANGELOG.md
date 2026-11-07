@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.0
+
+Unreleased.
+
+- Filters now use named questions and the shared decision-tree walker, with
+  declared label endings or unsure. The old single-question filter shape is refused.
+- Rule and filter reference material reaches request state unchanged. Questions
+  name their input fields; location is sent only when a rule question reads it.
+  Reserved state names and missing reference paths are refused at load.
+- The mechanical `complete` check guards cut or unresolved text. Skill-name loads
+  include their opening and cut metadata, as path loads do; unavailable inputs
+  remain explicit and a question requiring them ends incomplete.
+- Human lint output uses short numbered warnings, unsure/gap lines and a filter
+  summary. `--report FILE` retains exact requests, all answers, model receipts,
+  source contents and hashes; `lint show FILE ID` explains one saved result.
+- `lint cases FILE [--set SET]` checks revision-bound rule and filter cases through
+  ordinary lint on whole-repository copies with today's rulebook overlaid. It
+  reports per-owner counts, stale/unmatched/excluded cases and unassessed bars,
+  without changing files used by ordinary lint.
+
 ## 0.7.1
 
 Release date: 2026-11-06.

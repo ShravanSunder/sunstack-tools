@@ -110,7 +110,7 @@ async fn json_kinds_refuse_yaml_and_cross_language_references_with_the_field_nam
     let mut config = read(&path);
     config["evidence"]["kinds"]["json_reference"] =
         json!({"rule":"json_pair","fields":{"heading":{"from":"first_line"}}});
-    config["evidence"]["kinds"]["review"]["fields"]["reference"] =
+    config["evidence"]["kinds"]["review"]["fields"]["loaded_reference"] =
         json!({"from":"target","regex":"(one.json)","resolve":"path","as_kind":"json_reference"});
     save(&path, &config);
     assert_eq!(

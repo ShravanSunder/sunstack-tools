@@ -21,6 +21,7 @@ pub struct EvidenceFileFailure {
 }
 #[derive(Debug, Clone, Default)]
 pub struct EvidenceCatalog {
+    pub piece_text_hashes: BTreeMap<(PathBuf, usize, usize), String>,
     pub pieces: Vec<EvidencePiece>,
     pub matches: BTreeMap<PathBuf, FileMatchIndex>,
     pub failures: Vec<EvidenceFileFailure>,

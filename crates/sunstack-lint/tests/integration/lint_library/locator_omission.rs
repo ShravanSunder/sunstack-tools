@@ -30,7 +30,7 @@ async fn locator_omission_survives_report_projection_schema_and_fallback_renderi
         }
         fixture::entry_file(
             root.path(),
-            &json!({"K001":{"name":"description","evidence":"skill","questions":{"q":{"type":"noul","instructions":{"task":"Check body","check":"body"}}},"decision":{"start":"q","steps":{"q":{"ask":"q","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":finding,"no":"pass"}}}}}),
+            &json!({"K001":{"name":"description","evidence":"skill","questions":{"q":{"type":"noul","instructions":{"task":"Check body","check":"body"}}},"decision":{"start":"q","steps":{"q":{"ask":"q","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":finding,"no":"pass","uncertain":"uncertain"}}}}}),
         );
         if mode == "mechanical" {
             let path = root.path().join("rules.json");

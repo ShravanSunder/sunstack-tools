@@ -4,7 +4,7 @@ fn located_rule() -> RulebookRule {
     let mut entry = fixture::entry_json("K001");
     entry["questions"] =
         json!({"q":{"type":"noul","instructions":{"task":"Check body","check":"body"}}});
-    entry["decision"] = json!({"start":"q","steps":{"q":{"ask":"q","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":{"finding":"Read this line.","at":"body","locate":{"name":"focus","task":"Choose line","min_probability":0.7}},"no":"pass"}}});
+    entry["decision"] = json!({"start":"q","steps":{"q":{"ask":"q","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":{"finding":"Read this line.","at":"body","locate":{"name":"focus","task":"Choose line","min_probability":0.7}},"no":"pass","uncertain":"uncertain"}}});
     let wire: RuleEntryWire = serde_json::from_value(entry).unwrap();
     let mut rule = fixture::rule("K001");
     rule.questions = wire.questions.clone();

@@ -42,7 +42,7 @@ pub fn judged(root: &Path, endpoint: &str) -> Value {
     config_file(root, &config);
     entry_file(
         root,
-        &json!({"K001":{"name":"description","evidence":"skill","severity":"error","questions":{"complies":{"type":"noul","instructions":{"check":"description","task":"Does it comply?"}},"details":{"type":"noul","instructions":{"check":"description","task":"Is the evidence useful?"}}},"decision":{"start":"complies","steps":{"complies":{"ask":"complies","yes_at_or_above":0.8,"no_at_or_below":0.3,"yes":"pass","no":{"finding":"Description must begin with Use when.","at":"description"}}}}}}),
+        &json!({"K001":{"name":"description","evidence":"skill","severity":"error","questions":{"complies":{"type":"noul","instructions":{"check":"description","task":"Does it comply?"}},"details":{"type":"noul","instructions":{"check":"description","task":"Is the evidence useful?"}}},"decision":{"start":"complies","steps":{"complies":{"ask":"complies","yes_at_or_above":0.8,"no_at_or_below":0.3,"yes":"pass","no":{"finding":"Description must begin with Use when.","at":"description"},"uncertain":"uncertain"}}}}}),
     );
     config
 }

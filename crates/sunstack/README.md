@@ -51,10 +51,28 @@ nonmatching sibling. Blank-line and indentation continuation nodes do not stop
 or count toward the walk. Values stay in source order, including `previous`
 values. These sources accept only rule references and leave `remainder` intact.
 
-An ask or combine step can add `"uncertain": "verdict"` to route an in-band
-answer, or a choice below `min_probability`, to another step. The walk uses
-answers from the same request. Omitting the route ends uncertain at that step.
+Every ask or combine step must declare its `uncertain` route: use `"uncertain"`
+as the ending, or name another step such as `"verdict"`. The walk follows it for
+an in-band answer or a choice below `min_probability`, using answers from the
+same request. A missing route is refused when the rulebook loads.
 Both the `uncertain` and `results` views report the step that ended the walk.
+
+Filters declare `per`, `reads: {file, kind, fields: [names]}`, `labels`,
+`questions` and `decision`, with optional `reference`. They use the same steps
+as rules and end in `{ "label": "declared-name" }` or `"unsure"`. Question
+option names are not filter endings. All of a folder's questions go in one
+request; a gate uses the resulting label. The old `question`, `reads.field` and
+filter-level `min_probability` shape is refused.
+
+Each question names the fields or reference paths it reads with `check`,
+`against` or `context` in its instructions. Fixed `reference` material reaches
+`state.reference` unchanged and counts toward the request-size limit. The names
+`standard`, `where`, `cut-fields`, `unavailable-fields` and `reference` are
+reserved. Rules send `where` only when a question names it; filters send no
+folder location. A question requiring an unavailable field ends incomplete
+before any model call. `mechanical_check: {tool: "complete", field: "targets"}`
+returns yes only for an uncut available field whose loaded targets resolved and
+have uncut openings. A resolved skill-name load now has an opening too.
 
 Rulebook and ast-grep project paths resolve relative to the configuration file.
 Checked-file globs resolve from its Git repository root, or from the config
@@ -84,6 +102,40 @@ The JSON report includes `results`, one entry per evaluated rule/piece pair in
 logical report order. Each entry has the rule's `name` and marker, the piece's
 file and first and last line, its outcome (`pass`, `finding`, `not_applicable`,
 `uncertain` or `incomplete`) and its ending `step` (null before any step ran).
+
+Default output prints short numbered lines and a filter summary. To inspect a
+result later, save the full report and request one id:
+
+```sh
+sunstack lint --all --report run.json
+sunstack lint show run.json 3
+sunstack lint cases cases.json --set development
+```
+
+A saved report contains each request's exact state and questions, every returned
+answer, requested and resolved models, and the contents and hashes of its config
+and rule files. It retains raw piece evidence for mechanical steps. `lint show`
+needs only that saved file; an excluded rule is marked as never asked and cannot
+be re-walked. Unknown ids return an error with the valid range.
+
+A case file contains `cases` and `bars`, plus an optional local `repository`
+path (relative to the case file). Each case has a unique `id`, `revision`, `set`
+and `label_from` (`owner-fix` or `blind-agents`). Rule cases add `kind: "rule"`,
+`rule`, `file`, `lines: [first, last]`, `text_sha256`, and `expected: "warn" |
+"pass"`. Filter cases add `kind: "filter"`, `filter`, `folder`, `reads_sha256`
+and `expected_label`. Line hashes retain line endings. Filter hashes cover
+compact JSON of the declared unprojected field values in lexical key order,
+without reference, cut metadata or folder location; normal filter results expose
+the hash. Each recorded bar names `{for, step, bound, value, set_from: [case ids]}`,
+where `bound` is `yes_at_or_above`, `no_at_or_below` or `min_probability`.
+
+Case runs archive the whole repository at each revision, initialize Git metadata
+inside each disposable copy so nested configs retain the repository root, overlay
+today's config and rule inputs, and invoke ordinary lint. Rule cases match exactly one piece
+that overlaps their lines after checking the case's own archived line hash.
+Every selected case is counted or listed, with per-rule and per-filter counts,
+result links and crossed bars. A changed or unrecorded bar is unassessed. The
+command writes no adoption state and changes no ordinary lint inputs.
 
 The decision model is always configured and enabled for asking rules; there is
 no model-off switch. Ordinary runs with asking rules require an OpenRouter

@@ -63,7 +63,8 @@
               "finding": "Completion does not describe an outcome.",
               "at": "completion"
             }
-          }
+          },
+          "uncertain": "uncertain"
         },
         "quality": {
           "combine": {
@@ -76,7 +77,8 @@
           "no": {
             "finding": "Completion is incomplete or not checkable.",
             "at": "completion"
-          }
+          },
+          "uncertain": "uncertain"
         }
       }
     }
@@ -126,7 +128,8 @@
           "no": {
             "finding": "Description does not name its trigger.",
             "at": "description"
-          }
+          },
+          "uncertain": "uncertain"
         }
       }
     }

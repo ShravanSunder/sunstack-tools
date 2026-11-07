@@ -5,10 +5,8 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Component, Path, PathBuf},
 };
-use sunstack_decisions::{ChoiceLabel, JudgmentQuestion, QuestionName};
-use sunstack_evidence::{
-    ConfigPath, EvidenceKindDefinition, EvidenceKindName, FieldName, FieldShape,
-};
+use sunstack_decisions::{ChoiceLabel, NamedQuestionMap};
+use sunstack_evidence::{ConfigPath, EvidenceKindDefinition, EvidenceKindName, FieldName};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "String", into = "String")]
@@ -42,7 +40,7 @@ impl From<FilterName> for String {
 pub struct ReadsSpec {
     pub file: PathBuf,
     pub kind: EvidenceKindName,
-    pub field: FieldName,
+    pub fields: Vec<FieldName>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -50,10 +48,12 @@ pub struct FilterWire {
     #[schemars(length(min = 1))]
     pub per: String,
     pub reads: ReadsSpec,
-    #[schemars(extend("properties"={"type":{"const":"choice"},"criteria":{"minProperties":2,"maxProperties":sunstack_decisions::MAX_CHOICE_OPTIONS}}))]
-    pub question: JudgmentQuestion,
-    #[schemars(extend("exclusiveMinimum"=0,"maximum"=1))]
-    pub min_probability: f64,
+    pub labels: Vec<ChoiceLabel>,
+    #[schemars(schema_with = "filter_questions_schema")]
+    pub questions: NamedQuestionMap,
+    pub decision: crate::DecisionGraphWire,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub reference: crate::ReferenceMaterial,
 }
 #[derive(Debug, Clone)]
 pub struct FolderPattern {
@@ -110,9 +110,10 @@ pub struct FilterPlan {
     pub name: FilterName,
     pub per: FolderPattern,
     pub reads: ReadsSpec,
-    pub question: JudgmentQuestion,
+    pub questions: NamedQuestionMap,
+    pub decision: crate::DecisionGraph,
+    pub reference: crate::ReferenceMaterial,
     pub answers: BTreeSet<ChoiceLabel>,
-    pub min_probability: f64,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct OnlyWhenGate {
@@ -122,30 +123,33 @@ pub struct OnlyWhenGate {
 pub type FilterRegistry = BTreeMap<FilterName, FilterPlan>;
 pub type OnlyWhenWire = BTreeMap<FilterName, Vec<ChoiceLabel>>;
 
+#[cfg(test)]
+#[path = "filter_plan_test.rs"]
+mod tests;
+
 pub fn admit_filters(
     wires: &BTreeMap<FilterName, FilterWire>,
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+    project: &sunstack_evidence::EvidenceProject,
 ) -> Result<FilterRegistry, Vec<AdmissionRefusal>> {
+    use crate::rulebook_planning::rulebook_admission::{
+        RESERVED_STATE_KEYS, admit_graph, admit_questions, question_state_paths,
+    };
     let mut plans = BTreeMap::new();
     let mut errors = Vec::new();
     for (name, wire) in wires {
         let path = ConfigPath::keys(["filters", name.as_str()]);
-        let mut refuse = |field: &str, message: &str| {
-            errors.push(AdmissionRefusal {
-                field_path: if field.is_empty() {
-                    path.clone()
-                } else {
-                    field
-                        .split('.')
-                        .fold(path.clone(), |path, key| path.with_key(key))
-                },
-                message: message.into(),
-            })
+        let start_errors = errors.len();
+        let pattern = match FolderPattern::new(&wire.per) {
+            Ok(value) => Some(value),
+            Err(message) => {
+                errors.push(AdmissionRefusal {
+                    field_path: path.with_key("per"),
+                    message: message.into(),
+                });
+                None
+            }
         };
-        let pattern = FolderPattern::new(&wire.per);
-        if let Err(message) = &pattern {
-            refuse("per", message);
-        }
         if wire.reads.file.as_os_str().is_empty()
             || wire
                 .reads
@@ -153,72 +157,140 @@ pub fn admit_filters(
                 .components()
                 .any(|part| !matches!(part, Component::Normal(_)))
         {
-            refuse(
-                "reads.file",
-                "reads.file must be a nonempty relative file inside the folder",
+            errors.push(AdmissionRefusal {
+                field_path: path.with_key("reads").with_key("file"),
+                message: "reads.file must be a nonempty relative file inside the folder".into(),
+            });
+        }
+        let labels = wire.labels.iter().cloned().collect::<BTreeSet<_>>();
+        if labels.is_empty()
+            || labels.len() != wire.labels.len()
+            || labels.iter().any(|label| {
+                ["unsure", "uncertain", "pass", "not_applicable"].contains(&label.as_str())
+            })
+        {
+            errors.push(AdmissionRefusal {
+                field_path: path.with_key("labels"),
+                message: "labels must be unique, nonempty and distinct from reserved tree endings"
+                    .into(),
+            });
+        }
+        let fields = wire.reads.fields.iter().cloned().collect::<BTreeSet<_>>();
+        if fields.is_empty() || fields.len() != wire.reads.fields.len() {
+            errors.push(AdmissionRefusal {
+                field_path: path.with_key("reads").with_key("fields"),
+                message: "reads.fields must be nonempty and unique".into(),
+            });
+        }
+        let Some(kind) = kinds.get(&wire.reads.kind) else {
+            errors.push(AdmissionRefusal {
+                field_path: path.with_key("reads").with_key("kind"),
+                message: "undefined evidence kind".into(),
+            });
+            continue;
+        };
+        if kind.select.is_some() || kind.within.is_some() {
+            errors.push(AdmissionRefusal {field_path:path.with_key("reads").with_key("kind"),message:"filter reads must be a directly collected kind, not selected or within another kind".into()});
+        }
+        for field in &fields {
+            if !kind
+                .fields
+                .get(field)
+                .is_some_and(|source| source.shape() == sunstack_evidence::FieldShape::Text)
+                || RESERVED_STATE_KEYS.contains(&field.as_str())
+            {
+                errors.push(AdmissionRefusal {
+                    field_path: path.with_key("reads").with_key("fields"),
+                    message: format!(
+                        "filter field must name declared text and cannot be reserved: {}",
+                        field.as_str()
+                    ),
+                });
+            }
+        }
+        for key in wire.reference.keys() {
+            if RESERVED_STATE_KEYS.contains(&key.as_str())
+                || kind.fields.keys().any(|field| field.as_str() == key)
+            {
+                errors.push(AdmissionRefusal {
+                    field_path: path.with_key("reference").with_key(key),
+                    message: "reference name clashes with a reserved state key or evidence field"
+                        .into(),
+                });
+            }
+        }
+        let mut declared = kind.clone();
+        declared.fields.retain(|field, _| fields.contains(field));
+        admit_questions(
+            &wire.questions,
+            &declared,
+            &wire.reference,
+            &path.with_key("questions"),
+            &mut errors,
+        );
+        if wire.questions.is_empty() {
+            errors.push(AdmissionRefusal {
+                field_path: path.with_key("questions"),
+                message: "filter tree requires named questions".into(),
+            });
+        }
+        if question_state_paths(&wire.questions)
+            .iter()
+            .any(|field| field == "standard" || field == "where" || field.starts_with("where."))
+        {
+            errors.push(AdmissionRefusal {
+                field_path: path.with_key("questions"),
+                message: "filters cannot read a standard, file name or folder location".into(),
+            });
+        }
+        for (question, definition) in &wire.questions {
+            if let sunstack_decisions::JudgmentQuestion::Choice { criteria, .. } = definition
+                && criteria.len() > sunstack_decisions::MAX_CHOICE_OPTIONS
+            {
+                let refusal = sunstack_decisions::ChoiceOptionsExceeded {
+                    options: criteria.len(),
+                    limit: sunstack_decisions::MAX_CHOICE_OPTIONS,
+                };
+                errors.push(AdmissionRefusal {
+                    field_path: path
+                        .with_key("questions")
+                        .with_key(question.as_str())
+                        .with_key("criteria"),
+                    message: refusal.to_string(),
+                });
+            }
+        }
+        let graph_errors_start = errors.len();
+        let graph = admit_graph(
+            &wire.decision,
+            &wire.questions,
+            &declared,
+            project,
+            name.as_str(),
+            &mut errors,
+            Some(&labels),
+        );
+        for error in &mut errors[graph_errors_start..] {
+            error.field_path = ConfigPath::new(
+                path.segments()
+                    .iter()
+                    .chain(error.field_path.segments())
+                    .cloned(),
             );
         }
-        match kinds.get(&wire.reads.kind) {
-            None => refuse("reads.kind", "undefined evidence kind"),
-            Some(kind) => {
-                if kind.select.is_some() || kind.within.is_some() {
-                    refuse(
-                        "reads.kind",
-                        "reads.kind must have neither select nor within",
-                    );
-                }
-                if !kind
-                    .fields
-                    .get(&wire.reads.field)
-                    .is_some_and(|field| field.shape() == FieldShape::Text)
-                {
-                    refuse("reads.field", "reads.field must name one text field");
-                }
-            }
-        }
-        let answers = match &wire.question {
-            JudgmentQuestion::Choice { criteria, .. } if criteria.len() >= 2 => {
-                criteria.keys().cloned().collect()
-            }
-            _ => {
-                refuse(
-                    "question",
-                    "filter question must be choice with at least two criteria",
-                );
-                BTreeSet::new()
-            }
-        };
-        if let Ok(question_name) = QuestionName::new("filter") {
-            let questions = BTreeMap::from([(question_name, wire.question.clone())]);
-            if let Err(error) = sunstack_decisions::validate_choice_options(&questions) {
-                refuse("question.criteria", &error.to_string());
-            } else if sunstack_decisions::judgment_processing::judgment_validation::validate_questions(
-                &questions,
-            )
-            .is_err()
-            {
-                refuse(
-                    "question",
-                    "filter question rejected by decision model schema",
-                );
-            }
-        }
-        if !wire.min_probability.is_finite()
-            || wire.min_probability <= 0.0
-            || wire.min_probability > 1.0
+        if errors.len() == start_errors
+            && let Some(per) = pattern
         {
-            refuse("min_probability", "min_probability must be in (0, 1]");
-        }
-        if let Ok(per) = pattern {
             plans.insert(
                 name.clone(),
                 FilterPlan {
                     name: name.clone(),
                     per,
                     reads: wire.reads.clone(),
-                    question: wire.question.clone(),
-                    answers,
-                    min_probability: wire.min_probability,
+                    questions: wire.questions.clone(),
+                    decision: graph,
+                    reference: wire.reference.clone(),
+                    answers: labels,
                 },
             );
         }
@@ -258,4 +330,18 @@ pub fn admit_only_when(
         filter: filter.clone(),
         answers: unique,
     })
+}
+
+fn filter_questions_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    let mut schema = <NamedQuestionMap as JsonSchema>::json_schema(generator);
+    if let Some(question) = schema
+        .as_object_mut()
+        .and_then(|object| object.get_mut("additionalProperties"))
+    {
+        *question = serde_json::json!({"allOf":[question.clone(),
+            {"if":{"properties":{"type":{"const":"choice"}},"required":["type"]},"then":{"properties":{"criteria":{"minProperties":2}}}},
+            {"if":{"properties":{"type":{"const":"score"}},"required":["type"]},"then":{"properties":{"criteria":{"minItems":2}}}}
+        ]});
+    }
+    schema
 }

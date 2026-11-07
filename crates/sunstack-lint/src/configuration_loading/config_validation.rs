@@ -73,8 +73,8 @@ pub(crate) fn load_checked_rulebook(
         .as_ref()
         .map(EffectiveLimits::from)
         .unwrap_or_default();
-    let filters = sunstack_rules::admit_filters(&config.filters, &config.evidence.kinds).map_err(
-        |errors| {
+    let filters = sunstack_rules::admit_filters(&config.filters, &config.evidence.kinds, &project)
+        .map_err(|errors| {
             errors
                 .into_iter()
                 .map(|error| {
@@ -87,8 +87,7 @@ pub(crate) fn load_checked_rulebook(
                     .into()
                 })
                 .collect::<Vec<LintDiagnostic>>()
-        },
-    )?;
+        })?;
     let errors = admit_evidence_kinds(
         &config.evidence.kinds,
         &project,
