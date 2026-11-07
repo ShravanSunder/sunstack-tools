@@ -257,3 +257,6 @@ pub fn evidence_input(root: &Path) -> Value {
         "limits":{"max_files":10,"max_file_bytes":10000,"max_total_bytes":100000,"max_matches":100,"max_transcript_bytes":10000,"include_ignored":false}
     })
 }
+
+pub mod prepared_cli;
+pub mod raw_request_fields;

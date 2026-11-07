@@ -37,8 +37,15 @@ pub struct LintArguments {
     #[command(subcommand)]
     pub command: Option<LintCommand>,
     /// Save complete requests, model receipts and rulebook files for later inspection.
-    #[arg(long, value_name = "FILE", conflicts_with_all = ["check", "rules", "init", "evidence"])]
+    #[arg(long, value_name = "FILE", conflicts_with_all = ["check", "rules", "init", "evidence", "prepare"])]
     pub report: Option<PathBuf>,
+    /// Save requests and evidence without a credential or model dispatch.
+    #[arg(long, global = true, value_name = "FILE")]
+    pub prepare: Option<PathBuf>,
+    /// Reuse matching recorded selection answers while preparing.
+    #[arg(long, global = true, value_name = "REPORT", requires = "prepare")]
+    pub selections_from: Option<PathBuf>,
+
     /// Files or directories to check; named paths default to full scope.
     #[arg(conflicts_with_all = ["check", "rules", "init"])]
     pub paths: Vec<PathBuf>,
@@ -56,16 +63,16 @@ pub struct LintArguments {
     #[arg(long, conflicts_with_all = ["check", "rules", "init"])]
     pub max_warnings: Option<u32>,
     /// Print picked evidence as JSON, optionally for one kind, without asking the model.
-    #[arg(long, num_args = 0..=1, value_name = "KIND", conflicts_with_all = ["check", "rules", "init"])]
+    #[arg(long, num_args = 0..=1, value_name = "KIND", conflicts_with_all = ["check", "rules", "init", "prepare"])]
     pub evidence: Option<Option<String>>,
     /// Validate configuration, rulebook and evidence project without reading checked files.
-    #[arg(long, conflicts_with_all = ["rules", "init"])]
+    #[arg(long, conflicts_with_all = ["rules", "init", "prepare"])]
     pub check: bool,
     /// List rules as JSON; optionally name one file.
-    #[arg(long, num_args = 0..=1, value_name = "FILE", conflicts_with = "init")]
+    #[arg(long, num_args = 0..=1, value_name = "FILE", conflicts_with_all = ["init", "prepare"])]
     pub rules: Option<Option<PathBuf>>,
     /// Create a config skeleton in the current directory.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "prepare")]
     pub init: bool,
 }
 

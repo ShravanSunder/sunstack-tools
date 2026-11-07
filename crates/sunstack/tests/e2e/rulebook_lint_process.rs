@@ -10,6 +10,10 @@ mod collected_state;
 mod json_evidence;
 #[path = "rulebook_lint_process/locator_anchors.rs"]
 mod locator_anchors;
+#[path = "rulebook_lint_process/prepare_boundaries.rs"]
+mod prepare_boundaries;
+#[path = "rulebook_lint_process/prepare_requests.rs"]
+mod prepare_requests;
 #[path = "rulebook_lint_process/result_history.rs"]
 mod result_history;
 #[path = "rulebook_lint_process/saved_reports.rs"]

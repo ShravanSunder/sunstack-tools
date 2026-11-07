@@ -122,6 +122,8 @@ pub enum SelectionIncompleteReason {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SelectionOutcome {
+    Deferred,
+    Prepared { request_id: usize },
     Selected { yes: f64 },
     NotSelected { yes: f64 },
     Uncertain { yes: f64 },

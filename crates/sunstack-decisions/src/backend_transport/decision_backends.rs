@@ -84,12 +84,43 @@ pub struct JevOpenRouterBackend {
     identity: BackendIdentity,
     selection: BackendSelection,
     endpoint: reqwest::Url,
-    authorization: reqwest::header::HeaderValue,
-    client: reqwest::Client,
+    transport: JevTransport,
     #[cfg(test)]
     test_observation: Option<AdapterTestObservation>,
 }
+enum JevTransport {
+    Authenticated {
+        authorization: reqwest::header::HeaderValue,
+        client: reqwest::Client,
+    },
+    PreparationOnly,
+}
+fn validated_endpoint(selection: &BackendSelection) -> Result<reqwest::Url, DecisionDiagnostic> {
+    let invalid = || DecisionDiagnostic::request(DecisionDiagnosticCode::InvalidConfiguration);
+    let BackendSelection::JevOpenrouter { endpoint, .. } = selection;
+    let endpoint = reqwest::Url::parse(endpoint).map_err(|_| invalid())?;
+    if !matches!(endpoint.scheme(), "http" | "https")
+        || endpoint.host_str().is_none()
+        || !endpoint.username().is_empty()
+        || endpoint.password().is_some()
+    {
+        return Err(invalid());
+    }
+    Ok(endpoint)
+}
 impl JevOpenRouterBackend {
+    /// Shares wire encoding and budget accounting without constructing an authenticated transport.
+    pub fn for_preparation(selection: BackendSelection) -> Result<Self, DecisionDiagnostic> {
+        let endpoint = validated_endpoint(&selection)?;
+        Ok(Self {
+            identity: BackendIdentity::new(),
+            selection,
+            endpoint,
+            transport: JevTransport::PreparationOnly,
+            #[cfg(test)]
+            test_observation: None,
+        })
+    }
     pub fn prepare(selection: BackendSelection, api_key: &str) -> BackendPreparation {
         match Self::new(selection, api_key) {
             Ok(backend) => BackendPreparation::Ready { backend },
@@ -100,14 +131,8 @@ impl JevOpenRouterBackend {
     }
     pub fn new(selection: BackendSelection, api_key: &str) -> Result<Self, DecisionDiagnostic> {
         let invalid = || DecisionDiagnostic::request(DecisionDiagnosticCode::InvalidConfiguration);
-        let BackendSelection::JevOpenrouter { endpoint, .. } = &selection;
-        let endpoint = reqwest::Url::parse(endpoint).map_err(|_| invalid())?;
-        if !matches!(endpoint.scheme(), "http" | "https")
-            || endpoint.host_str().is_none()
-            || !endpoint.username().is_empty()
-            || endpoint.password().is_some()
-            || api_key.is_empty()
-        {
+        let endpoint = validated_endpoint(&selection)?;
+        if api_key.is_empty() {
             return Err(invalid());
         }
         let mut authorization =
@@ -123,8 +148,10 @@ impl JevOpenRouterBackend {
             identity: BackendIdentity::new(),
             selection,
             endpoint,
-            authorization,
-            client,
+            transport: JevTransport::Authenticated {
+                authorization,
+                client,
+            },
             #[cfg(test)]
             test_observation: None,
         })
@@ -182,10 +209,18 @@ impl DecisionBackend for JevOpenRouterBackend {
                     ProviderFailureClass::ProviderRejectedRequest,
                 ));
             }
-            let mut response = self
-                .client
+            let JevTransport::Authenticated {
+                authorization,
+                client,
+            } = &self.transport
+            else {
+                return Err(BackendAttemptFailure::not_dispatched(
+                    ProviderFailureClass::ProviderRejectedRequest,
+                ));
+            };
+            let mut response = client
                 .post(self.endpoint.clone())
-                .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+                .header(reqwest::header::AUTHORIZATION, authorization.clone())
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
                 .body(request.body().to_vec())
                 .send()

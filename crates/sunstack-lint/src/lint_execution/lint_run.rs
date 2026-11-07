@@ -49,6 +49,52 @@ pub async fn run_with_source(
     api_key: Option<String>,
     source: Option<Box<dyn CheckedFileSource + Send>>,
 ) -> LintReport {
+    run_internal(
+        request,
+        cancellation,
+        api_key,
+        source,
+        ExecutionMode::Ordinary,
+    )
+    .await
+}
+
+pub async fn prepare(
+    request: LintRequest,
+    cancellation: CancellationToken,
+    recorded_selections: Vec<sunstack_rules::RecordedSelection>,
+) -> LintReport {
+    run_internal(
+        request,
+        cancellation,
+        None,
+        None,
+        ExecutionMode::Prepare {
+            recorded_selections,
+        },
+    )
+    .await
+}
+enum ExecutionMode {
+    Ordinary,
+    Prepare {
+        recorded_selections: Vec<sunstack_rules::RecordedSelection>,
+    },
+}
+async fn run_internal(
+    request: LintRequest,
+    cancellation: CancellationToken,
+    api_key: Option<String>,
+    source: Option<Box<dyn CheckedFileSource + Send>>,
+    mode: ExecutionMode,
+) -> LintReport {
+    let preparing = matches!(mode, ExecutionMode::Prepare { .. });
+    let recorded_selections = match mode {
+        ExecutionMode::Ordinary => vec![],
+        ExecutionMode::Prepare {
+            recorded_selections,
+        } => recorded_selections,
+    };
     let mut report = LintReport::empty(
         request
             .config_path
@@ -57,6 +103,12 @@ pub async fn run_with_source(
         request.scope.clone(),
         EffectiveLimits::default(),
     );
+    if preparing {
+        report.preparation = Some(PreparedReport {
+            mode: PrepareMode::Prepare,
+            needs_answer: vec![],
+        });
+    }
     let cwd = match std::env::current_dir() {
         Ok(cwd) => cwd,
         Err(_) => return failed(report, "current directory unavailable"),
@@ -147,7 +199,7 @@ pub async fn run_with_source(
         .any(|rule| rule.gate.is_some());
     let model_work = selected || (request.evidence_listing.is_none() && (asking || gated));
     let key = api_key.as_deref().filter(|key| !key.trim().is_empty());
-    if model_work && key.is_none() {
+    if model_work && !preparing && key.is_none() {
         return invalid(
             report,
             LintInvalid::at(
@@ -157,7 +209,12 @@ pub async fn run_with_source(
             ),
         );
     }
-    let backend = if model_work {
+    let backend = if model_work && preparing {
+        match super::backend_factory::prepare_encoding_backend(&config) {
+            Ok(backend) => Some(backend),
+            Err(error) => return invalid(report, error),
+        }
+    } else if model_work {
         match key.map(|key| prepare_backend(&config, key)) {
             Some(Ok(backend)) => Some(backend),
             Some(Err(error)) => return invalid(report, error),
@@ -350,6 +407,12 @@ pub async fn run_with_source(
     };
 
     let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation.clone());
+    if preparing {
+        dispatcher = dispatcher
+            .prepare_only()
+            .with_recorded_selections(recorded_selections);
+    }
+
     let definitions = checked.selections;
     let project = checked.project;
     let scope_files = checked_files.iter().cloned().collect::<Vec<_>>();
@@ -419,6 +482,44 @@ pub async fn run_with_source(
                     files: selection_files.clone(),
                 };
                 let outcomes = select_candidates(&input, &mut dispatcher).await;
+                if preparing {
+                    let unresolved = outcomes
+                        .iter()
+                        .filter_map(|(candidate, outcome)| {
+                            matches!(
+                                outcome,
+                                SelectionOutcome::Prepared { .. } | SelectionOutcome::Deferred
+                            )
+                            .then_some(candidate.clone())
+                        })
+                        .collect();
+                    let deferred = build.defer_selection(&unresolved);
+                    if let Some(preparation) = &mut report.preparation {
+                        for item in deferred {
+                            for request_id in outcomes
+                                .iter()
+                                .filter_map(|(candidate, outcome)| match outcome {
+                                    SelectionOutcome::Prepared { request_id }
+                                        if candidate.file == item.file =>
+                                    {
+                                        Some(*request_id)
+                                    }
+                                    _ => None,
+                                })
+                                .collect::<std::collections::BTreeSet<_>>()
+                            {
+                                preparation.needs_answer.push(NeedsSelectionAnswer {
+                                    kind: item.kind.clone(),
+                                    file: item.file.clone(),
+                                    waits_on: SelectionDependency {
+                                        selection_kind: kind.clone(),
+                                        request_id,
+                                    },
+                                });
+                            }
+                        }
+                    }
+                }
                 chosen = ChosenCandidates(
                     outcomes
                         .iter()
@@ -625,6 +726,7 @@ pub async fn run_with_source(
         &pieces,
         &dispatcher.settings.backend,
     );
+    let prepared_requests = run.prepared.clone();
     let mut report = crate::lint_reporting::outcome::project_outcome(
         run,
         &checked.assembly.rules,
@@ -645,6 +747,32 @@ pub async fn run_with_source(
                     matches: Default::default(),
                 },
             );
+        }
+    }
+    if !preparing
+        && let Err(error) = crate::lint_reporting::saved_reports::capture_selection_requests(
+            &mut report,
+            &dispatcher,
+        )
+    {
+        return failed(report, &error);
+    }
+    if preparing {
+        if let Err(error) = crate::lint_reporting::saved_reports::capture_prepared_requests(
+            &mut report,
+            &dispatcher,
+            &prepared_requests,
+            &filter_answers,
+            &checked.assembly.rules,
+            &pieces,
+        ) {
+            return failed(report, &error);
+        }
+        if matches!(
+            report.status,
+            LintStatus::Clean | LintStatus::NothingSelected | LintStatus::Uncertain
+        ) {
+            report.status = LintStatus::Prepared;
         }
     }
     for saved in report.piece_evidence.values_mut() {

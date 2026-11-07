@@ -12,34 +12,15 @@ pub async fn run_judgments(
     backend: &dyn DecisionBackend,
     cancellation: &CancellationToken,
 ) -> DecisionRunOutcome {
-    let invalid = |diagnostic: DecisionDiagnostic| DecisionRunOutcome::InvalidRequest {
-        diagnostics: diagnostic.into(),
-    };
-    if let Err(diagnostic) =
-        crate::judgment_processing::judgment_validation::validate_request(&input.request)
-            .and_then(|()| input.attempts.validate())
-    {
-        return invalid(diagnostic);
-    }
-    if input.backend != *backend.selection() {
-        return invalid(DecisionDiagnostic::request(
-            DecisionDiagnosticCode::InvalidConfiguration,
-        ));
+    if let Err(diagnostics) = validate_judgment_input(input, backend) {
+        return DecisionRunOutcome::InvalidRequest { diagnostics };
     }
     if cancellation.is_cancelled() {
         return cancelled_before_dispatch(Vec::new(), 1);
     }
-    let encoded = match backend.encode_request(&input.request) {
-        Ok(encoded) => encoded,
-        Err(diagnostic) => return invalid(diagnostic),
-    };
-    let accounting = backend.account_request(&encoded);
-    let admitted = match assess_request_budget(encoded, &input.request_budget, accounting) {
-        RequestBudgetAssessment::WithinConfiguredBudget { admitted_request } => admitted_request,
-        RequestBudgetAssessment::Exceeded { diagnostics }
-        | RequestBudgetAssessment::Unverifiable { diagnostics } => {
-            return DecisionRunOutcome::InvalidRequest { diagnostics };
-        }
+    let admitted = match admit_judgment_request(input, backend) {
+        Ok(admitted) => admitted,
+        Err(diagnostics) => return DecisionRunOutcome::InvalidRequest { diagnostics },
     };
     run_admitted_judgments(
         &input.request,
@@ -49,6 +30,45 @@ pub async fn run_judgments(
         cancellation,
     )
     .await
+}
+
+fn validate_judgment_input(
+    input: &RunJudgmentsInput,
+    backend: &dyn DecisionBackend,
+) -> Result<(), DiagnosticList> {
+    crate::judgment_processing::judgment_validation::validate_request(&input.request)
+        .and_then(|()| input.attempts.validate())
+        .map_err(DiagnosticList::from)?;
+    if input.backend != *backend.selection() {
+        return Err(
+            DecisionDiagnostic::request(DecisionDiagnosticCode::InvalidConfiguration).into(),
+        );
+    }
+    Ok(())
+}
+fn admit_judgment_request(
+    input: &RunJudgmentsInput,
+    backend: &dyn DecisionBackend,
+) -> Result<AdmittedBackendRequest, DiagnosticList> {
+    let encoded = backend
+        .encode_request(&input.request)
+        .map_err(DiagnosticList::from)?;
+    let accounting = backend.account_request(&encoded);
+    match assess_request_budget(encoded, &input.request_budget, accounting) {
+        RequestBudgetAssessment::WithinConfiguredBudget { admitted_request } => {
+            Ok(admitted_request)
+        }
+        RequestBudgetAssessment::Exceeded { diagnostics }
+        | RequestBudgetAssessment::Unverifiable { diagnostics } => Err(diagnostics),
+    }
+}
+/// Admit exactly the request ordinary execution would send, without entering its attempt controller.
+pub fn prepare_judgments(
+    input: &RunJudgmentsInput,
+    backend: &dyn DecisionBackend,
+) -> Result<AdmittedBackendRequest, DiagnosticList> {
+    validate_judgment_input(input, backend)?;
+    admit_judgment_request(input, backend)
 }
 
 pub async fn run_admitted_judgments(

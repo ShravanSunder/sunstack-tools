@@ -141,12 +141,7 @@ impl EvidenceBuild {
                     },
                 );
             }
-            piece.model_view = project_model_view(
-                &piece.fields,
-                definition
-                    .max_chars
-                    .map_or(self.limits.evidence_max_chars, |n| n.get() as usize),
-            );
+            piece.model_view = self.project_fields(&definition, &piece.fields);
         }
         for count in &mut self.catalog.file_counts {
             if let Some(kind_count) = count.kinds.get_mut(kind) {

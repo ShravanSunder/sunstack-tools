@@ -145,3 +145,106 @@ pub(super) fn score(
 #[cfg(test)]
 #[path = "matching_test.rs"]
 mod tests;
+
+pub(super) fn prepare(
+    case: &LintCase,
+    snapshot: &super::snapshots::RevisionSnapshot,
+    report: &LintReport,
+    dependency: Option<&(sunstack_evidence::EvidenceKindName, std::path::PathBuf)>,
+) -> (CaseOutcome, Option<usize>) {
+    use crate::{RequestOwner, SavedRequestOutcome};
+    if let CaseSubject::Rule {
+        file,
+        lines,
+        text_sha256,
+        ..
+    } = &case.subject
+    {
+        let text = match archived_lines(snapshot, file, *lines) {
+            Ok(text) => text,
+            Err(error) => return (incomplete(error), None),
+        };
+        if sunstack_evidence::content_digest(text.as_bytes()) != *text_sha256 {
+            return (CaseOutcome::Stale, None);
+        }
+    }
+    let prepared = report
+        .requests
+        .iter()
+        .filter(|request| matches!(request.outcome, SavedRequestOutcome::Prepared { .. }))
+        .filter(|request| match (&case.subject, &request.owner) {
+            (
+                CaseSubject::Rule {
+                    rule, file, lines, ..
+                },
+                RequestOwner::Rule {
+                    rule: actual,
+                    piece,
+                },
+            ) => {
+                rule == actual
+                    && file == &piece.file
+                    && lines[0] == piece.first_line
+                    && lines[1] == piece.last_line
+            }
+            (
+                CaseSubject::Filter { filter, folder, .. },
+                RequestOwner::Filter {
+                    filter: actual,
+                    folder: actual_folder,
+                },
+            ) => filter == actual && folder == actual_folder,
+            _ => false,
+        })
+        .collect::<Vec<_>>();
+    match prepared.as_slice() {
+        [request] => {
+            if let CaseSubject::Filter { reads_sha256, .. } = &case.subject {
+                let Some(evidence) = report.piece_evidence.get(&request.id) else {
+                    return (incomplete("prepared filter evidence is missing"), None);
+                };
+                match sunstack_rules::filter_reads_hash(&evidence.piece.fields) {
+                    Ok(hash) if &hash == reads_sha256 => {}
+                    Ok(_) => return (CaseOutcome::Stale, None),
+                    Err(reason) => return (incomplete(format!("{reason:?}")), None),
+                }
+            }
+            return (CaseOutcome::Prepared, Some(request.id));
+        }
+        [] => {}
+        _ => return (CaseOutcome::MoreThanOneMatchingPiece, None),
+    }
+    let (outcome, id) = score(case, snapshot, report);
+    if id.is_none()
+        && !matches!(outcome, CaseOutcome::MoreThanOneMatchingPiece)
+        && let Some((kind, file)) = dependency
+        && let Some(wait) = report.preparation.as_ref().and_then(|preparation| {
+            preparation
+                .needs_answer
+                .iter()
+                .find(|entry| &entry.kind == kind && &entry.file == file)
+        })
+    {
+        return (
+            CaseOutcome::NotJudged {
+                reason: format!(
+                    "needs_answer: {} request {}",
+                    wait.waits_on.selection_kind.as_str(),
+                    wait.waits_on.request_id
+                ),
+            },
+            None,
+        );
+    }
+    let outcome = match outcome {
+        CaseOutcome::Right
+        | CaseOutcome::FalseWarning
+        | CaseOutcome::Missed
+        | CaseOutcome::WrongLabel => CaseOutcome::Prepared,
+        CaseOutcome::Unsure => CaseOutcome::NotJudged {
+            reason: "mechanical route is uncertain".into(),
+        },
+        other => other,
+    };
+    (outcome, id)
+}

@@ -125,6 +125,7 @@ fn scope_text(scope: &ScopeReport) -> String {
 }
 fn status_text(status: LintStatus) -> &'static str {
     match status {
+        LintStatus::Prepared => "Prepared",
         LintStatus::Clean => "Clean",
         LintStatus::NothingSelected => "No checks selected",
         LintStatus::Findings => "Lint findings",
@@ -245,7 +246,28 @@ fn human(report: &LintReport) -> String {
                 && selection.candidates > 0
                 && selection.selected == 0
             {
+                let pending = report
+                    .selections
+                    .iter()
+                    .filter(|entry| {
+                        entry.kind == *kind
+                            && entry.location.file == file.file
+                            && matches!(
+                                entry.outcome,
+                                sunstack_rules::SelectionOutcome::Prepared { .. }
+                                    | sunstack_rules::SelectionOutcome::Deferred
+                            )
+                    })
+                    .count();
                 let kind = kind.as_str();
+                if pending > 0 {
+                    let _ = writeln!(
+                        output,
+                        "{} [{kind}]: {pending} candidates awaiting prepared selection answers",
+                        file.file.display()
+                    );
+                    continue;
+                }
                 let _ = writeln!(
                     output,
                     "{} [{kind}]: {} candidates, none selected; {} not_selected, {} uncertain, {} incomplete ({} asked)",

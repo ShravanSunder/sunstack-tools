@@ -120,6 +120,64 @@ and rule files. It retains raw piece evidence for mechanical steps. `lint show`
 needs only that saved file; an excluded rule is marked as never asked and cannot
 be re-walked. Unknown ids return an error with the valid range.
 
+### Prepare requests without sending
+
+```sh
+sunstack lint --all --prepare prepared.json
+sunstack lint show prepared.json 3
+sunstack lint cases cases.json --set development --prepare prepared-cases.json
+sunstack lint show prepared-cases.json 1
+sunstack lint --all --prepare continued.json --selections-from run.json
+```
+
+`--prepare FILE` uses ordinary target selection, evidence, cuts, mechanical checks,
+request builders and budgets, then saves the requests without resolving a
+credential or sending to the provider. It conflicts with `--report`, `--check`,
+`--rules`, `--evidence` and `--init`. The report adds `mode: "prepare"`; each
+unanswered request has `status: "prepared"`, its exact `request.state` and
+`request.questions`, raw evidence, and the config and rule file contents/hashes.
+There are no invented answers or judged outcomes. Filter-gated rule requests are
+offered for every mechanically possible folder with their `gate` condition.
+Decision-tree routes use one request containing all piece questions, so an
+unanswered route does not block preparation.
+
+A selected kind's unanswered selection prevents its dependent pieces from being
+built. `needs_answer` lists each affected kind/file and the selection request id
+it waits on; independent evidence still builds. Composed `same_file`, `inside`
+and `enclosing` fields remain selection-pending, including remainder subtraction.
+If any field in the model view is selection-pending, the whole model request
+waits, including questions that read only another field. No size estimate is
+used. Requests whose model view has no pending field continue normally.
+Ordinary `--report` and JSON
+output now retain selection requests, answers, requested/resolved models, input
+hashes and raw selection evidence, alongside their existing rule/filter entries.
+
+Use `--selections-from` only with `--prepare` to continue from those recorded
+answers. It accepts a lint report or a case report. Replay requires the identical
+state and questions, a valid recorded answer, and **decision_model.model equal to the
+recorded resolved model name exactly**. Pin the resolved version in the config;
+an alias such as `jev-latest`, a different version, an unanswered entry or changed
+input stays `needs_answer`. No provider-prefix inference or revision restriction
+is applied. Applied entries have `status: "from_report"` and
+`source_request_id`; a case-report source also records `source_revision`.
+Agreeing duplicate answers retain the first source's provenance; conflicting
+answers stay unresolved. Replayed selectors check and consume the same logical
+request allowance as ordinary selection, so downstream requests keep the same
+limit. Neither preparing nor replaying sends inference or consumes model usage.
+
+Prepared case reports keep the ordinary exact-range/hash matching and accounting,
+adding the `prepared` disposition. Stale, unmatched, ambiguous, mechanically
+excluded and unavailable cases retain explicit reasons. `lint show` on a prepared
+case report selects the **1-based ordinal in its cases array**, and returns that
+case plus its linked revision/request evidence; stale and unmatched cases are
+reason-only. Readback needs only the saved file.
+
+A clean prepare-only run exits **6**, including runs waiting for selection answers.
+Mechanical findings or case gaps (including stale/unmatched cases) exit **1**;
+invalid input exits **2**, incomplete processing **3**, and cancellation **4**.
+Invalid, cancelled and incomplete processing take precedence over case gaps.
+Unassessed case bars alone do not fail a prepare-only run.
+
 A case file contains `cases` and `bars`, plus an optional local `repository`
 path (relative to the case file). Each case has a unique `id`, `revision`, `set`
 and `label_from` (`owner-fix`, `owner-ruling` or `blind-agents`).

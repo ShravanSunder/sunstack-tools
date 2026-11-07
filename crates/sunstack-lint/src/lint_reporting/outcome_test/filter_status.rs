@@ -45,6 +45,7 @@ fn filter_status_preserves_cancelled_incomplete_findings_and_uncertainty_priorit
             };
         }
         let run = RulebookRun {
+            prepared: vec![],
             not_sent: vec![],
             results: vec![],
             requests: vec![],
@@ -59,6 +60,7 @@ fn filter_status_preserves_cancelled_incomplete_findings_and_uncertainty_priorit
         EffectiveLimits::default(),
     );
     let run = RulebookRun {
+        prepared: vec![],
         not_sent: vec![],
         results: vec![],
         requests: vec![],

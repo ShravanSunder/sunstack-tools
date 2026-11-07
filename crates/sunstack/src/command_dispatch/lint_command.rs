@@ -104,15 +104,23 @@ async fn inspect(arguments: &LintArguments, cancellation: CancellationToken) -> 
 }
 async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> ExitCode {
     if let Some(LintCommand::Show { file, id }) = &arguments.command {
-        let report = std::fs::read(file)
+        let detail = std::fs::read(file)
             .map_err(|error| error.to_string())
-            .and_then(|bytes| {
-                serde_json::from_slice::<sunstack_lint::LintReport>(&bytes)
-                    .map_err(|error| error.to_string())
-            });
-        return match report
-            .and_then(|report| sunstack_lint::lint_reporting::saved_reports::show(&report, *id))
-        {
+            .and_then(
+                |bytes| match serde_json::from_slice::<sunstack_lint::LintReport>(&bytes) {
+                    Ok(report) => sunstack_lint::lint_reporting::saved_reports::show(&report, *id),
+                    Err(lint_error) => match serde_json::from_slice::<
+                        sunstack_lint::case_runs::CasesReport,
+                    >(&bytes)
+                    {
+                        Ok(report) if report.preparation.is_some() => {
+                            sunstack_lint::case_runs::show_prepared_case(&report, *id)
+                        }
+                        _ => Err(lint_error.to_string()),
+                    },
+                },
+            );
+        return match detail {
             Ok(detail) => json_output(&detail),
             Err(error) => {
                 let _ = writeln!(io::stderr().lock(), "sunstack: {error}");
@@ -125,17 +133,36 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
             Ok(path) => path,
             Err(_) => return output("Cannot locate sunstack executable.", 3),
         };
-        return match sunstack_lint::case_runs::run_cases(
-            file,
-            arguments.config.as_deref(),
-            set.as_deref(),
-            &executable,
-            cancellation,
-        )
-        .await
-        {
+        let result = if arguments.prepare.is_some() {
+            sunstack_lint::case_runs::prepare_cases(
+                file,
+                arguments.config.as_deref(),
+                set.as_deref(),
+                &executable,
+                cancellation,
+                arguments.selections_from.as_deref(),
+            )
+            .await
+        } else {
+            sunstack_lint::case_runs::run_cases(
+                file,
+                arguments.config.as_deref(),
+                set.as_deref(),
+                &executable,
+                cancellation,
+            )
+            .await
+        };
+        return match result {
             Ok(report) => match serde_json::to_string_pretty(&report) {
-                Ok(text) => output(&text, report.exit_code()),
+                Ok(text) => {
+                    if let Some(path) = &arguments.prepare
+                        && let Err(error) = std::fs::write(path, &text)
+                    {
+                        return output(&format!("Cannot save prepared cases: {error}"), 3);
+                    }
+                    output(&text, report.exit_code())
+                }
                 Err(_) => output("Unable to encode case report.", 3),
             },
             Err(error) => {
@@ -187,20 +214,32 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         Some(None) => Some(None),
         None => None,
     };
-    let credential = crate::process_runtime::provider_credentials::resolve().await;
-    let report = sunstack_lint::run(
-        LintRequest {
-            config_path: arguments.config,
-            paths: arguments.paths,
-            scope,
-            max_warnings: arguments.max_warnings,
-            evidence_listing,
-        },
-        cancellation,
-        credential,
-    )
-    .await;
-    if let Some(path) = &arguments.report {
+    let request = LintRequest {
+        config_path: arguments.config,
+        paths: arguments.paths,
+        scope,
+        max_warnings: arguments.max_warnings,
+        evidence_listing,
+    };
+    let report = if arguments.prepare.is_some() {
+        let selections = match &arguments.selections_from {
+            Some(path) => {
+                match sunstack_lint::lint_reporting::selection_sources::read_selection_records(path)
+                {
+                    Ok(records) => records,
+                    Err(error) => {
+                        return output(&format!("Cannot read selection report: {error}"), 2);
+                    }
+                }
+            }
+            None => vec![],
+        };
+        sunstack_lint::prepare(request, cancellation, selections).await
+    } else {
+        let credential = crate::process_runtime::provider_credentials::resolve().await;
+        sunstack_lint::run(request, cancellation, credential).await
+    };
+    if let Some(path) = arguments.prepare.as_ref().or(arguments.report.as_ref()) {
         let saved = serde_json::to_vec_pretty(&report)
             .map_err(|error| error.to_string())
             .and_then(|bytes| std::fs::write(path, bytes).map_err(|error| error.to_string()));

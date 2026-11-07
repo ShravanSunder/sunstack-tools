@@ -1,5 +1,11 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 use sunstack_rules::test_support::controlled_http as controlled;
+#[path = "evidence_selection_process/prepare_composed_fields.rs"]
+mod prepare_composed_fields;
+#[path = "evidence_selection_process/prepare_replay_allowance.rs"]
+mod prepare_replay_allowance;
+#[path = "evidence_selection_process/prepare_selection.rs"]
+mod prepare_selection;
 #[path = "../support/mod.rs"]
 mod support;
 use serde_json::{Value, json};
