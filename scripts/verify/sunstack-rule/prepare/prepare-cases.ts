@@ -11,6 +11,8 @@ import {
 	parseObject,
 	readObject,
 	runSequence,
+	rulesName,
+	rulebookName,
 	textValue,
 	writeJson,
 } from '../rulebook/rulebook-fixture-support.ts';
@@ -154,7 +156,7 @@ export async function observePrepareCases(options: {
 			assert.deepEqual(objectValue(detail['detail'])['rulebook_files'], lint['rulebook_files']);
 		}
 	});
-	for (const file of [casesConfigName, 'rules.json', 'rulebook.md'])
+	for (const file of [casesConfigName, rulesName, rulebookName])
 		filesystem.unlinkSync(path.join(root, file));
 	await runSequence(showRows, async (index) => {
 		const shown = await options.observer.run({
