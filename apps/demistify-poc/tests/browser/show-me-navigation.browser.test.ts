@@ -9,6 +9,49 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test.each([
+	{
+		name: 'ui',
+		file: 'content-spacing.html',
+		controls: ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger'],
+	},
+	{
+		name: 'navigation',
+		file: 'index.html',
+		controls: [
+			'.ex-comments-trigger',
+			'.ex-presentations-trigger',
+			'.ex-theme-toggle',
+			'.ex-search-trigger',
+		],
+	},
+	{
+		name: 'show-me-work',
+		file: 'index.html',
+		controls: ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger', '.ex-map-trigger'],
+	},
+] as const)(
+	'phone reader controls preserve the established visual order on $name',
+	async ({ name, file, controls }): Promise<void> => {
+		await page.viewport(390, 1000);
+		const { document: fixture } = await openFixture(name, '', file);
+		await expect
+			.poll((): boolean => controls.every((selector) => fixture.querySelector(selector) !== null))
+			.toBe(true);
+		const bounds = controls.map((selector) =>
+			requiredElement(fixture, selector).getBoundingClientRect(),
+		);
+		for (const [index, rect] of bounds.entries()) {
+			expect(rect.top).toBeGreaterThanOrEqual(0);
+			expect(rect.bottom).toBeLessThanOrEqual(
+				requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
+			);
+			const next = bounds[index + 1];
+			if (next) expect(rect.right).toBeLessThanOrEqual(next.left);
+		}
+	},
+);
+
 test.each([1280, 390])(
 	'Map totals track live membership while story bulk actions leave its branches alone at %ipx',
 	async (width): Promise<void> => {

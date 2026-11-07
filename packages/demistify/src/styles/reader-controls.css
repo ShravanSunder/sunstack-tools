@@ -17,6 +17,9 @@
 	margin: 0;
 	flex: none;
 }
+.ex-reader-controls > .ex-comments-trigger {
+	order: var(--reader-comments-order, 0);
+}
 .ex-map-trigger[aria-expanded='true'] {
 	color: var(--accent);
 	background: var(--selection-surface);
@@ -24,6 +27,7 @@
 }
 @media (max-width: 760px) {
 	.ex-reader-controls {
+		--reader-comments-order: -1;
 		top: calc(env(safe-area-inset-top, 0px) + 5px);
 		right: var(--space-2);
 		bottom: auto;
@@ -50,6 +54,7 @@
 	}
 }
 :root:has(ex-drawer:popover-open) .ex-reader-controls {
+	--reader-comments-order: -1;
 	top: calc(env(safe-area-inset-top, 0px) + 5px);
 	right: calc(var(--ex-drawer-used-width, 0px) + var(--space-2));
 	bottom: auto;
@@ -68,6 +73,7 @@
 }
 @media (max-width: 899px) {
 	:root:has(.ex-drawer[data-presentation='map']:not([hidden])) .ex-reader-controls {
+		--reader-comments-order: -1;
 		top: calc(env(safe-area-inset-top, 0px) + 5px);
 		right: var(--space-2);
 		bottom: auto;
