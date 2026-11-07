@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.3
+
+Release date: 2026-11-07.
+
+- Case snapshots replace the evidence-rule directories declared by today's
+  ast-grep project with today's contents, removing obsolete historical rules.
+  Other rulebook inputs retain their individual overlay; historical context
+  outside those directories stays intact.
+- Case-run overlays refuse rule directories that cover the repository root or
+  checked source, and retain the snapshot's symlink boundary.
+
 ## 0.8.2
 
 Release date: 2026-11-07.

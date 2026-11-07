@@ -65,6 +65,16 @@ pub(crate) fn select_targets(
         .and_then(|repo| repo.workdir())
         .unwrap_or(&directory)
         .to_path_buf();
+    select_targets_in_root(&config.check, &root, paths, cwd)
+}
+
+pub(crate) fn select_targets_in_root(
+    check: &CheckedFiles,
+    root: &Path,
+    paths: &[PathBuf],
+    cwd: &Path,
+) -> Result<TargetSelection, LintInvalid> {
+    let repository = git2::Repository::discover(root).ok();
     let paths = paths
         .iter()
         .map(|path| {
@@ -80,7 +90,7 @@ pub(crate) fn select_targets(
     let named = |file: &Path| paths.is_empty() || paths.iter().any(|path| file.starts_with(path));
     let mut files = BTreeSet::new();
     let mut ignored = BTreeSet::new();
-    for entry in ignore::WalkBuilder::new(&root)
+    for entry in ignore::WalkBuilder::new(root)
         .hidden(false)
         .parents(false)
         .git_global(false)
@@ -91,7 +101,7 @@ pub(crate) fn select_targets(
     {
         let entry = entry.map_err(|_| {
             LintInvalid::at(
-                &root,
+                root,
                 LintInvalidCode::PathNotFound,
                 "target path could not be inspected",
             )
@@ -99,9 +109,9 @@ pub(crate) fn select_targets(
         if !entry.file_type().is_some_and(|kind| kind.is_file()) || !named(entry.path()) {
             continue;
         }
-        let file = relative_path(&root, entry.path());
-        if matches(&config.check.files, &file) {
-            if matches(&config.check.ignore, &file) {
+        let file = relative_path(root, entry.path());
+        if matches(&check.files, &file) {
+            if matches(&check.ignore, &file) {
                 ignored.insert(file);
             } else {
                 files.insert(file);
@@ -124,7 +134,7 @@ pub(crate) fn select_targets(
                     let file = PathBuf::from(path);
                     if root.join(&file).is_file()
                         && named(&root.join(&file))
-                        && matches(&config.check.files, &file)
+                        && matches(&check.files, &file)
                     {
                         ignored.insert(file);
                     }
@@ -133,7 +143,7 @@ pub(crate) fn select_targets(
         }
     }
     Ok(TargetSelection {
-        root,
+        root: root.to_path_buf(),
         files: files.into_iter().collect(),
         ignored: u32::try_from(ignored.len()).unwrap_or(u32::MAX),
     })

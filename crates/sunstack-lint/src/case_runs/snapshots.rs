@@ -1,4 +1,4 @@
-use crate::{LintReport, RulebookFile};
+use crate::{CheckedFiles, LintReport, RulebookFile, lint_execution::targets};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Component, Path, PathBuf},
@@ -14,6 +14,13 @@ pub(super) struct RevisionSnapshot {
     pub symlink_paths: BTreeSet<PathBuf>,
     pub sources: BTreeMap<PathBuf, Result<String, String>>,
     pub resolved_revision: String,
+}
+pub(super) struct RulebookOverlay<'a> {
+    pub root: &'a Path,
+    pub config: &'a Path,
+    pub files: &'a [RulebookFile],
+    pub rule_directories: &'a [PathBuf],
+    pub check: &'a CheckedFiles,
 }
 fn checked_command(command: &mut Command, description: &str) -> Result<(), String> {
     let output = command
@@ -58,12 +65,135 @@ fn traverses_symlink(tree: &Path, selected_path: &Path) -> Result<bool, String> 
     }
     Ok(false)
 }
+
+fn overlay_destination(tree: &Path, relative: &Path) -> Result<PathBuf, String> {
+    let mut directory = tree.to_path_buf();
+    if let Some(parent) = relative.parent() {
+        for component in parent.components() {
+            match component {
+                Component::CurDir => continue,
+                Component::Normal(name) => directory.push(name),
+                _ => return Err("rulebook overlay must stay inside the snapshot".into()),
+            }
+            if std::fs::symlink_metadata(&directory)
+                .is_ok_and(|metadata| metadata.file_type().is_symlink())
+            {
+                std::fs::remove_file(&directory).map_err(|error| error.to_string())?;
+            }
+            if !directory.exists() {
+                std::fs::create_dir(&directory).map_err(|error| error.to_string())?;
+            }
+        }
+    }
+    Ok(tree.join(relative))
+}
+
+fn copy_rule_directory(
+    source: &Path,
+    destination: &Path,
+    current_root: &Path,
+    ancestors: &mut BTreeSet<PathBuf>,
+) -> Result<(), String> {
+    let source = source.canonicalize().map_err(|error| error.to_string())?;
+    if !source.starts_with(current_root) {
+        return Err("rule directory content is outside the current repository".into());
+    }
+    if !ancestors.insert(source.clone()) {
+        return Err("rule directory contains a symbolic-link cycle".into());
+    }
+    std::fs::create_dir(destination).map_err(|error| error.to_string())?;
+    for entry in std::fs::read_dir(&source).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        if entry.file_name() == ".git" {
+            return Err("rule directory contains repository metadata".into());
+        }
+        let path = entry
+            .path()
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        if !path.starts_with(current_root) {
+            return Err("rule directory content is outside the current repository".into());
+        }
+        let target = destination.join(entry.file_name());
+        if path.is_dir() {
+            copy_rule_directory(&path, &target, current_root, ancestors)?;
+        } else if path.is_file() {
+            let mut input = std::fs::File::open(&path).map_err(|error| error.to_string())?;
+            let mut output = std::fs::File::create(target).map_err(|error| error.to_string())?;
+            std::io::copy(&mut input, &mut output).map_err(|error| error.to_string())?;
+        } else {
+            return Err("rule directory contains an unsupported file type".into());
+        }
+    }
+    ancestors.remove(&source);
+    Ok(())
+}
+
+fn replace_rule_directories(
+    tree: &Path,
+    overlay: &RulebookOverlay<'_>,
+    selected_paths: &BTreeSet<PathBuf>,
+) -> Result<(), String> {
+    if overlay.rule_directories.is_empty() {
+        return Ok(());
+    }
+    let checked = targets::select_targets_in_root(overlay.check, tree, &[], tree)
+        .map_err(|error| error.to_string())?;
+    let mut directories = Vec::new();
+    for directory in overlay.rule_directories {
+        let canonical_relative = relative_input(overlay.root, directory)?;
+        let relative = targets::relative_path(overlay.root, directory);
+        if canonical_relative.as_os_str().is_empty() || relative.as_os_str().is_empty() {
+            return Err(
+                "rule directory resolves to the repository root; case-run overlay is invalid"
+                    .into(),
+            );
+        }
+        if relative
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
+        {
+            return Err("rule directory must stay inside the current repository".into());
+        }
+        if relative.components().any(|part| part.as_os_str() == ".git") {
+            return Err("rule directory overlaps repository metadata".into());
+        }
+        let covers =
+            |path: &Path| path.starts_with(&relative) || path.starts_with(&canonical_relative);
+        if selected_paths.iter().any(|path| covers(path))
+            || checked.files.iter().any(|path| {
+                covers(path)
+                    && !path
+                        .extension()
+                        .is_some_and(|ext| ext == "yml" || ext == "yaml")
+            })
+        {
+            return Err(format!(
+                "rule directory {} covers a checked file or selected case path; case-run overlay is invalid",
+                relative.display()
+            ));
+        }
+        directories.push((directory, relative));
+    }
+    for (source, relative) in directories {
+        let destination = overlay_destination(tree, &relative)?;
+        match std::fs::symlink_metadata(&destination) {
+            Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {
+                std::fs::remove_dir_all(&destination).map_err(|error| error.to_string())?;
+            }
+            Ok(_) => std::fs::remove_file(&destination).map_err(|error| error.to_string())?,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.to_string()),
+        }
+        copy_rule_directory(source, &destination, overlay.root, &mut BTreeSet::new())?;
+    }
+    Ok(())
+}
+
 pub(super) fn prepare(
     repository: &Path,
     revision: &str,
-    current_root: &Path,
-    config: &Path,
-    files: &[RulebookFile],
+    overlay: &RulebookOverlay<'_>,
     case_files: &BTreeSet<PathBuf>,
     selected_paths: &BTreeSet<PathBuf>,
 ) -> Result<RevisionSnapshot, String> {
@@ -126,25 +256,9 @@ pub(super) fn prepare(
             (file.clone(), source)
         })
         .collect();
-    for file in files {
-        let destination = tree.join(relative_input(current_root, &file.path)?);
-        if let Some(parent) = destination.parent() {
-            let relative = parent
-                .strip_prefix(&tree)
-                .map_err(|error| error.to_string())?;
-            let mut directory = tree.clone();
-            for component in relative.components() {
-                directory.push(component);
-                if std::fs::symlink_metadata(&directory)
-                    .is_ok_and(|metadata| metadata.file_type().is_symlink())
-                {
-                    std::fs::remove_file(&directory).map_err(|error| error.to_string())?;
-                }
-                if !directory.exists() {
-                    std::fs::create_dir(&directory).map_err(|error| error.to_string())?;
-                }
-            }
-        }
+    replace_rule_directories(&tree, overlay, selected_paths)?;
+    for file in overlay.files {
+        let destination = overlay_destination(&tree, &relative_input(overlay.root, &file.path)?)?;
         // A historical symlink must not redirect today's overlay outside this snapshot.
         if std::fs::symlink_metadata(&destination)
             .is_ok_and(|metadata| metadata.file_type().is_symlink())
@@ -153,7 +267,7 @@ pub(super) fn prepare(
         }
         std::fs::write(destination, &file.content).map_err(|error| error.to_string())?;
     }
-    let config = tree.join(relative_input(current_root, config)?);
+    let config = tree.join(relative_input(overlay.root, overlay.config)?);
     Ok(RevisionSnapshot {
         _directory: directory,
         tree,

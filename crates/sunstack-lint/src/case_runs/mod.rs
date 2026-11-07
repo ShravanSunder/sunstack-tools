@@ -114,9 +114,13 @@ pub async fn run_cases(
         match snapshots::prepare(
             &repository,
             &revision,
-            &current_root,
-            &location.file,
-            &files,
+            &snapshots::RulebookOverlay {
+                root: &current_root,
+                config: &location.file,
+                files: &files,
+                rule_directories: checked.project.rule_directories(),
+                check: &config.check,
+            },
             &case_files,
             &selected_paths,
         ) {

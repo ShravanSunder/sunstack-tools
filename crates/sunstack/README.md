@@ -136,6 +136,11 @@ where `bound` is `yes_at_or_above`, `no_at_or_below` or `min_probability`.
 Case runs archive the whole repository at each revision, initialize Git metadata
 inside each disposable copy so nested configs retain the repository root, overlay
 today's config and rule inputs, and invoke ordinary lint on selected case paths.
+The ast-grep project's declared rule directories are replaced with today's
+contents, so obsolete historical rules are not loaded. Other inputs keep their
+individual file overlay. A rule directory that covers the repository root or
+checked source refuses the case overlay with an explicit revision error; it
+never deletes that historical source or falls back to a partial directory.
 A selected file or folder that is or traverses a historical symlink is listed as
 `not_judged` with reason `selected path is a symlink`, no result link and no crossed
 bars. It never selects the link's target. Context loads retain their usual behavior.
