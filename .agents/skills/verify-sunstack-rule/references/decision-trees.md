@@ -15,7 +15,7 @@ node scripts/verify/sunstack-rule/rulebook/rulebook-cases.ts --prepare --evidenc
 
 Observation omits `--prepare`, adding `--binary <absolute> --source-root <checkout> --commit <full-head> --sha256 <digest>`. Require keyless configuration checking with zero requests, then authored positive results through lint. An answering port or binary version alone is not readiness. Stop if source or binary changes.
 
-**Draft prerequisite:** all three source adapters are ready for a declared candidate. Each journey remains unobserved until it drives that target; no product pass is claimed.
+The scripted routes are operable. Obtain the declared candidate before each run, then retain the results for that target. Preparing fixtures or checking source alone never counts as observing the product.
 
 ## O5: short output and saved detail
 

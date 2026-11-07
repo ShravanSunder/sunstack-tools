@@ -20,7 +20,7 @@ Keep per-child command/cwd/PID/stdout/stderr/exit/source/hash, exact HTTP bodies
 
 Native proof still covers zero mechanical walks (HTTP cannot observe execution), same-process freshness, dependency selection before acquisition, structural refusals, actual cut/unavailable metadata, encoded request cap, shared budgets/cancellation and schema/default/SARIF projections. Scripted replies establish mechanics, leaving hosted classification and release/adoption separate.
 
-Route status: draft until declared-target observation is complete. Output/report/cases recipes are in [decision-trees.md](decision-trees.md).
+This route is operable for its scripted paths. Each run must establish its declared target and required native joins. Output/report/cases recipes are in [decision-trees.md](decision-trees.md).
 
 ## Rules-as-nudges: S1 and U10
 
