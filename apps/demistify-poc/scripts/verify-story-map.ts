@@ -5,7 +5,7 @@ import { browserEvidenceRoot } from '../tests/browser/browser-evidence.ts';
 
 const usage = `Usage: node apps/demistify-poc/scripts/verify-story-map.ts [--help]
 
-Run the permanent built story, section, Map and reader-control browser cases.
+Run the permanent built story, section, Map, M shortcut and reader-control browser cases.
 Run from the monorepo root with Node 26+, the repository's pnpm and installed
 matching Chromium. The complete Demistify library and PoC consumer must already
 be built from the declared target. This command does not build or install.
@@ -17,7 +17,7 @@ stylesheet, fonts and each case's actual target to be ready.
 Keep the command, output, exit status, printed snapshot path, asset identities
 and screenshots as evidence. Screenshot files live in a fresh subdirectory of
 ${browserEvidenceRoot}/. The harness stops its own browser and server. It
-checks the two named browser files; supplementary native-host observations,
+checks the three named browser files; supplementary native-host observations,
 external navigation, real download saving, physical devices, Safari, cold
 recipe application and release acceptance require separate evidence.
 `;
@@ -41,6 +41,7 @@ if (cliArguments.length === 1 && cliArguments[0] === '--help') {
 			'vitest.browser.config.ts',
 			'tests/browser/show-me-work.browser.test.ts',
 			'tests/browser/show-me-navigation.browser.test.ts',
+			'tests/browser/map-shortcut.browser.test.ts',
 		],
 		{ stdio: 'inherit' },
 	);

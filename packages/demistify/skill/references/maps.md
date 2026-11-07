@@ -1,6 +1,6 @@
 # Maps, arrows and layers
 
-Use a Flow for dependencies between responsive boxes, a Board for ownership regions or a spatial map, and Layers for independently optional content. A Mermaid sequence/state view belongs in `diagrams.md`; do not force that question into hand-positioned cards.
+Use a Flow for dependencies between responsive boxes, a Board for ownership regions or a spatial map, and Layers for independently optional content. A Mermaid sequence/state view belongs in `diagrams.md`; do not force that question into hand-positioned cards. IF "map" means the page's reader navigation panel rather than spatial Board regions, load `stories.md` and return the `ex-map` composition and its scope targets.
 
 ## A responsive Flow
 

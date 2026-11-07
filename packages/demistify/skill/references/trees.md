@@ -2,7 +2,7 @@
 
 `ex-tree` accepts `title`, optional `tone`/subject `icon`, `label` and `layout="outline|map"`; outline is the default. It is a hierarchy view, not successive pages or a Walkthrough. Bare `zoom` requests whole-tree inspection. `ex-file-tree` accepts `label` and plain-text path source; use `ex-pre` when exact drawing/whitespace is the content. Its `label` names the view and bare `zoom` makes inspection explicit when needed. Preserve the literal template example below and its formatter-ignore comment.
 
-Choose from the input: hierarchical Markdown becomes `ex-tree`; an exact monospace/TUI drawing becomes `ex-pre`. Use `ex-file-tree` only for a plain repository-path illustration. A literal drawing needs no terminal emulator or per-document styling.
+Choose from the input: hierarchical Markdown becomes `ex-tree`; an exact monospace/TUI drawing becomes `ex-pre`. Use `ex-file-tree` only for a plain repository-path illustration. A literal drawing needs no terminal emulator or per-document styling. IF a Tree is the page's reader Map rather than a `layout="map"` drawing, load `stories.md` and return its `ex-map` container, top-level section branches and scope binding.
 
 An `ex-file-tree` shows its plain-text source as written, so put the paths, indented as the tree should read, in a direct `text/plain` script:
 

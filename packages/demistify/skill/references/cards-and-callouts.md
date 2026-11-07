@@ -1,6 +1,6 @@
 # Cards, callouts, numbers and labels
 
-A card encloses one named thing. A callout draws attention to a consequence that changes the reader's understanding or decision. An `ex-stat` gives one reported number its unit and context. Ordinary explanation stays in document flow.
+A card encloses one named thing. A callout draws attention to a consequence that changes the reader's understanding or decision. An `ex-stat` gives one reported number its unit and context. Ordinary explanation stays in document flow. IF the supplied unit is an account with labelled rows and a supporting record rather than a named card, load `stories.md` and return the native story, section and Map composition.
 
 ## Give a surface a meaning
 

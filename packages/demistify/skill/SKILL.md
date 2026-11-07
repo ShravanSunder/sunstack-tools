@@ -64,6 +64,7 @@ For each matching condition below, load the named reference and return its autho
 | Alternatives on corresponding topics | `references/comparisons.md` | Matching topic keys, authored columns/tabs and natural content height |
 | Hierarchy, file paths or a literal text drawing | `references/trees.md` | Tree/File Tree/Pre choice, independent folding/jumps or exact text |
 | An ordered explanation with expandable evidence | `references/traces.md` | Native step disclosures with source/observation status |
+| A page-level `ex-map` reader panel, an `ex-story` account with labelled rows and a supporting record, or `ex-section` story scopes | `references/stories.md` | The supported composition, authored fields and states, and stable destinations |
 | Source-derived call-path changes | `references/call-paths.md` | Calls, branches and unknown execution kept distinct |
 | A supplied Explorer graph document | `references/explorers.md` | Original graph data, real selection IDs and source-backed views |
 
