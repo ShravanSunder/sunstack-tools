@@ -95,7 +95,13 @@ async fn observe(root: &Path, case: &str) -> (Value, Vec<Value>) {
                         let probability = if case == "low" { 0.6 } else { 0.8 };
                         let probabilities = question["criteria"].as_object().unwrap().keys().map(|label| (label.clone(), json!(if label == selected { probability } else { 0.01 }))).collect::<serde_json::Map<_, _>>();
                         answers.insert(name.clone(), json!({"type":"choice","choice":selected,"confidence":0.99,"probabilities":probabilities}));
-                    } else { answers.insert(name.clone(), json!({"type":"noul","noul":0.91})); }
+                    } else {
+                        let probability = match (case, name.as_str()) {
+                            ("route_second" | "route_third", "first_gate") | ("route_third", "second_gate") => 0.09,
+                            _ => 0.91,
+                        };
+                        answers.insert(name.clone(), json!({"type":"noul","noul":probability}));
+                    }
                 }
                 bodies.push(request.body.clone());
                 request.respond(200, json!({"model":"typesafe/controlled","answers":answers,"usage":{"input_tokens":20,"output_tokens":5}}));
@@ -254,7 +260,9 @@ async fn locator_admission_names_the_entry_route_and_refused_field() {
     for case in [
         "without_at",
         "question_name",
-        "locator_name",
+        "locator_field",
+        "locator_task",
+        "locator_bar",
         "zero",
         "negative",
         "above_one",
@@ -269,8 +277,16 @@ async fn locator_admission_names_the_entry_route_and_refused_field() {
                 finding.as_object_mut().unwrap().remove("at");
             }
             "question_name" => finding["locate"]["name"] = json!("gate"),
-            "locator_name" => {
-                let duplicate = finding.clone();
+            "locator_field" | "locator_task" | "locator_bar" => {
+                let mut duplicate = finding.clone();
+                match case {
+                    "locator_field" => duplicate["at"] = json!("heading"),
+                    "locator_task" => {
+                        duplicate["locate"]["task"] = json!("Choose a different line.")
+                    }
+                    "locator_bar" => duplicate["locate"]["min_probability"] = json!(0.8),
+                    _ => unreachable!(),
+                }
                 entries["K001"]["decision"]["steps"]["gate"]["no"] = duplicate;
             }
             "zero" => finding["locate"]["min_probability"] = json!(0.0),
@@ -323,4 +339,64 @@ async fn locator_admission_names_the_entry_route_and_refused_field() {
             .len(),
         1
     );
+}
+
+#[tokio::test]
+async fn three_finding_routes_share_one_identical_locator_in_one_request() {
+    for (case, expected_path, expected_message) in [
+        ("route_first", vec!["first"], "Read this line."),
+        (
+            "route_second",
+            vec!["first", "second"],
+            "A different ending using the same line measurement.",
+        ),
+        (
+            "route_third",
+            vec!["first", "second", "third"],
+            "A third ending using the same line measurement.",
+        ),
+    ] {
+        let (root, _) = located_fixture("resolved");
+        let path = root.path().join("rules.json");
+        let mut entries = read(&path);
+        let question = entries["K001"]["questions"]["gate"].clone();
+        entries["K001"]["questions"] =
+            json!({"first_gate":question,"second_gate":question,"third_gate":question});
+        let finding = entries["K001"]["decision"]["steps"]["gate"]["yes"].clone();
+        let mut second_finding = finding.clone();
+        second_finding["finding"] = json!("A different ending using the same line measurement.");
+        let mut third_finding = finding.clone();
+        third_finding["finding"] = json!("A third ending using the same line measurement.");
+        entries["K001"]["decision"] = json!({"start":"first","steps":{
+            "first":{"ask":"first_gate","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":finding,"no":"second","uncertain":"uncertain"},
+            "second":{"ask":"second_gate","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":second_finding,"no":"third","uncertain":"uncertain"},
+            "third":{"ask":"third_gate","yes_at_or_above":0.8,"no_at_or_below":0.2,"yes":third_finding,"no":"pass","uncertain":"uncertain"}
+        }});
+        save(&path, &entries);
+
+        let (report, bodies) = observe(root.path(), case).await;
+
+        assert_eq!(bodies.len(), 1);
+        let questions = bodies[0]["questions"].as_object().unwrap();
+        assert_eq!(questions.len(), 4);
+        for question in ["first_gate", "second_gate", "third_gate"] {
+            assert_eq!(questions[question]["type"], "noul");
+        }
+        assert_eq!(
+            questions
+                .values()
+                .filter(|question| question["type"] == "choice")
+                .count(),
+            1
+        );
+        assert_eq!(questions["focus_line"]["type"], "choice");
+        assert_eq!(questions["focus_line"]["instructions"]["check"], "body");
+        assert_eq!(questions["focus_line"]["criteria"]["L17"], "Target line.");
+        assert_eq!(report["usage"]["model_requests"], 1);
+        assert_eq!(report["skipped_rules"], json!([]));
+        assert_eq!(report["findings"][0]["line"], 17);
+        assert_eq!(report["findings"][0]["anchor"], "resolved");
+        assert_eq!(report["findings"][0]["message"], expected_message);
+        assert_eq!(report["results"][0]["path"], json!(expected_path));
+    }
 }

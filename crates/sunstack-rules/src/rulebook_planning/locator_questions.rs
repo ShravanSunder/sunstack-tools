@@ -87,6 +87,9 @@ pub(super) fn add_locators(
             let (Some(locator), Some(field)) = (&finding.locate, &finding.at) else {
                 continue;
             };
+            if request.questions.contains_key(&locator.name) {
+                continue;
+            }
             let lines = candidate_lines(piece, field);
             if lines.is_empty() || lines.len() > dispatcher.settings.max_locate_lines {
                 continue;

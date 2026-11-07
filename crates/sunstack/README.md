@@ -122,7 +122,9 @@ be re-walked. Unknown ids return an error with the valid range.
 
 A case file contains `cases` and `bars`, plus an optional local `repository`
 path (relative to the case file). Each case has a unique `id`, `revision`, `set`
-and `label_from` (`owner-fix` or `blind-agents`). Rule cases add `kind: "rule"`,
+and `label_from` (`owner-fix`, `owner-ruling` or `blind-agents`).
+`owner-fix` names a real text fix; `owner-ruling` names an explicit owner label
+decision, whose ruling is kept beside the cases. Rule cases add `kind: "rule"`,
 `rule`, `file`, `lines: [first, last]`, `text_sha256`, and `expected: "warn" |
 "pass"`. Filter cases add `kind: "filter"`, `filter`, `folder`, `reads_sha256`
 and `expected_label`. Line hashes retain line endings. Filter hashes cover
@@ -137,8 +139,9 @@ today's config and rule inputs, and invoke ordinary lint on selected case paths.
 A selected file or folder that is or traverses a historical symlink is listed as
 `not_judged` with reason `selected path is a symlink`, no result link and no crossed
 bars. It never selects the link's target. Context loads retain their usual behavior.
-Rule cases match exactly one piece that overlaps their lines after checking the
-case's own archived line hash.
+Rule cases match the exact first and last lines of one piece after checking the
+case's own archived line hash. Partial or spanning ranges do not match; nested
+sections remain distinct. The same exact-range rule applies to filter skips.
 Every selected case is counted or listed, with per-rule and per-filter counts,
 result links and crossed bars. A changed or unrecorded bar is unassessed. The
 command writes no adoption state and changes no ordinary lint inputs.

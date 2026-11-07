@@ -20,6 +20,8 @@ import {
 import { nudgeOracle, selectedFixture } from './rulebook-nudge-fixtures.ts';
 import { declaredTarget, RulebookProcess } from './rulebook-process.ts';
 
+const refusalOracle = `${nudgeOracle}; decision-trees 2fea5950c4055c37f7541e1d7d0d00f928c25047; Lead locator-reuse correction 01a1b454-09a7-7293-a691-6e2ab168ede2`;
+
 interface RefusalCase {
 	name: string;
 	file: string;
@@ -76,8 +78,10 @@ function refusalCases(): RefusalCase[] {
 			names: ['nudge.location', 'anchor_line'],
 			change: (root) =>
 				changeEntry(root, (entry) => {
+					const conflicting = structuredClone(findingRoute(entry));
+					objectValue(conflicting['locate'])['task'] = 'Choose a different line measurement.';
 					objectValue(objectValue(objectValue(entry['decision'])['steps'])['gate'])['no'] =
-						structuredClone(findingRoute(entry));
+						conflicting;
 				}),
 		},
 		{
@@ -120,6 +124,14 @@ function refusalCases(): RefusalCase[] {
 		});
 	return cases;
 }
+function prepareRefusalFixture(destination: string): string {
+	const root = selectedFixture(destination, ['K001']);
+	changeEntry(root, (entry) => {
+		objectValue(objectValue(objectValue(entry['decision'])['steps'])['gate'])['uncertain'] =
+			'uncertain';
+	});
+	return root;
+}
 function allSources(root: string): void {
 	changeKind(root, 'question', (kind) => {
 		kind['fields'] = {
@@ -156,11 +168,11 @@ export async function runNudgeRefusals(options: JourneyArguments): Promise<void>
 	filesystem.mkdirSync(fixtures);
 	const cases = refusalCases();
 	for (const entry of cases) {
-		const root = selectedFixture(path.join(fixtures, entry.name), ['K001']);
+		const root = prepareRefusalFixture(path.join(fixtures, entry.name));
 		entry.change(root);
 	}
-	const clean = selectedFixture(path.join(fixtures, 'clean'), ['K001']);
-	const accepted = selectedFixture(path.join(fixtures, 'all-json-sources'), ['K001']);
+	const clean = prepareRefusalFixture(path.join(fixtures, 'clean'));
+	const accepted = prepareRefusalFixture(path.join(fixtures, 'all-json-sources'));
 	allSources(accepted);
 	changeEntry(accepted, (entry) => {
 		objectValue(findingRoute(entry)['locate'])['min_probability'] = 1;
@@ -177,7 +189,7 @@ export async function runNudgeRefusals(options: JourneyArguments): Promise<void>
 	if (!target) {
 		writeJson(path.join(evidence, 'prepared.json'), {
 			product_observed: false,
-			oracle: nudgeOracle,
+			oracle: refusalOracle,
 			refusals: cases.length,
 			accepts: ['clean', 'all-json-sources'],
 		});
@@ -239,7 +251,7 @@ export async function runNudgeRefusals(options: JourneyArguments): Promise<void>
 	}
 	writeJson(path.join(evidence, 'pass.json'), {
 		target,
-		oracle: nudgeOracle,
+		oracle: refusalOracle,
 		accepts: ['clean', 'all-json-sources'],
 		refusals: results,
 	});

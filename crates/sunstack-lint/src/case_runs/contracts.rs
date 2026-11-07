@@ -16,6 +16,7 @@ pub struct CaseFile {
 #[serde(rename_all = "kebab-case")]
 pub enum LabelSource {
     OwnerFix,
+    OwnerRuling,
     BlindAgents,
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
