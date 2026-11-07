@@ -7,7 +7,8 @@ Release date: 2026-11-07.
 - `lint --prepare FILE` and `lint cases --prepare FILE` save exact model requests
   and evidence without credentials or provider dispatch, with explicit gates and
   unanswered selection dependencies, including composed-field/shared-projection
-  uncertainty. Clean preparation exits 6; failed admission keeps ordinary allowance semantics.
+  uncertainty. Clean preparation exits 6; failed admission and replayed selections
+  keep ordinary request-allowance semantics.
 - Ordinary saved reports and JSON output retain selection requests and answers.
   `--prepare --selections-from REPORT` continues from identical recorded selection
   inputs with an exact resolved-model pin and explicit source provenance.

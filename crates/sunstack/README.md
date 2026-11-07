@@ -161,7 +161,9 @@ input stays `needs_answer`. No provider-prefix inference or revision restriction
 is applied. Applied entries have `status: "from_report"` and
 `source_request_id`; a case-report source also records `source_revision`.
 Agreeing duplicate answers retain the first source's provenance; conflicting
-answers stay unresolved. Neither preparing nor replaying consumes model usage.
+answers stay unresolved. Replayed selectors check and consume the same logical
+request allowance as ordinary selection, so downstream requests keep the same
+limit. Neither preparing nor replaying sends inference or consumes model usage.
 
 Prepared case reports keep the ordinary exact-range/hash matching and accounting,
 adding the `prepared` disposition. Stale, unmatched, ambiguous, mechanically

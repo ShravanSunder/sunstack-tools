@@ -115,7 +115,10 @@ impl ModelRequestDispatch {
         kind: &sunstack_evidence::EvidenceKindName,
         request: &StructuredJudgmentRequest,
     ) -> Option<(usize, DecisionRunOutcome)> {
-        if !self.is_preparing() || self.is_cancelled() {
+        if !self.is_preparing()
+            || self.is_cancelled()
+            || self.requested >= self.settings.max_model_requests
+        {
             return None;
         }
         self.assess_selection(request).ok()?;
@@ -163,6 +166,7 @@ impl ModelRequestDispatch {
             request_budget: self.settings.request_budget.clone(),
         };
         prepare_judgments(&input, self.backend.as_deref()?).ok()?;
+        self.requested += 1;
         let id = self.next_request_id;
         self.next_request_id += 1;
         self.prepared.push(PreparedModelRequest {
