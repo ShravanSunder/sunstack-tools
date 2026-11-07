@@ -4,6 +4,7 @@ import {
 	type SearchScope,
 } from '../core/document-search.ts';
 import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
+import { registerReaderControl } from './reader-controls.ts';
 import { resolveTarget } from './target-resolution.ts';
 
 /** One native dialog owns search interaction; existing document targets own navigation. */
@@ -21,6 +22,7 @@ export class DocumentSearch {
 	private scope: SearchScope = 'all';
 	private selected = 0;
 	private restoreFocus: HTMLElement | undefined;
+	private unregisterControl: (() => void) | undefined;
 
 	constructor(private readonly entries: () => readonly SearchDestination[]) {
 		this.trigger.classList.add('ex-search-trigger');
@@ -64,7 +66,9 @@ export class DocumentSearch {
 	connect(): void {
 		this.events.abort();
 		this.events = new AbortController();
-		document.body.append(this.trigger, this.dialog);
+		this.unregisterControl?.();
+		this.unregisterControl = registerReaderControl('search', this.trigger);
+		document.body.append(this.dialog);
 		const { signal } = this.events;
 		document.addEventListener('keydown', (event): void => this.handleShortcut(event), { signal });
 		document.addEventListener(
@@ -79,7 +83,8 @@ export class DocumentSearch {
 
 	disconnect(): void {
 		this.events.abort();
-		this.trigger.remove();
+		this.unregisterControl?.();
+		this.unregisterControl = undefined;
 		this.dialog.remove();
 	}
 
@@ -115,7 +120,11 @@ export class DocumentSearch {
 			)
 		)
 			return;
-		if (this.dialog.open || document.querySelector('dialog[open], :popover-open')) return;
+		if (
+			this.dialog.open ||
+			document.querySelector('dialog[open], :popover-open:not(.ex-drawer[data-presentation="map"])')
+		)
+			return;
 		const command = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
 		const key = !event.metaKey && !event.ctrlKey ? event.key.toLowerCase() : '';
 		if (!command && key !== 'p' && key !== 'w') return;

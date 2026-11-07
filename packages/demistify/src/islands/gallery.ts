@@ -227,7 +227,8 @@ export class GalleryIsland extends HTMLElement {
 					)
 				)
 					return;
-				if (document.querySelector(':popover-open')) return;
+				if (document.querySelector(':popover-open:not(.ex-drawer[data-presentation="map"])'))
+					return;
 				if (
 					!(
 						event.target === document.body ||

@@ -1,6 +1,6 @@
 # Trace steps and their evidence
 
-A Trace is an ordered explanation with expandable attachments. Tree owns hierarchy, status and links; keep it when the hierarchy is the point. Use `ex-trace` when readers should follow a sequence and inspect the evidence behind each step.
+A Trace is an ordered explanation with expandable attachments. Tree owns hierarchy, status and links; keep it when the hierarchy is the point. Use `ex-trace` when readers should follow a sequence and inspect the evidence behind each step. IF the supplied unit is an account with labelled rows and a supporting record rather than an ordered step, load `stories.md` and return the native story, section and Map composition.
 
 ```html
 <ex-trace title="Inspect the evidence" data-width="canvas">

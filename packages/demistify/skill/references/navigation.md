@@ -1,6 +1,6 @@
 # Pages, headings and command search
 
-The document owns navigation. Pages move between HTML files, the outline jumps to sections, and the command bar searches authored pages/headings or named Walkthroughs. They are usable without starting a guided path.
+The document owns navigation. Pages move between HTML files, the outline jumps to sections, and the command bar searches authored pages/headings or named Walkthroughs. They are usable without starting a guided path. IF a page needs the reader Map panel, load `stories.md` and return its scope binding and linked section and story destinations.
 
 ## Declare the collection with native links
 

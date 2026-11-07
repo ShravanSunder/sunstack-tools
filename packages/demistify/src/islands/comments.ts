@@ -15,6 +15,7 @@ import {
 	type PageComment,
 	type ReviewEnvelope,
 } from '../core/review-model.ts';
+import { registerReaderControl } from '../layout/reader-controls.ts';
 import { revealElement } from '../layout/target-resolution.ts';
 import { readChoiceResponses } from './choice.ts';
 import { CommentsView } from './comments-view.ts';
@@ -39,6 +40,7 @@ export class CommentsIsland extends HTMLElement {
 	private readonly highlightName = `ex-comments-${crypto.randomUUID()}`;
 	private readonly highlightStyle = document.createElement('style');
 	private connectionGeneration = 0;
+	private unregisterControl: (() => void) | undefined;
 
 	get review(): ReviewEnvelope {
 		if (!this.store || !this.root) throw new Error('Comments is not bound to a document.');
@@ -91,7 +93,9 @@ export class CommentsIsland extends HTMLElement {
 		const { signal } = this.events;
 		this.trigger ??= this.createTrigger();
 		this.selectionButton ??= this.createSelectionButton();
-		document.body.append(this.trigger, this.selectionButton);
+		this.unregisterControl?.();
+		this.unregisterControl = registerReaderControl('comments', this.trigger);
+		document.body.append(this.selectionButton);
 		this.highlightStyle.textContent = `::highlight(${this.highlightName}){background:var(--annotation-wash);text-decoration:underline;text-decoration-color:var(--annotation-color)}::highlight(${this.highlightName}-active){background:color-mix(in srgb,var(--annotation-color) 40%,transparent);text-decoration:underline;text-decoration-color:var(--annotation-color)}`;
 		this.append(this.highlightStyle);
 		this.view ??= new CommentsView({
@@ -198,7 +202,8 @@ export class CommentsIsland extends HTMLElement {
 		if (this.frame !== undefined) cancelAnimationFrame(this.frame);
 		this.frame = undefined;
 		this.view?.close();
-		this.trigger?.remove();
+		this.unregisterControl?.();
+		this.unregisterControl = undefined;
 		this.selectionButton?.remove();
 		this.highlightStyle.remove();
 		for (const [element, control] of this.controls) {

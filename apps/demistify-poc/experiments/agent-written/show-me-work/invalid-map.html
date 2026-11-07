@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Invalid Map destination controls</title>
+  <link rel="stylesheet" href="/experiments/islands/theme.css">
+  <script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+<ex-document id="work">
+  <h1>Invalid Map destination controls</h1>
+  <p>These deliberately broken links check diagnostics and unresolved navigation.</p>
+  <ex-section id="delivery" title="Delivery">
+    <ex-story>
+      <details id="story-unrelated">
+        <summary>An unrelated story stays closed</summary>
+        <p slot="headline">Missing destinations do not select this story.</p>
+        <div slot="happened">Two deliberately invalid destinations were supplied.</div>
+        <div slot="for-you">Nothing.</div>
+        <div slot="next">Correct the supplied destinations.</div>
+        <details slot="record"><summary>The record: 0 entries</summary></details>
+      </details>
+    </ex-story>
+  </ex-section>
+  <ex-map for="work"><ex-tree><script type="text/markdown">
+- [Delivery](#delivery)
+  - [Not supplied](#not-supplied)
+  - [Malformed](#bad%escape)
+  </script></ex-tree></ex-map>
+</ex-document>
+</body>
+</html>

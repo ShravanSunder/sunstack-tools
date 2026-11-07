@@ -2,7 +2,7 @@
 
 `ex-tree` accepts `title`, optional `tone`/subject `icon`, `label` and `layout="outline|map"`; outline is the default. It is a hierarchy view, not successive pages or a Walkthrough. Bare `zoom` requests whole-tree inspection. `ex-file-tree` accepts `label` and plain-text path source; use `ex-pre` when exact drawing/whitespace is the content. Its `label` names the view and bare `zoom` makes inspection explicit when needed. Preserve the literal template example below and its formatter-ignore comment.
 
-Choose from the input: hierarchical Markdown becomes `ex-tree`; an exact monospace/TUI drawing becomes `ex-pre`. Use `ex-file-tree` only for a plain repository-path illustration. A literal drawing needs no terminal emulator or per-document styling.
+Choose from the input: hierarchical Markdown becomes `ex-tree`; an exact monospace/TUI drawing becomes `ex-pre`. Use `ex-file-tree` only for a plain repository-path illustration. A literal drawing needs no terminal emulator or per-document styling. IF a Tree is the page's reader Map rather than a `layout="map"` drawing, load `stories.md` and return its `ex-map` container, top-level section branches and scope binding.
 
 An `ex-file-tree` shows its plain-text source as written, so put the paths, indented as the tree should read, in a direct `text/plain` script:
 
@@ -25,7 +25,9 @@ src/
 </script></ex-tree>
 ```
 
-A leading tone (`done:`, `risk:`) supplies the item's meaning/icon; `[x]`/`[ ]` supply checklist states. A leading chevron folds a branch. Labels remain normal text, wrapping beneath the label with the icon on its first line; no trailing +N badge is needed. A Markdown link creates a separate trailing go-to icon. The label or whole row does not become a navigation link. `layout="map"` shows the hierarchy left to right, with an outline on narrow screens.
+A leading tone (`done:`, `risk:`) supplies the item's meaning/icon; `[x]`/`[ ]` supply checklist states. An unformatted leading `folded:` starts a branch closed: `- folded: risk: Branch`, followed by indented children. A native checklist prefix comes first: `- [ ] folded: Branch`. Unmarked branches start open. A marker on a leaf, inside inline code or emphasis stays literal; `▸` and `›` are literal characters, and a leading `>` keeps its Markdown blockquote meaning. Labels wrap beneath the text with the icon on its first line; no trailing +N badge is needed.
+
+A Markdown link creates a separate trailing go-to icon. Same-document links with a nonempty fragment use an in-page jump icon; another page or external URL retains the outbound arrow, even when it has a fragment. Fragment-only, relative and absolute URLs are compared against the actual page address. The label or whole row does not become a navigation link. `layout="map"` shows the hierarchy left to right, with an outline on narrow screens.
 
 Inspect every authored link's real destination. Use a stable island ID, scoped Markdown heading or scoped Mermaid node as taught by the main guide. Folding a branch and following its link are independent actions.
 

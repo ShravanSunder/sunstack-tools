@@ -1,6 +1,6 @@
 # Inspect a view beside its explanation or fullscreen
 
-Sidebar inspection keeps the main explanation available. Fullscreen gives a large view of the selected content, then restores it on close. Use these shared controls when inspecting a view helps; avoid adding a second viewer, duplicate content or custom zoom chrome.
+Sidebar inspection keeps the main explanation available. Fullscreen gives a large view of the selected content, then restores it on close. Use these shared controls when inspecting a view helps; avoid adding a second viewer, duplicate content or custom zoom chrome. IF the intended panel is page Map navigation, load `stories.md` and return the shared Map and Comments arrangement rather than a content inspector or bottom workspace.
 
 ## Defaults and explicit choice
 

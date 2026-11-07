@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tree state and destinations</title>
+  <link rel="stylesheet" href="/experiments/islands/theme.css">
+  <script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+<ex-document id="tree-document">
+  <h1>Tree state and destinations</h1>
+  <ex-tree id="folding-tree"><script type="text/markdown">
+- folded: risk: [Deferred branch](#tree-target)
+  - Deferred child
+- done: Open branch
+  - Open child
+- [ ] folded: planned: Checklist branch
+  - Checklist child
+- folded: Leaf marker
+- `folded:` Code branch
+  - Code child
+- *folded:* Formatted branch
+  - Formatted child
+- > folded: Quoted branch
+  - Quoted child
+- ▸ Literal branch
+  - Literal child
+  </script></ex-tree>
+  <ex-tree id="destination-tree"><script type="text/markdown">
+- [Fragment destination](#tree-target)
+- [Relative destination](tree-folds.html#tree-target)
+- [Other page destination](index.html#connections)
+- [External destination](https://example.invalid/#tree-target)
+  </script></ex-tree>
+  <h2 id="tree-target">The intended local target</h2>
+  <p>Branch folding and following a destination are independent actions.</p>
+</ex-document>
+</body>
+</html>

@@ -52,6 +52,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['gallery', 'integrated-review'],
 			['explorer', 'round-13-inspection'],
 			['ui', 'review-ui'],
+			['show-me-work', 'show-me-work'],
 			['search', 'command-search'],
 			['review', 'choices-comments'],
 			['palette', 'diagram-colors'],
@@ -77,6 +78,15 @@ export async function builtFixtures(): Promise<Plugin> {
 					}),
 			);
 		}),
+	);
+	// Exercise the optional Walkthrough launcher beside Map without changing the fixed author input.
+	const storyControls = await readFile(join(snapshot, 'show-me-work/index.html'), 'utf8');
+	await writeFile(
+		join(snapshot, 'show-me-work/reader-controls.html'),
+		storyControls.replace(
+			'<ex-document id="work">',
+			'<ex-nav for="work"></ex-nav><ex-presentation id="story-walkthrough" title="Read the story" description="Inspect the supplied account and its record."><ex-step to="story-main">Read the supplied account.</ex-step><ex-step to="story-other">Read the independent verification account.</ex-step></ex-presentation><ex-document id="work">',
+		),
 	);
 	await cp(
 		resolve(repositoryRoot, 'apps/demistify-poc/public/experiments/understanding-lab'),

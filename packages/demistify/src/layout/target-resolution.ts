@@ -14,7 +14,10 @@ export function revealElement(target: Element): void {
 		if (ancestor.classList.contains('ex-comparison-option'))
 			ancestor.dispatchEvent(new Event('comparison-reveal', { bubbles: true }));
 		// An alternative may itself be the destination; the other actions reveal its containers.
-		if (ancestor === target) continue;
+		if (ancestor === target) {
+			if (target instanceof HTMLDetailsElement && target.closest('ex-story')) target.open = true;
+			continue;
+		}
 		if (ancestor.getAttribute('role') === 'tabpanel' && ancestor.hidden)
 			ancestor.parentElement
 				?.querySelector<HTMLButtonElement>(`button[aria-controls="${CSS.escape(ancestor.id)}"]`)

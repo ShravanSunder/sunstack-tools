@@ -1,3 +1,4 @@
+import { classifyDocumentLink } from '../core/document-links.ts';
 import { createHead, readIcon } from '../core/head.ts';
 import { createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
@@ -128,6 +129,13 @@ function convertList(list: Element): HTMLUListElement {
 			box.remove();
 		}
 		const text = firstText(label);
+		const foldedPrefix =
+			children.length > 0 &&
+			text &&
+			!text.parentElement?.closest('blockquote, code, strong, em, a, del, kbd, samp')
+				? /^\s*folded:\s*/.exec(text.data)
+				: null;
+		if (text && foldedPrefix) text.data = text.data.slice(foldedPrefix[0].length);
 		const word = text ? /^\s*([a-z]+):\s*/.exec(text.data) : null;
 		if (text && word?.[1] && isTone(word[1])) {
 			tone = word[1];
@@ -143,7 +151,16 @@ function convertList(list: Element): HTMLUListElement {
 			navigation.className = 'ex-tree-go';
 			navigation.setAttribute('aria-label', `Go to ${original.textContent?.trim() ?? 'target'}`);
 			navigation.title = navigation.getAttribute('aria-label') ?? '';
-			navigation.append(createPhosphorIcon('arrow-up-right'));
+			const destination = classifyDocumentLink(
+				original.href,
+				new URL(document.URL),
+				new URL(document.baseURI),
+			);
+			navigation.append(
+				createPhosphorIcon(
+					destination.kind === 'local' ? 'arrow-bend-down-right' : 'arrow-up-right',
+				),
+			);
 			original.replaceWith(...Array.from(original.childNodes));
 			label.append(navigation);
 		}
@@ -153,7 +170,8 @@ function convertList(list: Element): HTMLUListElement {
 			const disclosure = document.createElement('button');
 			disclosure.type = 'button';
 			disclosure.className = 'ex-tree-disclosure ex-icon-button';
-			disclosure.setAttribute('aria-expanded', 'true');
+			disclosure.setAttribute('aria-expanded', String(!foldedPrefix));
+			node.toggleAttribute('data-collapsed', Boolean(foldedPrefix));
 			disclosure.setAttribute(
 				'aria-label',
 				`Toggle ${labelContent.textContent?.trim() ?? 'branch'}`,

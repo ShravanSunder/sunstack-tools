@@ -57,10 +57,12 @@ const styles = await Promise.all(
 		'gallery.css',
 		'gallery-walkthrough.css',
 		'evidence-trace.css',
+		'stories.css',
 		'comparison.css',
 		'controls.css',
 		'choice-comments.css',
 		'document-widths.css',
+		'reader-controls.css',
 	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8')),
 );
 await mkdir(resolve(outputDirectory, 'fonts'), { recursive: true });
