@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One correction for the two held rules</title>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content">
+  <nav slot="pages" aria-label="Pages">
+    <a href="decision-one-correction.html">Open decision</a>
+    <a href="index.html">Overview</a>
+    <a href="requirements.html">Requirements</a>
+    <a href="specification.html">Specification</a>
+    <a href="program-design.html">Program design</a>
+    <a href="verification-design.html">Verification design</a>
+    <a href="plans/2026-11-06-decision-trees-everywhere.html">Plan</a>
+  </nav>
+</ex-nav>
+<ex-document id="content">
+<h1>One correction for the two held rules?</h1>
+
+<ex-callout title="The one open question" tone="question" icon="chat-circle">
+<p>Both rebuilt judged rules failed their first full development run on the fixed engine, and they are off. Do we give each one a diagnosed correction, then one more development run and the held-out run? Or do we stop here and move on?</p>
+<p><strong>Recommended:</strong> one correction with a hard stop. If a corrected rule fails again, it stays off and nobody rewords it.</p>
+</ex-callout>
+
+<h2 id="today">Where things stand</h2>
+<p>The engine part is done:</p>
+<ul>
+<li>sunstack 0.8.3 is released and signed;</li>
+<li>filters and rules are both trees;</li>
+<li>examples go into the request;</li>
+<li>output is short lines, with detail on demand.</li>
+</ul>
+<p>PR 2 (<a href="https://github.com/ShravanSunder/sunstack/pull/199">#199</a>, draft) moves ai-tools onto the engine, removes the TS gate and rewrites the two skills. Its review is done and the full suite passes. One last proof check is running, and then the PR is yours to merge.</p>
+<p>What PR 2 does <em>not</em> deliver is a judged warning. When an agent runs <code>sunstack lint</code> today, only the three mechanical description checks run. Two judged pieces are kept unchanged in <code>rules/held/</code>:</p>
+<ul>
+<li>the kind filter, which decides what kind of skill a folder is;</li>
+<li>the product-workflow rule (K002).</li>
+</ul>
+<p>Development run #2 showed neither meets the switch-on conditions.</p>
+
+<ex-mermaid id="today-path" label="What runs when an agent calls sunstack lint today"><script type="text/plain">
+flowchart LR
+  agent["Agent runs<br/>sunstack lint"] --> mech["3 mechanical<br/>description checks"]
+  mech --> out["Short lines<br/>with ids"]
+  agent -. "held, not run" .-> kind["Kind filter<br/>(which kind of skill)"]
+  kind -. "held, not run" .-> k002["K002: a general skill<br/>teaches one product's workflow"]
+  class agent slot1
+  class mech slot3
+  class out slot3
+  class kind slot5
+  class k002 slot5
+</script></ex-mermaid>
+
+<h2 id="k002">Why K002 failed: two of your rulings get the same answers</h2>
+<p>K002 asks three questions about a section of a general skill:</p>
+<ol>
+<li>Does it contain one product's own material: its commands, files, steps or state, including in a worked example or a quote?</li>
+<li>Is all of that material labelled as an example?</li>
+<li>Does it quote a real product's own mistake?</li>
+</ol>
+<p>It warns in two cases: product material that isn't all labelled as examples, or a quoted real product mistake.</p>
+<p>It ran on 29 development cases:</p>
+<ul>
+<li>12 right;</li>
+<li>12 unsure, 9 of them only because the kind filter was unsure first;</li>
+<li>5 false warnings.</li>
+</ul>
+<p>No real mistake got a pass, but that doesn't mean every real mistake warned: some of the unsure cases were real mistakes. Three of the false warnings are cases you ruled quiet in U16 row 7: using a public tool through its documented interface. Here are two real cases you ruled on:</p>
+
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Case</th><th>Your ruling</th><th>The text (shortened)</th><th>Product material?</th><th>All labelled examples?</th><th>Quotes a mistake?</th></tr></thead>
+<tbody>
+<tr><td><code>presentation-html/references/demistify.md</code> lines 45–73</td><td><strong>Quiet</strong>: a public tool used as documented</td><td>"After composition is complete, use the CLI at the page's binding: <code>pnpm dlx …/demistify-cli.tgz embed …</code>"</td><td>.93</td><td>.07</td><td>.02</td></tr>
+<tr><td><code>practices-verification/references/project-verification-selection.md</code> lines 39–42</td><td><strong>Warn</strong>: one product's setup taught as the general way</td><td>"A terminal app has <code>.agents/skills/verify-tui/</code> and a <code>.claude/skills/verify-tui</code> link that resolves to it…"</td><td>.93</td><td>.14</td><td>.02</td></tr>
+</tbody>
+</table>
+</div>
+<p>The answers are almost the same, and the case that should stay quiet reads even <em>less</em> like a labelled example. With today's rule, which compares each answer to a fixed confidence cutoff, no cutoff warns on the second case without also warning on the first. Moving the cutoffs can't fix this pair.</p>
+<p>Our working explanation is that question 1 asks whether the section <em>names</em> commands and files, while your boundary is <em>whose</em> commands they are and <em>how</em> they're used. The rule's reference already states your row-7 boundary, but question 1 doesn't ask about it. That explanation is a hypothesis to test, not proven.</p>
+
+<h2 id="kind">Why the kind filter failed: the errors are clear, the cause isn't yet</h2>
+<p>It sorted 65 development folders: 53 right, 6 unsure, 6 wrong. The wrong ones were confident (.73–.98).</p>
+<ul>
+<li><strong>Four mixed up general and domain.</strong> For example, you ruled <code>decision-model-review</code> a domain skill (a subject's standards); the filter said general (a workflow), at .78. Blind labellers called <code>principle-types-are-communication</code> general; the filter said domain, at .73. K002 runs on both kinds, so these four don't change its results, but they're still wrong.</li>
+<li><strong>Two are one of your rulings.</strong> You ruled <code>practices-verification-maintenance</code> repo-specific; the filter said general (a reusable practice), at .98, and was scored on it twice. Your ruling stands. What we don't know yet is why it disagreed: either the text the filter reads doesn't show what makes the skill repo-specific, or our definition of repo-specific is too narrow. Diagnosing that comes first, and it decides which one gets fixed.</li>
+<li><strong>Some examples were also scored cases.</strong> The independent Reviewer found that two of the filter's worked examples are the descriptions of skills it was then scored on, with their answers attached. One is the <code>domain-decision-models</code> description, labelled domain; the other is Agent Studio's, labelled tool manual. Our own standard says an example never comes from the piece being judged. Nobody claims it changed the answers, but those cases can't show the filter works on text it hasn't seen. A corrected filter must keep its examples and its cases apart.</li>
+</ul>
+<p>One narrower setting exists: with a confidence cutoff of .9, the filter labelled no folder wrongly, but 31 of 65 came back unsure and would be skipped. Your requirements allow skipping, but it leaves about half the skills unread and doesn't fix K002.</p>
+
+<h2 id="options">The choice</h2>
+<ex-choice id="next-step" title="What happens to the two held rules?">
+  <ex-option id="one-correction" title="**One diagnosed correction**, then the held-out run (recommended)">
+    <template slot="summary">
+Test one specific fix per rule, check it once on the development cases, and use the held-out cases once.
+
+- **K002 (proposed fix):** question 1 asks your row-7 question directly: does the section teach one product's own procedure, as opposed to using a public tool through its documented interface? The 5 false warnings become cases that must pass, and every real mistake must still warn.
+- **Kind:** first find out why the two `practices-verification-maintenance` cases and the general/domain cases go wrong, and fix whatever that points to: what the filter reads, or a definition. Take scored skills out of the examples. Keep every label.
+- **Stop rule:** an independent decision-model review comes first, then one development run. If the development conditions hold, everything is frozen and the 21 unseen held-out cases run once. A rule switches on only if all five conditions then hold, including the held-out ones. If either run fails, that rule stays off, with no second rewording.
+
+**Costs:** one development run (run #2 took about 1,340 Jev requests), one held-out run of similar or smaller size, and agent work. Nothing from you, unless a run shows a new conflict with your rulings.
+    </template>
+    <div slot="details">
+      <ex-mermaid id="correction-steps" label="The correction route and where it stops"><script type="text/plain">
+flowchart LR
+  fix["Diagnose and fix<br/>one cause per rule"] --> review["Independent<br/>decision-model review"]
+  review --> dev["One development run;<br/>cutoffs set here"]
+  dev -->|"conditions 1-3 hold"| held["Freeze, then 21 held-out<br/>cases, once"]
+  dev -->|"fails"| off1["Stays off;<br/>no rewording"]
+  held -->|"K002: no false warning<br/>Kind: no wrong kind"| on["All 5 conditions hold:<br/>switch on"]
+  held -->|"fails"| off2["Stays off;<br/>a next try needs new held-out cases"]
+  class fix slot1
+  class review slot2
+  class dev slot2
+  class held slot4
+  class on slot3
+  class off1 slot5
+  class off2 slot5
+</script></ex-mermaid>
+      <p>Conditions 1 to 3 are the development ones: enough real cases, cutoffs set on development, and on the frozen development cases every real mistake warns and every good text passes. Condition 4 is the held-out run. K002's held-out cases are all passages that should stay quiet, so that run checks false warnings, not whether new mistakes get caught. Condition 5 is that the engine leaves no result incomplete.</p>
+    </div>
+  </ex-option>
+  <ex-option id="hold-move-on" title="**Keep them off** and move on to the description rule">
+    <template slot="summary">
+Merge PR 2 as it is and start rebuilding the description rule (your U16 row 11) next. Nothing more is spent on these two rules.
+
+**Gain:** no more time on these two. **Cost:** lint gives agents only mechanical checks, and your item 9 ("something usable to move on") stays open. The diagnosis above goes unused.
+    </template>
+  </ex-option>
+  <ex-option id="switch-on-now" title="**Switch them on now** as they are">
+    <template slot="summary">
+Turn both on with today's questions.
+
+**Cost:** this risks agents getting the kinds of failures seen in development: false warnings on skills you ruled quiet, and wrong kinds. It breaks the switch-on conditions you approved, and no agent recommends it.
+    </template>
+  </ex-option>
+</ex-choice>
+<p>Pick one, and use Comments if you want to qualify it. If you don't answer, PR 2 still comes to you to merge, both rules stay off, and no further work on these two rules starts.</p>
+
+<h2 id="agents">Where the agents stand</h2>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>Who</th><th>Hold today?</th><th>Next step</th><th>Where they differ</th></tr></thead>
+<tbody>
+<tr><td>🔎 Reviewer (independent, Sol xhigh)</td><td>Yes, correct</td><td>A fixed candidate must meet the unchanged conditions</td><td>Found the examples that were also scored cases; any new kind filter must fix that</td></tr>
+<tr><td>🦉 Program Advisor</td><td>Yes</td><td>One diagnosed correction</td><td>Check what the filter reads against your two rulings before blaming the model</td></tr>
+<tr><td>🦉 Jev Advisor</td><td>Yes</td><td>One diagnosed correction</td><td>Showed the K002 pair today's cutoffs can't separate; says the .9 kind cutoff is a legal coverage tradeoff, not a failure</td></tr>
+<tr><td>🦁 Me</td><td>Yes</td><td>One correction, hard stop</td><td>I said neither rule could be fixed by cutoffs. For K002 that holds only for the pair above under today's cutoff policy; for kind it was too strong.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="rubric">Your rubric, scored by all three</h2>
+<p>The Reviewer and both Advisors judged PR 2 and the shipped engine against your 11 asks. All three agree the engine is delivered, and that item 9, usable judged warnings, is not met.</p>
+<div class="ex-table-scroll" data-width="canvas">
+<table>
+<thead><tr><th>#</th><th>Your ask</th><th>Reviewer</th><th>Program Advisor</th><th>Jev Advisor</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Trees for filters and rules</td><td>Met in engine; not active</td><td>Met</td><td>Partly: neither runs</td></tr>
+<tr><td>2</td><td>State, statistics, best practices</td><td>Partly</td><td>Partly</td><td>Partly</td></tr>
+<tr><td>3</td><td>Examples in rules, compiled into state</td><td>Met</td><td>Met</td><td>Met</td></tr>
+<tr><td>4</td><td>Fix and release the engine</td><td>Met</td><td>Met</td><td>Met</td></tr>
+<tr><td>5</td><td>Plain lint helps any agent; no gate</td><td>Partly</td><td>Partly</td><td>Met</td></tr>
+<tr><td>6</td><td>Short pointers, detail on demand</td><td>Met</td><td>Met</td><td>Met</td></tr>
+<tr><td>7</td><td>No rewording, no pedantic questions</td><td>Partly</td><td>Not met (the earlier history)</td><td>Partly</td></tr>
+<tr><td>8</td><td>Fix the skills</td><td>Partly (pointers, now fixed)</td><td>Partly</td><td>Partly (same pointers)</td></tr>
+<tr><td>9</td><td>Something usable, then move on</td><td>Not met</td><td>Not met</td><td>Not met</td></tr>
+<tr><td>10</td><td>Understandable HTML</td><td>Met</td><td>Met</td><td>Met</td></tr>
+<tr><td>11</td><td>Plan uses the engine; both Advisors validate</td><td>Met for the design</td><td>Partly</td><td>Partly</td></tr>
+</tbody>
+</table>
+</div>
+<p>Item 8's pointer problem is fixed at <code>f25931af</code>. Item 9 is what this decision is about.</p>
+
+<details><summary>Sources, for agents</summary>
+<ul>
+<li>Development run #2 report: memory-logs <code>…/decision-trees-everywhere-2026-11-06/pr2/dev-run-2/development.json</code> (sha256 <code>6d14751f…</code>), engine 0.8.3, model <code>typesafe/jev-1.14-20261014</code>; replay at <code>pr2/dev-run-2/replay-starting-bars.txt</code>.</li>
+<li>Reviews: <code>pr2/review/review.md</code> (F1 closed at f25931af; O1), <code>pr2/review/rubric.md</code>, <code>owner-rubric/pr2-program-advisor.md</code>, <code>owner-rubric/pr2-jev-advisor.md</code>.</li>
+<li>Held rules: ai-tools <code>plugins/skill-authoring/skills/domain-skill-crafting/rules/held/</code>. K002 questions at <code>general-skill.json:241</code>, warning routes at <code>:308–330</code>, row-7 example at <code>:201</code>. Kind examples that were also scored cases at <code>kind.filter.json:129</code> and <code>:137</code> (development cases s018, s002).</li>
+<li>Switch-on conditions: <a href="verification-design.html">verification-design.html</a>.</li>
+<li>Held-out cases: 21 by the script-made metadata receipt (K002 6, kind 15), all labelled by blind agents, never opened.</li>
+</ul>
+</details>
+</ex-document>
+</body>
+</html>
