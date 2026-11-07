@@ -274,7 +274,8 @@ pub(crate) fn admit_graph(
     filter_labels: Option<&BTreeSet<sunstack_decisions::ChoiceLabel>>,
 ) -> DecisionGraph {
     let mut steps = BTreeMap::new();
-    let mut locator_names = questions.keys().cloned().collect::<BTreeSet<_>>();
+    let question_names = questions.keys().cloned().collect::<BTreeSet<_>>();
+    let mut locator_definitions = BTreeMap::new();
     for (name, step) in &wire.steps {
         let path = ConfigPath::keys(["decision", "steps", name.as_str()]);
         let missing_unsure = match step {
@@ -317,7 +318,16 @@ pub(crate) fn admit_graph(
                     if finding.at.is_none() {
                         errors.push(refusal(&locator_path, format!("{context} requires at")));
                     }
-                    if !locator_names.insert(locator.name.clone()) {
+                    let definition = (
+                        finding.at.clone(),
+                        locator.task.clone(),
+                        locator.min_probability,
+                    );
+                    if question_names.contains(&locator.name)
+                        || locator_definitions
+                            .get(&locator.name)
+                            .is_some_and(|existing| existing != &definition)
+                    {
                         errors.push(refusal(
                             locator_path.with_key("name"),
                             format!(
@@ -325,6 +335,10 @@ pub(crate) fn admit_graph(
                                 locator.name.as_str()
                             ),
                         ));
+                    } else {
+                        locator_definitions
+                            .entry(locator.name.clone())
+                            .or_insert(definition);
                     }
                     if !locator.min_probability.is_finite()
                         || locator.min_probability <= 0.0

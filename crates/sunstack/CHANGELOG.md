@@ -8,6 +8,9 @@ Release date: 2026-11-06.
   Nested sections keep distinct identities; partial or spanning ranges are unmatched.
 - Case labels accept `owner-ruling` for an explicit owner gold-label decision,
   separately from `owner-fix` for a real text fix and `blind-agents`.
+- Finding routes can share one locator name when its field, task and probability
+  bar are identical. The request offers it once; conflicting definitions and
+  question-name collisions remain refused.
 
 ## 0.8.1
 
