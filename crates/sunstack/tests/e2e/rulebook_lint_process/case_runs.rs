@@ -144,7 +144,7 @@ async fn nested_config_case_copy_keeps_the_same_repository_root_as_normal_lint()
 }
 
 #[tokio::test]
-async fn skipped_case_matching_keeps_unmatched_and_ambiguous_lines_separate() {
+async fn skipped_case_matching_requires_exact_piece_ranges() {
     let root = limit_fixture(
         json!({"body":{"from":"remainder"}}),
         mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
@@ -171,7 +171,7 @@ async fn skipped_case_matching_keeps_unmatched_and_ambiguous_lines_separate() {
     entries["K001"]["only_when"] = json!({"purpose":["eligible"]});
     save(&root.path().join("rules.json"), &entries);
     let revision = commit_tree(root.path());
-    let cases = [("matched",[1,1]),("unmatched",[5,5]),("ambiguous",[1,3])].map(|(id,lines)| {
+    let cases = [("matched",[1,1]),("unmatched",[5,5]),("spanning",[1,3]),("second_exact",[3,3])].map(|(id,lines)| {
         let text = source.split_inclusive('\n').skip(lines[0]-1).take(lines[1]-lines[0]+1).collect::<String>();
         json!({"id":id,"kind":"rule","rule":"document_standard","file":"docs/one.md","revision":revision,"lines":lines,"text_sha256":sunstack_evidence::content_digest(text.as_bytes()),"expected":"pass","set":"development","label_from":"blind-agents"})
     });
@@ -199,13 +199,10 @@ async fn skipped_case_matching_keeps_unmatched_and_ambiguous_lines_separate() {
     }
     assert_eq!(report["cases"][1]["bars"], json!([]));
     assert_eq!(report["cases"][2]["bars"], json!([]));
-    for (index, expected) in [
-        "unsure",
-        "no_matching_piece",
-        "more_than_one_matching_piece",
-    ]
-    .into_iter()
-    .enumerate()
+    assert_eq!(report["cases"][3]["bars"].as_array().unwrap().len(), 2);
+    for (index, expected) in ["unsure", "no_matching_piece", "no_matching_piece", "unsure"]
+        .into_iter()
+        .enumerate()
     {
         assert_eq!(report["cases"][index]["outcome"]["kind"], expected);
     }
@@ -382,4 +379,78 @@ async fn selected_filter_symlink_to_snapshot_ancestor_never_widens_lint_scope() 
         bodies.is_empty(),
         "ancestor alias must not judge unrelated folders"
     );
+}
+
+#[tokio::test]
+async fn exact_case_ranges_distinguish_nested_sections_and_refuse_partial_ranges() {
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
+    );
+    let mut lines = vec![String::new(); 43];
+    lines[5] = "# Operator".into();
+    lines[7] = "## Assignment".into();
+    lines[9] = "A generic instruction.".into();
+    lines[40] = "## Completion".into();
+    lines[42] = "Completion has sufficient detail.".into();
+    let source = format!("{}\n", lines.join("\n"));
+    std::fs::write(root.path().join("docs/one.md"), &source).unwrap();
+    std::fs::write(
+        root.path().join("evidence/rules/pieces.yml"),
+        "id: document\nlanguage: Markdown\nrule: {kind: section}\n",
+    )
+    .unwrap();
+    let revision = commit_tree(root.path());
+    let cases = [("parent", [6, 43]), ("child", [41, 43]), ("partial", [42, 43])].map(|(id, range)| {
+        let text = source.split_inclusive('\n').skip(range[0]-1).take(range[1]-range[0]+1).collect::<String>();
+        json!({"id":id,"kind":"rule","rule":"document_standard","file":"docs/one.md","revision":revision,"lines":range,"text_sha256":sunstack_evidence::content_digest(text.as_bytes()),"expected":"warn","set":"development","label_from":"blind-agents"})
+    });
+    save(
+        &root.path().join("cases.json"),
+        &json!({"cases":cases,"bars":[]}),
+    );
+
+    let report = invoke(root.path(), &["cases", "cases.json"], 1).await;
+
+    for (index, expected) in ["right", "right", "no_matching_piece"]
+        .into_iter()
+        .enumerate()
+    {
+        assert_eq!(
+            report["cases"][index]["outcome"]["kind"], expected,
+            "{report}"
+        );
+    }
+    assert_eq!(report["counts"], json!({"right":2,"no_matching_piece":1}));
+    let child_id = report["cases"][1]["result_id"].as_u64().unwrap();
+    let child = report["runs"][0]["report"]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|result| result["id"].as_u64() == Some(child_id))
+        .unwrap();
+    assert_eq!(child["first_line"], 41);
+    assert_eq!(child["last_line"], 43);
+    assert_eq!(report["cases"][2]["result_id"], Value::Null);
+    assert_eq!(report["cases"][2]["bars"], json!([]));
+}
+
+#[tokio::test]
+async fn owner_ruling_case_origin_is_accepted_and_retained_distinct_from_a_text_fix() {
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
+    );
+    let source = "Owner-ruling protocol fixture.\n";
+    std::fs::write(root.path().join("docs/one.md"), source).unwrap();
+    let revision = commit_tree(root.path());
+    save(
+        &root.path().join("cases.json"),
+        &json!({"cases":[{"id":"owner-ruling","kind":"rule","rule":"document_standard","file":"docs/one.md","revision":revision,"lines":[1,1],"text_sha256":sunstack_evidence::content_digest(source.as_bytes()),"expected":"warn","set":"development","label_from":"owner-ruling"}],"bars":[]}),
+    );
+
+    let report = invoke(root.path(), &["cases", "cases.json"], 0).await;
+
+    assert_eq!(report["cases"][0]["outcome"]["kind"], "right");
+    assert_eq!(report["cases"][0]["case"]["label_from"], "owner-ruling");
 }

@@ -202,3 +202,18 @@ pub(super) async fn lint(
         )
     })
 }
+
+#[cfg(test)]
+pub(super) fn snapshot_for_matching_tests(
+    sources: BTreeMap<PathBuf, Result<String, String>>,
+) -> Result<RevisionSnapshot, std::io::Error> {
+    let directory = tempfile::tempdir()?;
+    Ok(RevisionSnapshot {
+        tree: directory.path().to_path_buf(),
+        config: directory.path().join("unused-config.json"),
+        _directory: directory,
+        sources,
+        symlink_paths: BTreeSet::new(),
+        resolved_revision: "matching-unit-fixture".into(),
+    })
+}

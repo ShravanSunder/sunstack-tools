@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.2
+
+Release date: 2026-11-06.
+
+- Rule cases match exact first and last piece lines, including filter-skip locations.
+  Nested sections keep distinct identities; partial or spanning ranges are unmatched.
+- Case labels accept `owner-ruling` for an explicit owner gold-label decision,
+  separately from `owner-fix` for a real text fix and `blind-agents`.
+
 ## 0.8.1
 
 Release date: 2026-11-06.

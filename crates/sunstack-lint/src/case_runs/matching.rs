@@ -51,8 +51,8 @@ pub(super) fn score(
                 .filter(|result| {
                     &result.name == rule
                         && &result.file == file
-                        && result.first_line <= lines[1]
-                        && lines[0] <= result.last_line
+                        && result.first_line == lines[0]
+                        && result.last_line == lines[1]
                 })
                 .collect::<Vec<_>>();
             let result = match matches.as_slice() {
@@ -62,17 +62,17 @@ pub(super) fn score(
                         .iter()
                         .find(|skip| &skip.rule == rule && &skip.file == file)
                     {
-                        let overlaps = skip
+                        let exact_match_count = skip
                             .locations
                             .iter()
                             .filter(|location| {
-                                location.first_line <= lines[1] && lines[0] <= location.last_line
+                                location.first_line == lines[0] && location.last_line == lines[1]
                             })
                             .count();
-                        if overlaps == 0 {
+                        if exact_match_count == 0 {
                             return (CaseOutcome::NoMatchingPiece, None);
                         }
-                        if overlaps > 1 {
+                        if exact_match_count > 1 {
                             return (CaseOutcome::MoreThanOneMatchingPiece, None);
                         }
                         return (
@@ -141,3 +141,7 @@ pub(super) fn score(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "matching_test.rs"]
+mod tests;
