@@ -1,17 +1,16 @@
-import { readCollection } from './collection-data.js';
-import type { RequirementRelatedView } from './requirement-related-view.js';
-import { stageMarkup, scenarioBadges } from './requirement-stages.js';
-import type { SearchPicker } from './search-picker.js';
+import { loadDocumentModel, type RequirementExample } from './collection-model.js';
+import { readCollection } from './collection.js';
 import {
-	revealStudyFragment,
+	revealDocumentFragment,
 	updateRequirementAddress,
 	updateRequirementListAddress,
 	type RequirementStage,
-} from './study-links.js';
-import { icon, restoreStudyFocusAfterRender, safeText } from './study-markup.js';
-import { loadStudyModel, type RequirementExample } from './study-model.js';
+} from './document-links.js';
+import { icon, restoreDocumentFocusAfterRender, safeText } from './document-markup.js';
+import type { RequirementRelatedView } from './requirement-related-view.js';
+import { stageMarkup, scenarioBadges, needBodyMarkup } from './requirement-stages.js';
+import type { SearchPicker } from './search-picker.js';
 
-const { requirements, entry } = loadStudyModel();
 const documentViews = [
 	{ id: 'requirement', label: 'Overview' },
 	{ id: 'specification', label: 'Specification' },
@@ -21,7 +20,8 @@ const documentViews = [
 
 /** The normal browser owns the selected need and document; enlargement keeps this same view. */
 export class RequirementBrowser extends HTMLElement {
-	private selectedId = entry.needId;
+	private readonly model = loadDocumentModel();
+	private selectedId = this.model.entry.needId;
 	private capability = 'All needs';
 	private stage: RequirementStage | undefined;
 	private mobileView: 'list' | 'detail' = 'list';
@@ -36,11 +36,11 @@ export class RequirementBrowser extends HTMLElement {
 		this.initialized = true;
 		this.tabIndex = 0;
 		this.setAttribute('role', 'group');
-		this.setAttribute('aria-label', 'Requirements browser');
+		this.setAttribute('aria-label', this.getAttribute('aria-label') ?? 'Requirements browser');
 		this.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight');
-		this.classList.add('lab-focus-surface');
+		this.classList.add('ex-design-focus-surface');
 		const requested = new URLSearchParams(location.search).get('need');
-		if (requested && requirements.some((item): boolean => item.id === requested)) {
+		if (requested && this.model.requirements.some((item): boolean => item.id === requested)) {
 			this.selectedId = requested;
 			this.mobileView = 'detail';
 		}
@@ -56,17 +56,17 @@ export class RequirementBrowser extends HTMLElement {
 			if (this.compact() && this.mobileView === 'list') updateRequirementListAddress();
 			else updateRequirementAddress(this.selectedId, false, this.stage);
 			this.render();
-			this.querySelector<HTMLElement>('lab-search-picker summary')?.focus({ preventScroll: true });
+			this.querySelector<HTMLElement>('ex-design-picker summary')?.focus({ preventScroll: true });
 		});
 		this.addEventListener('click', (event): void => {
 			if (!(event.target instanceof Element)) return;
 			const action = event.target.closest<HTMLElement>('[data-action]')?.dataset['action'];
 			if (action === 'view-related') {
-				this.querySelector<RequirementRelatedView>('lab-requirement-related')?.open();
+				this.querySelector<RequirementRelatedView>('ex-design-related')?.open();
 				return;
 			}
 			if (action === 'open-calls') {
-				this.querySelector<RequirementRelatedView>('lab-requirement-related')?.open('calls');
+				this.querySelector<RequirementRelatedView>('ex-design-related')?.open('calls');
 				return;
 			}
 			const documentControl = event.target.closest<HTMLElement>('[data-document]');
@@ -86,10 +86,10 @@ export class RequirementBrowser extends HTMLElement {
 						address.hash = `record-${recordTarget}`;
 						history.replaceState(history.state, '', address);
 					});
-				else if (documentControl?.closest('.lab-document-switcher'))
+				else if (documentControl?.closest('.ex-design-document-switcher'))
 					requestAnimationFrame((): void => {
 						const selected = this.querySelector<HTMLElement>(
-							'.lab-document-switcher button[aria-pressed="true"]',
+							'.ex-design-document-switcher button[aria-pressed="true"]',
 						);
 						selected?.focus({ preventScroll: true });
 						selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -119,10 +119,10 @@ export class RequirementBrowser extends HTMLElement {
 				!(event.target instanceof Element)
 			)
 				return;
-			if (event.target.closest('.lab-document-switcher button[data-document]')) {
+			if (event.target.closest('.ex-design-document-switcher button[data-document]')) {
 				const tabs = [
 					...this.querySelectorAll<HTMLButtonElement>(
-						'.lab-document-switcher button[data-document]',
+						'.ex-design-document-switcher button[data-document]',
 					),
 				];
 				const index = tabs.findIndex((tab) => tab === event.target);
@@ -144,7 +144,7 @@ export class RequirementBrowser extends HTMLElement {
 			}
 			if (
 				event.target.closest(
-					'lab-execution-review,lab-search-picker,input,textarea,select,[contenteditable],dialog,ex-drawer,ex-comments,summary',
+					'ex-call-stack,ex-design-picker,input,textarea,select,[contenteditable],dialog,ex-drawer,ex-comments,summary',
 				) ||
 				document.getSelection()?.isCollapsed === false
 			)
@@ -161,11 +161,11 @@ export class RequirementBrowser extends HTMLElement {
 		this.render();
 		const reading = new URLSearchParams(location.search).get('reading');
 		if (reading === 'documents') {
-			this.querySelector<RequirementRelatedView>('lab-requirement-related')?.open();
+			this.querySelector<RequirementRelatedView>('ex-design-related')?.open();
 			return;
 		}
 		if (this.mobileView === 'detail' && this.compact() && !location.hash) this.focusDetail();
-		else revealStudyFragment(this);
+		else revealDocumentFragment(this);
 	}
 
 	disconnectedCallback(): void {
@@ -186,21 +186,23 @@ export class RequirementBrowser extends HTMLElement {
 	}
 
 	private validCapability(value: string): boolean {
-		return value === 'All needs' || requirements.some((item) => item.capability === value);
+		return (
+			value === 'All needs' || this.model.requirements.some((item) => item.capability === value)
+		);
 	}
 	private visibleNeeds(): readonly RequirementExample[] {
-		return requirements.filter(
+		return this.model.requirements.filter(
 			(item) => this.capability === 'All needs' || item.capability === this.capability,
 		);
 	}
 	private compact(): boolean {
-		const layout = this.querySelector('.lab-requirement-layout');
+		const layout = this.querySelector('.ex-design-requirement-layout');
 		return Boolean(
 			layout && getComputedStyle(layout).getPropertyValue('--requirements-compact').trim() === '1',
 		);
 	}
 	private chooseNeed(id: string): void {
-		if (!requirements.some((item) => item.id === id)) return;
+		if (!this.model.requirements.some((item) => item.id === id)) return;
 		if (!this.visibleNeeds().some((item) => item.id === id)) this.capability = 'All needs';
 		this.selectedId = id;
 		this.mobileView = 'detail';
@@ -214,8 +216,14 @@ export class RequirementBrowser extends HTMLElement {
 		window.addEventListener(
 			'popstate',
 			(event): void => {
+				const previous = {
+					needId: this.selectedId,
+					stage: this.stage,
+					mobileView: this.mobileView,
+					capability: this.capability,
+				};
 				const id = new URLSearchParams(location.search).get('need');
-				const valid = id && requirements.some((item) => item.id === id);
+				const valid = id && this.model.requirements.some((item) => item.id === id);
 				if (valid) this.selectedId = id;
 				this.readStage();
 				this.mobileView = valid ? 'detail' : 'list';
@@ -223,6 +231,16 @@ export class RequirementBrowser extends HTMLElement {
 				if (typeof group === 'string' && this.validCapability(group)) this.capability = group;
 				if (!this.visibleNeeds().some((item) => item.id === this.selectedId))
 					this.capability = 'All needs';
+				// A native local fragment must retain the live projected target and its workspace.
+				if (
+					previous.needId === this.selectedId &&
+					previous.stage === this.stage &&
+					previous.mobileView === this.mobileView &&
+					previous.capability === this.capability
+				) {
+					revealDocumentFragment(this);
+					return;
+				}
 				this.render();
 			},
 			{ signal: this.historyEvents.signal },
@@ -230,8 +248,8 @@ export class RequirementBrowser extends HTMLElement {
 	}
 	private focusDetail(): void {
 		requestAnimationFrame((): void => {
-			this.querySelector<HTMLElement>('.lab-document-panel')?.focus({ preventScroll: true });
-			this.querySelector('.lab-requirement-shell')?.scrollIntoView({ block: 'start' });
+			this.querySelector<HTMLElement>('.ex-design-document-panel')?.focus({ preventScroll: true });
+			this.querySelector('.ex-design-requirement-shell')?.scrollIntoView({ block: 'start' });
 		});
 	}
 	private focusList(): void {
@@ -252,34 +270,37 @@ export class RequirementBrowser extends HTMLElement {
 
 	private documentPane(need: RequirementExample): string {
 		const active = this.stage ?? 'requirement';
-		return `<div class="lab-document-header"><header class="lab-document-subject"><small>${need.id} · ${safeText(need.capability)}</small><div class="lab-local-heading" role="heading" aria-level="3">${safeText(need.title)}</div></header><div class="lab-document-toolbar"><div class="lab-document-switcher lab-toggle-group" role="group" aria-label="Document view">${documentViews.map((tab) => `<button type="button" data-document="${tab.id}" id="document-view-${tab.id}" aria-pressed="${active === tab.id}" aria-controls="requirement-document-panel" tabindex="${active === tab.id ? '0' : '-1'}">${tab.label}</button>`).join('')}</div><div class="lab-document-actions">${this.stage === 'program-design' ? `<button type="button" class="lab-navigation-action lab-icon-action" data-action="open-calls" aria-label="Open call stack" title="Call stack">${icon('git-branch')}</button>` : ''}<button type="button" class="lab-navigation-action lab-icon-action lab-view-together" data-action="view-related" aria-label="View together" title="View together">${icon('squares-four')}</button></div></div></div><section class="lab-document-panel" id="requirement-document-panel" role="region" aria-labelledby="document-view-${active}" tabindex="-1">${this.stage ? stageMarkup(need, this.stage) : `<p class="lab-need-statement">“${safeText(need.need)}”</p>${stageMarkup(need, undefined)}`}</section>`;
+		return `<div class="ex-design-document-header"><header class="ex-design-document-subject"><small>${need.id} · ${safeText(need.capability)}</small><div class="ex-design-local-heading" role="heading" aria-level="3">${safeText(need.title)}</div></header><div class="ex-design-document-toolbar"><div class="ex-design-document-switcher ex-design-toggle-group" role="group" aria-label="Document view">${documentViews.map((tab) => `<button type="button" data-document="${tab.id}" id="document-view-${tab.id}" aria-pressed="${active === tab.id}" aria-controls="requirement-document-panel" tabindex="${active === tab.id ? '0' : '-1'}">${tab.label}</button>`).join('')}</div><div class="ex-design-document-actions">${this.stage === 'program-design' ? `<button type="button" class="ex-design-navigation-action ex-design-icon-action" data-action="open-calls" aria-label="Open call stack" title="Call stack">${icon('git-branch')}</button>` : ''}<button type="button" class="ex-design-navigation-action ex-design-icon-action ex-design-view-together" data-action="view-related" aria-label="View together" title="View together">${icon('squares-four')}</button></div></div></div><section class="ex-design-document-panel" id="requirement-document-panel" role="region" aria-labelledby="document-view-${active}" tabindex="-1">${this.stage ? stageMarkup(need, this.stage) : `${needBodyMarkup(need, 'overview')}${stageMarkup(need, undefined)}`}</section>`;
 	}
 
 	private render(): void {
-		const restoreFocus = restoreStudyFocusAfterRender(this);
+		const restoreFocus = restoreDocumentFocusAfterRender(this);
 		this.dataset['mobileView'] = this.mobileView;
 		this.dataset['stagePage'] = String(Boolean(this.stage));
 		const visible = this.visibleNeeds();
-		const selected = requirements.find((item) => item.id === this.selectedId);
+		const selected = this.model.requirements.find((item) => item.id === this.selectedId);
 		if (!selected) return;
 		const position = visible.findIndex((item) => item.id === selected.id);
-		const capabilities = ['All needs', ...new Set(requirements.map((item) => item.capability))];
+		const capabilities = [
+			'All needs',
+			...new Set(this.model.requirements.map((item) => item.capability)),
+		];
 		const groups = [...new Set(visible.map((item) => item.capability))];
-		this.innerHTML = `<div class="lab-requirement-shell"><div class="lab-component-toolbar lab-requirement-toolbar"><div class="lab-requirement-list-controls"><lab-search-picker></lab-search-picker></div><button type="button" class="lab-back-to-needs" data-action="back-to-needs">${icon('arrow-left')} Back to needs</button></div><div class="lab-requirement-layout"><nav class="lab-requirement-list" aria-label="User needs">${groups
+		this.innerHTML = `<div class="ex-design-requirement-shell"><div class="ex-design-component-toolbar ex-design-requirement-toolbar"><div class="ex-design-requirement-list-controls"><ex-design-picker></ex-design-picker></div><button type="button" class="ex-design-back-to-needs" data-action="back-to-needs">${icon('arrow-left')} Back to needs</button></div><div class="ex-design-requirement-layout"><nav class="ex-design-requirement-list" aria-label="User needs">${groups
 			.map(
 				(group) =>
-					`<section><div class="lab-local-heading" role="heading" aria-level="3">${safeText(group)}</div>${visible
+					`<section><div class="ex-design-local-heading" role="heading" aria-level="3">${safeText(group)}</div>${visible
 						.filter((item) => item.capability === group)
 						.map(
 							(item) =>
-								`<button type="button" data-need="${item.id}" aria-current="${item.id === selected.id}"><span class="lab-need-title"><span class="lab-need-id">${item.id}</span><strong>${safeText(item.title)}</strong></span><span class="lab-need-description"><span>${safeText(item.need)}</span>${scenarioBadges(readCollection(), item.id)}</span></button>`,
+								`<button type="button" data-need="${item.id}" aria-current="${item.id === selected.id}"><span class="ex-design-need-title"><span class="ex-design-need-id">${item.id}</span><strong>${safeText(item.title)}</strong></span><span class="ex-design-need-description"><span>${safeText(item.need)}</span>${scenarioBadges(readCollection(), item.id)}</span></button>`,
 						)
 						.join('')}</section>`,
 			)
 			.join(
 				'',
-			)}</nav><section class="lab-requirement-detail" id="need-${selected.id}" aria-live="polite">${this.documentPane(selected)}</section></div><div class="lab-component-nav lab-requirement-pagination" role="group" aria-label="Requirement navigation"><details class="lab-help"><summary>${icon('question')} Help</summary><p>Left and Right choose needs. In the document view controls, use Left/Right or Home/End to choose a view. View together opens the related-document comparison. In the call browser, select a call to keep its details open.</p></details><button type="button" data-action="previous-need" ${position <= 0 ? 'disabled' : ''}>${icon('arrow-left')} Previous</button><span class="lab-position" role="status">${position + 1} of ${visible.length}</span><button type="button" data-action="next-need" ${position >= visible.length - 1 ? 'disabled' : ''}>Next ${icon('arrow-right')}</button></div></div><lab-requirement-related></lab-requirement-related>`;
-		this.querySelector<SearchPicker>('lab-search-picker')?.configure({
+			)}</nav><section class="ex-design-requirement-detail" id="need-${selected.id}" aria-live="polite">${this.documentPane(selected)}</section></div><div class="ex-design-component-nav ex-design-requirement-pagination" role="group" aria-label="Requirement navigation"><details class="ex-design-help"><summary>${icon('question')} Help</summary><p>Left and Right choose needs. In the document view controls, use Left/Right or Home/End to choose a view. View together opens the related-document comparison. In the call browser, select a call to keep its details open.</p></details><button type="button" data-action="previous-need" ${position <= 0 ? 'disabled' : ''}>${icon('arrow-left')} Previous</button><span class="ex-design-position" role="status">${position + 1} of ${visible.length}</span><button type="button" data-action="next-need" ${position >= visible.length - 1 ? 'disabled' : ''}>Next ${icon('arrow-right')}</button></div></div><ex-design-related></ex-design-related>`;
+		this.querySelector<SearchPicker>('ex-design-picker')?.configure({
 			label: 'Choose a capability',
 			placeholder: 'Search capabilities…',
 			icon: 'squares-four',
@@ -287,8 +308,8 @@ export class RequirementBrowser extends HTMLElement {
 			options: capabilities.map((value) => {
 				const count =
 					value === 'All needs'
-						? requirements.length
-						: requirements.filter((item) => item.capability === value).length;
+						? this.model.requirements.length
+						: this.model.requirements.filter((item) => item.capability === value).length;
 				return {
 					value,
 					label: value === 'All needs' ? 'All capabilities' : value,
@@ -296,7 +317,7 @@ export class RequirementBrowser extends HTMLElement {
 				};
 			}),
 		});
-		this.querySelector<RequirementRelatedView>('lab-requirement-related')?.configure({
+		this.querySelector<RequirementRelatedView>('ex-design-related')?.configure({
 			need: selected,
 			stage: this.stage,
 			selectNeed: (id): void => {

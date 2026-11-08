@@ -17,8 +17,9 @@ test('Escape closes a nested stack picker before its bottom workspace', async ()
 		'requirements.html?need=U2&stage=program-design',
 	);
 	await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
-	const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
-	const picker = requiredElement(workspace, 'lab-search-picker details');
+	const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
+	await expect.poll(() => workspace.querySelector('ex-design-picker details')).not.toBeNull();
+	const picker = requiredElement(workspace, 'ex-design-picker details');
 	const summary = requiredElement(picker, 'summary');
 	await fixtureLocator(frame, summary).click();
 	expect(picker.hasAttribute('open')).toBe(true);
@@ -47,7 +48,7 @@ test.each([1024, 1440, 1600])(
 			'requirements.html?need=U2',
 		);
 		await frame.getByRole('button', { name: 'View together', exact: true }).click();
-		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
 		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
 		await expect.poll((): number => workspace.getBoundingClientRect().bottom).toBeCloseTo(1000, 0);
 
@@ -117,7 +118,7 @@ test.each([
 		// The shared document toolbar can precede the app controller's module upgrade.
 		await expect.poll(() => fixture.querySelector('button[data-frame="0"]')).not.toBeNull();
 		await fixtureLocator(frame, requiredElement(fixture, 'button[data-frame="0"]')).click();
-		const sheet = requiredElement(fixture, 'ex-drawer.lab-call-detail-sheet');
+		const sheet = requiredElement(fixture, 'ex-drawer.ex-design-call-detail-sheet');
 		await expect.poll((): boolean => sheet.matches(':popover-open')).toBe(true);
 		const body = requiredElement(sheet, '.ex-inspect-body');
 		const header = requiredElement(sheet, 'header');

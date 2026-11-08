@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'vitest';
 import { commands, page, userEvent } from 'vitest/browser';
 
 import { commentStorageKey } from '../../../../packages/demistify/src/core/comment-store.ts';
+import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import { readChoiceResponse, readCurrentReview, openReviewFixture } from './review-fixture.ts';
 
@@ -412,7 +413,7 @@ test.each([1440, 390])(
 			'requirements.html?need=U2&stage=program-design',
 		);
 		await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
-		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
 		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
 		// Geometry is asserted after the shared entrance transition reaches its final position.
 		await expect
@@ -431,18 +432,18 @@ test.each([1440, 390])(
 		fixture.documentElement.dataset['theme'] = 'dark';
 		const darkFill = fixture.defaultView?.getComputedStyle(workspace).backgroundColor;
 		const darkDocument = fixture.defaultView?.getComputedStyle(
-			requiredElement(fixture, '.lab-stage-record'),
+			requiredElement(fixture, '.ex-design-stage-record'),
 		).backgroundColor;
 		expect(
-			fixture.defaultView?.getComputedStyle(requiredElement(fixture, '.lab-document-header'))
+			fixture.defaultView?.getComputedStyle(requiredElement(fixture, '.ex-design-document-header'))
 				.backgroundColor,
 		).toBe(darkDocument);
 		const actionFill = fixture.defaultView?.getComputedStyle(
-			requiredElement(fixture, '.lab-document-actions button'),
+			requiredElement(fixture, '.ex-design-document-actions button'),
 		).backgroundColor;
 		expect(actionFill).not.toBe(darkDocument);
 		expect(
-			fixture.defaultView?.getComputedStyle(requiredElement(workspace, '.lab-related-header'))
+			fixture.defaultView?.getComputedStyle(requiredElement(workspace, '.ex-design-related-header'))
 				.backgroundColor,
 		).toBe(actionFill);
 		fixture.documentElement.dataset['theme'] = 'light';
@@ -476,25 +477,25 @@ test.each([1440, 390])(
 		await expect
 			.element(frame.getByRole('button', { name: 'Program Design', exact: true }))
 			.toHaveAttribute('aria-pressed', 'true');
-		const viewButtons = [...fixture.querySelectorAll('.lab-document-switcher button')];
+		const viewButtons = [...fixture.querySelectorAll('.ex-design-document-switcher button')];
 		const widths = viewButtons.map((button): number => button.getBoundingClientRect().width);
 		expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
-		expect(fixture.querySelectorAll('.lab-document-switcher [aria-pressed="true"]')).toHaveLength(
-			1,
-		);
-		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
+		expect(
+			fixture.querySelectorAll('.ex-design-document-switcher [aria-pressed="true"]'),
+		).toHaveLength(1);
+		expect(fixture.querySelector('.ex-design-document-subject small')?.textContent).toBe(
 			'U2 · Input ownership',
 		);
 		await frame.getByRole('button', { name: 'View together', exact: true }).click();
 		expect(new URL(fixture.URL).searchParams.get('reading')).toBe('documents');
-		const comparison = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		const comparison = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
 		expect(comparison.matches(':popover-open')).toBe(true);
 		expect(comparison.textContent).toContain('S2 · Blocked background actions');
 		await fixtureLocator(
 			frame,
 			requiredElement(
 				comparison,
-				'.lab-expanded-design .lab-related-record p [data-comment-control]',
+				'.ex-design-expanded-design .ex-design-related-record p [data-comment-control]',
 			),
 		).click();
 		await frame
@@ -516,20 +517,26 @@ test.each([1440, 390])(
 			'requirements.html?need=U2&reading=documents',
 		);
 		await expect
-			.poll((): boolean => !!fixture.querySelector('ex-drawer.lab-related-drawer'))
+			.poll((): boolean => !!fixture.querySelector('ex-drawer.ex-design-related-drawer'))
 			.toBe(true);
-		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
 		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
-		expect(workspace.querySelector('.lab-reading-experiment')).toBeNull();
-		expect(workspace.querySelector('.lab-expanded-grid')).not.toBeNull();
+		expect(workspace.querySelector('.ex-design-reading-experiment')).toBeNull();
+		expect(workspace.querySelector('.ex-design-expanded-grid')).not.toBeNull();
 		if (width < 760) {
-			const designCard = requiredElement(workspace, '.lab-expanded-design').getBoundingClientRect();
-			const proofCard = requiredElement(workspace, '.lab-expanded-proof').getBoundingClientRect();
+			const designCard = requiredElement(
+				workspace,
+				'.ex-design-expanded-design',
+			).getBoundingClientRect();
+			const proofCard = requiredElement(
+				workspace,
+				'.ex-design-expanded-proof',
+			).getBoundingClientRect();
 			expect(designCard.width).toBeGreaterThan(width * 0.8);
 			expect(proofCard.left).toBeCloseTo(designCard.left, 0);
 			expect(proofCard.top).toBeGreaterThanOrEqual(designCard.bottom);
 			expect(
-				requiredElement(workspace, '.lab-specification-cases').getBoundingClientRect().width,
+				requiredElement(workspace, '[data-ex-part="cases"]').getBoundingClientRect().width,
 			).toBeGreaterThan(width * 0.8);
 		}
 
@@ -541,8 +548,9 @@ test.each([1440, 390])(
 		expect(fixture.activeElement).toBe(design);
 		await fixtureLocator(
 			frame,
-			requiredElement(workspace, '.lab-expanded-design [data-action="open-calls"]'),
+			requiredElement(workspace, '.ex-design-expanded-design [data-action="open-calls"]'),
 		).click();
+		await expect.poll(() => workspace.querySelector('button[data-frame="0"]')).not.toBeNull();
 		await fixtureLocator(frame, requiredElement(workspace, 'button[data-frame="0"]')).click();
 		if (width < 900)
 			await frame.getByRole('button', { name: 'Close call details', exact: true }).click();
@@ -551,7 +559,7 @@ test.each([1440, 390])(
 		await frame.getByRole('button', { name: 'Back to related documents', exact: true }).click();
 
 		// Assert: return retains the same need; each source link reveals its own record.
-		expect(workspace.querySelector('.lab-expanded-grid')).not.toBeNull();
+		expect(workspace.querySelector('.ex-design-expanded-grid')).not.toBeNull();
 		await fixtureLocator(frame, requiredElement(workspace, 'a[href="#related-record-V2"]')).click();
 		const pointer = requiredElement(workspace, '#related-record-V2');
 		expect(fixture.activeElement).toBe(pointer);
@@ -561,9 +569,9 @@ test.each([1440, 390])(
 		];
 		expect(proofSteps).toHaveLength(3);
 		expect(proofSteps.map((step) => step.open)).toEqual([true, true, true]);
-		expect(pointer.querySelector<HTMLDetailsElement>('.lab-proof-design > details')?.open).toBe(
-			false,
-		);
+		expect(
+			pointer.querySelector<HTMLDetailsElement>('[data-ex-part="procedure"] > details')?.open,
+		).toBe(false);
 		const keyboard = requiredElement(workspace, '#related-record-V2-keyboard');
 		expect(keyboard.textContent).toContain('Not run');
 		await fixtureLocator(
@@ -573,25 +581,32 @@ test.each([1440, 390])(
 		expect(fixture.activeElement).toBe(keyboard);
 		const readingBounds = requiredElement(
 			workspace,
-			'.lab-related-content',
+			'.ex-design-related-content',
 		).getBoundingClientRect();
 		expect(keyboard.getBoundingClientRect().top).toBeGreaterThanOrEqual(readingBounds.top);
 		expect(
-			requiredElement(keyboard, '.lab-related-record-title').getBoundingClientRect().bottom,
+			requiredElement(keyboard, '.ex-design-related-record-title').getBoundingClientRect().bottom,
 		).toBeLessThanOrEqual(readingBounds.bottom);
 		await fixtureLocator(
 			frame,
-			requiredElement(pointer, '.lab-example-outcome p [data-comment-control]'),
+			requiredElement(pointer, '.ex-design-example-outcome p [data-comment-control]'),
 		).click();
-		await frame
-			.getByRole('textbox', { name: 'Your comment', exact: true })
-			.fill('Which target produced this example?');
+		try {
+			await frame
+				.getByRole('textbox', { name: 'Your comment', exact: true })
+				.fill('Which target produced this example?');
+		} catch (error: unknown) {
+			await page.screenshot({
+				path: browserScreenshotPath(`document-comment-failure-${width}.png`),
+			});
+			throw error;
+		}
 		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Your comment');
 		expect(workspace.matches(':popover-open')).toBe(true);
 		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
 		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
 		expect(new URL(fixture.URL).searchParams.has('reading')).toBe(false);
-		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
+		expect(fixture.querySelector('.ex-design-document-subject small')?.textContent).toBe(
 			'U2 · Input ownership',
 		);
 	},
@@ -607,10 +622,10 @@ test('removing the document browser closes its workspace and clears its opening 
 	);
 	await frame.getByRole('button', { name: 'View together', exact: true }).click();
 	expect(new URL(fixture.URL).searchParams.get('reading')).toBe('documents');
-	const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+	const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
 
 	// Act: exercise the browser's real DOM disconnect lifecycle, as a host replacement does.
-	requiredElement(fixture, 'lab-requirement-browser').remove();
+	requiredElement(fixture, 'ex-requirements').remove();
 
 	// Assert: the closing hint is removed without rewriting the current requirement.
 	expect(workspace.matches(':popover-open')).toBe(false);
@@ -630,11 +645,12 @@ test.each(['specification', 'program-design', 'verification'])(
 		);
 		await frame.getByRole('button', { name: 'Program Design', exact: true }).click();
 		await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
-		const workspace = requiredElement(fixture, 'ex-drawer.lab-related-drawer');
+		const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
 
 		// Act: select a call through the same control used on the Requirements page.
+		await expect.poll(() => workspace.querySelector('button[data-frame="0"]')).not.toBeNull();
 		await fixtureLocator(frame, requiredElement(workspace, 'button[data-frame="0"]')).click();
-		const detail = requiredElement(workspace, 'ex-drawer.lab-call-detail-sheet');
+		const detail = requiredElement(workspace, 'ex-drawer.ex-design-call-detail-sheet');
 		await expect.poll((): boolean => detail.matches(':popover-open')).toBe(true);
 		expect(detail.textContent).toContain('handleKey');
 
@@ -642,8 +658,8 @@ test.each(['specification', 'program-design', 'verification'])(
 		await frame.getByRole('button', { name: 'Close call details', exact: true }).click();
 		expect(workspace.matches(':popover-open')).toBe(true);
 		await frame.getByRole('button', { name: 'Back to Program Design', exact: true }).click();
-		expect(fixture.querySelector('ex-drawer.lab-related-drawer')).toBeNull();
-		expect(fixture.querySelector('.lab-document-subject small')?.textContent).toBe(
+		expect(fixture.querySelector('ex-drawer.ex-design-related-drawer')).toBeNull();
+		expect(fixture.querySelector('.ex-design-document-subject small')?.textContent).toBe(
 			'U2 · Input ownership',
 		);
 	},

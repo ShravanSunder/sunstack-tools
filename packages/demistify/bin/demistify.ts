@@ -12,6 +12,7 @@ import { dirname, relative, resolve } from 'node:path';
 
 import { applyEdits, type CheckOptions, checkHtml, formatFindings } from '../src/node/check.ts';
 import { indexCollectionSearch, type SearchPageSource } from '../src/node/collection-search.ts';
+import { prepareDesignPages } from '../src/node/design-collection.ts';
 import { embedMarkdownFiles, markdownFileReferences } from '../src/node/markdown-files.ts';
 
 const write = (text: string): void => {
@@ -40,6 +41,21 @@ async function readHookFile(): Promise<string | undefined> {
 
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
+	if (command === 'prepare') {
+		const [directory] = rest;
+		if (!directory || rest.length !== 1) {
+			write('Usage: demistify prepare <collection-directory>');
+			return 1;
+		}
+		const prepared = await prepareDesignPages(directory);
+		await Promise.all(
+			[...prepared.pages].map(([page, html]) => writeFile(resolve(directory, page), html)),
+		);
+		write(
+			`Prepared ${prepared.pages.size} pages, ${prepared.collection.records.length} records, revision ${prepared.collection.identity}.`,
+		);
+		return 0;
+	}
 	if (command === 'index') {
 		if (rest.length === 0 || rest.some((file): boolean => !file.endsWith('.html'))) {
 			write('Usage: demistify index <page.html …>');

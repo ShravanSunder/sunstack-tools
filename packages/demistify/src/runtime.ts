@@ -1,5 +1,6 @@
 import { reportStructuralIssues } from './core/issues.ts';
 import { captureReviewDocument, installDefaultComments } from './core/review-document.ts';
+import { CallStackIsland } from './islands/call-stack.ts';
 import { CalloutIsland, CardIsland } from './islands/card.ts';
 import { ChoiceIsland, OptionIsland } from './islands/choice.ts';
 import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
@@ -16,6 +17,7 @@ import { MapIsland } from './islands/map.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
 import { PreformattedIsland } from './islands/preformatted.ts';
+import { RequirementsIsland } from './islands/requirements.ts';
 import { BadgeIsland, BreakdownIsland, ProgressIsland } from './islands/small-parts.ts';
 import { StatIsland } from './islands/stat.ts';
 import { FoldToggleIsland, SectionIsland } from './islands/story-section.ts';
@@ -52,6 +54,8 @@ for (const [tagName, constructor] of [
 	['ex-tabs', TabsIsland],
 	['ex-zoom', ZoomIsland],
 	['ex-drawer', DrawerIsland],
+	['ex-requirements', RequirementsIsland],
+	['ex-call-stack', CallStackIsland],
 	['ex-decision', DecisionIsland],
 	['ex-callout', CalloutIsland],
 	['ex-compare', CompareIsland],

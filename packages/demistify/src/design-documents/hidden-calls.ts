@@ -1,4 +1,4 @@
-import { icon } from './study-markup.js';
+import { icon } from './document-markup.js';
 
 /** A disclosure preserves omitted calls in place instead of implying a direct invocation. */
 export class HiddenCalls extends HTMLElement {
@@ -10,7 +10,7 @@ export class HiddenCalls extends HTMLElement {
 		details.open = this.hasAttribute('expanded');
 		const summary = document.createElement('summary');
 		const label = (): string =>
-			`${icon('caret-right')}<strong>${count} ${details.open ? 'supporting calls' : 'calls hidden'}</strong><span>${details.open ? 'Hide' : 'Show'} plumbing</span><small class="lab-hidden-selection"></small>`;
+			`${icon('caret-right')}<strong>${count} ${details.open ? 'supporting calls' : 'calls hidden'}</strong><span>${details.open ? 'Hide' : 'Show'} plumbing</span><small class="ex-design-hidden-selection"></small>`;
 		summary.innerHTML = label();
 		details.addEventListener('toggle', (): void => {
 			const title = summary.querySelector('strong');
@@ -21,7 +21,7 @@ export class HiddenCalls extends HTMLElement {
 		});
 		details.append(summary);
 		const content = document.createElement('div');
-		content.className = 'lab-hidden-call-content';
+		content.className = 'ex-design-hidden-call-content';
 		content.setAttribute('aria-label', 'Supporting calls in invocation order');
 		content.append(...calls);
 		details.append(content);

@@ -1,4 +1,4 @@
-import { icon, safeText } from './study-markup.js';
+import { icon, safeText } from './document-markup.js';
 
 export interface SearchPickerOption {
 	readonly value: string;
@@ -123,7 +123,7 @@ export class SearchPicker extends HTMLElement {
 		const visible = this.config.options.filter((option): boolean =>
 			option.label.toLocaleLowerCase().includes(query),
 		);
-		const list = this.querySelector('.lab-picker-options');
+		const list = this.querySelector('.ex-design-picker-options');
 		if (list)
 			list.innerHTML = visible
 				.map(
@@ -139,7 +139,7 @@ export class SearchPicker extends HTMLElement {
 		const selected = this.config.options.find(
 			(option): boolean => option.value === this.config.selected,
 		);
-		this.innerHTML = `<details class="lab-search-picker"><summary aria-label="${safeText(this.config.label)}">${icon(this.config.icon)}<span>${safeText(selected?.label ?? this.config.label)}</span><small>${safeText(selected?.detail ?? '')}</small>${icon('caret-down')}</summary><div class="lab-picker-panel"><label class="lab-picker-search">${icon('magnifying-glass')}<input type="search" aria-label="${safeText(this.config.placeholder.replace('…', ''))}" placeholder="${safeText(this.config.placeholder)}" value="${safeText(this.query)}" autocomplete="off" /></label><div class="lab-picker-options" aria-label="${safeText(this.config.label)} options"></div><small role="status"></small></div></details>`;
+		this.innerHTML = `<details class="ex-design-picker"><summary aria-label="${safeText(this.config.label)}">${icon(this.config.icon)}<span>${safeText(selected?.label ?? this.config.label)}</span><small>${safeText(selected?.detail ?? '')}</small>${icon('caret-down')}</summary><div class="ex-design-picker-panel"><label class="ex-design-picker-search">${icon('magnifying-glass')}<input type="search" aria-label="${safeText(this.config.placeholder.replace('…', ''))}" placeholder="${safeText(this.config.placeholder)}" value="${safeText(this.query)}" autocomplete="off" /></label><div class="ex-design-picker-options" aria-label="${safeText(this.config.label)} options"></div><small role="status"></small></div></details>`;
 		this.renderOptions();
 	}
 }

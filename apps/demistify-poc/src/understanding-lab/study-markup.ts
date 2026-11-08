@@ -1,5 +1,3 @@
-import type { ScenarioOutcome } from './collection-data.ts';
-
 export function safeText(value: string): string {
 	return value
 		.replaceAll('&', '&amp;')
@@ -10,18 +8,6 @@ export function safeText(value: string): string {
 
 export function icon(name: string): string {
 	return `<i class="ph ph-${safeText(name)}" aria-hidden="true"></i>`;
-}
-
-export function outcomeBadge(outcome: ScenarioOutcome, label?: string): string {
-	const tone =
-		outcome === 'Pass'
-			? 'done'
-			: outcome === 'Fail'
-				? 'risk'
-				: outcome === 'Partial'
-					? 'question'
-					: 'planned';
-	return `<ex-badge tone="${tone}"${label ? ` aria-label="${safeText(label)}" title="${safeText(label)}"` : ''}>${outcome}</ex-badge>`;
 }
 
 export function bindStudyChoices(element: HTMLElement, select: (value: string) => void): void {

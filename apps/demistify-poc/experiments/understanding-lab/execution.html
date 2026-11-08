@@ -5,11 +5,7 @@
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
 		<title>From a call to the need it serves</title>
 		<link rel="stylesheet" href="library/theme.css" />
-		<link rel="stylesheet" href="studies.css" />
-		<link rel="stylesheet" href="study-controls.css" />
-		<link rel="stylesheet" href="execution.css" />
 		<script type="module" src="library/runtime.js"></script>
-		<script type="module" src="components/register.js?revision=call-preview"></script>
 	</head>
 	<body>
 		<ex-nav for="content"
@@ -33,9 +29,9 @@
 					than invented as additional calls.
 				</p></ex-callout
 			>
-			<lab-execution-review data-width="canvas"></lab-execution-review
+			<ex-call-stack id="call-reader" data-width="canvas"></ex-call-stack
 		></ex-document>
-		<script type="application/json" data-lab-records>
+		<script type="application/json" data-ex-records>
 			[
 				{
 					"kind": "frame",

@@ -3,7 +3,17 @@ export const browserEvidenceRoot = 'tmp/verification/demistify/browser';
 
 let evidenceRunId: string | undefined;
 
-export function browserScreenshotPath(filename: string): string {
+function browserEvidencePath(filename: string): string {
 	evidenceRunId ??= crypto.randomUUID();
-	return `../../../../${browserEvidenceRoot}/${evidenceRunId}/${filename}`;
+	return `${browserEvidenceRoot}/${evidenceRunId}/${filename}`;
+}
+
+export function browserScreenshotPath(filename: string): string {
+	return `../../../../${browserEvidencePath(filename)}`;
+}
+
+/** Forensic JSON is written in CI too; the built-in writer resolves from the app project root. */
+export async function writeBrowserEvidence(filename: string, content: string): Promise<void> {
+	const { commands } = await import('vitest/browser');
+	await commands.writeFile(`../../${browserEvidencePath(filename)}`, content);
 }
