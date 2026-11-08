@@ -8,6 +8,7 @@ import {
 	dragReviewSelection,
 	panInspection,
 	setReducedMotion,
+	wheelLocalContent,
 } from './tests/browser/gesture-commands.ts';
 
 export default defineConfig({
@@ -18,7 +19,13 @@ export default defineConfig({
 		testTimeout: 20_000,
 		expect: { poll: { timeout: 5_000 } },
 		browser: {
-			commands: { clickInspectionBackdrop, dragReviewSelection, panInspection, setReducedMotion },
+			commands: {
+				clickInspectionBackdrop,
+				dragReviewSelection,
+				panInspection,
+				setReducedMotion,
+				wheelLocalContent,
+			},
 			enabled: true,
 			headless: true,
 			provider: playwright({ actionTimeout: 5_000 }),

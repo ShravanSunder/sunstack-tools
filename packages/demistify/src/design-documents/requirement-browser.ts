@@ -8,7 +8,7 @@ import {
 } from './document-links.js';
 import { icon, restoreDocumentFocusAfterRender, safeText } from './document-markup.js';
 import type { RequirementRelatedView } from './requirement-related-view.js';
-import { stageMarkup, scenarioBadges } from './requirement-stages.js';
+import { stageMarkup, scenarioBadges, needBodyMarkup } from './requirement-stages.js';
 import type { SearchPicker } from './search-picker.js';
 
 const documentViews = [
@@ -216,6 +216,12 @@ export class RequirementBrowser extends HTMLElement {
 		window.addEventListener(
 			'popstate',
 			(event): void => {
+				const previous = {
+					needId: this.selectedId,
+					stage: this.stage,
+					mobileView: this.mobileView,
+					capability: this.capability,
+				};
 				const id = new URLSearchParams(location.search).get('need');
 				const valid = id && this.model.requirements.some((item) => item.id === id);
 				if (valid) this.selectedId = id;
@@ -225,6 +231,16 @@ export class RequirementBrowser extends HTMLElement {
 				if (typeof group === 'string' && this.validCapability(group)) this.capability = group;
 				if (!this.visibleNeeds().some((item) => item.id === this.selectedId))
 					this.capability = 'All needs';
+				// A native local fragment must retain the live projected target and its workspace.
+				if (
+					previous.needId === this.selectedId &&
+					previous.stage === this.stage &&
+					previous.mobileView === this.mobileView &&
+					previous.capability === this.capability
+				) {
+					revealDocumentFragment(this);
+					return;
+				}
 				this.render();
 			},
 			{ signal: this.historyEvents.signal },
@@ -254,7 +270,7 @@ export class RequirementBrowser extends HTMLElement {
 
 	private documentPane(need: RequirementExample): string {
 		const active = this.stage ?? 'requirement';
-		return `<div class="ex-design-document-header"><header class="ex-design-document-subject"><small>${need.id} · ${safeText(need.capability)}</small><div class="ex-design-local-heading" role="heading" aria-level="3">${safeText(need.title)}</div></header><div class="ex-design-document-toolbar"><div class="ex-design-document-switcher ex-design-toggle-group" role="group" aria-label="Document view">${documentViews.map((tab) => `<button type="button" data-document="${tab.id}" id="document-view-${tab.id}" aria-pressed="${active === tab.id}" aria-controls="requirement-document-panel" tabindex="${active === tab.id ? '0' : '-1'}">${tab.label}</button>`).join('')}</div><div class="ex-design-document-actions">${this.stage === 'program-design' ? `<button type="button" class="ex-design-navigation-action ex-design-icon-action" data-action="open-calls" aria-label="Open call stack" title="Call stack">${icon('git-branch')}</button>` : ''}<button type="button" class="ex-design-navigation-action ex-design-icon-action ex-design-view-together" data-action="view-related" aria-label="View together" title="View together">${icon('squares-four')}</button></div></div></div><section class="ex-design-document-panel" id="requirement-document-panel" role="region" aria-labelledby="document-view-${active}" tabindex="-1">${this.stage ? stageMarkup(need, this.stage) : `<p class="ex-design-need-statement">“${safeText(need.need)}”</p>${stageMarkup(need, undefined)}`}</section>`;
+		return `<div class="ex-design-document-header"><header class="ex-design-document-subject"><small>${need.id} · ${safeText(need.capability)}</small><div class="ex-design-local-heading" role="heading" aria-level="3">${safeText(need.title)}</div></header><div class="ex-design-document-toolbar"><div class="ex-design-document-switcher ex-design-toggle-group" role="group" aria-label="Document view">${documentViews.map((tab) => `<button type="button" data-document="${tab.id}" id="document-view-${tab.id}" aria-pressed="${active === tab.id}" aria-controls="requirement-document-panel" tabindex="${active === tab.id ? '0' : '-1'}">${tab.label}</button>`).join('')}</div><div class="ex-design-document-actions">${this.stage === 'program-design' ? `<button type="button" class="ex-design-navigation-action ex-design-icon-action" data-action="open-calls" aria-label="Open call stack" title="Call stack">${icon('git-branch')}</button>` : ''}<button type="button" class="ex-design-navigation-action ex-design-icon-action ex-design-view-together" data-action="view-related" aria-label="View together" title="View together">${icon('squares-four')}</button></div></div></div><section class="ex-design-document-panel" id="requirement-document-panel" role="region" aria-labelledby="document-view-${active}" tabindex="-1">${this.stage ? stageMarkup(need, this.stage) : `${needBodyMarkup(need, 'overview')}${stageMarkup(need, undefined)}`}</section>`;
 	}
 
 	private render(): void {

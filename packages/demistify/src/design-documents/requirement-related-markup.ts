@@ -1,7 +1,12 @@
 import type { RequirementExample } from './collection-model.js';
 import { readCollection, type PreparedRecord } from './collection.js';
 import { icon, safeText } from './document-markup.js';
-import { localDocumentBody, recordsForNeed, scenarioPresentation } from './requirement-stages.js';
+import {
+	localDocumentBody,
+	recordsForNeed,
+	scenarioPresentation,
+	needBodyMarkup,
+} from './requirement-stages.js';
 
 function recordTitle(item: PreparedRecord): string {
 	return 'title' in item.record ? item.record.title : item.record.id;
@@ -60,5 +65,5 @@ export function relatedRequirementMarkup(need: RequirementExample): string {
 	const specification = `<section class="ex-design-expanded-specification"><div class="ex-design-column-heading" role="heading" aria-level="3">Specification</div>${specifications.map((item) => `<section class="ex-design-related-record ex-design-rule-layout"><div><div class="ex-design-related-record-title">${sourceLink(item)}</div>${recordFragment(item, '[data-ex-part="rule"]')}</div>${recordFragment(item, '[data-ex-part="cases"]')}${sourceDetails(item)}</section>`).join('') || '<p role="status">Not yet written.</p>'}</section>`;
 	const design = `<section class="ex-design-expanded-design"><div class="ex-design-column-heading"><span role="heading" aria-level="3">Program Design</span><button type="button" class="ex-design-navigation-action ex-design-icon-action" data-action="open-calls" aria-label="Open call stack" title="Call stack">${icon('git-branch')}</button></div>${designMarkup(designs, need.id) || '<p role="status">Not yet written.</p>'}</section>`;
 	const proof = `<section class="ex-design-expanded-proof"><div class="ex-design-column-heading" role="heading" aria-level="3">Verification</div>${scenarios.map(scenarioMarkup).join('') || '<p role="status">Not yet written.</p>'}</section>`;
-	return `<div class="ex-design-requirement-expanded"><p class="ex-design-related-need-statement">${safeText(need.need)}</p><div class="ex-design-expanded-grid">${specification}${design}${proof}</div></div>`;
+	return `<div class="ex-design-requirement-expanded">${needBodyMarkup(need, 'related')}<div class="ex-design-expanded-grid">${specification}${design}${proof}</div></div>`;
 }

@@ -8,6 +8,7 @@ export interface RequirementExample {
 	readonly capability: string;
 	readonly title: string;
 	readonly need: string;
+	readonly bodyHtml: string;
 	readonly owner: string;
 }
 
@@ -49,6 +50,7 @@ export function deriveDocumentModel(collection: PreparedCollection): {
 				title: record.title,
 				capability: record.capability,
 				need: item.summary,
+				bodyHtml: item.bodyHtml,
 				owner: summary(recordsForNeed(collection, record.id, 'program-design')),
 			},
 		];

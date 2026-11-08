@@ -27,6 +27,7 @@ declare module 'vitest/browser' {
 		panInspection: () => Promise<void>;
 		clickInspectionBackdrop: () => Promise<void>;
 		setReducedMotion: (preference: 'reduce' | 'no-preference') => Promise<void>;
+		wheelLocalContent: (selector: string, deltaX: number) => Promise<void>;
 		dragReviewSelection: (coordinates: {
 			readonly startX: number;
 			readonly startY: number;
@@ -35,6 +36,21 @@ declare module 'vitest/browser' {
 		}) => Promise<void>;
 	}
 }
+
+/** Native wheel input decides local horizontal reachability; no DOM scroll offset is assigned. */
+export const wheelLocalContent: BrowserCommand<[string, number], void> = async (
+	context,
+	selector,
+	deltaX,
+): Promise<void> => {
+	if (context.provider.name !== 'playwright') throw new Error('Native wheel needs Playwright.');
+	const target = context.iframe.getByTestId('explainer').contentFrame().locator(selector);
+	const bounds = await target.boundingBox();
+	if (!bounds || bounds.width <= 0 || bounds.height <= 0)
+		throw new Error('Local wheel target is not visible.');
+	await context.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+	await context.page.mouse.wheel(deltaX, 0);
+};
 
 /** Real text selection uses pointer input in the existing fixture, never a Selection setter. */
 export const dragReviewSelection: BrowserCommand<

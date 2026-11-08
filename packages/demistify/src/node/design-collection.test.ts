@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -64,6 +64,25 @@ async function inputCollection(): Promise<string> {
 		),
 	);
 	return directory;
+}
+
+async function htmlBytes(directory: string): Promise<ReadonlyMap<string, string>> {
+	const names = (await readdir(directory)).filter((name) => name.endsWith('.html')).toSorted();
+	return new Map(
+		await Promise.all(
+			names.map(async (name): Promise<[string, string]> => [
+				name,
+				await readFile(join(directory, name), 'utf8'),
+			]),
+		),
+	);
+}
+
+async function addOrdinaryHome(directory: string): Promise<void> {
+	await writeFile(
+		join(directory, 'index.html'),
+		'<!doctype html><html><head><title>Home</title><link rel="stylesheet" href="theme.css"><script type="module" src="runtime.js"></script></head><body><ex-document id="home"><h1>Purpose</h1><p>Ordinary source remains intact.</p></ex-document></body></html>',
+	);
 }
 
 test('needs-only preparation is idempotent and preserves unrelated HTML', async (): Promise<void> => {
@@ -160,6 +179,7 @@ test('declared wrong-kind and missing edges remain errors with zero stacks', asy
 
 test('the actual CLI prepares, checks, repeats and refuses invalid input without touching prior output', async (): Promise<void> => {
 	const directory = await inputCollection();
+	await addOrdinaryHome(directory);
 	const cli = new URL('../../bin/demistify.ts', import.meta.url).pathname;
 	const output = await runFile(process.execPath, [cli, 'prepare', directory]);
 	expect(output.stdout).toContain('1 records');
@@ -186,10 +206,12 @@ test('the actual CLI prepares, checks, repeats and refuses invalid input without
 			'<template id="wrong-body"><p id="wrong-summary">Wrong target.</p></template>',
 		),
 	);
+	const beforeInvalidAttempt = await htmlBytes(directory);
 	await expect(runFile(process.execPath, [cli, 'prepare', directory])).rejects.toThrow(
 		'need reference MissingNeed',
 	);
 	expect(await readFile(file, 'utf8')).toBe(first);
+	expect(await htmlBytes(directory)).toEqual(beforeInvalidAttempt);
 });
 
 test.each([
@@ -231,13 +253,16 @@ test.each([
 	'the CLI rejects %s without any input/output mutation',
 	async (_name, change, message): Promise<void> => {
 		const directory = await inputCollection();
+		await addOrdinaryHome(directory);
 		const cli = new URL('../../bin/demistify.ts', import.meta.url).pathname;
 		await runFile(process.execPath, [cli, 'prepare', directory]);
 		const file = join(directory, 'requirements.html');
 		const invalid = change(await readFile(file, 'utf8'));
 		await writeFile(file, invalid);
+		const beforeInvalidAttempt = await htmlBytes(directory);
 		await expect(runFile(process.execPath, [cli, 'prepare', directory])).rejects.toThrow(message);
 		expect(await readFile(file, 'utf8')).toBe(invalid);
+		expect(await htmlBytes(directory)).toEqual(beforeInvalidAttempt);
 	},
 );
 

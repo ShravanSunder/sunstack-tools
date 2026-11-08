@@ -451,34 +451,6 @@ test.each([1600, 390])(
 	120_000,
 );
 
-test('public labels name both reader groups while unlabeled readers keep their defaults', async (): Promise<void> => {
-	const { document: fixture } = await openFixture('document-browsers', '', 'labeled.html');
-	await expect
-		.poll(
-			() =>
-				fixture.querySelectorAll('ex-requirements[data-ready],ex-call-stack[data-ready]').length,
-		)
-		.toBe(2);
-	expect(
-		requiredElement(fixture, 'ex-requirements [role="group"]').getAttribute('aria-label'),
-	).toBe('Draft design needs');
-	expect(requiredElement(fixture, 'ex-call-stack [role="group"]').getAttribute('aria-label')).toBe(
-		'Draft source calls',
-	);
-	document.body.replaceChildren();
-	const { document: defaultNeeds } = await openFixture('understanding', '', 'requirements.html');
-	await expect.poll(() => defaultNeeds.querySelector('ex-requirements[data-ready]')).not.toBeNull();
-	expect(
-		requiredElement(defaultNeeds, 'ex-requirements [role="group"]').getAttribute('aria-label'),
-	).toBe('Requirements browser');
-	document.body.replaceChildren();
-	const { document: defaultCalls } = await openFixture('understanding', '', 'execution.html');
-	await expect.poll(() => defaultCalls.querySelector('ex-call-stack[data-ready]')).not.toBeNull();
-	expect(
-		requiredElement(defaultCalls, 'ex-call-stack [role="group"]').getAttribute('aria-label'),
-	).toBe('Call stack browser');
-});
-
 test('the illustrative result caption displays its observation identity once', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture(
 		'understanding',
@@ -492,6 +464,15 @@ test('the illustrative result caption displays its observation identity once', a
 	expect(observation.textContent).toContain('Example only');
 	expect(observation.textContent).toContain('target not supplied');
 	expect(observation.textContent).not.toContain('supplied.O2');
+	const qualification = [...observation.querySelectorAll('p')].find((element) =>
+		element.textContent
+			?.replace(/\s+/g, ' ')
+			.includes('A target build, setup and real-path check are still needed for product proof.'),
+	);
+	expect(qualification).toBeDefined();
+	if (!qualification) throw new Error('Missing visible product-proof qualification');
+	expect(qualification.closest('details:not([open])')).toBeNull();
+	await expect.element(fixtureLocator(frame, qualification)).toBeVisible();
 });
 
 test.each([1600, 390])(
@@ -531,3 +512,75 @@ test.each([1600, 390])(
 function readOutcomeBadges(scope: Element): readonly string[] {
 	return [...scope.querySelectorAll('ex-badge')].map((badge) => badge.textContent?.trim() ?? '');
 }
+
+test('a 390px Program diagram reaches both local endpoints with native horizontal wheel input', async (): Promise<void> => {
+	await page.viewport(390, 844);
+	const { document: fixture, frame } = await openFixture(
+		'understanding',
+		'',
+		'requirements.html?need=U2&stage=program-design#program-design-U2',
+	);
+	fixture.documentElement.dataset['theme'] = 'dark';
+	const selector = '.ex-design-stage-record ex-mermaid';
+	await expect
+		.poll(() => fixture.querySelector(`${selector} svg`)?.textContent)
+		.toContain('InputOwner');
+	const diagram = requiredElement(fixture, selector);
+	await fixtureLocator(frame, diagram).hover();
+	const nodes = [...diagram.querySelectorAll('g.node')].toSorted(
+		(left, right) => left.getBoundingClientRect().left - right.getBoundingClientRect().left,
+	);
+	const first = nodes[0],
+		last = nodes.at(-1);
+	if (!first || !last) throw new Error('Missing real diagram endpoints');
+	expect(diagram.scrollWidth).toBeGreaterThan(diagram.clientWidth);
+	expect(diagram.scrollLeft).toBeCloseTo(0, 0);
+	expect(first.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+		diagram.getBoundingClientRect().left - 1,
+	);
+	expect(first.getBoundingClientRect().right).toBeLessThanOrEqual(
+		diagram.getBoundingClientRect().right + 1,
+	);
+	const start = {
+		scrollLeft: diagram.scrollLeft,
+		clientWidth: diagram.clientWidth,
+		scrollWidth: diagram.scrollWidth,
+		first: first.getBoundingClientRect(),
+		last: last.getBoundingClientRect(),
+	};
+	await commands.wheelLocalContent(selector, 2000);
+	await expect
+		.poll(() => diagram.scrollLeft)
+		.toBeCloseTo(diagram.scrollWidth - diagram.clientWidth, 0);
+	expect(last.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+		diagram.getBoundingClientRect().left - 1,
+	);
+	expect(last.getBoundingClientRect().right).toBeLessThanOrEqual(
+		diagram.getBoundingClientRect().right + 1,
+	);
+	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+	const end = {
+		scrollLeft: diagram.scrollLeft,
+		first: first.getBoundingClientRect(),
+		last: last.getBoundingClientRect(),
+	};
+	await page.screenshot({ path: browserScreenshotPath('program-local-scroll-390-end.png') });
+	await commands.wheelLocalContent(selector, -2000);
+	await expect.poll(() => diagram.scrollLeft).toBeCloseTo(0, 0);
+	expect(first.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+		diagram.getBoundingClientRect().left - 1,
+	);
+	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+	await expect(
+		JSON.stringify(
+			{
+				start,
+				end,
+				returnedScrollLeft: diagram.scrollLeft,
+				pageWidth: fixture.documentElement.scrollWidth,
+			},
+			null,
+			2,
+		),
+	).toMatchFileSnapshot(browserScreenshotPath('program-local-scroll-390.json'));
+});

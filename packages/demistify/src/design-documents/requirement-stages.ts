@@ -79,11 +79,36 @@ export function localDocumentBody(html: string, idPrefix = ''): string {
 					);
 			}
 			const href = element.getAttribute('href');
-			if (href?.startsWith('#') && ids.has(href.slice(1)))
-				element.setAttribute('href', `#${ids.get(href.slice(1))}`);
+			if (!href?.startsWith('#')) continue;
+			let fragment: string;
+			try {
+				fragment = decodeURIComponent(href.slice(1));
+			} catch {
+				continue;
+			}
+			const destination = ids.get(fragment);
+			if (destination) element.setAttribute('href', `#${encodeURIComponent(destination)}`);
 		}
 	}
 	return template.innerHTML;
+}
+
+/** Full need reading preserves authored HTML; the compact picker keeps its separate summary. */
+export function needBodyMarkup(need: RequirementExample, mode: 'overview' | 'related'): string {
+	const template = document.createElement('template');
+	template.innerHTML = localDocumentBody(need.bodyHtml, `${mode}-need-${need.id}-`);
+	const paragraph = template.content.firstElementChild;
+	if (template.content.children.length === 1 && paragraph instanceof HTMLParagraphElement) {
+		paragraph.classList.add(
+			mode === 'overview' ? 'ex-design-need-statement' : 'ex-design-related-need-statement',
+		);
+		if (mode === 'overview') {
+			paragraph.prepend(document.createTextNode('“'));
+			paragraph.append(document.createTextNode('”'));
+		}
+		return template.innerHTML;
+	}
+	return `<div class="${mode === 'overview' ? 'ex-design-need-body' : 'ex-design-related-need-body'}">${template.innerHTML}</div>`;
 }
 /** Explicit procedure content stays separate from supplied observations. */
 export function scenarioBodyParts(item: PreparedRecord): {

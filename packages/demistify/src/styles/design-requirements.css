@@ -614,3 +614,19 @@ ex-design-related {
 		background: var(--surface-page);
 	}
 }
+
+.ex-design-need-body,
+.ex-design-related-need-body {
+	max-width: var(--width-reading);
+	margin: 0 0 var(--space-5);
+}
+@media (max-width: 760px) {
+	.ex-design-related-need-body {
+		margin-inline: var(--space-4);
+	}
+}
+@container requirements-view (max-width:740px) {
+	.ex-design-document-panel > .ex-design-need-body {
+		margin-inline: var(--space-4);
+	}
+}
