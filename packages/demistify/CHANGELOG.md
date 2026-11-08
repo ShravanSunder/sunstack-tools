@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.21.0
+
+### Minor Changes
+
+- e454cc8: Add public Requirements and call-stack readers, the collection `prepare` command, and matching authoring guidance for linked design records in ordinary HTML.
+
 ## 1.20.0
 
 ### Minor Changes
