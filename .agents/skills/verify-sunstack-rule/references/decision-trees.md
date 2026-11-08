@@ -19,7 +19,7 @@ The scripted routes are operable. Obtain the declared candidate before each run,
 
 ## O5: short output and saved detail
 
-The fixture supplies pass, warning, unsure, excluded, filter skip and incomplete paths. Human warning/unsure/skip/gap lines must have location and ID without request text; sentinels distinguish copied evidence from authored messages. Run default output with `--report` outside the immutable fixture. Compare saved exact questions/state/answers/models with captured requests and controlled replies; compare full config/Markdown/rules content and hashes with original files, and routes/bars with the authored trees.
+The fixture supplies pass, warning, unsure, excluded, filter skip and incomplete paths. Human warning/skip/gap lines retain location and ID without request text; under the adopted 0.10 human-output amendment, unsure results have one count and detail pointer per rule (see [unsure-summary.md](unsure-summary.md)), with every result ID retained in the saved report; sentinels distinguish copied evidence from authored messages. Run default output with `--report` outside the immutable fixture. Compare saved exact questions/state/answers/models with captured requests and controlled replies; compare full config/Markdown/rules content and hashes with original files, and routes/bars with the authored trees.
 
 Drive `sunstack lint show <report> <id>` for each required result kind. Require one selected entry with its related detail, not the whole report, and zero HTTP requests. Unknown IDs fail and name the valid range. Change/delete only fixture rulebook files, then explain the same results from the saved file. Excluded rules must be marked not re-walkable because no rule request was made.
 

@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest';
 
 import { type JsonObject } from './rulebook-fixture-support.ts';
-import { requireHumanSummary, requireSavedRequest } from './rulebook-report.ts';
+import { requireHumanSummary } from './rulebook-output-comparison.ts';
+import { requireSavedRequest } from './rulebook-report.ts';
 
 function savedRequestFixture(): Parameters<typeof requireSavedRequest>[0] {
 	return {
@@ -69,10 +70,10 @@ test.each([
 test('human summary accepts distinct IDs and pointers without request bodies', () => {
 	expect(() =>
 		requireHumanSummary(
-			'skills/a.md:17:1: warn [rule] Read and decide. #3\n  target: refs/a.md:1\nskills/a.md:40:1: unsure [rule] Probability in between. #7\n',
+			'skills/a.md:17:1: warn [rule] Read and decide. #3\n  target: refs/a.md:1\n1 unsure [rule]; details: lint show <report> 7 (save with --report <report>)\n',
 			[
 				{ id: 3, file: 'skills/a.md', line: 17, kind: 'warn' },
-				{ id: 7, file: 'skills/a.md', line: 40, kind: 'unsure' },
+				{ id: 7, file: 'skills/a.md', line: 40, kind: 'unsure', rule: 'rule' },
 			],
 		),
 	).not.toThrow();

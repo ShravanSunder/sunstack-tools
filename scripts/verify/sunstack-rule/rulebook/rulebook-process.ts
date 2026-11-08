@@ -54,6 +54,7 @@ export interface ControlledReply {
 	body: JsonObject;
 }
 export interface RunCase {
+	readonly target?: ProcessTarget;
 	root: string;
 	name: string;
 	arguments: string[];
@@ -260,6 +261,8 @@ export class RulebookProcess {
 		this.events.push({ request: number, event: 'responded' });
 	}
 	async run(options: RunCase): Promise<ProcessResult> {
+		const target = options.target ?? this.target;
+		confirmProcessTarget(target);
 		confirmProcessTarget(this.target);
 		const directory = path.join(this.evidence, options.name);
 		filesystem.mkdirSync(directory);
@@ -277,8 +280,8 @@ export class RulebookProcess {
 		const before = this.captures.length;
 		const snapshot = fixtureSnapshot(options.root);
 		this.cancelOnRequest = options.cancel ?? false;
-		const command = [this.target.binary, ...options.arguments];
-		const child = spawn(this.target.binary, options.arguments, {
+		const command = [target.binary, ...options.arguments];
+		const child = spawn(target.binary, options.arguments, {
 			cwd: options.root,
 			env: environment,
 			detached: true,
@@ -315,10 +318,8 @@ export class RulebookProcess {
 			command,
 			cwd: options.root,
 			pid: child.pid ?? null,
-			...('release' in this.target
-				? { artifact_release: this.target.release }
-				: { commit: this.target.commit }),
-			binary_sha256: this.target.digest,
+			...('release' in target ? { artifact_release: target.release } : { commit: target.commit }),
+			binary_sha256: target.digest,
 			exit_code: ending.code,
 			signal: ending.signal,
 			http_requests: captures.length,
@@ -327,6 +328,7 @@ export class RulebookProcess {
 			cancel_on_request: options.cancel ?? false,
 			timed_out: timedOut,
 		});
+		confirmProcessTarget(target);
 		confirmProcessTarget(this.target);
 		if (!options.arguments.includes('--init'))
 			equal(fixtureSnapshot(options.root), snapshot, 'Lint modified its input fixture');
