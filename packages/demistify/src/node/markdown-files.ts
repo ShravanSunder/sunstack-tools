@@ -29,7 +29,7 @@ export function embedMarkdownFiles(
 	html: string,
 	sources: Readonly<Record<string, string>>,
 ): string {
-	if (!/<ex-markdown\b[^>]*\bsrc=/i.test(html)) return html;
+	if (!/<ex-markdown\b[^>]*\bsrc\s*=/i.test(html)) return html;
 	const document = parse(html);
 	for (const element of markdownElements(document)) {
 		const reference =

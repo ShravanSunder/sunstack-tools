@@ -67,3 +67,16 @@ it('embeds exact Markdown source safely so the consumer needs no sibling file fe
 		prepareIslandContent('<ex-markdown src="missing.md"></ex-markdown>', {}, false),
 	).toThrow('Unknown Markdown island source');
 });
+
+it.each(['src = "notes.md"', 'src\t=\n"notes.md"'])(
+	'embeds local Markdown with valid attribute whitespace: %s',
+	(attribute): void => {
+		const source = 'Actual **authored** Markdown text.';
+		const output = embedMarkdownFiles(`<ex-markdown ${attribute}></ex-markdown>`, {
+			'notes.md': source,
+		});
+		expect(output).toContain(source);
+		expect(output).not.toContain('src="notes.md"');
+		expect(output).toContain('data-ex-markdown-source');
+	},
+);
