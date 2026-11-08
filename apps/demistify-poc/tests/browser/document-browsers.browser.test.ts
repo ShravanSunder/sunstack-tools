@@ -2,6 +2,10 @@ import { afterEach, expect, test } from 'vitest';
 import { commands, page } from 'vitest/browser';
 
 import { browserScreenshotPath } from './browser-evidence.ts';
+import {
+	capturePreparedAuthor,
+	captureReaderReachability,
+} from './document-reader-observations.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
 const modalRule =
@@ -287,167 +291,10 @@ test('a standalone record body renders its prepared Markdown and diagram', async
 	expect(requiredElement(fixture, 'ex-markdown').textContent).toContain('draft-before-save');
 });
 
-interface ReaderObservation {
-	readonly html: string;
-	readonly text: string;
-	readonly diagrams: readonly {
-		readonly html: string;
-		readonly text: string;
-		readonly width: number;
-		readonly height: number;
-	}[];
-	readonly markdown: readonly { readonly html: string; readonly text: string }[];
-}
-
-async function observeReader(scope: Element): Promise<ReaderObservation> {
-	const visibleDiagrams = [...scope.querySelectorAll('ex-mermaid')].filter(
-		(element) => !element.closest('details:not([open])') && element.getClientRects().length > 0,
-	);
-	await visibleDiagrams.reduce(async (previous, element): Promise<void> => {
-		await previous;
-		element.scrollIntoView({ block: 'center', behavior: 'instant' });
-		await expect
-			.poll(() => element.querySelector('svg')?.textContent?.trim().length ?? 0)
-			.toBeGreaterThan(0);
-	}, Promise.resolve());
-	await expect
-		.poll(() =>
-			[...scope.querySelectorAll('ex-markdown')]
-				.filter(
-					(element) =>
-						!element.closest('details:not([open])') && element.getClientRects().length > 0,
-				)
-				.every((element) => element.hasAttribute('prepared')),
-		)
-		.toBe(true);
-	const diagrams = [...scope.querySelectorAll('ex-mermaid svg')].map((svg) => ({
-		html: svg.outerHTML,
-		text: svg.textContent ?? '',
-		width: svg.getBoundingClientRect().width,
-		height: svg.getBoundingClientRect().height,
-	}));
-	const markdown = [...scope.querySelectorAll('ex-markdown[prepared]')].map((element) => ({
-		html: element.innerHTML,
-		text: element.textContent ?? '',
-	}));
-	return { html: scope.innerHTML, text: scope.textContent ?? '', diagrams, markdown };
-}
-
 /** Generic observations only: the independent author oracle judges their factual fidelity. */
 test.each([1600, 390])(
 	'capture external prepared author reader at %ipx',
-	async (width): Promise<void> => {
-		await page.viewport(width, width === 390 ? 844 : 1000);
-		const { document: fixture, frame } = await openFixture(
-			'document-author',
-			'',
-			'requirements.html',
-		);
-		await expect.poll(() => fixture.querySelector('ex-requirements[data-ready]')).not.toBeNull();
-		expect(fixture.querySelector('ex-requirements [role="alert"]')).toBeNull();
-		const scripts = [...fixture.scripts].filter((script) => script.src).map((script) => script.src);
-		const styles = [...fixture.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map(
-			(link) => link.href,
-		);
-		expect(scripts.length).toBeGreaterThan(0);
-		expect(scripts.every((address) => new URL(address).pathname.endsWith('/runtime.js'))).toBe(
-			true,
-		);
-		expect(styles.length).toBeGreaterThan(0);
-		expect(styles.every((address) => new URL(address).pathname.endsWith('/theme.css'))).toBe(true);
-		const needs = [
-			...fixture.querySelectorAll<HTMLElement>('.ex-design-requirement-list button[data-need]'),
-		].map((button) => button.dataset['need'] ?? '');
-		expect(needs.length).toBeGreaterThan(0);
-		await needs.reduce(async (previous, needId): Promise<void> => {
-			await previous;
-			const back = fixture.querySelector<HTMLButtonElement>('[data-action="back-to-needs"]');
-			if (back && back.getClientRects().length > 0) await fixtureLocator(frame, back).click();
-			await fixtureLocator(
-				frame,
-				requiredElement(
-					fixture,
-					`.ex-design-requirement-list button[data-need="${CSS.escape(needId)}"]`,
-				),
-			).click();
-			await ['Overview', 'Specification', 'Program Design', 'Verification'].reduce(
-				async (previousStage, stage): Promise<void> => {
-					await previousStage;
-					await frame.getByRole('button', { name: stage, exact: true }).click();
-					const panel = requiredElement(fixture, '.ex-design-document-panel');
-					const observation = await observeReader(panel);
-					expect(panel.querySelector('[role="alert"]')).toBeNull();
-					requiredElement(fixture, '.ex-design-document-header').scrollIntoView({
-						block: 'start',
-						behavior: 'instant',
-					});
-					await expect(
-						JSON.stringify({ width, needId, stage, scripts, styles, observation }, null, 2),
-					).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-${needId}-${stage}.json`));
-					await page.screenshot({
-						path: browserScreenshotPath(`author-${width}-${needId}-${stage}.png`),
-					});
-				},
-				Promise.resolve(),
-			);
-			await frame.getByRole('button', { name: 'View together', exact: true }).click();
-			const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
-			const related = await observeReader(requiredElement(workspace, '.ex-design-related-content'));
-			await Promise.all(
-				fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
-			);
-			requiredElement(workspace, '.ex-design-related-content').scrollTop = 0;
-			await expect(
-				JSON.stringify({ width, needId, view: 'related', observation: related }, null, 2),
-			).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-${needId}-related.json`));
-			await page.screenshot({
-				path: browserScreenshotPath(`author-${width}-${needId}-related.png`),
-			});
-			await frame.getByRole('button', { name: 'Open call stack', exact: true }).last().click();
-			await expect.poll(() => workspace.querySelector('ex-call-stack[data-ready]')).not.toBeNull();
-			const call = workspace.querySelector<HTMLButtonElement>('button[data-frame]');
-			if (call) await fixtureLocator(frame, call).click();
-			const calls = await observeReader(workspace);
-			await Promise.all(
-				fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
-			);
-			await expect(
-				JSON.stringify({ width, needId, view: 'calls', observation: calls }, null, 2),
-			).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-${needId}-calls.json`));
-			await page.screenshot({ path: browserScreenshotPath(`author-${width}-${needId}-calls.png`) });
-			const closeDetails = workspace.querySelector<HTMLButtonElement>(
-				'[data-action="close-call-details"]',
-			);
-			if (closeDetails && closeDetails.getClientRects().length > 0)
-				await fixtureLocator(frame, closeDetails).click();
-			await frame.getByRole('button', { name: 'Back to related documents', exact: true }).click();
-			await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
-		}, Promise.resolve());
-		const resources =
-			fixture.defaultView?.performance.getEntriesByType('resource').map((entry) => ({
-				name: entry.name,
-				initiatorType:
-					'initiatorType' in entry && typeof entry.initiatorType === 'string'
-						? entry.initiatorType
-						: 'unknown',
-				entryType: entry.entryType,
-			})) ?? [];
-		expect(resources.length).toBeGreaterThan(0);
-		await expect(
-			JSON.stringify(
-				{
-					width,
-					scripts,
-					styles,
-					resources,
-					limits:
-						'Document PerformanceResourceTiming only. Worker-internal, cached or browser-internal requests absent from these entries are not a complete request graph.',
-				},
-				null,
-				2,
-			),
-		).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-resources.json`));
-	},
+	capturePreparedAuthor,
 	120_000,
 );
 
@@ -512,6 +359,55 @@ test.each([1600, 390])(
 function readOutcomeBadges(scope: Element): readonly string[] {
 	return [...scope.querySelectorAll('ex-badge')].map((badge) => badge.textContent?.trim() ?? '');
 }
+
+test('a wide Specification table stays local while its phone heading and rule remain readable', async (): Promise<void> => {
+	// Arrange: ordinary authored columns have an intrinsic width larger than the phone.
+	await page.viewport(390, 844);
+	const { document: fixture, frame } = await openFixture(
+		'document-browsers',
+		'',
+		'wide-table/requirements.html?need=DraftNeed&stage=specification',
+	);
+	await expect.poll(() => fixture.querySelector('.ex-design-stage-record')).not.toBeNull();
+	const selectors = [
+		'.ex-design-document-panel',
+		'.ex-design-stage-detail',
+		'.ex-design-stage-record',
+		'.ex-design-stage-record-heading',
+		'.ex-design-stage-record [data-ex-part="rule"]',
+		'.ex-design-stage-record .ex-table-scroll',
+	];
+	const geometry = selectors.map((selector) => {
+		const element = requiredElement(fixture, selector);
+		const style = getComputedStyle(element);
+		return {
+			selector,
+			bounds: element.getBoundingClientRect(),
+			clientWidth: element.clientWidth,
+			scrollWidth: element.scrollWidth,
+			minWidth: style.minWidth,
+			gridColumns: style.gridTemplateColumns,
+			overflowX: style.overflowX,
+		};
+	});
+	await expect(JSON.stringify(geometry, null, 2)).toMatchFileSnapshot(
+		browserScreenshotPath('wide-table-phone-geometry.json'),
+	);
+	await page.screenshot({ path: browserScreenshotPath('wide-table-phone.png') });
+	// Assert: the viewport is the independent boundary, not a copy of a CSS declaration.
+	for (const selector of selectors) {
+		const bounds = requiredElement(fixture, selector).getBoundingClientRect();
+		expect(bounds.left, selector).toBeGreaterThanOrEqual(0);
+		expect(bounds.right, selector).toBeLessThanOrEqual(390);
+	}
+	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+	await captureReaderReachability({
+		fixture,
+		frame,
+		scope: requiredElement(fixture, '.ex-design-document-panel'),
+		label: 'wide-table-phone',
+	});
+});
 
 test('a 390px Program diagram reaches both local endpoints with native horizontal wheel input', async (): Promise<void> => {
 	await page.viewport(390, 844);

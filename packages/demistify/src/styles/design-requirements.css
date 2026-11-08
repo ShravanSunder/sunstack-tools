@@ -443,6 +443,7 @@ ex-design-related {
 }
 .ex-design-stage-summaries > section,
 .ex-design-stage-record {
+	min-width: 0;
 	padding: var(--space-4);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);

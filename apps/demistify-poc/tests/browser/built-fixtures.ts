@@ -136,6 +136,10 @@ export async function builtFixtures(): Promise<Plugin> {
 		'apps/demistify-poc/experiments/agent-written/document-browsers',
 	);
 	const documentCases = [
+		{
+			name: 'wide-table',
+			files: ['requirements.html', 'specification.html'],
+		},
 		{ name: 'needs', files: ['requirements.html'] },
 		{ name: 'rules', files: ['requirements.html', 'specification.html'] },
 		{
@@ -160,6 +164,24 @@ export async function builtFixtures(): Promise<Plugin> {
 			await Promise.all(
 				files.map((file) => cp(join(documentSource, file), join(destination, file))),
 			);
+			if (name === 'wide-table') {
+				const file = join(destination, 'specification.html');
+				const columns = [
+					'InitialInputIdentifier',
+					'WriterSourceFingerprint',
+					'RefusalEvidenceChecksum',
+					'ResolutionBoundaryName',
+					'RecoveredPayloadIdentifier',
+				];
+				const table = `<div class="ex-table-scroll" data-ex-part="cases"><table><thead><tr>${columns.map((column) => `<th>${column}</th>`).join('')}</tr></thead><tbody><tr>${columns.map((column) => `<td>${column}-retained</td>`).join('')}</tr></tbody></table></div>`;
+				await writeFile(
+					file,
+					(await readFile(file, 'utf8')).replace(
+						/<figure data-ex-part="cases">[\s\S]*?<\/figure>/,
+						table,
+					),
+				);
+			}
 			const prepared = await prepareDesignPages(destination);
 			await Promise.all(
 				[...prepared.pages].map(([file, html]) => writeFile(join(destination, file), html)),
