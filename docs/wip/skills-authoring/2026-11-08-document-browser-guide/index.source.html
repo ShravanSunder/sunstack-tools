@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Teach the public document browsers</title>
+		<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css" />
+		<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+	</head>
+	<body>
+		<ex-nav for="guide-review"></ex-nav
+		><ex-document id="guide-review"
+			><h1>Teach the public document browsers</h1>
+			<p>
+				Add one component-reference route to the existing Demistify authoring guide, with a complete
+				ordinary-HTML example. The guide is implemented and the named authoring observations are
+				recorded in its source parts. Final component/style corrections and publication remain open.
+			</p>
+			<p>
+				This page carries the four source parts unchanged. The new readers are an unreleased source
+				candidate; this review page uses only existing public v1 components.
+			</p>
+			<h2>Requirements</h2>
+			<ex-markdown id="guide-requirements" src="requirements.md"></ex-markdown>
+			<h2>Specification</h2>
+			<ex-markdown id="guide-specification" src="specification.md"></ex-markdown>
+			<h2>Skill design</h2>
+			<ex-markdown id="guide-design" src="skill-design.md"></ex-markdown>
+			<h2>Skill verification</h2>
+			<ex-markdown id="guide-verification" src="skill-verification.md"></ex-markdown> </ex-document
+		><ex-presentation
+			id="guide-design-path"
+			title="Read the guide design"
+			description="Review the promise, obligations, writing boundary and proof."
+			><ex-step to="guide-requirements">The authoring need and evidence.</ex-step
+			><ex-step to="guide-specification">The guide obligations and transfer cases.</ex-step
+			><ex-step to="guide-design">The one writing run and its boundaries.</ex-step
+			><ex-step to="guide-verification">The named proof and its limits.</ex-step></ex-presentation
+		>
+	</body>
+</html>
