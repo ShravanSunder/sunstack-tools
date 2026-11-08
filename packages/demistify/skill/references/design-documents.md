@@ -79,7 +79,15 @@ This example describes a fictional trail-planning design. The observation is an 
   <script type="module" src="./demistify/runtime.js"></script>
 </head>
 <body>
-  <ex-nav for="needs"><a href="execution.html">Source calls</a></ex-nav>
+  <ex-nav for="needs">
+    <nav slot="pages" aria-label="Pages">
+      <a href="requirements.html">Requirements</a>
+      <a href="specification.html">Specification</a>
+      <a href="program-design.html">Program Design</a>
+      <a href="verification.html">Verification</a>
+      <a href="execution.html">Execution</a>
+    </nav>
+  </ex-nav>
   <ex-document id="needs">
     <h1>Plan an available route</h1>
     <p>The seasonal register supplies closure notices.</p>
@@ -112,6 +120,15 @@ This example describes a fictional trail-planning design. The observation is an 
   <script type="module" src="./demistify/runtime.js"></script>
 </head>
 <body>
+  <ex-nav for="rule-page">
+    <nav slot="pages" aria-label="Pages">
+      <a href="requirements.html">Requirements</a>
+      <a href="specification.html">Specification</a>
+      <a href="program-design.html">Program Design</a>
+      <a href="verification.html">Verification</a>
+      <a href="execution.html">Execution</a>
+    </nav>
+  </ex-nav>
   <ex-document id="rule-page">
     <h1>Closure rule</h1>
     <p><a href="requirements.html">Read by need</a></p>
@@ -146,6 +163,15 @@ This example describes a fictional trail-planning design. The observation is an 
   <script type="module" src="./demistify/runtime.js"></script>
 </head>
 <body>
+  <ex-nav for="design-page">
+    <nav slot="pages" aria-label="Pages">
+      <a href="requirements.html">Requirements</a>
+      <a href="specification.html">Specification</a>
+      <a href="program-design.html">Program Design</a>
+      <a href="verification.html">Verification</a>
+      <a href="execution.html">Execution</a>
+    </nav>
+  </ex-nav>
   <ex-document id="design-page">
     <h1>Notice ownership</h1>
     <p><a href="requirements.html">Read by need</a></p>
@@ -191,6 +217,15 @@ The diagram describes ownership, not an observed request.
   <script type="module" src="./demistify/runtime.js"></script>
 </head>
 <body>
+  <ex-nav for="verification-page">
+    <nav slot="pages" aria-label="Pages">
+      <a href="requirements.html">Requirements</a>
+      <a href="specification.html">Specification</a>
+      <a href="program-design.html">Program Design</a>
+      <a href="verification.html">Verification</a>
+      <a href="execution.html">Execution</a>
+    </nav>
+  </ex-nav>
   <ex-document id="verification-page">
     <h1>Notice check</h1>
     <p><a href="requirements.html">Read by need</a></p>
@@ -223,7 +258,15 @@ The diagram describes ownership, not an observed request.
   <script type="module" src="./demistify/runtime.js"></script>
 </head>
 <body>
-  <ex-nav for="calls"><a href="requirements.html">Read by need</a></ex-nav>
+  <ex-nav for="calls">
+    <nav slot="pages" aria-label="Pages">
+      <a href="requirements.html">Requirements</a>
+      <a href="specification.html">Specification</a>
+      <a href="program-design.html">Program Design</a>
+      <a href="verification.html">Verification</a>
+      <a href="execution.html">Execution</a>
+    </nav>
+  </ex-nav>
   <ex-document id="calls">
     <h1>Supplied notice calls</h1>
     <p>These fictional source descriptions do not establish execution.</p>
@@ -259,7 +302,7 @@ The checker validates individual pages and their prepared carrier/markup; direct
 
 ## Partial work and truthful results
 
-A needs-only collection is the complete `requirements.html` above, with its Source calls navigation link omitted, in its own directory with the same complete library binding. There is no `execution.html`, no invented stack and no later metadata to add. Missing stages show “Not yet written”; call views have no authored path to select. For a specification-only continuation, add `specification.html`; still omit unwritten design, verification and execution pages. If a canonical owner file exists but has no records, its one metadata array is `[]`.
+A needs-only collection is the complete `requirements.html` above, with only its `requirements.html` Home link in the native page list, in its own directory with the same complete library binding. There is no `execution.html`, no invented stack and no later metadata to add. Missing stages show “Not yet written”; call views have no authored path to select. For a specification-only continuation, add `specification.html` and keep the two native page lists limited to `requirements.html` first (Home), then `specification.html`; still omit unwritten design, verification and execution pages and their links. If a canonical owner file exists but has no records, its one metadata array is `[]`.
 
 A scenario without an observation is “Not run”; do not author an observation with `outcome: "Not run"`. A supplied observation uses `Pass`, `Fail` or `Partial`. Several supplied observations can point to one scenario: give each its own ID/body/summary and retain every supplied outcome. A later Fail does not overwrite an earlier Pass or become one green overall badge. Preserve actual target/setup/limits in observation HTML; the library does not classify every result as illustrative.
 
