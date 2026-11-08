@@ -12,7 +12,7 @@ test('the need browser starts at the first authored need without U1', async (): 
 		'requirements.html',
 	);
 	await expect
-		.poll(() => fixture.querySelector('.lab-document-subject small')?.textContent)
+		.poll(() => fixture.querySelector('.ex-design-document-subject small')?.textContent)
 		.toBe('FirstNeed · Input ownership');
 	expect(fixture.querySelector('[role="alert"]')).toBeNull();
 });
@@ -22,9 +22,7 @@ test('standalone calls start from the first authored stack and frame', async ():
 	await expect
 		.poll(() => fixture.querySelector('button[data-frame="0"]')?.getAttribute('aria-pressed'))
 		.toBe('true');
-	expect(requiredElement(fixture, 'lab-execution-review summary').textContent).toContain(
-		'Open Help',
-	);
+	expect(requiredElement(fixture, 'ex-call-stack summary').textContent).toContain('Open Help');
 	expect(fixture.querySelector('[role="alert"]')).toBeNull();
 });
 
@@ -37,7 +35,7 @@ test('an unmapped need keeps its gap while the authored stack remains usable', a
 	);
 	await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
 	await expect.poll(() => fixture.querySelector('ex-drawer button[data-frame="0"]')).not.toBeNull();
-	expect(requiredElement(fixture, '.lab-related-content').textContent).toContain(
+	expect(requiredElement(fixture, '.ex-design-related-content').textContent).toContain(
 		'No call is mapped to this need',
 	);
 	expect(fixture.querySelector('button[data-frame][aria-pressed="true"]')).toBeNull();

@@ -38,7 +38,7 @@ export function updateCallAddress(stackId: string, callId: string): void {
 	address.searchParams.set('call', callId);
 	history.replaceState(history.state, '', address);
 }
-export function revealStudyFragment(root: HTMLElement): void {
+export function revealDocumentFragment(root: HTMLElement): void {
 	if (!location.hash) return;
 	requestAnimationFrame((): void => {
 		let fragment: string;

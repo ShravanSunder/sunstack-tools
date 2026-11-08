@@ -3,11 +3,12 @@ import { tmpdir } from 'node:os';
 import { extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { prepareDesignPages } from '@sunstack/demistify/design-collection';
+import { collectionSchema } from '@sunstack/demistify/design-records';
 import type { Plugin } from 'vite';
 
 import { indexCollectionSearch } from '../../../../packages/demistify/src/node/collection-search.ts';
 import { embedMarkdownFiles } from '../../../../packages/demistify/src/node/markdown-files.ts';
-import { prepareUnderstandingPages } from '../../scripts/collect-understanding-records.ts';
 import { writeCollectionFixture } from '../collection-fixture.ts';
 import { installDefaultCommentsFixtures } from './default-comments-fixtures.ts';
 
@@ -89,14 +90,38 @@ export async function builtFixtures(): Promise<Plugin> {
 		),
 	);
 	await cp(
-		resolve(repositoryRoot, 'apps/demistify-poc/public/experiments/understanding-lab'),
+		process.env['DEMISTIFY_BROWSER_LAB'] ??
+			resolve(repositoryRoot, 'apps/demistify-poc/public/experiments/understanding-lab'),
 		join(snapshot, 'understanding'),
 		{ recursive: true },
 	);
 	await cp(join(snapshot, 'library'), join(snapshot, 'understanding/library'), { recursive: true });
+	const rulePage = await readFile(join(snapshot, 'understanding/requirements.html'), 'utf8');
+	const carrier = /(<script[^>]*data-ex-design-collection[^>]*>)([\s\S]*?)(<\/script>)/.exec(
+		rulePage,
+	);
+	if (!carrier?.[2]) throw new Error('Missing prepared rule carrier.');
+	const ruleCollection = collectionSchema.parse(JSON.parse(carrier[2]));
+	const trailingNoteCollection = {
+		...ruleCollection,
+		records: ruleCollection.records.map((item) =>
+			item.record.id === 'S2'
+				? Object.assign({}, item, {
+						bodyHtml: `${item.bodyHtml}<p>A trailing author note is not the observable rule.</p>`,
+					})
+				: item,
+		),
+	};
+	await writeFile(
+		join(snapshot, 'understanding/trailing-note.html'),
+		rulePage.replace(
+			carrier[0],
+			`${carrier[1]}${JSON.stringify(trailingNoteCollection).replaceAll('<', '\\u003c')}${carrier[3]}`,
+		),
+	);
 	const collectionSource = join(snapshot, 'collection-source');
 	await writeCollectionFixture(collectionSource);
-	const collectionFixture = await prepareUnderstandingPages(collectionSource);
+	const collectionFixture = await prepareDesignPages(collectionSource);
 	await cp(join(snapshot, 'understanding'), join(snapshot, 'understanding-collection'), {
 		recursive: true,
 	});
@@ -104,6 +129,115 @@ export async function builtFixtures(): Promise<Plugin> {
 		[...collectionFixture.pages].map(([file, html]) =>
 			writeFile(join(snapshot, 'understanding-collection', file), html),
 		),
+	);
+	const documentSource = resolve(
+		repositoryRoot,
+		'apps/demistify-poc/experiments/agent-written/document-browsers',
+	);
+	const documentCases = [
+		{ name: 'needs', files: ['requirements.html'] },
+		{ name: 'rules', files: ['requirements.html', 'specification.html'] },
+		{
+			name: 'design',
+			files: ['requirements.html', 'specification.html', 'program-design.html', 'notes.md'],
+		},
+		{
+			name: 'full',
+			files: [
+				'requirements.html',
+				'specification.html',
+				'program-design.html',
+				'verification.html',
+				'notes.md',
+			],
+		},
+	];
+	await Promise.all(
+		documentCases.map(async ({ name, files }): Promise<void> => {
+			const destination = join(snapshot, 'document-browsers', name);
+			await mkdir(destination, { recursive: true });
+			await Promise.all(
+				files.map((file) => cp(join(documentSource, file), join(destination, file))),
+			);
+			const prepared = await prepareDesignPages(destination);
+			await Promise.all(
+				[...prepared.pages].map(([file, html]) => writeFile(join(destination, file), html)),
+			);
+		}),
+	);
+	const revisionCases = ['revision-base', 'revision-body'];
+	await Promise.all(
+		revisionCases.map(async (name): Promise<void> => {
+			const destination = join(snapshot, 'document-browsers', name);
+			await cp(documentSource, destination, { recursive: true });
+			if (name === 'revision-body') {
+				const file = join(destination, 'specification.html');
+				await writeFile(
+					file,
+					(await readFile(file, 'utf8')).replace(
+						'the same draft text remains editable',
+						'the same draft text and cursor remain editable',
+					),
+				);
+			}
+			if (name.startsWith('revision-md-'))
+				await writeFile(join(destination, 'notes.md'), `${name}: changed **Markdown** source.`);
+			const prepared = await prepareDesignPages(destination);
+			await Promise.all(
+				[...prepared.pages].map(([file, html]) => writeFile(join(destination, file), html)),
+			);
+			const repeated = await prepareDesignPages(destination);
+			if (repeated.collection.identity !== prepared.collection.identity)
+				throw new Error('Repeated preparation changed revision.');
+		}),
+	);
+	const markdownWorking = join(snapshot, 'markdown-source');
+	await cp(join(snapshot, 'document-browsers', 'revision-base'), markdownWorking, {
+		recursive: true,
+	});
+	await ['revision-md-first', 'revision-md-second'].reduce(
+		async (previous, name): Promise<void> => {
+			await previous;
+			await writeFile(join(markdownWorking, 'notes.md'), `${name}: changed **Markdown** source.`);
+			const prepared = await prepareDesignPages(markdownWorking);
+			await Promise.all(
+				[...prepared.pages].map(([file, html]) => writeFile(join(markdownWorking, file), html)),
+			);
+			if (
+				!(await readFile(join(markdownWorking, 'program-design.html'), 'utf8')).includes(
+					'src="notes.md"',
+				)
+			)
+				throw new Error('Preparation consumed the authored Markdown source reference.');
+			await cp(markdownWorking, join(snapshot, 'document-browsers', name), { recursive: true });
+		},
+		Promise.resolve(),
+	);
+	const unprepared = await readFile(join(documentSource, 'requirements.html'), 'utf8');
+	await writeFile(join(snapshot, 'document-browsers', 'unprepared.html'), unprepared);
+	const preparedFull = await readFile(
+		join(snapshot, 'document-browsers', 'full', 'requirements.html'),
+		'utf8',
+	);
+	await writeFile(
+		join(snapshot, 'document-browsers', 'invalid.html'),
+		preparedFull.replace('"version":1', '"version":2'),
+	);
+	const preparedCarrier =
+		/(<script[^>]*data-ex-design-collection[^>]*>)([\s\S]*?)(<\/script>)/.exec(preparedFull);
+	if (!preparedCarrier?.[2]) throw new Error('Missing public prepared carrier.');
+	const parsedCarrier = collectionSchema.parse(JSON.parse(preparedCarrier[2]));
+	await writeFile(
+		join(snapshot, 'document-browsers', 'empty.html'),
+		preparedFull.replace(
+			preparedCarrier[0],
+			`${preparedCarrier[1]}${JSON.stringify(Object.assign({}, parsedCarrier, { records: [] }))}${preparedCarrier[3]}`,
+		),
+	);
+	await cp(
+		process.env['DEMISTIFY_BROWSER_AUTHOR'] ?? join(snapshot, 'document-browsers', 'full'),
+		join(snapshot, 'document-author'),
+		{ recursive: true },
 	);
 	const reviewHtml = await readFile(join(snapshot, 'review/index.html'), 'utf8');
 	await writeFile(

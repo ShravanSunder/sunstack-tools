@@ -64,19 +64,24 @@ export const preparedRecordSchema = z.strictObject({
 	summary: z.string(),
 	bodyHtml: z.string(),
 });
-export const collectionSchema = z.strictObject({
-	identity: text,
-	records: z.array(preparedRecordSchema),
-});
+export const collectionSchema = z
+	.strictObject({
+		version: z.literal(1),
+		identity: text,
+		records: z.array(preparedRecordSchema),
+	})
+	.refine((collection) => collection.records.some(({ record }) => record.kind === 'need'), {
+		message: 'A reader collection needs at least one user need.',
+	});
 export type PreparedCollection = z.infer<typeof collectionSchema>;
 export type PreparedRecord = z.infer<typeof preparedRecordSchema>;
 
 /** Only the build-prepared, validated local snapshot supplies browser facts. */
-export function readCollection(): PreparedCollection {
-	const source = document.querySelector('script[data-lab-collection]');
+export function readCollection(ownerDocument: Document = document): PreparedCollection {
+	const source = ownerDocument.querySelector('script[data-ex-design-collection]');
 	if (!source?.textContent)
 		throw new Error(
-			'Local data unavailable. Prepare the understanding lab before opening this page.',
+			'Design collection unavailable. Run demistify prepare on the collection directory.',
 		);
 	const raw: unknown = JSON.parse(source.textContent);
 	return collectionSchema.parse(raw);

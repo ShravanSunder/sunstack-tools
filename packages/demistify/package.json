@@ -8,6 +8,9 @@
 	},
 	"type": "module",
 	"exports": {
+		"./elements": "./src/elements.ts",
+		"./design-collection": "./src/node/design-collection.ts",
+		"./design-records": "./src/design-documents/collection.ts",
 		"./runtime": "./dist/runtime.js",
 		"./theme.css": "./dist/theme.css",
 		"./packaging": "./src/node/packaging.ts",

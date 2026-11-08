@@ -1,9 +1,8 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
+import { recordSchema } from '@sunstack/demistify/design-records';
 import { z } from 'zod';
-
-import { recordSchema } from '../src/understanding-lab/collection-data.ts';
 
 /** A real authored collection with different entry identities and only its Help call path. */
 export async function writeCollectionFixture(output: string): Promise<void> {
@@ -15,7 +14,7 @@ export async function writeCollectionFixture(output: string): Promise<void> {
 			.map(async (file): Promise<void> => {
 				let html = (await readFile(join(source, file), 'utf8')).replaceAll('U1', 'FirstNeed');
 				if (file === 'execution.html') {
-					const block = /(<script[^>]*data-lab-records[^>]*>)([\s\S]*?)(<\/script>)/.exec(html);
+					const block = /(<script[^>]*data-ex-records[^>]*>)([\s\S]*?)(<\/script>)/.exec(html);
 					if (!block?.[2]) throw new Error('Execution record block missing.');
 					const records = z.array(recordSchema).parse(JSON.parse(block[2]));
 					const stack = records.find(

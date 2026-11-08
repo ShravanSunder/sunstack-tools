@@ -23,6 +23,7 @@ import { renderThemedDiagram } from '../render/diagram.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
 import { renderChoiceTitle, renderMarkdownContent } from '../render/markdown-content.ts';
 import { checkAttributes, closest, taughtElements, vocabulary } from '../vocabulary.ts';
+import { checkDesignMarkup } from './design-markup.ts';
 import { checkMapMarkup } from './map-markup.ts';
 import { checkStoryMarkup } from './story-markup.ts';
 
@@ -213,6 +214,8 @@ export interface CheckOptions {
 
 export async function checkHtml(source: string, options: CheckOptions = {}): Promise<Finding[]> {
 	const findings: Finding[] = [];
+	for (const message of checkDesignMarkup(source))
+		findings.push({ line: 1, column: 1, severity: 'error', rule: 'design-collection', message });
 	const document = parse(source, { sourceCodeLocationInfo: true });
 	const elements = Array.from(walk(document));
 	const inertTemplateElements = new Set(

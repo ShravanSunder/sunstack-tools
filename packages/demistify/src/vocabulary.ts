@@ -75,6 +75,20 @@ export const layoutAttributes: Readonly<Record<string, AttributeSpec>> = {
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
+	'ex-requirements': {
+		description: 'Read a prepared design collection by need and document stage.',
+		attributes: {
+			id: { type: { kind: 'id' }, required: true, description: 'Stable reader identity.' },
+			label: { type: { kind: 'text' }, description: 'Reader label.' },
+		},
+	},
+	'ex-call-stack': {
+		description: 'Read supplied source call paths from a prepared design collection.',
+		attributes: {
+			id: { type: { kind: 'id' }, required: true, description: 'Stable reader identity.' },
+			label: { type: { kind: 'text' }, description: 'Reader label.' },
+		},
+	},
 	...storyElementVocabulary({ icon, tone, series: categorySeries }),
 	'ex-drawer': {
 		description: 'An animated non-modal bottom workspace that can stay open beside Comments.',

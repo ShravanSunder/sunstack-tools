@@ -63,6 +63,9 @@ const styles = await Promise.all(
 		'choice-comments.css',
 		'document-widths.css',
 		'reader-controls.css',
+		'design-documents.css',
+		'design-requirements.css',
+		'design-calls.css',
 	].map((name): Promise<string> => readFile(resolve(packageRoot, 'src/styles', name), 'utf8')),
 );
 await mkdir(resolve(outputDirectory, 'fonts'), { recursive: true });

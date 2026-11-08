@@ -23,7 +23,7 @@ The Gateway/Registry/Session records, requirements, source addresses and observa
 
 ## Focus and navigation
 
-Both browsers use the shared Canvas width, a quiet 8 px focus outline with interior padding, and the same private `lab-search-picker`. Its caller supplies labels, option details and selection meaning. It owns the search icon, native input, bounded result list, autofocus, arrow selection, Enter and Escape. Whole-document search retains its separate ownership and matching behavior.
+Both browsers use the shared Canvas width, a quiet 8 px focus outline with interior padding, and the same library-owned internal picker. Its caller supplies labels, option details and selection meaning. It owns the search icon, native input, bounded result list, autofocus, arrow selection, Enter and Escape. Whole-document search retains its separate ownership and matching behavior.
 
 - Requirements: in wide views or the narrow detail view, Previous/Next and Left/Right arrows move through the currently filtered needs. A one-need filter disables both buttons. The picker and editable controls keep their own keys.
 - Wide requirements views use a list column clamped to 300–520 px at 35% of the available width, beside a padded detail surface. At 740 px or less of component width, the list and detail become separate views. A tap opens full-width detail; Back restores the filter and selected row. Browser Back/Forward work too. Reading uses normal page scrolling, and Previous/Next sit after the detail; phone keyboard hints are hidden.
@@ -52,7 +52,7 @@ The illustrative stacks are `start-session`, `open-help` and `choose-machine`. T
 
 ## Source and limits
 
-Implementation lives in `src/understanding-lab/`; pages and comparison styles live here. The existing build script validates all inline records, body IDs and forward references before writing, embeds one generated collection snapshot into each output page, and bundles the private components with Vite. Browser views never fetch sibling data or fall back to old facts. There is no framework, backend or persisted response store.
+Reusable readers, schema and styles live in `packages/demistify/src/design-documents/` and `src/styles/design-*.css`. The app owns these example pages and archive studies. The build uses the public `prepareDesignPages` entry to validate all inline records, body IDs and forward references before writing one versioned collection snapshot into each output page. Active pages load `ex-requirements` and `ex-call-stack` through the shared runtime and theme. Browser views never fetch sibling data or fall back to old facts. There is no framework, backend or persisted response store.
 
 Production radius tokens remain 4/8/12 px. Mermaid palette slots use encountered identities unless categories are declared explicitly; colors do not infer domain types. The prototype's categories are explicit. Ordinary card surfaces use 8 px; stage rails are separators inside the detail surface. Card comparisons keep their base color, content, dimensions and shadow equal; only the named bands or body change. In the light theme, the base is already white, so the lighter-body variant reaches the same white limit.
 
@@ -62,7 +62,7 @@ Forward relationships are authored once: specification → need, design/scenario
 
 ## Record structure
 
-The current fixture contains 42 records: six needs, six specification rules, five program designs, seven scenarios, four observations, eleven call frames and three stacks. The authoritative schema is [`collection-data.ts`](../../src/understanding-lab/collection-data.ts).
+The current fixture contains 42 records: six needs, six specification rules, five program designs, seven scenarios, four observations, eleven call frames and three stacks. The authoritative schema is [library collection schema](../../../../packages/demistify/src/design-documents/collection.ts).
 
 Metadata names identities and forward references. Rich explanation stays in the owning HTML page, with `bodyRef` and `summaryRef` pointing at its body and summary. The preparation step validates every owner, body reference and edge kind before generating a collection with `record`, `page`, `summary` and `bodyHtml`. Call frames and stacks carry their supplied inline fields.
 
@@ -77,10 +77,10 @@ Metadata names identities and forward references. Rich explanation stays in the 
 }
 ```
 
-C1 is shared rather than copied for U1 and U2. V2 and V2-keyboard are separate scenarios; an observation attaches to its scenario. Missing observation means Not run, rather than a stored passing result. The preparation script and schema are experimental app inputs, not a universal public graph API.
+C1 is shared rather than copied for U1 and U2. V2 and V2-keyboard are separate scenarios; an observation attaches to its scenario. Missing observation means Not run, rather than a stored passing result. The public preparer and schema describe this document collection; archives remain app-owned.
 
-Document cards and the normal title/control header use the app-private `--lab-document-surface`: a 1% white lift over the page in dark mode and the existing white surface in light mode. The full workspace header, need rows and controls retain `--surface-content`; this does not redefine the shared library token. Verification procedure steps start open, with deeper driver and proof-limit details collapsed.
+Document cards and the normal title/control header use the library-scoped `--ex-design-document-surface`: a 1% white lift over the page in dark mode and the existing white surface in light mode. The full workspace header, need rows and controls retain `--surface-content`; this does not redefine the shared library token. Verification procedure steps start open, with deeper driver and proof-limit details collapsed.
 
 ### Collection entry
 
-Each prepared reader collection has at least one user need and one nonempty call stack. The preparer rejects missing entries before writing output. Valid need/stack/call addresses retain their selection behavior. Without a valid address, the browsers start with the first authored need, first authored stack and its first frame, in source order. No example-specific identity is required. An unmapped need retains its own explicit call-mapping gap while the available stack remains usable; it never inherits another need's observation.
+Each prepared reader collection has at least one user need. Later owner pages and call paths may be absent; a declared missing or wrong-kind reference still rejects before writing output. Valid need/stack/call addresses retain their selection behavior. Without a valid address, the browsers start with the first authored need, and the first authored stack and its first frame when supplied, in source order. A collection without call paths displays its empty state. No example-specific identity is required. An unmapped need retains its own explicit call-mapping gap while the available stack remains usable; it never inherits another need's observation.

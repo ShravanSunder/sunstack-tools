@@ -1,12 +1,12 @@
+import type { RequirementExample } from './collection-model.js';
 import {
 	readCollection,
 	type PreparedCollection,
 	type PreparedRecord,
 	type ScenarioOutcome,
-} from './collection-data.ts';
-import type { RequirementStage } from './study-links.ts';
-import { icon, outcomeBadge, safeText } from './study-markup.ts';
-import type { RequirementExample } from './study-model.js';
+} from './collection.ts';
+import type { RequirementStage } from './document-links.ts';
+import { icon, outcomeBadge, safeText } from './document-markup.ts';
 
 /** Backlinks are derived from the one authored forward edge at each owner. */
 export function recordsForNeed(
@@ -42,31 +42,63 @@ export function localDocumentBody(html: string, idPrefix = ''): string {
 	for (const heading of template.content.querySelectorAll('h1,h2,h3,h4,h5,h6')) {
 		const local = document.createElement('div');
 		for (const attribute of heading.attributes) local.setAttribute(attribute.name, attribute.value);
-		local.classList.add('lab-record-label');
+		local.classList.add('ex-design-record-label');
 		local.setAttribute('role', 'heading');
 		local.setAttribute('aria-level', heading.tagName.slice(1));
 		local.append(...heading.childNodes);
 		heading.replaceWith(local);
 	}
-	if (idPrefix)
-		for (const element of template.content.querySelectorAll('[id]'))
-			element.id = `${idPrefix}${element.id}`;
+	if (idPrefix) {
+		const ids = new Map(
+			[...template.content.querySelectorAll('[id]')].map((element) => [
+				element.id,
+				`${idPrefix}${element.id}`,
+			]),
+		);
+		for (const element of template.content.querySelectorAll('*')) {
+			const replacement = ids.get(element.id);
+			if (replacement) element.id = replacement;
+			for (const name of [
+				'for',
+				'aria-labelledby',
+				'aria-describedby',
+				'aria-controls',
+				'aria-owns',
+				'aria-details',
+				'aria-activedescendant',
+				'headers',
+			]) {
+				const value = element.getAttribute(name);
+				if (value)
+					element.setAttribute(
+						name,
+						value
+							.split(/\s+/)
+							.map((id) => ids.get(id) ?? id)
+							.join(' '),
+					);
+			}
+			const href = element.getAttribute('href');
+			if (href?.startsWith('#') && ids.has(href.slice(1)))
+				element.setAttribute('href', `#${ids.get(href.slice(1))}`);
+		}
+	}
 	return template.innerHTML;
 }
-/** `.lab-proof-design` is a private body-authoring hook, separated from example outcomes. */
+/** Explicit procedure content stays separate from supplied observations. */
 export function scenarioBodyParts(item: PreparedRecord): {
 	scenarioHtml: string;
 	proposalHtml: string;
 } {
 	const template = document.createElement('template');
 	template.innerHTML = item.bodyHtml;
-	const proposal = template.content.querySelector('.lab-proof-design');
+	const proposal = template.content.querySelector('[data-ex-part="procedure"]');
 	const proposalHtml = proposal?.outerHTML ?? '';
 	proposal?.remove();
 	return { scenarioHtml: template.innerHTML, proposalHtml };
 }
 
-/** The tab and the combined reader show the same scenario and example evidence. */
+/** The stage and related reader show the same scenario and supplied observations. */
 export function scenarioPresentation(item: PreparedRecord, idPrefix = ''): string {
 	const observations = readCollection().records.filter(
 		({ record }) => record.kind === 'observation' && record.scenario === item.record.id,
@@ -76,14 +108,18 @@ export function scenarioPresentation(item: PreparedRecord, idPrefix = ''): strin
 		? observations
 				.map(
 					(observation) =>
-						`<section class="lab-example-outcome" data-record-id="${observation.record.id}"><div class="lab-stage-record-heading"><strong>Illustrative result</strong>${observation.record.kind === 'observation' ? outcomeBadge(observation.record.outcome) : ''}</div>${localDocumentBody(observation.bodyHtml, idPrefix)}<small>${observation.record.id} · Example only · target not supplied</small></section>`,
+						`<section class="ex-design-example-outcome" data-record-id="${observation.record.id}"><div class="ex-design-stage-record-heading"><strong>Result</strong>${observation.record.kind === 'observation' ? outcomeBadge(observation.record.outcome) : ''}</div>${localDocumentBody(observation.bodyHtml, `${idPrefix}${observation.record.id}-`)}<small>${observation.record.id}</small></section>`,
 				)
 				.join('')
-		: `<div class="lab-example-outcome"><div class="lab-stage-record-heading"><strong>Illustrative result</strong>${outcomeBadge('Not run')}</div><p>No example outcome is attached to this scenario.</p></div>`;
+		: `<div class="ex-design-example-outcome"><div class="ex-design-stage-record-heading"><strong>Result</strong>${outcomeBadge('Not run')}</div><p>No outcome is attached to this scenario.</p></div>`;
 	return `${localDocumentBody(scenarioHtml, idPrefix)}${outcome}${localDocumentBody(proposalHtml, idPrefix)}`;
 }
 export function scenarioBadges(collection: PreparedCollection, needId: string): string {
-	return `<span class="lab-scenario-badges">${recordsForNeed(collection, needId, 'verification')
+	return `<span class="ex-design-scenario-badges">${recordsForNeed(
+		collection,
+		needId,
+		'verification',
+	)
 		.map(({ record }) =>
 			outcomeBadge(
 				scenarioOutcome(collection, record.id),
@@ -104,19 +140,17 @@ export function stageMarkup(
 	] satisfies { id: RequirementStage; title: string; icon: string }[];
 	const focused = stages.find((stage) => stage.id === focusedStage);
 	if (!focused)
-		return `<div class="lab-stage-summaries">${stages
+		return `<div class="ex-design-stage-summaries">${stages
 			.map(
 				(stage) =>
-					`<section id="${stage.id}-${need.id}"><div class="lab-stage-summary-heading"><div class="lab-local-heading" role="heading" aria-level="4">${stage.title}</div><button type="button" class="lab-navigation-action" data-document="${stage.id}" aria-label="${stage.title} details">Details ${icon('arrow-right')}</button></div>${recordsForNeed(
-						collection,
-						need.id,
-						stage.id,
-					)
-						.map(
-							(item) =>
-								`<div class="lab-summary-record" data-record-id="${item.record.id}"><div><span class="lab-soft">${safeText(item.record.id)}</span> · <strong>${safeText('title' in item.record ? item.record.title : '')}</strong>${stage.id === 'verification' ? outcomeBadge(scenarioOutcome(collection, item.record.id)) : ''}</div><p>${safeText(item.summary)}</p></div>`,
-						)
-						.join('')}</section>`,
+					`<section id="${stage.id}-${need.id}"><div class="ex-design-stage-summary-heading"><div class="ex-design-local-heading" role="heading" aria-level="4">${stage.title}</div><button type="button" class="ex-design-navigation-action" data-document="${stage.id}" aria-label="${stage.title} details">Details ${icon('arrow-right')}</button></div>${
+						recordsForNeed(collection, need.id, stage.id)
+							.map(
+								(item) =>
+									`<div class="ex-design-summary-record" data-record-id="${item.record.id}"><div><span class="ex-design-soft">${safeText(item.record.id)}</span> · <strong>${safeText('title' in item.record ? item.record.title : '')}</strong>${stage.id === 'verification' ? outcomeBadge(scenarioOutcome(collection, item.record.id)) : ''}</div><p>${safeText(item.summary)}</p></div>`,
+							)
+							.join('') || '<p role="status">Not yet written.</p>'
+					}</section>`,
 			)
 			.join('')}</div>`;
 	const bodies = recordsForNeed(collection, need.id, focused.id)
@@ -141,7 +175,7 @@ export function stageMarkup(
 			const specificationLinks = relatedSpecifications
 				.map(({ record }) =>
 					record.kind === 'specification'
-						? `<button type="button" class="lab-related-need" data-document="specification" data-context-need="${record.needs[0]}" data-record-target="${record.id}">${record.id}</button>`
+						? `<button type="button" class="ex-design-related-need" data-document="specification" data-context-need="${record.needs[0]}" data-record-target="${record.id}">${record.id}</button>`
 						: '',
 				)
 				.join(', ');
@@ -163,7 +197,7 @@ export function stageMarkup(
 					)
 					.map(
 						({ record }) =>
-							`<button type="button" class="lab-related-need" data-document="${stage}" data-record-target="${record.id}">${record.id}</button>`,
+							`<button type="button" class="ex-design-related-need" data-document="${stage}" data-record-target="${record.id}">${record.id}</button>`,
 					)
 					.join(', ');
 			const designLinks =
@@ -173,8 +207,8 @@ export function stageMarkup(
 				focused.id === 'verification'
 					? scenarioPresentation(item)
 					: localDocumentBody(item.bodyHtml);
-			return `<section class="lab-stage-record" data-record-id="${item.record.id}"><div class="lab-stage-record-heading"><div class="lab-local-heading" role="heading" aria-level="4" id="record-${item.record.id}"><span class="lab-soft">${item.record.id}</span> · ${safeText('title' in item.record ? item.record.title : item.summary)}</div></div>${body}<footer class="lab-record-links">${specifications.length ? `<p class="lab-record-relations">Specification: ${specificationLinks}</p>` : ''}${designLinks ? `<p class="lab-record-relations">Related design: ${designLinks}</p>` : ''}${checkLinks ? `<p class="lab-record-relations">Related checks: ${checkLinks}</p>` : ''}${backlinks.length ? `<p class="lab-record-relations">Also serves ${backlinks.map((id) => `<button type="button" class="lab-related-need" data-need="${id}">${id}</button>`).join(', ')}</p>` : ''}</footer></section>`;
+			return `<section class="ex-design-stage-record" data-record-id="${item.record.id}"><div class="ex-design-stage-record-heading"><div class="ex-design-local-heading" role="heading" aria-level="4" id="record-${item.record.id}"><span class="ex-design-soft">${item.record.id}</span> · ${safeText('title' in item.record ? item.record.title : item.summary)}</div></div>${body}<footer class="ex-design-record-links">${specifications.length ? `<p class="ex-design-record-relations">Specification: ${specificationLinks}</p>` : ''}${designLinks ? `<p class="ex-design-record-relations">Related design: ${designLinks}</p>` : ''}${checkLinks ? `<p class="ex-design-record-relations">Related checks: ${checkLinks}</p>` : ''}${backlinks.length ? `<p class="ex-design-record-relations">Also serves ${backlinks.map((id) => `<button type="button" class="ex-design-related-need" data-need="${id}">${id}</button>`).join(', ')}</p>` : ''}</footer></section>`;
 		})
 		.join('');
-	return `<section class="lab-stage-detail" id="${focused.id}-${need.id}">${bodies}</section>`;
+	return `<section class="ex-design-stage-detail" id="${focused.id}-${need.id}">${bodies || '<p role="status">Not yet written.</p>'}</section>`;
 }

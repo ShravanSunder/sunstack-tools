@@ -3,15 +3,14 @@ import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { prepareDesignPages } from '@sunstack/demistify/design-collection';
 import { build } from 'vite';
-
-import { prepareUnderstandingPages } from './collect-understanding-records.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const output = resolve(repositoryRoot, 'apps/demistify-poc/public/experiments/understanding-lab');
 const authored = resolve(repositoryRoot, 'apps/demistify-poc/experiments/understanding-lab');
 // Validate before mkdir, bundling or copying: invalid refs leave the whole output tree intact.
-const prepared = await prepareUnderstandingPages(authored);
+const prepared = await prepareDesignPages(authored);
 await mkdir(output, { recursive: true });
 await build({
 	configFile: false,

@@ -5,12 +5,7 @@
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
 		<title>Program Design · User needs</title>
 		<link rel="stylesheet" href="library/theme.css" />
-		<link rel="stylesheet" href="studies.css" />
-		<link rel="stylesheet" href="study-controls.css" />
-		<link rel="stylesheet" href="requirements.css" />
-		<link rel="stylesheet" href="execution.css" />
 		<script type="module" src="library/runtime.js"></script>
-		<script type="module" src="components/register.js"></script>
 	</head>
 	<body>
 		<ex-nav for="content"
@@ -31,9 +26,9 @@
 					They are not assertions about the current picker or another shipped product.
 				</p></ex-callout
 			>
-			<lab-requirement-browser data-width="canvas"></lab-requirement-browser
+			<ex-requirements id="requirements-reader" data-width="canvas"></ex-requirements
 		></ex-document>
-		<script type="application/json" data-lab-records>
+		<script type="application/json" data-ex-records>
 			[
 				{
 					"kind": "program-design",
@@ -80,7 +75,7 @@
 		<template id="body-C1"
 			><p id="summary-C1">InputOwner routes the event; DialogScope resolves the target.</p>
 
-			<figure class="lab-related-visual">
+			<figure class="ex-design-related-visual" data-ex-part="sketch">
 				<figcaption>Key path described by C1</figcaption>
 				<ex-mermaid id="c1-key-path" label="C1 key routing">
 					<script type="text/plain">
@@ -95,7 +90,7 @@
 				scope and forwards to DialogScope.resolve. Closing removes that scope before later input is
 				routed.
 			</p>
-			<details class="lab-component-responsibilities">
+			<details class="ex-design-component-responsibilities">
 				<summary>Component responsibilities</summary>
 				<div class="ex-table-scroll">
 					<table>
@@ -120,7 +115,11 @@
 			</details>
 			<h5>Refusal and recovery</h5>
 			<p>If the top scope has no matching binding, the event remains blocked from lower scopes.</p>
-			<ex-callout class="lab-document-gaps" title="C1 does not yet explain S2" tone="risk"
+			<ex-callout
+				class="ex-design-document-gaps"
+				data-ex-part="gaps"
+				title="C1 does not yet explain S2"
+				tone="risk"
 				><p>
 					Pointer entry, menu ownership and the enforcing component are not described. An observable
 					action effect and completion signal are also missing.
@@ -145,7 +144,7 @@
 		<template id="body-C2"
 			><p id="summary-C2">ActionRegistry owns the action and its shortcut.</p>
 
-			<figure class="lab-related-visual">
+			<figure class="ex-design-related-visual" data-ex-part="sketch">
 				<figcaption>Shared registration described by C2</figcaption>
 				<ex-mermaid id="c2-design-flow" label="Shared registration described by C2"
 					><script type="text/plain">
@@ -159,7 +158,7 @@
 				Shortcut lookup resolves an action ID. Invocation uses that same entry; Help reads its label
 				and key without a second shortcut map.
 			</p>
-			<details class="lab-component-responsibilities">
+			<details class="ex-design-component-responsibilities">
 				<summary>Component responsibilities</summary>
 				<div class="ex-table-scroll">
 					<table>
@@ -190,7 +189,7 @@
 		<template id="body-C3"
 			><p id="summary-C3">SelectList owns local navigation and commit.</p>
 
-			<figure class="lab-related-visual">
+			<figure class="ex-design-related-visual" data-ex-part="sketch">
 				<figcaption>Navigation and commit described by C3</figcaption>
 				<ex-mermaid id="c3-design-flow" label="Navigation and commit described by C3"
 					><script type="text/plain">
@@ -204,7 +203,7 @@
 				Arrow keys update the active index within the available options. Enter reads that index and
 				returns the selected machine; movement alone does not commit.
 			</p>
-			<details class="lab-component-responsibilities">
+			<details class="ex-design-component-responsibilities">
 				<summary>Component responsibilities</summary>
 				<div class="ex-table-scroll">
 					<table>
@@ -288,7 +287,7 @@
 				</table>
 			</div>
 			<h5>State, flow and boundary</h5>
-			<figure class="lab-related-visual">
+			<figure class="ex-design-related-visual" data-ex-part="sketch">
 				<figcaption>Start and refusal described by C5</figcaption>
 				<ex-mermaid id="c5-design-flow" label="Start and refusal described by C5"
 					><script type="text/plain">

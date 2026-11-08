@@ -1,21 +1,24 @@
-import type { DrawerIsland } from '../../../../packages/demistify/src/islands/drawer.ts';
+import type { DrawerElement } from '../elements.ts';
+import { loadDocumentModel, type CallStackExample, type FrameExample } from './collection-model.js';
+import { requirementHref, updateCallAddress } from './document-links.js';
+import { icon, restoreDocumentFocusAfterRender, safeText } from './document-markup.js';
 import { callStackMarkup, frameColor, frameDetailMarkup } from './execution-markup.js';
 import type { SearchPicker } from './search-picker.js';
-import { requirementHref, updateCallAddress } from './study-links.js';
-import { icon, restoreStudyFocusAfterRender, safeText } from './study-markup.js';
-import { loadStudyModel, type CallStackExample, type FrameExample } from './study-model.js';
 
 type CallSelection =
 	| { readonly kind: 'frame'; readonly frameId: string }
 	| { readonly kind: 'unmapped-need'; readonly needId: string }
 	| { readonly kind: 'missing-call'; readonly requestedId: string };
 
-const { requirements, callStacks, entry } = loadStudyModel();
-
 /** One stack selection owns the nested path; hover previews detail without changing its meaning. */
 export class ExecutionReview extends HTMLElement {
-	private stackId = entry.stackId;
-	private selection: CallSelection = { kind: 'frame', frameId: entry.frameId };
+	private readonly model = loadDocumentModel();
+	private stackId =
+		this.model.entry.calls.kind === 'available' ? this.model.entry.calls.stackId : '';
+	private selection: CallSelection =
+		this.model.entry.calls.kind === 'available'
+			? { kind: 'frame', frameId: this.model.entry.calls.frameId }
+			: { kind: 'missing-call', requestedId: '' };
 	private hoveredFrameId: string | undefined;
 	private pendingHoverId: string | undefined;
 	private hoverTimer: ReturnType<typeof setTimeout> | undefined;
@@ -23,7 +26,7 @@ export class ExecutionReview extends HTMLElement {
 	private initialized = false;
 
 	private get stack(): CallStackExample {
-		const stack = callStacks.find((item): boolean => item.id === this.stackId);
+		const stack = this.model.callStacks.find((item): boolean => item.id === this.stackId);
 		if (!stack) throw new Error('Unknown example call stack.');
 		return stack;
 	}
@@ -31,11 +34,15 @@ export class ExecutionReview extends HTMLElement {
 	connectedCallback(): void {
 		if (this.initialized) return;
 		this.initialized = true;
+		if (this.model.entry.calls.kind === 'empty') {
+			this.innerHTML = '<p role="status">No call paths are supplied.</p>';
+			return;
+		}
 		this.tabIndex = 0;
 		this.setAttribute('role', 'group');
 		this.setAttribute('aria-label', 'Call stack browser');
 		this.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight ArrowUp ArrowDown');
-		this.classList.add('lab-focus-surface');
+		this.classList.add('ex-design-focus-surface');
 		this.readAddress();
 		this.addEventListener('picker-select', (event): void => {
 			if (!(event instanceof CustomEvent) || typeof event.detail?.value !== 'string') return;
@@ -46,7 +53,7 @@ export class ExecutionReview extends HTMLElement {
 				event.target instanceof Element &&
 				event.target.closest('[data-action="close-call-details"]')
 			) {
-				this.querySelector<DrawerIsland>('.lab-call-detail-sheet')?.close();
+				this.querySelector<DrawerElement>('.ex-design-call-detail-sheet')?.close();
 				return;
 			}
 			const frame = this.frameFrom(event.target);
@@ -59,7 +66,7 @@ export class ExecutionReview extends HTMLElement {
 			if (event.pointerType === 'touch') return;
 			const frame = this.frameFrom(event.target);
 			if (!frame) {
-				if (!(event.target instanceof Element) || !event.target.closest('.lab-frame-detail'))
+				if (!(event.target instanceof Element) || !event.target.closest('.ex-design-frame-detail'))
 					this.clearPreview();
 				return;
 			}
@@ -82,7 +89,7 @@ export class ExecutionReview extends HTMLElement {
 			(event): void => {
 				if (
 					!(event.target instanceof HTMLDetailsElement) ||
-					!event.target.closest('lab-hidden-calls')
+					!event.target.closest('ex-design-hidden-calls')
 				)
 					return;
 				this.expandedSupport = event.target.open;
@@ -106,19 +113,19 @@ export class ExecutionReview extends HTMLElement {
 
 	disconnectedCallback(): void {
 		clearTimeout(this.hoverTimer);
-		this.querySelector<DrawerIsland>('.lab-call-detail-sheet[open]')?.close();
+		this.querySelector<DrawerElement>('.ex-design-call-detail-sheet[open]')?.close();
 	}
 
 	private openCompactDetails(): void {
-		const layout = this.querySelector('.lab-execution-layout');
+		const layout = this.querySelector('.ex-design-execution-layout');
 		if (
 			!layout ||
 			getComputedStyle(layout).getPropertyValue('--call-details-overlay').trim() !== '1'
 		)
 			return;
-		const sheet = this.querySelector<DrawerIsland>('.lab-call-detail-sheet');
-		const detail = this.querySelector('.lab-frame-detail');
-		const body = sheet?.querySelector('.lab-call-detail-body');
+		const sheet = this.querySelector<DrawerElement>('.ex-design-call-detail-sheet');
+		const detail = this.querySelector('.ex-design-frame-detail');
+		const body = sheet?.querySelector('.ex-design-call-detail-body');
 		if (!sheet || sheet.open || !detail || !body) return;
 		body.append(detail);
 		sheet.show();
@@ -126,20 +133,26 @@ export class ExecutionReview extends HTMLElement {
 
 	private readAddress(): void {
 		const params = new URLSearchParams(location.search);
-		const requestedStack = callStacks.find((item): boolean => item.id === params.get('stack'));
+		const requestedStack = this.model.callStacks.find(
+			(item): boolean => item.id === params.get('stack'),
+		);
 		if (requestedStack) {
 			this.stackId = requestedStack.id;
 			const last = requestedStack.frames.at(-1);
 			if (last) this.selection = { kind: 'frame', frameId: last.id };
 		}
 		const needId = params.get('need');
-		if (needId && requirements.some((item): boolean => item.id === needId) && !params.has('call')) {
+		if (
+			needId &&
+			this.model.requirements.some((item): boolean => item.id === needId) &&
+			!params.has('call')
+		) {
 			const owner =
 				(requestedStack?.frames.some((frame): boolean => frame.requirement === needId)
 					? requestedStack
 					: undefined) ??
-				callStacks.find((item): boolean => item.primaryNeed === needId) ??
-				callStacks.find((item): boolean =>
+				this.model.callStacks.find((item): boolean => item.primaryNeed === needId) ??
+				this.model.callStacks.find((item): boolean =>
 					item.frames.some((frame): boolean => frame.requirement === needId),
 				);
 			const frame = owner?.frames.toReversed().find((item): boolean => item.requirement === needId);
@@ -187,7 +200,7 @@ export class ExecutionReview extends HTMLElement {
 		this.updatePanels();
 	}
 	private chooseStack(stackId: string, focusPicker = false): void {
-		const stack = callStacks.find((item): boolean => item.id === stackId);
+		const stack = this.model.callStacks.find((item): boolean => item.id === stackId);
 		const last = stack?.frames.at(-1);
 		if (!stack || !last) return;
 		this.clearPreview();
@@ -197,12 +210,12 @@ export class ExecutionReview extends HTMLElement {
 		this.writeAddress(last.id);
 		this.render();
 		if (focusPicker)
-			this.querySelector<HTMLElement>('lab-search-picker summary')?.focus({ preventScroll: true });
+			this.querySelector<HTMLElement>('ex-design-picker summary')?.focus({ preventScroll: true });
 		else this.focus({ preventScroll: true });
 	}
 	private writeAddress(frameId: string): void {
 		// Embedded calls keep local selection; the document browser owns its address.
-		if (this.closest('lab-requirement-related')) return;
+		if (this.closest('ex-design-related')) return;
 		updateCallAddress(this.stack.id, frameId);
 	}
 	private onKey(event: KeyboardEvent): void {
@@ -216,17 +229,17 @@ export class ExecutionReview extends HTMLElement {
 			return;
 		if (
 			event.target.closest(
-				'lab-search-picker,input,textarea,select,[contenteditable],ex-comments,summary,[data-comment-slot],[data-comment-control]',
+				'ex-design-picker,input,textarea,select,[contenteditable],ex-comments,summary,[data-comment-slot],[data-comment-control]',
 			) ||
-			this.querySelector('.lab-call-detail-sheet[open]') ||
+			this.querySelector('.ex-design-call-detail-sheet[open]') ||
 			document.getSelection()?.isCollapsed === false
 		)
 			return;
 		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
 		event.preventDefault();
 		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-			const index = callStacks.findIndex((item): boolean => item.id === this.stackId);
-			const next = callStacks[index + (event.key === 'ArrowLeft' ? -1 : 1)];
+			const index = this.model.callStacks.findIndex((item): boolean => item.id === this.stackId);
+			const next = this.model.callStacks[index + (event.key === 'ArrowLeft' ? -1 : 1)];
 			if (next) this.chooseStack(next.id);
 		} else {
 			const visible = this.stack.frames.filter(
@@ -252,7 +265,7 @@ export class ExecutionReview extends HTMLElement {
 		const selected = this.stack.frames[this.selectedIndex()];
 		const preview = this.stack.frames.find((frame): boolean => frame.id === this.hoveredFrameId);
 		const frame = preview ?? selected;
-		const detail = this.querySelector<HTMLElement>('.lab-frame-detail');
+		const detail = this.querySelector<HTMLElement>('.ex-design-frame-detail');
 		if (!detail) return;
 		const identity = `${this.stackId}:${frame?.id ?? ''}:${preview !== undefined}:${JSON.stringify(this.selection)}`;
 		if (detail.dataset['context'] !== identity) {
@@ -262,13 +275,13 @@ export class ExecutionReview extends HTMLElement {
 			if (frame) detail.innerHTML = frameDetailMarkup(frame, preview !== undefined);
 			else if (this.selection.kind === 'unmapped-need') {
 				const needId = this.selection.needId;
-				const need = requirements.find((item): boolean => item.id === needId);
-				detail.innerHTML = `<small>${safeText(needId)} · Call mapping</small><div class="lab-local-heading" role="heading" aria-level="3">No call is mapped to this need</div><p>${safeText(need?.owner ?? '')}</p><a class="lab-navigation-action" href="${requirementHref(needId)}">${icon('arrow-left')} Open the original requirement</a>`;
+				const need = this.model.requirements.find((item): boolean => item.id === needId);
+				detail.innerHTML = `<small>${safeText(needId)} · Call mapping</small><div class="ex-design-local-heading" role="heading" aria-level="3">No call is mapped to this need</div><p>${safeText(need?.owner ?? '')}</p><a class="ex-design-navigation-action" href="${requirementHref(needId)}">${icon('arrow-left')} Open the original requirement</a>`;
 			} else
 				detail.innerHTML =
-					'<div class="lab-local-heading" role="heading" aria-level="3">Call not found in this stack</div><p>Choose an existing call from the nested list.</p>';
+					'<div class="ex-design-local-heading" role="heading" aria-level="3">Call not found in this stack</div><p>Choose an existing call from the nested list.</p>';
 		}
-		const hidden = this.querySelector('.lab-hidden-selection');
+		const hidden = this.querySelector('.ex-design-hidden-selection');
 		if (hidden)
 			hidden.textContent =
 				!this.expandedSupport && selected?.supporting ? `Selected: ${selected.name}` : '';
@@ -280,20 +293,20 @@ export class ExecutionReview extends HTMLElement {
 	}
 
 	private render(): void {
-		const restoreFocus = restoreStudyFocusAfterRender(this);
-		this.innerHTML = `<div class="lab-component-toolbar"><lab-search-picker></lab-search-picker><details class="lab-help"><summary>${icon('question')} Help</summary><p>Hover to preview on wide screens. Select a call for details; Up/Down select a row and Enter opens it on narrow screens. Left/Right choose a stack while focused here. Comments are separate controls.</p></details></div><p class="lab-soft">${safeText(this.stack.description)} Select a call for details.</p>
-		<div class="lab-frame-legend"><span style="--frame-color:var(--chart-1)">Input</span><span style="--frame-color:var(--chart-3)">Resolution</span><span style="--frame-color:var(--chart-2)">Action</span><span style="--frame-color:var(--ink-soft)">Plumbing</span></div>
-		<div class="lab-execution-layout"><section class="lab-call-surface" aria-label="Calls in invocation order">${callStackMarkup(this.stack.frames, this.expandedSupport)}</section><section class="lab-frame-detail" aria-label="Call details"></section></div><ex-drawer class="lab-call-detail-sheet" label="Call details" size="content"><header class="ex-inspect-header"><strong>Call details</strong><button type="button" class="lab-call-detail-close" data-action="close-call-details" aria-label="Close call details" title="Close" autofocus>${icon('x')}</button></header><div class="ex-inspect-body lab-call-detail-body"></div></ex-drawer>`;
-		this.querySelector('.lab-call-detail-sheet')?.addEventListener('close', (): void => {
-			const detail = this.querySelector('.lab-call-detail-body > .lab-frame-detail');
-			if (detail) this.querySelector('.lab-execution-layout')?.append(detail);
+		const restoreFocus = restoreDocumentFocusAfterRender(this);
+		this.innerHTML = `<div class="ex-design-component-toolbar"><ex-design-picker></ex-design-picker><details class="ex-design-help"><summary>${icon('question')} Help</summary><p>Hover to preview on wide screens. Select a call for details; Up/Down select a row and Enter opens it on narrow screens. Left/Right choose a stack while focused here. Comments are separate controls.</p></details></div><p class="ex-design-soft">${safeText(this.stack.description)} Select a call for details.</p>
+		<div class="ex-design-frame-legend"><span style="--frame-color:var(--chart-1)">Input</span><span style="--frame-color:var(--chart-3)">Resolution</span><span style="--frame-color:var(--chart-2)">Action</span><span style="--frame-color:var(--ink-soft)">Plumbing</span></div>
+		<div class="ex-design-execution-layout"><section class="ex-design-call-surface" aria-label="Calls in invocation order">${callStackMarkup(this.stack.frames, this.expandedSupport)}</section><section class="ex-design-frame-detail" aria-label="Call details"></section></div><ex-drawer class="ex-design-call-detail-sheet" label="Call details" size="content"><header class="ex-inspect-header"><strong>Call details</strong><button type="button" class="ex-design-call-detail-close" data-action="close-call-details" aria-label="Close call details" title="Close" autofocus>${icon('x')}</button></header><div class="ex-inspect-body ex-design-call-detail-body"></div></ex-drawer>`;
+		this.querySelector('.ex-design-call-detail-sheet')?.addEventListener('close', (): void => {
+			const detail = this.querySelector('.ex-design-call-detail-body > .ex-design-frame-detail');
+			if (detail) this.querySelector('.ex-design-execution-layout')?.append(detail);
 		});
-		this.querySelector<SearchPicker>('lab-search-picker')?.configure({
+		this.querySelector<SearchPicker>('ex-design-picker')?.configure({
 			label: 'Choose a call stack',
 			placeholder: 'Search call stacks…',
 			icon: 'stack',
 			selected: this.stackId,
-			options: callStacks.map((stack) => ({
+			options: this.model.callStacks.map((stack) => ({
 				value: stack.id,
 				label: stack.title,
 				detail: `${stack.frames.length} calls`,
