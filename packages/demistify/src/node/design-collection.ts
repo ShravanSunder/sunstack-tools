@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
+import { parse, serialize } from 'parse5';
+
 import { type PreparedCollection } from '../design-documents/collection.ts';
 import {
 	collectDesignRecords,
@@ -49,7 +51,10 @@ export async function prepareDesignPages(inputDirectory: string): Promise<Prepar
 					sources[reference] = await readFile(resolve(inputDirectory, reference), 'utf8');
 				}),
 			);
-			return collectDesignRecords(embedMarkdownFiles(html, sources), page);
+			// The existing embedder's fast guard expects canonical src="…" spelling.
+			// Normalize only the derivation copy; the written authored page stays byte-preserved.
+			const derivation = Object.keys(sources).length ? serialize(parse(html)) : html;
+			return collectDesignRecords(embedMarkdownFiles(derivation, sources), page);
 		}),
 	);
 	const records = pageRecords.flat();

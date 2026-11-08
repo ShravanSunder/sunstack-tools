@@ -26,14 +26,14 @@ export function recordsForNeed(
 			record.specifications.some((id) => ids.has(id)),
 	);
 }
-export function scenarioOutcome(
+export function scenarioOutcomes(
 	collection: PreparedCollection,
 	scenarioId: string,
-): ScenarioOutcome {
-	const observation = collection.records.find(
-		({ record }) => record.kind === 'observation' && record.scenario === scenarioId,
+): readonly ScenarioOutcome[] {
+	const outcomes = collection.records.flatMap(({ record }): ScenarioOutcome[] =>
+		record.kind === 'observation' && record.scenario === scenarioId ? [record.outcome] : [],
 	);
-	return observation?.record.kind === 'observation' ? observation.record.outcome : 'Not run';
+	return outcomes.length ? outcomes : ['Not run'];
 }
 /** Keep document section headings local to the component rather than the page outline. */
 export function localDocumentBody(html: string, idPrefix = ''): string {
@@ -108,7 +108,7 @@ export function scenarioPresentation(item: PreparedRecord, idPrefix = ''): strin
 		? observations
 				.map(
 					(observation) =>
-						`<section class="ex-design-example-outcome" data-record-id="${observation.record.id}"><div class="ex-design-stage-record-heading"><strong>Result</strong>${observation.record.kind === 'observation' ? outcomeBadge(observation.record.outcome) : ''}</div>${localDocumentBody(observation.bodyHtml, `${idPrefix}${observation.record.id}-`)}<small>${observation.record.id}</small></section>`,
+						`<section class="ex-design-example-outcome" data-record-id="${observation.record.id}"><div class="ex-design-stage-record-heading"><strong>Result · ${safeText(observation.record.id)}</strong>${observation.record.kind === 'observation' ? outcomeBadge(observation.record.outcome) : ''}</div>${localDocumentBody(observation.bodyHtml, `${idPrefix}${observation.record.id}-`)}</section>`,
 				)
 				.join('')
 		: `<div class="ex-design-example-outcome"><div class="ex-design-stage-record-heading"><strong>Result</strong>${outcomeBadge('Not run')}</div><p>No outcome is attached to this scenario.</p></div>`;
@@ -120,10 +120,9 @@ export function scenarioBadges(collection: PreparedCollection, needId: string): 
 		needId,
 		'verification',
 	)
-		.map(({ record }) =>
-			outcomeBadge(
-				scenarioOutcome(collection, record.id),
-				`${'title' in record ? record.title : record.id}: ${scenarioOutcome(collection, record.id)}`,
+		.flatMap(({ record }) =>
+			scenarioOutcomes(collection, record.id).map((outcome) =>
+				outcomeBadge(outcome, `${'title' in record ? record.title : record.id}: ${outcome}`),
 			),
 		)
 		.join('')}</span>`;
@@ -147,7 +146,13 @@ export function stageMarkup(
 						recordsForNeed(collection, need.id, stage.id)
 							.map(
 								(item) =>
-									`<div class="ex-design-summary-record" data-record-id="${item.record.id}"><div><span class="ex-design-soft">${safeText(item.record.id)}</span> · <strong>${safeText('title' in item.record ? item.record.title : '')}</strong>${stage.id === 'verification' ? outcomeBadge(scenarioOutcome(collection, item.record.id)) : ''}</div><p>${safeText(item.summary)}</p></div>`,
+									`<div class="ex-design-summary-record" data-record-id="${item.record.id}"><div><span class="ex-design-soft">${safeText(item.record.id)}</span> · <strong>${safeText('title' in item.record ? item.record.title : '')}</strong>${
+										stage.id === 'verification'
+											? scenarioOutcomes(collection, item.record.id)
+													.map((outcome) => outcomeBadge(outcome))
+													.join('')
+											: ''
+									}</div><p>${safeText(item.summary)}</p></div>`,
 							)
 							.join('') || '<p role="status">Not yet written.</p>'
 					}</section>`,

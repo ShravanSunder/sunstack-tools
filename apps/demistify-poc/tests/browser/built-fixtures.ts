@@ -4,8 +4,9 @@ import { extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { prepareDesignPages } from '@sunstack/demistify/design-collection';
-import { collectionSchema } from '@sunstack/demistify/design-records';
+import { collectionSchema, recordSchema } from '@sunstack/demistify/design-records';
 import type { Plugin } from 'vite';
+import { z } from 'zod';
 
 import { indexCollectionSearch } from '../../../../packages/demistify/src/node/collection-search.ts';
 import { embedMarkdownFiles } from '../../../../packages/demistify/src/node/markdown-files.ts';
@@ -164,6 +165,44 @@ export async function builtFixtures(): Promise<Plugin> {
 				[...prepared.pages].map(([file, html]) => writeFile(join(destination, file), html)),
 			);
 		}),
+	);
+	const multipleSource = join(snapshot, 'multiple-observations-source');
+	await cp(documentSource, multipleSource, { recursive: true });
+	const verificationFile = join(multipleSource, 'verification.html');
+	const verificationSource = await readFile(verificationFile, 'utf8');
+	const authoredBlock = /(<script[^>]*data-ex-records[^>]*>)([\s\S]*?)(<\/script>)/.exec(
+		verificationSource,
+	);
+	if (!authoredBlock?.[2]) throw new Error('Missing authored observation records.');
+	const authoredRecords = z.array(recordSchema).parse(JSON.parse(authoredBlock[2]));
+	const firstPass = recordSchema.parse({
+		kind: 'observation',
+		id: 'DraftPass',
+		scenario: 'DraftCheck',
+		outcome: 'Pass',
+		bodyRef: 'pass-body',
+		summaryRef: 'pass-summary',
+	});
+	const withBothOutcomes = authoredRecords.flatMap((record) =>
+		record.id === 'DraftObservation' ? [firstPass, record] : [record],
+	);
+	await writeFile(
+		verificationFile,
+		verificationSource
+			.replace(
+				authoredBlock[0],
+				`${authoredBlock[1]}${JSON.stringify(withBothOutcomes)}${authoredBlock[3]}`,
+			)
+			.replace(
+				'</body>',
+				'<template id="pass-body"><p id="pass-summary">Observed first pass: the draft remained.</p></template></body>',
+			),
+	);
+	const multiplePrepared = await prepareDesignPages(multipleSource);
+	const multipleOutput = join(snapshot, 'document-browsers', 'multiple');
+	await cp(multipleSource, multipleOutput, { recursive: true });
+	await Promise.all(
+		[...multiplePrepared.pages].map(([file, html]) => writeFile(join(multipleOutput, file), html)),
 	);
 	const revisionCases = ['revision-base', 'revision-body'];
 	await Promise.all(

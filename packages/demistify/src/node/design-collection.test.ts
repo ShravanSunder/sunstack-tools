@@ -240,3 +240,21 @@ test.each([
 		expect(await readFile(file, 'utf8')).toBe(invalid);
 	},
 );
+
+test('valid HTML whitespace around a local Markdown src preserves source and embeds its contents', async (): Promise<void> => {
+	const directory = await inputCollection();
+	const file = join(directory, 'requirements.html');
+	const source = (await readFile(file, 'utf8')).replace(
+		'</template>',
+		'<ex-markdown src = "spaced.md"></ex-markdown></template>',
+	);
+	await writeFile(file, source);
+	await writeFile(join(directory, 'spaced.md'), 'Actual **spaced-attribute** Markdown content.');
+	const prepared = await prepareDesignPages(directory);
+	expect(prepared.collection.records[0]?.bodyHtml).toContain(
+		'Actual **spaced-attribute** Markdown content.',
+	);
+	expect(prepared.pages.get('requirements.html')).toContain(
+		'<ex-markdown src = "spaced.md"></ex-markdown>',
+	);
+});

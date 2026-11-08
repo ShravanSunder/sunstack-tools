@@ -478,3 +478,56 @@ test('public labels name both reader groups while unlabeled readers keep their d
 		requiredElement(defaultCalls, 'ex-call-stack [role="group"]').getAttribute('aria-label'),
 	).toBe('Call stack browser');
 });
+
+test('the illustrative result caption displays its observation identity once', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture(
+		'understanding',
+		'',
+		'requirements.html?need=U2',
+	);
+	await expect.poll(() => fixture.querySelector('ex-requirements[data-ready]')).not.toBeNull();
+	await frame.getByRole('button', { name: 'View together', exact: true }).click();
+	const observation = requiredElement(fixture, '.ex-design-example-outcome[data-record-id="O2"]');
+	expect((observation.textContent ?? '').split('O2').length - 1).toBe(1);
+	expect(observation.textContent).toContain('Example only');
+	expect(observation.textContent).toContain('target not supplied');
+	expect(observation.textContent).not.toContain('supplied.O2');
+});
+
+test.each([1600, 390])(
+	'list, overview and detail preserve every same-scenario observation outcome at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'document-browsers',
+			'',
+			'multiple/requirements.html',
+		);
+		await expect.poll(() => fixture.querySelector('ex-requirements[data-ready]')).not.toBeNull();
+		expect(
+			readOutcomeBadges(
+				requiredElement(fixture, '.ex-design-requirement-list [data-need="DraftNeed"]'),
+			),
+		).toEqual(['Pass', 'Fail', 'Not run']);
+		await page.screenshot({ path: browserScreenshotPath(`multiple-outcomes-${width}-list.png`) });
+		await fixtureLocator(
+			frame,
+			requiredElement(fixture, '.ex-design-requirement-list [data-need="DraftNeed"]'),
+		).click();
+		expect(readOutcomeBadges(requiredElement(fixture, '#verification-DraftNeed'))).toEqual([
+			'Pass',
+			'Fail',
+			'Not run',
+		]);
+		await frame.getByRole('button', { name: 'Verification', exact: true }).click();
+		expect(readOutcomeBadges(requiredElement(fixture, '.ex-design-stage-detail'))).toEqual([
+			'Pass',
+			'Fail',
+			'Not run',
+		]);
+	},
+);
+
+function readOutcomeBadges(scope: Element): readonly string[] {
+	return [...scope.querySelectorAll('ex-badge')].map((badge) => badge.textContent?.trim() ?? '');
+}
