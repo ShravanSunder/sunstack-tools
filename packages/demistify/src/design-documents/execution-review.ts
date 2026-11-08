@@ -34,13 +34,13 @@ export class ExecutionReview extends HTMLElement {
 	connectedCallback(): void {
 		if (this.initialized) return;
 		this.initialized = true;
+		this.setAttribute('role', 'group');
+		this.setAttribute('aria-label', this.getAttribute('aria-label') ?? 'Call stack browser');
 		if (this.model.entry.calls.kind === 'empty') {
 			this.innerHTML = '<p role="status">No call paths are supplied.</p>';
 			return;
 		}
 		this.tabIndex = 0;
-		this.setAttribute('role', 'group');
-		this.setAttribute('aria-label', 'Call stack browser');
 		this.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight ArrowUp ArrowDown');
 		this.classList.add('ex-design-focus-surface');
 		this.readAddress();

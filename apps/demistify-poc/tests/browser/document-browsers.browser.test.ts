@@ -423,6 +423,58 @@ test.each([1600, 390])(
 			await frame.getByRole('button', { name: 'Back to related documents', exact: true }).click();
 			await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
 		}, Promise.resolve());
+		const resources =
+			fixture.defaultView?.performance.getEntriesByType('resource').map((entry) => ({
+				name: entry.name,
+				initiatorType:
+					'initiatorType' in entry && typeof entry.initiatorType === 'string'
+						? entry.initiatorType
+						: 'unknown',
+				entryType: entry.entryType,
+			})) ?? [];
+		expect(resources.length).toBeGreaterThan(0);
+		await expect(
+			JSON.stringify(
+				{
+					width,
+					scripts,
+					styles,
+					resources,
+					limits:
+						'Document PerformanceResourceTiming only. Worker-internal, cached or browser-internal requests absent from these entries are not a complete request graph.',
+				},
+				null,
+				2,
+			),
+		).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-resources.json`));
 	},
 	120_000,
 );
+
+test('public labels name both reader groups while unlabeled readers keep their defaults', async (): Promise<void> => {
+	const { document: fixture } = await openFixture('document-browsers', '', 'labeled.html');
+	await expect
+		.poll(
+			() =>
+				fixture.querySelectorAll('ex-requirements[data-ready],ex-call-stack[data-ready]').length,
+		)
+		.toBe(2);
+	expect(
+		requiredElement(fixture, 'ex-requirements [role="group"]').getAttribute('aria-label'),
+	).toBe('Draft design needs');
+	expect(requiredElement(fixture, 'ex-call-stack [role="group"]').getAttribute('aria-label')).toBe(
+		'Draft source calls',
+	);
+	document.body.replaceChildren();
+	const { document: defaultNeeds } = await openFixture('understanding', '', 'requirements.html');
+	await expect.poll(() => defaultNeeds.querySelector('ex-requirements[data-ready]')).not.toBeNull();
+	expect(
+		requiredElement(defaultNeeds, 'ex-requirements [role="group"]').getAttribute('aria-label'),
+	).toBe('Requirements browser');
+	document.body.replaceChildren();
+	const { document: defaultCalls } = await openFixture('understanding', '', 'execution.html');
+	await expect.poll(() => defaultCalls.querySelector('ex-call-stack[data-ready]')).not.toBeNull();
+	expect(
+		requiredElement(defaultCalls, 'ex-call-stack [role="group"]').getAttribute('aria-label'),
+	).toBe('Call stack browser');
+});

@@ -32,6 +32,8 @@ export function mountDocumentReader(
 	const view = document.createElement(
 		kind === 'requirements' ? 'ex-design-requirements-view' : 'ex-design-call-view',
 	);
+	const label = owner.getAttribute('label')?.trim();
+	if (label) view.setAttribute('aria-label', label);
 	owner.replaceChildren(view);
 	return {
 		source: JSON.stringify(collection),

@@ -36,7 +36,7 @@ export class RequirementBrowser extends HTMLElement {
 		this.initialized = true;
 		this.tabIndex = 0;
 		this.setAttribute('role', 'group');
-		this.setAttribute('aria-label', 'Requirements browser');
+		this.setAttribute('aria-label', this.getAttribute('aria-label') ?? 'Requirements browser');
 		this.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight');
 		this.classList.add('ex-design-focus-surface');
 		const requested = new URLSearchParams(location.search).get('need');

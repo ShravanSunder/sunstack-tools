@@ -239,6 +239,16 @@ export async function builtFixtures(): Promise<Plugin> {
 		join(snapshot, 'document-author'),
 		{ recursive: true },
 	);
+	const labelPage = await readFile(
+		join(snapshot, 'document-browsers', 'full', 'verification.html'),
+		'utf8',
+	);
+	await writeFile(
+		join(snapshot, 'document-browsers', 'labeled.html'),
+		labelPage
+			.replace('<ex-requirements id=', '<ex-requirements label="Draft design needs" id=')
+			.replace('<ex-call-stack id=', '<ex-call-stack label="Draft source calls" id='),
+	);
 	const reviewHtml = await readFile(join(snapshot, 'review/index.html'), 'utf8');
 	await writeFile(
 		join(snapshot, 'review/boundary.html'),
