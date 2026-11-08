@@ -20,6 +20,8 @@ mod result_history;
 mod saved_reports;
 #[path = "../support/mod.rs"]
 mod support;
+#[path = "rulebook_lint_process/unsure_summary.rs"]
+mod unsure_summary;
 use serde_json::{Value, json};
 use std::{
     path::{Path, PathBuf},
@@ -210,14 +212,15 @@ async fn binary_lists_native_evidence_and_drives_worked_examples_and_uncertain_p
         sunstack_lint::OutputFormat::Sarif,
     ] {
         let rendered = sunstack_lint::render(&typed, format);
-        assert!(
-            rendered.contains("quality"),
-            "uncertain step missing: {format:?}"
-        );
         if format == sunstack_lint::OutputFormat::Default {
+            assert!(rendered.contains("unsure [step_completion]"), "{rendered}");
             assert!(!rendered.contains("checkable"));
-            assert!(rendered.contains(&format!("#{}", typed.uncertain[0].id)));
+            assert!(rendered.contains(&format!("lint show <report> {}", typed.uncertain[0].id)));
         } else {
+            assert!(
+                rendered.contains("quality"),
+                "uncertain step missing: {format:?}"
+            );
             assert!(
                 rendered.contains("checkable"),
                 "machine format must retain answers: {format:?}"

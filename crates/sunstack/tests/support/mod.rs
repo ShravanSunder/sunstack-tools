@@ -19,9 +19,12 @@ pub fn workspace_root() -> PathBuf {
         .into()
 }
 pub fn isolated_command(root: &Path) -> Command {
+    isolated_command_with_binary(root, Path::new(env!("CARGO_BIN_EXE_sunstack")))
+}
+pub fn isolated_command_with_binary(root: &Path, binary: &Path) -> Command {
     let mut command = Command::new(workspace_root().join("scripts/cargo-debug-signing-runner.sh"));
     command
-        .arg(env!("CARGO_BIN_EXE_sunstack"))
+        .arg(binary)
         .env("SUNSTACK_CREDENTIAL_STORE", "off")
         .current_dir(root)
         .stdin(Stdio::piped())

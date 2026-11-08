@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+Release date: 2026-11-08.
+
+- Default human lint output groups unsure results into one summary per rule,
+  showing the count and a saved-report readback example. Findings keep their
+  individual locations and messages. JSON, GitHub, SARIF, saved reports and
+  `lint show` retain every result; run status, counts and exit codes are unchanged.
+
 ## 0.9.0
 
 Release date: 2026-11-07.

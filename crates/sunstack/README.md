@@ -105,8 +105,10 @@ logical report order. Each entry has the rule's `name` and marker, the piece's
 file and first and last line, its outcome (`pass`, `finding`, `not_applicable`,
 `uncertain` or `incomplete`) and its ending `step` (null before any step ran).
 
-Default output prints short numbered lines and a filter summary. To inspect a
-result later, save the full report and request one id:
+Default output prints findings as short numbered lines and groups unsure results
+into one count per rule, with a `lint show` example using that rule's first unsure
+id. The full list, ending steps, sent state and answers remain in JSON and saved
+reports. To inspect a result later, save the full report and request one id:
 
 ```sh
 sunstack lint --all --report run.json

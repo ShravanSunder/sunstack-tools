@@ -288,16 +288,17 @@ fn human(report: &LintReport) -> String {
     {
         let _ = writeln!(output, "{detail}");
     }
+    let mut unsure_by_rule = std::collections::BTreeMap::new();
     for result in &report.uncertain {
+        let (count, _) = unsure_by_rule
+            .entry(result.rule.as_str())
+            .or_insert((0usize, result.id));
+        *count += 1;
+    }
+    for (rule, (count, first_id)) in unsure_by_rule {
         let _ = writeln!(
             output,
-            "{}:{}-{}: unsure [{}] at step {} #{}",
-            result.location.file.display(),
-            result.location.first_line,
-            result.location.last_line,
-            result.rule.as_str(),
-            result.step.as_str(),
-            result.id
+            "{count} unsure [{rule}]; details: lint show <report> {first_id} (save with --report <report>)"
         );
     }
     for result in &report.results {
