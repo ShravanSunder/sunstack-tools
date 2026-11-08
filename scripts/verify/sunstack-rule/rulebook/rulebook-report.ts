@@ -37,6 +37,7 @@ import {
 	prepareMechanicalFilterFixture,
 	observeMechanicalFilter,
 } from './rulebook-mechanical-filter.ts';
+import { requireHumanSummary, type SummaryEntry } from './rulebook-output-comparison.ts';
 import {
 	declaredTarget,
 	responseBody,
@@ -212,35 +213,6 @@ export function requireSavedRequest(options: {
 		'Saved report lost or changed returned answers, including unused ones',
 	);
 }
-export interface SummaryEntry {
-	readonly id: number;
-	readonly file: string;
-	readonly line: number;
-	readonly kind: 'warn' | 'unsure' | 'skip' | 'incomplete';
-}
-/** Each known entry must be brief, located and addressable; fixture evidence must stay out. */
-export function requireHumanSummary(output: string, entries: readonly SummaryEntry[]): void {
-	requireCondition(
-		!/BODY_SENTINEL|CONTEXT_ONLY_SENTINEL|HISTORICAL_EXTERNAL_OPENING_SENTINEL/.test(output),
-		'Human output leaked request text',
-	);
-	const lines = output.split('\n');
-	for (const entry of entries) {
-		const selected = lines.filter((line) => new RegExp(`#${entry.id}(?![0-9])`).test(line));
-		equal(selected.length, 1, 'Summary ID missing or duplicated');
-		const line = selected[0];
-		requireCondition(line, 'Summary line absent');
-		const locationIndex = line.indexOf(entry.file);
-		const actualLine = line.slice(locationIndex + entry.file.length).match(/^:([0-9]+)/);
-		requireCondition(locationIndex >= 0 && actualLine, 'Summary lacks file:line');
-		equal(Number(actualLine[1]), entry.line, 'Summary points at the wrong line');
-		requireCondition(
-			new RegExp(`\\b${entry.kind === 'skip' ? 'skip(?:ped)?' : entry.kind}\\b`, 'i').test(line),
-			'Summary kind differs',
-		);
-	}
-}
-
 /** Saved request/model/state evidence is joined to actual captured requests, never self-reported counts. */
 export function requireReportCaptures(
 	report: JsonObject,
@@ -487,6 +459,7 @@ export async function runReportJourney(options: JourneyArguments): Promise<void>
 			.filter((row) => row['outcome'] !== 'pass' && row['outcome'] !== 'not_applicable')
 			.map((row) => ({
 				id: numberValue(row['id']),
+				rule: textValue(row['name'] ?? row['rule']),
 				file: textValue(row['file']),
 				line: row['why'] ? 5 : 1,
 				kind: row['why']
