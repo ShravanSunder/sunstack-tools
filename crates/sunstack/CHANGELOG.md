@@ -2,7 +2,7 @@
 
 ## 0.10.0
 
-Unreleased.
+Release date: 2026-11-08.
 
 - Default human lint output groups unsure results into one summary per rule,
   showing the count and a saved-report readback example. Findings keep their
