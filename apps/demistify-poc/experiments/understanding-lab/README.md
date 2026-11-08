@@ -1,6 +1,6 @@
 # Understanding lab
 
-The Requirements and source-derived call-path experiments use the local Demistify build, native Web Components and shared theme. Linked-record authoring and document projections remain private to the demonstration app. Shared bottom-drawer behavior, rendering, Comments and styles belong to the library. Completed corner/category-color studies are retained as source archives.
+The Requirements and source-derived call-path experiments use the local Demistify build, native Web Components and shared theme. Linked-record authoring and document projections are provided by the shared Demistify library. Shared bottom-drawer behavior, rendering, Comments and styles belong to the library. Completed corner/category-color studies are retained as source archives.
 
 Build from the repository root:
 

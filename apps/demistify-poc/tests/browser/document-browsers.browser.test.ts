@@ -5,6 +5,7 @@ import { browserScreenshotPath } from './browser-evidence.ts';
 import {
 	capturePreparedAuthor,
 	captureReaderReachability,
+	capturePublicStyleParity,
 } from './document-reader-observations.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
@@ -15,6 +16,14 @@ afterEach(async (): Promise<void> => {
 	document.body.replaceChildren();
 	await commands.setReducedMotion('no-preference');
 });
+
+test.each(
+	[1600, 390].flatMap((width) =>
+		['light', 'dark'].flatMap((theme) =>
+			['no-preference', 'reduce'].map((motion) => ({ width, theme, motion })),
+		),
+	),
+)('class-free public reader style and inspector: $width $theme $motion', capturePublicStyleParity);
 
 test.each(
 	[1600, 390].flatMap((width) =>

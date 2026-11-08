@@ -111,12 +111,15 @@ export function needBodyMarkup(need: RequirementExample, mode: 'overview' | 'rel
 	return `<div class="${mode === 'overview' ? 'ex-design-need-body' : 'ex-design-related-need-body'}">${template.innerHTML}</div>`;
 }
 /** Explicit procedure content stays separate from supplied observations. */
-export function scenarioBodyParts(item: PreparedRecord): {
+export function scenarioBodyParts(
+	item: PreparedRecord,
+	idPrefix = '',
+): {
 	scenarioHtml: string;
 	proposalHtml: string;
 } {
 	const template = document.createElement('template');
-	template.innerHTML = item.bodyHtml;
+	template.innerHTML = localDocumentBody(item.bodyHtml, idPrefix);
 	const proposal = template.content.querySelector('[data-ex-part="procedure"]');
 	const proposalHtml = proposal?.outerHTML ?? '';
 	proposal?.remove();
@@ -128,7 +131,7 @@ export function scenarioPresentation(item: PreparedRecord, idPrefix = ''): strin
 	const observations = readCollection().records.filter(
 		({ record }) => record.kind === 'observation' && record.scenario === item.record.id,
 	);
-	const { scenarioHtml, proposalHtml } = scenarioBodyParts(item);
+	const { scenarioHtml, proposalHtml } = scenarioBodyParts(item, idPrefix);
 	const outcome = observations.length
 		? observations
 				.map(
@@ -137,7 +140,7 @@ export function scenarioPresentation(item: PreparedRecord, idPrefix = ''): strin
 				)
 				.join('')
 		: `<div class="ex-design-example-outcome"><div class="ex-design-stage-record-heading"><strong>Result</strong>${outcomeBadge('Not run')}</div><p>No outcome is attached to this scenario.</p></div>`;
-	return `${localDocumentBody(scenarioHtml, idPrefix)}${outcome}${localDocumentBody(proposalHtml, idPrefix)}`;
+	return `${scenarioHtml}${outcome}${proposalHtml}`;
 }
 export function scenarioBadges(collection: PreparedCollection, needId: string): string {
 	return `<span class="ex-design-scenario-badges">${recordsForNeed(
@@ -233,10 +236,14 @@ export function stageMarkup(
 			const designLinks =
 				focused.id !== 'program-design' ? relatedRecordLinks('program-design') : '';
 			const checkLinks = focused.id !== 'verification' ? relatedRecordLinks('verification') : '';
+			const idPrefix =
+				new URL(item.page, location.href).pathname === location.pathname
+					? ''
+					: `stage-${item.record.id}-`;
 			const body =
 				focused.id === 'verification'
-					? scenarioPresentation(item)
-					: localDocumentBody(item.bodyHtml);
+					? scenarioPresentation(item, idPrefix)
+					: localDocumentBody(item.bodyHtml, idPrefix);
 			return `<section class="ex-design-stage-record" data-record-id="${item.record.id}"><div class="ex-design-stage-record-heading"><div class="ex-design-local-heading" role="heading" aria-level="4" id="record-${item.record.id}"><span class="ex-design-soft">${item.record.id}</span> · ${safeText('title' in item.record ? item.record.title : item.summary)}</div></div>${body}<footer class="ex-design-record-links">${specifications.length ? `<p class="ex-design-record-relations">Specification: ${specificationLinks}</p>` : ''}${designLinks ? `<p class="ex-design-record-relations">Related design: ${designLinks}</p>` : ''}${checkLinks ? `<p class="ex-design-record-relations">Related checks: ${checkLinks}</p>` : ''}${backlinks.length ? `<p class="ex-design-record-relations">Also serves ${backlinks.map((id) => `<button type="button" class="ex-design-related-need" data-need="${id}">${id}</button>`).join(', ')}</p>` : ''}</footer></section>`;
 		})
 		.join('');

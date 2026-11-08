@@ -536,7 +536,7 @@ test.each([1440, 390])(
 			expect(proofCard.left).toBeCloseTo(designCard.left, 0);
 			expect(proofCard.top).toBeGreaterThanOrEqual(designCard.bottom);
 			expect(
-				requiredElement(workspace, '.ex-design-specification-cases').getBoundingClientRect().width,
+				requiredElement(workspace, '[data-ex-part="cases"]').getBoundingClientRect().width,
 			).toBeGreaterThan(width * 0.8);
 		}
 
@@ -570,7 +570,7 @@ test.each([1440, 390])(
 		expect(proofSteps).toHaveLength(3);
 		expect(proofSteps.map((step) => step.open)).toEqual([true, true, true]);
 		expect(
-			pointer.querySelector<HTMLDetailsElement>('.ex-design-proof-design > details')?.open,
+			pointer.querySelector<HTMLDetailsElement>('[data-ex-part="procedure"] > details')?.open,
 		).toBe(false);
 		const keyboard = requiredElement(workspace, '#related-record-V2-keyboard');
 		expect(keyboard.textContent).toContain('Not run');

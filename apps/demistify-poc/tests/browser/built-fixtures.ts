@@ -24,6 +24,18 @@ const contentTypes: Readonly<Record<string, string>> = {
 	'.svg': 'image/svg+xml',
 };
 
+function projectionBoundaryPage(
+	records: readonly unknown[],
+	content: string,
+	body: string,
+): string {
+	return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Projection boundaries</title><link rel="stylesheet" href="/__demistify/library/theme.css"><script type="module" src="/__demistify/library/runtime.js"></script></head><body><ex-document id="content"><h1>Projection boundaries</h1><span id="outside-label">Outside label</span><p id="outside-description">Outside description</p>${content}</ex-document><script type="application/json" data-ex-records>${JSON.stringify(records)}</script>${body}</body></html>`;
+}
+
+function projectionBoundaryBody(name: string): string {
+	return `<label id="shared-label" for="shared-input" data-local-label>${name} label</label><span id="shared-extra" data-local-extra>${name} extra</span><input id="shared-input" data-local-input aria-labelledby="shared-label shared-extra outside-label" aria-describedby="shared-target outside-description"><p id="shared-target" data-local-target>${name} intended target</p><a data-local-link href="#shared-target">Local target</a><a data-encoded-link href="#%73hared-target">Encoded target</a><a data-malformed-link href="#%ZZ">Malformed target</a><a data-external-link href="https://example.org/reference#outside">External target</a>`;
+}
+
 /** Freeze built assets and authored pages; serve bytes without Vite rewriting worker imports. */
 export async function builtFixtures(): Promise<Plugin> {
 	const snapshot = await mkdtemp(join(tmpdir(), '2026-10-demistify-browser-'));
@@ -135,6 +147,160 @@ export async function builtFixtures(): Promise<Plugin> {
 		repositoryRoot,
 		'apps/demistify-poc/experiments/agent-written/document-browsers',
 	);
+	const collision = join(snapshot, 'document-browsers', 'cross-page');
+	await mkdir(collision, { recursive: true });
+	const need = {
+		kind: 'need',
+		id: 'BoundaryNeed',
+		title: 'Keep the intended target',
+		capability: 'Navigation',
+		bodyRef: 'need-body',
+		summaryRef: 'need-summary',
+	};
+	const rule = {
+		kind: 'specification',
+		id: 'BoundaryRule',
+		title: 'The local target belongs to this record',
+		needs: ['BoundaryNeed'],
+		bodyRef: 'rule-body',
+		summaryRef: 'rule-summary',
+	};
+	const design = {
+		kind: 'program-design',
+		id: 'BoundaryDesign',
+		title: 'The owner keeps its identifiers',
+		specifications: ['BoundaryRule'],
+		bodyRef: 'design-body',
+		summaryRef: 'design-summary',
+	};
+	const scenario = {
+		kind: 'scenario',
+		id: 'BoundaryScenario',
+		title: 'Follow a procedure target',
+		specifications: ['BoundaryRule'],
+		bodyRef: 'scenario-body',
+		summaryRef: 'scenario-summary',
+	};
+	const observation = {
+		kind: 'observation',
+		id: 'BoundaryObservation',
+		scenario: 'BoundaryScenario',
+		outcome: 'Partial',
+		bodyRef: 'observation-body',
+		summaryRef: 'observation-summary',
+	};
+	const reader = '<ex-requirements id="boundary-reader"></ex-requirements>';
+	await writeFile(
+		join(collision, 'requirements.html'),
+		projectionBoundaryPage(
+			[need],
+			`<p id="shared-target">Root competing target</p><label id="shared-label" for="shared-input">Root competing label</label><span id="shared-extra">Root competing extra</span><input id="shared-input"><p id="procedure-target">Root competing procedure</p>${reader}`,
+			'<template id="need-body"><p id="need-summary">Follow this record, not a similarly named element.</p></template>',
+		),
+	);
+	await writeFile(
+		join(collision, 'specification.html'),
+		projectionBoundaryPage(
+			[rule],
+			reader,
+			`<template id="rule-body"><p id="rule-summary">The specification is local.</p><section data-ex-part="rule">${projectionBoundaryBody('Specification')}</section></template>`,
+		),
+	);
+	await writeFile(
+		join(collision, 'program-design.html'),
+		projectionBoundaryPage(
+			[design],
+			reader,
+			`<template id="design-body"><p id="design-summary">The design is local.</p>${projectionBoundaryBody('Design')}</template>`,
+		),
+	);
+	await writeFile(
+		join(collision, 'verification.html'),
+		projectionBoundaryPage(
+			[scenario, observation],
+			reader,
+			`<template id="scenario-body"><p id="scenario-summary" aria-describedby="procedure-target">The procedure is local. <a data-procedure-link href="#procedure-target">Read procedure</a></p><details open id="procedure-target" data-ex-part="procedure"><summary>Procedure target</summary>${projectionBoundaryBody('Procedure')}</details></template><template id="observation-body"><p id="observation-summary">Only the supplied partial result is known.</p><p id="observation-target">Observed detail</p><a data-observation-link href="#observation-target">Read observation</a></template>`,
+		),
+	);
+	await writeFile(
+		join(collision, 'execution.html'),
+		projectionBoundaryPage(
+			[
+				{
+					kind: 'frame',
+					id: 'LinkedFrame',
+					name: 'Input.read',
+					source: 'input.ts:1',
+					responsibility: 'Read the input.',
+					statement: 'readInput();',
+					requirement: 'BoundaryNeed',
+					category: 'Input',
+				},
+				{
+					kind: 'frame',
+					id: 'SupportingFrame',
+					name: 'Channel.forward',
+					source: 'channel.ts:2',
+					responsibility: 'Forward the input.',
+					statement: 'forwardInput();',
+					category: 'Plumbing',
+					supporting: true,
+				},
+				{
+					kind: 'frame',
+					id: 'ActionFrame',
+					name: 'Batch.finish',
+					source: 'action.ts:3',
+					responsibility: 'Finish the batch.',
+					statement: 'finishBatch();',
+					category: 'Action',
+					supporting: false,
+				},
+				{
+					kind: 'stack',
+					id: 'BoundaryStack',
+					title: 'Read and finish',
+					description: 'A supplied path, not a captured trace.',
+					primaryNeed: 'BoundaryNeed',
+					frames: ['LinkedFrame', 'SupportingFrame', 'ActionFrame'],
+				},
+			],
+			'<ex-call-stack id="boundary-calls"></ex-call-stack>',
+			'',
+		),
+	);
+	const collisionPrepared = await prepareDesignPages(collision);
+	await Promise.all(
+		[...collisionPrepared.pages].map(([name, html]) => writeFile(join(collision, name), html)),
+	);
+	const publicStyle = join(snapshot, 'document-browsers', 'public-style');
+	await cp(
+		resolve(repositoryRoot, 'apps/demistify-poc/experiments/understanding-lab'),
+		publicStyle,
+		{ recursive: true },
+	);
+	await Promise.all(
+		(await readdir(publicStyle))
+			.filter((name) => name.endsWith('.html'))
+			.map(async (name): Promise<void> => {
+				const file = join(publicStyle, name);
+				const html = (await readFile(file, 'utf8')).replace(
+					/\sclass="([^"]*)"/g,
+					(_match, classes: string): string => {
+						const kept = classes.split(/\s+/).filter((value) => !value.startsWith('ex-design-'));
+						return kept.length ? ` class="${kept.join(' ')}"` : '';
+					},
+				);
+				if (/class="[^"]*ex-design-/.test(html))
+					throw new Error('Private author class in public fixture');
+				await writeFile(file, html);
+			}),
+	);
+	const publicPrepared = await prepareDesignPages(publicStyle);
+	await Promise.all(
+		[...publicPrepared.pages].map(([name, html]) => writeFile(join(publicStyle, name), html)),
+	);
+	await cp(join(snapshot, 'library'), join(publicStyle, 'library'), { recursive: true });
 	const documentCases = [
 		{
 			name: 'wide-table',

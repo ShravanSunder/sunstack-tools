@@ -229,9 +229,12 @@ interface LocalLinkAction {
 async function activateLocalLink({ fixture, frame, link, target }: LocalLinkAction): Promise<void> {
 	const view = fixture.defaultView;
 	if (!view) throw new Error('Missing local navigation window');
-	const navigation = new Promise<void>((resolve) =>
-		view.addEventListener('hashchange', () => resolve(), { once: true }),
-	);
+	const unchanged = new URL(link.getAttribute('href') ?? '', fixture.URL).href === fixture.URL;
+	const navigation = unchanged
+		? Promise.resolve()
+		: new Promise<void>((resolve) =>
+				view.addEventListener('hashchange', () => resolve(), { once: true }),
+			);
 	await fixtureLocator(frame, link).click();
 	await navigation;
 	expect(decodeURIComponent(new URL(fixture.URL).hash.slice(1))).toBe(target.id);
@@ -287,3 +290,127 @@ test('a cold supporting-call address expands its own hidden group', async (): Pr
 	);
 	expect(new URL(fixture.URL).searchParams.get('call')).toBe('event-bridge-forward');
 });
+
+test.each(['specification', 'program-design', 'verification'])(
+	'cross-page stage IDs retain their own native targets: %s',
+	async (stage): Promise<void> => {
+		await page.viewport(390, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'document-browsers',
+			'',
+			`cross-page/requirements.html?need=BoundaryNeed&stage=${stage}`,
+		);
+		await expect.poll(() => fixture.querySelector('.ex-design-stage-record')).not.toBeNull();
+		const record = requiredElement(fixture, '.ex-design-stage-record');
+		const input = requiredElement(record, '[data-local-input]');
+		const label = requiredElement(record, '[data-local-label]');
+		const target = requiredElement(record, '[data-local-target]');
+		await fixtureLocator(frame, label).click();
+		expect(fixture.activeElement).toBe(input);
+		expect(fixture.getElementById(label.getAttribute('for') ?? '')).toBe(input);
+		const labelledBy = input.getAttribute('aria-labelledby')?.split(' ') ?? [];
+		expect(labelledBy).toHaveLength(3);
+		expect(fixture.getElementById(labelledBy[0] ?? '')).toBe(label);
+		expect(fixture.getElementById(labelledBy[1] ?? '')).toBe(
+			record.querySelector('[data-local-extra]'),
+		);
+		expect(labelledBy[2]).toBe('outside-label');
+		const describedBy = input.getAttribute('aria-describedby')?.split(' ') ?? [];
+		expect(fixture.getElementById(describedBy[0] ?? '')).toBe(target);
+		expect(describedBy[1]).toBe('outside-description');
+		await activateLocalLink({
+			fixture,
+			frame,
+			link: requiredElement(record, '[data-local-link]'),
+			target,
+		});
+		await activateLocalLink({
+			fixture,
+			frame,
+			link: requiredElement(record, '[data-encoded-link]'),
+			target,
+		});
+		expect(target.isConnected).toBe(true);
+		expect(requiredElement(record, '[data-malformed-link]').getAttribute('href')).toBe('#%ZZ');
+		expect(requiredElement(record, '[data-external-link]').getAttribute('href')).toBe(
+			'https://example.org/reference#outside',
+		);
+		if (stage === 'verification') {
+			const summary = requiredElement(record, 'p[aria-describedby]');
+			expect(fixture.getElementById(summary.getAttribute('aria-describedby') ?? '')).toBe(
+				record.querySelector('[data-ex-part="procedure"]'),
+			);
+			await activateLocalLink({
+				fixture,
+				frame,
+				link: requiredElement(record, '[data-procedure-link]'),
+				target: requiredElement(record, '[data-ex-part="procedure"]'),
+			});
+			const observed = requiredElement(record, '.ex-design-example-outcome');
+			await activateLocalLink({
+				fixture,
+				frame,
+				link: requiredElement(observed, '[data-observation-link]'),
+				target: requiredElement(observed, 'p[id] + p[id]'),
+			});
+		}
+		const ids = [...fixture.querySelectorAll('[id]')].map((element) => element.id);
+		expect(new Set(ids).size).toBe(ids.length);
+	},
+);
+
+test('an owner-page stage keeps its authored raw deep-link target', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture(
+		'document-browsers',
+		'',
+		'cross-page/specification.html?need=BoundaryNeed&stage=specification#shared-target',
+	);
+	await expect.poll(() => fixture.querySelector('.ex-design-stage-record')).not.toBeNull();
+	const record = requiredElement(fixture, '.ex-design-stage-record');
+	const target = requiredElement(record, '[data-local-target]');
+	expect(target.id).toBe('shared-target');
+	expect(fixture.getElementById('shared-target')).toBe(target);
+	await activateLocalLink({
+		fixture,
+		frame,
+		link: requiredElement(record, '[data-encoded-link]'),
+		target,
+	});
+});
+
+test.each(['standalone', 'contextual'])(
+	'an unlinked Action frame keeps its authored category: %s',
+	async (entry): Promise<void> => {
+		await page.viewport(390, 1000);
+		const { document: fixture, frame } = await openFixture(
+			'document-browsers',
+			'',
+			entry === 'standalone'
+				? 'cross-page/execution.html'
+				: 'cross-page/requirements.html?need=BoundaryNeed&stage=program-design',
+		);
+		if (entry === 'contextual')
+			await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
+		await expect.poll(() => fixture.querySelector('button[data-frame="2"]')).not.toBeNull();
+		await fixtureLocator(frame, requiredElement(fixture, 'button[data-frame="2"]')).click();
+		const detail = requiredElement(fixture, '.ex-design-frame-detail');
+		expect(requiredElement(detail, 'small').textContent).toContain('Action');
+		expect(requiredElement(detail, 'pre code').textContent).toBe('finishBatch();');
+		expect(detail.textContent).not.toContain('Supporting plumbing');
+		expect(detail.textContent).toContain('No direct requirement link is declared');
+		await frame.getByRole('button', { name: 'Close call details', exact: true }).click();
+		await fixtureLocator(frame, requiredElement(fixture, 'ex-design-hidden-calls summary')).click();
+		await fixtureLocator(frame, requiredElement(fixture, 'button[data-frame="1"]')).click();
+		expect(requiredElement(detail, 'small').textContent).toContain('Plumbing');
+		expect(detail.querySelector('.ex-design-frame-requirement a')).toBeNull();
+		await frame.getByRole('button', { name: 'Close call details', exact: true }).click();
+		await fixtureLocator(frame, requiredElement(fixture, 'button[data-frame="0"]')).click();
+		expect(requiredElement(detail, 'small').textContent).toContain('Input');
+		expect(
+			new URL(
+				requiredElement(detail, '.ex-design-frame-requirement a').getAttribute('href') ?? '',
+				fixture.URL,
+			).searchParams.get('need'),
+		).toBe('BoundaryNeed');
+	},
+);

@@ -13,11 +13,11 @@ ex-requirements {
 :root[data-theme='dark'] :is(ex-requirements, ex-design-related) {
 	--ex-design-document-surface: color-mix(in srgb, var(--surface-page) 99%, #fff);
 }
-.ex-design-requirements-inspector {
+ex-zoom:has(> ex-requirements) {
 	display: block;
 	position: relative;
 }
-.ex-design-requirements-inspector > .ex-inspect-controls .ex-inspect-sidebar {
+ex-zoom:has(> ex-requirements) > .ex-inspect-controls .ex-inspect-sidebar {
 	display: none;
 }
 .ex-design-document-subject {
@@ -181,13 +181,13 @@ ex-design-related {
 .ex-design-rule-layout > :only-child {
 	grid-column: 1 / -1;
 }
-.ex-design-specification-cases {
+:where(.ex-design-document-panel, .ex-design-related-content) [data-ex-part='cases'] {
 	margin: var(--space-4) 0;
 }
-.ex-design-rule-layout > .ex-design-specification-cases {
+.ex-design-rule-layout > [data-ex-part='cases'] {
 	margin: 0;
 }
-.ex-design-specification-cases figcaption {
+:where(.ex-design-document-panel, .ex-design-related-content) [data-ex-part='cases'] figcaption {
 	margin-bottom: var(--space-2);
 	color: var(--ink-soft);
 }
@@ -222,10 +222,10 @@ ex-design-related {
 .ex-design-related-record p {
 	margin-block: var(--space-2) var(--space-3);
 }
-.ex-design-related-visual {
+:where(.ex-design-document-panel, .ex-design-related-content) [data-ex-part='sketch'] {
 	margin: var(--space-4) 0;
 }
-.ex-design-related-visual figcaption {
+:where(.ex-design-document-panel, .ex-design-related-content) [data-ex-part='sketch'] figcaption {
 	margin-bottom: var(--space-2);
 	color: var(--ink-soft);
 	font-size: var(--text-sm);
@@ -527,15 +527,23 @@ ex-design-related {
 .ex-design-record-links .ex-design-record-relations {
 	margin: 0;
 }
-.ex-design-component-responsibilities {
+:where(.ex-design-document-panel, .ex-design-related-content)
+	[data-ex-part='sketch']
+	~ details:has(> .ex-table-scroll) {
 	margin-block: var(--space-5);
 }
-.ex-design-component-responsibilities > summary {
+:where(.ex-design-document-panel, .ex-design-related-content)
+	[data-ex-part='sketch']
+	~ details:has(> .ex-table-scroll)
+	> summary {
 	cursor: pointer;
 	font-weight: 600;
 	padding-block: var(--space-2);
 }
-.ex-design-component-responsibilities .ex-table-scroll {
+:where(.ex-design-document-panel, .ex-design-related-content)
+	[data-ex-part='sketch']
+	~ details:has(> .ex-table-scroll)
+	.ex-table-scroll {
 	margin-top: var(--space-3);
 }
 .ex-design-example-outcome {
@@ -549,18 +557,23 @@ ex-design-related {
 .ex-design-example-outcome p {
 	margin-block: var(--space-2);
 }
-.ex-design-proof-design {
+:where(.ex-design-document-panel, .ex-design-related-content) [data-ex-part='procedure'] {
 	margin-top: var(--space-5);
 }
-.ex-design-proof-design > .ex-design-record-label:first-child {
+:where(.ex-design-document-panel, .ex-design-related-content)
+	[data-ex-part='procedure']
+	> .ex-design-record-label:first-child {
 	margin-top: 0;
 }
-.ex-design-proof-design summary {
+:where(.ex-design-document-panel, .ex-design-related-content) [data-ex-part='procedure'] summary {
 	padding-block: var(--space-2);
 	font-size: var(--text-sm);
 	cursor: pointer;
 }
-.ex-design-proof-design details .ex-table-scroll {
+:where(.ex-design-document-panel, .ex-design-related-content)
+	[data-ex-part='procedure']
+	details
+	.ex-table-scroll {
 	margin-top: var(--space-3);
 }
 .ex-design-document-panel ex-design-call-view {
@@ -591,26 +604,26 @@ ex-design-related {
 
 /* An enlarged phone reader owns one surface and one inset, rather than nesting pane frames. */
 @media (max-width: 760px) {
-	.ex-inspect-dialog:has(.ex-design-requirements-inspector) {
+	.ex-inspect-dialog:has(ex-zoom > ex-requirements) {
 		background: var(--surface-page);
 	}
-	.ex-inspect-body:has(> .ex-design-requirements-inspector) {
+	.ex-inspect-body:has(> ex-zoom > ex-requirements) {
 		padding: var(--space-4);
 	}
-	.ex-design-requirements-inspector[data-inspector-content]
+	ex-zoom:has(> ex-requirements)[data-inspector-content]
 		> ex-requirements
 		> ex-design-requirements-view {
 		padding: 0;
 		outline: none;
 		border-radius: 0;
 	}
-	.ex-design-requirements-inspector[data-inspector-content] .ex-design-requirement-detail {
+	ex-zoom:has(> ex-requirements)[data-inspector-content] .ex-design-requirement-detail {
 		padding: 0;
 		border: 0;
 		border-radius: 0;
 		background: transparent;
 	}
-	.ex-design-requirements-inspector[data-inspector-content]
+	ex-zoom:has(> ex-requirements)[data-inspector-content]
 		:is(.ex-design-requirement-toolbar, .ex-design-requirement-pagination) {
 		background: var(--surface-page);
 	}
@@ -630,4 +643,9 @@ ex-design-related {
 	.ex-design-document-panel > .ex-design-need-body {
 		margin-inline: var(--space-4);
 	}
+}
+
+.ex-design-example-outcome > small + p {
+	color: var(--ink-soft);
+	font-size: var(--text-md);
 }
