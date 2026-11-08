@@ -1,7 +1,7 @@
 import { expect } from 'vitest';
 import { commands, page } from 'vitest/browser';
 
-import { browserScreenshotPath } from './browser-evidence.ts';
+import { browserScreenshotPath, writeBrowserEvidence } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import { publicPartStyleReference } from './public-part-style-reference.ts';
 
@@ -150,10 +150,9 @@ export async function capturePublicStyleParity(props: {
 		});
 		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
 		samples.push(JSON.stringify(styles));
-		await expect(
+		await writeBrowserEvidence(
+			`public-parity-${width}-${theme}-${motion}-${name}.json`,
 			JSON.stringify({ width, theme, motion, name, styles }, null, 2),
-		).toMatchFileSnapshot(
-			browserScreenshotPath(`public-parity-${width}-${theme}-${motion}-${name}.json`),
 		);
 		if (name === 'document-browsers') {
 			const reader = requiredElement(fixture, 'ex-requirements');

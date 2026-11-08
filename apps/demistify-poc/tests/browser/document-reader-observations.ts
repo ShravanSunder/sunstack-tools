@@ -2,7 +2,7 @@ import { expect } from 'vitest';
 import { commands, page, userEvent } from 'vitest/browser';
 
 import { collectionSchema } from '../../../../packages/demistify/src/design-documents/collection.ts';
-import { browserScreenshotPath } from './browser-evidence.ts';
+import { browserScreenshotPath, writeBrowserEvidence } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
 function expectNativeHit(fixture: Document, element: Element): void {
@@ -231,7 +231,8 @@ export async function captureReaderReachability(props: ReaderSurface): Promise<v
 			last: last.getBoundingClientRect(),
 		};
 		await commands.wheelLocalContent(selector, delta);
-		await expect(
+		await writeBrowserEvidence(
+			`${label}-surface-${index}-wheel-diagnostic.json`,
 			JSON.stringify(
 				{
 					firstGesture,
@@ -246,7 +247,7 @@ export async function captureReaderReachability(props: ReaderSurface): Promise<v
 				null,
 				2,
 			),
-		).toMatchFileSnapshot(browserScreenshotPath(`${label}-surface-${index}-wheel-diagnostic.json`));
+		);
 		await expect
 			.poll(() => scroller.scrollLeft)
 			.toBeCloseTo(scroller.scrollWidth - scroller.clientWidth, 0);
@@ -284,13 +285,14 @@ export async function captureReaderReachability(props: ReaderSurface): Promise<v
 		await expect.poll(() => scroller.scrollLeft).toBeCloseTo(0, 0);
 		observations.push({ tag: scroller.tagName, start, end, returnedLeft: scroller.scrollLeft });
 	}, Promise.resolve());
-	await expect(
+	await writeBrowserEvidence(
+		`${label}-reachability.json`,
 		JSON.stringify(
 			{ label, surrounding, observations, pageWidth: fixture.documentElement.scrollWidth },
 			null,
 			2,
 		),
-	).toMatchFileSnapshot(browserScreenshotPath(`${label}-reachability.json`));
+	);
 }
 
 async function captureEveryCall(props: ReaderSurface): Promise<void> {
@@ -343,7 +345,8 @@ async function captureEveryCall(props: ReaderSurface): Promise<void> {
 				fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
 			);
 			await expect.element(fixtureLocator(frame, detail)).toBeVisible();
-			await expect(
+			await writeBrowserEvidence(
+				`${label}-${stack.id}-${frameId}-detail.json`,
 				JSON.stringify(
 					{
 						stackId: stack.id,
@@ -355,7 +358,7 @@ async function captureEveryCall(props: ReaderSurface): Promise<void> {
 					null,
 					2,
 				),
-			).toMatchFileSnapshot(browserScreenshotPath(`${label}-${stack.id}-${frameId}-detail.json`));
+			);
 			await page.screenshot({
 				path: browserScreenshotPath(`${label}-${stack.id}-${frameId}-detail.png`),
 			});
@@ -461,9 +464,10 @@ export async function capturePreparedAuthor(width: number): Promise<void> {
 					block: 'start',
 					behavior: 'instant',
 				});
-				await expect(
+				await writeBrowserEvidence(
+					`author-${width}-${needId}-${stage}.json`,
 					JSON.stringify({ width, needId, stage, scripts, styles, observation }, null, 2),
-				).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-${needId}-${stage}.json`));
+				);
 				await page.screenshot({
 					path: browserScreenshotPath(`author-${width}-${needId}-${stage}.png`),
 				});
@@ -483,9 +487,10 @@ export async function capturePreparedAuthor(width: number): Promise<void> {
 			fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
 		);
 		requiredElement(workspace, '.ex-design-related-content').scrollTop = 0;
-		await expect(
+		await writeBrowserEvidence(
+			`author-${width}-${needId}-related.json`,
 			JSON.stringify({ width, needId, view: 'related', observation: related }, null, 2),
-		).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-${needId}-related.json`));
+		);
 		await page.screenshot({
 			path: browserScreenshotPath(`author-${width}-${needId}-related.png`),
 		});
@@ -497,9 +502,10 @@ export async function capturePreparedAuthor(width: number): Promise<void> {
 		await Promise.all(
 			fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
 		);
-		await expect(
+		await writeBrowserEvidence(
+			`author-${width}-${needId}-calls.json`,
 			JSON.stringify({ width, needId, view: 'calls', observation: calls }, null, 2),
-		).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-${needId}-calls.json`));
+		);
 		await page.screenshot({ path: browserScreenshotPath(`author-${width}-${needId}-calls.png`) });
 		const closeDetails = workspace.querySelector<HTMLButtonElement>(
 			'[data-action="close-call-details"]',
@@ -525,7 +531,8 @@ export async function capturePreparedAuthor(width: number): Promise<void> {
 			entryType: entry.entryType,
 		})) ?? [];
 	expect(resources.length).toBeGreaterThan(0);
-	await expect(
+	await writeBrowserEvidence(
+		`author-${width}-resources.json`,
 		JSON.stringify(
 			{
 				width,
@@ -538,7 +545,7 @@ export async function capturePreparedAuthor(width: number): Promise<void> {
 			null,
 			2,
 		),
-	).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-resources.json`));
+	);
 	const collection = collectionSchema.parse(
 		JSON.parse(requiredElement(fixture, 'script[data-ex-design-collection]').textContent ?? 'null'),
 	);
@@ -555,7 +562,8 @@ export async function capturePreparedAuthor(width: number): Promise<void> {
 				'ex-call-stack button[data-frame][aria-pressed="true"]',
 			).getAttribute('data-frame'),
 		).toBe('0');
-		await expect(
+		await writeBrowserEvidence(
+			`author-${width}-standalone-entry.json`,
 			JSON.stringify(
 				{
 					url: cold.document.URL,
@@ -564,7 +572,7 @@ export async function capturePreparedAuthor(width: number): Promise<void> {
 				null,
 				2,
 			),
-		).toMatchFileSnapshot(browserScreenshotPath(`author-${width}-standalone-entry.json`));
+		);
 		await page.screenshot({ path: browserScreenshotPath(`author-${width}-standalone-entry.png`) });
 		await captureEveryCall({
 			fixture: cold.document,

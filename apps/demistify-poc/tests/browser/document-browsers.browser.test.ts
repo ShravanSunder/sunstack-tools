@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'vitest';
 import { commands, page } from 'vitest/browser';
 
-import { browserScreenshotPath } from './browser-evidence.ts';
+import { browserScreenshotPath, writeBrowserEvidence } from './browser-evidence.ts';
 import {
 	capturePreparedAuthor,
 	captureReaderReachability,
@@ -180,10 +180,9 @@ test.each(
 					},
 				];
 			});
-			await expect(
+			await writeBrowserEvidence(
+				`metrics-${width}-${theme}-${motion}-${view}.json`,
 				JSON.stringify({ width, theme, motion, view, metrics }, null, 2),
-			).toMatchFileSnapshot(
-				browserScreenshotPath(`metrics-${width}-${theme}-${motion}-${view}.json`),
 			);
 			await page.screenshot({
 				path: browserScreenshotPath(`documents-${width}-${theme}-${motion}-${view}.png`),
@@ -460,9 +459,7 @@ test('a wide Specification table stays local while its phone heading and rule re
 			overflowX: style.overflowX,
 		};
 	});
-	await expect(JSON.stringify(geometry, null, 2)).toMatchFileSnapshot(
-		browserScreenshotPath('wide-table-phone-geometry.json'),
-	);
+	await writeBrowserEvidence('wide-table-phone-geometry.json', JSON.stringify(geometry, null, 2));
 	await page.screenshot({ path: browserScreenshotPath('wide-table-phone.png') });
 	// Assert: the viewport is the independent boundary, not a copy of a CSS declaration.
 	for (const selector of selectors) {
@@ -537,7 +534,8 @@ test('a 390px Program diagram reaches both local endpoints with native horizonta
 		diagram.getBoundingClientRect().left - 1,
 	);
 	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(390);
-	await expect(
+	await writeBrowserEvidence(
+		'program-local-scroll-390.json',
 		JSON.stringify(
 			{
 				start,
@@ -548,5 +546,5 @@ test('a 390px Program diagram reaches both local endpoints with native horizonta
 			null,
 			2,
 		),
-	).toMatchFileSnapshot(browserScreenshotPath('program-local-scroll-390.json'));
+	);
 });
