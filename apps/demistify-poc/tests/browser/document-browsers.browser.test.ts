@@ -5,17 +5,78 @@ import { browserScreenshotPath } from './browser-evidence.ts';
 import {
 	capturePreparedAuthor,
 	captureReaderReachability,
-	capturePublicStyleParity,
+	captureReaderInspectorHelp,
 } from './document-reader-observations.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
+import {
+	capturePublicStyleParity,
+	captureFixedPublicPartStyles,
+} from './public-part-style-observations.ts';
 
 const modalRule =
 	'While the menu is modal, pointer activation and keyboard shortcuts aimed at lower-scope session actions produce no background action.';
+
+test.each([1600, 390].flatMap((width) => ['light', 'dark'].map((theme) => ({ width, theme }))))(
+	'call reader inspector keeps generated Help state: $width $theme',
+	async ({ width, theme }): Promise<void> => {
+		await page.viewport(width, width === 390 ? 844 : 1000);
+		const { document: fixture, frame } = await openFixture(
+			'document-browsers',
+			'',
+			'public-style/inspector-calls.html',
+		);
+		fixture.documentElement.dataset['theme'] = theme;
+		await expect.poll(() => fixture.querySelector('ex-call-stack[data-ready]')).not.toBeNull();
+		const reader = requiredElement(fixture, 'ex-call-stack');
+		const help = reader.querySelector<HTMLDetailsElement>('details.ex-design-help');
+		if (!help) throw new Error('Missing generated call Help.');
+		expect(help.open).toBe(false);
+		await fixtureLocator(
+			frame,
+			requiredElement(reader, ':scope > ex-design-call-view > p'),
+		).hover();
+		await frame.getByRole('button', { name: 'Expand Call reader', exact: true }).click();
+		expect(requiredElement(fixture, '.ex-inspect-dialog ex-call-stack')).toBe(reader);
+		expect(help.open).toBe(false);
+		await fixtureLocator(frame, requiredElement(help, 'summary')).click();
+		expect(help.open).toBe(true);
+		await fixtureLocator(frame, requiredElement(help, 'summary')).click();
+		expect(help.open).toBe(false);
+		await frame
+			.getByRole('dialog', { name: 'Call reader', exact: true })
+			.getByRole('button', { name: 'Close', exact: true })
+			.click();
+		expect(help.open).toBe(false);
+		expect(fixture.querySelector('ex-call-stack')).toBe(reader);
+	},
+);
 
 afterEach(async (): Promise<void> => {
 	document.body.replaceChildren();
 	await commands.setReducedMotion('no-preference');
 });
+
+test.each(
+	[1600, 390].flatMap((width) =>
+		['light', 'dark'].flatMap((theme) =>
+			['no-preference', 'reduce'].map((motion) => ({ width, theme, motion })),
+		),
+	),
+)(
+	'public part styles retain selected baseline: $width $theme $motion',
+	captureFixedPublicPartStyles,
+);
+
+test.each(
+	[1600, 390].flatMap((width) =>
+		['light', 'dark'].flatMap((theme) =>
+			['no-preference', 'reduce'].map((motion) => ({ width, theme, motion })),
+		),
+	),
+)(
+	'reader inspector preserves generated Help and authored disclosure: $width $theme $motion',
+	captureReaderInspectorHelp,
+);
 
 test.each(
 	[1600, 390].flatMap((width) =>

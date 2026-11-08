@@ -301,6 +301,28 @@ export async function builtFixtures(): Promise<Plugin> {
 		[...publicPrepared.pages].map(([name, html]) => writeFile(join(publicStyle, name), html)),
 	);
 	await cp(join(snapshot, 'library'), join(publicStyle, 'library'), { recursive: true });
+	const inspectorPage = await readFile(join(publicStyle, 'requirements.html'), 'utf8');
+	await writeFile(
+		join(publicStyle, 'inspector-controls.html'),
+		inspectorPage.replace(
+			'</ex-document>',
+			'<ex-zoom label="Unrelated disclosure" zoom><details id="ordinary-detail"><summary>Authored extra</summary><p>Ordinary authored disclosure.</p></details></ex-zoom></ex-document>',
+		),
+	);
+	await writeFile(
+		join(publicStyle, 'inspector-copy.html'),
+		inspectorPage
+			.replace('><ex-requirements', '><section><ex-requirements')
+			.replace('</ex-requirements></ex-zoom>', '</ex-requirements></section></ex-zoom>'),
+	);
+	const callInspectorPage = await readFile(join(publicStyle, 'execution.html'), 'utf8');
+	await writeFile(
+		join(publicStyle, 'inspector-calls.html'),
+		callInspectorPage.replace(
+			/(<ex-call-stack\b[^>]*>[\s\S]*?<\/ex-call-stack\s*>)/,
+			'<ex-zoom label="Call reader" zoom>$1</ex-zoom>',
+		),
+	);
 	const documentCases = [
 		{
 			name: 'wide-table',

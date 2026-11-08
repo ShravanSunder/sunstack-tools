@@ -1,142 +1,155 @@
 import { expect } from 'vitest';
-import { commands, page } from 'vitest/browser';
+import { commands, page, userEvent } from 'vitest/browser';
 
 import { collectionSchema } from '../../../../packages/demistify/src/design-documents/collection.ts';
 import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
-function publicStyleSamples(scope: Element, stage: string): readonly object[] {
-	const selectors = [
-		'[data-ex-part="sketch"]',
-		'[data-ex-part="sketch"] > figcaption',
-		'[data-ex-part="sketch"] ~ details:has(> .ex-table-scroll)',
-		'[data-ex-part="cases"]',
-		'[data-ex-part="cases"] > figcaption',
-		'[data-ex-part="procedure"]',
-		'[data-ex-part="procedure"] summary',
-		'.ex-design-example-outcome > small + p',
-	];
-	return selectors.flatMap((selector) =>
-		[...scope.querySelectorAll(selector)].map((element) => {
-			const style = getComputedStyle(element);
-			return {
-				stage,
-				selector,
-				display: style.display,
-				margin: style.margin,
-				padding: style.padding,
-				color: style.color,
-				background: style.backgroundColor,
-				font: style.font,
-				radius: style.borderRadius,
-				width: element.getBoundingClientRect().width,
-			};
-		}),
+function expectNativeHit(fixture: Document, element: Element): void {
+	const bounds = element.getBoundingClientRect();
+	const hit = fixture.elementFromPoint(
+		bounds.left + bounds.width / 2,
+		bounds.top + bounds.height / 2,
 	);
+	expect(hit === element || element.contains(hit), `Uncovered ${element.textContent}`).toBe(true);
 }
 
-/** Same-content fixtures separate the public recipe from legacy author classes. */
-export async function capturePublicStyleParity(props: {
+/** Enlargement preserves generated Help while normal authored disclosures retain reveal/restore. */
+export async function captureReaderInspectorHelp(props: {
 	readonly width: number;
 	readonly theme: string;
 	readonly motion: string;
 }): Promise<void> {
-	const { width, theme, motion } = props;
-	await page.viewport(width, width === 390 ? 844 : 1000);
-	await commands.setReducedMotion(motion === 'reduce' ? 'reduce' : 'no-preference');
-	const samples: string[] = [];
-	await ['understanding', 'document-browsers'].reduce(async (previous, name): Promise<void> => {
-		await previous;
-		document.body.replaceChildren();
-		const file = `${name === 'understanding' ? '' : 'public-style/'}requirements.html?need=U2&stage=program-design`;
-		const { document: fixture, frame } = await openFixture(
-			name === 'understanding' ? 'understanding' : 'document-browsers',
-			'',
-			file,
-		);
-		fixture.documentElement.dataset['theme'] = theme;
-		await expect
-			.poll(() => fixture.querySelector('.ex-design-stage-record ex-mermaid svg'))
-			.not.toBeNull();
-		const wrapper = requiredElement(fixture, 'ex-zoom:has(> ex-requirements)');
-		const sidebar = requiredElement(wrapper, ':scope > .ex-inspect-controls .ex-inspect-sidebar');
-		expect(getComputedStyle(sidebar).display).toBe('none');
-		const styles: object[] = [];
-		await ['Program Design', 'Specification', 'Verification'].reduce(
-			async (prior, stage): Promise<void> => {
-				await prior;
-				await frame.getByRole('button', { name: stage, exact: true }).click();
-				await Promise.all(
-					fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
-				);
-				const panel = requiredElement(fixture, '.ex-design-document-panel');
-				styles.push(...publicStyleSamples(panel, stage));
-				await page.screenshot({
-					path: browserScreenshotPath(
-						`public-parity-${width}-${theme}-${motion}-${name}-${stage}.png`,
-					),
-				});
-			},
-			Promise.resolve(),
-		);
-		await frame.getByRole('button', { name: 'View together', exact: true }).click();
-		const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
-		await expect.poll(() => workspace.matches(':popover-open')).toBe(true);
-		await Promise.all(
-			fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
-		);
-		styles.push(...publicStyleSamples(workspace, 'Related'));
-		await page.screenshot({
-			path: browserScreenshotPath(`public-parity-${width}-${theme}-${motion}-${name}-related.png`),
-		});
-		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
-		samples.push(JSON.stringify(styles));
-		await expect(
-			JSON.stringify({ width, theme, motion, name, styles }, null, 2),
-		).toMatchFileSnapshot(
-			browserScreenshotPath(`public-parity-${width}-${theme}-${motion}-${name}.json`),
-		);
-		if (name === 'document-browsers') {
-			const reader = requiredElement(fixture, 'ex-requirements');
-			const expand = requiredElement(
-				wrapper,
-				':scope > .ex-inspect-controls button:not(.ex-inspect-sidebar)',
+	await page.viewport(props.width, props.width === 390 ? 844 : 1000);
+	await commands.setReducedMotion(props.motion === 'reduce' ? 'reduce' : 'no-preference');
+	const { document: fixture, frame } = await openFixture(
+		'document-browsers',
+		'',
+		'public-style/inspector-controls.html?need=U2&stage=program-design',
+	);
+	fixture.documentElement.dataset['theme'] = props.theme;
+	await expect
+		.poll(() => fixture.querySelector('.ex-design-stage-record ex-mermaid svg'))
+		.not.toBeNull();
+	const reader = requiredElement(fixture, 'ex-requirements');
+	const wrapper = requiredElement(fixture, 'ex-zoom:has(> ex-requirements)');
+	const expand = requiredElement(
+		wrapper,
+		':scope > .ex-inspect-controls button:not(.ex-inspect-sidebar)',
+	);
+	const help = reader.querySelector<HTMLDetailsElement>('details.ex-design-help');
+	const authored = reader.querySelector<HTMLDetailsElement>('.ex-design-stage-record details');
+	if (!help || !authored) throw new Error('Generated Help and authored disclosure required.');
+	expect(help.open).toBe(false);
+	expect(authored.open).toBe(false);
+	await fixtureLocator(frame, requiredElement(reader, '.ex-design-document-subject')).hover();
+	expand.scrollIntoView({ block: 'center', behavior: 'instant' });
+	await fixtureLocator(frame, expand).click();
+	const dialog = requiredElement(fixture, '.ex-inspect-dialog');
+	await expect.poll(() => dialog.matches(':modal')).toBe(true);
+	await Promise.all(
+		fixture.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+	);
+	expect(requiredElement(dialog, 'ex-requirements')).toBe(reader);
+	expect(help.open, 'Closed generated Help must not be forced over reader controls').toBe(false);
+	expect(authored.open).toBe(true);
+	const title = requiredElement(reader, '.ex-design-document-subject');
+	title.scrollIntoView({ block: 'center', behavior: 'instant' });
+	expectNativeHit(fixture, title);
+	await ['Overview', 'Specification', 'Program Design', 'Verification'].reduce(
+		async (previous, name): Promise<void> => {
+			await previous;
+			const button = requiredElement(
+				reader,
+				`.ex-design-document-switcher button[data-document="${name === 'Program Design' ? 'program-design' : name === 'Overview' ? 'requirement' : name.toLowerCase()}"]`,
 			);
-			await fixtureLocator(frame, expand).click();
-			const dialog = requiredElement(fixture, '.ex-inspect-dialog');
-			await expect.poll(() => dialog.matches(':modal')).toBe(true);
-			expect(requiredElement(dialog, 'ex-requirements')).toBe(reader);
-			if (width === 390) {
-				const detail = requiredElement(dialog, '.ex-design-requirement-detail');
-				expect(getComputedStyle(detail).borderTopWidth).toBe('0px');
-				expect(detail.getBoundingClientRect().right).toBeLessThanOrEqual(width);
-			}
-			await page.screenshot({
-				path: browserScreenshotPath(`public-inspector-${width}-${theme}-${motion}.png`),
-			});
-			await frame
-				.getByRole('dialog', { name: 'User requirements', exact: true })
-				.getByRole('button', { name: /^Close/ })
-				.click();
-			await expect.poll(() => fixture.querySelector('.ex-inspect-dialog')).toBeNull();
-			expect(wrapper.querySelector('ex-requirements')).toBe(reader);
-			await expect.poll(() => fixture.activeElement).toBe(expand);
-			await expect
-				.poll(() => fixture.querySelector('.ex-design-example-outcome p [data-comment-control]'))
-				.not.toBeNull();
-			await fixtureLocator(
-				frame,
-				requiredElement(fixture, '.ex-design-example-outcome p [data-comment-control]'),
-			).click();
-			await frame
-				.getByRole('textbox', { name: 'Your comment', exact: true })
-				.fill('Check the public reader surface.');
-			expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Your comment');
-			await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('');
-			await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
-		}
-	}, Promise.resolve());
-	expect(samples[1]).toBe(samples[0]);
+			button.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+			expectNativeHit(fixture, button);
+		},
+		Promise.resolve(),
+	);
+	await page.screenshot({
+		path: browserScreenshotPath(`reader-help-${props.width}-${props.theme}-${props.motion}.png`),
+	});
+	requiredElement(help, 'summary').scrollIntoView({ block: 'center', behavior: 'instant' });
+	await fixtureLocator(frame, requiredElement(help, 'summary')).click();
+	expect(help.open).toBe(true);
+	await userEvent.keyboard('{Enter}');
+	expect(help.open).toBe(false);
+	await frame
+		.getByRole('dialog', { name: 'User requirements', exact: true })
+		.getByRole('button', { name: 'Close', exact: true })
+		.click();
+	await expect.poll(() => fixture.querySelector('.ex-inspect-dialog')).toBeNull();
+	expect(wrapper.querySelector('ex-requirements')).toBe(reader);
+	expect(authored.open).toBe(false);
+	expect(help.open).toBe(false);
+	await expect.poll(() => fixture.activeElement).toBe(expand);
+	{
+		await fixtureLocator(frame, requiredElement(help, 'summary')).click();
+		expect(help.open).toBe(true);
+		const hoverTarget = requiredElement(
+			reader,
+			props.width === 1600 ? '.ex-design-requirement-list' : '.ex-design-document-subject',
+		);
+		hoverTarget.scrollIntoView({
+			block: 'center',
+			behavior: 'instant',
+		});
+		await fixtureLocator(frame, hoverTarget).hover();
+		expand.scrollIntoView({ block: 'center', behavior: 'instant' });
+		await fixtureLocator(frame, expand).click();
+		expect(help.open).toBe(true);
+		await frame
+			.getByRole('dialog', { name: 'User requirements', exact: true })
+			.getByRole('button', { name: 'Close', exact: true })
+			.click();
+		expect(help.open).toBe(true);
+		await fixtureLocator(frame, requiredElement(help, 'summary')).click();
+	}
+	await frame.getByRole('button', { name: 'Specification', exact: true }).click();
+	expect(
+		requiredElement(reader, '.ex-design-document-switcher button[aria-pressed="true"]').textContent,
+	).toContain('Specification');
+	const unrelated = requiredElement(fixture, 'ex-zoom[label="Unrelated disclosure"]');
+	const ordinary = unrelated.querySelector<HTMLDetailsElement>('details');
+	if (!ordinary) throw new Error('Missing ordinary authored disclosure.');
+	expect(ordinary.open).toBe(false);
+	await fixtureLocator(frame, unrelated).hover();
+	await frame.getByRole('button', { name: 'Expand Unrelated disclosure', exact: true }).click();
+	expect(ordinary.open).toBe(true);
+	await frame
+		.getByRole('dialog', { name: 'Unrelated disclosure', exact: true })
+		.getByRole('button', { name: 'Close', exact: true })
+		.click();
+	expect(ordinary.open).toBe(false);
+	if (props.width === 1600) {
+		document.body.replaceChildren();
+		const copied = await openFixture(
+			'document-browsers',
+			'',
+			'public-style/inspector-copy.html?need=U2&stage=program-design',
+		);
+		await expect.poll(() => copied.document.querySelector('details.ex-design-help')).not.toBeNull();
+		const original = requiredElement(copied.document, 'ex-requirements');
+		await fixtureLocator(
+			copied.frame,
+			requiredElement(original, '.ex-design-document-subject'),
+		).hover();
+		await copied.frame
+			.getByRole('button', { name: 'Open User requirements in a sidebar', exact: true })
+			.click();
+		const drawer = requiredElement(copied.document, '.ex-drawer');
+		await expect.poll(() => drawer.querySelector('ex-requirements[aria-busy]')).toBeNull();
+		const copyHelp = drawer.querySelector<HTMLDetailsElement>('details.ex-design-help');
+		if (!copyHelp) throw new Error('Missing copied reader Help.');
+		expect(requiredElement(drawer, 'ex-requirements')).not.toBe(original);
+		expect(copyHelp.open).toBe(false);
+		await fixtureLocator(copied.frame, requiredElement(copyHelp, 'summary')).click();
+		expect(copyHelp.open).toBe(true);
+		await copied.frame.getByRole('button', { name: 'Close', exact: true }).click();
+		expect(copied.document.querySelector('ex-requirements')).toBe(original);
+	}
 }
 
 interface ReaderSurface {

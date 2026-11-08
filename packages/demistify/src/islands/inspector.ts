@@ -129,6 +129,12 @@ function takeContent(
 	const disclosureStates = Array.from(contentOwner.querySelectorAll('details')).map((element) => ({
 		element,
 		open: element.open,
+		// Capture scope before live readers temporarily detach their view during the move.
+		revealOnInspect: !(
+			element.matches(
+				'ex-design-requirements-view > .ex-design-requirement-shell > .ex-design-requirement-pagination > details.ex-design-help, ex-design-call-view > .ex-design-component-toolbar > details.ex-design-help',
+			) && element.closest('ex-requirements,ex-call-stack')
+		),
 	}));
 	const content = reserveWidth ? owner.cloneNode(false) : contentOwner;
 	if (!(content instanceof HTMLElement)) return undefined;
@@ -195,7 +201,8 @@ function takeContent(
 	if (content.querySelector('img, svg'))
 		installInspectionGestures(body, { readScale: (): number => scale, setScale: updateScale });
 	for (const detail of detailStates) detail.element.hidden = false;
-	for (const disclosure of disclosureStates) disclosure.element.open = true;
+	for (const disclosure of disclosureStates)
+		if (disclosure.revealOnInspect) disclosure.element.open = true;
 	return {
 		presentation: { kind: 'standard' },
 		header,
