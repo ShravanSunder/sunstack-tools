@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.21.1
+
+### Patch Changes
+
+- c3e2e15: Publish the authoring CLI at a content-hashed archive URL and bind the matching published guide commands to it, so package-manager caches select the current tool. Retain earlier hashed archives through the existing release history.
+
 ## 1.21.0
 
 ### Minor Changes
