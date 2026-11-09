@@ -199,7 +199,12 @@ if (argumentsList.length === 1 && argumentsList[0] === '--help') {
 			complete: boolean;
 			matches: { spec: string; target: string; lockContainsSpec: boolean }[];
 		}> {
-			const folders = await readdir(cacheDirectory, { withFileTypes: true });
+			const folders = await readdir(cacheDirectory, { withFileTypes: true }).catch(
+				(error: unknown) => {
+					if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
+					throw error;
+				},
+			);
 			let complete = true;
 			const matches: { spec: string; target: string; lockContainsSpec: boolean }[] = [];
 			await Promise.all(
