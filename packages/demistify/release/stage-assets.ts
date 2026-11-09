@@ -94,6 +94,18 @@ export async function stageRelease(options: StageReleaseOptions): Promise<Staged
 		throw new Error('Refusing a package version downgrade.');
 	const library = await readDirectory(options.libraryDirectory, '');
 	const guide = await readDirectory(options.guideDirectory, 'authoring/');
+	const cliArchive = library.get('demistify-cli.tgz');
+	if (!cliArchive) throw new Error('Incomplete release: demistify-cli.tgz is missing.');
+	const cliArchivePath = `demistify-cli-${hashBytes(cliArchive)}.tgz`;
+	library.delete('demistify-cli.tgz');
+	library.set(cliArchivePath, cliArchive);
+	// Source examples name the logical build artifact; published examples bind to these exact bytes.
+	for (const [path, bytes] of guide)
+		if (path.endsWith('.md'))
+			guide.set(
+				path,
+				Buffer.from(bytes.toString('utf8').replaceAll('demistify-cli.tgz', cliArchivePath)),
+			);
 	const incoming = new Map([...library, ...guide]);
 	for (const required of ['runtime.js', 'theme.css', 'diagram-worker.js', 'authoring/SKILL.md'])
 		if (!incoming.has(required)) throw new Error(`Incomplete release: ${required} is missing.`);

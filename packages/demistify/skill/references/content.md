@@ -49,6 +49,8 @@ Legacy elements (`ex-zoom`, `ex-decision`, `ex-diagram-diff`, `ex-timeline` and 
 
 Browsers block sibling-file fetches from `file:` pages. Embed local Markdown while authoring, retaining the HTTPS library links:
 
+<!-- Release staging binds the logical archive filename below to the built archive's content hash. -->
+
 ```sh
 pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz embed /path/index.source.html /path/index.html
 pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz check /path/index.html

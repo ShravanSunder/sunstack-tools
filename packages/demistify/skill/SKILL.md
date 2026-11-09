@@ -87,6 +87,8 @@ Completion: facts occur once, navigation resolves to the intended content, and p
 
 Run the CLI shipped at the page's library binding (Node 26+):
 
+<!-- Release staging binds the logical archive filename below to the built archive's content hash. -->
+
 ```sh
 pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz check /path/page.html
 # Or: npx --yes --package=https://demistify.getagentstudio.dev/v1/demistify-cli.tgz demistify check /path/page.html

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -32,6 +33,7 @@ async function fixture(version: string): Promise<StageReleaseOptions> {
 			'theme.css': 'body { color: white; }',
 			'diagram-worker.js': 'self.onmessage = () => {}',
 			'chunks/engine-abcdefgh.js': 'export const value = 1;',
+			'demistify-cli.tgz': 'first CLI archive bytes',
 		}).map(([path, content]): Promise<void> => writeFile(join(libraryDirectory, path), content)),
 	);
 	await writeFile(join(guideDirectory, 'SKILL.md'), '# Version-matched guide\n');
@@ -183,6 +185,101 @@ describe('major-only release retention across real filesystem and HTTP', (): voi
 	});
 });
 
+it('publishes byte-addressed CLI paths and binds every guide example while retaining earlier bytes over HTTP', async (): Promise<void> => {
+	// Arrange: independent bytes/digests and ordinary authored guide inputs, not executable archives.
+	const firstArchive = Buffer.from('first CLI archive bytes');
+	const secondArchive = Buffer.from('second CLI archive bytes');
+	const firstHash = createHash('sha256').update(firstArchive).digest('hex');
+	const secondHash = createHash('sha256').update(secondArchive).digest('hex');
+	const firstPath = `demistify-cli-${firstHash}.tgz`;
+	const secondPath = `demistify-cli-${secondHash}.tgz`;
+	const initial = await fixture('1.0.0');
+	const guideInputs = {
+		'SKILL.md':
+			'pnpm dlx https://example.test/v1/demistify-cli.tgz check page.html\nnpx --yes --package=https://example.test/v1/demistify-cli.tgz demistify check page.html\n',
+		'references/content.md':
+			'pnpm dlx https://example.test/v1/demistify-cli.tgz embed source.html page.html\n',
+		'references/design-documents.md':
+			'pnpm dlx ./trail-guide/demistify/demistify-cli.tgz prepare ./trail-guide\n',
+	};
+	await mkdir(join(initial.guideDirectory, 'references'));
+	await Promise.all(
+		Object.entries(guideInputs).map(([path, text]): Promise<void> =>
+			writeFile(join(initial.guideDirectory, path), text),
+		),
+	);
+	await stageRelease(initial);
+	const next = await fixture('1.1.0');
+	await mkdir(join(next.guideDirectory, 'references'));
+	await Promise.all(
+		Object.entries(guideInputs).map(([path, text]): Promise<void> =>
+			writeFile(join(next.guideDirectory, path), text),
+		),
+	);
+	await writeFile(join(next.libraryDirectory, 'demistify-cli.tgz'), secondArchive);
+
+	// Act: real staging fetches retained history over HTTP before advertising the next CLI.
+	const staged = await stageRelease({
+		...next,
+		previous: { kind: 'hosted', origin: await serve(initial.outputDirectory) },
+	});
+	const origin = await serve(next.outputDirectory);
+
+	// Assert: URLs select exact independent bytes; source guide and raw build inputs stay logical.
+	expect(firstPath).not.toBe(secondPath);
+	await Promise.all(
+		(
+			[
+				[firstPath, firstArchive, firstHash],
+				[secondPath, secondArchive, secondHash],
+			] as const
+		).map(async ([path, bytes, digest]): Promise<void> => {
+			const response = await fetch(`${origin}/v1/${path}`);
+			expect(response.status).toBe(200);
+			expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+			expect(staged.manifest.files.find((file) => file.path === path)).toEqual({
+				path,
+				bytes: bytes.length,
+				sha256: digest,
+			});
+		}),
+	);
+	await Promise.all(
+		Object.entries(guideInputs).map(async ([path, text]): Promise<void> => {
+			expect(await readFile(join(next.outputDirectory, 'v1/authoring', path), 'utf8')).toBe(
+				text.replaceAll('demistify-cli.tgz', secondPath),
+			);
+			expect(await readFile(join(next.guideDirectory, path), 'utf8')).toBe(text);
+		}),
+	);
+	expect(await readFile(join(next.libraryDirectory, 'demistify-cli.tgz'))).toEqual(secondArchive);
+	expect(staged.manifest.files.some((file) => file.path === 'demistify-cli.tgz')).toBe(false);
+});
+
+it('refuses rewriting a retained CLI hash path with different bytes', async (): Promise<void> => {
+	const initial = await fixture('1.0.0');
+	await stageRelease(initial);
+	const archive = Buffer.from('first CLI archive bytes');
+	const path = `demistify-cli-${createHash('sha256').update(archive).digest('hex')}.tgz`;
+	const next = await fixture('1.1.0');
+	await writeFile(join(next.libraryDirectory, 'demistify-cli.tgz'), 'second CLI archive bytes');
+	await writeFile(join(next.libraryDirectory, path), 'different bytes at the retained address');
+	await expect(
+		stageRelease({
+			...next,
+			previous: { kind: 'hosted', origin: await serve(initial.outputDirectory) },
+		}),
+	).rejects.toThrow('immutable');
+	await expect(readdir(next.outputDirectory)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+it('requires the built CLI archive before creating release output', async (): Promise<void> => {
+	const input = await fixture('1.0.0');
+	await unlink(join(input.libraryDirectory, 'demistify-cli.tgz'));
+	await expect(stageRelease(input)).rejects.toThrow('demistify-cli.tgz');
+	await expect(readdir(input.outputDirectory)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
 it('revalidates mutable entry files, caches hashed chunks, and preserves CORS on real responses', async (): Promise<void> => {
 	await Promise.all(
 		(
@@ -190,6 +287,9 @@ it('revalidates mutable entry files, caches hashed chunks, and preserves CORS on
 				['/v1/runtime.js', false],
 				['/v1/theme.css', false],
 				['/v1/chunks/engine-abcdefgh.js', true],
+				[`/v1/demistify-cli-${'a'.repeat(64)}.tgz`, true],
+				['/v1/demistify-cli.tgz', false],
+				['/v1/demistify-cli-short.tgz', false],
 			] as const
 		).map(async ([path, immutable]): Promise<void> => {
 			const response = await worker.fetch(new Request(`https://example.test${path}`), {
