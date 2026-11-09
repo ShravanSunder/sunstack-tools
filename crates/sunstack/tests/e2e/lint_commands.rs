@@ -419,3 +419,35 @@ async fn no_key_sends_no_request_provider_failure_is_incomplete_and_real_signals
         assert_eq!(server.finish().await, 1);
     }
 }
+
+#[tokio::test]
+async fn since_skips_equal_binary_and_checks_exact_changed_markdown() {
+    let root = tempfile::tempdir().unwrap();
+    fixture::write(root.path());
+    std::fs::write(root.path().join("asset.png"), b"\x89PNG\r\n\x1a\n").unwrap();
+    fixture::commit(root.path(), "baseline with binary");
+    std::fs::write(
+        root.path().join("docs/one.md"),
+        "---\ndescription: Different wrong opening\n---\n\n# One\n",
+    )
+    .unwrap();
+    let output = report(root.path(), &["--since", "HEAD"], 1).await;
+    assert_eq!(output["counts"]["error"], 1);
+    assert_eq!(output["findings"].as_array().unwrap().len(), 1);
+    assert_eq!(output["findings"][0]["rule"], "description");
+    assert_eq!(output["findings"][0]["file"], "docs/one.md");
+    // The repository-wide scope must still refuse changed invalid content,
+    // even though this asset is outside the checked Markdown globs.
+    std::fs::write(root.path().join("asset.png"), b"now changed text").unwrap();
+    let refused = report(root.path(), &["--since", "HEAD"], 2).await;
+    assert!(
+        refused["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["message"]
+                .as_str()
+                .unwrap()
+                .contains("UnsupportedEncoding"))
+    );
+}

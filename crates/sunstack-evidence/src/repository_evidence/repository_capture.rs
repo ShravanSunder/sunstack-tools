@@ -48,6 +48,23 @@ enum ReadIdentity {
     Worktree { path: PathBuf },
 }
 
+enum RawFileSide {
+    Absent,
+    Present {
+        source: SourceRef,
+        bytes: Vec<u8>,
+        side: SourceSide,
+    },
+}
+impl RawFileSide {
+    fn bytes(&self) -> Option<&[u8]> {
+        match self {
+            Self::Absent => None,
+            Self::Present { bytes, .. } => Some(bytes),
+        }
+    }
+}
+
 pub(crate) struct PairCapture {
     pub before: CaptureView,
     pub after: CaptureView,
@@ -204,15 +221,15 @@ impl<'repo> RepositoryCapture<'repo> {
     pub(super) fn deadline_exhausted(&self) -> bool {
         self.started.elapsed().as_millis() >= self.limits.max_local_time_ms.get() as u128
     }
-    fn read_side(
+    fn read_raw_side(
         &mut self,
         catalogue: &FileCatalogue,
         path: &PathBuf,
         side: SourceSide,
-    ) -> EvidenceResult<Option<CapturedFileSide>> {
+    ) -> EvidenceResult<Option<RawFileSide>> {
         self.check_cancel()?;
         let FileCatalogue::Captured { revision, entries } = catalogue else {
-            return Ok(Some(CapturedFileSide::Absent));
+            return Ok(Some(RawFileSide::Absent));
         };
         let Some(target) = entries.get(path) else {
             match revision {
@@ -232,7 +249,7 @@ impl<'repo> RepositoryCapture<'repo> {
                 }
                 SourceRevision::Commit { .. } => {}
             }
-            return Ok(Some(CapturedFileSide::Absent));
+            return Ok(Some(RawFileSide::Absent));
         };
         let read_identity = match target {
             ReadTarget::Blob(oid) => ReadIdentity::Blob {
@@ -340,19 +357,53 @@ impl<'repo> RepositoryCapture<'repo> {
             ReadTarget::Blob(oid) => oid.to_string(),
             ReadTarget::Worktree => content_digest(&bytes),
         };
-        let text = String::from_utf8(bytes).map_err(|_| EvidenceCode::UnsupportedEncoding)?;
-        let file = FrozenRepositoryFile {
-            source: SourceRef::RepositoryFile {
-                repository: self.binding.key.clone(),
-                revision: revision.clone(),
-                path: path.clone(),
-                content_identity: identity,
-            },
-            text,
-            side,
+        let source = SourceRef::RepositoryFile {
+            repository: self.binding.key.clone(),
+            revision: revision.clone(),
+            path: path.clone(),
+            content_identity: identity,
         };
         if newly_acquired {
-            self.acquisitions.push(repository_file_coverage(&file));
+            self.acquisitions.push(CaptureCoverage {
+                source: source.clone(),
+                cursor_basis: CursorBasis::NoCursorSupplied,
+                tail: CaptureTail::Complete,
+                gaps: vec![],
+                bytes_read: bytes.len() as u64,
+                bytes_parsed: 0,
+            });
+        }
+        Ok(Some(RawFileSide::Present {
+            source,
+            bytes,
+            side,
+        }))
+    }
+    fn freeze_text_side(
+        &mut self,
+        raw: RawFileSide,
+        required: bool,
+    ) -> EvidenceResult<CapturedFileSide> {
+        let RawFileSide::Present {
+            source,
+            bytes,
+            side,
+        } = raw
+        else {
+            return Ok(CapturedFileSide::Absent);
+        };
+        let text = match String::from_utf8(bytes) {
+            Ok(text) => text,
+            Err(_) if !required => return Ok(CapturedFileSide::Absent),
+            Err(_) => return Err(EvidenceCode::UnsupportedEncoding.into()),
+        };
+        let file = FrozenRepositoryFile { source, text, side };
+        if let Some(coverage) = self
+            .acquisitions
+            .iter_mut()
+            .find(|coverage| coverage.source == file.source)
+        {
+            coverage.bytes_parsed = file.text.len() as u64;
         }
         if !self
             .sources
@@ -361,7 +412,7 @@ impl<'repo> RepositoryCapture<'repo> {
         {
             self.sources.push(file.clone());
         }
-        Ok(Some(CapturedFileSide::Present { file }))
+        Ok(CapturedFileSide::Present { file })
     }
     pub fn capture_pair(&mut self, request: PairCapture) -> EvidenceResult<CapturedChangeMember> {
         let before = self.catalogue(&request.before, SourceSide::Before)?;
@@ -424,21 +475,25 @@ impl<'repo> RepositoryCapture<'repo> {
                 } else {
                     false
                 };
-            let Some(old) = self.read_side(&before, &path, SourceSide::Before)? else {
+            let Some(old) = self.read_raw_side(&before, &path, SourceSide::Before)? else {
                 continue;
             };
-            let Some(new) = self.read_side(&after, &path, SourceSide::After)? else {
+            let Some(new) = self.read_raw_side(&after, &path, SourceSide::After)? else {
+                self.freeze_text_side(old, false)?;
                 continue;
             };
+            // Compare acquired bytes before requiring textual change witnesses. Acquisition
+            // still owns budgets and mutable snapshot verification, including equal binaries.
+            if old.bytes() == new.bytes() {
+                // Unchanged text remains available to frozen-context queries.
+                self.freeze_text_side(old, false)?;
+                self.freeze_text_side(new, false)?;
+                continue;
+            }
+            let old = self.freeze_text_side(old, true)?;
+            let new = self.freeze_text_side(new, true)?;
             let old_text = side_bytes(&old);
             let new_text = side_bytes(&new);
-            if old == CapturedFileSide::Absent && new == CapturedFileSide::Absent {
-                continue;
-            }
-            if old_text == new_text && std::mem::discriminant(&old) == std::mem::discriminant(&new)
-            {
-                continue;
-            }
             if recency_unknown {
                 included_unknown.push(path.clone());
                 self.diagnostics
@@ -473,7 +528,9 @@ impl<'repo> RepositoryCapture<'repo> {
     pub fn capture_context(&mut self) -> EvidenceResult<()> {
         let catalogue = self.catalogue(&CaptureView::Worktree, SourceSide::After)?;
         for path in catalogue.paths() {
-            self.read_side(&catalogue, &path, SourceSide::After)?;
+            if let Some(raw) = self.read_raw_side(&catalogue, &path, SourceSide::After)? {
+                self.freeze_text_side(raw, true)?;
+            }
         }
         Ok(())
     }

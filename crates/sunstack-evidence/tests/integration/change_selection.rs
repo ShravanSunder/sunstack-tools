@@ -1,4 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+#[path = "change_selection/binary_capture.rs"]
+mod binary_capture;
 #[path = "../support/mod.rs"]
 mod support;
 use sunstack_evidence::*;
