@@ -283,14 +283,16 @@ The example maps each metadata body/summary pair to exactly one template, uses a
 
 ## Prepare, then check the changed HTML
 
-From the directory containing `trail-guide/`, using Node 26+ and the example's matching local distribution:
+From the directory containing `trail-guide/`, using Node 26+ and the example's matching local distribution. Use the quoted absolute archive path so pnpm can locate it while preparing its cache:
+
+<!-- Release staging binds the logical archive filename below to the built archive's content hash. -->
 
 ```sh
-pnpm dlx ./trail-guide/demistify/demistify-cli.tgz prepare ./trail-guide
-pnpm dlx ./trail-guide/demistify/demistify-cli.tgz check ./trail-guide/requirements.html ./trail-guide/specification.html ./trail-guide/program-design.html ./trail-guide/verification.html ./trail-guide/execution.html
+pnpm dlx "$PWD/trail-guide/demistify/demistify-cli.tgz" prepare ./trail-guide
+pnpm dlx "$PWD/trail-guide/demistify/demistify-cli.tgz" check ./trail-guide/requirements.html ./trail-guide/specification.html ./trail-guide/program-design.html ./trail-guide/verification.html ./trail-guide/execution.html
 ```
 
-For a hosted binding, use its `demistify-cli.tgz` URL in place of the local tarball, with the same `prepare` and `check` arguments. The main guide owns the routine one-invocation final source check; errors are corrected at their authored owners, and warnings retain that guide's advisory status.
+For a hosted binding, use the exact CLI URL printed by that binding's current main guide in place of the local tarball, with the same `prepare` and `check` arguments. The main guide owns the routine one-invocation final source check; errors are corrected at their authored owners, and warnings retain that guide's advisory status.
 
 `prepare` reads every sibling HTML file and local Markdown source, validates ownership, IDs, bodies, parts and cross-page edges, derives all output, then writes the HTML pages in place. A validation/read failure occurs before those writes. This is not an atomic filesystem transaction if an output write itself fails. Explicit `</head>` and `</body>` boundaries are required. Keep authored inputs in your normal source/version workflow.
 
