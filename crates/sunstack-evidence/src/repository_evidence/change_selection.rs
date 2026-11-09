@@ -368,18 +368,37 @@ pub async fn verify_change_capture(
                 return Err(EvidenceCode::MissingContext.into());
             }
             match check {
+                MutableRepositoryFile::WorktreeSymlink { root, path, target } => {
+                    let path = root.join(path);
+                    let parent = path
+                        .parent()
+                        .ok_or(EvidenceCode::SourceChanged)?
+                        .canonicalize()
+                        .map_err(|_| EvidenceCode::SourceChanged)?;
+                    let metadata = std::fs::symlink_metadata(&path)
+                        .map_err(|_| EvidenceCode::SourceChanged)?;
+                    if !parent.starts_with(&root)
+                        || !metadata.file_type().is_symlink()
+                        || std::fs::read_link(&path).map_err(|_| EvidenceCode::SourceChanged)?
+                            != target
+                    {
+                        return Err(EvidenceCode::SourceChanged.into());
+                    }
+                }
                 MutableRepositoryFile::Worktree { root, path, bytes } => {
                     let path = root.join(path);
                     match bytes {
-                        None => {
-                            if path.exists() {
-                                return Err(EvidenceCode::SourceChanged.into());
-                            }
-                        }
+                        None => match std::fs::symlink_metadata(&path) {
+                            Ok(_) => return Err(EvidenceCode::SourceChanged.into()),
+                            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                            Err(_) => return Err(EvidenceCode::SourceChanged.into()),
+                        },
                         Some(expected) => {
-                            let metadata = std::fs::metadata(&path)
+                            let metadata = std::fs::symlink_metadata(&path)
                                 .map_err(|_| EvidenceCode::SourceChanged)?;
-                            if metadata.len() != expected.len() as u64 {
+                            if !metadata.file_type().is_file()
+                                || metadata.len() != expected.len() as u64
+                            {
                                 return Err(EvidenceCode::SourceChanged.into());
                             }
                             let mut actual = Vec::new();

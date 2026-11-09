@@ -1,9 +1,10 @@
+mod worktree_capture;
+
 use crate::repository_evidence::repository_catalogue::{CaptureView, FileCatalogue, ReadTarget};
 use crate::*;
 use git2::Repository;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    io::Read,
     path::PathBuf,
     sync::Arc,
     time::Instant,
@@ -297,54 +298,9 @@ impl<'repo> RepositoryCapture<'repo> {
                     blob.content().to_vec()
                 }
                 ReadTarget::Worktree => {
-                    let resolved = self
-                        .binding
-                        .root
-                        .join(path)
-                        .canonicalize()
-                        .map_err(|_| EvidenceCode::SourceUnavailable)?;
-                    if !resolved.starts_with(&self.binding.root) {
-                        return Err(EvidenceCode::PathOutsideRoot.into());
-                    }
-                    let metadata = std::fs::metadata(&resolved)
-                        .map_err(|_| EvidenceCode::SourceUnavailable)?;
-                    if metadata.len() > self.limits.max_file_bytes.get() as u64 {
-                        self.limited(DiscoveryLimit::FileBytes);
+                    let Some(bytes) = self.read_worktree_side_bytes(path)? else {
                         return Ok(None);
-                    }
-                    if metadata.len() > self.available_bytes.saturating_sub(self.total_bytes) as u64
-                    {
-                        self.limited(DiscoveryLimit::TotalBytes);
-                        return Ok(None);
-                    }
-                    let mut bytes = Vec::new();
-                    let file = std::fs::File::open(&resolved)
-                        .map_err(|_| EvidenceCode::SourceUnavailable)?;
-                    self.progress.repository_file();
-                    let read = file
-                        .take(
-                            self.limits
-                                .max_file_bytes
-                                .get()
-                                .min(self.available_bytes.saturating_sub(self.total_bytes))
-                                as u64,
-                        )
-                        .read_to_end(&mut bytes);
-                    self.progress.source_bytes(bytes.len());
-                    read.map_err(|_| EvidenceCode::SourceUnavailable)?;
-                    if bytes.len() > self.limits.max_file_bytes.get() {
-                        self.limited(DiscoveryLimit::FileBytes);
-                        return Ok(None);
-                    }
-                    if bytes.len() > self.available_bytes.saturating_sub(self.total_bytes) {
-                        self.limited(DiscoveryLimit::TotalBytes);
-                        return Ok(None);
-                    }
-                    self.mutable_files.push(MutableRepositoryFile::Worktree {
-                        root: self.binding.root.clone(),
-                        path: path.clone(),
-                        bytes: Some(bytes.clone()),
-                    });
+                    };
                     bytes
                 }
             };

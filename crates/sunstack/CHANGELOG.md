@@ -7,6 +7,8 @@ Release date: 2026-11-08.
 - `lint --since` skips unchanged binary files before decoding textual change
   witnesses. Changed non-UTF-8 content still refuses capture; file and byte
   limits and mutable-source verification still include unchanged binary reads.
+- Change capture compares worktree symlinks by their Git link payload without
+  following the target, and verifies both payload and file type.
 
 ## 0.10.0
 

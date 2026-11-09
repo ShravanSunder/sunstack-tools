@@ -3,6 +3,9 @@
 mod binary_capture;
 #[path = "../support/mod.rs"]
 mod support;
+#[cfg(unix)]
+#[path = "change_selection/symlink_capture.rs"]
+mod symlink_capture;
 use sunstack_evidence::*;
 use support::*;
 use tokio_util::sync::CancellationToken;

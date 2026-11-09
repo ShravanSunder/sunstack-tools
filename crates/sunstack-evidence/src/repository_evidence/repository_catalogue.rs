@@ -145,7 +145,10 @@ impl RepositoryCapture<'_> {
                         break;
                     }
                     let entry = entry.map_err(|_| EvidenceCode::SourceUnavailable)?;
-                    if !entry.file_type().is_some_and(|kind| kind.is_file()) {
+                    if !entry
+                        .file_type()
+                        .is_some_and(|kind| kind.is_file() || kind.is_symlink())
+                    {
                         continue;
                     }
                     let path = entry
