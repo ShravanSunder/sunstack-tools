@@ -35,7 +35,7 @@ const optionsSchema = z.object({
 	evidence: z.string(),
 });
 
-function fixture(root: string, binaryAsset: boolean): string {
+function fixture(root: string, binaryAsset: boolean, endpoint: string): string {
 	filesystem.mkdirSync(root);
 	filesystem.mkdirSync(path.join(root, 'docs'));
 	filesystem.mkdirSync(path.join(root, 'assets'));
@@ -74,7 +74,7 @@ function fixture(root: string, binaryAsset: boolean): string {
 			ast_grep: 'evidence/sgconfig.yml',
 			kinds: { doc: { rule: 'document', fields: { body: { from: 'remainder' } } } },
 		},
-		decision_model: { model: 'jev-latest' },
+		decision_model: { model: 'jev-latest', endpoint },
 	});
 	filesystem.writeFileSync(path.join(root, 'docs/one.md'), 'Before.\n');
 	filesystem.writeFileSync(path.join(root, 'docs/unchanged.md'), 'Unchanged peer.\n');
@@ -135,12 +135,12 @@ export async function main(): Promise<void> {
 	const evidence = path.resolve(options.evidence);
 	filesystem.mkdirSync(evidence);
 	const root = path.join(evidence, 'binary-fixture');
-	const base = fixture(root, true);
 	const plain = path.join(evidence, 'plain-fixture');
-	const plainBase = fixture(plain, false);
 	const observer = new RulebookProcess(target, path.join(evidence, 'run'));
 	await observer.start();
 	try {
+		const base = fixture(root, true, observer.endpoint);
+		const plainBase = fixture(plain, false, observer.endpoint);
 		await observer.run({ root, name: 'check', arguments: ['lint', '--check'], expectedExit: 0 });
 		const old = await observer.run({
 			root,

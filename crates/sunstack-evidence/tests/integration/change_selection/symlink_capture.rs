@@ -181,3 +181,120 @@ async fn regular_file_replaced_by_link_to_identical_bytes_refuses_snapshot() {
         EvidenceCode::SourceChanged
     );
 }
+
+#[tokio::test]
+async fn path_equivalent_but_byte_different_link_payload_refuses_snapshot() {
+    let (fixture, base) = linked_fixture(std::path::Path::new("dir/file"));
+    let captured = capture_change_selection(request(&fixture, base), CancellationToken::new())
+        .await
+        .unwrap();
+    let alias = fixture.directory.path().join("CLAUDE.md");
+    std::fs::remove_file(&alias).unwrap();
+    symlink("dir//file", &alias).unwrap();
+    assert_eq!(
+        std::path::Path::new("dir/file"),
+        std::path::Path::new("dir//file")
+    );
+    assert_eq!(
+        std::fs::read_link(&alias)
+            .unwrap()
+            .as_os_str()
+            .as_encoded_bytes(),
+        b"dir//file"
+    );
+    assert_eq!(
+        verify_change_capture(&captured, CancellationToken::new())
+            .await
+            .unwrap_err()
+            .code,
+        EvidenceCode::SourceChanged
+    );
+}
+
+async fn capture_recent_link(
+    fixture: &GitFixture,
+    since: chrono::DateTime<chrono::Utc>,
+    until: chrono::DateTime<chrono::Utc>,
+) -> CapturedChangeSelection {
+    let mut binding = fixture.binding(ChangeScope::RecentUncommitted {
+        layers: vec![DirtyLayer::Unstaged],
+        window: TimeWindow::Absolute {
+            since_utc: since,
+            until_utc: until,
+        },
+        unknown_recency: UnknownRecencyPolicy::ExcludeWithOmission,
+    });
+    binding.input_paths = vec![QueryPath::Exact {
+        path: "CLAUDE.md".into(),
+    }];
+    capture_change_selection(
+        ChangeCaptureRequest {
+            binding,
+            limits: discovery_limits(),
+            anchor_utc: until + chrono::Duration::seconds(1),
+        },
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap()
+}
+fn changed_link_and_mtime() -> (GitFixture, chrono::DateTime<chrono::Utc>) {
+    let (fixture, _) = linked_fixture(std::path::Path::new("AGENTS.md"));
+    fixture.write("other.md", "Target contents are not link recency.\n");
+    let alias = fixture.directory.path().join("CLAUDE.md");
+    std::fs::remove_file(&alias).unwrap();
+    symlink("other.md", &alias).unwrap();
+    let link_mtime = std::fs::symlink_metadata(&alias)
+        .unwrap()
+        .modified()
+        .unwrap()
+        .into();
+    (fixture, link_mtime)
+}
+#[tokio::test]
+async fn old_link_is_excluded_even_when_its_referent_is_recent() {
+    let (fixture, link_mtime) = changed_link_and_mtime();
+    // Use a controlled future anchor/window instead of changing link timestamps
+    // or sleeping. The referent lies in the window; the link itself predates it.
+    let recent = link_mtime + chrono::Duration::hours(1);
+    std::fs::File::open(fixture.directory.path().join("other.md"))
+        .unwrap()
+        .set_modified(recent.into())
+        .unwrap();
+    let capture = capture_recent_link(
+        &fixture,
+        recent - chrono::Duration::seconds(1),
+        recent + chrono::Duration::seconds(1),
+    )
+    .await;
+    assert!(capture.members[0].changes.is_empty());
+    assert!(capture.sources.is_empty());
+}
+#[tokio::test]
+async fn recent_link_is_selected_with_old_or_dangling_referent() {
+    let (fixture, link_mtime) = changed_link_and_mtime();
+    let target = fixture.directory.path().join("other.md");
+    std::fs::File::open(&target)
+        .unwrap()
+        .set_modified((link_mtime - chrono::Duration::hours(1)).into())
+        .unwrap();
+    for dangling in [false, true] {
+        if dangling {
+            std::fs::remove_file(&target).unwrap();
+        }
+        let capture = capture_recent_link(
+            &fixture,
+            link_mtime - chrono::Duration::seconds(1),
+            link_mtime + chrono::Duration::seconds(1),
+        )
+        .await;
+        assert_eq!(capture.members[0].changes.len(), 1);
+        let change = &capture.members[0].changes[0];
+        assert_eq!(change.path, std::path::Path::new("CLAUDE.md"));
+        assert_eq!(side_text(&change.before), Some("AGENTS.md"));
+        assert_eq!(side_text(&change.after), Some("other.md"));
+        assert!(
+            matches!(&capture.members[0].recency, CapturedRecencyBasis::ApproximateFileMtime { excluded_unknown_paths, included_unknown, .. } if excluded_unknown_paths.is_empty() && included_unknown.is_empty())
+        );
+    }
+}

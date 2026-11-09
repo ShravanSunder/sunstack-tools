@@ -410,7 +410,7 @@ impl<'repo> RepositoryCapture<'repo> {
                     let mtime = if staged || !after.paths().contains(&path) {
                         None
                     } else {
-                        std::fs::metadata(self.binding.root.join(&path))
+                        std::fs::symlink_metadata(self.binding.root.join(&path))
                             .ok()
                             .and_then(|metadata| metadata.modified().ok())
                             .map(chrono::DateTime::<chrono::Utc>::from)

@@ -379,8 +379,11 @@ pub async fn verify_change_capture(
                         .map_err(|_| EvidenceCode::SourceChanged)?;
                     if !parent.starts_with(&root)
                         || !metadata.file_type().is_symlink()
-                        || std::fs::read_link(&path).map_err(|_| EvidenceCode::SourceChanged)?
-                            != target
+                        || std::fs::read_link(&path)
+                            .map_err(|_| EvidenceCode::SourceChanged)?
+                            .as_os_str()
+                            .as_encoded_bytes()
+                            != target.as_os_str().as_encoded_bytes()
                     {
                         return Err(EvidenceCode::SourceChanged.into());
                     }
