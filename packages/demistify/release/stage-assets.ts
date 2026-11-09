@@ -97,7 +97,6 @@ export async function stageRelease(options: StageReleaseOptions): Promise<Staged
 	const cliArchive = library.get('demistify-cli.tgz');
 	if (!cliArchive) throw new Error('Incomplete release: demistify-cli.tgz is missing.');
 	const cliArchivePath = `demistify-cli-${hashBytes(cliArchive)}.tgz`;
-	library.delete('demistify-cli.tgz');
 	library.set(cliArchivePath, cliArchive);
 	// Source examples name the logical build artifact; published examples bind to these exact bytes.
 	for (const [path, bytes] of guide)

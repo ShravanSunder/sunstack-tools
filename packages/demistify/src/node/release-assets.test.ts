@@ -232,6 +232,7 @@ it('publishes byte-addressed CLI paths and binds every guide example while retai
 			[
 				[firstPath, firstArchive, firstHash],
 				[secondPath, secondArchive, secondHash],
+				['demistify-cli.tgz', secondArchive, secondHash],
 			] as const
 		).map(async ([path, bytes, digest]): Promise<void> => {
 			const response = await fetch(`${origin}/v1/${path}`);
@@ -253,7 +254,6 @@ it('publishes byte-addressed CLI paths and binds every guide example while retai
 		}),
 	);
 	expect(await readFile(join(next.libraryDirectory, 'demistify-cli.tgz'))).toEqual(secondArchive);
-	expect(staged.manifest.files.some((file) => file.path === 'demistify-cli.tgz')).toBe(false);
 });
 
 it('refuses rewriting a retained CLI hash path with different bytes', async (): Promise<void> => {
