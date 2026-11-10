@@ -1,5 +1,6 @@
 import { ExplorerIsland } from '../islands/explorer.ts';
 import { GalleryIsland } from '../islands/gallery.ts';
+import { MapIsland } from '../islands/map.ts';
 import { BoardIsland } from './board.ts';
 import { revealLayers } from './layers.ts';
 
@@ -29,6 +30,11 @@ export function revealElement(target: Element): void {
 }
 
 function targetElement(reference: string): Element | undefined {
+	for (const map of document.querySelectorAll('ex-map')) {
+		if (!(map instanceof MapIsland)) continue;
+		const row = map.revealReference(reference);
+		if (row) return row;
+	}
 	const exact = document.getElementById(reference);
 	if (exact) return exact;
 	for (const gallery of document.querySelectorAll('ex-gallery')) {

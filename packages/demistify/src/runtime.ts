@@ -89,5 +89,5 @@ for (const [tagName, constructor] of [
 reportStructuralIssues();
 installDefaultComments();
 installDocumentBehavior();
-installRoutes();
+if (!document.querySelector('ex-nav[src]')) installRoutes();
 installArrowTracing();

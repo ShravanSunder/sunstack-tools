@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { subjectIcons } from './subject-icons.ts';
+
 function navigableHref(value: string): boolean {
 	try {
 		return ['http:', 'https:', 'file:'].includes(
@@ -12,7 +14,8 @@ function navigableHref(value: string): boolean {
 
 /** The authoring index and browser share one destination shape; document content owns its labels. */
 export const searchDestinationSchema = z.strictObject({
-	kind: z.enum(['page', 'heading', 'walkthrough', 'journey']),
+	kind: z.enum(['page', 'heading', 'walkthrough', 'journey', 'map']),
+	icon: z.enum(subjectIcons).optional(),
 	title: z.string().min(1),
 	pageTitle: z.string().min(1),
 	ancestors: z.array(z.string().min(1)).readonly(),
@@ -42,12 +45,13 @@ export function searchDocumentDestinations(
 	const terms = normalized.split(' ').filter(Boolean);
 	return entries
 		.flatMap((entry, index): { entry: SearchDestination; rank: number; index: number }[] => {
-			if (scope === 'all' && entry.kind !== 'page' && entry.kind !== 'heading') return [];
 			if (scope === 'pages' && entry.kind !== 'page') return [];
 			if (scope === 'walkthroughs' && entry.kind !== 'walkthrough' && entry.kind !== 'journey')
 				return [];
 			const title = searchWords(entry.title);
-			const context = searchWords([entry.pageTitle, ...entry.ancestors].join(' '));
+			const context = searchWords(
+				[entry.pageTitle, ...entry.ancestors, entry.description].join(' '),
+			);
 			if (!terms.every((term): boolean => `${title} ${context}`.includes(term))) return [];
 			const rank = !normalized
 				? 0

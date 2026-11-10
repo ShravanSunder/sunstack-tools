@@ -77,6 +77,7 @@ export const shippedIconNames = [
 	'download-simple',
 	'images',
 	'path',
+	'footprints',
 	'house',
 	'keyboard',
 	'magnifying-glass',

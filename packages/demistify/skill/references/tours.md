@@ -46,7 +46,7 @@ The shared resolver reveals containing tabs, details and layers, then waits for 
 
 The menu lists the paths declared on the loaded page and authored presentation links; it does not automatically discover every file in a package. Declare the shared reading path at its source page and link to it from the collection. Cross-page continuation carries that path to its destination.
 
-The Walkthroughs chooser, opened by W or the path button, shows the source page above each title and its authored description below. It uses an image icon when all targets are local pictures/gallery content, and a path icon for mixed, ordinary or cross-page explanations. Keep the title and description concise; no type column is needed. The player has an icon-only close action, Left/Right for steps and Escape to leave.
+The Walkthroughs chooser, opened by W from the document or the Footprints button beside Map in the top bar, shows each title first, source-page context below, then its authored description. It uses Images when all targets are local pictures/gallery content, and Footprints for mixed, ordinary or cross-page explanations. Keep the title and description concise. Text fields and focused Map/Comments panels keep their keys. The player has an icon-only close action, Left/Right for steps and Escape to leave.
 
 ## Gallery Journeys
 

@@ -9,7 +9,7 @@ afterEach(async (): Promise<void> => {
 });
 
 test.each([1280, 390])(
-	'M toggles the same Map and replaces Comments in both directions at %ipx',
+	'document M opens Map while sidebar focus keeps its own keys at %ipx',
 	async (width): Promise<void> => {
 		await page.viewport(width, 1000);
 		const { document: fixture, frame } = await openFixture('show-me-work');
@@ -24,6 +24,8 @@ test.each([1280, 390])(
 		expect(trigger.getAttribute('aria-keyshortcuts')).toBe('M');
 		expect(trigger.getAttribute('title')).toContain('(M)');
 		await userEvent.keyboard('m');
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		await userEvent.keyboard('{Escape}');
 		expect(trigger.getAttribute('aria-expanded')).toBe('false');
 		await userEvent.keyboard('c');
 		await expect
@@ -31,14 +33,19 @@ test.each([1280, 390])(
 			.toBeVisible();
 		if (width < 900) expect(trigger.closest('dialog:modal > header')).not.toBeNull();
 		await userEvent.keyboard('M');
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await userEvent.keyboard('M');
 		expect(trigger.getAttribute('aria-expanded')).toBe('true');
 		expect(fixture.querySelector('dialog:modal')).toBeNull();
 		await userEvent.keyboard('c');
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		await fixtureLocator(frame, requiredElement(fixture, '.ex-comments-trigger')).click();
 		expect(trigger.getAttribute('aria-expanded')).toBe('false');
 		await expect
 			.element(frame.getByRole('button', { name: 'Close comments', exact: true }))
 			.toBeVisible();
-		await userEvent.keyboard('m');
+		await fixtureLocator(frame, trigger).click();
 		expect(requiredElement(fixture, '.ex-map-trigger')).toBe(trigger);
 		expect(trigger.getAttribute('aria-expanded')).toBe('true');
 		await userEvent.keyboard('{Escape}');
@@ -102,7 +109,7 @@ test('M preserves editable input and rejects protected key events without a seco
 	await userEvent.keyboard('m');
 	expect(requiredElement(fixture, '.ex-map-trigger')).toBe(trigger);
 	expect(trigger.getAttribute('aria-expanded')).toBe('true');
-	await userEvent.keyboard('m');
+	await userEvent.keyboard('{Escape}');
 	expect(trigger.getAttribute('aria-expanded')).toBe('false');
 	owner.remove();
 	const invalid = fixture.createElement('ex-map');

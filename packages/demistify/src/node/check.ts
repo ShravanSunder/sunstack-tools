@@ -25,6 +25,7 @@ import { renderChoiceTitle, renderMarkdownContent } from '../render/markdown-con
 import { checkAttributes, closest, taughtElements, vocabulary } from '../vocabulary.ts';
 import { checkDesignMarkup } from './design-markup.ts';
 import { checkMapMarkup } from './map-markup.ts';
+import { checkSharedNavigation } from './shared-navigation-markup.ts';
 import { checkStoryMarkup } from './story-markup.ts';
 
 type Element = DefaultTreeAdapterMap['element'];
@@ -361,9 +362,46 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 	};
 	let loadsTheme = false;
 	let loadsRuntime = false;
+	const sharedChecks = new Map(
+		await Promise.all(
+			elements
+				.filter(
+					(element): boolean => element.tagName === 'ex-nav' && attributeMap(element).has('src'),
+				)
+				.map(async (element) => {
+					const reference = attributeMap(element).get('src') ?? '';
+					const problems = await checkSharedNavigation({
+						reference,
+						readSource: options.readSource,
+						idsOnPage,
+					});
+					return [element, problems] as const;
+				}),
+		),
+	);
 	for (const element of elements) {
 		const name = element.tagName;
 		const attributes = attributeMap(element);
+		for (const problem of sharedChecks.get(element) ?? [])
+			report(element, problem.severity, 'shared-navigation', problem.message);
+		if (
+			name === 'ex-nav' &&
+			attributes.has('src') &&
+			(Array.from(walk(element)).some((child): boolean =>
+				['pages', 'presentations'].includes(attributeMap(child).get('slot') ?? ''),
+			) ||
+				elements.some(
+					(child): boolean =>
+						!inertTemplateElements.has(child) &&
+						['ex-map', 'ex-presentation'].includes(child.tagName),
+				))
+		)
+			report(
+				element,
+				'error',
+				'shared-navigation',
+				'Shared navigation cannot also own authored page lists, Map or Walkthrough declarations.',
+			);
 		if (
 			name === 'ex-gallery' &&
 			!inertTemplateElements.has(element) &&

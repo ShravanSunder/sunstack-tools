@@ -1,4 +1,5 @@
 import { documentSearchIndexSchema, type SearchDestination } from '../core/document-search.ts';
+import { readIcon } from '../core/head.ts';
 import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { reportIssue } from '../core/issues.ts';
 
@@ -55,7 +56,7 @@ export function collectSearchDestinations(props: {
 		const key =
 			entry.kind === 'page'
 				? `${entry.kind}:${documentAddress(entry.href)}`
-				: `${entry.kind}:${url.href}`;
+				: `${entry.kind}:${url.href}${entry.kind === 'map' ? `:${entry.ancestors.join('/')}:${entry.title}` : ''}`;
 		entries.set(key, entry);
 	};
 	for (const link of links) {
@@ -70,6 +71,7 @@ export function collectSearchDestinations(props: {
 				pageTitle: title,
 				ancestors: [],
 				href: link.href,
+				icon: readIcon(link),
 				description: link.querySelector('span')?.textContent?.trim(),
 			},
 		]);
@@ -80,9 +82,24 @@ export function collectSearchDestinations(props: {
 			}
 	}
 	for (const entry of indexed) {
-		if (documentAddress(entry.href) !== documentAddress(here.href)) add(entry);
+		if (
+			(entry.kind !== 'page' && entry.kind !== 'heading') ||
+			documentAddress(entry.href) !== documentAddress(here.href)
+		)
+			add(entry);
 	}
-	add({ kind: 'page', title: pageTitle, pageTitle, ancestors: [], href: here.href });
+	const currentPage = [...entries.values()].find(
+		(entry): boolean =>
+			entry.kind === 'page' && documentAddress(entry.href) === documentAddress(here.href),
+	);
+	add({
+		...currentPage,
+		kind: 'page',
+		title: pageTitle,
+		pageTitle,
+		ancestors: [],
+		href: here.href,
+	});
 	const parents: { level: number; title: string }[] = [];
 	const firstHeading = contentRoot.querySelector('h1');
 	for (const heading of contentRoot.querySelectorAll<HTMLHeadingElement>('h1,h2,h3,h4,h5,h6')) {
@@ -140,5 +157,6 @@ export function collectSearchDestinations(props: {
 				return [entry].concat(headingsByPage.get(documentAddress(entry.href)) ?? []);
 			}),
 		...values.filter((entry): boolean => entry.kind === 'walkthrough' || entry.kind === 'journey'),
+		...values.filter((entry): boolean => entry.kind === 'map'),
 	];
 }

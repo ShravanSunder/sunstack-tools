@@ -12,6 +12,16 @@ import { setTrace } from './trace.ts';
 
 type OpenMode = 'sidebar' | 'modal';
 
+export const walkthroughAddressKeys = [
+	'ex-tour',
+	'ex-route',
+	'ex-name',
+	'ex-step',
+	'ex-path',
+	'ex-variation',
+	'ex-variations',
+] as const;
+
 interface RouteStep {
 	/** Another page holding the target, or undefined when the target is on this page. */
 	readonly page: string | undefined;
@@ -22,7 +32,7 @@ interface RouteStep {
 	readonly icon: string | undefined;
 }
 
-interface Route {
+export interface Route {
 	readonly id: string;
 	readonly description: string;
 	readonly label: string;
@@ -96,6 +106,8 @@ class RoutePlayer {
 	private focused: Element | undefined;
 	private tracedDiagram: Element | undefined;
 	private galleryWalkthrough: GalleryWalkthrough | undefined;
+	private readonly events = new AbortController();
+	private readonly sizeObserver = new ResizeObserver((): void => this.measurePlayerHeight());
 
 	constructor(private readonly routes: readonly Route[]) {
 		this.bar.className = 'ex-route-player';
@@ -112,9 +124,15 @@ class RoutePlayer {
 			this.marker.style.top = `${bounds.top + Math.min(16, bounds.height / 2)}px`;
 			this.marker.hidden = bounds.bottom < 0 || bounds.top > innerHeight;
 		};
-		window.addEventListener('scroll', positionMarker, { passive: true, capture: true });
-		window.addEventListener('resize', positionMarker);
-		document.addEventListener('presentation-target', positionMarker);
+		window.addEventListener('scroll', positionMarker, {
+			passive: true,
+			capture: true,
+			signal: this.events.signal,
+		});
+		window.addEventListener('resize', positionMarker, { signal: this.events.signal });
+		document.addEventListener('presentation-target', positionMarker, {
+			signal: this.events.signal,
+		});
 		this.bar.hidden = true;
 		this.title.textContent = routes[0]?.label ?? '';
 		this.counter.className = 'ex-route-count';
@@ -128,37 +146,51 @@ class RoutePlayer {
 		controls.append(this.title, previous, this.counter, next, close);
 		this.bar.append(controls, this.narration);
 		document.body.append(this.bar, this.marker);
-		new ResizeObserver((): void => this.measurePlayerHeight()).observe(this.bar);
-		document.addEventListener('keydown', (event: KeyboardEvent): void => {
-			if (
-				this.bar.hidden ||
-				event.defaultPrevented ||
-				event.ctrlKey ||
-				event.metaKey ||
-				event.altKey ||
-				(event.target instanceof Element &&
-					event.target.closest(
-						'input,select,textarea,[contenteditable="true"],[popover],[role="tab"],[role="menuitem"],[role="separator"],.ex-drawer,dialog',
-					))
-			)
-				return;
-			if (document.querySelector(':popover-open:not(.ex-drawer[data-presentation="map"])')) return;
-			if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-				event.preventDefault();
-				this.step(event.key === 'ArrowRight' ? 1 : -1);
-			} else if (
-				this.galleryWalkthrough &&
-				(event.key === 'ArrowUp' || event.key === 'ArrowDown')
-			) {
-				if (this.galleryWalkthrough.moveVariation(event.key === 'ArrowUp' ? -1 : 1))
+		this.sizeObserver.observe(this.bar);
+		document.addEventListener(
+			'keydown',
+			(event: KeyboardEvent): void => {
+				if (
+					this.bar.hidden ||
+					event.defaultPrevented ||
+					event.ctrlKey ||
+					event.metaKey ||
+					event.altKey ||
+					(event.target instanceof Element &&
+						event.target.closest(
+							'input,select,textarea,[contenteditable="true"],[popover],[role="tab"],[role="menuitem"],[role="separator"],.ex-drawer,dialog',
+						))
+				)
+					return;
+				if (document.querySelector(':popover-open:not(.ex-drawer[data-presentation="map"])'))
+					return;
+				if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
 					event.preventDefault();
-			} else if (
-				event.key === 'Escape' &&
-				!document.querySelector('dialog[open]') &&
-				!isDrawerOpen()
-			)
-				this.stop();
-		});
+					this.step(event.key === 'ArrowRight' ? 1 : -1);
+				} else if (
+					this.galleryWalkthrough &&
+					(event.key === 'ArrowUp' || event.key === 'ArrowDown')
+				) {
+					if (this.galleryWalkthrough.moveVariation(event.key === 'ArrowUp' ? -1 : 1))
+						event.preventDefault();
+				} else if (
+					event.key === 'Escape' &&
+					!document.querySelector('dialog[open]') &&
+					!isDrawerOpen()
+				)
+					this.stop();
+			},
+			{ signal: this.events.signal },
+		);
+	}
+
+	dispose(): void {
+		this.stop(true);
+		this.events.abort();
+		this.sizeObserver.disconnect();
+		this.bar.remove();
+		this.marker.remove();
+		document.documentElement.style.removeProperty('--ex-route-player-height');
 	}
 
 	start(routeIndex: number, stepIndex = 0): void {
@@ -174,7 +206,7 @@ class RoutePlayer {
 		document.dispatchEvent(new Event('presentation-change'));
 	}
 
-	stop(): void {
+	stop(preserveAddress = false): void {
 		this.pendingTarget?.abort();
 		this.galleryWalkthrough?.dispose();
 		this.galleryWalkthrough = undefined;
@@ -188,17 +220,9 @@ class RoutePlayer {
 		this.focused = undefined;
 		this.bar.hidden = true;
 		delete document.documentElement.dataset['route'];
+		if (preserveAddress) return;
 		const address = new URL(location.href);
-		for (const key of [
-			'ex-tour',
-			'ex-route',
-			'ex-name',
-			'ex-step',
-			'ex-path',
-			'ex-variation',
-			'ex-variations',
-		])
-			address.searchParams.delete(key);
+		for (const key of walkthroughAddressKeys) address.searchParams.delete(key);
 		history.replaceState(null, '', address);
 	}
 
@@ -420,9 +444,11 @@ async function resumeTour(
 	const label = params.get('ex-route');
 	const stepIndex = Number.parseInt(params.get('ex-step') ?? '0', 10) || 0;
 	if (!home || label === null) return;
-	if (pageOf(new URL(home)) === pageOf(new URL(location.href))) {
-		const index = localRoutes.findIndex((route): boolean => route.id === label);
-		if (player && index >= 0) player.start(index, stepIndex);
+	const localIndex = localRoutes.findIndex(
+		(route): boolean => route.id === label && new URL(route.home).href === new URL(home).href,
+	);
+	if (player && localIndex >= 0) {
+		player.start(localIndex, stepIndex);
 		return;
 	}
 	const carried = decodeRoute(params.get('ex-path') ?? '');
@@ -462,25 +488,46 @@ async function resumeTour(
 	}
 }
 
-/** Presentation paths share one launcher/menu with document navigation. */
-export function installRoutes(): void {
+let disposeInstalledRoutes: (() => void) | undefined;
+
+/** Authored and shared paths use the same player, with one live installation per document. */
+export function installRoutes(sharedRoutes: readonly Route[] = []): () => void {
+	disposeInstalledRoutes?.();
+	const events = new AbortController();
 	const elements = Array.from(document.querySelectorAll<RouteElement>('ex-presentation'));
-	const routes = elements.map((element, index): Route => ({
-		id: element.id || `presentation-${index + 1}`,
-		label: element.getAttribute('title') ?? element.id,
-		description: element.getAttribute('description') ?? '',
-		home: location.href.split(/[?#]/)[0] ?? location.href,
-		steps: element.readSteps(),
-		variations: element.hasAttribute('variations'),
-	}));
+	const routes = [
+		...elements.map((element, index): Route => ({
+			id: element.id || `presentation-${index + 1}`,
+			label: element.getAttribute('title') ?? element.id,
+			description: element.getAttribute('description') ?? '',
+			home: location.href.split(/[?#]/)[0] ?? location.href,
+			steps: element.readSteps(),
+			variations: element.hasAttribute('variations'),
+		})),
+		...sharedRoutes,
+	];
 	const player = routes.length ? new RoutePlayer(routes) : undefined;
 	for (const [index, element] of elements.entries())
-		element.addEventListener('presentation-start', (): void => player?.start(index));
+		element.addEventListener('presentation-start', (): void => player?.start(index), {
+			signal: events.signal,
+		});
 	const initial = elements.findIndex((element): boolean => `#${element.id}` === location.hash);
 	if (initial >= 0) player?.start(initial);
 	else void resumeTour(routes, player);
-	window.addEventListener('popstate', (): void => {
-		if (new URLSearchParams(location.search).has('ex-route')) void resumeTour(routes, player);
-		else player?.stop();
-	});
+	window.addEventListener(
+		'popstate',
+		(): void => {
+			if (new URLSearchParams(location.search).has('ex-route')) void resumeTour(routes, player);
+			else player?.stop();
+		},
+		{ signal: events.signal },
+	);
+	const dispose = (): void => {
+		if (disposeInstalledRoutes !== dispose) return;
+		events.abort();
+		player?.dispose();
+		disposeInstalledRoutes = undefined;
+	};
+	disposeInstalledRoutes = dispose;
+	return dispose;
 }

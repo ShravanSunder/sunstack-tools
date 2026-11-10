@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Where delivery state lives</title>
+  <link rel="stylesheet" href="/experiments/islands/theme.css">
+  <script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+  <ex-nav for="content" src="./navigation.json"></ex-nav>
+  <ex-document id="content">
+    <h1>Where delivery state lives</h1>
+    <p>The execution design lets the object sleep between events because the facts needed by the next event have an owner outside disposable object memory.</p>
+    <h2 id="stored-custody">Stored custody survives the nap</h2>
+    <p>The custody row is stored before central answers Accepted. A push records its send identity and retry time. Its answer arrives as a separate event and matches the connection and send identity before advancing custody.</p>
+    <h2 id="disposable-memory">The object instance is disposable</h2>
+    <p>A new instance reads storage and socket attachments. It does not depend on an in-memory reply waiter surviving from the sending event.</p>
+    <p>This is a reading example of the existing central execution design, not a report that the design has shipped or passed verification.</p>
+  </ex-document>
+</body>
+</html>
