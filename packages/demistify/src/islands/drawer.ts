@@ -43,7 +43,7 @@ function synchronizeReaderOverlays(raise = false): void {
 		document.body.append(readerOverlayHost);
 	}
 	for (const overlay of document.body.querySelectorAll<HTMLElement>(
-		':scope > .ex-route-player, :scope > .ex-issues, :scope > .ex-reader-controls',
+		':scope > .ex-route-player, :scope > .ex-issues, :scope > .ex-reader-controls, :scope > .ex-document-toolbar',
 	)) {
 		readerOverlayOrigins.get(overlay)?.remove();
 		const origin = document.createComment('reader overlay origin');

@@ -3,12 +3,3 @@ ex-presentation,
 ex-step {
 	display: none;
 }
-.ex-presentations-trigger {
-	position: fixed;
-	left: 16px;
-	bottom: 12px;
-	z-index: 7;
-	margin: 0;
-	background: var(--surface-content);
-	border-radius: var(--radius-md);
-}

@@ -11,7 +11,8 @@ const navigationTargetSchema = z.strictObject({
 });
 
 const sharedMapNodeSchema = z.strictObject({
-	label: z.string().min(1),
+	title: z.string().min(1),
+	description: z.string().min(1),
 	icon: navigationIcon,
 	target: navigationTargetSchema.optional(),
 	get children(): z.ZodDefault<z.ZodArray<typeof sharedMapNodeSchema>> {
@@ -81,6 +82,11 @@ export const sharedNavigationSchema = z
 export type SharedNavigation = z.infer<typeof sharedNavigationSchema>;
 export type SharedMapNode = z.infer<typeof sharedMapNodeSchema>;
 export type NavigationTarget = z.infer<typeof navigationTargetSchema>;
+
+/** Private row references connect collection search to the live, filtered Map. */
+export function sharedMapReference(path: readonly number[]): string {
+	return `ex-shared-map-${path.join('-')}`;
+}
 
 /** Page paths are resolved beside the shared source, never beside whichever peer is open. */
 export function navigationTargetHref(

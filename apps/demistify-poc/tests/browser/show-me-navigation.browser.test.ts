@@ -105,25 +105,25 @@ test.each([
 	{
 		name: 'ui',
 		file: 'content-spacing.html',
-		controls: ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger'],
+		controls: ['.ex-theme-toggle', '.ex-search-trigger', '.ex-comments-trigger'],
 	},
 	{
 		name: 'navigation',
 		file: 'index.html',
 		controls: [
-			'.ex-comments-trigger',
-			'.ex-presentations-trigger',
 			'.ex-theme-toggle',
 			'.ex-search-trigger',
+			'.ex-comments-trigger',
+			'.ex-presentations-trigger',
 		],
 	},
 	{
 		name: 'show-me-work',
 		file: 'index.html',
-		controls: ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger', '.ex-map-trigger'],
+		controls: ['.ex-theme-toggle', '.ex-search-trigger', '.ex-comments-trigger', '.ex-map-trigger'],
 	},
 ] as const)(
-	'phone reader controls preserve the established visual order on $name',
+	'phone reader controls follow document header order on $name',
 	async ({ name, file, controls }): Promise<void> => {
 		await page.viewport(390, 1000);
 		const { document: fixture } = await openFixture(name, '', file);
@@ -309,7 +309,10 @@ test.each([1280, 390])(
 		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
 		expect(workspace.matches(':popover-open')).toBe(true);
 		workspace.removeAttribute('open');
-		expect(requiredElement(fixture, '.ex-reader-controls').parentElement).toBe(fixture.body);
+		expect(requiredElement(fixture, '.ex-reader-controls').parentElement).toBe(
+			requiredElement(fixture, '.ex-document-toolbar'),
+		);
+		expect(requiredElement(fixture, '.ex-document-toolbar').parentElement).toBe(fixture.body);
 	},
 );
 

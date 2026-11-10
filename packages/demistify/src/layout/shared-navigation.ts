@@ -1,7 +1,9 @@
 import type { SearchDestination } from '../core/document-search.ts';
 import {
 	navigationTargetHref,
+	sharedMapReference,
 	sharedNavigationSchema,
+	type SharedMapNode,
 	type SharedNavigation,
 } from '../core/shared-navigation.ts';
 import { installRoutes, walkthroughAddressKeys, type Route } from './route.ts';
@@ -10,6 +12,37 @@ import { createSharedMap } from './shared-map.ts';
 export interface LoadedNavigation {
 	readonly navigation: SharedNavigation;
 	readonly sourceUrl: string;
+}
+
+/** Search preserves the relationship path; selecting a group reveals its expanded Map row. */
+export function sharedMapDestinations(source: LoadedNavigation): readonly SearchDestination[] {
+	const entries: SearchDestination[] = [];
+	const visit = (
+		nodes: readonly SharedMapNode[],
+		path: readonly number[],
+		ancestors: readonly string[],
+	): void => {
+		for (const [index, node] of nodes.entries()) {
+			const position = [...path, index];
+			const address = new URL(location.href);
+			address.hash = sharedMapReference(position);
+			entries.push({
+				kind: 'map',
+				title: node.title,
+				description: node.description,
+				icon: node.icon,
+				pageTitle: 'Map',
+				ancestors,
+				href:
+					node.target && !node.children.length
+						? navigationTargetHref(source.navigation, node.target, source.sourceUrl)
+						: address.href,
+			});
+			visit(node.children, position, [...ancestors, node.title]);
+		}
+	};
+	visit(source.navigation.map, [], []);
+	return entries;
 }
 
 /** Load once at the source boundary; every control receives the same validated meaning. */

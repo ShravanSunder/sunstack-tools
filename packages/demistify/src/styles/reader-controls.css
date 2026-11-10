@@ -1,13 +1,16 @@
 .ex-reader-controls {
 	position: fixed;
 	left: var(--space-4);
-	bottom: var(--space-3);
+	top: var(--space-1);
 	z-index: 7;
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
 	width: max-content;
-	max-width: calc(100vw - var(--space-8) - var(--ex-drawer-used-width, 0px));
+}
+.ex-document-toolbar > .ex-reader-controls {
+	position: static;
+	flex: none;
 }
 .ex-reader-controls[hidden] {
 	display: none;
@@ -17,81 +20,48 @@
 	margin: 0;
 	flex: none;
 }
-.ex-reader-controls > .ex-comments-trigger {
-	order: var(--reader-comments-order, 0);
+.ex-document-toolbar {
+	gap: var(--space-2);
+	container-type: inline-size;
+	container-name: reader-toolbar;
 }
 .ex-map-trigger[aria-expanded='true'] {
 	color: var(--accent);
 	background: var(--selection-surface);
 	border-color: transparent;
 }
-@media (max-width: 760px) {
-	.ex-reader-controls {
-		--reader-comments-order: -1;
-		top: calc(env(safe-area-inset-top, 0px) + 5px);
-		right: var(--space-2);
-		bottom: auto;
-		left: auto;
+@container reader-toolbar (max-width: 640px) {
+	.ex-document-breadcrumbs {
+		display: none;
 	}
-	.ex-document-toolbar {
-		padding-inline-end: calc(var(--ex-reader-controls-width, 122px) + var(--space-4));
+}
+@media (max-width: 899px) {
+	.ex-document-breadcrumbs {
+		display: none;
 	}
 	.ex-reader-controls .ex-search-trigger {
 		width: 34px;
 		padding-inline: 0;
 		justify-content: center;
 	}
-	.ex-reader-controls :is(kbd, .ex-shortcut-hint) {
+	.ex-document-toolbar :is(kbd, .ex-shortcut-hint) {
 		display: none;
 	}
-	/* Standard phone sheets retain their hidden underlying controls. Map's live trigger
-	   has already moved into the sheet header and remains independently reachable. */
+	/* Map's live trigger moves into standard inspection sheets independently. */
 	:root:has(dialog.ex-inspect-dialog[data-mode='sidebar'][open]) .ex-reader-controls {
 		display: none;
 	}
-	:root:has(dialog.ex-inspect-dialog[data-mode='sidebar'][open]) .ex-document-toolbar {
-		padding-inline-end: var(--space-3);
+}
+@media (max-width: 359px) {
+	.ex-document-toolbar {
+		gap: var(--space-1);
+		padding-inline: var(--space-1);
 	}
-}
-:root:has(ex-drawer:popover-open) .ex-reader-controls {
-	--reader-comments-order: -1;
-	top: calc(env(safe-area-inset-top, 0px) + 5px);
-	right: calc(var(--ex-drawer-used-width, 0px) + var(--space-2));
-	bottom: auto;
-	left: auto;
-}
-:root:has(ex-drawer:popover-open) .ex-document-toolbar {
-	padding-inline-end: calc(var(--ex-reader-controls-width, 122px) + var(--space-4));
-}
-:root:has(ex-drawer:popover-open) .ex-reader-controls .ex-search-trigger {
-	width: 34px;
-	padding-inline: 0;
-	justify-content: center;
-}
-:root:has(ex-drawer:popover-open) .ex-reader-controls :is(kbd, .ex-shortcut-hint) {
-	display: none;
-}
-@media (max-width: 899px) {
-	:root:has(.ex-drawer[data-presentation='map']:not([hidden])) .ex-reader-controls {
-		--reader-comments-order: -1;
-		top: calc(env(safe-area-inset-top, 0px) + 5px);
-		right: var(--space-2);
-		bottom: auto;
-		left: auto;
+	.ex-reader-controls {
+		gap: var(--space-1);
 	}
-	:root:has(.ex-drawer[data-presentation='map']:not([hidden])) .ex-document-toolbar {
-		padding-inline-end: calc(var(--ex-reader-controls-width, 122px) + var(--space-4));
-	}
-	:root:has(.ex-drawer[data-presentation='map']:not([hidden]))
-		.ex-reader-controls
-		.ex-search-trigger {
-		width: 34px;
-		padding-inline: 0;
-		justify-content: center;
-	}
-	:root:has(.ex-drawer[data-presentation='map']:not([hidden]))
-		.ex-reader-controls
-		:is(kbd, .ex-shortcut-hint) {
-		display: none;
+	.ex-reader-controls > .ex-icon-button {
+		width: 30px;
+		height: 30px;
 	}
 }

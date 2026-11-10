@@ -22,10 +22,10 @@ For a collection, author Pages, Map and complete Walkthroughs once. Each page lo
     { "id": "state", "title": "Where state lives", "href": "state.html", "icon": "database" }
   ],
   "map": [
-    { "label": "Reliable delivery", "icon": "shield-check", "children": [
-      { "label": "Keep delivery through disconnects", "icon": "user", "children": [
-        { "label": "Stored custody", "icon": "database", "target": { "page": "state", "fragment": "stored-custody" } },
-        { "label": "Send, sleep, then handle the answer", "icon": "envelope", "target": { "page": "work", "fragment": "seq-mail" } }
+    { "title": "Reliable delivery", "description": "Follow custody across disconnects.", "icon": "shield-check", "children": [
+      { "title": "Keep delivery through disconnects", "description": "User need · Preserve work until delivery resumes.", "icon": "user", "children": [
+        { "title": "Stored custody", "description": "State owner · Inspect the durable delivery record.", "icon": "database", "target": { "page": "state", "fragment": "stored-custody" } },
+        { "title": "Send, sleep, then handle the answer", "description": "Execution flow · Trace the gap between send and answer.", "icon": "envelope", "target": { "page": "work", "fragment": "seq-mail" } }
       ] }
     ] }
   ],
@@ -40,11 +40,13 @@ For a collection, author Pages, Map and complete Walkthroughs once. Each page lo
 
 `version` is exactly `1`. `pages` is nonempty and ordered; its first page is Home. Each page requires unique `id`, `title`, `href` and a curated subject `icon`. Page IDs and Walkthrough IDs start with an ASCII letter and contain only letters, digits and hyphens. All page paths resolve beside the shared JSON source, including when a referring HTML page is nested elsewhere.
 
-`map` and `walkthroughs` are arrays and may be omitted when absent. Each Map node requires `label` and a curated `icon`; it can have a `target`, `children`, or both. A target names a page ID and optional raw HTML/scoped island `fragment`, without `#`. References reuse the page registry, so changing one page address updates its Map and Walkthrough links. Unknown page IDs, duplicate page/route IDs, unknown fields/icons and unsafe link protocols are errors.
+`map` and `walkthroughs` are arrays and may be omitted when absent. Each Map node requires `title`, a short navigational `description`, and a curated `icon`; it can have a `target`, `children`, or both. A target names a page ID and optional raw HTML/scoped island `fragment`, without `#`. References reuse the page registry, so changing one page address updates its Map and Walkthrough links. Unknown page IDs, duplicate page/route IDs, unknown fields/icons and unsafe link protocols are errors.
 
 Each Walkthrough requires unique `id`, `title`, `description`, and nonempty ordered `steps`. Each step has a target, focused `narration`, and optional curated icon. Its explanations stay at their targets; narration frames what to inspect. Every peer page can list and start the route. Cross-page continuation reads the same shared definitions and uses the existing target resolver and player.
 
-The right-hand Map stays fully expanded, with meaningful icons and whole-row links. Its search filters group and item labels, retaining ancestor context. It is independent of the normal left heading outline. Do not recreate it with a spatial Tree diagram or an author script. A page using `src` does not also author its own Pages/presentation lists, Map or Walkthrough declarations.
+The right-hand Map stays fully expanded, with meaningful icons and whole-row links. Its search matches group and item titles and descriptions, retaining ancestor context. Opening Map focuses Search; Up/Down moves between rows, Enter follows a destination, and Escape closes Map and returns focus to its trigger. Left/Right moves to a parent/child without collapsing the Map. Descriptions explain what a destination offers; governing facts stay in its HTML content. It is independent of the normal left heading outline. Do not recreate it with a spatial Tree diagram or an author script. A page using `src` does not also author its own Pages/presentation lists, Map or Walkthrough declarations.
+
+Ordinary document shortcuts do not fire while Map, Comments or an editable field has focus. Typing W, P, C or M in Map Search filters its contents; it does not open another tool. Cmd/Ctrl-K can explicitly open collection search from Map Search. Option/Alt page digits are navigation commands and also work from navigation searches, while content editors retain their text keys.
 
 This mode needs HTTP serving for the shared JSON fetch. A missing or invalid source produces a visible navigation error while ordinary page content and its heading outline remain usable. The matching CLI checks local JSON and local destination IDs; remote sources are validated at runtime. Preparing direct-file copies and compiling standalone artifacts are separate delivery work, not implied by this fetch-based mode.
 
@@ -82,7 +84,7 @@ The resolver reveals containing tabs, disclosures and layers and waits for lazy 
 
 ## Search the collection and keep the index current
 
-Cmd/Ctrl-K or the search button beside the bottom theme control opens pages/headings search. Heading rows show page and ancestor context above the matching title. Walkthrough rows show source-page context, title, a concise authored description and the appropriate path/images icon. Use meaningful labels rather than a separate type column.
+The top bar orders the contents menu, Pages, reader buttons, then breadcrumbs. Breadcrumbs are hidden on small screens; Walkthrough (Footprints) sits immediately before Map. Cmd/Ctrl-K opens three search sections: Pages and headings, Walkthroughs, and Map. Each result puts its title first and breadcrumb context below. Map results include real groups and requirements: choosing a group reveals its expanded Map context; choosing a leaf opens its content. Walkthroughs use Footprints; picture journeys retain Images.
 
 The current page's live headings and authored Pages links work without an index. Other pages' headings and descriptions require an embedded index generated from explicit local inputs:
 
@@ -98,7 +100,8 @@ After changing a heading, source, page path or walkthrough description, regenera
 
 | Key, when its control is available | Action |
 | --- | --- |
-| Cmd/Ctrl-K | Open pages/headings search |
+| Cmd/Ctrl-K | Search Pages and headings, Walkthroughs, and Map |
+| Option/Alt + 1–9 | Open that numbered page in registry order |
 | P | Open the top Pages dropdown |
 | W | Open the command bar's Walkthroughs scope |
 | 1–9 in Pages or an empty Walkthroughs search | Immediately open that entry |

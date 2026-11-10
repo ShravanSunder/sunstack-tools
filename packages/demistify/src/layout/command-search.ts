@@ -7,10 +7,27 @@ import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
 import { registerReaderControl } from './reader-controls.ts';
 import { resolveTarget } from './target-resolution.ts';
 
+const searchGroups = ['Pages and headings', 'Walkthroughs', 'Map'] as const;
+type SearchGroup = (typeof searchGroups)[number];
+const destinationGroups = {
+	page: 'Pages and headings',
+	heading: 'Pages and headings',
+	walkthrough: 'Walkthroughs',
+	journey: 'Walkthroughs',
+	map: 'Map',
+} satisfies Record<SearchDestination['kind'], SearchGroup>;
+const destinationIcons = {
+	page: 'files',
+	heading: 'article',
+	walkthrough: 'footprints',
+	journey: 'images',
+	map: 'map-trifold',
+} satisfies Record<SearchDestination['kind'], string>;
+
 /** One native dialog owns search interaction; existing document targets own navigation. */
 export class DocumentSearch {
 	readonly dialog = document.createElement('dialog');
-	readonly trigger = createIconButton('magnifying-glass', 'Search pages and headings', (): void =>
+	readonly trigger = createIconButton('magnifying-glass', 'Search documents', (): void =>
 		this.open('all', this.trigger),
 	);
 	private readonly input = document.createElement('input');
@@ -35,7 +52,7 @@ export class DocumentSearch {
 		this.input.type = 'search';
 		this.input.autocomplete = 'off';
 		this.input.setAttribute('role', 'combobox');
-		this.input.setAttribute('aria-label', 'Search pages and headings');
+		this.input.setAttribute('aria-label', 'Search documents');
 		this.input.setAttribute('aria-autocomplete', 'list');
 		this.input.setAttribute('aria-controls', 'ex-command-results');
 		this.input.setAttribute('aria-expanded', 'true');
@@ -100,7 +117,7 @@ export class DocumentSearch {
 				? 'Find a walkthrough'
 				: scope === 'pages'
 					? 'Find a page'
-					: 'Search pages and headings';
+					: 'Search collection';
 		this.render();
 		if (!this.dialog.open) this.dialog.showModal();
 		this.input.focus();
@@ -114,18 +131,20 @@ export class DocumentSearch {
 		if (event.key === 'Alt') this.showHints(true);
 		if (event.defaultPrevented || event.isComposing || event.shiftKey || event.altKey) return;
 		const target = event.target instanceof Element ? event.target : null;
+		const command = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
 		if (
 			target?.closest(
 				'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
-			)
+			) &&
+			!(command && target.closest('.ex-navigation-map'))
 		)
 			return;
+		if (!command && target?.closest('.ex-drawer, .ex-inspect-dialog')) return;
 		if (
 			this.dialog.open ||
 			document.querySelector('dialog[open], :popover-open:not(.ex-drawer[data-presentation="map"])')
 		)
 			return;
-		const command = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
 		const key = !event.metaKey && !event.ctrlKey ? event.key.toLowerCase() : '';
 		if (!command && key !== 'p' && key !== 'w') return;
 		event.preventDefault();
@@ -167,6 +186,23 @@ export class DocumentSearch {
 	private render(): void {
 		this.matches = searchDocumentDestinations(this.destinations, this.input.value, this.scope);
 		this.results.replaceChildren();
+		this.matches = searchGroups.flatMap((group): SearchDestination[] =>
+			this.matches.filter((entry): boolean => destinationGroups[entry.kind] === group),
+		);
+		const sections = new Map<SearchGroup, HTMLElement>();
+		for (const [index, group] of searchGroups.entries()) {
+			if (!this.matches.some((entry): boolean => destinationGroups[entry.kind] === group)) continue;
+			const section = document.createElement('div');
+			section.setAttribute('role', 'group');
+			const label = document.createElement('div');
+			label.className = 'ex-command-group-title';
+			label.id = `ex-command-group-${index}`;
+			label.textContent = group;
+			section.setAttribute('aria-labelledby', label.id);
+			section.append(label);
+			this.results.append(section);
+			sections.set(group, section);
+		}
 		const home = this.destinations.find((entry): boolean => entry.kind === 'page');
 		for (const [index, entry] of this.matches.entries()) {
 			const row = document.createElement('a');
@@ -185,30 +221,18 @@ export class DocumentSearch {
 			if (entry.kind === 'page' && new URL(row.href).pathname === location.pathname)
 				row.setAttribute('aria-current', 'page');
 			row.append(
-				createPhosphorIcon(
-					entry.kind === 'page'
-						? entry === home
-							? 'house'
-							: 'files'
-						: entry.kind === 'journey'
-							? 'images'
-							: entry.kind === 'walkthrough'
-								? 'path'
-								: 'article',
-				),
+				createPhosphorIcon(entry.icon ?? (entry === home ? 'house' : destinationIcons[entry.kind])),
 			);
 			const copy = document.createElement('div');
+			const title = document.createElement('strong');
+			title.textContent = entry.title;
+			copy.append(title);
 			if (entry.kind !== 'page') {
 				const context = document.createElement('span');
 				context.className = 'ex-command-context';
 				context.textContent = [entry.pageTitle, ...entry.ancestors].join(' › ');
 				copy.append(context);
-				if (entry.kind === 'heading' && !this.input.value)
-					row.style.setProperty('--heading-depth', String(entry.ancestors.length));
 			}
-			const title = document.createElement('strong');
-			title.textContent = entry.title;
-			copy.append(title);
 			if (entry.description) {
 				const description = document.createElement('span');
 				description.textContent = entry.description;
@@ -225,7 +249,7 @@ export class DocumentSearch {
 				event.preventDefault();
 				this.activate(entry);
 			});
-			this.results.append(row);
+			sections.get(destinationGroups[entry.kind])?.append(row);
 		}
 		if (!this.matches.length) {
 			const empty = document.createElement('p');
@@ -238,9 +262,10 @@ export class DocumentSearch {
 
 	private select(index: number): void {
 		this.selected = Math.max(0, Math.min(this.matches.length - 1, index));
-		for (const [rowIndex, row] of [...this.results.children].entries())
+		const rows = [...this.results.querySelectorAll<HTMLElement>('[role="option"]')];
+		for (const [rowIndex, row] of rows.entries())
 			row.setAttribute('aria-selected', String(rowIndex === this.selected));
-		const selected = this.results.children[this.selected];
+		const selected = rows[this.selected];
 		if (selected) {
 			this.input.setAttribute('aria-activedescendant', selected.id);
 			selected.scrollIntoView({ block: 'nearest' });
@@ -250,6 +275,7 @@ export class DocumentSearch {
 	private activate(entry: SearchDestination | undefined): void {
 		if (!entry) return;
 		const destination = new URL(entry.href, document.baseURI);
+		this.restoreFocus = undefined;
 		this.dialog.close();
 		const current = new URL(location.href);
 		if (

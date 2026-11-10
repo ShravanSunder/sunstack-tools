@@ -1,10 +1,16 @@
 import { createPhosphorIcon } from '../core/icons.ts';
 import {
 	navigationTargetHref,
+	sharedMapReference,
 	type SharedMapNode,
 	type SharedNavigation,
 } from '../core/shared-navigation.ts';
 import { MapIsland } from '../islands/map.ts';
+
+function focusMapRow(row: HTMLElement | undefined): void {
+	row?.focus();
+	row?.scrollIntoView({ block: 'nearest' });
+}
 
 /** Shared Maps show relationships in full; the page outline remains independent. */
 export function createSharedMap(props: {
@@ -28,25 +34,45 @@ export function createSharedMap(props: {
 	empty.textContent = 'No matching groups or requirements.';
 	empty.setAttribute('role', 'status');
 	content.append(search, results, empty);
-	const renderNode = (
-		node: SharedMapNode,
-		query: string,
-		parentMatches: boolean,
-	): HTMLLIElement | undefined => {
-		const matches = parentMatches || !query || node.label.toLocaleLowerCase().includes(query);
-		const children = node.children.flatMap((child): HTMLLIElement[] => {
-			const item = renderNode(child, query, matches);
+	const renderNode = (nodeProps: {
+		readonly node: SharedMapNode;
+		readonly query: string;
+		readonly parentMatches: boolean;
+		readonly path: readonly number[];
+	}): HTMLLIElement | undefined => {
+		const { node, query, parentMatches, path } = nodeProps;
+		const ownMatch = `${node.title} ${node.description}`.toLocaleLowerCase().includes(query);
+		const matches = parentMatches || !query || ownMatch;
+		const children = node.children.flatMap((child, index): HTMLLIElement[] => {
+			const item = renderNode({
+				node: child,
+				query,
+				parentMatches: matches,
+				path: [...path, index],
+			});
 			return item ? [item] : [];
 		});
 		if (!matches && !children.length) return undefined;
 		const item = document.createElement('li');
 		const row = node.target ? document.createElement('a') : document.createElement('div');
 		row.className = 'ex-navigation-map-row';
+		row.id = sharedMapReference(path);
+		row.tabIndex = node.target ? 0 : -1;
+		row.setAttribute('aria-label', node.title);
+		row.dataset['match'] = String(ownMatch);
 		if (row instanceof HTMLAnchorElement && node.target)
 			row.href = navigationTargetHref(navigation, node.target, sourceUrl);
-		const label = document.createElement('span');
-		label.textContent = node.label;
-		row.append(createPhosphorIcon(node.icon), label);
+		const copy = document.createElement('span');
+		const title = document.createElement('span');
+		title.className = 'ex-navigation-map-title';
+		title.textContent = node.title;
+		const description = document.createElement('span');
+		description.className = 'ex-navigation-map-description';
+		description.id = `${row.id}-description`;
+		description.textContent = node.description;
+		row.setAttribute('aria-describedby', description.id);
+		copy.append(title, description);
+		row.append(createPhosphorIcon(node.icon), copy);
 		item.append(row);
 		if (children.length) {
 			const list = document.createElement('ul');
@@ -58,8 +84,8 @@ export function createSharedMap(props: {
 	const render = (): void => {
 		const query = input.value.trim().toLocaleLowerCase();
 		const list = document.createElement('ul');
-		for (const node of navigation.map) {
-			const item = renderNode(node, query, false);
+		for (const [index, node] of navigation.map.entries()) {
+			const item = renderNode({ node, query, parentMatches: false, path: [index] });
 			if (item) list.append(item);
 		}
 		empty.hidden = list.children.length > 0;
@@ -68,32 +94,57 @@ export function createSharedMap(props: {
 	input.addEventListener('input', render);
 	content.addEventListener('keydown', (event: KeyboardEvent): void => {
 		if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
-		const links = Array.from(results.querySelectorAll<HTMLAnchorElement>('a'));
-		const current = links.findIndex((link): boolean => link === document.activeElement);
+		const rows = Array.from(results.querySelectorAll<HTMLElement>('.ex-navigation-map-row'));
+		const current = rows.findIndex((row): boolean => row === document.activeElement);
 		if (event.target === input) {
-			if (event.key === 'ArrowDown' && links[0]) {
+			if (['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) {
 				event.preventDefault();
-				links[0].focus();
+				const firstMatch = rows.find((row): boolean => row.dataset['match'] === 'true');
+				const row = event.key === 'ArrowUp' ? rows.at(-1) : (firstMatch ?? rows[0]);
+				if (event.key === 'Enter' && row instanceof HTMLAnchorElement) row.click();
+				else focusMapRow(row);
 			}
 			return;
 		}
 		const next =
 			event.key === 'ArrowDown'
-				? Math.min(links.length - 1, current + 1)
+				? Math.min(rows.length - 1, current + 1)
 				: event.key === 'ArrowUp'
 					? Math.max(0, current - 1)
 					: event.key === 'Home'
 						? 0
 						: event.key === 'End'
-							? links.length - 1
+							? rows.length - 1
 							: undefined;
-		if (next !== undefined && links[next]) {
+		if (next !== undefined && rows[next]) {
 			event.preventDefault();
-			links[next].focus();
+			focusMapRow(rows[next]);
+		} else if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			focusMapRow(
+				rows[current]?.parentElement?.parentElement
+					?.closest('li')
+					?.querySelector<HTMLElement>(':scope > .ex-navigation-map-row') ?? input,
+			);
+		} else if (
+			event.key === 'ArrowRight' ||
+			(event.key === 'Enter' && !(event.target instanceof HTMLAnchorElement))
+		) {
+			event.preventDefault();
+			focusMapRow(
+				rows[current]?.parentElement?.querySelector<HTMLElement>(
+					':scope > ul .ex-navigation-map-row',
+				) ?? undefined,
+			);
 		}
 	});
 	render();
 	const map = new MapIsland();
-	map.setNavigationContent(scope, content);
+	map.setNavigationContent(scope, content, (reference): HTMLElement | undefined => {
+		if (!/^ex-shared-map-\d+(?:-\d+)*$/.test(reference)) return undefined;
+		input.value = '';
+		render();
+		return results.querySelector<HTMLElement>(`#${CSS.escape(reference)}`) ?? undefined;
+	});
 	return map;
 }

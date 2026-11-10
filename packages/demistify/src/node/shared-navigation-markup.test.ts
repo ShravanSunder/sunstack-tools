@@ -30,7 +30,14 @@ test('the checker follows shared relative page addresses and rejects a missing d
 	const navigation = JSON.stringify({
 		version: 1,
 		pages: [{ id: 'peer', title: 'Peer', href: '../pages/peer.html', icon: 'path' }],
-		map: [{ label: 'Lost', icon: 'user', target: { page: 'peer', fragment: 'missing' } }],
+		map: [
+			{
+				title: 'Lost',
+				description: 'Find the missing target.',
+				icon: 'user',
+				target: { page: 'peer', fragment: 'missing' },
+			},
+		],
 	});
 	const sources: Readonly<Record<string, string>> = {
 		'./navigation/catalog.json': navigation,

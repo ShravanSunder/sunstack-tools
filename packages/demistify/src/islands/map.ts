@@ -17,12 +17,24 @@ export class MapIsland extends HTMLElement {
 	private treeObserver: MutationObserver | undefined;
 	private membershipObserver: MutationObserver | undefined;
 	private events: AbortController | undefined;
+	private resolveNavigationReference: ((reference: string) => HTMLElement | undefined) | undefined;
 
 	/** Shared JSON supplies a fully rendered semantic list instead of an authored Tree. */
-	setNavigationContent(root: HTMLElement, content: HTMLElement): void {
+	setNavigationContent(
+		root: HTMLElement,
+		content: HTMLElement,
+		resolveReference: (reference: string) => HTMLElement | undefined,
+	): void {
 		if (this.hasAttribute('prepared')) throw new Error('Map content is already mounted.');
 		this.root = root;
 		this.tree = content;
+		this.resolveNavigationReference = resolveReference;
+	}
+	/** Collection search can reveal a relationship even when the Map is closed or filtered. */
+	revealReference(reference: string): HTMLElement | undefined {
+		const row = this.resolveNavigationReference?.(reference);
+		if (row && !this.closePanel) this.toggle();
+		return row;
 	}
 	private readonly handleShortcut = (event: KeyboardEvent): void => {
 		if (
@@ -35,7 +47,7 @@ export class MapIsland extends HTMLElement {
 			event.key.toLowerCase() !== 'm' ||
 			(event.target instanceof Element &&
 				event.target.closest(
-					'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]',
+					'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],.ex-drawer,.ex-inspect-dialog[data-mode="sidebar"]',
 				))
 		)
 			return;
@@ -161,6 +173,7 @@ export class MapIsland extends HTMLElement {
 			},
 		}));
 		this.trigger.setAttribute('aria-expanded', 'true');
+		this.tree.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
 	}
 
 	private refreshCounts(): void {

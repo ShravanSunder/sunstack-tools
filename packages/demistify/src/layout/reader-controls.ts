@@ -5,16 +5,16 @@ interface ReaderRegistration {
 }
 
 const controlOrder: readonly ReaderControlKind[] = [
-	'walkthrough',
 	'theme',
 	'search',
 	'comments',
+	'walkthrough',
 	'map',
 ];
 const controls = new Map<HTMLButtonElement, ReaderRegistration>();
 let host: HTMLElement | undefined;
 let modalHost: HTMLElement | undefined;
-let sizeObserver: ResizeObserver | undefined;
+let toolbarHost: { readonly element: HTMLElement; readonly identity: symbol } | undefined;
 
 function controlHost(): HTMLElement {
 	if (host) return host;
@@ -23,15 +23,20 @@ function controlHost(): HTMLElement {
 	host.setAttribute('role', 'group');
 	host.setAttribute('aria-label', 'Reader controls');
 	document.body.append(host);
-	sizeObserver = new ResizeObserver((): void => {
-		if (host)
-			document.documentElement.style.setProperty(
-				'--ex-reader-controls-width',
-				`${host.getBoundingClientRect().width}px`,
-			);
-	});
-	sizeObserver.observe(host);
 	return host;
+}
+
+/** Move the same controls into the document header, preserving their listeners and Tab order. */
+export function registerReaderToolbar(element: HTMLElement): () => void {
+	const identity = Symbol('reader toolbar');
+	toolbarHost = { element, identity };
+	const row = controlHost();
+	element.insertBefore(row, element.querySelector('.ex-document-breadcrumbs'));
+	return (): void => {
+		if (toolbarHost?.identity !== identity) return;
+		toolbarHost = undefined;
+		document.body.append(row);
+	};
 }
 
 function placeControls(): void {

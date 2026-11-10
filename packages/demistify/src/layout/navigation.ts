@@ -4,12 +4,13 @@ import { reportIssue } from '../core/issues.ts';
 import { anchorPopover } from '../core/popover-position.ts';
 import { DocumentSearch } from './command-search.ts';
 import { createDocumentToolbar, type DocumentToolbar } from './page-navigation.ts';
-import { registerReaderControl } from './reader-controls.ts';
+import { registerReaderControl, registerReaderToolbar } from './reader-controls.ts';
 import { collectSearchDestinations, readSearchIndex } from './search-destinations.ts';
 import {
 	loadSharedNavigation,
 	mountSharedNavigation,
 	sharedPageLinks,
+	sharedMapDestinations,
 	sharedWalkthroughDestinations,
 	type LoadedNavigation,
 } from './shared-navigation.ts';
@@ -25,6 +26,7 @@ export class HeadingNavigation extends HTMLElement {
 	private unregisterPresentations: (() => void) | undefined;
 	private documentSearch: DocumentSearch | undefined;
 	private documentToolbar: DocumentToolbar | undefined;
+	private unregisterToolbar: (() => void) | undefined;
 	private headingButton: HTMLButtonElement | undefined;
 	private sharedSource: LoadedNavigation | undefined;
 	private sourceRequest: AbortController | undefined;
@@ -146,6 +148,8 @@ export class HeadingNavigation extends HTMLElement {
 			document.body.append(this.navigationPanel);
 			if (this.documentToolbar)
 				document.body.append(this.documentToolbar.element, this.documentToolbar.pagePanel);
+			if (this.documentToolbar)
+				this.unregisterToolbar = registerReaderToolbar(this.documentToolbar.element);
 			this.documentSearch?.connect();
 			if (this.presentationsButton)
 				this.unregisterPresentations = registerReaderControl(
@@ -153,8 +157,6 @@ export class HeadingNavigation extends HTMLElement {
 					this.presentationsButton,
 				);
 			this.connectObservers();
-			if (this.sharedSource && this.contentRoot)
-				this.disposeShared = mountSharedNavigation(this.sharedSource, this.contentRoot);
 			return;
 		}
 		this.contentRoot =
@@ -171,6 +173,7 @@ export class HeadingNavigation extends HTMLElement {
 		const indexed = [
 			...readSearchIndex(),
 			...(this.sharedSource ? sharedWalkthroughDestinations(this.sharedSource) : []),
+			...(this.sharedSource ? sharedMapDestinations(this.sharedSource) : []),
 		];
 		const searchLinks = [
 			...this.pageLinks,
@@ -191,7 +194,7 @@ export class HeadingNavigation extends HTMLElement {
 				: document.querySelector('ex-presentation[id]') ||
 					this.querySelector('[slot="presentations"] a')
 		) {
-			this.presentationsButton = createIconButton('path', 'Browse walkthroughs', (): void =>
+			this.presentationsButton = createIconButton('footprints', 'Browse walkthroughs', (): void =>
 				this.documentSearch?.open('walkthroughs', this.presentationsButton),
 			);
 			this.presentationsButton.classList.add('ex-presentations-trigger');
@@ -202,6 +205,7 @@ export class HeadingNavigation extends HTMLElement {
 			this.unregisterPresentations = registerReaderControl('walkthrough', this.presentationsButton);
 		}
 		this.documentToolbar = createDocumentToolbar(this.pageLinks);
+		this.unregisterToolbar = registerReaderToolbar(this.documentToolbar.element);
 		const navigationPanel = document.createElement('nav');
 		navigationPanel.className = 'ex-heading-panel';
 		navigationPanel.popover = 'auto';
@@ -280,6 +284,32 @@ export class HeadingNavigation extends HTMLElement {
 		this.readerEvents?.abort();
 		this.readerEvents = new AbortController();
 		const { signal } = this.readerEvents;
+		document.addEventListener(
+			'keydown',
+			(event): void => {
+				if (
+					event.defaultPrevented ||
+					event.isComposing ||
+					event.repeat ||
+					!event.altKey ||
+					event.ctrlKey ||
+					event.metaKey ||
+					event.shiftKey ||
+					!/^Digit[1-9]$/.test(event.code)
+				)
+					return;
+				const target = event.target instanceof Element ? event.target : undefined;
+				const editor = target?.closest(
+					'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]',
+				);
+				if (editor && !editor.closest('.ex-command-dialog, .ex-navigation-map')) return;
+				const link = this.pageLinks[Number(event.code.slice(-1)) - 1];
+				if (!link) return;
+				event.preventDefault();
+				location.assign(link.href);
+			},
+			{ signal },
+		);
 		if (this.documentToolbar)
 			anchorPopover(this.documentToolbar.pagesButton, this.documentToolbar.pagePanel, signal);
 		document.addEventListener('click', this.requestHeading, { signal });
@@ -389,6 +419,8 @@ export class HeadingNavigation extends HTMLElement {
 		this.headingObserver?.disconnect();
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
 		this.navigationPanel?.remove();
+		this.unregisterToolbar?.();
+		this.unregisterToolbar = undefined;
 		this.documentToolbar?.element.remove();
 		this.documentToolbar?.pagePanel.remove();
 		this.documentSearch?.disconnect();

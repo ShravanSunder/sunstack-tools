@@ -108,7 +108,14 @@ export async function builtFixtures(): Promise<Plugin> {
 		JSON.stringify({
 			version: 1,
 			pages: [{ id: 'work', title: 'Work', href: 'how-work-runs.html', icon: 'path' }],
-			map: [{ label: 'Missing', icon: 'user', target: { page: 'missing' } }],
+			map: [
+				{
+					title: 'Missing',
+					description: 'Find a dangling destination.',
+					icon: 'user',
+					target: { page: 'missing' },
+				},
+			],
 		}),
 	);
 	// Exercise the optional Walkthrough launcher beside Map without changing the fixed author input.

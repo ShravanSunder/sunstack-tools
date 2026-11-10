@@ -137,7 +137,8 @@ ex-drawer.ex-drawer::backdrop {
 	background: transparent;
 	pointer-events: none;
 }
-.ex-drawer-reader-overlays > :is(.ex-route-player, .ex-issues, .ex-reader-controls) {
+.ex-drawer-reader-overlays
+	> :is(.ex-route-player, .ex-issues, .ex-reader-controls, .ex-document-toolbar) {
 	pointer-events: auto;
 }
 

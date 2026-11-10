@@ -95,8 +95,10 @@ test.each([1024, 1440, 1600])(
 		await expect.poll(() => fixture.querySelector('dialog:modal')).toBeNull();
 		expect(workspace.matches(':popover-open')).toBe(true);
 		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
-		expect(requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect().bottom).toBe(
-			1000 - 12,
+		expect(
+			requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect().bottom,
+		).toBeLessThanOrEqual(
+			requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
 		);
 	},
 );

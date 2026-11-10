@@ -7,11 +7,13 @@ const collection = {
 	pages: [{ id: 'work', title: 'Work', href: '../pages/work.html', icon: 'path' }],
 	map: [
 		{
-			label: 'Delivery',
+			title: 'Delivery',
+			description: 'Find delivery relationships.',
 			icon: 'envelope',
 			children: [
 				{
-					label: 'Preserve custody',
+					title: 'Preserve custody',
+					description: 'Inspect durable custody.',
 					icon: 'user',
 					target: { page: 'work', fragment: 'saved%20state' },
 				},
@@ -41,12 +43,32 @@ test('shared targets resolve beside the JSON and encode literal fragment charact
 });
 
 test('shared navigation rejects dangling targets in both Map and Walkthroughs', (): void => {
-	const map = [{ label: 'Lost', icon: 'user', target: { page: 'missing' } }];
+	const map = [
+		{
+			title: 'Lost',
+			description: 'Find the missing target.',
+			icon: 'user',
+			target: { page: 'missing' },
+		},
+	];
 	expect(sharedNavigationSchema.safeParse({ ...collection, map }).success).toBe(false);
 	const walkthroughs = [
 		{ ...collection.walkthroughs[0], steps: [{ target: { page: 'missing' }, narration: 'Lost.' }] },
 	];
 	expect(sharedNavigationSchema.safeParse({ ...collection, walkthroughs }).success).toBe(false);
+});
+
+test('Map nodes require title and description and reject the replaced label-only shape', (): void => {
+	expect(
+		sharedNavigationSchema.safeParse({ ...collection, map: [{ label: 'Old label', icon: 'user' }] })
+			.success,
+	).toBe(false);
+	expect(
+		sharedNavigationSchema.safeParse({
+			...collection,
+			map: [{ title: 'Missing context', icon: 'user' }],
+		}).success,
+	).toBe(false);
 });
 
 test('shared identities, icons and link protocols cannot silently become ambiguous', (): void => {
@@ -65,7 +87,7 @@ test('shared identities, icons and link protocols cannot silently become ambiguo
 	expect(
 		sharedNavigationSchema.safeParse({
 			...collection,
-			map: [{ label: 'Bad icon', icon: 'not-a-subject' }],
+			map: [{ title: 'Bad icon', description: 'An invalid subject.', icon: 'not-a-subject' }],
 		}).success,
 	).toBe(false);
 	expect(

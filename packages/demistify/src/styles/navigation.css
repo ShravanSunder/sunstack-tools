@@ -189,13 +189,25 @@ ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	color: var(--ink-soft);
 	font: 400 13px/1 var(--font-body);
 }
-:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger, .ex-map-trigger) {
+:is(
+	.ex-theme-toggle,
+	.ex-comments-trigger,
+	.ex-search-trigger,
+	.ex-presentations-trigger,
+	.ex-map-trigger
+) {
 	border-radius: var(--radius-pill);
 	border-color: var(--rule);
 	background: var(--surface-content);
 	color: var(--ink-soft);
 }
-:is(.ex-theme-toggle, .ex-comments-trigger, .ex-search-trigger, .ex-map-trigger):hover {
+:is(
+	.ex-theme-toggle,
+	.ex-comments-trigger,
+	.ex-search-trigger,
+	.ex-presentations-trigger,
+	.ex-map-trigger
+):hover {
 	color: var(--ink);
 	border-color: var(--ink-soft);
 }

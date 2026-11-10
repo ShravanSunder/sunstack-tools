@@ -1,52 +1,172 @@
 {
   "version": 1,
   "pages": [
-    { "id": "work", "title": "How work runs", "href": "how-work-runs.html", "icon": "path" },
-    { "id": "state", "title": "Where delivery state lives", "href": "state.html", "icon": "database" }
+    {
+      "id": "work",
+      "title": "How work runs",
+      "href": "how-work-runs.html",
+      "icon": "path"
+    },
+    {
+      "id": "state",
+      "title": "Where delivery state lives",
+      "href": "state.html",
+      "icon": "database"
+    }
   ],
   "map": [
     {
-      "label": "Sleep and wake", "icon": "clock",
+      "icon": "clock",
       "children": [
         {
-          "label": "Sleep with Routers still connected", "icon": "user",
-          "target": { "page": "work", "fragment": "hibernate" },
+          "icon": "user",
+          "target": {
+            "page": "work",
+            "fragment": "hibernate"
+          },
           "children": [
-            { "label": "Stored custody survives the nap", "icon": "database", "target": { "page": "state", "fragment": "stored-custody" } },
-            { "label": "Send, sleep, then handle the answer", "icon": "envelope", "target": { "page": "work", "fragment": "seq-mail" } }
-          ]
+            {
+              "icon": "database",
+              "target": {
+                "page": "state",
+                "fragment": "stored-custody"
+              },
+              "title": "Stored custody survives the nap",
+              "description": "State owner \u00b7 Inspect the durable facts retained between events."
+            },
+            {
+              "icon": "envelope",
+              "target": {
+                "page": "work",
+                "fragment": "seq-mail"
+              },
+              "title": "Send, sleep, then handle the answer",
+              "description": "Execution flow \u00b7 Follow custody across the gap between send and answer."
+            }
+          ],
+          "title": "Sleep with Routers still connected",
+          "description": "User need \u00b7 Preserve connections while central is idle."
         },
-        { "label": "Wake only for real due work", "icon": "clock", "target": { "page": "work", "fragment": "seq-retry" } }
-      ]
+        {
+          "icon": "clock",
+          "target": {
+            "page": "work",
+            "fragment": "seq-retry"
+          },
+          "title": "Wake only for real due work",
+          "description": "Recovery flow \u00b7 Find what creates the next wake deadline."
+        }
+      ],
+      "title": "Sleep and wake",
+      "description": "Find when central can sleep and what wakes it."
     },
     {
-      "label": "Reliable delivery", "icon": "shield-check",
+      "icon": "shield-check",
       "children": [
-        { "label": "Drain a backlog without flooding", "icon": "stack", "target": { "page": "work", "fragment": "seq-flush" } },
-        { "label": "Keep one failure from blocking other work", "icon": "user", "target": { "page": "work", "fragment": "seq-cleanup" } }
-      ]
+        {
+          "icon": "stack",
+          "target": {
+            "page": "work",
+            "fragment": "seq-flush"
+          },
+          "title": "Drain a backlog without flooding",
+          "description": "Delivery flow \u00b7 Follow outstanding work as capacity becomes available."
+        },
+        {
+          "icon": "user",
+          "target": {
+            "page": "work",
+            "fragment": "seq-cleanup"
+          },
+          "title": "Keep one failure from blocking other work",
+          "description": "User need \u00b7 Let independent work continue after a failure."
+        }
+      ],
+      "title": "Reliable delivery",
+      "description": "Follow custody, reconnects and independent failures."
     }
   ],
   "walkthroughs": [
     {
-      "id": "sleep-and-deliver", "title": "How can central sleep without losing delivery?",
+      "id": "sleep-and-deliver",
+      "title": "How can central sleep without losing delivery?",
       "description": "Follow custody, hibernation, reconnect and late answers across the existing content.",
       "steps": [
-        { "target": { "page": "work", "fragment": "seq-mail" }, "narration": "Find the stored custody row and the point where the sending event ends.", "icon": "envelope" },
-        { "target": { "page": "state", "fragment": "stored-custody" }, "narration": "Which facts survive a new object instance? Read the state owner rather than assuming memory survives.", "icon": "database" },
-        { "target": { "page": "work", "fragment": "seq-hibernate" }, "narration": "Follow the open socket while the object sleeps.", "icon": "clock" },
-        { "target": { "page": "work", "fragment": "seq-flush" }, "narration": "Now reconnect with a backlog. Watch answers free slots for the next batch.", "icon": "stack" },
-        { "target": { "page": "work", "fragment": "seq-retry" }, "narration": "Compare a closed socket with an open socket whose answer is late. Which one needs an alarm?", "icon": "clock" }
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-mail"
+          },
+          "narration": "Find the stored custody row and the point where the sending event ends.",
+          "icon": "envelope"
+        },
+        {
+          "target": {
+            "page": "state",
+            "fragment": "stored-custody"
+          },
+          "narration": "Which facts survive a new object instance? Read the state owner rather than assuming memory survives.",
+          "icon": "database"
+        },
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-hibernate"
+          },
+          "narration": "Follow the open socket while the object sleeps.",
+          "icon": "clock"
+        },
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-flush"
+          },
+          "narration": "Now reconnect with a backlog. Watch answers free slots for the next batch.",
+          "icon": "stack"
+        },
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-retry"
+          },
+          "narration": "Compare a closed socket with an open socket whose answer is late. Which one needs an alarm?",
+          "icon": "clock"
+        }
       ]
     },
     {
-      "id": "failure-isolation", "title": "Why can't cleanup freeze delivery again?",
+      "id": "failure-isolation",
+      "title": "Why can't cleanup freeze delivery again?",
       "description": "Compare the old shared failure with isolated units and the long-operation boundary.",
       "steps": [
-        { "target": { "page": "work", "fragment": "seq-today" }, "narration": "Find the cleanup failure and the work it prevented from running." },
-        { "target": { "page": "work", "fragment": "seq-cleanup" }, "narration": "Follow the failed unit. What still runs, and where is its failure recorded?" },
-        { "target": { "page": "work", "fragment": "seq-request" }, "narration": "Trace a short request to its answer without a job or alarm." },
-        { "target": { "page": "work", "fragment": "seq-long" }, "narration": "Long operations retain their existing engine. Keep that boundary distinct from short requests." }
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-today"
+          },
+          "narration": "Find the cleanup failure and the work it prevented from running."
+        },
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-cleanup"
+          },
+          "narration": "Follow the failed unit. What still runs, and where is its failure recorded?"
+        },
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-request"
+          },
+          "narration": "Trace a short request to its answer without a job or alarm."
+        },
+        {
+          "target": {
+            "page": "work",
+            "fragment": "seq-long"
+          },
+          "narration": "Long operations retain their existing engine. Keep that boundary distinct from short requests."
+        }
       ]
     }
   ]
