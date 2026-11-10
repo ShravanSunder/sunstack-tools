@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.22.0
+
+### Minor Changes
+
+- 7dfb134: Load Pages, a fully expanded semantic Map, and complete Walkthroughs from one shared JSON source on every document page. Reuse the existing outline, drawer and player, with subject icons, Map search, cross-page routes, and validation of shared sources and local destinations.
+
 ## 1.21.1
 
 ### Patch Changes
