@@ -24,6 +24,92 @@ test('JSON Walkthroughs stay available on the page containing their first stop',
 		.toBeVisible();
 });
 
+test('Map group search preserves the current Walkthrough address and live page', async (): Promise<void> => {
+	const { frame } = await openFixture('shared-navigation', '', 'how-work-runs.html');
+	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
+	await frame
+		.getByRole('option', { name: /How can central sleep without losing delivery/ })
+		.click();
+	await expect
+		.element(frame.getByRole('region', { name: 'Walkthrough player', exact: true }))
+		.toBeVisible();
+	await frame.getByRole('button', { name: 'Next step', exact: true }).click();
+	await expect
+		.poll(
+			(): string | null | undefined =>
+				currentFixture().querySelector('.ex-route-count')?.textContent,
+		)
+		.toBe('2 / 5');
+	await frame.getByRole('button', { name: 'Next step', exact: true }).click();
+	await expect
+		.poll(
+			(): string | null | undefined =>
+				currentFixture().querySelector('.ex-route-count')?.textContent,
+		)
+		.toBe('3 / 5');
+	const fixture = currentFixture();
+	await frame.getByRole('button', { name: 'Next step', exact: true }).click();
+	await expect
+		.poll(
+			(): string | null | undefined =>
+				currentFixture().querySelector('.ex-route-count')?.textContent,
+		)
+		.toBe('4 / 5');
+	expect(currentFixture()).toBe(fixture);
+	const before = fixture.location.search;
+	expect(new URLSearchParams(before).get('ex-route')).toBe('sleep-and-deliver');
+	await frame.getByRole('button', { name: 'Search documents', exact: true }).click();
+	const dialog = frame.getByRole('dialog', { name: 'Search documents', exact: true });
+	await dialog.getByRole('combobox').fill('sleep and wake');
+	await dialog
+		.getByRole('option', {
+			name: 'Map › Sleep and wake Find when central can sleep and what wakes it.',
+			exact: true,
+		})
+		.click();
+	await expect
+		.element(frame.getByRole('complementary', { name: 'Map', exact: true }))
+		.toBeVisible();
+	expect(currentFixture()).toBe(fixture);
+	expect(currentFixture().location.search).toBe(before);
+	await expect
+		.element(frame.getByRole('region', { name: 'Walkthrough player', exact: true }))
+		.toBeVisible();
+});
+
+test('current and peer page search results keep their authored subject icons', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('shared-navigation', '', 'state.html');
+	await frame.getByRole('button', { name: 'Search documents', exact: true }).click();
+	expect(
+		requiredElement(fixture, '[role="option"][aria-label="How work runs"]').querySelector(
+			'.ph-path',
+		),
+	).not.toBeNull();
+	expect(
+		requiredElement(
+			fixture,
+			'[role="option"][aria-label="Where delivery state lives"]',
+		).querySelector('.ph-database'),
+	).not.toBeNull();
+});
+
+test('native Pages icon aliases use the same normalization in collection search', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('shared-navigation', '', 'state.html');
+	requiredElement(fixture, 'ex-nav').remove();
+	const navigation = fixture.createElement('ex-nav');
+	navigation.setAttribute('for', 'content');
+	navigation.innerHTML =
+		'<nav slot="pages"><a href="how-work-runs.html" icon="path">How work runs</a><a href="state.html" icon="server">Where delivery state lives</a></nav>';
+	fixture.body.prepend(navigation);
+	await frame.getByRole('button', { name: 'Search documents', exact: true }).click();
+	expect(
+		requiredElement(
+			fixture,
+			'[role="option"][aria-label="Where delivery state lives"]',
+		).querySelector('.ph-hard-drives'),
+	).not.toBeNull();
+});
+
 test('reconnecting shared navigation keeps one Map, one launcher and one route player', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('shared-navigation', '', 'state.html');
 	const navigation = requiredElement(fixture, 'ex-nav');

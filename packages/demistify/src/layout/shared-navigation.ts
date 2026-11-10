@@ -24,8 +24,6 @@ export function sharedMapDestinations(source: LoadedNavigation): readonly Search
 	): void => {
 		for (const [index, node] of nodes.entries()) {
 			const position = [...path, index];
-			const address = new URL(location.href);
-			address.hash = sharedMapReference(position);
 			entries.push({
 				kind: 'map',
 				title: node.title,
@@ -36,7 +34,7 @@ export function sharedMapDestinations(source: LoadedNavigation): readonly Search
 				href:
 					node.target && !node.children.length
 						? navigationTargetHref(source.navigation, node.target, source.sourceUrl)
-						: address.href,
+						: `#${sharedMapReference(position)}`,
 			});
 			visit(node.children, position, [...ancestors, node.title]);
 		}
