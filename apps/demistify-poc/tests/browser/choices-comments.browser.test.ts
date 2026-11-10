@@ -222,6 +222,20 @@ test.each([1600, 390])(
 		await expect
 			.element(
 				frame.getByRole(width < 900 ? 'dialog' : 'complementary', {
+					name: 'Technical scope',
+					exact: true,
+				}),
+			)
+			.toBeVisible();
+		if (width < 900) {
+			// Match the first transition's component integration seam: the phone sheet hides this trigger.
+			const comments = fixture.querySelector<HTMLButtonElement>('.ex-comments-trigger');
+			if (!comments) throw new Error('Comments trigger is absent.');
+			comments.click();
+		} else await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+		await expect
+			.element(
+				frame.getByRole(width < 900 ? 'dialog' : 'complementary', {
 					name: 'Comments',
 					exact: true,
 				}),
