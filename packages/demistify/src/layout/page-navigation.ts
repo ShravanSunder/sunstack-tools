@@ -1,3 +1,4 @@
+import { readIcon } from '../core/head.ts';
 import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
 
 export interface DocumentToolbar {
@@ -33,7 +34,10 @@ export function createDocumentToolbar(pageLinks: readonly HTMLAnchorElement[]): 
 		...pageLinks.slice(1).map((source): HTMLAnchorElement => {
 			const link = document.createElement('a');
 			link.href = source.getAttribute('href') ?? source.href;
-			link.append(createPhosphorIcon('files'), source.textContent?.trim() ?? '');
+			link.append(
+				createPhosphorIcon(readIcon(source) ?? 'files'),
+				source.textContent?.trim() ?? '',
+			);
 			return link;
 		}),
 	];

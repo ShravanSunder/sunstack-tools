@@ -93,6 +93,12 @@ The **Walkthroughs** chooser uses compact icon/title/description rows. A Walkthr
 
 Keep `ex-nav` on a single-page, single-path example too: it supplies the visible launcher for the hidden `ex-presentation` declaration.
 
+### Shared JSON navigation
+
+Collections can author Pages, semantic Map and complete Walkthroughs once in a shared JSON source. Each normal HTML page loads it with `<ex-nav for="content" src="./navigation.json"></ex-nav>`. The source owns ordered page addresses, Map relationships/icons and route stops/narration; the HTML owns content, diagrams and stable targets. Paths resolve beside the JSON file. The Map is a searchable, fully expanded vertical list in the existing right-hand panel; it does not replace the current page's heading outline.
+
+Serve these pages and the JSON over HTTP. Direct-file compilation and standalone packaging are separate delivery work. The [navigation guide](skill/references/navigation.md) documents the version-1 contract, and [the ordinary multi-page example](../../apps/demistify-poc/experiments/agent-written/shared-navigation/how-work-runs.html) illustrates the central execution flows. This source capability requires its matching runtime; it is not present in older published assets.
+
 ### Reading measure and visual canvas
 
 Typography uses regular 18px Source Sans 3 prose, Source Sans 3 controls, Archivo headings, and IBM Plex Mono for code. Tree roots use 20px/600, branches 17px/500 and leaves 17px/400.

@@ -1,0 +1,68 @@
+.ex-navigation-map-search {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	margin-bottom: var(--space-3);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+}
+.ex-navigation-map-search:focus-within {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.ex-navigation-map-search input {
+	flex: 1;
+	width: 100%;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+}
+.ex-navigation-map ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.ex-navigation-map li > ul {
+	margin-inline-start: var(--space-2);
+	padding-inline-start: var(--space-2);
+	border-inline-start: 1px solid var(--rule);
+}
+.ex-navigation-map-row {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+	padding: var(--space-2);
+	border-radius: var(--radius-sm);
+	color: var(--ink);
+	text-decoration: none;
+	line-height: 1.4;
+}
+.ex-navigation-map-row .ph {
+	color: var(--accent);
+	flex-shrink: 0;
+}
+.ex-navigation-map-row span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+div.ex-navigation-map-row {
+	font-weight: 650;
+}
+a.ex-navigation-map-row:is(:hover, :focus-visible) {
+	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.ex-navigation-map-empty {
+	color: var(--ink-soft);
+}
+.ex-navigation-error {
+	color: var(--ink);
+	border-inline-start: 3px solid var(--accent);
+	padding-inline-start: var(--space-3);
+}

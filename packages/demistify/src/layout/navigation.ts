@@ -1,10 +1,18 @@
 import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { createIconButton } from '../core/icons.ts';
+import { reportIssue } from '../core/issues.ts';
 import { anchorPopover } from '../core/popover-position.ts';
 import { DocumentSearch } from './command-search.ts';
 import { createDocumentToolbar, type DocumentToolbar } from './page-navigation.ts';
 import { registerReaderControl } from './reader-controls.ts';
 import { collectSearchDestinations, readSearchIndex } from './search-destinations.ts';
+import {
+	loadSharedNavigation,
+	mountSharedNavigation,
+	sharedPageLinks,
+	sharedWalkthroughDestinations,
+	type LoadedNavigation,
+} from './shared-navigation.ts';
 
 export class HeadingNavigation extends HTMLElement {
 	private contentObserver: MutationObserver | undefined;
@@ -18,6 +26,9 @@ export class HeadingNavigation extends HTMLElement {
 	private documentSearch: DocumentSearch | undefined;
 	private documentToolbar: DocumentToolbar | undefined;
 	private headingButton: HTMLButtonElement | undefined;
+	private sharedSource: LoadedNavigation | undefined;
+	private sourceRequest: AbortController | undefined;
+	private disposeShared: (() => void) | undefined;
 	private readonly headingLinks = new Map<Element, readonly HTMLAnchorElement[]>();
 	private readonly sidebarMedia = window.matchMedia('(min-width: 1440px)');
 	private changingPopover = false;
@@ -93,6 +104,44 @@ export class HeadingNavigation extends HTMLElement {
 	};
 
 	connectedCallback(): void {
+		const reference = this.getAttribute('src') ?? '';
+		if (this.hasAttribute('src') && !this.sharedSource) {
+			this.sourceRequest?.abort();
+			const request = new AbortController();
+			this.sourceRequest = request;
+			this.setAttribute('aria-busy', 'true');
+			void loadSharedNavigation(reference, request.signal)
+				.then((source): void => {
+					if (request.signal.aborted || !this.isConnected) return;
+					if (
+						this.querySelector('[slot="pages"], [slot="presentations"]') ||
+						document.querySelector('ex-map, ex-presentation')
+					)
+						throw new Error(
+							'Shared navigation cannot also own authored page lists, Map or Walkthrough declarations.',
+						);
+					this.sharedSource = source;
+					this.removeAttribute('aria-busy');
+					this.connectNavigation();
+				})
+				.catch((error: unknown): void => {
+					if (request.signal.aborted || !this.isConnected) return;
+					this.removeAttribute('aria-busy');
+					const message = error instanceof Error ? error.message : 'Invalid navigation source.';
+					reportIssue(this, message);
+					const notice = document.createElement('p');
+					notice.className = 'ex-navigation-error';
+					notice.setAttribute('role', 'alert');
+					notice.textContent = `Navigation unavailable: ${message}`;
+					this.after(notice);
+					this.connectNavigation();
+				});
+			return;
+		}
+		this.connectNavigation();
+	}
+
+	private connectNavigation(): void {
 		if (this.navigationPanel) {
 			document.body.append(this.navigationPanel);
 			if (this.documentToolbar)
@@ -104,16 +153,25 @@ export class HeadingNavigation extends HTMLElement {
 					this.presentationsButton,
 				);
 			this.connectObservers();
+			if (this.sharedSource && this.contentRoot)
+				this.disposeShared = mountSharedNavigation(this.sharedSource, this.contentRoot);
 			return;
 		}
 		this.contentRoot =
 			(this.getAttribute('for') ? document.getElementById(this.getAttribute('for') ?? '') : null) ??
 			document.querySelector<HTMLElement>('ex-document, main') ??
 			document.body;
-		this.pageLinks = Array.from(this.querySelectorAll<HTMLAnchorElement>('a[href]')).filter(
-			(link): boolean => !link.closest('[slot="presentations"]'),
-		);
-		const indexed = readSearchIndex();
+		this.pageLinks = this.hasAttribute('src')
+			? this.sharedSource
+				? sharedPageLinks(this.sharedSource)
+				: []
+			: Array.from(this.querySelectorAll<HTMLAnchorElement>('a[href]')).filter(
+					(link): boolean => !link.closest('[slot="presentations"]'),
+				);
+		const indexed = [
+			...readSearchIndex(),
+			...(this.sharedSource ? sharedWalkthroughDestinations(this.sharedSource) : []),
+		];
 		const searchLinks = [
 			...this.pageLinks,
 			...this.querySelectorAll<HTMLAnchorElement>('[slot="presentations"] a[href]'),
@@ -128,8 +186,10 @@ export class HeadingNavigation extends HTMLElement {
 		);
 		this.documentSearch.connect();
 		if (
-			document.querySelector('ex-presentation[id]') ||
-			this.querySelector('[slot="presentations"] a')
+			this.hasAttribute('src')
+				? this.sharedSource?.navigation.walkthroughs.length
+				: document.querySelector('ex-presentation[id]') ||
+					this.querySelector('[slot="presentations"] a')
 		) {
 			this.presentationsButton = createIconButton('path', 'Browse walkthroughs', (): void =>
 				this.documentSearch?.open('walkthroughs', this.presentationsButton),
@@ -316,9 +376,14 @@ export class HeadingNavigation extends HTMLElement {
 		this.sidebarMedia.addEventListener('change', this.updatePresentation);
 		this.updatePresentation();
 		this.renderHeadings();
+		if (this.sharedSource && this.contentRoot)
+			this.disposeShared = mountSharedNavigation(this.sharedSource, this.contentRoot);
 	}
 
 	disconnectedCallback(): void {
+		this.sourceRequest?.abort();
+		this.disposeShared?.();
+		this.disposeShared = undefined;
 		this.readerEvents?.abort();
 		this.contentObserver?.disconnect();
 		this.headingObserver?.disconnect();

@@ -17,6 +17,13 @@ export class MapIsland extends HTMLElement {
 	private treeObserver: MutationObserver | undefined;
 	private membershipObserver: MutationObserver | undefined;
 	private events: AbortController | undefined;
+
+	/** Shared JSON supplies a fully rendered semantic list instead of an authored Tree. */
+	setNavigationContent(root: HTMLElement, content: HTMLElement): void {
+		if (this.hasAttribute('prepared')) throw new Error('Map content is already mounted.');
+		this.root = root;
+		this.tree = content;
+	}
 	private readonly handleShortcut = (event: KeyboardEvent): void => {
 		if (
 			event.defaultPrevented ||
@@ -69,14 +76,15 @@ export class MapIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.closest('[data-inspector-content], [data-inspector-copy]')) return;
 		if (!this.hasAttribute('prepared')) {
-			const root = document.getElementById(this.getAttribute('for') ?? '');
-			const tree = this.firstElementChild;
+			const supplied = Boolean(this.root && this.tree);
+			const root = this.root ?? document.getElementById(this.getAttribute('for') ?? '');
+			const tree = this.tree ?? this.firstElementChild;
 			if (
 				!root ||
 				root === this ||
-				this.children.length !== 1 ||
+				(!supplied && this.children.length !== 1) ||
 				!(tree instanceof HTMLElement) ||
-				tree.localName !== 'ex-tree'
+				(!supplied && tree.localName !== 'ex-tree')
 			) {
 				reportIssue(this, 'Map needs an existing scope id and exactly one authored ex-tree.');
 				return;

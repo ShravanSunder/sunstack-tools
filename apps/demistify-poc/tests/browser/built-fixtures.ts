@@ -70,6 +70,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['search', 'command-search'],
 			['review', 'choices-comments'],
 			['palette', 'diagram-colors'],
+			['shared-navigation', 'shared-navigation'],
 		].map(async ([name, source]): Promise<void> => {
 			if (!name || !source) throw new Error('Missing fixture name.');
 			await cp(
@@ -91,6 +92,23 @@ export async function builtFixtures(): Promise<Plugin> {
 						);
 					}),
 			);
+		}),
+	);
+	const sharedState = await readFile(join(snapshot, 'shared-navigation/state.html'), 'utf8');
+	await writeFile(
+		join(snapshot, 'shared-navigation/unavailable.html'),
+		sharedState.replace('./navigation.json', './missing.json'),
+	);
+	await writeFile(
+		join(snapshot, 'shared-navigation/invalid.html'),
+		sharedState.replace('./navigation.json', './invalid.json'),
+	);
+	await writeFile(
+		join(snapshot, 'shared-navigation/invalid.json'),
+		JSON.stringify({
+			version: 1,
+			pages: [{ id: 'work', title: 'Work', href: 'how-work-runs.html', icon: 'path' }],
+			map: [{ label: 'Missing', icon: 'user', target: { page: 'missing' } }],
 		}),
 	);
 	// Exercise the optional Walkthrough launcher beside Map without changing the fixed author input.

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "pages": [
+    { "id": "work", "title": "How work runs", "href": "how-work-runs.html", "icon": "path" },
+    { "id": "state", "title": "Where delivery state lives", "href": "state.html", "icon": "database" }
+  ],
+  "map": [
+    {
+      "label": "Sleep and wake", "icon": "clock",
+      "children": [
+        {
+          "label": "Sleep with Routers still connected", "icon": "user",
+          "target": { "page": "work", "fragment": "hibernate" },
+          "children": [
+            { "label": "Stored custody survives the nap", "icon": "database", "target": { "page": "state", "fragment": "stored-custody" } },
+            { "label": "Send, sleep, then handle the answer", "icon": "envelope", "target": { "page": "work", "fragment": "seq-mail" } }
+          ]
+        },
+        { "label": "Wake only for real due work", "icon": "clock", "target": { "page": "work", "fragment": "seq-retry" } }
+      ]
+    },
+    {
+      "label": "Reliable delivery", "icon": "shield-check",
+      "children": [
+        { "label": "Drain a backlog without flooding", "icon": "stack", "target": { "page": "work", "fragment": "seq-flush" } },
+        { "label": "Keep one failure from blocking other work", "icon": "user", "target": { "page": "work", "fragment": "seq-cleanup" } }
+      ]
+    }
+  ],
+  "walkthroughs": [
+    {
+      "id": "sleep-and-deliver", "title": "How can central sleep without losing delivery?",
+      "description": "Follow custody, hibernation, reconnect and late answers across the existing content.",
+      "steps": [
+        { "target": { "page": "work", "fragment": "seq-mail" }, "narration": "Find the stored custody row and the point where the sending event ends.", "icon": "envelope" },
+        { "target": { "page": "state", "fragment": "stored-custody" }, "narration": "Which facts survive a new object instance? Read the state owner rather than assuming memory survives.", "icon": "database" },
+        { "target": { "page": "work", "fragment": "seq-hibernate" }, "narration": "Follow the open socket while the object sleeps.", "icon": "clock" },
+        { "target": { "page": "work", "fragment": "seq-flush" }, "narration": "Now reconnect with a backlog. Watch answers free slots for the next batch.", "icon": "stack" },
+        { "target": { "page": "work", "fragment": "seq-retry" }, "narration": "Compare a closed socket with an open socket whose answer is late. Which one needs an alarm?", "icon": "clock" }
+      ]
+    },
+    {
+      "id": "failure-isolation", "title": "Why can't cleanup freeze delivery again?",
+      "description": "Compare the old shared failure with isolated units and the long-operation boundary.",
+      "steps": [
+        { "target": { "page": "work", "fragment": "seq-today" }, "narration": "Find the cleanup failure and the work it prevented from running." },
+        { "target": { "page": "work", "fragment": "seq-cleanup" }, "narration": "Follow the failed unit. What still runs, and where is its failure recorded?" },
+        { "target": { "page": "work", "fragment": "seq-request" }, "narration": "Trace a short request to its answer without a job or alarm." },
+        { "target": { "page": "work", "fragment": "seq-long" }, "narration": "Long operations retain their existing engine. Keep that boundary distinct from short requests." }
+      ]
+    }
+  ]
+}

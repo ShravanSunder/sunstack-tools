@@ -16,7 +16,8 @@ export async function openFixture(
 		| 'understanding'
 		| 'understanding-collection'
 		| 'document-browsers'
-		| 'document-author',
+		| 'document-author'
+		| 'shared-navigation',
 	fragment = '',
 	file = 'index.html',
 ): Promise<{ readonly document: Document; readonly frame: ReturnType<typeof page.frameLocator> }> {

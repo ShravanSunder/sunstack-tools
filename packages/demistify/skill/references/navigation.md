@@ -2,7 +2,53 @@
 
 The document owns navigation. Pages move between HTML files, the outline jumps to sections, and the command bar searches authored pages/headings or named Walkthroughs. They are usable without starting a guided path. IF a page needs the reader Map panel, load `stories.md` and return its scope binding and linked section and story destinations.
 
-## Declare the collection with native links
+## Share collection navigation through JSON
+
+For a collection, author Pages, Map and complete Walkthroughs once. Each page loads the same JSON:
+
+```html
+<ex-nav for="content" src="./navigation.json"></ex-nav>
+<ex-document id="content">
+  <h1>How work runs</h1>
+  <!-- Ordinary explanations, diagrams and stable target IDs live here. -->
+</ex-document>
+```
+
+```json
+{
+  "version": 1,
+  "pages": [
+    { "id": "work", "title": "How work runs", "href": "how-work-runs.html", "icon": "path" },
+    { "id": "state", "title": "Where state lives", "href": "state.html", "icon": "database" }
+  ],
+  "map": [
+    { "label": "Reliable delivery", "icon": "shield-check", "children": [
+      { "label": "Keep delivery through disconnects", "icon": "user", "children": [
+        { "label": "Stored custody", "icon": "database", "target": { "page": "state", "fragment": "stored-custody" } },
+        { "label": "Send, sleep, then handle the answer", "icon": "envelope", "target": { "page": "work", "fragment": "seq-mail" } }
+      ] }
+    ] }
+  ],
+  "walkthroughs": [
+    { "id": "delivery", "title": "How does delivery survive a nap?", "description": "Follow the real content in explanatory order.", "steps": [
+      { "target": { "page": "work", "fragment": "seq-mail" }, "narration": "Find the point where the sending event ends.", "icon": "envelope" },
+      { "target": { "page": "state", "fragment": "stored-custody" }, "narration": "Which facts survive the next object construction?", "icon": "database" }
+    ] }
+  ]
+}
+```
+
+`version` is exactly `1`. `pages` is nonempty and ordered; its first page is Home. Each page requires unique `id`, `title`, `href` and a curated subject `icon`. Page IDs and Walkthrough IDs start with an ASCII letter and contain only letters, digits and hyphens. All page paths resolve beside the shared JSON source, including when a referring HTML page is nested elsewhere.
+
+`map` and `walkthroughs` are arrays and may be omitted when absent. Each Map node requires `label` and a curated `icon`; it can have a `target`, `children`, or both. A target names a page ID and optional raw HTML/scoped island `fragment`, without `#`. References reuse the page registry, so changing one page address updates its Map and Walkthrough links. Unknown page IDs, duplicate page/route IDs, unknown fields/icons and unsafe link protocols are errors.
+
+Each Walkthrough requires unique `id`, `title`, `description`, and nonempty ordered `steps`. Each step has a target, focused `narration`, and optional curated icon. Its explanations stay at their targets; narration frames what to inspect. Every peer page can list and start the route. Cross-page continuation reads the same shared definitions and uses the existing target resolver and player.
+
+The right-hand Map stays fully expanded, with meaningful icons and whole-row links. Its search filters group and item labels, retaining ancestor context. It is independent of the normal left heading outline. Do not recreate it with a spatial Tree diagram or an author script. A page using `src` does not also author its own Pages/presentation lists, Map or Walkthrough declarations.
+
+This mode needs HTTP serving for the shared JSON fetch. A missing or invalid source produces a visible navigation error while ordinary page content and its heading outline remain usable. The matching CLI checks local JSON and local destination IDs; remote sources are validated at runtime. Preparing direct-file copies and compiling standalone artifacts are separate delivery work, not implied by this fetch-based mode.
+
+## Existing page-local navigation
 
 Repeat the same page list on every collection page. Its first link is Home; the matching page URL supplies the current name and breadcrumb.
 
