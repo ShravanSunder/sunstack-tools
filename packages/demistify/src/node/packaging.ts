@@ -78,6 +78,7 @@ export const shippedIconNames = [
 	'images',
 	'path',
 	'footprints',
+	'road-horizon',
 	'house',
 	'keyboard',
 	'magnifying-glass',

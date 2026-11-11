@@ -27,6 +27,7 @@ export class HeadingNavigation extends HTMLElement {
 	private documentSearch: DocumentSearch | undefined;
 	private documentToolbar: DocumentToolbar | undefined;
 	private unregisterToolbar: (() => void) | undefined;
+	private unregisterPages: (() => void) | undefined;
 	private headingButton: HTMLButtonElement | undefined;
 	private sharedSource: LoadedNavigation | undefined;
 	private sourceRequest: AbortController | undefined;
@@ -146,10 +147,11 @@ export class HeadingNavigation extends HTMLElement {
 	private connectNavigation(): void {
 		if (this.navigationPanel) {
 			document.body.append(this.navigationPanel);
-			if (this.documentToolbar)
+			if (this.documentToolbar) {
 				document.body.append(this.documentToolbar.element, this.documentToolbar.pagePanel);
-			if (this.documentToolbar)
 				this.unregisterToolbar = registerReaderToolbar(this.documentToolbar.element);
+				this.unregisterPages = registerReaderControl('pages', this.documentToolbar.pagesButton);
+			}
 			this.documentSearch?.connect();
 			if (this.presentationsButton)
 				this.unregisterPresentations = registerReaderControl(
@@ -194,7 +196,7 @@ export class HeadingNavigation extends HTMLElement {
 				: document.querySelector('ex-presentation[id]') ||
 					this.querySelector('[slot="presentations"] a')
 		) {
-			this.presentationsButton = createIconButton('footprints', 'Browse walkthroughs', (): void =>
+			this.presentationsButton = createIconButton('road-horizon', 'Browse walkthroughs', (): void =>
 				this.documentSearch?.open('walkthroughs', this.presentationsButton),
 			);
 			this.presentationsButton.classList.add('ex-presentations-trigger');
@@ -205,6 +207,7 @@ export class HeadingNavigation extends HTMLElement {
 			this.unregisterPresentations = registerReaderControl('walkthrough', this.presentationsButton);
 		}
 		this.documentToolbar = createDocumentToolbar(this.pageLinks);
+		this.unregisterPages = registerReaderControl('pages', this.documentToolbar.pagesButton);
 		this.unregisterToolbar = registerReaderToolbar(this.documentToolbar.element);
 		const navigationPanel = document.createElement('nav');
 		navigationPanel.className = 'ex-heading-panel';
@@ -419,6 +422,8 @@ export class HeadingNavigation extends HTMLElement {
 		this.headingObserver?.disconnect();
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
 		this.navigationPanel?.remove();
+		this.unregisterPages?.();
+		this.unregisterPages = undefined;
 		this.unregisterToolbar?.();
 		this.unregisterToolbar = undefined;
 		this.documentToolbar?.element.remove();

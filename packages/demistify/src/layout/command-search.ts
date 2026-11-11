@@ -19,7 +19,7 @@ const destinationGroups = {
 const destinationIcons = {
 	page: 'files',
 	heading: 'article',
-	walkthrough: 'footprints',
+	walkthrough: 'road-horizon',
 	journey: 'images',
 	map: 'map-trifold',
 } satisfies Record<SearchDestination['kind'], string>;
@@ -157,10 +157,7 @@ export class DocumentSearch {
 			return;
 		}
 		const scope = command ? 'all' : 'walkthroughs';
-		const trigger = document.querySelector(
-			scope === 'walkthroughs' ? '.ex-presentations-trigger' : '.ex-search-trigger',
-		);
-		this.open(scope, trigger instanceof HTMLElement ? trigger : undefined);
+		this.open(scope);
 	}
 
 	private handleDialogKey(event: KeyboardEvent): void {

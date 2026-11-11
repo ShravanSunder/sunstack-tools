@@ -139,15 +139,15 @@ test('query-bearing documents keep live headings searchable and open them withou
 	expect(document.querySelector('iframe')?.contentDocument).toBe(fixture);
 });
 
-test('search launcher sits beside the theme control in the top document header at 1600px', async (): Promise<void> => {
+test('search launcher precedes the theme control in the top document header at 1600px', async (): Promise<void> => {
 	await page.viewport(1600, 900);
 	const { document: fixture, frame } = await openFixture('navigation');
 	const launcher = frame.getByRole('button', { name: 'Search documents', exact: true });
 	await expect.element(launcher).toBeVisible();
 	const searchBounds = requiredElement(fixture, '.ex-search-trigger').getBoundingClientRect();
 	const themeBounds = requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect();
-	expect(searchBounds.left).toBeGreaterThan(themeBounds.right);
-	expect(searchBounds.left - themeBounds.right).toBeLessThan(20);
+	expect(themeBounds.left).toBeGreaterThan(searchBounds.right);
+	expect(themeBounds.left - searchBounds.right).toBeLessThan(20);
 	expect(Math.abs(searchBounds.bottom - themeBounds.bottom)).toBeLessThan(2);
 	expect(searchBounds.bottom).toBeLessThanOrEqual(
 		requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
@@ -176,7 +176,7 @@ test('search and theme controls join the top toolbar at 390px', async (): Promis
 	expect(searchBounds.top).toBeGreaterThanOrEqual(toolbar.top);
 	expect(searchBounds.bottom).toBeLessThanOrEqual(toolbar.bottom);
 	expect(Math.abs(searchBounds.top - themeBounds.top)).toBeLessThan(2);
-	expect(themeBounds.right).toBeLessThan(searchBounds.left);
+	expect(searchBounds.right).toBeLessThan(themeBounds.left);
 	expect(searchBounds.right).toBeLessThanOrEqual(390);
 	expect(insideViewport(requiredElement(fixture, '.ex-search-trigger'))).toBe(true);
 	await launcher.click();
@@ -222,7 +222,7 @@ test('walkthrough results retain page context, explanations and distinct path or
 	await expect
 		.element(path.getByText('Follow ownership into its planned proof.', { exact: true }))
 		.toBeVisible();
-	expect(requiredElement(fixture, 'a[href$="#queue-review"] .ph-footprints')).toBeTruthy();
+	expect(requiredElement(fixture, 'a[href$="#queue-review"] .ph-road-horizon')).toBeTruthy();
 	const journey = dialog.getByRole('option', { name: /Review captures/ });
 	await expect.element(journey.getByText('Evidence', { exact: true })).toBeVisible();
 	await expect
