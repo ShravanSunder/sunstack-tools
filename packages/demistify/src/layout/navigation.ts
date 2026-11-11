@@ -196,7 +196,7 @@ export class HeadingNavigation extends HTMLElement {
 				: document.querySelector('ex-presentation[id]') ||
 					this.querySelector('[slot="presentations"] a')
 		) {
-			this.presentationsButton = createIconButton('footprints', 'Browse walkthroughs', (): void =>
+			this.presentationsButton = createIconButton('road-horizon', 'Browse walkthroughs', (): void =>
 				this.documentSearch?.open('walkthroughs', this.presentationsButton),
 			);
 			this.presentationsButton.classList.add('ex-presentations-trigger');

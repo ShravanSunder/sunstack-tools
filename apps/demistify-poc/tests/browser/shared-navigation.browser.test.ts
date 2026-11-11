@@ -31,24 +31,8 @@ test.each([
 		fixture.documentElement.dataset['theme'] = theme;
 		const controls = requiredElement(fixture, '.ex-reader-controls');
 		const toolbar = requiredElement(fixture, '.ex-document-toolbar');
-		expect(
-			Array.from(controls.querySelectorAll(':scope > button')).map(
-				(button): string => button.getAttribute('aria-label') ?? '',
-			),
-		).toEqual([
-			'Search documents',
-			'Switch light or dark theme',
-			'Browse pages',
-			'Comments (0)',
-			'Browse walkthroughs',
-			'Map',
-		]);
 		const pages = requiredElement(fixture, '.ex-pages-trigger');
 		const search = requiredElement(fixture, '.ex-search-trigger');
-		expect(pages.scrollWidth).toBeLessThanOrEqual(pages.clientWidth);
-		expect(fixture.defaultView?.getComputedStyle(pages).borderRadius).toBe(
-			fixture.defaultView?.getComputedStyle(search).borderRadius,
-		);
 		await fixtureLocator(frame, requiredElement(fixture, 'h1')).click();
 		await userEvent.keyboard('{Alt>}');
 		try {
@@ -60,11 +44,28 @@ test.each([
 					const hintBounds = hint.getBoundingClientRect();
 					const icon = requiredElement(button, '.ph').getBoundingClientRect();
 					expect(hintBounds.left).toBeGreaterThanOrEqual(icon.right);
+					expect(hintBounds.right).toBeLessThanOrEqual(bounds.right);
 					expect(hintBounds.top).toBeGreaterThanOrEqual(bounds.top);
 					expect(hintBounds.bottom).toBeLessThanOrEqual(bounds.bottom);
 				} else expect(fixture.defaultView?.getComputedStyle(hint).display).toBe('none');
 				expect(bounds.bottom).toBeLessThanOrEqual(toolbar.getBoundingClientRect().bottom);
 			}
+			expect(
+				Array.from(controls.querySelectorAll(':scope > button')).map(
+					(button): string => button.getAttribute('aria-label') ?? '',
+				),
+			).toEqual([
+				'Browse pages',
+				'Search documents',
+				'Switch light or dark theme',
+				'Comments (0)',
+				'Browse walkthroughs',
+				'Map',
+			]);
+			expect(pages.scrollWidth).toBeLessThanOrEqual(pages.clientWidth);
+			expect(fixture.defaultView?.getComputedStyle(pages).borderRadius).toBe(
+				fixture.defaultView?.getComputedStyle(search).borderRadius,
+			);
 			expect(controls.getBoundingClientRect().right).toBeLessThanOrEqual(width);
 			await page.screenshot({ path: browserScreenshotPath(`reader-option-${width}-${theme}.png`) });
 		} finally {
@@ -214,13 +215,13 @@ test('reconnecting shared navigation keeps one Map, one launcher and one route p
 		.toBeVisible();
 });
 
-test('reader commands share the top toolbar with Footprints immediately before Map', async (): Promise<void> => {
+test('reader commands share the top toolbar with Road Horizon immediately before Map', async (): Promise<void> => {
 	const { document: fixture } = await openFixture('shared-navigation', '', 'state.html');
 	const toolbar = requiredElement(fixture, '.ex-document-toolbar');
 	const controls = requiredElement(fixture, '.ex-reader-controls');
 	expect(toolbar.contains(controls)).toBe(true);
 	const walkthrough = requiredElement(controls, '[aria-label="Browse walkthroughs"]');
-	expect(walkthrough.querySelector('.ph-footprints')).not.toBeNull();
+	expect(walkthrough.querySelector('.ph-road-horizon')).not.toBeNull();
 	expect(walkthrough.nextElementSibling?.getAttribute('aria-label')).toBe('Map');
 	const map = requiredElement(controls, '[aria-label="Map"]');
 	expect(fixture.defaultView?.getComputedStyle(walkthrough).borderRadius).toBe(

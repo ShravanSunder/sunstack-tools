@@ -84,7 +84,7 @@ The resolver reveals containing tabs, disclosures and layers and waits for lazy 
 
 ## Search the collection and keep the index current
 
-The top bar orders the contents menu when needed, Search, theme, Pages, Comments, Walkthrough, Map, then breadcrumbs. Pages and Search share a pill surface. Breadcrumbs are hidden on small screens; Walkthrough (Footprints) sits immediately before Map. Cmd/Ctrl-K opens three search sections: Pages and headings, Walkthroughs, and Map. Each result puts its title first and breadcrumb context below. Map results include real groups and requirements: choosing a group reveals its expanded Map context; choosing a leaf opens its content. Walkthroughs use Footprints; picture journeys retain Images.
+The top bar orders the contents menu when needed, Pages, Search, theme, Comments, Walkthrough, Map, then breadcrumbs. Pages and Search share a pill surface. Breadcrumbs are hidden on small screens; Walkthrough (Road Horizon) sits immediately before Map. Cmd/Ctrl-K opens three search sections: Pages and headings, Walkthroughs, and Map. Each result puts its title first and breadcrumb context below. Map results include real groups and requirements: choosing a group reveals its expanded Map context; choosing a leaf opens its content. Walkthroughs use Road Horizon; picture journeys retain Images.
 
 The current page's live headings and authored Pages links work without an index. Other pages' headings and descriptions require an embedded index generated from explicit local inputs:
 

@@ -222,7 +222,7 @@ test('walkthrough results retain page context, explanations and distinct path or
 	await expect
 		.element(path.getByText('Follow ownership into its planned proof.', { exact: true }))
 		.toBeVisible();
-	expect(requiredElement(fixture, 'a[href$="#queue-review"] .ph-footprints')).toBeTruthy();
+	expect(requiredElement(fixture, 'a[href$="#queue-review"] .ph-road-horizon')).toBeTruthy();
 	const journey = dialog.getByRole('option', { name: /Review captures/ });
 	await expect.element(journey.getByText('Evidence', { exact: true })).toBeVisible();
 	await expect

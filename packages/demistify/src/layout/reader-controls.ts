@@ -5,9 +5,9 @@ interface ReaderRegistration {
 }
 
 const controlOrder: readonly ReaderControlKind[] = [
+	'pages',
 	'search',
 	'theme',
-	'pages',
 	'comments',
 	'walkthrough',
 	'map',
