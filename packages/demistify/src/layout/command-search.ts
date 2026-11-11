@@ -157,10 +157,7 @@ export class DocumentSearch {
 			return;
 		}
 		const scope = command ? 'all' : 'walkthroughs';
-		const trigger = document.querySelector(
-			scope === 'walkthroughs' ? '.ex-presentations-trigger' : '.ex-search-trigger',
-		);
-		this.open(scope, trigger instanceof HTMLElement ? trigger : undefined);
+		this.open(scope);
 	}
 
 	private handleDialogKey(event: KeyboardEvent): void {

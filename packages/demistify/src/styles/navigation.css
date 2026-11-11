@@ -178,7 +178,7 @@ ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	color: var(--ink-soft);
 	font: 400 13px/1 var(--font-body);
 }
-.ex-search-trigger {
+:is(.ex-pages-trigger, .ex-search-trigger) {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -193,6 +193,7 @@ ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	.ex-theme-toggle,
 	.ex-comments-trigger,
 	.ex-search-trigger,
+	.ex-pages-trigger,
 	.ex-presentations-trigger,
 	.ex-map-trigger
 ) {
@@ -205,6 +206,7 @@ ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	.ex-theme-toggle,
 	.ex-comments-trigger,
 	.ex-search-trigger,
+	.ex-pages-trigger,
 	.ex-presentations-trigger,
 	.ex-map-trigger
 ):hover {

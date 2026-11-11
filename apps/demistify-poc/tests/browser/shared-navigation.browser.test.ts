@@ -16,6 +16,84 @@ function currentFixture(): Document {
 	return iframe.contentDocument;
 }
 
+test.each([
+	{ width: 1600, theme: 'light' },
+	{ width: 1600, theme: 'dark' },
+	{ width: 390, theme: 'light' },
+	{ width: 390, theme: 'dark' },
+])(
+	'reader toolbar order and Option hints stay on one line at $width in $theme',
+	async ({ width, theme }): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('shared-navigation', '', 'state.html');
+		fixture.documentElement.dataset['theme'] = theme;
+		const controls = requiredElement(fixture, '.ex-reader-controls');
+		const toolbar = requiredElement(fixture, '.ex-document-toolbar');
+		expect(
+			Array.from(controls.querySelectorAll(':scope > button')).map(
+				(button): string => button.getAttribute('aria-label') ?? '',
+			),
+		).toEqual([
+			'Search documents',
+			'Switch light or dark theme',
+			'Browse pages',
+			'Comments (0)',
+			'Browse walkthroughs',
+			'Map',
+		]);
+		const pages = requiredElement(fixture, '.ex-pages-trigger');
+		const search = requiredElement(fixture, '.ex-search-trigger');
+		expect(fixture.defaultView?.getComputedStyle(pages).borderRadius).toBe(
+			fixture.defaultView?.getComputedStyle(search).borderRadius,
+		);
+		await fixtureLocator(frame, requiredElement(fixture, 'h1')).click();
+		await userEvent.keyboard('{Alt>}');
+		try {
+			for (const selector of ['.ex-pages-trigger', '.ex-presentations-trigger']) {
+				const button = requiredElement(fixture, selector);
+				const hint = requiredElement(button, 'kbd');
+				const bounds = button.getBoundingClientRect();
+				if (width >= 900) {
+					const hintBounds = hint.getBoundingClientRect();
+					const icon = requiredElement(button, '.ph').getBoundingClientRect();
+					expect(hintBounds.left).toBeGreaterThanOrEqual(icon.right);
+					expect(hintBounds.top).toBeGreaterThanOrEqual(bounds.top);
+					expect(hintBounds.bottom).toBeLessThanOrEqual(bounds.bottom);
+				} else expect(fixture.defaultView?.getComputedStyle(hint).display).toBe('none');
+				expect(bounds.bottom).toBeLessThanOrEqual(toolbar.getBoundingClientRect().bottom);
+			}
+			expect(controls.getBoundingClientRect().right).toBeLessThanOrEqual(width);
+			await page.screenshot({ path: browserScreenshotPath(`reader-option-${width}-${theme}.png`) });
+		} finally {
+			await userEvent.keyboard('{/Alt}');
+		}
+		const walkthrough = requiredElement(
+			fixture,
+			'.ex-presentations-trigger',
+		).getBoundingClientRect();
+		expect(walkthrough.width).toBe(walkthrough.height);
+	},
+);
+
+test('keyboard search cancellation restores the reading location while pointer search restores its button', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('shared-navigation', '', 'state.html');
+	const heading = fixture.querySelector<HTMLElement>('h1');
+	if (!heading) throw new Error('Reading heading is absent.');
+	heading.tabIndex = -1;
+	await fixtureLocator(frame, heading).click();
+	await userEvent.keyboard('{Control>}k{/Control}');
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Search documents', exact: true }))
+		.toBeVisible();
+	await userEvent.keyboard('{Escape}');
+	await expect.poll((): Element | null => fixture.activeElement).toBe(heading);
+	await frame.getByRole('button', { name: 'Search documents', exact: true }).click();
+	await userEvent.keyboard('{Escape}');
+	await expect
+		.poll((): Element | null => fixture.activeElement)
+		.toBe(requiredElement(fixture, '.ex-search-trigger'));
+});
+
 test('JSON Walkthroughs stay available on the page containing their first stop', async (): Promise<void> => {
 	const { frame } = await openFixture('shared-navigation', '', 'how-work-runs.html');
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();

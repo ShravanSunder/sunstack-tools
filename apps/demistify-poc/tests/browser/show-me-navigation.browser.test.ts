@@ -9,6 +9,13 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+async function moveFocusOutsideMap(fixture: Document, remaining = 6): Promise<void> {
+	if (!fixture.activeElement?.closest('.ex-drawer')) return;
+	if (remaining === 0) throw new Error('Keyboard focus did not leave the non-modal Map.');
+	await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+	await moveFocusOutsideMap(fixture, remaining - 1);
+}
+
 test.each([1280, 390])(
 	'Map keeps Pages and search keyboard launchers usable at %ipx',
 	async (width): Promise<void> => {
@@ -21,15 +28,18 @@ test.each([1280, 390])(
 		await frame.getByRole('button', { name: 'Map', exact: true }).click();
 		const trigger = requiredElement(fixture, '.ex-map-trigger');
 		const verifySearchShortcut = async (shortcut: string): Promise<void> => {
+			const previousFocus = fixture.activeElement;
 			await userEvent.keyboard(shortcut);
 			await expect
 				.element(frame.getByRole('dialog', { name: 'Search documents', exact: true }))
 				.toBeVisible();
 			await userEvent.keyboard('{Escape}');
 			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+			await expect.poll((): Element | null => fixture.activeElement).toBe(previousFocus);
 		};
 		await verifySearchShortcut('{Control>}k{/Control}');
 		await verifySearchShortcut('{Meta>}k{/Meta}');
+		await moveFocusOutsideMap(fixture);
 		await userEvent.keyboard('p');
 		await expect
 			.poll((): boolean => requiredElement(fixture, '.ex-pages-panel').matches(':popover-open'))
@@ -62,13 +72,7 @@ test.each([1280, 390])(
 			.toBe('1 / 2');
 		await frame.getByRole('button', { name: 'Map', exact: true }).click();
 		// Move native focus out of the non-modal rail without activating another overlay.
-		const moveFocusOutsideMap = async (remaining: number): Promise<void> => {
-			if (!fixture.activeElement?.closest('.ex-drawer')) return;
-			if (remaining === 0) throw new Error('Keyboard focus did not leave the non-modal Map.');
-			await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
-			await moveFocusOutsideMap(remaining - 1);
-		};
-		await moveFocusOutsideMap(6);
+		await moveFocusOutsideMap(fixture);
 		expect(fixture.activeElement?.closest('.ex-drawer')).toBeNull();
 		expect(requiredElement(fixture, '.ex-map-trigger').getAttribute('aria-expanded')).toBe('true');
 		await userEvent.keyboard('{ArrowRight}');
@@ -105,14 +109,14 @@ test.each([
 	{
 		name: 'ui',
 		file: 'content-spacing.html',
-		controls: ['.ex-theme-toggle', '.ex-search-trigger', '.ex-comments-trigger'],
+		controls: ['.ex-search-trigger', '.ex-theme-toggle', '.ex-comments-trigger'],
 	},
 	{
 		name: 'navigation',
 		file: 'index.html',
 		controls: [
-			'.ex-theme-toggle',
 			'.ex-search-trigger',
+			'.ex-theme-toggle',
 			'.ex-comments-trigger',
 			'.ex-presentations-trigger',
 		],
@@ -120,7 +124,7 @@ test.each([
 	{
 		name: 'show-me-work',
 		file: 'index.html',
-		controls: ['.ex-theme-toggle', '.ex-search-trigger', '.ex-comments-trigger', '.ex-map-trigger'],
+		controls: ['.ex-search-trigger', '.ex-theme-toggle', '.ex-comments-trigger', '.ex-map-trigger'],
 	},
 ] as const)(
 	'phone reader controls follow document header order on $name',

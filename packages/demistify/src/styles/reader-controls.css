@@ -16,6 +16,9 @@
 	display: none;
 }
 .ex-reader-controls > .ex-icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	position: static;
 	margin: 0;
 	flex: none;

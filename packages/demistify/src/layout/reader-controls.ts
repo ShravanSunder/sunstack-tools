@@ -1,12 +1,13 @@
-type ReaderControlKind = 'walkthrough' | 'theme' | 'search' | 'comments' | 'map';
+type ReaderControlKind = 'walkthrough' | 'theme' | 'search' | 'pages' | 'comments' | 'map';
 interface ReaderRegistration {
 	readonly kind: ReaderControlKind;
 	readonly identity: symbol;
 }
 
 const controlOrder: readonly ReaderControlKind[] = [
-	'theme',
 	'search',
+	'theme',
+	'pages',
 	'comments',
 	'walkthrough',
 	'map',

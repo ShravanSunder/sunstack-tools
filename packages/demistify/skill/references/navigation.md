@@ -84,7 +84,7 @@ The resolver reveals containing tabs, disclosures and layers and waits for lazy 
 
 ## Search the collection and keep the index current
 
-The top bar orders the contents menu, Pages, reader buttons, then breadcrumbs. Breadcrumbs are hidden on small screens; Walkthrough (Footprints) sits immediately before Map. Cmd/Ctrl-K opens three search sections: Pages and headings, Walkthroughs, and Map. Each result puts its title first and breadcrumb context below. Map results include real groups and requirements: choosing a group reveals its expanded Map context; choosing a leaf opens its content. Walkthroughs use Footprints; picture journeys retain Images.
+The top bar orders the contents menu when needed, Search, theme, Pages, Comments, Walkthrough, Map, then breadcrumbs. Pages and Search share a pill surface. Breadcrumbs are hidden on small screens; Walkthrough (Footprints) sits immediately before Map. Cmd/Ctrl-K opens three search sections: Pages and headings, Walkthroughs, and Map. Each result puts its title first and breadcrumb context below. Map results include real groups and requirements: choosing a group reveals its expanded Map context; choosing a leaf opens its content. Walkthroughs use Footprints; picture journeys retain Images.
 
 The current page's live headings and authored Pages links work without an index. Other pages' headings and descriptions require an embedded index generated from explicit local inputs:
 
@@ -106,9 +106,9 @@ After changing a heading, source, page path or walkthrough description, regenera
 | W | Open the command bar's Walkthroughs scope |
 | 1–9 in Pages or an empty Walkthroughs search | Immediately open that entry |
 | Arrows and ↵ in a chooser | Move and open, including later entries |
-| Escape | Close the chooser and restore its trigger |
+| Escape | Close the chooser and restore prior focus; pointer-opened search returns to its button |
 | Hold Option | Show P/W hints beside their controls |
 
-The bottom button shows ⌘K on Mac and Ctrl-K elsewhere. Editing fields, composing text, open dialogs/popovers and modified browser commands retain their keys. Tabs and Galleries own their local arrow behavior. Do not install a competing document shortcut handler or capture OS/browser commands outside document focus.
+The Search button shows ⌘K on Mac and Ctrl-K elsewhere. Keyboard-opened search returns focus to the previous reading location when dismissed. Editing fields, composing text, open dialogs/popovers and modified browser commands retain their keys. Tabs and Galleries own their local arrow behavior. Do not install a competing document shortcut handler or capture OS/browser commands outside document focus.
 
 When the user requests verification or a concrete navigation defect is being diagnosed, finish with an ordinary page link, a cold scoped heading/node fragment, a contextual search result from another page, and a renamed heading after regeneration, and confirm that chooser focus returns, descriptions remain current, and Pages/outline remain available after leaving a guided path. A successful static check does not prove native links exist or search data is fresh.
