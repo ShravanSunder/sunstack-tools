@@ -64,7 +64,9 @@
 		gap: var(--space-1);
 	}
 	.ex-reader-controls > .ex-icon-button {
-		width: 30px;
 		height: 30px;
+	}
+	.ex-reader-controls > .ex-icon-button:not(.ex-pages-trigger) {
+		width: 30px;
 	}
 }

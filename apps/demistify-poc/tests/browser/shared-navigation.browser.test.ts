@@ -21,6 +21,8 @@ test.each([
 	{ width: 1600, theme: 'dark' },
 	{ width: 390, theme: 'light' },
 	{ width: 390, theme: 'dark' },
+	{ width: 320, theme: 'light' },
+	{ width: 320, theme: 'dark' },
 ])(
 	'reader toolbar order and Option hints stay on one line at $width in $theme',
 	async ({ width, theme }): Promise<void> => {
@@ -43,6 +45,7 @@ test.each([
 		]);
 		const pages = requiredElement(fixture, '.ex-pages-trigger');
 		const search = requiredElement(fixture, '.ex-search-trigger');
+		expect(pages.scrollWidth).toBeLessThanOrEqual(pages.clientWidth);
 		expect(fixture.defaultView?.getComputedStyle(pages).borderRadius).toBe(
 			fixture.defaultView?.getComputedStyle(search).borderRadius,
 		);
