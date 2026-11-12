@@ -80,10 +80,11 @@ if (values['print-contract'] === true) {
 			target: expected.target,
 		},
 	});
-	const installedCells = readdirSync(join(consumerDirectory, 'node_modules', '@sunstack'));
-	assert.ok(
-		installedCells.includes(`sdk-${cellKey}`),
-		`@sunstack/sdk-${cellKey} is installed: ${installedCells.join(', ')}`,
+	const installed = readdirSync(join(consumerDirectory, 'node_modules', '@sunstack')).toSorted();
+	assert.deepEqual(
+		installed,
+		['sdk', `sdk-${cellKey}`],
+		"exactly this cell's addon package is installed",
 	);
 	process.exit(0);
 }
@@ -93,12 +94,18 @@ if (tarballDirectory === undefined || !isAbsolute(tarballDirectory))
 
 const consumer = values.evidence ?? mkdtempSync(join(tmpdir(), 'sunstack-sdk-consumer-'));
 mkdirSync(consumer, { recursive: true });
-const tarballs = readdirSync(tarballDirectory)
-	.filter((name) => name.endsWith('.tgz'))
-	.map((name) => join(tarballDirectory, name));
-assert.ok(
-	tarballs.some((path) => /sunstack-sdk-\d/u.test(path)),
-	'the @sunstack/sdk tarball is present',
+const tarballs = readdirSync(tarballDirectory).filter((name) => name.endsWith('.tgz'));
+const sdkTarball = tarballs.find((name) => /^sunstack-sdk-\d/u.test(name));
+assert.ok(sdkTarball !== undefined, 'the @sunstack/sdk tarball is present');
+// Each platform package resolves to its candidate tarball, so npm itself selects
+// the cell exactly as it would from a registry; non-matching cells are skipped.
+const platformOverrides = Object.fromEntries(
+	platformCells.flatMap((cell) => {
+		const tarball = tarballs.find((name) => name.startsWith(`sunstack-sdk-${cell.key}-`));
+		return tarball === undefined
+			? []
+			: [[`@sunstack/sdk-${cell.key}`, `file:${join(tarballDirectory, tarball)}`]];
+	}),
 );
 
 // Examples run keyless: no provider request can be made from this check.
@@ -120,14 +127,14 @@ function step(label: string, command: string, args: readonly string[]): string {
 
 writeFileSync(
 	join(consumer, 'package.json'),
-	`${JSON.stringify({ name: 'sdk-consumer', private: true, type: 'module' }, null, 2)}\n`,
+	`${JSON.stringify({ name: 'sdk-consumer', private: true, type: 'module', overrides: platformOverrides }, null, 2)}\n`,
 );
 step('install', 'npm', [
 	'install',
 	'--no-audit',
 	'--no-fund',
 	'--save-exact',
-	...tarballs,
+	join(tarballDirectory, sdkTarball),
 	'typescript@7.0.2',
 	'@types/node@26.6.5',
 ]);
