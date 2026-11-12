@@ -2,7 +2,7 @@
 
 ## 0.12.0
 
-Unreleased.
+Release date: 2026-11-12.
 
 - Change-scoped lint screens paths with raw Git blob identities and acquires only
   changed sources. Unchanged files are read when lint needs them, rather than
