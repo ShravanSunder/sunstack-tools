@@ -97,6 +97,8 @@ pub struct Diagnostic {
     pub origin: DiagnosticOrigin,
     pub code: EvidenceCode,
     pub location: DiagnosticLocation,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<std::path::PathBuf>,
     pub guidance: String,
     pub retry_advice: RetryAdvice,
 }
@@ -238,6 +240,7 @@ impl Diagnostic {
             origin,
             code,
             location: DiagnosticLocation::None,
+            path: None,
             guidance: guidance.into(),
             retry_advice,
         }
@@ -269,20 +272,29 @@ impl DiagnosticList {
 pub struct EvidenceError {
     pub code: EvidenceCode,
     pub field_path: Vec<String>,
+    pub path: Option<std::path::PathBuf>,
 }
 impl From<EvidenceCode> for EvidenceError {
     fn from(code: EvidenceCode) -> Self {
         Self {
             code,
             field_path: Vec::new(),
+            path: None,
         }
     }
 }
 pub type EvidenceResult<TValue> = Result<TValue, EvidenceError>;
 
 impl EvidenceError {
+    pub fn at_path(mut self, path: impl AsRef<std::path::Path>) -> Self {
+        if self.path.is_none() && !path.as_ref().as_os_str().is_empty() {
+            self.path = Some(path.as_ref().to_path_buf());
+        }
+        self
+    }
     pub fn diagnostic(&self) -> Diagnostic {
         let mut diagnostic = Diagnostic::new(self.code);
+        diagnostic.path = self.path.clone();
         if !self.field_path.is_empty() {
             diagnostic.location = DiagnosticLocation::Field {
                 field_path: self.field_path.clone(),

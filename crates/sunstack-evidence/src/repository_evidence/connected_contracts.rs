@@ -153,6 +153,8 @@ pub enum DiscoveryLimit {
 pub struct DiscoveryCutoff {
     pub limit: DiscoveryLimit,
     pub frontier: Vec<SourceUnitKey>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<PathBuf>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]

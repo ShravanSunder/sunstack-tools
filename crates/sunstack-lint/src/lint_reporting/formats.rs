@@ -322,7 +322,7 @@ fn human(report: &LintReport) -> String {
         let _ = writeln!(
             output,
             "{}:{}:{}: {}",
-            diagnostic.file.as_ref().map_or_else(
+            diagnostic.location_path().map_or_else(
                 || report.config.display().to_string(),
                 |path| path.display().to_string()
             ),
@@ -428,7 +428,7 @@ fn github(report: &LintReport) -> String {
     }
     for diagnostic in &report.diagnostics {
         let mut properties = String::new();
-        if let Some(file) = &diagnostic.file {
+        if let Some(file) = diagnostic.location_path() {
             let _ = write!(
                 properties,
                 "file={}",

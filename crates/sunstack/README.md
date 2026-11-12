@@ -117,6 +117,9 @@ default scope. Use `--all` for every configured target, `--since REV` for change
 since a revision including worktree edits, or name files or directories for full
 scope within those paths. Findings retain their rule, marker and source
 location. Available output formats are `default`, `json`, `github` and `sarif`.
+Change-scope refusals include `diagnostics[].path` when a source is known.
+Human and SARIF locations use that path. Limit stops name their setting and
+configured value, retaining incomplete status.
 The JSON report includes `results`, one entry per evaluated rule/piece pair in
 logical report order. Each entry has the rule's `name` and marker, the piece's
 file and first and last line, its outcome (`pass`, `finding`, `not_applicable`,
@@ -137,7 +140,10 @@ A saved report contains each request's exact state and questions, every returned
 answer, requested and resolved models, and the contents and hashes of its config
 and rule files. It retains raw piece evidence for mechanical steps. `lint show`
 needs only that saved file; an excluded rule is marked as never asked and cannot
-be re-walked. Unknown ids return an error with the valid range.
+be re-walked. For completed cases reports, numeric IDs select unique results across
+nested revisions; exact case IDs select their linked evidence. Ambiguous IDs
+name each revision, case ID and result ID. Unknown IDs and malformed files name
+the report kind when known and the reason.
 
 ### Prepare requests without sending
 
@@ -190,6 +196,7 @@ excluded and unavailable cases retain explicit reasons. `lint show` on a prepare
 case report selects the **1-based ordinal in its cases array**, and returns that
 case plus its linked revision/request evidence; stale and unmatched cases are
 reason-only. Readback needs only the saved file.
+Exact case IDs also work; valid numeric prepared ordinals take precedence.
 
 A clean prepare-only run exits **6**, including runs waiting for selection answers.
 Mechanical findings or case gaps (including stale/unmatched cases) exit **1**;

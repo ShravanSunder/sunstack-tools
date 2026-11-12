@@ -60,6 +60,7 @@ impl PayloadSchemaCatalog {
             return Err(EvidenceError {
                 code: EvidenceCode::PayloadSchemaMismatch,
                 field_path,
+                path: None,
             });
         }
         Ok(AdmittedPayload {

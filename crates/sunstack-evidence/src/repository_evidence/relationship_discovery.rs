@@ -351,7 +351,11 @@ fn add_cutoff(
             }
         }
     } else {
-        cutoffs.push(DiscoveryCutoff { limit, frontier });
+        cutoffs.push(DiscoveryCutoff {
+            limit,
+            frontier,
+            path: None,
+        });
     }
 }
 fn candidate(

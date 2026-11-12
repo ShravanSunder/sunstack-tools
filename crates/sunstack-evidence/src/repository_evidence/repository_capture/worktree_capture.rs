@@ -20,11 +20,11 @@ impl RepositoryCapture<'_> {
         let metadata =
             std::fs::symlink_metadata(&unresolved).map_err(|_| EvidenceCode::SourceUnavailable)?;
         if metadata.len() > self.limits.max_file_bytes.get() as u64 {
-            self.limited(DiscoveryLimit::FileBytes);
+            self.limited(DiscoveryLimit::FileBytes, Some(path));
             return Ok(None);
         }
         if metadata.len() > self.available_bytes.saturating_sub(self.total_bytes) as u64 {
-            self.limited(DiscoveryLimit::TotalBytes);
+            self.limited(DiscoveryLimit::TotalBytes, Some(path));
             return Ok(None);
         }
         let (bytes, snapshot) = if metadata.file_type().is_symlink() {
@@ -69,11 +69,11 @@ impl RepositoryCapture<'_> {
             (bytes, snapshot)
         };
         if bytes.len() > self.limits.max_file_bytes.get() {
-            self.limited(DiscoveryLimit::FileBytes);
+            self.limited(DiscoveryLimit::FileBytes, Some(path));
             return Ok(None);
         }
         if bytes.len() > self.available_bytes.saturating_sub(self.total_bytes) {
-            self.limited(DiscoveryLimit::TotalBytes);
+            self.limited(DiscoveryLimit::TotalBytes, Some(path));
             return Ok(None);
         }
         self.mutable_files.push(snapshot);

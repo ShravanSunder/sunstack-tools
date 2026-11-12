@@ -42,20 +42,20 @@ fn capture_blocking(
     if !request.binding.change_scope.has_change_selection() {
         return Err(EvidenceCode::NoChangeSelection.into());
     }
-    request.binding.root = request
-        .binding
-        .root
-        .canonicalize()
-        .map_err(|_| EvidenceCode::InvalidRepositoryBinding)?;
-    let repository = git2::Repository::open(&request.binding.root)
-        .map_err(|_| EvidenceCode::InvalidRepositoryBinding)?;
+    request.binding.root = request.binding.root.canonicalize().map_err(|_| {
+        EvidenceError::from(EvidenceCode::InvalidRepositoryBinding).at_path(&request.binding.root)
+    })?;
+    let repository = git2::Repository::open(&request.binding.root).map_err(|_| {
+        EvidenceError::from(EvidenceCode::InvalidRepositoryBinding).at_path(&request.binding.root)
+    })?;
     if repository
         .workdir()
         .and_then(|path| path.canonicalize().ok())
         .as_ref()
         != Some(&request.binding.root)
     {
-        return Err(EvidenceCode::InvalidRepositoryBinding.into());
+        return Err(EvidenceError::from(EvidenceCode::InvalidRepositoryBinding)
+            .at_path(&request.binding.root));
     }
     let mut capture = RepositoryCapture::new(&repository, &request, cancellation)?;
     capture.reuse_captures(cached);
@@ -189,7 +189,7 @@ fn resolve_scope(
             // Every reachable ancestor is examined up to the resource bound; dates do not prune traversal.
             if capture.repository.is_shallow() {
                 capture.warn_scope(EvidenceCode::HistoryIncomplete);
-                capture.limited(DiscoveryLimit::HistoryCommits);
+                capture.limited(DiscoveryLimit::HistoryCommits, None);
             }
             for oid in walk {
                 if !capture.checkpoint()? {
@@ -364,73 +364,84 @@ pub async fn verify_change_capture(
     tokio::task::spawn_blocking(move || {
         use std::io::Read;
         for check in checks {
+            let captured_path = match &check {
+                MutableRepositoryFile::WorktreeSymlink { path, .. }
+                | MutableRepositoryFile::Worktree { path, .. }
+                | MutableRepositoryFile::Index { path, .. } => path.clone(),
+            };
             if cancellation.is_cancelled() {
-                return Err(EvidenceCode::MissingContext.into());
+                return Err(
+                    EvidenceError::from(EvidenceCode::MissingContext).at_path(&captured_path)
+                );
             }
-            match check {
-                MutableRepositoryFile::WorktreeSymlink { root, path, target } => {
-                    let path = root.join(path);
-                    let parent = path
-                        .parent()
-                        .ok_or(EvidenceCode::SourceChanged)?
-                        .canonicalize()
-                        .map_err(|_| EvidenceCode::SourceChanged)?;
-                    let metadata = std::fs::symlink_metadata(&path)
-                        .map_err(|_| EvidenceCode::SourceChanged)?;
-                    if !parent.starts_with(&root)
-                        || !metadata.file_type().is_symlink()
-                        || std::fs::read_link(&path)
-                            .map_err(|_| EvidenceCode::SourceChanged)?
-                            .as_os_str()
-                            .as_encoded_bytes()
-                            != target.as_os_str().as_encoded_bytes()
-                    {
-                        return Err(EvidenceCode::SourceChanged.into());
-                    }
-                }
-                MutableRepositoryFile::Worktree { root, path, bytes } => {
-                    let path = root.join(path);
-                    match bytes {
-                        None => match std::fs::symlink_metadata(&path) {
-                            Ok(_) => return Err(EvidenceCode::SourceChanged.into()),
-                            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-                            Err(_) => return Err(EvidenceCode::SourceChanged.into()),
-                        },
-                        Some(expected) => {
-                            let metadata = std::fs::symlink_metadata(&path)
-                                .map_err(|_| EvidenceCode::SourceChanged)?;
-                            if !metadata.file_type().is_file()
-                                || metadata.len() != expected.len() as u64
-                            {
-                                return Err(EvidenceCode::SourceChanged.into());
-                            }
-                            let mut actual = Vec::new();
-                            std::fs::File::open(&path)
+            let checked = (|| {
+                match check {
+                    MutableRepositoryFile::WorktreeSymlink { root, path, target } => {
+                        let path = root.join(path);
+                        let parent = path
+                            .parent()
+                            .ok_or(EvidenceCode::SourceChanged)?
+                            .canonicalize()
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        let metadata = std::fs::symlink_metadata(&path)
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        if !parent.starts_with(&root)
+                            || !metadata.file_type().is_symlink()
+                            || std::fs::read_link(&path)
                                 .map_err(|_| EvidenceCode::SourceChanged)?
-                                .take(expected.len().saturating_add(1) as u64)
-                                .read_to_end(&mut actual)
-                                .map_err(|_| EvidenceCode::SourceChanged)?;
-                            if actual != expected {
-                                return Err(EvidenceCode::SourceChanged.into());
+                                .as_os_str()
+                                .as_encoded_bytes()
+                                != target.as_os_str().as_encoded_bytes()
+                        {
+                            return Err(EvidenceCode::SourceChanged.into());
+                        }
+                    }
+                    MutableRepositoryFile::Worktree { root, path, bytes } => {
+                        let path = root.join(path);
+                        match bytes {
+                            None => match std::fs::symlink_metadata(&path) {
+                                Ok(_) => return Err(EvidenceCode::SourceChanged.into()),
+                                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                                Err(_) => return Err(EvidenceCode::SourceChanged.into()),
+                            },
+                            Some(expected) => {
+                                let metadata = std::fs::symlink_metadata(&path)
+                                    .map_err(|_| EvidenceCode::SourceChanged)?;
+                                if !metadata.file_type().is_file()
+                                    || metadata.len() != expected.len() as u64
+                                {
+                                    return Err(EvidenceCode::SourceChanged.into());
+                                }
+                                let mut actual = Vec::new();
+                                std::fs::File::open(&path)
+                                    .map_err(|_| EvidenceCode::SourceChanged)?
+                                    .take(expected.len().saturating_add(1) as u64)
+                                    .read_to_end(&mut actual)
+                                    .map_err(|_| EvidenceCode::SourceChanged)?;
+                                if actual != expected {
+                                    return Err(EvidenceCode::SourceChanged.into());
+                                }
                             }
                         }
                     }
-                }
-                MutableRepositoryFile::Index { root, path, blob } => {
-                    let repository =
-                        git2::Repository::open(root).map_err(|_| EvidenceCode::SourceChanged)?;
-                    let index = repository
-                        .index()
-                        .map_err(|_| EvidenceCode::SourceChanged)?;
-                    let actual = index
-                        .get_path(&path, 0)
-                        .map(|entry| GitObjectId::new(entry.id.to_string()))
-                        .transpose()?;
-                    if actual != blob {
-                        return Err(EvidenceCode::SourceChanged.into());
+                    MutableRepositoryFile::Index { root, path, blob } => {
+                        let repository = git2::Repository::open(root)
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        let index = repository
+                            .index()
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        let actual = index
+                            .get_path(&path, 0)
+                            .map(|entry| GitObjectId::new(entry.id.to_string()))
+                            .transpose()?;
+                        if actual != blob {
+                            return Err(EvidenceCode::SourceChanged.into());
+                        }
                     }
                 }
-            }
+                Ok(())
+            })();
+            checked.map_err(|error: EvidenceError| error.at_path(captured_path))?;
         }
         Ok(())
     })

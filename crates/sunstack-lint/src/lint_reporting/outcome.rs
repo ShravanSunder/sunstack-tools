@@ -457,6 +457,7 @@ pub(crate) fn project_evidence_failures(
     for failure in &catalog.failures {
         report.diagnostics.push(LintDiagnostic {
             file: Some(failure.file.clone()),
+            path: None,
             line: None,
             column: None,
             code: LintInvalidCode::Syntax,

@@ -76,6 +76,7 @@ fn group_readiness_preserves_cutoff_unresolved_and_minimum_failures() {
         cutoffs: vec![DiscoveryCutoff {
             limit: DiscoveryLimit::UnitVisits,
             frontier: vec![unit.unit.key],
+            path: None,
         }],
     };
     assert!(matches!(

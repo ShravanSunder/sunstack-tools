@@ -56,18 +56,30 @@ impl RepositoryCapture<'_> {
                 let mut entries = BTreeMap::new();
                 let mut failure = None;
                 let mut timed_out = false;
+                let mut timed_out_path = None;
                 let walk = tree.walk(TreeWalkMode::PreOrder, |prefix, entry| {
                     if self.check_cancel().is_err() {
-                        failure = Some(EvidenceCode::MissingContext);
+                        failure = Some(EvidenceError::from(EvidenceCode::MissingContext));
                         return TreeWalkResult::Abort;
                     }
                     if self.deadline_exhausted() {
                         timed_out = true;
+                        timed_out_path = Some(PathBuf::from(format!(
+                            "{prefix}{}",
+                            String::from_utf8_lossy(entry.name_bytes())
+                        )));
                         return TreeWalkResult::Abort;
                     }
                     if entry.kind() == Some(ObjectType::Blob) {
                         let Ok(name) = entry.name() else {
-                            failure = Some(EvidenceCode::UnsupportedEncoding);
+                            failure = Some(
+                                EvidenceError::from(EvidenceCode::UnsupportedEncoding).at_path(
+                                    PathBuf::from(format!(
+                                        "{prefix}{}",
+                                        String::from_utf8_lossy(entry.name_bytes())
+                                    )),
+                                ),
+                            );
                             return TreeWalkResult::Abort;
                         };
                         let path = PathBuf::from(format!("{prefix}{name}"));
@@ -77,7 +89,7 @@ impl RepositoryCapture<'_> {
                             }
                             Ok(false) => {}
                             Err(error) => {
-                                failure = Some(error.code);
+                                failure = Some(error.at_path(&path));
                                 return TreeWalkResult::Abort;
                             }
                         }
@@ -85,9 +97,11 @@ impl RepositoryCapture<'_> {
                     TreeWalkResult::Ok
                 });
                 if timed_out {
-                    self.limited(DiscoveryLimit::LocalTime);
+                    self.limited(DiscoveryLimit::LocalTime, timed_out_path.as_deref());
                 } else {
-                    walk.map_err(|_| failure.unwrap_or(EvidenceCode::RevisionUnavailable))?;
+                    walk.map_err(|_| {
+                        failure.unwrap_or_else(|| EvidenceCode::RevisionUnavailable.into())
+                    })?;
                 }
                 Ok(FileCatalogue::Captured {
                     revision: SourceRevision::Commit {
@@ -109,14 +123,19 @@ impl RepositoryCapture<'_> {
                 let mut identity_bytes = Vec::new();
                 for entry in index.iter() {
                     self.check_cancel()?;
-                    if !self.time_available() {
+                    let path_hint =
+                        PathBuf::from(String::from_utf8_lossy(&entry.path).into_owned());
+                    if !self.time_available(Some(&path_hint)) {
                         break;
                     }
-                    let path = std::str::from_utf8(&entry.path)
-                        .map_err(|_| EvidenceCode::UnsupportedEncoding)?;
+                    let path = std::str::from_utf8(&entry.path).map_err(|_| {
+                        EvidenceError::from(EvidenceCode::UnsupportedEncoding).at_path(&path_hint)
+                    })?;
                     identity_bytes.extend_from_slice(&entry.path);
                     identity_bytes.extend_from_slice(entry.id.as_bytes());
-                    if path_is_allowed(&self.binding, std::path::Path::new(path))? {
+                    if path_is_allowed(&self.binding, std::path::Path::new(path))
+                        .map_err(|error| error.at_path(&path_hint))?
+                    {
                         entries.insert(path.into(), ReadTarget::Blob(entry.id));
                     }
                 }
@@ -141,21 +160,37 @@ impl RepositoryCapture<'_> {
                     .build()
                 {
                     self.check_cancel()?;
-                    if !self.time_available() {
+                    let path_hint = entry.as_ref().ok().map(|entry| {
+                        entry
+                            .path()
+                            .strip_prefix(&self.binding.root)
+                            .ok()
+                            .filter(|path| !path.as_os_str().is_empty())
+                            .map_or_else(
+                                || entry.path().to_path_buf(),
+                                std::path::Path::to_path_buf,
+                            )
+                    });
+                    if !self.time_available(path_hint.as_deref()) {
                         break;
                     }
-                    let entry = entry.map_err(|_| EvidenceCode::SourceUnavailable)?;
+                    let entry = entry.map_err(|error| {
+                        let mut refusal = EvidenceError::from(EvidenceCode::SourceUnavailable);
+                        if let Some(path) = walk_error_path(&error) {
+                            refusal = refusal.at_path(path);
+                        }
+                        refusal
+                    })?;
                     if !entry
                         .file_type()
                         .is_some_and(|kind| kind.is_file() || kind.is_symlink())
                     {
                         continue;
                     }
-                    let path = entry
-                        .path()
-                        .strip_prefix(&self.binding.root)
-                        .map_err(|_| EvidenceCode::PathOutsideRoot)?;
-                    if path_is_allowed(&self.binding, path)? {
+                    let path = entry.path().strip_prefix(&self.binding.root).map_err(|_| {
+                        EvidenceError::from(EvidenceCode::PathOutsideRoot).at_path(entry.path())
+                    })?;
+                    if path_is_allowed(&self.binding, path).map_err(|error| error.at_path(path))? {
                         entries.insert(path.into(), ReadTarget::Worktree);
                     }
                 }
@@ -173,5 +208,19 @@ impl RepositoryCapture<'_> {
                 })
             }
         }
+    }
+}
+
+fn walk_error_path(error: &ignore::Error) -> Option<&std::path::Path> {
+    match error {
+        ignore::Error::WithPath { path, .. } => Some(path),
+        ignore::Error::Loop { child, .. } => Some(child),
+        ignore::Error::WithDepth { err, .. } | ignore::Error::WithLineNumber { err, .. } => {
+            walk_error_path(err)
+        }
+        ignore::Error::Partial(errors) if errors.len() == 1 => {
+            errors.first().and_then(walk_error_path)
+        }
+        _ => None,
     }
 }
