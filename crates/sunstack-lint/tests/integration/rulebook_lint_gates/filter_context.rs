@@ -25,12 +25,13 @@ fn configured(root: &Path) -> Value {
 }
 
 #[tokio::test]
-async fn mechanical_gated_rule_requires_credentials_before_any_source_or_git_access() {
+async fn named_mechanical_gated_rule_requires_credentials_before_evidence_access() {
     let root = tempfile::tempdir().unwrap();
     configured(root.path());
     let (reader, reads) = source(root.path());
     let mut request = fixture::request(root.path());
     request.scope = ScopeChoice::Default;
+    request.paths = vec![root.path().join("packages/one/references/member.md")];
     let report = run_with_source(request, CancellationToken::new(), None, Some(reader)).await;
     assert_eq!(report.status, LintStatus::Invalid);
     assert_eq!(

@@ -19,6 +19,8 @@ mod filter_runtime;
 mod html_evidence;
 #[path = "../support/mod.rs"]
 mod support;
+#[path = "lint_commands/usability.rs"]
+mod usability;
 
 fn command(root: &Path) -> Command {
     let mut command = support::isolated_command(root);

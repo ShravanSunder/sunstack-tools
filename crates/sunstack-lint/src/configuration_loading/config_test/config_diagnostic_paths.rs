@@ -146,3 +146,106 @@ fn local_shape_refusals_choose_the_first_failing_setting_deterministically() {
         }
     }
 }
+
+#[test]
+fn explicit_config_open_missing_file_names_path_and_reason() {
+    let root = tempfile::tempdir().unwrap();
+    let selected = std::path::Path::new("nested/custom-rules.json");
+
+    let error = discover_config(root.path(), Some(selected)).unwrap_err();
+
+    assert_eq!(error.code, LintInvalidCode::NoConfigFound);
+    assert!(
+        error.message.contains("nested/custom-rules.json"),
+        "{}",
+        error.message
+    );
+    assert!(
+        error.message.to_lowercase().contains("not found"),
+        "{}",
+        error.message
+    );
+    assert!(
+        !error.message.contains("sunstack.lint.json"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn explicit_config_open_directory_names_path_and_reason() {
+    let root = tempfile::tempdir().unwrap();
+    let selected = std::path::Path::new("nested/custom-config");
+    std::fs::create_dir_all(root.path().join(selected)).unwrap();
+
+    let error = discover_config(root.path(), Some(selected))
+        .and_then(|location| load_config(&location))
+        .unwrap_err();
+
+    assert_eq!(error.code, LintInvalidCode::NoConfigFound);
+    assert!(
+        error.message.contains("nested/custom-config"),
+        "{}",
+        error.message
+    );
+    assert!(
+        error.message.to_lowercase().contains("not a file"),
+        "{}",
+        error.message
+    );
+    assert!(
+        !error.message.contains("sunstack.lint.json"),
+        "{}",
+        error.message
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn explicit_config_open_unreadable_file_names_path_and_reason() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = tempfile::tempdir().unwrap();
+    let selected = std::path::Path::new("private-config.json");
+    let path = root.path().join(selected);
+    std::fs::write(&path, "{}").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
+    assert_eq!(
+        std::fs::read(&path).unwrap_err().kind(),
+        std::io::ErrorKind::PermissionDenied
+    );
+
+    let error = discover_config(root.path(), Some(selected))
+        .and_then(|location| load_config(&location))
+        .unwrap_err();
+
+    assert_eq!(error.code, LintInvalidCode::NoConfigFound);
+    assert!(
+        error.message.contains("private-config.json"),
+        "{}",
+        error.message
+    );
+    assert!(
+        error.message.to_lowercase().contains("unreadable"),
+        "{}",
+        error.message
+    );
+    assert!(
+        !error.message.contains("sunstack.lint.json"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn explicit_config_open_invalid_utf8_remains_a_syntax_error() {
+    let root = tempfile::tempdir().unwrap();
+    let selected = std::path::Path::new("invalid-utf8.json");
+    std::fs::write(root.path().join(selected), [0xff]).unwrap();
+
+    let error = discover_config(root.path(), Some(selected))
+        .and_then(|location| load_config(&location))
+        .unwrap_err();
+
+    assert_eq!(error.code, LintInvalidCode::Syntax);
+}

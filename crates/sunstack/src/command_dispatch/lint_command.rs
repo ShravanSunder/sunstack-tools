@@ -250,10 +250,11 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
             Err(_) => output("Unable to encode evidence listing.", 3),
         };
     }
-    output(
-        sunstack_lint::render(&report, arguments.format).trim_end_matches('\n'),
-        report.status.exit_code(),
-    )
+    let rendered = match &arguments.prepare {
+        Some(path) => sunstack_lint::render_prepared(&report, arguments.format, path),
+        None => sunstack_lint::render(&report, arguments.format),
+    };
+    output(rendered.trim_end_matches('\n'), report.status.exit_code())
 }
 pub async fn run(arguments: LintArguments) -> ExitCode {
     let mut signals = match ProcessSignals::install() {
