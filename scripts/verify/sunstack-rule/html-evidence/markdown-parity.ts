@@ -27,6 +27,7 @@ export const consumerSkills = [
 	'plugins/sunstack-dev/skills/practices-how/SKILL.md',
 	'plugins/sunstack-dev/skills/debug-investigation/SKILL.md',
 ];
+const consumerDependency = 'plugins/sunstack-workflow-v1/skills/practices-manage-agents/SKILL.md';
 const schema = z.object({
 	binary: z.string(),
 	'source-root': z.string(),
@@ -41,11 +42,11 @@ const schema = z.object({
 });
 function snapshotConsumer(source: string, revision: string, root: string): Record<string, string> {
 	filesystem.mkdirSync(root);
-	const archive = spawnSync(
-		'git',
-		['archive', revision, 'plugins/skill-authoring', 'plugins/sunstack-dev'],
-		{ cwd: source, timeout: 15000, maxBuffer: 100_000_000 },
-	);
+	const archive = spawnSync('git', ['archive', revision, 'plugins'], {
+		cwd: source,
+		timeout: 15000,
+		maxBuffer: 100_000_000,
+	});
 	assert.equal(archive.status, 0, 'Cannot archive pinned consumer');
 	const unpacked = spawnSync('tar', ['-xf', '-', '-C', root], {
 		input: archive.stdout,
@@ -53,7 +54,7 @@ function snapshotConsumer(source: string, revision: string, root: string): Recor
 	});
 	assert.equal(unpacked.status, 0, 'Cannot unpack owned consumer snapshot');
 	const hashes: Record<string, string> = {};
-	for (const file of [consumerConfig, ...consumerSkills]) {
+	for (const file of [consumerConfig, ...consumerSkills, consumerDependency]) {
 		const pinned = spawnSync('git', ['show', `${revision}:${file}`], {
 			cwd: source,
 			timeout: 10000,
