@@ -1,6 +1,6 @@
 # HTML heading sections and asking text
 
-This route checks the signed Sunstack CLI's lexical HTML sections and complete asking projection. The well-formed launch/probes/cleanup have been exercised; the added C7 recovery controls are draft until a corrected declared-target pass. Repeat the scoped journeys on each target. Expected outcomes come from the 0.13.0 HTML-sections commission and its Corrections1–7, including the J1 consumer gap; the current output never supplies the oracle.
+This route checks the signed Sunstack CLI's lexical HTML sections and complete asking projection. Launch, original-input guards, recovered heading/range/request probes and owned cleanup have been exercised. Repeat the scoped journeys on each declared target. Expected outcomes come from the 0.13.0 HTML-sections commission and its Corrections1–7, including the J1 consumer gap; the current output never supplies the oracle.
 
 ## What a section means
 
@@ -52,3 +52,7 @@ Check the offered permanent tests and their wrong behaviors before reuse. Join t
 The Implementer's Proof4 must compare ordinary Markdown --all --prepare with released0.12.1 by exact saved bytes except engine version. Legacy HTML without html_units must retain all other behavior; rule, selection and filter asking-projection differences and their derived request identities must be inspected explicitly, never removed by general JSON normalization. C4 keeps AST rule identity separate from native kind identity; C5 centralizes projection at the EvidenceProject boundary; C6 exposes ask_filters(plans, folders, evidence: FilterEvidence, default_max_chars, dispatcher), borrowing pieces, kinds, project and matches as one evidence snapshot. No callback, synthetic rule identity or compatibility shim is used. Inspect both changes in the public SDK signature list and actual consumer tests. Existing html-evidence's R1 asking expectation also needs the documented boundary spaces; its fixed source is independent of product output.
 
 Return supported/unsupported/unknown for Proof1–3, the native/parity joins and every uncovered path. This route proves no model judgment quality, hosted provider, browser rendering, CI, other platform or release acceptance. Keep current evidence in the task home, outside this recipe.
+
+## Deferred opaque-fragment limit
+
+An unmatched closing tag followed by words, such as `Before</h2>After`, can project to `Before` when the parser stores the remainder as an opaque ERROR leaf. The Lead explicitly deferred arbitrary opaque-fragment recovery in the commission. The C7 checks cover the recovered heading-opening forms listed above; they do not establish recovery of arbitrary malformed fragments. A regression against the declared released baseline remains a finding. State this limit in the handback.
