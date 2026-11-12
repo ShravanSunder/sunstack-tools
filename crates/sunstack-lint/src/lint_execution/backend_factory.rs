@@ -48,3 +48,33 @@ pub(crate) fn prepare_encoding_backend(
             )
         })
 }
+
+/// Refuse missing credentials before any evidence acquisition begins.
+pub(super) fn prepare_run_backend(
+    config: &RulesConfig,
+    location: &ConfigLocation,
+    model_work: bool,
+    preparing: bool,
+    api_key: Option<&str>,
+) -> Result<Option<Arc<dyn DecisionBackend>>, LintInvalid> {
+    let key = api_key.filter(|key| !key.trim().is_empty());
+    if model_work && !preparing && key.is_none() {
+        return Err(LintInvalid::at(
+            &location.file,
+            LintInvalidCode::CredentialMissing,
+            "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save first.",
+        ));
+    }
+    let backend = if model_work && preparing {
+        Some(prepare_encoding_backend(config)?)
+    } else if model_work {
+        match key.map(|key| prepare_backend(config, key)) {
+            Some(Ok(backend)) => Some(backend),
+            Some(Err(error)) => return Err(error),
+            None => None,
+        }
+    } else {
+        None
+    };
+    Ok(backend)
+}
