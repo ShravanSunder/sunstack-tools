@@ -8,6 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FilterSkipReason {
@@ -15,6 +16,7 @@ pub enum FilterSkipReason {
     Incomplete,
     NoFolder,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FilterSkip {
     pub locations: Vec<sunstack_evidence::PieceLocation>,

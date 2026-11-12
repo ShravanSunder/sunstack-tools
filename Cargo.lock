@@ -2746,6 +2746,7 @@ dependencies = [
  "serde_json",
  "serde_path_to_error",
  "specta",
+ "specta-typescript",
  "sunstack-decisions",
  "sunstack-evidence",
  "sunstack-lint",
@@ -2866,6 +2867,7 @@ dependencies = [
  "specta-typescript",
  "sunstack",
  "sunstack-decisions",
+ "sunstack-evidence",
  "tokio",
 ]
 

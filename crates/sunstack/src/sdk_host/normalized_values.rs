@@ -1,23 +1,23 @@
 //! The Rust-normalized serialization used for inline and edited definition digests.
 //!
-//! Object keys are sorted recursively, arrays keep authored order, absent (null)
-//! optional keys are omitted, integers keep their exact decimal tokens and floats use
-//! the pinned `serde_json` encoder.
+//! Values are first serialized by their typed Rust contracts, which decide which
+//! optional fields are omitted. Normalization then only sorts object keys
+//! recursively: arrays keep authored order, explicit `null` data is kept, integers
+//! keep their exact decimal tokens and floats use the pinned `serde_json` encoder.
 
-/// Recursively drop null object members and sort object keys.
-pub fn without_nulls(value: serde_json::Value) -> serde_json::Value {
+/// Recursively sort object keys; every value, including explicit null, is kept.
+pub fn canonical_value(value: serde_json::Value) -> serde_json::Value {
     match value {
         serde_json::Value::Object(object) => {
             let mut entries = object
                 .into_iter()
-                .filter(|(_, item)| !item.is_null())
-                .map(|(key, item)| (key, without_nulls(item)))
+                .map(|(key, item)| (key, canonical_value(item)))
                 .collect::<Vec<_>>();
             entries.sort_by(|left, right| left.0.cmp(&right.0));
             serde_json::Value::Object(entries.into_iter().collect())
         }
         serde_json::Value::Array(items) => {
-            serde_json::Value::Array(items.into_iter().map(without_nulls).collect())
+            serde_json::Value::Array(items.into_iter().map(canonical_value).collect())
         }
         other => other,
     }
@@ -25,7 +25,7 @@ pub fn without_nulls(value: serde_json::Value) -> serde_json::Value {
 
 /// Normalized UTF-8 text of a value, as hashed into snapshots.
 pub fn normalized_text(value: &serde_json::Value) -> String {
-    without_nulls(value.clone()).to_string()
+    canonical_value(value.clone()).to_string()
 }
 
 /// One escaped JSON Pointer reference token (RFC 6901).

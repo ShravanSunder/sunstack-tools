@@ -41,9 +41,18 @@ impl SdkFormat {
             DataType::Primitive(primitive) if is_wide(primitive) => {
                 *datatype = DataType::Reference(specta_typescript::define("bigint"));
             }
+            // Inputs refuse non-finite numbers before dispatch; floats are plain numbers.
+            DataType::Primitive(Primitive::f32 | Primitive::f64) => {
+                *datatype = DataType::Reference(specta_typescript::define("number"));
+            }
             DataType::List(list) => Self::rewrite(&mut list.ty),
             DataType::Map(map) => {
-                Self::rewrite(map.key_ty_mut());
+                // JSON object keys are strings, including integer-keyed maps.
+                if matches!(map.key_ty(), DataType::Primitive(primitive) if is_wide(primitive)) {
+                    *map.key_ty_mut() = DataType::Primitive(Primitive::str);
+                } else {
+                    Self::rewrite(map.key_ty_mut());
+                }
                 Self::rewrite(map.value_ty_mut());
             }
             DataType::Struct(structure) => Self::rewrite_fields(&mut structure.fields),
@@ -144,7 +153,7 @@ fn wide_shape(datatype: &DataType, types: &Types) -> Option<Value> {
                 .collect::<Vec<_>>();
             (!members.is_empty()).then(|| json!({"all": members}))
         }
-        DataType::Generic(generic) => Some(json!({"generic": generic.to_string()})),
+        DataType::Generic(generic) => Some(json!({"generic": generic.name().to_string()})),
         DataType::Reference(Reference::Named(reference)) => match &reference.inner {
             NamedReferenceType::Reference { generics, .. } => {
                 let named = types.get(reference)?;
@@ -152,7 +161,7 @@ fn wide_shape(datatype: &DataType, types: &Types) -> Option<Value> {
                     .iter()
                     .map(|(generic, argument)| {
                         (
-                            generic.to_string(),
+                            generic.name().to_string(),
                             wide_shape(argument, types).unwrap_or(Value::Null),
                         )
                     })
@@ -214,15 +223,19 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
         .register::<ContractInfo>()
         .register::<LoadOutcome>()
         .register::<CheckOutcome>()
-        .register::<RunOutcome>();
+        .register::<RunOutcome>()
+        .register::<sunstack_evidence::EvidenceLanguage>();
     let declarations = specta_typescript::Typescript::default().export(&types, SdkFormat)?;
-    let serde_types = specta_serde::Format.map_types(&types)?.into_owned();
+    let serde_types = specta_serde::Format
+        .map_types(&types)
+        .map_err(|error| error.to_string())?
+        .into_owned();
     let mut definitions = Map::new();
     for named in serde_types.into_sorted_iter() {
         let generics = named
             .generics
             .iter()
-            .map(|generic| Value::String(generic.to_string()))
+            .map(|generic| Value::String(generic.name.to_string()))
             .collect::<Vec<_>>();
         if let Some(shape) = named
             .ty

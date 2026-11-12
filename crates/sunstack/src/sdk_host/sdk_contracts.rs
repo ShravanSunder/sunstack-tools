@@ -9,7 +9,6 @@ use sunstack_evidence::{
 use sunstack_lint::{CheckedFiles, DecisionModelSettings, LintInvalidCode, LintLimits};
 use sunstack_rules::{FilterName, FilterWire, RuleEntryWire};
 
-#[cfg(feature = "typescript")]
 use super::matcher_transport::{AstMatcher, AstUtility};
 
 /// The SDK contract revision; bumped whenever a generated declaration changes meaning.
@@ -68,8 +67,8 @@ pub type RuleEntries = BTreeMap<String, RuleEntryWire>;
 
 /// One rulebook: referenced files, inline values, or values captured by `load`.
 ///
-/// Rule-entry and matcher bodies cross as JSON and are decoded by the same strict
-/// decoders the file path uses, so each invalid entry is refused exactly as in a file.
+/// Entries and matchers are decoded by the same strict decoders the file path uses;
+/// a dynamically invalid value is refused when the configuration is decoded.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
@@ -83,14 +82,12 @@ pub enum RulebookDefinition {
     Inline {
         id: String,
         markdown: String,
-        #[cfg_attr(feature = "typescript", specta(type = RuleEntries))]
-        entries: serde_json::Map<String, serde_json::Value>,
+        entries: RuleEntries,
     },
     Captured {
         id: String,
         markdown: CapturedValue<String>,
-        #[cfg_attr(feature = "typescript", specta(type = CapturedValue<RuleEntries>))]
-        entries: CapturedValue<serde_json::Map<String, serde_json::Value>>,
+        entries: CapturedValue<RuleEntries>,
     },
 }
 
@@ -101,24 +98,14 @@ pub enum RulebookDefinition {
 #[allow(clippy::large_enum_variant)]
 pub enum EvidenceDefinitions {
     Inline {
-        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<String, AstMatcher>))]
-        matchers: BTreeMap<String, serde_json::Value>,
+        matchers: BTreeMap<String, AstMatcher>,
         #[serde(default)]
-        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<String, AstUtility>))]
-        utilities: BTreeMap<String, serde_json::Value>,
+        utilities: BTreeMap<String, AstUtility>,
         kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     },
     Captured {
-        #[cfg_attr(
-            feature = "typescript",
-            specta(type = BTreeMap<String, CapturedValue<AstMatcher>>)
-        )]
-        matchers: BTreeMap<String, CapturedValue<serde_json::Value>>,
-        #[cfg_attr(
-            feature = "typescript",
-            specta(type = BTreeMap<String, CapturedValue<AstUtility>>)
-        )]
-        utilities: BTreeMap<String, CapturedValue<serde_json::Value>>,
+        matchers: BTreeMap<String, CapturedValue<AstMatcher>>,
+        utilities: BTreeMap<String, CapturedValue<AstUtility>>,
         kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     },
     Project {
@@ -187,8 +174,7 @@ pub struct CapturedRulebook {
     pub kind: CapturedKind,
     pub id: String,
     pub markdown: CapturedValue<String>,
-    #[cfg_attr(feature = "typescript", specta(type = CapturedValue<RuleEntries>))]
-    pub entries: CapturedValue<serde_json::Map<String, serde_json::Value>>,
+    pub entries: CapturedValue<RuleEntries>,
 }
 
 /// Evidence captured by `load`.
@@ -197,16 +183,8 @@ pub struct CapturedRulebook {
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 pub struct CapturedEvidence {
     pub kind: CapturedKind,
-    #[cfg_attr(
-        feature = "typescript",
-        specta(type = BTreeMap<String, CapturedValue<AstMatcher>>)
-    )]
-    pub matchers: BTreeMap<String, CapturedValue<serde_json::Value>>,
-    #[cfg_attr(
-        feature = "typescript",
-        specta(type = BTreeMap<String, CapturedValue<AstUtility>>)
-    )]
-    pub utilities: BTreeMap<String, CapturedValue<serde_json::Value>>,
+    pub matchers: BTreeMap<String, CapturedValue<AstMatcher>>,
+    pub utilities: BTreeMap<String, CapturedValue<AstUtility>>,
     pub kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
 }
 

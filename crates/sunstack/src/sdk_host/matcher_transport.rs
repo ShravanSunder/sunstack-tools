@@ -135,10 +135,12 @@ fn fixer_schema(generator: &mut SchemaGenerator) -> Schema {
     json_schema!({"$ref": format!("#{path}/SerializableFixer")})
 }
 
-/// One named ast-grep matcher. Its map key supplies `id`.
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(title = "AstMatcher")]
-pub struct AstMatcher {
+/// The declared transport shape of a matcher: the pinned upstream core composed with
+/// every accepted wrapper property. Used only to generate declarations; values are
+/// decoded by the upstream decoder into [`AstMatcher`].
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[schemars(title = "AstMatcher", rename = "AstMatcher")]
+pub struct AstMatcherSchema {
     #[serde(flatten)]
     pub core: SerializableRuleCore,
     pub language: AuthoredLanguage,
@@ -165,10 +167,10 @@ pub struct AstMatcher {
     pub metadata: Option<BTreeMap<String, JsonData>>,
 }
 
-/// One named global utility. Its map key supplies `id`.
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
-#[schemars(title = "AstUtility")]
-pub struct AstUtility {
+/// The declared transport shape of a global utility; see [`AstMatcherSchema`].
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[schemars(title = "AstUtility", rename = "AstUtility")]
+pub struct AstUtilitySchema {
     #[serde(flatten)]
     pub core: SerializableRuleCore,
     pub language: AuthoredLanguage,
@@ -330,7 +332,7 @@ fn transport_value<T: Serialize>(
     if let serde_json::Value::Object(object) = &mut value {
         object.remove("id");
     }
-    Ok(super::normalized_values::without_nulls(value))
+    Ok(super::normalized_values::canonical_value(value))
 }
 
 /// The canonical transport value of a decoded matcher: canonical language spelling,
@@ -348,11 +350,103 @@ pub fn utility_value(
     transport_value(utility, None)
 }
 
+impl TransportRefusal {
+    /// One-line description: the decoder's message, then where it applies.
+    pub fn describe(&self) -> String {
+        if self.json_path.is_empty() {
+            self.message.clone()
+        } else {
+            format!("{} (at {})", self.message, self.json_path.join("."))
+        }
+    }
+}
+
+/// One named ast-grep matcher, decoded and validated by the pinned upstream decoder.
+///
+/// Its map key supplies `id`; an authored `id` is refused. Unknown wrapper keys are
+/// ignored and unknown rule or contextual-pattern keys are refused, as upstream does.
+#[derive(Clone)]
+pub struct AstMatcher(SerializableRuleConfig<SupportLang>);
+
+/// One named global utility, decoded and validated by the pinned upstream decoder.
+#[derive(Clone)]
+pub struct AstUtility(SerializableGlobalRule<SupportLang>);
+
+impl AstMatcher {
+    /// Accept an upstream-decoded matcher whose transport value is representable.
+    pub fn from_upstream(
+        matcher: SerializableRuleConfig<SupportLang>,
+    ) -> Result<Self, TransportRefusal> {
+        matcher_value(&matcher)?;
+        Ok(Self(matcher))
+    }
+    /// The upstream matcher carrying `name` as its id.
+    pub fn upstream(&self, name: &str) -> SerializableRuleConfig<SupportLang> {
+        let mut matcher = self.0.clone();
+        matcher.id = name.to_owned();
+        matcher
+    }
+    /// Canonical transport value: canonical language spelling, no absent keys, no id.
+    pub fn transport_value(&self) -> Result<serde_json::Value, TransportRefusal> {
+        matcher_value(&self.0)
+    }
+}
+
+impl AstUtility {
+    pub fn from_upstream(
+        utility: SerializableGlobalRule<SupportLang>,
+    ) -> Result<Self, TransportRefusal> {
+        utility_value(&utility)?;
+        Ok(Self(utility))
+    }
+    pub fn upstream(&self, name: &str) -> SerializableGlobalRule<SupportLang> {
+        let mut utility = self.0.clone();
+        utility.id = name.to_owned();
+        utility
+    }
+    pub fn transport_value(&self) -> Result<serde_json::Value, TransportRefusal> {
+        utility_value(&self.0)
+    }
+}
+
+macro_rules! upstream_transport {
+    ($name:ident, $decode:ident) => {
+        impl Serialize for $name {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                self.transport_value()
+                    .map_err(|refusal| serde::ser::Error::custom(refusal.describe()))?
+                    .serialize(serializer)
+            }
+        }
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                // The raw value exists only here and is classified at once.
+                let value = serde_json::Value::deserialize(deserializer)?;
+                $decode("", &value)
+                    .map(Self)
+                    .map_err(|refusal| serde::de::Error::custom(refusal.describe()))
+            }
+        }
+        impl std::fmt::Debug for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self.transport_value() {
+                    Ok(value) => write!(formatter, "{}({value})", stringify!($name)),
+                    Err(refusal) => {
+                        write!(formatter, "{}(<{}>)", stringify!($name), refusal.describe())
+                    }
+                }
+            }
+        }
+    };
+}
+upstream_transport!(AstMatcher, decode_matcher);
+upstream_transport!(AstUtility, decode_utility);
+
 /// The JSON schema the TypeScript matcher declarations are generated from.
 pub fn matcher_schema() -> serde_json::Value {
     let mut generator = schemars::SchemaGenerator::default();
-    let matcher = generator.subschema_for::<AstMatcher>();
-    let utility = generator.subschema_for::<AstUtility>();
+    let matcher = generator.subschema_for::<AstMatcherSchema>();
+    let utility = generator.subschema_for::<AstUtilitySchema>();
     let languages = generator.subschema_for::<AuthoredLanguage>();
     let definitions = generator.take_definitions(true);
     serde_json::json!({
@@ -363,6 +457,23 @@ pub fn matcher_schema() -> serde_json::Value {
         "$defs": definitions,
     })
 }
+
+/// These two transports are declared by the generated JSON-schema module, so the
+/// native declaration set only references their names.
+#[cfg(feature = "typescript")]
+macro_rules! externally_declared_type {
+    ($name:ident) => {
+        impl specta::Type for $name {
+            fn definition(_: &mut specta::Types) -> specta::datatype::DataType {
+                specta::datatype::DataType::Reference(specta_typescript::define(stringify!($name)))
+            }
+        }
+    };
+}
+#[cfg(feature = "typescript")]
+externally_declared_type!(AstMatcher);
+#[cfg(feature = "typescript")]
+externally_declared_type!(AstUtility);
 
 #[cfg(test)]
 #[path = "matcher_transport_test.rs"]

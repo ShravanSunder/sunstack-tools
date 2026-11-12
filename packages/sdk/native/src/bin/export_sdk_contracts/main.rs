@@ -4,7 +4,8 @@
 //! - `contracts.ts`: declarations for every SDK input and outcome type;
 //! - `wide-integers.json`: where full-width integers sit, so replies decode losslessly;
 //! - `ast-grep.schema.json`: the pinned upstream matcher schema the matcher
-//!   declarations are generated from.
+//!   declarations are generated from;
+//! - `contract.json`: the release and contract revision the declarations describe.
 mod contract_export;
 
 use std::{error::Error, fs, path::PathBuf};
@@ -26,6 +27,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         directory.join("ast-grep.schema.json"),
         serde_json::to_string_pretty(&sunstack::sdk_host::matcher_transport::matcher_schema())?
             + "\n",
+    )?;
+    fs::write(
+        directory.join("contract.json"),
+        serde_json::to_string_pretty(&sunstack::sdk_host::contract_info("declarations"))? + "\n",
     )?;
     Ok(())
 }

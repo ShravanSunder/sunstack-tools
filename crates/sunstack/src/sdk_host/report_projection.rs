@@ -99,6 +99,20 @@ pub struct SdkSkippedRule {
     pub diagnostics: Vec<Diagnostic>,
 }
 
+/// An evidence listing with its configuration named by origin. Ordinary runs request
+/// no listing, so this stays absent there, exactly as in `LintReport`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+pub struct SdkEvidenceListing {
+    pub version: String,
+    pub configuration: DefinitionOrigin,
+    pub scope: ScopeReport,
+    pub pieces: Vec<sunstack_evidence::EvidencePiece>,
+    pub selections: Vec<SelectionEntry>,
+    pub file_counts: Vec<sunstack_evidence::FileCount>,
+    pub usage: UsageSummary,
+}
+
 /// An engine report: every semantic `LintReport` fact, with origin-aware definitions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
@@ -127,6 +141,9 @@ pub struct SdkReport<TStatus> {
     pub filter_answers: Vec<IdentifiedResult<sunstack_rules::FilterAnswer>>,
     pub filter_skips: Vec<IdentifiedResult<sunstack_rules::FilterSkip>>,
     pub piece_evidence: BTreeMap<usize, SavedPieceEvidence>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "typescript", specta(optional))]
+    pub evidence_listing: Option<SdkEvidenceListing>,
 }
 
 pub type CompletedReport = SdkReport<CompletedStatus>;
@@ -255,6 +272,15 @@ fn project_report<TStatus>(
         filter_answers: report.filter_answers,
         filter_skips: report.filter_skips,
         piece_evidence: report.piece_evidence,
+        evidence_listing: report.evidence_listing.map(|listing| SdkEvidenceListing {
+            version: listing.version,
+            configuration: configuration.clone(),
+            scope: listing.scope,
+            pieces: listing.pieces,
+            selections: listing.selections,
+            file_counts: listing.file_counts,
+            usage: listing.usage,
+        }),
     }
 }
 

@@ -9,6 +9,7 @@ use sunstack_evidence::{
     EvidencePiece, FieldName, FieldValue, FileMatchIndex, MatchRange, ModelView, match_within,
 };
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RulebookIncompleteReason {
@@ -70,6 +71,7 @@ pub enum RulebookResult {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LocatorOmission {
@@ -79,12 +81,14 @@ pub struct LocatorOmission {
     pub candidate_lines: usize,
     pub limit: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum LocatorOmissionReason {
     LineLimit,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum NotApplicableReason {
@@ -95,6 +99,7 @@ pub enum NotApplicableReason {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Basis {
@@ -102,6 +107,7 @@ pub enum Basis {
     Judged,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Anchor {

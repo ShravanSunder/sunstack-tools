@@ -141,7 +141,10 @@ async fn load_discovers_upward_and_resolves_references_from_the_config_directory
     );
     // File aliases are normalized to the canonical upstream language spelling.
     assert_eq!(
-        configuration.evidence.matchers["skill"].value["language"],
+        configuration.evidence.matchers["skill"]
+            .value
+            .transport_value()
+            .unwrap()["language"],
         "Markdown"
     );
     // u64::MAX survives load and transport exactly.
@@ -405,13 +408,14 @@ async fn check_needs_no_credential_and_refuses_like_the_cli() {
         })
     );
 
-    // Nested unknown rule keys refuse; wrapper-level unknown keys are ignored.
+    // Nested unknown rule keys refuse at the typed upstream decoder; wrapper-level
+    // unknown keys are ignored, as upstream does.
     let mut nested = inline_configuration(base.path(), RULE_A);
     nested["evidence"]["matchers"]["skill"]["rule"]["matchez"] = json!("x");
-    assert!(matches!(
-        sdk_host::check(transported(&nested), CancellationToken::new()).await,
-        CheckOutcome::Invalid { .. }
-    ));
+    let refused = sdk_host::decode_configuration(&nested.to_string()).unwrap_err();
+    // The tagged evidence union buffers its body, so the path stops at `evidence`.
+    assert_eq!(refused[0].json_path, ["evidence"]);
+    assert!(refused[0].message.contains("matchez"), "{refused:?}");
     let mut wrapper = inline_configuration(base.path(), RULE_A);
     wrapper["evidence"]["matchers"]["skill"]["unrelated"] = json!(true);
     assert!(matches!(
@@ -421,10 +425,16 @@ async fn check_needs_no_credential_and_refuses_like_the_cli() {
     // An inline id is refused as the file path refuses inline_rule ids.
     let mut declared = inline_configuration(base.path(), RULE_A);
     declared["evidence"]["matchers"]["skill"]["id"] = json!("skill");
-    assert!(matches!(
-        sdk_host::check(transported(&declared), CancellationToken::new()).await,
-        CheckOutcome::Invalid { .. }
-    ));
+    let refused = sdk_host::decode_configuration(&declared.to_string()).unwrap_err();
+    assert!(
+        refused[0].message.contains("must not declare id"),
+        "{refused:?}"
+    );
+    // A malformed inline rule entry is refused by the strict entry decoder.
+    let mut entry = inline_configuration(base.path(), RULE_A);
+    entry["rulebooks"][0]["entries"]["K001"]["unexpected"] = json!(1);
+    let refused = sdk_host::decode_configuration(&entry.to_string()).unwrap_err();
+    assert_eq!(refused[0].code, DiagnosticCode::UnknownField);
     // Strict Sunstack objects refuse unknown keys at transport.
     let mut strict = inline_configuration(base.path(), RULE_A);
     strict["check"]["unexpected"] = json!(1);
@@ -549,4 +559,124 @@ async fn already_cancelled_calls_start_no_work() {
     )
     .await;
     assert!(matches!(outcome, RunOutcome::Cancelled { report: None }));
+}
+
+fn matcher_source(outcome: &RunOutcome) -> sunstack_evidence::DefinitionSnapshot {
+    completed_sources(outcome)
+        .into_iter()
+        .find(|source| match &source.origin {
+            DefinitionOrigin::File { path } => path.ends_with("skill.yml"),
+            DefinitionOrigin::Edited { id, .. } => id.ends_with("/evidence/matchers/skill"),
+            DefinitionOrigin::Inline { .. } => false,
+        })
+        .expect("matcher source")
+}
+
+#[tokio::test]
+async fn explicit_null_metadata_is_data_and_its_removal_is_an_edit() {
+    let definitions = tempfile::tempdir().unwrap();
+    let checked = tempfile::tempdir().unwrap();
+    write_project(definitions.path(), checked.path());
+    let project = definitions.path().join("lint");
+    let matcher_file = project.join("evidence/rules/nested/skill.yml");
+    std::fs::write(
+        &matcher_file,
+        "id: skill\nlanguage: md\nrule: {matches: front-matter}\nmetadata: {setting: null, list: [1, null], wide: 18446744073709551615}\n",
+    )
+    .unwrap();
+    let held = load(&project).await;
+    let metadata = &held.configuration.evidence.matchers["skill"]
+        .value
+        .transport_value()
+        .unwrap()["metadata"];
+    assert_eq!(
+        metadata,
+        &json!({"setting": null, "list": [1, null], "wide": 18446744073709551615u64})
+    );
+
+    // Unchanged: the original file and its exact bytes remain the receipt.
+    let unchanged = run_all(transported(&held.configuration), checked.path()).await;
+    let source = matcher_source(&unchanged);
+    assert!(matches!(source.origin, DefinitionOrigin::File { .. }));
+    assert_eq!(
+        source.content,
+        std::fs::read_to_string(&matcher_file).unwrap()
+    );
+
+    // Removing the explicit null member is a change, with fresh normalized content.
+    let mut removed = serde_json::to_value(&held.configuration).unwrap();
+    removed["evidence"]["matchers"]["skill"]["value"]["metadata"]
+        .as_object_mut()
+        .unwrap()
+        .remove("setting");
+    let edited = matcher_source(&run_all(transported(&removed), checked.path()).await);
+    assert!(matches!(edited.origin, DefinitionOrigin::Edited { .. }));
+    assert!(!edited.content.contains("setting"));
+    assert!(edited.content.contains(r#""list":[1,null]"#));
+    assert!(edited.content.contains("18446744073709551615"));
+    assert_eq!(
+        edited.sha256,
+        sunstack_evidence::content_digest(edited.content.as_bytes())
+    );
+
+    // Adding an explicit null where there was none is also a change.
+    let mut added = serde_json::to_value(&held.configuration).unwrap();
+    added["evidence"]["matchers"]["skill"]["value"]["metadata"]["extra"] = json!(null);
+    let edited = matcher_source(&run_all(transported(&added), checked.path()).await);
+    assert!(matches!(edited.origin, DefinitionOrigin::Edited { .. }));
+    assert!(edited.content.contains(r#""extra":null"#));
+}
+
+#[tokio::test]
+async fn one_definition_file_referenced_twice_is_read_once_and_reported_once() {
+    let definitions = tempfile::tempdir().unwrap();
+    let checked = tempfile::tempdir().unwrap();
+    write_project(definitions.path(), checked.path());
+    let project = definitions.path().join("lint");
+    std::fs::write(
+        project.join("standards/second.json"),
+        serde_json::to_vec(
+            &json!({"K001": {"name":"second_description","evidence":"skill","severity":"error","decision":{"start":"starts","steps":{"starts":{"mechanical_check":{"tool":"regex","field":"description","pattern":RULE_A},"yes":"pass","no":{"finding":"Second.","at":"description"}}}}}}),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let mut config: Value =
+        serde_json::from_slice(&std::fs::read(project.join("sunstack.lint.json")).unwrap())
+            .unwrap();
+    config["rulebook"] = json!([
+        {"markdown":"standards/rulebook.md","rules":"standards/rules.json"},
+        {"markdown":"standards/rulebook.md","rules":"standards/second.json"}
+    ]);
+    std::fs::write(
+        project.join("sunstack.lint.json"),
+        serde_json::to_vec(&config).unwrap(),
+    )
+    .unwrap();
+    let loaded = load(&project).await;
+    let rulebooks = &loaded.configuration.rulebooks;
+    assert_eq!(rulebooks.len(), 2);
+    assert_eq!(rulebooks[0].markdown.value, rulebooks[1].markdown.value);
+    let markdown = project
+        .join("standards/rulebook.md")
+        .canonicalize()
+        .unwrap();
+    assert_eq!(
+        loaded
+            .sources
+            .iter()
+            .filter(|source| source.origin == DefinitionOrigin::file(&markdown))
+            .count(),
+        1
+    );
+    // The shared-standard configuration is admitted: both rules run.
+    let outcome = run_all(transported(&loaded.configuration), checked.path()).await;
+    assert_eq!(finding_count(&outcome), 2);
+    assert_eq!(
+        completed_sources(&outcome)
+            .iter()
+            .filter(|source| source.origin == DefinitionOrigin::file(&markdown))
+            .count(),
+        1
+    );
 }

@@ -7,6 +7,7 @@ use sunstack_evidence::{EvidenceKindName, FieldName, MarkerId};
 
 pub type ReferenceMaterial = BTreeMap<String, sunstack_decisions::StructuredJson>;
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleEntryWire {
@@ -16,6 +17,7 @@ pub struct RuleEntryWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "crate::OnlyWhenWire")]
+    #[cfg_attr(feature = "typescript", specta(type = Option<crate::OnlyWhenWire>))]
     pub only_when: Option<crate::OnlyWhenWire>,
     pub name: RuleId,
     pub evidence: EvidenceKindName,

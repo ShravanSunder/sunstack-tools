@@ -25,6 +25,7 @@ pub struct FilterFolder {
     pub members: Vec<PathBuf>,
     pub reads: ReadsPiece,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum FilterIncomplete {
@@ -35,6 +36,7 @@ pub enum FilterIncomplete {
     ReadsTooLarge,
     Request { reason: RulebookIncompleteReason },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum FilterAnswerState {
@@ -57,6 +59,7 @@ pub enum FilterAnswerState {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FilterAnswer {
     #[serde(skip_serializing_if = "Option::is_none")]

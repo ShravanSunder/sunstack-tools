@@ -3,9 +3,9 @@
 //! Discovery and decoding are the CLI's own. Every referenced definition is read
 //! once; the returned values are complete, so later calls never reread them.
 use super::{
-    definition_capture::{CaptureFailure, project_refusal, refusal, unavailable},
-    matcher_transport::{matcher_value, utility_value},
-    normalized_values::{source_id, without_nulls},
+    definition_capture::{CallFiles, CaptureFailure, project_refusal, refusal, unavailable},
+    matcher_transport::{AstMatcher, AstUtility},
+    normalized_values::source_id,
     sdk_contracts::{
         CapturedEvidence, CapturedKind, CapturedRulebook, CapturedSource, CapturedValue,
         DefinitionSourceFormat, Diagnostic, DiagnosticCode, LoadOptions, LoadedConfiguration,
@@ -74,8 +74,8 @@ pub fn load_configuration(options: &LoadOptions) -> Result<LoadedConfiguration, 
                 }
                 _ => CaptureFailure::Invalid(vec![lint_refusal(error)]),
             })?;
-    let config_file = sunstack_evidence::read_definition_file(&location.file)
-        .map_err(|failure| CaptureFailure::Unavailable(vec![unavailable(&failure)]))?;
+    let mut files = CallFiles::default();
+    let config_file = files.read(&location.file)?;
     let config = sunstack_lint::parse_config(&config_file.text, &location)
         .map_err(|error| invalid(lint_refusal(error)))?;
     let mut receipt = LoadReceipt {
@@ -103,7 +103,8 @@ pub fn load_configuration(options: &LoadOptions) -> Result<LoadedConfiguration, 
         for utility in sunstack_evidence::decode_utility_file(file)
             .map_err(|detail| invalid(project_refusal(&detail)))?
         {
-            let value = utility_value(&utility).map_err(|detail| {
+            let id = utility.id.clone();
+            let value = AstUtility::from_upstream(utility).map_err(|detail| {
                 invalid(refusal(
                     DiagnosticCode::UnsupportedInputs,
                     Some(&DefinitionOrigin::file(&file.path)),
@@ -117,15 +118,15 @@ pub fn load_configuration(options: &LoadOptions) -> Result<LoadedConfiguration, 
                     format: DefinitionSourceFormat::UtilityYaml,
                     origin: file_locator(file),
                     content: file.text.clone(),
-                    definition_id: utility.id.clone(),
+                    definition_id: id.clone(),
                 },
             };
-            if utilities.insert(utility.id.clone(), captured).is_some() {
+            if utilities.insert(id.clone(), captured).is_some() {
                 return Err(invalid(refusal(
                     DiagnosticCode::DuplicateEntry,
                     Some(&DefinitionOrigin::file(&file.path)),
                     vec![],
-                    format!("duplicate utility ID: {}", utility.id),
+                    format!("duplicate utility ID: {id}"),
                 )));
             }
         }
@@ -139,7 +140,8 @@ pub fn load_configuration(options: &LoadOptions) -> Result<LoadedConfiguration, 
         for matcher in sunstack_evidence::decode_matcher_file(file)
             .map_err(|detail| invalid(project_refusal(&detail)))?
         {
-            let value = matcher_value(&matcher).map_err(|detail| {
+            let id = matcher.id.clone();
+            let value = AstMatcher::from_upstream(matcher).map_err(|detail| {
                 invalid(refusal(
                     DiagnosticCode::UnsupportedInputs,
                     Some(&DefinitionOrigin::file(&file.path)),
@@ -153,15 +155,15 @@ pub fn load_configuration(options: &LoadOptions) -> Result<LoadedConfiguration, 
                     format: DefinitionSourceFormat::MatcherYaml,
                     origin: file_locator(file),
                     content: file.text.clone(),
-                    definition_id: matcher.id.clone(),
+                    definition_id: id.clone(),
                 },
             };
-            if matchers.insert(matcher.id.clone(), captured).is_some() {
+            if matchers.insert(id.clone(), captured).is_some() {
                 return Err(invalid(refusal(
                     DiagnosticCode::DuplicateEntry,
                     Some(&DefinitionOrigin::file(&file.path)),
                     vec![],
-                    format!("duplicate evidence rule ID: {}", matcher.id),
+                    format!("duplicate evidence rule ID: {id}"),
                 )));
             }
         }
@@ -169,30 +171,18 @@ pub fn load_configuration(options: &LoadOptions) -> Result<LoadedConfiguration, 
 
     let mut rulebooks = Vec::new();
     for (index, pair) in config.rulebook.iter().enumerate() {
-        let markdown =
-            sunstack_evidence::read_definition_file(&location.directory.join(&pair.markdown))
-                .map_err(|failure| CaptureFailure::Unavailable(vec![unavailable(&failure)]))?;
-        let entries =
-            sunstack_evidence::read_definition_file(&location.directory.join(&pair.rules))
-                .map_err(|failure| CaptureFailure::Unavailable(vec![unavailable(&failure)]))?;
+        let markdown = files.read(&location.directory.join(&pair.markdown))?;
+        let entries = files.read(&location.directory.join(&pair.rules))?;
         receipt.read(&markdown);
         receipt.read(&entries);
         let entries_origin = DefinitionOrigin::file(&entries.path);
         let decoded = sunstack_rules::decode_rule_entries(entries.text.as_bytes(), &entries_origin)
             .map_err(|diagnostics| CaptureFailure::Invalid(rule_refusals(diagnostics)))?;
-        let mut values = serde_json::Map::new();
+        let mut values = super::sdk_contracts::RuleEntries::new();
         for (key, entry) in decoded {
             let entry =
                 entry.map_err(|diagnostics| CaptureFailure::Invalid(rule_refusals(diagnostics)))?;
-            let value = serde_json::to_value(entry).map_err(|error| {
-                invalid(refusal(
-                    DiagnosticCode::UnsupportedInputs,
-                    Some(&entries_origin),
-                    vec![key.clone()],
-                    error.to_string(),
-                ))
-            })?;
-            if values.insert(key.clone(), without_nulls(value)).is_some() {
+            if values.insert(key.clone(), entry).is_some() {
                 return Err(invalid(refusal(
                     DiagnosticCode::DuplicateKey,
                     Some(&entries_origin),

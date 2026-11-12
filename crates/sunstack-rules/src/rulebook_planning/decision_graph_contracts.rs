@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use sunstack_decisions::{ChoiceLabel, QuestionName};
 use sunstack_evidence::{EvidenceRuleId, FieldName};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "String", into = "String")]
 pub struct StepName(String);
@@ -38,6 +39,7 @@ impl From<StepName> for String {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum RouteWire {
@@ -45,11 +47,13 @@ pub enum RouteWire {
     Finding(FindingRoute),
     Label(LabelRoute),
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LabelRoute {
     pub label: ChoiceLabel,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct FindingRoute {
@@ -61,6 +65,7 @@ pub struct FindingRoute {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locate: Option<Locator>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Locator {
@@ -92,6 +97,7 @@ impl TryFrom<RouteWire> for DecisionRoute {
         })
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "tool", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DecisionMechanicalTool {
@@ -104,12 +110,14 @@ pub enum DecisionMechanicalTool {
     ContainsField { field: FieldName, needle: FieldName },
     Complete { field: FieldName },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DecisionGraphWire {
     pub start: StepName,
     pub steps: BTreeMap<StepName, DecisionStepWire>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum DecisionStepWire {
@@ -118,6 +126,7 @@ pub enum DecisionStepWire {
     AskChoice(AskChoiceWire),
     Combine(CombineStepWire),
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MechanicalStepWire {
@@ -125,6 +134,7 @@ pub struct MechanicalStepWire {
     pub yes: RouteWire,
     pub no: RouteWire,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AskBinaryWire {
@@ -136,6 +146,7 @@ pub struct AskBinaryWire {
     pub yes: RouteWire,
     pub no: RouteWire,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AskChoiceWire {
@@ -146,6 +157,7 @@ pub struct AskChoiceWire {
     pub min_probability: f64,
     pub routes: BTreeMap<ChoiceLabel, RouteWire>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CombineStepWire {

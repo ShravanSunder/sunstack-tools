@@ -77,8 +77,10 @@ pub struct EvidenceProject {
     rule_languages: BTreeMap<crate::EvidenceRuleId, EvidenceLanguage>,
 }
 
+/// Result-side language names (snake_case), distinct from authored matcher spellings.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 pub enum EvidenceLanguage {
     Bash,
     C,
@@ -182,6 +184,7 @@ impl EvidenceLanguage {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MatchRange {
     pub start: usize,

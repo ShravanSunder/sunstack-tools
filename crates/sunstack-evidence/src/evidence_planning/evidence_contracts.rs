@@ -9,6 +9,7 @@ use std::{collections::BTreeMap, num::NonZeroUsize, path::PathBuf};
 
 macro_rules! validated_name {
     ($name:ident, $validator:expr) => {
+        #[cfg_attr(feature = "typescript", derive(specta::Type))]
         #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
         #[serde(transparent)]
         pub struct $name(String);
@@ -79,6 +80,7 @@ validated_name!(TargetId, |value: &str| value.len() >= 4
     && value.as_bytes()[0].is_ascii_alphabetic()
     && value.as_bytes()[1..].iter().all(u8::is_ascii_digit));
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceRef {
@@ -103,6 +105,7 @@ pub enum SourceRef {
         input: SourceName,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SourceSpan {

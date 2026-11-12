@@ -2,6 +2,7 @@ use crate::decision_protocol::decision_contracts::ProviderFailureClass;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DecisionDiagnosticCode {
@@ -36,6 +37,7 @@ pub enum DecisionDiagnosticCode {
     UnexpectedProviderError,
     CallerAborted,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DecisionDiagnosticOrigin {
@@ -44,6 +46,7 @@ pub enum DecisionDiagnosticOrigin {
     Provider,
     Execution,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DecisionDiagnosticLocation {
@@ -58,6 +61,7 @@ pub enum DecisionDiagnosticLocation {
         field_path: Vec<String>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RetryAdvice {
@@ -70,6 +74,7 @@ pub enum RetryAdvice {
     DoNotRetry,
     Unknown,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}: {guidance}")]
 #[serde(deny_unknown_fields)]
@@ -136,6 +141,7 @@ impl DecisionDiagnostic {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiagnosticList {

@@ -11,6 +11,7 @@ pub struct InvalidIdentifier;
 
 macro_rules! named_string {
     ($name:ident) => {
+        #[cfg_attr(feature = "typescript", derive(specta::Type))]
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
         #[serde(try_from = "String", into = "String")]
         pub struct $name(String);
@@ -55,6 +56,7 @@ named_string!(ChoiceLabel);
 named_string!(ModelName);
 
 // Author content is JSON itself, so its variants intentionally have no wire tag.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum StructuredJson {
@@ -63,24 +65,39 @@ pub enum StructuredJson {
     Number(serde_json::Number),
     Text(String),
     Array(Vec<StructuredJson>),
-    Object(#[serde(deserialize_with = "unique_map")] BTreeMap<String, StructuredJson>),
+    Object(
+        #[serde(deserialize_with = "unique_map")]
+        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<String, StructuredJson>))]
+        BTreeMap<String, StructuredJson>,
+    ),
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum StructuredEntry {
     Null,
     Text(String),
     Array(Vec<StructuredJson>),
-    Object(#[serde(deserialize_with = "unique_map")] BTreeMap<String, StructuredJson>),
+    Object(
+        #[serde(deserialize_with = "unique_map")]
+        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<String, StructuredJson>))]
+        BTreeMap<String, StructuredJson>,
+    ),
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum SharedEvidenceState {
     Text(String),
     Array(Vec<StructuredJson>),
-    Object(#[serde(deserialize_with = "unique_map")] BTreeMap<String, StructuredJson>),
+    Object(
+        #[serde(deserialize_with = "unique_map")]
+        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<String, StructuredJson>))]
+        BTreeMap<String, StructuredJson>,
+    ),
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NoulDescriptions {
@@ -95,6 +112,7 @@ fn specified_criteria<'de, TDeserializer: Deserializer<'de>>(
     NoulDescriptions::deserialize(deserializer).map(Some)
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JudgmentQuestion {
@@ -106,12 +124,14 @@ pub enum JudgmentQuestion {
             deserialize_with = "specified_criteria"
         )]
         #[schemars(with = "NoulDescriptions")]
+        #[cfg_attr(feature = "typescript", specta(type = Option<NoulDescriptions>))]
         criteria: Option<NoulDescriptions>,
     },
     Choice {
         instructions: StructuredEntry,
         #[serde(deserialize_with = "unique_map")]
         #[schemars(extend("minProperties" = 1, "maxProperties" = crate::MAX_CHOICE_OPTIONS))]
+        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<ChoiceLabel, StructuredEntry>))]
         criteria: BTreeMap<ChoiceLabel, StructuredEntry>,
     },
     Score {
@@ -123,15 +143,18 @@ pub enum JudgmentQuestion {
 
 pub type NamedQuestionMap = BTreeMap<QuestionName, JudgmentQuestion>;
 pub type NamedAnswerMap = BTreeMap<QuestionName, JudgmentAnswer>;
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct StructuredJudgmentRequest {
     #[serde(deserialize_with = "unique_map")]
     #[schemars(extend("minProperties" = 1))]
+    #[cfg_attr(feature = "typescript", specta(type = NamedQuestionMap))]
     pub questions: NamedQuestionMap,
     pub state: SharedEvidenceState,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JudgmentAnswer {
@@ -142,17 +165,21 @@ pub enum JudgmentAnswer {
         selected_label: ChoiceLabel,
         confidence: f64,
         #[serde(deserialize_with = "unique_map")]
+        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<ChoiceLabel, f64>))]
         probabilities: BTreeMap<ChoiceLabel, f64>,
     },
     Score {
         score: f64,
         confidence: f64,
         #[serde(deserialize_with = "unique_map")]
+        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<String, StructuredEntry>))]
         legend: BTreeMap<String, StructuredEntry>,
         #[serde(deserialize_with = "unique_map")]
+        #[cfg_attr(feature = "typescript", specta(type = BTreeMap<String, f64>))]
         probabilities: BTreeMap<String, f64>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionUsage {
@@ -161,6 +188,7 @@ pub struct ExecutionUsage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost_usd: Option<f64>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionReceipt {
@@ -258,6 +286,7 @@ pub struct RunJudgmentsInput {
     pub request_budget: RequestBudgetSettings,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderFailureClass {
@@ -276,6 +305,7 @@ pub enum ProviderFailureClass {
 }
 /// An attempt can end through cancellation or invalid response without the
 /// whole run being a provider failure. Kept separate by the adopted contract.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AttemptFailureClass {
@@ -333,6 +363,7 @@ impl AttemptFailureClass {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AttemptEvidence {
@@ -348,12 +379,14 @@ pub enum AttemptEvidence {
         http_status: Option<u16>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InferenceAttemptRecord {
     pub ordinal: u32,
     pub evidence: AttemptEvidence,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DecisionRunOutcome {

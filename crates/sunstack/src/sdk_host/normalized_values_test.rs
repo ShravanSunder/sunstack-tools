@@ -2,15 +2,20 @@
 use super::*;
 
 #[test]
-fn normalization_sorts_keys_drops_nulls_and_keeps_exact_integers() {
+fn normalization_sorts_keys_and_keeps_explicit_nulls_and_exact_integers() {
     let value = serde_json::json!({
         "z": 1,
-        "a": {"y": null, "b": [3, {"d": 18446744073709551615u64, "c": null}]},
+        "a": {"y": null, "b": [3, null, {"d": 18446744073709551615u64, "c": null}]},
         "m": 0.5
     });
     assert_eq!(
         normalized_text(&value),
-        r#"{"a":{"b":[3,{"d":18446744073709551615}]},"m":0.5,"z":1}"#
+        r#"{"a":{"b":[3,null,{"c":null,"d":18446744073709551615}],"y":null},"m":0.5,"z":1}"#
+    );
+    // An explicit null member and an omitted member are different data.
+    assert_ne!(
+        normalized_text(&serde_json::json!({"setting": null})),
+        normalized_text(&serde_json::json!({}))
     );
 }
 

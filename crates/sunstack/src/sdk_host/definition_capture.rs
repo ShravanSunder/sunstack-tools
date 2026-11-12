@@ -5,17 +5,17 @@
 //! bytes; a changed value executes as edited, with fresh normalized content.
 use super::{
     matcher_transport::{
-        TransportRefusal, TransportRefusalKind, decode_matcher, decode_utility, matcher_value,
+        AstMatcher, AstUtility, TransportRefusal, TransportRefusalKind, matcher_value,
         utility_value,
     },
-    normalized_values::{normalized_text, source_id, without_nulls},
+    normalized_values::{canonical_value, normalized_text, source_id},
     sdk_contracts::{
         CapturedSource, CapturedValue, Configuration, DefinitionSourceFormat, Diagnostic,
-        DiagnosticCode, EvidenceDefinitions, RulebookDefinition, WholeSourceFormat,
+        DiagnosticCode, EvidenceDefinitions, RuleEntries, RulebookDefinition, WholeSourceFormat,
     },
 };
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     num::NonZeroU32,
     path::{Path, PathBuf},
 };
@@ -119,7 +119,7 @@ pub(crate) fn settings_of(configuration: &Configuration) -> ConfigurationSetting
 
 /// Normalized root settings: what decides whether the root definition changed.
 pub(crate) fn settings_value(settings: &ConfigurationSettings) -> serde_json::Value {
-    without_nulls(serde_json::json!({
+    canonical_value(serde_json::json!({
         "marker_prefix": settings.marker_prefix,
         "max_question_words": settings.max_question_words,
         "check": settings.check,
@@ -199,9 +199,21 @@ fn metadata_invalid(json_path: Vec<String>, message: impl Into<String>) -> Diagn
     )
 }
 
-fn read_referenced(path: &Path) -> Result<CapturedFile, CaptureFailure> {
-    sunstack_evidence::read_definition_file(path)
-        .map_err(|failure| CaptureFailure::Unavailable(vec![unavailable(&failure)]))
+/// Definition files read during one call. Each path is read once and its bytes are
+/// reused, so two references to one file always execute and report one revision.
+#[derive(Default)]
+pub(crate) struct CallFiles(BTreeMap<PathBuf, CapturedFile>);
+
+impl CallFiles {
+    pub(crate) fn read(&mut self, path: &Path) -> Result<CapturedFile, CaptureFailure> {
+        if let Some(file) = self.0.get(path) {
+            return Ok(file.clone());
+        }
+        let file = sunstack_evidence::read_definition_file(path)
+            .map_err(|failure| CaptureFailure::Unavailable(vec![unavailable(&failure)]))?;
+        self.0.insert(path.to_path_buf(), file.clone());
+        Ok(file)
+    }
 }
 
 /// Capture one configuration. Only definitions it references as files are read.
@@ -229,6 +241,7 @@ pub fn capture_configuration(
     let config_id = configuration.id.as_str();
     let mut receipt = SnapshotReceipt::default();
     let mut ids = InlineIds::default();
+    let mut files = CallFiles::default();
     let settings = settings_of(configuration);
     let root = capture_root(configuration, &settings, &mut receipt, &mut ids)?;
 
@@ -243,6 +256,7 @@ pub fn capture_configuration(
             &prefix,
             &mut receipt,
             &mut ids,
+            &mut files,
         )?));
     }
 
@@ -340,22 +354,20 @@ fn capture_root(
     })
 }
 
-/// Normalized rule entries via the strict entry decoder; `None` when an entry is invalid.
-fn normalized_entries(
-    entries: &serde_json::Map<String, serde_json::Value>,
-) -> Option<serde_json::Value> {
-    let mut normalized = serde_json::Map::new();
-    for (key, value) in entries {
-        let entry = serde_json::from_value::<sunstack_rules::RuleEntryWire>(value.clone()).ok()?;
-        normalized.insert(key.clone(), serde_json::to_value(entry).ok()?);
-    }
-    Some(without_nulls(serde_json::Value::Object(normalized)))
+/// Normalized typed rule entries: what decides whether captured entries changed.
+fn normalized_entries(entries: &RuleEntries) -> Option<serde_json::Value> {
+    serde_json::to_value(entries).ok().map(canonical_value)
 }
 
-fn entries_bytes(entries: &serde_json::Map<String, serde_json::Value>) -> Vec<u8> {
-    serde_json::Value::Object(entries.clone())
-        .to_string()
-        .into_bytes()
+fn entries_bytes(entries: &RuleEntries) -> Result<Vec<u8>, CaptureFailure> {
+    serde_json::to_vec(entries).map_err(|error| {
+        CaptureFailure::Invalid(vec![refusal(
+            DiagnosticCode::UnsupportedInputs,
+            None,
+            vec![],
+            format!("rule entries cannot be encoded: {error}"),
+        )])
+    })
 }
 
 fn capture_rulebook(
@@ -365,12 +377,13 @@ fn capture_rulebook(
     prefix: &[&str],
     receipt: &mut SnapshotReceipt,
     ids: &mut InlineIds,
+    files: &mut CallFiles,
 ) -> Result<RulebookSource, CaptureFailure> {
     let invalid = |diagnostic: Diagnostic| CaptureFailure::Invalid(vec![diagnostic]);
     match rulebook {
         RulebookDefinition::Files { markdown, entries } => {
-            let markdown = read_referenced(&base.join(markdown))?;
-            let entries = read_referenced(&base.join(entries))?;
+            let markdown = files.read(&base.join(markdown))?;
+            let entries = files.read(&base.join(entries))?;
             for file in [&markdown, &entries] {
                 receipt.record(snapshot(
                     DefinitionOrigin::file(&file.path),
@@ -410,9 +423,10 @@ fn capture_rulebook(
                 SnapshotRepresentation::OriginalText,
                 SnapshotAcquisition::Inline,
             ));
+            let bytes = entries_bytes(entries)?;
             receipt.record(snapshot(
                 entries_origin.clone(),
-                normalized_text(&serde_json::Value::Object(entries.clone())),
+                normalized_text(&normalized_entries(entries).unwrap_or_default()),
                 SnapshotRepresentation::NormalizedValue,
                 SnapshotAcquisition::Inline,
             ));
@@ -420,7 +434,7 @@ fn capture_rulebook(
                 markdown_origin,
                 markdown: markdown.clone(),
                 entries_origin,
-                entries: entries_bytes(entries),
+                entries: bytes,
             })
         }
         RulebookDefinition::Captured {
@@ -496,7 +510,7 @@ fn capture_markdown(
 fn capture_entries(
     config_id: &str,
     prefix: &[&str],
-    entries: &CapturedValue<serde_json::Map<String, serde_json::Value>>,
+    entries: &CapturedValue<RuleEntries>,
     receipt: &mut SnapshotReceipt,
 ) -> Result<(DefinitionOrigin, Vec<u8>), CaptureFailure> {
     let original_path = path_of(prefix, &["entries".into(), "original".into()]);
@@ -509,17 +523,13 @@ fn capture_entries(
     let decoded = sunstack_rules::decode_rule_entries(content.as_bytes(), &original_origin)
         .ok()
         .and_then(|decoded| {
-            let mut object = serde_json::Map::new();
+            let mut entries = RuleEntries::new();
             for (key, entry) in decoded {
-                let entry = entry.ok()?;
-                if object
-                    .insert(key, serde_json::to_value(entry).ok()?)
-                    .is_some()
-                {
+                if entries.insert(key, entry.ok()?).is_some() {
                     return None;
                 }
             }
-            Some(without_nulls(serde_json::Value::Object(object)))
+            normalized_entries(&entries)
         })
         .ok_or_else(|| {
             CaptureFailure::Invalid(vec![metadata_invalid(
@@ -540,13 +550,14 @@ fn capture_entries(
         source_id(config_id, &[prefix[0], prefix[1], "entries"]),
         origin,
     );
+    let bytes = entries_bytes(&entries.value)?;
     receipt.record(snapshot(
         origin.clone(),
-        normalized_text(&serde_json::Value::Object(entries.value.clone())),
+        normalized_text(&normalized_entries(&entries.value).unwrap_or_default()),
         SnapshotRepresentation::NormalizedValue,
         SnapshotAcquisition::Inline,
     ));
-    Ok((origin, entries_bytes(&entries.value)))
+    Ok((origin, bytes))
 }
 
 fn capture_evidence(
@@ -613,8 +624,7 @@ fn capture_evidence(
                 let id = source_id(config_id, &prefix);
                 ids.claim(&id, path_of(&prefix, &[]))?;
                 let origin = inline_origin(id);
-                let utility = decode_utility(name, value)
-                    .map_err(|detail| invalid(transport_refusal(Some(&origin), &prefix, detail)))?;
+                let utility = value.upstream(name);
                 let canonical = utility_value(&utility)
                     .map_err(|detail| invalid(transport_refusal(Some(&origin), &prefix, detail)))?;
                 receipt.record(snapshot(
@@ -632,8 +642,7 @@ fn capture_evidence(
                 let id = source_id(config_id, &prefix);
                 ids.claim(&id, path_of(&prefix, &[]))?;
                 let origin = inline_origin(id);
-                let matcher = decode_matcher(name, value)
-                    .map_err(|detail| invalid(transport_refusal(Some(&origin), &prefix, detail)))?;
+                let matcher = value.upstream(name);
                 let canonical = matcher_value(&matcher)
                     .map_err(|detail| invalid(transport_refusal(Some(&origin), &prefix, detail)))?;
                 receipt.record(snapshot(
@@ -663,7 +672,7 @@ fn capture_evidence(
                     receipt,
                     sunstack_evidence::decode_utility_file,
                     |utility| utility.id.as_str(),
-                    decode_utility,
+                    |name, value: &AstUtility| value.upstream(name),
                     utility_value,
                 )?;
                 definitions
@@ -681,7 +690,7 @@ fn capture_evidence(
                     receipt,
                     sunstack_evidence::decode_matcher_file,
                     |matcher| matcher.id.as_str(),
-                    decode_matcher,
+                    |name, value: &AstMatcher| value.upstream(name),
                     matcher_value,
                 )?;
                 definitions
@@ -706,16 +715,16 @@ pub(crate) fn project_refusal(detail: &sunstack_evidence::ProjectRefusal) -> Dia
 }
 
 #[allow(clippy::too_many_arguments)]
-fn capture_definition<TDefinition>(
+fn capture_definition<TDefinition, TTransport>(
     config_id: &str,
     prefix: &[&str],
     name: &str,
-    captured: &CapturedValue<serde_json::Value>,
+    captured: &CapturedValue<TTransport>,
     format: DefinitionSourceFormat,
     receipt: &mut SnapshotReceipt,
     decode_file: impl Fn(&CapturedFile) -> Result<Vec<TDefinition>, sunstack_evidence::ProjectRefusal>,
     definition_id: impl Fn(&TDefinition) -> &str,
-    decode_value: impl Fn(&str, &serde_json::Value) -> Result<TDefinition, TransportRefusal>,
+    named_upstream: impl Fn(&str, &TTransport) -> TDefinition,
     canonical: impl Fn(&TDefinition) -> Result<serde_json::Value, TransportRefusal>,
 ) -> Result<(DefinitionOrigin, TDefinition), CaptureFailure> {
     let original_path = path_of(prefix, &["original".into()]);
@@ -757,11 +766,8 @@ fn capture_definition<TDefinition>(
     let original_value =
         canonical(&original).map_err(|_| metadata("original definition is unrepresentable"))?;
     let edited_id = source_id(config_id, prefix);
-    let supplied = decode_value(name, &captured.value);
-    let supplied_value = supplied
-        .as_ref()
-        .ok()
-        .and_then(|definition| canonical(definition).ok());
+    let definition = named_upstream(name, &captured.value);
+    let supplied_value = canonical(&definition).ok();
     if name == wanted && supplied_value.as_ref() == Some(&original_value) {
         let origin = DefinitionOrigin::from(origin.clone());
         receipt.record(snapshot(
@@ -773,16 +779,6 @@ fn capture_definition<TDefinition>(
         return Ok((origin, original));
     }
     let edited_origin = edited(edited_id, origin);
-    let definition = supplied.map_err(|detail| {
-        CaptureFailure::Invalid(vec![transport_refusal(
-            Some(&edited_origin),
-            &path_of(prefix, &["value".into()])
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>(),
-            detail,
-        )])
-    })?;
     let value = canonical(&definition).map_err(|detail| {
         CaptureFailure::Invalid(vec![transport_refusal(
             Some(&edited_origin),

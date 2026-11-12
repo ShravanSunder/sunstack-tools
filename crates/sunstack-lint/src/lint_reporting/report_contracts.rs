@@ -8,6 +8,7 @@ use sunstack_evidence::{
     EvidenceKindName, EvidencePiece, FieldName, MarkerId, PieceLocation, SourceSpan,
 };
 use sunstack_rules::{Anchor, Basis, RuleId, RulebookSkippedRule, Severity, StepName};
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -30,18 +31,21 @@ pub struct LintRequest {
     #[serde(default)]
     pub evidence_listing: Option<Option<sunstack_evidence::EvidenceKindName>>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
 pub enum WidenedReason {
     ConfigChanged,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ScopeReport {
     #[serde(flatten)]
     pub kind: ScopeChoice,
     pub widened: Option<WidenedReason>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -69,6 +73,7 @@ impl LintStatus {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -106,12 +111,14 @@ pub struct RelatedPlace {
     #[schemars(skip)]
     pub definition: Option<sunstack_evidence::DefinitionOrigin>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JudgmentSummary {
     pub answers: NamedAnswerMap,
     pub value: Option<f64>,
     pub path_taken: Vec<StepName>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UncertainResult {
     pub id: usize,
@@ -123,11 +130,13 @@ pub struct UncertainResult {
     pub state: SharedEvidenceState,
     pub answers: NamedAnswerMap,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SeverityCounts {
     pub error: u32,
     pub warn: u32,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ExclusionCounts {
     pub off: u32,
@@ -136,6 +145,7 @@ pub struct ExclusionCounts {
     pub outside_change_scope: u32,
     pub zero_matches: u32,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -170,6 +180,7 @@ pub enum IncompleteReason {
     EvidenceTooLarge,
     RequestTooLarge,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct IncompletePart {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -178,6 +189,7 @@ pub struct IncompletePart {
     pub file: Option<PathBuf>,
     pub reason: IncompleteReason,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UsageSummary {
     /// Distinct logical checked/target content acquisitions; Git snapshot verification rereads are excluded.
@@ -321,6 +333,7 @@ pub struct SelectionDependency {
     pub selection_kind: EvidenceKindName,
     pub request_id: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PieceOutcome {
@@ -331,6 +344,7 @@ pub enum PieceOutcome {
     Incomplete,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RulePieceResult {
     pub text_sha256: Option<String>,
@@ -389,6 +403,7 @@ pub enum CheckResult {
     Invalid { diagnostics: Vec<LintDiagnostic> },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SelectionEntry {
     pub kind: EvidenceKindName,

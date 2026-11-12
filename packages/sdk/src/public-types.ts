@@ -1,0 +1,56 @@
+// The SDK's public types: generated Rust contracts, readonly at the API edge.
+import type * as Contracts from './contracts/contracts.ts';
+import type { DeepReadonly } from './readonly-values.ts';
+
+/** A complete configuration: the single execution authority for a call. */
+export type Configuration = DeepReadonly<Contracts.Configuration>;
+/** A configuration whose definitions were all captured by `load`. */
+export type ResolvedConfiguration = DeepReadonly<Contracts.ResolvedConfiguration>;
+/** A loaded configuration plus the informational receipt of what `load` read. */
+export type LoadedConfiguration = DeepReadonly<Contracts.LoadedConfiguration>;
+/** Either form is accepted; a loaded value's `sources` receipt never executes. */
+export type ConfigurationInput = Configuration | LoadedConfiguration;
+
+export type LoadOptions = DeepReadonly<Contracts.LoadOptions>;
+export type Scope = DeepReadonly<Contracts.Scope>;
+export type ContractInfo = DeepReadonly<Contracts.ContractInfo>;
+
+export type LoadOutcome = DeepReadonly<Contracts.LoadOutcome>;
+export type CheckOutcome = DeepReadonly<Contracts.CheckOutcome>;
+export type RunOutcome = DeepReadonly<Contracts.RunOutcome>;
+
+export type CompletedReport = DeepReadonly<Contracts.SdkReport<Contracts.CompletedStatus>>;
+export type InvalidReport = DeepReadonly<Contracts.SdkReport<Contracts.InvalidStatus>>;
+export type IncompleteReport = DeepReadonly<Contracts.SdkReport<Contracts.IncompleteStatus>>;
+export type CancelledReport = DeepReadonly<Contracts.SdkReport<Contracts.CancelledStatus>>;
+export type SdkReport = DeepReadonly<Contracts.SdkReport<Contracts.LintStatus>>;
+
+export type Diagnostic = DeepReadonly<Contracts.Diagnostic>;
+export type DiagnosticCode = Contracts.DiagnosticCode;
+export type SdkFailure = DeepReadonly<Contracts.SdkFailure>;
+export type CheckSummary = DeepReadonly<Contracts.CheckSummary>;
+export type DefinitionOrigin = DeepReadonly<Contracts.DefinitionOrigin>;
+export type SourceLocator = DeepReadonly<Contracts.SourceLocator>;
+export type DefinitionSnapshot = DeepReadonly<Contracts.DefinitionSnapshot>;
+export type RulebookDefinition = DeepReadonly<Contracts.RulebookDefinition>;
+export type EvidenceDefinitions = DeepReadonly<Contracts.EvidenceDefinitions>;
+export type RuleEntry = DeepReadonly<Contracts.RuleEntryWire>;
+export type EvidenceKindDefinition = DeepReadonly<Contracts.EvidenceKindWire>;
+export type FilterDefinition = DeepReadonly<Contracts.FilterWire>;
+export type SdkFinding = DeepReadonly<Contracts.SdkFinding>;
+export type EvidenceLanguage = Contracts.EvidenceLanguage;
+export type { AstMatcher, AstUtility, AuthoredLanguage } from './contracts/ast-grep.ts';
+
+/** Per-call options. Aborting one call's signal cancels only that call. */
+export interface CallOptions {
+	readonly signal?: AbortSignal;
+}
+
+/** A run selects an absolute checked root and a scope explicitly. */
+export interface RunOptions extends CallOptions {
+	/** Absolute checked root, used exactly as `sunstack lint --root`. */
+	readonly root: string;
+	readonly scope: Scope;
+	/** Paths inside `root`, resolved against `root`. */
+	readonly paths?: readonly string[];
+}

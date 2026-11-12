@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Recursive JSON content. This is data, never a declaration or an executable expression.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum StructuredJson {

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroU32};
 
 // The closed wire owns the exclusive matcher keys; the runtime has only valid variants.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 #[schemars(extend("oneOf" = [{"required":["rule"]}, {"required":["inline_rule"]}]))]
@@ -14,6 +15,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "EvidenceRuleId")]
+    #[cfg_attr(feature = "typescript", specta(type = Option<EvidenceRuleId>))]
     rule: Option<EvidenceRuleId>,
     #[serde(
         default,
@@ -21,6 +23,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "String")]
+    #[cfg_attr(feature = "typescript", specta(type = Option<String>))]
     inline_rule: Option<String>,
     fields: BTreeMap<FieldName, FieldSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -33,6 +36,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "ContainingKinds")]
+    #[cfg_attr(feature = "typescript", specta(type = Option<ContainingKinds>))]
     within: Option<ContainingKinds>,
 }
 
