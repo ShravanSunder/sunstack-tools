@@ -63,6 +63,8 @@ Use this decision step to check the identifier against the acquired document:
 
 `document` resolves its `path` relative to the source piece's file and returns the raw matches of its ast-grep `rule` as a text list with source spans. It uses the shared file acquisition cache and budgets. A missing or unreadable file makes the field unavailable and the rule incomplete; a successfully read file with no matches yields an empty list.
 
+Document fields are acquired after evidence selection. A selection question cannot name one, and a target's `as_kind` cannot name a kind containing document fields. Those configurations are refused during admission; a selected kind may still declare a document field that its selection question does not reference.
+
 `contains_field` accepts a text or text-list `field` and a single text `needle`. The needle must be nonempty and available, or the result is incomplete. It matches the needle as a whole token: the characters on either side must be absent or neither a Unicode letter, digit, nor `_`. Thus `R1` matches `(R1)` and `R1 / U1`, but not `R10`, `XR1`, or `R1_extra`.
 
 ## Language and model views

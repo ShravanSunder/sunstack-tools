@@ -126,6 +126,14 @@ pub fn admit_evidence_kinds(
                             {
                                 errors.push(refusal(&path, "as_kind must name a target-free kind"))
                             }
+                            Some(target)
+                                if target.fields.values().any(|source| {
+                                    matches!(source, FieldSource::Document { .. })
+                                }) =>
+                            {
+                                errors
+                                    .push(refusal(&path, "as_kind must name a document-free kind"))
+                            }
                             Some(_) => {}
                         }
                     }

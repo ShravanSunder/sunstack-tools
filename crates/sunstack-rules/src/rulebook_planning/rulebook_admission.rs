@@ -703,10 +703,15 @@ pub fn admit_selections(
             }
         }
         for field in question_field_references(&questions) {
-            if matches!(kind.fields.get(&field), Some(FieldSource::Target { .. })) {
+            let unavailable_source = match kind.fields.get(&field) {
+                Some(FieldSource::Target { .. }) => Some("target"),
+                Some(FieldSource::Document { .. }) => Some("document"),
+                _ => None,
+            };
+            if let Some(source) = unavailable_source {
                 errors.push(refusal(
                     path.with_key("question"),
-                    "selection question cannot name a target field",
+                    format!("selection question cannot name a {source} field"),
                 ));
             }
         }
