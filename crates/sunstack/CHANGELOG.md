@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.13.0
+
+Release date: 2026-11-12.
+
+- HTML heading-outline units cover each h1–h6 through the next same-or-higher
+  heading, across flat or wrapped markup. Generic evidence and rulebook kinds
+  share the collector; section fields expose full, own and enclosing own text.
+  Template, script, comment and Markdown-island source headings are excluded.
+  Opening tags retain their sections when the parser recovers unclosed headings.
+- HTML asking text retains alt, ex-mermaid label and aria-label attributes and
+  separates adjacent elements. Rules, selection/shared views and filters project
+  before applying cut budgets; raw mechanical evidence and reads hashes remain.
+- Rust callers replace `KindMatcher::rule_id` with `ast_rule_id`, returning an
+  optional AST identity. `ask_filters` now borrows `FilterEvidence` containing
+  pieces, kinds, project and matches; `project_kind_model_view` owns shared
+  asking-text projection. Native outline kinds never alias AST rule IDs. `sunstack_lint::run` is unchanged.
+
 ## 0.12.1
 
 Release date: 2026-11-12.

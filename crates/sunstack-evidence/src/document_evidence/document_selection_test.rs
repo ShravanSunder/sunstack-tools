@@ -1,5 +1,7 @@
 #[path = "document_selection_test/frontmatter_field_selection.rs"]
 mod frontmatter_field_selection;
+#[path = "document_selection_test/html_unit_selection.rs"]
+mod html_unit_selection;
 #[path = "document_selection_test/legacy_markdown_regressions.rs"]
 mod legacy_markdown_regressions;
 #[path = "document_selection_test/markdown_skill_corpus.rs"]

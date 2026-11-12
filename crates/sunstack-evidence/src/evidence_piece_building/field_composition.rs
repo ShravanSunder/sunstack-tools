@@ -18,7 +18,7 @@ fn first_line_range(file: &MatchedFile, range: &MatchRange) -> MatchRange {
 }
 
 pub(super) fn local_fields(
-    matcher_rule: &crate::EvidenceRuleId,
+    kind: &EvidenceKindName,
     definition: &EvidenceKindDefinition,
     file: &MatchedFile,
     range: &MatchRange,
@@ -30,6 +30,7 @@ pub(super) fn local_fields(
     let mut fields = BTreeMap::new();
     for (name, source) in &definition.fields {
         let value = match source {
+            FieldSource::Section { text } => file.section_field(kind, range, *text),
             FieldSource::FirstLine {} => {
                 let first = first_line_range(file, range);
                 taken.push(first.clone());
@@ -123,16 +124,19 @@ pub(super) fn local_fields(
                     spans: spans.iter().map(|span| source_span(file, span)).collect(),
                 }
             }
-            FieldSource::Next { rule, count } | FieldSource::Previous { rule, count } => {
-                neighbour_field(
-                    matcher_rule,
-                    file,
-                    match_position,
-                    rule,
-                    *count,
-                    matches!(source, FieldSource::Previous { .. }),
-                )
-            }
+            FieldSource::Next { rule, count } | FieldSource::Previous { rule, count } => definition
+                .matcher
+                .ast_rule_id(kind)
+                .map_or(FieldValue::Absent, |matcher_rule| {
+                    neighbour_field(
+                        &matcher_rule,
+                        file,
+                        match_position,
+                        rule,
+                        *count,
+                        matches!(source, FieldSource::Previous { .. }),
+                    )
+                }),
             FieldSource::Yaml { key } => yaml_field(file, range, key),
             FieldSource::Remainder { .. }
             | FieldSource::Target { .. }

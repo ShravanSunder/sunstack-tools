@@ -7,8 +7,8 @@ use sunstack_decisions::{
     BackendSelection, ChoiceLabel, DecisionRunOutcome, ModelName, StructuredJudgmentRequest,
 };
 use sunstack_evidence::{
-    EvidenceKindDefinition, EvidenceKindName, EvidencePiece, FieldUnavailable, FieldValue,
-    ModelView, project_model_view,
+    EvidenceKindDefinition, EvidenceKindName, EvidencePiece, EvidenceProject, FieldUnavailable,
+    FieldValue, ModelView, project_kind_model_view, project_model_view,
 };
 
 #[derive(Debug, Clone)]
@@ -101,6 +101,7 @@ fn filter_piece_for(
     folder: &FilterFolder,
     pieces: &[EvidencePiece],
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+    project: &EvidenceProject,
     default_max_chars: usize,
 ) -> Result<EvidencePiece, FilterRequestFailure> {
     let failure = |reason| FilterRequestFailure {
@@ -122,11 +123,19 @@ fn filter_piece_for(
     piece
         .fields
         .retain(|field, _| plan.reads.fields.contains(field));
-    let max_chars = kinds
+    let definition = kinds
         .get(&plan.reads.kind)
-        .and_then(|kind| kind.max_chars)
+        .ok_or_else(|| failure(FilterIncomplete::Undescribed))?;
+    let max_chars = definition
+        .max_chars
         .map_or(default_max_chars, |limit| limit.get() as usize);
-    piece.model_view = project_model_view(&piece.fields, max_chars);
+    piece.model_view = project_kind_model_view(
+        project,
+        &plan.reads.kind,
+        definition,
+        &piece.fields,
+        max_chars,
+    );
     Ok(piece)
 }
 /// Hash raw declared reads before any model-view cuts or rulebook reference is added.
@@ -321,15 +330,27 @@ pub struct FilterRequestRecord {
     pub request: StructuredJudgmentRequest,
     pub outcome: DecisionRunOutcome,
 }
+/// Borrow the collected evidence and its declarations from the same run.
+pub struct FilterEvidence<'a> {
+    pub pieces: &'a [EvidencePiece],
+    pub kinds: &'a BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+    pub project: &'a EvidenceProject,
+    pub matches: &'a BTreeMap<PathBuf, sunstack_evidence::FileMatchIndex>,
+}
+
 pub async fn ask_filters(
     plans: &FilterRegistry,
     folders: &[FilterFolder],
-    pieces: &[EvidencePiece],
-    kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
-    matches: &BTreeMap<PathBuf, sunstack_evidence::FileMatchIndex>,
+    evidence: FilterEvidence<'_>,
     default_max_chars: usize,
     dispatcher: &mut ModelRequestDispatch,
 ) -> FilterAnswers {
+    let FilterEvidence {
+        pieces,
+        kinds,
+        project,
+        matches,
+    } = evidence;
     let mut result = FilterAnswers::default();
     let mut pending = BTreeMap::new();
     let BackendSelection::JevOpenrouter { model, .. } = &dispatcher.settings.backend;
@@ -359,8 +380,8 @@ pub async fn ask_filters(
                 None,
             ),
         };
-        let prepared =
-            filter_piece_for(plan, folder, pieces, kinds, default_max_chars).and_then(|piece| {
+        let prepared = filter_piece_for(plan, folder, pieces, kinds, project, default_max_chars)
+            .and_then(|piece| {
                 result.pieces.insert(
                     (folder.filter.clone(), folder.folder.clone()),
                     piece.clone(),

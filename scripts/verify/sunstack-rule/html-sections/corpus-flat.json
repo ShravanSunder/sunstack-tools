@@ -1,0 +1,192 @@
+{
+	"file": "flat.html",
+	"sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+	"source_relative": "docs/specs/2026-11-06-central-execution-model/program-design.html",
+	"source_commit": "c1d68fc2736cc41b083b3e2e2d7b9d245e7c50a1",
+	"sections": [
+		{
+			"level": 1,
+			"start": 1121,
+			"heading": "Central execution model: Program Design",
+			"parent": null,
+			"end": 54004,
+			"own_end": 3905
+		},
+		{
+			"level": 2,
+			"start": 3905,
+			"heading": "Three rules that make hibernation safe",
+			"parent": 0,
+			"end": 5153,
+			"own_end": 5153
+		},
+		{
+			"level": 2,
+			"start": 5153,
+			"heading": "The engine core and its platform contract",
+			"parent": 0,
+			"end": 32269,
+			"own_end": 6224
+		},
+		{
+			"level": 3,
+			"start": 6224,
+			"heading": "ObjectPlatform: the whole contract",
+			"parent": 2,
+			"end": 9422,
+			"own_end": 9422
+		},
+		{
+			"level": 3,
+			"start": 9422,
+			"heading": "Closed shapes",
+			"parent": 2,
+			"end": 11236,
+			"own_end": 11236
+		},
+		{
+			"level": 3,
+			"start": 11236,
+			"heading": "Events, per object type",
+			"parent": 2,
+			"end": 12314,
+			"own_end": 12314
+		},
+		{
+			"level": 3,
+			"start": 12314,
+			"heading": "What every event does",
+			"parent": 2,
+			"end": 15700,
+			"own_end": 15700
+		},
+		{
+			"level": 3,
+			"start": 15700,
+			"heading": "Units and containment",
+			"parent": 2,
+			"end": 17477,
+			"own_end": 17477
+		},
+		{
+			"level": 3,
+			"start": 17477,
+			"heading": "The alarm: one owner, two operations",
+			"parent": 2,
+			"end": 22277,
+			"own_end": 22277
+		},
+		{
+			"level": 3,
+			"start": 22277,
+			"heading": "A long step can delay other due work, boundedly",
+			"parent": 2,
+			"end": 22873,
+			"own_end": 22873
+		},
+		{
+			"level": 3,
+			"start": 22873,
+			"heading": "Requests that start a long operation",
+			"parent": 2,
+			"end": 23989,
+			"own_end": 23989
+		},
+		{
+			"level": 3,
+			"start": 23989,
+			"heading": "One table for every attempt: central_work_attempts (your decision)",
+			"parent": 2,
+			"end": 28706,
+			"own_end": 28706
+		},
+		{
+			"level": 3,
+			"start": 28706,
+			"heading": "Who writes attempt rows when agent-fleet-sync changes an owed row",
+			"parent": 2,
+			"end": 29643,
+			"own_end": 29643
+		},
+		{
+			"level": 3,
+			"start": 29643,
+			"heading": "Repeated failures are retired so nothing stays stuck",
+			"parent": 2,
+			"end": 31351,
+			"own_end": 31351
+		},
+		{
+			"level": 3,
+			"start": 31351,
+			"heading": "Every subject is keyed by a UUIDv7",
+			"parent": 2,
+			"end": 32269,
+			"own_end": 32269
+		},
+		{
+			"level": 2,
+			"start": 32269,
+			"heading": "Where every piece of state lives",
+			"parent": 0,
+			"end": 35050,
+			"own_end": 35050
+		},
+		{
+			"level": 2,
+			"start": 35050,
+			"heading": "Keepalive, dead and replaced connections",
+			"parent": 0,
+			"end": 36015,
+			"own_end": 36015
+		},
+		{
+			"level": 2,
+			"start": 36015,
+			"heading": "Same code on Tokio and Cloudflare",
+			"parent": 0,
+			"end": 37076,
+			"own_end": 37076
+		},
+		{
+			"level": 2,
+			"start": 37076,
+			"heading": "Platform facts this design relies on",
+			"parent": 0,
+			"end": 38682,
+			"own_end": 38682
+		},
+		{
+			"level": 2,
+			"start": 38682,
+			"heading": "Entity binding",
+			"parent": 0,
+			"end": 40080,
+			"own_end": 40080
+		},
+		{
+			"level": 2,
+			"start": 40080,
+			"heading": "Trace: one row per obligation",
+			"parent": 0,
+			"end": 43131,
+			"own_end": 43131
+		},
+		{
+			"level": 2,
+			"start": 43131,
+			"heading": "Which code changes",
+			"parent": 0,
+			"end": 45359,
+			"own_end": 45359
+		},
+		{
+			"level": 2,
+			"start": 45359,
+			"heading": "Review disposition (revision 2 → 3)",
+			"parent": 0,
+			"end": 54004,
+			"own_end": 54004
+		}
+	]
+}

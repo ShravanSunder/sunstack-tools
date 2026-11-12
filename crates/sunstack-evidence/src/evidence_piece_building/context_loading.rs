@@ -13,7 +13,12 @@ impl EvidenceBuild {
                 .values()
                 .flat_map(|index| index.by_rule.values())
                 .map(Vec::len)
-                .sum::<usize>(),
+                .sum::<usize>()
+                + self
+                    .matched
+                    .values()
+                    .map(MatchedFile::outline_match_count)
+                    .sum::<usize>(),
         );
         for path in paths {
             if self.catalog.matches.contains_key(&path) {
@@ -54,19 +59,39 @@ impl EvidenceBuild {
                         path: path.clone(),
                         content_identity: content_digest(text.as_bytes()),
                     };
+                    let html_units =
+                        match collect_html_units(&path, &text, &self.kinds, &mut remaining) {
+                            Ok(matches) => matches,
+                            Err(reason) => {
+                                self.catalog.failures.push(EvidenceFileFailure {
+                                    file: path.clone(),
+                                    reason,
+                                });
+                                BTreeMap::new()
+                            }
+                        };
+                    if html_units.values().any(|matches| matches.limited) {
+                        self.catalog.failures.push(EvidenceFileFailure {
+                            file: path.clone(),
+                            reason: "max_matches".into(),
+                        });
+                    }
+                    let matched = MatchedFile {
+                        text,
+                        index,
+                        source: source_ref,
+                        html_units,
+                    };
                     let counts = self
                         .kinds
                         .iter()
-                        .map(|(name, kind)| {
+                        .map(|(name, definition)| {
                             (
                                 name.clone(),
                                 KindCount {
-                                    matches: index
-                                        .by_rule
-                                        .get(&kind.matcher.rule_id(name))
-                                        .map_or(0, Vec::len),
-                                    limited: index.limited,
-                                    selection: kind
+                                    matches: matched.kind_ranges(name, definition).len(),
+                                    limited: matched.kind_limited(name, definition),
+                                    selection: definition
                                         .select
                                         .as_ref()
                                         .map(|_| SelectionCount::default()),
@@ -79,15 +104,10 @@ impl EvidenceBuild {
                         file: path.clone(),
                         kinds: counts,
                     });
-                    self.catalog.matches.insert(path.clone(), index.clone());
-                    self.matched.insert(
-                        path,
-                        MatchedFile {
-                            text,
-                            index,
-                            source: source_ref,
-                        },
-                    );
+                    self.catalog
+                        .matches
+                        .insert(path.clone(), matched.index.clone());
+                    self.matched.insert(path, matched);
                 }
             }
         }
@@ -105,14 +125,7 @@ impl EvidenceBuild {
             .iter()
             .filter(|(path, _)| files.contains(*path))
         {
-            for (match_position, range) in file
-                .index
-                .by_rule
-                .get(&definition.matcher.rule_id(kind))
-                .into_iter()
-                .flatten()
-                .enumerate()
-            {
+            for (match_position, range) in file.kind_ranges(kind, definition).iter().enumerate() {
                 if let Some(parents) = &definition.within
                     && !self.catalog.pieces.iter().any(|piece| {
                         parents.as_slice().contains(&piece.kind)
@@ -129,7 +142,7 @@ impl EvidenceBuild {
                     continue;
                 }
                 let mut fields = local_fields(
-                    &definition.matcher.rule_id(kind),
+                    kind,
                     definition,
                     file,
                     range,

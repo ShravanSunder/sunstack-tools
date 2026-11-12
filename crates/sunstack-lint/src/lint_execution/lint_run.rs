@@ -471,7 +471,7 @@ async fn run_internal(
     }
 
     let definitions = checked.selections;
-    let project = checked.project;
+    let project = checked.project.clone();
     let scope_files = checked_files.iter().cloned().collect::<Vec<_>>();
     let started = tokio::task::spawn_blocking(move || {
         let build = EvidenceBuild::start(&project, &kinds, &files, &mut source, limits);
@@ -750,9 +750,12 @@ async fn run_internal(
     let filter_answers = sunstack_rules::ask_filters(
         &checked.filters,
         &folders,
-        &catalog.pieces,
-        &config.evidence.kinds,
-        &catalog.matches,
+        sunstack_rules::FilterEvidence {
+            pieces: &catalog.pieces,
+            kinds: &config.evidence.kinds,
+            project: &checked.project,
+            matches: &catalog.matches,
+        },
         report.limits.evidence_max_chars as usize,
         &mut dispatcher,
     )

@@ -17,6 +17,8 @@ mod filter_admission;
 mod filter_runtime;
 #[path = "lint_commands/html_evidence.rs"]
 mod html_evidence;
+#[path = "lint_commands/html_sections.rs"]
+mod html_sections;
 #[path = "../support/mod.rs"]
 mod support;
 #[path = "lint_commands/usability.rs"]
