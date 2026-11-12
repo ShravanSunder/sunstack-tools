@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Facade admission against the CLI's rules: shared shape refusals, rule refusals that
-//! keep their field path, and an abort that lands while admission is running.
+//! keep their field path, and an abort that lands while check or run admission is running.
 use serde_json::{Value, json};
 use std::{future::Future, path::Path, task::Poll};
 use sunstack::sdk_host::{
@@ -8,6 +8,7 @@ use sunstack::sdk_host::{
     sdk_contracts::{CheckOutcome, Diagnostic, LoadOptions, LoadOutcome},
 };
 use sunstack_decisions::CancellationToken;
+use sunstack_lint::{LintReport, LintStatus, ScopeChoice};
 
 fn mechanical_configuration(base: &Path) -> Value {
     json!({
@@ -208,4 +209,104 @@ fn an_abort_during_admission_ends_the_check_cancelled() {
             "{outcome:?}"
         );
     });
+}
+
+/// A runtime with one blocking thread, so a held thread queues admission behind it.
+fn one_blocking_thread_runtime() -> tokio::runtime::Runtime {
+    tokio::runtime::Builder::new_current_thread()
+        .max_blocking_threads(1)
+        .enable_all()
+        .build()
+        .unwrap()
+}
+
+/// Run captured definitions with run admission queued behind the held blocking thread,
+/// aborting the call there when `abort` is set.
+fn run_with_admission_held(configuration: &Value, root: &Path, abort: bool) -> LintReport {
+    one_blocking_thread_runtime().block_on(async {
+        let decoded = sdk_host::decode_configuration(&configuration.to_string()).unwrap();
+        let Ok(bundle) = sdk_host::definition_capture::capture_configuration(&decoded) else {
+            panic!("the definitions are captured before the run");
+        };
+        let hold = BlockingPoolHold::occupy().await;
+        let cancellation = CancellationToken::new();
+        let mut call = Box::pin(sunstack_lint::run_definitions(
+            bundle,
+            root.to_path_buf(),
+            vec![],
+            ScopeChoice::All,
+            cancellation.clone(),
+            None,
+        ));
+        let first = std::future::poll_fn(|context| Poll::Ready(call.as_mut().poll(context))).await;
+        assert!(
+            first.is_pending(),
+            "run admission waits for the held blocking thread"
+        );
+        if abort {
+            cancellation.cancel();
+        }
+        hold.release().await;
+        call.await
+    })
+}
+
+#[test]
+fn an_abort_during_run_admission_ends_cancelled_before_any_checked_input() {
+    let base = tempfile::tempdir().unwrap();
+    let readable = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(readable.path().join("docs")).unwrap();
+    std::fs::write(
+        readable.path().join("docs/one.md"),
+        "# One\n\nA paragraph.\n",
+    )
+    .unwrap();
+    // A checked root no one may list: any target selection here ends path_not_found.
+    let unlistable = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(unlistable.path().join("docs")).unwrap();
+    let valid = mechanical_configuration(base.path());
+    // An evidence kind naming no matcher refuses the whole admission.
+    let mut refused = mechanical_configuration(base.path());
+    refused["evidence"]["kinds"]["paragraph"]["rule"] = json!("missing_matcher");
+
+    // Uncancelled controls: a valid admission executes, an invalid one is refused.
+    let completed = run_with_admission_held(&valid, readable.path(), false);
+    assert!(
+        matches!(completed.status, LintStatus::Clean | LintStatus::Findings),
+        "{:?}",
+        completed.status
+    );
+    assert_eq!(completed.file_counts.len(), 1);
+    let invalid = run_with_admission_held(&refused, readable.path(), false);
+    assert!(
+        matches!(invalid.status, LintStatus::Invalid),
+        "{:?} {:?}",
+        invalid.status,
+        invalid.diagnostics
+    );
+    assert!(!invalid.diagnostics.is_empty());
+
+    std::fs::set_permissions(
+        unlistable.path(),
+        std::os::unix::fs::PermissionsExt::from_mode(0o000),
+    )
+    .unwrap();
+    let outcomes = [&valid, &refused]
+        .map(|configuration| run_with_admission_held(configuration, unlistable.path(), true));
+    std::fs::set_permissions(
+        unlistable.path(),
+        std::os::unix::fs::PermissionsExt::from_mode(0o700),
+    )
+    .unwrap();
+    for report in outcomes {
+        // Cancelled wins over the admission result, and no checked input was touched.
+        assert!(
+            matches!(report.status, LintStatus::Cancelled),
+            "{:?} {:?}",
+            report.status,
+            report.diagnostics
+        );
+        assert!(report.diagnostics.is_empty());
+        assert!(report.file_counts.is_empty());
+    }
 }

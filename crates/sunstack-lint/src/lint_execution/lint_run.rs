@@ -212,6 +212,12 @@ pub async fn run_definitions(
         Ok(value) => value,
         Err(_) => return failed(report, "rulebook loading failed"),
     };
+    // Admission runs to completion once started; an abort during it ends the run cancelled
+    // before its result is used or any checked input is selected.
+    if cancellation.is_cancelled() {
+        report.status = LintStatus::Cancelled;
+        return report;
+    }
     execute_definitions(
         report,
         request,
