@@ -176,10 +176,13 @@ test.each([1600, 390])(
 		await expect.element(modal.getByText('125%', { exact: true })).toBeVisible();
 		await userEvent.keyboard('{Escape}');
 		await expect.element(modal).not.toBeInTheDocument();
+		// Native close hides the dialog before its close event restores the live SVG.
+		await expect.poll((): boolean => diagram.querySelector(':scope > svg') === original).toBe(true);
 		expect(diagram.querySelector('svg')?.textContent).toContain('Right endpoint');
 		expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Expand Full-width diagram');
 		await expand.click();
 		await frame.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+		await expect.poll((): boolean => diagram.querySelector(':scope > svg') === original).toBe(true);
 		expect(diagram.querySelector('svg')?.textContent).toContain('Left endpoint');
 	},
 );

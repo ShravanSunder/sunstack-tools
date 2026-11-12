@@ -1,5 +1,17 @@
 # @sunstack/demistify
 
+## 1.22.0
+
+### Minor Changes
+
+- 7dfb134: Load Pages, a fully expanded semantic Map, and complete Walkthroughs from one shared JSON source on every document page. Reuse the existing outline, drawer and player, with subject icons, Map search, cross-page routes, and validation of shared sources and local destinations.
+
+## 1.21.1
+
+### Patch Changes
+
+- c3e2e15: Publish the authoring CLI at a content-hashed archive URL and bind the matching published guide commands to it, so package-manager caches select the current tool. Retain earlier hashed archives through the existing release history.
+
 ## 1.21.0
 
 ### Minor Changes

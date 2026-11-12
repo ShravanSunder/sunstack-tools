@@ -85,7 +85,9 @@ Completion: facts occur once, navigation resolves to the intended content, and p
 
 ## 4. Lint the final files once
 
-Run the CLI shipped at the page's library binding (Node 26+):
+Run the CLI shipped at the page's library binding (Node 26+). Copy the exact CLI URL printed in this binding's current published guide; do not construct the archive filename from the binding root:
+
+<!-- Release staging binds the logical archive filename below to the built archive's content hash. -->
 
 ```sh
 pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz check /path/page.html

@@ -287,6 +287,9 @@ test('fullscreen picture navigation returns focus to the current gallery viewpor
 		.element(frame.getByRole('dialog', { name: 'Home Mobile', exact: true }))
 		.toBeVisible();
 	await userEvent.keyboard('{ArrowDown}{Escape}');
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Home Laptop', exact: true }))
+		.not.toBeInTheDocument();
 	await expect.element(local.getByRole('img', { name: 'Home Laptop', exact: true })).toBeVisible();
 	expect(fixture.activeElement).toBe(requiredElement(gallery, '.ex-gallery-preview'));
 	await userEvent.keyboard('{ArrowRight}');

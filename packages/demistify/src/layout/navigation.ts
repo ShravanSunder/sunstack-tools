@@ -1,10 +1,19 @@
 import { assignHeadingFragments } from '../core/heading-fragments.ts';
 import { createIconButton } from '../core/icons.ts';
+import { reportIssue } from '../core/issues.ts';
 import { anchorPopover } from '../core/popover-position.ts';
 import { DocumentSearch } from './command-search.ts';
 import { createDocumentToolbar, type DocumentToolbar } from './page-navigation.ts';
-import { registerReaderControl } from './reader-controls.ts';
+import { registerReaderControl, registerReaderToolbar } from './reader-controls.ts';
 import { collectSearchDestinations, readSearchIndex } from './search-destinations.ts';
+import {
+	loadSharedNavigation,
+	mountSharedNavigation,
+	sharedPageLinks,
+	sharedMapDestinations,
+	sharedWalkthroughDestinations,
+	type LoadedNavigation,
+} from './shared-navigation.ts';
 
 export class HeadingNavigation extends HTMLElement {
 	private contentObserver: MutationObserver | undefined;
@@ -17,7 +26,12 @@ export class HeadingNavigation extends HTMLElement {
 	private unregisterPresentations: (() => void) | undefined;
 	private documentSearch: DocumentSearch | undefined;
 	private documentToolbar: DocumentToolbar | undefined;
+	private unregisterToolbar: (() => void) | undefined;
+	private unregisterPages: (() => void) | undefined;
 	private headingButton: HTMLButtonElement | undefined;
+	private sharedSource: LoadedNavigation | undefined;
+	private sourceRequest: AbortController | undefined;
+	private disposeShared: (() => void) | undefined;
 	private readonly headingLinks = new Map<Element, readonly HTMLAnchorElement[]>();
 	private readonly sidebarMedia = window.matchMedia('(min-width: 1440px)');
 	private changingPopover = false;
@@ -93,10 +107,51 @@ export class HeadingNavigation extends HTMLElement {
 	};
 
 	connectedCallback(): void {
+		const reference = this.getAttribute('src') ?? '';
+		if (this.hasAttribute('src') && !this.sharedSource) {
+			this.sourceRequest?.abort();
+			const request = new AbortController();
+			this.sourceRequest = request;
+			this.setAttribute('aria-busy', 'true');
+			void loadSharedNavigation(reference, request.signal)
+				.then((source): void => {
+					if (request.signal.aborted || !this.isConnected) return;
+					if (
+						this.querySelector('[slot="pages"], [slot="presentations"]') ||
+						document.querySelector('ex-map, ex-presentation')
+					)
+						throw new Error(
+							'Shared navigation cannot also own authored page lists, Map or Walkthrough declarations.',
+						);
+					this.sharedSource = source;
+					this.removeAttribute('aria-busy');
+					this.connectNavigation();
+				})
+				.catch((error: unknown): void => {
+					if (request.signal.aborted || !this.isConnected) return;
+					this.removeAttribute('aria-busy');
+					const message = error instanceof Error ? error.message : 'Invalid navigation source.';
+					reportIssue(this, message);
+					const notice = document.createElement('p');
+					notice.className = 'ex-navigation-error';
+					notice.setAttribute('role', 'alert');
+					notice.textContent = `Navigation unavailable: ${message}`;
+					this.after(notice);
+					this.connectNavigation();
+				});
+			return;
+		}
+		this.connectNavigation();
+	}
+
+	private connectNavigation(): void {
 		if (this.navigationPanel) {
 			document.body.append(this.navigationPanel);
-			if (this.documentToolbar)
+			if (this.documentToolbar) {
 				document.body.append(this.documentToolbar.element, this.documentToolbar.pagePanel);
+				this.unregisterToolbar = registerReaderToolbar(this.documentToolbar.element);
+				this.unregisterPages = registerReaderControl('pages', this.documentToolbar.pagesButton);
+			}
 			this.documentSearch?.connect();
 			if (this.presentationsButton)
 				this.unregisterPresentations = registerReaderControl(
@@ -110,10 +165,18 @@ export class HeadingNavigation extends HTMLElement {
 			(this.getAttribute('for') ? document.getElementById(this.getAttribute('for') ?? '') : null) ??
 			document.querySelector<HTMLElement>('ex-document, main') ??
 			document.body;
-		this.pageLinks = Array.from(this.querySelectorAll<HTMLAnchorElement>('a[href]')).filter(
-			(link): boolean => !link.closest('[slot="presentations"]'),
-		);
-		const indexed = readSearchIndex();
+		this.pageLinks = this.hasAttribute('src')
+			? this.sharedSource
+				? sharedPageLinks(this.sharedSource)
+				: []
+			: Array.from(this.querySelectorAll<HTMLAnchorElement>('a[href]')).filter(
+					(link): boolean => !link.closest('[slot="presentations"]'),
+				);
+		const indexed = [
+			...readSearchIndex(),
+			...(this.sharedSource ? sharedWalkthroughDestinations(this.sharedSource) : []),
+			...(this.sharedSource ? sharedMapDestinations(this.sharedSource) : []),
+		];
 		const searchLinks = [
 			...this.pageLinks,
 			...this.querySelectorAll<HTMLAnchorElement>('[slot="presentations"] a[href]'),
@@ -128,10 +191,12 @@ export class HeadingNavigation extends HTMLElement {
 		);
 		this.documentSearch.connect();
 		if (
-			document.querySelector('ex-presentation[id]') ||
-			this.querySelector('[slot="presentations"] a')
+			this.hasAttribute('src')
+				? this.sharedSource?.navigation.walkthroughs.length
+				: document.querySelector('ex-presentation[id]') ||
+					this.querySelector('[slot="presentations"] a')
 		) {
-			this.presentationsButton = createIconButton('path', 'Browse walkthroughs', (): void =>
+			this.presentationsButton = createIconButton('road-horizon', 'Browse walkthroughs', (): void =>
 				this.documentSearch?.open('walkthroughs', this.presentationsButton),
 			);
 			this.presentationsButton.classList.add('ex-presentations-trigger');
@@ -142,6 +207,8 @@ export class HeadingNavigation extends HTMLElement {
 			this.unregisterPresentations = registerReaderControl('walkthrough', this.presentationsButton);
 		}
 		this.documentToolbar = createDocumentToolbar(this.pageLinks);
+		this.unregisterPages = registerReaderControl('pages', this.documentToolbar.pagesButton);
+		this.unregisterToolbar = registerReaderToolbar(this.documentToolbar.element);
 		const navigationPanel = document.createElement('nav');
 		navigationPanel.className = 'ex-heading-panel';
 		navigationPanel.popover = 'auto';
@@ -220,6 +287,32 @@ export class HeadingNavigation extends HTMLElement {
 		this.readerEvents?.abort();
 		this.readerEvents = new AbortController();
 		const { signal } = this.readerEvents;
+		document.addEventListener(
+			'keydown',
+			(event): void => {
+				if (
+					event.defaultPrevented ||
+					event.isComposing ||
+					event.repeat ||
+					!event.altKey ||
+					event.ctrlKey ||
+					event.metaKey ||
+					event.shiftKey ||
+					!/^Digit[1-9]$/.test(event.code)
+				)
+					return;
+				const target = event.target instanceof Element ? event.target : undefined;
+				const editor = target?.closest(
+					'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]',
+				);
+				if (editor && !editor.closest('.ex-command-dialog, .ex-navigation-map')) return;
+				const link = this.pageLinks[Number(event.code.slice(-1)) - 1];
+				if (!link) return;
+				event.preventDefault();
+				location.assign(link.href);
+			},
+			{ signal },
+		);
 		if (this.documentToolbar)
 			anchorPopover(this.documentToolbar.pagesButton, this.documentToolbar.pagePanel, signal);
 		document.addEventListener('click', this.requestHeading, { signal });
@@ -316,14 +409,23 @@ export class HeadingNavigation extends HTMLElement {
 		this.sidebarMedia.addEventListener('change', this.updatePresentation);
 		this.updatePresentation();
 		this.renderHeadings();
+		if (this.sharedSource && this.contentRoot)
+			this.disposeShared = mountSharedNavigation(this.sharedSource, this.contentRoot);
 	}
 
 	disconnectedCallback(): void {
+		this.sourceRequest?.abort();
+		this.disposeShared?.();
+		this.disposeShared = undefined;
 		this.readerEvents?.abort();
 		this.contentObserver?.disconnect();
 		this.headingObserver?.disconnect();
 		this.sidebarMedia.removeEventListener('change', this.updatePresentation);
 		this.navigationPanel?.remove();
+		this.unregisterPages?.();
+		this.unregisterPages = undefined;
+		this.unregisterToolbar?.();
+		this.unregisterToolbar = undefined;
 		this.documentToolbar?.element.remove();
 		this.documentToolbar?.pagePanel.remove();
 		this.documentSearch?.disconnect();

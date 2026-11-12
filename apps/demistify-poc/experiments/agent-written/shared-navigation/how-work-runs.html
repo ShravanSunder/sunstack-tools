@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Central execution model: How work runs</title>
+<link rel="stylesheet" href="/experiments/islands/theme.css">
+<script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content" src="./navigation.json"></ex-nav>
+<ex-document id="content">
+<p><small>M opens the shared user-needs Map. W opens question-led Walkthroughs. The left sidebar follows this page’s headings.</small></p>
+<h1>How work runs: today vs the new design</h1>
+
+<p><strong>Today, almost every websocket request becomes a job, and a push waits in memory for its answer.</strong> The job waits for an alarm, the alarm runs cleanup first, and only then do jobs run, 8 at a time, each holding the object awake until its Router answers. <strong>In the new design a request is handled in the event that received it, an answer is its own event, and the object sleeps in between.</strong></p>
+
+<h2 id="today">1. Before: a request becomes a job behind cleanup, and waits in memory</h2>
+<p>This illustrative comparison separates short requests, durable delivery, due work and long operations. It explains the failure boundary without reporting a production incident.</p>
+<ex-mermaid id="seq-today" label="Today: a mail submit on central"><script type="text/plain">
+sequenceDiagram
+  participant R as Sender Router
+  participant O as Central object
+  participant J as Job tables (durable-steps)
+  participant A as Alarm
+  participant M as Recipient Router
+  R->>O: MailSubmit
+  O->>J: save job "push-item"
+  O->>A: set alarm (only if none earlier is stored)
+  O-->>R: Accepted
+  A->>O: alarm fires
+  O->>O: cleanup first (prune notices)
+  alt cleanup throws
+    O--xA: alarm fails, no jobs run; a stale alarm blocks later wakes
+  else cleanup ok
+    O->>J: scan due jobs, 8 at once
+    O->>M: push mail
+    Note over O: waits in memory for the ack (pending-reply map + setTimeout); object can't hibernate
+    M-->>O: ack (resolves the in-memory waiter)
+    O->>J: mark job done
+  end
+</script></ex-mermaid>
+
+<h2 id="request">2. New: a request is answered in its event</h2>
+<ex-mermaid id="seq-request" label="New: requests run in the event that received them"><script type="text/plain">
+sequenceDiagram
+  participant R as Router
+  participant O as Central object
+  R->>O: Hello / status / query / preview / Copy read…
+  O->>O: one short transaction: do it
+  O-->>R: answer, in the same event
+  Note over O: no job, no alarm, nothing left in memory
+</script></ex-mermaid>
+
+<h2 id="mail">3. New: mail is an owed row; the answer is its own event</h2>
+<ex-mermaid id="seq-mail" label="New: mail submit, push, answer, report, status"><script type="text/plain">
+sequenceDiagram
+  participant S as Sender Router
+  participant O as Fleet object
+  participant M as Recipient Router
+  S->>O: MailSubmit (item id = UUIDv7)
+  O->>O: transaction: custody row (waiting)
+  O-->>S: Accepted
+  O->>O: slot free on M's current connection → transaction: new send_id, in flight, next_attempt_at, lower alarm
+  O->>M: Push (frame F)
+  Note over O: event ends; object may hibernate
+  M-->>O: Answer(F, Pushed) — a new event
+  O->>O: match (connection, F) → custody handed off
+  M->>O: Report (the recipient Router's own owed request)
+  O-->>M: ReportResult Ack
+  O->>O: status publication owed to S (same pattern as the push)
+  O->>S: PublishStatus (frame G)
+  S-->>O: Answer(G, Published)
+</script></ex-mermaid>
+
+<h2 id="hibernate">4. New: an object hibernating with its Routers connected</h2>
+<ex-mermaid id="seq-hibernate" label="New: hibernation lifecycle"><script type="text/plain">
+sequenceDiagram
+  participant R as Router
+  participant P as Platform (Cloudflare edge)
+  participant O as Fleet object
+  R->>P: frame
+  P->>O: build object if evicted; deliver frame
+  O->>O: handle; due batch if allowed; set alarm or none
+  Note over O: no timer, no waiter → idle
+  P->>P: object hibernates; socket stays open; attachment kept
+  R->>P: protocol Ping
+  P-->>R: Pong (object not woken)
+  Note over P: next frame or the alarm builds the object again from storage + attachments
+</script></ex-mermaid>
+
+<h2 id="flush">5. New: reconnect drains the backlog, paced by answers</h2>
+<ex-mermaid id="seq-flush" label="New: reconnect drain, window counted from storage"><script type="text/plain">
+sequenceDiagram
+  participant M as Recipient Router
+  participant O as Fleet object
+  M->>O: Hello
+  O-->>M: Welcome
+  O->>M: notices since the Router's cursor (outside the window)
+  O->>M: status, then mail as batches (oldest first, one batch per sender pair in flight, ≤ 32 items in flight per connection)
+  loop each answer batch is a new event
+    M-->>O: AnswerBatch [results by send id]
+    O->>O: match each send id → done; count in flight from storage
+    O->>M: next batch for that pair
+  end
+  Note over O: each event sends only the free slots; other machines' frames run in between
+</script></ex-mermaid>
+
+<h2 id="retry">6. New: a retry needs a timer only when no event will come</h2>
+<ex-mermaid id="seq-retry" label="New: the three retry triggers"><script type="text/plain">
+sequenceDiagram
+  participant O as Central object
+  participant M as Recipient Router
+  participant A as Alarm
+  O->>M: push item (maybe_reached)
+  alt socket closes
+    Note over O,M: nothing to time: resent after M's next Welcome (diagram 5)
+  else ack arrives
+    M-->>O: ack(id) → answered
+  else socket open, no ack by next_attempt_at
+    Note over O: any frame that arrives first runs the due batch;<br/>otherwise the alarm fires at exactly next_attempt_at
+    A->>O: alarm
+    O->>M: resend same id (M drops a repeat)
+    O->>O: backoff 30 s, 1 min, 2 min… cap 10 min
+  end
+</script></ex-mermaid>
+
+<h2 id="cleanup">7. New: cleanup is its own unit and can't block anything</h2>
+<ex-mermaid id="seq-cleanup" label="New: cleanup isolated"><script type="text/plain">
+sequenceDiagram
+  participant E as Alarm or any event
+  participant O as Central object
+  E->>O: due batch allowed
+  O->>O: unit: expire machine A's old notices
+  alt fails (bad row)
+    O->>O: caught, logged; central_work_attempts: backoff + error; retired after 24 h; health shows it stuck
+  end
+  O->>O: unit: machine B's owed mail → runs anyway
+  O->>O: alarm = next due time, or none
+</script></ex-mermaid>
+
+<h2 id="long">8. New: long operations keep today's engine behind one seam</h2>
+<ex-mermaid id="seq-long" label="New: a long operation's due time feeds the same alarm"><script type="text/plain">
+sequenceDiagram
+  participant Own as Owner (move board)
+  participant O as Fleet object
+  participant W as durable-steps (long operations only)
+  participant H as Old holder Router
+  Own->>O: Move
+  O->>W: start operation
+  O-->>Own: accepted
+  Note over O: scheduler asks W for its next due time, like any due source
+  O->>W: due batch runs the next step
+  W->>H: ask for release (awaited inside this step, bounded)
+  H-->>W: released
+  Note over W: design 1 later replaces this engine; nothing else changes
+</script></ex-mermaid>
+
+<h2 id="table">Every kind of work, and how it runs</h2>
+<table>
+<thead><tr><th>Work</th><th>Today</th><th>New</th></tr></thead>
+<tbody>
+<tr><td>Hello / Welcome, status, query, preview, Copy read/write, session end, readmission</td><td>Jobs</td><td>Handled in the event (diagram 2)</td></tr>
+<tr><td>Mail push, status publication</td><td>Jobs that wait in memory for answers</td><td>Owed socket requests: sent now, the answer (matched by frame id) is its own event, resent on reconnect or when late (diagrams 3, 5, 6)</td></tr>
+<tr><td>Control notices</td><td>Jobs</td><td>Retained notices outside the window; caught up on Welcome</td></tr>
+<tr><td>Directory summary, claim settlement, session close</td><td>Jobs</td><td>Owed object calls and local actions, retried at their stored time whatever the sockets</td></tr>
+<tr><td>Delivery report</td><td>A Router job</td><td>Still the recipient Router's owed request; answered by central in its event</td></tr>
+<tr><td>Notice expiry, 60-day mail removal, lease renewal, feed retention, Copy staged parts</td><td>Jobs after cleanup, or inline on entry</td><td>Due items, each its own unit, with a stored backoff if one keeps failing (diagram 7)</td></tr>
+<tr><td>Registration, import, retire, board move / takeover / claim and cancel, writer seed, snapshot install</td><td>Jobs</td><td>Unchanged on durable-steps until design 1 (diagram 8)</td></tr>
+</tbody>
+</table>
+</ex-document>
+</body>
+</html>

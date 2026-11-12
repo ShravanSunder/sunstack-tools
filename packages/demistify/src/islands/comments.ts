@@ -145,7 +145,7 @@ export class CommentsIsland extends HTMLElement {
 					event.key.toLowerCase() !== 'c' ||
 					(event.target instanceof Element &&
 						event.target.closest(
-							'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]',
+							'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],.ex-drawer,.ex-inspect-dialog[data-mode="sidebar"]',
 						))
 				)
 					return;

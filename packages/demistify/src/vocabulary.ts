@@ -374,7 +374,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-nav': {
 		description: 'Heading navigation; added automatically by ex-document.',
-		attributes: { for: { description: 'Id of the content to outline.', type: { kind: 'id' } } },
+		attributes: {
+			for: { description: 'Id of the content to outline.', type: { kind: 'id' } },
+			src: text('Shared JSON defining Pages, semantic Map and Walkthroughs.'),
+		},
 	},
 	'ex-zoom': {
 		description: 'A surface whose `slot="details"` children show only when inspected.',

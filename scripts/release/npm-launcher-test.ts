@@ -12,7 +12,8 @@ import { z } from 'zod';
 const childSource = `if(process.argv[2]==='exit'){
 process.stdout.write('exact stdout\\n');process.stderr.write('exact stderr\\n');process.exitCode=Number(process.argv[3]);
 }else{
-const cancelled=()=>{process.removeAllListeners('SIGINT');process.removeAllListeners('SIGTERM');process.on('SIGINT',()=>{});process.on('SIGTERM',()=>{});process.stdout.write(JSON.stringify({status:'cancelled',exit:4})+'\\n',()=>process.exit(4));};
+let cancellationStarted=false;
+const cancelled=()=>{if(cancellationStarted)return;cancellationStarted=true;process.stdout.write(JSON.stringify({status:'cancelled',exit:4})+'\\n',()=>process.exit(4));};
 process.on('SIGINT',cancelled);process.on('SIGTERM',cancelled);process.stdout.write('READY '+process.pid+'\\n');setInterval(()=>{},1000);
 }`;
 interface LauncherFixture {
