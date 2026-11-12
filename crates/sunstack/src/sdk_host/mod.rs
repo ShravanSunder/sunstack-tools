@@ -101,6 +101,12 @@ pub async fn check(configuration: Configuration, cancellation: CancellationToken
         Ok::<_, CaptureFailure>((bundle, listing))
     })
     .await;
+    // Admission runs to completion once started; an abort during it ends the call cancelled.
+    if cancellation.is_cancelled() {
+        return CheckOutcome::Cancelled {
+            diagnostics: vec![],
+        };
+    }
     match checked {
         Err(_) => CheckOutcome::Failed {
             failure: native_failure("configuration checking stopped unexpectedly"),

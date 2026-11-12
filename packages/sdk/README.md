@@ -121,6 +121,14 @@ No call throws for a domain or detectable native ending. Narrow on `kind`:
 or platform, missing addon, contract mismatch, unencodable input);
 `after_dispatch` means effects are unknown and the SDK does not retry. Diagnostics
 keep the definition `origin` separate from the checked input `path` that stopped a run.
+`json_path` comes in two forms:
+
+- **Decoder refusals:** when the value itself does not decode, `json_path` lists one
+  segment per key, for example `['limits', 'max_file_bytes']`.
+- **Admission refusals:** for a decoded value the engine refuses, it holds the engine's
+  rendered path as one string, for example `['check.files']`.
+- **Rule-file refusals:** these name the refused field when the decoder may disclose it,
+  for example `['only_when']`.
 
 ```ts
 if (outcome.kind === 'completed' && outcome.report.status.kind === 'findings') {

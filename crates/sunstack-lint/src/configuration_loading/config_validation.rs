@@ -1,6 +1,6 @@
 use crate::{
     configuration_loading::{
-        config_decoding::validate_config_shape,
+        config_decoding::{validate_config_shape, validate_limit_shape, validate_settings_shape},
         definition_bundle::{
             DefinitionBundle, EvidenceAcquisition, RootDefinition, acquire_file_definitions,
         },
@@ -69,6 +69,13 @@ pub(crate) fn admit_definitions(
         root.field_error(path, LintInvalidCode::Syntax, message)
             .into()
     };
+    // The shape checks every configuration shares. A CLI file already passed them when
+    // it was decoded; captured and inline configurations meet them here.
+    let shape_error =
+        |path: &ConfigPath, message: &str| root.field_error(path, LintInvalidCode::Syntax, message);
+    validate_settings_shape(settings, bundle.rulebooks.len(), "rulebooks", shape_error)
+        .and_then(|()| validate_limit_shape(settings.limits.as_ref(), shape_error))
+        .map_err(|error| vec![LintDiagnostic::from(error)])?;
     let inline_rules = settings
         .kinds
         .iter()
@@ -280,12 +287,13 @@ pub(crate) fn native_diagnostics(
                             file,
                             line,
                             column,
+                            field_path,
                             definition,
-                            ..
                         } => (
                             Some((
                                 file.clone(),
                                 definition.unwrap_or_else(|| DefinitionOrigin::file(file)),
+                                field_path,
                             )),
                             u32::try_from(line).ok(),
                             u32::try_from(column).ok(),
@@ -309,13 +317,14 @@ pub(crate) fn native_diagnostics(
                     format!("Decision admission refused: {:?}.", diagnostic.code),
                 ),
             };
-            let (file, definition) = match located {
-                Some((file, definition)) => (Some(file), definition),
+            let (file, definition, json_path) = match located {
+                Some((file, definition, field_path)) => (Some(file), definition, field_path),
                 None => (
                     root.text
                         .as_ref()
                         .and(root.origin.file_path().map(Path::to_path_buf)),
                     root.origin.clone(),
+                    vec![],
                 ),
             };
             let code =
@@ -331,7 +340,7 @@ pub(crate) fn native_diagnostics(
             LintDiagnostic {
                 file,
                 definition: Some(definition),
-                json_path: vec![],
+                json_path,
                 path,
                 line: line.or(Some(1)),
                 column: column.or(Some(1)),

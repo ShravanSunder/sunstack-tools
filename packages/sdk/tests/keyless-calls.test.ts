@@ -180,6 +180,17 @@ await test('check admits an asking, filtered configuration with no key, request 
 			});
 		}
 		assert.equal(backend.received.length, 0, 'check sends no provider request');
+		// The CLI's shared shape checks hold for inline values through the addon.
+		const shapeRefusal = await check({
+			...inlineConfiguration(base.path, backend.endpoint),
+			rulebooks: [],
+		});
+		assert.deepEqual(
+			shapeRefusal.kind === 'invalid'
+				? [shapeRefusal.diagnostics[0]?.code, shapeRefusal.diagnostics[0]?.json_path]
+				: shapeRefusal.kind,
+			['syntax', ['rulebooks']],
+		);
 		// The trap is live: a run over the same tree cannot inspect it.
 		const control = await run(inlineConfiguration(base.path, backend.endpoint), {
 			root: base.path,
