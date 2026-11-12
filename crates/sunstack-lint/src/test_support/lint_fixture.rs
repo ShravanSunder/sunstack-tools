@@ -56,6 +56,7 @@ pub fn config_file(root: &Path, config: &Value) {
 pub fn request(root: &Path) -> LintRequest {
     LintRequest {
         config_path: Some(root.join("sunstack.lint.json")),
+        root: None,
         paths: vec![],
         scope: ScopeChoice::All,
         max_warnings: None,

@@ -17,7 +17,7 @@ struct RecordingSource {
     reads: Arc<Mutex<Vec<PathBuf>>>,
 }
 impl CheckedFileSource for RecordingSource {
-    fn resolve_file(&self, path: &Path) -> Option<PathBuf> {
+    fn resolve_file(&self, path: &Path) -> Result<PathBuf, CheckedReadError> {
         self.inner.resolve_file(path)
     }
     fn read_file(&mut self, path: &Path, max_bytes: usize) -> Result<String, CheckedReadError> {

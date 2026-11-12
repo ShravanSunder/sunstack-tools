@@ -56,6 +56,7 @@ fn policy_piece(shape: ReadShape) -> sunstack_evidence::EvidencePiece {
         name: "practice".into(),
         path: "skills/practice/SKILL.md".into(),
         exists: true,
+        anchor: None,
         candidates: vec![],
         opening: Some("Complete loaded source.".into()),
         fields: None,

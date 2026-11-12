@@ -45,7 +45,7 @@ async fn inline_rule_refusals_keep_the_second_kinds_config_key_and_location() {
         "{language: Markdown, rule: {kind: nonexistent_node}}",
         "language: Markdown\nrule: {matches: frontmatter}\n---\nlanguage: Markdown\nrule: {kind: paragraph}",
         "{language: Markdown, rule: {matches: frontmatter}, utils: {frontmatter: {kind: paragraph}}}",
-        "{language: Rust, rule: {kind: source_file}}",
+        "{language: UnknownLanguage, rule: {kind: source_file}}",
     ] {
         let root = tempfile::tempdir().unwrap();
         let mut value = fixture::write(root.path());

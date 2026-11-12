@@ -6,6 +6,8 @@ use std::{
 use sunstack_evidence::*;
 #[path = "evidence_pieces/demanded_context.rs"]
 mod demanded_context;
+#[path = "evidence_pieces/html_documents.rs"]
+mod html_documents;
 #[path = "evidence_pieces/nudge_context.rs"]
 mod nudge_context;
 
@@ -47,7 +49,7 @@ impl RecordingSource {
     }
 }
 impl CheckedFileSource for RecordingSource {
-    fn resolve_file(&self, path: &Path) -> Option<PathBuf> {
+    fn resolve_file(&self, path: &Path) -> Result<PathBuf, CheckedReadError> {
         self.source.resolve_file(path)
     }
     fn read_file(&mut self, path: &Path, max_bytes: usize) -> Result<String, CheckedReadError> {
@@ -81,7 +83,7 @@ fn resolved_target_acquisition_failure_is_unavailable_rather_than_a_missing_file
     source.fail_path = Some("target.md".into());
     assert_eq!(
         source.resolve_file(Path::new("target.md")),
-        Some("target.md".into())
+        Ok("target.md".into())
     );
     let catalog = build_pieces(
         &project,
@@ -398,7 +400,7 @@ fn duplicate_skills_and_outside_targets_are_not_opened() {
     )
     .unwrap();
     let project = load_evidence_project(&root.join("sgconfig.yml"), &[], None).unwrap();
-    let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path_or_skill"}}}"#).unwrap();
+    let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`(shared)`","resolve":"path_or_skill"},"outside":{"from":"target","regex":"`([^`]+\\.md)`","resolve":"path"}}}"#).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
     let mut source = RecordingSource::new(root);
     let catalog = build_pieces(
@@ -428,7 +430,13 @@ fn duplicate_skills_and_outside_targets_are_not_opened() {
             PathBuf::from("b/shared/SKILL.md")
         ]
     );
-    assert!(!values[1].exists);
+    assert_eq!(values.len(), 1);
+    assert_eq!(
+        field(piece, "outside"),
+        &FieldValue::Unavailable {
+            reason: FieldUnavailable::OutsideRoot
+        }
+    );
     assert_eq!(source.reads.len(), 3);
 }
 

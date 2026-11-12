@@ -210,6 +210,10 @@ pub enum FieldSource {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         exclude: Option<MatchSource>,
     },
+    Document {
+        path: PathBuf,
+        rule: EvidenceRuleId,
+    },
     Target {
         regex: String,
         resolve: EvidenceTargetResolution,
@@ -262,7 +266,8 @@ impl FieldSource {
             | Self::Capture { .. }
             | Self::Yaml { .. }
             | Self::Remainder { .. } => FieldShape::Text,
-            Self::Inside { .. }
+            Self::Document { .. }
+            | Self::Inside { .. }
             | Self::Enclosing { .. }
             | Self::SameFile { .. }
             | Self::Next { .. }
@@ -294,6 +299,8 @@ pub enum FieldValue {
 #[serde(rename_all = "snake_case")]
 pub enum FieldUnavailable {
     SelectionPending,
+    EmptyTarget,
+    OutsideRoot,
     FrontmatterMalformed,
     NotAString,
     Unreadable,
@@ -315,10 +322,20 @@ impl FieldValue {
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
+pub enum TargetAnchor {
+    Found { fragment: String },
+    Missing { fragment: String },
+    Unsupported { fragment: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct LoadTarget {
     pub name: String,
     pub path: PathBuf,
     pub exists: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<TargetAnchor>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub candidates: Vec<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]

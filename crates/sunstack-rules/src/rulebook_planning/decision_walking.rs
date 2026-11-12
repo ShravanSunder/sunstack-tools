@@ -447,6 +447,8 @@ pub(super) fn mechanical_check(
         | DecisionMechanicalTool::Contains { field, .. }
         | DecisionMechanicalTool::MaxChars { field, .. }
         | DecisionMechanicalTool::FileExists { field }
+        | DecisionMechanicalTool::AnchorExists { field }
+        | DecisionMechanicalTool::ContainsField { field, .. }
         | DecisionMechanicalTool::Complete { field } => field,
     };
     if matches!(tool, DecisionMechanicalTool::Complete { .. })
@@ -456,6 +458,13 @@ pub(super) fn mechanical_check(
     }
     let value = piece.fields.get(field);
     if matches!(value, Some(FieldValue::Unavailable { .. })) {
+        return Err(field.clone());
+    }
+    if matches!(
+        tool,
+        DecisionMechanicalTool::AnchorExists { .. } | DecisionMechanicalTool::ContainsField { .. }
+    ) && matches!(value, None | Some(FieldValue::Absent))
+    {
         return Err(field.clone());
     }
     let texts = match value {
@@ -468,6 +477,35 @@ pub(super) fn mechanical_check(
             .is_ok_and(|regex| texts.iter().any(|text| regex.is_match(text))),
         DecisionMechanicalTool::Contains { text, .. } => {
             texts.iter().any(|value| value.contains(text))
+        }
+        DecisionMechanicalTool::ContainsField { needle, .. } => {
+            let needle_value = match piece.fields.get(needle) {
+                Some(FieldValue::Text { value, .. }) if !value.is_empty() => value,
+                _ => return Err(needle.clone()),
+            };
+            texts
+                .iter()
+                .any(|text| contains_whole_token(text, needle_value))
+        }
+        DecisionMechanicalTool::AnchorExists { .. } => {
+            let Some(FieldValue::Targets { values }) = value else {
+                return Err(field.clone());
+            };
+            let mut found = !values.is_empty();
+            for target in values {
+                if !target.exists {
+                    found = false;
+                } else {
+                    match &target.anchor {
+                        None | Some(sunstack_evidence::TargetAnchor::Found { .. }) => {}
+                        Some(sunstack_evidence::TargetAnchor::Missing { .. }) => found = false,
+                        Some(sunstack_evidence::TargetAnchor::Unsupported { .. }) => {
+                            return Err(field.clone());
+                        }
+                    }
+                }
+            }
+            found
         }
         DecisionMechanicalTool::MaxChars { max, .. } => {
             texts.first().map_or(0, |text| text.chars().count()) <= *max
@@ -494,6 +532,28 @@ pub(super) fn mechanical_check(
         }
         DecisionMechanicalTool::AstGrep { .. } => false,
     })
+}
+
+fn contains_whole_token(text: &str, needle: &str) -> bool {
+    let is_token_character = |character: char| character.is_alphanumeric() || character == '_';
+    let mut search_start = 0;
+    while let Some(relative_start) = text[search_start..].find(needle) {
+        let start = search_start + relative_start;
+        let end = start + needle.len();
+        if !text[..start]
+            .chars()
+            .next_back()
+            .is_some_and(is_token_character)
+            && !text[end..].chars().next().is_some_and(is_token_character)
+        {
+            return true;
+        }
+        let Some(next_character) = text[start..].chars().next() else {
+            break;
+        };
+        search_start = start + next_character.len_utf8();
+    }
+    false
 }
 
 /// The shared referenced-field guard for rule and evidence-selection questions.

@@ -156,6 +156,7 @@ fn completeness_checks_loaded_openings_and_bounded_projection() {
         name: "reader".into(),
         path: "skills/reader/SKILL.md".into(),
         exists: true,
+        anchor: None,
         candidates: vec![],
         opening: Some("All of the source".into()),
         fields: None,
@@ -176,6 +177,7 @@ fn completeness_checks_loaded_openings_and_bounded_projection() {
             "missing target",
             LoadTarget {
                 exists: false,
+                anchor: None,
                 opening: None,
                 ..complete.clone()
             },

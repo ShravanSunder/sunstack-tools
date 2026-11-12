@@ -58,11 +58,10 @@ fn project_matches_equal_native_scan_in_both_directions() {
 }
 
 #[test]
-fn reserved_utils_and_other_evidence_languages_are_refused() {
+fn reserved_utils_are_refused() {
     for util in [
         "id: quoted\nlanguage: Markdown\nrule: {kind: paragraph}\n",
         "id: example\nlanguage: Markdown\nutils: {quoted: {kind: paragraph}}\nrule: {matches: quoted}\n",
-        "id: other\nlanguage: JavaScript\nrule: {kind: program}\n",
     ] {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(
@@ -101,7 +100,7 @@ fn json_projects_use_json_nodes_and_source_ranges() {
 }
 
 #[test]
-fn json_utils_are_admitted_and_all_other_languages_remain_refused() {
+fn every_supported_language_loads_rules_and_utils() {
     use ast_grep_language::{LanguageExt, SupportLang};
     for language in SupportLang::all_langs() {
         let root = tempfile::tempdir().unwrap();
@@ -116,9 +115,8 @@ fn json_utils_are_admitted_and_all_other_languages_remain_refused() {
             format!("id: caller_util\nlanguage: {language}\nrule: {{regex: example}}\n"),
         )
         .unwrap();
-        assert_eq!(
+        assert!(
             load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).is_ok(),
-            matches!(language, SupportLang::Markdown | SupportLang::Json),
             "{language}"
         );
         std::fs::create_dir(root.path().join("rules")).unwrap();
@@ -130,12 +128,118 @@ fn json_utils_are_admitted_and_all_other_languages_remain_refused() {
         )
         .unwrap();
         let rule_result = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None);
-        assert_eq!(
+        assert!(
             rule_result.is_ok(),
-            matches!(language, SupportLang::Markdown | SupportLang::Json),
             "rule {language}: {:?}",
             rule_result.err()
         );
+    }
+}
+
+#[test]
+fn evidence_language_report_tags_round_trip_for_every_supported_language() {
+    use ast_grep_language::{LanguageExt, SupportLang};
+
+    let tags = [
+        "bash",
+        "c",
+        "cpp",
+        "c_sharp",
+        "css",
+        "dart",
+        "elixir",
+        "go",
+        "haskell",
+        "hcl",
+        "html",
+        "java",
+        "java_script",
+        "json",
+        "kotlin",
+        "lua",
+        "markdown",
+        "nix",
+        "php",
+        "python",
+        "ruby",
+        "rust",
+        "scala",
+        "solidity",
+        "swift",
+        "tsx",
+        "type_script",
+        "yaml",
+        "zig",
+    ];
+    assert_eq!(SupportLang::all_langs().len(), tags.len());
+    for (language, tag) in SupportLang::all_langs().iter().zip(tags) {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("rules")).unwrap();
+        std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+        let root_kind = language.ast_grep("").root().kind().into_owned();
+        std::fs::write(
+            root.path().join("rules/rule.yml"),
+            format!("id: example\nlanguage: {language}\nrule: {{kind: {root_kind}}}\n"),
+        )
+        .unwrap();
+        let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+        let actual = project
+            .language_for_rule(&crate::EvidenceRuleId::new("example").unwrap())
+            .unwrap();
+        let json = serde_json::to_string(&actual).unwrap();
+        assert_eq!(json, format!("\"{tag}\""), "{language}");
+        let decoded: super::super::EvidenceLanguage = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded, actual);
+    }
+    for old_tag in ["markdown", "json"] {
+        let _: super::super::EvidenceLanguage =
+            serde_json::from_str(&format!("\"{old_tag}\"")).unwrap();
+    }
+}
+
+#[test]
+fn parse_errors_skip_strict_data_but_tolerant_languages_still_match() {
+    use ast_grep_language::{LanguageExt, SupportLang};
+    use std::path::Path;
+
+    for (language, source, strict) in [
+        (SupportLang::Json, "{\"valid\": true,", true),
+        (SupportLang::Yaml, "valid: [one,", true),
+        (SupportLang::Hcl, "valid = [1,", true),
+        (SupportLang::Html, "<p>example</p><", false),
+        (
+            SupportLang::JavaScript,
+            "const example = 1; const = ;",
+            false,
+        ),
+    ] {
+        let parsed = language.ast_grep(source);
+        assert!(
+            parsed.root().get_inner_node().has_error(),
+            "fixture must have a parse error: {language}"
+        );
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("rules")).unwrap();
+        std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+        let root_kind = parsed.root().kind().into_owned();
+        std::fs::write(root.path().join("rules/rule.yml"),
+            format!("id: example\nlanguage: {language}\nrule: {{kind: {root_kind}, regex: example|valid}}\n")).unwrap();
+        let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+        let evidence_language = project
+            .language_for_rule(&crate::EvidenceRuleId::new("example").unwrap())
+            .unwrap();
+        let index =
+            project.match_file_as_language(Path::new("input"), source, 10, evidence_language);
+        assert_eq!(
+            index.failed_languages.contains(&evidence_language),
+            strict,
+            "{language}"
+        );
+        if strict {
+            assert!(!index.by_rule.contains_key("example"), "{language}");
+        } else {
+            assert_eq!(index.by_rule["example"].len(), 1, "{language}");
+        }
     }
 }
 

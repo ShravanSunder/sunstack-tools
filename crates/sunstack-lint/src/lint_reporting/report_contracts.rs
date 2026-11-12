@@ -22,6 +22,8 @@ pub enum ScopeChoice {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LintRequest {
     pub config_path: Option<PathBuf>,
+    #[serde(default)]
+    pub root: Option<PathBuf>,
     pub paths: Vec<PathBuf>,
     pub scope: ScopeChoice,
     pub max_warnings: Option<u32>,

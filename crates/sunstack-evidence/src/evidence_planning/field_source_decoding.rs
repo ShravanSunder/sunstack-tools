@@ -48,6 +48,10 @@ enum FieldSourceWire {
     Remainder {
         exclude: Option<MatchSource>,
     },
+    Document {
+        path: std::path::PathBuf,
+        rule: EvidenceRuleId,
+    },
     Target {
         regex: String,
         resolve: EvidenceTargetResolution,
@@ -100,6 +104,7 @@ impl<'de> Deserialize<'de> for FieldSource {
             FieldSourceWire::Previous { rule, count } => Self::Previous { rule, count },
             FieldSourceWire::Yaml { key } => Self::Yaml { key },
             FieldSourceWire::Remainder { exclude } => Self::Remainder { exclude },
+            FieldSourceWire::Document { path, rule } => Self::Document { path, rule },
             FieldSourceWire::Target {
                 regex,
                 resolve,

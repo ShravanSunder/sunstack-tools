@@ -10,6 +10,11 @@ impl EvidenceBuild {
         let definition = self.kinds[kind].clone();
         for piece in &mut pieces {
             for (field, field_source) in &definition.fields {
+                if let FieldSource::Document { path, rule } = field_source {
+                    let value = self.document_field(&piece.location.file, path, rule, source);
+                    piece.fields.insert(field.clone(), value);
+                    continue;
+                }
                 let FieldSource::Target {
                     regex,
                     resolve,
@@ -40,6 +45,15 @@ impl EvidenceBuild {
                             .unwrap_or_default()
                     })
                     .collect::<Vec<_>>();
+                if names.iter().any(String::is_empty) {
+                    piece.fields.insert(
+                        field.clone(),
+                        FieldValue::Unavailable {
+                            reason: FieldUnavailable::EmptyTarget,
+                        },
+                    );
+                    continue;
+                }
                 let values = names
                     .into_iter()
                     .map(|name| {
@@ -63,13 +77,31 @@ impl EvidenceBuild {
                                 .cloned()
                                 .collect::<Vec<_>>()
                         };
+                        let reference = if use_path {
+                            let html = self
+                                .project
+                                .language_for_rule(&definition.matcher.rule_id(kind))
+                                == Some(crate::EvidenceLanguage::Html);
+                            TargetReference::parse(&name, html)?
+                        } else {
+                            TargetReference {
+                                file: PathBuf::from(&name),
+                                fragment: None,
+                            }
+                        };
+                        let file_name = &reference.file;
+                        let fragment = reference.fragment;
                         let path = if use_path {
-                            piece
-                                .location
-                                .file
-                                .parent()
-                                .unwrap_or(Path::new(""))
-                                .join(&name)
+                            if file_name.as_os_str().is_empty() {
+                                piece.location.file.clone()
+                            } else {
+                                piece
+                                    .location
+                                    .file
+                                    .parent()
+                                    .unwrap_or(Path::new(""))
+                                    .join(file_name)
+                            }
                         } else {
                             candidates
                                 .first()
@@ -80,6 +112,7 @@ impl EvidenceBuild {
                             name,
                             path: path.clone(),
                             exists: false,
+                            anchor: None,
                             candidates: vec![],
                             opening: None,
                             fields: None,
@@ -90,8 +123,13 @@ impl EvidenceBuild {
                             target.candidates = candidates;
                             return Ok(target);
                         }
-                        let Some(resolved) = source.resolve_file(&path) else {
-                            return Ok(target);
+                        let resolved = match source.resolve_file(&path) {
+                            Ok(resolved) => resolved,
+                            Err(CheckedReadError::Missing { .. }) => return Ok(target),
+                            Err(CheckedReadError::NotContained) => {
+                                return Err(FieldUnavailable::OutsideRoot);
+                            }
+                            Err(_) => return Err(FieldUnavailable::Unreadable),
                         };
                         target.path = resolved.clone();
                         let content = if let Some(file) = self.matched.get(&resolved) {
@@ -107,6 +145,20 @@ impl EvidenceBuild {
                         };
                         let text = content.map_err(|_| FieldUnavailable::Unreadable)?;
                         target.exists = true;
+                        target.anchor = fragment.map(|fragment| {
+                            use crate::TargetAnchor;
+                            if is_html_path(&resolved) {
+                                if crate::document_evidence::html_content::html_has_id(
+                                    &text, &fragment,
+                                ) {
+                                    TargetAnchor::Found { fragment }
+                                } else {
+                                    TargetAnchor::Missing { fragment }
+                                }
+                            } else {
+                                TargetAnchor::Unsupported { fragment }
+                            }
+                        });
                         let opening: String = text.chars().take(*opening_chars).collect();
                         target.opening_cut = text.chars().count() > *opening_chars;
                         target.opening_last_line =
@@ -141,7 +193,7 @@ impl EvidenceBuild {
                     },
                 );
             }
-            piece.model_view = self.project_fields(&definition, &piece.fields);
+            piece.model_view = self.project_fields(kind, &definition, &piece.fields);
         }
         for count in &mut self.catalog.file_counts {
             if let Some(kind_count) = count.kinds.get_mut(kind) {

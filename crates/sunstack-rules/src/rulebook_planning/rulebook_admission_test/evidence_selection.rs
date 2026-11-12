@@ -86,3 +86,72 @@ fn selection_admission_refuses_each_crafted_cause_and_accepts_the_canonical_conf
         );
     }
 }
+
+#[test]
+fn selection_admission_refuses_document_questions_but_allows_unreferenced_documents() {
+    // Arrange: the canonical kinds already have valid local selection questions.
+    let root = root();
+    let mut config: Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("skill-rules.config.json")).unwrap(),
+    )
+    .unwrap();
+    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    config["evidence"]["kinds"]["selected_targets"]["fields"]["document_body"] =
+        serde_json::json!({"from":"document","path":"neighbor.md","rule":"skill"});
+    let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
+    assert!(admit_evidence_kinds(&kinds, &project, 6000).is_empty());
+
+    // Act: reference the deferred field from each supported instruction position.
+    for (instruction, value) in [
+        ("check", serde_json::json!("document_body")),
+        ("against", serde_json::json!("document_body")),
+        ("context", serde_json::json!(["document_body"])),
+    ] {
+        let mut invalid = config.clone();
+        invalid["evidence"]["kinds"]["selected_targets"]["select"]["question"]["instructions"]
+            [instruction] = value;
+        let kinds = serde_json::from_value(invalid["evidence"]["kinds"].clone()).unwrap();
+        let errors = admit_evidence_kinds(&kinds, &project, 6000);
+
+        // Assert: refuse before selection can send a request lacking this value.
+        assert!(
+            errors.iter().any(|error| error.field_path.to_string()
+                == "evidence.kinds.selected_targets.select.question"
+                && error.message == "selection question cannot name a document field"),
+            "{instruction}: {errors:?}"
+        );
+    }
+}
+
+#[test]
+fn nested_as_kind_refuses_document_acquisition_but_accepts_local_fields() {
+    // Arrange: a_load targets the existing local-field-only z_skill kind.
+    let root = root();
+    let mut config: Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("skill-rules.config.json")).unwrap(),
+    )
+    .unwrap();
+    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
+    assert!(admit_evidence_kinds(&kinds, &project, 6000).is_empty());
+
+    // Act: make the nested kind depend on a deferred document acquisition.
+    config["evidence"]["kinds"]["z_skill"]["fields"]["document_body"] =
+        serde_json::json!({"from":"document","path":"neighbor.md","rule":"skill"});
+    let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
+    let errors = admit_evidence_kinds(&kinds, &project, 6000);
+
+    // Assert: both as_kind references name the unsupported nested acquisition.
+    let paths = errors
+        .iter()
+        .filter(|error| error.message == "as_kind must name a document-free kind")
+        .map(|error| error.field_path.to_string())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        paths,
+        BTreeSet::from([
+            "evidence.kinds.a_load.fields.targets".into(),
+            "evidence.kinds.selected_targets.fields.skill_targets".into(),
+        ])
+    );
+}

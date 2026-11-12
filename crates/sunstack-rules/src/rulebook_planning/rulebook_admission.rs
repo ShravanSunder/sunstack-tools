@@ -575,8 +575,22 @@ fn validate_tool(
         DecisionMechanicalTool::Contains { field, .. } => {
             (field, &[FieldShape::Text, FieldShape::Texts])
         }
+        DecisionMechanicalTool::ContainsField { field, needle } => {
+            if !kind
+                .fields
+                .get(needle)
+                .is_some_and(|source| source.shape() == FieldShape::Text)
+            {
+                errors.push(refusal(
+                    path,
+                    "mechanical tool names an undefined or incompatible field",
+                ));
+            }
+            (field, &[FieldShape::Text, FieldShape::Texts])
+        }
         DecisionMechanicalTool::MaxChars { field, .. } => (field, &[FieldShape::Text]),
-        DecisionMechanicalTool::FileExists { field } => (field, &[FieldShape::Targets]),
+        DecisionMechanicalTool::FileExists { field }
+        | DecisionMechanicalTool::AnchorExists { field } => (field, &[FieldShape::Targets]),
         DecisionMechanicalTool::Complete { field } => (
             field,
             &[FieldShape::Text, FieldShape::Texts, FieldShape::Targets],
@@ -689,10 +703,15 @@ pub fn admit_selections(
             }
         }
         for field in question_field_references(&questions) {
-            if matches!(kind.fields.get(&field), Some(FieldSource::Target { .. })) {
+            let unavailable_source = match kind.fields.get(&field) {
+                Some(FieldSource::Target { .. }) => Some("target"),
+                Some(FieldSource::Document { .. }) => Some("document"),
+                _ => None,
+            };
+            if let Some(source) = unavailable_source {
                 errors.push(refusal(
                     path.with_key("question"),
-                    "selection question cannot name a target field",
+                    format!("selection question cannot name a {source} field"),
                 ));
             }
         }

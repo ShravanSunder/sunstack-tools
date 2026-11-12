@@ -8,6 +8,8 @@ use std::{
 pub enum CheckedReadError {
     #[error("file is outside the repository root or not a regular file")]
     NotContained,
+    #[error("file is missing")]
+    Missing { path: PathBuf },
     #[error("file exceeds the byte limit")]
     TooLarge,
     #[error("max_total_bytes")]
@@ -63,18 +65,19 @@ pub(crate) fn contained_target_identity(repository_root: &Path, path: &Path) -> 
     normalized_relative(relative)
 }
 impl CheckedFileSource for FrozenCheckedSource {
-    fn resolve_file(&self, path: &Path) -> Option<PathBuf> {
-        let normalized = normalized_relative(path).or_else(|| self.fallback.resolve_file(path))?;
-        if self.frozen.contains_key(&normalized) {
-            Some(normalized)
-        } else {
-            self.fallback.resolve_file(&normalized)
+    fn resolve_file(&self, path: &Path) -> Result<PathBuf, CheckedReadError> {
+        if let Some(normalized) = normalized_relative(path)
+            && self.frozen.contains_key(&normalized)
+        {
+            return Ok(normalized);
+        }
+        match self.fallback.resolve_file(path) {
+            Err(CheckedReadError::Missing { path }) if self.frozen.contains_key(&path) => Ok(path),
+            other => other,
         }
     }
     fn read_file(&mut self, path: &Path, max_bytes: usize) -> Result<String, CheckedReadError> {
-        let path = self
-            .resolve_file(path)
-            .ok_or(CheckedReadError::NotContained)?;
+        let path = self.resolve_file(path)?;
         if let Some(text) = self.frozen.get(&path) {
             self.acquired.insert(path);
             if text.len() > max_bytes {
@@ -91,7 +94,8 @@ impl CheckedFileSource for FrozenCheckedSource {
 
 /// Every acquisition of checked text or a target opening crosses this boundary.
 pub trait CheckedFileSource {
-    fn resolve_file(&self, path: &Path) -> Option<PathBuf>;
+    /// Resolve one checked file without acquiring bytes, preserving missing/outside identity.
+    fn resolve_file(&self, path: &Path) -> Result<PathBuf, CheckedReadError>;
     fn read_file(&mut self, path: &Path, max_bytes: usize) -> Result<String, CheckedReadError>;
     fn checked_files_acquired(&self) -> usize;
 }
@@ -111,20 +115,29 @@ impl FilesystemCheckedSource {
     }
 }
 impl CheckedFileSource for FilesystemCheckedSource {
-    fn resolve_file(&self, path: &Path) -> Option<PathBuf> {
-        let resolved = self.root.join(path).canonicalize().ok()?;
-        if !resolved.is_file() {
-            return None;
-        }
-        resolved
+    fn resolve_file(&self, path: &Path) -> Result<PathBuf, CheckedReadError> {
+        let requested = self.root.join(path);
+        let resolved = match requested.canonicalize() {
+            Ok(resolved) => resolved,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Err(CheckedReadError::Missing {
+                    path: missing_identity(&self.root, &requested)?,
+                });
+            }
+            Err(_) => return Err(CheckedReadError::Unreadable),
+        };
+        let path = resolved
             .strip_prefix(&self.root)
-            .ok()
             .map(Path::to_path_buf)
+            .map_err(|_| CheckedReadError::NotContained)?;
+        if resolved.is_file() {
+            Ok(path)
+        } else {
+            Err(CheckedReadError::Missing { path })
+        }
     }
     fn read_file(&mut self, path: &Path, max_bytes: usize) -> Result<String, CheckedReadError> {
-        let path = self
-            .resolve_file(path)
-            .ok_or(CheckedReadError::NotContained)?;
+        let path = self.resolve_file(path)?;
         let file =
             std::fs::File::open(self.root.join(&path)).map_err(|_| CheckedReadError::Unreadable)?;
         let mut bytes = Vec::new();
@@ -143,5 +156,32 @@ impl CheckedFileSource for FilesystemCheckedSource {
     }
     fn checked_files_acquired(&self) -> usize {
         self.acquired.len()
+    }
+}
+
+fn missing_identity(root: &Path, requested: &Path) -> Result<PathBuf, CheckedReadError> {
+    let mut ancestor = requested.to_path_buf();
+    let mut missing = Vec::new();
+    loop {
+        match ancestor.canonicalize() {
+            Ok(mut resolved) => {
+                for component in missing.iter().rev() {
+                    resolved.push(component);
+                }
+                return contained_target_identity(root, &resolved)
+                    .ok_or(CheckedReadError::NotContained);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let name = ancestor
+                    .file_name()
+                    .ok_or(CheckedReadError::NotContained)?
+                    .to_owned();
+                missing.push(name);
+                if !ancestor.pop() {
+                    return Err(CheckedReadError::NotContained);
+                }
+            }
+            Err(_) => return Err(CheckedReadError::Unreadable),
+        }
     }
 }
