@@ -196,13 +196,13 @@ describe('SDK apparatus rejects false greens', () => {
 	});
 	it('checks the native contract reply and refuses release/revision/target skew', async () => {
 		const contract = {
-			sdk_release: '0.12.0',
-			contract_revision: 1,
+			sdk_release: '0.13.0',
+			contract_revision: 3,
 			target: 'aarch64-apple-darwin',
 		};
 		const target = {
-			release: '0.12.0',
-			contractRevision: 1,
+			release: '0.13.0',
+			contractRevision: 3,
 			arch: 'arm64',
 			platform: 'darwin',
 			libc: 'none',
@@ -215,8 +215,9 @@ describe('SDK apparatus rejects false greens', () => {
 		).resolves.toEqual({ kind: 'ready', contract });
 		await Promise.all(
 			[
-				{ ...contract, sdk_release: 'wrong' },
+				{ ...contract, sdk_release: '0.12.1' },
 				{ ...contract, contract_revision: 2 },
+				{ ...contract, sdk_release: '0.12.1', contract_revision: 2 },
 				{ ...contract, target: 'x86_64-apple-darwin' },
 			].map((changed) =>
 				expect(
@@ -289,13 +290,14 @@ describe('SDK apparatus rejects false greens', () => {
 				path: `/consumer/${index}`,
 				sha256: 'c'.repeat(64),
 			})),
-			release: '0.1.0',
-			contractRevision: 1,
+			release: '0.13.0',
+			contractRevision: 3,
 			platform: 'darwin',
 			arch: 'arm64',
 			libc: 'none',
 		};
-		expect(sdkTargetSchema.safeParse(input).success).toBe(true);
+		const parsed = sdkTargetSchema.parse(input);
+		expect([parsed.release, parsed.contractRevision]).toEqual(['0.13.0', 3]);
 		expect(sdkTargetSchema.safeParse({ ...input, consumerRoot: './consumer' }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, addon: undefined }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, commit: 'abc123' }).success).toBe(false);
