@@ -82,6 +82,29 @@ await test('a loaded value executes its configuration and never its receipt', as
 	assert.equal(outcome.kind, 'invalid');
 });
 
+await test('a loaded wrapper executes its configuration, but an extra symbol key is refused before dispatch', async () => {
+	const { calls, sdk } = countedSdk();
+	assert.equal(
+		(await sdk.check(dynamicCallerValue({ configuration, sources: [] }))).kind,
+		'valid',
+		'the plain loaded form executes',
+	);
+	const withSymbol = { configuration, sources: [], [Symbol('extra')]: (): void => {} };
+	const refused = await sdk.check(dynamicCallerValue(withSymbol));
+	assert.deepEqual(
+		refused.kind === 'failed'
+			? [refused.failure.phase, refused.failure.effects, refused.failure.reason]
+			: refused.kind,
+		['before_dispatch', 'none', 'encoding_rejected'],
+	);
+	const ran = await sdk.run(dynamicCallerValue(withSymbol), {
+		root: base.path,
+		scope: { kind: 'all' },
+	});
+	assert.equal(ran.kind === 'failed' ? ran.failure.reason : ran.kind, 'encoding_rejected');
+	assert.deepEqual(calls, { check: 1, run: 0 }, 'only the plain loaded form reached native code');
+});
+
 await test('inputs that throw on inspection end as encoding_rejected with no native call', async () => {
 	const { calls, sdk } = countedSdk();
 	const throwingWrapper = {

@@ -62,15 +62,22 @@ function decodeReply<TOutcome>(
 }
 
 /**
- * Encode the executable configuration of either input form. Only an object whose
- * own keys are exactly `configuration` and `sources` is a loaded value; its receipt
+ * Encode the executable configuration of either input form. Only a plain object whose
+ * own keys (symbols included) are exactly `configuration` and `sources` is a loaded value; its receipt
  * never executes. Anything else is an authored configuration and crosses whole,
  * so unknown root keys still reach the strict Rust decoder.
  */
 function encodeConfigurationInput(input: ConfigurationInput): WireEncoding {
 	try {
-		const keys = Object.getOwnPropertyNames(input).toSorted();
-		const loaded = keys.length === 2 && keys[0] === 'configuration' && keys[1] === 'sources';
+		// Every own key counts, symbols included, and only a plain object can be a wrapper;
+		// anything else crosses whole and the encoder refuses what is not data.
+		const prototype: unknown = Object.getPrototypeOf(input);
+		const keys = Reflect.ownKeys(input);
+		const loaded =
+			(prototype === Object.prototype || prototype === null) &&
+			keys.length === 2 &&
+			keys.includes('configuration') &&
+			keys.includes('sources');
 		return encodeForNative(loaded ? Reflect.get(input, 'configuration') : input);
 	} catch (error) {
 		return {
