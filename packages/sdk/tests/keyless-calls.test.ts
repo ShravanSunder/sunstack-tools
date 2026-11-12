@@ -1,7 +1,7 @@
 // Keyless calls through the real addon: snapshots, check effects and run endings.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
@@ -162,8 +162,11 @@ await test('the sources receipt is never executable input', async () => {
 	);
 });
 
-await test('check admits an asking, filtered configuration with no key, request or checked root', async () => {
+await test('check admits an asking, filtered configuration with no key, request or checked input', async () => {
 	const base = ownedDirectory('base');
+	// Checked files under the definition base that nobody may list: any checked-input read refuses.
+	writeFiles(base.path, { 'skills/trap/SKILL.md': '# Trap\n' });
+	chmodSync(join(base.path, 'skills'), 0o000);
 	try {
 		const outcome = await check(inlineConfiguration(base.path, backend.endpoint));
 		assert.equal(outcome.kind, 'valid', outcome.kind === 'valid' ? '' : JSON.stringify(outcome));
@@ -177,7 +180,17 @@ await test('check admits an asking, filtered configuration with no key, request 
 			});
 		}
 		assert.equal(backend.received.length, 0, 'check sends no provider request');
+		// The trap is live: a run over the same tree cannot inspect it.
+		const control = await run(inlineConfiguration(base.path, backend.endpoint), {
+			root: base.path,
+			scope: { kind: 'all' },
+		});
+		assert.equal(
+			control.kind === 'invalid' ? control.diagnostics[0]?.code : control.kind,
+			'path_not_found',
+		);
 	} finally {
+		chmodSync(join(base.path, 'skills'), 0o700);
 		base.remove();
 	}
 });

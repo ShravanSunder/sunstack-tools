@@ -1,6 +1,9 @@
 // Model-backed runs through the real addon and Rust executor. Only model answers
 // come from the controlled loopback backend; this is not hosted-provider proof.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { chmodSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { test } from 'node:test';
 
 import type { Configuration, RunOutcome } from '../src/index.ts';
@@ -14,6 +17,7 @@ import type { OwnedDirectory } from './support/sdk-fixtures.ts';
 import {
 	inlineConfiguration,
 	ownedDirectory,
+	purposeFilter,
 	ruleEntries,
 	rulebookMarkdown,
 	writeFileProject,
@@ -63,6 +67,46 @@ const sharedBackend: ControlledBackend = await startControlledBackend();
 const repository: OwnedDirectory = ownedDirectory('skills');
 writeSkillRepository(repository.path);
 
+/** Every file under a directory with its content digest, for before/after comparison. */
+function treeInventory(directory: string): string[] {
+	return readdirSync(directory, { recursive: true, withFileTypes: true })
+		.map((entry) => join(entry.parentPath, entry.name))
+		.map((path) =>
+			statSync(path).isFile()
+				? `${relative(directory, path)} ${createHash('sha256').update(readFileSync(path)).digest('hex')}`
+				: `${relative(directory, path)}/`,
+		)
+		.toSorted();
+}
+
+/**
+ * Run with the temporary directory, working directory, definition base and checked root
+ * all read-only: creating any file there, even one removed before returning, fails the run.
+ */
+async function withoutWritableDirectories<TResult>(
+	directories: readonly string[],
+	call: () => Promise<TResult>,
+): Promise<TResult> {
+	const scratch = ownedDirectory('scratch-tmp');
+	const previousTemporary = process.env['TMPDIR'];
+	const previousDirectory = process.cwd();
+	const locked = [scratch.path, ...directories];
+	const before = locked.map(treeInventory);
+	for (const directory of locked) chmodSync(directory, 0o500);
+	process.env['TMPDIR'] = scratch.path;
+	process.chdir(scratch.path);
+	try {
+		return await call();
+	} finally {
+		process.chdir(previousDirectory);
+		if (previousTemporary === undefined) delete process.env['TMPDIR'];
+		else process.env['TMPDIR'] = previousTemporary;
+		for (const directory of locked) chmodSync(directory, 0o700);
+		assert.deepEqual(locked.map(treeInventory), before, 'no file appeared or changed');
+		scratch.remove();
+	}
+}
+
 await test('complete inline authoring runs without definition files and equals the file fixture', async () => {
 	const emptyBase = ownedDirectory('empty-base');
 	const project = ownedDirectory('project');
@@ -70,10 +114,12 @@ await test('complete inline authoring runs without definition files and equals t
 	answerSkillRequests(backend);
 	try {
 		const firstRequest = backend.received.length;
-		const inline = await run(inlineConfiguration(emptyBase.path, backend.endpoint), {
-			root: repository.path,
-			scope: { kind: 'all' },
-		});
+		const inline = await withoutWritableDirectories([emptyBase.path, repository.path], () =>
+			run(inlineConfiguration(emptyBase.path, backend.endpoint), {
+				root: repository.path,
+				scope: { kind: 'all' },
+			}),
+		);
 		const inlineRequests = backend.received.slice(firstRequest).map((request) => request.body);
 
 		writeFileProject(project.path, backend.endpoint);
@@ -125,6 +171,27 @@ await test('complete inline authoring runs without definition files and equals t
 				'instruction-standards#/evidence/matchers/paragraph',
 			],
 		);
+		// Each inline source is the exact admitted value, digested as reported.
+		for (const source of inline.report.sources) {
+			assert.equal(source.sha256, createHash('sha256').update(source.content).digest('hex'));
+			assert.equal(source.acquisition, 'inline');
+		}
+		const [root, markdown, entries, utility, matcher] = inline.report.sources;
+		assert.deepEqual(
+			inline.report.sources.map((source) => source.representation),
+			[
+				'normalized_value',
+				'original_text',
+				'normalized_value',
+				'normalized_value',
+				'normalized_value',
+			],
+		);
+		assert.equal(markdown?.content, rulebookMarkdown);
+		assert.deepEqual(JSON.parse(entries?.content ?? 'null'), ruleEntries);
+		assert.deepEqual(JSON.parse(root?.content ?? 'null').filters, { purpose: purposeFilter });
+		assert.deepEqual(JSON.parse(utility?.content ?? 'null').rule, { kind: 'paragraph' });
+		assert.deepEqual(JSON.parse(matcher?.content ?? 'null').rule, { matches: 'paragraph-node' });
 		assert.ok(file.report.sources.every((source) => source.origin.kind === 'file'));
 		assert.equal(inline.report.limits.max_file_bytes, 1_048_576n);
 		assert.equal(typeof inline.report.findings[0]?.line, 'bigint');
@@ -159,6 +226,11 @@ function askingConfiguration(id: string, base: string, endpoint: string): Config
 			},
 		],
 	} satisfies Configuration;
+}
+
+/** Whether a captured request came from the overlap test's run A. */
+function fromA(request: CapturedRequest): boolean {
+	return JSON.stringify(request.body).includes('run-a-marker');
 }
 
 async function requestFrom(
@@ -201,13 +273,20 @@ await test('aborting one of two overlapping runs cancels only that run and settl
 		const outcomeA = await runA;
 		assert.equal(outcomeA.kind, 'cancelled', describe(outcomeA));
 		if (outcomeA.kind === 'cancelled') assert.equal(outcomeA.report?.status.kind, 'cancelled');
-		await waitUntil(() => heldA.closedByClient(), 'A closed its in-flight request');
+		// Every request A sent must be closed by A's client. The server learns of a close
+		// on a later event-loop turn, so wait for that event, bounded; an A request that
+		// stays open (an uncancelled native request) times out and fails.
+		const requestsFromA = gated.received.filter(fromA);
+		assert.ok(requestsFromA.includes(heldA));
+		await waitUntil(
+			() => requestsFromA.every((request) => request.closedByClient()),
+			`all ${requestsFromA.length} run-A requests closed by the client`,
+		);
 		assert.ok(!heldB.closedByClient(), 'B is untouched');
 
 		answerNoul(heldB, 0.1);
-		for (const other of pending.filter((candidate) => candidate !== heldA && candidate !== heldB)) {
-			assert.ok(!JSON.stringify(other.body).includes('run-a-marker') || other.closedByClient());
-			if (!other.closedByClient()) answerNoul(other, 0.1);
+		for (const other of pending.filter((candidate) => candidate !== heldB && !fromA(candidate))) {
+			answerNoul(other, 0.1);
 		}
 		const outcomeB = await runB;
 		assert.equal(outcomeB.kind, 'completed', describe(outcomeB));
@@ -220,14 +299,8 @@ await test('aborting one of two overlapping runs cancels only that run and settl
 			});
 			assert.ok(outcomeB.report.findings.every((finding) => finding.file === 'notes/b.md'));
 		}
-		// Nothing from A arrives after A returned.
-		const afterA = gated.received.length;
-		await new Promise((resolve) => setTimeout(resolve, 200));
-		assert.ok(
-			gated.received
-				.slice(afterA)
-				.every((request) => !JSON.stringify(request.body).includes('run-a-marker')),
-		);
+		// While B ran to completion after A returned, A sent nothing more.
+		assert.deepEqual(gated.received.filter(fromA), requestsFromA);
 	} finally {
 		await gated.close();
 		base.remove();

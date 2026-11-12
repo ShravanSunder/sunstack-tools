@@ -243,12 +243,141 @@ async fn deleting_definition_files_after_load_does_not_affect_the_snapshot() {
     write_project(definitions.path(), checked.path());
     let project = definitions.path().join("lint");
     let held = load(&project).await;
+    // Remove every definition file and the config itself: nothing may be recaptured.
     std::fs::remove_dir_all(project.join("evidence")).unwrap();
     std::fs::remove_dir_all(project.join("standards")).unwrap();
-    assert_eq!(
-        finding_count(&run_all(transported(&held.configuration), checked.path()).await),
-        1
+    std::fs::remove_file(project.join("sunstack.lint.json")).unwrap();
+    let unchanged = run_all(transported(&held.configuration), checked.path()).await;
+    assert_eq!(finding_count(&unchanged), 1);
+    assert!(
+        completed_sources(&unchanged)
+            .iter()
+            .all(|source| source.acquisition == SnapshotAcquisition::SuppliedSnapshot),
+        "held sources are supplied snapshots, never new reads"
     );
+
+    // Edited values also execute without their original files.
+    let mut edited = serde_json::to_value(&held.configuration).unwrap();
+    edited["rulebooks"][0]["entries"]["value"]["K001"]["decision"]["steps"]["starts"]["mechanical_check"]
+        ["pattern"] = json!(RULE_B);
+    edited["evidence"]["matchers"]["skill"]["value"]["message"] = json!("edited matcher");
+    let edited = run_all(transported(&edited), checked.path()).await;
+    assert_eq!(finding_count(&edited), 0);
+    let edited_ids = completed_sources(&edited)
+        .into_iter()
+        .filter_map(|source| match source.origin {
+            DefinitionOrigin::Edited { id, .. } => Some(id),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(edited_ids.len(), 2, "{edited_ids:?}");
+    assert!(
+        edited_ids
+            .iter()
+            .any(|id| id.ends_with("#/rulebooks/0/entries"))
+    );
+    assert!(
+        edited_ids
+            .iter()
+            .any(|id| id.ends_with("#/evidence/matchers/skill"))
+    );
+}
+
+#[tokio::test]
+async fn root_settings_keep_their_file_origin_until_changed() {
+    let definitions = tempfile::tempdir().unwrap();
+    let checked = tempfile::tempdir().unwrap();
+    write_project(definitions.path(), checked.path());
+    std::fs::write(
+        checked.path().join("docs/two.md"),
+        "---\ndescription: Wrong again\n---\n",
+    )
+    .unwrap();
+    let held = load(&definitions.path().join("lint")).await;
+    let config_file = definitions
+        .path()
+        .join("lint/sunstack.lint.json")
+        .canonicalize()
+        .unwrap();
+    let unchanged = run_all(transported(&held.configuration), checked.path()).await;
+    let RunOutcome::Completed { report } = &unchanged else {
+        panic!("{unchanged:?}");
+    };
+    assert_eq!(report.configuration, DefinitionOrigin::file(&config_file));
+    assert_eq!(report.findings.len(), 2);
+
+    // A changed root setting executes and the root becomes an edited origin.
+    let mut narrowed = serde_json::to_value(&held.configuration).unwrap();
+    narrowed["check"]["files"] = json!(["docs/one.md"]);
+    let narrowed = run_all(transported(&narrowed), checked.path()).await;
+    let RunOutcome::Completed { report } = &narrowed else {
+        panic!("{narrowed:?}");
+    };
+    assert_eq!(report.findings.len(), 1);
+    let DefinitionOrigin::Edited { id, based_on } = &report.configuration else {
+        panic!("root must be edited: {:?}", report.configuration);
+    };
+    assert_eq!(id, &held.configuration.id);
+    assert_eq!(
+        based_on,
+        &sunstack_evidence::SourceLocator::File { path: config_file }
+    );
+    // Moving the definition base changes where file references resolve, not the root.
+    let mut moved = serde_json::to_value(&held.configuration).unwrap();
+    moved["base_directory"] = json!(checked.path());
+    assert_eq!(
+        finding_count(&run_all(transported(&moved), checked.path()).await),
+        2,
+        "captured definitions do not depend on the base directory"
+    );
+}
+
+#[tokio::test]
+async fn captured_source_format_and_identity_mismatches_are_refused() {
+    let definitions = tempfile::tempdir().unwrap();
+    let checked = tempfile::tempdir().unwrap();
+    write_project(definitions.path(), checked.path());
+    let held = load(&definitions.path().join("lint")).await;
+    let refused = |value: Value| async move {
+        match sdk_host::check(transported(&value), CancellationToken::new()).await {
+            CheckOutcome::Invalid { diagnostics } => diagnostics[0].code,
+            other => panic!("expected refusal: {other:?}"),
+        }
+    };
+    // Entries captured as Markdown, Markdown captured as entries, matcher as utility.
+    let mut entries_as_markdown = serde_json::to_value(&held.configuration).unwrap();
+    entries_as_markdown["rulebooks"][0]["entries"]["original"]["format"] = json!("markdown");
+    assert_eq!(
+        refused(entries_as_markdown).await,
+        DiagnosticCode::CaptureMetadataInvalid
+    );
+    let mut markdown_as_entries = serde_json::to_value(&held.configuration).unwrap();
+    markdown_as_entries["rulebooks"][0]["markdown"]["original"]["format"] =
+        json!("rule_entries_json");
+    assert_eq!(
+        refused(markdown_as_entries).await,
+        DiagnosticCode::CaptureMetadataInvalid
+    );
+    let mut matcher_as_utility = serde_json::to_value(&held.configuration).unwrap();
+    matcher_as_utility["evidence"]["matchers"]["skill"]["original"]["format"] =
+        json!("utility_yaml");
+    assert_eq!(
+        refused(matcher_as_utility).await,
+        DiagnosticCode::CaptureMetadataInvalid
+    );
+    // A whole-file source where a definition id is required.
+    let mut missing_id = serde_json::to_value(&held.configuration).unwrap();
+    missing_id["evidence"]["matchers"]["skill"]["original"]
+        .as_object_mut()
+        .unwrap()
+        .remove("definition_id");
+    // The untagged source union has no variant for a matcher format without an id.
+    assert!(sdk_host::decode_configuration(&missing_id.to_string()).is_err());
+    // Inline source IDs are unique within one bundle.
+    let base = tempfile::tempdir().unwrap();
+    let mut duplicate = inline_configuration(base.path(), RULE_A);
+    duplicate["rulebooks"][0]["id"] = json!("inline-standards");
+    assert_eq!(refused(duplicate).await, DiagnosticCode::DuplicateEntry);
 }
 
 #[tokio::test]

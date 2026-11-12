@@ -152,5 +152,9 @@ name = "sdk_facade"
 path = "tests/integration/sdk_facade.rs"
 
 [[test]]
+name = "sdk_facade_effects"
+path = "tests/integration/sdk_facade_effects.rs"
+
+[[test]]
 name = "credential_isolation"
 path = "tests/integration/credential_isolation.rs"
