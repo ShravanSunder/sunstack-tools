@@ -232,6 +232,7 @@ fn cutoff(cutoffs: &mut Vec<DiscoveryCutoff>, limit: DiscoveryLimit) {
         cutoffs.push(DiscoveryCutoff {
             limit,
             frontier: vec![],
+            path: None,
         });
     }
 }

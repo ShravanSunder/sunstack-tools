@@ -178,7 +178,7 @@ impl<'repo> RepositoryCapture<'repo> {
     }
     pub fn admit_history_commit(&mut self) -> bool {
         if self.history_commits >= self.available_history_commits {
-            self.limited(DiscoveryLimit::HistoryCommits);
+            self.limited(DiscoveryLimit::HistoryCommits, None);
             self.warn_scope(EvidenceCode::HistoryIncomplete);
             false
         } else {
@@ -196,13 +196,18 @@ impl<'repo> RepositoryCapture<'repo> {
             })
             .collect()
     }
-    pub fn limited(&mut self, limit: DiscoveryLimit) {
-        if !self.cutoffs.iter().any(|cutoff| cutoff.limit == limit) {
-            self.cutoffs.push(DiscoveryCutoff {
-                limit,
-                frontier: vec![],
-            });
+    pub fn limited(&mut self, limit: DiscoveryLimit, path: Option<&std::path::Path>) {
+        if let Some(cutoff) = self.cutoffs.iter_mut().find(|cutoff| cutoff.limit == limit) {
+            if cutoff.path.is_none() {
+                cutoff.path = path.map(std::path::Path::to_path_buf);
+            }
+            return;
         }
+        self.cutoffs.push(DiscoveryCutoff {
+            limit,
+            frontier: vec![],
+            path: path.map(std::path::Path::to_path_buf),
+        });
     }
     pub(super) fn check_cancel(&self) -> EvidenceResult<()> {
         if self.cancellation.is_cancelled() {
@@ -211,9 +216,9 @@ impl<'repo> RepositoryCapture<'repo> {
             Ok(())
         }
     }
-    pub(super) fn time_available(&mut self) -> bool {
+    pub(super) fn time_available(&mut self, path: Option<&std::path::Path>) -> bool {
         if self.deadline_exhausted() {
-            self.limited(DiscoveryLimit::LocalTime);
+            self.limited(DiscoveryLimit::LocalTime, path);
             false
         } else {
             true
@@ -228,7 +233,7 @@ impl<'repo> RepositoryCapture<'repo> {
         path: &PathBuf,
         side: SourceSide,
     ) -> EvidenceResult<Option<RawFileSide>> {
-        self.check_cancel()?;
+        self.check_cancel().map_err(|error| error.at_path(path))?;
         let FileCatalogue::Captured { revision, entries } = catalogue else {
             return Ok(Some(RawFileSide::Absent));
         };
@@ -273,24 +278,23 @@ impl<'repo> RepositoryCapture<'repo> {
             bytes.clone()
         } else {
             if self.read_files >= self.available_files {
-                self.limited(DiscoveryLimit::Files);
+                self.limited(DiscoveryLimit::Files, Some(path));
                 return Ok(None);
             }
-            if !self.time_available() {
+            if !self.time_available(Some(path)) {
                 return Ok(None);
             }
             let bytes = match target {
                 ReadTarget::Blob(oid) => {
-                    let blob = self
-                        .repository
-                        .find_blob(*oid)
-                        .map_err(|_| EvidenceCode::RevisionUnavailable)?;
+                    let blob = self.repository.find_blob(*oid).map_err(|_| {
+                        EvidenceError::from(EvidenceCode::RevisionUnavailable).at_path(path)
+                    })?;
                     if blob.size() > self.limits.max_file_bytes.get() {
-                        self.limited(DiscoveryLimit::FileBytes);
+                        self.limited(DiscoveryLimit::FileBytes, Some(path));
                         return Ok(None);
                     }
                     if self.total_bytes.saturating_add(blob.size()) > self.available_bytes {
-                        self.limited(DiscoveryLimit::TotalBytes);
+                        self.limited(DiscoveryLimit::TotalBytes, Some(path));
                         return Ok(None);
                     }
                     self.progress.repository_file();
@@ -298,7 +302,10 @@ impl<'repo> RepositoryCapture<'repo> {
                     blob.content().to_vec()
                 }
                 ReadTarget::Worktree => {
-                    let Some(bytes) = self.read_worktree_side_bytes(path)? else {
+                    let Some(bytes) = self
+                        .read_worktree_side_bytes(path)
+                        .map_err(|error| error.at_path(path))?
+                    else {
                         return Ok(None);
                     };
                     bytes
@@ -351,7 +358,13 @@ impl<'repo> RepositoryCapture<'repo> {
         let text = match String::from_utf8(bytes) {
             Ok(text) => text,
             Err(_) if !required => return Ok(CapturedFileSide::Absent),
-            Err(_) => return Err(EvidenceCode::UnsupportedEncoding.into()),
+            Err(_) => {
+                let mut error = EvidenceError::from(EvidenceCode::UnsupportedEncoding);
+                if let SourceRef::RepositoryFile { path, .. } = source {
+                    error.path = Some(path);
+                }
+                return Err(error);
+            }
         };
         let file = FrozenRepositoryFile { source, text, side };
         if let Some(coverage) = self
@@ -455,7 +468,8 @@ impl<'repo> RepositoryCapture<'repo> {
                 self.diagnostics
                     .push(Diagnostic::new(EvidenceCode::RecencyUnknown));
             }
-            let (old_spans, new_spans) = buffer_change_spans(old_text, new_text)?;
+            let (old_spans, new_spans) =
+                buffer_change_spans(old_text, new_text).map_err(|error| error.at_path(&path))?;
             changes.push(CapturedChange {
                 path,
                 before: old,
@@ -492,7 +506,7 @@ impl<'repo> RepositoryCapture<'repo> {
     }
     pub fn checkpoint(&mut self) -> EvidenceResult<bool> {
         self.check_cancel()?;
-        Ok(self.time_available())
+        Ok(self.time_available(None))
     }
     pub fn coverage(&self) -> DiscoveryCoverage {
         let query_bounds = QueryBounds {

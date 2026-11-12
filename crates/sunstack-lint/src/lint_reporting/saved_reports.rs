@@ -291,6 +291,62 @@ pub(crate) fn capture_requests(
         );
     }
 }
+enum SavedReportKind {
+    Lint,
+    PreparedCases,
+    CompletedCases,
+}
+impl SavedReportKind {
+    fn human_name(&self) -> &'static str {
+        match self {
+            Self::Lint => "lint report",
+            Self::PreparedCases => "prepared cases report",
+            Self::CompletedCases => "completed cases report",
+        }
+    }
+}
+
+/// Read an existing lint or cases report without config, source files or credentials.
+pub fn show_saved_report(bytes: &[u8], selector: &str) -> Result<serde_json::Value, String> {
+    let document: serde_json::Value =
+        serde_json::from_slice(bytes).map_err(|_| "malformed saved report JSON".to_string())?;
+    // These reports predate a kind tag. Classify their existing top-level sections
+    // before deserializing so a cases report never leaks a lint parser's error.
+    let kind = if document.get("cases").is_some() || document.get("runs").is_some() {
+        if document.get("mode").is_some() {
+            SavedReportKind::PreparedCases
+        } else {
+            SavedReportKind::CompletedCases
+        }
+    } else if document.get("results").is_some()
+        || (document.get("config").is_some() && document.get("status").is_some())
+    {
+        SavedReportKind::Lint
+    } else {
+        return Err("unsupported saved report kind; expected a lint report or cases report".into());
+    };
+    let name = kind.human_name();
+    match kind {
+        SavedReportKind::Lint => {
+            let report: LintReport = serde_json::from_value(document).map_err(|_| {
+                format!("malformed {name}; saved report fields are invalid or missing")
+            })?;
+            let id = selector
+                .parse::<usize>()
+                .map_err(|_| format!("{name} requires a numeric result id; got {selector}"))?;
+            show(&report, id).map_err(|reason| format!("{name}: {reason}"))
+        }
+        SavedReportKind::PreparedCases | SavedReportKind::CompletedCases => {
+            let report: crate::case_runs::CasesReport =
+                serde_json::from_value(document).map_err(|_| {
+                    format!("malformed {name}; saved report fields are invalid or missing")
+                })?;
+            crate::case_runs::show_case(&report, selector)
+                .map_err(|reason| format!("{name}: {reason}"))
+        }
+    }
+}
+
 /// Read one result using only the saved file, without config discovery, credentials or network.
 pub fn show(report: &LintReport, id: usize) -> Result<serde_json::Value, String> {
     if report.preparation.is_some()

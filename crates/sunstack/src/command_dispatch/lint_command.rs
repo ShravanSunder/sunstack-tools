@@ -111,21 +111,10 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
     }
     if let Some(LintCommand::Show { file, id }) = &arguments.command {
         let detail = std::fs::read(file)
-            .map_err(|error| error.to_string())
-            .and_then(
-                |bytes| match serde_json::from_slice::<sunstack_lint::LintReport>(&bytes) {
-                    Ok(report) => sunstack_lint::lint_reporting::saved_reports::show(&report, *id),
-                    Err(lint_error) => match serde_json::from_slice::<
-                        sunstack_lint::case_runs::CasesReport,
-                    >(&bytes)
-                    {
-                        Ok(report) if report.preparation.is_some() => {
-                            sunstack_lint::case_runs::show_prepared_case(&report, *id)
-                        }
-                        _ => Err(lint_error.to_string()),
-                    },
-                },
-            );
+            .map_err(|error| format!("cannot read saved report {}: {error}", file.display()))
+            .and_then(|bytes| {
+                sunstack_lint::lint_reporting::saved_reports::show_saved_report(&bytes, id)
+            });
         return match detail {
             Ok(detail) => json_output(&detail),
             Err(error) => {

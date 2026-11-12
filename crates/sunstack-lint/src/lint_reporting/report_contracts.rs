@@ -187,6 +187,9 @@ pub struct UsageSummary {
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintDiagnostic {
     pub file: Option<PathBuf>,
+    /// Source that stopped execution, distinct from its owning configuration file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<PathBuf>,
     pub line: Option<u32>,
     pub column: Option<u32>,
     pub code: LintInvalidCode,
@@ -196,11 +199,17 @@ impl From<LintInvalid> for LintDiagnostic {
     fn from(error: LintInvalid) -> Self {
         Self {
             file: Some(error.file),
+            path: None,
             line: error.line,
             column: error.column,
             code: error.code,
             message: error.message,
         }
+    }
+}
+impl LintDiagnostic {
+    pub(crate) fn location_path(&self) -> Option<&std::path::Path> {
+        self.path.as_deref().or(self.file.as_deref())
     }
 }
 

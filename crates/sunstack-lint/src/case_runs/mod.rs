@@ -2,9 +2,11 @@
 mod bars;
 mod contracts;
 mod matching;
+mod saved_readback;
 mod snapshots;
 use crate::{configuration_loading::config_validation::load_checked_rulebook, *};
 pub use contracts::*;
+pub use saved_readback::{show_case, show_prepared_case};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
@@ -430,28 +432,4 @@ async fn run_cases_internal(
         };
     }
     Ok(report)
-}
-
-/// A prepared case report uses its stable case-array order, not colliding nested request IDs.
-pub fn show_prepared_case(
-    report: &CasesReport,
-    ordinal: usize,
-) -> Result<serde_json::Value, String> {
-    if report.preparation.is_none() {
-        return Err("case readback requires a prepared report".into());
-    }
-    let case = ordinal
-        .checked_sub(1)
-        .and_then(|index| report.cases.get(index))
-        .ok_or_else(|| format!("unknown case ordinal {ordinal}"))?;
-    let mut detail = serde_json::json!({"case": case, "revision": case.definition.revision});
-    if let Some(id) = case.result_id {
-        let run = report
-            .runs
-            .iter()
-            .find(|run| run.revision == case.definition.revision)
-            .ok_or_else(|| "case revision evidence is missing".to_string())?;
-        detail["detail"] = crate::lint_reporting::saved_reports::show(&run.report, id)?;
-    }
-    Ok(detail)
 }

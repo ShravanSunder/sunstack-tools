@@ -103,12 +103,13 @@ async fn equal_binary_worktree_keeps_exact_changed_text_and_mutation_guard() {
         .await
         .unwrap();
     std::fs::write(fixture.directory.path().join("asset.png"), b"\x89changed").unwrap();
+    let error = verify_change_capture(&captured, CancellationToken::new())
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, EvidenceCode::SourceChanged);
     assert_eq!(
-        verify_change_capture(&captured, CancellationToken::new())
-            .await
-            .unwrap_err()
-            .code,
-        EvidenceCode::SourceChanged
+        serde_json::to_value(error.diagnostic()).unwrap()["path"],
+        "asset.png"
     );
 }
 
@@ -216,7 +217,16 @@ async fn equal_binary_obeys_file_and_byte_budgets() {
             .await
             .unwrap();
         assert!(
-            matches!(captured.coverage, DiscoveryCoverage::Limited { cutoffs, .. } if cutoffs.iter().any(|cutoff| cutoff.limit == limit))
+            matches!(&captured.coverage, DiscoveryCoverage::Limited { cutoffs, .. } if cutoffs.iter().any(|cutoff| cutoff.limit == limit))
+        );
+        let expected_path = if limit == DiscoveryLimit::FileBytes {
+            "asset.png"
+        } else {
+            "selected.md"
+        };
+        assert_eq!(
+            serde_json::to_value(&captured.coverage).unwrap()["cutoffs"][0]["path"],
+            expected_path
         );
         if limit != DiscoveryLimit::FileBytes {
             assert!(captured.members[0].changes.is_empty());
@@ -248,14 +258,51 @@ async fn selected_invalid_before_or_after_still_refuses_encoding() {
             },
         )
         .unwrap();
+        let error = capture_change_selection(request(&fixture, base), CancellationToken::new())
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, EvidenceCode::UnsupportedEncoding);
         assert_eq!(
-            capture_change_selection(request(&fixture, base), CancellationToken::new())
-                .await
-                .unwrap_err()
-                .code,
-            EvidenceCode::UnsupportedEncoding
+            serde_json::to_value(error.diagnostic()).unwrap()["path"],
+            "selected.md"
         );
     }
+}
+
+#[tokio::test]
+async fn changed_index_refusal_names_the_captured_path() {
+    // Arrange: the index snapshot is stable before a second staged mutation.
+    let (fixture, _) = fixture_with_binary();
+    fixture.stage("selected.md");
+    let captured = capture_change_selection(
+        ChangeCaptureRequest {
+            binding: fixture.binding(ChangeScope::Uncommitted {
+                layers: vec![DirtyLayer::Staged],
+            }),
+            limits: discovery_limits(),
+            anchor_utc: anchor(),
+        },
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    verify_change_capture(&captured, CancellationToken::new())
+        .await
+        .unwrap();
+
+    // Act: replace the staged blob after its immutable identity was captured.
+    fixture.write("selected.md", "Later staged bytes.\n");
+    fixture.stage("selected.md");
+    let error = verify_change_capture(&captured, CancellationToken::new())
+        .await
+        .unwrap_err();
+
+    // Assert: the refused source is explicit, independently of the error code.
+    assert_eq!(error.code, EvidenceCode::SourceChanged);
+    assert_eq!(
+        serde_json::to_value(error.diagnostic()).unwrap()["path"],
+        "selected.md"
+    );
 }
 
 #[tokio::test]

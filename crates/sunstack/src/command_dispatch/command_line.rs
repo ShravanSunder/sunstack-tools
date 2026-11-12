@@ -87,6 +87,6 @@ pub enum LintCommand {
         #[arg(long)]
         set: Option<String>,
     },
-    /// Explain one numbered result using only a saved report.
-    Show { file: PathBuf, id: usize },
+    /// Explain a result ID or case ID using only a saved report.
+    Show { file: PathBuf, id: String },
 }

@@ -58,12 +58,13 @@ async fn equal_link_payload_is_stable_but_payload_or_type_mutation_refuses() {
         .unwrap();
     std::fs::remove_file(&alias).unwrap();
     symlink("different.md", &alias).unwrap();
+    let error = verify_change_capture(&captured, CancellationToken::new())
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, EvidenceCode::SourceChanged);
     assert_eq!(
-        verify_change_capture(&captured, CancellationToken::new())
-            .await
-            .unwrap_err()
-            .code,
-        EvidenceCode::SourceChanged
+        serde_json::to_value(error.diagnostic()).unwrap()["path"],
+        "CLAUDE.md"
     );
     std::fs::remove_file(&alias).unwrap();
     symlink("AGENTS.md", &alias).unwrap();

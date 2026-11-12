@@ -232,6 +232,7 @@ pub fn select_source_units(
                         cutoffs.push(DiscoveryCutoff {
                             limit: DiscoveryLimit::Matches,
                             frontier: selected.keys().cloned().collect(),
+                            path: None,
                         });
                         break 'selectors;
                     }
@@ -341,6 +342,7 @@ pub fn select_change_set(
             cutoffs.push(DiscoveryCutoff {
                 limit: DiscoveryLimit::Matches,
                 frontier: vec![],
+                path: None,
             });
             break;
         }

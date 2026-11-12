@@ -16,8 +16,12 @@ mod prepare_boundaries;
 mod prepare_requests;
 #[path = "rulebook_lint_process/result_history.rs"]
 mod result_history;
+#[path = "rulebook_lint_process/saved_report_show.rs"]
+mod saved_report_show;
 #[path = "rulebook_lint_process/saved_reports.rs"]
 mod saved_reports;
+#[path = "rulebook_lint_process/scope_diagnostics.rs"]
+mod scope_diagnostics;
 #[path = "../support/mod.rs"]
 mod support;
 #[path = "rulebook_lint_process/unsure_summary.rs"]

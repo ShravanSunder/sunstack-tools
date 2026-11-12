@@ -105,6 +105,7 @@ impl Preparation {
                         .iter()
                         .map(|unit| unit.unit.key.clone())
                         .collect(),
+                    path: None,
                 });
             }
         }

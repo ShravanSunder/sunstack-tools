@@ -26,6 +26,7 @@ fn failed(mut report: LintReport, message: &str) -> LintReport {
     });
     report.diagnostics.push(LintDiagnostic {
         file: None,
+        path: None,
         line: None,
         column: None,
         code: LintInvalidCode::Syntax,
@@ -318,7 +319,7 @@ async fn run_internal(
                     }],
                     change_scope,
                 },
-                limits: discovery,
+                limits: discovery.clone(),
                 anchor_utc: chrono::Utc::now(),
             },
             cancellation.clone(),
@@ -327,21 +328,19 @@ async fn run_internal(
         let capture = match capture {
             Ok(capture) => capture,
             Err(error) => {
-                return invalid(
-                    report,
-                    LintInvalid::at(
-                        &location.file,
-                        LintInvalidCode::Syntax,
-                        format!("cannot resolve change scope: {:?}", error.code),
-                    ),
-                );
+                return super::scope_diagnostics::capture_refusal(report, &selection.root, error);
             }
         };
         if !matches!(
             capture.coverage,
             DiscoveryCoverage::CompleteWithinDeclaredScope { .. }
         ) {
-            return failed(report, "change discovery reached a limit");
+            return super::scope_diagnostics::incomplete_capture(
+                report,
+                &selection.root,
+                &capture.coverage,
+                &discovery,
+            );
         }
         changes = capture
             .members
@@ -376,6 +375,7 @@ async fn run_internal(
         files.truncate(report.limits.max_files as usize);
         report.diagnostics.push(LintDiagnostic {
             file: None,
+            path: None,
             line: None,
             column: None,
             code: LintInvalidCode::Syntax,

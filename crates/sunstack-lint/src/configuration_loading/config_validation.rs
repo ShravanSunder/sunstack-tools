@@ -252,7 +252,7 @@ pub(crate) fn native_diagnostics(
         .items
         .into_iter()
         .map(|item| {
-            let (file, line, column, message) = match item {
+            let (file, line, column, path, message) = match item {
                 sunstack_rules::ReportDiagnostic::Rule(diagnostic) => {
                     let (file, line, column) = match diagnostic.location {
                         sunstack_rules::RuleDiagnosticLocation::Definition {
@@ -267,15 +267,17 @@ pub(crate) fn native_diagnostics(
                         ),
                         _ => (None, None, None),
                     };
-                    (file, line, column, diagnostic.guidance)
+                    (file, line, column, None, diagnostic.guidance)
                 }
                 sunstack_rules::ReportDiagnostic::Evidence(diagnostic) => (
                     None,
                     None,
                     None,
+                    diagnostic.path,
                     format!("Evidence admission refused: {:?}.", diagnostic.code),
                 ),
                 sunstack_rules::ReportDiagnostic::Decision(diagnostic) => (
+                    None,
                     None,
                     None,
                     None,
@@ -299,6 +301,7 @@ pub(crate) fn native_diagnostics(
                         .as_ref()
                         .map(|source| source.location.file.clone())
                 }),
+                path,
                 line: line.or(Some(1)),
                 column: column.or(Some(1)),
                 code,

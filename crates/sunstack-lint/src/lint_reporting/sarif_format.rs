@@ -179,8 +179,8 @@ pub(crate) fn render_sarif(report: &LintReport) -> Result<String, serde_json::Er
                 text: &diagnostic.message,
             },
             locations: diagnostic
-                .file
-                .iter()
+                .location_path()
+                .into_iter()
                 .map(|file| {
                     location(
                         file,
