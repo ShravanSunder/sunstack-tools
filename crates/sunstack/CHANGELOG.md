@@ -10,6 +10,8 @@ Release date: 2026-11-12.
   not contribute headings. Markdown URLs now percent-decode UTF-8 paths and
   fragments once, so file_exists also handles `%20` paths. HTML target behavior
   stays unchanged.
+- `path_or_skill` treats `foo.md#x` as a file path with a fragment; earlier
+  versions treated the whole fragment-bearing string as a skill name.
 - Rulebook kinds accept exclusive `markdown_units` unit selectors. Section
   fields expose full, own and enclosing own source text, retaining exact spans
   when own text has multiple segments. Existing selector ranges remain: only
