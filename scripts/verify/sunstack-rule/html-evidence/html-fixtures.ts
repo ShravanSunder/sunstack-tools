@@ -112,24 +112,30 @@ export function prepareRealForward(options: { root: string; source: string }): v
 	);
 }
 export function prepareTokenFixture(root: string): ExpectedControl[] {
-	const cases = [
-		['start', 'R1'],
-		['punctuation', '(R1)'],
-		['slash', 'R1 / U1'],
-		['longer', 'R10'],
-		['prefix', 'XR1'],
-		['underscore-before', '_R1'],
-		['underscore-after', 'R1_extra'],
-		['unicode-letter', '文R1'],
-		['unicode-digit', 'R1٢'],
-	] as const;
+	const cases: readonly [string, string, string, ExpectedControl['outcome']][] = [
+		['start', 'R1', 'R1', 'pass'],
+		['punctuation', 'R1', '(R1)', 'pass'],
+		['slash', 'R1', 'R1 / U1', 'pass'],
+		['longer', 'R1', 'R10', 'finding'],
+		['prefix', 'R1', 'XR1', 'finding'],
+		['underscore-before', 'R1', '_R1', 'finding'],
+		['underscore-after', 'R1', 'R1_extra', 'finding'],
+		['unicode-letter', 'R1', '文R1', 'finding'],
+		['unicode-digit', 'R1', 'R1٢', 'finding'],
+		['overlap-fallback', 'A-A', 'XA-A-A', 'pass'],
+		['overlap-no-valid', 'A-A', 'XA-A-AX', 'finding'],
+		['nonoverlap-valid', 'A-A', 'X A-A / Z', 'pass'],
+		['nonoverlap-invalid', 'A-A', 'XA-A', 'finding'],
+		['unicode-overlap', '猫-猫', 'X猫-猫-猫', 'pass'],
+		['unicode-overlap-invalid', '猫-猫', '文猫-猫文', 'finding'],
+	];
 	const expected: ExpectedControl[] = [];
-	for (const [index, [name, target]] of cases.entries()) {
+	for (const [name, needle, target, outcome] of cases) {
 		const directory = path.join(root, 'cases', name);
 		filesystem.mkdirSync(directory, { recursive: true });
 		filesystem.writeFileSync(
 			path.join(directory, 'source.html'),
-			'<p data-needle="R1">An authored token.</p>\n',
+			`<p data-needle="${needle}">An authored token.</p>\n`,
 		);
 		filesystem.writeFileSync(
 			path.join(directory, 'target.html'),
@@ -137,7 +143,7 @@ export function prepareTokenFixture(root: string): ExpectedControl[] {
 		);
 		expected.push({
 			file: `cases/${name}/source.html`,
-			outcome: index < 3 ? 'pass' : 'finding',
+			outcome,
 			reason: `whole-token ${name}`,
 		});
 	}
