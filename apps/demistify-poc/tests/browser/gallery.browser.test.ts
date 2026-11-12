@@ -841,6 +841,74 @@ test('gallery walkthrough uses one floating player, two-axis keys and an explici
 		.toBeVisible();
 });
 
+/**
+ * Resolve after the fixture's next ResizeObserver delivery for `element`. A new observer's
+ * first notification comes in the delivery step after the gallery's own, earlier observer,
+ * so a refit queued by a pending resize has run. An animation-frame callback runs before
+ * that step and is not this boundary.
+ */
+async function nextObserverDelivery(element: Element): Promise<void> {
+	const view = element.ownerDocument.defaultView;
+	if (!view) throw new Error('The element is not in a rendered document.');
+	return new Promise<void>((resolve) => {
+		const observer = new view.ResizeObserver((): void => {
+			observer.disconnect();
+			resolve();
+		});
+		observer.observe(element);
+	});
+}
+
+function previewWidth(gallery: Element): number {
+	return requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect().width;
+}
+
+/** The preview image width once it holds across two ResizeObserver deliveries. */
+async function settledPreviewWidth(gallery: Element): Promise<number> {
+	const stage = requiredElement(gallery, '.ex-gallery-preview');
+	let settled = Number.NaN;
+	await expect
+		.poll(async (): Promise<number> => {
+			await nextObserverDelivery(stage);
+			const before = previewWidth(gallery);
+			await nextObserverDelivery(stage);
+			settled = previewWidth(gallery);
+			return settled - before;
+		})
+		.toBe(0);
+	return settled;
+}
+
+test('a filled preview refits to a pending stage resize only when its observer delivers', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui', '', 'journey.html');
+	const gallery = requiredElement(fixture, '#journey-gallery');
+	const local = fixtureLocator(frame, gallery);
+	await local.getByRole('button', { name: 'One Desktop', exact: true }).click();
+	await local.getByRole('button', { name: 'Fill screenshot', exact: true }).click();
+	await expect
+		.poll(
+			(): number =>
+				gallery.querySelector<HTMLImageElement>('.ex-gallery-preview img')?.naturalWidth ?? 0,
+		)
+		.toBe(1000);
+	const filled = await settledPreviewWidth(gallery);
+	// A real 1px narrower layout queues a stage resize. An animation-frame callback runs
+	// before resize observation, so it still reads the old width; once the observer delivers,
+	// the fill follows the new stage.
+	const body = requiredElement(gallery, '.ex-gallery-body');
+	body.setAttribute('style', `width: ${body.getBoundingClientRect().width - 1}px`);
+	const stage = requiredElement(gallery, '.ex-gallery-preview');
+	const view = stage.ownerDocument.defaultView;
+	if (!view) throw new Error('Missing fixture window.');
+	const atNextFrame = await new Promise<number>((resolve) => {
+		view.requestAnimationFrame((): void => resolve(previewWidth(gallery)));
+	});
+	expect(atNextFrame).toBe(filled);
+	await nextObserverDelivery(stage);
+	expect(previewWidth(gallery)).toBe(filled - 1);
+	expect(await settledPreviewWidth(gallery)).toBe(filled - 1);
+});
+
 test('gallery walkthrough restores browse filters, selection and zoom; variation switching can be omitted', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui', '', 'journey.html');
 	const gallery = requiredElement(fixture, '#journey-gallery');
@@ -865,25 +933,15 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 	await expect
 		.element(fixtureLocator(frame, requiredElement(gallery, '.ex-gallery-strip')))
 		.not.toBeVisible();
-	// The thumbnail column collapses over a CSS transition, and the preview refits on every
-	// frame until it ends. Take the filled width only from settled geometry: the collapsed
-	// column is final, and the image width then holds across a rendered frame, so its last
-	// ResizeObserver refit has landed.
+	// The thumbnail column collapses over a CSS transition and the preview refits on every
+	// frame until it ends. Take the filled width from settled geometry only: the collapsed
+	// column is final, then the width holds across the fixture's ResizeObserver deliveries.
 	const body = requiredElement(gallery, '.ex-gallery-body');
 	await expect
 		.poll((): string | undefined => getComputedStyle(body).gridTemplateColumns.split(' ')[0])
 		.toBe('0px');
-	const imageWidth = (): number =>
-		requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect().width;
-	await expect
-		.poll(async (): Promise<number> => {
-			const before = imageWidth();
-			await new Promise<number>((resolve) => requestAnimationFrame(resolve));
-			return imageWidth() - before;
-		})
-		.toBe(0);
-	await expect.poll(imageWidth).toBeGreaterThan(widthWithThumbnails);
-	const filledWidth = imageWidth();
+	const filledWidth = await settledPreviewWidth(gallery);
+	expect(filledWidth).toBeGreaterThan(widthWithThumbnails);
 	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
 	await frame
