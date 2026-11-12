@@ -80,9 +80,19 @@ function markdownConfiguration(
 	};
 }
 
-function reportOf(outcome: Awaited<ReturnType<typeof run>>): SdkReport {
-	if (outcome.kind === 'completed' || outcome.kind === 'incomplete') return outcome.report;
-	throw new Error(`run did not reach a report: ${outcome.kind}`);
+/**
+ * The report of a run that must complete clean: these mechanical `complete` rules pass on
+ * every selected unit, and an unsupported anchor is a field value, not unfinished work.
+ * main 0.14.0's CLI gives the same ending for these definitions (exit 0, clean, no
+ * findings, incomplete parts or diagnostics).
+ */
+function cleanReport(outcome: Awaited<ReturnType<typeof run>>): SdkReport {
+	assert.equal(outcome.kind, 'completed');
+	if (outcome.kind !== 'completed') throw new Error('unreachable');
+	const { report } = outcome;
+	assert.equal(report.status.kind, 'clean');
+	assert.deepEqual([report.findings, report.incomplete, report.diagnostics], [[], [], []]);
+	return report;
 }
 
 function textOf(report: SdkReport, piece: number, field: string): string | undefined {
@@ -105,7 +115,7 @@ writeFiles(repository.path, {
 });
 
 await test('Markdown sections expose full, own and enclosing own text; a top-level section has no parent', async () => {
-	const report = reportOf(
+	const report = cleanReport(
 		await run(
 			markdownConfiguration(
 				repository.path,
@@ -137,7 +147,7 @@ await test('Markdown sections expose full, own and enclosing own text; a top-lev
 await test('paragraph and list-item units select their own pieces', async () => {
 	const counts = await Promise.all(
 		(['paragraph', 'list_item'] as const).map(async (unit) => {
-			const report = reportOf(
+			const report = cleanReport(
 				await run(
 					markdownConfiguration(
 						repository.path,
@@ -157,7 +167,7 @@ await test('paragraph and list-item units select their own pieces', async () => 
 });
 
 await test('Markdown fragment targets resolve heading slugs, duplicates, explicit ids and decoded fragments', async () => {
-	const report = reportOf(
+	const report = cleanReport(
 		await run(
 			markdownConfiguration(
 				repository.path,
