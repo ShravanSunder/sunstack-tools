@@ -420,3 +420,67 @@ async fn identity_only_index_entries_still_refuse_index_mutation_after_capture()
         "stable\n"
     );
 }
+
+#[tokio::test]
+async fn hash_read_bytes_accumulate_across_unchanged_paths() {
+    // Arrange: every individual file fits both caps; only their aggregate can exhaust total bytes.
+    let fixture = GitFixture::new();
+    for file in ["a.md", "b.md", "c.md"] {
+        fixture.write(file, "same\n");
+        fixture.stage(file);
+    }
+    let base = fixture.commit(1000);
+    let mut exact = request(&fixture, base, ContextCapture::ChangedOnly);
+    exact.limits.max_files = 1.try_into().unwrap();
+    exact.limits.max_total_bytes = 15.try_into().unwrap();
+    let positive = capture_change_selection(exact.clone(), CancellationToken::new())
+        .await
+        .unwrap();
+    assert!(matches!(
+        positive.coverage,
+        DiscoveryCoverage::CompleteWithinDeclaredScope { .. }
+    ));
+    assert_eq!(positive.acquired_file_count(), 0);
+    assert!(positive.sources.is_empty());
+    // Act: one byte less than the sum must stop the third identity probe.
+    exact.limits.max_total_bytes = 14.try_into().unwrap();
+    let limited = capture_change_selection(exact, CancellationToken::new())
+        .await
+        .unwrap();
+    // Assert: no acquisition or frozen context hides the cumulative hashing charge.
+    assert!(
+        matches!(&limited.coverage,DiscoveryCoverage::Limited {cutoffs,..} if cutoffs.iter().any(|cutoff|cutoff.limit==DiscoveryLimit::TotalBytes && cutoff.path==Some(PathBuf::from("c.md"))))
+    );
+    assert_eq!(limited.acquired_file_count(), 0);
+    assert!(limited.sources.is_empty());
+}
+
+#[tokio::test]
+async fn hash_bytes_and_acquisition_bytes_share_the_total_budget() {
+    // Arrange: four hash bytes plus two four-byte acquisitions exactly fill the existing budget.
+    let fixture = GitFixture::new();
+    fixture.write("changed.md", "old\n");
+    fixture.stage("changed.md");
+    let base = fixture.commit(1000);
+    fixture.write("changed.md", "new\n");
+    let mut exact = request(&fixture, base, ContextCapture::ChangedOnly);
+    exact.limits.max_total_bytes = 12.try_into().unwrap();
+    let positive = capture_change_selection(exact.clone(), CancellationToken::new())
+        .await
+        .unwrap();
+    assert!(matches!(
+        positive.coverage,
+        DiscoveryCoverage::CompleteWithinDeclaredScope { .. }
+    ));
+    assert_eq!(positive.acquired_file_count(), 2);
+    // Act: a one-byte deficit must stop acquisition after the hash has already been charged.
+    exact.limits.max_total_bytes = 11.try_into().unwrap();
+    let limited = capture_change_selection(exact, CancellationToken::new())
+        .await
+        .unwrap();
+    // Assert: identity and acquisition reads consume one shared total, without a new limit.
+    assert!(
+        matches!(&limited.coverage,DiscoveryCoverage::Limited {cutoffs,..} if cutoffs.iter().any(|cutoff|cutoff.limit==DiscoveryLimit::TotalBytes && cutoff.path==Some(PathBuf::from("changed.md"))))
+    );
+    assert_eq!(limited.acquired_file_count(), 1);
+}
