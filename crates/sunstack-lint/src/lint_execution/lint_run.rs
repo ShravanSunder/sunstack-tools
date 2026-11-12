@@ -101,7 +101,11 @@ async fn run_internal(
             .config_path
             .clone()
             .unwrap_or_else(|| "sunstack.lint.json".into()),
-        request.scope.clone(),
+        if request.paths.is_empty() {
+            request.scope.clone()
+        } else {
+            ScopeChoice::All
+        },
         EffectiveLimits::default(),
     );
     if preparing {
@@ -199,31 +203,6 @@ async fn run_internal(
         .iter()
         .any(|rule| rule.gate.is_some());
     let model_work = selected || (request.evidence_listing.is_none() && (asking || gated));
-    let key = api_key.as_deref().filter(|key| !key.trim().is_empty());
-    if model_work && !preparing && key.is_none() {
-        return invalid(
-            report,
-            LintInvalid::at(
-                &location.file,
-                LintInvalidCode::CredentialMissing,
-                "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save first.",
-            ),
-        );
-    }
-    let backend = if model_work && preparing {
-        match super::backend_factory::prepare_encoding_backend(&config) {
-            Ok(backend) => Some(backend),
-            Err(error) => return invalid(report, error),
-        }
-    } else if model_work {
-        match key.map(|key| prepare_backend(&config, key)) {
-            Some(Ok(backend)) => Some(backend),
-            Some(Err(error)) => return invalid(report, error),
-            None => None,
-        }
-    } else {
-        None
-    };
     let selected_config = config.clone();
     let paths = request.paths.clone();
     let selected_cwd = cwd.clone();
@@ -252,7 +231,16 @@ async fn run_internal(
             ),
         );
     }
-    let full = matches!(request.scope, ScopeChoice::All) || !request.paths.is_empty();
+    let keyless_empty_scope = model_work && !preparing && request.evidence_listing.is_none();
+    if keyless_empty_scope && selection.files.is_empty() {
+        report.status = if report.incomplete.is_empty() {
+            LintStatus::NothingSelected
+        } else {
+            LintStatus::Incomplete
+        };
+        return report;
+    }
+    let full = matches!(report.scope.kind, ScopeChoice::All);
     let mut changes = Vec::new();
     let mut frozen = BTreeMap::new();
     let mut full = full;
@@ -371,6 +359,39 @@ async fn run_internal(
     if full {
         report.scope.kind = ScopeChoice::All;
     }
+    if keyless_empty_scope && !full && changes.is_empty() {
+        report.status = if report.incomplete.is_empty() {
+            LintStatus::NothingSelected
+        } else {
+            LintStatus::Incomplete
+        };
+        return report;
+    }
+    let key = api_key.as_deref().filter(|key| !key.trim().is_empty());
+    if model_work && !preparing && key.is_none() {
+        return invalid(
+            report,
+            LintInvalid::at(
+                &location.file,
+                LintInvalidCode::CredentialMissing,
+                "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save first.",
+            ),
+        );
+    }
+    let backend = if model_work && preparing {
+        match super::backend_factory::prepare_encoding_backend(&config) {
+            Ok(backend) => Some(backend),
+            Err(error) => return invalid(report, error),
+        }
+    } else if model_work {
+        match key.map(|key| prepare_backend(&config, key)) {
+            Some(Ok(backend)) => Some(backend),
+            Some(Err(error)) => return invalid(report, error),
+            None => None,
+        }
+    } else {
+        None
+    };
     let mut files = selection.files;
     if files.len() > report.limits.max_files as usize {
         files.truncate(report.limits.max_files as usize);
