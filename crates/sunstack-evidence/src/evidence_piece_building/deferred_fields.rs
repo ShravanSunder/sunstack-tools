@@ -10,34 +10,21 @@ impl EvidenceBuild {
         let limit = definition
             .max_chars
             .map_or(self.limits.evidence_max_chars, |value| value.get() as usize);
-        if fields.values().any(FieldValue::is_selection_pending) {
-            return crate::ModelView::SelectionPending;
-        }
-        let html = self
-            .project
-            .language_for_rule(&definition.matcher.rule_id(kind))
-            == Some(crate::EvidenceLanguage::Html);
-        let projected = fields
+        crate::project_kind_model_view(&self.project, kind, definition, fields, limit)
+    }
+    pub(super) fn project_selection_fields(
+        &self,
+        kind: &EvidenceKindName,
+        definition: &EvidenceKindDefinition,
+        fields: &BTreeMap<FieldName, FieldValue>,
+        max_chars: usize,
+    ) -> crate::ModelView {
+        let available = fields
             .iter()
-            .map(|(name, value)| {
-                let strip = match definition.fields.get(name) {
-                    Some(FieldSource::Document { rule, .. }) => {
-                        self.project.language_for_rule(rule) == Some(crate::EvidenceLanguage::Html)
-                    }
-                    Some(FieldSource::Target { .. }) => true,
-                    _ => html,
-                };
-                (
-                    name.clone(),
-                    if strip {
-                        html_field_value(value)
-                    } else {
-                        value.clone()
-                    },
-                )
-            })
+            .filter(|(_, value)| !matches!(value, FieldValue::Unavailable { .. }))
+            .map(|(name, value)| (name.clone(), value.clone()))
             .collect();
-        project_model_view(&projected, limit)
+        crate::project_kind_model_view(&self.project, kind, definition, &available, max_chars)
     }
     fn unresolved_ranges(&self, kind: &EvidenceKindName, file: &MatchedFile) -> Vec<MatchRange> {
         let mut ranges = self
@@ -56,13 +43,7 @@ impl EvidenceBuild {
                 .iter()
                 .flat_map(|parent| self.unresolved_ranges(parent, file))
                 .collect::<Vec<_>>();
-            for range in file
-                .index
-                .by_rule
-                .get(&definition.matcher.rule_id(kind))
-                .into_iter()
-                .flatten()
-            {
+            for range in &file.kind_ranges(kind, definition) {
                 let exists = self.catalog.pieces.iter().any(|piece| {
                     parents.as_slice().contains(&piece.kind)
                         && piece.location.span.source == file.source
@@ -136,44 +117,5 @@ impl EvidenceBuild {
                 }
             }
         }
-    }
-}
-
-fn html_field_value(value: &FieldValue) -> FieldValue {
-    use crate::document_evidence::html_content::html_text_content;
-    match value {
-        FieldValue::Text { value, spans } => FieldValue::Text {
-            value: html_text_content(value),
-            spans: spans.clone(),
-        },
-        FieldValue::Texts { values, spans } => FieldValue::Texts {
-            values: values
-                .iter()
-                .map(|value| html_text_content(value))
-                .collect(),
-            spans: spans.clone(),
-        },
-        FieldValue::Targets { values } => FieldValue::Targets {
-            values: values
-                .iter()
-                .cloned()
-                .map(|mut target| {
-                    if is_html_path(&target.path) {
-                        target.opening = target
-                            .opening
-                            .as_ref()
-                            .map(|opening| html_text_content(opening));
-                        target.fields = target.fields.as_ref().map(|fields| {
-                            fields
-                                .iter()
-                                .map(|(name, value)| (name.clone(), html_field_value(value)))
-                                .collect()
-                        });
-                    }
-                    target
-                })
-                .collect(),
-        },
-        other => other.clone(),
     }
 }

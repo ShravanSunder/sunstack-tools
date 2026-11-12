@@ -3,6 +3,7 @@ import { check, load, run } from '../../src/index.ts';
 import type {
 	AuthoredLanguage,
 	Configuration,
+	EvidenceKindDefinition,
 	EvidenceLanguage,
 	LoadedConfiguration,
 	RunOutcome,
@@ -174,3 +175,13 @@ export async function loadEditRun(directory: string, root: string): Promise<stri
 	}
 	return admission.kind;
 }
+
+// Native HTML heading sections: one optional filter and the three section texts.
+export const htmlSectionKind = {
+	html_units: { mode: 'unit', units: ['section'], pattern: '^Parent' },
+	fields: {
+		complete: { from: 'section', text: 'full' },
+		own: { from: 'section', text: 'own' },
+		parent: { from: 'section', text: 'enclosing_own' },
+	},
+} satisfies EvidenceKindDefinition;

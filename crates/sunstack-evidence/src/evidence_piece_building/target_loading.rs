@@ -78,9 +78,7 @@ impl EvidenceBuild {
                                 .collect::<Vec<_>>()
                         };
                         let reference = if use_path {
-                            let html = self
-                                .project
-                                .language_for_rule(&definition.matcher.rule_id(kind))
+                            let html = evidence_kind_language(&self.project, kind, &definition)
                                 == Some(crate::EvidenceLanguage::Html);
                             TargetReference::parse(&name, html)?
                         } else {
@@ -166,7 +164,8 @@ impl EvidenceBuild {
                         target.opening = Some(opening);
                         if use_path {
                             if let Some(as_kind) = as_kind {
-                                target.fields = self.path_target_fields(&resolved, &text, as_kind);
+                                target.fields =
+                                    self.path_target_fields(&resolved, &text, as_kind)?;
                             }
                         } else {
                             target.exists = true;
@@ -216,44 +215,48 @@ impl EvidenceBuild {
         path: &Path,
         text: &str,
         as_kind: &EvidenceKindName,
-    ) -> Option<BTreeMap<FieldName, FieldValue>> {
+    ) -> Result<Option<BTreeMap<FieldName, FieldValue>>, FieldUnavailable> {
         if let Some(piece) = self
             .catalog
             .pieces
             .iter()
             .find(|piece| piece.kind == *as_kind && piece.location.file == path)
         {
-            return Some(piece.fields.clone());
+            return Ok(Some(piece.fields.clone()));
         }
         let source = SourceRef::Document {
-            repository: RepositoryId::new("checked_repository").ok()?,
+            repository: RepositoryId::new("checked_repository")
+                .map_err(|_| FieldUnavailable::Unreadable)?,
             path: path.into(),
             content_identity: content_digest(text.as_bytes()),
         };
-        let language = self
-            .project
-            .language_for_rule(&self.kinds.get(as_kind)?.matcher.rule_id(as_kind))?;
+        let definition = self
+            .kinds
+            .get(as_kind)
+            .ok_or(FieldUnavailable::Unreadable)?;
+        let language = evidence_kind_language(&self.project, as_kind, definition)
+            .ok_or(FieldUnavailable::Unreadable)?;
+        let index =
+            self.project
+                .match_file_as_language(path, text, self.limits.max_matches, language);
+        let mut remaining_matches = self
+            .limits
+            .max_matches
+            .saturating_sub(index.by_rule.values().map(Vec::len).sum());
         let file = MatchedFile {
             text: text.into(),
-            index: self.project.match_file_as_language(
-                path,
-                text,
-                self.limits.max_matches,
-                language,
-            ),
+            index,
             source,
+            html_units: collect_html_units(path, text, &self.kinds, &mut remaining_matches)
+                .map_err(|_| FieldUnavailable::Unreadable)?,
         };
+        if file.outline_unavailable(as_kind) {
+            return Err(FieldUnavailable::Unreadable);
+        }
         let mut pieces = Vec::new();
         for kind in &self.plan.order {
             let definition = &self.kinds[kind];
-            for (position, range) in file
-                .index
-                .by_rule
-                .get(&definition.matcher.rule_id(kind))
-                .into_iter()
-                .flatten()
-                .enumerate()
-            {
+            for (position, range) in file.kind_ranges(kind, definition).iter().enumerate() {
                 if let Some(parents) = &definition.within
                     && !pieces.iter().any(|piece: &EvidencePiece| {
                         parents.as_slice().contains(&piece.kind)
@@ -268,16 +271,9 @@ impl EvidenceBuild {
                 {
                     continue;
                 }
-                let fields = local_fields(
-                    &definition.matcher.rule_id(kind),
-                    definition,
-                    &file,
-                    range,
-                    position,
-                    &pieces,
-                );
+                let fields = local_fields(kind, definition, &file, range, position, &pieces);
                 if kind == as_kind {
-                    return Some(fields);
+                    return Ok(Some(fields));
                 }
                 let span = source_span(&file, range);
                 pieces.push(EvidencePiece {
@@ -289,11 +285,15 @@ impl EvidenceBuild {
                         span,
                     },
                     text: file.text[range.start..range.end].into(),
-                    model_view: project_model_view(&fields, self.limits.evidence_max_chars),
+                    model_view: self.project_fields(kind, definition, &fields),
                     fields,
                 });
             }
         }
-        None
+        Ok(None)
     }
 }
+
+#[cfg(test)]
+#[path = "target_loading_test.rs"]
+mod tests;

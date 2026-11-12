@@ -374,6 +374,7 @@ export type EvidenceKindName = string;
 export type EvidenceKindWire = {
 	rule?: EvidenceRuleId | null;
 	inline_rule?: string | null;
+	html_units?: HtmlUnitSelection | null;
 	fields: { [key in FieldName]: FieldSource };
 	max_chars?: number | null;
 	select?: SelectionWire | null;
@@ -456,6 +457,18 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			text?: never;
+	  })
+	| ({ from: 'section'; text: SectionText } & {
+			as_kind?: never;
+			count?: never;
+			exclude?: never;
+			key?: never;
+			opening_chars?: never;
+			path?: never;
+			regex?: never;
+			resolve?: never;
+			rule?: never;
 	  })
 	| ({ from: 'capture'; regex: string } & {
 			as_kind?: never;
@@ -466,6 +479,7 @@ export type FieldSource =
 			path?: never;
 			resolve?: never;
 			rule?: never;
+			text?: never;
 	  })
 	| ({
 			from: 'inside';
@@ -488,6 +502,7 @@ export type FieldSource =
 			path?: never;
 			regex?: never;
 			resolve?: never;
+			text?: never;
 	  })
 	| ({ from: 'previous'; rule: EvidenceRuleId; count?: NeighbourCount } & {
 			as_kind?: never;
@@ -497,6 +512,7 @@ export type FieldSource =
 			path?: never;
 			regex?: never;
 			resolve?: never;
+			text?: never;
 	  })
 	| ({ from: 'yaml'; key: string } & {
 			as_kind?: never;
@@ -507,6 +523,7 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			text?: never;
 	  })
 	| ({ from: 'remainder'; exclude?: MatchSource | null } & {
 			as_kind?: never;
@@ -517,6 +534,7 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			text?: never;
 	  })
 	| ({ from: 'document'; path: string; rule: EvidenceRuleId } & {
 			as_kind?: never;
@@ -526,6 +544,7 @@ export type FieldSource =
 			opening_chars?: never;
 			regex?: never;
 			resolve?: never;
+			text?: never;
 	  })
 	| ({
 			from: 'target';
@@ -534,7 +553,7 @@ export type FieldSource =
 			opening_chars?: bigint;
 			as_kind?: EvidenceKindName | null;
 			exclude?: TargetExclude | null;
-	  } & { count?: never; key?: never; path?: never; rule?: never });
+	  } & { count?: never; key?: never; path?: never; rule?: never; text?: never });
 
 export type FieldUnavailable =
 	| 'selection_pending'
@@ -629,6 +648,19 @@ export type GitObjectId = string;
 
 export type GlobPattern = string;
 
+export type HtmlUnitFilter =
+	| ({ starts_with: string } & { pattern?: never })
+	| ({ pattern: string } & { starts_with?: never });
+
+export type HtmlUnitKind = 'section';
+
+export type HtmlUnitSelection = HtmlUnitSelectionWire;
+
+export type HtmlUnitSelectionWire =
+	| ({ mode: UnitOnly; units: HtmlUnitKind[] } & { pattern?: never; starts_with?: never })
+	| ({ mode: UnitOnly; units: HtmlUnitKind[]; starts_with: string } & { pattern?: never })
+	| ({ mode: UnitOnly; units: HtmlUnitKind[]; pattern: string } & { starts_with?: never });
+
 export type IdentifiedResult<T> = {
 	id: bigint;
 	request_ids: bigint[];
@@ -709,12 +741,13 @@ export type KindCount = {
 };
 
 export type KindMatcher =
-	| ({ Named: EvidenceRuleId } & { Inline?: never })
+	| ({ Named: EvidenceRuleId } & { HtmlUnits?: never; Inline?: never })
 	| ({
 			Inline: {
 				text: string;
 			};
-	  } & { Named?: never });
+	  } & { HtmlUnits?: never; Named?: never })
+	| ({ HtmlUnits: HtmlUnitSelection } & { Inline?: never; Named?: never });
 
 export type LabelRoute = {
 	label: ChoiceLabel;
@@ -1148,6 +1181,8 @@ export type SdkSkippedRule = {
 	diagnostics: Diagnostic[];
 };
 
+export type SectionText = 'full' | 'own' | 'enclosing_own';
+
 export type SelectionCandidate = {
 	id: CandidateId;
 	key: CandidateKey;
@@ -1316,6 +1351,8 @@ export type UncertainResult = {
 	state: SharedEvidenceState;
 	answers: { [key in QuestionName]: JudgmentAnswer };
 };
+
+export type UnitOnly = 'unit';
 
 /**  The literal `unknown` effects of a failure after dispatch. */
 export type UnknownEffects = 'unknown';

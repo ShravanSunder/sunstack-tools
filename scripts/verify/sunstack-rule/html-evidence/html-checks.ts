@@ -144,4 +144,4 @@ export function requireAsking(report: JsonObject, root: string, expected: string
 }
 
 export const realAskingText =
-	'R1 / U1C1 Preserve capability grouping/picker, equal-size four-view controls, selected list/detail navigation, previous/next, related docs and nested call views. Same supplied facts remain readable in each.V1 Same selected 42-record lab source, desktop and390CSSpx, both themes; missing facts or changed selected form fails. Permitted natural wrapping passes.';
+	'R1 / U1 C1 Preserve capability grouping/picker, equal-size four-view controls, selected list/detail navigation, previous/next, related docs and nested call views. Same supplied facts remain readable in each. V1 Same selected 42-record lab source, desktop and390CSSpx, both themes; missing facts or changed selected form fails. Permitted natural wrapping passes.';

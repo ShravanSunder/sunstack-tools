@@ -96,9 +96,30 @@ impl SdkFormat {
     }
 }
 
+/// Engine types whose Rust names repeat in another module, with their exported name.
+///
+/// The HTML unit selection keeps a private `SelectionWire` beside the kind `SelectionWire`;
+/// TypeScript needs one name per declaration, and the Rust name stays unchanged.
+const DISTINCT_NAMES: &[(&str, &str, &str)] = &[(
+    "html_selection_contracts",
+    "SelectionWire",
+    "HtmlUnitSelectionWire",
+)];
+
+fn distinct_names(types: &mut Types) {
+    types.iter_mut(|definition| {
+        for (module, name, exported) in DISTINCT_NAMES {
+            if definition.name == *name && definition.module_path.ends_with(module) {
+                definition.name = Cow::Borrowed(exported);
+            }
+        }
+    });
+}
+
 impl Format for SdkFormat {
     fn map_types(&self, types: &Types) -> Result<Cow<'_, Types>, specta::FormatError> {
         let mut mapped = specta_serde::Format.map_types(types)?.into_owned();
+        distinct_names(&mut mapped);
         mapped.iter_mut(|definition| {
             if let Some(datatype) = &mut definition.ty {
                 Self::rewrite(datatype);
@@ -226,10 +247,11 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
         .register::<RunOutcome>()
         .register::<sunstack_evidence::EvidenceLanguage>();
     let declarations = specta_typescript::Typescript::default().export(&types, SdkFormat)?;
-    let serde_types = specta_serde::Format
+    let mut serde_types = specta_serde::Format
         .map_types(&types)
         .map_err(|error| error.to_string())?
         .into_owned();
+    distinct_names(&mut serde_types);
     let mut definitions = Map::new();
     for named in serde_types.into_sorted_iter() {
         let generics = named

@@ -730,6 +730,10 @@ export const wideIntegerDefinitions = {
 						ref: 'FieldSource',
 					},
 				},
+				html_units: {
+					arguments: {},
+					ref: 'HtmlUnitSelection',
+				},
 				rule: {
 					arguments: {},
 					ref: 'EvidenceRuleId',
@@ -798,6 +802,14 @@ export const wideIntegerDefinitions = {
 		generics: [],
 		shape: {
 			union: [
+				{
+					object: {
+						text: {
+							arguments: {},
+							ref: 'SectionText',
+						},
+					},
+				},
 				{
 					all: [
 						{
@@ -1166,6 +1178,62 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	HtmlUnitSelection: {
+		generics: [],
+		shape: {
+			arguments: {},
+			ref: 'HtmlUnitSelectionWire',
+		},
+	},
+	HtmlUnitSelectionWire: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						mode: {
+							arguments: {},
+							ref: 'UnitOnly',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'HtmlUnitKind',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						mode: {
+							arguments: {},
+							ref: 'UnitOnly',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'HtmlUnitKind',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						mode: {
+							arguments: {},
+							ref: 'UnitOnly',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'HtmlUnitKind',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
 	IdentifiedResult: {
 		generics: ['T'],
 		shape: {
@@ -1369,6 +1437,14 @@ export const wideIntegerDefinitions = {
 						Named: {
 							arguments: {},
 							ref: 'EvidenceRuleId',
+						},
+					},
+				},
+				{
+					object: {
+						HtmlUnits: {
+							arguments: {},
+							ref: 'HtmlUnitSelection',
 						},
 					},
 				},

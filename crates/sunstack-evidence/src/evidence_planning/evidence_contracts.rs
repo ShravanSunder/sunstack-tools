@@ -192,6 +192,8 @@ pub enum EvidenceSelection {
     // Restore the same closed, mutually exclusive filter wire as Serde.
     #[schemars(extend("unevaluatedProperties" = false, "not" = {"required": ["starts_with", "pattern"]}))]
     MarkdownUnits(crate::MarkdownUnitSelection),
+    #[schemars(extend("unevaluatedProperties" = false, "not" = {"required": ["starts_with", "pattern"]}))]
+    HtmlUnits(crate::HtmlUnitSelection),
     ChangeSetLiteralText {
         paths: Vec<QueryPath>,
         text: String,

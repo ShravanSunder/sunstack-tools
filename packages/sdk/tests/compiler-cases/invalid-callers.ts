@@ -2,6 +2,7 @@
 import { check, load, run } from '../../src/index.ts';
 import type {
 	Configuration,
+	EvidenceKindDefinition,
 	EvidenceLanguage,
 	LoadedConfiguration,
 	RunOutcome,
@@ -112,3 +113,21 @@ export async function inventedResultMember(): Promise<unknown> {
 	}
 	return load({ directory: '/abs' });
 }
+
+// HTML section selectors take one filter: starts_with or pattern, never both.
+export const doublyFilteredSections = {
+	html_units: {
+		mode: 'unit',
+		units: ['section'],
+		starts_with: 'Parent',
+		// expect TS2322
+		pattern: 'Child',
+	},
+	fields: {},
+} satisfies EvidenceKindDefinition;
+
+export const unknownSectionText = {
+	html_units: { mode: 'unit', units: ['section'] },
+	// expect TS2322
+	fields: { body: { from: 'section', text: 'parent' } },
+} satisfies EvidenceKindDefinition;

@@ -1,0 +1,296 @@
+{
+	"file": "wrapped.html",
+	"sha256": "195a73597ef99225bfc1f588bcf53558988a2a4b84fbd1fa212c189509432ec6",
+	"source_relative": "docs/specs/2026-11-12-workspace-storage/requirements.html",
+	"source_commit": null,
+	"sections": [
+		{
+			"level": 1,
+			"start": 457,
+			"heading": "Requirements: workspace storage redesign",
+			"parent": null,
+			"end": 20581,
+			"own_end": 1007
+		},
+		{
+			"level": 2,
+			"start": 1007,
+			"heading": "Who this is for",
+			"parent": 0,
+			"end": 1708,
+			"own_end": 1708
+		},
+		{
+			"level": 2,
+			"start": 1708,
+			"heading": "The capabilities",
+			"parent": 0,
+			"end": 3037,
+			"own_end": 3037
+		},
+		{
+			"level": 2,
+			"start": 3037,
+			"heading": "C1 · Organize work",
+			"parent": 0,
+			"end": 5715,
+			"own_end": 3838
+		},
+		{
+			"level": 3,
+			"start": 3838,
+			"heading": "U1 · Work is organized as workspace → areas → projects",
+			"parent": 3,
+			"end": 4277,
+			"own_end": 4277
+		},
+		{
+			"level": 3,
+			"start": 4277,
+			"heading": "U2 · Initiatives are goals that cut across projects",
+			"parent": 3,
+			"end": 4593,
+			"own_end": 4593
+		},
+		{
+			"level": 3,
+			"start": 4593,
+			"heading": "U14 · Each area has a backlog of described items its lead keeps up to date",
+			"parent": 3,
+			"end": 5004,
+			"own_end": 5004
+		},
+		{
+			"level": 3,
+			"start": 5004,
+			"heading": "U15 · Items reference each other inside the workspace, and link to things outside it",
+			"parent": 3,
+			"end": 5715,
+			"own_end": 5715
+		},
+		{
+			"level": 2,
+			"start": 5715,
+			"heading": "C2 · Roles",
+			"parent": 0,
+			"end": 7021,
+			"own_end": 6223
+		},
+		{
+			"level": 3,
+			"start": 6223,
+			"heading": "U3 · A project has one lead, and optionally one advisor",
+			"parent": 8,
+			"end": 6603,
+			"own_end": 6603
+		},
+		{
+			"level": 3,
+			"start": 6603,
+			"heading": "U13 · Each deliverable has its own implementer, verifier and reviewer",
+			"parent": 8,
+			"end": 7021,
+			"own_end": 7021
+		},
+		{
+			"level": 2,
+			"start": 7021,
+			"heading": "C3 · Conversations",
+			"parent": 0,
+			"end": 8289,
+			"own_end": 7504
+		},
+		{
+			"level": 3,
+			"start": 7504,
+			"heading": "U4 · Conversations live in an area; a thread may reference deliverables; its creator resolves it",
+			"parent": 11,
+			"end": 7942,
+			"own_end": 7942
+		},
+		{
+			"level": 3,
+			"start": 7942,
+			"heading": "U5 · Threads have participants and observers, many of each; observers only follow",
+			"parent": 11,
+			"end": 8289,
+			"own_end": 8289
+		},
+		{
+			"level": 2,
+			"start": 8289,
+			"heading": "C4 · Deliverables and issues",
+			"parent": 0,
+			"end": 9602,
+			"own_end": 8837
+		},
+		{
+			"level": 3,
+			"start": 8837,
+			"heading": "U7 · Deliverables are a project's lanes, sequenced by blocked-by / blocking",
+			"parent": 14,
+			"end": 9236,
+			"own_end": 9236
+		},
+		{
+			"level": 3,
+			"start": 9236,
+			"heading": "U6 · Issues are simple, and every issue belongs to one deliverable",
+			"parent": 14,
+			"end": 9602,
+			"own_end": 9602
+		},
+		{
+			"level": 2,
+			"start": 9602,
+			"heading": "C5 · Work log",
+			"parent": 0,
+			"end": 10162,
+			"own_end": 9948
+		},
+		{
+			"level": 3,
+			"start": 9948,
+			"heading": "U8 · Agents keep a work log you can read",
+			"parent": 17,
+			"end": 10162,
+			"own_end": 10162
+		},
+		{
+			"level": 2,
+			"start": 10162,
+			"heading": "C6 · Messages and notifications",
+			"parent": 0,
+			"end": 11360,
+			"own_end": 10716
+		},
+		{
+			"level": 3,
+			"start": 10716,
+			"heading": "U9 · All agent messages go through central",
+			"parent": 19,
+			"end": 11002,
+			"own_end": 11002
+		},
+		{
+			"level": 3,
+			"start": 11002,
+			"heading": "U10 · Agents are told about activity they care about, from central",
+			"parent": 19,
+			"end": 11360,
+			"own_end": 11360
+		},
+		{
+			"level": 2,
+			"start": 11360,
+			"heading": "C7 · Automations and wakes",
+			"parent": 0,
+			"end": 12224,
+			"own_end": 11795
+		},
+		{
+			"level": 3,
+			"start": 11795,
+			"heading": "U11 · Automations and wakes are defined and fired in one central place, across machines",
+			"parent": 22,
+			"end": 12224,
+			"own_end": 12224
+		},
+		{
+			"level": 2,
+			"start": 12224,
+			"heading": "C8 · Machines and sign-in",
+			"parent": 0,
+			"end": 12859,
+			"own_end": 12602
+		},
+		{
+			"level": 3,
+			"start": 12602,
+			"heading": "U12 · A new Mac works as soon as it enrolls, with no seeding",
+			"parent": 24,
+			"end": 12859,
+			"own_end": 12859
+		},
+		{
+			"level": 2,
+			"start": 12859,
+			"heading": "C9 · Clean up",
+			"parent": 0,
+			"end": 16020,
+			"own_end": 13818
+		},
+		{
+			"level": 3,
+			"start": 13818,
+			"heading": "U16 · The previous agent's cruft is gone",
+			"parent": 26,
+			"end": 14515,
+			"own_end": 14515
+		},
+		{
+			"level": 3,
+			"start": 14515,
+			"heading": "U17 · Project replication, project locks and Turso are gone",
+			"parent": 26,
+			"end": 14877,
+			"own_end": 14877
+		},
+		{
+			"level": 3,
+			"start": 14877,
+			"heading": "U18 · The entities you dropped are gone from code and storage",
+			"parent": 26,
+			"end": 15259,
+			"own_end": 15259
+		},
+		{
+			"level": 3,
+			"start": 15259,
+			"heading": "U19 · The old workflow system is gone",
+			"parent": 26,
+			"end": 15628,
+			"own_end": 15628
+		},
+		{
+			"level": 3,
+			"start": 15628,
+			"heading": "U20 · The old wake and schedule databases are cleaned up",
+			"parent": 26,
+			"end": 16020,
+			"own_end": 16020
+		},
+		{
+			"level": 2,
+			"start": 16020,
+			"heading": "What the redesign must hold to",
+			"parent": 0,
+			"end": 19225,
+			"own_end": 19225
+		},
+		{
+			"level": 2,
+			"start": 19225,
+			"heading": "What it does not do",
+			"parent": 0,
+			"end": 19708,
+			"own_end": 19708
+		},
+		{
+			"level": 2,
+			"start": 19708,
+			"heading": "How you'll know it's done",
+			"parent": 0,
+			"end": 20027,
+			"own_end": 20027
+		},
+		{
+			"level": 2,
+			"start": 20027,
+			"heading": "Confirm",
+			"parent": 0,
+			"end": 20581,
+			"own_end": 20581
+		}
+	]
+}

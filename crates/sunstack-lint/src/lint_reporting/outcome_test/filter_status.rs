@@ -198,6 +198,18 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
         };
         let backend =
             Arc::new(JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC").unwrap());
+        let fixture_root = tempfile::tempdir().unwrap();
+        crate::test_support::lint_fixture::write(fixture_root.path());
+        let project = load_evidence_project(
+            &fixture_root.path().join("evidence/sgconfig.yml"),
+            &[],
+            None,
+        )
+        .unwrap();
+        let filter_kinds = serde_json::from_value(
+            json!({"skill":{"rule":"skill","fields":{"body":{"from":"remainder"}}}}),
+        )
+        .unwrap();
         let peer_piece = piece.clone();
         let peer_settings = settings.clone();
         let mut task = tokio::spawn(async move {
@@ -211,9 +223,12 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
                     members: vec!["packages/one/member.md".into()],
                     reads: ReadsPiece::One(0),
                 }],
-                &[piece],
-                &BTreeMap::new(),
-                &BTreeMap::new(),
+                FilterEvidence {
+                    pieces: &[piece],
+                    kinds: &filter_kinds,
+                    project: &project,
+                    matches: &BTreeMap::new(),
+                },
                 1000,
                 &mut dispatcher,
             )

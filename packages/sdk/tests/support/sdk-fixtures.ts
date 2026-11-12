@@ -155,7 +155,7 @@ export function writeFileProject(directory: string, endpoint: string): void {
 
 /**
  * The admitted value of each normalized inline source in `inlineConfiguration`, as the
- * native contract at revision 2 records it: Sunstack defaults filled (`check.ignore`,
+ * native contract at revision 3 records it: Sunstack defaults filled (`check.ignore`,
  * `max_question_words`, unset limits as null), authoring-only members omitted (`id`,
  * `base_directory`, `evidence.kind`, `rulebooks`), and ast-grep's upstream defaults written
  * out for matchers and utilities.

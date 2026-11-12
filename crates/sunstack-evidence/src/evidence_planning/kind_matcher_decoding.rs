@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, num::NonZeroU32};
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-#[schemars(extend("oneOf" = [{"required":["rule"]}, {"required":["inline_rule"]}]))]
+#[schemars(extend("oneOf" = [{"required":["rule"]}, {"required":["inline_rule"]}, {"required":["html_units"]}]))]
 pub(super) struct EvidenceKindWire {
     #[serde(
         default,
@@ -25,6 +25,14 @@ pub(super) struct EvidenceKindWire {
     #[schemars(with = "String")]
     #[cfg_attr(feature = "typescript", specta(type = Option<String>))]
     inline_rule: Option<String>,
+    #[serde(
+        default,
+        deserialize_with = "present_matcher",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "crate::HtmlUnitSelection")]
+    #[cfg_attr(feature = "typescript", specta(type = Option<crate::HtmlUnitSelection>))]
+    html_units: Option<crate::HtmlUnitSelection>,
     fields: BTreeMap<FieldName, FieldSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     max_chars: Option<NonZeroU32>,
@@ -59,10 +67,11 @@ fn decode_containing_kinds<'de, D: serde::Deserializer<'de>>(
 impl TryFrom<EvidenceKindWire> for EvidenceKindDefinition {
     type Error = &'static str;
     fn try_from(wire: EvidenceKindWire) -> Result<Self, Self::Error> {
-        let matcher = match (wire.rule, wire.inline_rule) {
-            (Some(rule), None) => KindMatcher::Named(rule),
-            (None, Some(text)) => KindMatcher::Inline { text },
-            _ => return Err("evidence kind needs exactly one of rule or inline_rule"),
+        let matcher = match (wire.rule, wire.inline_rule, wire.html_units) {
+            (Some(rule), None, None) => KindMatcher::Named(rule),
+            (None, Some(text), None) => KindMatcher::Inline { text },
+            (None, None, Some(selection)) => KindMatcher::HtmlUnits(selection),
+            _ => return Err("evidence kind needs exactly one of rule, inline_rule or html_units"),
         };
         Ok(Self {
             matcher,
@@ -76,13 +85,15 @@ impl TryFrom<EvidenceKindWire> for EvidenceKindDefinition {
 
 impl From<EvidenceKindDefinition> for EvidenceKindWire {
     fn from(kind: EvidenceKindDefinition) -> Self {
-        let (rule, inline_rule) = match kind.matcher {
-            KindMatcher::Named(rule) => (Some(rule), None),
-            KindMatcher::Inline { text } => (None, Some(text)),
+        let (rule, inline_rule, html_units) = match kind.matcher {
+            KindMatcher::Named(rule) => (Some(rule), None, None),
+            KindMatcher::Inline { text } => (None, Some(text), None),
+            KindMatcher::HtmlUnits(selection) => (None, None, Some(selection)),
         };
         Self {
             rule,
             inline_rule,
+            html_units,
             fields: kind.fields,
             max_chars: kind.max_chars,
             select: kind.select,
