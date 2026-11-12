@@ -1,6 +1,6 @@
 # HTML heading sections and asking text
 
-This route checks the signed Sunstack CLI's lexical HTML sections and complete asking projection. It is draft until driven on a declared target. Expected outcomes come from the 0.13.0 HTML-sections commission and its Corrections1–6, including the J1 consumer gap; the current output never supplies the oracle.
+This route checks the signed Sunstack CLI's lexical HTML sections and complete asking projection. Its launch, probes, original-input guards and owned cleanup have been exercised. Repeat them on each declared target. Expected outcomes come from the 0.13.0 HTML-sections commission and its Corrections1–6, including the J1 consumer gap; the current output never supplies the oracle.
 
 ## What a section means
 
