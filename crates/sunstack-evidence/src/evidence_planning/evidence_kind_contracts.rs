@@ -124,8 +124,15 @@ pub struct EvidenceKindDefinition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KindMatcher {
     Named(EvidenceRuleId),
-    Inline { text: String },
+    Inline {
+        text: String,
+    },
     HtmlUnits(crate::HtmlUnitSelection),
+    // A kind's Markdown selection is unit-mode only; declare that boundary, not call_site.
+    MarkdownUnits(
+        #[cfg_attr(feature = "typescript", specta(type = crate::MarkdownUnitsKindWire))]
+        crate::MarkdownUnitSelection,
+    ),
 }
 
 impl KindMatcher {
@@ -133,7 +140,7 @@ impl KindMatcher {
         match self {
             Self::Named(rule) => Some(rule.clone()),
             Self::Inline { .. } => Some(EvidenceRuleId(kind.0.clone())),
-            Self::HtmlUnits(_) => None,
+            Self::HtmlUnits(_) | Self::MarkdownUnits(_) => None,
         }
     }
 }

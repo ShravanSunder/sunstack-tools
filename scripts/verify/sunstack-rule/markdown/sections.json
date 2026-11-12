@@ -1,0 +1,773 @@
+[
+	{
+		"repo": "sunstack",
+		"file": "plugins/skill-authoring/skills/skill-design/SKILL.md",
+		"sha256": "dcf81c68a13bc719779b7b63459c0d67a1b42c1fffc0c406e422851f2d957794",
+		"sections": [
+			{
+				"label": "Skill Design",
+				"level": 1,
+				"start": 221,
+				"end": 11457,
+				"parent": null,
+				"own": [[221, 981]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Stance",
+				"level": 2,
+				"start": 981,
+				"end": 1418,
+				"parent": 0,
+				"own": [[981, 1418]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Workflow",
+				"level": 2,
+				"start": 1418,
+				"end": 10989,
+				"parent": 0,
+				"own": [[1418, 1915]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "1. Classify, and name the promise",
+				"level": 3,
+				"start": 1915,
+				"end": 3767,
+				"parent": 2,
+				"own": [[1915, 3767]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "2. Gather the evidence, and the proof posture",
+				"level": 3,
+				"start": 3767,
+				"end": 5361,
+				"parent": 2,
+				"own": [[3767, 5361]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "3. Specify, and generalize",
+				"level": 3,
+				"start": 5361,
+				"end": 5930,
+				"parent": 2,
+				"own": [[5361, 5930]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "4. Design the skill",
+				"level": 3,
+				"start": 5930,
+				"end": 7971,
+				"parent": 2,
+				"own": [[5930, 7971]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "5. Plan the verification",
+				"level": 3,
+				"start": 7971,
+				"end": 9906,
+				"parent": 2,
+				"own": [[7971, 9906]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "6. Present the design set, and have it reviewed",
+				"level": 3,
+				"start": 9906,
+				"end": 10989,
+				"parent": 2,
+				"own": [[9906, 10989]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Completion Blockers",
+				"level": 2,
+				"start": 10989,
+				"end": 11457,
+				"parent": 0,
+				"own": [[10989, 11457]],
+				"quote": false,
+				"list": false
+			}
+		]
+	},
+	{
+		"repo": "tools",
+		"file": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+		"sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162",
+		"sections": [
+			{
+				"label": "Rust rule engine: one core, inputs to verdicts",
+				"level": 1,
+				"start": 0,
+				"end": 75219,
+				"parent": null,
+				"own": [[0, 1273]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "The integrated model",
+				"level": 2,
+				"start": 1273,
+				"end": 2372,
+				"parent": 0,
+				"own": [[1273, 2372]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Crates and dependency direction",
+				"level": 2,
+				"start": 2372,
+				"end": 5103,
+				"parent": 0,
+				"own": [[2372, 5103]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Current system and the selected direction",
+				"level": 2,
+				"start": 5103,
+				"end": 8597,
+				"parent": 0,
+				"own": [[5103, 8597]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Entity bindings and data homes",
+				"level": 2,
+				"start": 8597,
+				"end": 20219,
+				"parent": 0,
+				"own": [[8597, 20219]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Authored definitions",
+				"level": 2,
+				"start": 20219,
+				"end": 25172,
+				"parent": 0,
+				"own": [[20219, 25172]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Invocation, bindings and origin",
+				"level": 2,
+				"start": 25172,
+				"end": 28724,
+				"parent": 0,
+				"own": [[25172, 28724]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Conversation evidence",
+				"level": 2,
+				"start": 28724,
+				"end": 33653,
+				"parent": 0,
+				"own": [[28724, 33653]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Payload evidence and conditions",
+				"level": 2,
+				"start": 33653,
+				"end": 34760,
+				"parent": 0,
+				"own": [[33653, 34760]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Applicability, planning and execution",
+				"level": 2,
+				"start": 34760,
+				"end": 49060,
+				"parent": 0,
+				"own": [[34760, 35095]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Gates and their controlling answers",
+				"level": 3,
+				"start": 35095,
+				"end": 36316,
+				"parent": 9,
+				"own": [[35095, 36316]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Same bound inputs",
+				"level": 3,
+				"start": 36316,
+				"end": 37366,
+				"parent": 9,
+				"own": [[36316, 37366]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "The planning algorithm",
+				"level": 3,
+				"start": 37366,
+				"end": 43264,
+				"parent": 9,
+				"own": [[37366, 43264]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Request state and owner labels",
+				"level": 3,
+				"start": 43264,
+				"end": 44312,
+				"parent": 9,
+				"own": [[43264, 44312]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Scheduling",
+				"level": 3,
+				"start": 44312,
+				"end": 46648,
+				"parent": 9,
+				"own": [[44312, 46648]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Reduction in authored order",
+				"level": 3,
+				"start": 46648,
+				"end": 49060,
+				"parent": 9,
+				"own": [[46648, 49060]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "State and lifecycle",
+				"level": 2,
+				"start": 49060,
+				"end": 49959,
+				"parent": 0,
+				"own": [[49060, 49959]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Representative entry-to-effect path",
+				"level": 2,
+				"start": 49959,
+				"end": 51403,
+				"parent": 0,
+				"own": [[49959, 51403]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Program surface and outcomes",
+				"level": 2,
+				"start": 51403,
+				"end": 54954,
+				"parent": 0,
+				"own": [[51403, 54954]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Decisions crate",
+				"level": 2,
+				"start": 54954,
+				"end": 57600,
+				"parent": 0,
+				"own": [[54954, 56884]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Context budget and admitted bytes",
+				"level": 3,
+				"start": 56884,
+				"end": 57600,
+				"parent": 19,
+				"own": [[56884, 57600]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Diagnostics",
+				"level": 2,
+				"start": 57600,
+				"end": 61108,
+				"parent": 0,
+				"own": [[57600, 61108]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Failure, cancellation and concurrency",
+				"level": 2,
+				"start": 61108,
+				"end": 62269,
+				"parent": 0,
+				"own": [[61108, 62269]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Proof architecture",
+				"level": 2,
+				"start": 62269,
+				"end": 63640,
+				"parent": 0,
+				"own": [[62269, 63640]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Requirement, design and proof trace",
+				"level": 2,
+				"start": 63640,
+				"end": 72608,
+				"parent": 0,
+				"own": [[63640, 72608]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Milestones",
+				"level": 2,
+				"start": 72608,
+				"end": 73173,
+				"parent": 0,
+				"own": [[72608, 73173]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "External sources",
+				"level": 2,
+				"start": 73173,
+				"end": 75219,
+				"parent": 0,
+				"own": [[73173, 75219]],
+				"quote": false,
+				"list": false
+			}
+		]
+	},
+	{
+		"repo": "sunstack",
+		"file": "plugins/sunstack-dev/shared-references/humanizer.md",
+		"sha256": "3257e85b65f0ef40bc4edf7127c54a90b55d0d421cbaf69b62cde4160fd7278d",
+		"sections": [
+			{
+				"label": "Humanizer",
+				"level": 1,
+				"start": 0,
+				"end": 14952,
+				"parent": null,
+				"own": [[0, 1428]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "How to work",
+				"level": 2,
+				"start": 1428,
+				"end": 2686,
+				"parent": 0,
+				"own": [[1428, 2230]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Voice",
+				"level": 3,
+				"start": 2230,
+				"end": 2377,
+				"parent": 1,
+				"own": [[2230, 2377]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "What to return",
+				"level": 3,
+				"start": 2377,
+				"end": 2686,
+				"parent": 1,
+				"own": [[2377, 2686]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Act on one sighting",
+				"level": 2,
+				"start": 2686,
+				"end": 6709,
+				"parent": 0,
+				"own": [[2686, 2824]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "1. Not X but Y",
+				"level": 3,
+				"start": 2824,
+				"end": 3480,
+				"parent": 4,
+				"own": [[2824, 3480]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "2. One-line closers and dramatic fragments",
+				"level": 3,
+				"start": 3480,
+				"end": 4205,
+				"parent": 4,
+				"own": [[3480, 4205]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "3. Sayings that sound deep",
+				"level": 3,
+				"start": 4205,
+				"end": 4774,
+				"parent": 4,
+				"own": [[4205, 4774]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "4. Staged run-up before the point",
+				"level": 3,
+				"start": 4774,
+				"end": 5594,
+				"parent": 4,
+				"own": [[4774, 5594]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "5. Arguing with no one",
+				"level": 3,
+				"start": 5594,
+				"end": 6709,
+				"parent": 4,
+				"own": [[5594, 6709]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Keep when the meaning needs it",
+				"level": 2,
+				"start": 6709,
+				"end": 10688,
+				"parent": 0,
+				"own": [[6709, 6855]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "6. Forced triads",
+				"level": 3,
+				"start": 6855,
+				"end": 7331,
+				"parent": 10,
+				"own": [[6855, 7331]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "8. Dashes as the universal connector",
+				"level": 3,
+				"start": 7331,
+				"end": 7956,
+				"parent": 10,
+				"own": [[7331, 7956]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "9. Stacked qualifiers",
+				"level": 3,
+				"start": 7956,
+				"end": 8466,
+				"parent": 10,
+				"own": [[7956, 8466]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "11. Passive voice and a missing subject",
+				"level": 3,
+				"start": 8466,
+				"end": 8810,
+				"parent": 10,
+				"own": [[8466, 8810]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "13. Inflated significance",
+				"level": 3,
+				"start": 8810,
+				"end": 9458,
+				"parent": 10,
+				"own": [[8810, 9458]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "15. Shallow -ing riders",
+				"level": 3,
+				"start": 9458,
+				"end": 9912,
+				"parent": 10,
+				"own": [[9458, 9912]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "16. Sales language",
+				"level": 3,
+				"start": 9912,
+				"end": 10301,
+				"parent": 10,
+				"own": [[9912, 10301]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "18. Avoiding is, are, and has",
+				"level": 3,
+				"start": 10301,
+				"end": 10688,
+				"parent": 10,
+				"own": [[10301, 10688]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Remove the wrapper",
+				"level": 2,
+				"start": 10688,
+				"end": 12786,
+				"parent": 0,
+				"own": [[10688, 10775]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "19. Bold as decoration",
+				"level": 3,
+				"start": 10775,
+				"end": 11141,
+				"parent": 19,
+				"own": [[10775, 11141]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "22. Chatbot residue",
+				"level": 3,
+				"start": 11141,
+				"end": 11630,
+				"parent": 19,
+				"own": [[11141, 11630]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "23. Knowledge-limit disclaimers and guesses",
+				"level": 3,
+				"start": 11630,
+				"end": 12142,
+				"parent": 19,
+				"own": [[11630, 12142]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "24. A heading repeated in the first sentence",
+				"level": 3,
+				"start": 12142,
+				"end": 12436,
+				"parent": 19,
+				"own": [[12142, 12436]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Performance",
+				"level": 2,
+				"start": 12283,
+				"end": 12786,
+				"parent": 0,
+				"own": [[12283, 12376]],
+				"quote": true,
+				"list": false
+			},
+			{
+				"label": "Performance",
+				"level": 2,
+				"start": 12376,
+				"end": 12786,
+				"parent": 0,
+				"own": [[12376, 12436]],
+				"quote": true,
+				"list": false
+			},
+			{
+				"label": "25. Writing about the previous version",
+				"level": 3,
+				"start": 12436,
+				"end": 12786,
+				"parent": 25,
+				"own": [[12436, 12786]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Pattern 12, the word list",
+				"level": 2,
+				"start": 12786,
+				"end": 13645,
+				"parent": 0,
+				"own": [[12786, 13645]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Left upstream",
+				"level": 2,
+				"start": 13645,
+				"end": 14500,
+				"parent": 0,
+				"own": [[13645, 14500]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "When not to act",
+				"level": 2,
+				"start": 14500,
+				"end": 14815,
+				"parent": 0,
+				"own": [[14500, 14815]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Source",
+				"level": 2,
+				"start": 14815,
+				"end": 14952,
+				"parent": 0,
+				"own": [[14815, 14952]],
+				"quote": false,
+				"list": false
+			}
+		]
+	},
+	{
+		"repo": "",
+		"file": "controls.md",
+		"sha256": "1939ed806cd29afa3d6bf0ddde3207eb8153ea4146777df19ccba8546bf2da3a",
+		"sections": [
+			{
+				"label": "Root 文",
+				"level": 1,
+				"start": 0,
+				"end": 165,
+				"parent": null,
+				"own": [
+					[0, 33],
+					[61, 74]
+				],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "List child",
+				"level": 2,
+				"start": 33,
+				"end": 61,
+				"parent": 0,
+				"own": [[33, 61]],
+				"quote": false,
+				"list": true
+			},
+			{
+				"label": "Outer",
+				"level": 2,
+				"start": 74,
+				"end": 151,
+				"parent": 0,
+				"own": [[74, 98]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Quote child",
+				"level": 3,
+				"start": 98,
+				"end": 151,
+				"parent": 2,
+				"own": [[98, 129]],
+				"quote": true,
+				"list": false
+			},
+			{
+				"label": "Deep",
+				"level": 4,
+				"start": 129,
+				"end": 151,
+				"parent": 3,
+				"own": [[129, 151]],
+				"quote": false,
+				"list": false
+			},
+			{
+				"label": "Peer",
+				"level": 2,
+				"start": 151,
+				"end": 165,
+				"parent": 0,
+				"own": [[151, 165]],
+				"quote": false,
+				"list": false
+			}
+		]
+	}
+]

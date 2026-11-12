@@ -194,15 +194,15 @@ describe('SDK apparatus rejects false greens', () => {
 			requireDeepFrozenSdkValue(Object.freeze({ configuration: { nested: [] } })),
 		).toThrow('unfrozen');
 	});
-	it('checks the native contract reply and refuses release/revision/target skew', async () => {
+	it('checks 0.14 revision 5 and refuses stale, mixed release/revision and target replies', async () => {
 		const contract = {
-			sdk_release: '0.13.0',
-			contract_revision: 3,
+			sdk_release: '0.14.0',
+			contract_revision: 5,
 			target: 'aarch64-apple-darwin',
 		};
 		const target = {
-			release: '0.13.0',
-			contractRevision: 3,
+			release: '0.14.0',
+			contractRevision: 5,
 			arch: 'arm64',
 			platform: 'darwin',
 			libc: 'none',
@@ -216,7 +216,10 @@ describe('SDK apparatus rejects false greens', () => {
 		await Promise.all(
 			[
 				{ ...contract, sdk_release: '0.12.1' },
-				{ ...contract, contract_revision: 2 },
+				{ ...contract, sdk_release: '0.13.0' },
+				{ ...contract, contract_revision: 4 },
+				{ ...contract, sdk_release: '0.13.0', contract_revision: 4 },
+				{ ...contract, sdk_release: '0.13.0', contract_revision: 3 },
 				{ ...contract, sdk_release: '0.12.1', contract_revision: 2 },
 				{ ...contract, target: 'x86_64-apple-darwin' },
 			].map((changed) =>
@@ -228,6 +231,18 @@ describe('SDK apparatus rejects false greens', () => {
 				).rejects.toThrow('ContractInfo differs'),
 			),
 		);
+		await expect(
+			inspectInstalledSdkContract(
+				{ contractInfo: async () => ({ kind: 'ready', contract }) },
+				{ ...target, contractRevision: 4 },
+			),
+		).rejects.toThrow('ContractInfo differs');
+		await expect(
+			inspectInstalledSdkContract(
+				{ contractInfo: async () => ({ kind: 'ready', contract }) },
+				{ ...target, release: '0.13.0', contractRevision: 4 },
+			),
+		).rejects.toThrow('ContractInfo differs');
 	});
 	it('accepts the four Rust-tagged completed statuses without flattening them', () => {
 		for (const kind of ['clean', 'nothing_selected', 'findings', 'uncertain']) {
@@ -290,14 +305,14 @@ describe('SDK apparatus rejects false greens', () => {
 				path: `/consumer/${index}`,
 				sha256: 'c'.repeat(64),
 			})),
-			release: '0.13.0',
-			contractRevision: 3,
+			release: '0.14.0',
+			contractRevision: 5,
 			platform: 'darwin',
 			arch: 'arm64',
 			libc: 'none',
 		};
 		const parsed = sdkTargetSchema.parse(input);
-		expect([parsed.release, parsed.contractRevision]).toEqual(['0.13.0', 3]);
+		expect([parsed.release, parsed.contractRevision]).toEqual(['0.14.0', 5]);
 		expect(sdkTargetSchema.safeParse({ ...input, consumerRoot: './consumer' }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, addon: undefined }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, commit: 'abc123' }).success).toBe(false);

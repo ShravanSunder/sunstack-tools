@@ -241,3 +241,17 @@ export const selectedKind = {
 		no_at_or_below: 0.2,
 	},
 } satisfies EvidenceKindDefinition;
+
+// Native Markdown units at a rulebook kind: unit mode, known units, one optional filter.
+export const markdownSectionKind = {
+	markdown_units: { mode: 'unit', units: ['section'], starts_with: 'Steps' },
+	fields: {
+		full: { from: 'section', text: 'full' },
+		own: { from: 'section', text: 'own' },
+		parent: { from: 'section', text: 'enclosing_own' },
+	},
+} satisfies EvidenceKindDefinition;
+export const markdownItemKind = {
+	markdown_units: { mode: 'unit', units: ['paragraph', 'list_item'], pattern: '^-' },
+	fields: { body: { from: 'remainder' } },
+} satisfies EvidenceKindDefinition;

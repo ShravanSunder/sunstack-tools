@@ -53,7 +53,7 @@ impl EvidenceBuild {
             },
             text,
             index,
-            html_units: BTreeMap::new(),
+            native_units: BTreeMap::new(),
         };
         let ranges = file.index.by_rule.get(rule).cloned().unwrap_or_default();
         FieldValue::Texts {

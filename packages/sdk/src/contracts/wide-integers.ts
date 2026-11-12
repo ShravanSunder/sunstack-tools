@@ -734,6 +734,10 @@ export const wideIntegerDefinitions = {
 					arguments: {},
 					ref: 'HtmlUnitSelection',
 				},
+				markdown_units: {
+					arguments: {},
+					ref: 'MarkdownUnitsKindWire',
+				},
 				rule: {
 					arguments: {},
 					ref: 'EvidenceRuleId',
@@ -1448,6 +1452,14 @@ export const wideIntegerDefinitions = {
 						},
 					},
 				},
+				{
+					object: {
+						MarkdownUnits: {
+							arguments: {},
+							ref: 'MarkdownUnitsKindWire',
+						},
+					},
+				},
 			],
 		},
 	},
@@ -1579,6 +1591,55 @@ export const wideIntegerDefinitions = {
 					ref: 'LocatorOmissionReason',
 				},
 			},
+		},
+	},
+	MarkdownUnitsKindWire: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						mode: {
+							arguments: {},
+							ref: 'MarkdownUnitOnly',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'MarkdownUnitKind',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						mode: {
+							arguments: {},
+							ref: 'MarkdownUnitOnly',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'MarkdownUnitKind',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						mode: {
+							arguments: {},
+							ref: 'MarkdownUnitOnly',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'MarkdownUnitKind',
+							},
+						},
+					},
+				},
+			],
 		},
 	},
 	MatchRange: {

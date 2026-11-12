@@ -256,3 +256,37 @@ export const misspelledSelectionQuestion = {
 		no_at_or_below: 0.2,
 	},
 } satisfies EvidenceKindDefinition;
+
+// A kind's Markdown selection is unit mode only, with known units and one filter.
+export const markdownCallSite = {
+	markdown_units: {
+		// expect TS2322
+		mode: 'call_site',
+		units: ['section'],
+		starts_with: 'Steps',
+	},
+	fields: {},
+} satisfies EvidenceKindDefinition;
+
+export const markdownUnknownUnit = {
+	// expect TS2322
+	markdown_units: { mode: 'unit', units: ['heading'] },
+	fields: {},
+} satisfies EvidenceKindDefinition;
+
+export const markdownNull = {
+	// expect TS2322
+	markdown_units: null,
+	fields: {},
+} satisfies EvidenceKindDefinition;
+
+export const markdownTwoFilters = {
+	markdown_units: {
+		mode: 'unit',
+		units: ['section'],
+		starts_with: 'A',
+		// expect TS2322
+		pattern: 'B',
+	},
+	fields: {},
+} satisfies EvidenceKindDefinition;

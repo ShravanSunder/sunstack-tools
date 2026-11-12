@@ -11,6 +11,7 @@ pub fn evidence_kind_language(
 ) -> Option<EvidenceLanguage> {
     match &definition.matcher {
         KindMatcher::HtmlUnits(_) => Some(EvidenceLanguage::Html),
+        KindMatcher::MarkdownUnits(_) => Some(EvidenceLanguage::Markdown),
         KindMatcher::Named(_) | KindMatcher::Inline { .. } => definition
             .matcher
             .ast_rule_id(kind)

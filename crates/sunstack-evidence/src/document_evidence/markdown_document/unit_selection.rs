@@ -5,7 +5,7 @@ use crate::{
 };
 
 impl MarkdownUnitSelection {
-    pub(crate) fn validate(&self) -> EvidenceResult<()> {
+    pub fn validate(&self) -> EvidenceResult<()> {
         let (units, filter) = self.parts();
         if units.is_empty() {
             return Err(EvidenceCode::InvalidSelector.into());

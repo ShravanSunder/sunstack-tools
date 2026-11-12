@@ -104,13 +104,21 @@ impl SdkFormat {
 
 /// Engine types whose Rust names repeat in another module, with their exported name.
 ///
-/// The HTML unit selection keeps a private `SelectionWire` beside the kind `SelectionWire`;
+/// The HTML unit selection keeps a private `SelectionWire` beside the kind `SelectionWire`,
+/// and the HTML and Markdown selections each keep a private `UnitOnly`;
 /// TypeScript needs one name per declaration, and the Rust name stays unchanged.
-const DISTINCT_NAMES: &[(&str, &str, &str)] = &[(
-    "html_selection_contracts",
-    "SelectionWire",
-    "HtmlUnitSelectionWire",
-)];
+const DISTINCT_NAMES: &[(&str, &str, &str)] = &[
+    (
+        "html_selection_contracts",
+        "SelectionWire",
+        "HtmlUnitSelectionWire",
+    ),
+    (
+        "markdown_selection_contracts",
+        "UnitOnly",
+        "MarkdownUnitOnly",
+    ),
+];
 
 fn distinct_names(types: &mut Types) {
     types.iter_mut(|definition| {

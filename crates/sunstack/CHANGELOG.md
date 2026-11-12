@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.14.0
+
+Release date: 2026-11-12.
+
+- Markdown fragment targets resolve GitHub-style heading slugs (github-slugger
+  2.0.0 removal rules), duplicate suffixes and explicit HTML id/a-name anchors.
+  Heading text keeps inline code/link text and surrounding spaces, excludes
+  image alt text, and ignores headings in code, comments and front matter. Markdown URLs now percent-decode UTF-8 paths and
+  fragments once, so file_exists also handles `%20` paths. HTML target behavior
+  stays unchanged.
+- `path_or_skill` treats `foo.md#x` as a file path with a fragment; earlier
+  versions treated the whole fragment-bearing string as a skill name.
+- Rulebook kinds accept exclusive `markdown_units` unit selectors. Section
+  fields expose full, own and enclosing own source text, retaining exact spans
+  when own text has multiple segments. Existing selector ranges remain: only
+  list items clamp headings; quoted headings do not close outer sections and
+  are not clamped to quote boundaries. This differs from HTML lexical outlines.
+- Rust callers handle the new `KindMatcher::MarkdownUnits` variant. The existing
+  Markdown selection validator is public; selection/filter types now implement
+  equality. No saved report shape or low-level CallSite behavior changes.
+- Known limit: recent Unicode lowercase mappings can differ between Rust std
+  and GitHub's unobservable renderer version. Real-link and rendered-page
+  comparisons remain the deciding compatibility evidence; no runtime case table
+  is substituted. Demistify render-time page-island IDs remain out of scope.
+
 ## 0.13.0
 
 Release date: 2026-11-12.

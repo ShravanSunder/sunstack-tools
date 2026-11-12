@@ -171,32 +171,36 @@ fn remainder_field(
 ) -> FieldValue {
     taken.sort_by_key(|span| (span.start, span.end));
     let mut cursor = range.start;
-    let mut value = String::new();
-    let mut spans = Vec::new();
+    let mut retained = Vec::new();
     for removed in taken {
         if removed.start > cursor {
-            value.push_str(&file.text[cursor..removed.start]);
-            spans.push(source_span(
-                file,
-                &MatchRange {
-                    start: cursor,
-                    end: removed.start,
-                },
-            ));
+            retained.push(MatchRange {
+                start: cursor,
+                end: removed.start,
+            });
         }
         cursor = cursor.max(removed.end);
     }
     if cursor < range.end {
-        value.push_str(&file.text[cursor..range.end]);
-        spans.push(source_span(
-            file,
-            &MatchRange {
-                start: cursor,
-                end: range.end,
-            },
-        ));
+        retained.push(MatchRange {
+            start: cursor,
+            end: range.end,
+        });
     }
-    FieldValue::Text { value, spans }
+    text_for_ranges(file, &retained)
+}
+
+pub(super) fn text_for_ranges(file: &MatchedFile, ranges: &[MatchRange]) -> FieldValue {
+    FieldValue::Text {
+        value: ranges
+            .iter()
+            .map(|range| &file.text[range.start..range.end])
+            .collect(),
+        spans: ranges
+            .iter()
+            .map(|range| source_span(file, range))
+            .collect(),
+    }
 }
 
 fn yaml_field(file: &MatchedFile, range: &MatchRange, key: &str) -> FieldValue {

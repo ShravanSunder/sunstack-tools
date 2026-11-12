@@ -375,6 +375,7 @@ export type EvidenceKindWire = {
 	rule?: EvidenceRuleId;
 	inline_rule?: string;
 	html_units?: HtmlUnitSelection;
+	markdown_units?: MarkdownUnitsKindWire;
 	fields: { [key in FieldName]: FieldSource };
 	max_chars?: number | null;
 	select?: SelectionWire | null;
@@ -741,13 +742,18 @@ export type KindCount = {
 };
 
 export type KindMatcher =
-	| ({ Named: EvidenceRuleId } & { HtmlUnits?: never; Inline?: never })
+	| ({ Named: EvidenceRuleId } & { HtmlUnits?: never; Inline?: never; MarkdownUnits?: never })
 	| ({
 			Inline: {
 				text: string;
 			};
-	  } & { HtmlUnits?: never; Named?: never })
-	| ({ HtmlUnits: HtmlUnitSelection } & { Inline?: never; Named?: never });
+	  } & { HtmlUnits?: never; MarkdownUnits?: never; Named?: never })
+	| ({ HtmlUnits: HtmlUnitSelection } & { Inline?: never; MarkdownUnits?: never; Named?: never })
+	| ({ MarkdownUnits: MarkdownUnitsKindWire } & {
+			HtmlUnits?: never;
+			Inline?: never;
+			Named?: never;
+	  });
 
 export type LabelRoute = {
 	label: ChoiceLabel;
@@ -825,6 +831,27 @@ export type LocatorOmission = {
 };
 
 export type LocatorOmissionReason = 'line_limit';
+
+export type MarkdownUnitKind = 'section' | 'paragraph' | 'list_item';
+
+export type MarkdownUnitOnly = 'unit';
+
+/**
+ *  The `markdown_units` selection a rulebook evidence kind accepts: the flat wire of
+ *  [`MarkdownUnitSelection`] in unit mode only, as the kind schema restricts it. Declares
+ *  the kind boundary for TypeScript; values still decode as [`MarkdownUnitSelection`].
+ */
+export type MarkdownUnitsKindWire =
+	| ({ mode: MarkdownUnitOnly; units: MarkdownUnitKind[] } & {
+			pattern?: never;
+			starts_with?: never;
+	  })
+	| ({ mode: MarkdownUnitOnly; units: MarkdownUnitKind[]; starts_with: string } & {
+			pattern?: never;
+	  })
+	| ({ mode: MarkdownUnitOnly; units: MarkdownUnitKind[]; pattern: string } & {
+			starts_with?: never;
+	  });
 
 export type MarkerId = string;
 
