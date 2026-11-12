@@ -5,7 +5,7 @@
 Unreleased.
 
 - `lint show` reads completed cases reports, accepts exact case IDs, and names
-  every candidate when a numeric result ID is ambiguous across revisions.
+  every candidate when a selector matches multiple cases or numeric results.
   Prepared case ordinals and saved detail shapes stay unchanged.
 - Change-scope refusals retain the offending path in diagnostics and displayed
   locations. Limit stops name the configured setting and value; existing

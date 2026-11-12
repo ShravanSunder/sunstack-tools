@@ -140,8 +140,8 @@ A saved report contains each request's exact state and questions, every returned
 answer, requested and resolved models, and the contents and hashes of its config
 and rule files. It retains raw piece evidence for mechanical steps. `lint show`
 needs only that saved file; an excluded rule is marked as never asked and cannot
-be re-walked. For completed cases reports, numeric IDs select unique results across
-nested revisions; exact case IDs select their linked evidence. Ambiguous IDs
+be re-walked. For completed cases reports, selectors consider exact case IDs and numeric results
+across nested revisions together. A case and its own result count once. Ambiguous IDs
 name each revision, case ID and result ID. Unknown IDs and malformed files name
 the report kind when known and the reason.
 

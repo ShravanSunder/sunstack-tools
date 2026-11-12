@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "saved_report_show/collisions.rs"]
+mod collisions;
+
 // Minimal projection of the frozen R03 0.11.0 report: actual case/result shapes,
 // two revisions sharing result 27, and result 68 occurring only in one revision.
 const COMPLETED_CASES: &str = r#"{
