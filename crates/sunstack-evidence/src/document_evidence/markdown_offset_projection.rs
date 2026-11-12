@@ -95,6 +95,12 @@ impl NormalizedMarkdown {
     }
 }
 
+#[derive(Clone, Copy)]
+enum ImageAltText {
+    Include,
+    Exclude,
+}
+
 pub(crate) struct OffsetProjection<'document> {
     source: &'document NormalizedMarkdown,
     events: Vec<(Event<'document>, Range<usize>)>,
@@ -129,6 +135,16 @@ impl<'document> OffsetProjection<'document> {
         )
     }
 
+    pub(crate) fn heading_text(&self, range: Range<usize>) -> String {
+        self.mapped_visible(
+            self.source.map_range(range),
+            true,
+            false,
+            ImageAltText::Exclude,
+        )
+        .text
+    }
+
     pub(crate) fn code(&self, range: Range<usize>) -> (String, String) {
         let text = self.mapped_code(range).text;
         (text.clone(), text)
@@ -146,7 +162,12 @@ impl<'document> OffsetProjection<'document> {
         keep_code: bool,
         list_indent: bool,
     ) -> MappedMarkdownText {
-        self.mapped_visible(self.source.map_range(range), keep_code, list_indent)
+        self.mapped_visible(
+            self.source.map_range(range),
+            keep_code,
+            list_indent,
+            ImageAltText::Include,
+        )
     }
 
     fn mapped_visible(
@@ -154,14 +175,26 @@ impl<'document> OffsetProjection<'document> {
         range: Range<usize>,
         keep_code: bool,
         list_indent: bool,
+        image_alt_text: ImageAltText,
     ) -> MappedMarkdownText {
         let mut output = MappedMarkdownText::default();
         let mut in_code_block = false;
+        let mut image_depth = 0usize;
         for (event, span) in &self.events {
             match event {
                 Event::Start(Tag::CodeBlock(_)) => in_code_block = true,
                 Event::End(TagEnd::CodeBlock) => in_code_block = false,
                 _ => {}
+            }
+            if matches!(image_alt_text, ImageAltText::Exclude) {
+                match event {
+                    Event::Start(Tag::Image { .. }) => image_depth += 1,
+                    Event::End(TagEnd::Image) => image_depth -= 1,
+                    _ => {}
+                }
+                if image_depth > 0 {
+                    continue;
+                }
             }
             if span.start < range.start || span.end > range.end {
                 continue;
@@ -257,7 +290,8 @@ impl<'document> OffsetProjection<'document> {
                 Event::Start(Tag::Table(columns)) => alignments = columns.clone(),
                 Event::Start(Tag::TableHead | Tag::TableRow) => cells.clear(),
                 Event::Start(Tag::TableCell) => {
-                    let mut cell = self.mapped_visible(span.clone(), keep_code, false);
+                    let mut cell =
+                        self.mapped_visible(span.clone(), keep_code, false, ImageAltText::Include);
                     cell.trim();
                     cells.push(cell);
                 }

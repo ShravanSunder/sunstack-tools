@@ -8,10 +8,13 @@ import { parseArgs } from 'node:util';
 import { z } from 'zod';
 
 import { requireOutsideInput } from '../git-first/frozen-inputs.ts';
+import { preparedPiece } from '../html-evidence/html-checks.ts';
 import { writeProject } from '../html-evidence/html-fixtures.ts';
+import { askingRule } from '../html-sections/fixtures.ts';
 import { requireDebugSignature } from '../rulebook/rulebook-amendment.ts';
 import {
 	objectValue,
+	arrayValue,
 	readObject,
 	writeJson,
 	runSequence,
@@ -125,6 +128,138 @@ async function observeCollectorControl(observer: RulebookProcess, evidence: stri
 	});
 	requireLinks(result.report, links, new Map([['source.md', source]]));
 }
+async function observeImageHeadings(
+	observer: RulebookProcess,
+	evidence: string,
+): Promise<JsonObject> {
+	const root = path.join(evidence, 'image-headings');
+	filesystem.mkdirSync(root);
+	// First H1 is exact tdewolff/minify README at eaad54db7f2205ed37db251a460cec7fd5f82127.
+	// GitHub's pinned rendered H1 text is "Minify    ": images add no text, spaces survive.
+	const target = filesystem.readFileSync(new URL('./image-headings.md', import.meta.url));
+	assert.equal(
+		createHash('sha256').update(target).digest('hex'),
+		'792db20065337a7296a41b0859afcce453481380456df116c3e177f5ca15c951',
+	);
+	filesystem.writeFileSync(path.join(root, 'target.md'), target);
+	const cases = [
+		{ label: 'pinned-minify', fragment: 'minify----', expected: 'found' },
+		{ label: 'linked-image', fragment: 'before--after', expected: 'found' },
+		{ label: 'image-only-empty', fragment: '', expected: 'found' },
+		{ label: 'image-only-duplicate', fragment: '-1', expected: 'found' },
+		{ label: 'plain-text', fragment: 'plain-text', expected: 'found' },
+		{
+			label: 'minify-phantom-alt',
+			fragment: 'minify--api-reference-go-report-card-codecov',
+			expected: 'missing',
+		},
+		{ label: 'alt-inclusive-link', fragment: 'before-linked-badge-after', expected: 'missing' },
+		{ label: 'alt-inclusive-only', fragment: 'first-only', expected: 'missing' },
+	] satisfies readonly { label: string; fragment: string; expected: Link['expected'] }[];
+	const source = Buffer.from(
+		cases.map((entry) => `[${entry.label}](target.md#${entry.fragment})`).join('\n') + '\n',
+	);
+	filesystem.writeFileSync(path.join(root, 'source.md'), source);
+	const links: Link[] = cases.map((entry) => {
+		const url = `target.md#${entry.fragment}`;
+		const raw = `[${entry.label}](${url})`;
+		const start = source.indexOf(raw);
+		return {
+			source: 'source.md',
+			target: 'target.md',
+			fragment: entry.fragment,
+			url,
+			raw,
+			expected: entry.expected,
+			start,
+			end: start + Buffer.byteLength(raw),
+			source_sha256: createHash('sha256').update(source).digest('hex'),
+		};
+	});
+	const fixture = linkConfiguration(links);
+	writeProject(
+		root,
+		{ K001: fixture.rule },
+		{ link: fixture.kind },
+		['source.md'],
+		fixture.definitions,
+	);
+	const configure = (): void => {
+		const file = path.join(root, 'sunstack.lint.json');
+		const config = readObject(file);
+		objectValue(config['decision_model'])['endpoint'] = observer.endpoint;
+		writeJson(file, config);
+	};
+	configure();
+	await observer.run({
+		root,
+		name: 'image-headings-check',
+		arguments: ['lint', '--check'],
+		expectedExit: 0,
+	});
+	const result = await observer.report({
+		root,
+		name: 'image-headings-links',
+		arguments: ['lint', '--all', '--format', 'json'],
+		expectedExit: 1,
+	});
+	requireLinks(result.report, links, new Map([['source.md', source]]));
+	const askingSource = '# Before [![Linked badge](badge.svg)](https://example.com) After\n';
+	filesystem.writeFileSync(path.join(root, 'asking.md'), askingSource);
+	writeProject(
+		root,
+		{
+			K001: {
+				...askingRule,
+				evidence: 'image',
+				questions: {
+					quality: {
+						type: 'noul',
+						instructions: { check: 'body', task: 'Inspect the heading text.' },
+					},
+				},
+			},
+		},
+		{ image: { rule: 'image-document', fields: { body: { from: 'remainder' } } } },
+		['asking.md'],
+		'id: image-document\nlanguage: Markdown\nrule: {kind: document}\n',
+	);
+	configure();
+	await observer.run({
+		root,
+		name: 'image-asking-check',
+		arguments: ['lint', '--check'],
+		expectedExit: 0,
+	});
+	const preparedFile = path.join(evidence, 'image-asking.json');
+	await observer.run({
+		root,
+		name: 'image-asking',
+		arguments: ['lint', '--all', '--prepare', preparedFile],
+		expectedExit: 6,
+	});
+	const report = readObject(preparedFile);
+	assert.equal(objectValue(report['usage'])['model_requests'], 0);
+	const requests = arrayValue(report['requests']).map(objectValue);
+	assert.equal(requests.length, 1);
+	const request = requests[0];
+	assert.ok(request);
+	assert.equal(request['status'], 'prepared');
+	assert.equal(
+		objectValue(objectValue(request['request'])['state'])['body'],
+		'Before Linked badge After',
+		'Ordinary Markdown asking must keep image alt text',
+	);
+	assert.equal(
+		objectValue(objectValue(preparedPiece(report, request)['fields'])['body'])['value'],
+		askingSource,
+	);
+	return {
+		links: links.length,
+		fixture_sha256: createHash('sha256').update(target).digest('hex'),
+		ordinary_asking_text: 'Before Linked badge After',
+	};
+}
 export async function observeMarkdown(options: z.infer<typeof optionsSchema>): Promise<void> {
 	const target = declaredTarget({
 		binary: options.binary,
@@ -150,8 +285,10 @@ export async function observeMarkdown(options: z.infer<typeof optionsSchema>): P
 	const observer = new RulebookProcess(target, path.join(evidence, 'run'));
 	await observer.start();
 	let sections = 0;
+	let imageHeadings: JsonObject | undefined;
 	try {
 		await observeCollectorControl(observer, evidence);
+		imageHeadings = await observeImageHeadings(observer, evidence);
 		await runSequence(repositories, async (repository) => {
 			const root = path.join(evidence, repository.key);
 			filesystem.mkdirSync(root);
@@ -202,6 +339,7 @@ export async function observeMarkdown(options: z.infer<typeof optionsSchema>): P
 			requireInputs(input);
 		}
 	}
+	assert.ok(imageHeadings, 'Image-heading control was not observed');
 	writeJson(path.join(evidence, 'pass.json'), {
 		target: { ...target },
 		repositories: repositories.map((repository) => ({
@@ -213,6 +351,7 @@ export async function observeMarkdown(options: z.infer<typeof optionsSchema>): P
 			missing_files: repository.links.filter((link) => link.expected === 'missing_file').length,
 		})),
 		sections,
+		image_headings: imageHeadings,
 		model_requests: 0,
 		input_rechecked: true,
 		limits: [
@@ -235,7 +374,7 @@ if (process.argv[1] === import.meta.filename) {
 	});
 	if (values.help)
 		process.stdout.write(
-			'Observe all 264 real Markdown fragment links and 74 sections (68 real, 6 owned), exact raw field spans and admission controls.\n--binary PATH --source-root CHECKOUT --commit FULL_SHA --sha256 DIGEST --input-root FROZEN_CORPUS --evidence NEW_DIRECTORY\nInput layout: sunstack/,tools/,controls.md; hashes and independent oracles in links.json/sections.json. Keyless CLI only.\n',
+			'Observe all 264 real Markdown fragment links and 74 sections (68 real, 6 owned), exact raw field spans, image-anchor/ordinary-asking controls and admission.\n--binary PATH --source-root CHECKOUT --commit FULL_SHA --sha256 DIGEST --input-root FROZEN_CORPUS --evidence NEW_DIRECTORY\nInput layout: sunstack/,tools/,controls.md; hashes and independent oracles in links.json/sections.json. Keyless CLI only.\n',
 		);
 	else await observeMarkdown(optionsSchema.parse(values));
 }

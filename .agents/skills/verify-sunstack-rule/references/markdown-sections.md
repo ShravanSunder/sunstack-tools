@@ -1,6 +1,6 @@
 # Markdown anchors and section fields
 
-This route drives the signed CLI against every original Markdown fragment link in two fixed repositories and checks real Markdown section fields against an independent outline. Expected values come from the 0.14.0 Markdown-sections commission and Corrections 1–7. Capture, collector controls, the real-link and section journeys, admission and owned teardown have been exercised through the signed CLI. Repeat the scoped drive on each declared target; source and GitHub checks alone prove no engine behavior.
+This route drives the signed CLI against every original Markdown fragment link in two fixed repositories and checks real Markdown section fields against an independent outline. Expected values come from the 0.14.0 Markdown-sections commission and Corrections 1–8. Capture, collector controls, the real-link and section journeys, admission and owned teardown have been exercised through the signed CLI. The Correction 8 image-heading control is draft until observed on the corrected declared candidate. Repeat the scoped drive on each declared target; source and GitHub checks alone prove no engine behavior.
 
 ## Inputs and independent expectations
 
@@ -42,6 +42,12 @@ node scripts/verify/sunstack-rule/markdown/github-samples.ts --evidence <new-sam
 ```
 
 The script fetches pinned contents using `Accept: application/vnd.github.html+json` and no credential headers. Twelve found links must have actual user-content permalink IDs. Four missing anchors must be absent in existing rendered pages; the fifth missing link must return 404 and is labelled a file-level miss. Correction 4 permits this 4+1 distribution; no synthetic missing substitutes. Preserve rendered HTML plus URL, HTTP status, headers and hashes. A disagreement goes to Lead before dependent work; HTTP 200 alone proves no anchor.
+
+## Image alt text and heading anchors
+
+Correction 8 excludes image alt text from heading IDs while preserving surrounding whitespace, including images nested in links. Ordinary Markdown asking still includes alt text. `image-headings.md` pins the exact first H1 from [tdewolff/minify README](https://github.com/tdewolff/minify/blob/eaad54db7f2205ed37db251a460cec7fd5f82127/README.md), followed by authored linked-image, image-only duplicate and plain headings. The full pinned README SHA256 is `27703cbf2b0d13f7fe5ff3582a58648ab069c684cce39c412c0a5ac1acdf8dc5`; the combined fixture SHA256 is checked in the driver. Actual keyless GitHub HTML supplies the first H1 text `"Minify    "` and permalink `minify----`.
+
+The image control checks eight exact target states: the Minify permalink, `before--after` for a linked image, empty and `-1` image-only slugs, plain text unchanged, and three rejected alt-inclusive slugs, including the Minify phantom. Its separate prepared ordinary asking request must still say `Before Linked badge After` and retain the exact original raw Markdown field. It makes no provider request. Re-run the complete 264-link corpus and 74-section journey on the new signed candidate; old-binary results are historical for this correction. Join the failing-first native image regressions and renewed saved-report parity so the anchor fix cannot silently change ordinary asking projection.
 
 ## Native, parity and limits
 

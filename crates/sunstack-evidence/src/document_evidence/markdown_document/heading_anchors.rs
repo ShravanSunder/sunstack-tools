@@ -28,7 +28,7 @@ impl MarkdownDocument {
                         )
                     })
             })
-            .any(|heading| slugger.slug(&projection.prose(heading.range(), false).0) == fragment);
+            .any(|heading| slugger.slug(&projection.heading_text(heading.range())) == fragment);
         has_heading || has_explicit_anchor(&projection, fragment)
     }
 }

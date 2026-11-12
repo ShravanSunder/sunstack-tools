@@ -6,8 +6,8 @@ Release date: 2026-11-12.
 
 - Markdown fragment targets resolve GitHub-style heading slugs (github-slugger
   2.0.0 removal rules), duplicate suffixes and explicit HTML id/a-name anchors.
-  Heading text keeps inline code/link text; code, comments and front matter do
-  not contribute headings. Markdown URLs now percent-decode UTF-8 paths and
+  Heading text keeps inline code/link text and surrounding spaces, excludes
+  image alt text, and ignores headings in code, comments and front matter. Markdown URLs now percent-decode UTF-8 paths and
   fragments once, so file_exists also handles `%20` paths. HTML target behavior
   stays unchanged.
 - `path_or_skill` treats `foo.md#x` as a file path with a fragment; earlier
