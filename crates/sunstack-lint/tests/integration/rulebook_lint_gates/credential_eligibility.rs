@@ -1,5 +1,31 @@
 use super::*;
 
+#[tokio::test]
+async fn clean_model_selected_evidence_without_asking_rules_finishes_before_evidence() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = fixture::write(root.path());
+    config["evidence"]["kinds"]["skill"]["select"] = json!({
+        "question":{"type":"noul","instructions":{"task":"Keep this skill?"}},
+        "yes_at_or_above":0.7,"no_at_or_below":0.3
+    });
+    fixture::config_file(root.path(), &config);
+    fixture::commit(root.path(), "model-selected evidence with mechanical rule");
+    for scope in [
+        ScopeChoice::Default,
+        ScopeChoice::Since { rev: "HEAD".into() },
+    ] {
+        let mut request = fixture::request(root.path());
+        request.scope = scope;
+        let (reader, reads) = source(root.path());
+
+        let report = run_with_source(request, CancellationToken::new(), None, Some(reader)).await;
+
+        assert_eq!(report.status, LintStatus::NothingSelected, "{report:?}");
+        assert!(report.diagnostics.is_empty());
+        assert_no_evidence(&report, &reads);
+    }
+}
+
 fn assert_no_evidence(report: &LintReport, reads: &Arc<Mutex<Vec<PathBuf>>>) {
     assert!(reads.lock().unwrap().is_empty());
     assert_eq!(report.usage.checked_files_acquired, 0);
