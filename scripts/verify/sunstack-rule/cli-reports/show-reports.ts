@@ -16,12 +16,15 @@ import {
 	readObject,
 	runSequence,
 	writeJson,
+	type JsonObject,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { declaredTarget, RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { requireAmbiguity, requireCaseDetail, requireLintDetail } from './report-checks.ts';
 import {
 	candidateForCase,
 	candidatesFor,
+	renameSavedCase,
+	retainNumericResultRevision,
 	freezeCases,
 	type SavedCandidate,
 } from './report-inputs.ts';
@@ -237,6 +240,14 @@ export async function observeShow(options: z.infer<typeof schema>): Promise<void
 		const unknownKind = path.join(evidence, 'unknown-kind.json');
 		writeJson(unknownKind, { unrelated: true });
 		assert.match(errorText(await show('unknown-report-kind', unknownKind, '1', 2)), /report/i);
+		await observeNumericCaseIds({
+			report: input.report,
+			caseId: options['case-id'],
+			numericId: options['ambiguous-id'],
+			otherId: options['unique-id'],
+			evidence,
+			show,
+		});
 		await observePrepared({ observer, evidence, endpoint: observer.endpoint, show });
 		assert.equal(observer.captures.length, 0);
 		writeJson(path.join(evidence, 'pass.json'), {
@@ -251,9 +262,12 @@ export async function observeShow(options: z.infer<typeof schema>): Promise<void
 			})),
 			ordinary_saved_detail_preserved: true,
 			prepared_ordinals_preserved: true,
+			completed_numeric_case_collision_refused: true,
+			same_case_own_numeric_result_collapsed: true,
+			different_own_result_candidate_retained: true,
 			http_requests: 0,
 			manual_check:
-				'Compare candidate associations in r03-ambiguous-numeric/stderr.log against ambiguity-oracle.json; automatic checks verify all candidate identities are present.',
+				'Compare r03-ambiguous-numeric/stderr.log against ambiguity-oracle.json and numeric-case ambiguity stderr against numeric-case-oracles.json; automatic checks verify candidate identities, manual checks verify their associations.',
 			limits: [
 				'Saved readback only; no new inference or classification-quality evidence.',
 				'Original report endpoints are not rewritten; loopback is not an egress witness for pure saved readback.',
@@ -262,6 +276,81 @@ export async function observeShow(options: z.infer<typeof schema>): Promise<void
 	} finally {
 		await observer.close();
 	}
+}
+async function observeNumericCaseIds(options: {
+	report: JsonObject;
+	caseId: string;
+	numericId: number;
+	otherId: number;
+	evidence: string;
+	show: (
+		name: string,
+		file: string,
+		selector: string,
+		exit?: number,
+	) => Promise<{ stdout: Buffer; stderr: Buffer }>;
+}): Promise<void> {
+	const selector = String(options.numericId);
+	const original = candidateForCase(options.report, options.caseId);
+	assert.equal(
+		original.result['id'],
+		options.numericId,
+		'Declared numeric-case control must link the colliding result',
+	);
+	const collision = renameSavedCase(options.report, options.caseId, selector);
+	const collisionFile = path.join(options.evidence, 'numeric-case-collision.json');
+	writeJson(collisionFile, collision);
+	const choices = candidatesFor(collision, options.numericId);
+	assert.ok(choices.length > 1);
+	requireAmbiguity(
+		errorText(await options.show('numeric-case-collision', collisionFile, selector, 2)),
+		options.numericId,
+		choices,
+	);
+
+	const unique = retainNumericResultRevision(collision, options.numericId, original.revision);
+	const uniqueFile = path.join(options.evidence, 'numeric-case-unique.json');
+	writeJson(uniqueFile, unique);
+	const candidate = candidateForCase(unique, selector);
+	const selectedCase = arrayValue(unique['cases'])
+		.map(objectValue)
+		.find((entry) => entry['id'] === selector);
+	assert.ok(selectedCase);
+	const result = await options.show('numeric-case-own-result-collapsed', uniqueFile, selector);
+	requireCaseDetail(parseObject(result.stdout.toString('utf8')), candidate, selectedCase);
+
+	const otherSelector = String(options.otherId);
+	const other = renameSavedCase(options.report, options.caseId, otherSelector);
+	const otherFile = path.join(options.evidence, 'numeric-case-different-result.json');
+	writeJson(otherFile, other);
+	const caseCandidate = candidateForCase(other, otherSelector);
+	assert.notEqual(caseCandidate.result['id'], options.otherId);
+	const otherChoices = [caseCandidate, ...candidatesFor(other, options.otherId)];
+	assert.equal(otherChoices.length, 2, 'Different-own-result control must have two owners');
+	requireAmbiguity(
+		errorText(await options.show('numeric-case-different-own-result', otherFile, otherSelector, 2)),
+		options.otherId,
+		otherChoices,
+	);
+	writeJson(path.join(options.evidence, 'numeric-case-oracles.json'), {
+		source:
+			'Copies of the frozen real report; original input never edited. Rename case/definition selectors, and for the positive only remove numeric rows from other revisions.',
+		collision: choices.map((entry) => ({
+			revision: entry.revision,
+			case_ids: entry.caseIds,
+			result_id: entry.result['id'] ?? null,
+		})),
+		unique: {
+			revision: candidate.revision,
+			case_ids: candidate.caseIds,
+			result_id: candidate.result['id'] ?? null,
+		},
+		different_own_result: otherChoices.map((entry) => ({
+			revision: entry.revision,
+			case_ids: entry.caseIds,
+			result_id: entry.result['id'] ?? null,
+		})),
+	});
 }
 async function observePrepared(options: {
 	observer: RulebookProcess;

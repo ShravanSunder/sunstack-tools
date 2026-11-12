@@ -9,7 +9,13 @@ import {
 	requireLintDetail,
 	requireSarifRefusal,
 } from './report-checks.ts';
-import { candidateForCase, candidatesFor, type SavedCandidate } from './report-inputs.ts';
+import {
+	candidateForCase,
+	candidatesFor,
+	renameSavedCase,
+	retainNumericResultRevision,
+	type SavedCandidate,
+} from './report-inputs.ts';
 
 const savedResult = { id: 27, file: 'right.md', outcome: 'pass', request_ids: [9] };
 const request = {
@@ -232,5 +238,74 @@ test('rejects SARIF with the path only in its message', () => {
 			'/fixture',
 			refusal,
 		),
+	);
+});
+
+test('numeric case renaming preserves saved runs and the original input', () => {
+	const report = {
+		cases: [{ id: 'known', case: { id: 'known', revision: 'first' }, result_id: 27 }],
+		runs: [
+			{
+				revision: 'first',
+				report: { results: [savedResult], filter_answers: [], filter_skips: [] },
+			},
+		],
+	};
+	const renamed = renameSavedCase(report, 'known', '27');
+	assert.deepEqual(renamed['runs'], report.runs);
+	assert.deepEqual(report.cases[0], {
+		id: 'known',
+		case: { id: 'known', revision: 'first' },
+		result_id: 27,
+	});
+	assert.deepEqual(renamed['cases'], [
+		{ id: '27', case: { id: '27', revision: 'first' }, result_id: 27 },
+	]);
+});
+test('unique numeric control keeps its own result and unrelated rows while dropping the other collision', () => {
+	const report = {
+		cases: [{ id: '27', case: { id: '27', revision: 'first' }, result_id: 27 }],
+		runs: [
+			{
+				revision: 'first',
+				report: { results: [savedResult], filter_answers: [], filter_skips: [] },
+			},
+			{
+				revision: 'second',
+				report: {
+					results: [
+						{ ...savedResult, file: 'wrong.md' },
+						{ ...savedResult, id: 41 },
+					],
+					filter_answers: [],
+					filter_skips: [],
+				},
+			},
+		],
+	};
+	const unique = retainNumericResultRevision(report, 27, 'first');
+	assert.equal(candidatesFor(unique, 27).length, 1);
+	assert.equal(candidatesFor(unique, 41).length, 1);
+	assert.equal(candidateForCase(unique, '27').revision, 'first');
+	assert.equal(candidatesFor(report, 27).length, 2);
+});
+test('numeric case ambiguity must retain its different own result ID', () => {
+	const choices = [
+		candidate,
+		{ ...candidate, result: { ...savedResult, id: 41 }, caseIds: ['27'] },
+	];
+	assert.throws(
+		() =>
+			requireAmbiguity(
+				'cases report ambiguous result 27: first known result 27; case id 27 result 27',
+				27,
+				choices,
+			),
+		/Candidate result ID omitted/,
+	);
+	requireAmbiguity(
+		'cases report ambiguous result 27: first known result 27; case id 27 result 41',
+		27,
+		choices,
 	);
 });

@@ -67,6 +67,8 @@ export function requireAmbiguity(
 	assert.ok(candidates.length > 1, 'Ambiguity control is inert');
 	for (const candidate of candidates) {
 		assert.ok(output.includes(candidate.revision), 'Candidate revision omitted');
+		const resultId = numberValue(candidate.result['id']);
+		assert.ok(new RegExp(`\\b${resultId}\\b`).test(output), 'Candidate result ID omitted');
 		if (candidate.caseIds.length === 0) assert.match(output, /no case id/i);
 		for (const caseId of candidate.caseIds)
 			assert.ok(output.includes(caseId), 'Candidate case ID omitted');

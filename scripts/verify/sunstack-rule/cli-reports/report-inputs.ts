@@ -61,6 +61,35 @@ export function candidateForCase(report: JsonObject, caseId: string): SavedCandi
 	assert.ok(candidate);
 	return candidate;
 }
+/** Change only case selectors on a private report copy; saved result payloads stay intact. */
+export function renameSavedCase(report: JsonObject, oldId: string, newId: string): JsonObject {
+	const renamed = structuredClone(report);
+	const matches = arrayValue(renamed['cases'])
+		.map(objectValue)
+		.filter((entry) => entry['id'] === oldId);
+	assert.equal(matches.length, 1, 'Numeric selector fixture requires one original case');
+	const entry = matches[0];
+	assert.ok(entry);
+	entry['id'] = newId;
+	objectValue(entry['case'])['id'] = newId;
+	return renamed;
+}
+/** Remove only the colliding numeric rows in other revisions for the unique-owner control. */
+export function retainNumericResultRevision(
+	report: JsonObject,
+	id: number,
+	revision: string,
+): JsonObject {
+	const retained = structuredClone(report);
+	for (const run of arrayValue(retained['runs']).map(objectValue)) {
+		if (run['revision'] === revision) continue;
+		const saved = objectValue(run['report']);
+		for (const bucket of ['results', 'filter_answers', 'filter_skips'])
+			saved[bucket] = arrayValue(saved[bucket]).filter((row) => objectValue(row)['id'] !== id);
+	}
+	assert.equal(candidatesFor(retained, id).length, 1, 'Unique numeric fixture is inert');
+	return retained;
+}
 export function freezeCases(options: { source: string; sha256: string; evidence: string }): {
 	file: string;
 	report: JsonObject;
