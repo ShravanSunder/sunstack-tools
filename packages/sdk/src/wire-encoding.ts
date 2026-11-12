@@ -18,6 +18,9 @@ function supportsRawJson(json: JSON): json is RawJsonCapableJson {
 
 class TransportRefusal extends Error {}
 
+const minimumWideInteger = -(2n ** 63n);
+const maximumWideInteger = 2n ** 64n - 1n;
+
 function describePath(path: readonly string[]): string {
 	return path.length === 0 ? 'the value' : path.join('.');
 }
@@ -49,6 +52,10 @@ function copyData(
 		case 'boolean':
 			return value;
 		case 'bigint':
+			// Rust integers are at most 64 bits: i64 below zero, u64 above it.
+			if (value < minimumWideInteger || value > maximumWideInteger) {
+				throw new TransportRefusal(`${describePath(path)} is outside the 64-bit integer range`);
+			}
 			return rawJson.rawJSON(value.toString());
 		case 'number':
 			if (!Number.isFinite(value)) {

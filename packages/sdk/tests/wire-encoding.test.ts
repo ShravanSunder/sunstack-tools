@@ -23,6 +23,9 @@ await test('bigint crosses as an exact decimal token and absent optionals stay a
 
 await test('non-data values are refused instead of disappearing into JSON', () => {
 	assert.match(rejected({ limit: Number.MAX_SAFE_INTEGER + 2 }), /unsafe integer/u);
+	assert.match(rejected({ limit: 2n ** 64n }), /64-bit integer range/u);
+	assert.match(rejected({ limit: -(2n ** 63n) - 1n }), /64-bit integer range/u);
+	assert.equal(encodeForNative({ limit: -(2n ** 63n) }).kind, 'encoded');
 	assert.match(rejected({ limit: Number.NaN }), /finite/u);
 	assert.match(rejected({ limit: Number.POSITIVE_INFINITY }), /finite/u);
 	assert.match(rejected({ hook: (): void => {} }), /function/u);

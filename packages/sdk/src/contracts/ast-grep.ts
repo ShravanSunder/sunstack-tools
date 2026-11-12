@@ -1,14 +1,5 @@
 // Generated from the pinned ast-grep 0.51.0 transport schema. Do not edit.
 
-/** JSON-representable data. */
-export type JsonData =
-	| null
-	| boolean
-	| number
-	| string
-	| readonly JsonData[]
-	| { readonly [key: string]: JsonData };
-
 /**
  * The declared transport shape of a matcher: the pinned upstream core composed with
  * every accepted wrapper property. Used only to generate declarations; values are
@@ -18,14 +9,14 @@ export type AstMatcher = {
 	/**
 	 * Additional meta variables pattern to filter matching
 	 */
-	readonly constraints?: Readonly<Record<string, SerializableRule>> | null;
+	readonly constraints?: { readonly [key: string]: SerializableRule } | null;
 	readonly files?: readonly RuleFileGlob[] | null;
 	readonly fix?: SerializableFixer;
 	readonly ignores?: readonly RuleFileGlob[] | null;
-	readonly labels?: Readonly<Record<string, LabelConfig>> | null;
+	readonly labels?: { readonly [key: string]: LabelConfig } | null;
 	readonly language: AuthoredLanguage;
 	readonly message?: string | null;
-	readonly metadata?: Readonly<Record<string, JsonData>> | null;
+	readonly metadata?: { readonly [key: string]: JsonData } | null;
 	readonly note?: string | null;
 	readonly rewriters?: readonly SerializableRewriter[] | null;
 	/**
@@ -38,12 +29,12 @@ export type AstMatcher = {
 	 * Dict value is a [transformation] that specifies how meta var is processed.
 	 * See [transformation doc](https://ast-grep.github.io/reference/yaml/transformation.html).
 	 */
-	readonly transform?: Readonly<Record<string, Transformation>> | null;
+	readonly transform?: { readonly [key: string]: Transformation } | null;
 	readonly url?: string | null;
 	/**
 	 * Utility rules that can be used in `matches`
 	 */
-	readonly utils?: Readonly<Record<string, SerializableRule>> | null;
+	readonly utils?: { readonly [key: string]: SerializableRule } | null;
 };
 
 /**
@@ -54,7 +45,7 @@ export type AstUtility = {
 	/**
 	 * Additional meta variables pattern to filter matching
 	 */
-	readonly constraints?: Readonly<Record<string, SerializableRule>> | null;
+	readonly constraints?: { readonly [key: string]: SerializableRule } | null;
 	readonly language: AuthoredLanguage;
 	/**
 	 * A rule object to find matching AST nodes
@@ -65,11 +56,11 @@ export type AstUtility = {
 	 * Dict value is a [transformation] that specifies how meta var is processed.
 	 * See [transformation doc](https://ast-grep.github.io/reference/yaml/transformation.html).
 	 */
-	readonly transform?: Readonly<Record<string, Transformation>> | null;
+	readonly transform?: { readonly [key: string]: Transformation } | null;
 	/**
 	 * Utility rules that can be used in `matches`
 	 */
-	readonly utils?: Readonly<Record<string, SerializableRule>> | null;
+	readonly utils?: { readonly [key: string]: SerializableRule } | null;
 };
 
 /**
@@ -125,6 +116,15 @@ export type Convert = {
 	 */
 	readonly toCase: StringCase;
 };
+
+export type JsonData =
+	| null
+	| boolean
+	| number
+	| bigint
+	| string
+	| readonly JsonData[]
+	| { readonly [key: string]: JsonData };
 
 /**
  * Upstream `LabelConfig`, which is not exported by the pinned crate.
@@ -286,7 +286,7 @@ export type SerializableFixer = string | SerializableFixConfig | readonly Serial
 
 export type SerializableMatches =
 	| string
-	| Readonly<Record<string, Readonly<Record<string, SerializableRule>>>>;
+	| { readonly [key: string]: { readonly [key: string]: SerializableRule } };
 
 /**
  * `nthChild` accepts either a number, a string or an object.
@@ -343,7 +343,7 @@ export type SerializableRewriter = {
 	/**
 	 * Additional meta variables pattern to filter matching
 	 */
-	readonly constraints?: Readonly<Record<string, SerializableRule>> | null;
+	readonly constraints?: { readonly [key: string]: SerializableRule } | null;
 	/**
 	 * A pattern string or a FixConfig object to auto fix the issue.
 	 * It can reference metavariables appeared in rule.
@@ -363,11 +363,11 @@ export type SerializableRewriter = {
 	 * Dict value is a [transformation] that specifies how meta var is processed.
 	 * See [transformation doc](https://ast-grep.github.io/reference/yaml/transformation.html).
 	 */
-	readonly transform?: Readonly<Record<string, Transformation>> | null;
+	readonly transform?: { readonly [key: string]: Transformation } | null;
 	/**
 	 * Utility rules that can be used in `matches`
 	 */
-	readonly utils?: Readonly<Record<string, SerializableRule>> | null;
+	readonly utils?: { readonly [key: string]: SerializableRule } | null;
 };
 
 /**

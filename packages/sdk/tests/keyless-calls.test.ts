@@ -85,7 +85,7 @@ const backend: ControlledBackend = await startControlledBackend();
 
 async function loaded(directory: string): Promise<LoadedConfiguration> {
 	const outcome = await load({ directory });
-	assert.equal(outcome.kind, 'loaded', JSON.stringify(outcome));
+	assert.equal(outcome.kind, 'loaded', outcome.kind === 'loaded' ? '' : JSON.stringify(outcome));
 	if (outcome.kind !== 'loaded') throw new Error('unreachable');
 	return outcome.value;
 }
@@ -166,7 +166,7 @@ await test('check admits an asking, filtered configuration with no key, request 
 	const base = ownedDirectory('base');
 	try {
 		const outcome = await check(inlineConfiguration(base.path, backend.endpoint));
-		assert.equal(outcome.kind, 'valid', JSON.stringify(outcome));
+		assert.equal(outcome.kind, 'valid', outcome.kind === 'valid' ? '' : JSON.stringify(outcome));
 		if (outcome.kind === 'valid') {
 			assert.deepEqual(outcome.summary, {
 				rulebook_count: 1,
@@ -355,6 +355,67 @@ await test('the default scope judges only changed files, and all judges every fi
 		base.remove();
 		repository.remove();
 	}
+});
+
+await test('full-width metadata integers load, compare and execute exactly', async () => {
+	writeMechanicalProject(definitions.path, checked.path);
+	const project = join(definitions.path, 'lint');
+	writeFiles(project, {
+		'evidence/rules/nested/skill.yml':
+			'id: skill\nlanguage: md\nrule: {matches: frontmatter}\nmetadata: {wide: 18446744073709551615, small: 3, ratio: 0.5, nothing: null}\n',
+	});
+	const held = await loaded(project);
+	const matcher = held.configuration.evidence.matchers['skill'];
+	assert.ok(matcher !== undefined);
+	const metadata = matcher.value.metadata;
+	assert.deepEqual(metadata, { nothing: null, ratio: 0.5, small: 3, wide: 18446744073709551615n });
+
+	// An unchanged copy keeps the original file receipt; the exact integer round-trips.
+	const unchanged = await run(held, { root: checked.path, scope: { kind: 'all' } });
+	assert.equal(unchanged.kind, 'completed');
+	if (unchanged.kind === 'completed') {
+		const source = unchanged.report.sources.find((candidate) =>
+			candidate.content.includes('18446744073709551615'),
+		);
+		assert.equal(source?.origin.kind, 'file');
+	}
+
+	// Changing the wide value is an edit whose normalized content keeps the exact token.
+	const edited: Configuration = {
+		...held.configuration,
+		evidence: {
+			...held.configuration.evidence,
+			matchers: {
+				skill: {
+					...matcher,
+					value: { ...matcher.value, metadata: { ...metadata, wide: 18446744073709551614n } },
+				},
+			},
+		},
+	};
+	const editedRun = await run(edited, { root: checked.path, scope: { kind: 'all' } });
+	assert.equal(editedRun.kind, 'completed');
+	if (editedRun.kind === 'completed') {
+		const source = editedRun.report.sources.find((candidate) => candidate.origin.kind === 'edited');
+		assert.match(source?.content ?? '', /"wide":18446744073709551614/u);
+	}
+	assert.equal((await check(edited)).kind, 'valid');
+
+	// Beyond 64 bits is refused before dispatch, never rounded.
+	const overflow: Configuration = {
+		...edited,
+		evidence: {
+			...held.configuration.evidence,
+			matchers: {
+				skill: { ...matcher, value: { ...matcher.value, metadata: { wide: 2n ** 64n } } },
+			},
+		},
+	};
+	const refused = await check(overflow);
+	assert.equal(
+		refused.kind === 'failed' ? refused.failure.reason : refused.kind,
+		'encoding_rejected',
+	);
 });
 
 await backend.close();

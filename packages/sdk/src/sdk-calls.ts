@@ -24,6 +24,7 @@ import {
 	widenNamed,
 } from './reply-decoding.ts';
 import { afterDispatch, beforeDispatch } from './sdk-failures.ts';
+import type { WireEncoding } from './wire-encoding.ts';
 import { encodeForNative } from './wire-encoding.ts';
 
 export interface SdkCalls {
@@ -60,9 +61,56 @@ function decodeReply<TOutcome>(
 		: { kind: 'invalid', message: `native reply is not a ${root}` };
 }
 
-/** The executable configuration of either input form; a receipt never executes. */
-function executableConfiguration(input: ConfigurationInput): unknown {
-	return 'configuration' in input ? input.configuration : input;
+/**
+ * Encode the executable configuration of either input form. Only an object whose
+ * own keys are exactly `configuration` and `sources` is a loaded value; its receipt
+ * never executes. Anything else is an authored configuration and crosses whole,
+ * so unknown root keys still reach the strict Rust decoder.
+ */
+function encodeConfigurationInput(input: ConfigurationInput): WireEncoding {
+	try {
+		const keys = Object.getOwnPropertyNames(input).toSorted();
+		const loaded = keys.length === 2 && keys[0] === 'configuration' && keys[1] === 'sources';
+		return encodeForNative(loaded ? Reflect.get(input, 'configuration') : input);
+	} catch (error) {
+		return {
+			kind: 'rejected',
+			message: `the input could not be inspected as data: ${describeRejection(error)}`,
+		};
+	}
+}
+
+/** Read the caller's signal once; an options object that throws on inspection is refused. */
+type SignalSelection =
+	| { readonly kind: 'selected'; readonly signal: AbortSignal | undefined }
+	| { readonly kind: 'rejected'; readonly message: string };
+
+function selectSignal(options: CallOptions | undefined): SignalSelection {
+	try {
+		return { kind: 'selected', signal: options?.signal };
+	} catch (error) {
+		return {
+			kind: 'rejected',
+			message: `the call options could not be inspected: ${describeRejection(error)}`,
+		};
+	}
+}
+
+/** Encode a run request; inspecting the caller's options cannot escape as a throw. */
+function encodeRunRequest(options: RunOptions): WireEncoding {
+	try {
+		const paths = options.paths;
+		return encodeForNative({
+			root: options.root,
+			scope: options.scope,
+			...(paths === undefined ? {} : { paths }),
+		});
+	} catch (error) {
+		return {
+			kind: 'rejected',
+			message: `the run options could not be inspected as data: ${describeRejection(error)}`,
+		};
+	}
 }
 
 function describeRejection(error: unknown): string {
@@ -126,17 +174,22 @@ export function createSdkCalls(resolveBinding: () => BindingResolution): SdkCall
 		},
 
 		async check(input: ConfigurationInput, options?: CallOptions): Promise<CheckOutcome> {
+			const selected = selectSignal(options);
+			if (selected.kind === 'rejected') {
+				return { kind: 'failed', failure: beforeDispatch('encoding_rejected', selected.message) };
+			}
+			const signal = selected.signal;
 			// An already-aborted signal wins over every other ending and starts no work.
-			if (options?.signal?.aborted === true) return { kind: 'cancelled', diagnostics: [] };
+			if (signal?.aborted === true) return { kind: 'cancelled', diagnostics: [] };
 			const resolved = binding();
 			if (resolved.kind === 'failed') return { kind: 'failed', failure: resolved.failure };
-			const encoded = encodeForNative(executableConfiguration(input));
+			const encoded = encodeConfigurationInput(input);
 			if (encoded.kind === 'rejected') {
 				return { kind: 'failed', failure: beforeDispatch('encoding_rejected', encoded.message) };
 			}
 			let reply: string;
 			try {
-				reply = await withCancellation(resolved.binding, options?.signal, (cancellation) =>
+				reply = await withCancellation(resolved.binding, signal, (cancellation) =>
 					resolved.binding.check(encoded.json, cancellation),
 				);
 			} catch (error) {
@@ -153,16 +206,21 @@ export function createSdkCalls(resolveBinding: () => BindingResolution): SdkCall
 		},
 
 		async run(input: ConfigurationInput, options: RunOptions): Promise<RunOutcome> {
-			if (options.signal?.aborted === true) return { kind: 'cancelled', report: null };
+			const selected = selectSignal(options);
+			if (selected.kind === 'rejected') {
+				return {
+					kind: 'failed',
+					failure: beforeDispatch('encoding_rejected', selected.message),
+					report: null,
+				};
+			}
+			const signal = selected.signal;
+			if (signal?.aborted === true) return { kind: 'cancelled', report: null };
 			const resolved = binding();
 			if (resolved.kind === 'failed')
 				return { kind: 'failed', failure: resolved.failure, report: null };
-			const configuration = encodeForNative(executableConfiguration(input));
-			const request = encodeForNative({
-				root: options.root,
-				scope: options.scope,
-				...(options.paths === undefined ? {} : { paths: options.paths }),
-			});
+			const configuration = encodeConfigurationInput(input);
+			const request = encodeRunRequest(options);
 			if (configuration.kind === 'rejected' || request.kind === 'rejected') {
 				const message =
 					configuration.kind === 'rejected'
@@ -178,7 +236,7 @@ export function createSdkCalls(resolveBinding: () => BindingResolution): SdkCall
 			}
 			let reply: string;
 			try {
-				reply = await withCancellation(resolved.binding, options.signal, (cancellation) =>
+				reply = await withCancellation(resolved.binding, signal, (cancellation) =>
 					resolved.binding.run(configuration.json, request.json, cancellation),
 				);
 			} catch (error) {

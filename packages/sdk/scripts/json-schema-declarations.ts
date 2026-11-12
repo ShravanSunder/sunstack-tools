@@ -68,8 +68,10 @@ function typeKeyword(
 		case 'string':
 			return 'string';
 		case 'number':
-		case 'integer':
 			return 'number';
+		case 'integer':
+			// Marked integers are full-width and cross as exact bigint.
+			return schema['x-sunstack-full-width'] === true ? 'bigint' : 'number';
 		case 'array': {
 			if (schema['prefixItems'] !== undefined) {
 				const elements = schemaList(schema['prefixItems'], `${where}.prefixItems`).map(
@@ -126,7 +128,8 @@ function renderObject(
 					indent,
 					`${where}.additionalProperties`,
 				);
-	const record = `Readonly<Record<string, ${valueType}>>`;
+	// An index-signature literal (not Record) lets recursive aliases such as JsonData resolve.
+	const record = `{ readonly [key: string]: ${valueType} }`;
 	return members.length === 0 ? record : `${closed} & ${record}`;
 }
 
@@ -187,7 +190,6 @@ export function renderSchemaDeclarations(schemaValue: unknown): string {
 	if (!isSchemaObject(definitions)) throw new Error('schema has no $defs');
 	const declarations = Object.entries(definitions)
 		.toSorted(([left], [right]) => left.localeCompare(right))
-		.filter(([name]) => name !== 'JsonData')
 		.map(([name, definition]) => {
 			const schema = asSchema(definition, `$defs.${name}`);
 			const doc = isSchemaObject(schema) ? comment(schema, '') : '';
@@ -195,15 +197,6 @@ export function renderSchemaDeclarations(schemaValue: unknown): string {
 		});
 	return [
 		'// Generated from the pinned ast-grep 0.51.0 transport schema. Do not edit.',
-		'',
-		'/** JSON-representable data. */',
-		'export type JsonData =',
-		'\t| null',
-		'\t| boolean',
-		'\t| number',
-		'\t| string',
-		'\t| readonly JsonData[]',
-		'\t| { readonly [key: string]: JsonData };',
 		'',
 		...declarations.flatMap((declaration) => [declaration, '']),
 	].join('\n');

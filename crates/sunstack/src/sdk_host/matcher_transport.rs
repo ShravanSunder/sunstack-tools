@@ -84,6 +84,9 @@ impl AuthoredLanguage {
 }
 
 /// Recursive JSON data: the representable subset of upstream YAML metadata.
+///
+/// Integers are 64-bit (u64 or i64) and cross exactly; wider integers and non-finite
+/// numbers are not representable and are refused.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct JsonData(pub serde_json::Value);
@@ -94,11 +97,14 @@ impl JsonSchema for JsonData {
     }
     fn json_schema(generator: &mut SchemaGenerator) -> Schema {
         let item = generator.subschema_for::<Self>();
+        // Integers beyond the safe JavaScript range cross exactly as bigint (u64/i64);
+        // the declaration generator renders the marked integer form as `bigint`.
         json_schema!({
             "anyOf": [
                 {"type": "null"},
                 {"type": "boolean"},
                 {"type": "number"},
+                {"type": "integer", "x-sunstack-full-width": true},
                 {"type": "string"},
                 {"type": "array", "items": item},
                 {"type": "object", "additionalProperties": item}

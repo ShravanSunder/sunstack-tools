@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { CONTRACT_REVISION } from '../src/contracts/contract-revision.ts';
 import type { BindingResolution, HostRuntime } from '../src/native-binding.ts';
 import { installedBindingSources, platformCells, resolveBinding } from '../src/native-binding.ts';
 
@@ -96,12 +97,12 @@ await test('a missing addon package is a closed failure naming the package', () 
 await test('release, revision and target skew are refused before any engine call', () => {
 	const exact = {
 		sdk_release: '0.12.0',
-		contract_revision: 1,
+		contract_revision: CONTRACT_REVISION,
 		target: 'x86_64-unknown-linux-musl',
 	};
 	for (const skewed of [
 		{ ...exact, sdk_release: '0.11.9' },
-		{ ...exact, contract_revision: 2 },
+		{ ...exact, contract_revision: CONTRACT_REVISION + 1 },
 		{ ...exact, target: 'x86_64-unknown-linux-gnu' },
 		{ unexpected: true },
 	]) {

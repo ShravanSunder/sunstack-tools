@@ -34,7 +34,12 @@ export const configuration = {
 				severity: 'warning',
 				labels: { A: { style: 'primary', message: 'here' } },
 				files: ['src/**', { glob: 'lib/**', caseInsensitive: true }],
-				metadata: { owner: 'docs', tags: ['a', null], nested: { level: 1 } },
+				metadata: {
+					owner: 'docs',
+					tags: ['a', null],
+					nested: { level: 1 },
+					wide: 18446744073709551615n,
+				},
 			},
 		},
 		kinds: {
