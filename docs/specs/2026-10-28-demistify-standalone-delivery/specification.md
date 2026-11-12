@@ -78,6 +78,11 @@ P1: an agent cannot produce a file a chat viewer renders without improvising, an
   - a Mermaid island with an unprepared `src`;
   - a Markdown or Explorer `src` that is a URL or a missing local file.
 - **R10** (U4; E5) A failed `bundle` leaves the output path exactly as it was. An existing file there is unchanged, and no partial file appears.
+- **R22** (U10; E1, E3, E5) `demistify bundle --out-dir <directory> <source.html …>` bundles each page source into its own bundle, as R7 and R8 describe. Each output keeps the page's path relative to the nearest directory containing all the sources, under `<directory>`. File names are kept, so links between those pages keep working when the output directory is opened from disk; a chat viewer still opens each file alone. Except with `--library`, which reads no binding and applies to every page, all the page sources must bind one binding; otherwise the command exits 1 naming two pages and their bases. The output directory is created, with any missing parents, only when the batch writes.
+- **R23** (U10; E5) If any page fails under R5, R6 or R9, the batch writes nothing for any page and names each failing page. The batch also fails before anything is written when:
+  - an output path is the same file as any page source;
+  - the same page source is given twice;
+  - two page sources map to one output path, compared as the file system compares names, so case-only differences collide on macOS.
 - **R11** (U5; E5) `demistify check` reports 0 errors and 0 warnings on a bundle produced under R7 from a page source that itself checks with 0 errors and 0 warnings.
 - **R12** (U5; E5, E6) `check` reports an error for any file whose name ends in `.standalone.html` and that is not a bundle.
 - **R13** (U5; E5) `check` reports an error for a file that records bundle metadata but still loads the library from a URL, or any Markdown or Explorer source from a URL or a path, or an unprepared Mermaid `src`. A prepared Mermaid island may keep its `src`; `check` does not treat that leftover as remote loading.
@@ -130,11 +135,13 @@ P1: an agent cannot produce a file a chat viewer renders without improvising, an
 | `check` | `[--fix] [--render] [--no-diagrams] <page.html …>`, `--hook` | today's behavior plus R11–R13 | today's: exit 1 when errors remain |
 | `embed` | `<input.html> <output.html>` | today's | today's |
 | `index` | `<page.html …>` | today's | today's |
-| `bundle` | `[--library <directory>] <source.html> <output.html>` | exit 0; prints version, module count, output bytes | exit 1 with one message naming the cause, per R5, R6, R9; output untouched per R10 |
+| `bundle` | `[--library <directory>] <source.html> <output.html>`, or `[--library <directory>] --out-dir <directory> <source.html …>` | exit 0; prints version, module count, and each output with its bytes | exit 1 naming each cause, per R5, R6, R9, R22, R23; outputs untouched per R10 and R23 |
 | `verify` | `[--no-network] [--screenshots <directory>] <file.html …>` | exit 0; one result line per file | exit 1 when any file failed; exit 2 when there is no usable browser |
 | `--version`, `--help` | none | exit 0 | — |
 
-Negative space: no `bundle` for many pages at once, no picture inlining, no browser download, no automatic fix of a bundle, and no Windows promise.
+Without `--out-dir`, `bundle` takes exactly two paths, the source and the output. With `--out-dir`, every path is a page source. Any other combination is a usage error, exit 1.
+
+Negative space: no merging of several pages into one file, no link rewriting, no picture inlining, no browser download, no automatic fix of a bundle, and no Windows promise.
 
 **C2 Release archive** (R1, R3). `cli.tgz` sits at the binding's root, is listed in `release.json` with its size and SHA-256 like every other file, and is served with a gzip archive content type. Its stable name revalidates on each request. The `release.json` schema keeps its current shape.
 
@@ -146,6 +153,7 @@ Negative space: no `bundle` for many pages at once, no picture inlining, no brow
 
 - A fetch that times out (20 seconds per request) or returns a non-2xx status fails `bundle` naming the URL. No retry loop runs.
 - A release that changes while `bundle` reads it shows up as a hash mismatch under R6 and fails without output. Rerunning is the remedy.
+- A batch writes only after every page has bundled. If the disk fails partway through writing, the pages already written stay written, and the command names which pages were written and which were not.
 - `verify` reports each file independently. One failing file does not stop the others.
 - Pages opened in a normal browser keep their current behavior. R3 and the protected boundary keep runtime bytes unchanged.
 
@@ -172,6 +180,7 @@ Negative space: no `bundle` for many pages at once, no picture inlining, no brow
 | V9 | R17, R18 | A fresh agent asked to prepare a page for a Slack reader, with the new guide and `presentation-html` | today's skills, under which agents produce a CDN-linked file named standalone |
 | V10 | R19 | The journey's own bundle and verify run | a journey that serves over HTTP, or never blocks the network |
 | V11 | R20, R21 | PR heads, bases and states | a combined PR, a merged PR, or a skill change based on the older `ai-tools` branch |
+| V12 | R22, R23 | A two-page collection in nested folders whose pages link to each other and carry a search index, bundled with `--out-dir`; the same batch with an `<img>` added to one page; an output directory equal to the sources' directory | outputs that lose the folder layout or file names; a batch that writes the good page when the other fails; a batch that overwrites its sources |
 
 ## Coverage
 
@@ -186,3 +195,4 @@ Negative space: no `bundle` for many pages at once, no picture inlining, no brow
 | `skills` | U7 | E5, E7 | R17, R18 (R19 also serves) | — | V9 |
 | `skills` | U8 | none: a source constraint | R20 | — | V11 |
 | `skills` | U9 | none: a delivery constraint | R21 | — | V11 |
+| `bundle` | U10 | E1, E3, E5 | R22, R23 | C1 | V12 |
