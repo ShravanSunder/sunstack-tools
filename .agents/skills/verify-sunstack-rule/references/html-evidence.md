@@ -2,7 +2,7 @@
 
 Use this journey when a rulebook checks real HTML documents, follows an HTML fragment, acquires related document pieces, or lives outside the project it checks. The user supplies a signed candidate and wants observable results from that binary. This is verification, not release acceptance.
 
-The adopted oracle is the 11 Nov 0.11.0 engine-any-language commission including Corrections 1–6. Reconfirm that source with the commissioning Lead. The three scripts below exercise different parts of one journey; none grants provider-keyed inference, edits to checked projects, or delivery authority.
+The adopted oracle is the 11 Nov 0.11.0 engine-any-language commission including Corrections 1–7. Reconfirm that source with the commissioning Lead. These scripts exercise different parts of one journey; none grants provider-keyed inference, edits to checked projects, or delivery authority.
 
 ## Prerequisites
 
@@ -52,6 +52,18 @@ node scripts/verify/sunstack-rule/html-evidence/checked-root.ts \
 The config/evidence definitions are outside the checked repository. `--root` selects the real SDK project while config-relative definition paths keep their existing meaning. The driver checks the five real HTML pages and independently inventories each actual fragment link. Every real link is compared by file and href, including outside-root inputs as incomplete; it never replaces a named gap with a clean-total claim. Saved raw spans must still delimit the original files.
 
 A named path outside the root must exit 2 and name both path and root. Four labelled absolute-path controls cover document/target acquisition inside and outside their own checked root. Inside succeeds; outside remains incomplete with `outside_root`, not a finding. Native joins separately establish `--since` uses the root's repository and whether `lint cases` shares the root option; this script does not imply either.
+
+## Refuse deferred fields before acquisition
+
+```sh
+node scripts/verify/sunstack-rule/html-evidence/document-admission.ts \
+  --binary <signed-candidate> --source-root <checkout> --commit <full-head> --sha256 <digest> \
+  --evidence <new-admission-directory>
+```
+
+Correction7 preserves the existing acquisition phase boundary. A selection question that names a Document field is refused before a run; an unreferenced Document field in that selected kind remains admissible. A target's `as_kind` cannot name a kind containing Document fields, because nested loads do not acquire deferred fields. No recursive acquisition is introduced. Existing Target refusals and their diagnostic text remain unchanged.
+
+The script drives eight labelled `lint --check` controls: four refusals (both Document guards and both existing Target guards), four accepted neighbours (local selection, selection with unreferenced Document, local-only target kind, and an explicitly used plain Document kind with no select and no nested reference). It checks exit2 plus the named diagnostic/config input for refusals, and exit0 plus rule listings for positives. Every child is keyless with an owned configured loopback listener. It never prepares or dispatches selection/model requests. These are structural admission observations, not acquisition or inference proof; the real document journeys above establish acquisition separately.
 
 ## Evidence and limits
 
