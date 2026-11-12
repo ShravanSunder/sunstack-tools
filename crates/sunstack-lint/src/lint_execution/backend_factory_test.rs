@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::panic)]
 use super::*;
 use crate::configuration_loading::definition_bundle::acquire_file_definitions;
 use sunstack_evidence::DefinitionOrigin;
