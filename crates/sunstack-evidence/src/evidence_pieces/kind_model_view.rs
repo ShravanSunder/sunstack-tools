@@ -2,7 +2,7 @@ use crate::{
     EvidenceKindDefinition, EvidenceKindName, EvidenceLanguage, EvidenceProject, FieldName,
     FieldSource, FieldValue, KindMatcher, ModelView, project_model_view,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub fn evidence_kind_language(
     project: &EvidenceProject,
@@ -31,6 +31,7 @@ pub fn project_kind_model_view(
         return ModelView::SelectionPending;
     }
     let html = evidence_kind_language(project, kind, definition) == Some(EvidenceLanguage::Html);
+    let mut recovery_cut = BTreeSet::new();
     let projected = fields
         .iter()
         .map(|(name, value)| {
@@ -41,30 +42,37 @@ pub fn project_kind_model_view(
                 Some(FieldSource::Target { .. }) => true,
                 _ => html,
             };
-            (
-                name.clone(),
-                if project_html {
-                    html_field_value(value)
-                } else {
-                    value.clone()
-                },
-            )
+            let mut incomplete = false;
+            let value = if project_html {
+                html_field_value(value, &mut incomplete)
+            } else {
+                value.clone()
+            };
+            if incomplete {
+                recovery_cut.insert(name.clone());
+            }
+            (name.clone(), value)
         })
         .collect();
-    project_model_view(&projected, max_chars)
+    let mut view = project_model_view(&projected, max_chars);
+    if let ModelView::Bounded { cut, .. } = &mut view {
+        recovery_cut.extend(cut.iter().cloned());
+        *cut = recovery_cut.into_iter().collect();
+    }
+    view
 }
 
-fn html_field_value(value: &FieldValue) -> FieldValue {
-    use crate::document_evidence::html_content::{html_text_content, is_html_path};
+fn html_field_value(value: &FieldValue, incomplete: &mut bool) -> FieldValue {
+    use crate::document_evidence::html_content::is_html_path;
     match value {
         FieldValue::Text { value, spans } => FieldValue::Text {
-            value: html_text_content(value),
+            value: project_html_asking_text(value, incomplete),
             spans: spans.clone(),
         },
         FieldValue::Texts { values, spans } => FieldValue::Texts {
             values: values
                 .iter()
-                .map(|value| html_text_content(value))
+                .map(|value| project_html_asking_text(value, incomplete))
                 .collect(),
             spans: spans.clone(),
         },
@@ -74,12 +82,16 @@ fn html_field_value(value: &FieldValue) -> FieldValue {
                 .cloned()
                 .map(|mut target| {
                     if is_html_path(&target.path) {
-                        target.opening =
-                            target.opening.as_ref().map(|text| html_text_content(text));
+                        target.opening = target
+                            .opening
+                            .as_ref()
+                            .map(|text| project_html_asking_text(text, incomplete));
                         target.fields = target.fields.as_ref().map(|fields| {
                             fields
                                 .iter()
-                                .map(|(name, value)| (name.clone(), html_field_value(value)))
+                                .map(|(name, value)| {
+                                    (name.clone(), html_field_value(value, incomplete))
+                                })
                                 .collect()
                         });
                     }
@@ -88,6 +100,19 @@ fn html_field_value(value: &FieldValue) -> FieldValue {
                 .collect(),
         },
         FieldValue::Absent | FieldValue::Unavailable { .. } => value.clone(),
+    }
+}
+
+fn project_html_asking_text(raw: &str, incomplete: &mut bool) -> String {
+    use crate::document_evidence::html_content::{HtmlAskingText, html_asking_text};
+    match html_asking_text(raw) {
+        HtmlAskingText::Complete(text) => text,
+        HtmlAskingText::Incomplete { text, reason } => {
+            *incomplete = true;
+            format!("{text} {}", reason.cut_marker())
+                .trim_start()
+                .into()
+        }
     }
 }
 

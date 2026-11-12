@@ -16,6 +16,197 @@ pub(crate) fn html_text_content(raw: &str) -> String {
     content.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum HtmlAskingText {
+    Complete(String),
+    Incomplete {
+        text: String,
+        reason: HtmlProjectionReason,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HtmlProjectionReason {
+    UnterminatedMarkup,
+}
+impl HtmlProjectionReason {
+    pub(crate) fn cut_marker(self) -> &'static str {
+        match self {
+            Self::UnterminatedMarkup => "[cut: html_projection_unterminated_markup]",
+        }
+    }
+}
+
+/// Recover malformed source only for asking; selector text keeps its original projection.
+pub(crate) fn html_asking_text(raw: &str) -> HtmlAskingText {
+    let tree = SupportLang::Html.ast_grep(raw);
+    let mut content = String::new();
+    let result = append_asking_text(&tree.root(), raw, &mut content, false);
+    let text = content.split_whitespace().collect::<Vec<_>>().join(" ");
+    match result {
+        Ok(()) => HtmlAskingText::Complete(text),
+        Err(reason) => HtmlAskingText::Incomplete { text, reason },
+    }
+}
+
+fn append_asking_text(
+    node: &HtmlNode<'_>,
+    raw: &str,
+    content: &mut String,
+    excluded_context: bool,
+) -> Result<(), HtmlProjectionReason> {
+    match node.kind().as_ref() {
+        "ERROR" => {
+            if !excluded_context {
+                append_recovered_text(node, content)?;
+            }
+        }
+        "text" | "entity" => content.push_str(&decode_entities(&node.text())),
+        "raw_text" => content.push_str(&node.text()),
+        "start_tag" | "self_closing_tag" => {
+            // The parser can represent a truncated opening tag with a missing terminator.
+            if node.dfs().any(|part| part.is_missing()) {
+                if !excluded_context {
+                    append_recovered_text(node, content)?;
+                }
+            } else {
+                content.push(' ');
+                append_tag_attributes(node, content);
+                content.push(' ');
+            }
+        }
+        "end_tag" => content.push(' '),
+        "document" | "element" | "script_element" | "style_element" => {
+            let is_element = node.kind() != "document";
+            let excluded_context = excluded_context
+                || node.children().any(|child| {
+                    child.kind() == "start_tag"
+                        && child.children().any(|part| {
+                            part.kind() == "tag_name" && recovery_excluded_tag(&part.text())
+                        })
+                });
+            if is_element {
+                content.push(' ');
+            }
+            let mut cursor = node.range().start;
+            for child in node.children() {
+                let gap = &raw[cursor..child.range().start];
+                if gap.chars().all(char::is_whitespace) {
+                    content.push_str(gap);
+                }
+                append_asking_text(&child, raw, content, excluded_context)?;
+                cursor = child.range().end;
+            }
+            let gap = &raw[cursor..node.range().end];
+            if gap.chars().all(char::is_whitespace) {
+                content.push_str(gap);
+            }
+            if is_element {
+                content.push(' ');
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+// ERROR leaves can contain both markup and prose with no useful child-node boundaries.
+// Strip complete tag-like tokens from that source span; never guess past an unfinished token.
+fn append_recovered_text(
+    node: &HtmlNode<'_>,
+    content: &mut String,
+) -> Result<(), HtmlProjectionReason> {
+    let source = node.text();
+    let mut raw = source.as_ref();
+    let tags = node
+        .dfs()
+        .filter(|part| matches!(part.kind().as_ref(), "start_tag" | "self_closing_tag"))
+        .map(|tag| (tag.range().start, tag))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut excluded_tags: Vec<String> = Vec::new();
+    while !raw.is_empty() {
+        let start = raw.find('<').unwrap_or(raw.len());
+        if excluded_tags.is_empty() {
+            content.push_str(&decode_entities(&raw[..start]));
+        }
+        raw = &raw[start..];
+        if raw.is_empty() {
+            break;
+        }
+        if let Some(comment) = raw.strip_prefix("<!--") {
+            let Some(end) = comment.find("-->") else {
+                return if excluded_tags.is_empty() {
+                    Err(HtmlProjectionReason::UnterminatedMarkup)
+                } else {
+                    Ok(())
+                };
+            };
+            raw = &comment[end + 3..];
+            content.push(' ');
+            continue;
+        }
+        let Some(end) = recovered_tag_end(raw) else {
+            return if excluded_tags.is_empty() {
+                Err(HtmlProjectionReason::UnterminatedMarkup)
+            } else {
+                Ok(())
+            };
+        };
+        let tag_start = node.range().start + source.len() - raw.len();
+        let token = raw[1..end].trim();
+        let closing = token.starts_with('/');
+        let name = token.trim_start_matches('/').trim_start();
+        let name_end = name
+            .find(|character: char| {
+                !character.is_ascii_alphanumeric() && !matches!(character, '-' | '_' | ':')
+            })
+            .unwrap_or(name.len());
+        let name = &name[..name_end];
+        if recovery_excluded_tag(name) {
+            if closing {
+                if let Some(index) = excluded_tags
+                    .iter()
+                    .rposition(|open| open.eq_ignore_ascii_case(name))
+                {
+                    excluded_tags.truncate(index);
+                }
+            } else if !token.ends_with('/') {
+                excluded_tags.push(name.to_ascii_lowercase());
+            }
+        }
+        if excluded_tags.is_empty() {
+            content.push(' ');
+            if let Some(tag) = tags.get(&tag_start) {
+                append_tag_attributes(tag, content);
+            }
+            content.push(' ');
+        }
+        raw = &raw[end + 1..];
+    }
+    Ok(())
+}
+
+fn recovered_tag_end(raw: &str) -> Option<usize> {
+    let mut quote = None;
+    for (offset, character) in raw.char_indices().skip(1) {
+        match (quote, character) {
+            (Some(expected), actual) if expected == actual => quote = None,
+            (Some(_), _) => {}
+            (None, '\'' | '"') => quote = Some(character),
+            (None, '>') => return Some(offset),
+            (None, '<') => return None,
+            (None, _) => {}
+        }
+    }
+    None
+}
+
+fn recovery_excluded_tag(name: &str) -> bool {
+    ["script", "style", "template", "ex-markdown"]
+        .iter()
+        .any(|excluded| name.eq_ignore_ascii_case(excluded))
+}
+
 pub(crate) fn html_has_id(raw: &str, id: &str) -> bool {
     let tree = SupportLang::Html.ast_grep(raw);
     tree.root().dfs().any(|element| {

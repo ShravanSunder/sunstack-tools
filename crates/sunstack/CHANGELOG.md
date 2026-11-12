@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.1
+
+Release date: 2026-11-12.
+
+- HTML asking text keeps words after stray closing tags and other recovered
+  markup. Unterminated markup retains the safe prefix and names the affected
+  field as cut. Request text and hashes change only for malformed HTML; raw
+  evidence, selectors, mechanical inputs and section outlines stay unchanged.
+
 ## 0.14.0
 
 Release date: 2026-11-12.

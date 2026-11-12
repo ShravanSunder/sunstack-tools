@@ -1,4 +1,4 @@
-use super::{html_has_id, html_text_content};
+use super::{HtmlAskingText, html_asking_text, html_has_id, html_text_content};
 
 #[test]
 fn projects_html_text_without_interpreting_markdown_or_attributes() {
@@ -61,4 +61,27 @@ fn finds_only_exact_decoded_id_attributes_on_elements() {
     for absent in ["comment", "legacy", "attribute", "example", "café", "PLAIN"] {
         assert!(!html_has_id(html, absent), "unexpected id: {absent}");
     }
+}
+
+#[test]
+fn asking_recovers_the_real_workspace_hierarchy_prose_error_span() {
+    use ast_grep_language::{LanguageExt, SupportLang};
+    // Exact paragraph from design-page-snapshots 5c02896631399f04216fbdc30668cdeb0497be43,
+    // pages/page-03.html:67. The literal greater-than signs produce parser ERROR nodes.
+    let raw = r#"<p>Your words: "workspace -> Areas -> Projects"; "board is not a good name". An <strong>area</strong> replaces today's "board". A project is a body of work with a lead.</p>"#;
+    let tree = SupportLang::Html.ast_grep(raw);
+    let errors = tree
+        .root()
+        .dfs()
+        .filter(|node| node.is_error())
+        .map(|node| (node.range(), node.text().into_owned()))
+        .collect::<Vec<_>>();
+    assert!(!errors.is_empty(), "real input must reach ERROR recovery");
+    println!(
+        "real ERROR spans: {errors:?}; selector text: {:?}",
+        html_text_content(raw)
+    );
+    assert_eq!(html_asking_text(raw), HtmlAskingText::Complete(
+        "Your words: \"workspace -> Areas -> Projects\"; \"board is not a good name\". An area replaces today's \"board\". A project is a body of work with a lead.".into()
+    ));
 }
