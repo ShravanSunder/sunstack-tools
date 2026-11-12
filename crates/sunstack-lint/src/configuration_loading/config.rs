@@ -57,6 +57,10 @@ pub fn load_config(location: &ConfigLocation) -> Result<RulesConfig, LintInvalid
     })?;
     crate::configuration_loading::config_decoding::decode_config(&text, location)
 }
+/// Decode `sunstack.lint.json` text exactly as `load_config` does, without reading it.
+pub fn parse_config(text: &str, location: &ConfigLocation) -> Result<RulesConfig, LintInvalid> {
+    crate::configuration_loading::config_decoding::decode_config(text, location)
+}
 pub fn config_schema() -> schemars::Schema {
     schemars::schema_for!(RulesConfig)
 }

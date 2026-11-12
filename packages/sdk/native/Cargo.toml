@@ -1,0 +1,38 @@
+[package]
+name = "sunstack-sdk-native"
+description = "Node-API adapter for the Sunstack TypeScript SDK"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autobins = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "export-sdk-contracts"
+path = "src/bin/export_sdk_contracts/main.rs"
+required-features = ["generation"]
+
+[features]
+# Declaration generation only; the shipped addon never links specta.
+generation = ["sunstack/typescript", "dep:specta", "dep:specta-serde", "dep:specta-typescript"]
+
+[lints]
+workspace = true
+
+[dependencies]
+napi = { version = "=3.16.1", features = ["napi6", "tokio_rt"] }
+napi-derive = "=3.7.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sunstack = { path = "../../../crates/sunstack" }
+sunstack-decisions.workspace = true
+tokio = { version = "1", features = ["rt"] }
+specta = { version = "=2.0.0-rc.28", features = ["derive", "serde_json"], optional = true }
+specta-serde = { version = "=0.0.15", optional = true }
+specta-typescript = { version = "=0.0.15", optional = true }
+
+[build-dependencies]
+napi-build = "=2.6.0"

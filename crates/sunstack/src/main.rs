@@ -13,6 +13,6 @@ async fn main() -> ExitCode {
         RunnerCommand::Lint(arguments) => command_dispatch::lint_command::run(*arguments).await,
         RunnerCommand::Credentials {
             command: CredentialCommand::Save,
-        } => process_runtime::provider_credentials::save_command().await,
+        } => sunstack::host_services::provider_credentials::save_command().await,
     }
 }

@@ -97,9 +97,14 @@ pub struct Finding {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RelatedPlace {
     pub label: String,
+    /// A checked file, or the CLI path of the standard's rulebook definition.
     pub file: PathBuf,
     pub first_line: usize,
     pub last_line: usize,
+    /// Set when this place is a definition (the standard); never CLI-serialized.
+    #[serde(skip)]
+    #[schemars(skip)]
+    pub definition: Option<sunstack_evidence::DefinitionOrigin>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JudgmentSummary {
@@ -194,6 +199,14 @@ pub struct LintDiagnostic {
     pub column: Option<u32>,
     pub code: LintInvalidCode,
     pub message: String,
+    /// The definition this diagnostic belongs to; never part of CLI serialization.
+    #[serde(skip)]
+    #[schemars(skip)]
+    pub definition: Option<sunstack_evidence::DefinitionOrigin>,
+    /// The configuration field path, when known; never part of CLI serialization.
+    #[serde(skip)]
+    #[schemars(skip)]
+    pub json_path: Vec<String>,
 }
 impl From<LintInvalid> for LintDiagnostic {
     fn from(error: LintInvalid) -> Self {
@@ -204,6 +217,8 @@ impl From<LintInvalid> for LintDiagnostic {
             column: error.column,
             code: error.code,
             message: error.message,
+            definition: error.definition.map(|definition| *definition),
+            json_path: error.json_path,
         }
     }
 }

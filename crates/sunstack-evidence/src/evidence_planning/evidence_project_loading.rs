@@ -1,4 +1,5 @@
-use ast_grep_config::{DeserializeEnv, RuleCollection, SerializableGlobalRule};
+use crate::{CapturedFile, DefinitionOrigin, SourceAcquisitionFailure, read_definition_file};
+use ast_grep_config::{DeserializeEnv, GlobalRules, RuleCollection, SerializableGlobalRule};
 use ast_grep_language::{LanguageExt, SupportLang};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -11,23 +12,34 @@ use std::{
 #[error("{}: {message}", path.display())]
 pub struct ProjectRefusal {
     pub origin: Option<crate::ConfigPath>,
+    /// The CLI path projection of `definition` (empty for in-memory definitions).
     pub path: PathBuf,
+    /// The definition, or definition file/folder, that the refusal concerns.
+    pub definition: Box<DefinitionOrigin>,
     pub message: String,
     pub line: usize,
     pub column: Option<usize>,
 }
 impl ProjectRefusal {
     fn at(path: &Path, message: impl ToString) -> Self {
+        Self::in_definition(&DefinitionOrigin::file(path), message)
+    }
+    pub fn in_definition(definition: &DefinitionOrigin, message: impl ToString) -> Self {
         Self {
             origin: None,
-            path: path.into(),
+            path: definition.cli_path(),
+            definition: Box::new(definition.clone()),
             message: message.to_string(),
             line: 1,
             column: None,
         }
     }
-    fn located(path: &Path, message: impl ToString, position: Option<(u64, u64)>) -> Self {
-        let mut refusal = Self::at(path, message);
+    fn located(
+        definition: &DefinitionOrigin,
+        message: impl ToString,
+        position: Option<(u64, u64)>,
+    ) -> Self {
+        let mut refusal = Self::in_definition(definition, message);
         if let Some((line, column)) = position {
             refusal.line = usize::try_from(line).unwrap_or(usize::MAX);
             refusal.column = usize::try_from(column).ok();
@@ -314,166 +326,427 @@ struct ProjectSettings {
     util_dirs: Vec<PathBuf>,
 }
 
-/// Load the consumer project and the embedded Markdown utils into one registration.
-pub fn load_evidence_project(
+/// One utility definition and the source it was authored in.
+#[derive(Clone)]
+pub struct UtilityDefinition {
+    pub origin: DefinitionOrigin,
+    pub utility: SerializableGlobalRule<SupportLang>,
+}
+
+/// One named matcher definition and the source it was authored in.
+#[derive(Clone)]
+pub struct MatcherDefinition {
+    pub origin: DefinitionOrigin,
+    pub matcher: ast_grep_config::SerializableRuleConfig<SupportLang>,
+}
+
+/// Decoded evidence definitions, independent of how they were acquired.
+#[derive(Clone)]
+pub struct EvidenceProjectDefinitions {
+    /// Owner of project-wide refusals: the ast-grep project file or the configuration.
+    pub project: DefinitionOrigin,
+    pub rule_directories: Vec<PathBuf>,
+    pub utilities: Vec<UtilityDefinition>,
+    pub matchers: Vec<MatcherDefinition>,
+    /// Real definition files consulted, in acquisition order.
+    pub inputs: Vec<PathBuf>,
+}
+
+/// One acquisition step of an ast-grep project, kept in the order the CLI visits it.
+pub type AcquiredFile = Result<CapturedFile, Box<ProjectAcquisitionFailure>>;
+
+/// A project file or folder that could not be acquired.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectAcquisitionFailure {
+    pub source: SourceAcquisitionFailure,
+    /// The existing CLI wording for this failure.
+    pub refusal: ProjectRefusal,
+}
+
+/// Every file of an ast-grep project read exactly once.
+#[derive(Debug, Clone)]
+pub struct EvidenceProjectFiles {
+    pub project: CapturedFile,
+    pub rule_directories: Vec<PathBuf>,
+    pub utility_files: Vec<AcquiredFile>,
+    pub rule_files: Vec<AcquiredFile>,
+}
+
+/// Why an ast-grep project could not be read before decoding.
+#[derive(Debug, Clone)]
+pub enum ProjectReadFailure {
+    Unavailable(Box<ProjectAcquisitionFailure>),
+    Refused(ProjectRefusal),
+}
+
+fn acquisition_failure(
+    failure: SourceAcquisitionFailure,
+    message: String,
+) -> Box<ProjectAcquisitionFailure> {
+    Box::new(ProjectAcquisitionFailure {
+        refusal: ProjectRefusal::at(&failure.path, message),
+        source: failure,
+    })
+}
+
+fn acquire(path: &Path) -> AcquiredFile {
+    read_definition_file(path).map_err(|failure| {
+        let message = failure.message.clone();
+        acquisition_failure(failure, message)
+    })
+}
+
+/// Read the ast-grep project file and every util/rule YAML file it names, once.
+pub fn read_evidence_project(
     config_path: &Path,
-    inline_rules: &[InlineRule],
-    rules_config_path: Option<&Path>,
-) -> Result<EvidenceProject, ProjectRefusal> {
-    let read = |path: &Path| {
-        std::fs::read_to_string(path).map_err(|error| ProjectRefusal::at(path, error))
-    };
-    let settings: ProjectSettings =
-        ast_grep_config::from_str(&read(config_path)?).map_err(|error| {
-            ProjectRefusal::located(
-                config_path,
-                error.to_string(),
-                error
-                    .location()
-                    .map(|location| (location.line(), location.column())),
-            )
-        })?;
+) -> Result<EvidenceProjectFiles, ProjectReadFailure> {
+    let project = acquire(config_path).map_err(ProjectReadFailure::Unavailable)?;
+    let settings: ProjectSettings = ast_grep_config::from_str(&project.text).map_err(|error| {
+        ProjectReadFailure::Refused(ProjectRefusal::located(
+            &DefinitionOrigin::file(config_path),
+            error.to_string(),
+            error
+                .location()
+                .map(|location| (location.line(), location.column())),
+        ))
+    })?;
     let base = config_path.parent().unwrap_or(Path::new("."));
-    let reserved = crate::document_evidence::standard_markdown_utils::standard_utils();
-    let reserved_ids = reserved.iter().map(|(id, _)| *id).collect::<BTreeSet<_>>();
-    let mut utils = Vec::new();
-    for (_, yaml) in reserved {
-        utils.push(
-            ast_grep_config::from_str::<SerializableGlobalRule<SupportLang>>(yaml)
-                .map_err(|error| ProjectRefusal::at(config_path, error))?,
-        );
-    }
-    let mut inputs = vec![config_path.into()];
-    for folder in &settings.util_dirs {
-        for path in yaml_files(&base.join(folder))? {
-            for util in
-                ast_grep_config::from_multiple::<SerializableGlobalRule<SupportLang>>(&read(&path)?)
-                    .map_err(|error| {
-                        ProjectRefusal::located(
-                            &path,
-                            error.to_string(),
-                            error
-                                .location()
-                                .map(|location| (location.line(), location.column())),
-                        )
-                    })?
-            {
-                refuse_reserved_local_utils(&util.core, &reserved_ids, &path)?;
-                if reserved_ids.contains(util.id.as_str()) {
-                    return Err(ProjectRefusal::at(
-                        &path,
-                        format!("reserved standard util ID: {}", util.id),
-                    ));
-                }
-                utils.push(util);
+    let collect = |folders: &[PathBuf]| {
+        let mut files = Vec::new();
+        for folder in folders {
+            match yaml_files(&base.join(folder)) {
+                Ok(paths) => files.extend(paths.iter().map(|path| acquire(path))),
+                Err(failure) => files.push(Err(failure)),
             }
-            inputs.push(path);
         }
-    }
-    let globals = DeserializeEnv::parse_global_utils(utils)
-        .map_err(|error| ProjectRefusal::at(config_path, error))?;
-    let mut rules = Vec::new();
-    let mut rule_ids = BTreeSet::new();
-    let mut rule_languages = BTreeMap::new();
-    let mut register = |wire: ast_grep_config::SerializableRuleConfig<SupportLang>, path: &Path| {
-        refuse_reserved_local_utils(&wire.core, &reserved_ids, path)?;
-        let rule = ast_grep_config::RuleConfig::try_from(wire, &globals)
-            .map_err(|error| ProjectRefusal::at(path, error))?;
-        if reserved_ids.contains(rule.id.as_str()) {
-            return Err(ProjectRefusal::at(
-                path,
-                format!("reserved standard util ID: {}", rule.id),
-            ));
-        }
-        let language = EvidenceLanguage::from_support(rule.language);
-        let id = crate::EvidenceRuleId::new(rule.id.clone())
-            .map_err(|error| ProjectRefusal::at(path, error))?;
-        if !rule_ids.insert(id.clone()) {
-            return Err(ProjectRefusal::at(
-                path,
-                format!("duplicate evidence rule ID: {}", rule.id),
-            ));
-        }
-        rule_languages.insert(id, language);
-        rules.push(rule);
-        Ok(())
+        files
     };
-    for folder in &settings.rule_dirs {
-        for path in yaml_files(&base.join(folder))? {
-            let loaded = ast_grep_config::from_multiple::<
-                ast_grep_config::SerializableRuleConfig<SupportLang>,
-            >(&read(&path)?)
-            .map_err(|error| {
-                ProjectRefusal::located(
-                    &path,
-                    error.to_string(),
-                    error
-                        .location()
-                        .map(|location| (location.line(), location.column())),
-                )
-            })?;
-            for wire in loaded {
-                register(wire, &path)?;
-            }
-            inputs.push(path);
-        }
-    }
-    for inline in inline_rules {
-        let path = rules_config_path.unwrap_or(config_path);
-        let mut compile = || {
-            let mut wire: InlineRuleWire = ast_grep_config::from_str(&inline.text)
-                .map_err(|error| ProjectRefusal::at(path, error))?;
-            wire.rule.id = inline.kind.as_str().to_owned();
-            register(wire.rule, path)
-        };
-        compile().map_err(|mut refusal| {
-            refusal.origin = Some(inline.origin.clone());
-            refusal
-        })?;
-    }
-    if !inline_rules.is_empty() {
-        inputs.push(rules_config_path.unwrap_or(config_path).to_owned());
-    }
-    let rules =
-        RuleCollection::try_new(rules).map_err(|error| ProjectRefusal::at(config_path, error))?;
-    Ok(EvidenceProject {
-        rules: Arc::new(rules),
-        rule_ids,
-        inputs,
+    Ok(EvidenceProjectFiles {
+        utility_files: collect(&settings.util_dirs),
+        rule_files: collect(&settings.rule_dirs),
         rule_directories: settings
             .rule_dirs
             .iter()
             .map(|folder| base.join(folder))
             .collect(),
-        rule_languages,
+        project,
     })
+}
+
+// The upstream YAML error type is not re-exported; refusals keep its message and position.
+macro_rules! yaml_refusal {
+    ($path:expr, $error:expr) => {
+        ProjectRefusal::located(
+            &DefinitionOrigin::file($path),
+            $error.to_string(),
+            $error
+                .location()
+                .map(|location| (location.line(), location.column())),
+        )
+    };
+}
+
+/// Decode one utility YAML document stream exactly as the ast-grep project loader does.
+pub fn decode_utility_file(
+    file: &CapturedFile,
+) -> Result<Vec<SerializableGlobalRule<SupportLang>>, ProjectRefusal> {
+    ast_grep_config::from_multiple::<SerializableGlobalRule<SupportLang>>(&file.text)
+        .map_err(|error| yaml_refusal!(&file.path, error))
+}
+
+/// Decode one rule YAML document stream exactly as the ast-grep project loader does.
+pub fn decode_matcher_file(
+    file: &CapturedFile,
+) -> Result<Vec<ast_grep_config::SerializableRuleConfig<SupportLang>>, ProjectRefusal> {
+    ast_grep_config::from_multiple::<ast_grep_config::SerializableRuleConfig<SupportLang>>(
+        &file.text,
+    )
+    .map_err(|error| yaml_refusal!(&file.path, error))
+}
+
+/// Decode a read project into definitions, failing at the first unread or malformed file.
+pub fn decode_evidence_project(
+    files: &EvidenceProjectFiles,
+) -> Result<EvidenceProjectDefinitions, ProjectReadFailure> {
+    let mut definitions = EvidenceProjectDefinitions {
+        project: DefinitionOrigin::file(&files.project.path),
+        rule_directories: files.rule_directories.clone(),
+        utilities: vec![],
+        matchers: vec![],
+        inputs: vec![files.project.path.clone()],
+    };
+    for acquired in &files.utility_files {
+        let file = acquired
+            .as_ref()
+            .map_err(|failure| ProjectReadFailure::Unavailable(failure.clone()))?;
+        let origin = DefinitionOrigin::file(&file.path);
+        for utility in decode_utility_file(file).map_err(ProjectReadFailure::Refused)? {
+            definitions.utilities.push(UtilityDefinition {
+                origin: origin.clone(),
+                utility,
+            });
+        }
+        definitions.inputs.push(file.path.clone());
+    }
+    for acquired in &files.rule_files {
+        let file = acquired
+            .as_ref()
+            .map_err(|failure| ProjectReadFailure::Unavailable(failure.clone()))?;
+        let origin = DefinitionOrigin::file(&file.path);
+        for matcher in decode_matcher_file(file).map_err(ProjectReadFailure::Refused)? {
+            definitions.matchers.push(MatcherDefinition {
+                origin: origin.clone(),
+                matcher,
+            });
+        }
+        definitions.inputs.push(file.path.clone());
+    }
+    Ok(definitions)
+}
+
+/// The one evidence compiler shared by file and in-memory definitions.
+struct ProjectCompiler {
+    reserved_ids: BTreeSet<&'static str>,
+    utils: Vec<SerializableGlobalRule<SupportLang>>,
+    globals: GlobalRules,
+    rules: Vec<ast_grep_config::RuleConfig<SupportLang>>,
+    rule_ids: BTreeSet<crate::EvidenceRuleId>,
+    rule_languages: BTreeMap<crate::EvidenceRuleId, EvidenceLanguage>,
+}
+
+impl ProjectCompiler {
+    fn new(project: &DefinitionOrigin) -> Result<Self, ProjectRefusal> {
+        let reserved = crate::document_evidence::standard_markdown_utils::standard_utils();
+        let reserved_ids = reserved.iter().map(|(id, _)| *id).collect::<BTreeSet<_>>();
+        let mut utils = Vec::new();
+        for (_, yaml) in reserved {
+            utils.push(
+                ast_grep_config::from_str::<SerializableGlobalRule<SupportLang>>(yaml)
+                    .map_err(|error| ProjectRefusal::in_definition(project, error))?,
+            );
+        }
+        Ok(Self {
+            reserved_ids,
+            utils,
+            globals: GlobalRules::default(),
+            rules: vec![],
+            rule_ids: BTreeSet::new(),
+            rule_languages: BTreeMap::new(),
+        })
+    }
+
+    fn add_utility(
+        &mut self,
+        utility: SerializableGlobalRule<SupportLang>,
+        origin: &DefinitionOrigin,
+    ) -> Result<(), ProjectRefusal> {
+        refuse_reserved_local_utils(&utility.core, &self.reserved_ids, origin)?;
+        if self.reserved_ids.contains(utility.id.as_str()) {
+            return Err(ProjectRefusal::in_definition(
+                origin,
+                format!("reserved standard util ID: {}", utility.id),
+            ));
+        }
+        self.utils.push(utility);
+        Ok(())
+    }
+
+    fn seal_utilities(&mut self, project: &DefinitionOrigin) -> Result<(), ProjectRefusal> {
+        self.globals = DeserializeEnv::parse_global_utils(std::mem::take(&mut self.utils))
+            .map_err(|error| ProjectRefusal::in_definition(project, error))?;
+        Ok(())
+    }
+
+    fn add_matcher(
+        &mut self,
+        wire: ast_grep_config::SerializableRuleConfig<SupportLang>,
+        origin: &DefinitionOrigin,
+    ) -> Result<(), ProjectRefusal> {
+        refuse_reserved_local_utils(&wire.core, &self.reserved_ids, origin)?;
+        let rule = ast_grep_config::RuleConfig::try_from(wire, &self.globals)
+            .map_err(|error| ProjectRefusal::in_definition(origin, error))?;
+        if self.reserved_ids.contains(rule.id.as_str()) {
+            return Err(ProjectRefusal::in_definition(
+                origin,
+                format!("reserved standard util ID: {}", rule.id),
+            ));
+        }
+        let language = EvidenceLanguage::from_support(rule.language);
+        let id = crate::EvidenceRuleId::new(rule.id.clone())
+            .map_err(|error| ProjectRefusal::in_definition(origin, error))?;
+        if !self.rule_ids.insert(id.clone()) {
+            return Err(ProjectRefusal::in_definition(
+                origin,
+                format!("duplicate evidence rule ID: {}", rule.id),
+            ));
+        }
+        self.rule_languages.insert(id, language);
+        self.rules.push(rule);
+        Ok(())
+    }
+
+    fn add_inline_rules(
+        &mut self,
+        inline_rules: &[InlineRule],
+        inline_origin: &DefinitionOrigin,
+    ) -> Result<(), ProjectRefusal> {
+        for inline in inline_rules {
+            let mut compile = || {
+                let mut wire: InlineRuleWire = ast_grep_config::from_str(&inline.text)
+                    .map_err(|error| ProjectRefusal::in_definition(inline_origin, error))?;
+                wire.rule.id = inline.kind.as_str().to_owned();
+                self.add_matcher(wire.rule, inline_origin)
+            };
+            compile().map_err(|mut refusal| {
+                refusal.origin = Some(inline.origin.clone());
+                refusal
+            })?;
+        }
+        Ok(())
+    }
+
+    fn finish(
+        self,
+        project: &DefinitionOrigin,
+        rule_directories: Vec<PathBuf>,
+        inputs: Vec<PathBuf>,
+    ) -> Result<EvidenceProject, ProjectRefusal> {
+        let rules = RuleCollection::try_new(self.rules)
+            .map_err(|error| ProjectRefusal::in_definition(project, error))?;
+        Ok(EvidenceProject {
+            rules: Arc::new(rules),
+            rule_ids: self.rule_ids,
+            inputs,
+            rule_directories,
+            rule_languages: self.rule_languages,
+        })
+    }
+}
+
+/// Compile decoded evidence definitions plus inline kind rules with the shared policy.
+pub fn compile_evidence_project(
+    definitions: &EvidenceProjectDefinitions,
+    inline_rules: &[InlineRule],
+    inline_origin: &DefinitionOrigin,
+) -> Result<EvidenceProject, ProjectRefusal> {
+    let mut compiler = ProjectCompiler::new(&definitions.project)?;
+    for utility in &definitions.utilities {
+        compiler.add_utility(utility.utility.clone(), &utility.origin)?;
+    }
+    compiler.seal_utilities(&definitions.project)?;
+    for matcher in &definitions.matchers {
+        compiler.add_matcher(matcher.matcher.clone(), &matcher.origin)?;
+    }
+    compiler.add_inline_rules(inline_rules, inline_origin)?;
+    let mut inputs = definitions.inputs.clone();
+    if !inline_rules.is_empty()
+        && let Some(path) = inline_origin.file_path()
+    {
+        inputs.push(path.to_owned());
+    }
+    compiler.finish(
+        &definitions.project,
+        definitions.rule_directories.clone(),
+        inputs,
+    )
+}
+
+/// Load the consumer project and the embedded Markdown utils into one registration.
+///
+/// Files are read once and visited in the established order: a decode or compile
+/// refusal in an earlier file is reported before a later file's acquisition failure.
+pub fn load_evidence_project(
+    config_path: &Path,
+    inline_rules: &[InlineRule],
+    rules_config_path: Option<&Path>,
+) -> Result<EvidenceProject, ProjectRefusal> {
+    let files = read_evidence_project(config_path).map_err(|failure| match failure {
+        ProjectReadFailure::Unavailable(failure) => failure.refusal,
+        ProjectReadFailure::Refused(refusal) => refusal,
+    })?;
+    compile_evidence_project_files(
+        &files,
+        inline_rules,
+        &DefinitionOrigin::file(rules_config_path.unwrap_or(config_path)),
+    )
+}
+
+/// Decode and compile a read project file by file, preserving the CLI's refusal order.
+pub fn compile_evidence_project_files(
+    files: &EvidenceProjectFiles,
+    inline_rules: &[InlineRule],
+    inline_origin: &DefinitionOrigin,
+) -> Result<EvidenceProject, ProjectRefusal> {
+    let project = DefinitionOrigin::file(&files.project.path);
+    let mut compiler = ProjectCompiler::new(&project)?;
+    let mut inputs = vec![files.project.path.clone()];
+    for acquired in &files.utility_files {
+        let file = acquired
+            .as_ref()
+            .map_err(|failure| failure.refusal.clone())?;
+        let origin = DefinitionOrigin::file(&file.path);
+        for utility in decode_utility_file(file)? {
+            compiler.add_utility(utility, &origin)?;
+        }
+        inputs.push(file.path.clone());
+    }
+    compiler.seal_utilities(&project)?;
+    for acquired in &files.rule_files {
+        let file = acquired
+            .as_ref()
+            .map_err(|failure| failure.refusal.clone())?;
+        let origin = DefinitionOrigin::file(&file.path);
+        for matcher in decode_matcher_file(file)? {
+            compiler.add_matcher(matcher, &origin)?;
+        }
+        inputs.push(file.path.clone());
+    }
+    compiler.add_inline_rules(inline_rules, inline_origin)?;
+    if !inline_rules.is_empty()
+        && let Some(path) = inline_origin.file_path()
+    {
+        inputs.push(path.to_owned());
+    }
+    compiler.finish(&project, files.rule_directories.clone(), inputs)
 }
 
 fn refuse_reserved_local_utils(
     core: &ast_grep_config::SerializableRuleCore,
     reserved: &BTreeSet<&str>,
-    path: &Path,
+    origin: &DefinitionOrigin,
 ) -> Result<(), ProjectRefusal> {
     if let Some(id) = core
         .utils
         .as_ref()
         .and_then(|utils| utils.keys().find(|id| reserved.contains(id.as_str())))
     {
-        return Err(ProjectRefusal::at(
-            path,
+        return Err(ProjectRefusal::in_definition(
+            origin,
             format!("reserved standard util ID: {id}"),
         ));
     }
     Ok(())
 }
 
-fn yaml_files(folder: &Path) -> Result<Vec<PathBuf>, ProjectRefusal> {
+fn yaml_files(folder: &Path) -> Result<Vec<PathBuf>, Box<ProjectAcquisitionFailure>> {
+    let unreadable = |error: std::io::Error| {
+        acquisition_failure(
+            SourceAcquisitionFailure {
+                path: folder.to_path_buf(),
+                reason: match error.kind() {
+                    std::io::ErrorKind::NotFound => crate::SourceUnavailable::NotFound,
+                    std::io::ErrorKind::PermissionDenied => crate::SourceUnavailable::Unreadable,
+                    _ => crate::SourceUnavailable::Io,
+                },
+                message: error.to_string(),
+            },
+            error.to_string(),
+        )
+    };
     let mut files = Vec::new();
-    let entries = std::fs::read_dir(folder).map_err(|error| ProjectRefusal::at(folder, error))?;
+    let entries = std::fs::read_dir(folder).map_err(unreadable)?;
     for entry in entries {
-        let path = entry
-            .map_err(|error| ProjectRefusal::at(folder, error))?
-            .path();
+        let path = entry.map_err(unreadable)?.path();
         if path.is_dir() {
             files.extend(yaml_files(&path)?);
         } else if path

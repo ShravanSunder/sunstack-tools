@@ -15,14 +15,18 @@ use std::{
     path::{Path, PathBuf},
 };
 use sunstack_evidence::{
-    EvidenceKindDefinition, EvidenceKindName, EvidenceProject, MarkdownDocument,
-    MarkdownMarkerBinding, MarkerPrefix,
+    DefinitionOrigin, EvidenceKindDefinition, EvidenceKindName, EvidenceProject, MarkdownDocument,
+    MarkdownMarkerBinding, MarkerPrefix, SourceAcquisitionFailure,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct RulebookSkippedRule {
-    pub markdown: PathBuf,
-    pub rules: PathBuf,
+    #[serde(with = "sunstack_evidence::cli_path")]
+    #[schemars(with = "PathBuf")]
+    pub markdown: DefinitionOrigin,
+    #[serde(with = "sunstack_evidence::cli_path")]
+    #[schemars(with = "PathBuf")]
+    pub rules: DefinitionOrigin,
     pub key: String,
     pub rule_id: Option<RuleId>,
     pub diagnostics: DiagnosticList,
@@ -55,15 +59,126 @@ impl<'de> Deserialize<'de> for RawEntries<'de> {
 }
 
 fn diagnostic(
-    file: &Path,
+    definition: &DefinitionOrigin,
     line: usize,
     column: usize,
     code: RuleDiagnosticCode,
     message: &str,
 ) -> DiagnosticList {
-    let mut diagnostic = RuleDiagnostic::new(code).definition(file, line, column, vec![]);
+    let mut diagnostic =
+        RuleDiagnostic::new(code).definition(&definition.cli_path(), line, column, vec![]);
     diagnostic.guidance = message.into();
-    diagnostic.into()
+    let mut list = DiagnosticList::from(diagnostic);
+    list.attribute_definition(definition);
+    list
+}
+
+/// One rulebook's Markdown and rule entries, captured once and independent of files.
+#[derive(Debug, Clone)]
+pub struct RulebookSource {
+    pub markdown_origin: DefinitionOrigin,
+    pub markdown: String,
+    pub entries_origin: DefinitionOrigin,
+    /// The rule-entry JSON object: exact file bytes, or the normalized typed value.
+    pub entries: Vec<u8>,
+}
+
+/// A rulebook file pair that could not be read.
+#[derive(Debug, Clone)]
+pub struct RulebookReadFailure {
+    pub source: SourceAcquisitionFailure,
+    /// The existing CLI refusal for this read.
+    pub diagnostics: DiagnosticList,
+}
+
+/// Read one configured Markdown/rule-file pair exactly once.
+pub fn read_rulebook_pair(pair: &RulebookPair) -> Result<RulebookSource, RulebookReadFailure> {
+    let unreadable = |path: &Path, message: &str, error: std::io::Error| {
+        let origin = DefinitionOrigin::file(path);
+        RulebookReadFailure {
+            source: SourceAcquisitionFailure {
+                path: path.to_path_buf(),
+                reason: match error.kind() {
+                    std::io::ErrorKind::NotFound => sunstack_evidence::SourceUnavailable::NotFound,
+                    std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::IsADirectory => {
+                        sunstack_evidence::SourceUnavailable::Unreadable
+                    }
+                    std::io::ErrorKind::InvalidData => {
+                        sunstack_evidence::SourceUnavailable::Encoding
+                    }
+                    _ => sunstack_evidence::SourceUnavailable::Io,
+                },
+                message: error.to_string(),
+            },
+            diagnostics: diagnostic(
+                &origin,
+                1,
+                1,
+                RuleDiagnosticCode::InvalidConfiguration,
+                message,
+            ),
+        }
+    };
+    let markdown = std::fs::read_to_string(&pair.markdown)
+        .map_err(|error| unreadable(&pair.markdown, "rulebook is unreadable", error))?;
+    let entries = std::fs::read(&pair.rules)
+        .map_err(|error| unreadable(&pair.rules, "rule file is unreadable", error))?;
+    Ok(RulebookSource {
+        markdown_origin: DefinitionOrigin::file(&pair.markdown),
+        markdown,
+        entries_origin: DefinitionOrigin::file(&pair.rules),
+        entries,
+    })
+}
+
+/// One keyed rule entry and its own strict-decoding result.
+pub type DecodedRuleEntry = (String, Result<RuleEntryWire, DiagnosticList>);
+
+/// Decode a rule-entry JSON object into its entries with the strict entry decoder,
+/// in authored order. Each entry keeps its own refusal; duplicate keys are kept.
+pub fn decode_rule_entries(
+    bytes: &[u8],
+    origin: &DefinitionOrigin,
+) -> Result<Vec<DecodedRuleEntry>, DiagnosticList> {
+    let mut decoder = serde_json::Deserializer::from_slice(bytes);
+    let raw = RawEntries::deserialize(&mut decoder).map_err(|error| {
+        diagnostic(
+            origin,
+            error.line(),
+            error.column(),
+            RuleDiagnosticCode::MalformedJson,
+            "rule file must be a JSON object",
+        )
+    })?;
+    decoder.end().map_err(|error| {
+        diagnostic(
+            origin,
+            error.line(),
+            error.column(),
+            RuleDiagnosticCode::MalformedJson,
+            "unexpected trailing rule-file content",
+        )
+    })?;
+    Ok(raw
+        .0
+        .into_iter()
+        .map(|(key, raw)| {
+            let offset = raw
+                .get()
+                .as_ptr()
+                .addr()
+                .saturating_sub(bytes.as_ptr().addr())
+                .min(bytes.len());
+            let line = bytes[..offset].iter().filter(|b| **b == b'\n').count() + 1;
+            let decoded =
+                decode_definition::<RuleEntryWire>(raw.get().as_bytes(), &origin.cli_path(), line)
+                    .map_err(|mut refusals| {
+                        refusals.attribute_definition(origin);
+                        refusals
+                    });
+            (key, decoded)
+        })
+        .collect())
 }
 
 pub fn assemble_rulebook(
@@ -74,33 +189,46 @@ pub fn assemble_rulebook(
     project: &EvidenceProject,
     filters: &crate::FilterRegistry,
 ) -> Result<RulebookAssembly, DiagnosticList> {
+    let sources = pairs
+        .iter()
+        .map(|pair| read_rulebook_pair(pair).map_err(|failure| failure.diagnostics))
+        .collect::<Vec<_>>();
+    assemble_rulebook_sources(
+        &sources,
+        prefix,
+        max_question_words,
+        kinds,
+        project,
+        filters,
+    )
+}
+
+/// Bind markers and admit entries for captured rulebooks with the shared policy.
+///
+/// Sources are visited in order; the first unread source refuses the whole assembly,
+/// as file reading did.
+pub fn assemble_rulebook_sources(
+    sources: &[Result<RulebookSource, DiagnosticList>],
+    prefix: &MarkerPrefix,
+    max_question_words: usize,
+    kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+    project: &EvidenceProject,
+    filters: &crate::FilterRegistry,
+) -> Result<RulebookAssembly, DiagnosticList> {
     let mut assembly = RulebookAssembly {
         rules: vec![],
         skipped: vec![],
     };
-    for pair in pairs {
-        let markdown = std::fs::read_to_string(&pair.markdown).map_err(|_| {
-            diagnostic(
-                &pair.markdown,
-                1,
-                1,
-                RuleDiagnosticCode::InvalidConfiguration,
-                "rulebook is unreadable",
-            )
-        })?;
-        let bytes = std::fs::read(&pair.rules).map_err(|_| {
-            diagnostic(
-                &pair.rules,
-                1,
-                1,
-                RuleDiagnosticCode::InvalidConfiguration,
-                "rule file is unreadable",
-            )
-        })?;
-        let mut decoder = serde_json::Deserializer::from_slice(&bytes);
+    for source in sources {
+        let source = source.as_ref().map_err(Clone::clone)?;
+        let markdown = &source.markdown;
+        let bytes = &source.entries;
+        let markdown_origin = &source.markdown_origin;
+        let rules_origin = &source.entries_origin;
+        let mut decoder = serde_json::Deserializer::from_slice(bytes);
         let raw = RawEntries::deserialize(&mut decoder).map_err(|error| {
             diagnostic(
-                &pair.rules,
+                rules_origin,
                 error.line(),
                 error.column(),
                 RuleDiagnosticCode::MalformedJson,
@@ -109,7 +237,7 @@ pub fn assemble_rulebook(
         })?;
         decoder.end().map_err(|error| {
             diagnostic(
-                &pair.rules,
+                rules_origin,
                 error.line(),
                 error.column(),
                 RuleDiagnosticCode::MalformedJson,
@@ -120,7 +248,7 @@ pub fn assemble_rulebook(
         for (key, value) in raw.0 {
             entries.entry(key).or_default().push(value);
         }
-        let bindings = MarkdownDocument::parse(&markdown).bind_markers(prefix, max_question_words);
+        let bindings = MarkdownDocument::parse(markdown).bind_markers(prefix, max_question_words);
         let mut markers = BTreeMap::<String, Vec<MarkdownMarkerBinding>>::new();
         let mut order = Vec::new();
         for binding in bindings {
@@ -144,7 +272,7 @@ pub fn assemble_rulebook(
                 Some(MarkdownMarkerBinding::Bound { binding }) => Some(binding),
                 Some(MarkdownMarkerBinding::Refused { marker, reason }) => {
                     errors.extend(diagnostic(
-                        &pair.markdown,
+                        markdown_origin,
                         marker.span.start_line,
                         marker.span.start_column,
                         RuleDiagnosticCode::InvalidConfiguration,
@@ -154,7 +282,7 @@ pub fn assemble_rulebook(
                 }
                 None => {
                     errors.extend(diagnostic(
-                        &pair.rules,
+                        rules_origin,
                         1,
                         1,
                         RuleDiagnosticCode::OrphanedRuleEntry,
@@ -168,7 +296,7 @@ pub fn assemble_rulebook(
             if let Some(values) = entries.get(&key) {
                 if values.len() != 1 {
                     errors.extend(diagnostic(
-                        &pair.rules,
+                        rules_origin,
                         1,
                         1,
                         RuleDiagnosticCode::DuplicateField,
@@ -185,16 +313,19 @@ pub fn assemble_rulebook(
                     entry_line = bytes[..offset].iter().filter(|b| **b == b'\n').count() + 1;
                     match decode_definition::<RuleEntryWire>(
                         raw.get().as_bytes(),
-                        &pair.rules,
+                        &rules_origin.cli_path(),
                         entry_line,
                     ) {
                         Ok(value) => entry = Some(value),
-                        Err(refusals) => errors.extend(refusals),
+                        Err(mut refusals) => {
+                            refusals.attribute_definition(rules_origin);
+                            errors.extend(refusals)
+                        }
                     }
                 }
             } else {
                 errors.extend(diagnostic(
-                    &pair.markdown,
+                    markdown_origin,
                     bound.map_or(1, |b| b.marker.span.start_line),
                     1,
                     RuleDiagnosticCode::MissingRuleEntry,
@@ -207,7 +338,7 @@ pub fn assemble_rulebook(
                     Err(refusals) => {
                         for refusal in refusals {
                             errors.extend(diagnostic(
-                                &pair.rules,
+                                rules_origin,
                                 entry_line,
                                 1,
                                 RuleDiagnosticCode::InvalidConfiguration,
@@ -231,7 +362,7 @@ pub fn assemble_rulebook(
                         name: entry.name,
                         sentence: RulebookSentence {
                             marker: binding.marker.id.clone(),
-                            rulebook: pair.markdown.clone(),
+                            rulebook: markdown_origin.clone(),
                             line: binding.span.start_line,
                             standard: binding.question_text.clone(),
                         },
@@ -243,8 +374,8 @@ pub fn assemble_rulebook(
                     })
                 }
                 (_, entry, _) => assembly.skipped.push(RulebookSkippedRule {
-                    markdown: pair.markdown.clone(),
-                    rules: pair.rules.clone(),
+                    markdown: markdown_origin.clone(),
+                    rules: rules_origin.clone(),
                     key,
                     rule_id: entry.map(|e| e.name),
                     diagnostics: errors,
@@ -261,11 +392,12 @@ pub fn assemble_rulebook(
         if counts.get(&rule.name).copied().unwrap_or_default() > 1 {
             assembly.skipped.push(RulebookSkippedRule {
                 markdown: rule.sentence.rulebook.clone(),
-                rules: pairs
+                rules: sources
                     .iter()
-                    .find(|pair| pair.markdown == rule.sentence.rulebook)
-                    .map(|pair| pair.rules.clone())
-                    .unwrap_or_default(),
+                    .filter_map(|source| source.as_ref().ok())
+                    .find(|source| source.markdown_origin == rule.sentence.rulebook)
+                    .map(|source| source.entries_origin.clone())
+                    .unwrap_or_else(|| rule.sentence.rulebook.clone()),
                 key: rule.sentence.marker.as_str().into(),
                 rule_id: Some(rule.name),
                 diagnostics: diagnostic(

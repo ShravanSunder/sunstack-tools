@@ -143,12 +143,16 @@ pub enum LintInvalidCode {
 #[derive(Debug, Clone, Serialize, Deserialize, thiserror::Error)]
 #[error("{message}")]
 pub struct LintInvalid {
+    /// CLI location: the definition file, or the checked input for target refusals.
     pub file: PathBuf,
     pub line: Option<u32>,
     pub column: Option<u32>,
     pub json_path: Vec<String>,
     pub code: LintInvalidCode,
     pub message: String,
+    /// The definition this refusal belongs to; absent for checked-input refusals.
+    #[serde(skip)]
+    pub definition: Option<Box<sunstack_evidence::DefinitionOrigin>>,
 }
 impl LintInvalid {
     pub fn at(file: impl Into<PathBuf>, code: LintInvalidCode, message: impl Into<String>) -> Self {
@@ -159,6 +163,12 @@ impl LintInvalid {
             json_path: vec![],
             code,
             message: message.into(),
+            definition: None,
         }
+    }
+    /// Attribute this refusal to the definition it concerns.
+    pub fn in_definition(mut self, definition: &sunstack_evidence::DefinitionOrigin) -> Self {
+        self.definition = Some(Box::new(definition.clone()));
+        self
     }
 }

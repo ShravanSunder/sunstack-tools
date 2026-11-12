@@ -44,7 +44,9 @@ pub struct RulebookPair {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct RulebookSentence {
     pub marker: MarkerId,
-    pub rulebook: PathBuf,
+    #[serde(with = "sunstack_evidence::cli_path")]
+    #[schemars(with = "PathBuf")]
+    pub rulebook: sunstack_evidence::DefinitionOrigin,
     pub line: usize,
     pub standard: String,
 }

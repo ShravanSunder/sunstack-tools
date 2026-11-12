@@ -1,5 +1,8 @@
 use crate::{
-    configuration_loading::config_validation::{load_checked_rulebook, native_diagnostics},
+    configuration_loading::{
+        config_validation::{admit_definitions, native_diagnostics},
+        definition_bundle::{DefinitionBundle, acquire_file_definitions},
+    },
     lint_execution::backend_factory::{backend_selection, prepare_backend},
     *,
 };
@@ -25,6 +28,8 @@ fn failed(mut report: LintReport, message: &str) -> LintReport {
         reason: IncompleteReason::PreparationFailed,
     });
     report.diagnostics.push(LintDiagnostic {
+        definition: None,
+        json_path: vec![],
         file: None,
         path: None,
         line: None,
@@ -90,12 +95,6 @@ async fn run_internal(
     mode: ExecutionMode,
 ) -> LintReport {
     let preparing = matches!(mode, ExecutionMode::Prepare { .. });
-    let recorded_selections = match mode {
-        ExecutionMode::Ordinary => vec![],
-        ExecutionMode::Prepare {
-            recorded_selections,
-        } => recorded_selections,
-    };
     let mut report = LintReport::empty(
         request
             .config_path
@@ -137,34 +136,131 @@ async fn run_internal(
         report.status = LintStatus::Cancelled;
         return report;
     }
-    let config_to_check = config.clone();
-    let checked =
-        match tokio::task::spawn_blocking(move || load_checked_rulebook(&config_to_check)).await {
-            Ok(Ok(checked)) => checked,
-            Ok(Err(diagnostics)) => {
-                report.status = LintStatus::Invalid;
-                report.diagnostics = diagnostics;
-                return report;
-            }
-            Err(_) => return failed(report, "rulebook loading failed"),
-        };
+    let acquired = tokio::task::spawn_blocking(move || {
+        let bundle = acquire_file_definitions(&config, &location);
+        let checked = admit_definitions(&bundle);
+        (bundle, checked)
+    })
+    .await;
+    let (bundle, checked) = match acquired {
+        Ok(value) => value,
+        Err(_) => return failed(report, "rulebook loading failed"),
+    };
+    execute_definitions(
+        report,
+        request,
+        cwd,
+        bundle,
+        checked,
+        cancellation,
+        api_key,
+        source,
+        mode,
+    )
+    .await
+}
+
+/// Run already captured definitions against an explicit absolute checked root.
+///
+/// The caller owns definition capture; nothing here rereads a definition file,
+/// consults the process working directory or reads process credentials.
+pub async fn run_definitions(
+    bundle: DefinitionBundle,
+    root: std::path::PathBuf,
+    paths: Vec<std::path::PathBuf>,
+    scope: ScopeChoice,
+    cancellation: CancellationToken,
+    api_key: Option<String>,
+) -> LintReport {
+    let mut report = LintReport::empty(
+        bundle.root.origin.cli_path(),
+        scope.clone(),
+        bundle
+            .settings
+            .limits
+            .as_ref()
+            .map(EffectiveLimits::from)
+            .unwrap_or_default(),
+    );
+    if cancellation.is_cancelled() {
+        report.status = LintStatus::Cancelled;
+        return report;
+    }
+    let request = LintRequest {
+        config_path: None,
+        root: Some(root.clone()),
+        paths,
+        scope,
+        max_warnings: None,
+        evidence_listing: None,
+    };
+    let admitted = tokio::task::spawn_blocking(move || {
+        let checked = admit_definitions(&bundle);
+        (bundle, checked)
+    })
+    .await;
+    let (bundle, checked) = match admitted {
+        Ok(value) => value,
+        Err(_) => return failed(report, "rulebook loading failed"),
+    };
+    execute_definitions(
+        report,
+        request,
+        root,
+        bundle,
+        checked,
+        cancellation,
+        api_key,
+        None,
+        ExecutionMode::Ordinary,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn execute_definitions(
+    mut report: LintReport,
+    request: LintRequest,
+    cwd: std::path::PathBuf,
+    bundle: DefinitionBundle,
+    checked: Result<
+        crate::configuration_loading::config_validation::CheckedRulebook,
+        Vec<LintDiagnostic>,
+    >,
+    cancellation: CancellationToken,
+    api_key: Option<String>,
+    source: Option<Box<dyn CheckedFileSource + Send>>,
+    mode: ExecutionMode,
+) -> LintReport {
+    let preparing = matches!(mode, ExecutionMode::Prepare { .. });
+    let recorded_selections = match mode {
+        ExecutionMode::Ordinary => vec![],
+        ExecutionMode::Prepare {
+            recorded_selections,
+        } => recorded_selections,
+    };
+    let checked = match checked {
+        Ok(checked) => checked,
+        Err(diagnostics) => {
+            report.status = LintStatus::Invalid;
+            report.diagnostics = diagnostics;
+            return report;
+        }
+    };
     if let Some(Some(kind)) = &request.evidence_listing
-        && !config.evidence.kinds.contains_key(kind)
+        && !bundle.settings.kinds.contains_key(kind)
     {
         return invalid(
             report,
-            LintInvalid::at(
-                &location.file,
-                LintInvalidCode::Syntax,
-                "unknown evidence kind",
-            ),
+            bundle
+                .root
+                .invalid(LintInvalidCode::Syntax, "unknown evidence kind"),
         );
     }
-    report.rulebook_files =
-        match crate::lint_reporting::saved_reports::capture_files(&checked.inputs) {
-            Ok(files) => files,
-            Err(_) => return failed(report, "rulebook snapshot unavailable"),
-        };
+    report.rulebook_files = match bundle.file_snapshots(&checked.inputs) {
+        Ok(files) => files,
+        Err(_) => return failed(report, "rulebook snapshot unavailable"),
+    };
     report.skipped_rules = checked.assembly.skipped.clone();
     if !report.skipped_rules.is_empty() {
         report.incomplete.push(IncompletePart {
@@ -178,9 +274,10 @@ async fn run_internal(
             },
         });
         for skipped in &checked.assembly.skipped {
-            report
-                .diagnostics
-                .extend(native_diagnostics(&config, skipped.diagnostics.clone()));
+            report.diagnostics.extend(native_diagnostics(
+                &bundle.root,
+                skipped.diagnostics.clone(),
+            ));
         }
     }
     let asking = checked
@@ -188,8 +285,8 @@ async fn run_internal(
         .rules
         .iter()
         .any(|rule| !rule.questions.is_empty());
-    let selected = config
-        .evidence
+    let selected = bundle
+        .settings
         .kinds
         .values()
         .any(|kind| kind.select.is_some());
@@ -203,20 +300,19 @@ async fn run_internal(
     if model_work && !preparing && key.is_none() {
         return invalid(
             report,
-            LintInvalid::at(
-                &location.file,
+            bundle.root.invalid(
                 LintInvalidCode::CredentialMissing,
                 "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save first.",
             ),
         );
     }
     let backend = if model_work && preparing {
-        match super::backend_factory::prepare_encoding_backend(&config) {
+        match super::backend_factory::prepare_encoding_backend(&bundle) {
             Ok(backend) => Some(backend),
             Err(error) => return invalid(report, error),
         }
     } else if model_work {
-        match key.map(|key| prepare_backend(&config, key)) {
+        match key.map(|key| prepare_backend(&bundle, key)) {
             Some(Ok(backend)) => Some(backend),
             Some(Err(error)) => return invalid(report, error),
             None => None,
@@ -224,13 +320,15 @@ async fn run_internal(
     } else {
         None
     };
-    let selected_config = config.clone();
+    let selected_check = bundle.settings.check.clone();
+    let config_directory = bundle.root.base_directory.clone();
     let paths = request.paths.clone();
     let selected_cwd = cwd.clone();
     let checked_root = request.root.clone();
     let selection = match tokio::task::spawn_blocking(move || {
         crate::lint_execution::targets::select_targets(
-            &selected_config,
+            &selected_check,
+            &config_directory,
             &paths,
             &selected_cwd,
             checked_root.as_deref(),
@@ -280,8 +378,7 @@ async fn run_internal(
         if git2::Repository::open(&selection.root).is_err() {
             return invalid(
                 report,
-                LintInvalid::at(
-                    &location.file,
+                bundle.root.invalid(
                     LintInvalidCode::NoGitForDefaultScope,
                     "change scope requires Git; use --all outside a repository",
                 ),
@@ -375,6 +472,8 @@ async fn run_internal(
     if files.len() > report.limits.max_files as usize {
         files.truncate(report.limits.max_files as usize);
         report.diagnostics.push(LintDiagnostic {
+            definition: None,
+            json_path: vec![],
             file: None,
             path: None,
             line: None,
@@ -410,7 +509,7 @@ async fn run_internal(
     } else {
         super::filter_folders::FilterFolderPlan::default()
     };
-    let kinds = config.evidence.kinds.clone();
+    let kinds = bundle.settings.kinds.clone();
     let limits = PieceBuildLimits {
         max_files: report.limits.max_files as usize,
         max_file_bytes: match usize::try_from(report.limits.max_file_bytes) {
@@ -433,7 +532,7 @@ async fn run_internal(
         Err(error) => return invalid(report, error),
     };
     let settings = RulebookRunSettings {
-        backend: backend_selection(&config),
+        backend: backend_selection(&bundle.settings.decision_model),
         attempts,
         request_budget,
         request_max_chars: report.limits.request_max_chars as usize,
@@ -730,7 +829,7 @@ async fn run_internal(
         &checked.filters,
         &folders,
         &catalog.pieces,
-        &config.evidence.kinds,
+        &bundle.settings.kinds,
         &catalog.matches,
         report.limits.evidence_max_chars as usize,
         &mut dispatcher,

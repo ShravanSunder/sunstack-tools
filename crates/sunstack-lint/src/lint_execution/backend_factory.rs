@@ -1,11 +1,10 @@
-use crate::*;
+use crate::{configuration_loading::definition_bundle::DefinitionBundle, *};
 use std::sync::Arc;
 use sunstack_decisions::{BackendSelection, DecisionBackend, JevOpenRouterBackend};
-pub(crate) fn backend_selection(config: &RulesConfig) -> BackendSelection {
+pub(crate) fn backend_selection(settings: &DecisionModelSettings) -> BackendSelection {
     BackendSelection::JevOpenrouter {
-        model: config.decision_model.model.clone(),
-        endpoint: config
-            .decision_model
+        model: settings.model.clone(),
+        endpoint: settings
             .endpoint
             .clone()
             .unwrap_or_else(|| "https://openrouter.ai/api/v1/systemone".into()),
@@ -13,38 +12,28 @@ pub(crate) fn backend_selection(config: &RulesConfig) -> BackendSelection {
     }
 }
 pub(crate) fn prepare_backend(
-    config: &RulesConfig,
+    bundle: &DefinitionBundle,
     key: &str,
 ) -> Result<Arc<dyn DecisionBackend>, LintInvalid> {
-    JevOpenRouterBackend::new(backend_selection(config), key)
+    JevOpenRouterBackend::new(backend_selection(&bundle.settings.decision_model), key)
         .map(|backend| -> Arc<dyn DecisionBackend> { Arc::new(backend) })
-        .map_err(|_| {
-            LintInvalid::at(
-                config
-                    .source
-                    .as_ref()
-                    .map(|source| source.location.file.clone())
-                    .unwrap_or_else(|| "sunstack.lint.json".into()),
-                LintInvalidCode::Syntax,
-                "decision_model endpoint or credential is invalid",
-            )
-        })
+        .map_err(|_| backend_refusal(bundle, "decision_model endpoint or credential is invalid"))
+}
+
+fn backend_refusal(bundle: &DefinitionBundle, message: &str) -> LintInvalid {
+    let file = bundle
+        .root
+        .text
+        .as_ref()
+        .and(bundle.root.origin.file_path())
+        .map_or_else(|| "sunstack.lint.json".into(), std::path::Path::to_path_buf);
+    LintInvalid::at(file, LintInvalidCode::Syntax, message).in_definition(&bundle.root.origin)
 }
 
 pub(crate) fn prepare_encoding_backend(
-    config: &RulesConfig,
+    bundle: &DefinitionBundle,
 ) -> Result<Arc<dyn DecisionBackend>, LintInvalid> {
-    JevOpenRouterBackend::for_preparation(backend_selection(config))
+    JevOpenRouterBackend::for_preparation(backend_selection(&bundle.settings.decision_model))
         .map(|backend| -> Arc<dyn DecisionBackend> { Arc::new(backend) })
-        .map_err(|_| {
-            LintInvalid::at(
-                config
-                    .source
-                    .as_ref()
-                    .map(|source| source.location.file.clone())
-                    .unwrap_or_else(|| "sunstack.lint.json".into()),
-                LintInvalidCode::Syntax,
-                "decision_model endpoint is invalid",
-            )
-        })
+        .map_err(|_| backend_refusal(bundle, "decision_model endpoint is invalid"))
 }
