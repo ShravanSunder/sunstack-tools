@@ -1,5 +1,5 @@
 use super::*;
-use sunstack_evidence::{EvidenceLanguage, KindMatcher};
+use sunstack_evidence::{EvidenceLanguage, KindMatcher, MarkdownUnitKind, MarkdownUnitSelection};
 
 pub fn admit_evidence_kinds(
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
@@ -24,6 +24,23 @@ pub fn admit_evidence_kinds(
                     ));
                 }
             }
+            KindMatcher::MarkdownUnits(selection) => {
+                if selection.validate().is_err() {
+                    errors.push(refusal(
+                        path.with_key("markdown_units"),
+                        format!("kind {}: invalid markdown_units selection", name.as_str()),
+                    ));
+                }
+                if matches!(selection, MarkdownUnitSelection::CallSite { .. }) {
+                    errors.push(refusal(
+                        path.with_key("markdown_units").with_key("mode"),
+                        format!(
+                            "kind {}: markdown_units requires unit mode; call_site is not supported in rulebook kinds",
+                            name.as_str()
+                        ),
+                    ));
+                }
+            }
             KindMatcher::Named(_) | KindMatcher::Inline { .. } => {
                 if kind
                     .matcher
@@ -36,6 +53,7 @@ pub fn admit_evidence_kinds(
         }
         let language = match &kind.matcher {
             KindMatcher::HtmlUnits(_) => Some(EvidenceLanguage::Html),
+            KindMatcher::MarkdownUnits(_) => Some(EvidenceLanguage::Markdown),
             KindMatcher::Named(_) | KindMatcher::Inline { .. } => kind
                 .matcher
                 .ast_rule_id(name)
@@ -52,32 +70,46 @@ pub fn admit_evidence_kinds(
                     "evidence field name is a reserved state key",
                 ));
             }
-            if matches!(source, FieldSource::Section { .. })
-                && !matches!(&kind.matcher, KindMatcher::HtmlUnits(_))
-            {
-                errors.push(refusal(
-                    &path,
-                    format!(
-                        "kind {} field {}: section source requires an html_units matcher; AST-backed kinds do not have outline sections",
-                        name.as_str(), field.as_str()
-                    ),
-                ));
-            }
-            if matches!(&kind.matcher, KindMatcher::HtmlUnits(_)) {
-                let neighbour_source = match source {
-                    FieldSource::Next { .. } => Some("next"),
-                    FieldSource::Previous { .. } => Some("previous"),
-                    _ => None,
+            if matches!(source, FieldSource::Section { .. }) {
+                let section_kind = match &kind.matcher {
+                    KindMatcher::HtmlUnits(_) => true,
+                    KindMatcher::MarkdownUnits(MarkdownUnitSelection::Unit { units, .. }) => {
+                        units.as_slice() == [MarkdownUnitKind::Section]
+                    }
+                    KindMatcher::MarkdownUnits(MarkdownUnitSelection::CallSite { .. })
+                    | KindMatcher::Named(_)
+                    | KindMatcher::Inline { .. } => false,
                 };
-                if let Some(neighbour_source) = neighbour_source {
+                if !section_kind {
                     errors.push(refusal(
                         &path,
                         format!(
-                            "kind {} field {}: {neighbour_source} source requires an AST-backed matcher; html_units has no AST candidate node",
+                            "kind {} field {}: section source requires an html_units matcher or markdown_units with unit mode and units exactly [section]; AST-backed kinds do not have outline sections",
                             name.as_str(), field.as_str()
                         ),
                     ));
                 }
+            }
+            let native_matcher = match &kind.matcher {
+                KindMatcher::HtmlUnits(_) => Some("html_units"),
+                KindMatcher::MarkdownUnits(_) => Some("markdown_units"),
+                KindMatcher::Named(_) | KindMatcher::Inline { .. } => None,
+            };
+            let neighbour_source = match source {
+                FieldSource::Next { .. } => Some("next"),
+                FieldSource::Previous { .. } => Some("previous"),
+                _ => None,
+            };
+            if let (Some(native_matcher), Some(neighbour_source)) =
+                (native_matcher, neighbour_source)
+            {
+                errors.push(refusal(
+                    &path,
+                    format!(
+                        "kind {} field {}: {neighbour_source} source requires an AST-backed matcher; {native_matcher} has no AST candidate node",
+                        name.as_str(), field.as_str()
+                    ),
+                ));
             }
             if let Some(language) = language {
                 let context = format!("kind {} field {}", name.as_str(), field.as_str());
@@ -104,6 +136,9 @@ pub fn admit_evidence_kinds(
                                 .get(kind)
                                 .and_then(|definition| match &definition.matcher {
                                     KindMatcher::HtmlUnits(_) => Some(EvidenceLanguage::Html),
+                                    KindMatcher::MarkdownUnits(_) => {
+                                        Some(EvidenceLanguage::Markdown)
+                                    }
                                     KindMatcher::Named(_) | KindMatcher::Inline { .. } => {
                                         definition
                                             .matcher

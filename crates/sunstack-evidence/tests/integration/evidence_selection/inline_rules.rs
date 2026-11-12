@@ -6,7 +6,9 @@ fn inline_inputs(kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>) -> 
     kinds
         .iter()
         .filter_map(|(kind, definition)| match &definition.matcher {
-            KindMatcher::Named(_) | KindMatcher::HtmlUnits(_) => None,
+            KindMatcher::Named(_) | KindMatcher::HtmlUnits(_) | KindMatcher::MarkdownUnits(_) => {
+                None
+            }
             KindMatcher::Inline { text } => Some(InlineRule {
                 kind: kind.clone(),
                 text: text.clone(),

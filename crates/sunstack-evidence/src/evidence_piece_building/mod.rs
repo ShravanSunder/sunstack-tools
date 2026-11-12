@@ -1,11 +1,11 @@
 use crate::{
     BuildStep, CandidateId, CandidateKey, CaptureInterval, CapturedDocument, CheckedFileSource,
     CheckedReadError, ChosenCandidates, EvidenceKindDefinition, EvidenceKindName, EvidenceKindPlan,
-    EvidencePiece, EvidenceProject, EvidenceTargetResolution, FieldName, FieldSource,
-    FieldUnavailable, FieldValue, FileCount, FileMatchIndex, FrontmatterFieldContent, KindCount,
-    LoadTarget, MatchRange, MatchSource, PieceLocation, RepositoryId, SelectionCandidate,
-    SelectionContent, SelectionCount, SharedView, SourceRef, SourceSpan, StructuredJson,
-    content_digest, evidence_kind_language, match_within,
+    EvidencePiece, EvidenceProject, FieldName, FieldSource, FieldUnavailable, FieldValue,
+    FileCount, FileMatchIndex, FrontmatterFieldContent, KindCount, LoadTarget, MatchRange,
+    MatchSource, PieceLocation, RepositoryId, SelectionCandidate, SelectionContent, SelectionCount,
+    SharedView, SourceRef, SourceSpan, StructuredJson, content_digest, evidence_kind_language,
+    match_within,
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -40,7 +40,7 @@ struct MatchedFile {
     text: String,
     index: FileMatchIndex,
     source: SourceRef,
-    html_units: BTreeMap<EvidenceKindName, HtmlMatchedKind>,
+    native_units: BTreeMap<EvidenceKindName, NativeMatchedKind>,
 }
 /// Charge each resolved content acquisition once, including target openings and frozen text.
 fn read_cached_content(
@@ -192,15 +192,12 @@ impl EvidenceBuild {
                             if name.is_empty() {
                                 continue;
                             }
-                            let use_path = match resolve {
-                                EvidenceTargetResolution::Path => true,
-                                EvidenceTargetResolution::Skill => false,
-                                EvidenceTargetResolution::PathOrSkill => name.ends_with(".md"),
-                            };
+                            let use_path = TargetReference::uses_path(&name, resolve);
                             let paths = if use_path {
-                                let html = evidence_kind_language(&self.project, kind, definition)
-                                    == Some(crate::EvidenceLanguage::Html);
-                                let Ok(reference) = TargetReference::parse(&name, html) else {
+                                let syntax = TargetReferenceSyntax::for_language(
+                                    evidence_kind_language(&self.project, kind, definition),
+                                );
+                                let Ok(reference) = TargetReference::parse(&name, syntax) else {
                                     continue;
                                 };
                                 vec![if reference.file.as_os_str().is_empty() {
@@ -451,9 +448,9 @@ mod document_fields;
 mod target_loading;
 mod target_reference;
 use crate::document_evidence::html_content::is_html_path;
-use target_reference::TargetReference;
+use target_reference::{TargetReference, TargetReferenceSyntax};
 
 mod context_loading;
-mod html_section_fields;
-use html_section_fields::{HtmlMatchedKind, collect_html_units};
+mod native_unit_fields;
+use native_unit_fields::{NativeMatchedKind, collect_native_units};
 mod deferred_fields;

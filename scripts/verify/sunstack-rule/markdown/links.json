@@ -1,0 +1,3240 @@
+[
+	{
+		"key": "sunstack",
+		"repo": "ShravanSunder/sunstack",
+		"commit": "cde8d5cf5b9141a08264cc5d57e3e3a58f0f2aac",
+		"files": [
+			{
+				"file": "AGENTS.md",
+				"sha256": "f13636d455df30dc156de77757d17f50e7f06f4762420d5a82dfa8760cb8f5cb"
+			},
+			{
+				"file": "docs/architecture/README.md",
+				"sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"file": "docs/architecture/references/admired-skills.md",
+				"sha256": "3fef34eeb29cf436a0454d476a2d885f596d9923238c990bc4b750c78980a695"
+			},
+			{
+				"file": "docs/architecture/skill-standards-linter.md",
+				"sha256": "4ea66c083115d825a058ec34cc4402243f2ba3d952b67f919a2911354efba106"
+			},
+			{
+				"file": "docs/architecture/skill-system.md",
+				"sha256": "f97ff8f36cb3714ea20b07ec45ee57794cb9dcdb2088f199a69559a34fcebf8e"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/index.md",
+				"sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"sha256": "7ad779553cb1377da528a6af759ec35fb92f5645abfe839274fbc45825e69ecc"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"sha256": "19b7e9f863345864d9e7a033e3f4f208d336783fee6eb844c962e98edb6e62ed"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/requirements/rule-tests.md",
+				"sha256": "a734001a6f85f9318bb00bf1cc1b1cc245f54963242692844bc9515c9c6f9253"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"sha256": "48996335253b8c3a8caecc63cbed181f83f8da676915592b5f90cb520c576f75"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/requirements/what-rules-read.md",
+				"sha256": "4a78acba1526c32cd297bd1ccee2ffe64a4aba3fb63624a26bc3e40d18228c0b"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"sha256": "cd1084e5d37a6415b5cc7027839cc5549e2ac0f72b629b1fd5bee9216f021697"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+				"sha256": "5b603afe976703503c9e75a15c91e71ec187cdd0f0cc86182b39f992be4a08ec"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"sha256": "d86bffa1cd4f5eb388ba5e7b146ad1e2cfa10a085bd53936563703f6c24b3b4c"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+				"sha256": "1c6993f2a86e18100b0a7dc3677452a09c933e8793832298ac0703c437035065"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+				"sha256": "9f277fb167b723c32443ff82ff35a3c635b35b513327105ebad1481c24c816ab"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/specification/what-rules-read.md",
+				"sha256": "9d69dd893352da1211b75a4769eed0efe48818397e0cc239a3bb5ac7d504e058"
+			},
+			{
+				"file": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"sha256": "9554f41b0b260ffcc2d815b7e29a585895c79a3240dfd737d5de105ac9c4a1b3"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+				"sha256": "79e7b7b77569408ed53687e23c55ab3fa145f5c717b3c267fe0cc6319242a243"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+				"sha256": "1c1269379ed74fef826d13b9aa08602a18b4493ed714f11c0ccd5860c787690b"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-15-principle-citation/spec.md",
+				"sha256": "8c9df4095cc930e51e20d63583e4994bb050dcfb52216d18f171071087c0565a"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/phase-composition.md",
+				"sha256": "7e4c03fe5fe1efd5565b7fb78dbe8c83aa0b388cf3e3266afe413154ae892d7a"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"sha256": "d2075b99548cfffec84c5d3ac152f2a8f932f48a5dcaa055fa4d072837046263"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"sha256": "325bc09ca00d0c7ab67a628217cac52f5160001549d24fa89b0cd00a04deca00"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/testing-and-verification.md",
+				"sha256": "ea9f99a19b6d3204aab6c66f81bcbfe720a0caa06df3e434e35423f93cb0e8ac"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-10-31-rules-as-nudges/requirements.md",
+				"sha256": "918dcb9a14362141aeafef96d46a899470224c86be0f67b7f4f9e3ad29cc4a5c"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/program-design.md",
+				"sha256": "5c395a7beb84b96582d6976dc5aa45175de288cfb4dfbdfd2f5ab8687a3a721b"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"sha256": "c3de9fc99683c7bf267594bdc72c9d0857642cea2212af577288f0c902cf708d"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"sha256": "ab034a0056464196329ed6d5bdd56e278017d550b425132b4e9865bf3a6a931f"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"sha256": "3803b76be1053ac2fdc8733a7962df450bf2f926ce775e020adf35f75a1a3c97"
+			},
+			{
+				"file": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"sha256": "be7d7793b70097e968eb09f0155e3fb03204d6031b533ff0da58d8799a8442b8"
+			},
+			{
+				"file": "plugins/agent-router/skills/agent-collaboration/SKILL.md",
+				"sha256": "b0936691bb42c0b7bcd5a53e52a034fc8f2a1a1738ef0f1c0dc594baa163e1b7"
+			},
+			{
+				"file": "plugins/agent-router/skills/agent-collaboration/references/mcp-usage.md",
+				"sha256": "8c5711f7c85502b2c8e6eaf63fe36aa1bd810ed5384f5364086be8c5ea33c7b6"
+			},
+			{
+				"file": "plugins/agent-router/skills/agent-collaboration/references/message-board.md",
+				"sha256": "f0dfb67bb3eada13bb749b08b40c530fa8261818d1711ef936e1ac34a81ab40d"
+			},
+			{
+				"file": "plugins/skill-authoring/skills/domain-skill-crafting/SKILL.md",
+				"sha256": "2d3fd3e66b592705fc579189b7c9b94d5d1a34a363f53cadf6619c6d8c72f625"
+			},
+			{
+				"file": "plugins/skill-authoring/skills/domain-skill-crafting/references/calls-and-placement.md",
+				"sha256": "e49fa5b2d78d1e36fed0ea63013a2acc8ca6f39cf72bd93b91b9db63a1972dbb"
+			},
+			{
+				"file": "plugins/sunstack-dev/README.md",
+				"sha256": "f261eb4314123e71ad1610e5549b132545af53ce8224e523c896cc6da15e9856"
+			}
+		],
+		"links": [
+			{
+				"source": "AGENTS.md",
+				"target": "docs/architecture/skill-system.md",
+				"fragment": "layers-and-calls",
+				"url": "docs/architecture/skill-system.md#layers-and-calls",
+				"raw": "[architecture](docs/architecture/skill-system.md#layers-and-calls)",
+				"expected": "found",
+				"start": 13473,
+				"end": 13539,
+				"source_sha256": "f13636d455df30dc156de77757d17f50e7f06f4762420d5a82dfa8760cb8f5cb"
+			},
+			{
+				"source": "docs/architecture/README.md",
+				"target": "AGENTS.md",
+				"fragment": "skill-work",
+				"url": "../../AGENTS.md#skill-work",
+				"raw": "[Repository operating map](../../AGENTS.md#skill-work)",
+				"expected": "found",
+				"start": 816,
+				"end": 870,
+				"source_sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"source": "docs/architecture/README.md",
+				"target": "docs/architecture/skill-system.md",
+				"fragment": "layers-and-calls",
+				"url": "skill-system.md#layers-and-calls",
+				"raw": "[Layers and calls](skill-system.md#layers-and-calls)",
+				"expected": "found",
+				"start": 942,
+				"end": 994,
+				"source_sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"source": "docs/architecture/README.md",
+				"target": "docs/architecture/skill-system.md",
+				"fragment": "roles-and-execution-forms",
+				"url": "skill-system.md#roles-and-execution-forms",
+				"raw": "[Roles and execution forms](skill-system.md#roles-and-execution-forms)",
+				"expected": "found",
+				"start": 1044,
+				"end": 1114,
+				"source_sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"source": "docs/architecture/README.md",
+				"target": "docs/architecture/skill-system.md",
+				"fragment": "the-four-document-design",
+				"url": "skill-system.md#the-four-document-design",
+				"raw": "[The four-document design](skill-system.md#the-four-document-design)",
+				"expected": "found",
+				"start": 1158,
+				"end": 1226,
+				"source_sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"source": "docs/architecture/README.md",
+				"target": "docs/architecture/skill-system.md",
+				"fragment": "skill-authoring",
+				"url": "skill-system.md#skill-authoring",
+				"raw": "[Skill authoring](skill-system.md#skill-authoring)",
+				"expected": "found",
+				"start": 1267,
+				"end": 1317,
+				"source_sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"source": "docs/architecture/README.md",
+				"target": "docs/architecture/skill-standards-linter.md",
+				"fragment": "proof-boundaries",
+				"url": "skill-standards-linter.md#proof-boundaries",
+				"raw": "[Proof boundaries](skill-standards-linter.md#proof-boundaries)",
+				"expected": "missing",
+				"start": 1353,
+				"end": 1415,
+				"source_sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"source": "docs/architecture/README.md",
+				"target": "docs/architecture/references/admired-skills.md",
+				"fragment": "source-inspiration",
+				"url": "references/admired-skills.md#source-inspiration",
+				"raw": "[Optional source references](references/admired-skills.md#source-inspiration)",
+				"expected": "found",
+				"start": 1457,
+				"end": 1534,
+				"source_sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+			},
+			{
+				"source": "docs/architecture/skill-system.md",
+				"target": "plugins/sunstack-dev/README.md",
+				"fragment": "namespace-map",
+				"url": "../../plugins/sunstack-dev/README.md#namespace-map",
+				"raw": "[plugin namespace map](../../plugins/sunstack-dev/README.md#namespace-map)",
+				"expected": "found",
+				"start": 3187,
+				"end": 3261,
+				"source_sha256": "f97ff8f36cb3714ea20b07ec45ee57794cb9dcdb2088f199a69559a34fcebf8e"
+			},
+			{
+				"source": "docs/architecture/skill-system.md",
+				"target": "plugins/skill-authoring/skills/domain-skill-crafting/SKILL.md",
+				"fragment": "the-model",
+				"url": "../../plugins/skill-authoring/skills/domain-skill-crafting/SKILL.md#the-model",
+				"raw": "[skill-crafting model](../../plugins/skill-authoring/skills/domain-skill-crafting/SKILL.md#the-model)",
+				"expected": "found",
+				"start": 5285,
+				"end": 5386,
+				"source_sha256": "f97ff8f36cb3714ea20b07ec45ee57794cb9dcdb2088f199a69559a34fcebf8e"
+			},
+			{
+				"source": "docs/architecture/skill-system.md",
+				"target": "plugins/skill-authoring/skills/domain-skill-crafting/references/calls-and-placement.md",
+				"fragment": "call-forms",
+				"url": "../../plugins/skill-authoring/skills/domain-skill-crafting/references/calls-and-placement.md#call-forms",
+				"raw": "[skill-crafting's calls and placement topic](../../plugins/skill-authoring/skills/domain-skill-crafting/references/calls-and-placement.md#call-forms)",
+				"expected": "found",
+				"start": 6182,
+				"end": 6331,
+				"source_sha256": "f97ff8f36cb3714ea20b07ec45ee57794cb9dcdb2088f199a69559a34fcebf8e"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "trace",
+				"url": "program-design.md#trace",
+				"raw": "[owner and call path](program-design.md#trace)",
+				"expected": "found",
+				"start": 1072,
+				"end": 1118,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"fragment": "the-rows",
+				"url": "verification-design.md#the-rows",
+				"raw": "[proof](verification-design.md#the-rows)",
+				"expected": "found",
+				"start": 1123,
+				"end": 1163,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "trace",
+				"url": "program-design.md#trace",
+				"raw": "[Program Design](program-design.md#trace)",
+				"expected": "found",
+				"start": 1277,
+				"end": 1318,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"fragment": "the-rows",
+				"url": "verification-design.md#the-rows",
+				"raw": "[Verification Design](verification-design.md#the-rows)",
+				"expected": "found",
+				"start": 1323,
+				"end": 1377,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "the-engine-feature-filters",
+				"url": "program-design.md#the-engine-feature-filters",
+				"raw": "[Program Design, with the engine feature](program-design.md#the-engine-feature-filters)",
+				"expected": "found",
+				"start": 1507,
+				"end": 1594,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"fragment": "the-rows",
+				"url": "verification-design.md#the-rows",
+				"raw": "[Verification Design](verification-design.md#the-rows)",
+				"expected": "found",
+				"start": 1599,
+				"end": 1653,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "trace",
+				"url": "program-design.md#trace",
+				"raw": "[Program Design](program-design.md#trace)",
+				"expected": "found",
+				"start": 1780,
+				"end": 1821,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"fragment": "the-rows",
+				"url": "verification-design.md#the-rows",
+				"raw": "[Verification Design](verification-design.md#the-rows)",
+				"expected": "found",
+				"start": 1826,
+				"end": 1880,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "trace",
+				"url": "program-design.md#trace",
+				"raw": "[Program Design](program-design.md#trace)",
+				"expected": "found",
+				"start": 2022,
+				"end": 2063,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"fragment": "the-rows",
+				"url": "verification-design.md#the-rows",
+				"raw": "[Verification Design](verification-design.md#the-rows)",
+				"expected": "found",
+				"start": 2068,
+				"end": 2122,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak",
+				"url": "requirements/skill-kinds.md#u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak",
+				"raw": "[U16 scenario 2](requirements/skill-kinds.md#u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak)",
+				"expected": "found",
+				"start": 2165,
+				"end": 2296,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+				"fragment": "r13-one-kind-judgment-per-skill-per-run",
+				"url": "specification/skill-kinds.md#r13-one-kind-judgment-per-skill-per-run",
+				"raw": "[R13](specification/skill-kinds.md#r13-one-kind-judgment-per-skill-per-run)",
+				"expected": "found",
+				"start": 2369,
+				"end": 2444,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+				"fragment": "r14-a-rule-judges-only-its-declared-kinds",
+				"url": "specification/skill-kinds.md#r14-a-rule-judges-only-its-declared-kinds",
+				"raw": "[R14](specification/skill-kinds.md#r14-a-rule-judges-only-its-declared-kinds)",
+				"expected": "found",
+				"start": 2446,
+				"end": 2523,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/what-rules-read.md",
+				"fragment": "r23-generalization-and-the-general-skill-rules-read-every-section",
+				"url": "specification/what-rules-read.md#r23-generalization-and-the-general-skill-rules-read-every-section",
+				"raw": "[R23](specification/what-rules-read.md#r23-generalization-and-the-general-skill-rules-read-every-section)",
+				"expected": "found",
+				"start": 2613,
+				"end": 2718,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+				"fragment": "r6-a-nudge-carries-its-parts",
+				"url": "specification/nudges.md#r6-a-nudge-carries-its-parts",
+				"raw": "[R6](specification/nudges.md#r6-a-nudge-carries-its-parts)",
+				"expected": "found",
+				"start": 2787,
+				"end": 2845,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+				"fragment": "r11-every-nudge-gets-a-disposition",
+				"url": "specification/nudges.md#r11-every-nudge-gets-a-disposition",
+				"raw": "[R11](specification/nudges.md#r11-every-nudge-gets-a-disposition)",
+				"expected": "found",
+				"start": 2868,
+				"end": 2933,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+				"fragment": "r18-a-judged-rule-nudges-only-after-its-floor",
+				"url": "specification/rule-tests.md#r18-a-judged-rule-nudges-only-after-its-floor",
+				"raw": "[R18](specification/rule-tests.md#r18-a-judged-rule-nudges-only-after-its-floor)",
+				"expected": "found",
+				"start": 3011,
+				"end": 3091,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "the-path-from-line-17-to-the-agent",
+				"url": "program-design.md#the-path-from-line-17-to-the-agent",
+				"raw": "[The path from line 17 to the agent](program-design.md#the-path-from-line-17-to-the-agent)",
+				"expected": "found",
+				"start": 3204,
+				"end": 3294,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "the-nudge-as-the-agent-reads-it",
+				"url": "program-design.md#the-nudge-as-the-agent-reads-it",
+				"raw": "[the nudge, as the agent reads it](program-design.md#the-nudge-as-the-agent-reads-it)",
+				"expected": "found",
+				"start": 3403,
+				"end": 3488,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"fragment": "the-rows",
+				"url": "verification-design.md#the-rows",
+				"raw": "[Proof](verification-design.md#the-rows)",
+				"expected": "found",
+				"start": 3521,
+				"end": 3561,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"fragment": "r1-a-nudging-rule-names-its-reason",
+				"url": "specification/rule-making.md#r1-a-nudging-rule-names-its-reason",
+				"raw": "[R1](specification/rule-making.md#r1-a-nudging-rule-names-its-reason)",
+				"expected": "found",
+				"start": 3733,
+				"end": 3802,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"fragment": "c1-what-a-rule-entry-shows-its-reader",
+				"url": "specification/rule-making.md#c1-what-a-rule-entry-shows-its-reader",
+				"raw": "[C1](specification/rule-making.md#c1-what-a-rule-entry-shows-its-reader)",
+				"expected": "found",
+				"start": 3829,
+				"end": 3901,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+				"fragment": "c5-the-scenario-set",
+				"url": "specification/rule-tests.md#c5-the-scenario-set",
+				"raw": "[C5](specification/rule-tests.md#c5-the-scenario-set)",
+				"expected": "found",
+				"start": 3920,
+				"end": 3973,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+				"fragment": "r20-bars-are-tuned-per-rule-from-its-development-scenarios",
+				"url": "specification/rule-tests.md#r20-bars-are-tuned-per-rule-from-its-development-scenarios",
+				"raw": "[R20](specification/rule-tests.md#r20-bars-are-tuned-per-rule-from-its-development-scenarios)",
+				"expected": "found",
+				"start": 3999,
+				"end": 4092,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "the-derived-rule-state-runner",
+				"url": "program-design.md#the-derived-rule-state-runner",
+				"raw": "[the derived rule state](program-design.md#the-derived-rule-state-runner)",
+				"expected": "found",
+				"start": 4130,
+				"end": 4203,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "scenario-runs-and-the-adoption-file",
+				"url": "program-design.md#scenario-runs-and-the-adoption-file",
+				"raw": "[scenario runs and the adoption file](program-design.md#scenario-runs-and-the-adoption-file)",
+				"expected": "found",
+				"start": 4208,
+				"end": 4300,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"fragment": "the-rows",
+				"url": "verification-design.md#the-rows",
+				"raw": "[proof](verification-design.md#the-rows)",
+				"expected": "found",
+				"start": 4308,
+				"end": 4348,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e5-kind-judgment",
+				"url": "specification/entities.md#e5-kind-judgment",
+				"raw": "[E5](specification/entities.md#e5-kind-judgment)",
+				"expected": "found",
+				"start": 4477,
+				"end": 4525,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once",
+				"url": "requirements/skill-kinds.md#u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once",
+				"raw": "[U13](requirements/skill-kinds.md#u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once)",
+				"expected": "found",
+				"start": 4541,
+				"end": 4635,
+				"source_sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e1-skill",
+				"url": "specification/entities.md#e1-skill",
+				"raw": "[E1 Skill](specification/entities.md#e1-skill)",
+				"expected": "found",
+				"start": 7062,
+				"end": 7108,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e2-standard",
+				"url": "specification/entities.md#e2-standard",
+				"raw": "[E2 Standard](specification/entities.md#e2-standard)",
+				"expected": "found",
+				"start": 7554,
+				"end": 7606,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e3-rule",
+				"url": "specification/entities.md#e3-rule",
+				"raw": "[E3 Rule](specification/entities.md#e3-rule)",
+				"expected": "found",
+				"start": 7800,
+				"end": 7844,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e4-mistake",
+				"url": "specification/entities.md#e4-mistake",
+				"raw": "[E4 Mistake](specification/entities.md#e4-mistake)",
+				"expected": "found",
+				"start": 8055,
+				"end": 8105,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e5-kind-judgment",
+				"url": "specification/entities.md#e5-kind-judgment",
+				"raw": "[E5 Kind judgment](specification/entities.md#e5-kind-judgment)",
+				"expected": "found",
+				"start": 8322,
+				"end": 8384,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e6-chunk",
+				"url": "specification/entities.md#e6-chunk",
+				"raw": "[E6 Chunk](specification/entities.md#e6-chunk)",
+				"expected": "found",
+				"start": 8775,
+				"end": 8821,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e7-nudge",
+				"url": "specification/entities.md#e7-nudge",
+				"raw": "[E7 Nudge](specification/entities.md#e7-nudge)",
+				"expected": "found",
+				"start": 9169,
+				"end": 9215,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e8-scenario",
+				"url": "specification/entities.md#e8-scenario",
+				"raw": "[E8 Scenario](specification/entities.md#e8-scenario)",
+				"expected": "found",
+				"start": 9390,
+				"end": 9442,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e9-bar",
+				"url": "specification/entities.md#e9-bar",
+				"raw": "[E9 Bar](specification/entities.md#e9-bar)",
+				"expected": "found",
+				"start": 9604,
+				"end": 9646,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e10-gap",
+				"url": "specification/entities.md#e10-gap",
+				"raw": "[E10 Gap](specification/entities.md#e10-gap)",
+				"expected": "found",
+				"start": 9829,
+				"end": 9873,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e11-behavior-test-candidate",
+				"url": "specification/entities.md#e11-behavior-test-candidate",
+				"raw": "[E11 Behavior-test candidate](specification/entities.md#e11-behavior-test-candidate)",
+				"expected": "found",
+				"start": 10059,
+				"end": 10143,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e12-disposition",
+				"url": "specification/entities.md#e12-disposition",
+				"raw": "[E12 Disposition](specification/entities.md#e12-disposition)",
+				"expected": "found",
+				"start": 10331,
+				"end": 10391,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e13-run",
+				"url": "specification/entities.md#e13-run",
+				"raw": "[E13 Run](specification/entities.md#e13-run)",
+				"expected": "found",
+				"start": 10615,
+				"end": 10659,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e14-eval",
+				"url": "specification/entities.md#e14-eval",
+				"raw": "[E14 Eval](specification/entities.md#e14-eval)",
+				"expected": "found",
+				"start": 10790,
+				"end": 10836,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once",
+				"url": "requirements/skill-kinds.md#u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once",
+				"raw": "[U13](requirements/skill-kinds.md#u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once)",
+				"expected": "found",
+				"start": 25295,
+				"end": 25389,
+				"source_sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"fragment": "where-the-old-rows-went",
+				"url": "#where-the-old-rows-went",
+				"raw": "[Where the old rows went](#where-the-old-rows-went)",
+				"expected": "found",
+				"start": 264,
+				"end": 315,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"fragment": "the-mistake-inventory",
+				"url": "#the-mistake-inventory",
+				"raw": "[mistake inventory](#the-mistake-inventory)",
+				"expected": "found",
+				"start": 1241,
+				"end": 1284,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"fragment": "u9-a-rule-names-the-mistake-it-catches",
+				"url": "rule-making.md#u9-a-rule-names-the-mistake-it-catches",
+				"raw": "[U9](rule-making.md#u9-a-rule-names-the-mistake-it-catches)",
+				"expected": "found",
+				"start": 1742,
+				"end": 1801,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"fragment": "u10-the-rule-list-follows-what-the-owner-decided-rule-by-rule",
+				"url": "rule-making.md#u10-the-rule-list-follows-what-the-owner-decided-rule-by-rule",
+				"raw": "[U10](rule-making.md#u10-the-rule-list-follows-what-the-owner-decided-rule-by-rule)",
+				"expected": "found",
+				"start": 1842,
+				"end": 1925,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"fragment": "u12-the-review-skill-is-proven-by-two-real-evals",
+				"url": "rule-making.md#u12-the-review-skill-is-proven-by-two-real-evals",
+				"raw": "[U12](rule-making.md#u12-the-review-skill-is-proven-by-two-real-evals)",
+				"expected": "found",
+				"start": 1988,
+				"end": 2058,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"fragment": "u8-rule-files-get-rules",
+				"url": "rule-making.md#u8-rule-files-get-rules",
+				"raw": "[U8](rule-making.md#u8-rule-files-get-rules)",
+				"expected": "found",
+				"start": 2108,
+				"end": 2152,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"fragment": "u11-the-engine-stays-generic",
+				"url": "rule-making.md#u11-the-engine-stays-generic",
+				"raw": "[U11](rule-making.md#u11-the-engine-stays-generic)",
+				"expected": "found",
+				"start": 2178,
+				"end": 2228,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"fragment": "u1-a-rule-result-is-a-nudge",
+				"url": "nudges.md#u1-a-rule-result-is-a-nudge",
+				"raw": "[U1](nudges.md#u1-a-rule-result-is-a-nudge)",
+				"expected": "found",
+				"start": 2372,
+				"end": 2415,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"fragment": "u2-a-rule-can-nudge-without-deciding",
+				"url": "nudges.md#u2-a-rule-can-nudge-without-deciding",
+				"raw": "[U2](nudges.md#u2-a-rule-can-nudge-without-deciding)",
+				"expected": "found",
+				"start": 2445,
+				"end": 2497,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"fragment": "u3-what-was-not-read-is-shown-apart-from-what-was-decided",
+				"url": "nudges.md#u3-what-was-not-read-is-shown-apart-from-what-was-decided",
+				"raw": "[U3](nudges.md#u3-what-was-not-read-is-shown-apart-from-what-was-decided)",
+				"expected": "found",
+				"start": 2536,
+				"end": 2609,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"fragment": "u4-a-nudge-never-fails-a-run",
+				"url": "nudges.md#u4-a-nudge-never-fails-a-run",
+				"raw": "[U4](nudges.md#u4-a-nudge-never-fails-a-run)",
+				"expected": "found",
+				"start": 2668,
+				"end": 2712,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"fragment": "u5-a-pass-says-one-thing",
+				"url": "nudges.md#u5-a-pass-says-one-thing",
+				"raw": "[U5](nudges.md#u5-a-pass-says-one-thing)",
+				"expected": "found",
+				"start": 2743,
+				"end": 2783,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"fragment": "u6-nudges-are-read-not-obeyed",
+				"url": "nudges.md#u6-nudges-are-read-not-obeyed",
+				"raw": "[U6](nudges.md#u6-nudges-are-read-not-obeyed)",
+				"expected": "found",
+				"start": 2810,
+				"end": 2855,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+				"fragment": "u7-each-skill-makes-its-part-of-the-path-clear",
+				"url": "nudges.md#u7-each-skill-makes-its-part-of-the-path-clear",
+				"raw": "[U7](nudges.md#u7-each-skill-makes-its-part-of-the-path-clear)",
+				"expected": "found",
+				"start": 2888,
+				"end": 2950,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once",
+				"url": "skill-kinds.md#u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once",
+				"raw": "[U13](skill-kinds.md#u13-the-kind-of-a-skill-is-what-its-work-is-for-judged-once)",
+				"expected": "found",
+				"start": 3107,
+				"end": 3188,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u14-an-unsure-kind-is-skipped-and-listed",
+				"url": "skill-kinds.md#u14-an-unsure-kind-is-skipped-and-listed",
+				"raw": "[U14](skill-kinds.md#u14-an-unsure-kind-is-skipped-and-listed)",
+				"expected": "found",
+				"start": 3245,
+				"end": 3307,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u15-description-standards-apply-to-every-skill",
+				"url": "skill-kinds.md#u15-description-standards-apply-to-every-skill",
+				"raw": "[U15](skill-kinds.md#u15-description-standards-apply-to-every-skill)",
+				"expected": "found",
+				"start": 3349,
+				"end": 3417,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak",
+				"url": "skill-kinds.md#u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak",
+				"raw": "[U16](skill-kinds.md#u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak)",
+				"expected": "found",
+				"start": 3465,
+				"end": 3572,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-tests.md",
+				"fragment": "u17-real-scenarios-come-before-any-nudge",
+				"url": "rule-tests.md#u17-real-scenarios-come-before-any-nudge",
+				"raw": "[U17](rule-tests.md#u17-real-scenarios-come-before-any-nudge)",
+				"expected": "found",
+				"start": 3785,
+				"end": 3846,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-tests.md",
+				"fragment": "u18-each-rule-sets-its-own-bars",
+				"url": "rule-tests.md#u18-each-rule-sets-its-own-bars",
+				"raw": "[U18](rule-tests.md#u18-each-rule-sets-its-own-bars)",
+				"expected": "found",
+				"start": 3888,
+				"end": 3940,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-tests.md",
+				"fragment": "u19-scenarios-are-real-skill-text-never-made-up",
+				"url": "rule-tests.md#u19-scenarios-are-real-skill-text-never-made-up",
+				"raw": "[U19](rule-tests.md#u19-scenarios-are-real-skill-text-never-made-up)",
+				"expected": "found",
+				"start": 3974,
+				"end": 4042,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/what-rules-read.md",
+				"fragment": "u20-a-rule-names-its-chunk-and-its-edges",
+				"url": "what-rules-read.md#u20-a-rule-names-its-chunk-and-its-edges",
+				"raw": "[U20](what-rules-read.md#u20-a-rule-names-its-chunk-and-its-edges)",
+				"expected": "found",
+				"start": 4207,
+				"end": 4273,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/what-rules-read.md",
+				"fragment": "u21-generalization-and-the-general-skill-rules-leave-nothing-unread",
+				"url": "what-rules-read.md#u21-generalization-and-the-general-skill-rules-leave-nothing-unread",
+				"raw": "[U21](what-rules-read.md#u21-generalization-and-the-general-skill-rules-leave-nothing-unread)",
+				"expected": "found",
+				"start": 4315,
+				"end": 4408,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/what-rules-read.md",
+				"fragment": "u22-a-wrong-reading-is-fixed-where-the-text-was-collected",
+				"url": "what-rules-read.md#u22-a-wrong-reading-is-fixed-where-the-text-was-collected",
+				"raw": "[U22](what-rules-read.md#u22-a-wrong-reading-is-fixed-where-the-text-was-collected)",
+				"expected": "found",
+				"start": 4477,
+				"end": 4560,
+				"source_sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e7-nudge",
+				"url": "entities.md#e7-nudge",
+				"raw": "[E7 Nudge](entities.md#e7-nudge)",
+				"expected": "found",
+				"start": 306,
+				"end": 338,
+				"source_sha256": "5b603afe976703503c9e75a15c91e71ec187cdd0f0cc86182b39f992be4a08ec"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e10-gap",
+				"url": "entities.md#e10-gap",
+				"raw": "[E10 Gap](entities.md#e10-gap)",
+				"expected": "found",
+				"start": 340,
+				"end": 370,
+				"source_sha256": "5b603afe976703503c9e75a15c91e71ec187cdd0f0cc86182b39f992be4a08ec"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e12-disposition",
+				"url": "entities.md#e12-disposition",
+				"raw": "[E12 Disposition](entities.md#e12-disposition)",
+				"expected": "found",
+				"start": 372,
+				"end": 418,
+				"source_sha256": "5b603afe976703503c9e75a15c91e71ec187cdd0f0cc86182b39f992be4a08ec"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e13-run",
+				"url": "entities.md#e13-run",
+				"raw": "[E13 Run](entities.md#e13-run)",
+				"expected": "found",
+				"start": 420,
+				"end": 450,
+				"source_sha256": "5b603afe976703503c9e75a15c91e71ec187cdd0f0cc86182b39f992be4a08ec"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e3-rule",
+				"url": "entities.md#e3-rule",
+				"raw": "[E3 Rule](entities.md#e3-rule)",
+				"expected": "found",
+				"start": 337,
+				"end": 367,
+				"source_sha256": "d86bffa1cd4f5eb388ba5e7b146ad1e2cfa10a085bd53936563703f6c24b3b4c"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e4-mistake",
+				"url": "entities.md#e4-mistake",
+				"raw": "[E4 Mistake](entities.md#e4-mistake)",
+				"expected": "found",
+				"start": 369,
+				"end": 405,
+				"source_sha256": "d86bffa1cd4f5eb388ba5e7b146ad1e2cfa10a085bd53936563703f6c24b3b4c"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e11-behavior-test-candidate",
+				"url": "entities.md#e11-behavior-test-candidate",
+				"raw": "[E11](entities.md#e11-behavior-test-candidate)",
+				"expected": "found",
+				"start": 407,
+				"end": 453,
+				"source_sha256": "d86bffa1cd4f5eb388ba5e7b146ad1e2cfa10a085bd53936563703f6c24b3b4c"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"fragment": "u10-the-rule-list-follows-what-the-owner-decided-rule-by-rule",
+				"url": "../requirements/rule-making.md#u10-the-rule-list-follows-what-the-owner-decided-rule-by-rule",
+				"raw": "[U10](../requirements/rule-making.md#u10-the-rule-list-follows-what-the-owner-decided-rule-by-rule)",
+				"expected": "found",
+				"start": 1515,
+				"end": 1614,
+				"source_sha256": "d86bffa1cd4f5eb388ba5e7b146ad1e2cfa10a085bd53936563703f6c24b3b4c"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+				"fragment": "u12-the-review-skill-is-proven-by-two-real-evals",
+				"url": "../requirements/rule-making.md#u12-the-review-skill-is-proven-by-two-real-evals",
+				"raw": "[U12](../requirements/rule-making.md#u12-the-review-skill-is-proven-by-two-real-evals)",
+				"expected": "found",
+				"start": 2152,
+				"end": 2238,
+				"source_sha256": "d86bffa1cd4f5eb388ba5e7b146ad1e2cfa10a085bd53936563703f6c24b3b4c"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e8-scenario",
+				"url": "entities.md#e8-scenario",
+				"raw": "[E8 Scenario](entities.md#e8-scenario)",
+				"expected": "found",
+				"start": 400,
+				"end": 438,
+				"source_sha256": "1c6993f2a86e18100b0a7dc3677452a09c933e8793832298ac0703c437035065"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e9-bar",
+				"url": "entities.md#e9-bar",
+				"raw": "[E9 Bar](entities.md#e9-bar)",
+				"expected": "found",
+				"start": 440,
+				"end": 468,
+				"source_sha256": "1c6993f2a86e18100b0a7dc3677452a09c933e8793832298ac0703c437035065"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e3-rule",
+				"url": "entities.md#e3-rule",
+				"raw": "[E3 Rule](entities.md#e3-rule)",
+				"expected": "found",
+				"start": 470,
+				"end": 500,
+				"source_sha256": "1c6993f2a86e18100b0a7dc3677452a09c933e8793832298ac0703c437035065"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e1-skill",
+				"url": "entities.md#e1-skill",
+				"raw": "[E1 Skill](entities.md#e1-skill)",
+				"expected": "found",
+				"start": 371,
+				"end": 403,
+				"source_sha256": "9f277fb167b723c32443ff82ff35a3c635b35b513327105ebad1481c24c816ab"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e5-kind-judgment",
+				"url": "entities.md#e5-kind-judgment",
+				"raw": "[E5 Kind judgment](entities.md#e5-kind-judgment)",
+				"expected": "found",
+				"start": 405,
+				"end": 453,
+				"source_sha256": "9f277fb167b723c32443ff82ff35a3c635b35b513327105ebad1481c24c816ab"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e3-rule",
+				"url": "entities.md#e3-rule",
+				"raw": "[E3 Rule](entities.md#e3-rule)",
+				"expected": "found",
+				"start": 455,
+				"end": 485,
+				"source_sha256": "9f277fb167b723c32443ff82ff35a3c635b35b513327105ebad1481c24c816ab"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+				"target": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+				"fragment": "u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak",
+				"url": "../requirements/skill-kinds.md#u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak",
+				"raw": "[U16's table](../requirements/skill-kinds.md#u16-the-general-skill-rules-judge-general-skills-only-and-know-an-example-from-a-leak)",
+				"expected": "found",
+				"start": 2729,
+				"end": 2860,
+				"source_sha256": "9f277fb167b723c32443ff82ff35a3c635b35b513327105ebad1481c24c816ab"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/what-rules-read.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e6-chunk",
+				"url": "entities.md#e6-chunk",
+				"raw": "[E6 Chunk](entities.md#e6-chunk)",
+				"expected": "found",
+				"start": 343,
+				"end": 375,
+				"source_sha256": "9d69dd893352da1211b75a4769eed0efe48818397e0cc239a3bb5ac7d504e058"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/specification/what-rules-read.md",
+				"target": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+				"fragment": "e1-skill",
+				"url": "entities.md#e1-skill",
+				"raw": "[E1 Skill](entities.md#e1-skill)",
+				"expected": "found",
+				"start": 377,
+				"end": 409,
+				"source_sha256": "9d69dd893352da1211b75a4769eed0efe48818397e0cc239a3bb5ac7d504e058"
+			},
+			{
+				"source": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+				"target": "docs/specs/2026-11-03-skill-rules/program-design.md",
+				"fragment": "trace",
+				"url": "program-design.md#trace",
+				"raw": "[Program Design](program-design.md#trace)",
+				"expected": "found",
+				"start": 276,
+				"end": 317,
+				"source_sha256": "9554f41b0b260ffcc2d815b7e29a585895c79a3240dfd737d5de105ac9c4a1b3"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+				"fragment": "2026-10-14-v3-corrections",
+				"url": "#2026-10-14-v3-corrections",
+				"raw": "[v3 corrections](#2026-10-14-v3-corrections)",
+				"expected": "found",
+				"start": 492,
+				"end": 536,
+				"source_sha256": "79e7b7b77569408ed53687e23c55ab3fa145f5c717b3c267fe0cc6319242a243"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+				"fragment": "2026-10-15-v4-principle-citations",
+				"url": "#2026-10-15-v4-principle-citations",
+				"raw": "[v4 section](#2026-10-15-v4-principle-citations)",
+				"expected": "found",
+				"start": 637,
+				"end": 685,
+				"source_sha256": "79e7b7b77569408ed53687e23c55ab3fa145f5c717b3c267fe0cc6319242a243"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+				"fragment": "2026-10-14-v2-corrections",
+				"url": "#2026-10-14-v2-corrections",
+				"raw": "[v2 corrections](#2026-10-14-v2-corrections)",
+				"expected": "found",
+				"start": 461,
+				"end": 505,
+				"source_sha256": "1c1269379ed74fef826d13b9aa08602a18b4493ed714f11c0ccd5860c787690b"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+				"fragment": "2026-10-15-v3-principle-citations-d13-and-role-inventory",
+				"url": "#2026-10-15-v3-principle-citations-d13-and-role-inventory",
+				"raw": "[v3 section](#2026-10-15-v3-principle-citations-d13-and-role-inventory)",
+				"expected": "found",
+				"start": 606,
+				"end": 677,
+				"source_sha256": "1c1269379ed74fef826d13b9aa08602a18b4493ed714f11c0ccd5860c787690b"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+				"fragment": "2026-10-14-v3-corrections",
+				"url": "../2026-10-14-practices-principles/spec.md#2026-10-14-v3-corrections",
+				"raw": "[spec #131](../2026-10-14-practices-principles/spec.md#2026-10-14-v3-corrections)",
+				"expected": "found",
+				"start": 27686,
+				"end": 27767,
+				"source_sha256": "1c1269379ed74fef826d13b9aa08602a18b4493ed714f11c0ccd5860c787690b"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+				"fragment": "2026-10-15-v4-principle-citations",
+				"url": "../2026-10-14-practices-principles/spec.md#2026-10-15-v4-principle-citations",
+				"raw": "[spec #131 v4](../2026-10-14-practices-principles/spec.md#2026-10-15-v4-principle-citations)",
+				"expected": "found",
+				"start": 49684,
+				"end": 49776,
+				"source_sha256": "1c1269379ed74fef826d13b9aa08602a18b4493ed714f11c0ccd5860c787690b"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-15-principle-citation/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-15-principle-citation/spec.md",
+				"fragment": "review-record",
+				"url": "#review-record",
+				"raw": "[Review record](#review-record)",
+				"expected": "found",
+				"start": 308,
+				"end": 339,
+				"source_sha256": "8c9df4095cc930e51e20d63583e4994bb050dcfb52216d18f171071087c0565a"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-15-principle-citation/spec.md",
+				"target": "docs/wip/skills-authoring/2026-10-15-principle-citation/spec.md",
+				"fragment": "run-status",
+				"url": "#run-status",
+				"raw": "[Run status](#run-status)",
+				"expected": "found",
+				"start": 344,
+				"end": 369,
+				"source_sha256": "8c9df4095cc930e51e20d63583e4994bb050dcfb52216d18f171071087c0565a"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "planning-lifecycle-the-first-plan-plan-updates-and-pr-shape",
+				"url": "planning-lifecycle.md#planning-lifecycle-the-first-plan-plan-updates-and-pr-shape",
+				"raw": "[Part A, the lifecycle diagram](planning-lifecycle.md#planning-lifecycle-the-first-plan-plan-updates-and-pr-shape)",
+				"expected": "found",
+				"start": 2619,
+				"end": 2733,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "requirements",
+				"url": "planning-lifecycle.md#requirements",
+				"raw": "[Part A, Requirements](planning-lifecycle.md#requirements)",
+				"expected": "found",
+				"start": 2737,
+				"end": 2795,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"fragment": "what-demistify-gives-us",
+				"url": "readable-design-sets.md#what-demistify-gives-us",
+				"raw": "[Part B, What Demistify gives us](readable-design-sets.md#what-demistify-gives-us)",
+				"expected": "found",
+				"start": 2799,
+				"end": 2881,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"fragment": "the-owners-questions-and-the-views-that-answer-them",
+				"url": "readable-design-sets.md#the-owners-questions-and-the-views-that-answer-them",
+				"raw": "[Part B, The owner's questions and the views that answer them](readable-design-sets.md#the-owners-questions-and-the-views-that-answer-them)",
+				"expected": "found",
+				"start": 2885,
+				"end": 3024,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/phase-composition.md",
+				"fragment": "today-measured",
+				"url": "phase-composition.md#today-measured",
+				"raw": "[Part C, Today, measured](phase-composition.md#today-measured)",
+				"expected": "found",
+				"start": 3028,
+				"end": 3090,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/testing-and-verification.md",
+				"fragment": "evidence-the-design-must-answer",
+				"url": "testing-and-verification.md#evidence-the-design-must-answer",
+				"raw": "[Part D, Evidence the design must answer](testing-and-verification.md#evidence-the-design-must-answer)",
+				"expected": "found",
+				"start": 3094,
+				"end": 3196,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "decisions",
+				"url": "planning-lifecycle.md#decisions",
+				"raw": "[Part A, Decisions](planning-lifecycle.md#decisions)",
+				"expected": "found",
+				"start": 3200,
+				"end": 3252,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "situations",
+				"url": "planning-lifecycle.md#situations",
+				"raw": "[Part A, Situations](planning-lifecycle.md#situations)",
+				"expected": "found",
+				"start": 3290,
+				"end": 3344,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "r3-plan-update-a-new-skill",
+				"url": "planning-lifecycle.md#r3-plan-update-a-new-skill",
+				"raw": "[Part A, R3 plan-update](planning-lifecycle.md#r3-plan-update-a-new-skill)",
+				"expected": "found",
+				"start": 3360,
+				"end": 3434,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "r6-verification-design",
+				"url": "planning-lifecycle.md#r6-verification-design",
+				"raw": "[Part A, R6 verification-design](planning-lifecycle.md#r6-verification-design)",
+				"expected": "found",
+				"start": 3438,
+				"end": 3516,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "r4-canonical-implementation-plan-md",
+				"url": "planning-lifecycle.md#r4-canonical-implementation-plan-md",
+				"raw": "[Part A, R4 the plan record](planning-lifecycle.md#r4-canonical-implementation-plan-md)",
+				"expected": "missing",
+				"start": 3520,
+				"end": 3607,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"fragment": "the-owners-questions-and-the-views-that-answer-them",
+				"url": "readable-design-sets.md#the-owners-questions-and-the-views-that-answer-them",
+				"raw": "[Part B, the plan change view](readable-design-sets.md#the-owners-questions-and-the-views-that-answer-them)",
+				"expected": "found",
+				"start": 3611,
+				"end": 3718,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "situations",
+				"url": "planning-lifecycle.md#situations",
+				"raw": "[Part A, Situations](planning-lifecycle.md#situations)",
+				"expected": "found",
+				"start": 3760,
+				"end": 3814,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "r1-orchestrator-design",
+				"url": "planning-lifecycle.md#r1-orchestrator-design",
+				"raw": "[Part A, R1 orchestrator-design](planning-lifecycle.md#r1-orchestrator-design)",
+				"expected": "found",
+				"start": 3830,
+				"end": 3908,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"fragment": "situations",
+				"url": "readable-design-sets.md#situations",
+				"raw": "[Part B, Situations](readable-design-sets.md#situations)",
+				"expected": "found",
+				"start": 3912,
+				"end": 3968,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"fragment": "r2-presentation-html",
+				"url": "readable-design-sets.md#r2-presentation-html",
+				"raw": "[Part B, R2 presentation-html](readable-design-sets.md#r2-presentation-html)",
+				"expected": "found",
+				"start": 3981,
+				"end": 4057,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "situations",
+				"url": "planning-lifecycle.md#situations",
+				"raw": "[Part A, Situations](planning-lifecycle.md#situations)",
+				"expected": "found",
+				"start": 4097,
+				"end": 4151,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "r2-plan-implementation-the-first-plan",
+				"url": "planning-lifecycle.md#r2-plan-implementation-the-first-plan",
+				"raw": "[Part A, R2 the first plan](planning-lifecycle.md#r2-plan-implementation-the-first-plan)",
+				"expected": "found",
+				"start": 4158,
+				"end": 4246,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"fragment": "readable-design-sets-pages-walkthroughs-and-views-for-the-owner",
+				"url": "readable-design-sets.md#readable-design-sets-pages-walkthroughs-and-views-for-the-owner",
+				"raw": "[Part B, the reads diagram](readable-design-sets.md#readable-design-sets-pages-walkthroughs-and-views-for-the-owner)",
+				"expected": "found",
+				"start": 4250,
+				"end": 4366,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+				"fragment": "situations",
+				"url": "readable-design-sets.md#situations",
+				"raw": "[Part B, Situations](readable-design-sets.md#situations)",
+				"expected": "found",
+				"start": 4370,
+				"end": 4426,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+				"target": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+				"fragment": "r7-implement-plan",
+				"url": "planning-lifecycle.md#r7-implement-plan",
+				"raw": "[Part A, R7 implement-plan](planning-lifecycle.md#r7-implement-plan)",
+				"expected": "found",
+				"start": 4433,
+				"end": 4501,
+				"source_sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-10-31-rules-as-nudges/requirements.md",
+				"target": "docs/wip/skills-authoring/2026-10-31-rules-as-nudges/requirements.md",
+				"fragment": "revision-2-the-rules-themselves",
+				"url": "#revision-2-the-rules-themselves",
+				"raw": "[Revision 2: the rules themselves](#revision-2-the-rules-themselves)",
+				"expected": "found",
+				"start": 809,
+				"end": 877,
+				"source_sha256": "918dcb9a14362141aeafef96d46a899470224c86be0f67b7f4f9e3ad29cc4a5c"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/program-design.md",
+				"fragment": "trace",
+				"url": "program-design.md#trace",
+				"raw": "[trace](program-design.md#trace)",
+				"expected": "found",
+				"start": 1588,
+				"end": 1620,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "shared-observations",
+				"url": "verification-design.md#shared-observations",
+				"raw": "[shared observations](verification-design.md#shared-observations)",
+				"expected": "found",
+				"start": 1684,
+				"end": 1749,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "decisions",
+				"url": "specification/obligations.md#decisions",
+				"raw": "[R6 R7 R8](specification/obligations.md#decisions)",
+				"expected": "found",
+				"start": 1947,
+				"end": 1997,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u1--decisions-r6-r7-r8",
+				"url": "verification-design.md#u1--decisions-r6-r7-r8",
+				"raw": "[U1 row](verification-design.md#u1--decisions-r6-r7-r8)",
+				"expected": "found",
+				"start": 2055,
+				"end": 2110,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "assumptions",
+				"url": "specification/obligations.md#assumptions",
+				"raw": "[R9 R10 R11](specification/obligations.md#assumptions)",
+				"expected": "found",
+				"start": 2167,
+				"end": 2221,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u2--assumptions-r9-r10-r11",
+				"url": "verification-design.md#u2--assumptions-r9-r10-r11",
+				"raw": "[U2 row](verification-design.md#u2--assumptions-r9-r10-r11)",
+				"expected": "found",
+				"start": 2287,
+				"end": 2346,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "shortcuts",
+				"url": "specification/obligations.md#shortcuts",
+				"raw": "[R12 R13](specification/obligations.md#shortcuts)",
+				"expected": "found",
+				"start": 2405,
+				"end": 2454,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u3--shortcuts-r12-r13",
+				"url": "verification-design.md#u3--shortcuts-r12-r13",
+				"raw": "[U3 row](verification-design.md#u3--shortcuts-r12-r13)",
+				"expected": "found",
+				"start": 2519,
+				"end": 2573,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "verification",
+				"url": "specification/obligations.md#verification",
+				"raw": "[R14 R15 R16](specification/obligations.md#verification)",
+				"expected": "found",
+				"start": 2635,
+				"end": 2691,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u4--verification-r14-r15-r16",
+				"url": "verification-design.md#u4--verification-r14-r15-r16",
+				"raw": "[U4 row](verification-design.md#u4--verification-r14-r15-r16)",
+				"expected": "found",
+				"start": 2754,
+				"end": 2815,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "what-was-missed",
+				"url": "specification/obligations.md#what-was-missed",
+				"raw": "[R17 R18](specification/obligations.md#what-was-missed)",
+				"expected": "found",
+				"start": 2871,
+				"end": 2926,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "decisions",
+				"url": "specification/obligations.md#decisions",
+				"raw": "[R8](specification/obligations.md#decisions)",
+				"expected": "found",
+				"start": 2932,
+				"end": 2976,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u5--missed-what-was-missed-r8-r17-r18-r8-is-shared-with-u1-decisions",
+				"url": "verification-design.md#u5--missed-what-was-missed-r8-r17-r18-r8-is-shared-with-u1-decisions",
+				"raw": "[U5 row](verification-design.md#u5--missed-what-was-missed-r8-r17-r18-r8-is-shared-with-u1-decisions)",
+				"expected": "found",
+				"start": 3049,
+				"end": 3150,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "whats-going-on-going-on",
+				"url": "specification/obligations.md#whats-going-on-going-on",
+				"raw": "[R24](specification/obligations.md#whats-going-on-going-on)",
+				"expected": "found",
+				"start": 3209,
+				"end": 3268,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u12--going-on-whats-going-on-r24",
+				"url": "verification-design.md#u12--going-on-whats-going-on-r24",
+				"raw": "[U12 row](verification-design.md#u12--going-on-whats-going-on-r24)",
+				"expected": "found",
+				"start": 3352,
+				"end": 3418,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "what-needs-the-owner-attention",
+				"url": "specification/obligations.md#what-needs-the-owner-attention",
+				"raw": "[R19 R20 R21 R22 R23 R25](specification/obligations.md#what-needs-the-owner-attention)",
+				"expected": "found",
+				"start": 3484,
+				"end": 3570,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u6--attention-what-needs-you-r19-r20",
+				"url": "verification-design.md#u6--attention-what-needs-you-r19-r20",
+				"raw": "[U6 row](verification-design.md#u6--attention-what-needs-you-r19-r20)",
+				"expected": "found",
+				"start": 3641,
+				"end": 3710,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u7--attention-the-map-r21-r22-r23",
+				"url": "verification-design.md#u7--attention-the-map-r21-r22-r23",
+				"raw": "[U7 row](verification-design.md#u7--attention-the-map-r21-r22-r23)",
+				"expected": "found",
+				"start": 3712,
+				"end": 3778,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u13--attention-plain-words-r25",
+				"url": "verification-design.md#u13--attention-plain-words-r25",
+				"raw": "[U13 row](verification-design.md#u13--attention-plain-words-r25)",
+				"expected": "found",
+				"start": 3780,
+				"end": 3844,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "the-log-logging",
+				"url": "specification/obligations.md#the-log-logging",
+				"raw": "[R1 R2 R3 R4 R5](specification/obligations.md#the-log-logging)",
+				"expected": "found",
+				"start": 3912,
+				"end": 3974,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u8--logging-every-agent-logs-as-it-goes-r1-r2",
+				"url": "verification-design.md#u8--logging-every-agent-logs-as-it-goes-r1-r2",
+				"raw": "[U8](verification-design.md#u8--logging-every-agent-logs-as-it-goes-r1-r2)",
+				"expected": "found",
+				"start": 4069,
+				"end": 4143,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u9--logging-the-lead-interprets-and-owns-r4",
+				"url": "verification-design.md#u9--logging-the-lead-interprets-and-owns-r4",
+				"raw": "[U9](verification-design.md#u9--logging-the-lead-interprets-and-owns-r4)",
+				"expected": "found",
+				"start": 4145,
+				"end": 4217,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u10--logging-easy-and-cheap-r3",
+				"url": "verification-design.md#u10--logging-easy-and-cheap-r3",
+				"raw": "[U10](verification-design.md#u10--logging-easy-and-cheap-r3)",
+				"expected": "found",
+				"start": 4219,
+				"end": 4279,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "u11--logging-a-peer-lead-logs-in-its-own-record-r5",
+				"url": "verification-design.md#u11--logging-a-peer-lead-logs-in-its-own-record-r5",
+				"raw": "[U11](verification-design.md#u11--logging-a-peer-lead-logs-in-its-own-record-r5)",
+				"expected": "found",
+				"start": 4281,
+				"end": 4361,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "the-log-logging",
+				"url": "specification/obligations.md#the-log-logging",
+				"raw": "[Specification: the log](specification/obligations.md#the-log-logging)",
+				"expected": "found",
+				"start": 4517,
+				"end": 4587,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+				"fragment": "decisions",
+				"url": "specification/obligations.md#decisions",
+				"raw": "[decisions](specification/obligations.md#decisions)",
+				"expected": "found",
+				"start": 4602,
+				"end": 4653,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/program-design.md",
+				"fragment": "the-main-path-a-helper-logs-a-decision-the-lead-puts-it-on-the-page",
+				"url": "program-design.md#the-main-path-a-helper-logs-a-decision-the-lead-puts-it-on-the-page",
+				"raw": "[Program Design: the main path](program-design.md#the-main-path-a-helper-logs-a-decision-the-lead-puts-it-on-the-page)",
+				"expected": "found",
+				"start": 4667,
+				"end": 4785,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+				"target": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+				"fragment": "shared-observations",
+				"url": "verification-design.md#shared-observations",
+				"raw": "[Verification Design: the first real run, checked against the log](verification-design.md#shared-observations)",
+				"expected": "found",
+				"start": 4789,
+				"end": 4899,
+				"source_sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"fragment": "part-1-requirements",
+				"url": "#part-1-requirements",
+				"raw": "[1 Requirements](#part-1-requirements)",
+				"expected": "found",
+				"start": 803,
+				"end": 841,
+				"source_sha256": "3803b76be1053ac2fdc8733a7962df450bf2f926ce775e020adf35f75a1a3c97"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"fragment": "part-2-specification",
+				"url": "#part-2-specification",
+				"raw": "[2 Specification](#part-2-specification)",
+				"expected": "found",
+				"start": 845,
+				"end": 885,
+				"source_sha256": "3803b76be1053ac2fdc8733a7962df450bf2f926ce775e020adf35f75a1a3c97"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"fragment": "part-3-skill-design",
+				"url": "#part-3-skill-design",
+				"raw": "[3 Skill design](#part-3-skill-design)",
+				"expected": "found",
+				"start": 889,
+				"end": 927,
+				"source_sha256": "3803b76be1053ac2fdc8733a7962df450bf2f926ce775e020adf35f75a1a3c97"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+				"fragment": "part-4-skill-verification",
+				"url": "#part-4-skill-verification",
+				"raw": "[4 Skill verification](#part-4-skill-verification)",
+				"expected": "found",
+				"start": 931,
+				"end": 981,
+				"source_sha256": "3803b76be1053ac2fdc8733a7962df450bf2f926ce775e020adf35f75a1a3c97"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"fragment": "part-1-requirements",
+				"url": "#part-1-requirements",
+				"raw": "[1 Requirements](#part-1-requirements)",
+				"expected": "found",
+				"start": 1414,
+				"end": 1452,
+				"source_sha256": "be7d7793b70097e968eb09f0155e3fb03204d6031b533ff0da58d8799a8442b8"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"fragment": "part-2-specification",
+				"url": "#part-2-specification",
+				"raw": "[2 Specification](#part-2-specification)",
+				"expected": "found",
+				"start": 1456,
+				"end": 1496,
+				"source_sha256": "be7d7793b70097e968eb09f0155e3fb03204d6031b533ff0da58d8799a8442b8"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"fragment": "part-3-skill-design",
+				"url": "#part-3-skill-design",
+				"raw": "[3 Skill design](#part-3-skill-design)",
+				"expected": "found",
+				"start": 1500,
+				"end": 1538,
+				"source_sha256": "be7d7793b70097e968eb09f0155e3fb03204d6031b533ff0da58d8799a8442b8"
+			},
+			{
+				"source": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"target": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+				"fragment": "part-4-skill-verification",
+				"url": "#part-4-skill-verification",
+				"raw": "[4 Skill verification](#part-4-skill-verification)",
+				"expected": "found",
+				"start": 1542,
+				"end": 1592,
+				"source_sha256": "be7d7793b70097e968eb09f0155e3fb03204d6031b533ff0da58d8799a8442b8"
+			},
+			{
+				"source": "plugins/agent-router/skills/agent-collaboration/SKILL.md",
+				"target": "plugins/agent-router/skills/agent-collaboration/references/message-board.md",
+				"fragment": "subscriptions-polling-and-acknowledgement",
+				"url": "references/message-board.md#subscriptions-polling-and-acknowledgement",
+				"raw": "[Board operations: Subscriptions, polling, and acknowledgement](references/message-board.md#subscriptions-polling-and-acknowledgement)",
+				"expected": "found",
+				"start": 12243,
+				"end": 12377,
+				"source_sha256": "b0936691bb42c0b7bcd5a53e52a034fc8f2a1a1738ef0f1c0dc594baa163e1b7"
+			},
+			{
+				"source": "plugins/agent-router/skills/agent-collaboration/references/mcp-usage.md",
+				"target": "plugins/agent-router/docs/agent-guidance/agent-collaboration.md",
+				"fragment": "register-the-router-mcp-endpoint-with-codex",
+				"url": "../../../docs/agent-guidance/agent-collaboration.md#register-the-router-mcp-endpoint-with-codex",
+				"raw": "[agent-collaboration guide](../../../docs/agent-guidance/agent-collaboration.md#register-the-router-mcp-endpoint-with-codex)",
+				"expected": "missing_file",
+				"start": 246,
+				"end": 370,
+				"source_sha256": "8c5711f7c85502b2c8e6eaf63fe36aa1bd810ed5384f5364086be8c5ea33c7b6"
+			},
+			{
+				"source": "plugins/agent-router/skills/agent-collaboration/references/mcp-usage.md",
+				"target": "plugins/agent-router/skills/agent-collaboration/references/message-board.md",
+				"fragment": "subscriptions-polling-and-acknowledgement",
+				"url": "message-board.md#subscriptions-polling-and-acknowledgement",
+				"raw": "[board operations](message-board.md#subscriptions-polling-and-acknowledgement)",
+				"expected": "found",
+				"start": 3795,
+				"end": 3873,
+				"source_sha256": "8c5711f7c85502b2c8e6eaf63fe36aa1bd810ed5384f5364086be8c5ea33c7b6"
+			},
+			{
+				"source": "plugins/agent-router/skills/agent-collaboration/references/mcp-usage.md",
+				"target": "plugins/agent-router/skills/agent-collaboration/references/message-board.md",
+				"fragment": "subscriptions-polling-and-acknowledgement",
+				"url": "message-board.md#subscriptions-polling-and-acknowledgement",
+				"raw": "[Board operations: Subscriptions, polling, and acknowledgement](message-board.md#subscriptions-polling-and-acknowledgement)",
+				"expected": "found",
+				"start": 4222,
+				"end": 4345,
+				"source_sha256": "8c5711f7c85502b2c8e6eaf63fe36aa1bd810ed5384f5364086be8c5ea33c7b6"
+			}
+		]
+	},
+	{
+		"key": "tools",
+		"repo": "ShravanSunder/sunstack-tools",
+		"commit": "b060be3ff57f22163ae4348761e51a223fab2255",
+		"files": [
+			{
+				"file": ".agents/skills/verify-sunstack-rule/references/decision-trees.md",
+				"sha256": "531dca004ffb8b932c8870fb7ab1b25a645b02d5e205f2dea085d0bc148556db"
+			},
+			{
+				"file": ".agents/skills/verify-sunstack-rule/references/rulebook-check-refusals.md",
+				"sha256": "d5a7cbacf10ffa49ff0a1781bc14350c9e4edfe055408bdc70230d0be5f4283a"
+			},
+			{
+				"file": ".agents/skills/verify-sunstack-rule/references/rulebook-lint.md",
+				"sha256": "8f9ae30ae605ab4f539057e538877875c2c466f2d3962fc7230a29109a8be3eb"
+			},
+			{
+				"file": "README.md",
+				"sha256": "99be02f7aabd6545b98b934696acc09566916da3c50f9dd18753caa81e9706a9"
+			},
+			{
+				"file": "apps/demistify-poc/experiments/agent-written/component-guide/requirements.md",
+				"sha256": "fc39f03db08b73600a762f139ee5a4d7bc95e1d1398cb98597e9c469fe33216b"
+			},
+			{
+				"file": "apps/demistify-poc/experiments/agent-written/document-browsers/notes.md",
+				"sha256": "7ae77e0986848c7d79e18db46c45e0085d73172cf56f26b54f4ceb268d98e47a"
+			},
+			{
+				"file": "apps/demistify-poc/experiments/agent-written/integrated-review/requirements.md",
+				"sha256": "dacc4d08af693e9d6e5070eba4b42983ae0699831cb315db9f7a9da9c86c7a08"
+			},
+			{
+				"file": "apps/demistify-poc/experiments/agent-written/navigation-markdown-fix/notes.md",
+				"sha256": "08c6e52d83283bba1132b62b25b59ae15b5792fd3d9c8556a3c6900602008a44"
+			},
+			{
+				"file": "crates/sunstack-evidence/docs/html-evidence.md",
+				"sha256": "223fbd0cb2f04cb074081234c3dd94bc1e7d52c3578239252692c9919269e521"
+			},
+			{
+				"file": "crates/sunstack/CHANGELOG.md",
+				"sha256": "c36de8c34bfa8b5a8b3fe62fa2bf8be02605b7f20d0ba6b5b035044d120f713e"
+			},
+			{
+				"file": "crates/sunstack/README.md",
+				"sha256": "6a3bbab5829d302c5b184a853b138a4d6ebada305fde8363ee5ce647de70bb7b"
+			},
+			{
+				"file": "docs/specs/2026-10-12-rust-rule-engine/program-design-connected-evidence.md",
+				"sha256": "dfd73450b58421b892c557291502740a0be1028062a719fceb31433a03a41f6e"
+			},
+			{
+				"file": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"sha256": "2298cb6838dcc9e98a5c422c4dc43d109720357d74c4580f940d7311978df9bc"
+			},
+			{
+				"file": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"file": "docs/specs/2026-10-12-rust-rule-engine/schema-inventory.md",
+				"sha256": "1526134482a38adad99944b882efa907c03d270dc08dc5570adeebceb922d724"
+			},
+			{
+				"file": "docs/specs/2026-10-12-rust-rule-engine/specification.md",
+				"sha256": "00657f142ff75d2d71c4da08bb9007e0755096d2e49fa5a032d5f4de27150074"
+			},
+			{
+				"file": "docs/specs/2026-10-18-sunstack-runner/program-design.md",
+				"sha256": "8053698c8d17ab4d0edd4b6f69f01d9d860b4ad3821d973a827d839b05ca8c4b"
+			},
+			{
+				"file": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"file": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"file": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"file": "docs/specs/2026-10-24-choice-comments/program-design.md",
+				"sha256": "be24c277823a92b6958bbfc790cd0bb52a593145dd89079eb581880a7c71fc02"
+			},
+			{
+				"file": "docs/specs/2026-10-24-choice-comments/requirements.md",
+				"sha256": "34b39a14d7e74c57fea2f99f19c9ba0dd343e15436dbc8dd0ed4741c3f235542"
+			},
+			{
+				"file": "docs/specs/2026-10-24-choice-comments/specification.md",
+				"sha256": "c5ed1ecc40f17f37d8bc4b7077c4adc821fd8669ff9f2c48ab01761f6dabb72d"
+			},
+			{
+				"file": "docs/specs/2026-10-24-choice-comments/verification-design.md",
+				"sha256": "e8eaf679e30d98df3b7700e91992a2ccf2552e1e646fdbb6f962b456edcba71d"
+			},
+			{
+				"file": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/program-design.md",
+				"sha256": "bbbfb53a567492d9b5cea9689d6df66d405c7583b1f271d44d5482adf0ada9d4"
+			},
+			{
+				"file": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/verification-design.md",
+				"sha256": "162d57c40e0276b366c847e0e52a1f6e061f6efa3e99791646af9d1603bc6e9b"
+			},
+			{
+				"file": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"file": "docs/specs/2026-10-30-evidence-selection/program-design.md",
+				"sha256": "f6ec5ac9681e51ab4c829904921c7941ae07a3b8c990acbcc7a62cc1c59865d1"
+			},
+			{
+				"file": "docs/specs/2026-10-30-evidence-selection/requirements.md",
+				"sha256": "51ca5c1f230fa2ed6eb7dcd5bbfcdac0829fe3b70454b8ae9afe0e7039975d2a"
+			},
+			{
+				"file": "docs/specs/2026-10-30-evidence-selection/specification.md",
+				"sha256": "2cc2c8d8390e55bd7088397883d416720ed458386d7df5af3e0f3dce4b2a6eae"
+			},
+			{
+				"file": "docs/specs/2026-10-30-evidence-selection/verification-design.md",
+				"sha256": "8259509001a7e4c6910fa1eea4078dd2c4a955b54f7b67b442fe59913de7dee8"
+			},
+			{
+				"file": "docs/specs/2026-11-07-show-me-page/index.md",
+				"sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"file": "docs/specs/2026-11-07-show-me-page/program-design.md",
+				"sha256": "8b02595022230fbdf7620214d9bd285657332fdf767479c5aabf6c6155a6fa08"
+			},
+			{
+				"file": "docs/specs/2026-11-07-show-me-page/requirements.md",
+				"sha256": "ccc71b6d32dec2105297bcfa0be2868ef321fdc94d403804a3794bbd5d10b105"
+			},
+			{
+				"file": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"sha256": "41e83a427750fe8de8da05ac81378d7b71985a77a60096f53f4b16bce6a31043"
+			},
+			{
+				"file": "docs/specs/2026-11-07-show-me-page/verification-design.md",
+				"sha256": "7cfd511be196de9d87dc9190301296c02b4631964b7370f985678ea12f74a6b2"
+			},
+			{
+				"file": "docs/wip/demystify/2026-10-14-demistify-handoff.md",
+				"sha256": "8fad150d5140973f735bfb03495326d2401314f8247dc113c8c46856b3fc1249"
+			},
+			{
+				"file": "packages/demistify/README.md",
+				"sha256": "ef72209f860e525992d555148f5e8c3ad80079ebc5db89e1ab95a481318fefc5"
+			}
+		],
+		"links": [
+			{
+				"source": ".agents/skills/verify-sunstack-rule/references/decision-trees.md",
+				"target": ".agents/skills/verify-sunstack-rule/references/rulebook-lint.md",
+				"fragment": "filters-tree-routes-and-shared-gates-o4",
+				"url": "rulebook-lint.md#filters-tree-routes-and-shared-gates-o4",
+				"raw": "[rulebook-lint.md](rulebook-lint.md#filters-tree-routes-and-shared-gates-o4)",
+				"expected": "found",
+				"start": 233,
+				"end": 309,
+				"source_sha256": "531dca004ffb8b932c8870fb7ab1b25a645b02d5e205f2dea085d0bc148556db"
+			},
+			{
+				"source": ".agents/skills/verify-sunstack-rule/references/rulebook-check-refusals.md",
+				"target": ".agents/skills/verify-sunstack-rule/references/rulebook-lint.md",
+				"fragment": "31-oct-amendment-neighbours-uncertain-routes-and-incomplete-reasons",
+				"url": "rulebook-lint.md#31-oct-amendment-neighbours-uncertain-routes-and-incomplete-reasons",
+				"raw": "[rulebook-lint.md](rulebook-lint.md#31-oct-amendment-neighbours-uncertain-routes-and-incomplete-reasons)",
+				"expected": "found",
+				"start": 8336,
+				"end": 8440,
+				"source_sha256": "d5a7cbacf10ffa49ff0a1781bc14350c9e4edfe055408bdc70230d0be5f4283a"
+			},
+			{
+				"source": ".agents/skills/verify-sunstack-rule/references/rulebook-lint.md",
+				"target": ".agents/skills/verify-sunstack-rule/references/rulebook-check-refusals.md",
+				"fragment": "rules-as-nudges-s2",
+				"url": "rulebook-check-refusals.md#rules-as-nudges-s2",
+				"raw": "[rulebook-check-refusals.md](rulebook-check-refusals.md#rules-as-nudges-s2)",
+				"expected": "found",
+				"start": 7548,
+				"end": 7623,
+				"source_sha256": "8f9ae30ae605ab4f539057e538877875c2c466f2d3962fc7230a29109a8be3eb"
+			},
+			{
+				"source": "README.md",
+				"target": "crates/sunstack/README.md",
+				"fragment": "repository-lint",
+				"url": "crates/sunstack/README.md#repository-lint",
+				"raw": "[CLI configuration guide](crates/sunstack/README.md#repository-lint)",
+				"expected": "found",
+				"start": 8634,
+				"end": 8702,
+				"source_sha256": "99be02f7aabd6545b98b934696acc09566916da3c50f9dd18753caa81e9706a9"
+			},
+			{
+				"source": "apps/demistify-poc/experiments/agent-written/component-guide/requirements.md",
+				"target": "apps/demistify-poc/experiments/agent-written/component-guide/requirements.md",
+				"fragment": "ownership-table",
+				"url": "#ownership-table",
+				"raw": "[Return to the ownership table](#ownership-table)",
+				"expected": "found",
+				"start": 1188,
+				"end": 1237,
+				"source_sha256": "fc39f03db08b73600a762f139ee5a4d7bc95e1d1398cb98597e9c469fe33216b"
+			},
+			{
+				"source": "apps/demistify-poc/experiments/agent-written/document-browsers/notes.md",
+				"target": "apps/demistify-poc/experiments/agent-written/document-browsers/notes.md",
+				"fragment": "design-summary",
+				"url": "#design-summary",
+				"raw": "[Input contract](#design-summary)",
+				"expected": "missing",
+				"start": 37,
+				"end": 70,
+				"source_sha256": "7ae77e0986848c7d79e18db46c45e0085d73172cf56f26b54f4ceb268d98e47a"
+			},
+			{
+				"source": "apps/demistify-poc/experiments/agent-written/integrated-review/requirements.md",
+				"target": "apps/demistify-poc/experiments/agent-written/integrated-review/requirements.md",
+				"fragment": "ownership-table",
+				"url": "#ownership-table",
+				"raw": "[Return to the ownership table](#ownership-table)",
+				"expected": "found",
+				"start": 1188,
+				"end": 1237,
+				"source_sha256": "dacc4d08af693e9d6e5070eba4b42983ae0699831cb315db9f7a9da9c86c7a08"
+			},
+			{
+				"source": "apps/demistify-poc/experiments/agent-written/navigation-markdown-fix/notes.md",
+				"target": "apps/demistify-poc/experiments/agent-written/navigation-markdown-fix/notes.md",
+				"fragment": "recovery",
+				"url": "#recovery",
+				"raw": "[Read the recovery rule](#recovery)",
+				"expected": "found",
+				"start": 228,
+				"end": 263,
+				"source_sha256": "08c6e52d83283bba1132b62b25b59ae15b5792fd3d9c8556a3c6900602008a44"
+			},
+			{
+				"source": "crates/sunstack-evidence/docs/html-evidence.md",
+				"target": "crates/sunstack/README.md",
+				"fragment": "html-evidence",
+				"url": "../../sunstack/README.md#html-evidence",
+				"raw": "[CLI README](../../sunstack/README.md#html-evidence)",
+				"expected": "found",
+				"start": 1225,
+				"end": 1277,
+				"source_sha256": "223fbd0cb2f04cb074081234c3dd94bc1e7d52c3578239252692c9919269e521"
+			},
+			{
+				"source": "crates/sunstack-evidence/docs/html-evidence.md",
+				"target": "crates/sunstack/README.md",
+				"fragment": "repository-lint",
+				"url": "../../sunstack/README.md#repository-lint",
+				"raw": "[CLI README](../../sunstack/README.md#repository-lint)",
+				"expected": "found",
+				"start": 1751,
+				"end": 1805,
+				"source_sha256": "223fbd0cb2f04cb074081234c3dd94bc1e7d52c3578239252692c9919269e521"
+			},
+			{
+				"source": "crates/sunstack/CHANGELOG.md",
+				"target": "crates/sunstack/README.md",
+				"fragment": "repository-lint",
+				"url": "README.md#repository-lint",
+				"raw": "[current configuration](README.md#repository-lint)",
+				"expected": "found",
+				"start": 14824,
+				"end": 14874,
+				"source_sha256": "c36de8c34bfa8b5a8b3fe62fa2bf8be02605b7f20d0ba6b5b035044d120f713e"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design-connected-evidence.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"fragment": "prepare_evidence-sunstack-evidence",
+				"url": "program-design-contracts.md#prepare_evidence-sunstack-evidence",
+				"raw": "[evidence session](program-design-contracts.md#prepare_evidence-sunstack-evidence)",
+				"expected": "found",
+				"start": 4256,
+				"end": 4338,
+				"source_sha256": "dfd73450b58421b892c557291502740a0be1028062a719fceb31433a03a41f6e"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design-connected-evidence.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"fragment": "prepare_evidence-sunstack-evidence",
+				"url": "program-design-contracts.md#prepare_evidence-sunstack-evidence",
+				"raw": "[contracts](program-design-contracts.md#prepare_evidence-sunstack-evidence)",
+				"expected": "found",
+				"start": 21821,
+				"end": 21896,
+				"source_sha256": "dfd73450b58421b892c557291502740a0be1028062a719fceb31433a03a41f6e"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "config",
+				"url": "../2026-10-18-sunstack-runner/requirements.md#config",
+				"raw": "[runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config)",
+				"expected": "found",
+				"start": 62,
+				"end": 140,
+				"source_sha256": "2298cb6838dcc9e98a5c422c4dc43d109720357d74c4580f940d7311978df9bc"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"fragment": "diagnostics",
+				"url": "program-design.md#diagnostics",
+				"raw": "[Diagnostics](program-design.md#diagnostics)",
+				"expected": "found",
+				"start": 2360,
+				"end": 2404,
+				"source_sha256": "2298cb6838dcc9e98a5c422c4dc43d109720357d74c4580f940d7311978df9bc"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-connected-evidence.md",
+				"fragment": "how-change-scope-selects",
+				"url": "program-design-connected-evidence.md#how-change-scope-selects",
+				"raw": "[connected-evidence design](program-design-connected-evidence.md#how-change-scope-selects)",
+				"expected": "found",
+				"start": 7387,
+				"end": 7477,
+				"source_sha256": "2298cb6838dcc9e98a5c422c4dc43d109720357d74c4580f940d7311978df9bc"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-connected-evidence.md",
+				"fragment": "how-change-scope-selects",
+				"url": "program-design-connected-evidence.md#how-change-scope-selects",
+				"raw": "[connected evidence](program-design-connected-evidence.md#how-change-scope-selects)",
+				"expected": "found",
+				"start": 20400,
+				"end": 20483,
+				"source_sha256": "2298cb6838dcc9e98a5c422c4dc43d109720357d74c4580f940d7311978df9bc"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "config",
+				"url": "../2026-10-18-sunstack-runner/requirements.md#config",
+				"raw": "[runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config)",
+				"expected": "found",
+				"start": 78,
+				"end": 156,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"fragment": "request-state-and-owner-labels",
+				"url": "#request-state-and-owner-labels",
+				"raw": "[Request state](#request-state-and-owner-labels)",
+				"expected": "found",
+				"start": 10067,
+				"end": 10115,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"fragment": "program-surface-and-outcomes",
+				"url": "#program-surface-and-outcomes",
+				"raw": "[Program surface](#program-surface-and-outcomes)",
+				"expected": "found",
+				"start": 13301,
+				"end": 13349,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-connected-evidence.md",
+				"fragment": "roots-scopes-and-frozen-evidence",
+				"url": "program-design-connected-evidence.md#roots-scopes-and-frozen-evidence",
+				"raw": "[Connected evidence](program-design-connected-evidence.md#roots-scopes-and-frozen-evidence)",
+				"expected": "found",
+				"start": 13776,
+				"end": 13867,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"fragment": "gates-and-their-controlling-answers",
+				"url": "#gates-and-their-controlling-answers",
+				"raw": "[Gates and their controlling answers](#gates-and-their-controlling-answers)",
+				"expected": "found",
+				"start": 24389,
+				"end": 24464,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-connected-evidence.md",
+				"fragment": "connected-discovery",
+				"url": "program-design-connected-evidence.md#connected-discovery",
+				"raw": "[connected evidence](program-design-connected-evidence.md#connected-discovery)",
+				"expected": "found",
+				"start": 25854,
+				"end": 25932,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"fragment": "context-budget-and-admitted-bytes",
+				"url": "#context-budget-and-admitted-bytes",
+				"raw": "[budget](#context-budget-and-admitted-bytes)",
+				"expected": "found",
+				"start": 42314,
+				"end": 42358,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"fragment": "evaluate_rules-sunstack-rules",
+				"url": "program-design-contracts.md#evaluate_rules-sunstack-rules",
+				"raw": "[contracts](program-design-contracts.md#evaluate_rules-sunstack-rules)",
+				"expected": "found",
+				"start": 53878,
+				"end": 53948,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design-contracts.md",
+				"fragment": "run_judgments-sunstack-decisions",
+				"url": "program-design-contracts.md#run_judgments-sunstack-decisions",
+				"raw": "[Public contracts](program-design-contracts.md#run_judgments-sunstack-decisions)",
+				"expected": "found",
+				"start": 55126,
+				"end": 55206,
+				"source_sha256": "b2de6dcbd28d0ea1c9922a5b26faf93fb22b93f9e7c1e2bc3e1f4ab7ab6b5162"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/schema-inventory.md",
+				"target": "docs/specs/2026-10-12-rust-rule-engine/program-design.md",
+				"fragment": "crates-and-dependency-direction",
+				"url": "program-design.md#crates-and-dependency-direction",
+				"raw": "[Program Design](program-design.md#crates-and-dependency-direction)",
+				"expected": "found",
+				"start": 138,
+				"end": 205,
+				"source_sha256": "1526134482a38adad99944b882efa907c03d270dc08dc5570adeebceb922d724"
+			},
+			{
+				"source": "docs/specs/2026-10-12-rust-rule-engine/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "config",
+				"url": "../2026-10-18-sunstack-runner/requirements.md#config",
+				"raw": "[runner Requirements U4](../2026-10-18-sunstack-runner/requirements.md#config)",
+				"expected": "found",
+				"start": 70,
+				"end": 148,
+				"source_sha256": "00657f142ff75d2d71c4da08bb9007e0755096d2e49fa5a032d5f4de27150074"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "runner",
+				"url": "#runner",
+				"raw": "[U1](#runner)",
+				"expected": "found",
+				"start": 1423,
+				"end": 1436,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "runner",
+				"url": "#runner",
+				"raw": "[U2](#runner)",
+				"expected": "found",
+				"start": 1438,
+				"end": 1451,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "runner",
+				"url": "#runner",
+				"raw": "[U3](#runner)",
+				"expected": "found",
+				"start": 1453,
+				"end": 1466,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "config",
+				"url": "#config",
+				"raw": "[U4](#config)",
+				"expected": "found",
+				"start": 1602,
+				"end": 1615,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "config",
+				"url": "#config",
+				"raw": "[U5](#config)",
+				"expected": "found",
+				"start": 1617,
+				"end": 1630,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "config",
+				"url": "#config",
+				"raw": "[U6](#config)",
+				"expected": "found",
+				"start": 1632,
+				"end": 1645,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "config",
+				"url": "#config",
+				"raw": "[U7](#config)",
+				"expected": "found",
+				"start": 1647,
+				"end": 1660,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "portable-builds",
+				"url": "#portable-builds",
+				"raw": "[U8](#portable-builds)",
+				"expected": "found",
+				"start": 1798,
+				"end": 1820,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "portable-builds",
+				"url": "#portable-builds",
+				"raw": "[U9](#portable-builds)",
+				"expected": "found",
+				"start": 1822,
+				"end": 1844,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "install",
+				"url": "#install",
+				"raw": "[U10](#install)",
+				"expected": "found",
+				"start": 1950,
+				"end": 1965,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "install",
+				"url": "#install",
+				"raw": "[U11](#install)",
+				"expected": "found",
+				"start": 1967,
+				"end": 1982,
+				"source_sha256": "bb38318dd4edc317e5e62c56406ce3857d5411bcd0092ac55697078a7da06a2c"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/requirements.md",
+				"fragment": "capabilities",
+				"url": "requirements.md#capabilities",
+				"raw": "[confirmed list](requirements.md#capabilities)",
+				"expected": "found",
+				"start": 582,
+				"end": 628,
+				"source_sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"fragment": "runner",
+				"url": "#runner",
+				"raw": "[R1–R7](#runner)",
+				"expected": "found",
+				"start": 844,
+				"end": 862,
+				"source_sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"fragment": "config",
+				"url": "#config",
+				"raw": "[R8–R15](#config)",
+				"expected": "found",
+				"start": 1009,
+				"end": 1028,
+				"source_sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"fragment": "portable-builds",
+				"url": "#portable-builds",
+				"raw": "[R16–R18](#portable-builds)",
+				"expected": "found",
+				"start": 1170,
+				"end": 1199,
+				"source_sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"fragment": "install",
+				"url": "#install",
+				"raw": "[R19–R23](#install)",
+				"expected": "found",
+				"start": 1292,
+				"end": 1313,
+				"source_sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"fragment": "c2-exit-codes",
+				"url": "#c2-exit-codes",
+				"raw": "[C2](#c2-exit-codes)",
+				"expected": "found",
+				"start": 6597,
+				"end": 6617,
+				"source_sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/specification.md",
+				"fragment": "c4-sunstacklintjson",
+				"url": "#c4-sunstacklintjson",
+				"raw": "[C4](#c4-sunstacklintjson)",
+				"expected": "found",
+				"start": 10850,
+				"end": 10876,
+				"source_sha256": "d3d5afb0de1e096549a1ca24ae71e4e9c831fe07f8a1fb40d35c385fc0fd9c22"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/program-design.md",
+				"fragment": "proof-seams",
+				"url": "program-design.md#proof-seams",
+				"raw": "[program-design.md](program-design.md#proof-seams)",
+				"expected": "found",
+				"start": 275,
+				"end": 325,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"fragment": "s1-lint-fixture-repositories",
+				"url": "#s1-lint-fixture-repositories",
+				"raw": "[S1](#s1-lint-fixture-repositories)",
+				"expected": "found",
+				"start": 3261,
+				"end": 3296,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"fragment": "s1-lint-fixture-repositories",
+				"url": "#s1-lint-fixture-repositories",
+				"raw": "[S1](#s1-lint-fixture-repositories)",
+				"expected": "found",
+				"start": 4474,
+				"end": 4509,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"fragment": "s4-release-rehearsal",
+				"url": "#s4-release-rehearsal",
+				"raw": "[S4](#s4-release-rehearsal)",
+				"expected": "found",
+				"start": 4511,
+				"end": 4538,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"fragment": "s3-hosted-judgment",
+				"url": "#s3-hosted-judgment",
+				"raw": "[S3](#s3-hosted-judgment)",
+				"expected": "found",
+				"start": 8198,
+				"end": 8223,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"fragment": "s2-clean-container-matrix",
+				"url": "#s2-clean-container-matrix",
+				"raw": "[S2](#s2-clean-container-matrix)",
+				"expected": "found",
+				"start": 8913,
+				"end": 8945,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"fragment": "s4-release-rehearsal",
+				"url": "#s4-release-rehearsal",
+				"raw": "[S4](#s4-release-rehearsal)",
+				"expected": "found",
+				"start": 9029,
+				"end": 9056,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"target": "docs/specs/2026-10-18-sunstack-runner/verification-design.md",
+				"fragment": "s4-release-rehearsal",
+				"url": "#s4-release-rehearsal",
+				"raw": "[S4](#s4-release-rehearsal)",
+				"expected": "found",
+				"start": 10496,
+				"end": 10523,
+				"source_sha256": "9d4f4006dd6d821b222580d0c5be62919577b397bab03883fa066a08741d0ff2"
+			},
+			{
+				"source": "docs/specs/2026-10-24-choice-comments/specification.md",
+				"target": "docs/specs/2026-10-24-choice-comments/requirements.md",
+				"fragment": "people-and-outcomes",
+				"url": "requirements.md#people-and-outcomes",
+				"raw": "[U1–U5](requirements.md#people-and-outcomes)",
+				"expected": "found",
+				"start": 58,
+				"end": 104,
+				"source_sha256": "c5ed1ecc40f17f37d8bc4b7077c4adc821fd8669ff9f2c48ab01761f6dabb72d"
+			},
+			{
+				"source": "docs/specs/2026-10-24-choice-comments/verification-design.md",
+				"target": "docs/specs/2026-10-24-choice-comments/requirements.md",
+				"fragment": "people-and-outcomes",
+				"url": "requirements.md#people-and-outcomes",
+				"raw": "[U1–U5](requirements.md#people-and-outcomes)",
+				"expected": "found",
+				"start": 31,
+				"end": 77,
+				"source_sha256": "e8eaf679e30d98df3b7700e91992a2ccf2552e1e646fdbb6f962b456edcba71d"
+			},
+			{
+				"source": "docs/specs/2026-10-24-choice-comments/verification-design.md",
+				"target": "docs/specs/2026-10-24-choice-comments/program-design.md",
+				"fragment": "obligation-trace",
+				"url": "program-design.md#obligation-trace",
+				"raw": "[owned seams](program-design.md#obligation-trace)",
+				"expected": "found",
+				"start": 139,
+				"end": 188,
+				"source_sha256": "e8eaf679e30d98df3b7700e91992a2ccf2552e1e646fdbb6f962b456edcba71d"
+			},
+			{
+				"source": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/program-design.md",
+				"target": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/program-design.md",
+				"fragment": "amendment-31-oct-2026",
+				"url": "#amendment-31-oct-2026",
+				"raw": "[its own section](#amendment-31-oct-2026)",
+				"expected": "found",
+				"start": 373,
+				"end": 414,
+				"source_sha256": "bbbfb53a567492d9b5cea9689d6df66d405c7583b1f271d44d5482adf0ada9d4"
+			},
+			{
+				"source": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/program-design.md",
+				"target": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/program-design.md",
+				"fragment": "components-owners-and-edges",
+				"url": "#components-owners-and-edges",
+				"raw": "[Components, owners and edges](#components-owners-and-edges)",
+				"expected": "found",
+				"start": 2435,
+				"end": 2495,
+				"source_sha256": "bbbfb53a567492d9b5cea9689d6df66d405c7583b1f271d44d5482adf0ada9d4"
+			},
+			{
+				"source": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/verification-design.md",
+				"target": "docs/specs/2026-10-29-skill-rules-evidence-and-decisions/verification-design.md",
+				"fragment": "amendment-31-oct-2026",
+				"url": "#amendment-31-oct-2026",
+				"raw": "[their own section](#amendment-31-oct-2026)",
+				"expected": "found",
+				"start": 343,
+				"end": 386,
+				"source_sha256": "162d57c40e0276b366c847e0e52a1f6e061f6efa3e99791646af9d1603bc6e9b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/requirements.md",
+				"fragment": "authorized-needs",
+				"url": "requirements.md#authorized-needs",
+				"raw": "[Requirements: authorized needs (U13, U14)](requirements.md#authorized-needs)",
+				"expected": "found",
+				"start": 535,
+				"end": 612,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/specification.md",
+				"fragment": "selected-and-contained-kinds-in-the-config",
+				"url": "specification.md#selected-and-contained-kinds-in-the-config",
+				"raw": "[Specification: selected and contained kinds](specification.md#selected-and-contained-kinds-in-the-config)",
+				"expected": "found",
+				"start": 616,
+				"end": 722,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/specification.md",
+				"fragment": "choosing-the-evidence",
+				"url": "specification.md#choosing-the-evidence",
+				"raw": "[Specification: choosing the evidence](specification.md#choosing-the-evidence)",
+				"expected": "found",
+				"start": 726,
+				"end": 804,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/specification.md",
+				"fragment": "worked-examples",
+				"url": "specification.md#worked-examples",
+				"raw": "[Specification: worked examples](specification.md#worked-examples)",
+				"expected": "found",
+				"start": 808,
+				"end": 874,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/program-design.md",
+				"fragment": "structure-decision",
+				"url": "program-design.md#structure-decision",
+				"raw": "[Program Design: structure decision](program-design.md#structure-decision)",
+				"expected": "found",
+				"start": 878,
+				"end": 952,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/program-design.md",
+				"fragment": "the-representative-path-sunstack-lint---config-kit---all",
+				"url": "program-design.md#the-representative-path-sunstack-lint---config-kit---all",
+				"raw": "[Program Design: the representative path](program-design.md#the-representative-path-sunstack-lint---config-kit---all)",
+				"expected": "found",
+				"start": 956,
+				"end": 1073,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/program-design.md",
+				"fragment": "state",
+				"url": "program-design.md#state",
+				"raw": "[Program Design: state](program-design.md#state)",
+				"expected": "found",
+				"start": 1077,
+				"end": 1125,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/verification-design.md",
+				"fragment": "rows",
+				"url": "verification-design.md#rows",
+				"raw": "[Verification Design: rows](verification-design.md#rows)",
+				"expected": "found",
+				"start": 1129,
+				"end": 1185,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/requirements.md",
+				"fragment": "authorized-needs",
+				"url": "requirements.md#authorized-needs",
+				"raw": "[Requirements: authorized needs (U15, U16)](requirements.md#authorized-needs)",
+				"expected": "found",
+				"start": 1236,
+				"end": 1313,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/specification.md",
+				"fragment": "report-status-and-the-evidence-listing",
+				"url": "specification.md#report-status-and-the-evidence-listing",
+				"raw": "[Specification: report, status and the evidence listing](specification.md#report-status-and-the-evidence-listing)",
+				"expected": "found",
+				"start": 1317,
+				"end": 1430,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/program-design.md",
+				"fragment": "failure-and-recovery",
+				"url": "program-design.md#failure-and-recovery",
+				"raw": "[Program Design: failure and recovery](program-design.md#failure-and-recovery)",
+				"expected": "found",
+				"start": 1434,
+				"end": 1512,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/program-design.md",
+				"fragment": "trace",
+				"url": "program-design.md#trace",
+				"raw": "[Program Design: trace](program-design.md#trace)",
+				"expected": "found",
+				"start": 1516,
+				"end": 1564,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/verification-design.md",
+				"fragment": "proven-by-for-the-owner",
+				"url": "verification-design.md#proven-by-for-the-owner",
+				"raw": "[Verification Design: proven by, for the owner](verification-design.md#proven-by-for-the-owner)",
+				"expected": "found",
+				"start": 1568,
+				"end": 1663,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/requirements.md",
+				"fragment": "goal-boundary",
+				"url": "requirements.md#goal-boundary",
+				"raw": "[Requirements: goal boundary](requirements.md#goal-boundary)",
+				"expected": "found",
+				"start": 1715,
+				"end": 1775,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/specification.md",
+				"fragment": "check-sameness-and-compatibility",
+				"url": "specification.md#check-sameness-and-compatibility",
+				"raw": "[Specification: check, sameness and compatibility](specification.md#check-sameness-and-compatibility)",
+				"expected": "found",
+				"start": 1779,
+				"end": 1880,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/program-design.md",
+				"fragment": "compatibility-and-cutover",
+				"url": "program-design.md#compatibility-and-cutover",
+				"raw": "[Program Design: compatibility and cutover](program-design.md#compatibility-and-cutover)",
+				"expected": "found",
+				"start": 1884,
+				"end": 1972,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-10-30-evidence-selection/index.md",
+				"target": "docs/specs/2026-10-30-evidence-selection/verification-design.md",
+				"fragment": "rows",
+				"url": "verification-design.md#rows",
+				"raw": "[Verification Design: rows](verification-design.md#rows)",
+				"expected": "found",
+				"start": 1976,
+				"end": 2032,
+				"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/requirements.md",
+				"fragment": "who-needs-this",
+				"url": "requirements.md#who-needs-this",
+				"raw": "[The owner's needs U1 and U5](requirements.md#who-needs-this)",
+				"expected": "found",
+				"start": 555,
+				"end": 616,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"fragment": "the-things-the-reader-can-name",
+				"url": "specification.md#the-things-the-reader-can-name",
+				"raw": "[Story and record meaning E3/E4](specification.md#the-things-the-reader-can-name)",
+				"expected": "found",
+				"start": 620,
+				"end": 701,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"fragment": "contract-and-proof-obligations",
+				"url": "specification.md#contract-and-proof-obligations",
+				"raw": "[Hierarchy, initial state and preservation R1/R2/R9](specification.md#contract-and-proof-obligations)",
+				"expected": "found",
+				"start": 705,
+				"end": 806,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/program-design.md",
+				"fragment": "what-an-author-writes",
+				"url": "program-design.md#what-an-author-writes",
+				"raw": "[Native story markup and presentation owners](program-design.md#what-an-author-writes)",
+				"expected": "found",
+				"start": 810,
+				"end": 896,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/verification-design.md",
+				"fragment": "shared-observations",
+				"url": "verification-design.md#shared-observations",
+				"raw": "[Source preservation and visible outcome checks](verification-design.md#shared-observations)",
+				"expected": "found",
+				"start": 900,
+				"end": 992,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/requirements.md",
+				"fragment": "who-needs-this",
+				"url": "requirements.md#who-needs-this",
+				"raw": "[The owner's needs U3 and U4](requirements.md#who-needs-this)",
+				"expected": "found",
+				"start": 1045,
+				"end": 1106,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"fragment": "contract-and-proof-obligations",
+				"url": "specification.md#contract-and-proof-obligations",
+				"raw": "[Map, link and disclosure obligations R5–R8](specification.md#contract-and-proof-obligations)",
+				"expected": "found",
+				"start": 1110,
+				"end": 1205,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"fragment": "boundaries-and-examples",
+				"url": "specification.md#boundaries-and-examples",
+				"raw": "[The local-link and missing-target boundary](specification.md#boundaries-and-examples)",
+				"expected": "found",
+				"start": 1209,
+				"end": 1295,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/program-design.md",
+				"fragment": "how-a-map-link-reaches-an-open-story",
+				"url": "program-design.md#how-a-map-link-reaches-an-open-story",
+				"raw": "[Map activation through shared navigation](program-design.md#how-a-map-link-reaches-an-open-story)",
+				"expected": "found",
+				"start": 1299,
+				"end": 1397,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/verification-design.md",
+				"fragment": "shared-observations",
+				"url": "verification-design.md#shared-observations",
+				"raw": "[Sidebar switching and destination observations](verification-design.md#shared-observations)",
+				"expected": "found",
+				"start": 1401,
+				"end": 1493,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/requirements.md",
+				"fragment": "what-decides-success",
+				"url": "requirements.md#what-decides-success",
+				"raw": "[The independent acceptance boundary](requirements.md#what-decides-success)",
+				"expected": "found",
+				"start": 1535,
+				"end": 1610,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"fragment": "contract-and-proof-obligations",
+				"url": "specification.md#contract-and-proof-obligations",
+				"raw": "[Guide and actual released-use obligations R11/R12](specification.md#contract-and-proof-obligations)",
+				"expected": "found",
+				"start": 1614,
+				"end": 1714,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/program-design.md",
+				"fragment": "how-each-obligation-reaches-proof",
+				"url": "program-design.md#how-each-obligation-reaches-proof",
+				"raw": "[The real observation seams](program-design.md#how-each-obligation-reaches-proof)",
+				"expected": "found",
+				"start": 1718,
+				"end": 1799,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/index.md",
+				"target": "docs/specs/2026-11-07-show-me-page/verification-design.md",
+				"fragment": "reference-limits-stay-explicit",
+				"url": "verification-design.md#reference-limits-stay-explicit",
+				"raw": "[Released-only outcome and reference limits](verification-design.md#reference-limits-stay-explicit)",
+				"expected": "found",
+				"start": 1803,
+				"end": 1902,
+				"source_sha256": "f0ed2d395c7d7fa1c3b915582244da6d5dd809b0d5ad78a6fc7da6778e681a63"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/program-design.md",
+				"target": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"fragment": "contract-and-proof-obligations",
+				"url": "specification.md#contract-and-proof-obligations",
+				"raw": "[R1–R12](specification.md#contract-and-proof-obligations)",
+				"expected": "found",
+				"start": 318,
+				"end": 377,
+				"source_sha256": "8b02595022230fbdf7620214d9bd285657332fdf767479c5aabf6c6155a6fa08"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/program-design.md",
+				"target": "docs/specs/2026-11-07-show-me-page/requirements.md",
+				"fragment": "who-needs-this",
+				"url": "requirements.md#who-needs-this",
+				"raw": "[U1–U6](requirements.md#who-needs-this)",
+				"expected": "found",
+				"start": 385,
+				"end": 426,
+				"source_sha256": "8b02595022230fbdf7620214d9bd285657332fdf767479c5aabf6c6155a6fa08"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/verification-design.md",
+				"target": "docs/specs/2026-11-07-show-me-page/specification.md",
+				"fragment": "contract-and-proof-obligations",
+				"url": "specification.md#contract-and-proof-obligations",
+				"raw": "[R1–R12 / V1–V12](specification.md#contract-and-proof-obligations)",
+				"expected": "found",
+				"start": 2331,
+				"end": 2401,
+				"source_sha256": "7cfd511be196de9d87dc9190301296c02b4631964b7370f985678ea12f74a6b2"
+			},
+			{
+				"source": "docs/specs/2026-11-07-show-me-page/verification-design.md",
+				"target": "docs/specs/2026-11-07-show-me-page/program-design.md",
+				"fragment": "how-each-obligation-reaches-proof",
+				"url": "program-design.md#how-each-obligation-reaches-proof",
+				"raw": "[Program Design trace](program-design.md#how-each-obligation-reaches-proof)",
+				"expected": "found",
+				"start": 2448,
+				"end": 2523,
+				"source_sha256": "7cfd511be196de9d87dc9190301296c02b4631964b7370f985678ea12f74a6b2"
+			},
+			{
+				"source": "docs/wip/demystify/2026-10-14-demistify-handoff.md",
+				"target": "packages/demistify/README.md",
+				"fragment": "source-layout",
+				"url": "../../../packages/demistify/README.md#source-layout",
+				"raw": "[the library README's source layout](../../../packages/demistify/README.md#source-layout)",
+				"expected": "missing",
+				"start": 11767,
+				"end": 11856,
+				"source_sha256": "8fad150d5140973f735bfb03495326d2401314f8247dc113c8c46856b3fc1249"
+			}
+		]
+	}
+]

@@ -17,7 +17,7 @@ impl EvidenceBuild {
                 + self
                     .matched
                     .values()
-                    .map(MatchedFile::outline_match_count)
+                    .map(MatchedFile::native_match_count)
                     .sum::<usize>(),
         );
         for path in paths {
@@ -59,18 +59,23 @@ impl EvidenceBuild {
                         path: path.clone(),
                         content_identity: content_digest(text.as_bytes()),
                     };
-                    let html_units =
-                        match collect_html_units(&path, &text, &self.kinds, &mut remaining) {
-                            Ok(matches) => matches,
-                            Err(reason) => {
-                                self.catalog.failures.push(EvidenceFileFailure {
-                                    file: path.clone(),
-                                    reason,
-                                });
-                                BTreeMap::new()
-                            }
-                        };
-                    if html_units.values().any(|matches| matches.limited) {
+                    let native_units = match collect_native_units(
+                        &path,
+                        &text,
+                        &self.kinds,
+                        &source_ref,
+                        &mut remaining,
+                    ) {
+                        Ok(matches) => matches,
+                        Err(reason) => {
+                            self.catalog.failures.push(EvidenceFileFailure {
+                                file: path.clone(),
+                                reason,
+                            });
+                            BTreeMap::new()
+                        }
+                    };
+                    if native_units.values().any(NativeMatchedKind::is_limited) {
                         self.catalog.failures.push(EvidenceFileFailure {
                             file: path.clone(),
                             reason: "max_matches".into(),
@@ -80,7 +85,7 @@ impl EvidenceBuild {
                         text,
                         index,
                         source: source_ref,
-                        html_units,
+                        native_units,
                     };
                     let counts = self
                         .kinds

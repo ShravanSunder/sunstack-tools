@@ -4,3 +4,5 @@ mod evidence_selection;
 mod existing;
 #[path = "rulebook_admission_test/html_sections.rs"]
 mod html_sections;
+#[path = "rulebook_admission_test/markdown_units.rs"]
+mod markdown_units;

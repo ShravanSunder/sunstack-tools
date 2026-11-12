@@ -57,11 +57,7 @@ impl EvidenceBuild {
                 let values = names
                     .into_iter()
                     .map(|name| {
-                        let use_path = match resolve {
-                            EvidenceTargetResolution::Path => true,
-                            EvidenceTargetResolution::Skill => false,
-                            EvidenceTargetResolution::PathOrSkill => name.ends_with(".md"),
-                        };
+                        let use_path = TargetReference::uses_path(&name, resolve);
                         let candidates = if use_path {
                             vec![]
                         } else {
@@ -78,9 +74,10 @@ impl EvidenceBuild {
                                 .collect::<Vec<_>>()
                         };
                         let reference = if use_path {
-                            let html = evidence_kind_language(&self.project, kind, &definition)
-                                == Some(crate::EvidenceLanguage::Html);
-                            TargetReference::parse(&name, html)?
+                            let syntax = TargetReferenceSyntax::for_language(
+                                evidence_kind_language(&self.project, kind, &definition),
+                            );
+                            TargetReference::parse(&name, syntax)?
                         } else {
                             TargetReference {
                                 file: PathBuf::from(&name),
@@ -149,6 +146,14 @@ impl EvidenceBuild {
                                 if crate::document_evidence::html_content::html_has_id(
                                     &text, &fragment,
                                 ) {
+                                    TargetAnchor::Found { fragment }
+                                } else {
+                                    TargetAnchor::Missing { fragment }
+                                }
+                            } else if crate::document_evidence::markdown_document::is_markdown_path(
+                                &resolved,
+                            ) {
+                                if crate::MarkdownDocument::parse(&text).has_anchor(&fragment) {
                                     TargetAnchor::Found { fragment }
                                 } else {
                                     TargetAnchor::Missing { fragment }
@@ -243,14 +248,16 @@ impl EvidenceBuild {
             .limits
             .max_matches
             .saturating_sub(index.by_rule.values().map(Vec::len).sum());
+        let native_units =
+            collect_native_units(path, text, &self.kinds, &source, &mut remaining_matches)
+                .map_err(|_| FieldUnavailable::Unreadable)?;
         let file = MatchedFile {
             text: text.into(),
             index,
             source,
-            html_units: collect_html_units(path, text, &self.kinds, &mut remaining_matches)
-                .map_err(|_| FieldUnavailable::Unreadable)?,
+            native_units,
         };
-        if file.outline_unavailable(as_kind) {
+        if file.native_unavailable(as_kind) {
             return Err(FieldUnavailable::Unreadable);
         }
         let mut pieces = Vec::new();
