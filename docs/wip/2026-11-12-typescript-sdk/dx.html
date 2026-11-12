@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sunstack SDK · Write TypeScript, call Rust</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="sdk-dx" src="../../specs/2026-11-11-typescript-sdk/navigation.json"></ex-nav><ex-document id="sdk-dx">
 <h1>Write TypeScript. Call the Rust engine.</h1>
 <p><code>@sunstack/sdk</code> lets a developer or model author the whole configuration as normal typed values, call <code>check</code> or <code>run</code>, and consume concrete typed results. Existing CLI configs still work: load them, make a typed copy, and run the copy.</p>
-<p><strong>Current evidence:</strong> the packed Mac arm64 SDK compiles and runs outside the repository, including full inline authoring and typed results. This SDK is not published yet. The real provider and all six platform installs have been exercised. Final source checks and independent delivery review remain open.</p>
+<p>The examples below use SDK <strong>0.13.0, contract revision 3</strong>. The packed Mac arm64 package compiles and runs outside the repository. The proof snapshots below name their own source and artifact boundaries; they are not a release or a claim that every observation used one binary. The SDK is not published yet.</p>
 <h2 id="model">What types do, and what Rust does</h2>
 <ex-mermaid id="sdk-flow" label="Two authoring paths meet at the same Rust engine"><script type="text/plain">
 flowchart TD
@@ -144,6 +144,20 @@ if (admission.kind === 'valid') {
 }
 
 </script></ex-code></details><p>Functions, imports, loops and composition stay in the caller’s TS program. Pass the resulting data to Rust. The existing engine owns evidence evaluation and decisions; this package adds no AST traversal or codemod rewriting API.</p>
+<h2 id="html-sections">Can I define HTML sections as typed values?</h2>
+<p>Yes. Native section kinds use the same Rust compiler. A section starts at an h1–h6 heading; full includes its children, own excludes child sections, and enclosing own selects the direct parent’s own text. A top-level section has no enclosing section, so that field is absent. Mechanical fields retain the original markup; asking views use projected visible text.</p>
+<ex-code id="html-section-example" title="A native section kind" lang="typescript"><script type="text/plain">
+import type { EvidenceKindDefinition } from '@sunstack/sdk';
+
+const sectionKind: EvidenceKindDefinition = {
+	html_units: { mode: 'unit', units: ['section'] },
+	fields: {
+		complete: { from: 'section', text: 'full' },
+		own_body: { from: 'section', text: 'own' },
+		parent_body: { from: 'section', text: 'enclosing_own' },
+	},
+};
+</script></ex-code>
 <h2 id="load">What happens when I load and change a config?</h2>
 <p><code>load</code> returns frozen captured values and their origins. Copy the value, change it, and pass that copy to <code>run</code>. Definitions already captured do not get reread from disk.</p>
 <ex-mermaid id="snapshot-dx" label="Held, edited and reloaded configurations execute different values"><script type="text/plain">
@@ -201,7 +215,7 @@ if (outcome.kind === 'completed' && outcome.report.status.kind === 'findings') {
 </script></ex-code><p>Cancellation uses one <code>AbortSignal</code> per call. It must not cancel a sibling call. An already-aborted signal starts no work. After-dispatch adapter failures say effects are unknown; the SDK does not replay the whole run.</p>
 <h2 id="zod">Why isn’t Zod required?</h2>
 <p>The generated types give compile-time authoring constraints, and Rust performs runtime validation at the engine boundary. Zod would be an optional additional validator. The base package neither imports nor requires it; no Zod exporter is shipped.</p>
-<p>Sunstack-owned declarations come from Rust derives. Upstream ast-grep structures use the pinned Rust schema with an upstream-backed typed wrapper. Matcher language names are concrete, but grammar-specific kind strings are only statically constrained where compatible grammar maps actually exist. Rust always compiles the matcher.</p>
+<p>Sunstack-owned declarations come from Rust derives. Upstream ast-grep structures use the pinned Rust schema with an upstream-backed typed wrapper. Matcher language names and rule keys are concrete types. AST kind names and pattern strings remain strings in this SDK: it does not export grammar-specific kind maps. Rust compiles the matcher and rejects unsupported values.</p>
 <h2 id="try">Try the local candidate</h2>
 <p>From the repository root, these package commands generate/build the native and TS artifacts, then exercise a freshly installed consumer. The installed consumer lives outside the source checkout. Registry publication is a separate delivery step.</p>
 <ex-code id="candidate-commands" title="Build and exercise packed artifacts" lang="sh"><script type="text/plain">
@@ -210,11 +224,11 @@ pnpm --filter @sunstack/sdk typecheck
 pnpm --filter @sunstack/sdk test
 node packages/sdk/scripts/pack-candidate.ts --out /absolute/task/candidate
 node packages/sdk/scripts/installed-consumer-check.ts --tarballs /absolute/task/candidate
-</script></ex-code><h2 id="evidence">What has been observed?</h2><div class="ex-table-scroll" data-width="canvas"><table><thead><tr><th>Boundary</th><th>Current evidence</th><th>Limit</th></tr></thead><tbody>
-<tr><td>Rust engine and CLI</td><td>891 workspace tests pass on both macOS and Linux; 27 CLI cases match main 0.12.1 byte-for-byte</td><td>7 existing skips per workspace run; the CLI comparison is local Mac arm64</td></tr>
-<tr><td>TypeScript package and real addon</td><td>31 product tests pass, including all 29 authored languages, document/target fields, anchors and whole-token checks</td><td>Rust still validates runtime predicates; compiler checks are separate from executing TS</td></tr>
-<tr><td>Independent installed 0.12.1, revision 2</td><td>Snapshot/edit/reload, inline filter/utility/rule execution, exact CLI request parity and isolated cancellation observed</td><td>Individual driver portions remain partial; native and CLI joins carry their own evidence</td></tr>
-<tr><td>Six Mac/Linux addon/install cells</td><td>All six fresh installs passed at 2141640: two Mac cells and four Linux architecture/libc cells</td><td>The wrapper matches the local candidate; each CI-native binary has its own recorded build identity</td></tr>
-<tr><td>Ordinary model provider</td><td>Two actual requests completed through the Rust host/provider; exact answers and usage receipts retained</td><td>The rule verdict was uncertain, a valid typed outcome. Corrected receipt assertions passed offline; this is not an inference-quality claim</td></tr>
-</tbody></table></div><p>See <a href="../../specs/2026-11-11-typescript-sdk/verification.html">Verification Design</a> for the exact remaining observations and <a href="../../../packages/sdk/README.md">the package README</a> for the public API.</p>
-<details><summary>Source snapshot and delivery boundary</summary><p>Examples copied from the actual package sources at <code>f7d0a3a49ca4f1fef8054de083fa3d15159a2c4a</code>. This local page is a DX explanation, not the governing API or a release receipt. The evidence names its observed source and artifact identities; final source checks and independent review remain open. Hosted Demistify v1 theme/runtime need network access; no upload or publication was performed.</p></details></ex-document></body></html>
+</script></ex-code><h2 id="evidence">Proof snapshots</h2><p>Each row names the source that was observed. Later artifacts require their own applicable proof; a passing historical result is not silently relabelled.</p><div class="ex-table-scroll" data-width="canvas"><table><thead><tr><th>Boundary</th><th>Observed snapshot</th><th>Limit</th></tr></thead><tbody>
+<tr><td>Rust engine and CLI</td><td>At 63e0c76: 938 local workspace tests pass, with 7 skips; all 32 CLI cases match main b060be3 (0.13.0) byte-for-byte</td><td>Mac arm64, command-local debug=0. The cancelled-run regression first failed with Invalid/PathNotFound, then passed after the admission token check</td></tr>
+<tr><td>TypeScript package and real addon</td><td>At 63e0c76: 35 product tests pass, including all 29 authored languages, native HTML sections, integral-float provenance, document/target fields and whole-token checks</td><td>Rust still validates runtime predicates. A real positive compiler and intended negatives are separate from executing TS</td></tr>
+<tr><td>Independent installed 0.13.0, revision 3</td><td>At bcaec6e: snapshot/edit/reload, complete inline filter/utility/rule execution, exact CLI request parity and cancellation after admission reached their assertions</td><td>All four driver results retain partial coverage. That target left run-admission cancellation open; 63e0c76 repairs that distinct window. Detailed reports retain each remaining join</td></tr>
+<tr><td>Six Mac/Linux addon/install cells</td><td>At 0e2eefa, SDK CI 43283689940 freshly installed and executed 0.13.0/revision 3 in two Mac and four Linux architecture/libc cells</td><td>Darwin/GNU use their native runners; musl uses same-architecture Alpine containers. These CI binaries have their own identities, distinct from the local addon</td></tr>
+<tr><td>Ordinary model provider</td><td>At d89812c (0.12.1): two genuine requests completed through the Rust host/provider with answers and usage. A separate offline correction validated bigint receipt IDs</td><td>The typed rule verdict was uncertain. Later reuse covers only the inspected unchanged provider subpath; no new 0.13 live-provider call or inference-quality claim is implied</td></tr>
+</tbody></table></div><p>The exact candidate and latest delivery state are recorded in <a href="https://github.com/ShravanSunder/sunstack-tools/pull/159">PR 159</a>. See <a href="../../specs/2026-11-11-typescript-sdk/verification.html">Verification Design</a> for the proof obligations and <a href="../../../packages/sdk/README.md">the package README</a> for the public API.</p>
+<details><summary>Source snapshot and delivery boundary</summary><p>Examples copied from the actual package sources at <code>63e0c760e19983ad58198df0123d15ce2d1276a3</code>. This local page explains the API; it is not the governing contract, delivery acceptance or a release receipt. Proof snapshots keep their own source and artifact identities. Hosted Demistify v1 theme/runtime need network access; no page upload or package publication was performed.</p></details></ex-document></body></html>
