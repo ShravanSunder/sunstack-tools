@@ -28,6 +28,7 @@ async fn full_union_member_is_context_and_never_fabricates_changed_units() {
     };
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(scope),
             limits: discovery_limits(),
             anchor_utc: chrono::Utc::now(),
@@ -53,6 +54,7 @@ async fn full_union_member_is_context_and_never_fabricates_changed_units() {
     assert_eq!(
         capture_change_selection(
             ChangeCaptureRequest {
+                context: ContextCapture::Full,
                 binding: fixture.binding(full_only),
                 limits: discovery_limits(),
                 anchor_utc: chrono::Utc::now()

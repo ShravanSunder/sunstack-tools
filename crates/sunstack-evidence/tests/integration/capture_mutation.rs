@@ -52,6 +52,7 @@ async fn real_actor_mutation_during_a_multi_file_git_capture_refuses_before_retu
     limits.max_files = 2000.try_into().unwrap();
     let result = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged, DirtyLayer::Untracked],
             }),

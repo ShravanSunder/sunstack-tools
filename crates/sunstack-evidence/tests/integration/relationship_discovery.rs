@@ -129,6 +129,7 @@ async fn real_static_import_directions_cycle_and_dynamic_uncertainty() {
 async fn capture(binding: RepositoryBinding) -> CapturedChangeSelection {
     capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding,
             limits: discovery_limits(),
             anchor_utc: chrono::Utc::now(),

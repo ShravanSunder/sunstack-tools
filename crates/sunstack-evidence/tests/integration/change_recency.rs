@@ -197,6 +197,7 @@ async fn linked_worktree_root_is_distinct_and_lookback_uses_one_supplied_anchor(
     binding.root = linked_path;
     let secondary = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding,
             limits: discovery_limits(),
             anchor_utc: anchor(),
@@ -229,6 +230,7 @@ fn anchor() -> chrono::DateTime<chrono::Utc> {
 async fn capture(fixture: &GitFixture, scope: ChangeScope) -> CapturedChangeSelection {
     capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(scope),
             limits: discovery_limits(),
             anchor_utc: anchor(),

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0
+
+Unreleased.
+
+- Change-scoped lint screens paths with raw Git blob identities and acquires only
+  changed sources. Unchanged files are read when lint needs them, rather than
+  frozen for context. Connected-evidence callers retain full-context capture.
+- Hashing reads still count toward the existing byte budget; `max_files` counts
+  acquisitions. Encoding refusals, symlink payloads and mutation checks remain.
+
 ## 0.11.1
 
 Release date: 2026-11-12.

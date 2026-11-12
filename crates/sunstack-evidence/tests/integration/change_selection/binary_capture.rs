@@ -16,6 +16,7 @@ fn fixture_with_binary() -> (GitFixture, git2::Oid) {
 }
 fn request(fixture: &GitFixture, base: git2::Oid) -> ChangeCaptureRequest {
     ChangeCaptureRequest {
+        context: ContextCapture::Full,
         binding: fixture.binding(ChangeScope::RevisionDiff {
             base_revision: base.to_string(),
             head: RevisionHead::Worktree {},
@@ -135,6 +136,7 @@ async fn equal_binary_blob_keeps_exact_changed_text_in_commit_and_index() {
         }
         let captured = capture_change_selection(
             ChangeCaptureRequest {
+                context: ContextCapture::Full,
                 binding: fixture.binding(scope),
                 limits: discovery_limits(),
                 anchor_utc: anchor(),
@@ -276,6 +278,7 @@ async fn changed_index_refusal_names_the_captured_path() {
     fixture.stage("selected.md");
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Staged],
             }),

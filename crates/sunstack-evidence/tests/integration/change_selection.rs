@@ -1,6 +1,8 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 #[path = "change_selection/binary_capture.rs"]
 mod binary_capture;
+#[path = "change_selection/changed_only.rs"]
+mod changed_only;
 #[path = "../support/mod.rs"]
 mod support;
 #[cfg(unix)]
@@ -30,6 +32,7 @@ async fn real_git_layers_preserve_cancelling_staged_and_unstaged_edits() {
     fixture.write("main.rs", "fn target() { first(); }\n");
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Staged, DirtyLayer::Unstaged],
             }),
@@ -78,6 +81,7 @@ async fn real_root_commit_has_only_after_side_and_full_scope_has_no_changed_seed
     let root = fixture.commit(1000);
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::CommitSet {
                 commit_ids: vec![GitObjectId::new(root.to_string()).unwrap()],
                 parent_policy: CommitParentPolicy::EachParent,
@@ -124,6 +128,7 @@ async fn real_root_commit_has_only_after_side_and_full_scope_has_no_changed_seed
     assert_eq!(
         capture_change_selection(
             ChangeCaptureRequest {
+                context: ContextCapture::Full,
                 binding: fixture.binding(ChangeScope::Full {}),
                 limits: discovery_limits(),
                 anchor_utc: anchor()
@@ -147,6 +152,7 @@ async fn git_insertion_uses_a_narrow_before_anchor_instead_of_the_whole_file() {
     fixture.write("main.rs", "fn unchanged() {}\nfn added() {}\n");
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged],
             }),
@@ -174,6 +180,7 @@ async fn final_verification_refuses_real_file_and_index_mutation_but_same_bytes_
     fixture.write("main.rs", "fn second() {}\n");
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged],
             }),
@@ -225,6 +232,7 @@ async fn reachable_nonmonotonic_commit_time_and_real_history_cutoff() {
         parent_policy: CommitParentPolicy::FirstParent,
     };
     let request = ChangeCaptureRequest {
+        context: ContextCapture::Full,
         binding: fixture.binding(scope),
         limits: discovery_limits(),
         anchor_utc: anchor(),
@@ -276,6 +284,7 @@ async fn explicit_commit_events_preserve_revert_while_endpoint_is_empty_and_unio
     };
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Union {
                 members: vec![event_scope, endpoint],
             }),
@@ -320,6 +329,7 @@ async fn untracked_selection_is_explicit_and_rename_keeps_captured_sides() {
     )
     .unwrap();
     let request = |layers| ChangeCaptureRequest {
+        context: ContextCapture::Full,
         binding: fixture.binding(ChangeScope::Uncommitted { layers }),
         limits: discovery_limits(),
         anchor_utc: anchor(),
@@ -369,6 +379,7 @@ async fn explicit_commit_events_obey_the_history_budget() {
     limits.max_history_commits = 1.try_into().unwrap();
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::CommitSet {
                 commit_ids: vec![
                     GitObjectId::new(first.to_string()).unwrap(),

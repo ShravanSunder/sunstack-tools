@@ -40,6 +40,7 @@ async fn actual_source_changed_error_keeps_its_path_in_lint_json_and_sarif() {
     std::fs::write(&asset, "after\n").unwrap();
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: RepositoryBinding {
                 key: RepositoryId::new("fixture").unwrap(),
                 root: root.clone(),

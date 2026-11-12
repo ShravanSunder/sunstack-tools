@@ -263,8 +263,21 @@ pub struct CapturedChangeSelection {
     pub(crate) acquisitions: Vec<CaptureCoverage>,
     pub(crate) scope_diagnostics: std::collections::BTreeMap<usize, DiagnosticList>,
 }
+impl CapturedChangeSelection {
+    /// Distinct acquired sources; identity probes do not count as acquisitions.
+    pub fn acquired_file_count(&self) -> usize {
+        self.acquisitions.len()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) enum MutableRepositoryFile {
+    WorktreeIdentity {
+        root: PathBuf,
+        path: PathBuf,
+        blob: GitObjectId,
+        byte_len: usize,
+    },
     WorktreeSymlink {
         root: PathBuf,
         path: PathBuf,

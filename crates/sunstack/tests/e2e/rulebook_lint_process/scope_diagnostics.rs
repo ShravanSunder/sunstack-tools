@@ -148,3 +148,49 @@ async fn change_scope_limits_name_the_setting_value_and_stopped_path() {
         }
     }
 }
+
+#[tokio::test]
+async fn since_prepares_one_checked_file_beside_more_context_than_the_acquisition_cap() {
+    // Arrange: unchanged repository context is outside the one configured checked document.
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"contains","field":"body","text":"good"})),
+    );
+    std::fs::write(root.path().join("docs/one.md"), "good before\n").unwrap();
+    std::fs::create_dir(root.path().join("context")).unwrap();
+    for index in 0..16 {
+        std::fs::write(
+            root.path().join(format!("context/stable-{index}.md")),
+            "stable\n",
+        )
+        .unwrap();
+    }
+    let mut config = read(&root.path().join("skill-rules.config.json"));
+    config["limits"] = json!({"max_files":2});
+    save(&root.path().join("skill-rules.config.json"), &config);
+    super::case_runs::commit_tree(root.path());
+    std::fs::write(root.path().join("docs/one.md"), "good after\n").unwrap();
+    let outputs = tempfile::tempdir().unwrap();
+    let saved = outputs.path().join("prepared.json");
+    // Act: the actual lint scope requests changed-only capture, keyless.
+    let output = command(root.path())
+        .args(["--since", "HEAD", "--prepare"])
+        .arg(&saved)
+        .args(["--format", "json"])
+        .output()
+        .await
+        .unwrap();
+    // Assert: the existing prepared-success code and complete selected result survive the cap.
+    assert_eq!(
+        output.status.code(),
+        Some(6),
+        "{} {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = read(&saved);
+    assert_eq!(report["status"]["kind"], "prepared");
+    assert_eq!(report["results"].as_array().unwrap().len(), 1);
+    assert_eq!(report["results"][0]["file"], "docs/one.md");
+    assert_eq!(report["usage"]["model_requests"], 0);
+}

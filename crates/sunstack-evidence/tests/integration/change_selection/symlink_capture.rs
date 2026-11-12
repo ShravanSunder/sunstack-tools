@@ -15,6 +15,7 @@ fn linked_fixture(target: &std::path::Path) -> (GitFixture, git2::Oid) {
 }
 fn request(fixture: &GitFixture, base: git2::Oid) -> ChangeCaptureRequest {
     ChangeCaptureRequest {
+        context: ContextCapture::Full,
         binding: fixture.binding(ChangeScope::RevisionDiff {
             base_revision: base.to_string(),
             head: RevisionHead::Worktree {},
@@ -230,6 +231,7 @@ async fn capture_recent_link(
     }];
     capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding,
             limits: discovery_limits(),
             anchor_utc: until + chrono::Duration::seconds(1),

@@ -311,6 +311,7 @@ async fn run_internal(
         };
         let capture = capture_change_selection(
             ChangeCaptureRequest {
+                context: ContextCapture::ChangedOnly,
                 binding: RepositoryBinding {
                     key: repository,
                     root: selection.root.clone(),

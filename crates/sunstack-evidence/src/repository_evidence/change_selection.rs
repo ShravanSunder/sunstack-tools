@@ -5,8 +5,17 @@ use crate::repository_evidence::repository_catalogue::CaptureView;
 use crate::*;
 use chrono::{DateTime, Utc};
 use tokio_util::sync::CancellationToken;
+/// Whether unchanged repository text is retained for connected-evidence context.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ContextCapture {
+    #[default]
+    Full,
+    ChangedOnly,
+}
+
 #[derive(Clone)]
 pub struct ChangeCaptureRequest {
+    pub context: ContextCapture,
     pub binding: RepositoryBinding,
     pub limits: DiscoveryLimits,
     pub anchor_utc: DateTime<Utc>,
@@ -365,7 +374,8 @@ pub async fn verify_change_capture(
         use std::io::Read;
         for check in checks {
             let captured_path = match &check {
-                MutableRepositoryFile::WorktreeSymlink { path, .. }
+                MutableRepositoryFile::WorktreeIdentity { path, .. }
+                | MutableRepositoryFile::WorktreeSymlink { path, .. }
                 | MutableRepositoryFile::Worktree { path, .. }
                 | MutableRepositoryFile::Index { path, .. } => path.clone(),
             };
@@ -376,6 +386,38 @@ pub async fn verify_change_capture(
             }
             let checked = (|| {
                 match check {
+                    MutableRepositoryFile::WorktreeIdentity {
+                        root,
+                        path,
+                        blob,
+                        byte_len,
+                    } => {
+                        let path = root.join(path);
+                        let parent = path
+                            .parent()
+                            .ok_or(EvidenceCode::SourceChanged)?
+                            .canonicalize()
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        let metadata = std::fs::symlink_metadata(&path)
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        if !parent.starts_with(&root)
+                            || !metadata.file_type().is_file()
+                            || metadata.len() != byte_len as u64
+                        {
+                            return Err(EvidenceCode::SourceChanged.into());
+                        }
+                        let mut actual = Vec::new();
+                        std::fs::File::open(&path)
+                            .map_err(|_| EvidenceCode::SourceChanged)?
+                            .take(byte_len.saturating_add(1) as u64)
+                            .read_to_end(&mut actual)
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        let identity = git2::Oid::hash_object(git2::ObjectType::Blob, &actual)
+                            .map_err(|_| EvidenceCode::SourceChanged)?;
+                        if actual.len() != byte_len || identity.to_string() != blob.as_str() {
+                            return Err(EvidenceCode::SourceChanged.into());
+                        }
+                    }
                     MutableRepositoryFile::WorktreeSymlink { root, path, target } => {
                         let path = root.join(path);
                         let parent = path
