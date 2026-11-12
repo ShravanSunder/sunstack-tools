@@ -4,3 +4,9 @@ pub(crate) mod lint_run;
 mod scope_diagnostics;
 pub(crate) mod stopped_stages;
 pub mod targets;
+
+mod run_configuration;
+mod run_coverage;
+mod run_evaluation;
+mod run_evidence;
+mod run_scope;
