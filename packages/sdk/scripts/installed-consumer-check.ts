@@ -112,17 +112,34 @@ const platformOverrides = Object.fromEntries(
 const keyless: NodeJS.ProcessEnv = { ...process.env, SUNSTACK_CREDENTIAL_STORE: 'off' };
 delete keyless['OPENROUTER_API_KEY'];
 
+/** Run one step, keeping its command, output and exit in `<label>.log` even when it fails. */
 function step(label: string, command: string, args: readonly string[]): string {
 	process.stdout.write(`\n$ ${command} ${args.join(' ')}\n`);
-	const output = execFileSync(command, args, {
-		cwd: consumer,
-		encoding: 'utf8',
-		env: keyless,
-		stdio: ['ignore', 'pipe', 'inherit'],
-	});
-	process.stdout.write(output);
-	writeFileSync(join(consumer, `${label}.log`), output);
-	return output;
+	const record = (stdout: string, stderr: string, exit: string): void => {
+		writeFileSync(
+			join(consumer, `${label}.log`),
+			`$ ${command} ${args.join(' ')}\n--- stdout\n${stdout}\n--- stderr\n${stderr}\n--- exit ${exit}\n`,
+		);
+	};
+	try {
+		const output = execFileSync(command, args, {
+			cwd: consumer,
+			encoding: 'utf8',
+			env: keyless,
+			stdio: ['ignore', 'pipe', 'pipe'],
+		});
+		record(output, '', '0');
+		process.stdout.write(output);
+		return output;
+	} catch (error) {
+		const field = (name: string): string =>
+			typeof error === 'object' && error !== null && name in error
+				? String(Reflect.get(error, name) ?? '')
+				: '';
+		record(field('stdout'), field('stderr'), field('status') || 'unknown');
+		process.stderr.write(field('stderr'));
+		throw error;
+	}
 }
 
 writeFileSync(
