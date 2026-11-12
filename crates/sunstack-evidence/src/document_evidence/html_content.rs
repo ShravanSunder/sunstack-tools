@@ -19,6 +19,7 @@ pub(crate) fn html_text_content(raw: &str) -> String {
         &mut content,
         HtmlTextPurpose::Selection,
         false,
+        &mut 0,
     );
     content.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -54,6 +55,7 @@ pub(crate) fn html_asking_text(raw: &str) -> HtmlAskingText {
         &mut content,
         HtmlTextPurpose::Asking,
         false,
+        &mut 0,
     );
     let text = content.split_whitespace().collect::<Vec<_>>().join(" ");
     match result {
@@ -66,10 +68,12 @@ pub(crate) fn html_asking_text(raw: &str) -> HtmlAskingText {
 // Strip complete tag-like tokens from that source span; never guess past an unfinished token.
 fn append_recovered_text(
     node: &HtmlNode<'_>,
+    document: &str,
     content: &mut String,
+    consumed_until: &mut usize,
 ) -> Result<(), HtmlProjectionReason> {
-    let source = node.text();
-    let mut raw = source.as_ref();
+    let range = node.range();
+    let mut raw = &document[range.start.max(*consumed_until)..range.end];
     let tags = node
         .dfs()
         .filter(|part| matches!(part.kind().as_ref(), "start_tag" | "self_closing_tag"))
@@ -84,6 +88,26 @@ fn append_recovered_text(
         raw = &raw[start..];
         if raw.is_empty() {
             break;
+        }
+        if raw.starts_with("<![CDATA[") {
+            // A CDATA block can cross ERROR, entity and element node boundaries.
+            let start = range.end - raw.len() + "<![CDATA[".len();
+            let cdata = &document[start..];
+            let end = cdata
+                .find("]]>")
+                .ok_or(HtmlProjectionReason::UnterminatedMarkup)?;
+            if excluded_tags.is_empty() {
+                content.push(' ');
+                content.push_str(&cdata[..end]);
+                content.push(' ');
+            }
+            let end = start + end + "]]>".len();
+            *consumed_until = (*consumed_until).max(end);
+            if end >= range.end {
+                return Ok(());
+            }
+            raw = &document[end..range.end];
+            continue;
         }
         if let Some(comment) = raw.strip_prefix("<!--") {
             let Some(end) = comment.find("-->") else {
@@ -104,7 +128,7 @@ fn append_recovered_text(
                 Ok(())
             };
         };
-        let tag_start = node.range().start + source.len() - raw.len();
+        let tag_start = range.end - raw.len();
         let token = raw[1..end].trim();
         let closing = token.starts_with('/');
         let name = token.trim_start_matches('/').trim_start();
@@ -122,7 +146,8 @@ fn append_recovered_text(
                 {
                     excluded_tags.truncate(index);
                 }
-            } else if !token.ends_with('/') {
+            } else {
+                // HTML ignores the self-closing slash on these non-void elements.
                 excluded_tags.push(name.to_ascii_lowercase());
             }
         }
@@ -202,7 +227,14 @@ fn append_text(
     content: &mut String,
     purpose: HtmlTextPurpose,
     excluded_context: bool,
+    consumed_until: &mut usize,
 ) -> Result<(), HtmlProjectionReason> {
+    if purpose == HtmlTextPurpose::Asking && node.range().start < *consumed_until {
+        if node.range().end > *consumed_until && !excluded_context {
+            append_recovered_text(node, raw, content, consumed_until)?;
+        }
+        return Ok(());
+    }
     match node.kind().as_ref() {
         "text" | "entity" => content.push_str(&decode_entities(&node.text())),
         "raw_text" => content.push_str(&node.text()),
@@ -216,14 +248,14 @@ fn append_text(
         }
         "ERROR" if purpose == HtmlTextPurpose::Asking => {
             if !excluded_context {
-                append_recovered_text(node, content)?;
+                append_recovered_text(node, raw, content, consumed_until)?;
             }
         }
         "ERROR" if node.children().len() == 0 => {}
         "start_tag" | "self_closing_tag" => {
             if purpose == HtmlTextPurpose::Asking && node.dfs().any(|part| part.is_missing()) {
                 if !excluded_context {
-                    append_recovered_text(node, content)?;
+                    append_recovered_text(node, raw, content, consumed_until)?;
                 }
             } else {
                 content.push(' ');
@@ -254,7 +286,14 @@ fn append_text(
                 if gap.chars().all(char::is_whitespace) {
                     content.push_str(gap);
                 }
-                append_text(&child, raw, content, purpose, excluded_context)?;
+                append_text(
+                    &child,
+                    raw,
+                    content,
+                    purpose,
+                    excluded_context,
+                    consumed_until,
+                )?;
                 cursor = child.range().end;
             }
             let gap = &raw[cursor..node.range().end];

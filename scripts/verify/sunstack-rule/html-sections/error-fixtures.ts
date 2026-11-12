@@ -43,6 +43,42 @@ export const errorControls = [
 		expected: 'Before KEPT_SCRIPT KEPT_STYLE After & 文',
 		cut: false,
 	},
+	{
+		name: 'cdata-inner-greater',
+		raw: '<svg><text><![CDATA[Visible > literal]]></text></svg>',
+		expected: 'Visible > literal',
+		cut: false,
+	},
+	{
+		name: 'cdata-no-greater',
+		raw: '<svg><text><![CDATA[Visible literal]]></text></svg>',
+		expected: 'Visible literal',
+		cut: false,
+	},
+	{
+		name: 'cdata-unsafe',
+		raw: 'Before</h2><![CDATA[Visible > literal After',
+		expected: 'Before [cut: html_projection_unterminated_markup]',
+		cut: true,
+	},
+	{
+		name: 'cdata-literal-entity',
+		raw: 'Before</h2><![CDATA[Visible &amp; > literal]]>After',
+		expected: 'Before Visible &amp; > literal After',
+		cut: false,
+	},
+	{
+		name: 'script-slash',
+		raw: 'Before</h2><script/>Hidden</script>After',
+		expected: 'Before After',
+		cut: false,
+	},
+	{
+		name: 'style-slash',
+		raw: 'Before</h2><style/>Hidden</style>After',
+		expected: 'Before After',
+		cut: false,
+	},
 ] as const;
 
 export function prepareErrorProject(

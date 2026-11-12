@@ -71,3 +71,45 @@ export function reportRequests(
 	}
 	return records;
 }
+
+/** Evidence listings alone cannot prove that recovered words reached an asking request. */
+export function requireAmpersandAskingCoverage(report: JsonObject, listing: JsonObject): number {
+	const errors = arrayValue(listing['pieces']).map(objectValue);
+	assert.equal(errors.length, 10, 'Pinned real pages must retain every ERROR record');
+	assert.equal(new Set(errors.map((error) => JSON.stringify(error['where']))).size, 5);
+	assert.equal(new Set(errors.map((error) => objectValue(error['where'])['file'])).size, 3);
+	const requests = arrayValue(report['requests']).map(objectValue);
+	for (const error of errors) {
+		const errorWhere = objectValue(error['where']);
+		const errorSpan = objectValue(errorWhere['span']);
+		const matches = requests.filter((record) => {
+			const piece = objectValue(
+				objectValue(objectValue(report['piece_evidence'])[String(numberValue(record['id']))])[
+					'piece'
+				],
+			);
+			const where = objectValue(piece['where']);
+			const span = objectValue(where['span']);
+			return (
+				record['status'] === 'prepared' &&
+				where['file'] === errorWhere['file'] &&
+				numberValue(span['byte_start']) <= numberValue(errorSpan['byte_start']) &&
+				numberValue(span['byte_end']) >= numberValue(errorSpan['byte_end']) &&
+				JSON.stringify(span['source']) === JSON.stringify(errorSpan['source'])
+			);
+		});
+		assert.ok(
+			matches.length > 0,
+			`No prepared asking owner contains ERROR ${JSON.stringify(errorWhere)}`,
+		);
+		assert.ok(
+			matches.some((record) =>
+				textValue(objectValue(objectValue(record['request'])['state'])['full']).includes(
+					textValue(error['text']),
+				),
+			),
+			'Containing prepared owner lost the actual ERROR words',
+		);
+	}
+	return errors.length;
+}

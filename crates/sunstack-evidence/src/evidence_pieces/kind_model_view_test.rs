@@ -420,3 +420,96 @@ fn asking_preserves_selected_attributes_on_recognized_tags_inside_errors() {
     );
     assert_eq!(view["cut"], json!([]));
 }
+
+#[test]
+fn asking_preserves_complete_cdata_in_recovered_spans() {
+    for (raw, expected) in [
+        (
+            "<svg><text><![CDATA[Visible > literal]]></text></svg>",
+            "Visible > literal",
+        ),
+        (
+            "<svg><text><![CDATA[Visible literal]]></text></svg>",
+            "Visible literal",
+        ),
+        (
+            "Before</h2><![CDATA[Visible > literal]]>After",
+            "Before Visible > literal After",
+        ),
+    ] {
+        let view = html_asking_view(raw);
+        assert_eq!(view["fields"]["body"], expected, "{raw}");
+        assert_eq!(view["cut"], json!([]));
+    }
+}
+
+#[test]
+fn asking_keeps_cdata_entities_and_tag_like_text_literal() {
+    let view = html_asking_view("Before</h2><![CDATA[A &amp; <b>literal</b>]]>After");
+    assert_eq!(
+        view["fields"]["body"],
+        "Before A &amp; <b>literal</b> After"
+    );
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_marks_unterminated_cdata_incomplete() {
+    for (raw, expected) in [
+        (
+            "<svg><text><![CDATA[Visible > literal</text></svg>",
+            "[cut: html_projection_unterminated_markup]",
+        ),
+        (
+            "Before</h2><![CDATA[Visible > literal After",
+            "Before [cut: html_projection_unterminated_markup]",
+        ),
+    ] {
+        let view = html_asking_view(raw);
+        assert_eq!(view["fields"]["body"], expected, "{raw}");
+        assert_eq!(view["cut"], json!(["body"]));
+    }
+}
+
+#[test]
+fn asking_excludes_script_slash_payload_in_recovered_spans() {
+    let view = html_asking_view("Before</h2><script/>Hidden</script>After");
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_excludes_style_slash_payload_in_recovered_spans() {
+    let view = html_asking_view("Before</h2><style/>Hidden</style>After");
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_excludes_template_slash_payload_in_recovered_spans() {
+    let raw = "<h2>Before<h3><template/>Hidden</template>After";
+    assert_recovery_span_contains(raw, "<template/>");
+    let view = html_asking_view(raw);
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_excludes_markdown_island_slash_payload_in_recovered_spans() {
+    let raw = "<h2>Before<h3><ex-markdown/>Hidden</ex-markdown>After";
+    assert_recovery_span_contains(raw, "<ex-markdown/>");
+    let view = html_asking_view(raw);
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
+}
+
+fn assert_recovery_span_contains(raw: &str, token: &str) {
+    use ast_grep_language::{LanguageExt, SupportLang};
+    let tree = SupportLang::Html.ast_grep(raw);
+    assert!(
+        tree.root()
+            .dfs()
+            .any(|node| node.is_error() && node.text().contains(token)),
+        "fixture must put {token} inside an ERROR recovery span"
+    );
+}

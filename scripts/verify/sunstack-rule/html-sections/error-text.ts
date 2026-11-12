@@ -26,6 +26,7 @@ import { declaredTarget, releasedTarget, RulebookProcess } from '../rulebook/rul
 import { errorControls, prepareErrorProject } from './error-fixtures.ts';
 import {
 	requireRecoveredControl,
+	requireAmpersandAskingCoverage,
 	reportRequests,
 	requireVersionOnlyBytes,
 } from './error-oracle.ts';
@@ -187,7 +188,7 @@ export async function observeErrorText(options: z.infer<typeof optionsSchema>): 
 		writeJson(path.join(ampParser, 'sunstack.lint.json'), parserConfig);
 		filesystem.writeFileSync(
 			path.join(amps, 'evidence/rules/html.yml'),
-			"id: whole\nlanguage: Html\nrule: {kind: element, regex: '^<(title|h[1-6])[ >]'}\n",
+			"id: whole\nlanguage: Html\nrule:\n  any:\n    - {kind: element, regex: '^<(title|h[1-6])[ >]'}\n    - {kind: element, regex: '^<button id=\"tab-components\"'}\n",
 		);
 		writeJson(path.join(amps, 'sunstack.lint.json'), ampConfig);
 		filesystem.cpSync(path.join(parity, 'html-sections'), html, { recursive: true });
@@ -372,6 +373,12 @@ export async function observeErrorText(options: z.infer<typeof optionsSchema>): 
 			arguments: ['lint', '--all', '--evidence', 'section'],
 			expectedExit: 0,
 		});
+		writeJson(path.join(evidence, 'ampersand-asking-coverage.json'), {
+			error_records: requireAmpersandAskingCoverage(
+				readObject(path.join(evidence, 'ampersands.json')),
+				objectValue(JSON.parse(ampErrors.stdout.toString('utf8'))),
+			),
+		});
 		if (options.phase === 'candidate')
 			requireVersionOnlyBytes(
 				filesystem.readFileSync(
@@ -414,7 +421,7 @@ if (process.argv[1] === import.meta.filename) {
 	});
 	if (values.help)
 		process.stdout.write(
-			'Observe malformed HTML using existing keyless CLI harness. --phase baseline|candidate --baseline-binary PATH --baseline-sha256 SHA --source-root CHECKOUT --input-root FROZEN_J1 --parity-root ORIGINAL_INPUTS --shared-output COMMON_OUTSIDE_DIRECTORY --evidence NEW_DIRECTORY [--binary PATH --commit FULL_HEAD --sha256 SHA --baseline-run BASELINE_EVIDENCE]. Expected source:0.14.1 commission C1–C5. Capture does not itself close J1/raw/parity review.\n',
+			'Observe malformed HTML using existing keyless CLI harness. --phase baseline|candidate --baseline-binary PATH --baseline-sha256 SHA --source-root CHECKOUT --input-root FROZEN_J1 --parity-root ORIGINAL_INPUTS --shared-output COMMON_OUTSIDE_DIRECTORY --evidence NEW_DIRECTORY [--binary PATH --commit FULL_HEAD --sha256 SHA --baseline-run BASELINE_EVIDENCE]. Expected source:0.14.1 commission C1–C7. Capture does not itself close J1/raw/parity review.\n',
 		);
 	else await observeErrorText(optionsSchema.parse(values));
 }
