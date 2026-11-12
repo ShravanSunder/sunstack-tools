@@ -6,6 +6,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 import {
+	captureFixtureTemplate,
 	configureEndpoint,
 	jsonValueSchema,
 	objectValue,
@@ -55,8 +56,9 @@ function editObject(document: JsonObject, edit: z.infer<typeof editSchema>): voi
 export function prepareCases(destination: string): RefusalCase[] {
 	filesystem.mkdirSync(destination);
 	const cases = refusalCases();
+	const template = captureFixtureTemplate();
 	for (const entry of cases) {
-		const root = prepareFixture(path.join(destination, entry.name));
+		const root = prepareFixture(path.join(destination, entry.name), [], template);
 		configureEndpoint(root, 'http://127.0.0.1:9/systemone');
 		for (const edit of entry.edits) {
 			const file = path.join(root, edit.file);
