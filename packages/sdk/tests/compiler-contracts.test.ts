@@ -1,7 +1,7 @@
 // The actual TypeScript compiler accepts valid callers and rejects each wrong shape
 // at the intended line with the intended diagnostic.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -18,8 +18,14 @@ interface CompilerDiagnostic {
 	readonly code: string;
 }
 
-/** Compile one case file with the package's compiler options; return its diagnostics. */
-function compile(caseFile: string): CompilerDiagnostic[] {
+/** One compiler process, kept whole so a crash cannot pass as a clean compile. */
+type CompilerRun =
+	| { readonly kind: 'compiled' }
+	| { readonly kind: 'diagnostics'; readonly diagnostics: CompilerDiagnostic[] }
+	| { readonly kind: 'process_failure'; readonly detail: string };
+
+/** Compile one case file with the package's compiler options. */
+function compile(caseFile: string, compilerPath: string = compiler): CompilerRun {
 	const scratch = ownedDirectory('compiler');
 	try {
 		const project = join(scratch.path, 'tsconfig.json');
@@ -35,23 +41,27 @@ function compile(caseFile: string): CompilerDiagnostic[] {
 				exclude: [],
 			}),
 		);
-		let output = '';
-		try {
-			execFileSync(compiler, ['-p', project, '--pretty', 'false'], {
-				encoding: 'utf8',
-				stdio: 'pipe',
-			});
-		} catch (error) {
-			output =
-				typeof error === 'object' && error !== null && 'stdout' in error
-					? String(error.stdout)
-					: String(error);
+		const result = spawnSync(compilerPath, ['-p', project, '--pretty', 'false'], {
+			encoding: 'utf8',
+		});
+		const detail = `status ${String(result.status)}, signal ${String(result.signal)}, error ${String(result.error)}, stderr ${result.stderr}, stdout ${result.stdout}`;
+		if (result.error !== undefined || result.signal !== null || result.status === null) {
+			return { kind: 'process_failure', detail };
 		}
 		// Every error counts; one without a location (a setup failure) has line 0.
-		return [...output.matchAll(/^(?:.*\((\d+),\d+\): )?error (TS\d+):/gmu)].map((match) => ({
-			line: match[1] === undefined ? 0 : Number(match[1]),
-			code: match[2] ?? '',
-		}));
+		const diagnostics = [...result.stdout.matchAll(/^(?:.*\((\d+),\d+\): )?error (TS\d+):/gmu)].map(
+			(match) => ({
+				line: match[1] === undefined ? 0 : Number(match[1]),
+				code: match[2] ?? '',
+			}),
+		);
+		if (result.status === 0 && diagnostics.length === 0 && result.stderr === '')
+			return { kind: 'compiled' };
+		// A failing exit must be explained by compiler diagnostics, not by anything else.
+		if (result.status !== 0 && diagnostics.length > 0 && result.stderr === '') {
+			return { kind: 'diagnostics', diagnostics };
+		}
+		return { kind: 'process_failure', detail };
 	} finally {
 		scratch.remove();
 	}
@@ -72,14 +82,32 @@ const sortDiagnostics = (diagnostics: CompilerDiagnostic[]): CompilerDiagnostic[
 		(left, right) => left.line - right.line || left.code.localeCompare(right.code),
 	);
 
-await test('a complete valid caller compiles with no diagnostics', () => {
-	assert.deepEqual(compile('valid-caller.ts'), []);
+await test('a complete valid caller compiles: exit 0, no diagnostics, nothing on stderr', () => {
+	assert.deepEqual(compile('valid-caller.ts'), { kind: 'compiled' });
 });
 
 await test('wrong configuration and result shapes fail exactly where marked', () => {
 	const expected = expectedDiagnostics('invalid-callers.ts');
 	assert.ok(expected.length >= 8, 'every negative case is marked');
-	assert.deepEqual(sortDiagnostics(compile('invalid-callers.ts')), sortDiagnostics(expected));
+	const run = compile('invalid-callers.ts');
+	assert.equal(run.kind, 'diagnostics', run.kind === 'process_failure' ? run.detail : '');
+	if (run.kind === 'diagnostics') {
+		assert.deepEqual(sortDiagnostics(run.diagnostics), sortDiagnostics(expected));
+	}
+});
+
+await test('a compiler that cannot run is a process failure, never a clean compile', () => {
+	const missing = compile(
+		'valid-caller.ts',
+		join(packageDirectory, 'node_modules', '.bin', 'absent-tsc'),
+	);
+	assert.equal(missing.kind, 'process_failure');
+	const notACompiler = compile('valid-caller.ts', process.execPath);
+	assert.equal(
+		notACompiler.kind,
+		'process_failure',
+		'node rejecting the arguments is not a compile',
+	);
 });
 
 await test('generated declarations use literal unions, never TypeScript enums or any', () => {

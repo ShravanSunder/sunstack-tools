@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "pages": [
+    {
+      "id": "home",
+      "title": "Design overview",
+      "href": "index.html",
+      "icon": "path"
+    },
+    {
+      "id": "needs",
+      "title": "Requirements",
+      "href": "requirements.html",
+      "icon": "user"
+    },
+    {
+      "id": "contract",
+      "title": "Specification",
+      "href": "specification.html",
+      "icon": "file"
+    },
+    {
+      "id": "structure",
+      "title": "Program Design",
+      "href": "program-design.html",
+      "icon": "database"
+    },
+    {
+      "id": "proof",
+      "title": "Verification Design",
+      "href": "verification.html",
+      "icon": "test-tube"
+    },
+    {
+      "id": "dx",
+      "title": "SDK examples",
+      "href": "../../wip/2026-11-12-typescript-sdk/dx.html",
+      "icon": "file"
+    }
+  ],
+  "map": [
+    {
+      "title": "Load existing configs",
+      "description": "Reuse CLI projects as stable typed values.",
+      "icon": "path",
+      "target": {
+        "page": "needs",
+        "fragment": "load-needs"
+      },
+      "children": [
+        {
+          "title": "Capture and resolve",
+          "description": "Discovery, relative paths and immutable snapshots.",
+          "icon": "file",
+          "target": {
+            "page": "contract",
+            "fragment": "R1"
+          }
+        },
+        {
+          "title": "Prove snapshot behavior",
+          "description": "Change source files and compare held and reloaded values.",
+          "icon": "test-tube",
+          "target": {
+            "page": "proof",
+            "fragment": "O1"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Express configs as TypeScript",
+      "description": "Author every definition and call the Rust engine.",
+      "icon": "user",
+      "target": {
+        "page": "needs",
+        "fragment": "author-needs"
+      },
+      "children": [
+        {
+          "title": "Complete inline example",
+          "description": "Rulebook, matcher, filter, questions and decision graph.",
+          "icon": "file",
+          "target": {
+            "page": "contract",
+            "fragment": "reference-example"
+          }
+        },
+        {
+          "title": "Shared Rust admission",
+          "description": "One engine policy behind both consumers.",
+          "icon": "database",
+          "target": {
+            "page": "structure",
+            "fragment": "composition"
+          }
+        },
+        {
+          "title": "Prove the ordinary caller",
+          "description": "Installed consumer, native execution and typed outcomes.",
+          "icon": "test-tube",
+          "target": {
+            "page": "proof",
+            "fragment": "proof-path"
+          }
+        }
+      ]
+    }
+  ],
+  "walkthroughs": [
+    {
+      "id": "load-and-edit",
+      "title": "How does a loaded config stay stable?",
+      "description": "Follow existing files into a captured value and its planned proof.",
+      "steps": [
+        {
+          "target": {
+            "page": "needs",
+            "fragment": "U2"
+          },
+          "narration": "The caller needs stable typed values, not a live hidden file reference."
+        },
+        {
+          "target": {
+            "page": "contract",
+            "fragment": "R2"
+          },
+          "narration": "Read the snapshot and edited-copy contract."
+        },
+        {
+          "target": {
+            "page": "structure",
+            "fragment": "execution"
+          },
+          "narration": "See which owner captures bytes and which admits the call."
+        },
+        {
+          "target": {
+            "page": "proof",
+            "fragment": "O1"
+          },
+          "narration": "See the source mutation that would expose accidental rereads."
+        }
+      ]
+    },
+    {
+      "id": "author-and-run",
+      "title": "Can a model author everything in TypeScript?",
+      "description": "Follow the complete inline value through typed Rust calls and proof.",
+      "steps": [
+        {
+          "target": {
+            "page": "contract",
+            "fragment": "reference-example"
+          },
+          "narration": "Every definition is present as an authored value; checked files remain runtime inputs."
+        },
+        {
+          "target": {
+            "page": "structure",
+            "fragment": "ast-boundary"
+          },
+          "narration": "Separate exact matcher object typing from optional grammar metadata."
+        },
+        {
+          "target": {
+            "page": "structure",
+            "fragment": "lifecycle"
+          },
+          "narration": "Observe the distinction between admission, execution and settled cancellation."
+        },
+        {
+          "target": {
+            "page": "proof",
+            "fragment": "O2"
+          },
+          "narration": "The proof must work without any definition files or a hidden fixture import."
+        }
+      ]
+    }
+  ]
+}

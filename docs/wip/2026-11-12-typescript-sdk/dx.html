@@ -1,0 +1,220 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sunstack SDK · Write TypeScript, call Rust</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="sdk-dx" src="../../specs/2026-11-11-typescript-sdk/navigation.json"></ex-nav><ex-document id="sdk-dx">
+<h1>Write TypeScript. Call the Rust engine.</h1>
+<p><code>@sunstack/sdk</code> lets a developer or model author the whole configuration as normal typed values, call <code>check</code> or <code>run</code>, and consume concrete typed results. Existing CLI configs still work: load them, make a typed copy, and run the copy.</p>
+<p><strong>Current evidence:</strong> a packed Mac arm64 candidate compiles and runs outside the repository. This SDK is not published yet. Six-platform CI, the final independent proof batch and the ordinary-provider smoke remain open.</p>
+<h2 id="model">What types do, and what Rust does</h2>
+<ex-mermaid id="sdk-flow" label="Two authoring paths meet at the same Rust engine"><script type="text/plain">
+flowchart TD
+  Author["Author a complete TS config"] --> Types["Generated TS types · editor and compiler"]
+  Files["Existing CLI configs"] --> Load["load · captured typed values"]
+  Load --> Types
+  Types --> Check["check · Rust admission, no inference"]
+  Check --> Run["run · Rust execution against explicit root"]
+  Run --> Results["Typed outcomes, findings, sources and requests"]
+  Rust["Rust structs, enums and constructors"] -. "generate declarations" .-> Types
+</script></ex-mermaid>
+<p>The TS compiler catches keys, variants and result access. Rust still decides nonzero/range limits, globs, marker bindings, references, language and pattern validity. The SDK does not embed a TypeScript compiler in Rust or duplicate those decisions in TS. Run a separate typecheck before executing the TS program.</p>
+<h2 id="inline">Can the whole config live in TypeScript?</h2>
+<p>Yes. The package example below contains the Markdown standard, rule entry, matcher, evidence field, filter, questions, decision graph, model selection and limit. It imports only the SDK. No JSON/YAML definition project or copied fixture hides behind the example.</p>
+<ex-code id="call" title="Check, then run explicitly" lang="typescript"><script type="text/plain">
+const admission = await check(configuration);
+if (admission.kind === 'valid') {
+  const outcome = await run(configuration, {
+    root: '/absolute/checked/repository',
+    scope: { kind: 'all' },
+  });
+}
+</script></ex-code><details><summary>Complete package example: every definition authored in TS</summary><ex-code id="complete-inline" title="packages/sdk/examples/inline-configuration.ts" lang="typescript"><script type="text/plain">
+// Author a complete configuration as TypeScript values: no definition files.
+//
+//   node examples/inline-configuration.ts <absolute-checked-root> [endpoint]
+//
+// `check` needs no credential. `run` uses the ordinary credential route
+// (OPENROUTER_API_KEY or the OS store) and the configured decision endpoint.
+import { check, run } from '@sunstack/sdk';
+import type { Configuration, RunOutcome } from '@sunstack/sdk';
+
+const [root = process.cwd(), endpoint] = process.argv.slice(2);
+
+const configuration = {
+	id: 'instruction-standards',
+	base_directory: import.meta.dirname,
+	marker_prefix: 'K',
+	check: { files: ['skills/**/SKILL.md'] },
+	decision_model: { model: 'jev-latest', ...(endpoint === undefined ? {} : { endpoint }) },
+	limits: { max_file_bytes: 1_048_576n },
+	evidence: {
+		kind: 'inline',
+		utilities: {},
+		matchers: {
+			paragraph: { language: 'Markdown', rule: { kind: 'paragraph' } },
+		},
+		kinds: {
+			paragraph: { rule: 'paragraph', fields: { body: { from: 'remainder' } } },
+		},
+	},
+	filters: {
+		purpose: {
+			per: 'skills/{name}',
+			reads: { file: 'SKILL.md', kind: 'paragraph', fields: ['body'] },
+			labels: ['eligible', 'blocked'],
+			questions: {
+				purpose: {
+					type: 'choice',
+					instructions: { check: 'body', task: 'Classify whether this is reusable guidance.' },
+					criteria: { portable: 'Reusable guidance.', local: 'One repository procedure.' },
+				},
+			},
+			decision: {
+				start: 'purpose',
+				steps: {
+					purpose: {
+						ask: 'purpose',
+						min_probability: 0.7,
+						routes: { portable: { label: 'eligible' }, local: { label: 'blocked' } },
+						uncertain: 'unsure',
+					},
+				},
+			},
+		},
+	},
+	rulebooks: [
+		{
+			kind: 'inline',
+			id: 'ownership-standards',
+			markdown: '# Standards\n\nEach instruction names its responsible actor. <!-- K001 -->\n',
+			entries: {
+				K001: {
+					name: 'instruction_actor',
+					evidence: 'paragraph',
+					severity: 'warn',
+					only_when: { purpose: ['eligible'] },
+					questions: {
+						actor: {
+							type: 'noul',
+							instructions: { check: 'body', against: 'standard', task: 'Is the actor named?' },
+						},
+					},
+					decision: {
+						start: 'actor',
+						steps: {
+							actor: {
+								ask: 'actor',
+								yes_at_or_above: 0.8,
+								no_at_or_below: 0.2,
+								yes: 'pass',
+								no: { finding: 'Name the actor.', at: 'body' },
+								uncertain: 'uncertain',
+							},
+						},
+					},
+				},
+			},
+		},
+	],
+} satisfies Configuration;
+
+function summarize(outcome: RunOutcome): string {
+	switch (outcome.kind) {
+		case 'completed':
+			return `${outcome.report.status.kind}: ${outcome.report.findings.length} finding(s)`;
+		case 'invalid':
+		case 'unavailable':
+			return `${outcome.kind}: ${outcome.diagnostics.map((diagnostic) => diagnostic.code).join(', ')}`;
+		case 'incomplete':
+			return `incomplete: ${outcome.report.incomplete.length} gap(s)`;
+		case 'cancelled':
+			return 'cancelled';
+		case 'failed':
+			return `failed (${outcome.failure.reason}, effects ${outcome.failure.effects})`;
+		default:
+			return assertNever(outcome);
+	}
+}
+
+function assertNever(value: never): never {
+	throw new Error(`Unhandled outcome: ${JSON.stringify(value)}`);
+}
+
+const admission = await check(configuration); // no model request
+process.stdout.write(`check: ${admission.kind}\n`);
+if (admission.kind === 'valid') {
+	const outcome = await run(configuration, { root, scope: { kind: 'all' } });
+	process.stdout.write(`run: ${summarize(outcome)}\n`);
+}
+
+</script></ex-code></details><p>Functions, imports, loops and composition stay in the caller’s TS program. Pass the resulting data to Rust. The existing engine owns evidence evaluation and decisions; this package adds no AST traversal or codemod rewriting API.</p>
+<h2 id="load">What happens when I load and change a config?</h2>
+<p><code>load</code> returns frozen captured values and their origins. Copy the value, change it, and pass that copy to <code>run</code>. Definitions already captured do not get reread from disk.</p>
+<ex-mermaid id="snapshot-dx" label="Held, edited and reloaded configurations execute different values"><script type="text/plain">
+flowchart LR
+  A["Load A"] --> Held["Run held value · A"]
+  A --> Edited["Copy and edit · edited A"]
+  Disk["Files changed to B"] --> Reload["Explicit reload · B"]
+</script></ex-mermaid>
+<ex-code id="edit-example" title="Run the changed value" lang="typescript"><script type="text/plain">
+// Load an existing CLI configuration, edit the loaded value, and run the edit.
+//
+//   node examples/load-and-edit.ts <absolute-config-directory> <absolute-checked-root>
+import { check, load, run } from '@sunstack/sdk';
+import type { Configuration } from '@sunstack/sdk';
+
+const [directory = process.cwd(), root = process.cwd()] = process.argv.slice(2);
+
+const loaded = await load({ directory });
+if (loaded.kind !== 'loaded') {
+	process.stdout.write(`load: ${loaded.kind}\n`);
+	process.exit(1);
+}
+
+// The loaded value is frozen; a changed copy is a new configuration.
+const changed = {
+	...loaded.value.configuration,
+	limits: { ...loaded.value.configuration.limits, max_files: 100 },
+} satisfies Configuration;
+
+const admission = await check(changed);
+process.stdout.write(`check: ${admission.kind}\n`);
+const outcome = await run(changed, { root, scope: { kind: 'all' } });
+process.stdout.write(`run: ${outcome.kind}\n`);
+if (outcome.kind === 'completed') {
+	for (const finding of outcome.report.findings) {
+		process.stdout.write(`${finding.file}:${finding.line} ${finding.rule} ${finding.message}\n`);
+	}
+	// Sources name exactly what executed: unchanged files, or edited values.
+	for (const source of outcome.report.sources) {
+		process.stdout.write(`source ${source.origin.kind} ${source.sha256.slice(0, 12)}\n`);
+	}
+}
+
+</script></ex-code><p><code>base_directory</code> resolves definition files. <code>root</code> is the explicit checked directory and can be elsewhere. Result sources distinguish unchanged files, authored inline values and edited values; content and digests describe what actually ran.</p>
+<h2 id="results">What comes back?</h2>
+<p>A closed outcome union. <code>completed</code> means the call completed; its tagged report status still distinguishes findings, clean, uncertainty and nothing selected. Invalid input, unavailable definitions, partial execution, cancellation and detectable adapter failure stay distinct.</p>
+<ex-code id="result-example" title="Narrow before reading findings" lang="typescript"><script type="text/plain">
+if (outcome.kind === 'completed' && outcome.report.status.kind === 'findings') {
+  for (const finding of outcome.report.findings) {
+    console.log(finding.file, finding.line, finding.message);
+  }
+}
+// Full-width Rust values are bigint, including u64 limits and usize locations.
+// Rust's range and constructor checks still run after transport.
+</script></ex-code><p>Cancellation uses one <code>AbortSignal</code> per call. It must not cancel a sibling call. An already-aborted signal starts no work. After-dispatch adapter failures say effects are unknown; the SDK does not replay the whole run.</p>
+<h2 id="zod">Why isn’t Zod required?</h2>
+<p>The generated types give compile-time authoring constraints, and Rust performs runtime validation at the engine boundary. Zod would be an optional additional validator. The base package neither imports nor requires it; no Zod exporter is shipped.</p>
+<p>Sunstack-owned declarations come from Rust derives. Upstream ast-grep structures use the pinned Rust schema with an upstream-backed typed wrapper. Matcher language names are concrete, but grammar-specific kind strings are only statically constrained where compatible grammar maps actually exist. Rust always compiles the matcher.</p>
+<h2 id="try">Try the local candidate</h2>
+<p>From the repository root, these package commands generate/build the native and TS artifacts, then exercise a freshly installed consumer. The installed consumer lives outside the source checkout. Registry publication is a separate delivery step.</p>
+<ex-code id="candidate-commands" title="Build and exercise packed artifacts" lang="sh"><script type="text/plain">
+pnpm --filter @sunstack/sdk build
+pnpm --filter @sunstack/sdk typecheck
+pnpm --filter @sunstack/sdk test
+node packages/sdk/scripts/pack-candidate.ts --out /absolute/task/candidate
+node packages/sdk/scripts/installed-consumer-check.ts --tarballs /absolute/task/candidate
+</script></ex-code><h2 id="evidence">What has been observed?</h2><div class="ex-table-scroll" data-width="canvas"><table><thead><tr><th>Boundary</th><th>Current evidence</th><th>Limit</th></tr></thead><tbody>
+<tr><td>Shared Rust engine after 0.12.1 integration</td><td>887 tests passed, 7 skipped; Clippy passed</td><td>Does not establish package installation or every platform</td></tr>
+<tr><td>Package’s local Mac arm64 consumer</td><td>22 product tests; packed external consumer compiles/runs; edited provenance observed</td><td>Local host evidence</td></tr>
+<tr><td>Independent installed 0.12.0 candidate</td><td>Snapshot/edit/reload, inline filter/rule requests and two-call cancellation driven through the real addon</td><td>Partial O1/O2/O4, not the final 0.12.1 batch; controlled answers</td></tr>
+<tr><td>Six Mac/Linux addon/install cells</td><td>CI running</td><td>Distribution readiness awaits actual execution in every declared cell</td></tr>
+<tr><td>Ordinary model provider</td><td>Not run</td><td>Existing credential route still needed; loopback answers do not substitute</td></tr>
+</tbody></table></div><p>See <a href="../../specs/2026-11-11-typescript-sdk/verification.html">Verification Design</a> for the exact remaining observations and <a href="../../../packages/sdk/README.md">the package README</a> for the public API.</p>
+<details><summary>Source snapshot and delivery boundary</summary><p>Examples copied from the actual package sources at <code>76b543b00b0d76ee499cd69c8c871d8811f506eb</code>. This local page is a DX explanation, not the governing API or a release receipt. CI/provider/final independent outcomes are still open. Hosted Demistify v1 theme/runtime need network access; no upload or publication was performed.</p></details></ex-document></body></html>
