@@ -17,6 +17,7 @@ export async function openFixture(
 		| 'understanding-collection'
 		| 'document-browsers'
 		| 'document-author'
+		| 'cedar'
 		| 'shared-navigation',
 	fragment = '',
 	file = 'index.html',

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cedar importer specification</title>
+  <link rel="stylesheet" href="./demistify/theme.css">
+  <script type="module" src="./demistify/runtime.js"></script>
+<meta name="ex-design-collection" content="1:dbd38062386b6639400087a26077a96d6390e74d9f4f301b40334b5fca592bfb"></head>
+<body>
+  <ex-nav for="cedar-specification">
+    <nav slot="pages" aria-label="Pages">
+      <a href="requirements.html">Requirements</a>
+      <a href="specification.html">Specification</a>
+      <a href="program-design.html">Program Design</a>
+      <a href="verification.html">Verification</a>
+      <a href="execution.html">Execution</a>
+    </nav>
+  </ex-nav>
+  <ex-document id="cedar-specification">
+    <h1>Cedar importer specification</h1>
+    <p>This page states the observable rules for <a href="requirements.html">draft recovery</a> and <a href="requirements.html">skipped-row explanations</a>.</p>
+    <section>
+      <h2>What must hold for rejected inputs and skipped rows?</h2>
+      <p>The first rule preserves the draft when header validation refuses an input; the second explains skipped rows while valid notes remain available.</p>
+    </section>
+  </ex-document>
+  <script type="application/json" data-ex-records>
+  [
+    {"kind":"specification","id":"CedarRejectRule","title":"Rejected input leaves the draft unchanged","needs":["CedarKeepDraft"],"bodyRef":"reject-rule-body","summaryRef":"reject-rule-summary"},
+    {"kind":"specification","id":"CedarSkipRule","title":"Skipped rows have a visible explanation","needs":["CedarExplainSkip"],"bodyRef":"skip-rule-body","summaryRef":"skip-rule-summary"}
+  ]
+  </script>
+  <template id="reject-rule-body">
+    <div data-ex-part="rule">
+      <p id="reject-rule-summary">A rejected input must not overwrite the draft.</p>
+      <p>When the input header is invalid, report the invalid header and leave every draft field unchanged.</p>
+    </div>
+    <div class="ex-table-scroll" data-ex-part="cases">
+      <table>
+        <thead><tr><th>Input</th><th>Before</th><th>After</th></tr></thead>
+        <tbody>
+          <tr><td>Invalid header</td><td>Draft text: blue lantern</td><td>Draft text: blue lantern</td></tr>
+          <tr><td>Valid header</td><td>Draft text: blue lantern</td><td>Imported notes plus retained draft</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </template>
+  <template id="skip-rule-body">
+    <div data-ex-part="rule">
+      <p id="skip-rule-summary">Each skipped row has its row number and reason.</p>
+      <p>For a row missing its note text, report that row number and the reason while retaining all valid rows.</p>
+    </div>
+  </template>
+<script type="application/json" data-ex-design-collection>
+{"version":1,"identity":"dbd38062386b6639400087a26077a96d6390e74d9f4f301b40334b5fca592bfb","records":[{"record":{"kind":"need","id":"CedarKeepDraft","title":"Keep the working draft after a rejected import","capability":"Import recovery","bodyRef":"keep-draft-body","summaryRef":"keep-draft-summary"},"page":"requirements.html","bodyHtml":"\n    \u003cp id=\"keep-draft-summary\">If an import is rejected, keep the current note draft so I can correct the file and try again.\u003c/p>\n  ","summary":"If an import is rejected, keep the current note draft so I can correct the file and try again."},{"record":{"kind":"need","id":"CedarExplainSkip","title":"Explain why an input row was skipped","capability":"Import clarity","bodyRef":"explain-skip-body","summaryRef":"explain-skip-summary"},"page":"requirements.html","bodyHtml":"\n    \u003cp id=\"explain-skip-summary\">Show the row number and reason for each skipped row without hiding successfully imported notes.\u003c/p>\n  ","summary":"Show the row number and reason for each skipped row without hiding successfully imported notes."},{"record":{"kind":"specification","id":"CedarRejectRule","title":"Rejected input leaves the draft unchanged","needs":["CedarKeepDraft"],"bodyRef":"reject-rule-body","summaryRef":"reject-rule-summary"},"page":"specification.html","bodyHtml":"\n    \u003cdiv data-ex-part=\"rule\">\n      \u003cp id=\"reject-rule-summary\">A rejected input must not overwrite the draft.\u003c/p>\n      \u003cp>When the input header is invalid, report the invalid header and leave every draft field unchanged.\u003c/p>\n    \u003c/div>\n    \u003cdiv class=\"ex-table-scroll\" data-ex-part=\"cases\">\n      \u003ctable>\n        \u003cthead>\u003ctr>\u003cth>Input\u003c/th>\u003cth>Before\u003c/th>\u003cth>After\u003c/th>\u003c/tr>\u003c/thead>\n        \u003ctbody>\n          \u003ctr>\u003ctd>Invalid header\u003c/td>\u003ctd>Draft text: blue lantern\u003c/td>\u003ctd>Draft text: blue lantern\u003c/td>\u003c/tr>\n          \u003ctr>\u003ctd>Valid header\u003c/td>\u003ctd>Draft text: blue lantern\u003c/td>\u003ctd>Imported notes plus retained draft\u003c/td>\u003c/tr>\n        \u003c/tbody>\n      \u003c/table>\n    \u003c/div>\n  ","summary":"A rejected input must not overwrite the draft."},{"record":{"kind":"specification","id":"CedarSkipRule","title":"Skipped rows have a visible explanation","needs":["CedarExplainSkip"],"bodyRef":"skip-rule-body","summaryRef":"skip-rule-summary"},"page":"specification.html","bodyHtml":"\n    \u003cdiv data-ex-part=\"rule\">\n      \u003cp id=\"skip-rule-summary\">Each skipped row has its row number and reason.\u003c/p>\n      \u003cp>For a row missing its note text, report that row number and the reason while retaining all valid rows.\u003c/p>\n    \u003c/div>\n  ","summary":"Each skipped row has its row number and reason."},{"record":{"kind":"program-design","id":"CedarImportBoundary","title":"Validate before applying the note batch","specifications":["CedarRejectRule","CedarSkipRule"],"bodyRef":"import-boundary-body","summaryRef":"import-boundary-summary"},"page":"program-design.html","bodyHtml":"\n    \u003cp id=\"import-boundary-summary\">CedarImport validates the source and collects row explanations before the batch applies to the draft.\u003c/p>\n    \u003cp>Header validation runs before any draft write.\u003c/p>\n    \u003cp>Valid notes and row explanations belong to the same parsed batch.\u003c/p>\n    \u003cdiv data-ex-part=\"sketch\">\n      \u003cex-mermaid id=\"cedar-import-flow\" label=\"Cedar import flow\">\u003cscript type=\"text/plain\">\nflowchart LR\n  A[Read source] --> B[Validate header and rows]\n  B --> C[Apply valid notes and report skips]\n      \u003c/script>\u003c/ex-mermaid>\n      \u003cex-markdown id=\"cedar-design-note\" label=\"Supplied design note\">\u003cscript type=\"text/markdown\">\nThe sentinel is `cedar-trial-42`.\n\nA **rejected** header leaves the existing draft unchanged. See the [format example](https://example.com/cedar-format).\n      \u003c/script>\u003c/ex-markdown>\n    \u003c/div>\n    \u003cdiv data-ex-part=\"gaps\">\n      \u003cex-markdown id=\"cedar-design-limits\" label=\"Design limits\">\u003cscript type=\"text/markdown\">\nThe host-specific file picker is outside this supplied design.\n      \u003c/script>\u003c/ex-markdown>\n    \u003c/div>\n  ","summary":"CedarImport validates the source and collects row explanations before the batch applies to the draft."},{"record":{"kind":"scenario","id":"CedarBadHeader","title":"Reject a file with an invalid header","specifications":["CedarRejectRule"],"bodyRef":"bad-header-body","summaryRef":"bad-header-summary"},"page":"verification.html","bodyHtml":"\n    \u003cp id=\"bad-header-summary\">Import the fixed invalid-header file and compare the draft before and after.\u003c/p>\n    \u003cdetails open=\"\" data-ex-part=\"procedure\">\n      \u003csummary>Procedure\u003c/summary>\n      \u003col>\n        \u003cli>\u003cstrong>Start with the draft\u003c/strong>\u003cp>Set the draft text to blue lantern.\u003c/p>\u003c/li>\n        \u003cli>\u003cstrong>Choose the invalid input\u003c/strong>\u003cp>Import a file whose first row is not the required header.\u003c/p>\u003c/li>\n        \u003cli>\u003cstrong>Read the resulting state\u003c/strong>\u003cp>The invalid-header explanation is visible and the draft still reads blue lantern.\u003c/p>\u003c/li>\n      \u003c/ol>\n    \u003c/details>\n  ","summary":"Import the fixed invalid-header file and compare the draft before and after."},{"record":{"kind":"scenario","id":"CedarMissingText","title":"Explain a row without note text","specifications":["CedarSkipRule"],"bodyRef":"missing-text-body","summaryRef":"missing-text-summary"},"page":"verification.html","bodyHtml":"\n    \u003cp id=\"missing-text-summary\">Import a batch containing one valid note and row 7 without note text; inspect the note and the row explanation.\u003c/p>\n  ","summary":"Import a batch containing one valid note and row 7 without note text; inspect the note and the row explanation."},{"record":{"kind":"observation","id":"CedarExampleBadHeader","scenario":"CedarBadHeader","outcome":"Fail","bodyRef":"bad-header-observation-body","summaryRef":"bad-header-observation-summary"},"page":"verification.html","bodyHtml":"\n    \u003cp id=\"bad-header-observation-summary\">Illustrative supplied result: the importer replaced the draft on rejection.\u003c/p>\n    \u003cp>In this invented example run, the invalid-header explanation appeared, but the draft became empty. This is an illustrative failed observation, not a product measurement.\u003c/p>\n  ","summary":"Illustrative supplied result: the importer replaced the draft on rejection."},{"record":{"kind":"frame","id":"CedarPick","name":"CedarImport.read(source)","source":"cedar-import.ts:12","responsibility":"Read the chosen source without changing the draft.","statement":"const sourceText = await source.read();","requirement":"CedarKeepDraft","category":"Input"},"page":"execution.html","bodyHtml":"","summary":""},{"record":{"kind":"frame","id":"CedarForward","name":"ImportChannel.forward(sourceText)","source":"import-channel.ts:24","responsibility":"Forward source text to the parser.","statement":"return parser.parse(sourceText);","category":"Plumbing","supporting":true},"page":"execution.html","bodyHtml":"","summary":""},{"record":{"kind":"frame","id":"CedarValidate","name":"CedarParser.validate(sourceText)","source":"cedar-parser.ts:37","responsibility":"Validate header and collect valid notes plus row explanations.","statement":"return validateHeaderAndRows(sourceText);","requirement":"CedarExplainSkip","category":"Resolution","branch":"An invalid header returns a refusal before applying notes."},"page":"execution.html","bodyHtml":"","summary":""},{"record":{"kind":"stack","id":"CedarImportPath","title":"Import the Cedar batch","description":"Read the source, forward it and validate before applying any notes.","primaryNeed":"CedarKeepDraft","frames":["CedarPick","CedarForward","CedarValidate"]},"page":"execution.html","bodyHtml":"","summary":""}]}
+</script></body>
+</html>

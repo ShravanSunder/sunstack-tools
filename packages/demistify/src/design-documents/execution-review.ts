@@ -1,6 +1,6 @@
 import type { DrawerElement } from '../elements.ts';
 import { loadDocumentModel, type CallStackExample, type FrameExample } from './collection-model.js';
-import { requirementHref, updateCallAddress } from './document-links.js';
+import { needHref, updateCallAddress } from './document-links.js';
 import { icon, restoreDocumentFocusAfterRender, safeText } from './document-markup.js';
 import { callStackMarkup, frameColor, frameDetailMarkup } from './execution-markup.js';
 import type { SearchPicker } from './search-picker.js';
@@ -144,7 +144,7 @@ export class ExecutionReview extends HTMLElement {
 		const needId = params.get('need');
 		if (
 			needId &&
-			this.model.requirements.some((item): boolean => item.id === needId) &&
+			this.model.needs.some((item): boolean => item.id === needId) &&
 			!params.has('call')
 		) {
 			const owner =
@@ -214,8 +214,6 @@ export class ExecutionReview extends HTMLElement {
 		else this.focus({ preventScroll: true });
 	}
 	private writeAddress(frameId: string): void {
-		// Embedded calls keep local selection; the document browser owns its address.
-		if (this.closest('ex-design-related')) return;
 		updateCallAddress(this.stack.id, frameId);
 	}
 	private onKey(event: KeyboardEvent): void {
@@ -275,8 +273,8 @@ export class ExecutionReview extends HTMLElement {
 			if (frame) detail.innerHTML = frameDetailMarkup(frame, preview !== undefined);
 			else if (this.selection.kind === 'unmapped-need') {
 				const needId = this.selection.needId;
-				const need = this.model.requirements.find((item): boolean => item.id === needId);
-				detail.innerHTML = `<small>${safeText(needId)} · Call mapping</small><div class="ex-design-local-heading" role="heading" aria-level="3">No call is mapped to this need</div><p>${safeText(need?.owner ?? '')}</p><a class="ex-design-navigation-action" href="${requirementHref(needId)}">${icon('arrow-left')} Open the original requirement</a>`;
+				const need = this.model.needs.find((item): boolean => item.id === needId);
+				detail.innerHTML = `<small>${safeText(needId)} · Call mapping</small><div class="ex-design-local-heading" role="heading" aria-level="3">No call is mapped to this need</div><p>${safeText(need?.owner ?? '')}</p><a class="ex-design-navigation-action" href="${needHref(needId)}">${icon('arrow-left')} Open the original requirement</a>`;
 			} else
 				detail.innerHTML =
 					'<div class="ex-design-local-heading" role="heading" aria-level="3">Call not found in this stack</div><p>Choose an existing call from the nested list.</p>';

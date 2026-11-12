@@ -132,8 +132,8 @@ function takeContent(
 		// Capture scope before live readers temporarily detach their view during the move.
 		revealOnInspect: !(
 			element.matches(
-				'ex-design-requirements-view > .ex-design-requirement-shell > .ex-design-requirement-pagination > details.ex-design-help, ex-design-call-view > .ex-design-component-toolbar > details.ex-design-help',
-			) && element.closest('ex-requirements,ex-call-stack')
+				'ex-design-call-view > .ex-design-component-toolbar > details.ex-design-help',
+			) && element.closest('ex-call-stack')
 		),
 	}));
 	const content = reserveWidth ? owner.cloneNode(false) : contentOwner;

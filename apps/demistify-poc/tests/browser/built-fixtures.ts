@@ -69,6 +69,7 @@ export async function builtFixtures(): Promise<Plugin> {
 			['show-me-work', 'show-me-work'],
 			['search', 'command-search'],
 			['review', 'choices-comments'],
+			['cedar', 'cedar-documents'],
 			['palette', 'diagram-colors'],
 			['shared-navigation', 'shared-navigation'],
 		].map(async ([name, source]): Promise<void> => {
@@ -87,6 +88,7 @@ export async function builtFixtures(): Promise<Plugin> {
 						await writeFile(
 							file,
 							html
+								.replaceAll('./demistify/', '/__demistify/library/')
 								.replaceAll('/experiments/islands/', '/__demistify/library/')
 								.replaceAll('../../../../../packages/demistify/dist/', '/__demistify/library/'),
 						);
@@ -214,12 +216,12 @@ export async function builtFixtures(): Promise<Plugin> {
 		bodyRef: 'observation-body',
 		summaryRef: 'observation-summary',
 	};
-	const reader = '<ex-requirements id="boundary-reader"></ex-requirements>';
+	const reader = '';
 	await writeFile(
 		join(collision, 'requirements.html'),
 		projectionBoundaryPage(
 			[need],
-			`<p id="shared-target">Root competing target</p><label id="shared-label" for="shared-input">Root competing label</label><span id="shared-extra">Root competing extra</span><input id="shared-input"><p id="procedure-target">Root competing procedure</p>${reader}`,
+			`<p>Root context</p>${reader}`,
 			'<template id="need-body"><p id="need-summary">Follow this record, not a similarly named element.</p></template>',
 		),
 	);
@@ -326,7 +328,7 @@ export async function builtFixtures(): Promise<Plugin> {
 		[...publicPrepared.pages].map(([name, html]) => writeFile(join(publicStyle, name), html)),
 	);
 	await cp(join(snapshot, 'library'), join(publicStyle, 'library'), { recursive: true });
-	const inspectorPage = await readFile(join(publicStyle, 'requirements.html'), 'utf8');
+	const inspectorPage = await readFile(join(publicStyle, 'execution.html'), 'utf8');
 	await writeFile(
 		join(publicStyle, 'inspector-controls.html'),
 		inspectorPage.replace(
@@ -337,8 +339,8 @@ export async function builtFixtures(): Promise<Plugin> {
 	await writeFile(
 		join(publicStyle, 'inspector-copy.html'),
 		inspectorPage
-			.replace('><ex-requirements', '><section><ex-requirements')
-			.replace('</ex-requirements></ex-zoom>', '</ex-requirements></section></ex-zoom>'),
+			.replace('><ex-call-stack', '><section><ex-call-stack')
+			.replace('</ex-call-stack></ex-zoom>', '</ex-call-stack></section></ex-zoom>'),
 	);
 	const callInspectorPage = await readFile(join(publicStyle, 'execution.html'), 'utf8');
 	await writeFile(
@@ -397,7 +399,17 @@ export async function builtFixtures(): Promise<Plugin> {
 			}
 			const prepared = await prepareDesignPages(destination);
 			await Promise.all(
-				[...prepared.pages].map(([file, html]) => writeFile(join(destination, file), html)),
+				[...prepared.pages].map(([file, html]) =>
+					writeFile(
+						join(destination, file),
+						file === 'requirements.html'
+							? html.replace(
+									'</ex-document>',
+									'<ex-call-stack id="revision-calls"></ex-call-stack></ex-document>',
+								)
+							: html,
+					),
+				),
 			);
 		}),
 	);
@@ -458,7 +470,17 @@ export async function builtFixtures(): Promise<Plugin> {
 				await writeFile(join(destination, 'notes.md'), `${name}: changed **Markdown** source.`);
 			const prepared = await prepareDesignPages(destination);
 			await Promise.all(
-				[...prepared.pages].map(([file, html]) => writeFile(join(destination, file), html)),
+				[...prepared.pages].map(([file, html]) =>
+					writeFile(
+						join(destination, file),
+						file === 'requirements.html'
+							? html.replace(
+									'</ex-document>',
+									'<ex-call-stack id="revision-calls"></ex-call-stack></ex-document>',
+								)
+							: html,
+					),
+				),
 			);
 			const repeated = await prepareDesignPages(destination);
 			if (repeated.collection.identity !== prepared.collection.identity)
@@ -487,7 +509,10 @@ export async function builtFixtures(): Promise<Plugin> {
 		},
 		Promise.resolve(),
 	);
-	const unprepared = await readFile(join(documentSource, 'requirements.html'), 'utf8');
+	const unprepared = (await readFile(join(documentSource, 'requirements.html'), 'utf8')).replace(
+		'</ex-document>',
+		'<ex-call-stack id="revision-calls"></ex-call-stack></ex-document>',
+	);
 	await writeFile(join(snapshot, 'document-browsers', 'unprepared.html'), unprepared);
 	const preparedFull = await readFile(
 		join(snapshot, 'document-browsers', 'full', 'requirements.html'),
@@ -520,7 +545,7 @@ export async function builtFixtures(): Promise<Plugin> {
 	await writeFile(
 		join(snapshot, 'document-browsers', 'labeled.html'),
 		labelPage
-			.replace('<ex-requirements id=', '<ex-requirements label="Draft design needs" id=')
+
 			.replace('<ex-call-stack id=', '<ex-call-stack label="Draft source calls" id='),
 	);
 	const reviewHtml = await readFile(join(snapshot, 'review/index.html'), 'utf8');

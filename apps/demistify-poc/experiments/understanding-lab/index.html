@@ -19,8 +19,8 @@
 		><ex-document id="content"
 			><h1>Requirements and call-path experiments</h1>
 			<p>
-				The requirements browser and nested call-path browser remain the baseline. The related
-				documents appear together inside the requirements component’s drawer.
+				Read the authored needs, rules, design and observations on their own pages. The call-stack
+				reader connects calls to the need each one serves.
 			</p>
 
 			<h2 id="choose">Choose an experiment</h2>
@@ -36,20 +36,25 @@
 					<tbody>
 						<tr>
 							<td><a href="requirements.html">User needs</a></td>
-							<td>Find a need by capability, then see its rule, owner and proof.</td>
-							<td>Search capabilities · Previous/Next · phone list/detail</td>
+							<td>Read the authored needs and follow their owner-page anchors.</td>
+							<td>Visible need sections · native page links</td>
 						</tr>
 						<tr>
 							<td>
-								<a href="requirements.html?need=U2&amp;reading=documents">Documents together</a>
+								<a href="specification.html">Specification</a>,
+								<a href="program-design.html">Program Design</a> and
+								<a href="verification.html">Verification</a>
 							</td>
-							<td>Compare the specification, design and checks in one view.</td>
-							<td>Rule across the top · design and proof below</td>
+							<td>Read the rules, design and supplied observations on their own pages.</td>
+							<td>Native sections · diagrams · supplied procedures</td>
 						</tr>
 						<tr>
-							<td><a href="execution.html">Calls and verification</a></td>
-							<td>See who called a frame, distinguish a branch, and inspect the original need.</td>
-							<td>Search stacks · nested calls · linked requirement and proof</td>
+							<td><a href="execution.html">Source call paths</a></td>
+							<td>
+								Select a stack and frame, distinguish supporting calls and branches, and follow
+								mapped needs.
+							</td>
+							<td>Search stacks · arrow-key selection · authored need links</td>
 						</tr>
 					</tbody>
 				</table>
@@ -61,9 +66,9 @@
 				evidence that a product requirement is satisfied.
 			</p>
 			<p>
-				Both active experiments use the local library build, shared fonts, palette and spacing. No
-				framework, backend or custom theme is required. The proposed components live in this
-				demonstration app until we choose which ideas deserve a library contract.
+				The owner pages use ordinary HTML. The retained call-stack reader and shared navigation,
+				inspection and Comments come from the local library build. They share fonts, palette and
+				spacing; no framework, backend or custom theme is required.
 			</p></ex-document
 		>
 	</body>

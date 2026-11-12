@@ -1,0 +1,107 @@
+{
+  "case": "Cedar importer document collection",
+  "date": "2026-11-08",
+  "componentSource": "f9890e643c4a647062dfa7ec7127a9f3e6c34206",
+  "author": {
+    "model": "Luna",
+    "effort": "high",
+    "context": "Fresh author supplied with a neutral request, facts and candidate guide/binding; complete guide-loading/action history not established"
+  },
+  "result": {
+    "status": "Accepted after one externally guided correction",
+    "firstSubmission": {
+      "staticCheckerErrors": 0,
+      "omittedSuppliedContent": "designs[0].markdown"
+    },
+    "guidedCorrections": 1,
+    "correction": "Restored the exact supplied Markdown, including code, emphasis and external link, while keeping the design gap separate.",
+    "acceptedArtifact": {
+      "independentSourceChecks": 115,
+      "sourceIssues": 0,
+      "readerChecks": 46,
+      "readerFailures": 0,
+      "callDetailsMatched": 18,
+      "browserCapture": {
+        "passed": 2,
+        "nameFilteredSkipped": 25,
+        "widthsCssPx": [
+          1600,
+          390
+        ]
+      }
+    },
+    "evidenceBasis": "Lead-admitted independent observation of the corrected named artifact; these are not new integration-run scores."
+  },
+  "qualification": {
+    "firstPassSuccess": false,
+    "guideOnlySuccessClaim": false,
+    "completeCedarGuideActionHistoryEstablished": false,
+    "priorGuideControl": false,
+    "generalModelReliabilityClaim": false,
+    "costOrTotalUsageClaim": false,
+    "earlierFramedTrial": "Excluded from formal guide-behavior evaluation",
+    "complementaryHarborLookup": "Separate bounded lookup evidence; does not establish Cedar full action history"
+  },
+  "integration": {
+    "changes": [
+      "Only stylesheet URL changed to ./demistify/theme.css",
+      "Only module URL changed to ./demistify/runtime.js"
+    ],
+    "bodyMetadataAndPresentationUnchanged": true,
+    "builder": "Existing agent-written folder copy with complete matching demistify distribution"
+  },
+  "files": [
+    {
+      "name": "execution.html",
+      "originalSha256": "01f950dab8dc2f7b9b53e1d4d89d7013b031593209e0cf52707c7de2c9584167",
+      "copySha256": "dec0b8e24f4a23838bf5f610102e370ab9a13ed596623bf1a0479fdebcb6cad0",
+      "originalBytes": 10747,
+      "copyBytes": 10725,
+      "onlyTwoHeadAssetUrlsChanged": true
+    },
+    {
+      "name": "program-design.html",
+      "originalSha256": "8644fa0b0641cb9c097dd1276e50bfa149aa68465abdc8c0bae4adbc6273f5ee",
+      "copySha256": "ff04ebbdfde53382b4c798eeceef0822dd49aae67113a518070496de8bb812b7",
+      "originalBytes": 10862,
+      "copyBytes": 10840,
+      "onlyTwoHeadAssetUrlsChanged": true
+    },
+    {
+      "name": "requirements.html",
+      "originalSha256": "c0c63eb1cdb9b341e96f73616f5eb9231c8925d120c06c9281db45ad0bc8427d",
+      "copySha256": "a76352fac088539624c0959a199b23f94da22aa7d38d6b823ba4942e3b4ce472",
+      "originalBytes": 10669,
+      "copyBytes": 10647,
+      "onlyTwoHeadAssetUrlsChanged": true
+    },
+    {
+      "name": "specification.html",
+      "originalSha256": "229155058bbda3c4517899ba0072820cc8ddbf100a64bf1197a48146dcbbb07e",
+      "copySha256": "c601d896b738073c119b5e1537fd3344db20b3439ce0c82956dca3c6666fa267",
+      "originalBytes": 10995,
+      "copyBytes": 10973,
+      "onlyTwoHeadAssetUrlsChanged": true
+    },
+    {
+      "name": "verification.html",
+      "originalSha256": "6bfa99cdbf9724d9080da88675f31875d5fd717806e9f6a292e9cd17cbf69a67",
+      "copySha256": "bbed48e38ff656deeeae33a75a9b3032cb5737ff8203cb86bafd625e0ebc056a",
+      "originalBytes": 11223,
+      "copyBytes": 11201,
+      "onlyTwoHeadAssetUrlsChanged": true
+    }
+  ],
+  "inputs": [
+    {
+      "name": "input/request.md",
+      "bytes": 1762,
+      "sha256": "cff636006603db31dd752bb8bf4640cdc60363649f9036b75dbefd33defc4bc8"
+    },
+    {
+      "name": "input/facts.json",
+      "bytes": 5332,
+      "sha256": "0a9b9e61383ca81bd0e9166a1065050b77e6ae358ac78b9d068e2d75ed323565"
+    }
+  ]
+}

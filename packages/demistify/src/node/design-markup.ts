@@ -132,9 +132,7 @@ function assertNever(record: never): never {
 /** Single-page checks do not claim cross-page edge validation. */
 export function checkDesignMarkup(html: string): readonly string[] {
 	const nodes = elements(parse(html));
-	const readers = nodes.filter(
-		(node) => node.tagName === 'ex-requirements' || node.tagName === 'ex-call-stack',
-	);
+	const readers = nodes.filter((node) => node.tagName === 'ex-call-stack');
 	const blocks = nodes.filter(
 		(node) => node.tagName === 'script' && attribute(node, 'data-ex-records') !== undefined,
 	);
@@ -156,7 +154,7 @@ export function checkDesignMarkup(html: string): readonly string[] {
 	} catch (error: unknown) {
 		problems.push(error instanceof Error ? error.message : 'Invalid authored design records');
 	}
-	for (const tag of ['ex-requirements', 'ex-call-stack'])
+	for (const tag of ['ex-call-stack'])
 		if (readers.filter((reader) => reader.tagName === tag).length > 1)
 			problems.push(`At most one ${tag} reader is supported per document`);
 	if (readers.length) {
