@@ -37,3 +37,7 @@ pub(crate) fn prepare_encoding_backend(
             )
         })
 }
+
+#[cfg(test)]
+#[path = "backend_factory_test.rs"]
+mod tests;

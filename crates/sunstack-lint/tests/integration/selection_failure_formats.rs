@@ -422,18 +422,48 @@ fn a_stage_stopped_after_a_settled_selection_keeps_its_request_and_usage() {
             Some("evidence stage failed")
         );
     }
-    // The settled request and its reported usage stay in the partial report.
+    // The settled request, its receipt and its reported usage stay in the partial report.
     assert_eq!(partial.usage.model_requests, 1);
     assert_eq!(partial.usage.input_tokens, Some(20));
     assert_eq!(partial.usage.output_tokens, Some(5));
+    assert_eq!(partial.usage.cost_reported_requests, 1);
     assert!(partial.usage.checked_files_acquired >= 1);
-    assert_eq!(partial.requests.len(), 1);
+    assert_settled_selection_request(&partial.requests);
+    // The CLI's report is exactly the report as it stood: the partial report without the
+    // settled requests and usage the run had not yet recorded.
+    let mut as_it_stood = serde_json::to_value(&partial).unwrap();
+    as_it_stood["requests"] = json!([]);
+    as_it_stood["usage"] = serde_json::to_value(UsageSummary::default()).unwrap();
+    assert_eq!(serde_json::to_value(&cli).unwrap(), as_it_stood);
+}
+
+/// Exactly one saved selection request, linked to its owner, candidates, models, input
+/// digest and completed receipt.
+fn assert_settled_selection_request(requests: &[SavedRequest]) {
+    let [request] = requests else {
+        panic!("one settled selection request: {requests:?}");
+    };
+    let RequestOwner::Selection {
+        selection_kind,
+        file,
+    } = &request.owner
+    else {
+        panic!("a selection owner: {:?}", request.owner);
+    };
+    assert_eq!(selection_kind.as_str(), "workflow_section");
+    assert_eq!(file, Path::new("skills/practices-research/SKILL.md"));
+    assert_eq!(request.requested_model.as_str(), "jev-latest");
+    assert_eq!(
+        request.resolved_model.as_ref().map(|model| model.as_str()),
+        Some("typesafe/controlled")
+    );
+    assert!(request.input_sha256.is_some());
+    let evidence = request.selection_evidence.as_ref().unwrap();
+    assert!(!evidence.candidates.is_empty());
     assert!(matches!(
-        &partial.requests[0].owner,
-        RequestOwner::Selection { selection_kind, .. } if selection_kind.as_str() == "workflow_section"
+        &request.outcome,
+        SavedRequestOutcome::Run {
+            outcome: sunstack_decisions::DecisionRunOutcome::Completed { .. }
+        }
     ));
-    // The CLI's report is unchanged: the report as it stood, without them.
-    assert_eq!(cli.usage.model_requests, 0);
-    assert_eq!(cli.usage.checked_files_acquired, 0);
-    assert!(cli.requests.is_empty());
 }
