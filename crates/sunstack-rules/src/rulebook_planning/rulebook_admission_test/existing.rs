@@ -119,3 +119,120 @@ fn kind_refusals_cover_rules_regex_sizes_and_one_level_composition() {
         .max_chars = std::num::NonZeroU32::new(999);
     assert!(admit_evidence_kinds(&kinds, &project, 999).len() >= 5);
 }
+
+#[test]
+fn cross_document_tools_admit_only_compatible_field_shapes() {
+    let mut kinds = fixture::kinds();
+    let target = kinds[&EvidenceKindName::new("load").unwrap()].fields
+        [&FieldName::new("targets").unwrap()]
+        .clone();
+    kinds
+        .get_mut(&EvidenceKindName::new("step").unwrap())
+        .unwrap()
+        .fields
+        .insert(FieldName::new("targets").unwrap(), target);
+    let project = fixture::project();
+    for (tool, valid) in [
+        (json!({"tool":"anchor_exists","field":"targets"}), true),
+        (json!({"tool":"anchor_exists","field":"body"}), false),
+        (
+            json!({"tool":"contains_field","field":"completion","needle":"body"}),
+            true,
+        ),
+        (
+            json!({"tool":"contains_field","field":"targets","needle":"body"}),
+            false,
+        ),
+        (
+            json!({"tool":"contains_field","field":"body","needle":"completion"}),
+            false,
+        ),
+        (
+            json!({"tool":"contains_field","field":"body","needle":"undefined"}),
+            false,
+        ),
+    ] {
+        let mut entry = fixture::entry_json("K001");
+        entry["decision"]["steps"]["has_completion"]["mechanical_check"] = tool.clone();
+        let entry = serde_json::from_value(entry).unwrap();
+        assert_eq!(
+            admit_rule_entry(&entry, &kinds, &project, &Default::default()).is_ok(),
+            valid,
+            "{tool}"
+        );
+    }
+}
+
+#[test]
+fn document_source_requires_a_known_rule_and_nonempty_path() {
+    let project = fixture::project();
+    for (path, rule, valid) in [
+        ("other.html", "completion", true),
+        ("", "completion", false),
+        ("other.html", "missing", false),
+    ] {
+        let mut kinds = fixture::kinds();
+        let source: FieldSource =
+            serde_json::from_value(json!({"from":"document", "path":path, "rule":rule})).unwrap();
+        kinds
+            .get_mut(&EvidenceKindName::new("step").unwrap())
+            .unwrap()
+            .fields
+            .insert(FieldName::new("other_document").unwrap(), source);
+        assert_eq!(
+            admit_evidence_kinds(&kinds, &project, 6000).is_empty(),
+            valid,
+            "{path} {rule}"
+        );
+    }
+}
+
+#[test]
+fn yaml_fields_are_markdown_only_and_document_rules_can_use_another_language() {
+    for (language, kind, diagnostic) in [
+        ("Markdown", "paragraph", None),
+        ("Html", "element", Some("Html")),
+        ("Json", "pair", Some("JSON")),
+        ("Yaml", "block_mapping", Some("Yaml")),
+        ("Rust", "function_item", Some("Rust")),
+    ] {
+        let inline = sunstack_evidence::InlineRule {
+            kind: EvidenceKindName::new("cross_language").unwrap(),
+            text: format!("language: {language}\nrule:\n  kind: {kind}\n"),
+            origin: ConfigPath::keys(["test"]),
+        };
+        let project = sunstack_evidence::load_evidence_project(
+            &fixture::fixture().join("evidence/sgconfig.yml"),
+            &[inline],
+            None,
+        )
+        .unwrap();
+        let mut kinds = fixture::kinds();
+        kinds.retain(|name, _| name.as_str() == "step");
+        let kind = kinds
+            .get_mut(&EvidenceKindName::new("step").unwrap())
+            .unwrap();
+        kind.matcher = sunstack_evidence::KindMatcher::Named(
+            sunstack_evidence::EvidenceRuleId::new("cross_language").unwrap(),
+        );
+        kind.fields.clear();
+        kind.fields.insert(
+            FieldName::new("frontmatter").unwrap(),
+            serde_json::from_value(json!({"from":"yaml","key":"name"})).unwrap(),
+        );
+        kind.fields.insert(
+            FieldName::new("other_document").unwrap(),
+            serde_json::from_value(
+                json!({"from":"document","path":"other.md","rule":"completion"}),
+            )
+            .unwrap(),
+        );
+        let errors = admit_evidence_kinds(&kinds, &project, 6000);
+        if let Some(name) = diagnostic {
+            assert_eq!(errors.len(), 1, "{language}: {errors:?}");
+            assert!(errors[0].message.contains(name), "{errors:?}");
+        } else {
+            assert!(errors.is_empty(), "{errors:?}");
+        }
+    }
+}

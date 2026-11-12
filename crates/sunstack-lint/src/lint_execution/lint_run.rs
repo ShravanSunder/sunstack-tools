@@ -226,8 +226,14 @@ async fn run_internal(
     let selected_config = config.clone();
     let paths = request.paths.clone();
     let selected_cwd = cwd.clone();
+    let checked_root = request.root.clone();
     let selection = match tokio::task::spawn_blocking(move || {
-        crate::lint_execution::targets::select_targets(&selected_config, &paths, &selected_cwd)
+        crate::lint_execution::targets::select_targets(
+            &selected_config,
+            &paths,
+            &selected_cwd,
+            checked_root.as_deref(),
+        )
     })
     .await
     {
@@ -236,11 +242,40 @@ async fn run_internal(
         Err(_) => return failed(report, "target selection failed"),
     };
     report.exclusions.ignored = selection.ignored;
+    if selection.files.is_empty() && !request.paths.is_empty() {
+        return failed(
+            report,
+            &format!(
+                "nothing selected for named paths within root {}",
+                selection.root.display()
+            ),
+        );
+    }
     let full = matches!(request.scope, ScopeChoice::All) || !request.paths.is_empty();
     let mut changes = Vec::new();
     let mut frozen = BTreeMap::new();
     let mut full = full;
     if !full {
+        if request.root.is_some()
+            && git2::Repository::discover(&selection.root)
+                .ok()
+                .and_then(|repository| {
+                    repository
+                        .workdir()
+                        .and_then(|path| path.canonicalize().ok())
+                })
+                .as_ref()
+                != Some(&selection.root)
+        {
+            return invalid(
+                report,
+                LintInvalid::at(
+                    &selection.root,
+                    LintInvalidCode::UnsupportedInputs,
+                    "change scope with --root requires the repository root; use --all for a checked subdirectory",
+                ),
+            );
+        }
         if git2::Repository::open(&selection.root).is_err() {
             return invalid(
                 report,

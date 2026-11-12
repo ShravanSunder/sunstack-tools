@@ -49,9 +49,7 @@ fn read_cached_content(
     path: &Path,
     limits: PieceBuildLimits,
 ) -> Result<String, CheckedReadError> {
-    let path = source
-        .resolve_file(path)
-        .ok_or(CheckedReadError::NotContained)?;
+    let path = source.resolve_file(path)?;
     if let Some(content) = contents.get(&path) {
         return content.clone();
     }
@@ -176,6 +174,13 @@ impl EvidenceBuild {
                     .flatten()
                 {
                     for field in definition.fields.values() {
+                        if let FieldSource::Document { path: document, .. } = field {
+                            let target = path.parent().unwrap_or(Path::new("")).join(document);
+                            if let Some(resolved) = source.resolve_file(&target).ok().or_else(|| crate::source_acquisition::checked_file_source::contained_target_identity(repository_root, &target)) {
+                                targets.entry(path.clone()).or_default().push(resolved);
+                            }
+                            continue;
+                        }
                         let FieldSource::Target {
                             regex,
                             resolve,
@@ -189,13 +194,22 @@ impl EvidenceBuild {
                             continue;
                         };
                         for name in target_names(&pattern, file, range, exclude.as_ref()) {
+                            if name.is_empty() {
+                                continue;
+                            }
                             let use_path = match resolve {
                                 EvidenceTargetResolution::Path => true,
                                 EvidenceTargetResolution::Skill => false,
                                 EvidenceTargetResolution::PathOrSkill => name.ends_with(".md"),
                             };
                             let paths = if use_path {
-                                vec![path.parent().unwrap_or(Path::new("")).join(name)]
+                                vec![match name
+                                    .split_once('#')
+                                    .map_or(name.as_str(), |(file, _)| file)
+                                {
+                                    "" => path.clone(),
+                                    file => path.parent().unwrap_or(Path::new("")).join(file),
+                                }]
                             } else {
                                 self.matched
                                     .keys()
@@ -210,7 +224,7 @@ impl EvidenceBuild {
                                     .collect()
                             };
                             for target in paths {
-                                if let Some(resolved) = source.resolve_file(&target).or_else(|| {
+                                if let Some(resolved) = source.resolve_file(&target).ok().or_else(|| {
                                     crate::source_acquisition::checked_file_source::contained_target_identity(
                                         repository_root,
                                         &target,
@@ -422,6 +436,7 @@ fn target_names(
                         .skip(1)
                         .flatten()
                         .find(|value| !value.as_str().is_empty())
+                        .or_else(|| capture.iter().skip(1).flatten().next())
                         .map(|value| value.as_str().to_owned())
                 })
                 .collect::<Vec<_>>()
@@ -432,6 +447,7 @@ fn target_names(
 mod field_composition;
 use field_composition::{local_fields, source_span};
 
+mod document_fields;
 mod target_loading;
 
 mod context_loading;

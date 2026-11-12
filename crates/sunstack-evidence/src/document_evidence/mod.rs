@@ -1,5 +1,6 @@
 pub mod document_selection;
 pub mod frontmatter_contracts;
+pub(crate) mod html_content;
 pub mod markdown_contracts;
 pub mod markdown_document;
 pub(crate) mod markdown_frontmatter;

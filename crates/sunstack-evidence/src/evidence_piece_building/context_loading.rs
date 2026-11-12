@@ -152,7 +152,7 @@ impl EvidenceBuild {
                     kind: kind.clone(),
                     location,
                     text: file.text[range.start..range.end].into(),
-                    model_view: self.project_fields(definition, &fields),
+                    model_view: self.project_fields(kind, definition, &fields),
                     fields,
                 });
             }

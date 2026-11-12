@@ -575,8 +575,22 @@ fn validate_tool(
         DecisionMechanicalTool::Contains { field, .. } => {
             (field, &[FieldShape::Text, FieldShape::Texts])
         }
+        DecisionMechanicalTool::ContainsField { field, needle } => {
+            if !kind
+                .fields
+                .get(needle)
+                .is_some_and(|source| source.shape() == FieldShape::Text)
+            {
+                errors.push(refusal(
+                    path,
+                    "mechanical tool names an undefined or incompatible field",
+                ));
+            }
+            (field, &[FieldShape::Text, FieldShape::Texts])
+        }
         DecisionMechanicalTool::MaxChars { field, .. } => (field, &[FieldShape::Text]),
-        DecisionMechanicalTool::FileExists { field } => (field, &[FieldShape::Targets]),
+        DecisionMechanicalTool::FileExists { field }
+        | DecisionMechanicalTool::AnchorExists { field } => (field, &[FieldShape::Targets]),
         DecisionMechanicalTool::Complete { field } => (
             field,
             &[FieldShape::Text, FieldShape::Texts, FieldShape::Targets],

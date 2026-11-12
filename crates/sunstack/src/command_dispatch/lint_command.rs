@@ -103,6 +103,12 @@ async fn inspect(arguments: &LintArguments, cancellation: CancellationToken) -> 
     }
 }
 async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> ExitCode {
+    if arguments.root.is_some() && arguments.command.is_some() {
+        return output(
+            "--root applies to ordinary lint; lint cases owns its historical snapshot root and lint show reads a saved report.",
+            2,
+        );
+    }
     if let Some(LintCommand::Show { file, id }) = &arguments.command {
         let detail = std::fs::read(file)
             .map_err(|error| error.to_string())
@@ -216,6 +222,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
     };
     let request = LintRequest {
         config_path: arguments.config,
+        root: arguments.root,
         paths: arguments.paths,
         scope,
         max_warnings: arguments.max_warnings,

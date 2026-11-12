@@ -51,6 +51,9 @@ pub struct LintArguments {
     pub paths: Vec<PathBuf>,
     #[arg(long, conflicts_with = "init")]
     pub config: Option<PathBuf>,
+    /// Resolve checked file globs and evidence paths within this directory.
+    #[arg(long, value_name = "DIR", conflicts_with = "init")]
+    pub root: Option<PathBuf>,
     /// Check all configured targets.
     #[arg(long, conflicts_with_all = ["since", "check", "rules", "init"])]
     pub all: bool,

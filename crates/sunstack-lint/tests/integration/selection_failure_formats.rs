@@ -37,6 +37,7 @@ fn selection_fixture(root: &Path, endpoint: &str) -> LintRequest {
     std::fs::write(&path, serde_json::to_vec_pretty(&config).unwrap()).unwrap();
     LintRequest {
         config_path: Some(path),
+        root: None,
         paths: vec![],
         scope: ScopeChoice::All,
         max_warnings: None,

@@ -31,11 +31,16 @@ pub fn admit_evidence_kinds(
             if let Some(language) = project.language_for_rule(&kind.matcher.rule_id(name)) {
                 use sunstack_evidence::EvidenceLanguage;
                 let context = format!("kind {} field {}", name.as_str(), field.as_str());
-                if language == EvidenceLanguage::Json && matches!(source, FieldSource::Yaml { .. })
+                if language != EvidenceLanguage::Markdown
+                    && matches!(source, FieldSource::Yaml { .. })
                 {
                     errors.push(refusal(
                         &path,
-                        format!("{context}: yaml is not supported on JSON evidence"),
+                        if language == EvidenceLanguage::Json {
+                            format!("{context}: yaml is not supported on JSON evidence")
+                        } else {
+                            format!("{context}: yaml is not supported on {language:?} evidence")
+                        },
                     ));
                 }
                 let referenced = match source {
@@ -55,7 +60,8 @@ pub fn admit_evidence_kinds(
                         exclude: Some(exclude),
                         ..
                     } => project.language_for_rule(&exclude.rule),
-                    FieldSource::FirstLine { .. }
+                    FieldSource::Document { .. }
+                    | FieldSource::FirstLine { .. }
                     | FieldSource::Capture { .. }
                     | FieldSource::Yaml { .. }
                     | FieldSource::Remainder { exclude: None }
@@ -122,6 +128,20 @@ pub fn admit_evidence_kinds(
                             }
                             Some(_) => {}
                         }
+                    }
+                }
+                FieldSource::Document {
+                    path: document_path,
+                    rule,
+                } => {
+                    if document_path.as_os_str().is_empty() {
+                        errors.push(refusal(
+                            path.with_key("path"),
+                            "document path must not be empty",
+                        ));
+                    }
+                    if !project.rule_ids.contains(rule) {
+                        errors.push(refusal(path.with_key("rule"), "unknown evidence rule"));
                     }
                 }
                 FieldSource::FirstLine {}

@@ -146,6 +146,7 @@ async fn already_cancelled_prepare_retains_cancelled_precedence() {
     let report = sunstack_lint::prepare(
         sunstack_lint::LintRequest {
             config_path: Some(root.path().join("skill-rules.config.json")),
+            root: None,
             paths: vec![],
             scope: sunstack_lint::ScopeChoice::All,
             max_warnings: None,

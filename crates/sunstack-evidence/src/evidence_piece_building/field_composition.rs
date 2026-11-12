@@ -134,7 +134,9 @@ pub(super) fn local_fields(
                 )
             }
             FieldSource::Yaml { key } => yaml_field(file, range, key),
-            FieldSource::Remainder { .. } | FieldSource::Target { .. } => continue,
+            FieldSource::Remainder { .. }
+            | FieldSource::Target { .. }
+            | FieldSource::Document { .. } => continue,
         };
         fields.insert(name.clone(), value);
     }

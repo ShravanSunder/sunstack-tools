@@ -323,6 +323,8 @@ async fn ungated_choice_exclusion_is_identical_with_filters_absent_or_declared()
     let root = tempfile::tempdir().unwrap();
     let server = ControlledServer::start().await;
     let mut config = setup(root.path(), &server.endpoint);
+    // This comparison pins request payloads, not concurrent arrival order.
+    config["limits"] = json!({"max_concurrent_requests":1});
     let filters = config.as_object_mut().unwrap().remove("filters").unwrap();
     let mut entries: Value =
         serde_json::from_slice(&std::fs::read(root.path().join("rules.json")).unwrap()).unwrap();

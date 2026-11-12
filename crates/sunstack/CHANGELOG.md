@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.0
+
+Release date: 2026-11-11.
+
+- Evidence projects support every built-in ast-grep language, with HTML text
+  projected for asking rules while mechanical checks and locations retain source.
+- Cross-document checks add `document` fields, whole-token `contains_field`, and
+  `anchor_exists` for HTML IDs. Referenced files share acquisition budgets.
+- `lint --root` checks project files with an external configuration; named paths
+  outside the root are invalid, and an empty named selection is incomplete.
+
 ## 0.10.0
 
 Release date: 2026-11-08.

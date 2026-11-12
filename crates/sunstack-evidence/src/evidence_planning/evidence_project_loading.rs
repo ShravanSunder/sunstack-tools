@@ -68,22 +68,105 @@ pub struct EvidenceProject {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceLanguage {
-    Markdown,
+    Bash,
+    C,
+    Cpp,
+    CSharp,
+    Css,
+    Dart,
+    Go,
+    Elixir,
+    Haskell,
+    Hcl,
+    Html,
+    Java,
+    JavaScript,
     Json,
+    Kotlin,
+    Lua,
+    Markdown,
+    Nix,
+    Php,
+    Python,
+    Ruby,
+    Rust,
+    Scala,
+    Solidity,
+    Swift,
+    Tsx,
+    TypeScript,
+    Yaml,
+    Zig,
 }
 impl EvidenceLanguage {
-    fn from_support(language: SupportLang) -> Option<Self> {
+    fn from_support(language: SupportLang) -> Self {
         match language {
-            SupportLang::Markdown => Some(Self::Markdown),
-            SupportLang::Json => Some(Self::Json),
-            _ => None,
+            SupportLang::Bash => Self::Bash,
+            SupportLang::C => Self::C,
+            SupportLang::Cpp => Self::Cpp,
+            SupportLang::CSharp => Self::CSharp,
+            SupportLang::Css => Self::Css,
+            SupportLang::Dart => Self::Dart,
+            SupportLang::Go => Self::Go,
+            SupportLang::Elixir => Self::Elixir,
+            SupportLang::Haskell => Self::Haskell,
+            SupportLang::Hcl => Self::Hcl,
+            SupportLang::Html => Self::Html,
+            SupportLang::Java => Self::Java,
+            SupportLang::JavaScript => Self::JavaScript,
+            SupportLang::Json => Self::Json,
+            SupportLang::Kotlin => Self::Kotlin,
+            SupportLang::Lua => Self::Lua,
+            SupportLang::Markdown => Self::Markdown,
+            SupportLang::Nix => Self::Nix,
+            SupportLang::Php => Self::Php,
+            SupportLang::Python => Self::Python,
+            SupportLang::Ruby => Self::Ruby,
+            SupportLang::Rust => Self::Rust,
+            SupportLang::Scala => Self::Scala,
+            SupportLang::Solidity => Self::Solidity,
+            SupportLang::Swift => Self::Swift,
+            SupportLang::Tsx => Self::Tsx,
+            SupportLang::TypeScript => Self::TypeScript,
+            SupportLang::Yaml => Self::Yaml,
+            SupportLang::Zig => Self::Zig,
         }
     }
     fn support(self) -> SupportLang {
         match self {
-            Self::Markdown => SupportLang::Markdown,
+            Self::Bash => SupportLang::Bash,
+            Self::C => SupportLang::C,
+            Self::Cpp => SupportLang::Cpp,
+            Self::CSharp => SupportLang::CSharp,
+            Self::Css => SupportLang::Css,
+            Self::Dart => SupportLang::Dart,
+            Self::Go => SupportLang::Go,
+            Self::Elixir => SupportLang::Elixir,
+            Self::Haskell => SupportLang::Haskell,
+            Self::Hcl => SupportLang::Hcl,
+            Self::Html => SupportLang::Html,
+            Self::Java => SupportLang::Java,
+            Self::JavaScript => SupportLang::JavaScript,
             Self::Json => SupportLang::Json,
+            Self::Kotlin => SupportLang::Kotlin,
+            Self::Lua => SupportLang::Lua,
+            Self::Markdown => SupportLang::Markdown,
+            Self::Nix => SupportLang::Nix,
+            Self::Php => SupportLang::Php,
+            Self::Python => SupportLang::Python,
+            Self::Ruby => SupportLang::Ruby,
+            Self::Rust => SupportLang::Rust,
+            Self::Scala => SupportLang::Scala,
+            Self::Solidity => SupportLang::Solidity,
+            Self::Swift => SupportLang::Swift,
+            Self::Tsx => SupportLang::Tsx,
+            Self::TypeScript => SupportLang::TypeScript,
+            Self::Yaml => SupportLang::Yaml,
+            Self::Zig => SupportLang::Zig,
         }
+    }
+    fn rejects_parse_errors(self) -> bool {
+        matches!(self, Self::Json | Self::Yaml | Self::Hcl)
     }
 }
 
@@ -150,7 +233,7 @@ impl EvidenceProject {
         let mut index = FileMatchIndex::default();
         let languages = rules
             .iter()
-            .filter_map(|rule| EvidenceLanguage::from_support(rule.language))
+            .map(|rule| EvidenceLanguage::from_support(rule.language))
             .collect::<BTreeSet<_>>();
         // Keep every tree alive so its node identities cannot be reused by another parse.
         let documents = languages
@@ -158,15 +241,13 @@ impl EvidenceProject {
             .map(|language| (language, language.support().ast_grep(text)))
             .collect::<BTreeMap<_, _>>();
         for (language, document) in &documents {
-            if *language == EvidenceLanguage::Json && document.root().get_inner_node().has_error() {
+            if language.rejects_parse_errors() && document.root().get_inner_node().has_error() {
                 index.failed_languages.insert(*language);
             }
         }
         let mut count = 0usize;
         for rule in rules {
-            let Some(language) = EvidenceLanguage::from_support(rule.language) else {
-                continue;
-            };
+            let language = EvidenceLanguage::from_support(rule.language);
             if index.failed_languages.contains(&language) {
                 continue;
             }
@@ -284,12 +365,6 @@ pub fn load_evidence_project(
                         format!("reserved standard util ID: {}", util.id),
                     ));
                 }
-                if EvidenceLanguage::from_support(util.language).is_none() {
-                    return Err(ProjectRefusal::at(
-                        &path,
-                        "only Markdown and JSON evidence is supported",
-                    ));
-                }
                 utils.push(util);
             }
             inputs.push(path);
@@ -310,9 +385,7 @@ pub fn load_evidence_project(
                 format!("reserved standard util ID: {}", rule.id),
             ));
         }
-        let language = EvidenceLanguage::from_support(rule.language).ok_or_else(|| {
-            ProjectRefusal::at(path, "only Markdown and JSON evidence is supported")
-        })?;
+        let language = EvidenceLanguage::from_support(rule.language);
         let id = crate::EvidenceRuleId::new(rule.id.clone())
             .map_err(|error| ProjectRefusal::at(path, error))?;
         if !rule_ids.insert(id.clone()) {

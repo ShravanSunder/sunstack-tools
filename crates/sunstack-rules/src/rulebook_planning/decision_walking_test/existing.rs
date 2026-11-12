@@ -504,3 +504,130 @@ fn every_outcome_keeps_only_answers_read_and_incomplete_walk_history() {
         serde_json::to_value(supplied).unwrap()
     );
 }
+
+#[test]
+fn contains_field_walks_whole_tokens_and_reports_unavailable_inputs() {
+    let tool: DecisionMechanicalTool =
+        serde_json::from_value(json!({"tool":"contains_field","field":"body","needle":"heading"}))
+            .unwrap();
+    let mut rule = fixture::rule("K001");
+    rule.decision.steps = BTreeMap::from([(
+        rule.decision.start.clone(),
+        DecisionStep::Mechanical {
+            tool,
+            yes: DecisionRoute::Pass,
+            no: DecisionRoute::NotApplicable,
+        },
+    )]);
+    let mut piece = fixture::piece();
+    let body = FieldName::new("body").unwrap();
+    let needle = FieldName::new("heading").unwrap();
+    piece.fields.insert(
+        needle.clone(),
+        FieldValue::Text {
+            value: "R1".into(),
+            spans: vec![],
+        },
+    );
+    for (text, expected) in [
+        ("R1 / U1", "pass"),
+        ("(R1)", "pass"),
+        ("R10 XR1 R1_ éR1 R1٢", "not_applicable"),
+    ] {
+        piece.fields.insert(
+            body.clone(),
+            FieldValue::Texts {
+                values: vec![text.into()],
+                spans: vec![],
+            },
+        );
+        let WalkOutcome::Settled(result) = walk_decision(&rule, &piece, &fixture::index(), None)
+        else {
+            panic!()
+        };
+        assert_eq!(
+            serde_json::to_value(result).unwrap()["result"],
+            expected,
+            "{text}"
+        );
+    }
+    for value in [
+        FieldValue::Absent,
+        FieldValue::Unavailable {
+            reason: FieldUnavailable::Unreadable,
+        },
+        FieldValue::Text {
+            value: String::new(),
+            spans: vec![],
+        },
+    ] {
+        piece.fields.insert(needle.clone(), value);
+        assert!(
+            matches!(walk_decision(&rule, &piece, &fixture::index(), None), WalkOutcome::Settled(RulebookResult::Incomplete { reason: RulebookIncompleteReason::EvidenceUnavailable, field: Some(field), .. }) if field == needle)
+        );
+    }
+    piece.fields.insert(
+        needle,
+        FieldValue::Text {
+            value: "R1".into(),
+            spans: vec![],
+        },
+    );
+    piece.fields.insert(
+        body.clone(),
+        FieldValue::Unavailable {
+            reason: FieldUnavailable::Unreadable,
+        },
+    );
+    assert!(
+        matches!(walk_decision(&rule, &piece, &fixture::index(), None), WalkOutcome::Settled(RulebookResult::Incomplete { reason: RulebookIncompleteReason::EvidenceUnavailable, field: Some(field), .. }) if field == body)
+    );
+}
+
+#[test]
+fn anchor_exists_walks_found_missing_unsupported_and_file_only_targets() {
+    let tool: DecisionMechanicalTool =
+        serde_json::from_value(json!({"tool":"anchor_exists","field":"targets"})).unwrap();
+    let mut rule = fixture::rule("K001");
+    rule.decision.steps = BTreeMap::from([(
+        rule.decision.start.clone(),
+        DecisionStep::Mechanical {
+            tool,
+            yes: DecisionRoute::Pass,
+            no: DecisionRoute::NotApplicable,
+        },
+    )]);
+    let mut piece = fixture::piece();
+    for (exists, anchor, expected) in [
+        (true, json!(null), "pass"),
+        (false, json!(null), "not_applicable"),
+        (true, json!({"status":"found","fragment":"R1"}), "pass"),
+        (
+            true,
+            json!({"status":"missing","fragment":"R1"}),
+            "not_applicable",
+        ),
+        (
+            true,
+            json!({"status":"unsupported","fragment":"R1"}),
+            "incomplete",
+        ),
+    ] {
+        let target = json!({"name":"target","path":"target.html","exists":exists,"opening_cut":false,"anchor":anchor});
+        let value: FieldValue =
+            serde_json::from_value(json!({"state":"targets","values":[target]})).unwrap();
+        piece
+            .fields
+            .insert(FieldName::new("targets").unwrap(), value);
+        let WalkOutcome::Settled(result) = walk_decision(&rule, &piece, &fixture::index(), None)
+        else {
+            panic!()
+        };
+        let result = serde_json::to_value(result).unwrap();
+        assert_eq!(result["result"], expected, "{anchor}");
+        if expected == "incomplete" {
+            assert_eq!(result["reason"], "evidence_unavailable");
+            assert_eq!(result["field"], "targets");
+        }
+    }
+}

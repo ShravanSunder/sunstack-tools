@@ -77,9 +77,26 @@ returns yes only for an uncut available field whose loaded targets resolved and
 have uncut openings. A resolved skill-name load now has an opening too.
 
 Rulebook and ast-grep project paths resolve relative to the configuration file.
-Checked-file globs resolve from its Git repository root, or from the config
-directory outside Git. Without `--config`, lint searches the current directory
+By default, checked-file globs resolve from the config's Git workdir, or from
+its directory outside Git. Without `--config`, lint searches the current directory
 and its parents for `sunstack.lint.json`.
+
+Use `--root DIR` with ordinary lint to check a project using a config stored
+elsewhere. The checked root controls `check.files` and `check.ignore` globs,
+reported paths, and containment for `target` and `document` fields. Config-relative
+rulebook and evidence paths still resolve from the config file. For example:
+
+```sh
+sunstack lint --config /path/to/rulebook/sunstack.lint.json --root /path/to/project --all
+```
+
+A named path outside the checked root is invalid (exit 2); the diagnostic names
+the path and root. Named paths inside the root that select no files produce an
+incomplete result (exit 3). With no named paths, an empty selection retains the
+`nothing_selected` status. `--root` is refused with `lint cases`, which uses its
+own historical snapshot root. With `--since`, the checked root must be the Git
+workdir; change scope with an explicit subdirectory root is invalid. Use `--all`
+for that subdirectory instead.
 
 ```sh
 sunstack lint --config sunstack.lint.json --check
@@ -244,6 +261,44 @@ and its [rulebook entries](tests/fixtures/rulebook-lint/rulebook/steering.rules.
 for a complete test example. Copy the fixture directory to an isolated root to
 try it; its checked-file globs are relative to that root. The example's
 skill-specific rules are test content.
+
+## HTML evidence
+
+For the `requirement-row` and `whole-document` HTML ast-grep rules in the
+[HTML evidence guide](../sunstack-evidence/docs/html-evidence.md), add this kind
+to `evidence.kinds`:
+
+```json
+{
+  "requirement": {
+    "rule": "requirement-row",
+    "fields": {
+      "identifier": { "from": "capture", "regex": "id=\"(R[0-9]+)\"" },
+      "body": { "from": "remainder" },
+      "links": { "from": "target", "regex": "href=\"([^\"]+)\"", "resolve": "path" },
+      "verification": { "from": "document", "path": "verification-design.html", "rule": "whole-document" }
+    }
+  }
+}
+```
+
+The example regex requires a nonempty link. To catch `href=""`, use `*` in
+place of `+` in its capture group. An empty captured target is unavailable
+(`empty_target`) and makes the rule incomplete.
+
+In rulebook decision steps, check the row's links forward and its identifier
+against the verification document in reverse:
+
+```json
+{ "mechanical_check": { "tool": "anchor_exists", "field": "links" }, "yes": "pass", "no": { "finding": "The link target or fragment is missing." } }
+```
+
+```json
+{ "mechanical_check": { "tool": "contains_field", "field": "verification", "needle": "identifier" }, "yes": "pass", "no": { "finding": "The requirement has no verification coverage." } }
+```
+
+The guide explains path resolution, whole-token matching, parse policy, and
+limits of HTML anchor and model-text handling.
 
 ## Selected and contained evidence
 
