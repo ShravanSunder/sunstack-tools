@@ -1,0 +1,724 @@
+{
+  "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+  "files": [
+    {
+      "file": "pages/page-01.html",
+      "sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414"
+    },
+    {
+      "file": "pages/page-02.html",
+      "sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e"
+    },
+    {
+      "file": "pages/page-03.html",
+      "sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002"
+    },
+    {
+      "file": "pages/page-04.html",
+      "sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f"
+    },
+    {
+      "file": "pages/page-05.html",
+      "sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8"
+    },
+    {
+      "file": "pages/page-06.html",
+      "sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4"
+    },
+    {
+      "file": "pages/page-07.html",
+      "sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc"
+    },
+    {
+      "file": "pages/page-08.html",
+      "sha256": "b09aefbfb56b52280807dfbff55df336c415020060a02dbb246f7acf15404c76"
+    },
+    {
+      "file": "pages/page-09.html",
+      "sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364"
+    },
+    {
+      "file": "pages/page-10.html",
+      "sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54"
+    },
+    {
+      "file": "pages/page-11.html",
+      "sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95"
+    },
+    {
+      "file": "pages/page-12.html",
+      "sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4"
+    },
+    {
+      "file": "pages/page-13.html",
+      "sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99"
+    }
+  ],
+  "cases": [
+    {
+      "id": "j1-dev-003",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        30,
+        45
+      ],
+      "text_sha256": "6d568cfdf00228c1dde5eb06ef171477312952b71d9fbc0bc9c66d88166b36cb",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-004",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        46,
+        156
+      ],
+      "text_sha256": "e5b2636bf6be30dab56dfe19fd3a2095a44d77fea529f1a0fce8cac92bf01bb2",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-005",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        65,
+        70
+      ],
+      "text_sha256": "c2e210fc3eb280cc423ec35a593bdc54cdcdafb1bfe7fcef96a613ae8a1ab166",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-006",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        66,
+        68
+      ],
+      "text_sha256": "2cb8f5b01291c3f759b6c12aac44c348d6acc77aab628bbe6c5c002ba24cb613",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-008",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        71,
+        86
+      ],
+      "text_sha256": "a0c917e9f18dd30eddb5773fcb1bb536499f5d262858472b8c722f28b0c09859",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-019",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        125,
+        138
+      ],
+      "text_sha256": "3cfc59db1903467cbb8a90e610d9f14d761a842da53ca1a36652d27b9e734d60",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-022",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        139,
+        147
+      ],
+      "text_sha256": "342a021e0bbbaab6f12c782c33323827ee6819d1fc5d2e9f600473ff9416967b",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-027",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-03.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        173,
+        175
+      ],
+      "text_sha256": "e174595e9eff80bfb10998316a83ae27871a05bab80cc951a28db44f7bc339ea",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-030",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-08.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        18,
+        75
+      ],
+      "text_sha256": "e381d4134c7551e0bceb2fa858fdd6d763ab7b40d02c7bf17abd171d71f999db",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-032",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-08.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        46,
+        75
+      ],
+      "text_sha256": "e480e060f0b446e4188f672bfbe0f8b8de4f92e4bf5620cf4b3c653f6a9c375e",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-033",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-04.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        30,
+        388
+      ],
+      "text_sha256": "bb0b67429f1e6aada027bc26783a877b8d9f8ba0f84c6fc0147e60e51a763592",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-034",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-04.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        46,
+        54
+      ],
+      "text_sha256": "e8a40e4e815cb7dcb167c2a78b1182c6536d25a36a8ee97d6148df0b7b1334c4",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-043",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-04.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        170,
+        172
+      ],
+      "text_sha256": "1aadb581f5fbc21742241bb42fd060903512083a0b1309f1c9b61ffc1acde6c2",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-044",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-04.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        173,
+        195
+      ],
+      "text_sha256": "d33e90723bf71906b78901b83a6b7e6bbb9b75cc4dcca45649abca25e8a12843",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-047",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-04.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        215,
+        217
+      ],
+      "text_sha256": "909f6cf91acfcd80c83e3f87a2c6868e5f6ff1a5f8fbd0503644c5b2ecc055ee",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-055",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-04.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        321,
+        388
+      ],
+      "text_sha256": "866474d35b58aebc0c035b339e34c556b3ad74d1be00a1d301751574cba6d521",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-056",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-13.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        30,
+        190
+      ],
+      "text_sha256": "8805ed21fba7945ee6d1abe38b560b38ab474236d1e0424179c391b4c531c29a",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-060",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-13.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        92,
+        107
+      ],
+      "text_sha256": "a23bb173f2730e7c7a8b018d879bd87b8b46a88497b141052a8ed77000273aea",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-067",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-01.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        34,
+        44
+      ],
+      "text_sha256": "91da94757a851b237a308623cab92866dc7d23b0c363e51d71c85d0a3744f501",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-068",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-01.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        45,
+        81
+      ],
+      "text_sha256": "d8fc4367cc9036a09ee37c505261f4941683a5b2b81470fd3fa0ce206ab36270",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-071",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-01.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        120,
+        133
+      ],
+      "text_sha256": "06ea418bcc55bb725fce8214e08b506b587ed76b74d2f6771913a4e6a9255d90",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-078",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-02.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        61,
+        73
+      ],
+      "text_sha256": "53f6edd530e3296802ab177b3a053cac0612940af7f04fa07e7cfc4fa181032f",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-079",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-02.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        74,
+        89
+      ],
+      "text_sha256": "fff3f38bf4b44d5ef68e2e5c81a72e40448b3d0d53736390b2c7e71dfd7e500f",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-082",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-02.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        111,
+        119
+      ],
+      "text_sha256": "f7a058822c0d7681c21ba3b8f92b5894468de23a21235d8b08fc680fb8590810",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-083",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-02.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        120,
+        139
+      ],
+      "text_sha256": "d9982380f25dc018aa8878ccb1af63edd2d8f1ef0bd19b7558031f08dae831b6",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-086",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-10.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        25,
+        48
+      ],
+      "text_sha256": "d7375823881ccecdff93fa94c584ed3a623b05b40b5a6dac1643c8428c11c459",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-089",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-10.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        76,
+        78
+      ],
+      "text_sha256": "e1f4c6a3724d4fa1002cbe94ecc7dfd74e31c12798c781b48941e6f0fa461fbf",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-091",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-10.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        82,
+        93
+      ],
+      "text_sha256": "5cd5d96259d17119c8fb07a43cf2013766ed9e99bd6c95fa3fb81072ed4fce64",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-093",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-10.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        105,
+        122
+      ],
+      "text_sha256": "b66537dd0e80107a7066ef2da5c2208b13b74d84c7fc6e8545afd18f6827ced4",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-096",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-06.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        3,
+        8
+      ],
+      "text_sha256": "2d88b76a1177b5061cdb2f8e2c9c1215e2496b7f4f791a5d0b52c1a5eef2055a",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-097",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-06.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        9,
+        15
+      ],
+      "text_sha256": "6717f9315d1b184c34968ba345da37e491165872fb050fca5ac389a92bb21bd2",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-098",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-06.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        16,
+        28
+      ],
+      "text_sha256": "fb1201971c222efa929449c6932d6f94277053533ccfb0c89c21f9043f89fd54",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-103",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-12.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        1,
+        14
+      ],
+      "text_sha256": "19e01c19144e5bd60fa3bb547d3c5957e01d8d321f80b5c287c27c799bc67b79",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-110",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-12.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        114,
+        132
+      ],
+      "text_sha256": "9fd280558e647a5e2ec56c146e5b1a93a9440066237ce13c786badf929a2390f",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-111",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-12.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        133,
+        154
+      ],
+      "text_sha256": "e7d3f74cb0a9588c6c166f606ac9f9c396e7526b9413953c3a417aea57550a73",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-134",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-07.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        23,
+        62
+      ],
+      "text_sha256": "a19257f8c3a377c80b9cfb034903867a0fd28439b8a74093ea4619a77683f14e",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-143",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-09.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        36,
+        43
+      ],
+      "text_sha256": "88a22f950e8ada87350449625c5c78868233eb6133d4958f564aec353b7762ec",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-147",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-09.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        79,
+        96
+      ],
+      "text_sha256": "55b43074ff4e79ed4a06c85a733c68f08c4f5897db7d9fe2bf105a5ce60329e1",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-148",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-05.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        29,
+        187
+      ],
+      "text_sha256": "460fcf70331f296c62057968b6a91bfaaa75bbdc5519df7586ed4bb38a352544",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-149",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-05.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        32,
+        46
+      ],
+      "text_sha256": "2653a4f41194de7387724a8384e2700a6f721fe0e23ee542fab7efdd9de6b01a",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-157",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-11.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        24,
+        36
+      ],
+      "text_sha256": "de9d247c1edb67abe84394ffc6c3584688bce2a2fd37a73087326a983568c261",
+      "expected": "pass",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-158",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-11.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        24,
+        26
+      ],
+      "text_sha256": "338584181f98e889e9e242758c5bda4f87eeabc0a976c637b714020b853b4e13",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    },
+    {
+      "id": "j1-dev-175",
+      "kind": "rule",
+      "rule": "design-documents.explanation-has-its-picture",
+      "file": "pages/page-11.html",
+      "revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+      "lines": [
+        54,
+        56
+      ],
+      "text_sha256": "5c071e987f30aa1edfa94baf321c0c27bc647bf0a0616edc5ec1ac9367f699f6",
+      "expected": "warn",
+      "set": "development",
+      "label_from": "blind-agents"
+    }
+  ],
+  "ampersands": [
+    {
+      "file": "ampersands/page-01.html",
+      "sha256": "20ff9086014b436d64966796ab72af957b318d15a8673bd8f5393f561a834942",
+      "source_relative": "docs/wip/2026-10-13-dialog-storyboard/storyboard.html",
+      "source_commit": "46faaabbbadeb623d058b722c0425e3b8c6d10fe"
+    },
+    {
+      "file": "ampersands/page-02.html",
+      "sha256": "99f3d9a7c92ed10fade93fdc4dd3c3e3d99dae0cf50407d99160264bca6a7e77",
+      "source_relative": "docs/wip/2026-10-14-compact-storyboard/storyboard-0.1.95-archived.html",
+      "source_commit": "46faaabbbadeb623d058b722c0425e3b8c6d10fe"
+    },
+    {
+      "file": "ampersands/page-03.html",
+      "sha256": "7513a5f59ac758ff2f45ba096cd7126f8742fff9ee8f1d6f3b858071abdc65b1",
+      "source_relative": "docs/wip/2026-10-22-dialog-design/index.html",
+      "source_commit": "46faaabbbadeb623d058b722c0425e3b8c6d10fe"
+    }
+  ]
+}

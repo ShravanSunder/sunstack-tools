@@ -53,6 +53,34 @@ The Implementer's Proof4 must compare ordinary Markdown --all --prepare with rel
 
 Return supported/unsupported/unknown for Proof1–3, the native/parity joins and every uncovered path. This route proves no model judgment quality, hosted provider, browser rendering, CI, other platform or release acceptance. Keep current evidence in the task home, outside this recipe.
 
-## Deferred opaque-fragment limit
+## Malformed asking text (0.14.1)
 
-An unmatched closing tag followed by words, such as `Before</h2>After`, can project to `Before` when the parser stores the remainder as an opaque ERROR leaf. The Lead explicitly deferred arbitrary opaque-fragment recovery in the commission. The C7 checks cover the recovered heading-opening forms listed above; they do not establish recovery of arbitrary malformed fragments. A regression against the declared released baseline remains a finding. State this limit in the handback.
+The 0.14.1 commission and Corrections1–5 replace the deferred opaque-fragment limit. Asking recovers words in ERROR spans, including literal `->` prose and text after stray closing tags. The selector/mechanical helper preserves its earlier behavior. Well-formed script/style text stays as before; script/style/template/ex-markdown/comments are excluded only inside new ERROR recovery. An unsafe unterminated tag preserves the safe prefix, carries `[cut: html_projection_unterminated_markup]`, and marks its containing top-level field in both model-view cuts and request cut-fields. The same cut ownership must hold for nested targets and lists in the native join.
+
+`html-sections/error-text.ts` extends this journey. Its header/`--help` describe the baseline and candidate phases. It requires the existing Node dependencies, a signed released0.14.0 comparator with provenance, a declared signed0.14.1 candidate, frozen original inputs, and a new evidence directory. No build, install, model key or release action is part of this route. The recovery route is draft until driven on the declared target; source checks alone do not close it.
+
+Input tables beside the driver are source-derived oracles. `error-corpus.json` pins13J1 pages from snapshot Git revision5c02896631399f04216fbdc30668cdeb0497be43, all43agreed case line fingerprints, and3real Router pages with ampersand ERROR fragments from46faaabbbadeb623d058b722c0425e3b8c6d10fe. Supply those regular files under `--input-root` with their table-relative names. `error-source.json` records an independent HTMLParser data/entity pass over raw own fields, with raw-field SHA fences; it contains no product asking output. Its word-order scan permits added attribute labels and rejects dropped/reordered source words. It establishes text preservation, never J1 judgment quality. The raw fields used for those ranges remain fenced by the exact released comparison.
+
+`--parity-root` contains the previously frozen original ai-tools Git checkout (cde8d5cf5b9141a08264cc5d57e3e3a58f0f2aac), HTML-sections project with the three corpus pages, and Markdown-anchor project. Keep their existing config/rules/data. The driver copies the HTML project to an owned common path and sets request limits to100000characters/128000input tokens for both subjects, so all114requests prepare without hiding large-page refusals. It never changes the original. J1 uses native sections and own/enclosing asking fields, not the paid J1 questions or verdicts. A single common `--shared-output` keeps config/report absolute paths identical across subjects.
+
+Run the baseline first:
+
+```sh
+node scripts/verify/sunstack-rule/html-sections/error-text.ts \
+  --phase baseline --baseline-binary <released-0.14.0> --baseline-sha256 <digest> \
+  --source-root <candidate-checkout> --input-root <frozen-16-pages> \
+  --parity-root <frozen-original-projects> --shared-output <common-owned-path> \
+  --evidence <new-baseline-directory>
+```
+
+Run candidate with the same inputs/common path and additionally `--phase candidate --binary <signed-artifact> --commit <full-head> --sha256 <digest> --baseline-run <baseline-directory>`, using a new evidence directory. Never drive an undeclared or superseded target.
+
+The deciding checks are:
+
+- All43J1 cases join their original line SHA and exact native owner. Baseline has one own-text loss (j1-dev-006); candidate must preserve every source word in all43. Show the exact loss and recovery rather than treating preparation as a judgment.
+- The released parser itself lists ERROR spans on the real requirements page and the three ampersand pages. Host ast-grep is a discovery locator, not parser-version proof.
+- Entire J1 and original HTML reports differ only by root version and source-literal restorations on the two pinned versions of the requirements page, plus recomputed SHA256 of those exact requests. Flat/mixed pages and every raw field/span/outline/owner/selection remain exact. `error-parity.ts` holds the source-literal restorations; mutation controls reject raw changes, un-restored payloads and arbitrary hashes. J1 snapshot page03 and the older wrapped page are distinct byte snapshots of the same logical page.
+- Markdown-anchor prepared report (127results/3findings/0requests), ai-tools499requests and ampersand title/heading asking reports (62requests on3pages) are byte-identical except root version. Ampersand ERROR listings must also match that boundary.
+- Literal stray/nested/entity/comment/unsafe/script controls establish text recovery, safe-prefix cuts and unchanged well-formed raw script/style text. Native tests separately cover missing terminators, nested lists/targets, recovery exclusions, one traversal and selector/mechanical preservation.
+
+Keep exact diff reports, all raw child receipts and parser listings, the43-case audit, comparator/source/artifact identities, original-input guards and final listener receipt. A final `captured.json` only accounts for capture; close native joins, raw evidence review and any named outstanding item before a supported handback. Provider quality, browser rendering, CI and release acceptance remain outside this route.
