@@ -2,7 +2,7 @@
 
 Use this journey when a rulebook checks real HTML documents, follows an HTML fragment, acquires related document pieces, or lives outside the project it checks. The user supplies a signed candidate and wants observable results from that binary. This is verification, not release acceptance.
 
-The adopted oracle is the 11 Nov 0.11.0 engine-any-language commission including Corrections 1–4. Reconfirm that source with the commissioning Lead. The three scripts below exercise different parts of one journey; none grants provider-keyed inference, edits to checked projects, or delivery authority.
+The adopted oracle is the 11 Nov 0.11.0 engine-any-language commission including Corrections 1–6. Reconfirm that source with the commissioning Lead. The three scripts below exercise different parts of one journey; none grants provider-keyed inference, edits to checked projects, or delivery authority.
 
 ## Prerequisites
 
@@ -26,7 +26,7 @@ It validates each authored config with real `lint --check`, then runs keyless `l
 
 - Each of the ten R rows in specification is checked against the four Verification Design obligation rows. Each of the five E rows is checked against the four Program Design binding rows. The saved account identifies every found/missing owner; literal, manually inspected binding cells expect all fifteen found. Each document field has its own source file spans. The VD query uses `inside`/`stopBy: end` and the actual `ex-document#document` opening tag, selecting only `<tr>` obligation rows within it.
 - The fixed five-page set has zero actual fragment hrefs. Escaped `body-U1` examples are not DOM IDs. The zero-case real run is an inventory observation, not evidence that anchor checking works.
-- A real R1 asking request is prepared with plain text in its state. Raw piece text and mechanical body retain markup, with byte offsets that delimit the original source. A labelled Unicode/entity/attribute control independently expects `Café & Unicode 文 body.` with no attribute text.
+- A real R1 asking request is prepared with plain text in its state. An unanswered request has no settled result: join its retained raw evidence by the exact request owner and span, never by inventing a result row. Raw piece text and mechanical body retain markup, with byte offsets that delimit the original source. A labelled Unicode/entity/attribute control independently expects `Café & Unicode 文 body.` with no attribute text.
 - Labelled controls exercise found/missing HTML IDs, escaped fake IDs, missing files, file-only links, unsupported Markdown fragments, standard named/numeric entities, whole-token positives and Unicode letter/digit/underscore negatives. R1 must not pass solely because R10 occurs. Missing documents, empty needles and empty href captures are incomplete. Mixed incomplete/finding runs exit 3; findings-only runs exit 1; clean preparation exits 6.
 
 ## Compare unchanged Markdown inputs
@@ -59,6 +59,6 @@ Keep configs, snapshots/inventory, per-ID and per-link accounts, prepared JSON, 
 
 Join the exact target's permanent native tests for all 29 pinned SupportLang mappings/old-report decoding, strict versus tolerant parser failure, YAML admission on non-Markdown, shared acquisition budgets/snapshots, scoped document exclusion, unsupported anchors, root/since/cases behavior and required quality gates. A native receipt from a different source cannot silently cover new product code.
 
-Standard semicolon HTML entities are decoded. Legacy semicolon-less shorthand remains raw by explicit design. No provider judgment, browser rendering, inference quality, other platform, merge, release or owner acceptance follows from these keyless observations. Report the post-#214 page search with source/byte identity; modification time alone does not establish authorship after that merge.
+For HTML target references, decode standard semicolon HTML entities, then percent-decode physical paths and fragments as UTF-8 for resolution/comparison. Retain raw source fields. The original encoded-href red remains a required pass expectation; percent-space/Unicode fragments and encoded physical filenames have positive controls. Standard semicolon HTML entities in IDs and asking text are decoded. Legacy semicolon-less shorthand remains raw by explicit design. No provider judgment, browser rendering, inference quality, other platform, merge, release or owner acceptance follows from these keyless observations. Report the post-#214 page search with source/byte identity; modification time alone does not establish authorship after that merge.
 
 All children are bounded by the existing process harness, use isolated credential-free homes and leave inputs unchanged. The driver closes its owned listener in `finally`. Retain decisive evidence; remove only owned disposable residue under the project's cleanup rules.

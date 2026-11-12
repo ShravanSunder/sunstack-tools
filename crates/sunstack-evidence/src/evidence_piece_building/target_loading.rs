@@ -77,16 +77,22 @@ impl EvidenceBuild {
                                 .cloned()
                                 .collect::<Vec<_>>()
                         };
-                        let (file_name, fragment) = if use_path {
-                            name.split_once('#')
-                                .map_or((name.as_str(), None), |(file, fragment)| {
-                                    (file, Some(fragment.to_owned()))
-                                })
+                        let reference = if use_path {
+                            let html = self
+                                .project
+                                .language_for_rule(&definition.matcher.rule_id(kind))
+                                == Some(crate::EvidenceLanguage::Html);
+                            TargetReference::parse(&name, html)?
                         } else {
-                            (name.as_str(), None)
+                            TargetReference {
+                                file: PathBuf::from(&name),
+                                fragment: None,
+                            }
                         };
+                        let file_name = &reference.file;
+                        let fragment = reference.fragment;
                         let path = if use_path {
-                            if file_name.is_empty() {
+                            if file_name.as_os_str().is_empty() {
                                 piece.location.file.clone()
                             } else {
                                 piece
@@ -141,12 +147,7 @@ impl EvidenceBuild {
                         target.exists = true;
                         target.anchor = fragment.map(|fragment| {
                             use crate::TargetAnchor;
-                            if matches!(
-                                resolved
-                                    .extension()
-                                    .and_then(|extension| extension.to_str()),
-                                Some("html" | "htm")
-                            ) {
+                            if is_html_path(&resolved) {
                                 if crate::document_evidence::html_content::html_has_id(
                                     &text, &fragment,
                                 ) {

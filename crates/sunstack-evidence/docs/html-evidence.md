@@ -49,7 +49,9 @@ A `target` field with `resolve: "path"` separates a `#fragment` from the physica
 
 For an HTML fragment, the check searches the full acquired target bytes, subject to acquisition budgets, for an element with an exactly matching decoded `id` attribute. It does not use `<a name="...">`. An optional target `anchor` reports `status` as `found`, `missing`, or `unsupported`, alongside `fragment`. A fragment on any non-HTML file is unsupported and makes the check incomplete; Markdown heading anchors are not resolved.
 
-The HTML decoder handles semicolon-terminated named and numeric entities. Legacy shorthand without a semicolon remains raw, so an ID using that shorthand may not compare as a browser would.
+For an HTML `href`, the captured value is decoded for semicolon-terminated named and numeric HTML entities, then the physical path and fragment are percent-decoded as UTF-8 before resolution and comparison with the decoded `id`. For example, `#A%20B` matches `id="A B"`. The captured name, source text, and spans remain raw for mechanical evidence. Legacy entity shorthand without a semicolon remains raw.
+
+HTML target classification follows ast-grep's supported file types, including `.html`, `.htm`, and `.xhtml`.
 
 ## Reverse coverage
 

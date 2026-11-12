@@ -158,13 +158,7 @@ fn html_field_value(value: &FieldValue) -> FieldValue {
                 .iter()
                 .cloned()
                 .map(|mut target| {
-                    if matches!(
-                        target
-                            .path
-                            .extension()
-                            .and_then(|extension| extension.to_str()),
-                        Some("html" | "htm")
-                    ) {
+                    if is_html_path(&target.path) {
                         target.opening = target
                             .opening
                             .as_ref()

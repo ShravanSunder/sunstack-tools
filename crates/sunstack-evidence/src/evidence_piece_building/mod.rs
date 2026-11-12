@@ -203,12 +203,17 @@ impl EvidenceBuild {
                                 EvidenceTargetResolution::PathOrSkill => name.ends_with(".md"),
                             };
                             let paths = if use_path {
-                                vec![match name
-                                    .split_once('#')
-                                    .map_or(name.as_str(), |(file, _)| file)
-                                {
-                                    "" => path.clone(),
-                                    file => path.parent().unwrap_or(Path::new("")).join(file),
+                                let html = self
+                                    .project
+                                    .language_for_rule(&definition.matcher.rule_id(kind))
+                                    == Some(crate::EvidenceLanguage::Html);
+                                let Ok(reference) = TargetReference::parse(&name, html) else {
+                                    continue;
+                                };
+                                vec![if reference.file.as_os_str().is_empty() {
+                                    path.clone()
+                                } else {
+                                    path.parent().unwrap_or(Path::new("")).join(reference.file)
                                 }]
                             } else {
                                 self.matched
@@ -449,6 +454,8 @@ use field_composition::{local_fields, source_span};
 
 mod document_fields;
 mod target_loading;
+mod target_reference;
+use target_reference::{TargetReference, is_html_path};
 
 mod context_loading;
 mod deferred_fields;

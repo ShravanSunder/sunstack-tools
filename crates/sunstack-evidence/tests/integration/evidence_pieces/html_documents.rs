@@ -241,3 +241,123 @@ fn document_rule_scopes_rows_to_the_named_containers_own_opening() {
     assert_eq!(values, &["<tr><td>R1 inside</td></tr>"]);
     assert!(!values.iter().any(|value| value.contains("R99")));
 }
+
+#[test]
+fn html_href_entities_and_percent_encoding_resolve_without_changing_raw_capture() {
+    let root = setup();
+    let filename = "A & B.xhtml";
+    std::fs::write(
+        root.path().join(filename),
+        "<p id=\"A&amp;B\"></p><p id=\"A B\"></p><p id=\"猫\"></p>",
+    )
+    .unwrap();
+    let names = [
+        "A%20&amp;%20B.xhtml#A&amp;B",
+        "A%20&amp;%20B.xhtml#A%20B",
+        "A%20&amp;%20B.xhtml#%E7%8C%AB",
+    ];
+    let raw = format!(
+        "<p>{}</p>",
+        names
+            .iter()
+            .map(|name| format!("<a href=\"{name}\">link</a>"))
+            .collect::<String>()
+    );
+    std::fs::write(root.path().join("source.html"), &raw).unwrap();
+    let catalog = build(
+        root.path(),
+        &["source.html"],
+        json!({"rule":"row","fields":{"links":{"from":"target","regex":"href=\"([^\"]+)\"","resolve":"path"}}}),
+        2,
+    );
+    let piece = catalog
+        .pieces
+        .iter()
+        .find(|piece| piece.text == raw)
+        .unwrap();
+    let FieldValue::Targets { values } = field(piece, "links") else {
+        panic!()
+    };
+    assert_eq!(values.len(), 3);
+    for ((target, name), fragment) in values.iter().zip(names).zip(["A&B", "A B", "猫"]) {
+        assert_eq!(target.name, name);
+        assert!(target.exists, "{target:?}");
+        assert_eq!(target.path, Path::new(filename));
+        assert_eq!(
+            target.anchor,
+            Some(TargetAnchor::Found {
+                fragment: fragment.into()
+            })
+        );
+    }
+    assert_eq!(piece.text, raw);
+    assert_eq!(piece.location.span.byte_end, raw.len());
+    // Dependency selection uses the same decoded physical identity as acquisition.
+    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let definition = serde_json::from_value(json!({"rule":"row","fields":{"links":{"from":"target","regex":"href=\"([^\"]+)\"","resolve":"path"}}})).unwrap();
+    let kinds = BTreeMap::from([(EvidenceKindName::new("row").unwrap(), definition)]);
+    let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
+    let build = EvidenceBuild::start(
+        &project,
+        &kinds,
+        &["source.html".into()],
+        &mut source,
+        limits(),
+    )
+    .unwrap();
+    let dependencies = build.target_paths(&source, &root.path().canonicalize().unwrap());
+    assert_eq!(
+        dependencies[Path::new("source.html")]
+            .iter()
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>(),
+        std::collections::BTreeSet::from([PathBuf::from(filename)])
+    );
+}
+
+#[test]
+fn percent_decoded_path_still_enforces_root_and_invalid_utf8_is_unavailable() {
+    let workspace = tempfile::tempdir().unwrap();
+    let root = setup();
+    std::fs::write(workspace.path().join("outside.html"), [255]).unwrap();
+    // The absolute encoded path must be decoded before the existing root check.
+    let encoded = workspace
+        .path()
+        .join("outside.html")
+        .to_string_lossy()
+        .replace('/', "%2F");
+    std::fs::write(
+        root.path().join("source.html"),
+        format!("<p><a href=\"{encoded}#x\">link</a></p>"),
+    )
+    .unwrap();
+    let definition = json!({"rule":"row","fields":{"links":{"from":"target","regex":"href=\"([^\"]+)\"","resolve":"path"}}});
+    let catalog = build(root.path(), &["source.html"], definition.clone(), 2);
+    let piece = catalog
+        .pieces
+        .iter()
+        .find(|piece| piece.text.starts_with("<p>"))
+        .unwrap();
+    assert_eq!(
+        field(piece, "links"),
+        &FieldValue::Unavailable {
+            reason: FieldUnavailable::OutsideRoot
+        }
+    );
+    std::fs::write(root.path().join("target.html"), "<p id=\"x\"></p>").unwrap();
+    std::fs::write(
+        root.path().join("source.html"),
+        "<p><a href=\"target.html#%FF\">link</a></p>",
+    )
+    .unwrap();
+    let catalog = build(root.path(), &["source.html"], definition, 2);
+    let piece = catalog
+        .pieces
+        .iter()
+        .find(|piece| piece.text.starts_with("<p>"))
+        .unwrap();
+    assert!(matches!(
+        field(piece, "links"),
+        FieldValue::Unavailable { .. }
+    ));
+}

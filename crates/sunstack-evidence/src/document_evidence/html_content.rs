@@ -72,7 +72,7 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
 }
 
 // Parse each complete entity in isolation so Markdown syntax in HTML text stays literal.
-fn decode_entities(input: &str) -> String {
+pub(crate) fn decode_entities(input: &str) -> String {
     let mut decoded = String::new();
     let mut remainder = input;
     while let Some(start) = remainder.find('&') {

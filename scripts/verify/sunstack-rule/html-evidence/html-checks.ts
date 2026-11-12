@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import filesystem from 'node:fs';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 import {
 	arrayValue,
@@ -18,6 +19,17 @@ export function savedPiece(report: JsonObject, row: JsonObject): JsonObject {
 		objectValue(objectValue(report['piece_evidence'])[String(numberValue(row['id']))])['piece'],
 	);
 }
+export function preparedPiece(report: JsonObject, request: JsonObject): JsonObject {
+	const owner = objectValue(request['owner']);
+	assert.equal(owner['kind'], 'rule');
+	const pieces = Object.values(objectValue(report['piece_evidence']))
+		.map((record) => objectValue(objectValue(record)['piece']))
+		.filter((piece) => isDeepStrictEqual(piece['where'], owner['piece']));
+	assert.equal(pieces.length, 1, 'Prepared owner does not identify one retained raw piece');
+	const piece = pieces[0];
+	assert.ok(piece);
+	return piece;
+}
 
 export function requireNoDispatch(report: JsonObject): void {
 	assert.equal(objectValue(report['usage'])['model_requests'], 0);
@@ -31,6 +43,19 @@ export function requireControls(report: JsonObject, expected: readonly ExpectedC
 		const selected = rows.filter((row) => row['file'] === control.file);
 		assert.equal(selected.length, 1, `Missing or repeated control ${control.file}`);
 		assert.equal(selected[0]?.['outcome'], control.outcome, control.reason);
+		if (control.file === 'pages/missing-file.html') {
+			const row = selected[0];
+			assert.ok(row);
+			const targets = objectValue(objectValue(savedPiece(report, row)['fields'])['links']);
+			assert.equal(targets['state'], 'targets');
+			const values = arrayValue(targets['values']);
+			assert.equal(values.length, 1);
+			assert.equal(
+				objectValue(values[0])['exists'],
+				false,
+				'Missing-file control accidentally points to a real file',
+			);
+		}
 	}
 }
 
@@ -104,11 +129,12 @@ export function requireAsking(report: JsonObject, root: string, expected: string
 		expected,
 		'Prepared HTML text differs from authored expectation',
 	);
-	const rows = arrayValue(report['results']).map(objectValue);
-	assert.equal(rows.length, 1);
-	const row = rows[0];
-	assert.ok(row);
-	const piece = savedPiece(report, row);
+	assert.deepEqual(
+		arrayValue(report['results']),
+		[],
+		'Unanswered asking request gained a settled result',
+	);
+	const piece = preparedPiece(report, request);
 	requireRawSpan(piece, root);
 	assert.equal(
 		objectValue(objectValue(piece['fields'])['body'])['value'],
