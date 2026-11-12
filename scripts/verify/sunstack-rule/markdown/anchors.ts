@@ -247,8 +247,8 @@ async function observeImageHeadings(
 	assert.equal(request['status'], 'prepared');
 	assert.equal(
 		objectValue(objectValue(request['request'])['state'])['body'],
-		'Before Linked badge After',
-		'Ordinary Markdown asking must keep image alt text',
+		askingSource,
+		'Ordinary AST remainder asking must retain original Markdown and image alt text',
 	);
 	assert.equal(
 		objectValue(objectValue(preparedPiece(report, request)['fields'])['body'])['value'],
@@ -257,7 +257,7 @@ async function observeImageHeadings(
 	return {
 		links: links.length,
 		fixture_sha256: createHash('sha256').update(target).digest('hex'),
-		ordinary_asking_text: 'Before Linked badge After',
+		ordinary_asking_text: askingSource,
 	};
 }
 export async function observeMarkdown(options: z.infer<typeof optionsSchema>): Promise<void> {
