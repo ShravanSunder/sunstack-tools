@@ -865,14 +865,25 @@ test('gallery walkthrough restores browse filters, selection and zoom; variation
 	await expect
 		.element(fixtureLocator(frame, requiredElement(gallery, '.ex-gallery-strip')))
 		.not.toBeVisible();
+	// The thumbnail column collapses over a CSS transition, and the preview refits on every
+	// frame until it ends. Take the filled width only from settled geometry: the collapsed
+	// column is final, and the image width then holds across a rendered frame, so its last
+	// ResizeObserver refit has landed.
+	const body = requiredElement(gallery, '.ex-gallery-body');
 	await expect
-		.poll(
-			(): number =>
-				requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect().width,
-		)
-		.toBeGreaterThan(widthWithThumbnails);
-	const filledWidth = requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect()
-		.width;
+		.poll((): string | undefined => getComputedStyle(body).gridTemplateColumns.split(' ')[0])
+		.toBe('0px');
+	const imageWidth = (): number =>
+		requiredElement(gallery, '.ex-gallery-preview img').getBoundingClientRect().width;
+	await expect
+		.poll(async (): Promise<number> => {
+			const before = imageWidth();
+			await new Promise<number>((resolve) => requestAnimationFrame(resolve));
+			return imageWidth() - before;
+		})
+		.toBe(0);
+	await expect.poll(imageWidth).toBeGreaterThan(widthWithThumbnails);
+	const filledWidth = imageWidth();
 	await local.getByRole('button', { name: 'Grid view', exact: true }).click();
 	await frame.getByRole('button', { name: 'Browse walkthroughs', exact: true }).click();
 	await frame
