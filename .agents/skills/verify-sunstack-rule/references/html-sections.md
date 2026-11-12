@@ -1,6 +1,6 @@
 # HTML heading sections and asking text
 
-This route checks the signed Sunstack CLI's lexical HTML sections and complete asking projection. Its launch, probes, original-input guards and owned cleanup have been exercised. Repeat them on each declared target. Expected outcomes come from the 0.13.0 HTML-sections commission and its Corrections1–6, including the J1 consumer gap; the current output never supplies the oracle.
+This route checks the signed Sunstack CLI's lexical HTML sections and complete asking projection. The well-formed launch/probes/cleanup have been exercised; the added C7 recovery controls are draft until a corrected declared-target pass. Repeat the scoped journeys on each target. Expected outcomes come from the 0.13.0 HTML-sections commission and its Corrections1–7, including the J1 consumer gap; the current output never supplies the oracle.
 
 ## What a section means
 
@@ -36,6 +36,10 @@ Owned controls exercise skipped levels through H6, duplicate heading text, exclu
 A small max_chars fixture must actually truncate fields and carry every model-view cut into the saved request's cut-fields. A byte-acquisition refusal is separately Incomplete/3 with no prepared request, not a partial no-picture judgment. The legacy non-outline HTML asking fixture must project `A B`, retain `[alt: …]`, `[label: …]` on ex-mermaid and `[aria-label: …]` at their positions, decode entities, and preserve raw mechanical text.
 
 Keep raw commands/exits/stdout/stderr, saved reports, exact pins, original guards, owner joins and the final harness receipt. A pass is written only after owned cleanup and original recheck succeed. HTTP0 refers to the owned listener and report model_requests0; it is not global egress proof.
+
+## Recovered heading openings
+
+C7 recognizes h1–h6 opening tags even when missing end tags put them under recovered/ERROR parser nodes. The same lexical ranges, direct parents and excluded template/ex-markdown scopes apply. A heading that cannot be placed must produce a named incomplete result rather than empty success. The control module recovery.ts owns eight explicit two-heading cases: both unclosed, newline neighbours, each direction of mixed closed/unclosed, siblings, proper markup, Unicode prefix and recovered headings in excluded blocks. It checks all16raw full/own/enclosing spans plus16prepared requests, not merely a successful exit. Prepared full/own/enclosing text is exact, including recovered tag-boundary spaces (Parent Child instead of ParentChild), Unicode and normal top-level null. Empty Prepared/0 and duplicate owners are rejected. The original114-section corpus remains fixed and is rerun with these controls to detect changes to ordinary pages.
 
 ## Every HTML asking path
 

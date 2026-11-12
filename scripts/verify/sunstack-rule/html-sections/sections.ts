@@ -33,6 +33,7 @@ import {
 	projectionHtml,
 	projectionText,
 } from './fixtures.ts';
+import { observeRecovery, recoveryCases } from './recovery.ts';
 
 const optionsSchema = z.object({
 	binary: z.string(),
@@ -242,6 +243,7 @@ export async function observeSections(options: z.infer<typeof optionsSchema>): P
 			'Mechanical input lost raw HTML',
 		);
 		await observeOtherAskingPaths({ observer, evidence });
+		await observeRecovery({ observer, evidence });
 		assert.equal(observer.captures.length, 0);
 		pass = {
 			target: { ...target },
@@ -256,6 +258,8 @@ export async function observeSections(options: z.infer<typeof optionsSchema>): P
 			shared_parent: true,
 			legacy_projection: projectionText,
 			asking_paths: ['rule', 'selection candidate', 'selection shared', 'filter'],
+			recovery_cases: recoveryCases.map((control) => control.name),
+			recovered_sections: recoveryCases.length * 2,
 			http_requests: 0,
 			native_joins: [
 				'Low-level selector uses the same outline owner; admission/filter rejections.',

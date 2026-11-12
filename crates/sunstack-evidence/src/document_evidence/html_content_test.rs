@@ -45,6 +45,15 @@ fn retains_text_recovered_from_bare_ampersands_and_unclosed_elements() {
 }
 
 #[test]
+fn separates_heading_openings_inside_recovered_nodes() {
+    assert_eq!(html_text_content("<h2>Parent<h3>Child"), "Parent Child");
+    assert_eq!(
+        html_text_content("Before<h2>Parent<h3>Child"),
+        "Before Parent Child"
+    );
+}
+
+#[test]
 fn finds_only_exact_decoded_id_attributes_on_elements() {
     let html = r#"<!-- <p id="comment"> --><a name="legacy"></a><p title="id='attribute'" ID='café&amp;&#x732B;'></p><code>&lt;span id="example"&gt;</code><i id=plain></i>"#;
     assert!(html_has_id(html, "café&猫"));

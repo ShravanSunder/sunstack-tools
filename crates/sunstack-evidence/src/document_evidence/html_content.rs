@@ -57,7 +57,12 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
                 content.push_str(&text);
             }
         }
-        "start_tag" | "self_closing_tag" => append_tag_attributes(node, content),
+        "start_tag" | "self_closing_tag" => {
+            content.push(' ');
+            append_tag_attributes(node, content);
+            content.push(' ');
+        }
+        "end_tag" => content.push(' '),
         "document" | "element" | "script_element" | "style_element" | "ERROR" => {
             let is_element = matches!(
                 node.kind().as_ref(),

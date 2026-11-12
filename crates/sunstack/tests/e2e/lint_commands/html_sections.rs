@@ -311,6 +311,11 @@ async fn recovered_html_headings_keep_exact_fields_and_prepare_every_section() {
             2,
             "{name}: {report}"
         );
+        assert_eq!(
+            report["requests"][0]["request"]["state"]["complete"],
+            if child { "Parent Child" } else { "A" },
+            "{name}: recovered heading words must stay separate in the asking state"
+        );
         assert_eq!(report["usage"]["model_requests"], 0);
         assert!(
             report["incomplete"].as_array().unwrap().is_empty(),
