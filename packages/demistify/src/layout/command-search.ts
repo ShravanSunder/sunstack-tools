@@ -19,7 +19,7 @@ const destinationGroups = {
 const destinationIcons = {
 	page: 'files',
 	heading: 'article',
-	walkthrough: 'road-horizon',
+	walkthrough: 'compass',
 	journey: 'images',
 	map: 'map-trifold',
 } satisfies Record<SearchDestination['kind'], string>;
