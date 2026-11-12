@@ -82,13 +82,32 @@ export function prepareAskingPath(root: string, selection: boolean): void {
 	);
 	if (!selection)
 		filesystem.writeFileSync(path.join(directory, 'subject.html'), '<p>Checked member.</p>');
-	const rule: JsonObject = {
-		...askingRule,
-		...(!selection ? { only_when: { category: ['eligible'] } } : {}),
-		questions: {
-			quality: { type: 'noul', instructions: { check: 'full', task: 'Inspect the picture text.' } },
-		},
-	};
+	const rule: JsonObject = selection
+		? {
+				...askingRule,
+				questions: {
+					quality: {
+						type: 'noul',
+						instructions: { check: 'full', task: 'Inspect the picture text.' },
+					},
+				},
+			}
+		: {
+				name: 'filter-member-raw',
+				evidence: 'section',
+				severity: 'warn',
+				only_when: { category: ['eligible'] },
+				decision: {
+					start: 'raw',
+					steps: {
+						raw: {
+							mechanical_check: { tool: 'contains', field: 'full', text: '<p>' },
+							yes: 'pass',
+							['no']: { finding: 'Raw member markup was lost.' },
+						},
+					},
+				},
+			};
 	writeProject(
 		root,
 		{ K001: rule },
