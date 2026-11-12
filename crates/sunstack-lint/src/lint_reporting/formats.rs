@@ -1,5 +1,5 @@
 use crate::{InvalidConfigValue, *};
-use std::{fmt::Write, str::FromStr};
+use std::{fmt::Write, path::Path, str::FromStr};
 use sunstack_rules::{Anchor, Severity};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -145,7 +145,7 @@ pub(crate) fn uncertain_text(result: &UncertainResult) -> String {
         serde_json::to_string(&result.answers).unwrap_or_else(|_| "unavailable".into())
     )
 }
-fn human(report: &LintReport) -> String {
+fn human(report: &LintReport, prepare_file: Option<&Path>) -> String {
     let mut output = format!("Scope: {}\n", scope_text(&report.scope));
     if !report.filter_answers.is_empty() {
         let mut labels = std::collections::BTreeMap::<String, usize>::new();
@@ -342,13 +342,45 @@ fn human(report: &LintReport) -> String {
             incomplete_text(&incomplete.reason)
         );
     }
-    let _ = writeln!(
-        output,
-        "{}: {} error(s), {} warning(s)",
-        status_text(report.status),
-        report.counts.error,
-        report.counts.warn
-    );
+    match report.status {
+        LintStatus::Invalid | LintStatus::Cancelled | LintStatus::NothingSelected => {
+            let diagnostic_count = report.diagnostics.len();
+            let problem_word = if diagnostic_count == 1 {
+                "problem"
+            } else {
+                "problems"
+            };
+            let _ = writeln!(
+                output,
+                "{}: {diagnostic_count} {problem_word}",
+                status_text(report.status)
+            );
+        }
+        LintStatus::Prepared
+        | LintStatus::Clean
+        | LintStatus::Findings
+        | LintStatus::Incomplete
+        | LintStatus::Uncertain => {
+            let _ = write!(output, "{}", status_text(report.status));
+            if report.status == LintStatus::Prepared {
+                let request_count = report.requests.len();
+                let request_word = if request_count == 1 {
+                    "request"
+                } else {
+                    "requests"
+                };
+                let _ = write!(output, " {request_count} {request_word}");
+                if let Some(path) = prepare_file {
+                    let _ = write!(output, " in {}", path.display());
+                }
+            }
+            let _ = writeln!(
+                output,
+                ": {} error(s), {} warning(s)",
+                report.counts.error, report.counts.warn
+            );
+        }
+    }
     if report.usage.model_requests > 0 {
         let _ = writeln!(
             output,
@@ -458,12 +490,19 @@ fn github(report: &LintReport) -> String {
 }
 pub fn render(report: &LintReport, format: OutputFormat) -> String {
     match format {
-        OutputFormat::Default => human(report),
+        OutputFormat::Default => human(report, None),
         OutputFormat::Github => github(report),
         OutputFormat::Json => serde_json::to_string_pretty(report)
             .unwrap_or_else(|_| "Unable to encode lint report.\n".into()),
         OutputFormat::Sarif => crate::lint_reporting::sarif_format::render_sarif(report)
             .unwrap_or_else(|_| "Unable to encode SARIF report.\n".into()),
+    }
+}
+
+pub fn render_prepared(report: &LintReport, format: OutputFormat, prepare_file: &Path) -> String {
+    match format {
+        OutputFormat::Default => human(report, Some(prepare_file)),
+        _ => render(report, format),
     }
 }
 
@@ -484,3 +523,7 @@ fn provider_failure_name(class: sunstack_decisions::ProviderFailureClass) -> &'s
         ProviderFailureClass::UnexpectedProviderError => "unexpected_provider_error",
     }
 }
+
+#[cfg(test)]
+#[path = "formats_test.rs"]
+mod tests;

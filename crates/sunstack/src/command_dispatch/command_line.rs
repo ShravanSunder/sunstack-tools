@@ -33,6 +33,9 @@ pub enum CredentialCommand {
 }
 
 #[derive(Args)]
+#[command(
+    after_help = "Exit codes:\n  0  Clean or nothing selected\n  1  Findings\n  2  Invalid input\n  3  Incomplete\n  4  Cancelled\n  5  Uncertain\n  6  Prepared"
+)]
 pub struct LintArguments {
     #[command(subcommand)]
     pub command: Option<LintCommand>,
@@ -49,6 +52,7 @@ pub struct LintArguments {
     /// Files or directories to check; named paths default to full scope.
     #[arg(conflicts_with_all = ["check", "rules", "init"])]
     pub paths: Vec<PathBuf>,
+    /// Config file to use; default: nearest sunstack.lint.json upward.
     #[arg(long, conflicts_with = "init")]
     pub config: Option<PathBuf>,
     /// Resolve checked file globs and evidence paths within this directory.

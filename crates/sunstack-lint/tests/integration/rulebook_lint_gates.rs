@@ -8,6 +8,8 @@ use sunstack_decisions::CancellationToken;
 use sunstack_evidence::{CheckedFileSource, CheckedReadError, FilesystemCheckedSource};
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
+#[path = "rulebook_lint_gates/credential_eligibility.rs"]
+mod credential_eligibility;
 #[path = "rulebook_lint_gates/filter_context.rs"]
 mod filter_context;
 #[path = "rulebook_lint_gates/filter_context_demand.rs"]
@@ -39,7 +41,8 @@ fn source(root: &Path) -> (Box<dyn CheckedFileSource + Send>, Arc<Mutex<Vec<Path
     )
 }
 #[tokio::test]
-async fn missing_key_and_malformed_config_never_reach_the_checked_source_or_git_capture() {
+async fn missing_key_for_named_file_and_malformed_config_never_reach_the_checked_source_or_git_capture()
+ {
     for malformed in [false, true] {
         let root = tempfile::tempdir().unwrap();
         fixture::judged(root.path(), "http://127.0.0.1:1/v1/systemone");
@@ -49,6 +52,7 @@ async fn missing_key_and_malformed_config_never_reach_the_checked_source_or_git_
         let (source, reads) = source(root.path());
         let mut request = fixture::request(root.path());
         request.scope = ScopeChoice::Default;
+        request.paths = vec![root.path().join("docs/one.md")];
         let report = run_with_source(request, CancellationToken::new(), None, Some(source)).await;
         assert_eq!(report.status, LintStatus::Invalid);
         assert_eq!(
