@@ -8,12 +8,14 @@ import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 
 import { SdkControlledBackend, boundedSdkWait } from './sdk-controlled-backend.ts';
+import { requireSdkFileCountParity } from './sdk-counter-parity.ts';
 import {
 	createCheckedSdkInputs,
 	createBlockedSdkInput,
 	createSdkFileDefinitions,
 	sdkInlineConfiguration,
 } from './sdk-fixtures.ts';
+import { requireSdkRequestParity } from './sdk-request-parity.ts';
 import { requireSdk, saveSdkEvidence, type SdkExports, type SdkTarget } from './sdk-target.ts';
 
 export const sdkRecordSchema = z.record(z.string(), z.unknown());
@@ -353,19 +355,18 @@ export async function observeSdkInline(context: JourneyContext): Promise<Journey
 		filesystem.writeFileSync(path.join(context.evidence, 'cli-stdout.json'), Buffer.concat(stdout));
 		filesystem.writeFileSync(path.join(context.evidence, 'cli-stderr.log'), Buffer.concat(stderr));
 		requireSdk(exit === 0, 'CLI parity counterpart did not complete cleanly');
-		const cliValue: unknown = JSON.parse(Buffer.concat(stdout).toString('utf8'));
+		const rawCliReport = Buffer.concat(stdout).toString('utf8');
+		requireSdkFileCountParity(rawCliReport, report['file_counts']);
+		const cliValue: unknown = JSON.parse(rawCliReport);
 		const cli = requireCompletedSdkReport({
 			kind: 'completed',
 			report: cliValue,
 		});
-		for (const field of ['status', 'counts', 'file_counts', 'filter_skips'])
+		for (const field of ['status', 'counts', 'filter_skips'])
 			requireSdk(isDeepStrictEqual(cli[field], report[field]), `CLI/SDK ${field} differs`);
-		requireSdk(
-			isDeepStrictEqual(
-				context.backend.captures.slice(cliStart).map((capture) => capture.body),
-				requests,
-			),
-			'CLI/SDK full encoded request bodies differ; inspect before introducing any normalization',
+		requireSdkRequestParity(
+			context.backend.captures.slice(before, cliStart).map((capture) => capture.raw),
+			context.backend.captures.slice(cliStart).map((capture) => capture.raw),
 		);
 	} finally {
 		clearTimeout(timer);

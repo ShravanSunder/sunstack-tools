@@ -8,6 +8,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { SdkControlledBackend } from './sdk-controlled-backend.ts';
+import { requireSdkFileCountParity } from './sdk-counter-parity.ts';
 import { createSdkFileDefinitions, sdkInlineConfiguration } from './sdk-fixtures.ts';
 import {
 	requireCompletedSdkReport,
@@ -17,6 +18,7 @@ import {
 	requireSdkSources,
 	observeSdkInline,
 } from './sdk-journeys.ts';
+import { requireSdkRequestParity } from './sdk-request-parity.ts';
 import {
 	sdkTargetSchema,
 	confirmSdkFilePins,
@@ -41,6 +43,131 @@ const source = {
 };
 
 describe('SDK apparatus rejects false greens', () => {
+	it('allows independent request arrival swaps but preserves full payloads, duplicates and dependencies', () => {
+		const first = '{"state":{"owner":"folder-a"},"questions":{"purpose":{"type":"choice"}}}';
+		const second = '{"state":{"owner":"folder-b"},"questions":{"purpose":{"type":"choice"}}}';
+		const rule = '{"state":{"owner":"rule"},"questions":{"actor":{"type":"noul"}}}';
+		const expected = [first, second, rule];
+		expect(() => requireSdkRequestParity(expected, [second, first, rule])).not.toThrow();
+		expect(() =>
+			requireSdkRequestParity([first, first, second, rule], [second, first, first, rule]),
+		).not.toThrow();
+		for (const wrong of [
+			[first, rule],
+			[first, first, rule],
+			[first, second, rule, rule],
+			[first, second, rule.replace('noul', 'choice')],
+		]) {
+			expect(() => requireSdkRequestParity(expected, wrong)).toThrow();
+		}
+		expect(() => requireSdkRequestParity(expected, [first, rule, second])).toThrow(
+			'dependent rule',
+		);
+	});
+	it('compares declared CLI count tokens exactly, including zero, u64 limit and optional selection', () => {
+		for (const value of [0n, 1n, 9007199254740993n, 18446744073709551615n]) {
+			const raw = `{"file_counts":[{"file":"a.md","kinds":{"paragraph":{"matches":${value},"pieces":${value},"picked":${value},"limited":false}}}]}`;
+			const sdk = [
+				{
+					file: 'a.md',
+					kinds: { paragraph: { matches: value, pieces: value, picked: value, limited: false } },
+				},
+			];
+			expect(() => requireSdkFileCountParity(raw, sdk)).not.toThrow();
+		}
+		const raw =
+			'{"file_counts":[{"file":"a.md","kinds":{"paragraph":{"matches":1,"pieces":1,"picked":1,"limited":false,"selection":{"candidates":9007199254740993,"asked":0,"selected":1,"not_selected":2,"uncertain":3,"incomplete":4}}}}]}';
+		const sdk = [
+			{
+				file: 'a.md',
+				kinds: {
+					paragraph: {
+						matches: 1n,
+						pieces: 1n,
+						picked: 1n,
+						limited: false,
+						selection: {
+							candidates: 9007199254740993n,
+							asked: 0n,
+							selected: 1n,
+							not_selected: 2n,
+							uncertain: 3n,
+							incomplete: 4n,
+						},
+					},
+				},
+			},
+		];
+		expect(() => requireSdkFileCountParity(raw, sdk)).not.toThrow();
+	});
+	it('refuses changed or rounded counters and invalid counter representations', () => {
+		const raw =
+			'{"file_counts":[{"file":"a.md","kinds":{"paragraph":{"matches":9007199254740992,"pieces":1,"picked":1,"limited":false}}}]}';
+		const sdk = [
+			{
+				file: 'a.md',
+				kinds: {
+					paragraph: { matches: 9007199254740993n, pieces: 1n, picked: 1n, limited: false },
+				},
+			},
+		];
+		expect(() => requireSdkFileCountParity(raw, sdk)).toThrow('counter differs');
+		for (const token of [
+			'9007199254740994',
+			'-1',
+			'18446744073709551616',
+			'1.0',
+			'1e0',
+			'"9007199254740993"',
+		]) {
+			expect(() =>
+				requireSdkFileCountParity(raw.replace('9007199254740992', token), sdk),
+			).toThrow();
+		}
+	});
+	it('preserves paths, kind keys, flags, ordering, missing/null and unrelated field types', () => {
+		const raw =
+			'{"file_counts":[{"file":"a.md","kinds":{"paragraph":{"matches":1,"pieces":1,"picked":1,"limited":false}}},{"file":"b.md","kinds":{}}]}';
+		const sdk = [
+			{
+				file: 'a.md',
+				kinds: { paragraph: { matches: 1n, pieces: 1n, picked: 1n, limited: false } },
+			},
+			{ file: 'b.md', kinds: {} },
+		];
+		expect(() => requireSdkFileCountParity(raw, sdk)).not.toThrow();
+		for (const changed of [
+			raw.replace('a.md', 'other.md'),
+			raw.replace('paragraph', 'other'),
+			raw.replace('false', 'true'),
+			raw.replace('"picked":1,', ''),
+			raw.replace('"limited":false', '"limited":false,"selection":null'),
+			raw.replace('"limited":false', '"limited":false,"extra":1'),
+		]) {
+			expect(() => requireSdkFileCountParity(changed, sdk)).toThrow();
+		}
+		expect(() => requireSdkFileCountParity(raw, sdk.toReversed())).toThrow();
+		const nullRaw = raw.replace('"limited":false', '"limited":false,"selection":null');
+		const withNull = [
+			{
+				file: 'a.md',
+				kinds: {
+					paragraph: { matches: 1n, pieces: 1n, picked: 1n, limited: false, selection: null },
+				},
+			},
+			{ file: 'b.md', kinds: {} },
+		];
+		expect(() => requireSdkFileCountParity(nullRaw, withNull)).not.toThrow();
+		const extraRaw = raw.replace('"limited":false', '"limited":false,"extra":1');
+		const withWrongExtra = [
+			{
+				file: 'a.md',
+				kinds: { paragraph: { matches: 1n, pieces: 1n, picked: 1n, limited: false, extra: 1n } },
+			},
+			{ file: 'b.md', kinds: {} },
+		];
+		expect(() => requireSdkFileCountParity(extraRaw, withWrongExtra)).toThrow('unrelated integer');
+	});
 	it('requires the blocked folder result and exact judged filter reason, not an unrelated skip', () => {
 		const result = {
 			file: 'skills/local/SKILL.md',
