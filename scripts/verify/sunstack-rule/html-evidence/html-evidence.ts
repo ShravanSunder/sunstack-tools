@@ -12,6 +12,7 @@ import {
 	objectValue,
 	readObject,
 	runSequence,
+	textValue,
 	writeJson,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { declaredTarget, RulebookProcess } from '../rulebook/rulebook-process.ts';
@@ -129,8 +130,15 @@ export async function observeHtml(options: z.infer<typeof optionsSchema>): Promi
 				const fields = objectValue(savedPiece(report, row)['fields']);
 				if (control.name === 'empty-needle') {
 					const needle = objectValue(fields['identifier']);
-					assert.equal(needle['state'], 'text');
-					assert.equal(needle['value'], '');
+					assert.equal(
+						needle['state'],
+						'absent',
+						'Capture excludes empty groups by its existing contract',
+					);
+					assert.ok(textValue(savedPiece(report, row)['text']).includes('data-needle=""'));
+					const gaps = arrayValue(report['incomplete']).map(objectValue);
+					assert.equal(gaps.length, 1);
+					assert.equal(gaps[0]?.['field'], 'identifier');
 				} else {
 					const field = objectValue(fields[control.name === 'empty-target' ? 'links' : 'coverage']);
 					assert.equal(field['state'], 'unavailable');
