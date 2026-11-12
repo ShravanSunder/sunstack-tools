@@ -1,5 +1,6 @@
 // Keyless calls through the real addon: snapshots, check effects and run endings.
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -267,6 +268,89 @@ await test('run endings keep the exact engine status, diagnostics and checked pa
 			scope: { kind: 'default' },
 		});
 		assert.equal(changeScopeOnSubdirectory.kind, 'invalid');
+	} finally {
+		base.remove();
+		repository.remove();
+	}
+});
+
+await test('the default scope judges only changed files, and all judges every file', async () => {
+	const base = ownedDirectory('scope-base');
+	const repository = ownedDirectory('scope-repository');
+	try {
+		const git = (...args: string[]): void => {
+			execFileSync(
+				'git',
+				[
+					'-c',
+					'user.name=Fixture',
+					'-c',
+					'user.email=fixture@example.invalid',
+					'-c',
+					'commit.gpgsign=false',
+					'-c',
+					'core.hooksPath=/dev/null',
+					...args,
+				],
+				{
+					cwd: repository.path,
+					stdio: 'ignore',
+				},
+			);
+		};
+		writeFiles(repository.path, {
+			'docs/one.md': '---\ndescription: Wrong opening\n---\n\n# One\n',
+			'docs/two.md': '---\ndescription: Wrong too\n---\n\n# Two\n',
+		});
+		git('init', '-q');
+		git('add', '.');
+		git('commit', '-q', '-m', 'fixture');
+		writeFiles(repository.path, { 'docs/two.md': '---\ndescription: Still wrong\n---\n\n# Two\n' });
+		const configuration: Configuration = {
+			id: 'scope',
+			base_directory: base.path,
+			marker_prefix: 'K',
+			check: { files: ['docs/*.md'] },
+			decision_model: { model: 'jev-latest' },
+			evidence: {
+				kind: 'inline',
+				utilities: {},
+				matchers: { skill: { language: 'Markdown', rule: { matches: 'frontmatter' } } },
+				kinds: {
+					skill: { rule: 'skill', fields: { description: { from: 'yaml', key: 'description' } } },
+				},
+			},
+			rulebooks: [
+				{
+					kind: 'inline',
+					id: 'scope-rules',
+					markdown: 'Description must begin with Use when. <!-- K001 -->\n',
+					entries: mechanicalEntries(ruleA),
+				},
+			],
+		};
+		const changed = await run(configuration, { root: repository.path, scope: { kind: 'default' } });
+		assert.equal(changed.kind, 'completed');
+		if (changed.kind === 'completed') {
+			assert.deepEqual(
+				changed.report.findings.map((finding) => finding.file),
+				['docs/two.md'],
+			);
+			assert.equal(changed.report.scope.kind, 'default');
+		}
+		const everything = await run(configuration, { root: repository.path, scope: { kind: 'all' } });
+		assert.equal(everything.kind, 'completed');
+		if (everything.kind === 'completed') {
+			assert.deepEqual(everything.report.findings.map((finding) => finding.file).toSorted(), [
+				'docs/one.md',
+				'docs/two.md',
+			]);
+		}
+		const since = await run(configuration, {
+			root: repository.path,
+			scope: { kind: 'since', rev: 'HEAD' },
+		});
+		assert.equal(since.kind === 'completed' ? since.report.findings.length : since.kind, 1);
 	} finally {
 		base.remove();
 		repository.remove();

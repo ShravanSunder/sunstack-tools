@@ -2,22 +2,91 @@
 // type-check the package examples there, and run real load/check/run.
 //
 //   node scripts/installed-consumer-check.ts --tarballs <absolute-directory> [--evidence <absolute-directory>]
+//   node scripts/installed-consumer-check.ts --print-contract --evidence <consumer> --expect-cell <key>
 //
 // The consumer gets only the tarballs plus TypeScript and Node types from the
 // registry: no workspace links, no Rust toolchain use and no Zod.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import {
+	copyFileSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	realpathSync,
+	writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { CONTRACT_REVISION } from '../src/contracts/contract-revision.ts';
+import { platformCells } from '../src/native-binding.ts';
+
 const packageDirectory = fileURLToPath(new URL('../', import.meta.url));
+
+function sdkVersion(): string {
+	const manifest: unknown = JSON.parse(
+		readFileSync(join(packageDirectory, 'package.json'), 'utf8'),
+	);
+	if (
+		typeof manifest !== 'object' ||
+		manifest === null ||
+		!('version' in manifest) ||
+		typeof manifest.version !== 'string'
+	) {
+		throw new Error('package.json has no version');
+	}
+	return manifest.version;
+}
 const { values } = parseArgs({
-	options: { tarballs: { type: 'string' }, evidence: { type: 'string' } },
+	options: {
+		tarballs: { type: 'string' },
+		evidence: { type: 'string' },
+		'print-contract': { type: 'boolean' },
+		'expect-cell': { type: 'string' },
+	},
 });
+
+// Second mode: report the installed addon's contract and require this cell's target.
+if (values['print-contract'] === true) {
+	const consumerDirectory = values.evidence;
+	const cellKey = values['expect-cell'];
+	if (consumerDirectory === undefined || cellKey === undefined) {
+		throw new Error('Pass --evidence <consumer> and --expect-cell <key>.');
+	}
+	const expected = platformCells.find((cell) => cell.key === cellKey);
+	if (expected === undefined) throw new Error(`Unknown cell ${cellKey}.`);
+	const probe = join(consumerDirectory, 'contract-probe.mjs');
+	writeFileSync(
+		probe,
+		"import { contractInfo } from '@sunstack/sdk';\nconsole.log(JSON.stringify(await contractInfo()));\n",
+	);
+	const output = execFileSync(process.execPath, [probe], {
+		cwd: consumerDirectory,
+		encoding: 'utf8',
+	});
+	writeFileSync(join(consumerDirectory, 'contract.log'), output);
+	process.stdout.write(output);
+	const reported: unknown = JSON.parse(output);
+	assert.deepEqual(reported, {
+		kind: 'ready',
+		contract: {
+			sdk_release: sdkVersion(),
+			contract_revision: CONTRACT_REVISION,
+			target: expected.target,
+		},
+	});
+	const installedCells = readdirSync(join(consumerDirectory, 'node_modules', '@sunstack'));
+	assert.ok(
+		installedCells.includes(`sdk-${cellKey}`),
+		`@sunstack/sdk-${cellKey} is installed: ${installedCells.join(', ')}`,
+	);
+	process.exit(0);
+}
 const tarballDirectory = values.tarballs;
 if (tarballDirectory === undefined || !isAbsolute(tarballDirectory))
 	throw new Error('Pass --tarballs <absolute-directory>.');

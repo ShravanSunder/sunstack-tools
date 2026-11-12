@@ -79,53 +79,43 @@ jobs:
   addon:
     name: Addon (${{ matrix.cell }})
     runs-on: ${{ matrix.runner }}
-    container: ${{ matrix.container }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { cell: darwin-arm64, runner: macos-15, target: aarch64-apple-darwin, container: '' }
-          - { cell: darwin-x64, runner: macos-15-intel, target: x86_64-apple-darwin, container: '' }
+          - { cell: darwin-arm64, runner: macos-15, target: aarch64-apple-darwin, musl: false }
+          - { cell: darwin-x64, runner: macos-15-intel, target: x86_64-apple-darwin, musl: false }
           - {
               cell: linux-x64-gnu,
               runner: ubuntu-22.04,
               target: x86_64-unknown-linux-gnu,
-              container: '',
+              musl: false,
             }
           - {
               cell: linux-arm64-gnu,
               runner: ubuntu-22.04-arm,
               target: aarch64-unknown-linux-gnu,
-              container: '',
+              musl: false,
             }
           - {
               cell: linux-x64-musl,
               runner: ubuntu-22.04,
               target: x86_64-unknown-linux-musl,
-              container: 'node:26-alpine',
+              musl: true,
             }
           - {
               cell: linux-arm64-musl,
               runner: ubuntu-22.04-arm,
               target: aarch64-unknown-linux-musl,
-              container: 'node:26-alpine',
+              musl: true,
             }
     steps:
-      - name: Prepare Alpine build tools
-        if: matrix.container != ''
-        run: apk add --no-cache bash curl git build-base perl cmake python3 linux-headers
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - name: Install Rust in the container
-        if: matrix.container != ''
-        shell: bash
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - name: Install pinned Rust components and target
-        shell: bash
+        if: ${{ !matrix.musl }}
         run: |
           rustup show active-toolchain
           rustup target add ${{ matrix.target }}
@@ -138,15 +128,27 @@ jobs:
             echo "CFLAGS=-isysroot $(xcrun --show-sdk-path)"
           } >> "$GITHUB_ENV"
       - uses: actions/setup-node@v6
-        if: matrix.container == ''
+        if: ${{ !matrix.musl }}
         with:
           node-version: '26'
           package-manager-cache: false
       - name: Build the addon
-        shell: bash
+        if: ${{ !matrix.musl }}
         run: node packages/sdk/scripts/build-native.ts --target ${{ matrix.target }}
+      # musl builds run natively in Alpine on a same-architecture runner.
+      - name: Build the addon in Alpine
+        if: ${{ matrix.musl }}
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work node:26-alpine sh -euc '
+            apk add --no-cache bash curl git build-base perl cmake linux-headers
+            curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+            export PATH="$HOME/.cargo/bin:$PATH"
+            rustup show active-toolchain
+            rustup target add ${{ matrix.target }}
+            node packages/sdk/scripts/build-native.ts --target ${{ matrix.target }}
+            chown -R '"$(id -u):$(id -g)"' packages/sdk/npm target
+          '
       - name: Record the addon identity
-        shell: bash
         run: |
           addon=packages/sdk/npm/${{ matrix.cell }}/sunstack-sdk.${{ matrix.cell }}.node
           file "$addon" || true
@@ -184,9 +186,12 @@ jobs:
       - run: pnpm --filter @sunstack/sdk build:typescript
       - name: Pack the SDK and all six platform packages
         run: |
+          mkdir -p candidate
           node packages/sdk/scripts/pack-candidate.ts --out "$PWD/candidate" \
             --cell darwin-arm64 --cell darwin-x64 --cell linux-x64-gnu \
-            --cell linux-arm64-gnu --cell linux-x64-musl --cell linux-arm64-musl | tee candidate/manifest.json
+            --cell linux-arm64-gnu --cell linux-x64-musl --cell linux-arm64-musl > manifest.json
+          mv manifest.json candidate/manifest.json
+          cat candidate/manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: sdk-candidate
@@ -197,49 +202,51 @@ jobs:
     name: Fresh install (${{ matrix.cell }})
     needs: [package]
     runs-on: ${{ matrix.runner }}
-    container: ${{ matrix.container }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { cell: darwin-arm64, runner: macos-15, container: '' }
-          - { cell: darwin-x64, runner: macos-15-intel, container: '' }
-          - { cell: linux-x64-gnu, runner: ubuntu-22.04, container: 'node:26-bookworm' }
-          - { cell: linux-arm64-gnu, runner: ubuntu-22.04-arm, container: 'node:26-bookworm' }
-          - { cell: linux-x64-musl, runner: ubuntu-22.04, container: 'node:26-alpine' }
-          - { cell: linux-arm64-musl, runner: ubuntu-22.04-arm, container: 'node:26-alpine' }
+          - { cell: darwin-arm64, runner: macos-15, musl: false }
+          - { cell: darwin-x64, runner: macos-15-intel, musl: false }
+          - { cell: linux-x64-gnu, runner: ubuntu-22.04, musl: false }
+          - { cell: linux-arm64-gnu, runner: ubuntu-22.04-arm, musl: false }
+          - { cell: linux-x64-musl, runner: ubuntu-22.04, musl: true }
+          - { cell: linux-arm64-musl, runner: ubuntu-22.04-arm, musl: true }
     steps:
-      - name: Prepare Alpine checkout tools
-        if: matrix.container == 'node:26-alpine'
-        run: apk add --no-cache bash git
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v6
-        if: matrix.container == ''
-        with:
-          node-version: '26'
-          package-manager-cache: false
       - uses: actions/download-artifact@v4
         with:
           name: sdk-candidate
           path: candidate
-      - name: Consumer runs without a Rust toolchain
-        shell: bash
+      - uses: actions/setup-node@v6
+        if: ${{ !matrix.musl }}
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - name: Fresh consumer runs without a Rust toolchain
+        if: ${{ !matrix.musl }}
         run: |
           # Hide any preinstalled Rust so the consumer cannot build or use it.
           export PATH="$(echo "$PATH" | tr ':' '\n' | grep -v -e '\.cargo/bin' -e 'rustup' | paste -sd ':' -)"
           if command -v rustc || command -v cargo; then echo "Rust is still on PATH" >&2; exit 1; fi
           node --version
           node packages/sdk/scripts/installed-consumer-check.ts --tarballs "$PWD/candidate" --evidence "$RUNNER_TEMP/consumer"
-      - name: The installed addon matches this cell
-        shell: bash
+          node packages/sdk/scripts/installed-consumer-check.ts --print-contract --evidence "$RUNNER_TEMP/consumer" --expect-cell ${{ matrix.cell }}
+      # Alpine images carry no Rust; the consumer runs on musl Node.
+      - name: Fresh consumer runs in Alpine
+        if: ${{ matrix.musl }}
         run: |
-          cd "$RUNNER_TEMP/consumer"
-          node --input-type=module -e "import('@sunstack/sdk').then(async (sdk) => { const info = await sdk.contractInfo(); console.log(JSON.stringify(info)); if (info.kind !== 'ready') process.exit(1); })"
-          ls node_modules/@sunstack
-          test -d "node_modules/@sunstack/sdk-${{ matrix.cell }}"
+          mkdir -p "$RUNNER_TEMP/consumer"
+          docker run --rm -v "$PWD:/work:ro" -v "$RUNNER_TEMP/consumer:/consumer" -w /work node:26-alpine sh -euc '
+            if command -v rustc || command -v cargo; then echo "Rust is present" >&2; exit 1; fi
+            node --version
+            node packages/sdk/scripts/installed-consumer-check.ts --tarballs /work/candidate --evidence /consumer
+            node packages/sdk/scripts/installed-consumer-check.ts --print-contract --evidence /consumer --expect-cell ${{ matrix.cell }}
+            chown -R '"$(id -u):$(id -g)"' /consumer
+          '
       - uses: actions/upload-artifact@v4
         if: always()
         with:
