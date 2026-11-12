@@ -12,7 +12,14 @@ type HtmlNode<'tree> = Node<'tree, StrDoc<SupportLang>>;
 pub(crate) fn html_text_content(raw: &str) -> String {
     let tree = SupportLang::Html.ast_grep(raw);
     let mut content = String::new();
-    append_text(&tree.root(), raw, &mut content);
+    // Selection purpose never performs fallible raw-span recovery.
+    let _ = append_text(
+        &tree.root(),
+        raw,
+        &mut content,
+        HtmlTextPurpose::Selection,
+        false,
+    );
     content.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
@@ -41,73 +48,18 @@ impl HtmlProjectionReason {
 pub(crate) fn html_asking_text(raw: &str) -> HtmlAskingText {
     let tree = SupportLang::Html.ast_grep(raw);
     let mut content = String::new();
-    let result = append_asking_text(&tree.root(), raw, &mut content, false);
+    let result = append_text(
+        &tree.root(),
+        raw,
+        &mut content,
+        HtmlTextPurpose::Asking,
+        false,
+    );
     let text = content.split_whitespace().collect::<Vec<_>>().join(" ");
     match result {
         Ok(()) => HtmlAskingText::Complete(text),
         Err(reason) => HtmlAskingText::Incomplete { text, reason },
     }
-}
-
-fn append_asking_text(
-    node: &HtmlNode<'_>,
-    raw: &str,
-    content: &mut String,
-    excluded_context: bool,
-) -> Result<(), HtmlProjectionReason> {
-    match node.kind().as_ref() {
-        "ERROR" => {
-            if !excluded_context {
-                append_recovered_text(node, content)?;
-            }
-        }
-        "text" | "entity" => content.push_str(&decode_entities(&node.text())),
-        "raw_text" => content.push_str(&node.text()),
-        "start_tag" | "self_closing_tag" => {
-            // The parser can represent a truncated opening tag with a missing terminator.
-            if node.dfs().any(|part| part.is_missing()) {
-                if !excluded_context {
-                    append_recovered_text(node, content)?;
-                }
-            } else {
-                content.push(' ');
-                append_tag_attributes(node, content);
-                content.push(' ');
-            }
-        }
-        "end_tag" => content.push(' '),
-        "document" | "element" | "script_element" | "style_element" => {
-            let is_element = node.kind() != "document";
-            let excluded_context = excluded_context
-                || node.children().any(|child| {
-                    child.kind() == "start_tag"
-                        && child.children().any(|part| {
-                            part.kind() == "tag_name" && recovery_excluded_tag(&part.text())
-                        })
-                });
-            if is_element {
-                content.push(' ');
-            }
-            let mut cursor = node.range().start;
-            for child in node.children() {
-                let gap = &raw[cursor..child.range().start];
-                if gap.chars().all(char::is_whitespace) {
-                    content.push_str(gap);
-                }
-                append_asking_text(&child, raw, content, excluded_context)?;
-                cursor = child.range().end;
-            }
-            let gap = &raw[cursor..node.range().end];
-            if gap.chars().all(char::is_whitespace) {
-                content.push_str(gap);
-            }
-            if is_element {
-                content.push(' ');
-            }
-        }
-        _ => {}
-    }
-    Ok(())
 }
 
 // ERROR leaves can contain both markup and prose with no useful child-node boundaries.
@@ -238,20 +190,46 @@ pub(crate) fn html_has_id(raw: &str, id: &str) -> bool {
     })
 }
 
-fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum HtmlTextPurpose {
+    Selection,
+    Asking,
+}
+
+fn append_text(
+    node: &HtmlNode<'_>,
+    raw: &str,
+    content: &mut String,
+    purpose: HtmlTextPurpose,
+    excluded_context: bool,
+) -> Result<(), HtmlProjectionReason> {
     match node.kind().as_ref() {
         "text" | "entity" => content.push_str(&decode_entities(&node.text())),
         "raw_text" => content.push_str(&node.text()),
-        "ERROR" if node.children().len() == 0 => {
-            let text = node.text();
-            if text.starts_with('&') && !text.contains(['<', '>']) {
-                content.push_str(&text);
+        "ERROR"
+            if node.children().len() == 0
+                && node.text().starts_with('&')
+                && !node.text().contains(['<', '>']) =>
+        {
+            // These existing ampersand leaves were already visible, not lost prose.
+            content.push_str(&node.text());
+        }
+        "ERROR" if purpose == HtmlTextPurpose::Asking => {
+            if !excluded_context {
+                append_recovered_text(node, content)?;
             }
         }
+        "ERROR" if node.children().len() == 0 => {}
         "start_tag" | "self_closing_tag" => {
-            content.push(' ');
-            append_tag_attributes(node, content);
-            content.push(' ');
+            if purpose == HtmlTextPurpose::Asking && node.dfs().any(|part| part.is_missing()) {
+                if !excluded_context {
+                    append_recovered_text(node, content)?;
+                }
+            } else {
+                content.push(' ');
+                append_tag_attributes(node, content);
+                content.push(' ');
+            }
         }
         "end_tag" => content.push(' '),
         "document" | "element" | "script_element" | "style_element" | "ERROR" => {
@@ -259,6 +237,14 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
                 node.kind().as_ref(),
                 "element" | "script_element" | "style_element"
             );
+            let excluded_context = purpose == HtmlTextPurpose::Asking
+                && (excluded_context
+                    || node.children().any(|child| {
+                        child.kind() == "start_tag"
+                            && child.children().any(|part| {
+                                part.kind() == "tag_name" && recovery_excluded_tag(&part.text())
+                            })
+                    }));
             if is_element {
                 content.push(' ');
             }
@@ -268,7 +254,7 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
                 if gap.chars().all(char::is_whitespace) {
                     content.push_str(gap);
                 }
-                append_text(&child, raw, content);
+                append_text(&child, raw, content, purpose, excluded_context)?;
                 cursor = child.range().end;
             }
             let gap = &raw[cursor..node.range().end];
@@ -281,6 +267,7 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
         }
         _ => {}
     }
+    Ok(())
 }
 
 fn append_tag_attributes(tag: &HtmlNode<'_>, content: &mut String) {

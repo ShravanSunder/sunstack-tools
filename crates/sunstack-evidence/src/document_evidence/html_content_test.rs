@@ -85,3 +85,21 @@ fn asking_recovers_the_real_workspace_hierarchy_prose_error_span() {
         "Your words: \"workspace -> Areas -> Projects\"; \"board is not a good name\". An area replaces today's \"board\". A project is a body of work with a lead.".into()
     ));
 }
+
+#[test]
+fn asking_and_selection_keep_existing_ampersand_error_leaves_verbatim() {
+    use ast_grep_language::{LanguageExt, SupportLang};
+    let raw = "<p>Café & diagram &unknown; &amp; words</p>";
+    let tree = SupportLang::Html.ast_grep(raw);
+    assert!(
+        tree.root().dfs().any(|node| node.is_error()
+            && node.children().len() == 0
+            && node.text().starts_with('&'))
+    );
+    let expected = "Café & diagram &unknown; & words";
+    assert_eq!(html_text_content(raw), expected);
+    assert_eq!(
+        html_asking_text(raw),
+        HtmlAskingText::Complete(expected.into())
+    );
+}
