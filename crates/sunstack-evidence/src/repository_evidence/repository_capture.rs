@@ -1,3 +1,4 @@
+mod candidate_paths;
 mod worktree_capture;
 
 use crate::repository_evidence::repository_catalogue::{CaptureView, FileCatalogue, ReadTarget};
@@ -75,6 +76,8 @@ pub(crate) struct PairCapture {
     pub untracked_only: bool,
 }
 pub(crate) struct RepositoryCapture<'repo> {
+    context: ContextCapture,
+    worktree_identities: BTreeMap<PathBuf, git2::Oid>,
     pub repository: &'repo Repository,
     pub binding: RepositoryBinding,
     pub limits: DiscoveryLimits,
@@ -113,6 +116,8 @@ impl<'repo> RepositoryCapture<'repo> {
             .as_bytes(),
         ))?;
         Ok(Self {
+            context: request.context,
+            worktree_identities: BTreeMap::new(),
             repository,
             binding: request.binding.clone(),
             limits: request.limits.clone(),
@@ -444,6 +449,11 @@ impl<'repo> RepositoryCapture<'repo> {
                 } else {
                     false
                 };
+            if self.context == ContextCapture::ChangedOnly
+                && !self.raw_identity_changed(&before, &after, &path)?
+            {
+                continue;
+            }
             let Some(old) = self.read_raw_side(&before, &path, SourceSide::Before)? else {
                 continue;
             };
@@ -454,9 +464,11 @@ impl<'repo> RepositoryCapture<'repo> {
             // Compare acquired bytes before requiring textual change witnesses. Acquisition
             // still owns budgets and mutable snapshot verification, including equal binaries.
             if old.bytes() == new.bytes() {
-                // Unchanged text remains available to frozen-context queries.
-                self.freeze_text_side(old, false)?;
-                self.freeze_text_side(new, false)?;
+                // Only full-context callers retain unchanged text.
+                if self.context == ContextCapture::Full {
+                    self.freeze_text_side(old, false)?;
+                    self.freeze_text_side(new, false)?;
+                }
                 continue;
             }
             let old = self.freeze_text_side(old, true)?;

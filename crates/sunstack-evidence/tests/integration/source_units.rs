@@ -15,6 +15,7 @@ async fn real_git_change_maps_to_function_and_keeps_deleted_before_unit() {
     fixture.write("source.rs", "fn untouched() {}\nfn changed() { new(); }\n");
     let capture = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged],
             }),
@@ -73,6 +74,7 @@ async fn top_level_insertion_and_deletion_do_not_seed_an_unchanged_neighbor() {
     fixture.write("source.rs", "fn inserted() {}\nfn unchanged() {}\n");
     let capture = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged],
             }),
@@ -97,6 +99,7 @@ async fn top_level_insertion_and_deletion_do_not_seed_an_unchanged_neighbor() {
     fixture.write("source.rs", "fn unchanged() {}\n");
     let capture = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged],
             }),

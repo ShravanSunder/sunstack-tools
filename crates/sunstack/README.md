@@ -120,6 +120,8 @@ location. Available output formats are `default`, `json`, `github` and `sarif`.
 Change-scope refusals include `diagnostics[].path` when a source is known.
 Human and SARIF locations use that path. Limit stops name their setting and
 configured value, retaining incomplete status.
+Discovery acquires only changed sources; raw hashing still uses the byte budget.
+Unchanged files are read when lint needs them, rather than frozen for context.
 The JSON report includes `results`, one entry per evaluated rule/piece pair in
 logical report order. Each entry has the rule's `name` and marker, the piece's
 file and first and last line, its outcome (`pass`, `finding`, `not_applicable`,

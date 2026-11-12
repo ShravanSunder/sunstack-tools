@@ -18,6 +18,7 @@ async fn full_context_reads_plain_directory_without_git_and_preserves_every_sour
     };
     let capture = capture_repository_context(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: binding.clone(),
             limits: support::discovery_limits(),
             anchor_utc: chrono::Utc::now(),
@@ -36,6 +37,7 @@ async fn full_context_reads_plain_directory_without_git_and_preserves_every_sour
     limits.max_files = 1.try_into().unwrap();
     let limited = capture_repository_context(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: binding.clone(),
             limits,
             anchor_utc: chrono::Utc::now(),
@@ -59,6 +61,7 @@ async fn full_context_reads_plain_directory_without_git_and_preserves_every_sour
     ] {
         let limited = capture_repository_context(
             ChangeCaptureRequest {
+                context: ContextCapture::Full,
                 binding: binding.clone(),
                 limits,
                 anchor_utc: chrono::Utc::now(),

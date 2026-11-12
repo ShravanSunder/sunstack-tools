@@ -72,6 +72,7 @@ impl Preparation {
                 .saturating_sub(self.discovery_history_commits),
         };
         let request = ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: binding.clone(),
             limits,
             anchor_utc: self.anchor_utc,

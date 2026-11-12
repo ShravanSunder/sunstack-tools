@@ -16,6 +16,7 @@ async fn change_set_primitives_keep_sides_paths_and_every_read_source() {
     fixture.write("changed.ts", "function selected() { newer(); }");
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Unstaged],
             }),
@@ -81,6 +82,7 @@ async fn native_selector_seeds_work_on_full_plain_root_and_changed_seeds_refuse(
     .unwrap();
     let captured = capture_repository_context(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: RepositoryBinding {
                 key: RepositoryId::new("plain").unwrap(),
                 root: directory.path().into(),

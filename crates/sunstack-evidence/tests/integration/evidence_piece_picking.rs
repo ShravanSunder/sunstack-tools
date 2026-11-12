@@ -34,6 +34,7 @@ fn build(root: &std::path::Path, files: &[PathBuf]) -> EvidenceCatalog {
 async fn changes(fixture: &GitFixture) -> Vec<CapturedChange> {
     capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![
                     DirtyLayer::Staged,

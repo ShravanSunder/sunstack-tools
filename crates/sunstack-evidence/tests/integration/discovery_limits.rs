@@ -11,6 +11,7 @@ async fn real_graph_limits_preserve_frontier_and_semantic_partial_group() {
     fixture.write("source.ts", "function root() { first(); second(); third(); } function first() {} function second() {} function third() {}");
     let captured = capture_change_selection(
         ChangeCaptureRequest {
+            context: ContextCapture::Full,
             binding: fixture.binding(ChangeScope::Uncommitted {
                 layers: vec![DirtyLayer::Untracked],
             }),
@@ -117,6 +118,7 @@ async fn real_file_bytes_total_bytes_and_time_have_distinct_cutoffs() {
         }
         let captured = capture_repository_context(
             ChangeCaptureRequest {
+                context: ContextCapture::Full,
                 binding: binding.clone(),
                 limits,
                 anchor_utc: chrono::Utc::now(),
