@@ -14,13 +14,14 @@ export interface CapturedSdkRequest {
 export async function boundedSdkWait<TValue>(
 	operation: Promise<TValue>,
 	label: string,
+	waitMilliseconds = 15000,
 ): Promise<TValue> {
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	try {
 		return await Promise.race([
 			operation,
 			new Promise<never>((_resolve, reject) => {
-				timer = setTimeout(() => reject(new Error(`Timed out: ${label}`)), 15000);
+				timer = setTimeout(() => reject(new Error(`Timed out: ${label}`)), waitMilliseconds);
 			}),
 		]);
 	} finally {

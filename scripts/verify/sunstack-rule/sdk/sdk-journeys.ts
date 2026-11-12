@@ -15,6 +15,11 @@ import {
 	createSdkFileDefinitions,
 	sdkInlineConfiguration,
 } from './sdk-fixtures.ts';
+import {
+	sdkProviderConfiguration,
+	sdkProviderWaitMilliseconds,
+	requireSdkProviderReport,
+} from './sdk-provider.ts';
 import { requireSdkRequestParity } from './sdk-request-parity.ts';
 import { requireSdk, saveSdkEvidence, type SdkExports, type SdkTarget } from './sdk-target.ts';
 
@@ -111,6 +116,8 @@ async function runConfigured(
 	context: JourneyContext,
 	input: unknown,
 	root: string,
+	waitMilliseconds = 15000,
+	outcomeEvidenceName?: string,
 ): Promise<z.infer<typeof sdkRecordSchema>> {
 	const cancellation = new AbortController();
 	const pending = context.sdk.run(input, {
@@ -119,7 +126,10 @@ async function runConfigured(
 		signal: cancellation.signal,
 	});
 	try {
-		return requireCompletedSdkReport(await boundedSdkWait(pending, 'installed SDK run'));
+		const outcome = await boundedSdkWait(pending, 'installed SDK run', waitMilliseconds);
+		if (outcomeEvidenceName)
+			saveSdkEvidence(path.join(context.evidence, outcomeEvidenceName), outcome);
+		return requireCompletedSdkReport(outcome);
 	} finally {
 		cancellation.abort();
 		await boundedSdkWait(Promise.allSettled([pending]), 'owned installed run settlement');
@@ -500,35 +510,18 @@ export function inspectSdkInstall(): JourneyResult {
 export async function observeSdkProvider(context: JourneyContext): Promise<JourneyResult> {
 	const root = path.join(context.evidence, 'provider-root');
 	createCheckedSdkInputs(root, 'Synthetic provider verification instruction.');
-	const inline = sdkInlineConfiguration(root, context.backend.endpoint);
 	// Deliberately remove the controlled endpoint. The ordinary Rust host resolves credentials.
 	const report = await runConfigured(
 		context,
-		{ ...inline, decision_model: { model: 'jev-latest' } },
+		sdkProviderConfiguration(root),
 		root,
+		sdkProviderWaitMilliseconds,
+		'provider-outcome.json',
 	);
-	const requests = z.array(sdkRecordSchema).min(1).parse(report['requests']);
-	for (const request of requests) {
-		const outcome = record(request['outcome']);
-		requireSdk(
-			outcome['state'] === 'run',
-			'Provider request contains only prepared/reused evidence',
-		);
-		const decision = requireSdkKind(outcome['outcome'], 'completed');
-		const receipt = record(decision['receipt']);
-		requireSdk(
-			typeof receipt['resolved_model'] === 'string' &&
-				!receipt['resolved_model'].includes('controlled'),
-			'Missing ordinary provider model receipt',
-		);
-	}
-	requireSdk(context.backend.captures.length === 0, 'Hosted journey reached controlled backend');
 	saveSdkEvidence(path.join(context.evidence, 'provider-report.json'), report);
+	requireSdkProviderReport(report, context.backend.captures.length);
 	return {
 		observed: ['installed SDK ordinary backend run with actual completed request receipts'],
-		gaps: [
-			'usage accounting and complete receipt schema must be joined to current product O3/native proof',
-			'provider output is not inference-quality evaluation or six-cell distribution proof',
-		],
+		gaps: ['provider output is not inference-quality evaluation or six-cell distribution proof'],
 	};
 }
