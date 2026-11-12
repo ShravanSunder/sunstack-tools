@@ -11,7 +11,7 @@ pub mod report_projection;
 pub mod sdk_contracts;
 
 use definition_capture::{CaptureFailure, capture_configuration};
-use report_projection::{RunOutcome, project_diagnostic, project_run};
+use report_projection::{RunOutcome, project_diagnostic, project_run, project_stopped_run};
 use sdk_contracts::{
     AfterDispatchReason, CONTRACT_REVISION, CheckOutcome, CheckSummary, Configuration,
     ContractInfo, Diagnostic, DiagnosticCode, LoadOptions, LoadOutcome, RunRequest, Scope,
@@ -212,7 +212,7 @@ pub async fn run_with_credential(
         Scope::All => ScopeChoice::All,
         Scope::Since { rev } => ScopeChoice::Since { rev },
     };
-    let report = sunstack_lint::run_definitions(
+    match sunstack_lint::run_definitions(
         bundle,
         request.root,
         request.paths,
@@ -220,6 +220,9 @@ pub async fn run_with_credential(
         cancellation,
         credential,
     )
-    .await;
-    project_run(report, &configuration_origin, &sources)
+    .await
+    {
+        Ok(report) => project_run(report, &configuration_origin, &sources),
+        Err(stopped) => project_stopped_run(stopped, &configuration_origin, &sources),
+    }
 }

@@ -222,11 +222,6 @@ await test('present-only fields are refused as null and accepted when omitted', 
 		for (const [index, outcome] of outcomes.entries()) {
 			assert.equal(outcome.kind, 'invalid', `${nullFields[index]?.join('.')}: null is refused`);
 		}
-		// A noul question's criteria may be omitted, never null.
-		const asking = replaced(valid, ['rulebooks', '0', 'entries', 'K001', 'questions'], {
-			asked: { type: 'noul', instructions: 'Is it clear?', criteria: null },
-		});
-		assert.equal((await checkDynamically(asking)).kind, 'invalid');
 	} finally {
 		base.remove();
 	}
@@ -235,14 +230,19 @@ await test('present-only fields are refused as null and accepted when omitted', 
 await test('a selection question must be a noul judgment question', async () => {
 	const base = ownedDirectory('selection-question');
 	try {
+		const procedureQuestion = {
+			type: 'noul',
+			instructions: { check: 'body', task: 'Is this a procedure?' },
+		} as const;
 		const selected: EvidenceKindDefinition = {
 			...paragraphKind,
 			select: {
-				question: { type: 'noul', instructions: { check: 'body', task: 'Is this a procedure?' } },
+				question: procedureQuestion,
 				yes_at_or_above: 0.8,
 				no_at_or_below: 0.2,
 			},
 		};
+		// Valid with its criteria omitted.
 		const valid = configurationWith(base.path, { kind: selected });
 		assert.equal((await check(valid)).kind, 'valid');
 		const refusals = await Promise.all(
@@ -250,6 +250,9 @@ await test('a selection question must be a noul judgment question', async () => 
 				false,
 				{ type: 'choice', instructions: 'Which?', criteria: { a: 'A' } },
 				{ type: 'noul', instruction: 'Is it?' },
+				// The same valid question with only its criteria present as null: criteria may
+				// be omitted, never null.
+				{ ...procedureQuestion, criteria: null },
 			].map(async (question) =>
 				checkDynamically(
 					replaced(valid, ['evidence', 'kinds', 'paragraph', 'select', 'question'], question),

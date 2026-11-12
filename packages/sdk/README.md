@@ -119,7 +119,9 @@ No call throws for a domain or detectable native ending. Narrow on `kind`:
 
 `failed` is an adapter failure: `before_dispatch` has no effects (unsupported runtime
 or platform, missing addon, contract mismatch, unencodable input);
-`after_dispatch` means effects are unknown and the SDK does not retry. Diagnostics
+`after_dispatch` means effects are unknown and the SDK does not retry. A native task
+that stops unexpectedly during a run is `failed` after dispatch, never `incomplete`;
+its report holds the progress made so far, or is absent if nothing had run. Diagnostics
 keep the definition `origin` separate from the checked input `path` that stopped a run.
 `json_path` comes in two forms:
 
@@ -137,9 +139,18 @@ if (outcome.kind === 'completed' && outcome.report.status.kind === 'findings') {
 }
 ```
 
-Full-width Rust integers (u64 and usize, such as `max_file_bytes` or result line
-numbers) are `bigint` and cross exactly; unsafe `number` integers, non-finite
-numbers, functions, cycles and other non-data values are refused before dispatch.
+Integers follow their Rust types and always cross exactly:
+
+- **Engine full-width fields** (u64 and usize, such as `max_file_bytes` or result
+  line numbers) are `bigint`.
+- **ast-grep positions** follow the pinned upstream schema: a safe integer stays a
+  `number`, and a wider value is a `bigint`. Pass a `bigint` when you need an exact
+  large position.
+- **Structured JSON values**, such as rule references, keep finite floats as
+  `number` and integers exactly, so read them as `number | bigint`.
+
+Unsafe `number` integers, non-finite numbers, functions, cycles and other non-data
+values are refused before dispatch.
 
 ## Run options
 

@@ -3,7 +3,10 @@ use crate::{
         config_validation::{admit_definitions, native_diagnostics},
         definition_bundle::{DefinitionBundle, acquire_file_definitions},
     },
-    lint_execution::backend_factory::{backend_selection, prepare_backend},
+    lint_execution::{
+        backend_factory::{backend_selection, prepare_backend},
+        stopped_stages::{RunStage, RunStageStopped},
+    },
     *,
 };
 use std::collections::BTreeMap;
@@ -19,7 +22,7 @@ fn invalid(mut report: LintReport, error: LintInvalid) -> LintReport {
     report.diagnostics.push(error.into());
     report
 }
-fn failed(mut report: LintReport, message: &str) -> LintReport {
+pub(super) fn failed(mut report: LintReport, message: &str) -> LintReport {
     report.status = LintStatus::Incomplete;
     report.incomplete.push(IncompletePart {
         rule: None,
@@ -148,7 +151,9 @@ async fn run_internal(
     .await;
     let (bundle, checked) = match acquired {
         Ok(value) => value,
-        Err(_) => return failed(report, "rulebook loading failed"),
+        Err(_) => {
+            return RunStageStopped::before_dispatch(RunStage::Admission, report).into_cli_report();
+        }
     };
     execute_definitions(
         report,
@@ -162,12 +167,15 @@ async fn run_internal(
         mode,
     )
     .await
+    .unwrap_or_else(RunStageStopped::into_cli_report)
 }
 
 /// Run already captured definitions against an explicit absolute checked root.
 ///
 /// The caller owns definition capture; nothing here rereads a definition file,
-/// consults the process working directory or reads process credentials.
+/// consults the process working directory or reads process credentials. A stage whose
+/// blocking task ends without returning its result is returned as [`RunStageStopped`],
+/// never as a domain report.
 pub async fn run_definitions(
     bundle: DefinitionBundle,
     root: std::path::PathBuf,
@@ -175,7 +183,7 @@ pub async fn run_definitions(
     scope: ScopeChoice,
     cancellation: CancellationToken,
     api_key: Option<String>,
-) -> LintReport {
+) -> Result<LintReport, RunStageStopped> {
     // Named paths check those files in full, exactly as the CLI reports them.
     let mut report = LintReport::empty(
         bundle.root.origin.cli_path(),
@@ -193,7 +201,7 @@ pub async fn run_definitions(
     );
     if cancellation.is_cancelled() {
         report.status = LintStatus::Cancelled;
-        return report;
+        return Ok(report);
     }
     let request = LintRequest {
         config_path: None,
@@ -210,13 +218,18 @@ pub async fn run_definitions(
     .await;
     let (bundle, checked) = match admitted {
         Ok(value) => value,
-        Err(_) => return failed(report, "rulebook loading failed"),
+        Err(_) => {
+            return Err(RunStageStopped::before_dispatch(
+                RunStage::Admission,
+                report,
+            ));
+        }
     };
     // Admission runs to completion once started; an abort during it ends the run cancelled
     // before its result is used or any checked input is selected.
     if cancellation.is_cancelled() {
         report.status = LintStatus::Cancelled;
-        return report;
+        return Ok(report);
     }
     execute_definitions(
         report,
@@ -246,7 +259,7 @@ async fn execute_definitions(
     api_key: Option<String>,
     source: Option<Box<dyn CheckedFileSource + Send>>,
     mode: ExecutionMode,
-) -> LintReport {
+) -> Result<LintReport, RunStageStopped> {
     let preparing = matches!(mode, ExecutionMode::Prepare { .. });
     let recorded_selections = match mode {
         ExecutionMode::Ordinary => vec![],
@@ -259,22 +272,22 @@ async fn execute_definitions(
         Err(diagnostics) => {
             report.status = LintStatus::Invalid;
             report.diagnostics = diagnostics;
-            return report;
+            return Ok(report);
         }
     };
     if let Some(Some(kind)) = &request.evidence_listing
         && !bundle.settings.kinds.contains_key(kind)
     {
-        return invalid(
+        return Ok(invalid(
             report,
             bundle
                 .root
                 .invalid(LintInvalidCode::Syntax, "unknown evidence kind"),
-        );
+        ));
     }
     report.rulebook_files = match bundle.file_snapshots(&checked.inputs) {
         Ok(files) => files,
-        Err(_) => return failed(report, "rulebook snapshot unavailable"),
+        Err(_) => return Ok(failed(report, "rulebook snapshot unavailable")),
     };
     report.skipped_rules = checked.assembly.skipped.clone();
     if !report.skipped_rules.is_empty() {
@@ -328,18 +341,23 @@ async fn execute_definitions(
     .await
     {
         Ok(Ok(value)) => value,
-        Ok(Err(error)) => return invalid(report, error),
-        Err(_) => return failed(report, "target selection failed"),
+        Ok(Err(error)) => return Ok(invalid(report, error)),
+        Err(_) => {
+            return Err(RunStageStopped::before_dispatch(
+                RunStage::TargetSelection,
+                report,
+            ));
+        }
     };
     report.exclusions.ignored = selection.ignored;
     if selection.files.is_empty() && !request.paths.is_empty() {
-        return failed(
+        return Ok(failed(
             report,
             &format!(
                 "nothing selected for named paths within root {}",
                 selection.root.display()
             ),
-        );
+        ));
     }
     let keyless_empty_scope = model_work && !preparing && request.evidence_listing.is_none();
     if keyless_empty_scope && selection.files.is_empty() {
@@ -348,7 +366,7 @@ async fn execute_definitions(
         } else {
             LintStatus::Incomplete
         };
-        return report;
+        return Ok(report);
     }
     let full = matches!(report.scope.kind, ScopeChoice::All);
     let mut changes = Vec::new();
@@ -366,23 +384,23 @@ async fn execute_definitions(
                 .as_ref()
                 != Some(&selection.root)
         {
-            return invalid(
+            return Ok(invalid(
                 report,
                 LintInvalid::at(
                     &selection.root,
                     LintInvalidCode::UnsupportedInputs,
                     "change scope with --root requires the repository root; use --all for a checked subdirectory",
                 ),
-            );
+            ));
         }
         if git2::Repository::open(&selection.root).is_err() {
-            return invalid(
+            return Ok(invalid(
                 report,
                 bundle.root.invalid(
                     LintInvalidCode::NoGitForDefaultScope,
                     "change scope requires Git; use --all outside a repository",
                 ),
-            );
+            ));
         }
         let change_scope = match &request.scope {
             ScopeChoice::Since { rev } => ChangeScope::RevisionDiff {
@@ -400,11 +418,11 @@ async fn execute_definitions(
         };
         let discovery = match report.limits.discovery() {
             Ok(EvidenceDiscovery::Bounded { limits }) => limits,
-            _ => return failed(report, "change discovery limits invalid"),
+            _ => return Ok(failed(report, "change discovery limits invalid")),
         };
         let repository = match RepositoryId::new("lint") {
             Ok(repository) => repository,
-            Err(_) => return failed(report, "repository identity invalid"),
+            Err(_) => return Ok(failed(report, "repository identity invalid")),
         };
         let capture = capture_change_selection(
             ChangeCaptureRequest {
@@ -426,19 +444,23 @@ async fn execute_definitions(
         let capture = match capture {
             Ok(capture) => capture,
             Err(error) => {
-                return super::scope_diagnostics::capture_refusal(report, &selection.root, error);
+                return Ok(super::scope_diagnostics::capture_refusal(
+                    report,
+                    &selection.root,
+                    error,
+                ));
             }
         };
         if !matches!(
             capture.coverage,
             DiscoveryCoverage::CompleteWithinDeclaredScope { .. }
         ) {
-            return super::scope_diagnostics::incomplete_capture(
+            return Ok(super::scope_diagnostics::incomplete_capture(
                 report,
                 &selection.root,
                 &capture.coverage,
                 &discovery,
-            );
+            ));
         }
         changes = capture
             .members
@@ -474,27 +496,27 @@ async fn execute_definitions(
         } else {
             LintStatus::Incomplete
         };
-        return report;
+        return Ok(report);
     }
     let key = api_key.as_deref().filter(|key| !key.trim().is_empty());
     if model_work && !preparing && key.is_none() {
-        return invalid(
+        return Ok(invalid(
             report,
             bundle.root.invalid(
                 LintInvalidCode::CredentialMissing,
                 "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save first.",
             ),
-        );
+        ));
     }
     let backend = if model_work && preparing {
         match super::backend_factory::prepare_encoding_backend(&bundle) {
             Ok(backend) => Some(backend),
-            Err(error) => return invalid(report, error),
+            Err(error) => return Ok(invalid(report, error)),
         }
     } else if model_work {
         match key.map(|key| prepare_backend(&bundle, key)) {
             Some(Ok(backend)) => Some(backend),
-            Some(Err(error)) => return invalid(report, error),
+            Some(Err(error)) => return Ok(invalid(report, error)),
             None => None,
         }
     } else {
@@ -524,7 +546,7 @@ async fn execute_definitions(
         Some(source) => source,
         None => match FilesystemCheckedSource::new(&selection.root) {
             Ok(source) => Box::new(source),
-            Err(_) => return failed(report, "checked source unavailable"),
+            Err(_) => return Ok(failed(report, "checked source unavailable")),
         },
     };
     let mut source = FrozenCheckedSource::new(frozen, fallback);
@@ -546,22 +568,22 @@ async fn execute_definitions(
         max_files: report.limits.max_files as usize,
         max_file_bytes: match usize::try_from(report.limits.max_file_bytes) {
             Ok(value) => value,
-            Err(_) => return failed(report, "file byte limit exceeds platform"),
+            Err(_) => return Ok(failed(report, "file byte limit exceeds platform")),
         },
         max_total_bytes: match usize::try_from(report.limits.max_total_bytes) {
             Ok(value) => value,
-            Err(_) => return failed(report, "total byte limit exceeds platform"),
+            Err(_) => return Ok(failed(report, "total byte limit exceeds platform")),
         },
         max_matches: report.limits.max_matches as usize,
         evidence_max_chars: report.limits.evidence_max_chars as usize,
     };
     let attempts = match report.limits.attempts() {
         Ok(attempts) => attempts,
-        Err(error) => return invalid(report, error),
+        Err(error) => return Ok(invalid(report, error)),
     };
     let request_budget = match report.limits.request_budget() {
         Ok(budget) => budget,
-        Err(error) => return invalid(report, error),
+        Err(error) => return Ok(invalid(report, error)),
     };
     let settings = RulebookRunSettings {
         backend: backend_selection(&bundle.settings.decision_model),
@@ -583,6 +605,7 @@ async fn execute_definitions(
     let definitions = checked.selections;
     let project = checked.project.clone();
     let scope_files = checked_files.iter().cloned().collect::<Vec<_>>();
+    let acquired_before_stage = source.checked_files_acquired();
     let started = tokio::task::spawn_blocking(move || {
         let build = EvidenceBuild::start(&project, &kinds, &files, &mut source, limits);
         (build, source)
@@ -590,12 +613,20 @@ async fn execute_definitions(
     .await;
     let (mut build, mut source) = match started {
         Ok((Ok(build), source)) => (build, source),
-        Ok((Err(_), _)) => return failed(report, "evidence kind plan failed"),
-        Err(_) => return failed(report, "evidence building failed"),
+        Ok((Err(_), _)) => return Ok(failed(report, "evidence kind plan failed")),
+        Err(_) => {
+            return Err(RunStageStopped::with_settled_requests(
+                RunStage::EvidenceBuilding,
+                report,
+                &dispatcher,
+                acquired_before_stage,
+            ));
+        }
     };
     let scope_changes = changes.clone();
     let repository_root = selection.root.clone();
     let dependencies = folder_plan.dependencies.clone();
+    let acquired_before_stage = source.checked_files_acquired();
     let prepared = tokio::task::spawn_blocking(move || {
         let mut targets = build.target_paths(&source, &repository_root);
         for (file, inputs) in dependencies {
@@ -611,10 +642,18 @@ async fn execute_definitions(
             source = next_source;
             files
         }
-        Err(_) => return failed(report, "selection scope failed"),
+        Err(_) => {
+            return Err(RunStageStopped::with_settled_requests(
+                RunStage::SelectionScope,
+                report,
+                &dispatcher,
+                acquired_before_stage,
+            ));
+        }
     };
     let mut chosen = ChosenCandidates::default();
     let mut catalog = loop {
+        let acquired_before_stage = source.checked_files_acquired();
         let advanced = tokio::task::spawn_blocking(move || {
             let step = build.advance(chosen, &mut source);
             (build, source, step)
@@ -626,7 +665,14 @@ async fn execute_definitions(
                 source = next_source;
                 step
             }
-            Err(_) => return failed(report, "evidence stage failed"),
+            Err(_) => {
+                return Err(RunStageStopped::with_settled_requests(
+                    RunStage::EvidenceStage,
+                    report,
+                    &dispatcher,
+                    acquired_before_stage,
+                ));
+            }
         };
         match step {
             BuildStep::Done(catalog) => break catalog,
@@ -640,7 +686,7 @@ async fn execute_definitions(
                     .find(|selection| selection.kind == kind)
                     .cloned()
                 else {
-                    return failed(report, "selection admission missing");
+                    return Ok(failed(report, "selection admission missing"));
                 };
                 let input = SelectionInput {
                     selection,
@@ -727,6 +773,7 @@ async fn execute_definitions(
         &demanded,
     );
     if !context_files.is_empty() {
+        let acquired_before_stage = source.checked_files_acquired();
         let extended = tokio::task::spawn_blocking(move || {
             let catalog = build.add_context_files(&context_files, &mut source);
             (source, catalog)
@@ -737,7 +784,14 @@ async fn execute_definitions(
                 source = next_source;
                 catalog = next_catalog;
             }
-            Err(_) => return failed(report, "context evidence building failed"),
+            Err(_) => {
+                return Err(RunStageStopped::with_settled_requests(
+                    RunStage::ContextEvidence,
+                    report,
+                    &dispatcher,
+                    acquired_before_stage,
+                ));
+            }
         }
     }
     crate::lint_reporting::outcome::project_selections(&mut catalog, &mut report);
@@ -848,7 +902,7 @@ async fn execute_definitions(
         } else {
             LintStatus::Clean
         };
-        return report;
+        return Ok(report);
     }
     let folders = super::filter_folders::bind_reads_pieces(
         &folder_plan,
@@ -925,7 +979,7 @@ async fn execute_definitions(
             &dispatcher,
         )
     {
-        return failed(report, &error);
+        return Ok(failed(report, &error));
     }
     if preparing {
         if let Err(error) = crate::lint_reporting::saved_reports::capture_prepared_requests(
@@ -936,7 +990,7 @@ async fn execute_definitions(
             &checked.assembly.rules,
             &pieces,
         ) {
-            return failed(report, &error);
+            return Ok(failed(report, &error));
         }
         if matches!(
             report.status,
@@ -957,5 +1011,5 @@ async fn execute_definitions(
             .cloned();
     }
     report.usage = crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired);
-    report
+    Ok(report)
 }

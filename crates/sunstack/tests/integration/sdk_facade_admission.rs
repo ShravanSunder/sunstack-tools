@@ -1,6 +1,10 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Facade admission against the CLI's rules: shared shape refusals, rule refusals that
 //! keep their field path, and an abort that lands while check or run admission is running.
+#[path = "../support/blocking_pool_hold.rs"]
+mod blocking_pool_hold;
+
+use blocking_pool_hold::{BlockingPoolHold, one_blocking_thread_runtime};
 use serde_json::{Value, json};
 use std::{future::Future, path::Path, task::Poll};
 use sunstack::sdk_host::{
@@ -144,51 +148,11 @@ async fn rule_refusals_keep_the_field_path_inside_their_entries() {
     assert_eq!(diagnostic.json_path, ["only_when"], "{diagnostic:?}");
 }
 
-/// Holds the runtime's only blocking thread until released; released on drop as well.
-struct BlockingPoolHold {
-    release: Option<std::sync::mpsc::Sender<()>>,
-    task: Option<tokio::task::JoinHandle<()>>,
-}
-
-impl BlockingPoolHold {
-    /// Occupy the single blocking thread and wait until the occupant is running.
-    async fn occupy() -> Self {
-        let (release, released) = std::sync::mpsc::channel::<()>();
-        let (running, started) = tokio::sync::oneshot::channel::<()>();
-        let task = tokio::task::spawn_blocking(move || {
-            running.send(()).unwrap();
-            let _ = released.recv();
-        });
-        started.await.unwrap();
-        Self {
-            release: Some(release),
-            task: Some(task),
-        }
-    }
-
-    async fn release(mut self) {
-        drop(self.release.take());
-        self.task.take().unwrap().await.unwrap();
-    }
-}
-
-impl Drop for BlockingPoolHold {
-    fn drop(&mut self) {
-        // A failing assertion still frees the blocking thread so the runtime can shut down.
-        drop(self.release.take());
-    }
-}
-
 #[test]
 fn an_abort_during_admission_ends_the_check_cancelled() {
     // One blocking thread, held: admission is queued behind it, so the call is causally
     // inside admission when the abort arrives.
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .max_blocking_threads(1)
-        .enable_all()
-        .build()
-        .unwrap();
-    runtime.block_on(async {
+    one_blocking_thread_runtime().block_on(async {
         let base = tempfile::tempdir().unwrap();
         let configuration =
             sdk_host::decode_configuration(&mechanical_configuration(base.path()).to_string())
@@ -209,15 +173,6 @@ fn an_abort_during_admission_ends_the_check_cancelled() {
             "{outcome:?}"
         );
     });
-}
-
-/// A runtime with one blocking thread, so a held thread queues admission behind it.
-fn one_blocking_thread_runtime() -> tokio::runtime::Runtime {
-    tokio::runtime::Builder::new_current_thread()
-        .max_blocking_threads(1)
-        .enable_all()
-        .build()
-        .unwrap()
 }
 
 /// Run captured definitions with run admission queued behind the held blocking thread,
@@ -248,6 +203,7 @@ fn run_with_admission_held(configuration: &Value, root: &Path, abort: bool) -> L
         }
         hold.release().await;
         call.await
+            .expect("admission returns its result; no stage task stops")
     })
 }
 

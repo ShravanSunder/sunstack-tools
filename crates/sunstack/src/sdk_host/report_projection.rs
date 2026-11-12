@@ -8,9 +8,9 @@ use sunstack_decisions::SharedEvidenceState;
 use sunstack_evidence::{DefinitionOrigin, DefinitionSnapshot, FieldName, MarkerId, SourceSpan};
 use sunstack_lint::{
     EffectiveLimits, ExclusionCounts, Finding, IdentifiedResult, IncompletePart, JudgmentSummary,
-    LintDiagnostic, LintReport, LintStatus, RelatedPlace, RulePieceResult, SavedPieceEvidence,
-    SavedRequest, ScopeReport, SelectionEntry, SettingOrigin, SeverityCounts, UncertainResult,
-    UsageSummary,
+    LintDiagnostic, LintReport, LintStatus, RelatedPlace, RulePieceResult, RunStage,
+    RunStageStopped, SavedPieceEvidence, SavedRequest, ScopeReport, SelectionEntry, SettingOrigin,
+    SeverityCounts, UncertainResult, UsageSummary,
 };
 use sunstack_rules::{Anchor, Basis, RuleId, RulebookSkippedRule, Severity};
 
@@ -281,6 +281,31 @@ fn project_report<TStatus>(
             file_counts: listing.file_counts,
             usage: listing.usage,
         }),
+    }
+}
+
+/// A run stage whose native task could not join: the call failed after dispatch with
+/// unknown effects, never a domain-incomplete run. Admission had not run, so it has no
+/// report; a later stage keeps everything the run produced before it stopped.
+pub fn project_stopped_run(
+    stopped: RunStageStopped,
+    configuration: &DefinitionOrigin,
+    sources: &[DefinitionSnapshot],
+) -> RunOutcome {
+    let report = match stopped.stage() {
+        RunStage::Admission => None,
+        _ => {
+            let partial = stopped.into_partial_report();
+            let status = partial.status;
+            Some(project_report(partial, status, configuration, sources))
+        }
+    };
+    RunOutcome::Failed {
+        failure: SdkFailure::after_dispatch(
+            AfterDispatchReason::NativeCallFailed,
+            "a run stage stopped unexpectedly",
+        ),
+        report,
     }
 }
 
