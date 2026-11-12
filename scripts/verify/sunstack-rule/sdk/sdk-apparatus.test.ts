@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 /** Harness sensitivity only: synthetic artifacts/HTTP never qualify an SDK candidate. */
 import filesystem from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -23,7 +24,7 @@ import {
 	type SdkExports,
 } from './sdk-target.ts';
 
-const evidenceRoot = '/private/tmp/2026-11-sunstack-sdk-verification';
+const evidenceRoot = path.join(tmpdir(), '2026-11-sunstack-sdk-verification');
 function ownedDirectory(): string {
 	filesystem.mkdirSync(evidenceRoot, { recursive: true });
 	return filesystem.realpathSync(filesystem.mkdtempSync(path.join(evidenceRoot, 'apparatus-')));
