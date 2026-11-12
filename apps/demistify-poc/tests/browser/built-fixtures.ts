@@ -336,12 +336,6 @@ export async function builtFixtures(): Promise<Plugin> {
 			'<ex-zoom label="Unrelated disclosure" zoom><details id="ordinary-detail"><summary>Authored extra</summary><p>Ordinary authored disclosure.</p></details></ex-zoom></ex-document>',
 		),
 	);
-	await writeFile(
-		join(publicStyle, 'inspector-copy.html'),
-		inspectorPage
-			.replace('><ex-call-stack', '><section><ex-call-stack')
-			.replace('</ex-call-stack></ex-zoom>', '</ex-call-stack></section></ex-zoom>'),
-	);
 	const callInspectorPage = await readFile(join(publicStyle, 'execution.html'), 'utf8');
 	await writeFile(
 		join(publicStyle, 'inspector-calls.html'),
