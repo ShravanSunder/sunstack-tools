@@ -2724,6 +2724,25 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	SelectionQuestion: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						criteria: {
+							arguments: {},
+							ref: 'NoulDescriptions',
+						},
+						instructions: {
+							arguments: {},
+							ref: 'StructuredEntry',
+						},
+					},
+				},
+			],
+		},
+	},
 	SelectionRequestEvidence: {
 		generics: [],
 		shape: {
@@ -2747,7 +2766,7 @@ export const wideIntegerDefinitions = {
 			object: {
 				question: {
 					arguments: {},
-					ref: 'Value',
+					ref: 'SelectionQuestion',
 				},
 				shared: {
 					list: {

@@ -11,11 +11,14 @@ export type AstMatcher = {
 	 */
 	readonly constraints?: { readonly [key: string]: SerializableRule } | null;
 	readonly files?: readonly RuleFileGlob[] | null;
-	readonly fix?: SerializableFixer;
+	readonly fix?: SerializableFixer | null;
 	readonly ignores?: readonly RuleFileGlob[] | null;
 	readonly labels?: { readonly [key: string]: LabelConfig } | null;
 	readonly language: AuthoredLanguage;
-	readonly message?: string | null;
+	/**
+	 * Upstream `String` with a default: may be omitted, never null.
+	 */
+	readonly message?: string;
 	readonly metadata?: { readonly [key: string]: JsonData } | null;
 	readonly note?: string | null;
 	readonly rewriters?: readonly SerializableRewriter[] | null;
@@ -23,7 +26,10 @@ export type AstMatcher = {
 	 * A rule object to find matching AST nodes
 	 */
 	readonly rule: SerializableRule;
-	readonly severity?: Severity | null;
+	/**
+	 * Upstream `Severity` with a default: may be omitted, never null.
+	 */
+	readonly severity?: Severity;
 	/**
 	 * A dictionary for metavariable manipulation. Dict key is the new variable name.
 	 * Dict value is a [transformation] that specifies how meta var is processed.
@@ -139,7 +145,7 @@ export type LabelStyle = 'primary' | 'secondary';
 /**
  * A string or number describing the indices of matching nodes in a list of siblings.
  */
-export type NthChildSimple = number | string;
+export type NthChildSimple = number | bigint | string;
 
 /**
  * A String pattern will match one single AST node according to pattern syntax.
@@ -315,11 +321,11 @@ export type SerializablePosition = {
 	/**
 	 * 0-based column number in the source code
 	 */
-	readonly column?: number | null;
+	readonly column?: number | bigint | null;
 	/**
 	 * 0-based line number in the source code
 	 */
-	readonly line: number;
+	readonly line: number | bigint;
 };
 
 /**

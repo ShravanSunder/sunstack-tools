@@ -4,7 +4,7 @@
 use serde_json::{Map, Value, json};
 use specta::{
     Format, Types,
-    datatype::{DataType, Fields, NamedReferenceType, Primitive, Reference},
+    datatype::{DataType, Fields, NamedDataType, NamedReferenceType, Primitive, Reference},
 };
 use std::{borrow::Cow, error::Error};
 use sunstack::sdk_host::{
@@ -57,6 +57,12 @@ impl SdkFormat {
             }
             DataType::Struct(structure) => Self::rewrite_fields(&mut structure.fields),
             DataType::Enum(enumeration) => {
+                // A JSON number is a finite float or an exact integer. Both cross the wire, and
+                // replies widen integers to bigint, so the declaration keeps both branches
+                // instead of collapsing to number.
+                enumeration
+                    .attributes
+                    .remove(specta::markers::FINITE_NUMBER_MARKER);
                 for (_, variant) in &mut enumeration.variants {
                     Self::rewrite_fields(&mut variant.fields);
                 }
@@ -235,8 +241,55 @@ fn fields_shape(fields: &Fields, types: &Types) -> Option<Value> {
     }
 }
 
+/// Give the evidence selection question its admitted shape.
+///
+/// The evidence crate keeps the question as model-free JSON so it does not depend on the
+/// decision crate; rule admission then decodes it as a `JudgmentQuestion` and accepts only
+/// the `noul` variant. The SDK declares that admitted shape: the Rust `JudgmentQuestion`
+/// definition restricted to its `Noul` variant, exported as `SelectionQuestion`.
+fn select_question_shape(types: &mut Types) -> Result<(), Box<dyn Error>> {
+    let question = types
+        .into_sorted_iter()
+        .find(|named| named.name == "JudgmentQuestion")
+        .and_then(|named| named.ty.clone())
+        .ok_or("JudgmentQuestion is not registered")?;
+    let DataType::Enum(mut noul) = question else {
+        return Err("JudgmentQuestion is not an enum".into());
+    };
+    noul.variants.retain(|(name, _)| name == "Noul");
+    if noul.variants.len() != 1 {
+        return Err("JudgmentQuestion has no Noul variant".into());
+    }
+    let selection = NamedDataType::new("SelectionQuestion", types, |_, named| {
+        named.docs = Cow::Borrowed(" The judgment question an evidence selection asks: noul only.");
+        named.ty = Some(DataType::Enum(noul));
+    });
+    let mut replaced = false;
+    types.iter_mut(|named| {
+        if named.name != "SelectionWire" || !named.module_path.ends_with("evidence_kind_contracts")
+        {
+            return;
+        }
+        if let Some(DataType::Struct(structure)) = &mut named.ty
+            && let Fields::Named(fields) = &mut structure.fields
+        {
+            for (name, field) in &mut fields.fields {
+                if name == "question" {
+                    field.ty = Some(DataType::Reference(selection.reference(vec![])));
+                    replaced = true;
+                }
+            }
+        }
+    });
+    if replaced {
+        Ok(())
+    } else {
+        Err("SelectionWire.question was not found".into())
+    }
+}
+
 pub fn export() -> Result<Exported, Box<dyn Error>> {
-    let types = Types::default()
+    let mut types = Types::default()
         .register::<Configuration>()
         .register::<ResolvedConfiguration>()
         .register::<LoadOptions>()
@@ -246,6 +299,7 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
         .register::<CheckOutcome>()
         .register::<RunOutcome>()
         .register::<sunstack_evidence::EvidenceLanguage>();
+    select_question_shape(&mut types)?;
     let declarations = specta_typescript::Typescript::default().export(&types, SdkFormat)?;
     let mut serde_types = specta_serde::Format
         .map_types(&types)

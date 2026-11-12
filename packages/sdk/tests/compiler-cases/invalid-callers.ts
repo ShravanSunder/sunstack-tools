@@ -1,10 +1,13 @@
 // Each marked line must fail with exactly the named diagnostic; nothing else may fail.
 import { check, load, run } from '../../src/index.ts';
 import type {
+	AstMatcher,
 	Configuration,
 	EvidenceKindDefinition,
 	EvidenceLanguage,
+	FilterDefinition,
 	LoadedConfiguration,
+	RuleEntry,
 	RunOutcome,
 } from '../../src/index.ts';
 import { configuration } from './valid-caller.ts';
@@ -130,4 +133,126 @@ export const unknownSectionText = {
 	html_units: { mode: 'unit', units: ['section'] },
 	// expect TS2322
 	fields: { body: { from: 'section', text: 'parent' } },
+} satisfies EvidenceKindDefinition;
+
+// Upstream message and severity have defaults; explicit null is not a value.
+export const nullMatcherMessage = {
+	language: 'Markdown',
+	rule: { kind: 'paragraph' },
+	// expect TS2322
+	message: null,
+} satisfies AstMatcher;
+
+export const nullMatcherSeverity = {
+	language: 'Markdown',
+	rule: { kind: 'paragraph' },
+	// expect TS2322
+	severity: null,
+} satisfies AstMatcher;
+
+// Present-only fields may be omitted but never null.
+export const nullKindRule = {
+	// expect TS2322
+	rule: null,
+	inline_rule: 'kind: paragraph',
+	fields: {},
+} satisfies EvidenceKindDefinition;
+
+export const nullKindHtmlUnits = {
+	rule: 'paragraph',
+	// expect TS2322
+	html_units: null,
+	fields: {},
+} satisfies EvidenceKindDefinition;
+
+export const nullKindWithin = {
+	rule: 'paragraph',
+	fields: {},
+	// expect TS2322
+	within: null,
+} satisfies EvidenceKindDefinition;
+
+export const nullOnlyWhen = {
+	name: 'gated',
+	evidence: 'paragraph',
+	// expect TS2322
+	only_when: null,
+	decision: {
+		start: 'done',
+		steps: {
+			done: {
+				mechanical_check: { tool: 'complete', field: 'body' },
+				yes: 'pass',
+				no: { finding: 'Empty.' },
+			},
+		},
+	},
+} satisfies RuleEntry;
+
+export const nullNoulCriteria = {
+	per: 'skills/{name}',
+	reads: { file: 'SKILL.md', kind: 'paragraph', fields: ['body'] },
+	labels: ['yes'],
+	questions: {
+		// expect TS2322
+		asked: { type: 'noul', instructions: 'Is it?', criteria: null },
+	},
+	decision: {
+		start: 'asked',
+		steps: {
+			asked: {
+				ask: 'asked',
+				yes_at_or_above: 0.8,
+				no_at_or_below: 0.2,
+				yes: { label: 'yes' },
+				no: { label: 'yes' },
+				uncertain: 'unsure',
+			},
+		},
+	},
+} satisfies FilterDefinition;
+
+export const capturedNullWithin = {
+	...configuration,
+	evidence: {
+		kind: 'captured',
+		matchers: {},
+		utilities: {},
+		// expect TS2322
+		kinds: { paragraph: { rule: 'paragraph', fields: {}, within: null } },
+	},
+} satisfies Configuration;
+
+// A selection question is a noul judgment question, not arbitrary JSON.
+export const primitiveSelectionQuestion = {
+	rule: 'paragraph',
+	fields: {},
+	select: {
+		// expect TS2322
+		question: false,
+		yes_at_or_above: 0.8,
+		no_at_or_below: 0.2,
+	},
+} satisfies EvidenceKindDefinition;
+
+export const choiceSelectionQuestion = {
+	rule: 'paragraph',
+	fields: {},
+	select: {
+		// expect TS2322
+		question: { type: 'choice', instructions: 'Which?' },
+		yes_at_or_above: 0.8,
+		no_at_or_below: 0.2,
+	},
+} satisfies EvidenceKindDefinition;
+
+export const misspelledSelectionQuestion = {
+	rule: 'paragraph',
+	fields: {},
+	select: {
+		// expect TS2561
+		question: { type: 'noul', instruction: 'Is it?' },
+		yes_at_or_above: 0.8,
+		no_at_or_below: 0.2,
+	},
 } satisfies EvidenceKindDefinition;

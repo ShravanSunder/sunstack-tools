@@ -54,6 +54,16 @@ function referenceName(reference: string, where: string): string {
 	return match[1];
 }
 
+/** schemars integer formats wider than a JavaScript safe integer. */
+const fullWidthFormats: ReadonlySet<string> = new Set([
+	'uint',
+	'int',
+	'uint64',
+	'int64',
+	'uint128',
+	'int128',
+]);
+
 function typeKeyword(
 	kind: unknown,
 	schema: Readonly<Record<string, unknown>>,
@@ -70,8 +80,13 @@ function typeKeyword(
 		case 'number':
 			return 'number';
 		case 'integer':
-			// Marked integers are full-width and cross as exact bigint.
-			return schema['x-sunstack-full-width'] === true ? 'bigint' : 'number';
+			// Marked integers are full-width and cross as exact bigint. Upstream 64-bit and
+			// pointer-width integers (usize/u64/i64) may exceed the safe range: small values cross
+			// as number and wide ones as exact bigint. Narrower integers stay number.
+			if (schema['x-sunstack-full-width'] === true) return 'bigint';
+			return typeof schema['format'] === 'string' && fullWidthFormats.has(schema['format'])
+				? 'number | bigint'
+				: 'number';
 		case 'array': {
 			if (schema['prefixItems'] !== undefined) {
 				const elements = schemaList(schema['prefixItems'], `${where}.prefixItems`).map(

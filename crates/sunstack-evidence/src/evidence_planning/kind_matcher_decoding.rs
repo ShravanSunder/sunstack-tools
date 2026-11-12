@@ -15,7 +15,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "EvidenceRuleId")]
-    #[cfg_attr(feature = "typescript", specta(type = Option<EvidenceRuleId>))]
+    #[cfg_attr(feature = "typescript", specta(type = EvidenceRuleId, optional))]
     rule: Option<EvidenceRuleId>,
     #[serde(
         default,
@@ -23,7 +23,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "String")]
-    #[cfg_attr(feature = "typescript", specta(type = Option<String>))]
+    #[cfg_attr(feature = "typescript", specta(type = String, optional))]
     inline_rule: Option<String>,
     #[serde(
         default,
@@ -31,7 +31,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "crate::HtmlUnitSelection")]
-    #[cfg_attr(feature = "typescript", specta(type = Option<crate::HtmlUnitSelection>))]
+    #[cfg_attr(feature = "typescript", specta(type = crate::HtmlUnitSelection, optional))]
     html_units: Option<crate::HtmlUnitSelection>,
     fields: BTreeMap<FieldName, FieldSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -44,7 +44,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "ContainingKinds")]
-    #[cfg_attr(feature = "typescript", specta(type = Option<ContainingKinds>))]
+    #[cfg_attr(feature = "typescript", specta(type = ContainingKinds, optional))]
     within: Option<ContainingKinds>,
 }
 

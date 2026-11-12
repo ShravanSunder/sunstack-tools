@@ -372,13 +372,13 @@ export type EvidenceKindDefinition = EvidenceKindWire;
 export type EvidenceKindName = string;
 
 export type EvidenceKindWire = {
-	rule?: EvidenceRuleId | null;
-	inline_rule?: string | null;
-	html_units?: HtmlUnitSelection | null;
+	rule?: EvidenceRuleId;
+	inline_rule?: string;
+	html_units?: HtmlUnitSelection;
 	fields: { [key in FieldName]: FieldSource };
 	max_chars?: number | null;
 	select?: SelectionWire | null;
-	within?: ContainingKinds | null;
+	within?: ContainingKinds;
 };
 
 /**  Result-side language names (snake_case), distinct from authored matcher spellings. */
@@ -718,7 +718,7 @@ export type JudgmentAnswer =
 	  };
 
 export type JudgmentQuestion =
-	| { type: 'noul'; instructions: StructuredEntry; criteria?: NoulDescriptions | null }
+	| { type: 'noul'; instructions: StructuredEntry; criteria?: NoulDescriptions }
 	| {
 			type: 'choice';
 			instructions: StructuredEntry;
@@ -971,7 +971,7 @@ export type RetryAdvice =
 export type RouteWire = string | FindingRoute | LabelRoute;
 
 export type RuleEntryWire = {
-	only_when?: { [key in FilterName]: ChoiceLabel[] } | null;
+	only_when?: { [key in FilterName]: ChoiceLabel[] };
 	name: RuleId;
 	evidence: EvidenceKindName;
 	questions?: { [key in QuestionName]: JudgmentQuestion };
@@ -1226,13 +1226,20 @@ export type SelectionOutcome =
 	| { kind: 'uncertain'; yes: number }
 	| { kind: 'incomplete'; reason: SelectionIncompleteReason };
 
+/**  The judgment question an evidence selection asks: noul only. */
+export type SelectionQuestion = {
+	type: 'noul';
+	instructions: StructuredEntry;
+	criteria?: NoulDescriptions;
+};
+
 export type SelectionRequestEvidence = {
 	candidates: SelectionCandidate[];
 	shared: SharedView;
 };
 
 export type SelectionWire = {
-	question: Value;
+	question: SelectionQuestion;
 	yes_at_or_above: number;
 	no_at_or_below: number;
 	shared?: FieldName[];
@@ -1322,6 +1329,7 @@ export type StructuredJson =
 	| null
 	| boolean
 	| number
+	| bigint
 	| string
 	| StructuredJson[]
 	| { [key in string]: StructuredJson };
@@ -1368,7 +1376,14 @@ export type UsageSummary = {
 	cost_missing_requests: number;
 };
 
-export type Value = null | boolean | number | string | Value[] | { [key in string]: Value };
+export type Value =
+	| null
+	| boolean
+	| number
+	| bigint
+	| string
+	| Value[]
+	| { [key in string]: Value };
 
 /**  Which original decoder a captured source needs. */
 export type WholeSourceFormat = 'markdown' | 'rule_entries_json';

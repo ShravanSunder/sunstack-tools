@@ -1,11 +1,14 @@
 // A valid caller: compiles with no diagnostics under the package's strict options.
 import { check, load, run } from '../../src/index.ts';
 import type {
+	AstMatcher,
 	AuthoredLanguage,
 	Configuration,
 	EvidenceKindDefinition,
 	EvidenceLanguage,
+	FilterDefinition,
 	LoadedConfiguration,
+	RuleEntry,
 	RunOutcome,
 	SdkFinding,
 } from '../../src/index.ts';
@@ -183,5 +186,58 @@ export const htmlSectionKind = {
 		complete: { from: 'section', text: 'full' },
 		own: { from: 'section', text: 'own' },
 		parent: { from: 'section', text: 'enclosing_own' },
+	},
+} satisfies EvidenceKindDefinition;
+
+// Structured rule and filter data: exact integers are bigint, finite floats are number,
+// and a returned value is read as either.
+type StructuredValue = NonNullable<RuleEntry['reference']>[string];
+export const structuredReference: RuleEntry['reference'] = {
+	threshold: 2n,
+	ratio: 0.5,
+	wide: 18446744073709551615n,
+	nested: { list: [1n, 2.5, 'text', null, true] },
+};
+export const filterReference: FilterDefinition['reference'] = { cap: -9223372036854775808n };
+export function readStructured(value: StructuredValue): string {
+	if (typeof value === 'bigint') return `exact ${value.toString()}`;
+	if (typeof value === 'number') return `float ${value.toFixed(2)}`;
+	return 'other';
+}
+
+// Upstream matcher fields: fix may be omitted or null; message and severity may be omitted.
+export const matcherDefaults = {
+	language: 'Markdown',
+	rule: { kind: 'paragraph' },
+	fix: null,
+} satisfies AstMatcher;
+
+// Full-width upstream range positions take exact bigint; small ones stay number.
+export const wideRange = {
+	language: 'Markdown',
+	rule: {
+		kind: 'paragraph',
+		range: {
+			start: { line: 9007199254740993n, column: 0 },
+			end: { line: 9007199254740993n, column: 1n },
+		},
+	},
+} satisfies AstMatcher;
+export const smallRange = {
+	language: 'Markdown',
+	rule: {
+		kind: 'paragraph',
+		range: { start: { line: 1, column: 0 }, end: { line: 2, column: 4 } },
+	},
+} satisfies AstMatcher;
+
+// A selection question is a noul judgment question.
+export const selectedKind = {
+	rule: 'paragraph',
+	fields: { body: { from: 'remainder' } },
+	select: {
+		question: { type: 'noul', instructions: 'Is this paragraph a procedure?' },
+		yes_at_or_above: 0.8,
+		no_at_or_below: 0.2,
 	},
 } satisfies EvidenceKindDefinition;

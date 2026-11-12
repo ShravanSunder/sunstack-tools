@@ -17,7 +17,7 @@ pub struct RuleEntryWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "crate::OnlyWhenWire")]
-    #[cfg_attr(feature = "typescript", specta(type = Option<crate::OnlyWhenWire>))]
+    #[cfg_attr(feature = "typescript", specta(type = crate::OnlyWhenWire, optional))]
     pub only_when: Option<crate::OnlyWhenWire>,
     pub name: RuleId,
     pub evidence: EvidenceKindName,

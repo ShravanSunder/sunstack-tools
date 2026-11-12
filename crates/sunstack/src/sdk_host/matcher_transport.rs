@@ -135,10 +135,11 @@ pub struct LabelConfig {
 }
 
 fn fixer_schema(generator: &mut SchemaGenerator) -> Schema {
-    // `SerializableFixer` is reachable only through the exported rewriter schema.
+    // `SerializableFixer` is reachable only through the exported rewriter schema. Upstream
+    // `fix` is an `Option` that serializes as `null` when absent, so null is a value too.
     generator.subschema_for::<SerializableRewriter>();
     let path = generator.settings().definitions_path.clone();
-    json_schema!({"$ref": format!("#{path}/SerializableFixer")})
+    json_schema!({"anyOf": [{"$ref": format!("#{path}/SerializableFixer")}, {"type": "null"}]})
 }
 
 /// The declared transport shape of a matcher: the pinned upstream core composed with
@@ -155,12 +156,14 @@ pub struct AstMatcherSchema {
     pub fix: Option<serde_json::Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rewriters: Option<Vec<SerializableRewriter>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
+    /// Upstream `String` with a default: may be omitted, never null.
+    #[serde(default)]
+    pub message: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub severity: Option<Severity>,
+    /// Upstream `Severity` with a default: may be omitted, never null.
+    #[serde(default)]
+    pub severity: Severity,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub labels: Option<BTreeMap<String, LabelConfig>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

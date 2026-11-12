@@ -124,7 +124,7 @@ pub enum JudgmentQuestion {
             deserialize_with = "specified_criteria"
         )]
         #[schemars(with = "NoulDescriptions")]
-        #[cfg_attr(feature = "typescript", specta(type = Option<NoulDescriptions>))]
+        #[cfg_attr(feature = "typescript", specta(type = NoulDescriptions, optional))]
         criteria: Option<NoulDescriptions>,
     },
     Choice {
