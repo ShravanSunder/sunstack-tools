@@ -1,5 +1,6 @@
 /** Check every pinned real Markdown fragment link and section field through a declared signed CLI. */
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import filesystem from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -14,10 +15,11 @@ import {
 	readObject,
 	writeJson,
 	runSequence,
+	type JsonObject,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { declaredTarget, RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { requireLinks } from './checks.ts';
-import { repositories, requireFile, requireInputs } from './oracles.ts';
+import { repositories, requireFile, requireInputs, type Link } from './oracles.ts';
 import { observeSections } from './sections.ts';
 
 const optionsSchema = z.object({
@@ -30,6 +32,98 @@ const optionsSchema = z.object({
 });
 function escapeRegex(raw: string): string {
 	return raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function linkConfiguration(links: readonly Link[]): {
+	rule: JsonObject;
+	kind: JsonObject;
+	definitions: string;
+} {
+	const escaped = [...new Set(links.map((link) => link.raw))].map(escapeRegex);
+	const targetPatterns = [...new Map(links.map((link) => [link.raw, link])).values()].map(
+		(link) => {
+			const offset = link.raw.lastIndexOf(link.url);
+			assert.ok(offset >= 0);
+			return `${escapeRegex(link.raw.slice(0, offset))}(${escapeRegex(link.url)})${escapeRegex(link.raw.slice(offset + link.url.length))}`;
+		},
+	);
+	return {
+		definitions: `id: real-link\nlanguage: Markdown\nrule:\n  any:\n    - {kind: inline}\n    - {kind: pipe_table_cell}\n  regex: ${JSON.stringify(`(?:${escaped.join('|')})`)}\n`,
+		rule: {
+			name: 'original-markdown-links',
+			evidence: 'link',
+			severity: 'error',
+			decision: {
+				start: 'check',
+				steps: {
+					check: {
+						mechanical_check: { tool: 'anchor_exists', field: 'links' },
+						yes: 'pass',
+						['no']: { finding: 'Inspect original broken Markdown link.' },
+					},
+				},
+			},
+		},
+		kind: {
+			rule: 'real-link',
+			fields: {
+				links: {
+					from: 'target',
+					regex: targetPatterns.join('|'),
+					resolve: 'path',
+					opening_chars: 1,
+				},
+			},
+		},
+	};
+}
+async function observeCollectorControl(observer: RulebookProcess, evidence: string): Promise<void> {
+	const root = path.join(evidence, 'collector-control');
+	filesystem.mkdirSync(root);
+	const source = Buffer.from(
+		'[prose](target.md#present)\n\n| Reference |\n| --- |\n| [table](target.md#present) |\n\n```md\n[table](target.md#present)\n```\n',
+	);
+	filesystem.writeFileSync(path.join(root, 'source.md'), source);
+	filesystem.writeFileSync(path.join(root, 'target.md'), '# Present\n');
+	const links: Link[] = ['prose', 'table'].map((label) => {
+		const raw = `[${label}](target.md#present)`;
+		const start = source.indexOf(raw);
+		return {
+			source: 'source.md',
+			target: 'target.md',
+			fragment: 'present',
+			url: 'target.md#present',
+			raw,
+			expected: 'found',
+			start,
+			end: start + Buffer.byteLength(raw),
+			source_sha256: createHash('sha256').update(source).digest('hex'),
+		};
+	});
+	const fixture = linkConfiguration(links);
+	writeProject(
+		root,
+		{ K001: fixture.rule },
+		{ link: fixture.kind },
+		['source.md'],
+		fixture.definitions,
+	);
+	const configFile = path.join(root, 'sunstack.lint.json');
+	const config = readObject(configFile);
+	objectValue(config['decision_model'])['endpoint'] = observer.endpoint;
+	writeJson(configFile, config);
+	await observer.run({
+		root,
+		name: 'collector-check',
+		arguments: ['lint', '--check'],
+		expectedExit: 0,
+	});
+	const result = await observer.report({
+		root,
+		name: 'collector-links',
+		arguments: ['lint', '--all', '--format', 'json'],
+		expectedExit: 0,
+	});
+	requireLinks(result.report, links, new Map([['source.md', source]]));
 }
 export async function observeMarkdown(options: z.infer<typeof optionsSchema>): Promise<void> {
 	const target = declaredTarget({
@@ -57,6 +151,7 @@ export async function observeMarkdown(options: z.infer<typeof optionsSchema>): P
 	await observer.start();
 	let sections = 0;
 	try {
+		await observeCollectorControl(observer, evidence);
 		await runSequence(repositories, async (repository) => {
 			const root = path.join(evidence, repository.key);
 			filesystem.mkdirSync(root);
@@ -65,49 +160,13 @@ export async function observeMarkdown(options: z.infer<typeof optionsSchema>): P
 				filesystem.mkdirSync(path.dirname(destination), { recursive: true });
 				filesystem.writeFileSync(destination, requireFile(path.join(input, repository.key), file));
 			}
-			const escaped = [...new Set(repository.links.map((link) => link.raw))].map(escapeRegex);
-			const targetPatterns = [
-				...new Map(repository.links.map((link) => [link.raw, link])).values(),
-			].map((link) => {
-				const offset = link.raw.lastIndexOf(link.url);
-				assert.ok(offset >= 0);
-				return `${escapeRegex(link.raw.slice(0, offset))}(${escapeRegex(link.url)})${escapeRegex(link.raw.slice(offset + link.url.length))}`;
-			});
-			const definitions = `id: real-link\nlanguage: Markdown\nrule:\n  kind: inline\n  regex: ${JSON.stringify(`(?:${escaped.join('|')})`)}\n`;
+			const fixture = linkConfiguration(repository.links);
 			writeProject(
 				root,
-				{
-					K001: {
-						name: 'original-markdown-links',
-						evidence: 'link',
-						severity: 'error',
-						decision: {
-							start: 'check',
-							steps: {
-								check: {
-									mechanical_check: { tool: 'anchor_exists', field: 'links' },
-									yes: 'pass',
-									['no']: { finding: 'Inspect original broken Markdown link.' },
-								},
-							},
-						},
-					},
-				},
-				{
-					link: {
-						rule: 'real-link',
-						fields: {
-							links: {
-								from: 'target',
-								regex: targetPatterns.join('|'),
-								resolve: 'path',
-								opening_chars: 1,
-							},
-						},
-					},
-				},
+				{ K001: fixture.rule },
+				{ link: fixture.kind },
 				[...new Set(repository.links.map((link) => link.source))],
-				definitions,
+				fixture.definitions,
 			);
 			const configFile = path.join(root, 'sunstack.lint.json');
 			const config = readObject(configFile);
