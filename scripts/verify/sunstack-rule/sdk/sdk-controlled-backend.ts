@@ -35,6 +35,7 @@ export class SdkControlledBackend {
 	private readonly waiters = new Set<() => void>();
 	private endpointValue = '';
 	hold = false;
+	choiceFor: (body: CapturedSdkRequest['body']) => string = () => 'portable';
 	constructor() {
 		this.server = http.createServer((request, response) => {
 			void this.capture(request, response).catch((error: unknown) => {
@@ -87,7 +88,7 @@ export class SdkControlledBackend {
 			});
 		} else {
 			response.writeHead(200, { 'content-type': 'application/json' });
-			response.end(JSON.stringify(responseBody(body, 0.91, 'portable')));
+			response.end(JSON.stringify(responseBody(body, 0.91, this.choiceFor(body))));
 		}
 		for (const notify of this.waiters) notify();
 	}
@@ -123,7 +124,7 @@ export class SdkControlledBackend {
 		this.hold = false;
 		for (const [response, body] of this.held) {
 			response.writeHead(200, { 'content-type': 'application/json' });
-			response.end(JSON.stringify(responseBody(body, 0.91, 'portable')));
+			response.end(JSON.stringify(responseBody(body, 0.91, this.choiceFor(body))));
 		}
 		this.held.clear();
 	}

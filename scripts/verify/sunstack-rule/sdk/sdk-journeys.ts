@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { SdkControlledBackend, boundedSdkWait } from './sdk-controlled-backend.ts';
 import {
 	createCheckedSdkInputs,
+	createBlockedSdkInput,
 	createSdkFileDefinitions,
 	sdkInlineConfiguration,
 } from './sdk-fixtures.ts';
@@ -57,6 +58,26 @@ export function requireCompletedSdkReport(value: unknown): z.infer<typeof sdkRec
 		'Completed outcome requires a tagged completed status',
 	);
 	return report;
+}
+export function requireDeepFrozenSdkValue(value: unknown): void {
+	if (value === null || typeof value !== 'object') return;
+	requireSdk(Object.isFrozen(value), 'Loaded configuration contains an unfrozen value');
+	for (const child of Object.values(value)) requireDeepFrozenSdkValue(child);
+}
+export function requireBlockedSdkResult(report: z.infer<typeof sdkRecordSchema>): void {
+	const result = z
+		.array(sdkRecordSchema)
+		.parse(report['results'])
+		.find((entry) => entry['file'] === 'skills/local/SKILL.md');
+	requireSdk(
+		result?.['outcome'] === 'not_applicable',
+		'Blocked folder lacks its not-applicable result',
+	);
+	const reason = record(result['reason']);
+	requireSdk(
+		reason['kind'] === 'filter' && reason['filter'] === 'purpose' && reason['label'] === 'blocked',
+		'Blocked folder has the wrong filter reason',
+	);
 }
 export function requireSdkSources(value: unknown, kind: 'file' | 'inline' | 'edited'): void {
 	const sources = sourcesSchema.parse(value);
@@ -113,10 +134,7 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 	);
 	const held = record(loaded['value']);
 	requireSdkSources(held['sources'], 'file');
-	requireSdk(
-		Object.isFrozen(loaded['value']) && Object.isFrozen(held['configuration']),
-		'Loaded configuration is not frozen',
-	);
+	requireDeepFrozenSdkValue(loaded['value']);
 	filesystem.writeFileSync(
 		path.join(root, 'rulebook.md'),
 		'ACTOR_B: Changed disk standard. <!-- K001 -->\n',
@@ -150,6 +168,77 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 	filesystem.writeFileSync(path.join(root, 'broken.json'), '{');
 	const malformed = await context.sdk.load({ directory: root, configPath: 'broken.json' });
 	requireSdkKind(malformed, 'invalid');
+	before = context.backend.captures.length;
+	const receiptOnly = await runConfigured(context, { ...held, sources: [] }, root);
+	requireRequestSentinel(context.backend, before, 'ACTOR_A', 'ACTOR_B');
+	requireSdkSources(receiptOnly['sources'], 'file');
+	const malformedCapture = record(structuredClone(held['configuration']));
+	const capturedRules = z.array(sdkRecordSchema).parse(malformedCapture['rulebooks']);
+	const capturedRule = capturedRules[0];
+	requireSdk(capturedRule, 'Missing captured rule');
+	const entries = record(capturedRule['entries']);
+	malformedCapture['rulebooks'] = [
+		{
+			...capturedRule,
+			entries: { ...entries, original: { ...record(entries['original']), content: '{' } },
+		},
+		...capturedRules.slice(1),
+	];
+	const invalidCapture = requireSdkKind(await context.sdk.check(malformedCapture), 'invalid');
+	requireSdk(
+		z
+			.array(sdkRecordSchema)
+			.parse(invalidCapture['diagnostics'])
+			.some((diagnostic) => diagnostic['code'] === 'capture_metadata_invalid'),
+		'Malformed provenance did not reach its intended refusal',
+	);
+	const filterCopy = record(structuredClone(held['configuration']));
+	const filters = record(filterCopy['filters']);
+	const purpose = record(filters['purpose']);
+	const questions = record(purpose['questions']);
+	const question = record(questions['purpose']);
+	filterCopy['filters'] = {
+		...filters,
+		purpose: {
+			...purpose,
+			questions: {
+				...questions,
+				purpose: {
+					...question,
+					instructions: {
+						...record(question['instructions']),
+						task: 'FILTER_EDIT_SENTINEL: Classify reusable guidance.',
+					},
+				},
+			},
+		},
+	};
+	before = context.backend.captures.length;
+	const filterEdited = await runConfigured(context, filterCopy, root);
+	requireRequestSentinel(context.backend, before, 'FILTER_EDIT_SENTINEL', 'ACTOR_B');
+	requireSdkSources(filterEdited['sources'], 'edited');
+	const dependencyPath = path.join(root, 'rules.json');
+	const mode = filesystem.statSync(dependencyPath).mode & 0o777;
+	filesystem.readFileSync(dependencyPath);
+	let deniedDependency: unknown;
+	let inaccessibleSnapshot: unknown;
+	try {
+		filesystem.chmodSync(dependencyPath, 0);
+		let permissionDenied = false;
+		try {
+			filesystem.readFileSync(dependencyPath);
+		} catch {
+			permissionDenied = true;
+		}
+		requireSdk(permissionDenied, 'Host cannot exercise unreadable dependency control');
+		deniedDependency = await context.sdk.load({ directory: root });
+		requireSdkKind(deniedDependency, 'unavailable');
+		before = context.backend.captures.length;
+		inaccessibleSnapshot = await runConfigured(context, held, root);
+		requireRequestSentinel(context.backend, before, 'ACTOR_A', 'ACTOR_B');
+	} finally {
+		filesystem.chmodSync(dependencyPath, mode);
+	}
 	saveSdkEvidence(path.join(context.evidence, 'snapshot-outcomes.json'), {
 		loaded,
 		original,
@@ -157,17 +246,23 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 		refreshed,
 		missing,
 		malformed,
+		receiptOnly,
+		invalidCapture,
+		filterEdited,
+		deniedDependency,
+		inaccessibleSnapshot,
 	});
 	return {
 		observed: [
 			'held A, edited typed A, explicit reload B with distinct real requests',
 			'file/edited content hashes',
 			'missing/malformed config distinction',
+			'deep frozen returned graph, receipt-only override ignored and malformed provenance refused',
+			'copied filter edit executes with edited provenance',
+			'proven unreadable dependency is unavailable while held snapshot still executes A',
 		],
 		gaps: [
-			'unreadable dependency, malformed captured metadata and receipt-only override controls',
-			'deep runtime freezing beyond the checked root values',
-			'no-recapture syscall/counter join and copied filter mutation',
+			'no-recapture physical-read instrumentation and complete metadata format/ID refusal inventory',
 		],
 	};
 }
@@ -175,6 +270,9 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 export async function observeSdkInline(context: JourneyContext): Promise<JourneyResult> {
 	const root = path.join(context.evidence, 'inline-root');
 	createCheckedSdkInputs(root);
+	createBlockedSdkInput(root);
+	context.backend.choiceFor = (body) =>
+		JSON.stringify(body).includes('SDK_LOCAL_ONLY') ? 'local' : 'portable';
 	const base = path.join(context.evidence, 'separate-definition-base');
 	filesystem.mkdirSync(base);
 	const configuration = sdkInlineConfiguration(base, context.backend.endpoint);
@@ -191,6 +289,16 @@ export async function observeSdkInline(context: JourneyContext): Promise<Journey
 		questionTypes.has('choice') && questionTypes.has('noul'),
 		'Filter or asking rule was not reached',
 	);
+	requireBlockedSdkResult(report);
+	const ruleRequests = requests.filter((request) =>
+		Object.values(record(request['questions'])).some(
+			(question) => record(question)['type'] === 'noul',
+		),
+	);
+	requireSdk(
+		ruleRequests.every((request) => !JSON.stringify(request).includes('SDK_LOCAL_ONLY')),
+		'Blocked folder still reached rule inference',
+	);
 	requireSdk(
 		JSON.stringify(requests).includes('CHECKED_A'),
 		'Checked content never reached Rust requests',
@@ -204,15 +312,16 @@ export async function observeSdkInline(context: JourneyContext): Promise<Journey
 	if (!context.target.cli)
 		return {
 			observed: [
-				'inline filter and asking execution with referenced utility and separate definition base',
+				'inline eligible/blocked filters and asking execution with referenced utility and separate definition base',
 			],
 			gaps: [
 				'CLI parity: no pinned CLI candidate supplied',
-				'blocked-filter branch, per-source ID inventory, temporary writes outside checked root and deletion-before-return',
+				'per-source ID inventory, temporary writes outside checked root and deletion-before-return',
 			],
 		};
 	const cliRoot = path.join(context.evidence, 'cli-root');
 	createCheckedSdkInputs(cliRoot);
+	createBlockedSdkInput(cliRoot);
 	createSdkFileDefinitions(cliRoot, context.backend.endpoint);
 	const cliStart = context.backend.captures.length;
 	// spawnSync would block this process's loopback responder. Keep CLI execution asynchronous.
@@ -269,7 +378,7 @@ export async function observeSdkInline(context: JourneyContext): Promise<Journey
 		observed: ['inline/native filter/rule execution and exact CLI encoded request equality'],
 		gaps: [
 			'full semantic report comparison and all CLI root/scope/report/ContextCapture joins',
-			'blocked-filter branch, complete source ID inventory and temporary-write observation',
+			'complete source ID inventory and temporary-write observation',
 		],
 	};
 }

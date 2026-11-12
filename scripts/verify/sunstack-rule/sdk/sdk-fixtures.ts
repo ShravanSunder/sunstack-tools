@@ -129,3 +129,10 @@ export function createSdkFileDefinitions(root: string, endpoint: string): void {
 		}),
 	);
 }
+export function createBlockedSdkInput(root: string): void {
+	filesystem.mkdirSync(path.join(root, 'skills', 'local'), { recursive: true });
+	filesystem.writeFileSync(
+		path.join(root, 'skills', 'local', 'SKILL.md'),
+		'SDK_LOCAL_ONLY: One local instruction.\n',
+	);
+}

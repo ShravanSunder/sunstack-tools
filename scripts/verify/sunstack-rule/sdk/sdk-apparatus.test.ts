@@ -11,6 +11,8 @@ import { SdkControlledBackend } from './sdk-controlled-backend.ts';
 import { createSdkFileDefinitions, sdkInlineConfiguration } from './sdk-fixtures.ts';
 import {
 	requireCompletedSdkReport,
+	requireDeepFrozenSdkValue,
+	requireBlockedSdkResult,
 	requireSdkKind,
 	requireSdkSources,
 	observeSdkInline,
@@ -39,6 +41,32 @@ const source = {
 };
 
 describe('SDK apparatus rejects false greens', () => {
+	it('requires the blocked folder result and exact judged filter reason, not an unrelated skip', () => {
+		const result = {
+			file: 'skills/local/SKILL.md',
+			outcome: 'not_applicable',
+			reason: { kind: 'filter', filter: 'purpose', label: 'blocked' },
+		};
+		expect(() => requireBlockedSdkResult({ results: [result] })).not.toThrow();
+		expect(() =>
+			requireBlockedSdkResult({ results: [], filter_skips: [{ why: 'unsure' }] }),
+		).toThrow('not-applicable');
+		expect(() =>
+			requireBlockedSdkResult({ results: [{ ...result, file: 'skills/another/SKILL.md' }] }),
+		).toThrow('not-applicable');
+		expect(() =>
+			requireBlockedSdkResult({
+				results: [{ ...result, reason: { ...result.reason, label: 'eligible' } }],
+			}),
+		).toThrow('wrong filter reason');
+	});
+	it('checks the actual returned graph and catches an unfrozen nested value', () => {
+		const value = Object.freeze({ configuration: Object.freeze({ nested: Object.freeze([]) }) });
+		expect(() => requireDeepFrozenSdkValue(value)).not.toThrow();
+		expect(() =>
+			requireDeepFrozenSdkValue(Object.freeze({ configuration: { nested: [] } })),
+		).toThrow('unfrozen');
+	});
 	it('checks the native contract reply and refuses release/revision/target skew', async () => {
 		const contract = {
 			sdk_release: '0.12.0',
