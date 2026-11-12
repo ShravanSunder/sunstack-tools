@@ -2,7 +2,15 @@
 
 This journey checks the repository-capture boundary used by `lint --since`: equal before/after bytes do not need text decoding, while changed content selected for textual capture must still be UTF-8. The adopted 0.10.1 unchanged-binary fix preserves file/byte limits, mutable snapshot checks and present-versus-absent identity. It does not narrow lint's repository-wide change binding or allow lossy decoding.
 
-## Run and readiness
+## Current changed-only capture
+
+For0.12, use [raw candidate identities](git-first.md) and `git-first-edges.ts`. The governing commission's Correction2 preserves raw-byte change semantics while unchanged paths are hashed without being acquired or frozen. Hashing bytes still meet the byte caps, and identity guards still verify unchanged mutable inputs. `ContextCapture::Full` remains the default for connected-evidence callers that need unchanged frozen context; lint explicitly selects `ChangedOnly` for `--since` and default uncommitted scope. A CLI count of selected pieces is not a capture-acquisition count: join the declared permanent public-API consumer and its actual ledger.
+
+Current edge coverage retains equal binary plus changed text, changed binary/binary-to-text/invalid checked text refusals with offending paths, and raw changed/unchanged symlink controls. It also checks staged/unstaged/untracked/default scope, deletion/rename/mode/ignored files and Git-diff blind spots. The current binary-free Markdown comparison uses `--all` with released0.11.1 and exact stdout/saved/prepare equality except root version, because changed-only capture deliberately changes discovery work.
+
+The sections below describe the separately commissioned historical0.10.1/0.10.0 replay only. They are not a current0.12 launch recipe. The legacy driver refuses another candidate version; its equal-binary acquisition/context assertions describe Full-context API behavior, not ChangedOnly work. Current coverage is draft until its own declared-target live pass.
+
+## Historical run and readiness
 
 Declare the candidate's clean full source head, immutable signed binary and SHA256. Also supply a frozen 0.10.0 comparator with version, digest and provenance. Source equivalence does not identify distributed artifact bytes; label a local comparator as local. Read help, then run from the monorepo root:
 

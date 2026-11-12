@@ -1,4 +1,4 @@
-/** Keyless --since capture: skip equal binary bytes, retain changed text and encoding refusals. */
+/** Historical0.10.1/0.10.0 --since replay; current capture uses git-first/git-first-edges.ts. */
 import { spawnSync } from 'node:child_process';
 import filesystem from 'node:fs';
 import path from 'node:path';
@@ -112,7 +112,7 @@ export async function main(): Promise<void> {
 	});
 	if (values.help) {
 		process.stdout.write(
-			'Usage: node rulebook-since-encoding.ts --binary <candidate> --source-root <checkout> --commit <full-head> --sha256 <digest> --baseline-binary <0.10.0> --baseline-sha256 <digest> --evidence <new-directory>\nProves keyless real Git --since selection beside an equal PNG, changed binary refusal, and exact binary-free JSON/report/prepare parity apart from the root engine version. The comparator must report0.10.0; preserve its provenance separately. Uses no inference or provider credential; owns bounded CLI children and a zero-request loopback witness. Original affected repository and exact original PNG are separate commission-specific probes.\n',
+			'Historical0.10.1 replay only; current route: git-first/git-first-edges.ts.\nUsage: node rulebook-since-encoding.ts --binary <candidate> --source-root <checkout> --commit <full-head> --sha256 <digest> --baseline-binary <0.10.0> --baseline-sha256 <digest> --evidence <new-directory>\nProves keyless real Git --since selection beside an equal PNG, changed binary refusal, and exact binary-free JSON/report/prepare parity apart from the root engine version. The comparator must report0.10.0; preserve its provenance separately. Uses no inference or provider credential; owns bounded CLI children and a zero-request loopback witness. Original affected repository and exact original PNG are separate commission-specific probes.\n',
 		);
 		return;
 	}
@@ -132,6 +132,11 @@ export async function main(): Promise<void> {
 		.regex(/^sunstack \d+\.\d+\.\d+$/)
 		.parse(version.stdout.trim())
 		.slice('sunstack '.length);
+	equal(
+		candidateVersion,
+		'0.10.1',
+		'Historical encoding replay requires0.10.1; use git-first-edges.ts for current capture',
+	);
 	const evidence = path.resolve(options.evidence);
 	filesystem.mkdirSync(evidence);
 	const root = path.join(evidence, 'binary-fixture');
