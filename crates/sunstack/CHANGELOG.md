@@ -8,6 +8,7 @@ Release date: 2026-11-12.
   heading, across flat or wrapped markup. Generic evidence and rulebook kinds
   share the collector; section fields expose full, own and enclosing own text.
   Template, script, comment and Markdown-island source headings are excluded.
+  Opening tags retain their sections when the parser recovers unclosed headings.
 - HTML asking text retains alt, ex-mermaid label and aria-label attributes and
   separates adjacent elements. Rules, selection/shared views and filters project
   before applying cut budgets; raw mechanical evidence and reads hashes remain.

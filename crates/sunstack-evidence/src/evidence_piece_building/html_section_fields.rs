@@ -25,7 +25,7 @@ pub(super) fn collect_html_units(
     {
         return Ok(BTreeMap::new());
     }
-    let outline = Arc::new(html_sections(text));
+    let outline = Arc::new(html_sections(text).map_err(|error| error.to_string())?);
     let mut matches = BTreeMap::new();
     for (name, definition) in kinds {
         let crate::KindMatcher::HtmlUnits(selection) = &definition.matcher else {

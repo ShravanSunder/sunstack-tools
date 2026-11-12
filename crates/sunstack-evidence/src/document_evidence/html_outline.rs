@@ -14,21 +14,70 @@ pub(crate) struct HtmlSection {
     pub heading_level: u8,
 }
 
-pub(crate) fn html_sections(raw: &str) -> Vec<HtmlSection> {
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum HtmlOutlineError {
+    #[error("html_outline_unplaceable_heading at bytes {start}..{end}")]
+    UnplaceableHeading { start: usize, end: usize },
+}
+
+#[derive(PartialEq, Eq)]
+enum ExcludedSource {
+    Template,
+    MarkdownIsland,
+}
+
+pub(crate) fn html_sections(raw: &str) -> Result<Vec<HtmlSection>, HtmlOutlineError> {
     let tree = SupportLang::Html.ast_grep(raw);
     let mut sections: Vec<HtmlSection> = Vec::new();
     let mut open_sections: Vec<usize> = Vec::new();
+    let mut excluded_sources = Vec::new();
 
-    for element in tree.root().dfs().filter(|node| node.kind() == "element") {
-        let Some(heading_level) = heading_level(&element) else {
+    // Recovery may put valid opening tags directly inside ERROR instead of element nodes.
+    for tag in tree.root().dfs().filter(|node| {
+        matches!(
+            node.kind().as_ref(),
+            "start_tag" | "self_closing_tag" | "end_tag"
+        )
+    }) {
+        let Some(name) = tag.children().find(|child| child.kind() == "tag_name") else {
             continue;
         };
-        if is_in_excluded_source(&element) {
+        let name = name.text();
+        let excluded = excluded_source(&name);
+        if tag.kind() == "end_tag" {
+            if let Some(source) = excluded
+                && let Some(index) = excluded_sources.iter().rposition(|open| *open == source)
+            {
+                excluded_sources.truncate(index);
+            }
             continue;
         }
+        if let Some(source) = excluded {
+            if tag.kind() != "self_closing_tag" {
+                excluded_sources.push(source);
+            }
+            continue;
+        }
+        if !excluded_sources.is_empty() {
+            continue;
+        }
+        let Some(heading_level) = heading_level(&name) else {
+            continue;
+        };
 
-        let heading_range = element.range();
+        let heading_range = heading_range(&tag);
         let start = heading_range.start;
+        if start >= heading_range.end
+            || raw.get(heading_range.clone()).is_none()
+            || sections
+                .last()
+                .is_some_and(|section| section.section_range.start >= start)
+        {
+            return Err(HtmlOutlineError::UnplaceableHeading {
+                start,
+                end: heading_range.end,
+            });
+        }
         while let Some(&index) = open_sections.last() {
             if sections[index].heading_level < heading_level {
                 break;
@@ -50,15 +99,10 @@ pub(crate) fn html_sections(raw: &str) -> Vec<HtmlSection> {
         });
         open_sections.push(sections.len() - 1);
     }
-    sections
+    Ok(sections)
 }
 
-fn heading_level(element: &HtmlNode<'_>) -> Option<u8> {
-    let tag = element
-        .children()
-        .find(|child| child.kind() == "start_tag")?;
-    let name = tag.children().find(|child| child.kind() == "tag_name")?;
-    let name = name.text();
+fn heading_level(name: &str) -> Option<u8> {
     let bytes = name.as_bytes();
     if bytes.len() == 2 && bytes[0].eq_ignore_ascii_case(&b'h') && (b'1'..=b'6').contains(&bytes[1])
     {
@@ -68,26 +112,25 @@ fn heading_level(element: &HtmlNode<'_>) -> Option<u8> {
     }
 }
 
-fn is_in_excluded_source(element: &HtmlNode<'_>) -> bool {
-    let mut ancestor = element.parent();
-    while let Some(node) = ancestor {
-        if node.kind() == "element" && is_excluded_source_element(&node) {
-            return true;
-        }
-        ancestor = node.parent();
+fn heading_range(tag: &HtmlNode<'_>) -> Range<usize> {
+    if let Some(element) = tag.parent()
+        && element.kind() == "element"
+        && element.range().start == tag.range().start
+        && element.children().any(|child| child.kind() == "end_tag")
+    {
+        return element.range();
     }
-    false
+    tag.range()
 }
 
-fn is_excluded_source_element(element: &HtmlNode<'_>) -> bool {
-    element
-        .children()
-        .find(|child| child.kind() == "start_tag")
-        .and_then(|tag| tag.children().find(|child| child.kind() == "tag_name"))
-        .is_some_and(|name| {
-            let name = name.text();
-            name.eq_ignore_ascii_case("template") || name.eq_ignore_ascii_case("ex-markdown")
-        })
+fn excluded_source(name: &str) -> Option<ExcludedSource> {
+    if name.eq_ignore_ascii_case("template") {
+        Some(ExcludedSource::Template)
+    } else if name.eq_ignore_ascii_case("ex-markdown") {
+        Some(ExcludedSource::MarkdownIsland)
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]

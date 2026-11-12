@@ -244,3 +244,77 @@ async fn html_selection_candidate_and_shared_request_views_are_projected() {
     );
     assert_eq!(report["usage"]["model_requests"], 0);
 }
+
+#[tokio::test]
+async fn recovered_html_headings_keep_exact_fields_and_prepare_every_section() {
+    let root = tempfile::tempdir().unwrap();
+    outline_fixture(root.path());
+    fixture::entry_file(
+        root.path(),
+        &json!({"K001": {
+            "name":"section_picture", "evidence":"skill", "severity":"warn",
+            "questions":{"picture":{"type":"noul","instructions":{
+                "check":"complete","task":"Does this section explain its picture?"
+            }}},
+            "decision":{"start":"picture","steps":{"picture":{
+                "ask":"picture","yes_at_or_above":0.8,"no_at_or_below":0.2,
+                "yes":"pass","no":{"finding":"Add the picture."},"uncertain":"uncertain"
+            }}}
+        }}),
+    );
+    // Literal offsets belong to the original source, independently of parser recovery.
+    for (name, html, second_start, child) in [
+        ("both-unclosed", "<h2>Parent<h3>Child", 10, true),
+        ("siblings-unclosed", "<h2>A<h2>B", 5, false),
+        ("newline", "<h2>Parent\n<h3>Child\n", 11, true),
+        ("parent-unclosed", "<h2>Parent<h3>Child</h3>", 10, true),
+        ("child-unclosed", "<h2>Parent</h2><h3>Child", 15, true),
+        ("proper", "<h2>Parent</h2><h3>Child</h3>", 15, true),
+    ] {
+        std::fs::write(root.path().join("docs/page.html"), html).unwrap();
+        let output = invoke(root.path(), &["--all", "--evidence", "skill"], 0).await;
+        let listing: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let pieces = listing["pieces"].as_array().unwrap();
+        assert_eq!(pieces.len(), 2, "{name}: {listing}");
+        let first_end = if child { html.len() } else { second_start };
+        assert_eq!(pieces[0]["text"], html[..first_end], "{name}");
+        assert_eq!(pieces[0]["where"]["span"]["byte_start"], 0);
+        assert_eq!(pieces[0]["where"]["span"]["byte_end"], first_end);
+        assert_eq!(
+            pieces[0]["fields"]["own_body"]["value"],
+            html[..second_start]
+        );
+        assert_eq!(pieces[1]["text"], html[second_start..]);
+        assert_eq!(pieces[1]["where"]["span"]["byte_start"], second_start);
+        assert_eq!(pieces[1]["where"]["span"]["byte_end"], html.len());
+        if child {
+            assert_eq!(
+                pieces[1]["fields"]["parent_body"]["value"],
+                html[..second_start]
+            );
+        } else {
+            assert_eq!(
+                pieces[1]["fields"]["parent_body"],
+                json!({"state":"absent"})
+            );
+        }
+        let saved = root.path().join(format!("{name}.json"));
+        invoke(
+            root.path(),
+            &["--all", "--prepare", saved.to_str().unwrap()],
+            6,
+        )
+        .await;
+        let report: Value = serde_json::from_slice(&std::fs::read(saved).unwrap()).unwrap();
+        assert_eq!(
+            report["requests"].as_array().unwrap().len(),
+            2,
+            "{name}: {report}"
+        );
+        assert_eq!(report["usage"]["model_requests"], 0);
+        assert!(
+            report["incomplete"].as_array().unwrap().is_empty(),
+            "{name}: {report}"
+        );
+    }
+}

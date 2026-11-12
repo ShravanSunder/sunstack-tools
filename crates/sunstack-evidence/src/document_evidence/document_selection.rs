@@ -139,7 +139,9 @@ pub(crate) fn select_document_bounded(
         EvidenceSelection::HtmlUnits(selection) => {
             selection.validate()?;
             let mut matches = Vec::new();
-            for section in crate::document_evidence::html_outline::html_sections(text) {
+            let sections = crate::document_evidence::html_outline::html_sections(text)
+                .map_err(|_| EvidenceCode::SourceUnavailable)?;
+            for section in sections {
                 let raw = &text[section.section_range.clone()];
                 let visible = crate::document_evidence::html_content::html_text_content(raw);
                 if selection.matches_text(&visible)? {
