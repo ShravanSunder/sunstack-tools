@@ -2,22 +2,21 @@
 // come from the controlled loopback backend; this is not hosted-provider proof.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
 import { test } from 'node:test';
 
 import type { Configuration, RunOutcome } from '../src/index.ts';
-import { load, run } from '../src/index.ts';
+import { check, load, run } from '../src/index.ts';
 import type { NativeBinding } from '../src/native-binding.ts';
 import { installedBindingSources, resolveBinding } from '../src/native-binding.ts';
 import { createSdkCalls } from '../src/sdk-calls.ts';
 import type { CapturedRequest, ControlledBackend } from './support/controlled-backend.ts';
 import { answerChoice, answerNoul, startControlledBackend } from './support/controlled-backend.ts';
+import { withoutWritableDirectories } from './support/read-only-directories.ts';
 import type { OwnedDirectory } from './support/sdk-fixtures.ts';
 import {
+	expectedInlineSources,
 	inlineConfiguration,
 	ownedDirectory,
-	purposeFilter,
 	ruleEntries,
 	rulebookMarkdown,
 	writeFileProject,
@@ -66,46 +65,6 @@ function answerSkillRequests(owned: ControlledBackend): void {
 const sharedBackend: ControlledBackend = await startControlledBackend();
 const repository: OwnedDirectory = ownedDirectory('skills');
 writeSkillRepository(repository.path);
-
-/** Every file under a directory with its content digest, for before/after comparison. */
-function treeInventory(directory: string): string[] {
-	return readdirSync(directory, { recursive: true, withFileTypes: true })
-		.map((entry) => join(entry.parentPath, entry.name))
-		.map((path) =>
-			statSync(path).isFile()
-				? `${relative(directory, path)} ${createHash('sha256').update(readFileSync(path)).digest('hex')}`
-				: `${relative(directory, path)}/`,
-		)
-		.toSorted();
-}
-
-/**
- * Run with the temporary directory, working directory, definition base and checked root
- * all read-only: creating any file there, even one removed before returning, fails the run.
- */
-async function withoutWritableDirectories<TResult>(
-	directories: readonly string[],
-	call: () => Promise<TResult>,
-): Promise<TResult> {
-	const scratch = ownedDirectory('scratch-tmp');
-	const previousTemporary = process.env['TMPDIR'];
-	const previousDirectory = process.cwd();
-	const locked = [scratch.path, ...directories];
-	const before = locked.map(treeInventory);
-	for (const directory of locked) chmodSync(directory, 0o500);
-	process.env['TMPDIR'] = scratch.path;
-	process.chdir(scratch.path);
-	try {
-		return await call();
-	} finally {
-		process.chdir(previousDirectory);
-		if (previousTemporary === undefined) delete process.env['TMPDIR'];
-		else process.env['TMPDIR'] = previousTemporary;
-		for (const directory of locked) chmodSync(directory, 0o700);
-		assert.deepEqual(locked.map(treeInventory), before, 'no file appeared or changed');
-		scratch.remove();
-	}
-}
 
 await test('complete inline authoring runs without definition files and equals the file fixture', async () => {
 	const emptyBase = ownedDirectory('empty-base');
@@ -188,10 +147,12 @@ await test('complete inline authoring runs without definition files and equals t
 			],
 		);
 		assert.equal(markdown?.content, rulebookMarkdown);
-		assert.deepEqual(JSON.parse(entries?.content ?? 'null'), ruleEntries);
-		assert.deepEqual(JSON.parse(root?.content ?? 'null').filters, { purpose: purposeFilter });
-		assert.deepEqual(JSON.parse(utility?.content ?? 'null').rule, { kind: 'paragraph' });
-		assert.deepEqual(JSON.parse(matcher?.content ?? 'null').rule, { matches: 'paragraph-node' });
+		// The whole admitted value of every normalized source, against the declared contract.
+		const expected = expectedInlineSources(backend.endpoint);
+		assert.deepEqual(JSON.parse(root?.content ?? 'null'), expected.root);
+		assert.deepEqual(JSON.parse(entries?.content ?? 'null'), expected.entries);
+		assert.deepEqual(JSON.parse(utility?.content ?? 'null'), expected.utility);
+		assert.deepEqual(JSON.parse(matcher?.content ?? 'null'), expected.matcher);
 		assert.ok(file.report.sources.every((source) => source.origin.kind === 'file'));
 		assert.equal(inline.report.limits.max_file_bytes, 1_048_576n);
 		assert.equal(typeof inline.report.findings[0]?.line, 'bigint');
@@ -199,6 +160,71 @@ await test('complete inline authoring runs without definition files and equals t
 		await backend.close();
 		emptyBase.remove();
 		project.remove();
+	}
+});
+
+/** The normalized sources a valid check admits, parsed, in report order. */
+async function admittedSources(configuration: Configuration): Promise<Record<string, unknown>> {
+	const outcome = await check(configuration);
+	assert.equal(outcome.kind, 'valid');
+	if (outcome.kind !== 'valid') return {};
+	const [root, , entries, utility, matcher] = outcome.sources.map((source): unknown =>
+		source.representation === 'normalized_value' ? JSON.parse(source.content) : source.content,
+	);
+	return { root, entries, utility, matcher };
+}
+
+await test('the full source comparison catches a changed setting, metadata value or default member', async () => {
+	const base = ownedDirectory('source-controls');
+	try {
+		const endpoint = 'http://127.0.0.1:1/v1/systemone';
+		const original = inlineConfiguration(base.path, endpoint);
+		const expected: Record<string, unknown> = expectedInlineSources(endpoint);
+		assert.deepEqual(await admittedSources(original), expected);
+		const evidence = original.evidence.kind === 'inline' ? original.evidence : undefined;
+		const paragraph = evidence?.matchers['paragraph'];
+		assert.ok(evidence !== undefined && paragraph !== undefined);
+		const variants: readonly (readonly [string, Configuration])[] = [
+			['root', { ...original, limits: { max_file_bytes: 1_048_576n, max_files: 7 } }],
+			[
+				'root',
+				{ ...original, check: { files: ['skills/**/SKILL.md'], ignore: ['skills/beta/**'] } },
+			],
+			[
+				'matcher',
+				{
+					...original,
+					evidence: {
+						...evidence,
+						matchers: { paragraph: { ...paragraph, metadata: { owner: 'docs', weight: 3 } } },
+					},
+				},
+			],
+			[
+				'matcher',
+				{
+					...original,
+					evidence: {
+						...evidence,
+						matchers: { paragraph: { ...paragraph, message: 'Paragraph.' } },
+					},
+				},
+			],
+		];
+		const admittedVariants = await Promise.all(
+			variants.map(
+				async ([changed, variant]) => [changed, await admittedSources(variant)] as const,
+			),
+		);
+		for (const [changed, admitted] of admittedVariants) {
+			// Only the changed source differs, and the comparison sees it.
+			assert.throws(() => assert.deepStrictEqual(admitted[changed], expected[changed]));
+			for (const name of Object.keys(expected).filter((key) => key !== changed)) {
+				assert.deepEqual(admitted[name], expected[name], `${name} unchanged`);
+			}
+		}
+	} finally {
+		base.remove();
 	}
 });
 

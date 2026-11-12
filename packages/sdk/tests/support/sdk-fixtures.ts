@@ -102,7 +102,11 @@ export function inlineConfiguration(baseDirectory: string, endpoint: string): Co
 				'paragraph-node': { language: 'Markdown', rule: { kind: 'paragraph' } },
 			},
 			matchers: {
-				paragraph: { language: 'Markdown', rule: { matches: 'paragraph-node' } },
+				paragraph: {
+					language: 'Markdown',
+					rule: { matches: 'paragraph-node' },
+					metadata: { owner: 'docs', weight: 2 },
+				},
 			},
 			kinds: {
 				paragraph: { rule: 'paragraph', fields: { body: { from: 'remainder' } } },
@@ -145,6 +149,69 @@ export function writeFileProject(directory: string, endpoint: string): void {
 		'evidence/utils/paragraph-node.yml':
 			'id: paragraph-node\nlanguage: md\nrule: {kind: paragraph}\n',
 		'evidence/rules/paragraph.yml':
-			'id: paragraph\nlanguage: Markdown\nrule: {matches: paragraph-node}\n',
+			'id: paragraph\nlanguage: Markdown\nrule: {matches: paragraph-node}\nmetadata: {owner: docs, weight: 2}\n',
 	});
+}
+
+/**
+ * The admitted value of each normalized inline source in `inlineConfiguration`, as the
+ * native contract at revision 2 records it: Sunstack defaults filled (`check.ignore`,
+ * `max_question_words`, unset limits as null), authoring-only members omitted (`id`,
+ * `base_directory`, `evidence.kind`, `rulebooks`), and ast-grep's upstream defaults written
+ * out for matchers and utilities.
+ */
+export function expectedInlineSources(endpoint: string): {
+	root: unknown;
+	entries: unknown;
+	utility: unknown;
+	matcher: unknown;
+} {
+	return {
+		root: {
+			check: { files: ['skills/**/SKILL.md'], ignore: [] },
+			decision_model: { endpoint, model: 'jev-latest' },
+			filters: { purpose: purposeFilter },
+			kinds: { paragraph: { fields: { body: { from: 'remainder' } }, rule: 'paragraph' } },
+			limits: {
+				attempt_timeout_seconds: null,
+				evidence_max_chars: null,
+				max_concurrent_requests: null,
+				max_file_bytes: 1_048_576,
+				max_files: null,
+				max_input_tokens_per_request: null,
+				max_locate_lines: null,
+				max_matches: null,
+				max_model_requests: null,
+				max_total_bytes: null,
+				request_max_chars: null,
+			},
+			marker_prefix: 'K',
+			max_question_words: 400,
+		},
+		entries: ruleEntries,
+		utility: {
+			constraints: null,
+			language: 'Markdown',
+			rule: { kind: 'paragraph' },
+			transform: null,
+			utils: null,
+		},
+		matcher: {
+			constraints: null,
+			files: null,
+			fix: null,
+			ignores: null,
+			labels: null,
+			language: 'Markdown',
+			message: '',
+			metadata: { owner: 'docs', weight: 2 },
+			note: null,
+			rewriters: null,
+			rule: { matches: 'paragraph-node' },
+			severity: 'hint',
+			transform: null,
+			url: null,
+			utils: null,
+		},
+	};
 }
