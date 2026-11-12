@@ -12,14 +12,14 @@ pub enum MarkdownUnitKind {
     ListItem,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum MarkdownUnitFilter {
     StartsWith { starts_with: String },
     Regex { pattern: String },
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(from = "SelectionWire", into = "SelectionWire")]
 pub enum MarkdownUnitSelection {
     Unit {

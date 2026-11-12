@@ -101,6 +101,13 @@ pub(crate) struct OffsetProjection<'document> {
 }
 
 impl<'document> OffsetProjection<'document> {
+    pub(crate) fn html_fragments(&self) -> impl Iterator<Item = (&str, Range<usize>)> + '_ {
+        self.events.iter().filter_map(|(event, range)| match event {
+            Event::Html(html) | Event::InlineHtml(html) => Some((html.as_ref(), range.clone())),
+            _ => None,
+        })
+    }
+
     pub(crate) fn new(source: &'document NormalizedMarkdown) -> Self {
         let options = Options::ENABLE_TABLES
             | Options::ENABLE_STRIKETHROUGH

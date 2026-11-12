@@ -122,6 +122,7 @@ pub enum KindMatcher {
     Named(EvidenceRuleId),
     Inline { text: String },
     HtmlUnits(crate::HtmlUnitSelection),
+    MarkdownUnits(crate::MarkdownUnitSelection),
 }
 
 impl KindMatcher {
@@ -129,7 +130,7 @@ impl KindMatcher {
         match self {
             Self::Named(rule) => Some(rule.clone()),
             Self::Inline { .. } => Some(EvidenceRuleId(kind.0.clone())),
-            Self::HtmlUnits(_) => None,
+            Self::HtmlUnits(_) | Self::MarkdownUnits(_) => None,
         }
     }
 }

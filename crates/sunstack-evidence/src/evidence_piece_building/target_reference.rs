@@ -1,12 +1,41 @@
-use crate::FieldUnavailable;
+use crate::{EvidenceLanguage, EvidenceTargetResolution, FieldUnavailable};
 use std::path::PathBuf;
 
 pub(super) struct TargetReference {
     pub file: PathBuf,
     pub fragment: Option<String>,
 }
+#[derive(Clone, Copy)]
+pub(super) enum TargetReferenceSyntax {
+    HtmlUrl,
+    MarkdownUrl,
+    Literal,
+}
+
+impl TargetReferenceSyntax {
+    pub(super) fn for_language(language: Option<EvidenceLanguage>) -> Self {
+        match language {
+            Some(EvidenceLanguage::Html) => Self::HtmlUrl,
+            Some(EvidenceLanguage::Markdown) => Self::MarkdownUrl,
+            _ => Self::Literal,
+        }
+    }
+}
+
 impl TargetReference {
-    pub fn parse(raw: &str, html: bool) -> Result<Self, FieldUnavailable> {
+    pub(super) fn uses_path(raw: &str, resolution: &EvidenceTargetResolution) -> bool {
+        match resolution {
+            EvidenceTargetResolution::Path => true,
+            EvidenceTargetResolution::Skill => false,
+            EvidenceTargetResolution::PathOrSkill => raw
+                .split_once('#')
+                .map_or(raw, |(file, _)| file)
+                .ends_with(".md"),
+        }
+    }
+
+    pub fn parse(raw: &str, syntax: TargetReferenceSyntax) -> Result<Self, FieldUnavailable> {
+        let html = matches!(syntax, TargetReferenceSyntax::HtmlUrl);
         let reference = if html {
             crate::document_evidence::html_content::decode_entities(raw)
         } else {
@@ -18,7 +47,7 @@ impl TargetReference {
                 (file, Some(fragment))
             });
         let decode = |value: &str| {
-            if html {
+            if !matches!(syntax, TargetReferenceSyntax::Literal) {
                 decode_percent_utf8(value)
             } else {
                 Ok(value.to_owned())
@@ -30,6 +59,10 @@ impl TargetReference {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "target_reference_test.rs"]
+mod tests;
 
 fn decode_percent_utf8(input: &str) -> Result<String, FieldUnavailable> {
     let raw = input.as_bytes();

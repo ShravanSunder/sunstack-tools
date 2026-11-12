@@ -3,6 +3,70 @@ use super::*;
 use serde_json::json;
 
 #[test]
+fn markdown_targets_resolve_heading_fragments_and_percent_encoded_files() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/links.yml"),
+        "id: links\nlanguage: Markdown\nrule: {kind: inline}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("owner.md"),
+        "[found](target.md#hello-code) [missing](target.md#absent) [space](a%20b.md#spaced)\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("target.md"), "# Hello `code`\n").unwrap();
+    std::fs::write(root.path().join("a b.md"), "# Spaced\n").unwrap();
+    let project =
+        crate::load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let kinds = serde_json::from_value(json!({"links":{
+        "rule":"links","fields":{"targets":{"from":"target","regex":"\\]\\(([^)]+)\\)","resolve":"path"}}
+    }})).unwrap();
+    let mut source = crate::FilesystemCheckedSource::new(root.path()).unwrap();
+    let catalog = crate::build_pieces(
+        &project,
+        &kinds,
+        &["owner.md".into()],
+        &mut source,
+        PieceBuildLimits {
+            max_files: 10,
+            max_file_bytes: 10000,
+            max_total_bytes: 100000,
+            max_matches: 100,
+            evidence_max_chars: 6000,
+        },
+    );
+    assert!(catalog.failures.is_empty(), "{:?}", catalog.failures);
+    assert_eq!(catalog.pieces.len(), 1);
+    let field = &catalog.pieces[0].fields[&FieldName::new("targets").unwrap()];
+    let values = match field {
+        FieldValue::Targets { values } => values.as_slice(),
+        _ => &[],
+    };
+    assert_eq!(values.len(), 3);
+    assert!(
+        matches!(&values[0].anchor, Some(crate::TargetAnchor::Found { fragment }) if fragment=="hello-code"),
+        "{:?}",
+        values[0]
+    );
+    assert!(
+        matches!(&values[1].anchor, Some(crate::TargetAnchor::Missing { fragment }) if fragment=="absent"),
+        "{:?}",
+        values[1]
+    );
+    assert!(
+        values[2].exists,
+        "encoded Markdown path must resolve: {:?}",
+        values[2]
+    );
+    assert!(
+        matches!(&values[2].anchor, Some(crate::TargetAnchor::Found { fragment }) if fragment=="spaced")
+    );
+}
+
+#[test]
 fn target_outline_and_ast_matches_share_the_local_match_allowance() {
     let root = tempfile::tempdir().unwrap();
     std::fs::create_dir(root.path().join("rules")).unwrap();

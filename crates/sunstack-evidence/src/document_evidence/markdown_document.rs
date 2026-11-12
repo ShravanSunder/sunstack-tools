@@ -6,7 +6,14 @@ use std::{collections::BTreeMap, ops::Range};
 
 type BlockNode<'tree> = Node<'tree, StrDoc<SupportLang>>;
 
+mod heading_anchors;
+pub(crate) mod section_outline;
 mod unit_selection;
+
+pub(crate) fn is_markdown_path(path: &std::path::Path) -> bool {
+    use ast_grep_core::Language;
+    SupportLang::from_path(path) == Some(SupportLang::Markdown)
+}
 
 pub struct MarkdownDocument {
     tree: AstGrep<StrDoc<SupportLang>>,

@@ -176,7 +176,7 @@ export function prepareAnchorFixture(root: string): ExpectedControl[] {
 		'<!doctype html><p id="present">Present.</p><p id="A&amp;B">Entity.</p><p id="N&#49;">Numeric.</p><p id="A B">Percent.</p><p id="猫">Unicode.</p><p id="A&amp B">Legacy raw.</p><pre>&lt;p id="fake"&gt;Example&lt;/p&gt;</pre>';
 	filesystem.mkdirSync(path.join(root, 'pages'), { recursive: true });
 	filesystem.writeFileSync(path.join(root, 'pages/target.html'), target);
-	filesystem.writeFileSync(path.join(root, 'pages/target.md'), '# Heading\n');
+	filesystem.writeFileSync(path.join(root, 'pages/target.txt'), 'Heading\n');
 	filesystem.writeFileSync(path.join(root, 'pages/entity&path.html'), target);
 	filesystem.writeFileSync(path.join(root, 'pages/percent path.html'), target);
 	const cases: readonly [string, string, ExpectedControl['outcome']][] = [
@@ -185,7 +185,7 @@ export function prepareAnchorFixture(root: string): ExpectedControl[] {
 		['escaped-fake', 'target.html#fake', 'finding'],
 		['missing-file', 'not-created.html#present', 'finding'],
 		['file-only', 'target.html', 'pass'],
-		['unsupported', 'target.md#heading', 'incomplete'],
+		['unsupported', 'target.txt#heading', 'incomplete'],
 		['entity', 'target.html#A&amp;B', 'pass'],
 		['numeric', 'target.html#N1', 'pass'],
 		['percent-fragment', 'target.html#A%20B', 'pass'],
