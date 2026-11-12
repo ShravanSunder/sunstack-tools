@@ -8,7 +8,7 @@ use super::{
         AstMatcher, AstUtility, TransportRefusal, TransportRefusalKind, matcher_value,
         utility_value,
     },
-    normalized_values::{canonical_value, normalized_text, source_id},
+    normalized_values::{canonical_value, normalized_text, same_after_transport, source_id},
     sdk_contracts::{
         CapturedSource, CapturedValue, Configuration, DefinitionSourceFormat, Diagnostic,
         DiagnosticCode, EvidenceDefinitions, RuleEntries, RulebookDefinition, WholeSourceFormat,
@@ -326,7 +326,7 @@ fn capture_root(
         )])
     })?;
     let original_settings = settings_value(&ConfigurationSettings::from(&parsed));
-    if original_settings == supplied {
+    if same_after_transport(&supplied, &original_settings) {
         let origin = DefinitionOrigin::from(original.origin.clone());
         receipt.record(snapshot(
             origin.clone(),
@@ -537,7 +537,10 @@ fn capture_entries(
                 "original rule entries are malformed",
             )])
         })?;
-    if normalized_entries(&entries.value).as_ref() == Some(&decoded) {
+    if normalized_entries(&entries.value)
+        .as_ref()
+        .is_some_and(|supplied| same_after_transport(supplied, &decoded))
+    {
         receipt.record(snapshot(
             original_origin.clone(),
             content.to_owned(),
@@ -768,7 +771,11 @@ fn capture_definition<TDefinition, TTransport>(
     let edited_id = source_id(config_id, prefix);
     let definition = named_upstream(name, &captured.value);
     let supplied_value = canonical(&definition).ok();
-    if name == wanted && supplied_value.as_ref() == Some(&original_value) {
+    if name == wanted
+        && supplied_value
+            .as_ref()
+            .is_some_and(|supplied| same_after_transport(supplied, &original_value))
+    {
         let origin = DefinitionOrigin::from(origin.clone());
         receipt.record(snapshot(
             origin.clone(),
