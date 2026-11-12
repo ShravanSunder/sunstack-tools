@@ -1,6 +1,6 @@
 # Rule-author lint usability
 
-Use this route for the0.12.1 usability commission U1–U6 and Corrections1–4. It is draft until its declared-target live pass. The expectation comes from that commission, not the current output or regenerated snapshots. The product entry is the signed `sunstack lint` CLI; the source owners are lint target/scope execution, config discovery, status rendering and CLI help/output context.
+Use this route for the0.12.1 usability commission U1–U6 and Corrections1–4. It was observed at declared head `245eb9c32e11f1236231a4da137e0d042dc9c851`; repeat the journey and native joins for another target. The expectation comes from that commission, not the current output or regenerated snapshots. The product entry is the signed `sunstack lint` CLI; the source owners are lint target/scope execution, config discovery, status rendering and CLI help/output context.
 
 ## Eligibility before evidence
 
@@ -49,3 +49,11 @@ Read current product test scenarios/assertions and their declared-source runs fo
 Status-format unit proof owns Cancelled and all other statuses: Invalid/Cancelled/NothingSelected count diagnostics, Prepared counts requests and keeps finding counts, Clean/Findings/Incomplete/Uncertain keep finding counts. Config proof must keep no_config_found for missing/not-file/unreadable errors and bind the actual path. Help's values come from report_contracts.rs:0Clean/NothingSelected,1Findings,2Invalid,3Incomplete,4Cancelled,5Uncertain,6Prepared.
 
 Keep original guards, exact commands/exits/stdout/stderr, saved reports, comparator provenance, native test joins/semantic reds and all apparatus failures. Close owned children/listener and reopen evidence. Provider request count is zero; the local loopback is not a global egress witness. No model quality, actual Keychain interaction, other platform, CI, distribution or release acceptance follows from this route. Return U1–U6 supported/unsupported/unknown, each observed/reused gap and its target.
+
+## Observed target
+
+The first live pass used immutable signed candidate SHA `1c899d2418817c1335b8407c6f87db8bbc7c69397cb1e0ef259b3fe584e8ed84` (built at3425ca3; inspected successor adds tests/apparatus only) and released0.12.0 SHA `ec76072675d8a60ec15aced9f3dcb864100c7e541a3321e7c5f0b2058775a574`. All8rows passed in28CLI children, with0local listener requests and no timed-out/live children. Actual unreadable-config handling passed. Input before/after identities matched across1580filesystem entries (1579tracked paths).
+
+Saved reports for since/default prepare0requests, named prepare1request/3results, and all prepare499requests/317results matched exactly after only the root engine-version replacement. All JSON stdout matched across versions under the same exception; each stdout was its saved report plus exactly one final CLI newline. Ten independently invoked native read-boundary controls passed using the declared signed artifact; status/config joins use the inspected866-pass native run and source assertions. The required no-evidence claim combines the common guard, unfrozen named-read spy and native controls; it is not inferred from late usage0.
+
+Detailed evidence is in `/private/tmp/2026-11-skills-rules-raw/engine-0.12.1-usability/verifier/`: `live-1.receipt.json`, `live-1/{pass.json,run/harness.json}`, `raw-audit-1.json`, `target-preflight.json`, `native-joins-1/` and `observation.md`. This temp storage is evidence for this commission, not a portable input required by the reusable recipe. Full apparatus gates passed268tests/23files plus19Node release tests, types/lint/format0. Provider, actual Keychain, other-platform, CI and release acceptance remain outside this observation.
