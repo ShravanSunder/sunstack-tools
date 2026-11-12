@@ -18,6 +18,7 @@ import {
 	sdkTargetSchema,
 	confirmSdkFilePins,
 	confirmSdkPayloadPins,
+	inspectInstalledSdkContract,
 	containedPath,
 	type SdkExports,
 } from './sdk-target.ts';
@@ -37,6 +38,40 @@ const source = {
 };
 
 describe('SDK apparatus rejects false greens', () => {
+	it('checks the native contract reply and refuses release/revision/target skew', async () => {
+		const contract = {
+			sdk_release: '0.12.0',
+			contract_revision: 1,
+			target: 'aarch64-apple-darwin',
+		};
+		const target = {
+			release: '0.12.0',
+			contractRevision: 1,
+			arch: 'arm64',
+			platform: 'darwin',
+			libc: 'none',
+		} as const;
+		await expect(
+			inspectInstalledSdkContract(
+				{ contractInfo: async () => ({ kind: 'ready', contract }) },
+				target,
+			),
+		).resolves.toEqual({ kind: 'ready', contract });
+		await Promise.all(
+			[
+				{ ...contract, sdk_release: 'wrong' },
+				{ ...contract, contract_revision: 2 },
+				{ ...contract, target: 'x86_64-apple-darwin' },
+			].map((changed) =>
+				expect(
+					inspectInstalledSdkContract(
+						{ contractInfo: async () => ({ kind: 'ready', contract: changed }) },
+						target,
+					),
+				).rejects.toThrow('ContractInfo differs'),
+			),
+		);
+	});
 	it('accepts the four Rust-tagged completed statuses without flattening them', () => {
 		for (const kind of ['clean', 'nothing_selected', 'findings', 'uncertain']) {
 			const report = { status: { kind } };
@@ -179,6 +214,7 @@ describe('SDK apparatus rejects false greens', () => {
 		const backend = new SdkControlledBackend();
 		await backend.start();
 		const sdk: SdkExports = {
+			contractInfo: async () => undefined,
 			load: async () => undefined,
 			check: async () => undefined,
 			run: async () => ({

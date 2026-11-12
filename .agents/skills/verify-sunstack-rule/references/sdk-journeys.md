@@ -2,7 +2,7 @@
 
 This route observes `@sunstack/sdk`, an additional consumer of the Rust engine. The adopted oracle is `docs/specs/2026-11-11-typescript-sdk/{requirements,specification,program-design,verification}.html`, R1–R15 and O1–O6, at the commission's declared bytes. Read all four, including disclosures. Runtime behavior, public outcomes and caller ownership come from those documents. Do not replace the oracle with the current package tests.
 
-**Draft:** the scripts have apparatus sensitivity tests but have not driven an installed SDK candidate. Every row below needs a real target observation and its named joins. The driver reports partial coverage with exit 3 while joins are open; no row is currently an SDK pass. Product/CI changes belong to Implementer. This route changes only verification apparatus.
+**Partial capability:** installed snapshot, inline and isolation portions have been driven on a declared darwin-arm64 candidate; their task receipts are kept outside the skill. Every row below still needs all its named joins at the final declared target. The driver reports partial coverage with exit 3 while joins are open; a partial route is not an SDK outcome pass. Product/CI changes belong to Implementer. This route changes only verification apparatus.
 
 ## Launch and usable readiness
 
@@ -15,7 +15,7 @@ node scripts/verify/sunstack-rule/sdk/sdk-verify.ts \
   --evidence <new-absolute-evidence-directory>
 ```
 
-Replace `snapshot` with `inline`, `isolation`, `install` or separately authorized `provider`. Each invocation needs a fresh consumer directory and evidence directory; preserve failed runs instead of reusing them. The script writes its positive compiler caller into that consumer with exclusive creation. A successful import or open loopback port proves no SDK behavior. Readiness means the positive installed caller compiled, target guards passed, the real load/check/run completed as expected and requests reached their deciding assertions.
+Replace `snapshot` with `inline`, `isolation`, `install` or separately authorized `provider`. Start with a fresh external installation and a new evidence directory for every invocation. An unchanged installed payload may be reused after its full pins are rechecked; each invocation writes a uniquely named positive compiler caller with exclusive creation. Preserve failed evidence. A successful import or open loopback port proves no SDK behavior. Readiness means the positive installed caller compiled, the actual `contractInfo()` reply matches release/revision/native target, target guards passed, the real load/check/run completed as expected and requests reached their deciding assertions.
 
 The Implementer supplies an immutable integrated full commit, packed wrapper/native packages and their installation instructions. Do not operate on its moving checkout or freeze it yourself. Source guards cover current product owners and toolchain/manifests; the artifact guards bracket the run. Use a separately declared stable snapshot if product work continues elsewhere. Stop on drift.
 
@@ -27,11 +27,11 @@ The Implementer supplies an immutable integrated full commit, packed wrapper/nat
 | `consumerRoot`, `packageRoot`, `entry`, `addon` | Canonical fresh installed paths outside source, actual resolved `@sunstack/sdk` entry and `.node` artifact; no workspace fallback |
 | `tarball`, `tarballSha256` | Exact packed SDK candidate; also retain all optional-native tarballs and actual installation transcript |
 | `files` | Absolute installed paths and SHA256s; include package.json, entry, declarations, all runtime files, native artifact and selected optional package metadata |
-| `release`, `contractRevision` | Matched declaration/encoder/native contract; native handshake needs its product proof join, a manifest assertion alone is insufficient |
+| `release`, `contractRevision` | Must match the installed `contractInfo()` ready reply and expected native target; loader/skew refusal controls remain separate proof joins |
 | `platform`, `arch`, `libc` | Actual cell: darwin arm64/x64 with none; Linux arm64/x64 with glibc/musl |
 | optional `cli` | Integrated CLI `binary` and `sha256`, required for inline CLI comparison |
 
-The resolver and artifact guards reject dirty/moved product source, missing declarations in the positive compiler, wrong runtime/OS/CPU/libc, symlinked workspace artifacts, wrong entry/release/hash, ambient consumer Zod and incomplete native pins. The guard walks the complete installed wrapper package and the package owning the selected addon (nearest contained package.json): every file, including declarations and runtime helpers, must appear in the pinned hash list. Omitting a file or adding a new helper fails, even if entry/addon hashes match. Native loader selection itself remains a separate assertion against actual ContractInfo. Record the package-manager resolution and optional-package versions; a top-level tarball plus unrelated registry addon cannot pass the distribution claim.
+The resolver and artifact guards reject dirty/moved product source, missing declarations in the positive compiler, wrong runtime/OS/CPU/libc, symlinked workspace artifacts, wrong entry/release/hash, ambient consumer Zod and incomplete native pins. The guard walks the complete installed wrapper package and the package owning the selected addon (nearest contained package.json): every file, including declarations and runtime helpers, must appear in the pinned hash list. Omitting a file or adding a new helper fails, even if entry/addon hashes match. The installed wrapper's platform package must resolve to the exact pinned addon, and its actual ContractInfo is retained as `native-contract.json`. Record package-manager resolution and optional-package versions; a top-level tarball plus unrelated registry addon cannot pass the distribution claim.
 
 Controlled journeys refuse an inherited real key, set one synthetic loopback-only key and disable the native credential store before addon import, restoring both afterward. The HTTP stand-in preserves actual SDK/native/Rust encoding, admission and execution. It answers the real Jev protocol at the configured endpoint; it is not ordinary provider proof. Do not run controlled and hosted work concurrently in the same driver process.
 

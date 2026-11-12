@@ -20,6 +20,7 @@ import {
 	sdkTargetSchema,
 	confirmSdkTarget,
 	importInstalledSdk,
+	inspectInstalledSdkContract,
 	requireSdk,
 	containedPath,
 	fileDigest,
@@ -89,10 +90,17 @@ async function main(): Promise<void> {
 			process.env['SUNSTACK_CREDENTIAL_STORE'] = 'off';
 		}
 		confirmSdkTarget(target);
+		const compilerManifestPath = createRequire(import.meta.url).resolve('typescript/package.json');
+		const compilerManifest = z
+			.object({ bin: z.object({ tsc: z.string() }) })
+			.parse(JSON.parse(filesystem.readFileSync(compilerManifestPath, 'utf8')));
 		const compiler =
-			values.compiler ?? createRequire(import.meta.url).resolve('typescript/bin/tsc');
+			values.compiler ?? path.resolve(path.dirname(compilerManifestPath), compilerManifest.bin.tsc);
 		requireSdk(path.isAbsolute(compiler), 'Compiler path must be absolute');
-		const consumer = path.join(target.consumerRoot, 'sdk-verification-consumer.ts');
+		const consumer = path.join(
+			target.consumerRoot,
+			`sdk-verification-${path.basename(evidence)}.ts`,
+		);
 		filesystem.writeFileSync(
 			consumer,
 			`import {load, check, run, type Configuration} from '@sunstack/sdk';\ndeclare const configuration: Configuration;\nconst loaded = await load({directory: '/synthetic'});\nconst checked = await check(configuration);\nconst outcome = await run(configuration, {root: '/synthetic', scope: {kind: 'all'}});\nif (outcome.kind === 'completed') { outcome.report.findings; }\nvoid loaded; void checked;\n`,
@@ -132,6 +140,10 @@ async function main(): Promise<void> {
 		await backend.start();
 		started = true;
 		const sdk = await importInstalledSdk(target);
+		saveSdkEvidence(
+			path.join(evidence, 'native-contract.json'),
+			await inspectInstalledSdkContract(sdk, target),
+		);
 		const context = { sdk, target, evidence, backend };
 		switch (journey) {
 			case 'snapshot':

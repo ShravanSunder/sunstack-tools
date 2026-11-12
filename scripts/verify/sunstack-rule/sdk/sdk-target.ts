@@ -32,7 +32,12 @@ const callSchema = z.custom<(...arguments_: unknown[]) => Promise<unknown>>(
 	(value) => typeof value === 'function',
 	'Installed SDK must export a callable entry',
 );
-const sdkExportsSchema = z.object({ load: callSchema, check: callSchema, run: callSchema });
+const sdkExportsSchema = z.object({
+	load: callSchema,
+	check: callSchema,
+	run: callSchema,
+	contractInfo: callSchema,
+});
 export type SdkExports = z.infer<typeof sdkExportsSchema>;
 
 export function fileDigest(file: string): string {
@@ -219,8 +224,39 @@ export function confirmSdkTarget(target: SdkTarget): void {
 }
 export async function importInstalledSdk(target: SdkTarget): Promise<SdkExports> {
 	confirmSdkTarget(target);
+	const cell = `${target.platform}-${target.arch}${target.libc === 'none' ? '' : `-${target.libc === 'glibc' ? 'gnu' : 'musl'}`}`;
+	requireSdk(
+		createRequire(target.entry).resolve(`@sunstack/sdk-${cell}`) === target.addon,
+		'Installed SDK resolves another native addon',
+	);
 	const imported: unknown = await import(pathToFileURL(target.entry).href);
 	return sdkExportsSchema.parse(imported);
+}
+
+export async function inspectInstalledSdkContract(
+	sdk: Pick<SdkExports, 'contractInfo'>,
+	target: Pick<SdkTarget, 'release' | 'contractRevision' | 'arch' | 'platform' | 'libc'>,
+): Promise<unknown> {
+	const reply = await sdk.contractInfo();
+	const ready = z
+		.object({
+			kind: z.literal('ready'),
+			contract: z.object({
+				sdk_release: z.string(),
+				contract_revision: z.number().int(),
+				target: z.string(),
+			}),
+		})
+		.parse(reply);
+	const cpu = target.arch === 'arm64' ? 'aarch64' : 'x86_64';
+	const expectedTarget = `${cpu}-${target.platform === 'darwin' ? 'apple-darwin' : `unknown-linux-${target.libc === 'glibc' ? 'gnu' : 'musl'}`}`;
+	requireSdk(
+		ready.contract.sdk_release === target.release &&
+			ready.contract.contract_revision === target.contractRevision &&
+			ready.contract.target === expectedTarget,
+		'Installed native ContractInfo differs from declared SDK target',
+	);
+	return reply;
 }
 
 export function saveSdkEvidence(file: string, value: unknown): void {

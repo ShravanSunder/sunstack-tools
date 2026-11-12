@@ -114,7 +114,7 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 	const held = record(loaded['value']);
 	requireSdkSources(held['sources'], 'file');
 	requireSdk(
-		Object.isFrozen(held) && Object.isFrozen(held['configuration']),
+		Object.isFrozen(loaded['value']) && Object.isFrozen(held['configuration']),
 		'Loaded configuration is not frozen',
 	);
 	filesystem.writeFileSync(
@@ -336,7 +336,7 @@ export async function observeSdkIsolation(context: JourneyContext): Promise<Jour
 			'B used A context',
 		);
 		requireSdk(
-			isDeepStrictEqual(process.env, environment) && process.cwd() === cwd,
+			isDeepStrictEqual({ ...process.env }, environment) && process.cwd() === cwd,
 			'SDK mutated process environment/CWD',
 		);
 		saveSdkEvidence(path.join(context.evidence, 'isolation-outcomes.json'), {
@@ -381,7 +381,7 @@ export function inspectSdkInstall(): JourneyResult {
 		],
 		gaps: [
 			'fresh package-manager install transcript and optional-package topology',
-			'actual ContractInfo native handshake and missing/skew/runtime/platform controls',
+			'missing/skew/runtime/platform controls before effects',
 			'other platform cells are separate observations',
 		],
 	};
