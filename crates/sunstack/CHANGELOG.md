@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.1
+
+Release date: 2026-11-12.
+
+- Clean change scopes and empty unnamed target sets finish without a credential
+  when no model can be asked. Any changed path still requires a credential for
+  model work; named empty selections remain incomplete.
+- Config open failures name the selected file and reason. Named paths report
+  full scope even on early errors; invalid and cancelled summaries count problems.
+- Prepared summaries name saved request counts and the destination file. Lint help
+  describes config discovery and exit codes; saved reports and JSON stay unchanged.
+
 ## 0.12.0
 
 Release date: 2026-11-12.

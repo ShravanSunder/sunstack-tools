@@ -1,6 +1,6 @@
 use crate::*;
 use std::{
-    io::Write,
+    io::{ErrorKind, Write},
     path::{Path, PathBuf},
 };
 
@@ -28,13 +28,17 @@ pub fn discover_config(
     ))
 }
 fn locate(file: PathBuf) -> Result<ConfigLocation, LintInvalid> {
-    let file = file.canonicalize().map_err(|_| {
-        LintInvalid::at(
+    let metadata = std::fs::metadata(&file).map_err(|error| config_open_error(&file, &error))?;
+    if !metadata.is_file() {
+        return Err(LintInvalid::at(
             &file,
             LintInvalidCode::NoConfigFound,
-            "Cannot open the selected sunstack.lint.json.",
-        )
-    })?;
+            format!("Cannot open config {}: not a file.", file.display()),
+        ));
+    }
+    let file = file
+        .canonicalize()
+        .map_err(|error| config_open_error(&file, &error))?;
     let directory = file
         .parent()
         .ok_or_else(|| {
@@ -47,13 +51,29 @@ fn locate(file: PathBuf) -> Result<ConfigLocation, LintInvalid> {
         .to_path_buf();
     Ok(ConfigLocation { file, directory })
 }
+fn config_open_error(file: &Path, error: &std::io::Error) -> LintInvalid {
+    let reason = if error.kind() == ErrorKind::NotFound {
+        "not found"
+    } else {
+        "unreadable"
+    };
+    LintInvalid::at(
+        file,
+        LintInvalidCode::NoConfigFound,
+        format!("Cannot open config {}: {reason} ({error}).", file.display()),
+    )
+}
 pub fn load_config(location: &ConfigLocation) -> Result<RulesConfig, LintInvalid> {
-    let text = std::fs::read_to_string(&location.file).map_err(|_| {
-        LintInvalid::at(
-            &location.file,
-            LintInvalidCode::Syntax,
-            "Cannot read sunstack.lint.json as UTF-8.",
-        )
+    let text = std::fs::read_to_string(&location.file).map_err(|error| {
+        if error.kind() == ErrorKind::InvalidData {
+            LintInvalid::at(
+                &location.file,
+                LintInvalidCode::Syntax,
+                format!("Cannot read config {} as UTF-8.", location.file.display()),
+            )
+        } else {
+            config_open_error(&location.file, &error)
+        }
     })?;
     crate::configuration_loading::config_decoding::decode_config(&text, location)
 }

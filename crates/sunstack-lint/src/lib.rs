@@ -10,7 +10,7 @@ pub use configuration_loading::config_contracts::*;
 pub use configuration_loading::config_validation::{check, check_definitions, list_rules};
 pub use configuration_loading::limit_settings::*;
 pub use lint_execution::lint_run::{prepare, run, run_definitions, run_with_source};
-pub use lint_reporting::formats::{OutputFormat, render};
+pub use lint_reporting::formats::{OutputFormat, render, render_prepared};
 pub use lint_reporting::report_contracts::*;
 
 pub use lint_reporting::saved_report_contracts::*;
