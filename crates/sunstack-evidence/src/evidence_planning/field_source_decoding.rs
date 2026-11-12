@@ -7,6 +7,9 @@ use serde::Deserialize;
 #[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]
 enum FieldSourceWire {
     FirstLine {},
+    Section {
+        text: SectionText,
+    },
     Capture {
         regex: String,
     },
@@ -88,6 +91,7 @@ impl<'de> Deserialize<'de> for FieldSource {
         };
         Ok(match FieldSourceWire::deserialize(deserializer)? {
             FieldSourceWire::FirstLine {} => Self::FirstLine {},
+            FieldSourceWire::Section { text } => Self::Section { text },
             FieldSourceWire::Capture { regex } => Self::Capture { regex },
             FieldSourceWire::Inside { rule, kind } => Self::Inside {
                 of: source(rule, kind)?,

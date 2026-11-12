@@ -1,0 +1,448 @@
+{
+	"file": "mixed.html",
+	"sha256": "6ce416ac91eaf3359010df803bb8924896571f2ed07ec655aaa42ed1880b680f",
+	"source_relative": "docs/specs/2026-10-15-agentstudio-daemon/explainer/features.html",
+	"source_commit": "a3c9457389046df9a9fe1e0171c3bb842575844d",
+	"sections": [
+		{
+			"level": 1,
+			"start": 1206,
+			"heading": "Explore AgentStudio features",
+			"parent": null,
+			"end": 81284,
+			"own_end": 2624
+		},
+		{
+			"level": 2,
+			"start": 2624,
+			"heading": "Start with a feature",
+			"parent": 0,
+			"end": 8518,
+			"own_end": 8518
+		},
+		{
+			"level": 2,
+			"start": 8518,
+			"heading": "What moves and what stays",
+			"parent": 0,
+			"end": 8655,
+			"own_end": 8655
+		},
+		{
+			"level": 2,
+			"start": 8655,
+			"heading": "Repositories, Git and worktrees",
+			"parent": 0,
+			"end": 15204,
+			"own_end": 9279
+		},
+		{
+			"level": 3,
+			"start": 9279,
+			"heading": "Discover repositories and watched folders",
+			"parent": 3,
+			"end": 10095,
+			"own_end": 10095
+		},
+		{
+			"level": 3,
+			"start": 10095,
+			"heading": "Read status, tracked paths and ignored files",
+			"parent": 3,
+			"end": 10840,
+			"own_end": 10840
+		},
+		{
+			"level": 3,
+			"start": 10840,
+			"heading": "Inspect branches, remotes and pull requests",
+			"parent": 3,
+			"end": 11900,
+			"own_end": 11900
+		},
+		{
+			"level": 3,
+			"start": 11900,
+			"heading": "Clone, fetch, push and manage branches",
+			"parent": 3,
+			"end": 12717,
+			"own_end": 12717
+		},
+		{
+			"level": 3,
+			"start": 12717,
+			"heading": "Create or fork a worktree",
+			"parent": 3,
+			"end": 13591,
+			"own_end": 13591
+		},
+		{
+			"level": 3,
+			"start": 13591,
+			"heading": "Remove, archive, prune and lock worktrees",
+			"parent": 3,
+			"end": 14396,
+			"own_end": 14396
+		},
+		{
+			"level": 3,
+			"start": 14396,
+			"heading": "Pin repositories and open associated worktrees",
+			"parent": 3,
+			"end": 15204,
+			"own_end": 15204
+		},
+		{
+			"level": 2,
+			"start": 15204,
+			"heading": "Terminals and continuing sessions",
+			"parent": 0,
+			"end": 19906,
+			"own_end": 15772
+		},
+		{
+			"level": 3,
+			"start": 15772,
+			"heading": "Start and list terminal executions",
+			"parent": 11,
+			"end": 16547,
+			"own_end": 16547
+		},
+		{
+			"level": 3,
+			"start": 16547,
+			"heading": "Attach, restore and follow terminal output",
+			"parent": 11,
+			"end": 17335,
+			"own_end": 17335
+		},
+		{
+			"level": 3,
+			"start": 17335,
+			"heading": "Type, resize and hand off control",
+			"parent": 11,
+			"end": 18142,
+			"own_end": 18142
+		},
+		{
+			"level": 3,
+			"start": 18142,
+			"heading": "Detach, reconnect and terminate",
+			"parent": 11,
+			"end": 19092,
+			"own_end": 19092
+		},
+		{
+			"level": 3,
+			"start": 19092,
+			"heading": "Read terminal facts and navigate rendered history",
+			"parent": 11,
+			"end": 19906,
+			"own_end": 19906
+		},
+		{
+			"level": 2,
+			"start": 19906,
+			"heading": "Agents, hooks and context",
+			"parent": 0,
+			"end": 24538,
+			"own_end": 20484
+		},
+		{
+			"level": 3,
+			"start": 20484,
+			"heading": "Receive provider hooks and agent lifecycle input",
+			"parent": 17,
+			"end": 21242,
+			"own_end": 21242
+		},
+		{
+			"level": 3,
+			"start": 21242,
+			"heading": "Show sessions, status and attention",
+			"parent": 17,
+			"end": 22159,
+			"own_end": 22159
+		},
+		{
+			"level": 3,
+			"start": 22159,
+			"heading": "Read context and update the agent title or line",
+			"parent": 17,
+			"end": 22915,
+			"own_end": 22915
+		},
+		{
+			"level": 3,
+			"start": 22915,
+			"heading": "Send notices, ask questions and settle answers",
+			"parent": 17,
+			"end": 23680,
+			"own_end": 23680
+		},
+		{
+			"level": 3,
+			"start": 23680,
+			"heading": "Install and remove provider integration packages",
+			"parent": 17,
+			"end": 24538,
+			"own_end": 24538
+		},
+		{
+			"level": 2,
+			"start": 24538,
+			"heading": "Files, comparisons and viewers",
+			"parent": 0,
+			"end": 28998,
+			"own_end": 25106
+		},
+		{
+			"level": 3,
+			"start": 25106,
+			"heading": "Browse the file tree and read exact content",
+			"parent": 23,
+			"end": 25842,
+			"own_end": 25842
+		},
+		{
+			"level": 3,
+			"start": 25842,
+			"heading": "Display code and Markdown",
+			"parent": 23,
+			"end": 26559,
+			"own_end": 26559
+		},
+		{
+			"level": 3,
+			"start": 26559,
+			"heading": "Choose comparisons and inspect diffs",
+			"parent": 23,
+			"end": 27268,
+			"own_end": 27268
+		},
+		{
+			"level": 3,
+			"start": 27268,
+			"heading": "Publish a review and mark files viewed",
+			"parent": 23,
+			"end": 28227,
+			"own_end": 28227
+		},
+		{
+			"level": 3,
+			"start": 28227,
+			"heading": "Browse web pages and control local viewers",
+			"parent": 23,
+			"end": 28998,
+			"own_end": 28998
+		},
+		{
+			"level": 2,
+			"start": 28998,
+			"heading": "Annotations, drafts and output",
+			"parent": 0,
+			"end": 33503,
+			"own_end": 29493
+		},
+		{
+			"level": 3,
+			"start": 29493,
+			"heading": "Keep annotations attached to the right source",
+			"parent": 29,
+			"end": 30284,
+			"own_end": 30284
+		},
+		{
+			"level": 3,
+			"start": 30284,
+			"heading": "Create, edit, flush, revert and save drafts",
+			"parent": 29,
+			"end": 31033,
+			"own_end": 31033
+		},
+		{
+			"level": 3,
+			"start": 31033,
+			"heading": "Resolve threads and recover annotation sessions",
+			"parent": 29,
+			"end": 31813,
+			"own_end": 31813
+		},
+		{
+			"level": 3,
+			"start": 31813,
+			"heading": "Prepare, inspect and explicitly repeat output",
+			"parent": 29,
+			"end": 32652,
+			"own_end": 32652
+		},
+		{
+			"level": 3,
+			"start": 32652,
+			"heading": "Copy, choose an output folder and reveal output",
+			"parent": 29,
+			"end": 33503,
+			"own_end": 33503
+		},
+		{
+			"level": 2,
+			"start": 33503,
+			"heading": "Windows, panes and everyday UX client interaction",
+			"parent": 0,
+			"end": 40940,
+			"own_end": 34251
+		},
+		{
+			"level": 3,
+			"start": 34251,
+			"heading": "Create windows, tabs and panes",
+			"parent": 35,
+			"end": 35073,
+			"own_end": 35073
+		},
+		{
+			"level": 3,
+			"start": 35073,
+			"heading": "Move, extract, resize and undo closed views",
+			"parent": 35,
+			"end": 36015,
+			"own_end": 36015
+		},
+		{
+			"level": 3,
+			"start": 36015,
+			"heading": "Focus panes, navigate tabs and pin views",
+			"parent": 35,
+			"end": 36792,
+			"own_end": 36792
+		},
+		{
+			"level": 3,
+			"start": 36792,
+			"heading": "Open drawers, management mode and zoomed viewers",
+			"parent": 35,
+			"end": 37585,
+			"own_end": 37585
+		},
+		{
+			"level": 3,
+			"start": 37585,
+			"heading": "Search, group and filter sidebars",
+			"parent": 35,
+			"end": 38332,
+			"own_end": 38332
+		},
+		{
+			"level": 3,
+			"start": 38332,
+			"heading": "Save and restore arrangements",
+			"parent": 35,
+			"end": 39398,
+			"own_end": 39398
+		},
+		{
+			"level": 3,
+			"start": 39398,
+			"heading": "Use the command bar and shortcuts",
+			"parent": 35,
+			"end": 40157,
+			"own_end": 40157
+		},
+		{
+			"level": 3,
+			"start": 40157,
+			"heading": "Edit pane notes and open external destinations",
+			"parent": 35,
+			"end": 40940,
+			"own_end": 40940
+		},
+		{
+			"level": 2,
+			"start": 40940,
+			"heading": "Settings, integrations and operation",
+			"parent": 0,
+			"end": 46487,
+			"own_end": 41630
+		},
+		{
+			"level": 3,
+			"start": 41630,
+			"heading": "Preferences, sign-in and private credentials",
+			"parent": 44,
+			"end": 42494,
+			"own_end": 42494
+		},
+		{
+			"level": 3,
+			"start": 42494,
+			"heading": "CLI, MCP, socket methods and subscriptions",
+			"parent": 44,
+			"end": 43596,
+			"own_end": 43596
+		},
+		{
+			"level": 3,
+			"start": 43596,
+			"heading": "Retained state, read copies and offline views",
+			"parent": 44,
+			"end": 44514,
+			"own_end": 44514
+		},
+		{
+			"level": 3,
+			"start": 44514,
+			"heading": "Diagnostics, telemetry and developer surfaces",
+			"parent": 44,
+			"end": 45302,
+			"own_end": 45302
+		},
+		{
+			"level": 3,
+			"start": 45302,
+			"heading": "Install, start, stop and update the system",
+			"parent": 44,
+			"end": 46487,
+			"own_end": 46487
+		},
+		{
+			"level": 2,
+			"start": 46487,
+			"heading": "Unavailable, debug and uncertain paths",
+			"parent": 0,
+			"end": 48749,
+			"own_end": 47013
+		},
+		{
+			"level": 3,
+			"start": 47013,
+			"heading": "Keep dormant and refused commands visible",
+			"parent": 50,
+			"end": 47962,
+			"own_end": 47962
+		},
+		{
+			"level": 3,
+			"start": 47962,
+			"heading": "Preserve honest effect and completion boundaries",
+			"parent": 50,
+			"end": 48749,
+			"own_end": 48749
+		},
+		{
+			"level": 2,
+			"start": 48749,
+			"heading": "Coverage and deeper inventories",
+			"parent": 0,
+			"end": 50844,
+			"own_end": 50844
+		},
+		{
+			"level": 2,
+			"start": 50844,
+			"heading": "Find the owning specification",
+			"parent": 0,
+			"end": 81284,
+			"own_end": 81284
+		}
+	]
+}

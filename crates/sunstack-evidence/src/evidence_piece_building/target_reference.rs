@@ -1,7 +1,5 @@
 use crate::FieldUnavailable;
-use ast_grep_core::Language;
-use ast_grep_language::SupportLang;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub(super) struct TargetReference {
     pub file: PathBuf,
@@ -58,8 +56,4 @@ fn hex_value(byte: u8) -> Option<u8> {
         b'A'..=b'F' => Some(byte - b'A' + 10),
         _ => None,
     }
-}
-
-pub(super) fn is_html_path(path: &Path) -> bool {
-    SupportLang::from_path(path) == Some(SupportLang::Html)
 }

@@ -5,9 +5,9 @@ fn projects_html_text_without_interpreting_markdown_or_attributes() {
     let html = r#"<!DOCTYPE html><section id="hidden" title="secret">  Café <b>猫&amp;dog</b>c &lt;tag&gt; &#65; &#x1F642; &nbsp; **literal** <!-- hidden --> end </section>"#;
     assert_eq!(
         html_text_content(html),
-        "Café 猫&dogc <tag> A 🙂 **literal** end"
+        "Café 猫&dog c <tag> A 🙂 **literal** end"
     );
-    assert_eq!(html_text_content("a<b>b</b>c"), "abc");
+    assert_eq!(html_text_content("a<b>b</b>c"), "a b c");
 }
 
 #[test]
@@ -15,8 +15,24 @@ fn retains_unknown_entities_and_script_style_raw_text() {
     let html = "<p>&unknown; &amp;lt;</p><script>if (a < b) x = '&amp;';</script><style>a > b { color: red }</style>";
     assert_eq!(
         html_text_content(html),
-        "&unknown; &lt;if (a < b) x = '&amp;';a > b { color: red }"
+        "&unknown; &lt; if (a < b) x = '&amp;'; a > b { color: red }"
     );
+}
+
+#[test]
+fn projects_selected_attributes_in_element_order_and_decodes_once() {
+    let html = r#"<p aria-label='前&amp;後' title="secret">Start<img alt="猫 &amp;lt; &#x1F642;"/><ex-mermaid label='Flow &amp; graph'><script type="text/plain">graph TD
+A --> B &amp;</script></ex-mermaid><span label="hidden" aria-label=plain>End</span></p>"#;
+    assert_eq!(
+        html_text_content(html),
+        "[aria-label: 前&後] Start [alt: 猫 &lt; 🙂] [label: Flow & graph] graph TD A --> B &amp; [aria-label: plain] End"
+    );
+}
+
+#[test]
+fn separates_adjacent_block_and_inline_elements() {
+    let html = "<h2>A</h2><p>B<strong>C</strong>D</p><p>E</p>";
+    assert_eq!(html_text_content(html), "A B C D E");
 }
 
 #[test]

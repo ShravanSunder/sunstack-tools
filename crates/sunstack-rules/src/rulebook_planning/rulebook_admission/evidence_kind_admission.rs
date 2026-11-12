@@ -1,4 +1,5 @@
 use super::*;
+use sunstack_evidence::{EvidenceLanguage, KindMatcher};
 
 pub fn admit_evidence_kinds(
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
@@ -14,9 +15,32 @@ pub fn admit_evidence_kinds(
     }
     for (name, kind) in kinds {
         let path = ConfigPath::keys(["evidence", "kinds", name.as_str()]);
-        if !project.rule_ids.contains(&kind.matcher.rule_id(name)) {
-            errors.push(refusal(path.with_key("rule"), "unknown evidence rule"));
+        match &kind.matcher {
+            KindMatcher::HtmlUnits(selection) => {
+                if selection.validate().is_err() {
+                    errors.push(refusal(
+                        path.with_key("html_units"),
+                        format!("kind {}: invalid html_units selection", name.as_str()),
+                    ));
+                }
+            }
+            KindMatcher::Named(_) | KindMatcher::Inline { .. } => {
+                if kind
+                    .matcher
+                    .ast_rule_id(name)
+                    .is_none_or(|rule| !project.rule_ids.contains(&rule))
+                {
+                    errors.push(refusal(path.with_key("rule"), "unknown evidence rule"));
+                }
+            }
         }
+        let language = match &kind.matcher {
+            KindMatcher::HtmlUnits(_) => Some(EvidenceLanguage::Html),
+            KindMatcher::Named(_) | KindMatcher::Inline { .. } => kind
+                .matcher
+                .ast_rule_id(name)
+                .and_then(|rule| project.language_for_rule(&rule)),
+        };
         if kind.max_chars.is_some_and(|n| n.get() < 1000) {
             errors.push(refusal(path.with_key("max_chars"), "must be at least 1000"));
         }
@@ -28,8 +52,34 @@ pub fn admit_evidence_kinds(
                     "evidence field name is a reserved state key",
                 ));
             }
-            if let Some(language) = project.language_for_rule(&kind.matcher.rule_id(name)) {
-                use sunstack_evidence::EvidenceLanguage;
+            if matches!(source, FieldSource::Section { .. })
+                && !matches!(&kind.matcher, KindMatcher::HtmlUnits(_))
+            {
+                errors.push(refusal(
+                    &path,
+                    format!(
+                        "kind {} field {}: section source requires an html_units matcher; AST-backed kinds do not have outline sections",
+                        name.as_str(), field.as_str()
+                    ),
+                ));
+            }
+            if matches!(&kind.matcher, KindMatcher::HtmlUnits(_)) {
+                let neighbour_source = match source {
+                    FieldSource::Next { .. } => Some("next"),
+                    FieldSource::Previous { .. } => Some("previous"),
+                    _ => None,
+                };
+                if let Some(neighbour_source) = neighbour_source {
+                    errors.push(refusal(
+                        &path,
+                        format!(
+                            "kind {} field {}: {neighbour_source} source requires an AST-backed matcher; html_units has no AST candidate node",
+                            name.as_str(), field.as_str()
+                        ),
+                    ));
+                }
+            }
+            if let Some(language) = language {
                 let context = format!("kind {} field {}", name.as_str(), field.as_str());
                 if language != EvidenceLanguage::Markdown
                     && matches!(source, FieldSource::Yaml { .. })
@@ -49,9 +99,19 @@ pub fn admit_evidence_kinds(
                     | FieldSource::SameFile { of, .. }
                     | FieldSource::Remainder { exclude: Some(of) } => match of {
                         MatchSource::Rule { rule } => project.language_for_rule(rule),
-                        MatchSource::Kind { kind } => kinds.get(kind).and_then(|definition| {
-                            project.language_for_rule(&definition.matcher.rule_id(kind))
-                        }),
+                        MatchSource::Kind { kind } => {
+                            kinds
+                                .get(kind)
+                                .and_then(|definition| match &definition.matcher {
+                                    KindMatcher::HtmlUnits(_) => Some(EvidenceLanguage::Html),
+                                    KindMatcher::Named(_) | KindMatcher::Inline { .. } => {
+                                        definition
+                                            .matcher
+                                            .ast_rule_id(kind)
+                                            .and_then(|rule| project.language_for_rule(&rule))
+                                    }
+                                })
+                        }
                     },
                     FieldSource::Next { rule, .. } | FieldSource::Previous { rule, .. } => {
                         project.language_for_rule(rule)
@@ -62,6 +122,7 @@ pub fn admit_evidence_kinds(
                     } => project.language_for_rule(&exclude.rule),
                     FieldSource::Document { .. }
                     | FieldSource::FirstLine { .. }
+                    | FieldSource::Section { .. }
                     | FieldSource::Capture { .. }
                     | FieldSource::Yaml { .. }
                     | FieldSource::Remainder { exclude: None }
@@ -153,6 +214,7 @@ pub fn admit_evidence_kinds(
                     }
                 }
                 FieldSource::FirstLine {}
+                | FieldSource::Section { .. }
                 | FieldSource::Yaml { .. }
                 | FieldSource::Remainder { exclude: None } => {}
             }

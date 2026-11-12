@@ -121,13 +121,15 @@ pub struct EvidenceKindDefinition {
 pub enum KindMatcher {
     Named(EvidenceRuleId),
     Inline { text: String },
+    HtmlUnits(crate::HtmlUnitSelection),
 }
 
 impl KindMatcher {
-    pub fn rule_id(&self, kind: &EvidenceKindName) -> EvidenceRuleId {
+    pub fn ast_rule_id(&self, kind: &EvidenceKindName) -> Option<EvidenceRuleId> {
         match self {
-            Self::Named(rule) => rule.clone(),
-            Self::Inline { .. } => EvidenceRuleId(kind.0.clone()),
+            Self::Named(rule) => Some(rule.clone()),
+            Self::Inline { .. } => Some(EvidenceRuleId(kind.0.clone())),
+            Self::HtmlUnits(_) => None,
         }
     }
 }
@@ -174,6 +176,9 @@ impl From<NeighbourCount> for u8 {
 #[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FieldSource {
     FirstLine {},
+    Section {
+        text: SectionText,
+    },
     Capture {
         regex: String,
     },
@@ -243,6 +248,13 @@ impl ContextText {
         *self == Self::FirstLine
     }
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SectionText {
+    Full,
+    Own,
+    EnclosingOwn,
+}
 pub(super) fn default_opening_chars() -> usize {
     3000
 }
@@ -263,6 +275,7 @@ impl FieldSource {
     pub const fn shape(&self) -> FieldShape {
         match self {
             Self::FirstLine {}
+            | Self::Section { .. }
             | Self::Capture { .. }
             | Self::Yaml { .. }
             | Self::Remainder { .. } => FieldShape::Text,

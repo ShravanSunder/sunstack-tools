@@ -2,7 +2,13 @@
 
 Use this journey when a rulebook checks real HTML documents, follows an HTML fragment, acquires related document pieces, or lives outside the project it checks. The user supplies a signed candidate and wants observable results from that binary. This is verification, not release acceptance.
 
-The adopted oracle is the 11 Nov 0.11.0 engine-any-language commission including Corrections 1–8. Reconfirm that source with the commissioning Lead. These scripts exercise different parts of one journey; none grants provider-keyed inference, edits to checked projects, or delivery authority.
+The mechanics oracle is the 11 Nov 0.11.0 engine-any-language commission including Corrections 1–8. Current asking projection also follows the adopted0.13.0 HTML-sections commission: element boundaries separate words, and selected alt/ex-mermaid-label/aria-label text is retained. Reconfirm these sources with the commissioning Lead. These scripts exercise different parts of one journey; none grants provider-keyed inference, edits to checked projects, or delivery authority.
+
+## Current target and historical companions
+
+The current html-evidence.ts asking/coverage route targets0.13: its real R1 expectation includes spaces at the adjacent table-cell boundaries (`R1 / U1 C1` and `each. V1`). A historical0.11 replay must use its historical source/expectation, not this updated driver. The plain Unicode control contains no selected alt/label/aria-label attribute, so its expected text stays unchanged. Raw mechanical fields stay unchanged.
+
+The Markdown comparator and SDK checked-root sections below retain their original0.11-specific setup. Run those companions only under an explicit matching commission; they are not prerequisites for the current asking/coverage pass. The0.13 commission separately owns ordinary --all --prepare parity against released0.12.1; the old named-skill/0.10.1 companion is not a substitute.
 
 ## Prerequisites
 
@@ -26,7 +32,7 @@ It validates each authored config with real `lint --check`, then runs keyless `l
 
 - Each of the ten R rows in specification is checked against the four Verification Design obligation rows. Each of the five E rows is checked against the four Program Design binding rows. The saved account identifies every found/missing owner; literal, manually inspected binding cells expect all fifteen found. Each document field has its own source file spans. The VD query uses `inside`/`stopBy: end` and the actual `ex-document#document` opening tag, selecting only `<tr>` obligation rows within it.
 - The fixed five-page set has zero actual fragment hrefs. Escaped `body-U1` examples are not DOM IDs. The zero-case real run is an inventory observation, not evidence that anchor checking works.
-- A real R1 asking request is prepared with plain text in its state. An unanswered request has no settled result: join its retained raw evidence by the exact request owner and span, never by inventing a result row. Raw piece text and mechanical body retain markup, with byte offsets that delimit the original source. A labelled Unicode/entity/attribute control independently expects `Café & Unicode 文 body.` with no attribute text.
+- A real R1 asking request is prepared with plain text in its state. An unanswered request has no settled result: join its retained raw evidence by the exact request owner and span, never by inventing a result row. Raw piece text and mechanical body retain markup, with byte offsets that delimit the original source. A labelled Unicode/entity/attribute control independently expects `Café & Unicode 文 body.` with no data-secret content.
 - Labelled controls exercise found/missing HTML IDs, escaped fake IDs, missing files, file-only links, unsupported Markdown fragments, standard named/numeric entities, whole-token positives and Unicode letter/digit/underscore negatives. R1 must not pass solely because R10 occurs. Correction8 also requires every overlapping occurrence to be considered: needle A-A in XA-A-A passes at its later valid start. Literal valid/invalid overlap, nonoverlapping and UTF-8 neighbours guard against stopping at a rejected start or advancing into a multibyte character. Missing documents, empty needles and empty href captures are incomplete. Mixed incomplete/finding runs exit 3; findings-only runs exit 1; clean preparation exits 6.
 
 ## Compare unchanged Markdown inputs

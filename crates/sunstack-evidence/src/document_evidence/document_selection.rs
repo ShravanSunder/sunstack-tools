@@ -136,6 +136,22 @@ pub(crate) fn select_document_bounded(
             )?;
             return Ok((SelectionContent::MarkdownUnits { units }, limited));
         }
+        EvidenceSelection::HtmlUnits(selection) => {
+            selection.validate()?;
+            let mut matches = Vec::new();
+            for section in crate::document_evidence::html_outline::html_sections(text) {
+                let raw = &text[section.section_range.clone()];
+                let visible = crate::document_evidence::html_content::html_text_content(raw);
+                if selection.matches_text(&visible)? {
+                    matches.push(make_match(section.section_range, BTreeMap::new()));
+                    if matches.len() > max_matches {
+                        matches.truncate(max_matches);
+                        return Ok((SelectionContent::Matches { matches }, true));
+                    }
+                }
+            }
+            return Ok((SelectionContent::Matches { matches }, false));
+        }
         EvidenceSelection::Paragraph { target_id } => {
             return resolve_paragraph(document, target_id).map(|content| (content, false));
         }

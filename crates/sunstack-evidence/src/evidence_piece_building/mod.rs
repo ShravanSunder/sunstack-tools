@@ -5,7 +5,7 @@ use crate::{
     FieldUnavailable, FieldValue, FileCount, FileMatchIndex, FrontmatterFieldContent, KindCount,
     LoadTarget, MatchRange, MatchSource, PieceLocation, RepositoryId, SelectionCandidate,
     SelectionContent, SelectionCount, SharedView, SourceRef, SourceSpan, StructuredJson,
-    content_digest, match_within, project_model_view,
+    content_digest, evidence_kind_language, match_within,
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -40,6 +40,7 @@ struct MatchedFile {
     text: String,
     index: FileMatchIndex,
     source: SourceRef,
+    html_units: BTreeMap<EvidenceKindName, HtmlMatchedKind>,
 }
 /// Charge each resolved content acquisition once, including target openings and frozen text.
 fn read_cached_content(
@@ -166,13 +167,7 @@ impl EvidenceBuild {
         let mut targets = BTreeMap::<PathBuf, Vec<PathBuf>>::new();
         for (path, file) in &self.matched {
             for (kind, definition) in &self.kinds {
-                for range in file
-                    .index
-                    .by_rule
-                    .get(&definition.matcher.rule_id(kind))
-                    .into_iter()
-                    .flatten()
-                {
+                for range in &file.kind_ranges(kind, definition) {
                     for field in definition.fields.values() {
                         if let FieldSource::Document { path: document, .. } = field {
                             let target = path.parent().unwrap_or(Path::new("")).join(document);
@@ -203,9 +198,7 @@ impl EvidenceBuild {
                                 EvidenceTargetResolution::PathOrSkill => name.ends_with(".md"),
                             };
                             let paths = if use_path {
-                                let html = self
-                                    .project
-                                    .language_for_rule(&definition.matcher.rule_id(kind))
+                                let html = evidence_kind_language(&self.project, kind, definition)
                                     == Some(crate::EvidenceLanguage::Html);
                                 let Ok(reference) = TargetReference::parse(&name, html) else {
                                     continue;
@@ -296,7 +289,8 @@ impl EvidenceBuild {
                         shared.push(SharedView {
                             file: piece.location.file.clone(),
                             kind: kind.clone(),
-                            view: crate::selection_model_view(&fields, max_chars),
+                            view: self
+                                .project_selection_fields(&kind, definition, &fields, max_chars),
                             fields,
                         });
                     }
@@ -321,7 +315,8 @@ impl EvidenceBuild {
                         key: CandidateKey::at(*position),
                         location: piece.location.clone(),
                         first_line: piece.text.lines().next().unwrap_or("").into(),
-                        selection_view: crate::selection_model_view(&fields, max_chars),
+                        selection_view: self
+                            .project_selection_fields(&kind, definition, &fields, max_chars),
                         fields,
                     });
                     *position += 1;
@@ -455,7 +450,10 @@ use field_composition::{local_fields, source_span};
 mod document_fields;
 mod target_loading;
 mod target_reference;
-use target_reference::{TargetReference, is_html_path};
+use crate::document_evidence::html_content::is_html_path;
+use target_reference::TargetReference;
 
 mod context_loading;
+mod html_section_fields;
+use html_section_fields::{HtmlMatchedKind, collect_html_units};
 mod deferred_fields;
