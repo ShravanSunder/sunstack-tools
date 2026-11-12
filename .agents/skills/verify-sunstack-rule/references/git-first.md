@@ -1,6 +1,6 @@
 # Changed-only capture from raw Git object identities
 
-Use this route when checking0.12 lint `--since` or default uncommitted capture. The adopted source is the engine-since-git-first commission, Proof1–4 and **Correction2**, which supersedes the initial Git-diff/metadata-widening rule. This route is draft until a declared target has driven it. Source preparation, helper tests and an earlier uncommitted receipt prove no current product outcome.
+Use this route when checking0.12 lint `--since` or default uncommitted capture. The adopted source is the engine-since-git-first commission, Proof1–4 and **Correction2**, which supersedes the initial Git-diff/metadata-widening rule. The original/API and owned-edge routes were exercised at declared target `5b4965ba147b0ebc571278fdcc7297e8b4dcb89d`. They are operable with the explicit prerequisites below; every future target needs its own source/artifact/input binding and applicable native joins. Source preparation, helper tests and an earlier uncommitted receipt alone prove no current product outcome.
 
 ## What must stay true
 

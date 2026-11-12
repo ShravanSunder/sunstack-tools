@@ -8,7 +8,7 @@ For0.12, use [raw candidate identities](git-first.md) and `git-first-edges.ts`. 
 
 Current edge coverage retains equal binary plus changed text, changed binary/binary-to-text/invalid checked text refusals with offending paths, and raw changed/unchanged symlink controls. It also checks staged/unstaged/untracked/default scope, deletion/rename/mode/ignored files and Git-diff blind spots. The current binary-free Markdown comparison uses `--all` with released0.11.1 and exact stdout/saved/prepare equality except root version, because changed-only capture deliberately changes discovery work.
 
-The sections below describe the separately commissioned historical0.10.1/0.10.0 replay only. They are not a current0.12 launch recipe. The legacy driver refuses another candidate version; its equal-binary acquisition/context assertions describe Full-context API behavior, not ChangedOnly work. Current coverage is draft until its own declared-target live pass.
+The sections below describe the separately commissioned historical0.10.1/0.10.0 replay only. They are not a current0.12 launch recipe. The legacy driver refuses another candidate version; its equal-binary acquisition/context assertions describe Full-context API behavior, not ChangedOnly work. The current route was driven at `5b4965ba147b0ebc571278fdcc7297e8b4dcb89d`; retain per-target receipts and native budget/snapshot joins when reusing it.
 
 ## Historical run and readiness
 
