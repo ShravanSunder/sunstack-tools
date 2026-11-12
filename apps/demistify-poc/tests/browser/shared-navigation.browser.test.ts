@@ -215,13 +215,13 @@ test('reconnecting shared navigation keeps one Map, one launcher and one route p
 		.toBeVisible();
 });
 
-test('reader commands share the top toolbar with Road Horizon immediately before Map', async (): Promise<void> => {
+test('reader commands share the top toolbar with Compass immediately before Map', async (): Promise<void> => {
 	const { document: fixture } = await openFixture('shared-navigation', '', 'state.html');
 	const toolbar = requiredElement(fixture, '.ex-document-toolbar');
 	const controls = requiredElement(fixture, '.ex-reader-controls');
 	expect(toolbar.contains(controls)).toBe(true);
 	const walkthrough = requiredElement(controls, '[aria-label="Browse walkthroughs"]');
-	expect(walkthrough.querySelector('.ph-road-horizon')).not.toBeNull();
+	expect(walkthrough.querySelector('.ph-compass')).not.toBeNull();
 	expect(walkthrough.nextElementSibling?.getAttribute('aria-label')).toBe('Map');
 	const map = requiredElement(controls, '[aria-label="Map"]');
 	expect(fixture.defaultView?.getComputedStyle(walkthrough).borderRadius).toBe(

@@ -265,6 +265,11 @@ pub struct CapturedChangeSelection {
 }
 #[derive(Clone, Debug)]
 pub(crate) enum MutableRepositoryFile {
+    WorktreeSymlink {
+        root: PathBuf,
+        path: PathBuf,
+        target: PathBuf,
+    },
     Worktree {
         root: PathBuf,
         path: PathBuf,
