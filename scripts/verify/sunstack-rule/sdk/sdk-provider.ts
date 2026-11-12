@@ -59,7 +59,7 @@ const attemptEvidence = z.discriminatedUnion('kind', [
 	}),
 ]);
 const providerRequest = z.object({
-	id: z.number().int().nonnegative(),
+	id: u64,
 	state: z.literal('run'),
 	resolved_model: model,
 	request: z.object({ questions: z.record(z.string(), z.unknown()) }),

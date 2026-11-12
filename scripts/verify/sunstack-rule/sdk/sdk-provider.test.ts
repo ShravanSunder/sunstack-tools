@@ -1,6 +1,12 @@
 /** Provider harness controls; synthetic receipts never establish ordinary-provider proof. */
 import { describe, expect, it } from 'vitest';
 
+import type {
+	DecisionRunOutcome,
+	LintStatus,
+	SavedRequest,
+	UsageSummary,
+} from '../../../../packages/sdk/src/contracts/contracts.ts';
 import {
 	requireSdkProviderReport,
 	sdkProviderConfiguration,
@@ -8,20 +14,46 @@ import {
 	sdkProviderWaitMilliseconds,
 } from './sdk-provider.ts';
 
-const providerReceiptFixture = {
+type CompletedProviderRequest = Extract<SavedRequest, { state: 'run' }> & {
+	outcome: Extract<DecisionRunOutcome, { kind: 'completed' }>;
+};
+interface ProviderReportFixture {
+	status: LintStatus;
+	limits: typeof sdkProviderLimits & { retry_count: number };
+	requests: CompletedProviderRequest[];
+	usage: UsageSummary;
+}
+
+const providerReceiptFixture: ProviderReportFixture = {
 	status: { kind: 'clean' },
 	limits: { ...sdkProviderLimits, retry_count: 2 },
 	requests: [
 		{
-			id: 0,
+			id: 0n,
 			owner: { kind: 'filter', filter: 'purpose', folder: 'skills/portable' },
 			requested_model: 'jev-latest',
 			resolved_model: 'provider/model',
 			state: 'run',
-			request: { questions: { purpose: { type: 'choice' } } },
+			request: {
+				state: { body: 'Synthetic provider fixture.' },
+				questions: {
+					purpose: {
+						type: 'choice',
+						instructions: 'Classify reusable guidance.',
+						criteria: { portable: 'Reusable.', local: 'Local.' },
+					},
+				},
+			},
 			outcome: {
 				kind: 'completed',
-				answers: { purpose: { type: 'choice', selected_label: 'portable' } },
+				answers: {
+					purpose: {
+						type: 'choice',
+						selected_label: 'portable',
+						confidence: 1,
+						probabilities: { portable: 1, local: 0 },
+					},
+				},
 				receipt: {
 					resolved_model: 'provider/model',
 					usage: { input_tokens: 9007199254740993n, output_tokens: 5n },
@@ -31,15 +63,16 @@ const providerReceiptFixture = {
 		},
 	],
 	usage: {
+		checked_files_acquired: 1n,
 		model_requests: 1,
 		input_tokens: 9007199254740993n,
 		output_tokens: 5n,
-		cost_usd: null as number | null,
+		cost_usd: null,
 		cost_reported_requests: 0,
 		cost_missing_requests: 1,
 	},
 };
-function providerReport(): typeof providerReceiptFixture {
+function providerReport(): ProviderReportFixture {
 	return structuredClone(providerReceiptFixture);
 }
 
@@ -50,7 +83,7 @@ describe('SDK ordinary-provider apparatus', () => {
 		const twoRequests = providerReport();
 		const second = structuredClone(twoRequests.requests[0]);
 		if (!second) throw new Error('Missing positive request fixture');
-		second.id = 1;
+		second.id = 1n;
 		twoRequests.requests.push(second);
 		Object.assign(twoRequests.usage, {
 			model_requests: 2,
@@ -61,29 +94,45 @@ describe('SDK ordinary-provider apparatus', () => {
 		expect(() => requireSdkProviderReport(twoRequests, 0)).not.toThrow();
 		for (const cost of [undefined, null, 0, 0.000001]) {
 			const changed = structuredClone(report);
-			Object.assign(changed.requests[0]?.outcome.receipt.usage ?? {}, { cost_usd: cost });
+			const request = changed.requests[0];
+			if (!request) throw new Error('Missing positive request fixture');
+			if (cost === undefined) delete request.outcome.receipt.usage.cost_usd;
+			else request.outcome.receipt.usage.cost_usd = cost;
 			changed.usage.cost_usd = cost ?? null;
 			changed.usage.cost_reported_requests = cost === undefined || cost === null ? 0 : 1;
 			changed.usage.cost_missing_requests = 1 - changed.usage.cost_reported_requests;
 			expect(() => requireSdkProviderReport(changed, 0)).not.toThrow();
 		}
-		const retried = {
-			...report,
-			requests: report.requests.map((request) =>
-				Object.assign({}, request, {
-					outcome: Object.assign({}, request.outcome, {
-						attempts: [
-							{
-								ordinal: 1,
-								evidence: { kind: 'remote_outcome_unknown', failure_class: 'timeout' },
-							},
-							{ ordinal: 2, evidence: { kind: 'completed', http_status: 200 } },
-						],
-					}),
-				}),
-			),
-		};
+		const retried = providerReport();
+		const request = retried.requests[0];
+		if (!request) throw new Error('Missing positive request fixture');
+		request.outcome.attempts = [
+			{ ordinal: 1, evidence: { kind: 'remote_outcome_unknown', failure_class: 'timeout' } },
+			{ ordinal: 2, evidence: { kind: 'completed', http_status: 200 } },
+		];
 		expect(() => requireSdkProviderReport(retried, 0)).not.toThrow();
+	});
+	it('retains exact bigint request IDs at zero, beyond 2^53 and u64 MAX', () => {
+		for (const id of [0n, 1n, 9007199254740993n, 18446744073709551615n]) {
+			const report = providerReport();
+			const request = report.requests[0];
+			if (!request) throw new Error('Missing positive request fixture');
+			request.id = id;
+			expect(() => requireSdkProviderReport(report, 0)).not.toThrow();
+		}
+	});
+	it('refuses Number, negative, overflowing and duplicate provider request IDs', () => {
+		const report = providerReport();
+		const request = report.requests[0];
+		if (!request) throw new Error('Missing positive request fixture');
+		for (const id of [0, 1, 9007199254740992, -1n, 18446744073709551616n]) {
+			expect(() =>
+				requireSdkProviderReport({ ...report, requests: [{ ...request, id }] }, 0),
+			).toThrow();
+		}
+		expect(() =>
+			requireSdkProviderReport({ ...report, requests: [request, structuredClone(request)] }, 0),
+		).toThrow('duplicated');
 	});
 	it('rejects prepared/reused/nested states, incomplete, controlled or malformed provider evidence', () => {
 		const report = providerReport();
