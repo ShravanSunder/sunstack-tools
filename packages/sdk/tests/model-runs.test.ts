@@ -291,10 +291,16 @@ await test('aborting one of two overlapping runs cancels only that run and settl
 			scope: { kind: 'all' },
 		});
 
-		// Causal gate: both runs have a request in flight, neither answered.
+		// Causal gate: both runs have a request in flight, neither answered. A asks about
+		// each of its two paragraphs at once; wait for both, since the server records a
+		// request only after reading its whole body, so A's set is complete before the abort.
 		const pending: CapturedRequest[] = [];
 		const heldA = await requestFrom(gated, 'run-a-marker', pending);
 		const heldB = await requestFrom(gated, 'run-b-marker', pending);
+		await waitUntil(
+			() => gated.received.filter(fromA).length === 2,
+			'both run-A paragraph requests received before the abort',
+		);
 		abortA.abort();
 		const outcomeA = await runA;
 		assert.equal(outcomeA.kind, 'cancelled', describe(outcomeA));
