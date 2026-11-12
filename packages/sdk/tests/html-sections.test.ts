@@ -4,18 +4,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { Configuration, EvidenceKindDefinition, SdkReport } from '../src/index.ts';
+import type {
+	CheckOutcome,
+	Configuration,
+	EvidenceKindDefinition,
+	SdkReport,
+} from '../src/index.ts';
 import { check, run } from '../src/index.ts';
+import { isCheckOutcome } from '../src/reply-decoding.ts';
 import { ownedDirectory, writeFiles } from './support/sdk-fixtures.ts';
 
 delete process.env['OPENROUTER_API_KEY'];
 process.env['SUNSTACK_CREDENTIAL_STORE'] = 'off';
-
-/** A dynamic caller's value where the declarations forbid it. */
-function dynamicKind(value: unknown): EvidenceKindDefinition;
-function dynamicKind(value: unknown): unknown {
-	return value;
-}
 
 const sectionKind: EvidenceKindDefinition = {
 	html_units: { mode: 'unit', units: ['section'] },
@@ -109,34 +109,72 @@ await test('native HTML sections expose full, own and enclosing own text through
 	}
 });
 
-await test('empty, invalid and doubly filtered section selectors are refused', async () => {
+/**
+ * Check a value as a plain-JavaScript caller would, outside the declarations: the call
+ * is made dynamically and its reply is narrowed before use.
+ */
+async function checkDynamically(value: unknown): Promise<CheckOutcome> {
+	const reply: unknown = await Reflect.apply(check, undefined, [value]);
+	if (!isCheckOutcome(reply)) throw new Error('check replied outside its closed outcome');
+	return reply;
+}
+
+/** The decoded refusal of one selector: its code, path and reason. */
+async function selectorRefusal(base: string, selection: unknown): Promise<unknown> {
+	const configuration = sectionConfiguration(base, sectionKind);
+	const outcome = await checkDynamically({
+		...configuration,
+		evidence: {
+			...configuration.evidence,
+			kinds: { section: { ...sectionKind, html_units: selection } },
+		},
+	});
+	if (outcome.kind !== 'invalid') return outcome.kind;
+	assert.equal(outcome.diagnostics.length, 1);
+	const [diagnostic] = outcome.diagnostics;
+	// serde_json appends the input position (" at line N column M"); it depends only on
+	// the encoded configuration's length, so only that suffix is dropped.
+	return [
+		diagnostic?.code,
+		diagnostic?.json_path,
+		diagnostic?.message.replace(/ at line \d+ column \d+$/u, ''),
+	];
+}
+
+await test('empty, invalid and doubly filtered section selectors are refused for their own reason', async () => {
 	const base = ownedDirectory('html-section-refusals');
 	try {
-		const refused = async (selection: unknown): Promise<string | undefined> => {
-			const outcome = await check(
-				sectionConfiguration(base.path, dynamicKind({ ...sectionKind, html_units: selection })),
-			);
-			return outcome.kind === 'invalid' ? outcome.diagnostics[0]?.code : outcome.kind;
-		};
-		const verdicts = await Promise.all([
-			refused({ mode: 'unit', units: [] }),
-			refused({ mode: 'unit', units: ['section'], starts_with: '' }),
-			refused({ mode: 'unit', units: ['section'], pattern: '(' }),
-			refused({ mode: 'unit', units: ['section'], pattern: 'a*' }),
-			refused({ mode: 'unit', units: ['section'], starts_with: 'A', pattern: 'B' }),
-			refused({ mode: 'section', units: ['section'] }),
-		]);
-		for (const [index, verdict] of verdicts.entries()) {
-			assert.notEqual(verdict, 'valid', `selector ${index} is refused`);
-			assert.notEqual(verdict, undefined, `selector ${index} names a code`);
-		}
-		const filtered = await check(
-			sectionConfiguration(base.path, {
-				...sectionKind,
-				html_units: { mode: 'unit', units: ['section'], starts_with: 'Parent' },
-			}),
+		// The native validator refuses an empty or unusable selector.
+		const invalidSelector = [
+			'syntax',
+			['evidence'],
+			'Evidence preparation refused: InvalidSelector',
+		];
+		// The closed wire refuses two filters or an unknown mode before validation.
+		const noWireVariant = [
+			'syntax',
+			['evidence'],
+			'data did not match any variant of untagged enum SelectionWire',
+		];
+		const cases: readonly (readonly [unknown, unknown])[] = [
+			[{ mode: 'unit', units: [] }, invalidSelector],
+			[{ mode: 'unit', units: ['section'], starts_with: '' }, invalidSelector],
+			[{ mode: 'unit', units: ['section'], pattern: '(' }, invalidSelector],
+			[{ mode: 'unit', units: ['section'], pattern: 'a*' }, invalidSelector],
+			[{ mode: 'unit', units: ['section'], starts_with: 'A', pattern: 'B' }, noWireVariant],
+			[{ mode: 'section', units: ['section'] }, noWireVariant],
+			// Valid controls: unfiltered and each single filter.
+			[{ mode: 'unit', units: ['section'] }, 'valid'],
+			[{ mode: 'unit', units: ['section'], starts_with: 'Parent' }, 'valid'],
+			[{ mode: 'unit', units: ['section'], pattern: '^Par' }, 'valid'],
+		];
+		const verdicts = await Promise.all(
+			cases.map(async ([selection]) => selectorRefusal(base.path, selection)),
 		);
-		assert.equal(filtered.kind, 'valid');
+		assert.deepEqual(
+			verdicts,
+			cases.map(([, expected]) => expected),
+		);
 	} finally {
 		base.remove();
 	}
