@@ -2,7 +2,7 @@
 
 ## 0.11.1
 
-Unreleased.
+Release date: 2026-11-12.
 
 - `lint show` reads completed cases reports, accepts exact case IDs, and names
   every candidate when a selector matches multiple cases or numeric results.
