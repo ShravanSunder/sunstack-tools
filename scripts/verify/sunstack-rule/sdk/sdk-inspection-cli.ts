@@ -193,10 +193,7 @@ export function observeSdkInspectionCli(options: {
 		'Empty-rulebook refusal did not identify its cause',
 	);
 	const limitedConfig = path.join(definitions, 'limited.json');
-	filesystem.writeFileSync(
-		limitedConfig,
-		JSON.stringify({ ...config, limits: { max_file_bytes: 1 } }),
-	);
+	filesystem.writeFileSync(limitedConfig, JSON.stringify({ ...config, limits: { max_files: 2 } }));
 	const limited = spawnSync(
 		cliCandidate.binary,
 		['lint', '--config', limitedConfig, '--root', root, '--all', '--format', 'json', '--evidence'],
@@ -219,8 +216,8 @@ export function observeSdkInspectionCli(options: {
 		'CLI limited listing lost incomplete status',
 	);
 	requireSdk(
-		recordSchema.parse(incomplete['limits'])['max_file_bytes'] === 1,
-		'CLI limited listing lost byte limit',
+		recordSchema.parse(incomplete['limits'])['max_files'] === 2,
+		'CLI limited listing lost file limit',
 	);
 	return {
 		observed: [

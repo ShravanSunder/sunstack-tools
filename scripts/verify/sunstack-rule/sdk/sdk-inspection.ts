@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { boundedSdkWait, type SdkControlledBackend } from './sdk-controlled-backend.ts';
 import { observeSdkInspectionCli } from './sdk-inspection-cli.ts';
 import type { JourneyResult } from './sdk-journeys.ts';
+import { observeSdkSectionPrefix } from './sdk-section-prefix.ts';
 import { requireSdk, saveSdkEvidence, type SdkExports, type SdkTarget } from './sdk-target.ts';
 
 const recordSchema = z.record(z.string(), z.unknown());
@@ -183,9 +184,26 @@ export async function observeSdkInspection(options: {
 			z.array(z.unknown()).parse(malformed['diagnostics']).length > 0,
 		'Inspection admitted a malformed definition',
 	);
+	const unavailable = recordSchema.parse(
+		await boundedSdkWait(
+			sdk.inspect(
+				{
+					...configuration,
+					rulebooks: [{ kind: 'files', markdown: 'missing.md', entries: 'missing.json' }],
+				},
+				request,
+			),
+			'inspection unavailable definitions',
+		),
+	);
+	requireSdk(
+		unavailable['kind'] === 'unavailable' &&
+			z.array(z.unknown()).parse(unavailable['diagnostics']).length > 0,
+		'Missing definitions did not return unavailable',
+	);
 	const incomplete = recordSchema.parse(
 		await boundedSdkWait(
-			sdk.inspect({ ...configuration, limits: { max_file_bytes: 1n } }, request),
+			sdk.inspect({ ...configuration, limits: { max_files: 2 } }, request),
 			'limited inspection',
 		),
 	);
@@ -195,8 +213,8 @@ export async function observeSdkInspection(options: {
 	);
 	const incompleteReport = recordSchema.parse(incomplete['report']);
 	requireSdk(
-		recordSchema.parse(incompleteReport['limits'])['max_file_bytes'] === 1n,
-		'Limited inspection lost its effective byte limit',
+		recordSchema.parse(incompleteReport['limits'])['max_files'] === 2,
+		'Limited inspection lost its effective file limit',
 	);
 	requireSdk(
 		recordSchema.parse(incompleteReport['status'])['kind'] === 'incomplete',
@@ -215,6 +233,22 @@ export async function observeSdkInspection(options: {
 			isDeepStrictEqual(cliObservations.incomplete['exclusions'], incompleteReport['exclusions']),
 			'CLI/SDK incomplete exclusions differ',
 		);
+		const cliDiagnostics = z.array(recordSchema).parse(cliObservations.incomplete['diagnostics']);
+		const sdkDiagnostics = z.array(recordSchema).parse(incompleteReport['diagnostics']);
+		requireSdk(
+			cliDiagnostics.length === sdkDiagnostics.length && cliDiagnostics.length > 0,
+			'CLI/SDK incomplete diagnostic count differs',
+		);
+		for (const [index, diagnostic] of cliDiagnostics.entries()) {
+			const counterpart = sdkDiagnostics[index];
+			requireSdk(
+				counterpart &&
+					diagnostic['code'] === counterpart['code'] &&
+					diagnostic['message'] === counterpart['message'] &&
+					(diagnostic['path'] ?? diagnostic['file'] ?? null) === (counterpart['path'] ?? null),
+				'CLI/SDK incomplete diagnostic differs',
+			);
+		}
 	}
 	const unknown = recordSchema.parse(
 		await boundedSdkWait(
@@ -239,6 +273,7 @@ export async function observeSdkInspection(options: {
 		checked,
 		legacyRun,
 		malformed,
+		unavailable,
 		incomplete,
 		unknown,
 		cancelled,
@@ -247,19 +282,27 @@ export async function observeSdkInspection(options: {
 		backend.captures.length === startRequests,
 		'Static inspection dispatched a model request',
 	);
+	const prefix = await observeSdkSectionPrefix({ sdk, evidence, backend });
 	return {
 		observed: [
+			...prefix.observed,
 			...(cliObservations?.observed ?? []),
-			...(cliObservations ? ['CLI/SDK limit-induced incomplete parts and exclusions agree'] : []),
+			...(cliObservations
+				? [
+						'CLI/SDK limit-induced incomplete parts, exclusions and diagnostic codes/messages/paths agree',
+					]
+				: []),
 			'static TypeScript/Rust evidence text, source identity and spans',
 			'no-match file coverage, empty-rulebook inspection and legacy check refusal',
 			'ignored source is excluded and counted',
 			'unknown-kind refusal and pre-cancellation',
 			'malformed definitions and legacy empty-rulebook run refused; file limit retained incomplete status and parts',
+			'missing referenced definitions return unavailable',
 			'changed source bytes produce a distinct acquired content identity',
 			'zero controlled model requests',
 		],
 		gaps: [
+			...prefix.gaps,
 			...(!target.cli
 				? ['CLI evidence parity, legacy admission and rule-violation witness: no CLI supplied']
 				: []),

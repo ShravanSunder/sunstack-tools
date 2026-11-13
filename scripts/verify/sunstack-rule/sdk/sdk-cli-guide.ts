@@ -63,6 +63,17 @@ export function observeSdkCliGuide(options: {
 		requireSdk(!result.error && result.status === expected, `Guide ${name}: unexpected exit`);
 		return result.stdout;
 	};
+	const help = execute('help', ['--help'], 0);
+	for (const phrase of [
+		'--check',
+		'--evidence',
+		'--prepare',
+		'--report',
+		'--init',
+		'not absence of violations',
+		'no rule evaluation',
+	])
+		requireSdk(help.includes(phrase), `CLI help omitted ${phrase}`);
 	execute('check', ['--check'], 0);
 	const listing = execute('evidence', ['--all', '--evidence', 'skill'], 0);
 	const value = z
@@ -94,6 +105,7 @@ export function observeSdkCliGuide(options: {
 		'Guide wrong-opening control did not find a violation',
 	);
 	return [
+		'CLI help distinguishes admission, evidence, preparation and reports',
 		'complete guide files copied from the pinned source and admitted by the CLI',
 		'guide evidence, clean run, prepared exit and wrong-opening finding',
 	];

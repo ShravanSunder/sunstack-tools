@@ -1,5 +1,6 @@
 /** Observe independently authored document refusals through the installed Rust-backed reader. */
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 import { z } from 'zod';
 
@@ -42,7 +43,9 @@ export async function observeSdkCodecRefusals(options: {
 		},
 		...rulebooks.slice(1),
 	];
+	const beforeWrite = structuredClone(input);
 	const saved = outcomeSchema.parse(sdk.serialize({ kind: 'configuration', value: input }));
+	requireSdk(isDeepStrictEqual(input, beforeWrite), 'Writer mutated the supplied value');
 	saveSdkEvidence(path.join(evidence, 'codec-written.json'), saved);
 	requireSdk(
 		saved.kind === 'serialized' && typeof saved['json'] === 'string',
@@ -66,6 +69,20 @@ export async function observeSdkCodecRefusals(options: {
 	requireSdk(
 		configuration.limits.max_file_bytes === 1048576n,
 		'Readback lost the full-width integer type or value',
+	);
+	const readbackConfiguration = z.record(z.string(), z.unknown()).parse(taggedValue.value);
+	const readbackRulebooks = z
+		.array(z.record(z.string(), z.unknown()))
+		.parse(readbackConfiguration['rulebooks']);
+	const readbackRulebook = readbackRulebooks[0];
+	requireSdk(readbackRulebook, 'Decoded configuration omitted its rulebook');
+	const readbackEntries = z.record(z.string(), z.unknown()).parse(readbackRulebook['entries']);
+	const readbackEntry = z.record(z.string(), z.unknown()).parse(readbackEntries['K001']);
+	const readbackReference = z.record(z.string(), z.unknown()).parse(readbackEntry['reference']);
+	requireSdk(
+		readbackReference['codec_boundary'] === 42n &&
+			readbackReference['numeric_string'] === '18446744073709551615',
+		'Decoded structured integer or numeric-looking string changed',
 	);
 	requireSdk(Object.isFrozen(taggedValue.value), 'Decoded configuration is not frozen');
 	// This is a complete independently authored document, not the writer's output.
@@ -143,6 +160,36 @@ export async function observeSdkCodecRefusals(options: {
 		{
 			name: 'structured-i64-underflow',
 			json: saved['json'].replace('"codec_boundary":42', '"codec_boundary":-9223372036854775809'),
+			kind: 'invalid',
+			path: [
+				'payload',
+				'value',
+				'rulebooks',
+				'0',
+				'entries',
+				'K001',
+				'reference',
+				'codec_boundary',
+			],
+		},
+		{
+			name: 'structured-unsafe-float',
+			json: saved['json'].replace('"codec_boundary":42', '"codec_boundary":9007199254740993.0'),
+			kind: 'invalid',
+			path: [
+				'payload',
+				'value',
+				'rulebooks',
+				'0',
+				'entries',
+				'K001',
+				'reference',
+				'codec_boundary',
+			],
+		},
+		{
+			name: 'structured-float-overflow',
+			json: saved['json'].replace('"codec_boundary":42', '"codec_boundary":1e400'),
 			kind: 'invalid',
 			path: [
 				'payload',
@@ -312,6 +359,23 @@ export async function observeSdkCodecRefusals(options: {
 			invalidUnicode.kind === 'invalid' || invalidUnicode.kind === 'failed',
 			'Malformed Unicode did not return a typed refusal',
 		);
+	const cyclic: Record<string, unknown> = {};
+	cyclic['self'] = cyclic;
+	for (const [name, value] of [
+		['nonfinite', Number.POSITIVE_INFINITY],
+		['unsafe-integer', 9007199254740992],
+		['out-of-range-bigint', 18446744073709551616n],
+		['cyclic', cyclic],
+	] as const) {
+		const refusal = outcomeSchema.parse(
+			sdk.serialize({ kind: 'configuration', value: { probe: value } }),
+		);
+		saveSdkEvidence(path.join(evidence, `codec-writer-${name}.json`), refusal);
+		requireSdk(
+			refusal.kind === 'rejected' && refusal['reason'] === 'invalid_data',
+			`Writer did not refuse ${name}`,
+		);
+	}
 	requireSdk(backend.captures.length === beforeRequests, 'Codec dispatched a model request');
 	return {
 		observed: [
@@ -320,6 +384,7 @@ export async function observeSdkCodecRefusals(options: {
 			'independent u64 maximum, structured overflows and exact-integer-to-f64 refusal with paths',
 			'independent malformed, wrong-type, duplicate-field, strict-wrapper and revision-before-payload refusals',
 			'codec calls made no controlled model requests',
+			'writer refuses non-finite, unsafe, out-of-range and cyclic data without mutating input',
 		],
 		gaps: [
 			'independent signed and structured JSON boundaries and remaining number/path refusals',
