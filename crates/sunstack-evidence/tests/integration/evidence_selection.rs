@@ -10,7 +10,13 @@ fn fixture() -> PathBuf {
 #[test]
 fn forward_named_as_kind_with_a_plain_kind_field_has_its_final_fields() {
     let root = fixture();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kinds:BTreeMap<EvidenceKindName,EvidenceKindDefinition>=serde_json::from_value(serde_json::json!({
  "a_load":{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"skill","as_kind":"z_skill"}}},
  "plain_heading":{"rule":"heading","fields":{"heading":{"from":"first_line"}}},
@@ -72,7 +78,13 @@ fn limits() -> PieceBuildLimits {
 #[test]
 fn staged_selection_filters_steps_and_preserves_shared_target_free_views_and_counts() {
     let root = fixture();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let config: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(root.join("skill-rules.config.json")).unwrap(),
     )
@@ -197,7 +209,13 @@ fn contained_kind_fields_read_only_final_pieces_and_remainder_excludes_strict_ch
  "step":{"rule":"item","within":["chosen"],"fields":{"body":{"from":"remainder"}}},
  "parent":{"rule":"parent","fields":{"heading":{"from":"first_line"},"body":{"from":"remainder","exclude":{"rule":"section"}},"steps":{"from":"inside","kind":"step"},"chosen":{"from":"same_file","kind":"chosen"}}}
  })).unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
     let mut build =
         EvidenceBuild::start(&project, &kinds, &["doc.md".into()], &mut source, limits()).unwrap();
@@ -251,7 +269,13 @@ fn heading_utils_accept_h2_h3_h4_and_reject_document_titles() {
             format!("id: test\nlanguage: Markdown\nrule: {{matches: {id}}}\n"),
         )
         .unwrap();
-        let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+        let project = load_evidence_project(
+            &root.path().join("sgconfig.yml"),
+            &[],
+            None,
+            &Default::default(),
+        )
+        .unwrap();
         for level in ["#", "##", "###", "####", "######"] {
             let text = format!("{level} {heading}\n\nBody.\n");
             assert_eq!(
@@ -282,7 +306,13 @@ fn remainder_exclusions_are_local_to_each_field_and_its_spans() {
         }}
     }))
     .unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
     let catalog = build_pieces(&project, &kinds, &["doc.md".into()], &mut source, limits());
     let parent = catalog
@@ -348,7 +378,13 @@ fn selected_candidates_coalesce_equal_ranges_without_changing_plain_kinds() {
         "plain":{"rule":"duplicate","fields":{"body":{"from":"remainder"}}},
         "selected":{"rule":"duplicate","fields":{"body":{"from":"remainder"}},"select":{"question":{},"yes_at_or_above":0.7,"no_at_or_below":0.3}}
     })).unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
     let mut build =
         EvidenceBuild::start(&project, &kinds, &["doc.md".into()], &mut source, limits()).unwrap();
@@ -431,7 +467,13 @@ rule: {kind: paragraph}
         "# Reference\n\n## Standards\n\nReference guidance.\n",
     )
     .unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     for select_sentences in [false, true] {
         for choose_workflow in [false, true] {
             let mut definitions = serde_json::json!({

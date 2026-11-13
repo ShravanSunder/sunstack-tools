@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.15.0
+
+Release date: 2026-11-12.
+
+- Project-specific HTML outline exclusions and text attributes are configured
+  under `evidence.html`; both default to empty. Standard `alt`, `aria-label`
+  and `<template>` outline behavior remains built in.
+- Markdown heading fragments require an explicit named scheme. Without one,
+  unresolved fragments are `unsupported` with reason `heading_scheme_not_configured`.
+  Explicit HTML ids and anchor names inside Markdown remain available.
+- Breaking: `TargetAnchor::Unsupported` requires a typed `reason`;
+  `load_evidence_project` takes a final `&DocumentEvidenceSettings` argument,
+  and `select_document` takes it after the selection and before the match limit.
+  The same settings are retained on `EvidenceProject`.
+- Known limit: `EvidencePlanInput` and `sunstack exec` use standard defaults.
+  Call the direct project/select APIs when document conventions are required.
+
+To restore the 0.14.1 conventions, add these members to the existing `evidence`
+object alongside `ast_grep` and `kinds`:
+
+```json
+"html": {
+  "skip_tags": ["ex-markdown"],
+  "text_attributes": {"ex-mermaid": ["label"]}
+},
+"markdown": {"heading_anchors": "github"}
+```
+
 ## 0.14.1
 
 Release date: 2026-11-12.

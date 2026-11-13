@@ -56,7 +56,8 @@ fn inline_rule_parity_preserves_effective_utilities_enclosing_within_and_input_b
         "child":{"rule":"item","within":["parent"],"fields":{"heading":{"from":"enclosing","kind":"parent"},"body":{"from":"first_line"}}}
     });
     let named_kinds = serde_json::from_value(config.clone()).unwrap();
-    let named_project = load_evidence_project(&project_path, &[], None).unwrap();
+    let named_project =
+        load_evidence_project(&project_path, &[], None, &Default::default()).unwrap();
     let named = catalog(root.path(), &named_project, &named_kinds);
     assert!(named.failures.is_empty(), "{:?}", named.failures);
     assert_eq!(named.pieces.len(), 3);
@@ -104,6 +105,7 @@ fn inline_rule_parity_preserves_effective_utilities_enclosing_within_and_input_b
         &project_path,
         &inline_inputs(&inline_kinds),
         Some(&config_path),
+        &Default::default(),
     )
     .unwrap();
     let inline = catalog(root.path(), &inline_project, &inline_kinds);
@@ -127,6 +129,7 @@ fn inline_rule_parity_preserves_effective_utilities_enclosing_within_and_input_b
         &project_path,
         &inline_inputs(&changed_kinds),
         Some(&config_path),
+        &Default::default(),
     )
     .unwrap();
     let after = changed_project

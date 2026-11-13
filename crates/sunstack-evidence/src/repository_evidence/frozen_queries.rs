@@ -126,6 +126,7 @@ pub(crate) fn select_frozen_file(
             text: Arc::from(file.text.as_str()),
         },
         selection,
+        &DocumentEvidenceSettings::default(),
         max_matches,
     )
 }

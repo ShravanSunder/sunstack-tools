@@ -102,6 +102,24 @@ evidence_name!(FieldName, |value: &str| !["text", "where", "standard"]
 pub struct EvidenceSettings {
     pub ast_grep: PathBuf,
     pub kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+    #[serde(
+        default,
+        skip_serializing_if = "crate::HtmlEvidenceSettings::is_default"
+    )]
+    pub html: crate::HtmlEvidenceSettings,
+    #[serde(
+        default,
+        skip_serializing_if = "crate::MarkdownEvidenceSettings::is_default"
+    )]
+    pub markdown: crate::MarkdownEvidenceSettings,
+}
+impl EvidenceSettings {
+    pub fn document_settings(&self) -> crate::DocumentEvidenceSettings {
+        crate::DocumentEvidenceSettings {
+            html: self.html.clone(),
+            markdown: self.markdown.clone(),
+        }
+    }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(
@@ -338,9 +356,23 @@ impl FieldValue {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetAnchor {
-    Found { fragment: String },
-    Missing { fragment: String },
-    Unsupported { fragment: String },
+    Found {
+        fragment: String,
+    },
+    Missing {
+        fragment: String,
+    },
+    Unsupported {
+        fragment: String,
+        reason: TargetAnchorUnsupportedReason,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TargetAnchorUnsupportedReason {
+    HeadingSchemeNotConfigured,
+    UnsupportedDocument,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

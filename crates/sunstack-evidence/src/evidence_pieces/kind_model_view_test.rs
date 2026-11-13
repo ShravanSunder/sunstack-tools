@@ -7,6 +7,10 @@ use serde_json::json;
 use std::path::PathBuf;
 
 fn project() -> EvidenceProject {
+    project_with_settings(&Default::default())
+}
+
+fn project_with_settings(settings: &crate::DocumentEvidenceSettings) -> EvidenceProject {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../sunstack/tests/fixtures/rulebook-lint/evidence/sgconfig.yml");
     let rules = [
@@ -20,7 +24,7 @@ fn project() -> EvidenceProject {
         origin: ConfigPath::keys(["test", name]),
     })
     .collect::<Vec<_>>();
-    load_evidence_project(&root, &rules, None).unwrap()
+    load_evidence_project(&root, &rules, None, settings).unwrap()
 }
 
 fn field_name(name: &str) -> FieldName {
@@ -48,7 +52,11 @@ fn text_field(value: &str) -> FieldValue {
 
 #[test]
 fn native_and_ast_html_kinds_project_before_budgeting_and_preserve_raw_fields() {
-    let project = project();
+    let settings = serde_json::from_value(json!({"html":{
+        "text_attributes":{"ex-mermaid":["label"]}
+    }}))
+    .unwrap();
+    let project = project_with_settings(&settings);
     let kind = EvidenceKindName::new("html_kind").unwrap();
     let raw = format!(
         r#"<h2 data-unused="{}">Heading</h2><p>Body</p><img alt="Flow"><ex-mermaid label="Steps"></ex-mermaid>"#,
@@ -548,3 +556,6 @@ fn asking_separates_structural_error_tags_without_a_cut() {
     assert_eq!(view["fields"]["body"], "Before After");
     assert_eq!(view["cut"], json!([]));
 }
+
+#[path = "kind_model_view_test/project_settings.rs"]
+mod project_settings;

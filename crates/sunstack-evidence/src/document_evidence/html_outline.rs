@@ -20,13 +20,10 @@ pub(crate) enum HtmlOutlineError {
     UnplaceableHeading { start: usize, end: usize },
 }
 
-#[derive(PartialEq, Eq)]
-enum ExcludedSource {
-    Template,
-    MarkdownIsland,
-}
-
-pub(crate) fn html_sections(raw: &str) -> Result<Vec<HtmlSection>, HtmlOutlineError> {
+pub(crate) fn html_sections(
+    raw: &str,
+    settings: &crate::HtmlEvidenceSettings,
+) -> Result<Vec<HtmlSection>, HtmlOutlineError> {
     let tree = SupportLang::Html.ast_grep(raw);
     let mut sections: Vec<HtmlSection> = Vec::new();
     let mut open_sections: Vec<usize> = Vec::new();
@@ -43,18 +40,24 @@ pub(crate) fn html_sections(raw: &str) -> Result<Vec<HtmlSection>, HtmlOutlineEr
             continue;
         };
         let name = name.text();
-        let excluded = excluded_source(&name);
+        let excluded = name.eq_ignore_ascii_case("template")
+            || settings
+                .skip_tags
+                .iter()
+                .any(|tag| tag.as_str().eq_ignore_ascii_case(&name));
         if tag.kind() == "end_tag" {
-            if let Some(source) = excluded
-                && let Some(index) = excluded_sources.iter().rposition(|open| *open == source)
+            if excluded
+                && let Some(index) = excluded_sources
+                    .iter()
+                    .rposition(|open: &String| open.eq_ignore_ascii_case(&name))
             {
                 excluded_sources.truncate(index);
             }
             continue;
         }
-        if let Some(source) = excluded {
+        if excluded {
             if tag.kind() != "self_closing_tag" {
-                excluded_sources.push(source);
+                excluded_sources.push(name.to_ascii_lowercase());
             }
             continue;
         }
@@ -121,16 +124,6 @@ fn heading_range(tag: &HtmlNode<'_>) -> Range<usize> {
         return element.range();
     }
     tag.range()
-}
-
-fn excluded_source(name: &str) -> Option<ExcludedSource> {
-    if name.eq_ignore_ascii_case("template") {
-        Some(ExcludedSource::Template)
-    } else if name.eq_ignore_ascii_case("ex-markdown") {
-        Some(ExcludedSource::MarkdownIsland)
-    } else {
-        None
-    }
 }
 
 #[cfg(test)]

@@ -18,7 +18,8 @@ fn select(text: &str, field: &str) -> Value {
     };
     let selector: EvidenceSelection =
         serde_json::from_value(json!({"kind":"frontmatter_field", "field":field})).unwrap();
-    serde_json::to_value(select_document(&document, &selector, 10).unwrap()).unwrap()
+    serde_json::to_value(select_document(&document, &selector, &Default::default(), 10).unwrap())
+        .unwrap()
 }
 
 #[test]

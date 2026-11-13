@@ -76,7 +76,13 @@ fn resolved_target_acquisition_failure_is_unavailable_rather_than_a_missing_file
     .unwrap();
     std::fs::write(root.path().join("SKILL.md"), "load `target.md`.\n").unwrap();
     std::fs::write(root.path().join("target.md"), "An existing target.\n").unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kind:EvidenceKindDefinition=serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path"}}}"#).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
     let mut source = RecordingSource::new(root.path());
@@ -118,7 +124,13 @@ fn frozen_checked_and_target_content_share_one_distinct_byte_budget() {
     std::fs::write(root.path().join("SKILL.md"), checked).unwrap();
     // A fallback read cannot pass the per-file cap; the frozen target must supply the opening.
     std::fs::write(root.path().join("target.md"), "stale".repeat(1000)).unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","opening_chars":10}}}"#).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
     for (cap, complete) in [(400, false), (checked.len() + 400, true)] {
@@ -174,7 +186,13 @@ fn frozen_target_file_count_reuses_cached_alias_and_self_content() {
     let checked = "load `SKILL.md`, `target.md`, `./target.md` and `target.md`.\n";
     std::fs::write(root.path().join("SKILL.md"), checked).unwrap();
     std::fs::write(root.path().join("target.md"), "stale".repeat(1000)).unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path","opening_chars":10}}}"#).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
     for max_files in [1, 2] {
@@ -218,7 +236,13 @@ fn frozen_target_file_count_reuses_cached_alias_and_self_content() {
 fn pinned_step_fields_and_path_and_skill_loads_keep_their_sources() {
     let root = fixture();
     let settings = settings();
-    let project = load_evidence_project(&root.join(&settings.ast_grep), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join(&settings.ast_grep),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let files = [
         "verification-design",
         "practices-retrospective",
@@ -325,7 +349,13 @@ fn yaml_empty_absent_malformed_and_non_string_remain_distinct() {
         "id: skill\nlanguage: Markdown\nrule: {kind: document}\n",
     )
     .unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kind: EvidenceKindDefinition = serde_json::from_str(
         r#"{"rule":"skill","fields":{"description":{"from":"yaml","key":"description"}}}"#,
     )
@@ -399,7 +429,8 @@ fn duplicate_skills_and_outside_targets_are_not_opened() {
         "load `shared` and `../outside.md`.\n",
     )
     .unwrap();
-    let project = load_evidence_project(&root.join("sgconfig.yml"), &[], None).unwrap();
+    let project =
+        load_evidence_project(&root.join("sgconfig.yml"), &[], None, &Default::default()).unwrap();
     let kind: EvidenceKindDefinition = serde_json::from_str(r#"{"rule":"load","fields":{"targets":{"from":"target","regex":"`(shared)`","resolve":"path_or_skill"},"outside":{"from":"target","regex":"`([^`]+\\.md)`","resolve":"path"}}}"#).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("load").unwrap(), kind)]);
     let mut source = RecordingSource::new(root);
@@ -450,7 +481,13 @@ fn non_ascii_terminal_character_without_newline_keeps_valid_ranges_and_character
         "id: paragraph\nlanguage: Markdown\nrule: {kind: paragraph}\n",
     )
     .unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kind:EvidenceKindDefinition=serde_json::from_str(r#"{"rule":"paragraph","fields":{"token":{"from":"capture","regex":"(token)"},"body":{"from":"remainder"}}}"#).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("paragraph").unwrap(), kind)]);
     std::fs::write(root.path().join("SKILL.md"), "📚 token尾").unwrap();

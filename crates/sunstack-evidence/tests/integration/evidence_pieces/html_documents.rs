@@ -14,7 +14,8 @@ fn build(
     definition: serde_json::Value,
     cap: usize,
 ) -> EvidenceCatalog {
-    let project = load_evidence_project(&root.join("sgconfig.yml"), &[], None).unwrap();
+    let project =
+        load_evidence_project(&root.join("sgconfig.yml"), &[], None, &Default::default()).unwrap();
     let kinds = BTreeMap::from([(
         EvidenceKindName::new("row").unwrap(),
         serde_json::from_value(definition).unwrap(),
@@ -293,7 +294,13 @@ fn html_href_entities_and_percent_encoding_resolve_without_changing_raw_capture(
     assert_eq!(piece.text, raw);
     assert_eq!(piece.location.span.byte_end, raw.len());
     // Dependency selection uses the same decoded physical identity as acquisition.
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let definition = serde_json::from_value(json!({"rule":"row","fields":{"links":{"from":"target","regex":"href=\"([^\"]+)\"","resolve":"path"}}})).unwrap();
     let kinds = BTreeMap::from([(EvidenceKindName::new("row").unwrap(), definition)]);
     let mut source = FilesystemCheckedSource::new(root.path()).unwrap();
