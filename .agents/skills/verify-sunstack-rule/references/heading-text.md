@@ -1,6 +1,6 @@
 # Heading labels from native sections
 
-Use `scripts/verify/sunstack-rule/heading-text/heading-text.ts` for the 0.15.1 heading-text contract and its additive compatibility boundary. Expected outcomes come from the heading-text commission and Corrections 1–5, including the consumer's P3 ask. Read the script's `--help` for its two phases. No provider request, install, build or release action is implied. This recipe is a draft until its candidate phase runs through a declared signed target.
+Use `scripts/verify/sunstack-rule/heading-text/heading-text.ts` for the 0.15.1 heading-text contract and its additive compatibility boundary. Expected outcomes come from the heading-text commission and Corrections 1–5, including the consumer's P3 ask. Read the script's `--help` for its two phases. No provider request, install, build or release action is implied. Baseline and candidate phases have exercised this recipe through the signed CLI. Repeat the scoped drive on each declared target; prior coverage does not establish a later target.
 
 ## What the field means
 
