@@ -39,6 +39,16 @@ export type EvidenceKindDefinition = DeepReadonly<Contracts.EvidenceKindWire>;
 export type FilterDefinition = DeepReadonly<Contracts.FilterWire>;
 export type SdkFinding = DeepReadonly<Contracts.SdkFinding>;
 export type EvidenceLanguage = Contracts.EvidenceLanguage;
+/** HTML conventions: tags left out of section outlines, attributes read as asking text. */
+export type HtmlEvidenceSettings = DeepReadonly<Contracts.HtmlEvidenceSettings>;
+/** Markdown conventions: the heading-anchor scheme, if any. */
+export type MarkdownEvidenceSettings = DeepReadonly<Contracts.MarkdownEvidenceSettings>;
+export type HeadingAnchorScheme = Contracts.HeadingAnchorScheme;
+export type HtmlTagName = Contracts.HtmlTagName;
+export type HtmlAttributeName = Contracts.HtmlAttributeName;
+/** A target fragment's state; an unsupported fragment names why. */
+export type TargetAnchor = DeepReadonly<Contracts.TargetAnchor>;
+export type TargetAnchorUnsupportedReason = Contracts.TargetAnchorUnsupportedReason;
 export type { AstMatcher, AstUtility, AuthoredLanguage } from './contracts/ast-grep.ts';
 
 /** Per-call options. Aborting one call's signal cancels only that call. */

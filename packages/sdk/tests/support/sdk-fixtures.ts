@@ -155,8 +155,9 @@ export function writeFileProject(directory: string, endpoint: string): void {
 
 /**
  * The admitted value of each normalized inline source in `inlineConfiguration`, as the
- * native contract at revision 3 records it: Sunstack defaults filled (`check.ignore`,
- * `max_question_words`, unset limits as null), authoring-only members omitted (`id`,
+ * native contract records it: Sunstack defaults filled (`check.ignore`,
+ * `max_question_words`, unset limits as null, standard document conventions), authoring-only
+ * members omitted (`id`,
  * `base_directory`, `evidence.kind`, `rulebooks`), and ast-grep's upstream defaults written
  * out for matchers and utilities.
  */
@@ -170,6 +171,11 @@ export function expectedInlineSources(endpoint: string): {
 		root: {
 			check: { files: ['skills/**/SKILL.md'], ignore: [] },
 			decision_model: { endpoint, model: 'jev-latest' },
+			// No HTML or Markdown conventions: the standard defaults, written out.
+			document: {
+				html: { skip_tags: [], text_attributes: {} },
+				markdown: { heading_anchors: null },
+			},
 			filters: { purpose: purposeFilter },
 			kinds: { paragraph: { fields: { body: { from: 'remainder' } }, rule: 'paragraph' } },
 			limits: {

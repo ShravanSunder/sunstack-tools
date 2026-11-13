@@ -7,10 +7,17 @@ import type {
 	EvidenceKindDefinition,
 	EvidenceLanguage,
 	FilterDefinition,
+	HeadingAnchorScheme,
+	HtmlAttributeName,
+	HtmlEvidenceSettings,
+	HtmlTagName,
 	LoadedConfiguration,
+	MarkdownEvidenceSettings,
 	RuleEntry,
 	RunOutcome,
 	SdkFinding,
+	TargetAnchor,
+	TargetAnchorUnsupportedReason,
 } from '../../src/index.ts';
 
 export const configuration = {
@@ -276,3 +283,62 @@ export const markdownUnitsKind = {
 // A kind built elsewhere and passed by reference is checked the same way.
 const ruleKindValue = { rule: 'paragraph', fields: {} };
 export const ruleKindByReference: EvidenceKindDefinition = ruleKindValue;
+
+// Document conventions: typed settings, a reusable preset and every evidence form.
+export const restoredConventions = {
+	html: { skip_tags: ['ex-markdown'], text_attributes: { 'ex-mermaid': ['label'] } },
+	markdown: { heading_anchors: 'github' },
+} as const satisfies { html: HtmlEvidenceSettings; markdown: MarkdownEvidenceSettings };
+const skippedTag: HtmlTagName = 'example-source';
+const textAttribute: HtmlAttributeName = 'caption';
+export const scheme: HeadingAnchorScheme = 'github';
+export const customHtml: HtmlEvidenceSettings = {
+	skip_tags: [skippedTag],
+	text_attributes: { 'custom-diagram': [textAttribute] },
+};
+export const noScheme: MarkdownEvidenceSettings = { heading_anchors: null };
+export const standardConventions: MarkdownEvidenceSettings = {};
+export const configuredInline = {
+	...configuration,
+	evidence: { ...configuration.evidence, ...restoredConventions },
+} satisfies Configuration;
+export const configuredProject = {
+	...configuration,
+	evidence: {
+		kind: 'project',
+		config_path: 'evidence/sgconfig.yml',
+		kinds: {},
+		html: customHtml,
+		markdown: { heading_anchors: scheme },
+	},
+} satisfies Configuration;
+// A loaded value's captured evidence takes an edited convention like any other member.
+export function withRestoredConventions(held: LoadedConfiguration): Configuration {
+	return {
+		...held.configuration,
+		evidence: { ...held.configuration.evidence, html: customHtml, markdown: noScheme },
+	};
+}
+
+// An unsupported anchor always names its closed reason; other states have none.
+export function anchorReason(anchor: TargetAnchor): TargetAnchorUnsupportedReason | 'checked' {
+	switch (anchor.status) {
+		case 'found':
+		case 'missing':
+			return 'checked';
+		case 'unsupported':
+			return anchor.reason;
+		default:
+			return assertNever(anchor);
+	}
+}
+export function reasonAdvice(reason: TargetAnchorUnsupportedReason): string {
+	switch (reason) {
+		case 'heading_scheme_not_configured':
+			return 'set evidence.markdown.heading_anchors';
+		case 'unsupported_document':
+			return 'this document format has no anchors';
+		default:
+			return assertNever(reason);
+	}
+}

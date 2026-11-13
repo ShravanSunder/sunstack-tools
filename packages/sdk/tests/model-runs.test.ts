@@ -210,6 +210,13 @@ await test('the full source comparison catches a changed setting, metadata value
 					},
 				},
 			],
+			// Each document convention is a root setting on its own.
+			['root', { ...original, evidence: { ...evidence, html: { skip_tags: ['aside'] } } }],
+			[
+				'root',
+				{ ...original, evidence: { ...evidence, html: { text_attributes: { img: ['title'] } } } },
+			],
+			['root', { ...original, evidence: { ...evidence, markdown: { heading_anchors: 'github' } } }],
 		];
 		const admittedVariants = await Promise.all(
 			variants.map(
@@ -223,6 +230,16 @@ await test('the full source comparison catches a changed setting, metadata value
 				assert.deepEqual(admitted[name], expected[name], `${name} unchanged`);
 			}
 		}
+		// Explicit empty conventions are the defaults: every source is unchanged.
+		const defaultEquivalent: Configuration = {
+			...original,
+			evidence: {
+				...evidence,
+				html: { skip_tags: [], text_attributes: {} },
+				markdown: { heading_anchors: null },
+			},
+		};
+		assert.deepEqual(await admittedSources(defaultEquivalent), expected);
 	} finally {
 		base.remove();
 	}

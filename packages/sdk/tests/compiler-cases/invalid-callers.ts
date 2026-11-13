@@ -6,9 +6,13 @@ import type {
 	EvidenceKindDefinition,
 	EvidenceLanguage,
 	FilterDefinition,
+	HtmlEvidenceSettings,
 	LoadedConfiguration,
+	MarkdownEvidenceSettings,
 	RuleEntry,
 	RunOutcome,
+	TargetAnchor,
+	TargetAnchorUnsupportedReason,
 } from '../../src/index.ts';
 import { configuration } from './valid-caller.ts';
 
@@ -310,3 +314,37 @@ export const noMatcherByReference: EvidenceKindDefinition = noMatcherValue;
 const twoMatcherValue = { rule: 'paragraph', inline_rule: 'kind: paragraph', fields: {} };
 // expect TS2322
 export const twoMatcherByReference: EvidenceKindDefinition = twoMatcherValue;
+
+// Document conventions: known keys, the closed scheme and the closed unsupported reasons.
+export const misspelledHtmlKey = {
+	// expect TS2561
+	skipTags: ['ex-markdown'],
+} satisfies HtmlEvidenceSettings;
+
+export const unknownMarkdownKey = {
+	// expect TS2353
+	scheme: 'github',
+} satisfies MarkdownEvidenceSettings;
+
+export const unknownScheme = {
+	// expect TS2322
+	heading_anchors: 'gitlab',
+} satisfies MarkdownEvidenceSettings;
+
+export const nonStringTag = {
+	// expect TS2322
+	skip_tags: [1],
+} satisfies HtmlEvidenceSettings;
+
+// expect TS2322
+export const unknownReason: TargetAnchorUnsupportedReason = 'not_configured';
+
+// expect TS2322
+export const unsupportedWithoutReason: TargetAnchor = { status: 'unsupported', fragment: 'top' };
+
+export const reasonOnFound = {
+	status: 'found',
+	fragment: 'top',
+	// expect TS2353
+	reason: 'unsupported_document',
+} satisfies TargetAnchor;

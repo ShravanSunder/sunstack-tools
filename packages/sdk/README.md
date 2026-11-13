@@ -107,6 +107,44 @@ if (loaded.kind === 'loaded') {
 
 See `examples/load-and-edit.ts`.
 
+## Document conventions
+
+HTML and Markdown conventions are configuration, set on any evidence form (`inline`,
+`captured` or `project`) next to `kinds`. With none set, the standard defaults apply:
+`<template>` contents stay out of HTML section outlines, `alt` and `aria-label` are
+read as asking text, and Markdown heading fragments are not resolved.
+
+```ts
+import type { Configuration, HtmlEvidenceSettings, MarkdownEvidenceSettings } from '@sunstack/sdk';
+
+// The 0.14.1 conventions, restored explicitly.
+const restored = {
+	html: { skip_tags: ['ex-markdown'], text_attributes: { 'ex-mermaid': ['label'] } },
+	markdown: { heading_anchors: 'github' },
+} as const satisfies { html: HtmlEvidenceSettings; markdown: MarkdownEvidenceSettings };
+
+const configured = {
+	...configuration,
+	evidence: { ...configuration.evidence, ...restored },
+} satisfies Configuration;
+```
+
+- `html.skip_tags` leaves headings inside the named tags out of the section outline;
+  their text is still asking text.
+- `html.text_attributes` reads the listed attributes of a tag as `[name: value]`
+  tokens of asking text, in source order. Raw fields, spans and locations stay the
+  source.
+- `markdown.heading_anchors: 'github'` resolves heading fragments with GitHub's slugs.
+  Without it, a heading fragment is `{ status: 'unsupported', reason:
+  'heading_scheme_not_configured' }`. Explicit HTML `id` and anchor `name` values
+  resolve either way. A fragment into another kind of document is unsupported with
+  reason `unsupported_document`.
+
+The conventions are root settings. A loaded project whose conventions are unchanged
+keeps its file origin; an edited copy reports the root as `edited`. A change on disk
+takes effect only when you call `load` again. Blank names, unknown keys and unknown
+schemes are refused by the engine.
+
 ## Typed outcomes
 
 No call throws for a domain or detectable native ending. Narrow on `kind`:

@@ -2,7 +2,7 @@
 //
 //   node examples/load-and-edit.ts <absolute-config-directory> <absolute-checked-root>
 import { check, load, run } from '@sunstack/sdk';
-import type { Configuration } from '@sunstack/sdk';
+import type { Configuration, HtmlEvidenceSettings, MarkdownEvidenceSettings } from '@sunstack/sdk';
 
 const [directory = process.cwd(), root = process.cwd()] = process.argv.slice(2);
 
@@ -12,10 +12,18 @@ if (loaded.kind !== 'loaded') {
 	process.exit(1);
 }
 
+// Document conventions as a reusable preset: here, the 0.14.1 conventions.
+const restoredConventions = {
+	html: { skip_tags: ['ex-markdown'], text_attributes: { 'ex-mermaid': ['label'] } },
+	markdown: { heading_anchors: 'github' },
+} as const satisfies { html: HtmlEvidenceSettings; markdown: MarkdownEvidenceSettings };
+
 // The loaded value is frozen; a changed copy is a new configuration.
+const { configuration } = loaded.value;
 const changed = {
-	...loaded.value.configuration,
-	limits: { ...loaded.value.configuration.limits, max_files: 100 },
+	...configuration,
+	limits: { ...configuration.limits, max_files: 100 },
+	evidence: { ...configuration.evidence, ...restoredConventions },
 } satisfies Configuration;
 
 const admission = await check(changed);

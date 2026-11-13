@@ -8,7 +8,9 @@ import type {
 	CheckOutcome,
 	Configuration,
 	EvidenceKindDefinition,
+	MarkdownEvidenceSettings,
 	SdkReport,
+	TargetAnchor,
 } from '../src/index.ts';
 import { check, run } from '../src/index.ts';
 import { isCheckOutcome } from '../src/reply-decoding.ts';
@@ -45,14 +47,22 @@ function markdownConfiguration(
 	base: string,
 	kind: EvidenceKindDefinition,
 	field: string,
+	markdown?: MarkdownEvidenceSettings,
 ): Configuration {
+	const conventions = markdown === undefined ? {} : { markdown };
 	return {
 		id: 'markdown-units',
 		base_directory: base,
 		marker_prefix: 'K',
 		check: { files: ['docs/page.md'] },
 		decision_model: { model: 'jev-latest' },
-		evidence: { kind: 'inline', utilities: {}, matchers: {}, kinds: { unit: kind } },
+		evidence: {
+			kind: 'inline',
+			utilities: {},
+			matchers: {},
+			kinds: { unit: kind },
+			...conventions,
+		},
 		rulebooks: [
 			{
 				kind: 'inline',
@@ -166,54 +176,79 @@ await test('paragraph and list-item units select their own pieces', async () => 
 	assert.deepEqual(counts, [7, 2]);
 });
 
-await test('Markdown fragment targets resolve heading slugs, duplicates, explicit ids and decoded fragments', async () => {
-	const report = cleanReport(
-		await run(
-			markdownConfiguration(
-				repository.path,
-				{
-					markdown_units: { mode: 'unit', units: ['paragraph'] },
-					fields: {
-						links: { from: 'target', regex: '\\(([^)]+)\\)', resolve: 'path' },
-						file_or_skill: {
-							from: 'target',
-							regex: '\\((other\\.md#[^)]+)\\)',
-							resolve: 'path_or_skill',
-						},
-					},
-				},
-				'links',
-			),
-			{ root: repository.path, scope: { kind: 'all' } },
-		),
+/** A target anchor as [status, reason]; the reason exists only when unsupported. */
+function anchorState(anchor: TargetAnchor | null | undefined): readonly [string, string] | null {
+	if (anchor === null || anchor === undefined) return null;
+	return [anchor.status, anchor.status === 'unsupported' ? anchor.reason : ''];
+}
+
+const anchorKind: EvidenceKindDefinition = {
+	markdown_units: { mode: 'unit', units: ['paragraph'] },
+	fields: {
+		links: { from: 'target', regex: '\\(([^)]+)\\)', resolve: 'path' },
+		file_or_skill: {
+			from: 'target',
+			regex: '\\((other\\.md#[^)]+)\\)',
+			resolve: 'path_or_skill',
+		},
+	},
+};
+
+async function anchorReport(markdown?: MarkdownEvidenceSettings): Promise<SdkReport> {
+	return cleanReport(
+		await run(markdownConfiguration(repository.path, anchorKind, 'links', markdown), {
+			root: repository.path,
+			scope: { kind: 'all' },
+		}),
 	);
-	const anchors = Object.values(report.piece_evidence).flatMap((evidence) => {
+}
+
+function linkAnchors(report: SdkReport): readonly (readonly [string, unknown])[] {
+	return Object.values(report.piece_evidence).flatMap((evidence) => {
 		const links = evidence.piece.fields['links'];
 		return links?.state === 'targets'
-			? links.values.map((target) => [target.name, target.anchor?.status ?? null])
+			? links.values.map((target) => [target.name, anchorState(target.anchor)] as const)
 			: [];
 	});
-	assert.deepEqual(anchors, [
-		['#top', 'found'],
+}
+
+await test('Markdown fragment targets resolve heading slugs only under an explicit github scheme', async () => {
+	const [configured, standard] = await Promise.all([
+		anchorReport({ heading_anchors: 'github' }),
+		anchorReport(),
+	]);
+	assert.deepEqual(linkAnchors(configured), [
+		['#top', ['found', '']],
 		// The second "Child One" heading gets GitHub's duplicate suffix.
-		['#child-one-1', 'found'],
-		['#missing', 'missing'],
+		['#child-one-1', ['found', '']],
+		['#missing', ['missing', '']],
 		// Image alt text is not part of the heading slug.
-		['#pic--here', 'found'],
-		['#custom-id', 'found'],
+		['#pic--here', ['found', '']],
+		['#custom-id', ['found', '']],
 		// The fragment is percent-decoded once before matching "Café".
-		['other.md#caf%C3%A9', 'found'],
+		['other.md#caf%C3%A9', ['found', '']],
 		// A plain-text target has no anchors to check.
-		['notes.txt#part', 'unsupported'],
+		['notes.txt#part', ['unsupported', 'unsupported_document']],
+	]);
+	// The same definitions with no Markdown convention: heading fragments are not checked,
+	// an explicit HTML id still is, and a plain-text target keeps its own reason.
+	assert.deepEqual(linkAnchors(standard), [
+		['#top', ['unsupported', 'heading_scheme_not_configured']],
+		['#child-one-1', ['unsupported', 'heading_scheme_not_configured']],
+		['#missing', ['unsupported', 'heading_scheme_not_configured']],
+		['#pic--here', ['unsupported', 'heading_scheme_not_configured']],
+		['#custom-id', ['found', '']],
+		['other.md#caf%C3%A9', ['unsupported', 'heading_scheme_not_configured']],
+		['notes.txt#part', ['unsupported', 'unsupported_document']],
 	]);
 	// Under path_or_skill, a Markdown link with a fragment is a file path, not a skill name.
-	const fileOrSkill = Object.values(report.piece_evidence)
+	const fileOrSkill = Object.values(configured.piece_evidence)
 		.map((evidence) => evidence.piece.fields['file_or_skill'])
 		.find((field) => field?.state === 'targets' && field.values.length > 0);
 	assert.ok(fileOrSkill?.state === 'targets');
 	assert.deepEqual(
-		fileOrSkill.values.map((target) => [target.name, target.path, target.anchor?.status ?? null]),
-		[['other.md#caf%C3%A9', 'docs/other.md', 'found']],
+		fileOrSkill.values.map((target) => [target.name, target.path, anchorState(target.anchor)]),
+		[['other.md#caf%C3%A9', 'docs/other.md', ['found', '']]],
 	);
 });
 
