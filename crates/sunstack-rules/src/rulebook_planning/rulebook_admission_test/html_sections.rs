@@ -107,3 +107,109 @@ fn references_to_native_kinds_use_html_language_despite_ast_rule_name_collision(
         "{errors:?}"
     );
 }
+
+#[test]
+fn native_html_sections_admit_own_and_enclosing_heading_fields() {
+    let kinds = serde_json::from_value(json!({
+        "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{}},
+        "candidate":{
+            "html_units":{"mode":"unit","units":["section"]},
+            "fields":{
+                "heading":{"from":"section","text":"heading"},
+                "heading_path":{"from":"enclosing","kind":"outline","text":"heading"}
+            }
+        }
+    }))
+    .unwrap();
+    let errors = admit_evidence_kinds(&kinds, &fixture::project(), 6000);
+    assert!(errors.is_empty(), "{errors:?}");
+}
+
+#[test]
+fn enclosing_heading_refuses_ast_kind_and_rule_references_at_the_field() {
+    for reference in [json!({"kind":"ast_outline"}), json!({"rule":"completion"})] {
+        let mut heading_path = reference;
+        heading_path["from"] = json!("enclosing");
+        heading_path["text"] = json!("heading");
+        let kinds = serde_json::from_value(json!({
+            "ast_outline":{"rule":"completion","fields":{}},
+            "candidate":{"rule":"completion","fields":{"heading_path":heading_path}}
+        }))
+        .unwrap();
+        let errors = admit_evidence_kinds(&kinds, &fixture::project(), 6000);
+        assert_eq!(errors.len(), 1, "{errors:?}");
+        assert_eq!(
+            errors[0].field_path.to_string(),
+            "evidence.kinds.candidate.fields.heading_path"
+        );
+        assert_eq!(
+            errors[0].message,
+            "kind candidate field heading_path: enclosing heading requires a native section kind (html_units or markdown_units with unit mode and units exactly [section])"
+        );
+    }
+}
+
+#[test]
+fn same_file_heading_is_refused_while_legacy_context_text_stays_admitted() {
+    for text in ["first_line", "full", "heading"] {
+        let kinds = serde_json::from_value(json!({
+            "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{}},
+            "candidate":{
+                "html_units":{"mode":"unit","units":["section"]},
+                "fields":{"context":{"from":"same_file","kind":"outline","text":text}}
+            }
+        }))
+        .unwrap();
+        let errors = admit_evidence_kinds(&kinds, &fixture::project(), 6000);
+        if text == "heading" {
+            assert_eq!(errors.len(), 1, "{errors:?}");
+            assert_eq!(
+                errors[0].field_path.to_string(),
+                "evidence.kinds.candidate.fields.context"
+            );
+            assert_eq!(
+                errors[0].message,
+                "kind candidate field context: same_file does not support heading text"
+            );
+        } else {
+            assert!(errors.is_empty(), "{text}: {errors:?}");
+        }
+    }
+}
+
+#[test]
+fn target_as_kind_refuses_heading_fields_and_preserves_legacy_fields() {
+    for heading_source in [
+        json!({"from":"section","text":"heading"}),
+        json!({"from":"enclosing","kind":"outline","text":"heading"}),
+        json!({"from":"section","text":"own"}),
+    ] {
+        let has_heading = heading_source["text"] == "heading";
+        let kinds = serde_json::from_value(json!({
+            "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{}},
+            "nested":{
+                "html_units":{"mode":"unit","units":["section"]},
+                "fields":{
+                    "legacy":{"from":"section","text":"own"},
+                    "context":heading_source
+                }
+            },
+            "candidate":{
+                "html_units":{"mode":"unit","units":["section"]},
+                "fields":{"linked":{"from":"target","regex":"(.+)","resolve":"path","as_kind":"nested"}}
+            }
+        }))
+        .unwrap();
+        let errors = admit_evidence_kinds(&kinds, &fixture::project(), 6000);
+        if has_heading {
+            assert_eq!(errors.len(), 1, "{errors:?}");
+            assert_eq!(
+                errors[0].field_path.to_string(),
+                "evidence.kinds.candidate.fields.linked"
+            );
+            assert_eq!(errors[0].message, "as_kind must name a heading-free kind");
+        } else {
+            assert!(errors.is_empty(), "{errors:?}");
+        }
+    }
+}

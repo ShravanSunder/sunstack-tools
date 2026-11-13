@@ -154,6 +154,7 @@ impl EvidenceBuild {
                     range,
                     match_position,
                     &self.catalog.pieces,
+                    &self.project.document_settings.html,
                 );
                 self.defer_fields(definition, file, range, &mut fields);
                 let span = source_span(file, range);

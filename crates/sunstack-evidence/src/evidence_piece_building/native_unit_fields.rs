@@ -60,6 +60,7 @@ impl NativeMatchedKind {
                     .find(|section| same_range(&section.section_range, range))
                     .ok_or(FieldUnavailable::Unreadable)?;
                 let selected = match mode {
+                    crate::SectionText::Heading => &section.heading_range,
                     crate::SectionText::Full => &section.section_range,
                     crate::SectionText::Own => &section.own_range,
                     crate::SectionText::EnclosingOwn => {
@@ -82,6 +83,7 @@ impl NativeMatchedKind {
                     .find(|section| same_range(&section.section_range, range))
                     .ok_or(FieldUnavailable::Unreadable)?;
                 let ranges = match mode {
+                    crate::SectionText::Heading => vec![match_range(&section.heading_range)],
                     crate::SectionText::Full => vec![match_range(&section.section_range)],
                     crate::SectionText::Own => section.own_ranges.iter().map(match_range).collect(),
                     crate::SectionText::EnclosingOwn => {
@@ -99,6 +101,55 @@ impl NativeMatchedKind {
                     }
                 };
                 Ok(Some(ranges))
+            }
+        }
+    }
+
+    fn section_heading(
+        &self,
+        file: &MatchedFile,
+        range: &MatchRange,
+        settings: &crate::HtmlEvidenceSettings,
+    ) -> Result<(String, MatchRange), FieldUnavailable> {
+        match self {
+            Self::Html(value) => {
+                use crate::document_evidence::html_content::{HtmlAskingText, html_asking_text};
+                use ast_grep_language::{LanguageExt, SupportLang};
+                let section = value
+                    .outline
+                    .iter()
+                    .find(|section| same_range(&section.section_range, range))
+                    .ok_or(FieldUnavailable::Unreadable)?;
+                let raw = &file.text[section.heading_range.clone()];
+                let tree = SupportLang::Html.ast_grep(raw);
+                // Recovery may provide only the opening tag. It cannot bound heading text.
+                let bounded = tree.root().children().any(|node| {
+                    node.kind() == "element"
+                        && node.range() == (0..raw.len())
+                        && node
+                            .children()
+                            .any(|child| child.kind() == "end_tag" && !child.is_missing())
+                });
+                if !bounded {
+                    return Err(FieldUnavailable::Unreadable);
+                }
+                match html_asking_text(raw, settings) {
+                    HtmlAskingText::Complete(text) => {
+                        Ok((text, match_range(&section.heading_range)))
+                    }
+                    HtmlAskingText::Incomplete { .. } => Err(FieldUnavailable::Unreadable),
+                }
+            }
+            Self::Markdown(value) => {
+                let section = value
+                    .outline
+                    .iter()
+                    .find(|section| same_range(&section.section_range, range))
+                    .ok_or(FieldUnavailable::Unreadable)?;
+                Ok((
+                    section.heading_text.clone(),
+                    match_range(&section.heading_range),
+                ))
             }
         }
     }
@@ -253,12 +304,22 @@ impl MatchedFile {
         kind: &EvidenceKindName,
         range: &MatchRange,
         mode: crate::SectionText,
+        html_settings: &crate::HtmlEvidenceSettings,
     ) -> FieldValue {
         let Some(value) = self.native_units.get(kind) else {
             return FieldValue::Unavailable {
                 reason: FieldUnavailable::Unreadable,
             };
         };
+        if mode == crate::SectionText::Heading {
+            return match value.section_heading(self, range, html_settings) {
+                Ok((value, heading_range)) => FieldValue::Text {
+                    value,
+                    spans: vec![source_span(self, &heading_range)],
+                },
+                Err(reason) => FieldValue::Unavailable { reason },
+            };
+        }
         match value.section_ranges(range, mode) {
             Ok(Some(ranges)) => field_composition::text_for_ranges(self, &ranges),
             Ok(None) => FieldValue::Absent,

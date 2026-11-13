@@ -24,13 +24,14 @@ pub(super) fn local_fields(
     range: &MatchRange,
     match_position: usize,
     pieces: &[EvidencePiece],
+    html_settings: &crate::HtmlEvidenceSettings,
 ) -> BTreeMap<FieldName, FieldValue> {
     let text = &file.text[range.start..range.end];
     let mut taken = Vec::new();
     let mut fields = BTreeMap::new();
     for (name, source) in &definition.fields {
         let value = match source {
-            FieldSource::Section { text } => file.section_field(kind, range, *text),
+            FieldSource::Section { text } => file.section_field(kind, range, *text, html_settings),
             FieldSource::FirstLine {} => {
                 let first = first_line_range(file, range);
                 taken.push(first.clone());
@@ -95,6 +96,28 @@ pub(super) fn local_fields(
                     .collect::<Vec<_>>();
                 if matches!(source, FieldSource::Enclosing { .. }) {
                     selected.sort_by_key(|span| (span.start, std::cmp::Reverse(span.end)));
+                }
+                if matches!(
+                    source,
+                    FieldSource::Enclosing {
+                        text: crate::ContextText::Heading,
+                        ..
+                    } | FieldSource::SameFile {
+                        text: crate::ContextText::Heading,
+                        ..
+                    }
+                ) {
+                    let value = match source {
+                        FieldSource::Enclosing {
+                            of: MatchSource::Kind { kind },
+                            ..
+                        } => enclosing_heading_field(file, kind, &selected, html_settings),
+                        _ => FieldValue::Unavailable {
+                            reason: FieldUnavailable::Unreadable,
+                        },
+                    };
+                    fields.insert(name.clone(), value);
+                    continue;
                 }
                 let spans = selected
                     .iter()
@@ -162,6 +185,34 @@ pub(super) fn local_fields(
         fields.insert(name.clone(), remainder_field(file, range, field_taken));
     }
     fields
+}
+
+fn enclosing_heading_field(
+    file: &MatchedFile,
+    kind: &EvidenceKindName,
+    ranges: &[MatchRange],
+    settings: &crate::HtmlEvidenceSettings,
+) -> FieldValue {
+    let mut values = Vec::new();
+    let mut spans = Vec::new();
+    for range in ranges {
+        match file.section_field(kind, range, crate::SectionText::Heading, settings) {
+            FieldValue::Text {
+                value,
+                spans: heading_spans,
+            } => {
+                values.push(value);
+                spans.extend(heading_spans);
+            }
+            FieldValue::Unavailable { reason } => return FieldValue::Unavailable { reason },
+            _ => {
+                return FieldValue::Unavailable {
+                    reason: FieldUnavailable::Unreadable,
+                };
+            }
+        }
+    }
+    FieldValue::Texts { values, spans }
 }
 
 fn remainder_field(

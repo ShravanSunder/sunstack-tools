@@ -2,6 +2,9 @@
 use super::*;
 use serde_json::json;
 
+#[path = "native_unit_fields_test/heading_text.rs"]
+mod heading_text;
+
 const MARKDOWN: &str = "# Outer\n\nbefore <mark>literal</mark>\n\n- lead\n\n  ### Inner\n\n  body\n\nAfter the list.\n\n# Peer\nend\n";
 
 fn markdown_catalog(max_matches: usize) -> EvidenceCatalog {

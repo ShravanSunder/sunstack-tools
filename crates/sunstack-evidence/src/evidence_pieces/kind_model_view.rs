@@ -36,6 +36,15 @@ pub fn project_kind_model_view(
         .iter()
         .map(|(name, value)| {
             let project_html = match definition.fields.get(name) {
+                Some(
+                    FieldSource::Section {
+                        text: crate::SectionText::Heading,
+                    }
+                    | FieldSource::Enclosing {
+                        text: crate::ContextText::Heading,
+                        ..
+                    },
+                ) => false,
                 Some(FieldSource::Document { rule, .. }) => {
                     project.language_for_rule(rule) == Some(EvidenceLanguage::Html)
                 }

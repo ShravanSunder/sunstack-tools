@@ -1,0 +1,1245 @@
+{
+	"basis": "Independent Python3.15 HTMLParser over exact5c02896613pages; closed h1–h6 only, configured outline exclusion; asking whitespace/standard attributes. No candidate output.",
+	"source_revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+	"headings": [
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 1117,
+			"byte_end": 1182,
+			"text": "System map: every request, its timing, and what can wait"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 1788,
+			"byte_end": 1830,
+			"text": "The four kinds of work"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 3269,
+			"byte_end": 3294,
+			"text": "The map"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 5050,
+			"byte_end": 5105,
+			"text": "What can wait, and what it holds up"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 7336,
+			"byte_end": 7411,
+			"text": "Websocket requests from a Router to central"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 11463,
+			"byte_end": 11525,
+			"text": "Calls from owners, admin and other objects"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 12575,
+			"byte_end": 12637,
+			"text": "What central sends to a Router"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 13880,
+			"byte_end": 13922,
+			"text": "Work that runs at a time"
+		},
+		{
+			"file": "pages/page-01.html",
+			"source_sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414",
+			"byte_start": 15050,
+			"byte_end": 15110,
+			"text": "Flow control: the limits that stop floods"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 1067,
+			"byte_end": 1116,
+			"text": "Local storage (design 3): Program Design"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 1613,
+			"byte_end": 1658,
+			"text": "agent-router-update"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 3858,
+			"byte_end": 3887,
+			"text": "The steps"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 7672,
+			"byte_end": 7743,
+			"text": "Retiring the old id, store by store (step 0006)"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 9910,
+			"byte_end": 9965,
+			"text": "Who owns what after the update"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 12459,
+			"byte_end": 12544,
+			"text": "The Fleet database ( fleet.sqlite after step 0010)"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 14634,
+			"byte_end": 14691,
+			"text": "Enrolling belongs to Fleet access B3"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 15906,
+			"byte_end": 15941,
+			"text": "Scratch sweep"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 17203,
+			"byte_end": 17267,
+			"text": "Trace: each obligation to its owner and seam"
+		},
+		{
+			"file": "pages/page-02.html",
+			"source_sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e",
+			"byte_start": 18835,
+			"byte_end": 18864,
+			"text": "Depends on"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 639,
+			"byte_end": 688,
+			"text": "Requirements: workspace storage redesign"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 1080,
+			"byte_end": 1113,
+			"text": "Who this is for"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 1589,
+			"byte_end": 1631,
+			"text": "The shape, at a glance"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 2205,
+			"byte_end": 2260,
+			"text": "Capabilities and their needs"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 3353,
+			"byte_end": 3399,
+			"text": "C1 · Organize work"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 3417,
+			"byte_end": 3485,
+			"text": "U1 · Work is organized as workspace → areas → projects"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 3686,
+			"byte_end": 3747,
+			"text": "U2 · Initiatives are goals that cut across projects"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 3939,
+			"byte_end": 3974,
+			"text": "C2 · Roles"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 4346,
+			"byte_end": 4411,
+			"text": "U3 · A project has one lead, and optionally one advisor"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 4669,
+			"byte_end": 4748,
+			"text": "U13 · Each deliverable has its own implementer, verifier and reviewer"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 5039,
+			"byte_end": 5090,
+			"text": "C3 · Conversations"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 5474,
+			"byte_end": 5582,
+			"text": "U4 · Conversations live in an area. A thread may link to deliverables, and its creator resolves it"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 5814,
+			"byte_end": 5905,
+			"text": "U5 · Threads have participants and observers, many of each. Observers only follow"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 6065,
+			"byte_end": 6116,
+			"text": "C4 · Deliverables and tasks"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 6483,
+			"byte_end": 6573,
+			"text": "U7 · Deliverables are the lanes of a project, sequenced by blocked-by / blocking"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 6830,
+			"byte_end": 6904,
+			"text": "U6 · Tasks are simple, and every task belongs to one deliverable"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 7102,
+			"byte_end": 7142,
+			"text": "C5 · Work log"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 7383,
+			"byte_end": 7433,
+			"text": "U8 · Agents keep a work log you can read"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 7505,
+			"byte_end": 7564,
+			"text": "C6 · Messages and notifications"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 7967,
+			"byte_end": 8019,
+			"text": "U9 · All agent messages go through central"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 8151,
+			"byte_end": 8227,
+			"text": "U10 · Agents are told about activity they care about, from central"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 8412,
+			"byte_end": 8469,
+			"text": "C7 · Automations and wakes"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 8750,
+			"byte_end": 8847,
+			"text": "U11 · Automations and wakes are defined and fired in one central place, across machines"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 9080,
+			"byte_end": 9133,
+			"text": "C8 · Machines and sign-in"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 9394,
+			"byte_end": 9464,
+			"text": "U12 · A new Mac works as soon as it enrolls, with no seeding"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 9557,
+			"byte_end": 9608,
+			"text": "What the redesign must hold to"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 11185,
+			"byte_end": 11228,
+			"text": "What it does not do"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 11662,
+			"byte_end": 11706,
+			"text": "How you'll know it's done"
+		},
+		{
+			"file": "pages/page-03.html",
+			"source_sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002",
+			"byte_start": 11981,
+			"byte_end": 12010,
+			"text": "Confirm"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 1121,
+			"byte_end": 1169,
+			"text": "Central execution model: Program Design"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 3905,
+			"byte_end": 3963,
+			"text": "Three rules that make hibernation safe"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 5153,
+			"byte_end": 5215,
+			"text": "The engine core and its platform contract"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 6224,
+			"byte_end": 6281,
+			"text": "ObjectPlatform: the whole contract"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 9422,
+			"byte_end": 9456,
+			"text": "Closed shapes"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 11236,
+			"byte_end": 11280,
+			"text": "Events, per object type"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 12314,
+			"byte_end": 12358,
+			"text": "What every event does"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 15700,
+			"byte_end": 15741,
+			"text": "Units and containment"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 17477,
+			"byte_end": 17537,
+			"text": "The alarm: one owner, two operations"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 22277,
+			"byte_end": 22349,
+			"text": "A long step can delay other due work, boundedly"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 22873,
+			"byte_end": 22937,
+			"text": "Requests that start a long operation"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 23989,
+			"byte_end": 24091,
+			"text": "One table for every attempt: central_work_attempts (your decision)"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 28706,
+			"byte_end": 28805,
+			"text": "Who writes attempt rows when agent-fleet-sync changes an owed row"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 29643,
+			"byte_end": 29716,
+			"text": "Repeated failures are retired so nothing stays stuck"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 31351,
+			"byte_end": 31404,
+			"text": "Every subject is keyed by a UUIDv7"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 32269,
+			"byte_end": 32321,
+			"text": "Where every piece of state lives"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 35050,
+			"byte_end": 35114,
+			"text": "Keepalive, dead and replaced connections"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 36015,
+			"byte_end": 36069,
+			"text": "Same code on Tokio and Cloudflare"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 37076,
+			"byte_end": 37141,
+			"text": "Platform facts this design relies on"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 38682,
+			"byte_end": 38718,
+			"text": "Entity binding"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 40080,
+			"byte_end": 40129,
+			"text": "Trace: one row per obligation"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 43131,
+			"byte_end": 43170,
+			"text": "Which code changes"
+		},
+		{
+			"file": "pages/page-04.html",
+			"source_sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f",
+			"byte_start": 45359,
+			"byte_end": 45417,
+			"text": "Review disposition (revision 2 → 3)"
+		},
+		{
+			"file": "pages/page-05.html",
+			"source_sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8",
+			"byte_start": 1191,
+			"byte_end": 1220,
+			"text": "Decisions and status"
+		},
+		{
+			"file": "pages/page-05.html",
+			"source_sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8",
+			"byte_start": 1380,
+			"byte_end": 1412,
+			"text": "Open: 5 items"
+		},
+		{
+			"file": "pages/page-05.html",
+			"source_sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8",
+			"byte_start": 3060,
+			"byte_end": 3115,
+			"text": "My calls you can undo: 6 items"
+		},
+		{
+			"file": "pages/page-05.html",
+			"source_sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8",
+			"byte_start": 4817,
+			"byte_end": 4856,
+			"text": "Decided: 20 items"
+		},
+		{
+			"file": "pages/page-05.html",
+			"source_sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8",
+			"byte_start": 7712,
+			"byte_end": 7751,
+			"text": "Dropped: 12 items"
+		},
+		{
+			"file": "pages/page-05.html",
+			"source_sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8",
+			"byte_start": 8773,
+			"byte_end": 8823,
+			"text": "Everything you said: 42 answers"
+		},
+		{
+			"file": "pages/page-05.html",
+			"source_sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8",
+			"byte_start": 15456,
+			"byte_end": 15494,
+			"text": "Your questions: 13"
+		},
+		{
+			"file": "pages/page-06.html",
+			"source_sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4",
+			"byte_start": 692,
+			"byte_end": 748,
+			"text": "Move the browsers into one library-owned reader"
+		},
+		{
+			"file": "pages/page-06.html",
+			"source_sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4",
+			"byte_start": 1021,
+			"byte_end": 1045,
+			"text": "Entity bindings"
+		},
+		{
+			"file": "pages/page-06.html",
+			"source_sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4",
+			"byte_start": 2641,
+			"byte_end": 2668,
+			"text": "Public composition"
+		},
+		{
+			"file": "pages/page-06.html",
+			"source_sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4",
+			"byte_start": 4966,
+			"byte_end": 5002,
+			"text": "Render and effect ownership"
+		},
+		{
+			"file": "pages/page-06.html",
+			"source_sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4",
+			"byte_start": 8283,
+			"byte_end": 8324,
+			"text": "Explicit rich parts and identity"
+		},
+		{
+			"file": "pages/page-06.html",
+			"source_sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4",
+			"byte_start": 10943,
+			"byte_end": 10969,
+			"text": "Style and cutover"
+		},
+		{
+			"file": "pages/page-06.html",
+			"source_sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4",
+			"byte_start": 11740,
+			"byte_end": 11754,
+			"text": "Trace"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 456,
+			"byte_end": 518,
+			"text": "Specification · Typed configuration and engine calls"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 835,
+			"byte_end": 885,
+			"text": "What each path promises"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 1438,
+			"byte_end": 1482,
+			"text": "Consumers and boundary"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 2159,
+			"byte_end": 2212,
+			"text": "The things this contract names"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 5223,
+			"byte_end": 5275,
+			"text": "R1 · Discover and resolve existing configs"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 5932,
+			"byte_end": 5981,
+			"text": "R2 · Capture an immutable load snapshot"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 7091,
+			"byte_end": 7150,
+			"text": "R3 · Express complete definitions as typed values"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 7825,
+			"byte_end": 7873,
+			"text": "R4 · Constrain input and result shapes"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 8561,
+			"byte_end": 8600,
+			"text": "R5 · Share semantic admission"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 9306,
+			"byte_end": 9347,
+			"text": "R6 · Keep check credential-free"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 9960,
+			"byte_end": 10011,
+			"text": "R7 · Run explicitly and preserve outcomes"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 11120,
+			"byte_end": 11166,
+			"text": "R8 · Isolate and settle cancellation"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 12187,
+			"byte_end": 12228,
+			"text": "R9 · Preserve CLI compatibility"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 12757,
+			"byte_end": 12808,
+			"text": "R10 · Install matching platform artifacts"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 13420,
+			"byte_end": 13492,
+			"text": "R11 · Return source provenance without changing legacy reports"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 14241,
+			"byte_end": 14283,
+			"text": "R12 · Bound ast-grep type claims"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 15536,
+			"byte_end": 15575,
+			"text": "R13 · Preserve numeric values"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 16188,
+			"byte_end": 16241,
+			"text": "R14 · Detect incompatible contract versions"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 16838,
+			"byte_end": 16885,
+			"text": "R15 · Make validation extras optional"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 17570,
+			"byte_end": 17629,
+			"text": "Public behavior and typed outcomes"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 21896,
+			"byte_end": 21938,
+			"text": "Loading and editing"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 24154,
+			"byte_end": 24230,
+			"text": "Reference case for complete inline authoring"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 26960,
+			"byte_end": 27014,
+			"text": "Exact limits of the contract"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 28197,
+			"byte_end": 28260,
+			"text": "Source identity and exact content"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 29574,
+			"byte_end": 29650,
+			"text": "Accepted matcher properties and compatibility"
+		},
+		{
+			"file": "pages/page-07.html",
+			"source_sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc",
+			"byte_start": 30857,
+			"byte_end": 30907,
+			"text": "Need to obligation coverage"
+		},
+		{
+			"file": "pages/page-08.html",
+			"source_sha256": "b09aefbfb56b52280807dfbff55df336c415020060a02dbb246f7acf15404c76",
+			"byte_start": 588,
+			"byte_end": 637,
+			"text": "Requirements: workspace storage redesign"
+		},
+		{
+			"file": "pages/page-08.html",
+			"source_sha256": "b09aefbfb56b52280807dfbff55df336c415020060a02dbb246f7acf15404c76",
+			"byte_start": 810,
+			"byte_end": 877,
+			"text": "What the system gives you, by capability"
+		},
+		{
+			"file": "pages/page-08.html",
+			"source_sha256": "b09aefbfb56b52280807dfbff55df336c415020060a02dbb246f7acf15404c76",
+			"byte_start": 3047,
+			"byte_end": 3117,
+			"text": "What's inside the redesign, and what isn't"
+		},
+		{
+			"file": "pages/page-09.html",
+			"source_sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364",
+			"byte_start": 748,
+			"byte_end": 824,
+			"text": "Step 3: ship the checks now, or wait to ship them with the warning?"
+		},
+		{
+			"file": "pages/page-09.html",
+			"source_sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364",
+			"byte_start": 1570,
+			"byte_end": 1630,
+			"text": "Still open with you, whichever you choose"
+		},
+		{
+			"file": "pages/page-09.html",
+			"source_sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364",
+			"byte_start": 2561,
+			"byte_end": 2602,
+			"text": "Where step 3 stands"
+		},
+		{
+			"file": "pages/page-09.html",
+			"source_sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364",
+			"byte_start": 3028,
+			"byte_end": 3084,
+			"text": "A real example of what isn't ready"
+		},
+		{
+			"file": "pages/page-09.html",
+			"source_sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364",
+			"byte_start": 3804,
+			"byte_end": 3836,
+			"text": "Your choice"
+		},
+		{
+			"file": "pages/page-09.html",
+			"source_sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364",
+			"byte_start": 5902,
+			"byte_end": 5961,
+			"text": "What the decision-model adviser found"
+		},
+		{
+			"file": "pages/page-09.html",
+			"source_sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364",
+			"byte_start": 7050,
+			"byte_end": 7134,
+			"text": "The 908-line file, and one possible engine change (sketch only)"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 725,
+			"byte_end": 765,
+			"text": "Workflow engine: Program Design"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 1282,
+			"byte_end": 1339,
+			"text": "How one workflow runs on both engines"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 3322,
+			"byte_end": 3373,
+			"text": "The replay contract (F3, F4)"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 6967,
+			"byte_end": 7002,
+			"text": "Components"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 9956,
+			"byte_end": 9988,
+			"text": "Step budget"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 10359,
+			"byte_end": 10390,
+			"text": "Versions"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 10814,
+			"byte_end": 10850,
+			"text": "Entity binding"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 11704,
+			"byte_end": 11747,
+			"text": "Choices made, and why"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 12773,
+			"byte_end": 12798,
+			"text": "Trace"
+		},
+		{
+			"file": "pages/page-10.html",
+			"source_sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54",
+			"byte_start": 14138,
+			"byte_end": 14167,
+			"text": "Cutover"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 1195,
+			"byte_end": 1221,
+			"text": "Follow a workflow"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 1971,
+			"byte_end": 2048,
+			"text": "Choose the question you want to understand"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 3301,
+			"byte_end": 3348,
+			"text": "Remote terminal"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 3348,
+			"byte_end": 3431,
+			"text": "1. Choose a machine and session"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 3764,
+			"byte_end": 3863,
+			"text": "2. Establish execution without a viewer"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 4367,
+			"byte_end": 4428,
+			"text": "3. Attach and render"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 4911,
+			"byte_end": 4968,
+			"text": "4. Type and resize"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 5480,
+			"byte_end": 5539,
+			"text": "5. Close and return"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 5956,
+			"byte_end": 6075,
+			"text": "6. Integrate and prove the whole terminal feature"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 6600,
+			"byte_end": 6649,
+			"text": "Create a worktree"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 6649,
+			"byte_end": 6724,
+			"text": "1. Choose the creation mode"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 7205,
+			"byte_end": 7294,
+			"text": "2. Validate and create on the Host"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 7860,
+			"byte_end": 7945,
+			"text": "3. Reconcile success and failure"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 8436,
+			"byte_end": 8517,
+			"text": "4. Prepare the repository view"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 8933,
+			"byte_end": 9020,
+			"text": "5. Apply the result in the UX client"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 9443,
+			"byte_end": 9562,
+			"text": "6. Integrate and prove the whole worktree feature"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 10057,
+			"byte_end": 10111,
+			"text": "Review an annotated diff"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 10111,
+			"byte_end": 10186,
+			"text": "1. Read the addressed source"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 10609,
+			"byte_end": 10716,
+			"text": "2. Publish the view and track actual viewing"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 11341,
+			"byte_end": 11416,
+			"text": "3. Edit and save annotations"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 11871,
+			"byte_end": 11958,
+			"text": "4. Prepare an exact output attempt"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 12415,
+			"byte_end": 12500,
+			"text": "5. Perform the destination effect"
+		},
+		{
+			"file": "pages/page-11.html",
+			"source_sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95",
+			"byte_start": 12990,
+			"byte_end": 13103,
+			"text": "6. Integrate and prove the whole review feature"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 456,
+			"byte_end": 518,
+			"text": "Program Design · One Rust engine, multiple consumers"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 842,
+			"byte_end": 881,
+			"text": "Who owns what"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 2007,
+			"byte_end": 2052,
+			"text": "Why this structure"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 3489,
+			"byte_end": 3549,
+			"text": "Current source and changed calls"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 6632,
+			"byte_end": 6694,
+			"text": "Root and origin call-path changes"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 7745,
+			"byte_end": 7800,
+			"text": "Entity homes and boundary shapes"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 10572,
+			"byte_end": 10620,
+			"text": "The input and result shapes"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 17860,
+			"byte_end": 17925,
+			"text": "Ast-grep: precise types without a fork"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 19978,
+			"byte_end": 20021,
+			"text": "Load, check and run"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 21398,
+			"byte_end": 21455,
+			"text": "Cancellation, overlap and failure"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 24626,
+			"byte_end": 24677,
+			"text": "Packaging and compatibility"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 25514,
+			"byte_end": 25579,
+			"text": "One realization row per observable obligation"
+		},
+		{
+			"file": "pages/page-12.html",
+			"source_sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4",
+			"byte_start": 32220,
+			"byte_end": 32275,
+			"text": "Enforcement and excluded machinery"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 1120,
+			"byte_end": 1167,
+			"text": "How work runs: today vs the new design"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 1593,
+			"byte_end": 1683,
+			"text": "1. Before: a request becomes a job behind cleanup, and waits in memory"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 2824,
+			"byte_end": 2888,
+			"text": "2. New: a request is answered in its event"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 3290,
+			"byte_end": 3365,
+			"text": "3. New: mail is an owed row; the answer is its own event"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 4216,
+			"byte_end": 4296,
+			"text": "4. New: an object hibernating with its Routers connected"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 4908,
+			"byte_end": 4982,
+			"text": "5. New: reconnect drains the backlog, paced by answers"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 5716,
+			"byte_end": 5794,
+			"text": "6. New: a retry needs a timer only when no event will come"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 6496,
+			"byte_end": 6574,
+			"text": "7. New: cleanup is its own unit and can't block anything"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 7076,
+			"byte_end": 7154,
+			"text": "8. New: long operations keep today's engine behind one seam"
+		},
+		{
+			"file": "pages/page-13.html",
+			"source_sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99",
+			"byte_start": 7803,
+			"byte_end": 7858,
+			"text": "Every kind of work, and how it runs"
+		}
+	]
+}
