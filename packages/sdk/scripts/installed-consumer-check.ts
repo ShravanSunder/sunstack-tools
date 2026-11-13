@@ -201,12 +201,26 @@ writeFileSync(
 );
 step('typecheck', join(consumer, 'node_modules', '.bin', 'tsc'), ['-p', 'tsconfig.json']);
 
+// Heading pages: a non-ASCII setext heading and an ATX child keep their Markdown source; HTML
+// entities are decoded exactly once.
+const headingGuide = 'Café *guide* &amp;\n===\n\nIntro.\n\n## Install `npm` ##\n\nSteps.\n';
+const headingPage =
+	'猫<h2>Review &lt;Widget&gt; &amp;lt;</h2><h3>1. <em>Read</em> addressed source</h3><p>Body</p>';
+
+/** `start-end`: the UTF-8 byte range of `fragment` in `page`. */
+function headingBytes(page: string, fragment: string): string {
+	const start = Buffer.from(page).indexOf(Buffer.from(fragment));
+	assert.ok(start >= 0, fragment);
+	return `${start}-${start + Buffer.byteLength(fragment)}`;
+}
+
 // A synthetic checked repository and an existing CLI-style configuration project.
 const checked = join(consumer, 'checked');
 const project = join(consumer, 'project');
 for (const [path, content] of Object.entries({
 	[join(checked, 'docs', 'one.md')]: '---\ndescription: Wrong opening\n---\n\n# One\n',
-	[join(checked, 'docs', 'guide.md')]: '# Guide\n\nIntro.\n\n## Install `npm` ##\n\nSteps.\n',
+	[join(checked, 'docs', 'guide.md')]: headingGuide,
+	[join(checked, 'docs', 'page.html')]: headingPage,
 	[join(project, 'sunstack.lint.json')]: JSON.stringify({
 		rulebook: [{ markdown: 'rulebook.md', rules: 'rules.json' }],
 		marker_prefix: 'K',
@@ -257,8 +271,17 @@ assert.match(edited, /source edited/u);
 const headings = step('heading-fields', process.execPath, ['heading-fields.ts', checked]);
 assert.match(headings, /check: valid/u);
 assert.match(headings, /run: clean/u);
-assert.match(headings, /^docs\/guide\.md: Guide \| Guide$/mu);
-assert.match(headings, /^docs\/guide\.md: Install `npm` \| Guide > Install `npm`$/mu);
+const guideHeading = 'Café *guide* &amp;';
+const pageHeading = 'Review <Widget> &lt;';
+const headingLines = headings.split('\n');
+for (const expected of [
+	`docs/guide.md: ${guideHeading} | ${guideHeading} @ ${headingBytes(headingGuide, 'Café *guide* &amp;\n===\n')}`,
+	`docs/guide.md: Install \`npm\` | ${guideHeading} > Install \`npm\` @ ${headingBytes(headingGuide, '## Install `npm` ##\n')}`,
+	`docs/page.html: ${pageHeading} | ${pageHeading} @ ${headingBytes(headingPage, '<h2>Review &lt;Widget&gt; &amp;lt;</h2>')}`,
+	`docs/page.html: 1. Read addressed source | ${pageHeading} > 1. Read addressed source @ ${headingBytes(headingPage, '<h3>1. <em>Read</em> addressed source</h3>')}`,
+]) {
+	assert.ok(headingLines.includes(expected), `heading line: ${expected}`);
+}
 const inline = step('inline-configuration', process.execPath, ['inline-configuration.ts', checked]);
 assert.match(inline, /check: valid/u);
 process.stdout.write(`\nInstalled consumer passed in ${consumer}\n`);
