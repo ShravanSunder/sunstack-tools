@@ -299,6 +299,9 @@ fn select_question_shape(types: &mut Types) -> Result<(), Box<dyn Error>> {
     }
 }
 
+/// The fields an evidence kind shares whatever its matcher, as `EvidenceKindWire` names them.
+const SHARED_KEYS: [&str; 4] = ["fields", "max_chars", "select", "within"];
+
 /// The exclusive matcher keys of an evidence kind, as `EvidenceKindWire` names them.
 const MATCHER_KEYS: [(&str, &str); 4] = [
     ("rule", "Rule"),
@@ -314,7 +317,8 @@ const MATCHER_KEYS: [(&str, &str); 4] = [
 /// The SDK declares that admitted shape: the kind's other fields, intersected with an
 /// untagged union whose variants each require one matcher key with its Rust field type.
 /// TypeScript marks the other keys of each variant `never`, so a kind with no matcher key
-/// or with two is refused.
+/// or with two is refused. Every `EvidenceKindWire` field must be a known matcher or shared
+/// key: a field added to the Rust wire fails generation until it is classified here.
 fn exclusive_matcher_shape(types: &mut Types) -> Result<(), Box<dyn Error>> {
     let mut outcome: Result<bool, String> = Ok(false);
     types.iter_mut(|named| {
@@ -370,6 +374,21 @@ fn exclusive_matcher(wire: Option<DataType>) -> Result<DataType, String> {
     if matchers.len() != MATCHER_KEYS.len() {
         return Err("EvidenceKindWire matcher fields do not match the four matcher keys".into());
     }
+    let shared_names = fields
+        .fields
+        .iter()
+        .map(|(name, _)| name.to_string())
+        .collect::<Vec<_>>();
+    let mut sorted_shared = shared_names.clone();
+    sorted_shared.sort();
+    let mut known_shared = SHARED_KEYS.map(str::to_string).to_vec();
+    known_shared.sort();
+    if sorted_shared != known_shared {
+        return Err(format!(
+            "EvidenceKindWire fields {shared_names:?} are not exactly the known shared keys \
+             {SHARED_KEYS:?}; classify any new field as a matcher or a shared field"
+        ));
+    }
     choice
         .attributes
         .insert(specta::markers::SERDE_CONTAINER_UNTAGGED, true);
@@ -424,3 +443,7 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
         wide_integers: json!({"definitions": definitions}),
     })
 }
+
+#[cfg(test)]
+#[path = "contract_export_test.rs"]
+mod tests;
