@@ -7,7 +7,11 @@ import { parseArgs } from 'node:util';
 
 import { z } from 'zod';
 
+import { observeSdkCodecRoots } from './sdk-codec-roots.ts';
+import { observeSdkCodecRefusals } from './sdk-codec.ts';
 import { SdkControlledBackend } from './sdk-controlled-backend.ts';
+import { observeSdkPackagedExamples } from './sdk-examples.ts';
+import { observeSdkInspection } from './sdk-inspection.ts';
 import {
 	observeSdkSnapshot,
 	observeSdkInline,
@@ -29,7 +33,7 @@ import {
 
 const help = `Installed Sunstack SDK observations (draft until driven on a declared candidate).
 From monorepo root:
-  node scripts/verify/sunstack-rule/sdk/sdk-verify.ts --target <absolute-target.json> --journey snapshot|inline|isolation|install|provider --evidence <new-absolute-directory>
+  node scripts/verify/sunstack-rule/sdk/sdk-verify.ts --target <absolute-target.json> --journey snapshot|inline|isolation|install|codec|inspection|examples|provider --evidence <new-absolute-directory>
 Target JSON uses sdkTargetSchema in sdk-target.ts: sourceRoot/full commit, fresh
 consumerRoot/packageRoot/resolved entry/addon, tarball/hash, installed files/hashes,
 release/contractRevision and actual platform/arch/libc. Optional cli binary/hash
@@ -62,7 +66,16 @@ async function main(): Promise<void> {
 		return;
 	}
 	const journey = z
-		.enum(['snapshot', 'inline', 'isolation', 'install', 'provider'])
+		.enum([
+			'snapshot',
+			'inline',
+			'isolation',
+			'install',
+			'codec',
+			'inspection',
+			'examples',
+			'provider',
+		])
 		.parse(values.journey);
 	if (journey === 'provider')
 		requireSdk(
@@ -154,6 +167,21 @@ async function main(): Promise<void> {
 				break;
 			case 'isolation':
 				outcome = await observeSdkIsolation(context);
+				break;
+			case 'codec': {
+				const refusals = await observeSdkCodecRefusals(context);
+				const roots = await observeSdkCodecRoots(context);
+				outcome = {
+					observed: [...refusals.observed, ...roots.observed],
+					gaps: [...refusals.gaps, ...roots.gaps],
+				};
+				break;
+			}
+			case 'inspection':
+				outcome = await observeSdkInspection(context);
+				break;
+			case 'examples':
+				outcome = observeSdkPackagedExamples({ target, evidence, compiler });
 				break;
 			case 'install': {
 				const install = inspectSdkInstall();

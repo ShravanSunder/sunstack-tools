@@ -37,6 +37,11 @@ const sdkExportsSchema = z.object({
 	check: callSchema,
 	run: callSchema,
 	contractInfo: callSchema,
+	inspect: callSchema.optional(),
+	serialize: z
+		.custom<(...arguments_: unknown[]) => unknown>((value) => typeof value === 'function')
+		.optional(),
+	deserialize: callSchema.optional(),
 });
 export type SdkExports = z.infer<typeof sdkExportsSchema>;
 
