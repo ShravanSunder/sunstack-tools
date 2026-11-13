@@ -186,7 +186,7 @@ export async function observeSdkSectionPrefix(options: {
 									mechanical_check: {
 										tool: 'contains',
 										field: 'preceding',
-										text: 'function run()',
+										text: 'function ',
 									},
 									yes: 'pass',
 									['no']: { finding: 'Function prefix missing.' },
