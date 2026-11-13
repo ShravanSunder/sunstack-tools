@@ -8,6 +8,9 @@ import {
 	textValue,
 	type JsonObject,
 } from '../rulebook/rulebook-fixture-support.ts';
+import type { ErrorControl } from './error-fixtures.ts';
+
+export const unrecoverableMarkupMarker = '[cut: html_projection_unrecoverable_markup]';
 
 export function requireVersionOnlyBytes(before: Buffer, after: Buffer): void {
 	const original = objectValue(JSON.parse(before.toString('utf8')));
@@ -25,13 +28,14 @@ export function requireVersionOnlyBytes(before: Buffer, after: Buffer): void {
 
 export function requireRecoveredControl(
 	report: JsonObject,
-	expected: Readonly<Record<string, { expected: string; cut: boolean; raw: string }>>,
+	expected: Readonly<Record<string, ErrorControl>>,
 ): void {
 	assert.equal(objectValue(report['usage'])['model_requests'], 0);
 	const requests = arrayValue(report['requests']).map(objectValue);
 	assert.equal(requests.length, Object.keys(expected).length);
 	const seen = new Set<string>();
 	for (const request of requests) {
+		assert.equal(request['status'], 'prepared');
 		const piece = objectValue(
 			objectValue(objectValue(report['piece_evidence'])[String(numberValue(request['id']))])[
 				'piece'
@@ -45,9 +49,29 @@ export function requireRecoveredControl(
 		assert.equal(piece['text'], control.raw);
 		assert.equal(objectValue(objectValue(piece['fields'])['full'])['value'], control.raw);
 		const state = objectValue(objectValue(request['request'])['state']);
-		assert.equal(state['full'], control.expected, file);
-		assert.deepEqual(objectValue(piece['model_view'])['cut'], control.cut ? ['full'] : []);
-		assert.deepEqual(state['cut-fields'] ?? [], control.cut ? ['full'] : []);
+		const projected = textValue(state['full']);
+		const view = objectValue(piece['model_view']);
+		assert.equal(view['state'], 'bounded');
+		assert.equal(objectValue(view['fields'])['full'], projected, 'Request differs from model view');
+		const projection = control.projection;
+		const cut = arrayValue(view['cut']);
+		const requestCut = state['cut-fields'] ?? [];
+		if (
+			projection.kind === 'exact' ||
+			(projection.kind === 'text-or-incomplete' && cut.length === 0)
+		) {
+			assert.equal(projected, projection.text, file);
+			assert.deepEqual(cut, []);
+			assert.deepEqual(requestCut, []);
+		} else {
+			assert.deepEqual(cut, ['full'], 'Named incomplete missing model-view cut');
+			assert.deepEqual(requestCut, ['full'], 'Named incomplete missing request cut');
+			assert.ok(
+				projected.endsWith(unrecoverableMarkupMarker),
+				'Wrong or missing incomplete reason',
+			);
+			assert.ok(projected.startsWith(projection.prefix), 'Incomplete lost already-visible prefix');
+		}
 	}
 }
 

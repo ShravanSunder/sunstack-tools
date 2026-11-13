@@ -16,6 +16,7 @@ import {
 import type { RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { requireSections } from './checks.ts';
 import type { Section } from './corpus.ts';
+import { unrecoverableMarkupMarker } from './error-oracle.ts';
 import { prepareProject } from './fixtures.ts';
 
 export interface RecoveryCase {
@@ -24,10 +25,12 @@ export interface RecoveryCase {
 	readonly markers: readonly [string, string];
 	readonly titles: readonly [string, string];
 	readonly nested: boolean;
+	readonly allowIncomplete?: boolean;
 }
 export const recoveryCases: readonly RecoveryCase[] = [
 	{
 		name: 'both-unclosed',
+		allowIncomplete: true,
 		raw: '<h2>Parent<h3>Child',
 		markers: ['<h2>Parent', '<h3>Child'],
 		titles: ['Parent', 'Child'],
@@ -35,6 +38,7 @@ export const recoveryCases: readonly RecoveryCase[] = [
 	},
 	{
 		name: 'newline',
+		allowIncomplete: true,
 		raw: '<h2>Parent\n<h3>Child\n',
 		markers: ['<h2>Parent', '<h3>Child'],
 		titles: ['Parent', 'Child'],
@@ -42,6 +46,7 @@ export const recoveryCases: readonly RecoveryCase[] = [
 	},
 	{
 		name: 'parent-closed',
+		allowIncomplete: true,
 		raw: '<h2>Parent</h2><h3>Child',
 		markers: ['<h2>Parent', '<h3>Child'],
 		titles: ['Parent', 'Child'],
@@ -49,6 +54,7 @@ export const recoveryCases: readonly RecoveryCase[] = [
 	},
 	{
 		name: 'child-closed',
+		allowIncomplete: true,
 		raw: '<h2>Parent<h3>Child</h3>',
 		markers: ['<h2>Parent', '<h3>Child'],
 		titles: ['Parent', 'Child'],
@@ -56,6 +62,7 @@ export const recoveryCases: readonly RecoveryCase[] = [
 	},
 	{
 		name: 'siblings',
+		allowIncomplete: true,
 		raw: '<h2>A<h2>B',
 		markers: ['<h2>A', '<h2>B'],
 		titles: ['A', 'B'],
@@ -70,6 +77,7 @@ export const recoveryCases: readonly RecoveryCase[] = [
 	},
 	{
 		name: 'unicode',
+		allowIncomplete: true,
 		raw: '猫<h2>Parent🙂<h3>Child',
 		markers: ['<h2>Parent', '<h3>Child'],
 		titles: ['Parent🙂', 'Child'],
@@ -77,6 +85,7 @@ export const recoveryCases: readonly RecoveryCase[] = [
 	},
 	{
 		name: 'excluded-recovery',
+		allowIncomplete: true,
 		raw: '<template><h2>Hidden<h3>Hidden</template><ex-markdown><h2>Island<h3>Island</ex-markdown><!-- <h2>Comment --><script>const example="<h2>Script";</script><h2>Visible<h3>Visible child',
 		markers: ['<h2>Visible', '<h3>Visible child'],
 		titles: ['Visible', 'Visible child'],
@@ -117,7 +126,7 @@ export function requireRecoveryPrepared(
 	assert.equal(
 		arrayValue(report['incomplete']).length,
 		0,
-		'Placeable recovered headings became incomplete',
+		'Placeable headings must retain prepared owners',
 	);
 	const requests = arrayValue(report['requests']).map(objectValue);
 	assert.equal(
@@ -141,13 +150,32 @@ export function requireRecoveryPrepared(
 			assert.ok(index >= 0);
 			const title = control.titles[index];
 			assert.ok(title);
-			assert.equal(
-				textValue(state['full']),
-				index === 0 && control.nested ? `${control.titles[0]} ${control.titles[1]}` : title,
-				'Recovered heading words lost their boundary',
-			);
-			assert.equal(state['own'], title);
-			assert.equal(state['parent'], index === 1 && control.nested ? control.titles[0] : null);
+			const view = objectValue(piece['model_view']);
+			assert.equal(view['state'], 'bounded');
+			const cut = arrayValue(view['cut']).map(textValue);
+			assert.deepEqual(state['cut-fields'] ?? [], cut, 'Heading request lost its model-view cuts');
+			assert.ok(cut.every((field) => ['full', 'own', 'parent'].includes(field)));
+			const expected = {
+				full: index === 0 && control.nested ? `${control.titles[0]} ${control.titles[1]}` : title,
+				own: title,
+				parent: index === 1 && control.nested ? control.titles[0] : null,
+			};
+			for (const [field, text] of Object.entries(expected)) {
+				assert.deepEqual(objectValue(view['fields'])[field], state[field]);
+				if (cut.includes(field)) {
+					assert.ok(
+						control.allowIncomplete && text !== null,
+						'False cut on a complete heading or absent parent',
+					);
+					assert.ok(
+						textValue(state[field]).endsWith(unrecoverableMarkupMarker),
+						'Heading cut lacks the adopted reason',
+					);
+				} else {
+					assert.equal(state[field], text, 'Recovered heading words lost their boundary');
+				}
+			}
+
 			return piece;
 		});
 		requireSections({ pieces, sections: recoverySections(control), raw: Buffer.from(control.raw) });

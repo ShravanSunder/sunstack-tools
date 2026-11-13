@@ -103,3 +103,29 @@ fn asking_and_selection_keep_existing_ampersand_error_leaves_verbatim() {
         HtmlAskingText::Complete(expected.into())
     );
 }
+
+#[test]
+fn asking_preserves_u1_own_fragment_with_structural_error_tags() {
+    use ast_grep_language::{LanguageExt, SupportLang};
+    // Native own text is a byte slice and can contain unmatched enclosing tags.
+    let raw = r###"<h3>U1 · Work is organized as workspace → areas → projects</h3>
+<p>Your words: "workspace -> Areas -> Projects"; "board is not a good name". An <strong>area</strong> replaces today's "board". A project is a body of work with a lead.</p>
+<p>Why: today's names and levels (boards, workstreams, milestones) don't match how you think about the work.</p>
+<p>Served by <a href="specification.html#R1">R1</a>.</p></section>
+<section id="U2">"###;
+    let tree = SupportLang::Html.ast_grep(raw);
+    let errors = tree
+        .root()
+        .dfs()
+        .filter(|node| node.is_error() && node.text() == "</section>")
+        .collect::<Vec<_>>();
+    assert_eq!(errors.len(), 1);
+    println!(
+        "U1 structural ERROR kinds: {:?}",
+        errors[0]
+            .dfs()
+            .map(|node| node.kind().into_owned())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(html_asking_text(raw), HtmlAskingText::Complete(r###"U1 · Work is organized as workspace → areas → projects Your words: "workspace -> Areas -> Projects"; "board is not a good name". An area replaces today's "board". A project is a body of work with a lead. Why: today's names and levels (boards, workstreams, milestones) don't match how you think about the work. Served by R1 ."###.into()));
+}

@@ -4,7 +4,12 @@ import { createHash } from 'node:crypto';
 import { test } from 'vitest';
 
 import { arrayValue, objectValue, type JsonObject } from '../rulebook/rulebook-fixture-support.ts';
-import { requireAmpersandAskingCoverage, requireVersionOnlyBytes } from './error-oracle.ts';
+import type { ErrorControl } from './error-fixtures.ts';
+import {
+	requireAmpersandAskingCoverage,
+	requireRecoveredControl,
+	requireVersionOnlyBytes,
+} from './error-oracle.ts';
 import { requireRecoveringParity, requireSourceWords } from './error-parity.ts';
 
 function encoded(value: JsonObject): Buffer {
@@ -128,4 +133,105 @@ test('rejects a prepared owner attributed to another content identity', () => {
 		)['span'],
 	)['source'] = { path: 'page-0.html', content_identity: 'other-version' };
 	assert.throws(() => requireAmpersandAskingCoverage(report, listing), /No prepared asking owner/u);
+});
+
+const fallbackControl: ErrorControl = {
+	name: 'fallback',
+	raw: 'Before</h2>After',
+	projection: { kind: 'text-or-incomplete', text: 'Before After', prefix: 'Before' },
+};
+function fallbackReport(options: {
+	text: string;
+	modelCut?: string[];
+	requestCut?: string[];
+}): JsonObject {
+	const cut = options.modelCut ?? [];
+	return {
+		usage: { model_requests: 0 },
+		requests: [
+			{
+				id: 1,
+				status: 'prepared',
+				request: { state: { full: options.text, 'cut-fields': options.requestCut ?? cut } },
+			},
+		],
+		piece_evidence: {
+			'1': {
+				piece: {
+					where: { file: 'fallback.html' },
+					text: fallbackControl.raw,
+					fields: { full: { value: fallbackControl.raw } },
+					model_view: { state: 'bounded', fields: { full: options.text }, cut },
+				},
+			},
+		},
+	};
+}
+test('accepts correct text or a truthfully named incomplete under adopted C10', () => {
+	requireRecoveredControl(fallbackReport({ text: 'Before After' }), {
+		'fallback.html': fallbackControl,
+	});
+	requireRecoveredControl(
+		fallbackReport({
+			text: 'Before [cut: html_projection_unrecoverable_markup]',
+			modelCut: ['full'],
+		}),
+		{ 'fallback.html': fallbackControl },
+	);
+});
+test('rejects the silent complete that loses After', () => {
+	assert.throws(() =>
+		requireRecoveredControl(fallbackReport({ text: 'Before' }), {
+			'fallback.html': fallbackControl,
+		}),
+	);
+});
+test('requires both request and model-view cuts for the named incomplete', () => {
+	const text = 'Before [cut: html_projection_unrecoverable_markup]';
+	assert.throws(() =>
+		requireRecoveredControl(fallbackReport({ text, modelCut: ['full'], requestCut: [] }), {
+			'fallback.html': fallbackControl,
+		}),
+	);
+	assert.throws(() =>
+		requireRecoveredControl(fallbackReport({ text, modelCut: [], requestCut: ['full'] }), {
+			'fallback.html': fallbackControl,
+		}),
+	);
+});
+test('rejects wrong incomplete reasons and lost visible prefixes', () => {
+	for (const text of [
+		'Before [cut: html_projection_unterminated_markup]',
+		'[cut: html_projection_unrecoverable_markup]',
+	])
+		assert.throws(() =>
+			requireRecoveredControl(fallbackReport({ text, modelCut: ['full'] }), {
+				'fallback.html': fallbackControl,
+			}),
+		);
+});
+test('rejects differing asking payload and model-view text', () => {
+	const report = fallbackReport({ text: 'Before After' });
+	objectValue(
+		objectValue(
+			objectValue(objectValue(objectValue(report['piece_evidence'])['1'])['piece'])['model_view'],
+		)['fields'],
+	)['full'] = 'Before';
+	assert.throws(() => requireRecoveredControl(report, { 'fallback.html': fallbackControl }));
+});
+test('keeps exact markup-only controls strict against false cuts', () => {
+	const exact: ErrorControl = {
+		...fallbackControl,
+		projection: { kind: 'exact', text: 'Before After' },
+	};
+	requireRecoveredControl(fallbackReport({ text: 'Before After' }), { 'fallback.html': exact });
+	assert.throws(() =>
+		requireRecoveredControl(
+			fallbackReport({
+				text: 'Before After [cut: html_projection_unrecoverable_markup]',
+				modelCut: ['full'],
+			}),
+			{ 'fallback.html': exact },
+		),
+	);
 });

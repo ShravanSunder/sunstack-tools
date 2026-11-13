@@ -223,84 +223,6 @@ fn html_asking_view(raw: &str) -> serde_json::Value {
 }
 
 #[test]
-fn asking_retains_words_after_stray_closing_tag() {
-    // Arrange: the parser stores the closing tag and following word in ERROR nodes.
-    let raw = "Before</h2>After";
-    // Act: use the same projection boundary as rule, selection and filter requests.
-    let view = html_asking_view(raw);
-    // Assert: the sentence survives, without exposing the malformed tag as prose.
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_retains_words_after_nested_stray_tags() {
-    let view = html_asking_view("Before</h2>After</h3>Tail");
-    assert_eq!(view["fields"]["body"], "Before After Tail");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_decodes_entities_in_recovered_words_once() {
-    let view = html_asking_view("Before</h2>Après &amp; &#x732B; &amp;lt;");
-    assert_eq!(view["fields"]["body"], "Before Après & 猫 &lt;");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_names_unterminated_markup_and_keeps_the_safe_prefix() {
-    let view = html_asking_view("Before <broken attribute=\"unterminated");
-    assert_eq!(
-        view["fields"]["body"],
-        "Before [cut: html_projection_unterminated_markup]"
-    );
-    assert_eq!(view["cut"], json!(["body"]));
-}
-
-#[test]
-fn asking_does_not_recover_script_or_style_error_payload_as_prose() {
-    for raw in [
-        "Before<script>Hidden</h2>After",
-        "Before<style>Hidden</h2>After",
-    ] {
-        let view = html_asking_view(raw);
-        assert_eq!(view["fields"]["body"], "Before", "{raw}");
-        assert_eq!(view["cut"], json!([]));
-    }
-}
-
-#[test]
-fn asking_skips_recovered_comments_and_keeps_following_words() {
-    let view = html_asking_view("Before</h2><!-- Hidden -->After");
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_marks_missing_tag_terminators_incomplete() {
-    for raw in ["Before <", "Before <broken"] {
-        let view = html_asking_view(raw);
-        assert_eq!(
-            view["fields"]["body"], "Before [cut: html_projection_unterminated_markup]",
-            "{raw}"
-        );
-        assert_eq!(view["cut"], json!(["body"]));
-    }
-}
-
-#[test]
-fn asking_keeps_template_and_markdown_islands_inside_error_spans_excluded() {
-    for raw in [
-        "Before<template>Hidden</h2>After<",
-        "Before<ex-markdown>Hidden</h2>After<",
-    ] {
-        let view = html_asking_view(raw);
-        assert_eq!(view["fields"]["body"], "Before", "{raw}");
-        assert_eq!(view["cut"], json!([]));
-    }
-}
-
-#[test]
 fn asking_keeps_well_formed_script_style_attributes_and_text_unchanged() {
     let view = html_asking_view(
         r#"<p aria-label="Flow &amp; words">Café <b>猫</b> **literal**</p><script>x = '&amp;';</script><style>a > b { color: red }</style>"#,
@@ -359,12 +281,15 @@ fn asking_cuts_nested_target_and_list_fields_without_mutating_raw_evidence() {
     assert_eq!(view["cut"], json!(["list", "targets"]));
     assert_eq!(
         view["fields"]["list"],
-        json!(["Whole", "Before [cut: html_projection_unterminated_markup]"])
+        json!([
+            "Whole",
+            "Before [cut: html_projection_unrecoverable_markup]"
+        ])
     );
     assert_eq!(view["fields"]["targets"][0]["opening"], "Opening");
     assert_eq!(
         view["fields"]["targets"][0]["fields"]["nested"],
-        "Before [cut: html_projection_unterminated_markup]"
+        "Before [cut: html_projection_unrecoverable_markup]"
     );
     assert_eq!(fields, original);
 }
@@ -406,158 +331,220 @@ fn asking_cuts_a_target_with_only_an_unterminated_opening() {
     assert_eq!(view["cut"], json!(["targets"]));
     assert_eq!(
         view["fields"]["targets"][0]["opening"],
-        "Before [cut: html_projection_unterminated_markup]"
+        "Before [cut: html_projection_unrecoverable_markup]"
     );
     assert_eq!(fields, original);
 }
 
 #[test]
-fn asking_preserves_selected_attributes_on_recognized_tags_inside_errors() {
-    let view = html_asking_view(r#"<h2 aria-label="Heading &amp; words">Parent<h3>Child"#);
-    assert_eq!(
-        view["fields"]["body"],
-        "[aria-label: Heading & words] Parent Child"
-    );
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_preserves_complete_cdata_in_recovered_spans() {
-    for (raw, expected) in [
-        (
-            "<svg><text><![CDATA[Visible > literal]]></text></svg>",
-            "Visible > literal",
-        ),
-        (
-            "<svg><text><![CDATA[Visible literal]]></text></svg>",
-            "Visible literal",
-        ),
-        (
-            "Before</h2><![CDATA[Visible > literal]]>After",
-            "Before Visible > literal After",
-        ),
-    ] {
-        let view = html_asking_view(raw);
-        assert_eq!(view["fields"]["body"], expected, "{raw}");
-        assert_eq!(view["cut"], json!([]));
-    }
-}
-
-#[test]
-fn asking_keeps_cdata_entities_and_tag_like_text_literal() {
-    let view = html_asking_view("Before</h2><![CDATA[A &amp; <b>literal</b>]]>After");
-    assert_eq!(
-        view["fields"]["body"],
-        "Before A &amp; <b>literal</b> After"
-    );
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_marks_unterminated_cdata_incomplete() {
-    for (raw, expected) in [
-        (
-            "<svg><text><![CDATA[Visible > literal</text></svg>",
-            "[cut: html_projection_unterminated_markup]",
-        ),
-        (
-            "Before</h2><![CDATA[Visible > literal After",
-            "Before [cut: html_projection_unterminated_markup]",
-        ),
-    ] {
-        let view = html_asking_view(raw);
-        assert_eq!(view["fields"]["body"], expected, "{raw}");
-        assert_eq!(view["cut"], json!(["body"]));
-    }
-}
-
-#[test]
-fn asking_excludes_script_slash_payload_in_recovered_spans() {
-    let view = html_asking_view("Before</h2><script/>Hidden</script>After");
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_excludes_style_slash_payload_in_recovered_spans() {
-    let view = html_asking_view("Before</h2><style/>Hidden</style>After");
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_excludes_template_slash_payload_in_recovered_spans() {
-    let raw = "<h2>Before<h3><template/>Hidden</template>After";
-    assert_recovery_span_contains(raw, "<template/>");
-    let view = html_asking_view(raw);
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_excludes_markdown_island_slash_payload_in_recovered_spans() {
-    let raw = "<h2>Before<h3><ex-markdown/>Hidden</ex-markdown>After";
-    assert_recovery_span_contains(raw, "<ex-markdown/>");
-    let view = html_asking_view(raw);
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-fn assert_recovery_span_contains(raw: &str, token: &str) {
-    use ast_grep_language::{LanguageExt, SupportLang};
-    let tree = SupportLang::Html.ast_grep(raw);
-    assert!(
-        tree.root()
-            .dfs()
-            .any(|node| node.is_error() && node.text().contains(token)),
-        "fixture must put {token} inside an ERROR recovery span"
-    );
-}
-
-#[test]
-fn asking_ignores_unterminated_cdata_inside_recovered_script() {
-    let view = html_asking_view("Before</h2><script/><![CDATA[Unterminated");
-    assert_eq!(view["fields"]["body"], "Before");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_ignores_unterminated_cdata_inside_recovered_style() {
-    let view = html_asking_view("Before</h2><style/><![CDATA[Unterminated");
-    assert_eq!(view["fields"]["body"], "Before");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_keeps_script_exclusion_across_entity_nodes() {
-    let view = html_asking_view("Before</h2><script/>Hidden &amp; More</script>After");
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_keeps_style_exclusion_across_entity_nodes() {
-    let view = html_asking_view("Before</h2><style/>Hidden &amp; More</style>After");
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_keeps_script_exclusion_across_cdata_and_following_nodes() {
-    let view =
-        html_asking_view("Before</h2><script/><![CDATA[Literal &amp; text]]>Hidden</script>After");
-    assert_eq!(view["fields"]["body"], "Before After");
-    assert_eq!(view["cut"], json!([]));
-}
-
-#[test]
-fn asking_continues_after_unterminated_cdata_in_an_excluded_block() {
+fn asking_names_ambiguous_markup_instead_of_silent_completion() {
     for raw in [
-        "Before</h2><script/><![CDATA[Hidden</script><p>After</p>",
-        "Before</h2><style/><![CDATA[Hidden</style><p>After</p>",
+        "Before</h2>After",
+        "Before</h2><![CDATA[Visible > literal]]>After",
+        "Before</h2><script/>Hidden &amp; More</script>After",
     ] {
         let view = html_asking_view(raw);
-        assert_eq!(view["fields"]["body"], "Before After", "{raw}");
-        assert_eq!(view["cut"], json!([]));
+        assert_eq!(view["cut"], json!(["body"]), "{raw}");
+        assert!(
+            view["fields"]["body"]
+                .as_str()
+                .unwrap()
+                .ends_with("[cut: html_projection_unrecoverable_markup]")
+        );
     }
+}
+
+#[test]
+fn asking_keeps_real_siblings_after_an_unrecoverable_error_span() {
+    let view =
+        html_asking_view("Before</h2><style/><![CDATA[Hidden</style><p>After</p><!-- ]]> -->Tail");
+    assert_eq!(view["cut"], json!(["body"]));
+    assert_eq!(
+        view["fields"]["body"],
+        "Before After Tail [cut: html_projection_unrecoverable_markup]"
+    );
+}
+
+#[test]
+fn asking_marks_all_ambiguous_review_probes_incomplete_by_name() {
+    // C10-C12 replace lexical guessing: these mixed-markup errors must never be silent complete.
+    for (name, raw) in [
+        (
+            r###"svg-text-complete"###,
+            r###"<svg><text><![CDATA[Visible > literal]]></text></svg>"###,
+        ),
+        (
+            r###"svg-text-unterminated"###,
+            r###"<svg><text><![CDATA[Visible > literal</text></svg>"###,
+        ),
+        (
+            r###"stray-complete"###,
+            r###"Before</h2><![CDATA[Visible > literal]]>After"###,
+        ),
+        (
+            r###"stray-unterminated"###,
+            r###"Before</h2><![CDATA[Visible > literal After"###,
+        ),
+        (
+            r###"svg-without-gt"###,
+            r###"<svg><text><![CDATA[Visible literal]]></text></svg>"###,
+        ),
+        (
+            r###"script-nonvoid-slash"###,
+            r###"Before</h2><script/>Hidden</script>After"###,
+        ),
+        (
+            r###"style-nonvoid-slash"###,
+            r###"Before</h2><style/>Hidden</style>After"###,
+        ),
+        (
+            r###"literal-cdata"###,
+            r###"Before</h2><![CDATA[A &amp; <b>literal</b>]]>After"###,
+        ),
+        (
+            r###"unicode-offset"###,
+            r###"猫 Café</h2><![CDATA[文 &amp; <b>literal</b>]]>Après &amp; tail"###,
+        ),
+        (
+            r###"two-blocks"###,
+            r###"Before</h2><![CDATA[First &amp; <b>x</b>]]>Middle<![CDATA[Second > block]]>After"###,
+        ),
+        (r###"empty-block"###, r###"Before</h2><![CDATA[]]>After"###),
+        (
+            r###"suffix-attribute"###,
+            r###"Before</h2><![CDATA[A &amp; <b>literal</b>]]><span aria-label="Suffix &amp; label">After</span>Tail"###,
+        ),
+        (
+            r###"suffix-inside-element"###,
+            r###"Before</h2><![CDATA[A <b>inside]]>Outside</b>Tail"###,
+        ),
+        (
+            r###"suffix-script-looking"###,
+            r###"Before</h2><![CDATA[A <script>inside]]>Outside</script>Tail"###,
+        ),
+        (
+            r###"template-slash"###,
+            r###"<h2>Before<h3><template/>Hidden</template>After"###,
+        ),
+        (
+            r###"island-slash"###,
+            r###"<h2>Before<h3><ex-markdown/>Hidden</ex-markdown>After"###,
+        ),
+        (
+            r###"cdata-script-literal"###,
+            r###"Before</h2><![CDATA[<script/>Literal</script>]]>After"###,
+        ),
+        (
+            r###"script-entity"###,
+            r###"Before</h2><script/>Hidden &amp; More</script><p>After</p>"###,
+        ),
+        (
+            r###"script-cdata"###,
+            r###"Before</h2><script/><![CDATA[Literal &amp; text]]>Hidden</script><p>After</p>"###,
+        ),
+        (
+            r###"script-unsafe"###,
+            r###"Before</h2><script/><![CDATA[Hidden</script><p>After</p>"###,
+        ),
+        (
+            r###"script-cross-close-cdata"###,
+            r###"Before</h2><script/><![CDATA[Hidden</script><p>After</p><!-- ]]> -->Tail"###,
+        ),
+        (
+            r###"script-cross-close-comment"###,
+            r###"Before</h2><script/><!--Hidden</script><p>After</p><!-- -->Tail"###,
+        ),
+        (
+            r###"style-entity"###,
+            r###"Before</h2><style/>Hidden &amp; More</style><p>After</p>"###,
+        ),
+        (
+            r###"style-cdata"###,
+            r###"Before</h2><style/><![CDATA[Literal &amp; text]]>Hidden</style><p>After</p>"###,
+        ),
+        (
+            r###"style-unsafe"###,
+            r###"Before</h2><style/><![CDATA[Hidden</style><p>After</p>"###,
+        ),
+        (
+            r###"style-cross-close-cdata"###,
+            r###"Before</h2><style/><![CDATA[Hidden</style><p>After</p><!-- ]]> -->Tail"###,
+        ),
+        (
+            r###"style-cross-close-comment"###,
+            r###"Before</h2><style/><!--Hidden</style><p>After</p><!-- -->Tail"###,
+        ),
+        (
+            r###"template-entity"###,
+            r###"<h2>Before<h3><template/>Hidden &amp; More</template><p>After</p>"###,
+        ),
+        (
+            r###"template-cdata"###,
+            r###"<h2>Before<h3><template/><![CDATA[Literal &amp; text]]>Hidden</template><p>After</p>"###,
+        ),
+        (
+            r###"template-unsafe"###,
+            r###"<h2>Before<h3><template/><![CDATA[Hidden</template><p>After</p>"###,
+        ),
+        (
+            r###"template-cross-close-cdata"###,
+            r###"<h2>Before<h3><template/><![CDATA[Hidden</template><p>After</p><!-- ]]> -->Tail"###,
+        ),
+        (
+            r###"template-cross-close-comment"###,
+            r###"<h2>Before<h3><template/><!--Hidden</template><p>After</p><!-- -->Tail"###,
+        ),
+        (
+            r###"ex-markdown-entity"###,
+            r###"<h2>Before<h3><ex-markdown/>Hidden &amp; More</ex-markdown><p>After</p>"###,
+        ),
+        (
+            r###"ex-markdown-cdata"###,
+            r###"<h2>Before<h3><ex-markdown/><![CDATA[Literal &amp; text]]>Hidden</ex-markdown><p>After</p>"###,
+        ),
+        (
+            r###"ex-markdown-unsafe"###,
+            r###"<h2>Before<h3><ex-markdown/><![CDATA[Hidden</ex-markdown><p>After</p>"###,
+        ),
+        (
+            r###"ex-markdown-cross-close-cdata"###,
+            r###"<h2>Before<h3><ex-markdown/><![CDATA[Hidden</ex-markdown><p>After</p><!-- ]]> -->Tail"###,
+        ),
+        (
+            r###"ex-markdown-cross-close-comment"###,
+            r###"<h2>Before<h3><ex-markdown/><!--Hidden</ex-markdown><p>After</p><!-- -->Tail"###,
+        ),
+        (r###"stray"###, r###"Before</h2>After"###),
+        (r###"nested"###, r###"Before</h2>After</h3>Tail"###),
+        (
+            r###"unterminated"###,
+            r###"Before <broken attribute="unterminated"###,
+        ),
+        (r###"bare-open"###, r###"Before <"###),
+        (r###"missing-end"###, r###"Before <broken"###),
+    ] {
+        let view = html_asking_view(raw);
+        assert_eq!(view["cut"], json!(["body"]), "{name}");
+        assert!(
+            view["fields"]["body"]
+                .as_str()
+                .unwrap()
+                .ends_with("[cut: html_projection_unrecoverable_markup]"),
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn asking_projects_plain_error_text_without_a_cut() {
+    let view = html_asking_view("Before > literal &amp; 文");
+    assert_eq!(view["fields"]["body"], "Before > literal & 文");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_separates_structural_error_tags_without_a_cut() {
+    let view = html_asking_view("<p>Before</p></section><p>After</p>");
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
 }

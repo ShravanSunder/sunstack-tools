@@ -32,6 +32,7 @@ import {
 } from './error-oracle.ts';
 import { requireRecoveringParity, requireSourceWords } from './error-parity.ts';
 import { askingRule, sectionFields } from './fixtures.ts';
+import { observeRecovery } from './recovery.ts';
 
 const manifestSchema = z.object({
 	ampersands: z.array(z.object({ file: z.string(), sha256: z.string() })).length(3),
@@ -386,6 +387,7 @@ export async function observeErrorText(options: z.infer<typeof optionsSchema>): 
 				),
 				ampErrors.stdout,
 			);
+		await observeRecovery({ observer, evidence });
 		assert.equal(observer.captures.length, 0);
 	} finally {
 		try {
@@ -421,7 +423,7 @@ if (process.argv[1] === import.meta.filename) {
 	});
 	if (values.help)
 		process.stdout.write(
-			'Observe malformed HTML using existing keyless CLI harness. --phase baseline|candidate --baseline-binary PATH --baseline-sha256 SHA --source-root CHECKOUT --input-root FROZEN_J1 --parity-root ORIGINAL_INPUTS --shared-output COMMON_OUTSIDE_DIRECTORY --evidence NEW_DIRECTORY [--binary PATH --commit FULL_HEAD --sha256 SHA --baseline-run BASELINE_EVIDENCE]. Expected source:0.14.1 commission C1–C9. Capture does not itself close J1/raw/parity review.\n',
+			'Observe malformed HTML using existing keyless CLI harness. --phase baseline|candidate --baseline-binary PATH --baseline-sha256 SHA --source-root CHECKOUT --input-root FROZEN_J1 --parity-root ORIGINAL_INPUTS --shared-output COMMON_OUTSIDE_DIRECTORY --evidence NEW_DIRECTORY [--binary PATH --commit FULL_HEAD --sha256 SHA --baseline-run BASELINE_EVIDENCE]. Expected source:0.14.1 commission C1–C12. Capture does not itself close J1/raw/parity review.\n',
 		);
 	else await observeErrorText(optionsSchema.parse(values));
 }
