@@ -49,23 +49,28 @@ fn keychain_policy_controls_in_isolated_children() {
         "real-policy controls run only when {OPT_IN}=1 is set"
     );
     let binary = std::env::current_exe().unwrap();
-    let reports = CASES
+    let results = CASES
         .iter()
         .map(|case| run_child(&binary, case))
         .collect::<Vec<_>>();
-    for report in &reports {
-        println!("{report}");
+    for result in &results {
+        println!("{}", result.line);
     }
     assert!(
-        reports
-            .iter()
-            .all(|report| report.contains(" outcome=passed")),
+        results.iter().all(|result| result.passed),
         "every control must pass; unavailable or failed controls leave the proof incomplete"
     );
 }
 
-/// Run one control in its own child and return its report line, or the failure seen.
-fn run_child(binary: &std::path::Path, case: &str) -> String {
+/// One child's classified result; `line` is for display only.
+struct ChildResult {
+    passed: bool,
+    line: String,
+}
+
+/// Run one control in its own child and classify it. It passed only when the child
+/// exited successfully and reported exactly one line, for this case, with outcome passed.
+fn run_child(binary: &std::path::Path, case: &str) -> ChildResult {
     let mut child = Command::new(binary)
         .args([
             CHILD_TEST,
@@ -97,23 +102,42 @@ fn run_child(binary: &std::path::Path, case: &str) -> String {
     };
     let stdout = stdout.join().unwrap();
     let _stderr = stderr.join().unwrap();
-    let report = stdout
+    let reports = stdout
         .lines()
-        .find_map(|line| line.strip_prefix(REPORT_PREFIX))
+        .filter_map(|line| line.strip_prefix(REPORT_PREFIX))
         .map(str::trim)
-        .map(str::to_string);
-    match (status, report) {
-        (None, _) => format!("case={case} outcome=failed detail=timeout"),
-        (Some(status), Some(report)) if status.success() => report,
-        // A child that did not exit successfully failed, whatever it reported.
-        (Some(status), Some(report)) => format!(
-            "case={case} outcome=failed detail=nonzero-exit exit={} reported=[{}]",
-            status.code().unwrap_or(-1),
-            report.replace("outcome=", "child-outcome=")
+        .collect::<Vec<_>>();
+    let field = |report: &str, key: &str| {
+        report
+            .split_whitespace()
+            .find_map(|part| part.strip_prefix(key)?.strip_prefix('='))
+            .map(str::to_string)
+    };
+    let (passed, detail) = match (status, reports.as_slice()) {
+        (None, _) => (false, "timeout".to_string()),
+        (Some(status), _) if !status.success() => (
+            false,
+            format!("nonzero-exit exit={}", status.code().unwrap_or(-1)),
         ),
-        (Some(status), None) => format!(
-            "case={case} outcome=failed detail=no-report exit={}",
-            status.code().unwrap_or(-1)
+        (Some(_), [report]) => {
+            let reported_case = field(report, "case");
+            let outcome = field(report, "outcome");
+            (
+                reported_case.as_deref() == Some(case) && outcome.as_deref() == Some("passed"),
+                format!(
+                    "reported case={} outcome={}",
+                    reported_case.unwrap_or_default(),
+                    outcome.unwrap_or_default()
+                ),
+            )
+        }
+        (Some(_), reports) => (false, format!("reports={}", reports.len())),
+    };
+    ChildResult {
+        passed,
+        line: format!(
+            "case={case} passed={passed} {detail} child=[{}]",
+            reports.join(" | ")
         ),
     }
 }
