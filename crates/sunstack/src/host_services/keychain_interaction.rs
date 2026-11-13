@@ -108,3 +108,7 @@ pub(crate) static KEYCHAIN_NONINTERACTIVE: NoninteractiveHold<KeychainSetting> =
 #[cfg(test)]
 #[path = "keychain_interaction_test.rs"]
 mod tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "keychain_interaction_platform_test.rs"]
+mod platform;
