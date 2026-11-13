@@ -194,15 +194,15 @@ describe('SDK apparatus rejects false greens', () => {
 			requireDeepFrozenSdkValue(Object.freeze({ configuration: { nested: [] } })),
 		).toThrow('unfrozen');
 	});
-	it('checks synthetic 0.15.1 revision 8 and refuses stale, mixed release/revision and target replies', async () => {
+	it('checks synthetic 0.16.0 revision 9 and refuses stale, mixed release/revision and target replies', async () => {
 		const contract = {
-			sdk_release: '0.15.1',
-			contract_revision: 8,
+			sdk_release: '0.16.0',
+			contract_revision: 9,
 			target: 'aarch64-apple-darwin',
 		};
 		const target = {
-			release: '0.15.1',
-			contractRevision: 8,
+			release: '0.16.0',
+			contractRevision: 9,
 			arch: 'arm64',
 			platform: 'darwin',
 			libc: 'none',
@@ -217,6 +217,9 @@ describe('SDK apparatus rejects false greens', () => {
 			[
 				{ ...contract, sdk_release: '0.12.1' },
 				{ ...contract, sdk_release: '0.13.0' },
+				{ ...contract, contract_revision: 8 },
+				{ ...contract, sdk_release: '0.15.1', contract_revision: 8 },
+				{ ...contract, sdk_release: '0.15.1' },
 				{ ...contract, contract_revision: 7 },
 				{ ...contract, sdk_release: '0.15.0', contract_revision: 7 },
 				{ ...contract, sdk_release: '0.15.0' },
@@ -240,7 +243,7 @@ describe('SDK apparatus rejects false greens', () => {
 			),
 		);
 		await Promise.all(
-			[7, 6, 5, 4].map((contractRevision) =>
+			[8, 7, 6, 5, 4].map((contractRevision) =>
 				expect(
 					inspectInstalledSdkContract(
 						{ contractInfo: async () => ({ kind: 'ready', contract }) },
@@ -249,12 +252,19 @@ describe('SDK apparatus rejects false greens', () => {
 				).rejects.toThrow('ContractInfo differs'),
 			),
 		);
-		await expect(
-			inspectInstalledSdkContract(
-				{ contractInfo: async () => ({ kind: 'ready', contract }) },
+		await Promise.all(
+			[
+				{ ...target, release: '0.15.1', contractRevision: 8 },
 				{ ...target, release: '0.13.0', contractRevision: 4 },
+			].map((stale) =>
+				expect(
+					inspectInstalledSdkContract(
+						{ contractInfo: async () => ({ kind: 'ready', contract }) },
+						stale,
+					),
+				).rejects.toThrow('ContractInfo differs'),
 			),
-		).rejects.toThrow('ContractInfo differs');
+		);
 	});
 	it('accepts the four Rust-tagged completed statuses without flattening them', () => {
 		for (const kind of ['clean', 'nothing_selected', 'findings', 'uncertain']) {
@@ -317,14 +327,14 @@ describe('SDK apparatus rejects false greens', () => {
 				path: `/consumer/${index}`,
 				sha256: 'c'.repeat(64),
 			})),
-			release: '0.15.1',
-			contractRevision: 8,
+			release: '0.16.0',
+			contractRevision: 9,
 			platform: 'darwin',
 			arch: 'arm64',
 			libc: 'none',
 		};
 		const parsed = sdkTargetSchema.parse(input);
-		expect([parsed.release, parsed.contractRevision]).toEqual(['0.15.1', 8]);
+		expect([parsed.release, parsed.contractRevision]).toEqual(['0.16.0', 9]);
 		expect(sdkTargetSchema.safeParse({ ...input, consumerRoot: './consumer' }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, addon: undefined }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, commit: 'abc123' }).success).toBe(false);
