@@ -79,6 +79,36 @@ export const errorControls = [
 		expected: 'Before After',
 		cut: false,
 	},
+	{
+		name: 'excluded-cdata-unsafe',
+		raw: 'Before</h2><script/><![CDATA[Hidden</script><p>After</p>',
+		expected: 'Before After',
+		cut: false,
+	},
+	{
+		name: 'script-split-entity',
+		raw: 'Before</h2><script/>Hidden &amp; More</script>After',
+		expected: 'Before After',
+		cut: false,
+	},
+	{
+		name: 'style-split-entity',
+		raw: 'Before</h2><style/>Hidden &amp; More</style>After',
+		expected: 'Before After',
+		cut: false,
+	},
+	{
+		name: 'script-split-cdata',
+		raw: 'Before</h2><script/><![CDATA[Literal &amp; text]]>Hidden</script>After',
+		expected: 'Before After',
+		cut: false,
+	},
+	{
+		name: 'style-split-cdata',
+		raw: 'Before</h2><style/><![CDATA[Literal &amp; text]]>Hidden</style>After',
+		expected: 'Before After',
+		cut: false,
+	},
 ] as const;
 
 export function prepareErrorProject(

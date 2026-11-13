@@ -72,63 +72,61 @@ fn append_recovered_text(
     content: &mut String,
     consumed_until: &mut usize,
 ) -> Result<(), HtmlProjectionReason> {
-    let range = node.range();
-    let mut raw = &document[range.start.max(*consumed_until)..range.end];
+    let node_end = node.range().end;
+    let mut position = node.range().start.max(*consumed_until);
     let tags = node
         .dfs()
         .filter(|part| matches!(part.kind().as_ref(), "start_tag" | "self_closing_tag"))
         .map(|tag| (tag.range().start, tag))
         .collect::<std::collections::BTreeMap<_, _>>();
     let mut excluded_tags: Vec<String> = Vec::new();
-    while !raw.is_empty() {
-        let start = raw.find('<').unwrap_or(raw.len());
+    // Open recovery constructs own source bytes through their end, across AST nodes.
+    while position < node_end || (!excluded_tags.is_empty() && position < document.len()) {
+        let text_end = if excluded_tags.is_empty() {
+            node_end
+        } else {
+            document.len()
+        };
+        let text = &document[position..text_end];
+        let next_tag = position + text.find('<').unwrap_or(text.len());
         if excluded_tags.is_empty() {
-            content.push_str(&decode_entities(&raw[..start]));
+            content.push_str(&decode_entities(&document[position..next_tag]));
         }
-        raw = &raw[start..];
-        if raw.is_empty() {
+        position = next_tag;
+        if position == text_end {
             break;
         }
-        if raw.starts_with("<![CDATA[") {
-            // A CDATA block can cross ERROR, entity and element node boundaries.
-            let start = range.end - raw.len() + "<![CDATA[".len();
-            let cdata = &document[start..];
-            let end = cdata
-                .find("]]>")
-                .ok_or(HtmlProjectionReason::UnterminatedMarkup)?;
+        let raw = &document[position..];
+        if let Some(cdata) = raw.strip_prefix("<![CDATA[") {
+            let Some(end) = cdata.find("]]>") else {
+                position =
+                    skip_hidden_unterminated_marker(&excluded_tags, position + "<![CDATA[".len())?;
+                continue;
+            };
             if excluded_tags.is_empty() {
                 content.push(' ');
                 content.push_str(&cdata[..end]);
                 content.push(' ');
             }
-            let end = start + end + "]]>".len();
-            *consumed_until = (*consumed_until).max(end);
-            if end >= range.end {
-                return Ok(());
-            }
-            raw = &document[end..range.end];
+            position += "<![CDATA[".len() + end + "]]>".len();
+            *consumed_until = (*consumed_until).max(position);
             continue;
         }
         if let Some(comment) = raw.strip_prefix("<!--") {
             let Some(end) = comment.find("-->") else {
-                return if excluded_tags.is_empty() {
-                    Err(HtmlProjectionReason::UnterminatedMarkup)
-                } else {
-                    Ok(())
-                };
+                position =
+                    skip_hidden_unterminated_marker(&excluded_tags, position + "<!--".len())?;
+                continue;
             };
-            raw = &comment[end + 3..];
+            position += "<!--".len() + end + "-->".len();
+            *consumed_until = (*consumed_until).max(position);
             content.push(' ');
             continue;
         }
         let Some(end) = recovered_tag_end(raw) else {
-            return if excluded_tags.is_empty() {
-                Err(HtmlProjectionReason::UnterminatedMarkup)
-            } else {
-                Ok(())
-            };
+            position = skip_hidden_unterminated_marker(&excluded_tags, position + 1)?;
+            continue;
         };
-        let tag_start = range.end - raw.len();
         let token = raw[1..end].trim();
         let closing = token.starts_with('/');
         let name = token.trim_start_matches('/').trim_start();
@@ -153,14 +151,28 @@ fn append_recovered_text(
         }
         if excluded_tags.is_empty() {
             content.push(' ');
-            if let Some(tag) = tags.get(&tag_start) {
+            if let Some(tag) = tags.get(&position) {
                 append_tag_attributes(tag, content);
             }
             content.push(' ');
         }
-        raw = &raw[end + 1..];
+        position += end + 1;
+        *consumed_until = (*consumed_until).max(position);
     }
+    *consumed_until = (*consumed_until).max(position);
     Ok(())
+}
+
+fn skip_hidden_unterminated_marker(
+    excluded_tags: &[String],
+    marker_end: usize,
+) -> Result<usize, HtmlProjectionReason> {
+    if excluded_tags.is_empty() {
+        Err(HtmlProjectionReason::UnterminatedMarkup)
+    } else {
+        // Hidden malformed syntax cannot take ownership from its enclosing exclusion.
+        Ok(marker_end)
+    }
 }
 
 fn recovered_tag_end(raw: &str) -> Option<usize> {

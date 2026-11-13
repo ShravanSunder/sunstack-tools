@@ -513,3 +513,51 @@ fn assert_recovery_span_contains(raw: &str, token: &str) {
         "fixture must put {token} inside an ERROR recovery span"
     );
 }
+
+#[test]
+fn asking_ignores_unterminated_cdata_inside_recovered_script() {
+    let view = html_asking_view("Before</h2><script/><![CDATA[Unterminated");
+    assert_eq!(view["fields"]["body"], "Before");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_ignores_unterminated_cdata_inside_recovered_style() {
+    let view = html_asking_view("Before</h2><style/><![CDATA[Unterminated");
+    assert_eq!(view["fields"]["body"], "Before");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_keeps_script_exclusion_across_entity_nodes() {
+    let view = html_asking_view("Before</h2><script/>Hidden &amp; More</script>After");
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_keeps_style_exclusion_across_entity_nodes() {
+    let view = html_asking_view("Before</h2><style/>Hidden &amp; More</style>After");
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_keeps_script_exclusion_across_cdata_and_following_nodes() {
+    let view =
+        html_asking_view("Before</h2><script/><![CDATA[Literal &amp; text]]>Hidden</script>After");
+    assert_eq!(view["fields"]["body"], "Before After");
+    assert_eq!(view["cut"], json!([]));
+}
+
+#[test]
+fn asking_continues_after_unterminated_cdata_in_an_excluded_block() {
+    for raw in [
+        "Before</h2><script/><![CDATA[Hidden</script><p>After</p>",
+        "Before</h2><style/><![CDATA[Hidden</style><p>After</p>",
+    ] {
+        let view = html_asking_view(raw);
+        assert_eq!(view["fields"]["body"], "Before After", "{raw}");
+        assert_eq!(view["cut"], json!([]));
+    }
+}
