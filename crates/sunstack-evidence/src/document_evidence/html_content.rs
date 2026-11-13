@@ -12,8 +12,122 @@ type HtmlNode<'tree> = Node<'tree, StrDoc<SupportLang>>;
 pub(crate) fn html_text_content(raw: &str) -> String {
     let tree = SupportLang::Html.ast_grep(raw);
     let mut content = String::new();
-    append_text(&tree.root(), raw, &mut content);
+    // Selection purpose never performs fallible raw-span recovery.
+    let _ = append_text(&tree.root(), raw, &mut content, HtmlTextPurpose::Selection);
     content.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum HtmlAskingText {
+    Complete(String),
+    Incomplete {
+        text: String,
+        reason: HtmlProjectionReason,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HtmlProjectionReason {
+    UnrecoverableMarkup,
+}
+impl HtmlProjectionReason {
+    pub(crate) fn cut_marker(self) -> &'static str {
+        match self {
+            Self::UnrecoverableMarkup => "[cut: html_projection_unrecoverable_markup]",
+        }
+    }
+}
+
+/// Recover malformed source only for asking; selector text keeps its original projection.
+pub(crate) fn html_asking_text(raw: &str) -> HtmlAskingText {
+    let tree = SupportLang::Html.ast_grep(raw);
+    let mut content = String::new();
+    let result = append_text(&tree.root(), raw, &mut content, HtmlTextPurpose::Asking);
+    let text = content.split_whitespace().collect::<Vec<_>>().join(" ");
+    match result {
+        Ok(()) => HtmlAskingText::Complete(text),
+        Err(reason) => HtmlAskingText::Incomplete { text, reason },
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HtmlErrorSpan {
+    PlainText,
+    MarkupOnly,
+    UnrecoverableMarkup,
+}
+
+fn classify_error_span(node: &HtmlNode<'_>, raw: &str) -> HtmlErrorSpan {
+    if !node.text().contains('<') {
+        HtmlErrorSpan::PlainText
+    } else if is_markup_only_error(node, raw) {
+        HtmlErrorSpan::MarkupOnly
+    } else {
+        HtmlErrorSpan::UnrecoverableMarkup
+    }
+}
+
+fn is_markup_only_error(node: &HtmlNode<'_>, raw: &str) -> bool {
+    if node.dfs().any(|part| part.is_missing()) {
+        return false;
+    }
+    let mut tags = Vec::new();
+    for part in node.dfs() {
+        if matches!(
+            part.kind().as_ref(),
+            "start_tag" | "end_tag" | "self_closing_tag" | "erroneous_end_tag"
+        ) {
+            tags.push(part.range());
+        }
+        if part.is_error() {
+            let children = part.children().collect::<Vec<_>>();
+            for group in children.windows(3) {
+                if let Some(range) = cst_closing_tag_range(group, raw) {
+                    tags.push(range);
+                }
+            }
+        }
+    }
+    tags.sort_by_key(|range| (range.start, range.end));
+    let mut cursor = node.range().start;
+    for tag in tags {
+        if tag.end <= cursor {
+            continue;
+        }
+        if tag.start > cursor && !raw[cursor..tag.start].chars().all(char::is_whitespace) {
+            return false;
+        }
+        cursor = tag.end;
+    }
+    raw[cursor..node.range().end]
+        .chars()
+        .all(char::is_whitespace)
+}
+
+fn cst_closing_tag_range(parts: &[HtmlNode<'_>], raw: &str) -> Option<std::ops::Range<usize>> {
+    let [opening, name, closing] = parts else {
+        return None;
+    };
+    if opening.kind() != "</"
+        || closing.kind() != ">"
+        || !matches!(name.kind().as_ref(), "ERROR" | "tag_name")
+        || name.children().len() != 0
+        || name.text().is_empty()
+        || !name
+            .text()
+            .chars()
+            .all(|character| character.is_alphanumeric() || matches!(character, '-' | ':'))
+        || !raw[opening.range().end..name.range().start]
+            .chars()
+            .all(char::is_whitespace)
+        || !raw[name.range().end..closing.range().start]
+            .chars()
+            .all(char::is_whitespace)
+    {
+        return None;
+    }
+    // tree-sitter-html 0.23.2 scan_tag_name accepts alphanumeric, '-' and ':'.
+    Some(opening.range().start..closing.range().end)
 }
 
 pub(crate) fn html_has_id(raw: &str, id: &str) -> bool {
@@ -47,10 +161,30 @@ pub(crate) fn html_has_id(raw: &str, id: &str) -> bool {
     })
 }
 
-fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum HtmlTextPurpose {
+    Selection,
+    Asking,
+}
+
+fn append_text(
+    node: &HtmlNode<'_>,
+    raw: &str,
+    content: &mut String,
+    purpose: HtmlTextPurpose,
+) -> Result<(), HtmlProjectionReason> {
+    let mut incomplete = None;
     match node.kind().as_ref() {
         "text" | "entity" => content.push_str(&decode_entities(&node.text())),
         "raw_text" => content.push_str(&node.text()),
+        "ERROR" if purpose == HtmlTextPurpose::Asking => match classify_error_span(node, raw) {
+            HtmlErrorSpan::PlainText => content.push_str(&decode_entities(&node.text())),
+            HtmlErrorSpan::MarkupOnly => content.push(' '),
+            HtmlErrorSpan::UnrecoverableMarkup => {
+                content.push(' ');
+                return Err(HtmlProjectionReason::UnrecoverableMarkup);
+            }
+        },
         "ERROR" if node.children().len() == 0 => {
             let text = node.text();
             if text.starts_with('&') && !text.contains(['<', '>']) {
@@ -58,6 +192,10 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
             }
         }
         "start_tag" | "self_closing_tag" => {
+            if purpose == HtmlTextPurpose::Asking && node.dfs().any(|part| part.is_missing()) {
+                content.push(' ');
+                return Err(HtmlProjectionReason::UnrecoverableMarkup);
+            }
             content.push(' ');
             append_tag_attributes(node, content);
             content.push(' ');
@@ -77,7 +215,9 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
                 if gap.chars().all(char::is_whitespace) {
                     content.push_str(gap);
                 }
-                append_text(&child, raw, content);
+                if let Err(reason) = append_text(&child, raw, content, purpose) {
+                    incomplete = Some(reason);
+                }
                 cursor = child.range().end;
             }
             let gap = &raw[cursor..node.range().end];
@@ -89,6 +229,10 @@ fn append_text(node: &HtmlNode<'_>, raw: &str, content: &mut String) {
             }
         }
         _ => {}
+    }
+    match incomplete {
+        Some(reason) => Err(reason),
+        None => Ok(()),
     }
 }
 

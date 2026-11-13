@@ -311,11 +311,34 @@ async fn recovered_html_headings_keep_exact_fields_and_prepare_every_section() {
             2,
             "{name}: {report}"
         );
-        assert_eq!(
-            report["requests"][0]["request"]["state"]["complete"],
-            if child { "Parent Child" } else { "A" },
-            "{name}: recovered heading words must stay separate in the asking state"
-        );
+        let state = &report["requests"][0]["request"]["state"];
+        let asking_text = state["complete"].as_str().unwrap();
+        if asking_text.contains("[cut: html_projection_unrecoverable_markup]") {
+            assert_ne!(name, "proper", "complete headings must not be cut");
+            assert!(
+                asking_text.ends_with("[cut: html_projection_unrecoverable_markup]"),
+                "{name}: {state}"
+            );
+            assert!(
+                state["cut-fields"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!("complete")),
+                "{name}: ambiguous asking text must carry its containing field cut"
+            );
+        } else {
+            assert_eq!(
+                asking_text,
+                if child { "Parent Child" } else { "A" },
+                "{name}: complete asking text must keep every heading word"
+            );
+            assert!(
+                state["cut-fields"]
+                    .as_array()
+                    .is_none_or(|fields| !fields.contains(&json!("complete"))),
+                "{name}: complete asking text must not carry a field cut"
+            );
+        }
         assert_eq!(report["usage"]["model_requests"], 0);
         assert!(
             report["incomplete"].as_array().unwrap().is_empty(),
