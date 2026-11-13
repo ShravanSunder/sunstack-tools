@@ -105,6 +105,17 @@ fn asking_and_selection_keep_existing_ampersand_error_leaves_verbatim() {
 }
 
 #[test]
+fn asking_separates_visible_siblings_around_unrecoverable_markup() {
+    assert_eq!(
+        html_asking_text("Before</h2>Caf&eacute; &amp; 文"),
+        HtmlAskingText::Incomplete {
+            text: "Before é & 文".into(),
+            reason: super::HtmlProjectionReason::UnrecoverableMarkup,
+        }
+    );
+}
+
+#[test]
 fn asking_preserves_u1_own_fragment_with_structural_error_tags() {
     use ast_grep_language::{LanguageExt, SupportLang};
     // Native own text is a byte slice and can contain unmatched enclosing tags.

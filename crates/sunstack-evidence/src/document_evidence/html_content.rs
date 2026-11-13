@@ -181,6 +181,7 @@ fn append_text(
             HtmlErrorSpan::PlainText => content.push_str(&decode_entities(&node.text())),
             HtmlErrorSpan::MarkupOnly => content.push(' '),
             HtmlErrorSpan::UnrecoverableMarkup => {
+                content.push(' ');
                 return Err(HtmlProjectionReason::UnrecoverableMarkup);
             }
         },
@@ -192,6 +193,7 @@ fn append_text(
         }
         "start_tag" | "self_closing_tag" => {
             if purpose == HtmlTextPurpose::Asking && node.dfs().any(|part| part.is_missing()) {
+                content.push(' ');
                 return Err(HtmlProjectionReason::UnrecoverableMarkup);
             }
             content.push(' ');

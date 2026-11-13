@@ -40,7 +40,7 @@ export const errorControls = [
 		projection: {
 			kind: 'text-or-incomplete',
 			text: 'Before Café & 文',
-			prefix: 'Before',
+			prefix: 'Before é & 文',
 		},
 	},
 	{
