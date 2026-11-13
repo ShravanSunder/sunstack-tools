@@ -63,6 +63,7 @@ pub struct EvidenceProject {
     pub inputs: Vec<PathBuf>,
     rule_directories: Vec<PathBuf>,
     rule_languages: BTreeMap<crate::EvidenceRuleId, EvidenceLanguage>,
+    pub document_settings: crate::DocumentEvidenceSettings,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -319,6 +320,7 @@ pub fn load_evidence_project(
     config_path: &Path,
     inline_rules: &[InlineRule],
     rules_config_path: Option<&Path>,
+    document_settings: &crate::DocumentEvidenceSettings,
 ) -> Result<EvidenceProject, ProjectRefusal> {
     let read = |path: &Path| {
         std::fs::read_to_string(path).map_err(|error| ProjectRefusal::at(path, error))
@@ -437,6 +439,7 @@ pub fn load_evidence_project(
     let rules =
         RuleCollection::try_new(rules).map_err(|error| ProjectRefusal::at(config_path, error))?;
     Ok(EvidenceProject {
+        document_settings: document_settings.clone(),
         rules: Arc::new(rules),
         rule_ids,
         inputs,

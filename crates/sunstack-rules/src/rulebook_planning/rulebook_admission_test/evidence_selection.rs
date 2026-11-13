@@ -15,7 +15,13 @@ fn selection_admission_refuses_each_crafted_cause_and_accepts_the_canonical_conf
     )
     .unwrap();
     let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     assert!(admit_evidence_kinds(&kinds, &project, 6000).is_empty());
     for (name, expected) in [
         ("choice-question", "noul"),
@@ -95,7 +101,13 @@ fn selection_admission_refuses_document_questions_but_allows_unreferenced_docume
         &std::fs::read_to_string(root.join("skill-rules.config.json")).unwrap(),
     )
     .unwrap();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     config["evidence"]["kinds"]["selected_targets"]["fields"]["document_body"] =
         serde_json::json!({"from":"document","path":"neighbor.md","rule":"skill"});
     let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
@@ -131,7 +143,13 @@ fn nested_as_kind_refuses_document_acquisition_but_accepts_local_fields() {
         &std::fs::read_to_string(root.join("skill-rules.config.json")).unwrap(),
     )
     .unwrap();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
     assert!(admit_evidence_kinds(&kinds, &project, 6000).is_empty());
 

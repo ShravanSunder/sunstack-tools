@@ -44,7 +44,7 @@ fn pinned_five_skills_keep_all_sections_and_distinct_calls() {
             }
             let selector = serde_json::from_value(wire).unwrap();
             let SelectionContent::MarkdownUnits { units } =
-                select_document(&document, &selector, 1000).unwrap()
+                select_document(&document, &selector, &Default::default(), 1000).unwrap()
             else {
                 panic!("expected markdown units")
             };

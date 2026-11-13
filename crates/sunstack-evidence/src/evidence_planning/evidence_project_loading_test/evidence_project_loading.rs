@@ -22,7 +22,13 @@ fn fixture() -> PathBuf {
 #[test]
 fn project_matches_equal_native_scan_in_both_directions() {
     let root = fixture();
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let oracle: Oracle = serde_json::from_str(
         &std::fs::read_to_string(root.join("expected/scan-oracle.json")).unwrap(),
     )
@@ -71,7 +77,15 @@ fn reserved_utils_are_refused() {
         .unwrap();
         std::fs::create_dir(dir.path().join("utils")).unwrap();
         std::fs::write(dir.path().join("utils/invalid.yml"), util).unwrap();
-        assert!(load_evidence_project(&dir.path().join("sgconfig.yml"), &[], None).is_err());
+        assert!(
+            load_evidence_project(
+                &dir.path().join("sgconfig.yml"),
+                &[],
+                None,
+                &Default::default()
+            )
+            .is_err()
+        );
     }
 }
 
@@ -85,7 +99,13 @@ fn json_projects_use_json_nodes_and_source_ranges() {
         "id: pair\nlanguage: Json\nrule: {kind: pair}\n",
     )
     .unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let text = "{\n  \"first\": true,\n  \"second\": false\n}\n";
     let index = project.match_file(std::path::Path::new("rules.json"), text, 100);
     let spans = &index.by_rule["pair"];
@@ -116,7 +136,13 @@ fn every_supported_language_loads_rules_and_utils() {
         )
         .unwrap();
         assert!(
-            load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).is_ok(),
+            load_evidence_project(
+                &root.path().join("sgconfig.yml"),
+                &[],
+                None,
+                &Default::default()
+            )
+            .is_ok(),
             "{language}"
         );
         std::fs::create_dir(root.path().join("rules")).unwrap();
@@ -127,7 +153,12 @@ fn every_supported_language_loads_rules_and_utils() {
             format!("id: caller_rule\nlanguage: {language}\nrule: {{kind: {root_kind}, regex: example}}\n"),
         )
         .unwrap();
-        let rule_result = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None);
+        let rule_result = load_evidence_project(
+            &root.path().join("sgconfig.yml"),
+            &[],
+            None,
+            &Default::default(),
+        );
         assert!(
             rule_result.is_ok(),
             "rule {language}: {:?}",
@@ -182,7 +213,13 @@ fn evidence_language_report_tags_round_trip_for_every_supported_language() {
             format!("id: example\nlanguage: {language}\nrule: {{kind: {root_kind}}}\n"),
         )
         .unwrap();
-        let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+        let project = load_evidence_project(
+            &root.path().join("sgconfig.yml"),
+            &[],
+            None,
+            &Default::default(),
+        )
+        .unwrap();
         let actual = project
             .language_for_rule(&crate::EvidenceRuleId::new("example").unwrap())
             .unwrap();
@@ -224,7 +261,13 @@ fn parse_errors_skip_strict_data_but_tolerant_languages_still_match() {
         let root_kind = parsed.root().kind().into_owned();
         std::fs::write(root.path().join("rules/rule.yml"),
             format!("id: example\nlanguage: {language}\nrule: {{kind: {root_kind}, regex: example|valid}}\n")).unwrap();
-        let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+        let project = load_evidence_project(
+            &root.path().join("sgconfig.yml"),
+            &[],
+            None,
+            &Default::default(),
+        )
+        .unwrap();
         let evidence_language = project
             .language_for_rule(&crate::EvidenceRuleId::new("example").unwrap())
             .unwrap();
@@ -282,7 +325,13 @@ fn standard_utils_each_match_positive_and_reject_negative_shapes() {
             format!("id: example\nlanguage: Markdown\nrule: {{matches: {id}}}\n"),
         )
         .unwrap();
-        let project = load_evidence_project(&dir.path().join("sgconfig.yml"), &[], None).unwrap();
+        let project = load_evidence_project(
+            &dir.path().join("sgconfig.yml"),
+            &[],
+            None,
+            &Default::default(),
+        )
+        .unwrap();
         assert_eq!(
             project
                 .match_file(std::path::Path::new("example.md"), positive, 10)
@@ -314,7 +363,13 @@ fn missing_util_bad_rule_glob_and_reserved_rule_are_rejected_at_load() {
         std::fs::write(dir.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
         std::fs::write(dir.path().join("rules/invalid.yml"), rule).unwrap();
         assert!(
-            load_evidence_project(&dir.path().join("sgconfig.yml"), &[], None).is_err(),
+            load_evidence_project(
+                &dir.path().join("sgconfig.yml"),
+                &[],
+                None,
+                &Default::default()
+            )
+            .is_err(),
             "{rule}"
         );
     }
@@ -330,9 +385,14 @@ fn yaml_parser_refusals_preserve_the_vendors_line_and_column() {
         "id: broken\nlanguage: Markdown\nrule:\n  kind: [\n",
     )
     .unwrap();
-    let error = load_evidence_project(&directory.path().join("sgconfig.yml"), &[], None)
-        .err()
-        .unwrap();
+    let error = load_evidence_project(
+        &directory.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .err()
+    .unwrap();
     assert!(error.path.ends_with("rules/broken.yml"));
     assert!(error.line >= 4);
     assert!(error.column.is_some());

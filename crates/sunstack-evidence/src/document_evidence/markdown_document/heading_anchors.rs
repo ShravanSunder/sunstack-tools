@@ -1,16 +1,30 @@
 use super::{MarkdownDocument, heading_level};
 use crate::document_evidence::{
-    github_heading_slug::GithubHeadingSlugger,
+    heading_anchor_schemes::HeadingAnchorScheme,
     html_content::decode_entities,
     markdown_offset_projection::{NormalizedMarkdown, OffsetProjection},
 };
+use crate::{TargetAnchor, TargetAnchorUnsupportedReason};
 use ast_grep_language::{LanguageExt, SupportLang};
 
 impl MarkdownDocument {
-    pub(crate) fn has_anchor(&self, fragment: &str) -> bool {
+    pub(crate) fn resolve_anchor(
+        &self,
+        fragment: String,
+        scheme: Option<HeadingAnchorScheme>,
+    ) -> TargetAnchor {
         let normalized = NormalizedMarkdown::new(self.tree.source());
         let projection = OffsetProjection::new(&normalized);
-        let mut slugger = GithubHeadingSlugger::new();
+        if has_explicit_anchor(&projection, &fragment) {
+            return TargetAnchor::Found { fragment };
+        }
+        let Some(scheme) = scheme else {
+            return TargetAnchor::Unsupported {
+                fragment,
+                reason: TargetAnchorUnsupportedReason::HeadingSchemeNotConfigured,
+            };
+        };
+        let mut slugger = scheme.slugger();
         let has_heading = self
             .tree
             .root()
@@ -29,7 +43,11 @@ impl MarkdownDocument {
                     })
             })
             .any(|heading| slugger.slug(&projection.heading_text(heading.range())) == fragment);
-        has_heading || has_explicit_anchor(&projection, fragment)
+        if has_heading {
+            TargetAnchor::Found { fragment }
+        } else {
+            TargetAnchor::Missing { fragment }
+        }
     }
 }
 

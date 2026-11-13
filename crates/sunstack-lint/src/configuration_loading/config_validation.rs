@@ -52,6 +52,7 @@ pub(crate) fn load_checked_rulebook(
         &base.join(&config.evidence.ast_grep),
         &inline_rules,
         Some(source_path),
+        &config.evidence.document_settings(),
     )
     .map_err(|error| {
         if let Some(origin) = &error.origin {

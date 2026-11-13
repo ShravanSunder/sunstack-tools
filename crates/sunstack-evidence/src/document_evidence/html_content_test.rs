@@ -1,4 +1,22 @@
-use super::{HtmlAskingText, html_asking_text, html_has_id, html_text_content};
+#![allow(clippy::unwrap_used)]
+use super::{HtmlAskingText, html_has_id};
+
+fn html_text_content(raw: &str) -> String {
+    super::html_text_content(raw, &crate::HtmlEvidenceSettings::default())
+}
+
+fn html_asking_text(raw: &str) -> HtmlAskingText {
+    super::html_asking_text(raw, &crate::HtmlEvidenceSettings::default())
+}
+
+fn configured_settings() -> crate::HtmlEvidenceSettings {
+    let mut settings = crate::HtmlEvidenceSettings::default();
+    settings.text_attributes.insert(
+        crate::HtmlTagName::new("ex-mermaid").unwrap(),
+        vec![crate::HtmlAttributeName::new("label").unwrap()],
+    );
+    settings
+}
 
 #[test]
 fn projects_html_text_without_interpreting_markdown_or_attributes() {
@@ -24,7 +42,7 @@ fn projects_selected_attributes_in_element_order_and_decodes_once() {
     let html = r#"<p aria-label='前&amp;後' title="secret">Start<img alt="猫 &amp;lt; &#x1F642;"/><ex-mermaid label='Flow &amp; graph'><script type="text/plain">graph TD
 A --> B &amp;</script></ex-mermaid><span label="hidden" aria-label=plain>End</span></p>"#;
     assert_eq!(
-        html_text_content(html),
+        super::html_text_content(html, &configured_settings()),
         "[aria-label: 前&後] Start [alt: 猫 &lt; 🙂] [label: Flow & graph] graph TD A --> B &amp; [aria-label: plain] End"
     );
 }
@@ -139,4 +157,48 @@ fn asking_preserves_u1_own_fragment_with_structural_error_tags() {
             .collect::<Vec<_>>()
     );
     assert_eq!(html_asking_text(raw), HtmlAskingText::Complete(r###"U1 · Work is organized as workspace → areas → projects Your words: "workspace -> Areas -> Projects"; "board is not a good name". An area replaces today's "board". A project is a body of work with a lead. Why: today's names and levels (boards, workstreams, milestones) don't match how you think about the work. Served by R1 ."###.into()));
+}
+
+#[test]
+fn default_projection_reads_only_standard_attributes() {
+    let html =
+        r#"<ex-mermaid label="diagram" alt="picture" aria-label="accessible">body</ex-mermaid>"#;
+    assert_eq!(
+        html_text_content(html),
+        "[alt: picture] [aria-label: accessible] body"
+    );
+}
+
+#[test]
+fn configured_attributes_match_case_insensitively_without_duplicate_standard_tokens() {
+    let mut settings = crate::HtmlEvidenceSettings::default();
+    settings.text_attributes.insert(
+        crate::HtmlTagName::new("CUSTOM-WIDGET").unwrap(),
+        vec![
+            crate::HtmlAttributeName::new("Caption").unwrap(),
+            crate::HtmlAttributeName::new("ALT").unwrap(),
+        ],
+    );
+    let html = r#"<custom-widget CAPTION="Flow &amp; graph" ALT="picture">body</custom-widget><other caption="hidden"></other>"#;
+    let expected = "[caption: Flow & graph] [alt: picture] body";
+    assert_eq!(super::html_text_content(html, &settings), expected);
+    assert_eq!(
+        super::html_asking_text(html, &settings),
+        HtmlAskingText::Complete(expected.into())
+    );
+}
+
+#[test]
+fn outline_skip_settings_do_not_hide_asking_text() {
+    let mut settings = crate::HtmlEvidenceSettings::default();
+    settings
+        .skip_tags
+        .push(crate::HtmlTagName::new("custom-source").unwrap());
+    assert_eq!(
+        super::html_asking_text(
+            "<custom-source><h2>Visible text</h2></custom-source>",
+            &settings
+        ),
+        HtmlAskingText::Complete("Visible text".into())
+    );
 }

@@ -65,6 +65,7 @@ impl EvidenceBuild {
                         &self.kinds,
                         &source_ref,
                         &mut remaining,
+                        &self.project.document_settings.html,
                     ) {
                         Ok(matches) => matches,
                         Err(reason) => {

@@ -1,5 +1,7 @@
 # HTML heading sections and asking text
 
+For 0.15.0 and later, custom outline exclusions and text attributes require explicit project config. Use [the config/default journey](config-only.md) for the current contract and exact restore settings. The older drivers and observations below retain their historical target contract; their built-in ex-markdown exclusion and ex-mermaid label assumptions are not standard defaults. Do not run those unchanged fixtures as current-target proof.
+
 This route checks the signed Sunstack CLI's lexical HTML sections and complete asking projection. Launch, original-input guards, recovered heading/range/request probes and owned cleanup have been exercised. Repeat the scoped journeys on each declared target. Expected outcomes come from the 0.13.0 HTML-sections commission and its Corrections1–7, including the J1 consumer gap; the current output never supplies the oracle.
 
 ## What a section means

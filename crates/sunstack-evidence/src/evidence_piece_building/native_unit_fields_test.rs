@@ -14,8 +14,13 @@ fn markdown_catalog(max_matches: usize) -> EvidenceCatalog {
     )
     .unwrap();
     std::fs::write(root.path().join("page.md"), MARKDOWN).unwrap();
-    let project =
-        crate::load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     // Native kind and AST rule deliberately share a name, as with HTML units.
     let kinds = serde_json::from_value(json!({
         "whole":{"markdown_units":{"mode":"unit","units":["section"]},"fields":{

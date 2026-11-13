@@ -82,6 +82,13 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
             [ConfigPathSegment::Key(filters), ..] if filters == "filters" => format!(" ({path})"),
             [
                 ConfigPathSegment::Key(evidence),
+                ConfigPathSegment::Key(settings),
+                ..,
+            ] if evidence == "evidence" && matches!(settings.as_str(), "html" | "markdown") => {
+                format!(" ({path})")
+            }
+            [
+                ConfigPathSegment::Key(evidence),
                 ConfigPathSegment::Key(kinds),
                 _,
                 ConfigPathSegment::Key(fields),

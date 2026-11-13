@@ -44,7 +44,7 @@ pub fn project_kind_model_view(
             };
             let mut incomplete = false;
             let value = if project_html {
-                html_field_value(value, &mut incomplete)
+                html_field_value(value, &mut incomplete, &project.document_settings.html)
             } else {
                 value.clone()
             };
@@ -62,17 +62,21 @@ pub fn project_kind_model_view(
     view
 }
 
-fn html_field_value(value: &FieldValue, incomplete: &mut bool) -> FieldValue {
+fn html_field_value(
+    value: &FieldValue,
+    incomplete: &mut bool,
+    settings: &crate::HtmlEvidenceSettings,
+) -> FieldValue {
     use crate::document_evidence::html_content::is_html_path;
     match value {
         FieldValue::Text { value, spans } => FieldValue::Text {
-            value: project_html_asking_text(value, incomplete),
+            value: project_html_asking_text(value, incomplete, settings),
             spans: spans.clone(),
         },
         FieldValue::Texts { values, spans } => FieldValue::Texts {
             values: values
                 .iter()
-                .map(|value| project_html_asking_text(value, incomplete))
+                .map(|value| project_html_asking_text(value, incomplete, settings))
                 .collect(),
             spans: spans.clone(),
         },
@@ -85,12 +89,12 @@ fn html_field_value(value: &FieldValue, incomplete: &mut bool) -> FieldValue {
                         target.opening = target
                             .opening
                             .as_ref()
-                            .map(|text| project_html_asking_text(text, incomplete));
+                            .map(|text| project_html_asking_text(text, incomplete, settings));
                         target.fields = target.fields.as_ref().map(|fields| {
                             fields
                                 .iter()
                                 .map(|(name, value)| {
-                                    (name.clone(), html_field_value(value, incomplete))
+                                    (name.clone(), html_field_value(value, incomplete, settings))
                                 })
                                 .collect()
                         });
@@ -103,9 +107,13 @@ fn html_field_value(value: &FieldValue, incomplete: &mut bool) -> FieldValue {
     }
 }
 
-fn project_html_asking_text(raw: &str, incomplete: &mut bool) -> String {
+fn project_html_asking_text(
+    raw: &str,
+    incomplete: &mut bool,
+    settings: &crate::HtmlEvidenceSettings,
+) -> String {
     use crate::document_evidence::html_content::{HtmlAskingText, html_asking_text};
-    match html_asking_text(raw) {
+    match html_asking_text(raw, settings) {
         HtmlAskingText::Complete(text) => text,
         HtmlAskingText::Incomplete { text, reason } => {
             *incomplete = true;

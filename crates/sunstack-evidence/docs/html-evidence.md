@@ -47,7 +47,9 @@ Scope a forward-link kind to actual `href` attributes (and to fragment links whe
 
 A `target` field with `resolve: "path"` separates a `#fragment` from the physical file path. `anchor_exists` checks every target in the field. A missing file inside the checked root makes the check false; a target without a fragment behaves like `file_exists`. A same-document fragment such as `#R1` resolves against the piece's own file.
 
-For an HTML fragment, the check searches the full acquired target bytes, subject to acquisition budgets, for an element with an exactly matching decoded `id` attribute. It does not use `<a name="...">`. An optional target `anchor` reports `status` as `found`, `missing`, or `unsupported`, alongside `fragment`. A fragment on any non-HTML file is unsupported and makes the check incomplete; Markdown heading anchors are not resolved.
+For an HTML fragment, the check searches the full acquired target bytes, subject to acquisition budgets, for an element with an exactly matching decoded `id` attribute. It does not use `<a name="...">`. An optional target `anchor` reports `status` as `found`, `missing`, or `unsupported`, alongside `fragment`. Unsupported anchors include a typed `reason` and make the check incomplete.
+
+Markdown targets recognize explicit inline-HTML `id` values and anchor `name` values. Heading fragments require `evidence.markdown.heading_anchors` to select a named scheme. The supported scheme is `"github"`. With no scheme and no matching explicit anchor, the status is `unsupported` with reason `heading_scheme_not_configured`. Other document formats use reason `unsupported_document`.
 
 For an HTML `href`, the captured value is decoded for semicolon-terminated named and numeric HTML entities, then the physical path and fragment are percent-decoded as UTF-8 before resolution and comparison with the decoded `id`. For example, `#A%20B` matches `id="A B"`. The captured name, source text, and spans remain raw for mechanical evidence. Legacy entity shorthand without a semicolon remains raw.
 
@@ -73,4 +75,20 @@ Every occurrence is checked, including overlaps: `A-A` matches the final occurre
 
 Evidence supports every language in ast-grep 0.51's `SupportLang`. Serialized evidence language tags use snake_case; existing `markdown` and `json` tags remain readable. JSON, YAML, and HCL parse errors mark the language failed and skip its rules. HTML, Markdown, and the other supported languages retain matches despite parse errors. The `yaml` front-matter field source is admitted only for Markdown kinds.
 
-For asking rules, HTML fields are projected as text content: tags, attributes, and comments are omitted, entities are decoded as above, and whitespace is collapsed. Text inside `script` and `style` remains, as with DOM `textContent`. Other languages' fields remain raw. Mechanical checks use raw source fields, and locations retain raw byte ranges.
+For asking rules, HTML fields are projected as text content: tags and comments are omitted, entities are decoded as above, and whitespace is collapsed. Text inside `script` and `style` remains, as with DOM `textContent`. Other languages' fields remain raw. Mechanical checks use raw source fields, and locations retain raw byte ranges.
+
+`alt` and `aria-label` attributes contribute text on every element. Project-specific attributes and outline exclusions belong in the project's evidence config:
+
+```json
+{
+  "html": {
+    "skip_tags": ["example-source"],
+    "text_attributes": {"example-diagram": ["caption"]}
+  },
+  "markdown": {"heading_anchors": "github"}
+}
+```
+
+Add these members to the existing `evidence` object alongside `ast_grep` and `kinds`. Both HTML collections default to empty. `skip_tags` suppresses outline headings inside the named tags; standard `<template>` contents are always excluded from the outline. It does not suppress asking text. Listed attributes contribute `[caption: value]` tokens in source order, with decoded values. Tag and attribute matching is case-insensitive; configuring a standard attribute does not duplicate it. Empty names, invalid shapes and unknown heading schemes are config refusals.
+
+The low-level evidence API uses the same `DocumentEvidenceSettings` through `load_evidence_project` and `select_document`. The `sunstack exec` evidence plan does not carry these settings and uses standard defaults.

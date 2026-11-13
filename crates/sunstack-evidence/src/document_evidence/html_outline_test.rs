@@ -1,5 +1,17 @@
 #![allow(clippy::unwrap_used)]
-use super::{HtmlSection, html_sections};
+use super::HtmlSection;
+
+fn html_sections(raw: &str) -> Result<Vec<HtmlSection>, super::HtmlOutlineError> {
+    super::html_sections(raw, &crate::HtmlEvidenceSettings::default())
+}
+
+fn configured_settings() -> crate::HtmlEvidenceSettings {
+    let mut settings = crate::HtmlEvidenceSettings::default();
+    settings
+        .skip_tags
+        .push(crate::HtmlTagName::new("ex-markdown").unwrap());
+    settings
+}
 
 #[test]
 fn collects_lexical_sections_across_wrappers_and_skipped_levels() {
@@ -66,7 +78,7 @@ fn handles_all_heading_levels_and_direct_outline_parents() {
 #[test]
 fn ignores_fake_headings_and_markdown_island_source() {
     let html = r#"<h2>Real</h2><div title="<h1>attribute</h1>">&lt;h1&gt;text&lt;/h1&gt;</div><!-- <h1>comment</h1> --><template><h1>template</h1></template><script>const example = '<h1>script</h1>';</script><style>.x::after { content: '<h1>style</h1>'; }</style><ex-markdown><h1>island</h1><script type="application/json" data-ex-markdown-source>{"text":"<h1>json</h1>"}</script></ex-markdown><h3>Child</h3>tail"#;
-    let sections = html_sections(html).unwrap();
+    let sections = super::html_sections(html, &configured_settings()).unwrap();
     assert_eq!(sections.len(), 2);
     assert_eq!(&html[sections[0].heading_range.clone()], "<h2>Real</h2>");
     assert_eq!(&html[sections[1].heading_range.clone()], "<h3>Child</h3>");
@@ -139,13 +151,18 @@ fn recovery_does_not_admit_headings_from_unclosed_excluded_sources() {
         "<template><h2>Hidden<h3>Child",
         "<ex-markdown><h2>Hidden<h3>Child",
     ] {
-        assert!(html_sections(html).unwrap().is_empty(), "{html}");
+        assert!(
+            super::html_sections(html, &configured_settings())
+                .unwrap()
+                .is_empty(),
+            "{html}"
+        );
     }
     for html in [
         "<template><h2>Hidden<h3>Fake</template><h2>Real",
         "<ex-markdown><h2>Hidden<h3>Fake</ex-markdown><h2>Real",
     ] {
-        let sections = html_sections(html).unwrap();
+        let sections = super::html_sections(html, &configured_settings()).unwrap();
         let start = html.find("<h2>Real").unwrap();
         assert_eq!(sections.len(), 1, "{html}");
         assert_eq!(sections[0].section_range, start..html.len());
@@ -162,4 +179,26 @@ fn self_closing_heading_openings_remain_placeable() {
     assert_eq!(sections[0].section_range, 0..html.len());
     assert_eq!(sections[0].own_range, 0..html.len());
     assert_eq!(sections[0].enclosing_index, None);
+}
+
+#[test]
+fn default_outline_includes_headings_inside_custom_tags() {
+    let html = "<ex-markdown><h2>Visible</h2></ex-markdown>";
+    let sections = html_sections(html).unwrap();
+    assert_eq!(sections.len(), 1);
+    assert_eq!(&html[sections[0].heading_range.clone()], "<h2>Visible</h2>");
+}
+
+#[test]
+fn configured_custom_tags_skip_headings_case_insensitively() {
+    let mut settings = crate::HtmlEvidenceSettings::default();
+    settings
+        .skip_tags
+        .push(crate::HtmlTagName::new("CUSTOM-SOURCE").unwrap());
+    let html = "<h2>Real</h2><custom-source><h1>Hidden</h1></custom-source><h3>Child</h3>";
+    let sections = super::html_sections(html, &settings).unwrap();
+    assert_eq!(sections.len(), 2);
+    assert_eq!(&html[sections[0].heading_range.clone()], "<h2>Real</h2>");
+    assert_eq!(&html[sections[1].heading_range.clone()], "<h3>Child</h3>");
+    assert_eq!(sections[1].enclosing_index, Some(0));
 }

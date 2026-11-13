@@ -114,7 +114,12 @@ impl Preparation {
             let query_selection = selection.clone();
             let max_matches = self.input.limits.max_matches.get();
             let content = tokio::task::spawn_blocking(move || {
-                select_document(&doc, &query_selection, max_matches)
+                select_document(
+                    &doc,
+                    &query_selection,
+                    &DocumentEvidenceSettings::default(),
+                    max_matches,
+                )
             })
             .await
             .map_err(|_| EvidenceCode::InvalidSelector)??;

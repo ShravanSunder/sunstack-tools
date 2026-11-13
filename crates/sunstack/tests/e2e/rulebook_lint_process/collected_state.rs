@@ -85,6 +85,7 @@ async fn collected_unavailable_target_is_named_in_state_and_refused_before_http(
         &root.path().join("evidence/sgconfig.yml"),
         &[],
         None,
+        &Default::default(),
     )
     .unwrap();
     let kinds = serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();

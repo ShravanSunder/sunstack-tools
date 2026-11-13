@@ -27,7 +27,13 @@ fn input(file: &str) -> SelectionInput {
         serde_json::from_value(config["evidence"]["kinds"].clone()).unwrap();
     kinds.retain(|kind, _| kind.as_str() == "workflow_section");
     let selection = admit_selections(&kinds).unwrap().remove(0);
-    let project = load_evidence_project(&root.join("evidence/sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let file = PathBuf::from(format!("skills/{file}/SKILL.md"));
     let mut source = FilesystemCheckedSource::new(&root).unwrap();
     let mut build = EvidenceBuild::start(

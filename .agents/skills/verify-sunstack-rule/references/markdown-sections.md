@@ -1,5 +1,7 @@
 # Markdown anchors and section fields
 
+For 0.15.0 and later, Markdown heading fragments require `evidence.markdown.heading_anchors: "github"`. Without it, heading targets are named unsupported/incomplete; explicit HTML IDs still work. Use [the config/default journey](config-only.md) for current-target proof and the exact restore config. The drivers and observations below retain their historical implicit-scheme contract; do not treat them as unchanged current-target proof.
+
 This route drives the signed CLI against every original Markdown fragment link in two fixed repositories and checks real Markdown section fields against an independent outline. Expected values come from the 0.14.0 Markdown-sections commission and Corrections 1–9. Capture, collector controls, the real-link and section journeys, admission and owned teardown have been exercised through the signed CLI. The Correction 8 image-heading and ordinary raw-asking controls have been exercised on the corrected signed candidate; repeat them with the corpus on each declared target. Repeat the scoped drive on each declared target; source and GitHub checks alone prove no engine behavior.
 
 ## Inputs and independent expectations

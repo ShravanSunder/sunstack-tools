@@ -13,7 +13,13 @@ fn added_context_keeps_checked_pieces_cache_and_cumulative_budgets() {
         .unwrap();
         std::fs::write(root.path().join("checked.md"), "One.\n").unwrap();
         std::fs::write(root.path().join("context.md"), "Two.\n").unwrap();
-        let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+        let project = load_evidence_project(
+            &root.path().join("sgconfig.yml"),
+            &[],
+            None,
+            &Default::default(),
+        )
+        .unwrap();
         let kinds=serde_json::from_value(serde_json::json!({"paragraph":{"rule":"paragraph","fields":{"body":{"from":"first_line"}}}})).unwrap();
         let mut limits = limits();
         match budget {
@@ -93,7 +99,13 @@ fn context_reuses_an_already_acquired_target_at_the_exact_file_and_byte_limits()
     let context = "Cached context.\n";
     std::fs::write(root.path().join("checked.md"), checked).unwrap();
     std::fs::write(root.path().join("context.md"), context).unwrap();
-    let project = load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kinds=serde_json::from_value(serde_json::json!({"paragraph":{"rule":"paragraph","fields":{"body":{"from":"first_line"},"targets":{"from":"target","regex":"`([^`]+)`","resolve":"path"}}}})).unwrap();
     let mut limits = limits();
     limits.max_files = 2;
