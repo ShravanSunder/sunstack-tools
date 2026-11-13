@@ -1,4 +1,5 @@
 pub mod document_selection;
+pub(crate) mod embedded_markdown;
 pub mod frontmatter_contracts;
 pub mod heading_anchor_schemes;
 pub(crate) mod html_content;

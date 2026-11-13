@@ -212,7 +212,20 @@ impl EvidenceProject {
         self.rule_languages.get(rule).copied()
     }
     pub fn match_file(&self, path: &Path, text: &str, max_matches: usize) -> FileMatchIndex {
-        self.match_rules(text, max_matches, self.rules.for_path(path))
+        let mut rules = self.rules.for_path(path);
+        let islands = (crate::document_evidence::html_content::is_html_path(path)
+            && !self.document_settings.html.embedded_markdown.is_empty())
+        .then(|| {
+            crate::document_evidence::embedded_markdown::island_ranges(
+                text,
+                &self.document_settings.html,
+            )
+        });
+        if islands.as_ref().is_some_and(|ranges| !ranges.is_empty()) {
+            rules.extend(self.rules.get_rule_from_lang(path, SupportLang::Markdown));
+            rules.sort_by_key(|rule| &rule.id);
+        }
+        self.match_rules(text, max_matches, rules, islands.as_deref())
     }
     pub(crate) fn match_file_as_language(
         &self,
@@ -223,13 +236,22 @@ impl EvidenceProject {
     ) -> FileMatchIndex {
         let mut rules = self.rules.get_rule_from_lang(path, language.support());
         rules.sort_by_key(|rule| &rule.id);
-        self.match_rules(text, max_matches, rules)
+        let islands = (crate::document_evidence::html_content::is_html_path(path)
+            && !self.document_settings.html.embedded_markdown.is_empty())
+        .then(|| {
+            crate::document_evidence::embedded_markdown::island_ranges(
+                text,
+                &self.document_settings.html,
+            )
+        });
+        self.match_rules(text, max_matches, rules, islands.as_deref())
     }
     fn match_rules(
         &self,
         text: &str,
         max_matches: usize,
         rules: Vec<&ast_grep_config::RuleConfig<SupportLang>>,
+        islands: Option<&[std::ops::Range<usize>]>,
     ) -> FileMatchIndex {
         let mut index = FileMatchIndex::default();
         let languages = rules
@@ -239,9 +261,21 @@ impl EvidenceProject {
         // Keep every tree alive so its node identities cannot be reused by another parse.
         let documents = languages
             .into_iter()
-            .map(|language| (language, language.support().ast_grep(text)))
-            .collect::<BTreeMap<_, _>>();
-        for (language, document) in &documents {
+            .flat_map(|language| {
+                let ranges = match (language, islands) {
+                    (EvidenceLanguage::Markdown, Some(ranges)) => ranges.to_vec(),
+                    _ => std::iter::once(0..text.len()).collect(),
+                };
+                ranges.into_iter().map(move |range| {
+                    (
+                        language,
+                        range.start,
+                        language.support().ast_grep(&text[range]),
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+        for (language, _, document) in &documents {
             if language.rejects_parse_errors() && document.root().get_inner_node().has_error() {
                 index.failed_languages.insert(*language);
             }
@@ -252,49 +286,52 @@ impl EvidenceProject {
             if index.failed_languages.contains(&language) {
                 continue;
             }
-            let Some(document) = documents.get(&language) else {
-                continue;
-            };
             let mut spans = Vec::new();
-            for found in document.root().find_all(&rule.matcher) {
-                if count >= max_matches {
-                    index.limited = true;
-                    break;
-                }
-                let range = found.range();
-                let node = NodeKey(found.node_id());
-                if let Some(parent) = found.parent() {
-                    let children = parent
-                        .children()
-                        .filter(|child| child.is_named())
-                        .map(|child| {
-                            let range = child.range();
-                            ParentChild {
-                                node: NodeKey(child.node_id()),
-                                range: MatchRange {
-                                    start: range.start,
-                                    end: range.end,
-                                },
-                                continuation: child.kind() == "block_continuation",
-                            }
-                        })
-                        .collect::<Vec<_>>();
-                    if let Some(position) = children.iter().position(|child| child.node == node) {
-                        index.parents.entry(node).or_insert(ParentEntry {
-                            parent: NodeKey(parent.node_id()),
-                            children,
-                            position,
-                        });
+            for (_, offset, document) in documents
+                .iter()
+                .filter(|(parsed, _, _)| *parsed == language)
+            {
+                for found in document.root().find_all(&rule.matcher) {
+                    if count >= max_matches {
+                        index.limited = true;
+                        break;
                     }
+                    let range = found.range();
+                    let node = NodeKey(found.node_id());
+                    if let Some(parent) = found.parent() {
+                        let children = parent
+                            .children()
+                            .filter(|child| child.is_named())
+                            .map(|child| {
+                                let range = child.range();
+                                ParentChild {
+                                    node: NodeKey(child.node_id()),
+                                    range: MatchRange {
+                                        start: range.start + offset,
+                                        end: range.end + offset,
+                                    },
+                                    continuation: child.kind() == "block_continuation",
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        if let Some(position) = children.iter().position(|child| child.node == node)
+                        {
+                            index.parents.entry(node).or_insert(ParentEntry {
+                                parent: NodeKey(parent.node_id()),
+                                children,
+                                position,
+                            });
+                        }
+                    }
+                    spans.push((
+                        MatchRange {
+                            start: range.start + offset,
+                            end: range.end + offset,
+                        },
+                        node,
+                    ));
+                    count = count.saturating_add(1);
                 }
-                spans.push((
-                    MatchRange {
-                        start: range.start,
-                        end: range.end,
-                    },
-                    node,
-                ));
-                count = count.saturating_add(1);
             }
             spans.sort_by_key(|(span, _)| (span.start, span.end));
             if let Ok(id) = crate::EvidenceRuleId::new(rule.id.clone()) {

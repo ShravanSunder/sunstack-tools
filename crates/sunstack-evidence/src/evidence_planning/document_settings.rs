@@ -54,11 +54,23 @@ html_name!(HtmlAttributeName, "HTML attribute name");
 pub struct HtmlEvidenceSettings {
     pub skip_tags: Vec<HtmlTagName>,
     pub text_attributes: BTreeMap<HtmlTagName, Vec<HtmlAttributeName>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub embedded_markdown: Vec<HtmlMarkdownIsland>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct HtmlMarkdownIsland {
+    pub tag: HtmlTagName,
+    #[serde(default)]
+    pub attributes: BTreeMap<HtmlAttributeName, String>,
 }
 
 impl HtmlEvidenceSettings {
     pub fn is_default(&self) -> bool {
-        self.skip_tags.is_empty() && self.text_attributes.is_empty()
+        self.skip_tags.is_empty()
+            && self.text_attributes.is_empty()
+            && self.embedded_markdown.is_empty()
     }
 }
 

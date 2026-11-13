@@ -188,9 +188,21 @@ pub(super) fn collect_native_units(
             .values()
             .any(|kind| matches!(kind.matcher, crate::KindMatcher::MarkdownUnits(_))))
     .then(|| MarkdownDocument::parse(text));
+    let islands = if is_html_path(path) {
+        crate::document_evidence::embedded_markdown::island_ranges(text, html_settings)
+    } else {
+        Vec::new()
+    };
     let markdown_outline = markdown
         .as_ref()
-        .map(|document| Arc::new(document.section_outline()));
+        .map(|document| Arc::new(document.section_outline()))
+        .or_else(|| {
+            (!islands.is_empty()).then(|| {
+                Arc::new(crate::document_evidence::embedded_markdown::island_outline(
+                    text, &islands,
+                ))
+            })
+        });
     let mut matches = BTreeMap::new();
     for (name, definition) in kinds {
         match &definition.matcher {
@@ -227,7 +239,7 @@ pub(super) fn collect_native_units(
                 );
             }
             crate::KindMatcher::MarkdownUnits(selection) => {
-                let (Some(document), Some(outline)) = (&markdown, &markdown_outline) else {
+                let Some(outline) = &markdown_outline else {
                     continue;
                 };
                 if !matches!(selection, crate::MarkdownUnitSelection::Unit { .. }) {
@@ -236,9 +248,15 @@ pub(super) fn collect_native_units(
                         name.as_str()
                     ));
                 }
-                let (units, limited) = document
-                    .select_units(source, selection, *remaining)
-                    .map_err(|error| format!("markdown_units {}: {error}", name.as_str()))?;
+                let result = if let Some(document) = &markdown {
+                    document.select_units(source, selection, *remaining)
+                } else {
+                    crate::document_evidence::embedded_markdown::select_island_units(
+                        text, source, &islands, selection, *remaining,
+                    )
+                };
+                let (units, limited) =
+                    result.map_err(|error| format!("markdown_units {}: {error}", name.as_str()))?;
                 *remaining = remaining.saturating_sub(units.len());
                 let selected = units
                     .into_iter()
