@@ -106,3 +106,25 @@ fn document_roots_keep_the_concrete_report_status_bindings() {
     );
     assert_eq!(roots["configuration"]["ref"], "Configuration");
 }
+
+#[test]
+fn private_same_path_u64_and_u32_roots_have_distinct_widening_shapes() {
+    let root = |primitive| {
+        Struct::named()
+            .field(
+                "shared",
+                Field::new(
+                    Struct::named()
+                        .field("count", Field::new(DataType::Primitive(primitive)))
+                        .build(),
+                ),
+            )
+            .build()
+    };
+    let types = Types::default();
+    assert_eq!(
+        wide_shape(&root(Primitive::u64), &types),
+        Some(json!({"object":{"shared":{"object":{"count":"bigint"}}}}))
+    );
+    assert_eq!(wide_shape(&root(Primitive::u32), &types), None);
+}

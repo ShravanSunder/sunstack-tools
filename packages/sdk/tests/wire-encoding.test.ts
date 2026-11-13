@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import type { WideShape } from '../src/contracts/wide-integer-shapes.ts';
 import {
 	decodeDeserializationReply,
 	isInspectionOutcome,
@@ -123,6 +124,45 @@ await test('document decoding widens only the selected root shape', () => {
 		undefined,
 	);
 	assert.equal(decodeDeserializationReply('{'), undefined);
+});
+
+await test('same-path wide and narrow private roots reject cross-root widening', () => {
+	// Synthetic metadata, not SDK schemas: both payloads own `shared.count`.
+	// One declares u64/bigint, the other u32/number (no widening descriptor).
+	const wideShape = {
+		object: { shared: { object: { count: 'bigint' } } },
+	} as const satisfies WideShape;
+	const fixture = {
+		roots: { configuration: wideShape, report: null },
+		definitions: {},
+	};
+	const wideText =
+		'{"kind":"decoded","value":{"kind":"configuration","value":{"shared":{"count":7}}}}';
+	const narrowText = '{"kind":"decoded","value":{"kind":"report","value":{"shared":{"count":7}}}}';
+	const expectedWide = {
+		kind: 'decoded',
+		value: { kind: 'configuration', value: { shared: { count: 7n } } },
+	};
+	const expectedNarrow = {
+		kind: 'decoded',
+		value: { kind: 'report', value: { shared: { count: 7 } } },
+	};
+	assert.deepEqual(decodeDeserializationReply(wideText, fixture), expectedWide);
+	assert.deepEqual(decodeDeserializationReply(narrowText, fixture), expectedNarrow);
+
+	// Counterfactual: a union walker uses the wide root on this narrow payload.
+	// The unchanged narrow oracle detects it, while the wide control still passes.
+	const wrongFixture = {
+		...fixture,
+		roots: { ...fixture.roots, report: { union: [wideShape] } },
+	};
+	const wrongNarrow = decodeDeserializationReply(narrowText, wrongFixture);
+	assert.notDeepEqual(wrongNarrow, expectedNarrow);
+	assert.deepEqual(wrongNarrow, {
+		kind: 'decoded',
+		value: { kind: 'report', value: { shared: { count: 7n } } },
+	});
+	assert.deepEqual(decodeDeserializationReply(wideText, wrongFixture), expectedWide);
 });
 
 await test('inspection reply envelopes retain their closed status variants', () => {

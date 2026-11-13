@@ -150,8 +150,21 @@ function isDeserializationOutcome(value: unknown): value is DeserializationOutco
 	}
 }
 
-/** Decode an envelope produced by the matched native addon, or refuse it. */
-export function decodeDeserializationReply(text: string): DeserializationOutcome | undefined {
+interface DocumentReplyMetadata {
+	readonly roots: Readonly<Record<string, WideShape | null>>;
+	readonly definitions: Readonly<Record<string, WideDefinition>>;
+}
+
+const generatedDocumentMetadata: DocumentReplyMetadata = {
+	roots: documentRootShapes,
+	definitions: wideIntegerDefinitions,
+};
+
+/** Decode matched-native data; private fixture tests may substitute its generated shapes. */
+export function decodeDeserializationReply(
+	text: string,
+	metadata: DocumentReplyMetadata = generatedDocumentMetadata,
+): DeserializationOutcome | undefined {
 	let parsed: unknown;
 	try {
 		parsed = parseExactJson(text);
@@ -160,11 +173,11 @@ export function decodeDeserializationReply(text: string): DeserializationOutcome
 	}
 	if (isRecord(parsed) && parsed['kind'] === 'decoded' && isRecord(parsed['value'])) {
 		const document = parsed['value'];
-		const root = Object.entries(documentRootShapes).find(([kind]) => kind === document['kind']);
+		const root = Object.entries(metadata.roots).find(([kind]) => kind === document['kind']);
 		if (root === undefined || !('value' in document)) return undefined;
 		const shape: WideShape | null = root[1];
 		if (shape !== null)
-			document['value'] = widen(document['value'], shape, new Map(), wideIntegerDefinitions);
+			document['value'] = widen(document['value'], shape, new Map(), metadata.definitions);
 	}
 	return isDeserializationOutcome(parsed) ? parsed : undefined;
 }
