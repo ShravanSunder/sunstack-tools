@@ -213,6 +213,23 @@ step({
 	args: ['-p', 'tsconfig.json'],
 });
 
+// Exercise the shipped standalone instruction with this consumer's tsconfig
+// present. Project-only compilation cannot catch a broken README command.
+const installedReadme = readFileSync(
+	join(consumer, 'node_modules', '@sunstack', 'sdk', 'README.md'),
+	'utf8',
+);
+const documentedCompilerArguments = /^npx tsc (.+)$/mu.exec(installedReadme)?.[1];
+assert.ok(
+	documentedCompilerArguments !== undefined,
+	'README advertises its standalone compile command',
+);
+step({
+	label: 'readme-typecheck',
+	command: join(consumer, 'node_modules', '.bin', 'tsc'),
+	args: documentedCompilerArguments.split(/\s+/u),
+});
+
 // Heading pages: a non-ASCII setext heading and an ATX child keep their Markdown source; HTML
 // entities are decoded exactly once.
 const descriptionPage = '---\ndescription: Wrong opening\n---\n\n# One\n';

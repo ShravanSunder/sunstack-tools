@@ -22,7 +22,7 @@ SDK. For example:
 
 ```sh
 cp node_modules/@sunstack/sdk/examples/mechanical-run.ts ./mechanical-run.ts
-npx tsc --noEmit --strict --target ES2024 --module NodeNext --moduleResolution NodeNext mechanical-run.ts
+npx tsc --ignoreConfig --noEmit --strict --types node --target ES2024 --module NodeNext --moduleResolution NodeNext mechanical-run.ts
 node mechanical-run.ts /absolute/checked/root
 ```
 
