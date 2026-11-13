@@ -66,7 +66,7 @@ For each matching condition below, load the named reference and return its autho
 | An ordered explanation with expandable evidence | `references/traces.md` | Native step disclosures with source/observation status |
 | A page-level `ex-map` reader panel, an `ex-story` account with labelled rows and a supporting record, or `ex-section` story scopes | `references/stories.md` | The supported composition, authored fields and states, and stable destinations |
 | Source-derived call-path changes | `references/call-paths.md` | Calls, branches and unknown execution kept distinct |
-| A prepared Requirements/stage/related-document or call-stack browser | `references/design-documents.md` | Owner pages, record/body/part mapping, public reader markup and preparation/check result |
+| A supplied call stack | `references/design-documents.md` | Visible owner pages, need/frame/stack mapping, call-stack markup and preparation/check result |
 | A supplied Explorer graph document | `references/explorers.md` | Original graph data, real selection IDs and source-backed views |
 
 Completion: selected constructs answer the reader's task, their references were applied, and every construct is supported by the chosen binding.

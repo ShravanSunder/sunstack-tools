@@ -197,4 +197,6 @@ pnpm build
 
 Browser tests use real built assets and native browser inputs. Checker output, HTTP browser behavior, direct-file behavior and hosted release integrity are separate evidence boundaries.
 
+The `ex-call-stack` reader consumes a collection prepared by `demistify prepare`. Its declared frames, supporting calls, keyboard selection and Comments share the document runtime. Need links use the prepared record's owner page and authored body anchor. Keep those bodies visible in ordinary HTML; the collection retains its existing record schema and validation.
+
 Reusable runtime, styles and Node packaging live in `packages/demistify`; authored pages and browser fixtures live in `apps/demistify-poc`. There is no per-document router, renderer fork or application build.

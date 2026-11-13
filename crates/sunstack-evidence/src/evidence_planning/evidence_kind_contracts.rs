@@ -210,6 +210,9 @@ pub enum FieldSource {
     Section {
         text: SectionText,
     },
+    SectionPrefix {
+        kind: EvidenceKindName,
+    },
     Capture {
         regex: String,
     },
@@ -313,6 +316,7 @@ impl FieldSource {
         match self {
             Self::FirstLine {}
             | Self::Section { .. }
+            | Self::SectionPrefix { .. }
             | Self::Capture { .. }
             | Self::Yaml { .. }
             | Self::Remainder { .. } => FieldShape::Text,

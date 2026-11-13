@@ -12,13 +12,15 @@
 			><nav slot="pages" aria-label="Experiments">
 				<a href="index.html">Requirements and call-path experiments</a
 				><a href="requirements.html">Start from the user need</a
+				><a href="specification.html">Specification</a
+				><a href="program-design.html">Program Design</a><a href="verification.html">Verification</a
 				><a href="execution.html">From a call to the need it serves</a>
 			</nav></ex-nav
 		><ex-document id="content"
 			><h1>Specification</h1>
 			<p>
-				Start with what the person needs to do. Group related needs by capability; selecting a need
-				keeps its specification rule, program-design owner and verification observation together.
+				Start with what the person needs to do. Read the authored needs here, then follow the
+				specification, design and verification pages for their supporting details.
 			</p>
 			<ex-callout title="Illustrative design and results" tone="note" icon="file"
 				><p>
@@ -26,8 +28,88 @@
 					They are not assertions about the current picker or another shipped product.
 				</p></ex-callout
 			>
-			<ex-requirements id="requirements-reader" data-width="canvas"></ex-requirements
-		></ex-document>
+
+			<h2>S1 · Active input scope</h2>
+			<section id="body-S1">
+				<p id="summary-S1">Only the top active scope may receive this input event.</p>
+				<h5>Conditions and observable rule</h5>
+				<p data-ex-part="rule">
+					With a dialog open and both inputs initially empty, one character changes only the dialog
+					input; the background value stays empty.
+				</p>
+			</section>
+			<h2>S2 · Blocked background actions</h2>
+			<section id="body-S2">
+				<p id="summary-S2">A modal scope blocks lower-scope key and pointer actions.</p>
+				<h5>Conditions and observable rule</h5>
+				<p data-ex-part="rule">
+					While the menu is modal, pointer activation and keyboard shortcuts aimed at lower-scope
+					session actions produce no background action.
+				</p>
+				<figure data-ex-part="cases" data-width="reading">
+					<figcaption>While the menu is modal</figcaption>
+					<div class="ex-table-scroll">
+						<table>
+							<thead>
+								<tr>
+									<th>Stimulus</th>
+									<th>Aimed at</th>
+									<th>Required outcome</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr id="s2-pointer">
+									<td>Pointer activation</td>
+									<td>A lower-scope session action</td>
+									<td>No background action</td>
+								</tr>
+								<tr id="s2-keyboard">
+									<td>Keyboard shortcut</td>
+									<td>A lower-scope session action</td>
+									<td>No background action</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</figure>
+			</section>
+			<h2>S3 · Registered shortcut</h2>
+			<section id="body-S3">
+				<p id="summary-S3">Help and dispatch use the same action registration.</p>
+				<h5>Conditions and observable rule</h5>
+				<p data-ex-part="rule">
+					For every registered command, Help displays the same key used by shortcut dispatch; an
+					unregistered key is not shown as available.
+				</p>
+			</section>
+			<h2>S4 · Keyboard selection</h2>
+			<section id="body-S4">
+				<p id="summary-S4">Arrow keys move the active option; Enter commits it.</p>
+				<h5>Conditions and observable rule</h5>
+				<p data-ex-part="rule">
+					With at least two machine options, ArrowDown changes the active row without committing;
+					Enter commits exactly that active machine.
+				</p>
+			</section>
+			<h2>S5 · Opaque overlay boundary</h2>
+			<section id="body-S5">
+				<p id="summary-S5">The overlay covers its bounds and reserves its left edge.</p>
+				<h5>Conditions and observable rule</h5>
+				<p data-ex-part="rule">
+					With a wide glyph behind an open dialog, the overlay frame paints its full boundary and
+					reserves the left edge without exposed background text.
+				</p>
+			</section>
+			<h2>S6 · Retained draft</h2>
+			<section id="body-S6">
+				<p id="summary-S6">A refused start retains the draft and shows the refusal.</p>
+				<h5>Conditions and observable rule</h5>
+				<p data-ex-part="rule">
+					After a refused start result, the refusal is visible and all draft fields retain their
+					entered values before the next retry.
+				</p>
+			</section>
+		</ex-document>
 		<script type="application/json" data-ex-records>
 			[
 				{
@@ -80,79 +162,5 @@
 				}
 			]
 		</script>
-		<template id="body-S1"
-			><p id="summary-S1">Only the top active scope may receive this input event.</p>
-			<h5>Conditions and observable rule</h5>
-			<p data-ex-part="rule">
-				With a dialog open and both inputs initially empty, one character changes only the dialog
-				input; the background value stays empty.
-			</p></template
-		>
-		<template id="body-S2"
-			><p id="summary-S2">A modal scope blocks lower-scope key and pointer actions.</p>
-			<h5>Conditions and observable rule</h5>
-			<p data-ex-part="rule">
-				While the menu is modal, pointer activation and keyboard shortcuts aimed at lower-scope
-				session actions produce no background action.
-			</p>
-			<figure data-ex-part="cases" data-width="reading">
-				<figcaption>While the menu is modal</figcaption>
-				<div class="ex-table-scroll">
-					<table>
-						<thead>
-							<tr>
-								<th>Stimulus</th>
-								<th>Aimed at</th>
-								<th>Required outcome</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr id="s2-pointer">
-								<td>Pointer activation</td>
-								<td>A lower-scope session action</td>
-								<td>No background action</td>
-							</tr>
-							<tr id="s2-keyboard">
-								<td>Keyboard shortcut</td>
-								<td>A lower-scope session action</td>
-								<td>No background action</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</figure></template
-		>
-		<template id="body-S3"
-			><p id="summary-S3">Help and dispatch use the same action registration.</p>
-			<h5>Conditions and observable rule</h5>
-			<p data-ex-part="rule">
-				For every registered command, Help displays the same key used by shortcut dispatch; an
-				unregistered key is not shown as available.
-			</p></template
-		>
-		<template id="body-S4"
-			><p id="summary-S4">Arrow keys move the active option; Enter commits it.</p>
-			<h5>Conditions and observable rule</h5>
-			<p data-ex-part="rule">
-				With at least two machine options, ArrowDown changes the active row without committing;
-				Enter commits exactly that active machine.
-			</p></template
-		>
-		<template id="body-S5"
-			><p id="summary-S5">The overlay covers its bounds and reserves its left edge.</p>
-			<h5>Conditions and observable rule</h5>
-			<p data-ex-part="rule">
-				With a wide glyph behind an open dialog, the overlay frame paints its full boundary and
-				reserves the left edge without exposed background text.
-			</p></template
-		>
-		<template id="body-S6"
-			><p id="summary-S6">A refused start retains the draft and shows the refusal.</p>
-			<h5>Conditions and observable rule</h5>
-			<p data-ex-part="rule">
-				After a refused start result, the refusal is visible and all draft fields retain their
-				entered values before the next retry.
-			</p></template
-		>
 	</body>
 </html>

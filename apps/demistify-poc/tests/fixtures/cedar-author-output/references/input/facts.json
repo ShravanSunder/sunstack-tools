@@ -1,0 +1,152 @@
+{
+  "fixture": "Invented Cedar importer design; all checks and results are illustrative examples, not real product measurements.",
+  "needs": [
+    {
+      "id": "CedarKeepDraft",
+      "title": "Keep the working draft after a rejected import",
+      "capability": "Import recovery",
+      "summary": "If an import is rejected, keep the current note draft so I can correct the file and try again."
+    },
+    {
+      "id": "CedarExplainSkip",
+      "title": "Explain why an input row was skipped",
+      "capability": "Import clarity",
+      "summary": "Show the row number and reason for each skipped row without hiding successfully imported notes."
+    }
+  ],
+  "specifications": [
+    {
+      "id": "CedarRejectRule",
+      "title": "Rejected input leaves the draft unchanged",
+      "needs": [
+        "CedarKeepDraft"
+      ],
+      "summary": "A rejected input must not overwrite the draft.",
+      "rule": "When the input header is invalid, report the invalid header and leave every draft field unchanged.",
+      "cases": [
+        [
+          "Invalid header",
+          "Draft text: blue lantern",
+          "Draft text: blue lantern"
+        ],
+        [
+          "Valid header",
+          "Draft text: blue lantern",
+          "Imported notes plus retained draft"
+        ]
+      ]
+    },
+    {
+      "id": "CedarSkipRule",
+      "title": "Skipped rows have a visible explanation",
+      "needs": [
+        "CedarExplainSkip"
+      ],
+      "summary": "Each skipped row has its row number and reason.",
+      "rule": "For a row missing its note text, report that row number and the reason while retaining all valid rows."
+    }
+  ],
+  "designs": [
+    {
+      "id": "CedarImportBoundary",
+      "title": "Validate before applying the note batch",
+      "specifications": [
+        "CedarRejectRule",
+        "CedarSkipRule"
+      ],
+      "summary": "CedarImport validates the source and collects row explanations before the batch applies to the draft.",
+      "paragraphs": [
+        "Header validation runs before any draft write.",
+        "Valid notes and row explanations belong to the same parsed batch."
+      ],
+      "diagram": "flowchart LR\n  A[Read source] --> B[Validate header and rows]\n  B --> C[Apply valid notes and report skips]",
+      "gaps": "The host-specific file picker is outside this supplied design.",
+      "markdown": "The sentinel is `cedar-trial-42`.\n\nA **rejected** header leaves the existing draft unchanged. See the [format example](https://example.com/cedar-format)."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "CedarBadHeader",
+      "title": "Reject a file with an invalid header",
+      "specifications": [
+        "CedarRejectRule"
+      ],
+      "summary": "Import the fixed invalid-header file and compare the draft before and after.",
+      "procedure": [
+        [
+          "Start with the draft",
+          "Set the draft text to blue lantern."
+        ],
+        [
+          "Choose the invalid input",
+          "Import a file whose first row is not the required header."
+        ],
+        [
+          "Read the resulting state",
+          "The invalid-header explanation is visible and the draft still reads blue lantern."
+        ]
+      ]
+    },
+    {
+      "id": "CedarMissingText",
+      "title": "Explain a row without note text",
+      "specifications": [
+        "CedarSkipRule"
+      ],
+      "summary": "Import a batch containing one valid note and row 7 without note text; inspect the note and the row explanation."
+    }
+  ],
+  "observations": [
+    {
+      "id": "CedarExampleBadHeader",
+      "scenario": "CedarBadHeader",
+      "outcome": "Fail",
+      "summary": "Illustrative supplied result: the importer replaced the draft on rejection.",
+      "body": "In this invented example run, the invalid-header explanation appeared, but the draft became empty. This is an illustrative failed observation, not a product measurement."
+    }
+  ],
+  "frames": [
+    {
+      "id": "CedarPick",
+      "name": "CedarImport.read(source)",
+      "source": "cedar-import.ts:12",
+      "responsibility": "Read the chosen source without changing the draft.",
+      "statement": "const sourceText = await source.read();",
+      "requirement": "CedarKeepDraft",
+      "category": "Input"
+    },
+    {
+      "id": "CedarForward",
+      "name": "ImportChannel.forward(sourceText)",
+      "source": "import-channel.ts:24",
+      "responsibility": "Forward source text to the parser.",
+      "statement": "return parser.parse(sourceText);",
+      "category": "Plumbing",
+      "supporting": true
+    },
+    {
+      "id": "CedarValidate",
+      "name": "CedarParser.validate(sourceText)",
+      "source": "cedar-parser.ts:37",
+      "responsibility": "Validate header and collect valid notes plus row explanations.",
+      "statement": "return validateHeaderAndRows(sourceText);",
+      "requirement": "CedarExplainSkip",
+      "category": "Resolution",
+      "branch": "An invalid header returns a refusal before applying notes."
+    }
+  ],
+  "stacks": [
+    {
+      "id": "CedarImportPath",
+      "title": "Import the Cedar batch",
+      "description": "Read the source, forward it and validate before applying any notes.",
+      "primaryNeed": "CedarKeepDraft",
+      "frames": [
+        "CedarPick",
+        "CedarForward",
+        "CedarValidate"
+      ]
+    }
+  ]
+}
+
