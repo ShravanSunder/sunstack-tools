@@ -11,6 +11,7 @@ const [root = process.cwd()] = process.argv.slice(2);
 const contract = await contractInfo();
 if (contract.kind === 'failed') {
 	process.stdout.write(`addon: ${contract.failure.reason}: ${contract.failure.message}\n`);
+	process.stderr.write(`${formatValue(contract.failure, { depth: null })}\n`);
 	process.exit(1);
 }
 process.stdout.write(

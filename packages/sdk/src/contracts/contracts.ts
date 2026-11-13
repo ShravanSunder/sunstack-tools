@@ -493,6 +493,7 @@ export type FieldSource =
 			count?: never;
 			exclude?: never;
 			key?: never;
+			kind?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -505,17 +506,31 @@ export type FieldSource =
 			count?: never;
 			exclude?: never;
 			key?: never;
+			kind?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
 			resolve?: never;
 			rule?: never;
 	  })
+	| ({ from: 'section_prefix'; kind: EvidenceKindName } & {
+			as_kind?: never;
+			count?: never;
+			exclude?: never;
+			key?: never;
+			opening_chars?: never;
+			path?: never;
+			regex?: never;
+			resolve?: never;
+			rule?: never;
+			text?: never;
+	  })
 	| ({ from: 'capture'; regex: string } & {
 			as_kind?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
+			kind?: never;
 			opening_chars?: never;
 			path?: never;
 			resolve?: never;
@@ -539,6 +554,7 @@ export type FieldSource =
 			as_kind?: never;
 			exclude?: never;
 			key?: never;
+			kind?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -549,6 +565,7 @@ export type FieldSource =
 			as_kind?: never;
 			exclude?: never;
 			key?: never;
+			kind?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -559,6 +576,7 @@ export type FieldSource =
 			as_kind?: never;
 			count?: never;
 			exclude?: never;
+			kind?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -570,6 +588,7 @@ export type FieldSource =
 			as_kind?: never;
 			count?: never;
 			key?: never;
+			kind?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -582,6 +601,7 @@ export type FieldSource =
 			count?: never;
 			exclude?: never;
 			key?: never;
+			kind?: never;
 			opening_chars?: never;
 			regex?: never;
 			resolve?: never;
@@ -594,7 +614,7 @@ export type FieldSource =
 			opening_chars?: bigint;
 			as_kind?: EvidenceKindName | null;
 			exclude?: TargetExclude | null;
-	  } & { count?: never; key?: never; path?: never; rule?: never; text?: never });
+	  } & { count?: never; key?: never; kind?: never; path?: never; rule?: never; text?: never });
 
 export type FieldUnavailable =
 	| 'selection_pending'

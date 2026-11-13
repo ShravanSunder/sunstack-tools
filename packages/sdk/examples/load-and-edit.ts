@@ -11,6 +11,7 @@ const [directory = process.cwd(), root = process.cwd()] = process.argv.slice(2);
 const loaded = await load({ directory });
 if (loaded.kind !== 'loaded') {
 	process.stdout.write(`load: ${loaded.kind}\n`);
+	process.stderr.write(`${formatValue(loaded, { depth: null })}\n`);
 	process.exit(1);
 }
 

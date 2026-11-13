@@ -12,7 +12,7 @@ use sunstack_rules::{FilterName, FilterWire, RuleEntryWire};
 use super::matcher_transport::{AstMatcher, AstUtility};
 
 /// The SDK contract revision; bumped whenever a generated declaration changes meaning.
-pub const CONTRACT_REVISION: u32 = 10;
+pub const CONTRACT_REVISION: u32 = 11;
 
 /// Which original decoder a captured source needs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

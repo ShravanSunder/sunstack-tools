@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
 	copyFileSync,
+	cpSync,
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
@@ -173,13 +174,14 @@ assert.ok(
 	`the SDK resolves inside the consumer: ${sdkEntry}`,
 );
 
-for (const example of [
+const exampleFiles = [
 	'inline-configuration.ts',
 	'load-and-edit.ts',
 	'mechanical-run.ts',
 	'heading-fields.ts',
 	'inspect-and-save.ts',
-]) {
+] as const;
+for (const example of exampleFiles) {
 	copyFileSync(
 		join(consumer, 'node_modules', '@sunstack', 'sdk', 'examples', example),
 		join(consumer, example),
@@ -223,6 +225,15 @@ const documentedCompilerArguments = /^npx tsc (.+)$/mu.exec(installedReadme)?.[1
 assert.ok(
 	documentedCompilerArguments !== undefined,
 	'README advertises its standalone compile command',
+);
+assert.deepEqual(
+	new Set(
+		[...installedReadme.matchAll(/examples\/([a-z-]+\.ts)/gu)].flatMap((match) =>
+			match[1] === undefined ? [] : [match[1]],
+		),
+	),
+	new Set(exampleFiles),
+	'every advertised example is exercised from packed bytes',
 );
 step({
 	label: 'readme-typecheck',
@@ -396,4 +407,37 @@ step({
 	args: ['inspect-and-save.ts', empty, saved],
 	expectedExit: 1,
 });
+
+// A sibling consumer cannot inherit the main consumer's optional native addon.
+// Its wrapper and examples are byte-for-byte copies of the same installed tarball.
+const missingAddonConsumer = `${consumer}-missing-addon`;
+mkdirSync(missingAddonConsumer);
+mkdirSync(join(missingAddonConsumer, 'node_modules', '@sunstack'), { recursive: true });
+writeFileSync(join(missingAddonConsumer, 'package.json'), '{"private":true,"type":"module"}\n');
+cpSync(
+	join(consumer, 'node_modules', '@sunstack', 'sdk'),
+	join(missingAddonConsumer, 'node_modules', '@sunstack', 'sdk'),
+	{ recursive: true, force: false, errorOnExist: true },
+);
+const missingAddonRequire = createRequire(join(missingAddonConsumer, 'package.json'));
+for (const cell of platformCells) {
+	assert.throws(
+		() => missingAddonRequire.resolve(`@sunstack/sdk-${cell.key}`),
+		/Cannot find module/u,
+	);
+}
+for (const example of exampleFiles) {
+	const source = join(consumer, 'node_modules', '@sunstack', 'sdk', 'examples', example);
+	const copied = join(missingAddonConsumer, example);
+	copyFileSync(source, copied);
+	assert.deepEqual(readFileSync(copied), readFileSync(source));
+	const label = `missing-addon-${example.slice(0, -3)}`;
+	const exampleArguments = example === 'load-and-edit.ts' ? [project, checked] : [checked];
+	step({ label, command: process.execPath, args: [copied, ...exampleArguments], expectedExit: 1 });
+	const receipt = readFileSync(join(consumer, `${label}.log`), 'utf8');
+	assert.match(receipt, /addon_missing/u);
+	assert.match(receipt, /before_dispatch/u);
+	assert.match(receipt, /effects: 'none'/u);
+	assert.doesNotMatch(receipt, /run: completed|run: clean|restored exact typed outcome/u);
+}
 process.stdout.write(`\nInstalled consumer passed in ${consumer}\n`);

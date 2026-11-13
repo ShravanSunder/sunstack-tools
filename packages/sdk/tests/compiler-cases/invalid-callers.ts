@@ -375,6 +375,22 @@ export const sectionWithoutText = {
 	// expect TS1360
 } satisfies FieldSource;
 
+// A section prefix names one configured kind and carries no other source options.
+// expect TS2322
+export const prefixWithoutKind: FieldSource = { from: 'section_prefix' };
+export const prefixExtraText = {
+	from: 'section_prefix',
+	kind: 'outline',
+	// expect TS2322
+	text: 'full',
+} satisfies FieldSource;
+export const prefixExtraRule = {
+	from: 'section_prefix',
+	kind: 'outline',
+	rule: 'paragraph',
+	// expect TS1360
+} satisfies FieldSource;
+
 // Codec roots are tagged and must carry the value matching the tag.
 // expect TS2345
 export const documentMissingValue = serialize({ kind: 'configuration' });

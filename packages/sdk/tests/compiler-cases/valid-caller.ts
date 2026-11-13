@@ -356,6 +356,11 @@ export const headingFields = {
 	heading_path: { from: 'enclosing', kind: 'outline', text: contextHeading },
 	body: { from: 'section', text: 'own' },
 } as const satisfies Readonly<Record<string, FieldSource>>;
+
+export const sectionPrefixField = {
+	from: 'section_prefix',
+	kind: 'outline',
+} satisfies FieldSource;
 export const headingKinds = {
 	outline: { html_units: { mode: 'unit', units: ['section'] }, fields: {} },
 	subject: { html_units: { mode: 'unit', units: ['section'] }, fields: headingFields },

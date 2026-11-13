@@ -905,6 +905,14 @@ export const wideIntegerDefinitions = {
 					},
 				},
 				{
+					object: {
+						kind: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+					},
+				},
+				{
 					all: [
 						{
 							arguments: {},
