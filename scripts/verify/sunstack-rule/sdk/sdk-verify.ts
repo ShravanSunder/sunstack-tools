@@ -123,6 +123,7 @@ async function main(): Promise<void> {
 			process.execPath,
 			[
 				compiler,
+				'--ignoreConfig',
 				'--noEmit',
 				'--strict',
 				'--target',

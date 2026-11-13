@@ -43,6 +43,7 @@ export function observeSdkPackagedExamples(options: {
 			process.execPath,
 			[
 				compiler,
+				'--ignoreConfig',
 				'--noEmit',
 				'--strict',
 				'--target',
@@ -51,6 +52,8 @@ export function observeSdkPackagedExamples(options: {
 				'NodeNext',
 				'--moduleResolution',
 				'NodeNext',
+				'--types',
+				'node',
 				copied,
 			],
 			{ cwd: target.consumerRoot, env, encoding: 'utf8', timeout: 30000 },
