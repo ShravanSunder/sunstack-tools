@@ -221,12 +221,25 @@ fn selection_cut_fields_count_toward_the_existing_exact_request_size_limit() {
     let dispatcher = ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
 
     assert!(dispatcher.assess_selection(&legacy).is_ok());
-    assert!(matches!(
-        dispatcher.assess_selection(&current),
-        Err(SelectionIncompleteReason::RequestTooLarge {
-            limit: crate::RequestLimit::RequestMaxChars
-        })
-    ));
+    let refusal = serde_json::to_value(dispatcher.assess_selection(&current).unwrap_err()).unwrap();
+    assert_eq!(
+        refusal["diagnostics"]["items"][0]["code"],
+        "request_too_large"
+    );
+    assert_eq!(
+        refusal["diagnostics"]["items"][0]["admission"]["dimension"],
+        "request_chars"
+    );
+    assert_eq!(
+        refusal["diagnostics"]["items"][0]["admission"]["cap"],
+        old_size
+    );
+    assert!(
+        refusal["diagnostics"]["items"][0]["admission"]["measurement"]["observed"]
+            .as_u64()
+            .unwrap()
+            > old_size as u64
+    );
 }
 
 #[tokio::test]

@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 use sunstack_rules::test_support::controlled_http as controlled;
+#[path = "rulebook_lint_process/admission_diagnostics.rs"]
+mod admission_diagnostics;
 #[path = "rulebook_lint_process/case_overlay.rs"]
 mod case_overlay;
 #[path = "rulebook_lint_process/case_reports.rs"]
@@ -286,7 +288,9 @@ async fn assert_encoded_cap_blocks_only_large(root: &Path) {
             .as_array()
             .unwrap()
             .iter()
-            .any(|part| part["rule"] == "large" && part["reason"]["kind"] == "request_too_large")
+            .any(|part| part["rule"] == "large" && part["reason"]["kind"] == "admission_refused"
+                && part["reason"]["diagnostics"]["items"][0]["code"] == "request_too_large"
+                && part["reason"]["diagnostics"]["items"][0]["admission"] == json!({"kind":"limit","dimension":"request_chars","measurement":{"basis":"exact","observed":character_count},"cap":cap}))
     );
     assert_eq!(report["counts"]["error"], 0);
     assert_eq!(report["results"].as_array().unwrap().len(), 2);

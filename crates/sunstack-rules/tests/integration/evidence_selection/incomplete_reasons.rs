@@ -98,8 +98,8 @@ async fn invalid_selection_request_never_dispatches_http() {
     assert!(matches!(
         outcomes.values().next().unwrap(),
         SelectionOutcome::Incomplete {
-            reason: SelectionIncompleteReason::InvalidRequest
-        }
+            reason: SelectionIncompleteReason::AdmissionRefused { diagnostics }
+        } if diagnostics.items[0].code == DecisionDiagnosticCode::InvalidChoice
     ));
     assert_eq!(server.finish().await, 0);
     assert!(dispatch.records.is_empty());

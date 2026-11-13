@@ -13,6 +13,8 @@ use tokio::process::Command;
 mod checked_root;
 #[path = "lint_commands/document_conventions.rs"]
 mod document_conventions;
+#[path = "lint_commands/exact_text_fields.rs"]
+mod exact_text_fields;
 #[path = "lint_commands/filter_admission.rs"]
 mod filter_admission;
 #[path = "lint_commands/filter_runtime.rs"]
@@ -21,6 +23,8 @@ mod filter_runtime;
 mod html_evidence;
 #[path = "lint_commands/html_sections.rs"]
 mod html_sections;
+#[path = "lint_commands/incomplete_diagnostics.rs"]
+mod incomplete_diagnostics;
 #[path = "lint_commands/section_prefix.rs"]
 mod section_prefix;
 #[path = "../support/mod.rs"]

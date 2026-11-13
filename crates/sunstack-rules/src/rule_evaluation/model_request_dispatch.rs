@@ -1,4 +1,4 @@
-use crate::{RequestLimit, RulebookRunSettings};
+use crate::RulebookRunSettings;
 use std::sync::Arc;
 use sunstack_decisions::*;
 use tokio::{sync::Semaphore, task::JoinSet};
@@ -7,14 +7,14 @@ use tokio::{sync::Semaphore, task::JoinSet};
 pub enum DispatchRefusal {
     #[error(transparent)]
     ChoiceOptionsExceeded(#[from] ChoiceOptionsExceeded),
-    #[error("request exceeds the configured size limit")]
-    RequestTooLarge,
     #[error("model request allowance is exhausted")]
     RequestLimitReached,
     #[error("model request was cancelled")]
     Cancelled,
     #[error("model request is invalid")]
     InvalidRequest,
+    #[error("model request admission was refused")]
+    AdmissionRefused { diagnostics: DiagnosticList },
 }
 #[derive(Debug, Clone)]
 pub struct DispatchedRequest {
@@ -189,39 +189,42 @@ impl ModelRequestDispatch {
         request: &StructuredJudgmentRequest,
     ) -> Result<(), crate::SelectionIncompleteReason> {
         use crate::SelectionIncompleteReason as Reason;
-        validate_choice_options(&request.questions).map_err(|_| Reason::InvalidRequest)?;
+        validate_choice_options(&request.questions).map_err(|diagnostic| {
+            Reason::AdmissionRefused {
+                diagnostics: DecisionDiagnostic::from(diagnostic).into(),
+            }
+        })?;
         let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
-        let body = encode_judgment_body(request, model).map_err(|_| Reason::InvalidRequest)?;
+        let body = encode_judgment_body(request, model).map_err(|diagnostic| {
+            Reason::AdmissionRefused {
+                diagnostics: diagnostic.into(),
+            }
+        })?;
         let chars = std::str::from_utf8(&body)
             .map_err(|_| Reason::InvalidRequest)?
             .chars()
             .count();
         if chars > self.settings.request_max_chars {
-            return Err(Reason::RequestTooLarge {
-                limit: RequestLimit::RequestMaxChars,
+            return Err(Reason::AdmissionRefused {
+                diagnostics: character_limit_diagnostics(chars, self.settings.request_max_chars),
             });
         }
         let budget = &self.settings.request_budget;
         let Some(backend) = &self.backend else {
             return Err(Reason::InvalidRequest);
         };
-        let encoded = backend
-            .encode_request(request)
-            .map_err(|_| Reason::InvalidRequest)?;
-        let encoded_bytes = encoded.body().len();
+        let encoded =
+            backend
+                .encode_request(request)
+                .map_err(|diagnostic| Reason::AdmissionRefused {
+                    diagnostics: diagnostic.into(),
+                })?;
         let accounting = backend.account_request(&encoded);
         match assess_request_budget(encoded, budget, accounting.clone()) {
             RequestBudgetAssessment::WithinConfiguredBudget { .. } => Ok(()),
-            RequestBudgetAssessment::Unverifiable { .. } => Err(Reason::InvalidRequest),
-            RequestBudgetAssessment::Exceeded { .. } => {
-                let limit = if request.questions.len() > budget.max_questions {
-                    RequestLimit::QuestionsPerRequest
-                } else if encoded_bytes > budget.max_request_bytes {
-                    RequestLimit::RequestBytes
-                } else {
-                    RequestLimit::InputTokens
-                };
-                Err(Reason::RequestTooLarge { limit })
+            RequestBudgetAssessment::Unverifiable { diagnostics }
+            | RequestBudgetAssessment::Exceeded { diagnostics } => {
+                Err(Reason::AdmissionRefused { diagnostics })
             }
         }
     }
@@ -234,14 +237,19 @@ impl ModelRequestDispatch {
         }
         validate_choice_options(&request.questions)?;
         let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
-        let body =
-            encode_judgment_body(&request, model).map_err(|_| DispatchRefusal::InvalidRequest)?;
+        let body = encode_judgment_body(&request, model).map_err(|diagnostic| {
+            DispatchRefusal::AdmissionRefused {
+                diagnostics: diagnostic.into(),
+            }
+        })?;
         let chars = std::str::from_utf8(&body)
             .map_err(|_| DispatchRefusal::InvalidRequest)?
             .chars()
             .count();
         if chars > self.settings.request_max_chars {
-            return Err(DispatchRefusal::RequestTooLarge);
+            return Err(DispatchRefusal::AdmissionRefused {
+                diagnostics: character_limit_diagnostics(chars, self.settings.request_max_chars),
+            });
         }
         if self.requested >= self.settings.max_model_requests {
             return Err(DispatchRefusal::RequestLimitReached);
@@ -260,7 +268,7 @@ impl ModelRequestDispatch {
             // Ordinary execution reserves its allowance before local admission runs.
             self.requested += 1;
             prepare_judgments(&input, backend.as_ref())
-                .map_err(|_| DispatchRefusal::InvalidRequest)?;
+                .map_err(|diagnostics| DispatchRefusal::AdmissionRefused { diagnostics })?;
             let id = self.next_request_id;
             self.next_request_id += 1;
             self.prepared.push(PreparedModelRequest { id, request });
@@ -296,6 +304,18 @@ impl ModelRequestDispatch {
         self.records.extend(completed.iter().cloned());
         completed
     }
+}
+
+fn character_limit_diagnostics(chars: usize, cap: usize) -> DiagnosticList {
+    DecisionDiagnostic::request(DecisionDiagnosticCode::RequestTooLarge)
+        .with_admission(AdmissionDiagnosticDetail::Limit {
+            dimension: AdmissionDimension::RequestChars,
+            measurement: AdmissionMeasurement::Exact {
+                observed: u64::try_from(chars).unwrap_or(u64::MAX),
+            },
+            cap: u64::try_from(cap).unwrap_or(u64::MAX),
+        })
+        .into()
 }
 
 #[cfg(test)]

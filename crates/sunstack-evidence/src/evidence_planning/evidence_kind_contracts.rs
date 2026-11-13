@@ -1,4 +1,4 @@
-use crate::{MatchRange, SourceSpan};
+use crate::{DocumentText, MatchRange, SourceSpan};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroU32, path::PathBuf};
@@ -195,6 +195,10 @@ impl From<NeighbourCount> for u8 {
 #[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FieldSource {
     FirstLine {},
+    HtmlText {},
+    HtmlAttribute {
+        name: crate::HtmlAttributeName,
+    },
     Section {
         text: SectionText,
     },
@@ -240,6 +244,8 @@ pub enum FieldSource {
     Document {
         path: PathBuf,
         rule: EvidenceRuleId,
+        #[serde(default, skip_serializing_if = "DocumentText::is_raw")]
+        text: DocumentText,
     },
     Target {
         regex: String,
@@ -299,6 +305,8 @@ impl FieldSource {
     pub const fn shape(&self) -> FieldShape {
         match self {
             Self::FirstLine {}
+            | Self::HtmlText {}
+            | Self::HtmlAttribute { .. }
             | Self::Section { .. }
             | Self::SectionPrefix { .. }
             | Self::Capture { .. }

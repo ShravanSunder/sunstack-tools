@@ -304,8 +304,8 @@ async fn sdk_invalid_request_reaches_the_existing_lint_formatter_boundary() {
         .collect();
     assert_failure_formats(
         &report,
-        json!({"kind":"invalid_request"}),
-        "invalid request",
+        json!({"kind":"admission_refused","diagnostics":{"items":[sunstack_decisions::DecisionDiagnostic::request(sunstack_decisions::DecisionDiagnosticCode::InvalidChoice)],"omitted_count":0}}),
+        "InvalidChoice",
         1,
     );
     assert!(!render(&report, OutputFormat::Default).contains("provider failure"));

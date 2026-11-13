@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- Preserve native request-admission diagnostics through preparation, saved
+  requests, incomplete results, cases, summaries and `lint show`. Budget failures
+  retain dimension, observed count, cap and accounting basis, with explicit
+  unavailable accounting and overflow. Caps and dispatch/exit behavior stay intact.
+- Add opt-in mechanical `html_text` and `html_attribute { name }` fields, plus
+  `document.text` projections `raw` (default), `html_text` and `json_string`.
+  Decoded strings retain original raw spans/digests and independent record identity.
+- Add `exact_contains_field` for dynamic exact contiguous text membership. It
+  rejects empty needles, incomplete/cut inputs and cross-record stitching;
+  existing whole-token `contains_field` behavior is unchanged.
+- Incomplete evidence listings and preparation print skipped-rule diagnostics
+  to stderr while preserving stdout format and exit status.
+- Rust consumers handle the new field/check/refusal variants and the `Document`
+  field's projection member. `RulebookIncompleteReason` is now cloned or borrowed
+  because typed admission diagnostics carry payloads. Generated SDK contracts must
+  be regenerated from the Rust schema when integrating these additions.
+
 ## 0.17.0
 
 Release date: 2026-11-13.

@@ -112,6 +112,10 @@ picked pieces, selection outcomes and file counts as JSON. It runs evidence
 selection when configured, requiring a credential, but sends no rule questions.
 Without selected kinds, the evidence listing remains credential-free.
 
+If a skipped rule makes evidence listing or preparation incomplete, stderr names
+its definition and cause while stdout retains its selected format. Listing an
+unavailable field alone does not evaluate its rule or make the listing incomplete.
+
 An ordinary lint run uses changed evidence by default and requires Git for that
 default scope. Use `--all` for every configured target, `--since REV` for changes
 since a revision including worktree edits, or name files or directories for full
@@ -210,6 +214,14 @@ invalid input exits **2**, incomplete processing **3**, and cancellation **4**.
 Invalid, cancelled and incomplete processing take precedence over case gaps.
 Unassessed case bars alone do not fail a prepare-only run.
 
+Local request-admission refusals retain their typed diagnostics on the saved
+request and incomplete result, including case reports and `lint show` readback.
+Budget diagnostics name the measured dimension, observed count, cap and exact or
+estimated accounting. Unavailable accounting and arithmetic overflow are explicit;
+schema refusals do not invent measurements. Request-character limits count
+characters, request-byte limits count encoded bytes, and input-token estimates
+remain estimates. These diagnostics change no cap, request identity or exit code.
+
 A case file contains `cases` and `bars`, plus an optional local `repository`
 path (relative to the case file). Each case has a unique `id`, `revision`, `set`
 and `label_from` (`owner-fix`, `owner-ruling` or `blind-agents`).
@@ -266,7 +278,9 @@ in the incomplete reason:
 When no HTTP response arrived, `http_status` is omitted. The default output
 prints `provider failure (rate_limit, HTTP 429)` or
 `provider failure (connection)`. A request refused by the engine is
-`invalid_request`; an answer that fails admission is `invalid_response`.
+`admission_refused` when its native diagnostic is available, retaining that
+diagnostic and any structured budget detail; other invalid requests retain
+`invalid_request`. An answer that fails admission is `invalid_response`.
 Incomplete selection candidates use these reason shapes too.
 
 See the checked-in [worked configuration](tests/fixtures/rulebook-lint/skill-rules.config.json)
@@ -312,6 +326,13 @@ against the verification document in reverse:
 
 The guide explains path resolution, whole-token matching, parse policy, and
 limits of HTML anchor and model-text handling.
+
+Mechanical decoded HTML fields (`html_text`, `html_attribute`) and opt-in
+`document.text` projections (`html_text`, `json_string`) preserve original spans.
+Use `exact_contains_field` for dynamic contiguous substring comparison without
+whole-token boundaries. See [exact decoded text comparisons](../sunstack-evidence/docs/html-evidence.md#exact-decoded-text-comparisons)
+for the configuration and record-selection contract. Raw document text remains
+the default.
 
 Use `{"from":"section_prefix","kind":"outline"}` to expose the nearest
 containing piece of a configured kind up to this subject's source start. The

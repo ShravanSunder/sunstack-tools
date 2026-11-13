@@ -237,7 +237,6 @@ fn request_for(
 fn request_failure(refusal: DispatchRefusal) -> FilterIncomplete {
     FilterIncomplete::Request {
         reason: match refusal {
-            DispatchRefusal::RequestTooLarge => return FilterIncomplete::ReadsTooLarge,
             DispatchRefusal::Cancelled => RulebookIncompleteReason::Cancelled,
             DispatchRefusal::RequestLimitReached => RulebookIncompleteReason::RequestLimitReached,
             DispatchRefusal::ChoiceOptionsExceeded(error) => {
@@ -247,6 +246,9 @@ fn request_failure(refusal: DispatchRefusal) -> FilterIncomplete {
                 }
             }
             DispatchRefusal::InvalidRequest => RulebookIncompleteReason::InvalidRequest,
+            DispatchRefusal::AdmissionRefused { diagnostics } => {
+                RulebookIncompleteReason::AdmissionRefused { diagnostics }
+            }
         },
     }
 }
@@ -467,9 +469,11 @@ pub async fn ask_filters(
                 },
                 None,
             ),
-            DecisionRunOutcome::InvalidRequest { .. } => incomplete_state(
+            DecisionRunOutcome::InvalidRequest { diagnostics } => incomplete_state(
                 FilterIncomplete::Request {
-                    reason: RulebookIncompleteReason::InvalidRequest,
+                    reason: RulebookIncompleteReason::AdmissionRefused {
+                        diagnostics: diagnostics.clone(),
+                    },
                 },
                 None,
             ),

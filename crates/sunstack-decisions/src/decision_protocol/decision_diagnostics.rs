@@ -79,6 +79,8 @@ pub struct DecisionDiagnostic {
     pub location: DecisionDiagnosticLocation,
     pub guidance: String,
     pub retry_advice: RetryAdvice,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission: Option<Box<crate::AdmissionDiagnosticDetail>>,
 }
 impl DecisionDiagnostic {
     pub fn request(code: DecisionDiagnosticCode) -> Self {
@@ -133,7 +135,13 @@ impl DecisionDiagnostic {
             location: DecisionDiagnosticLocation::None,
             guidance,
             retry_advice,
+            admission: None,
         }
+    }
+    pub fn with_admission(mut self, detail: crate::AdmissionDiagnosticDetail) -> Self {
+        self.guidance = format!("{} {}", detail.summary(), self.guidance);
+        self.admission = Some(Box::new(detail));
+        self
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

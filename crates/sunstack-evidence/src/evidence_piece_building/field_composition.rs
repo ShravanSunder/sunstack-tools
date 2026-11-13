@@ -31,6 +31,33 @@ pub(super) fn local_fields(
     let mut fields = BTreeMap::new();
     for (name, source) in &definition.fields {
         let value = match source {
+            FieldSource::HtmlText {} => {
+                match crate::document_evidence::html_decoded_text::decoded_html_text(text) {
+                    Ok(value) => FieldValue::Text {
+                        value,
+                        spans: vec![source_span(file, range)],
+                    },
+                    Err(reason) => FieldValue::Unavailable { reason },
+                }
+            }
+            FieldSource::HtmlAttribute { name } => {
+                match crate::document_evidence::html_decoded_text::decoded_html_attribute(
+                    text, name,
+                ) {
+                    Ok(Some(value)) => FieldValue::Text {
+                        value: value.value,
+                        spans: vec![source_span(
+                            file,
+                            &MatchRange {
+                                start: range.start + value.range.start,
+                                end: range.start + value.range.end,
+                            },
+                        )],
+                    },
+                    Ok(None) => FieldValue::Absent,
+                    Err(reason) => FieldValue::Unavailable { reason },
+                }
+            }
             FieldSource::Section { text } => file.section_field(kind, range, *text, html_settings),
             FieldSource::SectionPrefix { kind } => {
                 super::section_prefix_fields::section_prefix_field(file, kind, range, pieces)
