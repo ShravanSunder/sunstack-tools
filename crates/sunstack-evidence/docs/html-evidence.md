@@ -71,11 +71,40 @@ Document fields are acquired after evidence selection. A selection question cann
 
 Every occurrence is checked, including overlaps: `A-A` matches the final occurrence in `XA-A-A` even though the earlier occurrence touches `X`.
 
+## Native heading fields
+
+Native `html_units` sections and `markdown_units` kinds selecting exactly
+`["section"]` can expose a heading without the following source line:
+
+```json
+{
+  "heading": {"from": "section", "text": "heading"},
+  "heading_path": {"from": "enclosing", "kind": "outline", "text": "heading"}
+}
+```
+
+The referenced `outline` must itself be a native section kind. Enclosing entries
+keep their existing containment and selection, outermost first, including an
+equal-range section of the referenced kind. No enclosing match gives an empty
+list. `same_file` and AST rule references do not support heading text.
+
+HTML headings contain the h1–h6 element's asking text: tags are removed, entities
+decoded once, and whitespace folded. Markdown headings keep their inline source,
+including emphasis, links and entities, with only ATX heading markers or the
+setext underline removed. Both the raw field and asking view contain this derived
+heading text; spans still point to the original heading element or Markdown
+heading block. Ordinary text budgets and cut markers apply. An unclosed HTML
+heading with no bounded heading text is unavailable with reason `unreadable`.
+
+A target's `as_kind` cannot name a kind containing heading fields. These cases
+produce admission refusals at the owning field. Existing `first_line`, `full`,
+`own` and `enclosing_own` fields retain their source semantics.
+
 ## Language and model views
 
 Evidence supports every language in ast-grep 0.51's `SupportLang`. Serialized evidence language tags use snake_case; existing `markdown` and `json` tags remain readable. JSON, YAML, and HCL parse errors mark the language failed and skip its rules. HTML, Markdown, and the other supported languages retain matches despite parse errors. The `yaml` front-matter field source is admitted only for Markdown kinds.
 
-For asking rules, HTML fields are projected as text content: tags and comments are omitted, entities are decoded as above, and whitespace is collapsed. Text inside `script` and `style` remains, as with DOM `textContent`. Other languages' fields remain raw. Mechanical checks use raw source fields, and locations retain raw byte ranges.
+For asking rules, HTML fields are projected as text content: tags and comments are omitted, entities are decoded as above, and whitespace is collapsed. Text inside `script` and `style` remains, as with DOM `textContent`. Other languages' fields remain raw. Mechanical checks use the stored field values: heading fields contain derived text as described above, while ordinary source fields remain raw. Locations retain raw byte ranges.
 
 `alt` and `aria-label` attributes contribute text on every element. Project-specific attributes and outline exclusions belong in the project's evidence config:
 
