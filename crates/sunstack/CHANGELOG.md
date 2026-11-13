@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.16.0
+
+Release date: 2026-11-13.
+
+- Selection request candidates and shared views now expose `cut-fields`, using
+  the existing rule-request field-name list and omitting it when empty. The
+  list comes from the bounded model view; inline cut markers and text stay
+  unchanged. Authored marker text does not create cut metadata.
+- This changes saved cut-bearing selection requests and their hashes.
+  `--selections-from` cannot reuse an older selection answer when the complete
+  request hash differs; that selection remains unanswered during preparation.
+  Uncut requests with identical hashes remain eligible under the existing
+  selection-kind, answer and resolved-model checks. There is no blanket
+  rejection based on the source report's version.
+- Added metadata counts toward the unchanged character, byte and token limits.
+  At an exact-fit boundary it may cause rebatching or `RequestTooLarge`;
+  limits are not raised and metadata is not excluded from accounting.
+  Public Rust function signatures and the model-view cutter are unchanged.
+
 ## 0.15.1
 
 Release date: 2026-11-13.
