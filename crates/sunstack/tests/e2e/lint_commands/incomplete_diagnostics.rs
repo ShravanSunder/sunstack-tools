@@ -60,7 +60,7 @@ async fn successful_evidence_and_preparation_keep_stderr_empty() {
     let root = tempfile::tempdir().unwrap();
     fixture::write(root.path());
     let output = invoke(root.path(), &["--all", "--evidence", "skill"], 0).await;
-    assert!(output.stderr.is_empty());
+    assert_no_application_stderr(&output);
     std::fs::write(
         root.path().join("docs/one.md"),
         "---\ndescription: Use when checking documents\n---\n",
@@ -72,5 +72,5 @@ async fn successful_evidence_and_preparation_keep_stderr_empty() {
         6,
     )
     .await;
-    assert!(output.stderr.is_empty());
+    assert_no_application_stderr(&output);
 }

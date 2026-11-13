@@ -261,7 +261,7 @@ async fn exact_membership_never_passes_empty_missing_cut_unreadable_or_outside_s
         }
         if scenario == "missing_source" {
             let listing = invoke(root.path(), &["--all", "--evidence", "quote"], 0).await;
-            assert!(listing.stderr.is_empty());
+            assert_no_application_stderr(&listing);
         }
     }
 }

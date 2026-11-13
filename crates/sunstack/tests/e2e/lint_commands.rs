@@ -59,6 +59,23 @@ async fn invoke(root: &Path, arguments: &[&str], exit: i32) -> Output {
     );
     result
 }
+fn assert_no_application_stderr(output: &Output) {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stderr.is_empty() {
+        return;
+    }
+    // The signing wrapper warns on hosts without a Developer ID identity.
+    // Permit that one bounded wrapper line, never application diagnostics.
+    assert!(stderr.len() <= 256, "{stderr}");
+    let mut lines = stderr.lines();
+    let warning = lines.next().unwrap();
+    assert!(
+        warning.starts_with("cargo debug runner: sunstack runs unsigned (")
+            && warning.ends_with("); LuLu may prompt after rebuilding"),
+        "{stderr}"
+    );
+    assert!(lines.next().is_none(), "{stderr}");
+}
 async fn report(root: &Path, arguments: &[&str], exit: i32) -> Value {
     let mut arguments = arguments.to_vec();
     arguments.extend(["--format", "json"]);
