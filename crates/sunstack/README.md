@@ -135,7 +135,7 @@ reports. To inspect a result later, save the full report and request one id:
 ```sh
 sunstack lint --all --report run.json
 sunstack lint show run.json 3
-sunstack lint cases cases.json --set development
+sunstack lint --report cases-report.json cases cases.json --set development
 ```
 
 A saved report contains each request's exact state and questions, every returned
@@ -146,6 +146,10 @@ be re-walked. For completed cases reports, selectors consider exact case IDs and
 across nested revisions together. A case and its own result count once. Ambiguous IDs
 name each revision, case ID and result ID. Unknown IDs and malformed files name
 the report kind when known and the reason.
+
+`lint --report FILE cases ...` saves the complete case report, including nested
+revision reports and cases that were stale, unselected or not judged. Successful
+saving preserves stdout and the case result exit code. A save failure exits 3.
 
 ### Prepare requests without sending
 
@@ -308,6 +312,14 @@ against the verification document in reverse:
 
 The guide explains path resolution, whole-token matching, parse policy, and
 limits of HTML anchor and model-text handling.
+
+Use `{"from":"section_prefix","kind":"outline"}` to expose the nearest
+containing piece of a configured kind up to this subject's source start. The
+caller chooses that kind; it can select broader governing sections. Raw fields
+retain exact bytes and source spans, while asking views use ordinary projection
+and cuts. The full section can coexist in an `enclosing` field. See
+[section prefixes](../sunstack-evidence/docs/html-evidence.md#section-prefixes)
+for empty/unavailable behavior and AST composition limits.
 
 HTML outline exclusions and extra text attributes are project settings under
 `evidence.html`. They default to empty; standard `alt`, `aria-label` and

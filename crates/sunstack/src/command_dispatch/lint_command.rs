@@ -151,10 +151,12 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         return match result {
             Ok(report) => match serde_json::to_string_pretty(&report) {
                 Ok(text) => {
-                    if let Some(path) = &arguments.prepare
+                    if let Some(path) = arguments.prepare.as_ref().or(arguments.report.as_ref())
                         && let Err(error) = std::fs::write(path, &text)
                     {
-                        return output(&format!("Cannot save prepared cases: {error}"), 3);
+                        let _ =
+                            writeln!(io::stderr().lock(), "sunstack: cannot save report: {error}");
+                        return ExitCode::from(3);
                     }
                     output(&text, report.exit_code())
                 }

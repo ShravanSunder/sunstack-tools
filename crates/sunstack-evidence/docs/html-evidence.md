@@ -100,6 +100,55 @@ A target's `as_kind` cannot name a kind containing heading fields. These cases
 produce admission refusals at the owning field. Existing `first_line`, `full`,
 `own` and `enclosing_own` fields retain their source semantics.
 
+## Section prefixes
+
+A subject can expose the preceding content of a configured containing kind:
+
+```json
+{
+  "outline": {
+    "html_units": {"mode": "unit", "units": ["section"]},
+    "fields": {}
+  },
+  "subject": {
+    "rule": "your-element-rule",
+    "fields": {
+      "preceding": {"from": "section_prefix", "kind": "outline"},
+      "section_status": {"from": "enclosing", "kind": "outline", "text": "full"}
+    }
+  }
+}
+```
+
+This fragment belongs in `evidence.kinds`; `your-element-rule` must exist in the
+ast-grep project. `kind` names the caller's configured containing-section kind,
+not a fixed built-in outline. Native HTML/Markdown sections or AST-backed kinds
+can supply its ranges. Kind dependencies, selection and language checks apply.
+Use a filter on that kind when a broader section should govern the subject.
+
+For section `[S0,S1)` containing subject `[E0,E1)`, the scalar raw field is exactly
+`[S0,E0)`: heading/opening included, subject and later bytes excluded. The nearest
+configured containing range wins, independently of DOM wrappers. Each subject
+has its own endpoint. A subject starting at `S0` returns available empty text
+with a zero-width span. Source identity, content digest, byte offsets and
+line/column coordinates still refer to the acquired original document.
+
+Missing sections, source-version mismatches, crossing ambiguous containers or
+scan-limited candidate sets yield `unavailable` (`unreadable`), with no whole-page
+fallback. An unanswered containing-kind selection yields `selection_pending`.
+The operation reuses acquired bytes and needs no additional read or credential.
+Ordinary field budgets and cuts apply; `complete` cannot pass an unavailable or
+cut prefix. HTML asking text uses configured text attributes and the same
+projection as other fields, without adding closing tags or later content.
+
+The prefix and full/status fields can appear separately in the same saved
+prepare report. Field names do not isolate questions within a shared request or
+guarantee relevance. Mechanical text checks read the raw prefix. Existing AST
+checks still scope matches to their original selected subject, and cannot name
+this field as an AST target. Its source span is retained for consumers to compare
+against configured AST match spans; there is no config-level AST-selector-to-field
+join yet. A regex over raw tags is not parsed-element evidence.
+
 ## Language and model views
 
 Evidence supports every language in ast-grep 0.51's `SupportLang`. Serialized evidence language tags use snake_case; existing `markdown` and `json` tags remain readable. JSON, YAML, and HCL parse errors mark the language failed and skip its rules. HTML, Markdown, and the other supported languages retain matches despite parse errors. The `yaml` front-matter field source is admitted only for Markdown kinds.

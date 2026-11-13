@@ -32,6 +32,9 @@ pub(super) fn local_fields(
     for (name, source) in &definition.fields {
         let value = match source {
             FieldSource::Section { text } => file.section_field(kind, range, *text, html_settings),
+            FieldSource::SectionPrefix { kind } => {
+                super::section_prefix_fields::section_prefix_field(file, kind, range, pieces)
+            }
             FieldSource::FirstLine {} => {
                 let first = first_line_range(file, range);
                 taken.push(first.clone());
