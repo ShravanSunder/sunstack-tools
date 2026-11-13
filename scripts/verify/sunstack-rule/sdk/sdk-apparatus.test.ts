@@ -194,15 +194,15 @@ describe('SDK apparatus rejects false greens', () => {
 			requireDeepFrozenSdkValue(Object.freeze({ configuration: { nested: [] } })),
 		).toThrow('unfrozen');
 	});
-	it('checks synthetic 0.15.0 revision 7 and refuses stale, mixed release/revision and target replies', async () => {
+	it('checks synthetic 0.15.1 revision 8 and refuses stale, mixed release/revision and target replies', async () => {
 		const contract = {
-			sdk_release: '0.15.0',
-			contract_revision: 7,
+			sdk_release: '0.15.1',
+			contract_revision: 8,
 			target: 'aarch64-apple-darwin',
 		};
 		const target = {
-			release: '0.15.0',
-			contractRevision: 7,
+			release: '0.15.1',
+			contractRevision: 8,
 			arch: 'arm64',
 			platform: 'darwin',
 			libc: 'none',
@@ -217,6 +217,9 @@ describe('SDK apparatus rejects false greens', () => {
 			[
 				{ ...contract, sdk_release: '0.12.1' },
 				{ ...contract, sdk_release: '0.13.0' },
+				{ ...contract, contract_revision: 7 },
+				{ ...contract, sdk_release: '0.15.0', contract_revision: 7 },
+				{ ...contract, sdk_release: '0.15.0' },
 				{ ...contract, contract_revision: 6 },
 				{ ...contract, sdk_release: '0.14.1', contract_revision: 6 },
 				{ ...contract, contract_revision: 5 },
@@ -237,7 +240,7 @@ describe('SDK apparatus rejects false greens', () => {
 			),
 		);
 		await Promise.all(
-			[6, 5, 4].map((contractRevision) =>
+			[7, 6, 5, 4].map((contractRevision) =>
 				expect(
 					inspectInstalledSdkContract(
 						{ contractInfo: async () => ({ kind: 'ready', contract }) },
@@ -314,14 +317,14 @@ describe('SDK apparatus rejects false greens', () => {
 				path: `/consumer/${index}`,
 				sha256: 'c'.repeat(64),
 			})),
-			release: '0.15.0',
-			contractRevision: 7,
+			release: '0.15.1',
+			contractRevision: 8,
 			platform: 'darwin',
 			arch: 'arm64',
 			libc: 'none',
 		};
 		const parsed = sdkTargetSchema.parse(input);
-		expect([parsed.release, parsed.contractRevision]).toEqual(['0.15.0', 7]);
+		expect([parsed.release, parsed.contractRevision]).toEqual(['0.15.1', 8]);
 		expect(sdkTargetSchema.safeParse({ ...input, consumerRoot: './consumer' }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, addon: undefined }).success).toBe(false);
 		expect(sdkTargetSchema.safeParse({ ...input, commit: 'abc123' }).success).toBe(false);

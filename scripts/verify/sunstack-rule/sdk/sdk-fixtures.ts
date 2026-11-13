@@ -308,6 +308,7 @@ export function sdkDocumentRootValue(endpoint: string, selected: SdkDocumentCase
 }
 export function sdkDocumentRequest(selected: SdkDocumentCase): object {
 	return {
+		model: 'jev-latest',
 		questions: {
 			actor: { type: 'noul', instructions: { check: 'body', task: 'Is the document complete?' } },
 		},

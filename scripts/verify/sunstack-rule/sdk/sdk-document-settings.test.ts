@@ -9,7 +9,6 @@ import {
 	sdkDocumentLinks,
 	sdkDocumentLinkText,
 	sdkDocumentPage,
-	sdkDocumentRequest,
 	sdkDocumentRootValue,
 	type SdkDocumentCase,
 } from './sdk-fixtures.ts';
@@ -137,10 +136,38 @@ function piece(report: ReturnType<typeof positive>, key: string): SyntheticPiece
 	if (!value) throw new Error(`Synthetic test setup lacks ${key}`);
 	return value.piece;
 }
+interface SyntheticRequest {
+	readonly model: string;
+	readonly state: {
+		readonly body: string;
+		readonly standard: string;
+		readonly 'unavailable-fields': Readonly<Record<string, never>>;
+	};
+	readonly questions: {
+		readonly actor: {
+			readonly type: 'noul';
+			readonly instructions: { readonly check: string; readonly task: string };
+		};
+	};
+}
+/** Complete synthetic HTTP body authored independently of the expected request factory. */
+function independentRequest(selected: SdkDocumentCase): SyntheticRequest {
+	return {
+		model: 'jev-latest',
+		state: {
+			body: sdkDocumentCases[selected].asking,
+			standard: 'Document settings are explicit.',
+			'unavailable-fields': {},
+		},
+		questions: {
+			actor: { type: 'noul', instructions: { check: 'body', task: 'Is the document complete?' } },
+		},
+	};
+}
 function check(
 	report: unknown,
 	selected: SdkDocumentCase = 'restored',
-	requests: readonly unknown[] = [sdkDocumentRequest(selected)],
+	requests: readonly unknown[] = [independentRequest(selected)],
 ): void {
 	requireSdkDocumentObservation({ report, selected, requests });
 }
@@ -162,6 +189,43 @@ describe('document settings oracles reject false greens', () => {
 			expect(() => check(report, selected)).not.toThrow();
 			expect(() => checkRoot(report, selected)).not.toThrow();
 		}
+	});
+	it.each([
+		['missing model', 'missing'],
+		['changed model', 'changed'],
+		['wrong-type model', 'wrong-type'],
+		['extra envelope key', 'extra'],
+		['changed state', 'state'],
+		['changed question', 'question'],
+		['duplicate requests', 'duplicate'],
+		['empty requests', 'empty'],
+	] as const)('rejects an otherwise-valid complete request with %s', (_label, change) => {
+		const request = independentRequest('restored');
+		const missingModel: Record<string, unknown> = { ...request };
+		delete missingModel['model'];
+		const variants: Record<typeof change, readonly unknown[]> = {
+			missing: [missingModel],
+			changed: [{ ...request, model: 'wrong-model' }],
+			'wrong-type': [{ ...request, model: 7 }],
+			extra: [{ ...request, extra: true }],
+			state: [{ ...request, state: { ...request.state, standard: 'Changed standard.' } }],
+			question: [
+				{
+					...request,
+					questions: {
+						actor: {
+							...request.questions.actor,
+							instructions: { ...request.questions.actor.instructions, task: 'Changed task.' },
+						},
+					},
+				},
+			],
+			duplicate: [request, request],
+			empty: [],
+		};
+		expect(() => check(positive('restored'), 'restored', variants[change])).toThrow(
+			'complete asking request/multiplicity',
+		);
 	});
 	it('rejects a different heading with the same count and changed raw ranges', () => {
 		const report = positive('restored');
@@ -230,8 +294,8 @@ describe('document settings oracles reject false greens', () => {
 		expect(() => check(wrongCut)).toThrow('model view/cuts');
 		for (const requests of [
 			[],
-			[sdkDocumentRequest('standard')],
-			[sdkDocumentRequest('restored'), sdkDocumentRequest('restored')],
+			[independentRequest('standard')],
+			[independentRequest('restored'), independentRequest('restored')],
 		]) {
 			expect(() => check(positive('restored'), 'restored', requests)).toThrow('request');
 		}
