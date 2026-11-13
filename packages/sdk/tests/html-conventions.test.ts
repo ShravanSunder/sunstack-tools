@@ -2,6 +2,7 @@
 // the explicit 0.14.1 restore and unrelated custom names, observed in outlines, raw fields,
 // model views and the requests the model receives; and the refusals Rust owns.
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { test } from 'node:test';
 
 import type {
@@ -186,10 +187,7 @@ interface Responder {
 	stop(): Promise<number>;
 }
 
-/** More requests than the three runs' sections together. */
-const responseLimit = 16;
-
-function answerEveryRequest(backend: ControlledBackend): Responder {
+function answerEveryRequest(backend: ControlledBackend, responseLimit: number): Responder {
 	let release: ((value: 'stopped') => void) | undefined;
 	const stopped = new Promise<'stopped'>((resolve) => {
 		release = resolve;
@@ -233,73 +231,133 @@ async function runConventions(
 	return observe(outcome.report, requests);
 }
 
-await test('HTML conventions follow configuration: standard defaults, the explicit 0.14.1 restore and unrelated custom names', async () => {
+/** What a body run against an answering backend returned, and how many requests it answered. */
+interface AnsweredRun<TValue> {
+	readonly value: TValue;
+	readonly answered: number;
+}
+
+/**
+ * Run `body` against a fresh checked repository and a backend that answers at most
+ * `responseLimit` requests. The responder is always stopped, the backend always closed and
+ * the repository always removed, whatever the body or the responder did; afterwards a body
+ * failure, a responder failure, or both, reject.
+ */
+async function withAnsweringBackend<TValue>(
+	responseLimit: number,
+	body: (backend: ControlledBackend, root: string) => Promise<TValue>,
+): Promise<AnsweredRun<TValue>> {
 	const repository = ownedDirectory('conventions');
 	const backend = await startControlledBackend();
+	const responder = answerEveryRequest(backend, responseLimit);
 	process.env['OPENROUTER_API_KEY'] = 'synthetic-controlled-key';
-	const responder = answerEveryRequest(backend);
-	let answered: number | undefined;
+	const ran = await body(backend, repository.path).then(
+		(value) => ({ status: 'fulfilled', value }) as const,
+		(error: unknown) => ({ status: 'rejected', error }) as const,
+	);
+	const stopped = await responder.stop().then(
+		(answered) => ({ status: 'fulfilled', answered }) as const,
+		(error: unknown) => ({ status: 'rejected', error }) as const,
+	);
+	delete process.env['OPENROUTER_API_KEY'];
 	try {
-		writeFiles(repository.path, { 'docs/page.html': conventionsPage, 'docs/links.md': linksPage });
-		const configure = (
-			conventions: Parameters<typeof conventionsConfiguration>[2],
-		): Configuration => conventionsConfiguration(repository.path, backend.endpoint, conventions);
-		const standard = await runConventions(configure({}), repository.path, backend);
-		const restored = await runConventions(configure(restored014), repository.path, backend);
-		const custom = await runConventions(configure(unrelatedCustom), repository.path, backend);
-
-		// Outline: <template> is always excluded; a skipped tag's headings leave the outline.
-		const cases = [
-			[standard, ['Intro', 'Old example', 'New example', 'Last']],
-			[restored, ['Intro', 'New example', 'Last']],
-			[custom, ['Intro', 'Old example', 'Last']],
-		] as const;
-		for (const [observed, headings] of cases) {
-			assert.deepEqual(observed.headings, headings);
-			// Raw section fields keep the exact source range, markup included.
-			assert.deepEqual(observed.rawSections, sectionTexts(conventionsPage, headings));
-		}
-		// Asking text: alt and aria-label always; only configured attributes join them, in
-		// source order. The section holding the diagrams is the one before "Last".
-		const diagramTokens = (observed: ConventionsObservation): string[] =>
-			observed.viewTokens.flat().filter((token) => !token.startsWith('[cut'));
-		assert.deepEqual(diagramTokens(standard), ['[aria-label: Old aria]', '[alt: New picture]']);
-		assert.deepEqual(diagramTokens(restored), [
-			'[label: Old flow]',
-			'[aria-label: Old aria]',
-			'[alt: New picture]',
-		]);
-		assert.deepEqual(diagramTokens(custom), [
-			'[aria-label: Old aria]',
-			'[caption: New flow]',
-			'[alt: New picture]',
-		]);
-		// Skipping a tag from the outline does not remove its text from asking: the enclosing
-		// section's view keeps the skipped heading and body.
-		assert.match(restored.views[0] ?? '', /Old example Old sample/u);
-		assert.match(custom.views[1] ?? '', /New example New sample/u);
-		assert.doesNotMatch(standard.views[0] ?? '', /Old sample/u);
-		// HTML targets resolve explicit ids only, under every convention.
-		for (const observed of [standard, restored, custom]) {
-			assert.deepEqual(observed.anchors, [
-				['page.html#explicit', ['found', '']],
-				['page.html#intro', ['missing', '']],
-			]);
-		}
-		// The responder settles here; it answered exactly one request per section.
-		answered = await responder.stop();
-		assert.equal(
-			answered,
-			[standard, restored, custom].reduce((total, observed) => total + observed.headings.length, 0),
-		);
-	} finally {
-		delete process.env['OPENROUTER_API_KEY'];
-		// The body reports the responder's failure; here it only settles before the server
-		// closes, so a failed body never leaves the responder or the server pending.
-		if (answered === undefined) await responder.stop().catch(() => undefined);
 		await backend.close();
+	} finally {
 		repository.remove();
 	}
+	if (ran.status === 'rejected' && stopped.status === 'rejected')
+		throw new AggregateError([ran.error, stopped.error], 'the body and its responder failed');
+	if (ran.status === 'rejected') throw ran.error;
+	if (stopped.status === 'rejected') throw stopped.error;
+	return { value: ran.value, answered: stopped.answered };
+}
+
+/** Attribute tokens across a run's section views, without cut markers. */
+function diagramTokens(observed: ConventionsObservation): string[] {
+	return observed.viewTokens.flat().filter((token) => !token.startsWith('[cut'));
+}
+
+/** The most model requests the three convention runs may send; they send one per section. */
+const conventionsResponseLimit = 16;
+
+/** Run the three conventions over the shared page, in order. */
+async function runThreeConventions(
+	backend: ControlledBackend,
+	root: string,
+): Promise<readonly [ConventionsObservation, ConventionsObservation, ConventionsObservation]> {
+	writeFiles(root, { 'docs/page.html': conventionsPage, 'docs/links.md': linksPage });
+	const configure = (conventions: Parameters<typeof conventionsConfiguration>[2]): Configuration =>
+		conventionsConfiguration(root, backend.endpoint, conventions);
+	const standard = await runConventions(configure({}), root, backend);
+	const restored = await runConventions(configure(restored014), root, backend);
+	const custom = await runConventions(configure(unrelatedCustom), root, backend);
+	return [standard, restored, custom];
+}
+
+await test('HTML conventions follow configuration: standard defaults, the explicit 0.14.1 restore and unrelated custom names', async () => {
+	const { value, answered } = await withAnsweringBackend(
+		conventionsResponseLimit,
+		runThreeConventions,
+	);
+	const [standard, restored, custom] = value;
+	// Outline: <template> is always excluded; a skipped tag's headings leave the outline.
+	const cases = [
+		[standard, ['Intro', 'Old example', 'New example', 'Last']],
+		[restored, ['Intro', 'New example', 'Last']],
+		[custom, ['Intro', 'Old example', 'Last']],
+	] as const;
+	for (const [observed, headings] of cases) {
+		assert.deepEqual(observed.headings, headings);
+		// Raw section fields keep the exact source range, markup included.
+		assert.deepEqual(observed.rawSections, sectionTexts(conventionsPage, headings));
+	}
+	// Asking text: alt and aria-label always; only configured attributes join them, in
+	// source order. The section holding the diagrams is the one before "Last".
+	assert.deepEqual(diagramTokens(standard), ['[aria-label: Old aria]', '[alt: New picture]']);
+	assert.deepEqual(diagramTokens(restored), [
+		'[label: Old flow]',
+		'[aria-label: Old aria]',
+		'[alt: New picture]',
+	]);
+	assert.deepEqual(diagramTokens(custom), [
+		'[aria-label: Old aria]',
+		'[caption: New flow]',
+		'[alt: New picture]',
+	]);
+	// Skipping a tag from the outline does not remove its text from asking: the enclosing
+	// section's view keeps the skipped heading and body.
+	assert.match(restored.views[0] ?? '', /Old example Old sample/u);
+	assert.match(custom.views[1] ?? '', /New example New sample/u);
+	assert.doesNotMatch(standard.views[0] ?? '', /Old sample/u);
+	// HTML targets resolve explicit ids only, under every convention.
+	for (const observed of [standard, restored, custom]) {
+		assert.deepEqual(observed.anchors, [
+			['page.html#explicit', ['found', '']],
+			['page.html#intro', ['missing', '']],
+		]);
+	}
+	// The responder answered exactly one request per section.
+	assert.equal(
+		answered,
+		[standard, restored, custom].reduce((total, observed) => total + observed.headings.length, 0),
+	);
+});
+
+await test('a responder failure still stops the responder, closes the backend and removes the repository', async () => {
+	let endpoint = '';
+	let root = '';
+	// The standard run sends four requests; a limit of two makes the responder fail.
+	await assert.rejects(
+		withAnsweringBackend(2, async (backend, repositoryRoot) => {
+			endpoint = backend.endpoint;
+			root = repositoryRoot;
+			writeFiles(root, { 'docs/page.html': conventionsPage, 'docs/links.md': linksPage });
+			return runConventions(conventionsConfiguration(root, endpoint, {}), root, backend);
+		}),
+		{ message: '4 model requests; at most 2 expected' },
+	);
+	assert.equal(existsSync(root), false, 'the repository was removed');
+	await assert.rejects(fetch(endpoint, { method: 'POST', body: '{}' }), 'the backend is closed');
 });
 
 /** Check a value as a plain-JavaScript caller would, outside the declarations. */
