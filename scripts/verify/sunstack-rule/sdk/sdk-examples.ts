@@ -3,7 +3,10 @@ import { spawnSync } from 'node:child_process';
 import filesystem from 'node:fs';
 import path from 'node:path';
 
+import { z } from 'zod';
+
 import { observeSdkCliGuide } from './sdk-cli-guide.ts';
+import { observeSdkExamplesWithoutAddon } from './sdk-examples-unavailable.ts';
 import type { JourneyResult } from './sdk-journeys.ts';
 import { requireSdk, saveSdkEvidence, type SdkTarget } from './sdk-target.ts';
 
@@ -274,9 +277,17 @@ export function observeSdkPackagedExamples(options: {
 				'Incomplete inspection wrote a successful output',
 			);
 	}
+	const unavailableObservations = observeSdkExamplesWithoutAddon({
+		target,
+		evidence,
+		exampleNames: z.array(z.string()).parse([...advertised]),
+		checkedRoot: goodRoot,
+		project,
+	});
 	const guideObservations = target.cli ? observeSdkCliGuide({ target, evidence }) : [];
 	return {
 		observed: [
+			...unavailableObservations,
 			...guideObservations,
 			'all README-advertised example files resolve in the installed package and compile strictly',
 			'installed keyless mechanical, load/edit, heading and inspect/save examples run on valid and empty input',
@@ -284,7 +295,7 @@ export function observeSdkPackagedExamples(options: {
 			'all four keyless examples exit nonzero and expose an incomplete acquisition',
 		],
 		gaps: [
-			'asking example runtime and explicit unavailable addon/failure endings',
+			'asking example successful model-backed runtime and other after-dispatch failure endings',
 			...(!target.cli ? ['complete CLI guide example: no CLI supplied'] : []),
 		],
 	};
