@@ -166,3 +166,7 @@ path = "tests/integration/sdk_facade_error_paths.rs"
 [[test]]
 name = "credential_isolation"
 path = "tests/integration/credential_isolation.rs"
+
+[[test]]
+name = "sdk_inspection"
+path = "tests/integration/sdk_inspection.rs"

@@ -1,6 +1,7 @@
 use crate::{
     configuration_loading::{
-        config_validation::{CheckedRulebook, admit_definitions},
+        config_decoding::AdmissionPurpose,
+        config_validation::{CheckedRulebook, admit_definitions_for},
         definition_bundle::DefinitionBundle,
     },
     lint_execution::stopped_stages::{RunStage, RunStageStopped},
@@ -105,14 +106,21 @@ async fn run_internal(
     source: Option<Box<dyn CheckedFileSource + Send>>,
     mode: ExecutionMode,
 ) -> LintReport {
-    let (state, cwd, bundle, checked) =
-        match super::run_configuration::acquire_file_run(request, cancellation, mode).await {
-            ControlFlow::Continue(acquired) => acquired,
-            ControlFlow::Break(report) => return report,
-        };
-    execute_definitions(state, cwd, bundle, checked, api_key, source)
-        .await
-        .unwrap_or_else(RunStageStopped::into_cli_report)
+    let listing_requested = request.evidence_listing.is_some();
+    let report = match super::run_configuration::acquire_file_run(request, cancellation, mode).await
+    {
+        ControlFlow::Continue((state, cwd, bundle, checked)) => {
+            execute_definitions(state, cwd, bundle, checked, api_key, source)
+                .await
+                .unwrap_or_else(RunStageStopped::into_cli_report)
+        }
+        ControlFlow::Break(report) => report,
+    };
+    if listing_requested && report.evidence_listing.is_none() {
+        report.with_evidence_listing(vec![])
+    } else {
+        report
+    }
 }
 
 /// Run already captured definitions against an explicit absolute checked root.
@@ -129,11 +137,73 @@ pub async fn run_definitions(
     cancellation: CancellationToken,
     api_key: Option<String>,
 ) -> Result<LintReport, RunStageStopped> {
+    let request = LintRequest {
+        config_path: None,
+        root: Some(root.clone()),
+        paths,
+        scope,
+        max_warnings: None,
+        evidence_listing: None,
+    };
+    run_definition_request(
+        bundle,
+        root,
+        request,
+        cancellation,
+        api_key,
+        AdmissionPurpose::RuleEvaluation,
+    )
+    .await
+}
+
+/// Inspect captured definitions through the same listing path as CLI evidence work.
+/// Only this entry permits zero rulebooks; it never evaluates a rule.
+pub async fn inspect_definitions(
+    bundle: DefinitionBundle,
+    root: PathBuf,
+    paths: Vec<PathBuf>,
+    scope: ScopeChoice,
+    evidence_kind: Option<sunstack_evidence::EvidenceKindName>,
+    cancellation: CancellationToken,
+    api_key: Option<String>,
+) -> Result<LintReport, RunStageStopped> {
+    let request = LintRequest {
+        config_path: None,
+        root: Some(root.clone()),
+        paths,
+        scope,
+        max_warnings: None,
+        evidence_listing: Some(evidence_kind),
+    };
+    let report = run_definition_request(
+        bundle,
+        root,
+        request,
+        cancellation,
+        api_key,
+        AdmissionPurpose::EvidenceInspection,
+    )
+    .await?;
+    Ok(if report.evidence_listing.is_none() {
+        report.with_evidence_listing(vec![])
+    } else {
+        report
+    })
+}
+
+async fn run_definition_request(
+    bundle: DefinitionBundle,
+    root: PathBuf,
+    request: LintRequest,
+    cancellation: CancellationToken,
+    api_key: Option<String>,
+    purpose: AdmissionPurpose,
+) -> Result<LintReport, RunStageStopped> {
     // Named paths check those files in full, exactly as the CLI reports them.
     let mut report = LintReport::empty(
         bundle.root.origin.cli_path(),
-        if paths.is_empty() {
-            scope.clone()
+        if request.paths.is_empty() {
+            request.scope.clone()
         } else {
             ScopeChoice::All
         },
@@ -148,16 +218,8 @@ pub async fn run_definitions(
         report.status = LintStatus::Cancelled;
         return Ok(report);
     }
-    let request = LintRequest {
-        config_path: None,
-        root: Some(root.clone()),
-        paths,
-        scope,
-        max_warnings: None,
-        evidence_listing: None,
-    };
     let admitted = tokio::task::spawn_blocking(move || {
-        let checked = admit_definitions(&bundle);
+        let checked = admit_definitions_for(&bundle, purpose);
         (bundle, checked)
     })
     .await;

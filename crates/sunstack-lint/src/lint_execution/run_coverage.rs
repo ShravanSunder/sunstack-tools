@@ -64,25 +64,40 @@ pub(super) fn pick_run_pieces(
         .filter(|count| checked_files.contains(&count.file))
         .cloned()
         .collect();
-    let outside = rules
+    let coverage_kinds = match &state.request.evidence_listing {
+        Some(selected_kind) => catalog
+            .file_counts
+            .iter()
+            .flat_map(|count| count.kinds.keys())
+            .filter(|kind| {
+                selected_kind
+                    .as_ref()
+                    .is_none_or(|selected| selected == *kind)
+            })
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>(),
+        None => rules.iter().map(|rule| &rule.kind).collect(),
+    };
+    let outside = coverage_kinds
         .iter()
-        .map(|rule| {
+        .map(|kind| {
             catalog
                 .pieces
                 .iter()
                 .enumerate()
                 .filter(|(index, piece)| {
                     checked_files.contains(&piece.location.file)
-                        && piece.kind == rule.kind
+                        && &piece.kind == *kind
                         && !picked_set.contains(index)
                 })
                 .count()
         })
         .sum::<usize>();
     report.exclusions.outside_change_scope = u32::try_from(outside).unwrap_or(u32::MAX);
-    let zero_matches = rules
+    let zero_matches = coverage_kinds
         .iter()
-        .map(|rule| {
+        .map(|kind| {
             catalog
                 .matches
                 .keys()
@@ -91,7 +106,7 @@ pub(super) fn pick_run_pieces(
                     !catalog
                         .pieces
                         .iter()
-                        .any(|piece| piece.kind == rule.kind && &piece.location.file == *file)
+                        .any(|piece| &piece.kind == *kind && &piece.location.file == *file)
                 })
                 .count()
         })
@@ -106,15 +121,6 @@ pub(super) fn pick_run_pieces(
             .into_iter()
             .filter(|piece| kind.as_ref().is_none_or(|kind| kind == &piece.kind))
             .collect();
-        report.evidence_listing = Some(EvidenceListing {
-            version: report.version.clone(),
-            config: report.config.clone(),
-            scope: report.scope.clone(),
-            pieces,
-            usage: crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired),
-            selections: report.selections.clone(),
-            file_counts: report.file_counts.clone(),
-        });
         report.usage = crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired);
         report.status = if cancellation.is_cancelled() {
             LintStatus::Cancelled
@@ -129,7 +135,7 @@ pub(super) fn pick_run_pieces(
         } else {
             LintStatus::Clean
         };
-        return ControlFlow::Break(report);
+        return ControlFlow::Break(report.with_evidence_listing(pieces));
     }
     state.report = report;
     ControlFlow::Continue((state, (catalog, pieces, folder_plan, dispatcher, acquired)))

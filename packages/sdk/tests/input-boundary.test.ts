@@ -27,6 +27,9 @@ function countedSdk(): CountedSdk {
 				contractInfo: () => real.contractInfo(),
 				CallCancellation: real.CallCancellation,
 				load: (options) => real.load(options),
+				deserialize: (request) => real.deserialize(request),
+				inspect: (configuration, request, cancellation) =>
+					real.inspect(configuration, request, cancellation),
 				check: (configuration, cancellation) => {
 					calls.check += 1;
 					return real.check(configuration, cancellation);

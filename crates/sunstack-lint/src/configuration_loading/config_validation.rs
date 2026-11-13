@@ -1,6 +1,8 @@
 use crate::{
     configuration_loading::{
-        config_decoding::{validate_config_shape, validate_limit_shape, validate_settings_shape},
+        config_decoding::{
+            AdmissionPurpose, validate_config_shape, validate_limit_shape, validate_settings_shape,
+        },
         definition_bundle::{
             DefinitionBundle, EvidenceAcquisition, RootDefinition, acquire_file_definitions,
         },
@@ -63,6 +65,13 @@ fn project_refusal(root: &RootDefinition, error: ProjectRefusal) -> Vec<LintDiag
 pub(crate) fn admit_definitions(
     bundle: &DefinitionBundle,
 ) -> Result<CheckedRulebook, Vec<LintDiagnostic>> {
+    admit_definitions_for(bundle, AdmissionPurpose::RuleEvaluation)
+}
+
+pub(crate) fn admit_definitions_for(
+    bundle: &DefinitionBundle,
+    purpose: AdmissionPurpose,
+) -> Result<CheckedRulebook, Vec<LintDiagnostic>> {
     let root = &bundle.root;
     let settings = &bundle.settings;
     let field_error = |path: &ConfigPath, message: String| -> LintDiagnostic {
@@ -73,9 +82,15 @@ pub(crate) fn admit_definitions(
     // it was decoded; captured and inline configurations meet them here.
     let shape_error =
         |path: &ConfigPath, message: &str| root.field_error(path, LintInvalidCode::Syntax, message);
-    validate_settings_shape(settings, bundle.rulebooks.len(), "rulebooks", shape_error)
-        .and_then(|()| validate_limit_shape(settings.limits.as_ref(), shape_error))
-        .map_err(|error| vec![LintDiagnostic::from(error)])?;
+    validate_settings_shape(
+        settings,
+        bundle.rulebooks.len(),
+        "rulebooks",
+        purpose,
+        shape_error,
+    )
+    .and_then(|()| validate_limit_shape(settings.limits.as_ref(), shape_error))
+    .map_err(|error| vec![LintDiagnostic::from(error)])?;
     let inline_rules = settings
         .kinds
         .iter()
@@ -153,6 +168,13 @@ pub(crate) fn admit_definitions(
         &filters,
     )
     .map_err(|errors| native_diagnostics(root, errors))?;
+    if purpose == AdmissionPurpose::EvidenceInspection && !assembly.skipped.is_empty() {
+        return Err(assembly
+            .skipped
+            .iter()
+            .flat_map(|skipped| native_diagnostics(root, skipped.diagnostics.clone()))
+            .collect());
+    }
     let mut inputs = project.inputs.clone();
     for source in sources.iter().filter_map(|source| source.as_ref().ok()) {
         inputs.extend(source.markdown_origin.file_path().map(Path::to_path_buf));

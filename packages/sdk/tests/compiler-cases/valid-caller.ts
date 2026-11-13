@@ -1,5 +1,5 @@
 // A valid caller: compiles with no diagnostics under the package's strict options.
-import { check, load, run } from '../../src/index.ts';
+import { check, deserialize, inspect, load, run, serialize } from '../../src/index.ts';
 import type {
 	AstMatcher,
 	AuthoredLanguage,
@@ -384,4 +384,14 @@ export function headingPath(value: FieldValue | undefined): readonly string[] {
 		default:
 			return assertNever(value);
 	}
+}
+
+export async function saveLoadInspect(root: string): Promise<string> {
+	const saved = serialize({ kind: 'configuration', value: configuration });
+	if (saved.kind !== 'serialized') return saved.reason;
+	const restored = await deserialize(saved.json);
+	if (restored.kind !== 'decoded') return restored.kind;
+	if (restored.value.kind !== 'configuration') return restored.value.kind;
+	const result = await inspect(restored.value.value, { root, scope: { kind: 'all' } });
+	return result.kind === 'inspected' ? String(result.report.pieces.length) : result.kind;
 }

@@ -288,6 +288,17 @@ export type DefinitionSnapshot = {
 /**  Which original decoder a captured definition inside a multi-definition YAML needs. */
 export type DefinitionSourceFormat = 'matcher_yaml' | 'utility_yaml';
 
+export type DeserializationOutcome =
+	| { kind: 'decoded'; value: SdkDocumentValue }
+	| { kind: 'incompatible'; expected_contract_revision: number; actual_contract_revision: number }
+	| { kind: 'invalid'; reason: DocumentInvalidReason; diagnostics: SdkDocumentDiagnostic[] }
+	| { kind: 'failed'; failure: SdkFailure };
+
+/**  Original document text crosses as data in an exact JSON string transport. */
+export type DeserializeSdkRequest = {
+	json: string;
+};
+
 /**  A refusal: which definition it concerns, and separately which checked input stopped it. */
 export type Diagnostic = {
 	code: DiagnosticCode;
@@ -327,6 +338,12 @@ export type DiagnosticList = {
 	items: DecisionDiagnostic[];
 	omitted_count: bigint;
 };
+
+export type DocumentInvalidReason =
+	| 'malformed_json'
+	| 'invalid_document'
+	| 'invalid_value'
+	| 'unsupported_number';
 
 export type EffectiveLimits = {
 	max_locate_lines: number;
@@ -734,6 +751,50 @@ export type InferenceAttemptRecord = {
 	ordinal: number;
 	evidence: AttemptEvidence;
 };
+
+/**  The data part of an inspection request; cancellation is passed separately. */
+export type InspectRequest = {
+	/**  Absolute checked root, separate from the definition base directory. */
+	root: string;
+	scope: Scope;
+	paths?: string[];
+	evidence_kind?: EvidenceKindName | null;
+};
+
+/**  A completed listing can be clean or have unresolved selection answers. */
+export type InspectedStatus = { kind: 'clean' } | { kind: 'uncertain' };
+
+export type InspectionOutcome =
+	| { kind: 'inspected'; report: InspectionReport<InspectedStatus> }
+	| { kind: 'invalid'; diagnostics: Diagnostic[] }
+	| { kind: 'unavailable'; diagnostics: Diagnostic[] }
+	| { kind: 'incomplete'; report: InspectionReport<IncompleteStatus> }
+	| { kind: 'cancelled'; report: InspectionReport<CancelledStatus> | null }
+	| { kind: 'failed'; failure: SdkFailure; report: InspectionReport<InspectionStatus> | null };
+
+/**  Original selected evidence and the exact coverage facts that produced the ending. */
+export type InspectionReport<TInspectionStatus> = {
+	version: string;
+	configuration: DefinitionOrigin;
+	sources: DefinitionSnapshot[];
+	scope: ScopeReport;
+	status: TInspectionStatus;
+	pieces: EvidencePiece[];
+	file_counts: FileCount[];
+	selections: SelectionEntry[];
+	usage: UsageSummary;
+	limits: EffectiveLimits;
+	exclusions: ExclusionCounts;
+	diagnostics: Diagnostic[];
+	incomplete: IncompletePart[];
+};
+
+/**  Evidence-work states; none describes whether source code violates a rule. */
+export type InspectionStatus =
+	| { kind: 'clean' }
+	| { kind: 'uncertain' }
+	| { kind: 'incomplete' }
+	| { kind: 'cancelled' };
 
 export type InvalidStatus = { kind: 'invalid' };
 
@@ -1158,11 +1219,38 @@ export type ScopeReport = {
 	widened: WidenedReason | null;
 } & ScopeChoice;
 
+/**  The SDK owns framing; callers own any file containing this document. */
+export type SdkDocument<TPayload> = {
+	contract_revision: number;
+	payload: TPayload;
+};
+
+export type SdkDocumentDiagnostic = {
+	json_path: string[];
+	message: string;
+};
+
+/**  Explicit root selection disambiguates overlapping operation outcome tags. */
+export type SdkDocumentValue =
+	| { kind: 'configuration'; value: Configuration }
+	| { kind: 'loaded_configuration'; value: LoadedConfiguration }
+	| { kind: 'load_outcome'; value: LoadOutcome }
+	| { kind: 'check_outcome'; value: CheckOutcome }
+	| { kind: 'run_outcome'; value: RunOutcome }
+	| { kind: 'inspection_outcome'; value: InspectionOutcome }
+	| { kind: 'report'; value: SdkReport<LintStatus> }
+	| { kind: 'inspection_report'; value: InspectionReport<InspectionStatus> };
+
 /**
  *  An evidence listing with its configuration named by origin. Ordinary runs request
  *  no listing, so this stays absent there, exactly as in `LintReport`.
  */
 export type SdkEvidenceListing = {
+	status: LintStatus;
+	limits: EffectiveLimits;
+	exclusions: ExclusionCounts;
+	diagnostics: Diagnostic[];
+	incomplete: IncompletePart[];
 	version: string;
 	configuration: DefinitionOrigin;
 	scope: ScopeReport;

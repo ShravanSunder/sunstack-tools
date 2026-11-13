@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { parseExactJson, widenNamed } from '../src/reply-decoding.ts';
+import {
+	decodeDeserializationReply,
+	isInspectionOutcome,
+	parseExactJson,
+	widenNamed,
+} from '../src/reply-decoding.ts';
 import { encodeForNative } from '../src/wire-encoding.ts';
 
 function rejected(value: unknown): string {
@@ -91,4 +96,49 @@ await test('full-width contract fields decode as bigint even when small', () => 
 		},
 		sources: [],
 	});
+});
+
+await test('document decoding widens only the selected root shape', () => {
+	// The same path is u64 in a report, but is not a configuration limit.
+	// These short envelopes exercise trusted-native dispatch, not Rust validation.
+	const configuration = decodeDeserializationReply(
+		'{"kind":"decoded","value":{"kind":"configuration","value":{"limits":{"max_file_bytes":4,"max_request_bytes":7}}}}',
+	);
+	const report = decodeDeserializationReply(
+		'{"kind":"decoded","value":{"kind":"report","value":{"limits":{"max_file_bytes":4,"max_request_bytes":7}}}}',
+	);
+	assert.deepEqual(configuration, {
+		kind: 'decoded',
+		value: {
+			kind: 'configuration',
+			value: { limits: { max_file_bytes: 4n, max_request_bytes: 7 } },
+		},
+	});
+	assert.deepEqual(report, {
+		kind: 'decoded',
+		value: { kind: 'report', value: { limits: { max_file_bytes: 4n, max_request_bytes: 7n } } },
+	});
+	assert.equal(
+		decodeDeserializationReply('{"kind":"decoded","value":{"kind":"unknown","value":{}}}'),
+		undefined,
+	);
+	assert.equal(decodeDeserializationReply('{'), undefined);
+});
+
+await test('inspection reply envelopes retain their closed status variants', () => {
+	assert.equal(
+		isInspectionOutcome({ kind: 'inspected', report: { status: { kind: 'clean' } } }),
+		true,
+	);
+	assert.equal(
+		isInspectionOutcome({ kind: 'inspected', report: { status: { kind: 'findings' } } }),
+		false,
+	);
+	assert.equal(
+		isInspectionOutcome({ kind: 'incomplete', report: { status: { kind: 'incomplete' } } }),
+		true,
+	);
+	assert.equal(isInspectionOutcome({ kind: 'cancelled', report: null }), true);
+	assert.equal(isInspectionOutcome({ kind: 'invalid', diagnostics: [] }), true);
+	assert.equal(isInspectionOutcome({ kind: 'failed', failure: {}, report: null }), true);
 });

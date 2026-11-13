@@ -7,7 +7,7 @@
 // The consumer gets only the tarballs plus TypeScript and Node types from the
 // registry: no workspace links, no Rust toolchain use and no Zod.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
 	copyFileSync,
 	mkdirSync,
@@ -113,48 +113,52 @@ const keyless: NodeJS.ProcessEnv = { ...process.env, SUNSTACK_CREDENTIAL_STORE: 
 delete keyless['OPENROUTER_API_KEY'];
 
 /** Run one step, keeping its command, output and exit in `<label>.log` even when it fails. */
-function step(label: string, command: string, args: readonly string[]): string {
+function step({
+	label,
+	command,
+	args,
+	expectedExit = 0,
+}: {
+	readonly label: string;
+	readonly command: string;
+	readonly args: readonly string[];
+	readonly expectedExit?: number;
+}): string {
 	process.stdout.write(`\n$ ${command} ${args.join(' ')}\n`);
-	const record = (stdout: string, stderr: string, exit: string): void => {
-		writeFileSync(
-			join(consumer, `${label}.log`),
-			`$ ${command} ${args.join(' ')}\n--- stdout\n${stdout}\n--- stderr\n${stderr}\n--- exit ${exit}\n`,
-		);
-	};
-	try {
-		const output = execFileSync(command, args, {
-			cwd: consumer,
-			encoding: 'utf8',
-			env: keyless,
-			stdio: ['ignore', 'pipe', 'pipe'],
-		});
-		record(output, '', '0');
-		process.stdout.write(output);
-		return output;
-	} catch (error) {
-		const field = (name: string): string =>
-			typeof error === 'object' && error !== null && name in error
-				? String(Reflect.get(error, name) ?? '')
-				: '';
-		record(field('stdout'), field('stderr'), field('status') || 'unknown');
-		process.stderr.write(field('stderr'));
-		throw error;
-	}
+	const result = spawnSync(command, args, {
+		cwd: consumer,
+		encoding: 'utf8',
+		env: keyless,
+		stdio: ['ignore', 'pipe', 'pipe'],
+	});
+	writeFileSync(
+		join(consumer, `${label}.log`),
+		`$ ${command} ${args.join(' ')}\n--- stdout\n${result.stdout}\n--- stderr\n${result.stderr}\n--- exit ${String(result.status)} signal ${String(result.signal)} error ${String(result.error)}\n`,
+	);
+	assert.equal(result.error, undefined, `${label}: process could not start`);
+	assert.equal(result.signal, null, `${label}: process ended by signal`);
+	assert.equal(result.status, expectedExit, `${label}: ${result.stderr}\n${result.stdout}`);
+	process.stdout.write(result.stdout);
+	return result.stdout;
 }
 
 writeFileSync(
 	join(consumer, 'package.json'),
 	`${JSON.stringify({ name: 'sdk-consumer', private: true, type: 'module', overrides: platformOverrides }, null, 2)}\n`,
 );
-step('install', 'npm', [
-	'install',
-	'--no-audit',
-	'--no-fund',
-	'--save-exact',
-	join(tarballDirectory, sdkTarball),
-	'typescript@7.0.2',
-	'@types/node@26.6.5',
-]);
+step({
+	label: 'install',
+	command: 'npm',
+	args: [
+		'install',
+		'--no-audit',
+		'--no-fund',
+		'--save-exact',
+		join(tarballDirectory, sdkTarball),
+		'typescript@7.0.2',
+		'@types/node@26.6.5',
+	],
+});
 
 // No Zod and no workspace links: the installed tree is all there is.
 const consumerRequire = createRequire(join(consumer, 'package.json'));
@@ -174,8 +178,12 @@ for (const example of [
 	'load-and-edit.ts',
 	'mechanical-run.ts',
 	'heading-fields.ts',
+	'inspect-and-save.ts',
 ]) {
-	copyFileSync(join(packageDirectory, 'examples', example), join(consumer, example));
+	copyFileSync(
+		join(consumer, 'node_modules', '@sunstack', 'sdk', 'examples', example),
+		join(consumer, example),
+	);
 }
 writeFileSync(
 	join(consumer, 'tsconfig.json'),
@@ -199,7 +207,11 @@ writeFileSync(
 		2,
 	)}\n`,
 );
-step('typecheck', join(consumer, 'node_modules', '.bin', 'tsc'), ['-p', 'tsconfig.json']);
+step({
+	label: 'typecheck',
+	command: join(consumer, 'node_modules', '.bin', 'tsc'),
+	args: ['-p', 'tsconfig.json'],
+});
 
 // Heading pages: a non-ASCII setext heading and an ATX child keep their Markdown source; HTML
 // entities are decoded exactly once.
@@ -260,16 +272,30 @@ for (const [path, content] of Object.entries({
 	writeFileSync(path, content);
 }
 
-const mechanical = step('mechanical-run', process.execPath, ['mechanical-run.ts', checked]);
+const mechanical = step({
+	label: 'mechanical-run-findings',
+	command: process.execPath,
+	args: ['mechanical-run.ts', checked],
+	expectedExit: 1,
+});
 assert.match(mechanical, /contract: release \S+ revision \d+ target \S+/u);
 assert.match(mechanical, /check: valid/u);
 assert.match(mechanical, /run: findings 1/u);
-const edited = step('load-and-edit', process.execPath, ['load-and-edit.ts', project, checked]);
+const edited = step({
+	label: 'load-and-edit-findings',
+	command: process.execPath,
+	args: ['load-and-edit.ts', project, checked],
+	expectedExit: 1,
+});
 assert.match(edited, /check: valid/u);
 assert.match(edited, /run: completed/u);
 assert.match(edited, /source edited/u);
 // Heading fields execute on real sections: exact own and enclosing headings, outermost first.
-const headings = step('heading-fields', process.execPath, ['heading-fields.ts', checked]);
+const headings = step({
+	label: 'heading-fields',
+	command: process.execPath,
+	args: ['heading-fields.ts', checked],
+});
 assert.match(headings, /check: valid/u);
 assert.match(headings, /run: clean/u);
 const guideHeading = 'Café *guide* &amp;';
@@ -298,6 +324,59 @@ assert.deepEqual(
 assert.deepEqual(headingRows('docs/one.md'), [
 	`docs/one.md: One | One @ ${headingBytes(descriptionPage, '# One\n')}`,
 ]);
-const inline = step('inline-configuration', process.execPath, ['inline-configuration.ts', checked]);
+const inline = step({
+	label: 'inline-configuration-keyless-refusal',
+	command: process.execPath,
+	args: ['inline-configuration.ts', checked],
+	expectedExit: 1,
+});
 assert.match(inline, /check: valid/u);
+// Supply the mechanical recipe's favorable input, then prove empty/refused input
+// cannot look like a successful example process. These run only packed sources.
+writeFileSync(
+	join(checked, 'docs', 'one.md'),
+	descriptionPage.replace('Wrong opening', 'Use when checking documents'),
+);
+step({
+	label: 'mechanical-run-clean',
+	command: process.execPath,
+	args: ['mechanical-run.ts', checked],
+});
+step({
+	label: 'load-and-edit-clean',
+	command: process.execPath,
+	args: ['load-and-edit.ts', project, checked],
+});
+const empty = join(consumer, 'empty');
+mkdirSync(empty);
+step({
+	label: 'mechanical-run-empty',
+	command: process.execPath,
+	args: ['mechanical-run.ts', empty],
+	expectedExit: 1,
+});
+step({
+	label: 'heading-fields-empty',
+	command: process.execPath,
+	args: ['heading-fields.ts', empty],
+	expectedExit: 1,
+});
+mkdirSync(join(checked, 'src'));
+writeFileSync(join(checked, 'src', 'one.ts'), "// café\nconsole.log('one');\n");
+const saved = join(consumer, 'inspection.sdk.json');
+const inspection = step({
+	label: 'inspect-and-save',
+	command: process.execPath,
+	args: ['inspect-and-save.ts', checked, saved],
+});
+assert.match(inspection, /rules were not evaluated/u);
+assert.match(inspection, /restored exact typed outcome/u);
+assert.match(inspection, /revision refused/u);
+assert.ok(readFileSync(saved, 'utf8').includes('"contract_revision"'));
+step({
+	label: 'inspect-and-save-empty',
+	command: process.execPath,
+	args: ['inspect-and-save.ts', empty, saved],
+	expectedExit: 1,
+});
 process.stdout.write(`\nInstalled consumer passed in ${consumer}\n`);

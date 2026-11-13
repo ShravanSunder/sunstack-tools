@@ -1,3 +1,5 @@
+import { inspect as formatValue } from 'node:util';
+
 // Native section heading fields: each HTML and Markdown section's own heading, its enclosing
 // headings (outermost first) and the source bytes of its heading. A mechanical rule needs no
 // model, so no credential is used.
@@ -77,9 +79,14 @@ function texts(value: FieldValue | undefined): readonly string[] {
 
 const admission = await check(configuration);
 process.stdout.write(`check: ${admission.kind}\n`);
+if (admission.kind !== 'valid') {
+	process.stderr.write(`${formatValue(admission, { depth: null })}\n`);
+	process.exit(1);
+}
 const outcome = await run(configuration, { root, scope: { kind: 'all' } });
 if (outcome.kind !== 'completed') {
 	process.stdout.write(`run: ${outcome.kind}\n`);
+	process.stderr.write(`${formatValue(outcome, { depth: null })}\n`);
 	process.exit(1);
 }
 process.stdout.write(`run: ${outcome.report.status.kind}\n`);
@@ -95,3 +102,6 @@ for (const { piece } of Object.values(outcome.report.piece_evidence)) {
 			: '';
 	process.stdout.write(`${piece.where.file}: ${text} | ${path} @ ${bytes}\n`);
 }
+// Supply nonempty docs/*.md or docs/*.html whose sections all have headings.
+process.exitCode =
+	outcome.report.status.kind === 'clean' && outcome.report.results.length > 0 ? 0 : 1;

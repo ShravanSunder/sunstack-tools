@@ -104,6 +104,11 @@ pub struct SdkSkippedRule {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 pub struct SdkEvidenceListing {
+    pub status: LintStatus,
+    pub limits: EffectiveLimits,
+    pub exclusions: ExclusionCounts,
+    pub diagnostics: Vec<Diagnostic>,
+    pub incomplete: Vec<IncompletePart>,
     pub version: String,
     pub configuration: DefinitionOrigin,
     pub scope: ScopeReport,
@@ -134,16 +139,56 @@ pub struct SdkReport<TStatus> {
     pub exclusions: ExclusionCounts,
     pub incomplete: Vec<IncompletePart>,
     pub usage: UsageSummary,
+    #[serde(deserialize_with = "deserialize_numbered_map")]
+    #[cfg_attr(feature = "typescript", specta(type = BTreeMap<usize, SharedEvidenceState>))]
     pub evidence_seen: BTreeMap<usize, SharedEvidenceState>,
     pub limits: EffectiveLimits,
     pub diagnostics: Vec<Diagnostic>,
     pub requests: Vec<SavedRequest>,
     pub filter_answers: Vec<IdentifiedResult<sunstack_rules::FilterAnswer>>,
     pub filter_skips: Vec<IdentifiedResult<sunstack_rules::FilterSkip>>,
+    #[serde(deserialize_with = "deserialize_numbered_map")]
+    #[cfg_attr(feature = "typescript", specta(type = BTreeMap<usize, SavedPieceEvidence>))]
     pub piece_evidence: BTreeMap<usize, SavedPieceEvidence>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "typescript", specta(optional))]
     pub evidence_listing: Option<SdkEvidenceListing>,
+}
+
+/// Tagged outcome deserializers buffer JSON keys as strings. Parse each numbered
+/// key with the JSON integer decoder while leaving its value on the typed path.
+fn deserialize_numbered_map<'de, TDecoder, TValue>(
+    decoder: TDecoder,
+) -> Result<BTreeMap<usize, TValue>, TDecoder::Error>
+where
+    TDecoder: serde::Deserializer<'de>,
+    TValue: Deserialize<'de>,
+{
+    struct NumberedMapVisitor<TValue>(std::marker::PhantomData<TValue>);
+    impl<'de, TValue: Deserialize<'de>> serde::de::Visitor<'de> for NumberedMapVisitor<TValue> {
+        type Value = BTreeMap<usize, TValue>;
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("a JSON object keyed by usize request numbers")
+        }
+        fn visit_map<TMap: serde::de::MapAccess<'de>>(
+            self,
+            mut map: TMap,
+        ) -> Result<Self::Value, TMap::Error> {
+            let mut entries = BTreeMap::new();
+            while let Some(key) = map.next_key::<String>()? {
+                if key.trim() != key {
+                    return Err(serde::de::Error::custom(
+                        "request number has surrounding whitespace",
+                    ));
+                }
+                let number =
+                    serde_json::from_str::<usize>(&key).map_err(serde::de::Error::custom)?;
+                entries.insert(number, map.next_value::<TValue>()?);
+            }
+            Ok(entries)
+        }
+    }
+    decoder.deserialize_map(NumberedMapVisitor(std::marker::PhantomData))
 }
 
 pub type CompletedReport = SdkReport<CompletedStatus>;
@@ -273,6 +318,11 @@ fn project_report<TStatus>(
         filter_skips: report.filter_skips,
         piece_evidence: report.piece_evidence,
         evidence_listing: report.evidence_listing.map(|listing| SdkEvidenceListing {
+            status: listing.status,
+            limits: listing.limits,
+            exclusions: listing.exclusions,
+            diagnostics: listing.diagnostics.iter().map(project_diagnostic).collect(),
+            incomplete: listing.incomplete,
             version: listing.version,
             configuration: configuration.clone(),
             scope: listing.scope,

@@ -1,3 +1,5 @@
+import { inspect as formatValue } from 'node:util';
+
 // Load an existing CLI configuration, edit the loaded value, and run the edit.
 //
 //   node examples/load-and-edit.ts <absolute-config-directory> <absolute-checked-root>
@@ -28,9 +30,14 @@ const changed = {
 
 const admission = await check(changed);
 process.stdout.write(`check: ${admission.kind}\n`);
+if (admission.kind !== 'valid') {
+	process.stderr.write(`${formatValue(admission, { depth: null })}\n`);
+	process.exit(1);
+}
 const outcome = await run(changed, { root, scope: { kind: 'all' } });
 process.stdout.write(`run: ${outcome.kind}\n`);
 if (outcome.kind === 'completed') {
+	process.stdout.write(`status: ${outcome.report.status.kind}\n`);
 	for (const finding of outcome.report.findings) {
 		process.stdout.write(`${finding.file}:${finding.line} ${finding.rule} ${finding.message}\n`);
 	}
@@ -38,4 +45,10 @@ if (outcome.kind === 'completed') {
 	for (const source of outcome.report.sources) {
 		process.stdout.write(`source ${source.origin.kind} ${source.sha256.slice(0, 12)}\n`);
 	}
+	// This recipe expects a clean run with at least one evaluated rule/piece pair.
+	process.exitCode =
+		outcome.report.status.kind === 'clean' && outcome.report.results.length > 0 ? 0 : 1;
+} else {
+	process.stderr.write(`${formatValue(outcome, { depth: null })}\n`);
+	process.exitCode = 1;
 }

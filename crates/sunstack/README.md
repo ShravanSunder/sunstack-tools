@@ -35,6 +35,107 @@ finding. Questions reach the model as authored, with one piece's bounded field
 view. The binary embeds six generic Markdown utilities; rulebooks, questions and
 domain-specific evidence rules belong to the caller.
 
+### Complete keyless example
+
+Create these five definition files and one checked file in an empty directory.
+The root config schema covers `sunstack.lint.json`; it does not validate the
+separate marker-keyed rule-entry document. `--check` admits all definitions
+through the engine.
+
+`sunstack.lint.json`:
+
+```json
+{
+	"rulebook": [{ "markdown": "rulebook.md", "rules": "rulebook.rules.json" }],
+	"marker_prefix": "K",
+	"check": { "files": ["docs/*.md"] },
+	"evidence": {
+		"ast_grep": "evidence/sgconfig.yml",
+		"kinds": {
+			"skill": {
+				"rule": "skill",
+				"fields": { "description": { "from": "yaml", "key": "description" } }
+			}
+		}
+	},
+	"decision_model": { "model": "jev-latest" }
+}
+```
+
+`rulebook.md`:
+
+```markdown
+Description must begin with Use when. <!-- K001 -->
+```
+
+`rulebook.rules.json` (the whole entry, keyed by that exact marker):
+
+```json
+{
+	"K001": {
+		"name": "description",
+		"evidence": "skill",
+		"severity": "error",
+		"decision": {
+			"start": "starts",
+			"steps": {
+				"starts": {
+					"mechanical_check": {
+						"tool": "regex",
+						"field": "description",
+						"pattern": "^Use when"
+					},
+					"yes": "pass",
+					"no": { "finding": "Description must begin with Use when.", "at": "description" }
+				}
+			}
+		}
+	}
+}
+```
+
+`evidence/sgconfig.yml`:
+
+```yaml
+ruleDirs: [rules]
+```
+
+`evidence/rules/skill.yml`:
+
+```yaml
+id: skill
+language: Markdown
+rule: { matches: frontmatter }
+```
+
+`docs/one.md`:
+
+```markdown
+---
+description: Use when checking a complete example.
+---
+
+# One
+```
+
+Run from that directory with the installed `sunstack` executable:
+
+```sh
+sunstack lint --check
+sunstack lint --all --evidence skill
+sunstack lint --all --format json
+sunstack lint --all --prepare prepared.json
+```
+
+The check prints the admitted rule; evidence prints the picked frontmatter,
+`pieces[].where.span` (including source identity) and file counts. Evidence does
+not evaluate rules: its clean status means listing completion, never absence of
+violations. Ordinary lint evaluates K001 and reports clean for this input; changing
+its description to `Wrong opening` produces a finding and exit 1. This mechanical
+example uses no credential or model request. Preparation saves evidence and requests
+without dispatch and exits 6 when successfully prepared. Ordinary `--report FILE`
+saves the full rule report for `lint show`; it is different from evidence listing.
+
 Evidence fields can use `next` or `previous` to collect full matching sibling
 texts and source spans. They name an ast-grep `rule`; `count` defaults to 1 and
 accepts 1 through 5. For example, a kind's `fields` can include:
@@ -279,15 +380,19 @@ to `evidence.kinds`:
 
 ```json
 {
-  "requirement": {
-    "rule": "requirement-row",
-    "fields": {
-      "identifier": { "from": "capture", "regex": "id=\"(R[0-9]+)\"" },
-      "body": { "from": "remainder" },
-      "links": { "from": "target", "regex": "href=\"([^\"]+)\"", "resolve": "path" },
-      "verification": { "from": "document", "path": "verification-design.html", "rule": "whole-document" }
-    }
-  }
+	"requirement": {
+		"rule": "requirement-row",
+		"fields": {
+			"identifier": { "from": "capture", "regex": "id=\"(R[0-9]+)\"" },
+			"body": { "from": "remainder" },
+			"links": { "from": "target", "regex": "href=\"([^\"]+)\"", "resolve": "path" },
+			"verification": {
+				"from": "document",
+				"path": "verification-design.html",
+				"rule": "whole-document"
+			}
+		}
+	}
 }
 ```
 
@@ -299,11 +404,19 @@ In rulebook decision steps, check the row's links forward and its identifier
 against the verification document in reverse:
 
 ```json
-{ "mechanical_check": { "tool": "anchor_exists", "field": "links" }, "yes": "pass", "no": { "finding": "The link target or fragment is missing." } }
+{
+	"mechanical_check": { "tool": "anchor_exists", "field": "links" },
+	"yes": "pass",
+	"no": { "finding": "The link target or fragment is missing." }
+}
 ```
 
 ```json
-{ "mechanical_check": { "tool": "contains_field", "field": "verification", "needle": "identifier" }, "yes": "pass", "no": { "finding": "The requirement has no verification coverage." } }
+{
+	"mechanical_check": { "tool": "contains_field", "field": "verification", "needle": "identifier" },
+	"yes": "pass",
+	"no": { "finding": "The requirement has no verification coverage." }
+}
 ```
 
 The guide explains path resolution, whole-token matching, parse policy, and

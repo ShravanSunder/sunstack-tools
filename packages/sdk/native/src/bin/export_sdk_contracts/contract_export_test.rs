@@ -90,3 +90,19 @@ fn a_wire_that_no_longer_matches_the_known_fields_fails_generation() {
     }
     assert!(exclusive_matcher(None).is_err(), "unregistered wire");
 }
+
+#[test]
+fn document_roots_keep_the_concrete_report_status_bindings() {
+    let exported = export().unwrap();
+    let roots = &exported.wide_integers["document_roots"];
+    let roots = roots.as_object().unwrap();
+    assert_eq!(roots.len(), 8);
+    assert_eq!(roots["report"]["ref"], "SdkReport");
+    assert_eq!(roots["report"]["arguments"]["TStatus"]["ref"], "LintStatus");
+    assert_eq!(roots["inspection_report"]["ref"], "InspectionReport");
+    assert_eq!(
+        roots["inspection_report"]["arguments"]["TInspectionStatus"]["ref"],
+        "InspectionStatus"
+    );
+    assert_eq!(roots["configuration"]["ref"], "Configuration");
+}

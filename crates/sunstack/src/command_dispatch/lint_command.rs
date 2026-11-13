@@ -175,7 +175,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         {
             Ok(Ok(location)) => output(
                 &format!(
-                    "Created {}. Add the rulebook, rule entries and evidence project before running lint.",
+                    "Created {} only. Author its referenced Markdown rulebook, marker-keyed JSON rule entries, evidence/sgconfig.yml and matcher files before running lint. Complete example: https://github.com/ShravanSunder/sunstack-tools/blob/main/crates/sunstack/README.md#complete-keyless-example",
                     location.file.display()
                 ),
                 0,

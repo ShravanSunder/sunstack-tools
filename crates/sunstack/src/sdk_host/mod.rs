@@ -5,6 +5,8 @@
 //! credentials to the caller. Check acquires no credential, provider or checked input.
 pub mod configuration_loading;
 pub mod definition_capture;
+pub mod document_codec;
+pub mod inspection_projection;
 pub mod matcher_transport;
 pub mod normalized_values;
 pub mod report_projection;

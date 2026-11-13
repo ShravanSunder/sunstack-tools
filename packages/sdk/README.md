@@ -16,6 +16,25 @@ Requirements: Node 26 or later on macOS (arm64, x64) or Linux (arm64, x64; glibc
 musl). The package manager installs the matching prebuilt native addon
 (`@sunstack/sdk-<platform>`); no Rust toolchain is needed. Zod is not required.
 
+The installed package includes `node_modules/@sunstack/sdk/examples/`. Copy the
+examples you need into your consumer project so their imports resolve your installed
+SDK. For example:
+
+```sh
+cp node_modules/@sunstack/sdk/examples/mechanical-run.ts ./mechanical-run.ts
+npx tsc --noEmit --strict --target ES2024 --module NodeNext --moduleResolution NodeNext mechanical-run.ts
+node mechanical-run.ts /absolute/checked/root
+```
+
+Install TypeScript 7 and Node types in the consumer for that compile step. The
+keyless mechanical recipe expects at least one `docs/*.md` frontmatter description
+beginning with `Use when`. The heading recipe expects headed Markdown/HTML files
+under `docs/`; the load/edit recipe expects clean evaluated input for its loaded
+rulebook. Their processes exit nonzero for failed admission, no evaluated input,
+findings, uncertainty, incomplete acquisition, cancellation or adapter failures.
+The inline asking/filter recipe additionally needs the ordinary model credential
+and suitable `skills/**/SKILL.md` input; it is not a keyless smoke check.
+
 Type checking is a separate step from running: `node file.ts` strips types and does
 not check them. Run `tsc --noEmit` (TypeScript 7) to check a consumer.
 
@@ -78,6 +97,10 @@ const configuration = {
 } satisfies Configuration;
 
 const admission = await check(configuration); // no credential, provider or checked file
+if (admission.kind !== 'valid') {
+	console.error(admission);
+	process.exit(1);
+}
 const outcome = await run(configuration, { root: '/abs/path/to/repo', scope: { kind: 'all' } });
 ```
 
@@ -106,6 +129,69 @@ if (loaded.kind === 'loaded') {
 ```
 
 See `examples/load-and-edit.ts`.
+
+## Inspect evidence and save exact typed data
+
+`inspect` returns selected pieces with original text, `piece.where.span` (source
+identity plus exact byte/line positions), file counts, limits, exclusions and any
+incomplete reasons. It evaluates no rule questions. Static matchers are keyless;
+model-backed evidence selection keeps its ordinary credential and selection policy.
+An inspection may use `rulebooks: []`; ordinary `load`, `check`, `run` and CLI
+configuration admission still require rulebooks. Supplied definitions must remain
+valid. Inspection performs its own admission before acquisition.
+
+```ts
+import { deserialize, inspect, serialize } from '@sunstack/sdk';
+
+const outcome = await inspect(configuration, {
+	root: '/absolute/checked/root',
+	scope: { kind: 'all' },
+	evidence_kind: 'call',
+});
+if (outcome.kind !== 'inspected') {
+	// Handle diagnostics, incomplete progress, cancellation or adapter failure.
+	process.exit(1);
+}
+// clean means listing completion; no rule was evaluated, so it says nothing
+// about whether this code has violations. Inspect file_counts and coverage too.
+const saved = serialize({ kind: 'inspection_outcome', value: outcome });
+if (saved.kind !== 'serialized') throw new Error(saved.message);
+// The application writes saved.json and later reads it as text.
+const restored = await deserialize(saved.json);
+if (restored.kind !== 'decoded') throw new Error(restored.kind);
+if (restored.value.kind === 'inspection_outcome') {
+	const heldOutcome = restored.value.value; // narrow heldOutcome.kind to read its report
+}
+```
+
+`examples/inspect-and-save.ts` is a complete keyless recipe. Copy it from the
+installed package, strict-check it as above, then run:
+
+```sh
+node inspect-and-save.ts /absolute/checked/root inspection.sdk.json
+```
+
+It expects TypeScript under `src/` with at least one `console.log(...)` call,
+prints locations and coverage, writes `inspection.sdk.json`, restores that exact
+typed outcome and demonstrates revision refusal. A no-match or partial target
+exits nonzero for this recipe even though a zero-match listing can validly be clean.
+The application owns file paths, writes, atomicity and retention.
+
+`serialize` is synchronous and loads no addon. It supplies the SDK contract
+revision and tagged payload framing automatically, writing bigint as exact numeric
+tokens. Select one of the generated roots: `configuration`, `loaded_configuration`,
+`load_outcome`, `check_outcome`, `run_outcome`, `inspection_outcome`, `report`, or
+`inspection_report`. It returns `serialized` or `rejected` (`unsupported_runtime`
+or `invalid_data`). Encoding success does not admit a configuration.
+
+`deserialize` validates original text in Rust through the matched addon, returning
+`decoded`, `incompatible`, `invalid`, or `failed`. Invalid reasons distinguish
+malformed JSON, invalid document/value shapes and unsupported numbers; diagnostics
+carry JSON paths. It accepts only the current contract revision, without migration
+or format guesses. It restores exact readonly integer types; ordinary `JSON.parse`
+can round wide numeric tokens and is not this document's read path. Decoding reads
+no referenced files, performs no admission/execution and does not authenticate a
+report's producer. Admit a restored configuration separately before using it.
 
 ## Document conventions
 

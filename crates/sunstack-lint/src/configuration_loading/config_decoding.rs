@@ -150,6 +150,7 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
         &ConfigurationSettings::from(config),
         config.rulebook.len(),
         "rulebook",
+        AdmissionPurpose::RuleEvaluation,
         location,
     )?;
     let empty_pair_path = config
@@ -184,14 +185,22 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
     validate_limit_shape(config.limits.as_ref(), location)
 }
 
+/// The operation that owns admission; only inspection permits absent rulebooks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AdmissionPurpose {
+    RuleEvaluation,
+    EvidenceInspection,
+}
+
 /// Shape checks every configuration shares, whatever its acquisition format.
 pub(crate) fn validate_settings_shape(
     settings: &ConfigurationSettings,
     rulebook_count: usize,
     rulebook_key: &str,
+    purpose: AdmissionPurpose,
     location: impl Fn(&ConfigPath, &str) -> LintInvalid,
 ) -> Result<(), LintInvalid> {
-    let empty_collection = if rulebook_count == 0 {
+    let empty_collection = if rulebook_count == 0 && purpose == AdmissionPurpose::RuleEvaluation {
         Some(ConfigPath::keys([rulebook_key]))
     } else if settings.check.files.is_empty() {
         Some(ConfigPath::keys(["check", "files"]))
@@ -203,7 +212,14 @@ pub(crate) fn validate_settings_shape(
     if let Some(path) = empty_collection {
         return Err(location(
             &path,
-            &format!("{rulebook_key}, check.files and evidence.kinds must be nonempty"),
+            &match purpose {
+                AdmissionPurpose::RuleEvaluation => {
+                    format!("{rulebook_key}, check.files and evidence.kinds must be nonempty")
+                }
+                AdmissionPurpose::EvidenceInspection => {
+                    "check.files and evidence.kinds must be nonempty".into()
+                }
+            },
         ));
     }
     Ok(())

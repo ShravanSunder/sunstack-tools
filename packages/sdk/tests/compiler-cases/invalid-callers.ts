@@ -1,5 +1,5 @@
 // Each marked line must fail with exactly the named diagnostic; nothing else may fail.
-import { check, load, run } from '../../src/index.ts';
+import { check, deserialize, inspect, load, run, serialize } from '../../src/index.ts';
 import type {
 	AstMatcher,
 	Configuration,
@@ -374,3 +374,27 @@ export const sectionWithoutText = {
 	from: 'section',
 	// expect TS1360
 } satisfies FieldSource;
+
+// Codec roots are tagged and must carry the value matching the tag.
+// expect TS2345
+export const documentMissingValue = serialize({ kind: 'configuration' });
+// expect TS2322
+export const documentUnknownKind = serialize({ kind: 'unknown', value: configuration });
+// expect TS2322
+export const documentWrongValue = serialize({ kind: 'configuration', value: 'text' });
+// expect TS2345
+export const deserializeWrongInput = deserialize(123);
+// expect TS2741
+export const inspectionMissingRoot = inspect(configuration, { scope: { kind: 'all' } });
+
+export async function inspectionWithoutNarrowing(): Promise<number> {
+	const outcome = await inspect(configuration, { root: '/abs', scope: { kind: 'all' } });
+	// expect TS2339
+	return outcome.report.pieces.length;
+}
+
+export async function decodedWithoutNarrowing(): Promise<unknown> {
+	const outcome = await deserialize('{}');
+	// expect TS2339
+	return outcome.value;
+}

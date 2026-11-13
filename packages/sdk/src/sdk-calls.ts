@@ -12,12 +12,17 @@ import type {
 	ContractInfo,
 	LoadOptions,
 	LoadOutcome,
+	DeserializationOutcome,
+	InspectionOutcome,
+	InspectOptions,
 	RunOptions,
 	RunOutcome,
 } from './public-types.ts';
 import { deepFreeze } from './readonly-values.ts';
 import {
+	decodeDeserializationReply,
 	isCheckOutcome,
+	isInspectionOutcome,
 	isLoadOutcome,
 	isRunOutcome,
 	parseExactJson,
@@ -35,6 +40,8 @@ export interface SdkCalls {
 	load(options: LoadOptions): Promise<LoadOutcome>;
 	check(input: ConfigurationInput, options?: CallOptions): Promise<CheckOutcome>;
 	run(input: ConfigurationInput, options: RunOptions): Promise<RunOutcome>;
+	inspect(input: ConfigurationInput, options: InspectOptions): Promise<InspectionOutcome>;
+	deserialize(json: string): Promise<DeserializationOutcome>;
 }
 
 type DecodedReply<TOutcome> =
@@ -116,6 +123,23 @@ function encodeRunRequest(options: RunOptions): WireEncoding {
 		return {
 			kind: 'rejected',
 			message: `the run options could not be inspected as data: ${describeRejection(error)}`,
+		};
+	}
+}
+
+/** Inspection sends only selection data; cancellation stays native and per-call. */
+function encodeInspectRequest(options: InspectOptions): WireEncoding {
+	try {
+		return encodeForNative({
+			root: options.root,
+			scope: options.scope,
+			paths: options.paths,
+			evidence_kind: options.evidence_kind,
+		});
+	} catch (error) {
+		return {
+			kind: 'rejected',
+			message: `the inspection options could not be inspected as data: ${describeRejection(error)}`,
 		};
 	}
 }
@@ -262,6 +286,83 @@ export function createSdkCalls(resolveBinding: () => BindingResolution): SdkCall
 				};
 			}
 			return deepFreeze(decoded.outcome);
+		},
+		async inspect(input: ConfigurationInput, options: InspectOptions): Promise<InspectionOutcome> {
+			const selected = selectSignal(options);
+			if (selected.kind === 'rejected') {
+				return {
+					kind: 'failed',
+					failure: beforeDispatch('encoding_rejected', selected.message),
+					report: null,
+				};
+			}
+			const signal = selected.signal;
+			if (signal?.aborted === true) return { kind: 'cancelled', report: null };
+			const resolved = binding();
+			if (resolved.kind === 'failed')
+				return { kind: 'failed', failure: resolved.failure, report: null };
+			const configuration = encodeConfigurationInput(input);
+			const request = encodeInspectRequest(options);
+			if (configuration.kind === 'rejected' || request.kind === 'rejected') {
+				const message =
+					configuration.kind === 'rejected'
+						? configuration.message
+						: request.kind === 'rejected'
+							? request.message
+							: '';
+				return {
+					kind: 'failed',
+					failure: beforeDispatch('encoding_rejected', message),
+					report: null,
+				};
+			}
+			let reply: string;
+			try {
+				reply = await withCancellation(resolved.binding, signal, (cancellation) =>
+					resolved.binding.inspect(configuration.json, request.json, cancellation),
+				);
+			} catch (error) {
+				return {
+					kind: 'failed',
+					failure: afterDispatch('native_call_failed', describeRejection(error)),
+					report: null,
+				};
+			}
+			const decoded = decodeReply(reply, 'InspectionOutcome', isInspectionOutcome);
+			if (decoded.kind === 'invalid') {
+				return {
+					kind: 'failed',
+					failure: afterDispatch('native_reply_invalid', decoded.message),
+					report: null,
+				};
+			}
+			return deepFreeze(decoded.outcome);
+		},
+		async deserialize(json: string): Promise<DeserializationOutcome> {
+			const resolved = binding();
+			if (resolved.kind === 'failed') return { kind: 'failed', failure: resolved.failure };
+			const encoded = encodeForNative({ json });
+			if (encoded.kind === 'rejected')
+				return { kind: 'failed', failure: beforeDispatch('encoding_rejected', encoded.message) };
+			let reply: string;
+			try {
+				reply = await resolved.binding.deserialize(encoded.json);
+			} catch (error) {
+				return {
+					kind: 'failed',
+					failure: afterDispatch('native_call_failed', describeRejection(error)),
+				};
+			}
+			const decoded = decodeDeserializationReply(reply);
+			return decoded === undefined
+				? {
+						kind: 'failed',
+						failure: afterDispatch(
+							'native_reply_invalid',
+							'native reply is not a DeserializationOutcome with a known root shape',
+						),
+					}
+				: deepFreeze(decoded);
 		},
 	};
 }

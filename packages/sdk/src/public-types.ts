@@ -70,3 +70,26 @@ export interface RunOptions extends CallOptions {
 	/** Paths inside `root`, resolved against `root`. */
 	readonly paths?: readonly string[];
 }
+
+/** Inspection status describes evidence acquisition and selection, never rule findings. */
+export type InspectionStatus = DeepReadonly<Contracts.InspectionStatus>;
+export type InspectionOutcome = DeepReadonly<Contracts.InspectionOutcome>;
+export type InspectionReport = DeepReadonly<Contracts.InspectionReport<Contracts.InspectionStatus>>;
+export type SdkDocumentValue = DeepReadonly<Contracts.SdkDocumentValue>;
+export type SdkDocument = DeepReadonly<Contracts.SdkDocument<Contracts.SdkDocumentValue>>;
+export type DeserializationOutcome = DeepReadonly<Contracts.DeserializationOutcome>;
+export type SdkDocumentDiagnostic = DeepReadonly<Contracts.SdkDocumentDiagnostic>;
+
+/** The pure writer refuses unsupported data without loading the native addon. */
+export type SerializationOutcome =
+	| { readonly kind: 'serialized'; readonly json: string }
+	| {
+			readonly kind: 'rejected';
+			readonly reason: 'unsupported_runtime' | 'invalid_data';
+			readonly message: string;
+	  };
+
+/** Inspect one configured evidence kind, or all kinds when omitted. */
+export interface InspectOptions extends RunOptions {
+	readonly evidence_kind?: string;
+}

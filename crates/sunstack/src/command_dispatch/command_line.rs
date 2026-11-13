@@ -34,7 +34,7 @@ pub enum CredentialCommand {
 
 #[derive(Args)]
 #[command(
-    after_help = "Exit codes:\n  0  Clean or nothing selected\n  1  Findings\n  2  Invalid input\n  3  Incomplete\n  4  Cancelled\n  5  Uncertain\n  6  Prepared"
+    after_help = "Choose an output:\n  --check          Admit definitions; no checked files or model requests\n  --evidence       Picked pieces with text, source spans and coverage; no rule evaluation\n  --prepare FILE   Save requests/evidence without sending model requests (exit 6 when prepared)\n  --format json    Run rules and print their report\n  --report FILE    Run rules and save the full report for lint show\n\nEvidence clean means listing completion, not absence of violations.\nSelected evidence kinds may need a model credential.\n\nAuthoring: --init writes only a config skeleton, never referenced definitions.\nComplete rulebook, marker-keyed entries and matcher example:\n  https://github.com/ShravanSunder/sunstack-tools/blob/main/crates/sunstack/README.md#complete-keyless-example\n\nExit codes:\n  0  Clean or nothing selected\n  1  Findings\n  2  Invalid input\n  3  Incomplete\n  4  Cancelled\n  5  Uncertain\n  6  Prepared"
 )]
 pub struct LintArguments {
     #[command(subcommand)]
@@ -69,7 +69,7 @@ pub struct LintArguments {
     /// Fail when warning findings exceed this number.
     #[arg(long, conflicts_with_all = ["check", "rules", "init"])]
     pub max_warnings: Option<u32>,
-    /// Print picked evidence as JSON, optionally for one kind, without asking the model.
+    /// Print picked pieces, source spans and coverage as JSON; no rule evaluation.
     #[arg(long, num_args = 0..=1, value_name = "KIND", conflicts_with_all = ["check", "rules", "init", "prepare"])]
     pub evidence: Option<Option<String>>,
     /// Validate configuration, rulebook and evidence project without reading checked files.
@@ -78,7 +78,7 @@ pub struct LintArguments {
     /// List rules as JSON; optionally name one file.
     #[arg(long, num_args = 0..=1, value_name = "FILE", conflicts_with_all = ["init", "prepare"])]
     pub rules: Option<Option<PathBuf>>,
-    /// Create a config skeleton in the current directory.
+    /// Create only sunstack.lint.json; author its referenced rulebook, entries and matchers.
     #[arg(long, conflicts_with = "prepare")]
     pub init: bool,
 }

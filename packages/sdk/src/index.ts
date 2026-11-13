@@ -5,6 +5,9 @@
 // detectable native ending.
 import { installedBindingSources, resolveBinding } from './native-binding.ts';
 import type {
+	DeserializationOutcome,
+	InspectionOutcome,
+	InspectOptions,
 	CallOptions,
 	CheckOutcome,
 	ConfigurationInput,
@@ -43,3 +46,18 @@ export function contractInfo(): Promise<
 > {
 	return calls.contractInfo();
 }
+
+/** Acquire and select evidence without evaluating rule questions. */
+export function inspect(
+	input: ConfigurationInput,
+	options: InspectOptions,
+): Promise<InspectionOutcome> {
+	return calls.inspect(input, options);
+}
+
+/** Restore a current-revision SDK document through the matched Rust codec. */
+export function deserialize(json: string): Promise<DeserializationOutcome> {
+	return calls.deserialize(json);
+}
+
+export { serialize } from './document-serialization.ts';

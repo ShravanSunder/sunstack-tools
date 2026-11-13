@@ -245,6 +245,12 @@ pub struct EvidenceListing {
     pub version: String,
     pub config: PathBuf,
     pub scope: ScopeReport,
+    /// Evidence acquisition/selection status, never a rule evaluation verdict.
+    pub status: LintStatus,
+    pub limits: EffectiveLimits,
+    pub exclusions: ExclusionCounts,
+    pub diagnostics: Vec<LintDiagnostic>,
+    pub incomplete: Vec<IncompletePart>,
     pub pieces: Vec<EvidencePiece>,
     pub selections: Vec<SelectionEntry>,
     pub file_counts: Vec<sunstack_evidence::FileCount>,
@@ -280,6 +286,25 @@ pub struct LintReport {
     pub evidence_listing: Option<EvidenceListing>,
 }
 impl LintReport {
+    /// The single writer of CLI listing facts, including early and partial endings.
+    pub(crate) fn with_evidence_listing(mut self, pieces: Vec<EvidencePiece>) -> Self {
+        self.evidence_listing = Some(EvidenceListing {
+            version: self.version.clone(),
+            config: self.config.clone(),
+            scope: self.scope.clone(),
+            status: self.status,
+            limits: self.limits.clone(),
+            exclusions: self.exclusions.clone(),
+            diagnostics: self.diagnostics.clone(),
+            incomplete: self.incomplete.clone(),
+            pieces,
+            selections: self.selections.clone(),
+            file_counts: self.file_counts.clone(),
+            usage: self.usage.clone(),
+        });
+        self
+    }
+
     pub(crate) fn empty(config: PathBuf, scope: ScopeChoice, limits: EffectiveLimits) -> Self {
         Self {
             preparation: None,

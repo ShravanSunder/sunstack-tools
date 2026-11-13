@@ -1,3 +1,5 @@
+import { inspect as formatValue } from 'node:util';
+
 // Author a complete configuration as TypeScript values: no definition files.
 //
 //   node examples/inline-configuration.ts <absolute-checked-root> [endpoint]
@@ -114,4 +116,14 @@ process.stdout.write(`check: ${admission.kind}\n`);
 if (admission.kind === 'valid') {
 	const outcome = await run(configuration, { root, scope: { kind: 'all' } });
 	process.stdout.write(`run: ${summarize(outcome)}\n`);
+	// This asking/filter recipe expects clean findings and actual evaluated input.
+	process.exitCode =
+		outcome.kind === 'completed' &&
+		outcome.report.status.kind === 'clean' &&
+		outcome.report.results.length > 0
+			? 0
+			: 1;
+} else {
+	process.stderr.write(`${formatValue(admission, { depth: null })}\n`);
+	process.exitCode = 1;
 }

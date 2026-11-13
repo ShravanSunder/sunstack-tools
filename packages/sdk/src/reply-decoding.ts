@@ -1,8 +1,14 @@
 // Decode native replies exactly: full-width integers become bigint, and only the
 // closed outcome variants of each call are accepted.
-import type { CheckOutcome, LoadOutcome, RunOutcome } from './contracts/contracts.ts';
+import type {
+	CheckOutcome,
+	DeserializationOutcome,
+	InspectionOutcome,
+	LoadOutcome,
+	RunOutcome,
+} from './contracts/contracts.ts';
 import type { WideDefinition, WideShape } from './contracts/wide-integer-shapes.ts';
-import { wideIntegerDefinitions } from './contracts/wide-integers.ts';
+import { documentRootShapes, wideIntegerDefinitions } from './contracts/wide-integers.ts';
 
 interface SourceContext {
 	readonly source?: string;
@@ -112,6 +118,57 @@ export function widenNamed(value: unknown, root: string): unknown {
 	return widen(value, { ref: root, arguments: {} }, new Map(), wideIntegerDefinitions);
 }
 
+// Only the matched native addon can produce these envelopes. This is not a
+// validator for arbitrary caller-supplied JSON.
+function isDeserializationOutcome(value: unknown): value is DeserializationOutcome {
+	if (!isRecord(value)) return false;
+	switch (value['kind']) {
+		case 'decoded':
+			return (
+				isRecord(value['value']) &&
+				typeof value['value']['kind'] === 'string' &&
+				Object.hasOwn(documentRootShapes, value['value']['kind']) &&
+				isRecord(value['value']['value'])
+			);
+		case 'incompatible':
+			return (
+				typeof value['expected_contract_revision'] === 'number' &&
+				typeof value['actual_contract_revision'] === 'number'
+			);
+		case 'invalid':
+			return (
+				typeof value['reason'] === 'string' &&
+				['malformed_json', 'invalid_document', 'invalid_value', 'unsupported_number'].includes(
+					value['reason'],
+				) &&
+				isArray(value['diagnostics'])
+			);
+		case 'failed':
+			return isRecord(value['failure']);
+		default:
+			return false;
+	}
+}
+
+/** Decode an envelope produced by the matched native addon, or refuse it. */
+export function decodeDeserializationReply(text: string): DeserializationOutcome | undefined {
+	let parsed: unknown;
+	try {
+		parsed = parseExactJson(text);
+	} catch {
+		return undefined;
+	}
+	if (isRecord(parsed) && parsed['kind'] === 'decoded' && isRecord(parsed['value'])) {
+		const document = parsed['value'];
+		const root = Object.entries(documentRootShapes).find(([kind]) => kind === document['kind']);
+		if (root === undefined || !('value' in document)) return undefined;
+		const shape: WideShape | null = root[1];
+		if (shape !== null)
+			document['value'] = widen(document['value'], shape, new Map(), wideIntegerDefinitions);
+	}
+	return isDeserializationOutcome(parsed) ? parsed : undefined;
+}
+
 function isArray(value: unknown): value is unknown[] {
 	return Array.isArray(value);
 }
@@ -174,6 +231,27 @@ export function isRunOutcome(value: unknown): value is RunOutcome {
 			return hasStatus(report, ['clean', 'nothing_selected', 'findings', 'uncertain']);
 		case 'invalid':
 			return isArray(value['diagnostics']) && (report === null || hasStatus(report, ['invalid']));
+		case 'unavailable':
+			return isArray(value['diagnostics']);
+		case 'incomplete':
+			return hasStatus(report, ['incomplete']);
+		case 'cancelled':
+			return report === null || hasStatus(report, ['cancelled']);
+		case 'failed':
+			return isRecord(value['failure']) && isObjectOrNull(report);
+		default:
+			return false;
+	}
+}
+
+/** Check the envelope of a reply from the matched native inspection operation. */
+export function isInspectionOutcome(value: unknown): value is InspectionOutcome {
+	if (!isRecord(value)) return false;
+	const report = value['report'];
+	switch (value['kind']) {
+		case 'inspected':
+			return hasStatus(report, ['clean', 'uncertain']);
+		case 'invalid':
 		case 'unavailable':
 			return isArray(value['diagnostics']);
 		case 'incomplete':

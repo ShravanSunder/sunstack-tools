@@ -7,6 +7,11 @@ use napi::{Env, bindgen_prelude::PromiseRaw};
 use napi_derive::napi;
 use sunstack::sdk_host::{
     self,
+    document_codec::{
+        DeserializationOutcome, DeserializeSdkRequest, DocumentInvalidReason,
+        SdkDocumentDiagnostic, deserialize_document,
+    },
+    inspection_projection::{InspectRequest, InspectionOutcome},
     report_projection::RunOutcome,
     sdk_contracts::{
         AfterDispatchReason, CheckOutcome, LoadOptions, LoadOutcome, RunRequest, SdkFailure,
@@ -172,6 +177,78 @@ pub fn run<'env>(
             Err(diagnostics) => RunOutcome::Invalid {
                 diagnostics,
                 report: None,
+            },
+        };
+        Ok(encode(&outcome))
+    })
+}
+
+/// Inspect selected evidence without rule evaluation. Resolves with `InspectionOutcome` JSON.
+#[napi]
+pub fn inspect<'env>(
+    env: &'env Env,
+    configuration_json: String,
+    request_json: String,
+    cancellation: &CallCancellation,
+) -> napi::Result<PromiseRaw<'env, String>> {
+    let token = cancellation.token.clone();
+    env.spawn_future(async move {
+        if token.is_cancelled() {
+            return Ok(encode(&InspectionOutcome::Cancelled { report: None }));
+        }
+        let decoded =
+            sdk_host::decode_configuration(&configuration_json).and_then(|configuration| {
+                serde_json::from_str::<InspectRequest>(&request_json)
+                    .map(|request| (configuration, request))
+                    .map_err(|error| {
+                        vec![sunstack::sdk_host::sdk_contracts::Diagnostic {
+                            code: sunstack::sdk_host::sdk_contracts::DiagnosticCode::Syntax,
+                            origin: None,
+                            path: None,
+                            line: None,
+                            column: None,
+                            json_path: vec![],
+                            message: error.to_string(),
+                        }]
+                    })
+            });
+        let outcome = match decoded {
+            Ok((configuration, request)) => {
+                owned(
+                    sdk_host::inspection_projection::inspect(configuration, request, token),
+                    |failure| InspectionOutcome::Failed {
+                        failure,
+                        report: None,
+                    },
+                )
+                .await
+            }
+            Err(diagnostics) => InspectionOutcome::Invalid { diagnostics },
+        };
+        Ok(encode(&outcome))
+    })
+}
+
+/// Validate original saved text in one blocking unit, without engine or credential access.
+#[napi]
+pub fn deserialize(env: &Env, request_json: String) -> napi::Result<PromiseRaw<'_, String>> {
+    env.spawn_future(async move {
+        let outcome = match serde_json::from_str::<DeserializeSdkRequest>(&request_json) {
+            Ok(request) => {
+                match tokio::task::spawn_blocking(move || deserialize_document(&request.json)).await
+                {
+                    Ok(outcome) => outcome,
+                    Err(_) => DeserializationOutcome::Failed {
+                        failure: task_failure("document decoding stopped unexpectedly"),
+                    },
+                }
+            }
+            Err(error) => DeserializationOutcome::Invalid {
+                reason: DocumentInvalidReason::InvalidDocument,
+                diagnostics: vec![SdkDocumentDiagnostic {
+                    json_path: vec!["json".into()],
+                    message: error.to_string(),
+                }],
             },
         };
         Ok(encode(&outcome))

@@ -15,6 +15,12 @@ export interface NativeCallCancellation {
 export interface NativeBinding {
 	contractInfo(): string;
 	CallCancellation: new () => NativeCallCancellation;
+	deserialize(requestJson: string): Promise<string>;
+	inspect(
+		configurationJson: string,
+		requestJson: string,
+		cancellation: NativeCallCancellation,
+	): Promise<string>;
 	load(optionsJson: string): Promise<string>;
 	check(configurationJson: string, cancellation: NativeCallCancellation): Promise<string>;
 	run(
@@ -135,6 +141,10 @@ function isNativeBinding(value: unknown): value is NativeBinding {
 		typeof value.load === 'function' &&
 		'check' in value &&
 		typeof value.check === 'function' &&
+		'inspect' in value &&
+		typeof value.inspect === 'function' &&
+		'deserialize' in value &&
+		typeof value.deserialize === 'function' &&
 		'run' in value &&
 		typeof value.run === 'function'
 	);

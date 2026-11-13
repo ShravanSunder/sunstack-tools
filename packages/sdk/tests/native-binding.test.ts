@@ -25,6 +25,8 @@ function addonReporting(contract: unknown): unknown {
 			cancel(): void {}
 		},
 		load: (): never => assert.fail('load must not run'),
+		deserialize: (): never => assert.fail('deserialize must not run'),
+		inspect: (): never => assert.fail('inspect must not run'),
 		check: (): never => assert.fail('check must not run'),
 		run: (): never => assert.fail('run must not run'),
 	};

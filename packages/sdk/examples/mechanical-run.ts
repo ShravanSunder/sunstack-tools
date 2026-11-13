@@ -1,3 +1,5 @@
+import { inspect as formatValue } from 'node:util';
+
 // A keyless run: a mechanical rule needs no model, so no credential is used.
 //
 //   node examples/mechanical-run.ts <absolute-checked-root>
@@ -57,12 +59,22 @@ const configuration = {
 
 const admission = await check(configuration);
 process.stdout.write(`check: ${admission.kind}\n`);
+if (admission.kind !== 'valid') {
+	process.stderr.write(`${formatValue(admission, { depth: null })}\n`);
+	process.exit(1);
+}
 const outcome = await run(configuration, { root, scope: { kind: 'all' } });
 if (outcome.kind === 'completed') {
 	process.stdout.write(`run: ${outcome.report.status.kind} ${outcome.report.findings.length}\n`);
 	for (const finding of outcome.report.findings) {
 		process.stdout.write(`${finding.file}:${finding.line} ${finding.message}\n`);
 	}
+	// Provide docs/*.md with frontmatter descriptions beginning with "Use when".
+	// Completion without any evaluated input does not satisfy this recipe.
+	process.exitCode =
+		outcome.report.status.kind === 'clean' && outcome.report.results.length > 0 ? 0 : 1;
 } else {
 	process.stdout.write(`run: ${outcome.kind}\n`);
+	process.stderr.write(`${formatValue(outcome, { depth: null })}\n`);
+	process.exitCode = 1;
 }
