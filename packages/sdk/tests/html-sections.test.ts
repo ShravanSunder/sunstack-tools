@@ -1,6 +1,6 @@
 // Native HTML heading sections authored inline and executed through the addon: section
 // field text, the absent parent of a top-level section, asking projection versus raw
-// mechanical text, and selector refusals.
+// mechanical text, malformed HTML asking text, and selector refusals.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
@@ -12,6 +12,7 @@ import type {
 } from '../src/index.ts';
 import { check, run } from '../src/index.ts';
 import { isCheckOutcome } from '../src/reply-decoding.ts';
+import { answerNoul, startControlledBackend } from './support/controlled-backend.ts';
 import { ownedDirectory, writeFiles } from './support/sdk-fixtures.ts';
 
 delete process.env['OPENROUTER_API_KEY'];
@@ -177,5 +178,121 @@ await test('empty, invalid and doubly filtered section selectors are refused for
 		);
 	} finally {
 		base.remove();
+	}
+});
+
+/** One-line HTML pages whose asking text the engine projects from parser recovery. */
+const askingPages = {
+	// Plain text inside a parser error is kept, entities decoded, with no cut.
+	'docs/plain.html': 'Before > literal &amp; 文',
+	// A stray closing tag only separates words.
+	'docs/structural.html': '<p>Before</p></section><p>After</p>',
+	// Markup the parser cannot recover is cut by name; the safe text around it is kept.
+	'docs/ambiguous.html': 'Before</h2><style/><![CDATA[Hidden</style><p>After</p><!-- ]]> -->Tail',
+	// Well-formed control.
+	'docs/wellformed.html': '<p>Before</p><p>After &amp; 文</p>',
+} as const;
+
+const unrecoverable = '[cut: html_projection_unrecoverable_markup]';
+
+await test('malformed HTML asking text keeps plain words and names an unrecoverable cut in the request', async () => {
+	const repository = ownedDirectory('html-asking');
+	const backend = await startControlledBackend();
+	process.env['OPENROUTER_API_KEY'] = 'synthetic-controlled-key';
+	try {
+		writeFiles(repository.path, askingPages);
+		const configuration: Configuration = {
+			id: 'html-asking',
+			base_directory: repository.path,
+			marker_prefix: 'K',
+			check: { files: ['docs/*.html'] },
+			decision_model: { model: 'jev-latest', endpoint: backend.endpoint },
+			evidence: {
+				kind: 'inline',
+				utilities: {},
+				matchers: { whole: { language: 'Html', rule: { kind: 'document' } } },
+				kinds: { page: { rule: 'whole', fields: { body: { from: 'first_line' } } } },
+			},
+			rulebooks: [
+				{
+					kind: 'inline',
+					id: 'html-asking-rules',
+					markdown: 'Each page reads clearly. <!-- K001 -->\n',
+					entries: {
+						K001: {
+							name: 'clear',
+							evidence: 'page',
+							severity: 'warn',
+							questions: {
+								clear: { type: 'noul', instructions: { check: 'body', task: 'Is it clear?' } },
+							},
+							decision: {
+								start: 'clear',
+								steps: {
+									clear: {
+										ask: 'clear',
+										yes_at_or_above: 0.8,
+										no_at_or_below: 0.2,
+										yes: 'pass',
+										no: { finding: 'Unclear.' },
+										uncertain: 'uncertain',
+									},
+								},
+							},
+						},
+					},
+				},
+			],
+		};
+		const pending = run(configuration, { root: repository.path, scope: { kind: 'all' } });
+		const requests = await Promise.all(
+			Object.keys(askingPages).map(async () => {
+				const request = await backend.nextRequest();
+				answerNoul(request, 0.9);
+				return request.body['state'];
+			}),
+		);
+		const outcome = await pending;
+		assert.equal(outcome.kind, 'completed');
+		if (outcome.kind !== 'completed') return;
+		assert.equal(outcome.report.status.kind, 'clean');
+		const byFile = new Map(
+			Object.values(outcome.report.piece_evidence).map((evidence) => [
+				evidence.piece.where.file,
+				evidence.piece,
+			]),
+		);
+		const expected = {
+			'docs/plain.html': { text: 'Before > literal & 文', cut: [] },
+			'docs/structural.html': { text: 'Before After', cut: [] },
+			'docs/ambiguous.html': { text: `Before After Tail ${unrecoverable}`, cut: ['body'] },
+			'docs/wellformed.html': { text: 'Before After & 文', cut: [] },
+		};
+		for (const [file, { text, cut }] of Object.entries(expected)) {
+			const piece = byFile.get(file);
+			// The raw field keeps the exact source; only the model's view is projected.
+			const raw = piece?.fields['body'];
+			assert.deepEqual(
+				raw?.state === 'text' ? raw.value : raw?.state,
+				askingPages[file as keyof typeof askingPages],
+				file,
+			);
+			assert.deepEqual(piece?.model_view, { state: 'bounded', fields: { body: text }, cut }, file);
+			// The request the model receives carries the same text and the same cut field.
+			const request = requests.find(
+				(state) =>
+					typeof state === 'object' && state !== null && Reflect.get(state, 'body') === text,
+			);
+			assert.ok(request, `${file}: a request carries ${text}`);
+			assert.deepEqual(
+				Reflect.get(request, 'cut-fields') ?? [],
+				cut,
+				`${file}: request and model view name the same cut`,
+			);
+		}
+	} finally {
+		delete process.env['OPENROUTER_API_KEY'];
+		await backend.close();
+		repository.remove();
 	}
 });
