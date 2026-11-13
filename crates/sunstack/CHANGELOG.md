@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.18.0
+
+Release date: 2026-11-13.
+
+- Add opt-in `evidence.html.embedded_markdown` selectors for HTML tags and exact
+  attribute values. Markdown AST rules and native units can inspect each selected
+  element's inner source, retaining original HTML identity, byte ranges and
+  line/column coordinates. Markdown section and sibling fields stay in their
+  island; fenced Mermaid diagrams use the existing Markdown fence kind.
+- Configured catalogs interleave HTML and Markdown pieces by file and source
+  start. Omitted settings preserve existing selection, serialized defaults and
+  kind-first ordering. Only closed, outermost selected elements produce islands;
+  the engine has no built-in wrapper or MIME-type convention.
+- Rust callers constructing `HtmlEvidenceSettings` directly must supply the new
+  `embedded_markdown` field or use defaults. JSON configs can omit the field.
+
 ## 0.17.0
 
 Release date: 2026-11-13.
