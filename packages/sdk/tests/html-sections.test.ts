@@ -262,21 +262,17 @@ await test('malformed HTML asking text keeps plain words and names an unrecovera
 				evidence.piece,
 			]),
 		);
-		const expected = {
-			'docs/plain.html': { text: 'Before > literal & 文', cut: [] },
-			'docs/structural.html': { text: 'Before After', cut: [] },
-			'docs/ambiguous.html': { text: `Before After Tail ${unrecoverable}`, cut: ['body'] },
-			'docs/wellformed.html': { text: 'Before After & 文', cut: [] },
-		};
-		for (const [file, { text, cut }] of Object.entries(expected)) {
+		const expected: readonly (readonly [keyof typeof askingPages, string, readonly string[]])[] = [
+			['docs/plain.html', 'Before > literal & 文', []],
+			['docs/structural.html', 'Before After', []],
+			['docs/ambiguous.html', `Before After Tail ${unrecoverable}`, ['body']],
+			['docs/wellformed.html', 'Before After & 文', []],
+		];
+		for (const [file, text, cut] of expected) {
 			const piece = byFile.get(file);
 			// The raw field keeps the exact source; only the model's view is projected.
 			const raw = piece?.fields['body'];
-			assert.deepEqual(
-				raw?.state === 'text' ? raw.value : raw?.state,
-				askingPages[file as keyof typeof askingPages],
-				file,
-			);
+			assert.deepEqual(raw?.state === 'text' ? raw.value : raw?.state, askingPages[file], file);
 			assert.deepEqual(piece?.model_view, { state: 'bounded', fields: { body: text }, cut }, file);
 			// The request the model receives carries the same text and the same cut field.
 			const request = requests.find(
