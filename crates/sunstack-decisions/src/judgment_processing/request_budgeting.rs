@@ -41,7 +41,8 @@ impl EncodedBackendRequest {
         self.backend.matches(identity)
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TokenAccounting {
     Exact {
         input_tokens: u64,
@@ -68,6 +69,90 @@ pub enum AccountingBasis {
     Estimated {
         provider_ceiling: ProviderContextCeiling,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AdmissionDimension {
+    RequestChars,
+    RequestBytes,
+    QuestionCount,
+    InputTokens,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "basis", rename_all = "snake_case", deny_unknown_fields)]
+pub enum AdmissionMeasurement {
+    Exact {
+        observed: u64,
+    },
+    Estimated {
+        observed: u64,
+    },
+    Overflow {
+        input_tokens: u64,
+        safety_margin_tokens: u64,
+        accounting: AccountingBasis,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum AdmissionDiagnosticDetail {
+    Limit {
+        dimension: AdmissionDimension,
+        measurement: AdmissionMeasurement,
+        cap: u64,
+    },
+    Accounting {
+        accounting: TokenAccounting,
+        policy: AccountingPolicy,
+        cap: u64,
+    },
+}
+impl AdmissionDiagnosticDetail {
+    pub fn summary(&self) -> String {
+        match self {
+            Self::Limit {
+                dimension,
+                measurement,
+                cap,
+            } => {
+                let dimension = match dimension {
+                    AdmissionDimension::RequestChars => "request characters",
+                    AdmissionDimension::RequestBytes => "request bytes",
+                    AdmissionDimension::QuestionCount => "question count",
+                    AdmissionDimension::InputTokens => "input tokens",
+                };
+                let measured = match measurement {
+                    AdmissionMeasurement::Exact { observed } => format!("{observed} (exact)"),
+                    AdmissionMeasurement::Estimated { observed } => {
+                        format!("{observed} (estimated)")
+                    }
+                    AdmissionMeasurement::Overflow {
+                        input_tokens,
+                        safety_margin_tokens,
+                        ..
+                    } => format!(
+                        "overflow adding {input_tokens} and safety margin {safety_margin_tokens}"
+                    ),
+                };
+                format!("{dimension}: {measured}; cap {cap}.")
+            }
+            Self::Accounting {
+                accounting,
+                policy,
+                cap,
+            } => {
+                let basis = match accounting {
+                    TokenAccounting::Exact { .. } => "exact",
+                    TokenAccounting::Estimated { .. } => "estimated",
+                    TokenAccounting::Unavailable => "unavailable",
+                };
+                format!("Input-token accounting {basis}; policy {policy:?}; cap {cap}.")
+            }
+        }
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -109,8 +194,13 @@ pub fn assess_request_budget(
     settings: &RequestBudgetSettings,
     accounting: TokenAccounting,
 ) -> RequestBudgetAssessment {
-    let exceeded = || RequestBudgetAssessment::Exceeded {
+    let exceeded = |dimension, measurement, cap| RequestBudgetAssessment::Exceeded {
         diagnostics: DecisionDiagnostic::request(DecisionDiagnosticCode::ContextBudgetExceeded)
+            .with_admission(AdmissionDiagnosticDetail::Limit {
+                dimension,
+                measurement,
+                cap,
+            })
             .into(),
     };
     let unverifiable = |code| RequestBudgetAssessment::Unverifiable {
@@ -123,10 +213,23 @@ pub fn assess_request_budget(
     {
         return unverifiable(DecisionDiagnosticCode::InvalidConfiguration);
     }
-    if encoded.body.len() > settings.max_request_bytes
-        || encoded.question_count > settings.max_questions
-    {
-        return exceeded();
+    if encoded.body.len() > settings.max_request_bytes {
+        return exceeded(
+            AdmissionDimension::RequestBytes,
+            AdmissionMeasurement::Exact {
+                observed: u64::try_from(encoded.body.len()).unwrap_or(u64::MAX),
+            },
+            u64::try_from(settings.max_request_bytes).unwrap_or(u64::MAX),
+        );
+    }
+    if encoded.question_count > settings.max_questions {
+        return exceeded(
+            AdmissionDimension::QuestionCount,
+            AdmissionMeasurement::Exact {
+                observed: u64::try_from(encoded.question_count).unwrap_or(u64::MAX),
+            },
+            u64::try_from(settings.max_questions).unwrap_or(u64::MAX),
+        );
     }
     let (tokens, provider_ceiling, basis) = match accounting {
         TokenAccounting::Exact {
@@ -145,12 +248,19 @@ pub fn assess_request_budget(
             provider_ceiling,
             AccountingBasis::Estimated { provider_ceiling },
         ),
-        TokenAccounting::Estimated { .. } | TokenAccounting::Unavailable => {
-            return unverifiable(DecisionDiagnosticCode::BudgetUnverifiable);
+        accounting @ (TokenAccounting::Estimated { .. } | TokenAccounting::Unavailable) => {
+            return RequestBudgetAssessment::Unverifiable {
+                diagnostics: DecisionDiagnostic::request(
+                    DecisionDiagnosticCode::BudgetUnverifiable,
+                )
+                .with_admission(AdmissionDiagnosticDetail::Accounting {
+                    accounting,
+                    policy: settings.accounting_policy.clone(),
+                    cap: settings.max_input_tokens,
+                })
+                .into(),
+            };
         }
-    };
-    let Some(total_tokens) = tokens.checked_add(settings.safety_margin_tokens) else {
-        return exceeded();
     };
     let input_limit = match provider_ceiling {
         ProviderContextCeiling::CallerDeclared { tokens } => {
@@ -158,8 +268,27 @@ pub fn assess_request_budget(
         }
         ProviderContextCeiling::NotDeclared => settings.max_input_tokens,
     };
+    let Some(total_tokens) = tokens.checked_add(settings.safety_margin_tokens) else {
+        return exceeded(
+            AdmissionDimension::InputTokens,
+            AdmissionMeasurement::Overflow {
+                input_tokens: tokens,
+                safety_margin_tokens: settings.safety_margin_tokens,
+                accounting: basis,
+            },
+            input_limit,
+        );
+    };
     if total_tokens > input_limit {
-        return exceeded();
+        let measurement = match basis {
+            AccountingBasis::Exact { .. } => AdmissionMeasurement::Exact {
+                observed: total_tokens,
+            },
+            AccountingBasis::Estimated { .. } => AdmissionMeasurement::Estimated {
+                observed: total_tokens,
+            },
+        };
+        return exceeded(AdmissionDimension::InputTokens, measurement, input_limit);
     }
     let counts = RequestBudgetCounts {
         input_tokens: total_tokens,

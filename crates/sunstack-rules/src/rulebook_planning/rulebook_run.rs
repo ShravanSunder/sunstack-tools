@@ -251,18 +251,18 @@ pub async fn run_rulebook_with_dispatcher(
                             }
                         }
                         DispatchRefusal::Cancelled => RulebookIncompleteReason::Cancelled,
-                        DispatchRefusal::RequestTooLarge => {
-                            RulebookIncompleteReason::RequestTooLarge
-                        }
                         DispatchRefusal::RequestLimitReached => {
                             RulebookIncompleteReason::RequestLimitReached
                         }
                         DispatchRefusal::InvalidRequest => RulebookIncompleteReason::InvalidRequest,
+                        DispatchRefusal::AdmissionRefused { diagnostics } => {
+                            RulebookIncompleteReason::AdmissionRefused { diagnostics }
+                        }
                     };
                     run.not_sent.push(UnsentRulebookRequest {
                         pair_index,
                         request,
-                        reason,
+                        reason: reason.clone(),
                     });
                     run.results[pair_index].result = incomplete(reason, Some(step), path_taken);
                 }
@@ -292,8 +292,10 @@ pub async fn run_rulebook_with_dispatcher(
             DecisionRunOutcome::Cancelled { .. } => {
                 incomplete(RulebookIncompleteReason::Cancelled, Some(step), path_taken)
             }
-            DecisionRunOutcome::InvalidRequest { .. } => incomplete(
-                RulebookIncompleteReason::InvalidRequest,
+            DecisionRunOutcome::InvalidRequest { diagnostics } => incomplete(
+                RulebookIncompleteReason::AdmissionRefused {
+                    diagnostics: diagnostics.clone(),
+                },
                 Some(step),
                 path_taken,
             ),

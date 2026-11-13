@@ -6,6 +6,7 @@ impl EvidenceBuild {
         owner: &Path,
         relative: &Path,
         rule: &crate::EvidenceRuleId,
+        projection: crate::DocumentText,
         source: &mut dyn CheckedFileSource,
     ) -> FieldValue {
         let path = owner.parent().unwrap_or(Path::new("")).join(relative);
@@ -56,11 +57,19 @@ impl EvidenceBuild {
             native_units: BTreeMap::new(),
         };
         let ranges = file.index.by_rule.get(rule).cloned().unwrap_or_default();
+        let values = ranges
+            .iter()
+            .map(|range| {
+                let raw = &file.text[range.start..range.end];
+                projection.project(raw)
+            })
+            .collect::<Result<Vec<_>, _>>();
+        let values = match values {
+            Ok(values) => values,
+            Err(reason) => return FieldValue::Unavailable { reason },
+        };
         FieldValue::Texts {
-            values: ranges
-                .iter()
-                .map(|range| file.text[range.start..range.end].to_owned())
-                .collect(),
+            values,
             spans: ranges
                 .iter()
                 .map(|range| source_span(&file, range))

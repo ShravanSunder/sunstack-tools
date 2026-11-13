@@ -10,8 +10,9 @@ impl EvidenceBuild {
         let definition = self.kinds[kind].clone();
         for piece in &mut pieces {
             for (field, field_source) in &definition.fields {
-                if let FieldSource::Document { path, rule } = field_source {
-                    let value = self.document_field(&piece.location.file, path, rule, source);
+                if let FieldSource::Document { path, rule, text } = field_source {
+                    let value =
+                        self.document_field(&piece.location.file, path, rule, *text, source);
                     piece.fields.insert(field.clone(), value);
                     continue;
                 }

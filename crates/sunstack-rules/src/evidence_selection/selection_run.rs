@@ -162,10 +162,10 @@ async fn send_group(
         }
         Err(refusal) => {
             let reason = match refusal {
+                DispatchRefusal::AdmissionRefused { diagnostics } => {
+                    SelectionIncompleteReason::AdmissionRefused { diagnostics }
+                }
                 DispatchRefusal::Cancelled => SelectionIncompleteReason::Cancelled,
-                DispatchRefusal::RequestTooLarge => SelectionIncompleteReason::RequestTooLarge {
-                    limit: crate::RequestLimit::RequestMaxChars,
-                },
                 DispatchRefusal::RequestLimitReached => {
                     SelectionIncompleteReason::RequestLimitReached
                 }

@@ -115,9 +115,19 @@ async fn incomplete_steps_distinguish_pre_walk_cancellation_from_a_request_guard
         let row = serde_json::to_value(&pair.result).unwrap();
         assert_eq!(row["path_taken"], json!(["q"]));
         assert_eq!(row["answers_read"], json!({}));
-        assert!(
-            matches!(pair.result,RulebookResult::Incomplete {reason:RulebookIncompleteReason::RequestTooLarge,step:Some(step),..} if step.as_str() == "q")
+        assert_eq!(
+            row["reason"]["admission_refused"]["diagnostics"]["items"][0]["code"],
+            "request_too_large"
         );
+        assert_eq!(
+            row["reason"]["admission_refused"]["diagnostics"]["items"][0]["admission"]["dimension"],
+            "request_chars"
+        );
+        assert_eq!(
+            row["reason"]["admission_refused"]["diagnostics"]["items"][0]["admission"]["cap"],
+            1
+        );
+        assert_eq!(row["step"], "q");
     }
 }
 struct OrderedBackend {
@@ -514,7 +524,7 @@ async fn incomplete_reasons_distinguish_provider_status_transport_and_invalid_an
             .unwrap();
         drop(held);
         assert_eq!(server.finish().await, usize::from(case != "connection"));
-        let RulebookResult::Incomplete { reason, .. } = run.results[0].result else {
+        let RulebookResult::Incomplete { ref reason, .. } = run.results[0].result else {
             panic!("{run:?}")
         };
         let expected = match case {
@@ -532,7 +542,7 @@ async fn incomplete_reasons_distinguish_provider_status_transport_and_invalid_an
             },
             _ => RulebookIncompleteReason::InvalidResponse,
         };
-        assert_eq!(reason, expected, "{case}: {run:?}");
+        assert_eq!(reason, &expected, "{case}: {run:?}");
         assert_eq!(run.requests.len(), 1);
     }
 }
@@ -555,11 +565,11 @@ async fn a_locally_invalid_request_is_refused_before_http() {
     )
     .await;
     assert!(matches!(
-        run.results[0].result,
+        &run.results[0].result,
         RulebookResult::Incomplete {
-            reason: RulebookIncompleteReason::InvalidRequest,
+            reason: RulebookIncompleteReason::AdmissionRefused { diagnostics },
             ..
-        }
+        } if diagnostics.items[0].code == DecisionDiagnosticCode::InvalidQuestion
     ));
     assert_eq!(server.finish().await, 0);
     assert!(run.requests.is_empty());

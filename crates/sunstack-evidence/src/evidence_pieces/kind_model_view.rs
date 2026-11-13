@@ -37,7 +37,13 @@ pub fn project_kind_model_view(
         .map(|(name, value)| {
             let project_html = match definition.fields.get(name) {
                 Some(
-                    FieldSource::Section {
+                    FieldSource::HtmlText {}
+                    | FieldSource::HtmlAttribute { .. }
+                    | FieldSource::Document {
+                        text: crate::DocumentText::HtmlText | crate::DocumentText::JsonString,
+                        ..
+                    }
+                    | FieldSource::Section {
                         text: crate::SectionText::Heading,
                     }
                     | FieldSource::Enclosing {

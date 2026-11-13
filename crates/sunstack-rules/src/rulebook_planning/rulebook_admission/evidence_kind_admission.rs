@@ -73,6 +73,13 @@ pub fn admit_evidence_kinds(
                     "evidence field name is a reserved state key",
                 ));
             }
+            if matches!(
+                source,
+                FieldSource::HtmlText {} | FieldSource::HtmlAttribute { .. }
+            ) && language != Some(EvidenceLanguage::Html)
+            {
+                errors.push(refusal(&path, "decoded HTML fields require HTML evidence"));
+            }
             if matches!(source, FieldSource::Section { .. })
                 && !is_native_section_matcher(&kind.matcher)
             {
@@ -191,6 +198,8 @@ pub fn admit_evidence_kinds(
                     } => project.language_for_rule(&exclude.rule),
                     FieldSource::Document { .. }
                     | FieldSource::FirstLine { .. }
+                    | FieldSource::HtmlText {}
+                    | FieldSource::HtmlAttribute { .. }
                     | FieldSource::Section { .. }
                     | FieldSource::Capture { .. }
                     | FieldSource::Yaml { .. }
@@ -294,7 +303,21 @@ pub fn admit_evidence_kinds(
                 FieldSource::Document {
                     path: document_path,
                     rule,
+                    text,
                 } => {
+                    let required_language = match text {
+                        sunstack_evidence::DocumentText::Raw => None,
+                        sunstack_evidence::DocumentText::HtmlText => Some(EvidenceLanguage::Html),
+                        sunstack_evidence::DocumentText::JsonString => Some(EvidenceLanguage::Json),
+                    };
+                    if required_language
+                        .is_some_and(|language| project.language_for_rule(rule) != Some(language))
+                    {
+                        errors.push(refusal(
+                            &path,
+                            "document text projection requires the matching selector language",
+                        ));
+                    }
                     if document_path.as_os_str().is_empty() {
                         errors.push(refusal(
                             path.with_key("path"),
@@ -306,6 +329,8 @@ pub fn admit_evidence_kinds(
                     }
                 }
                 FieldSource::FirstLine {}
+                | FieldSource::HtmlText {}
+                | FieldSource::HtmlAttribute { .. }
                 | FieldSource::Section { .. }
                 | FieldSource::Yaml { .. }
                 | FieldSource::Remainder { exclude: None } => {}

@@ -1,7 +1,9 @@
 pub mod document_selection;
+pub(crate) mod document_text_projection;
 pub mod frontmatter_contracts;
 pub mod heading_anchor_schemes;
 pub(crate) mod html_content;
+pub(crate) mod html_decoded_text;
 pub(crate) mod html_outline;
 pub mod html_selection_contracts;
 pub mod markdown_contracts;

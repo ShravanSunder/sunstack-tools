@@ -109,7 +109,7 @@ pub(crate) fn project_outcome(
             id,
             request_ids,
             gap: match &pair.result {
-                RulebookResult::Incomplete { reason, .. } => Some(*reason),
+                RulebookResult::Incomplete { reason, .. } => Some(reason.clone()),
                 _ => None,
             },
             locator_omitted: match &pair.result {
@@ -488,6 +488,9 @@ pub(crate) fn rulebook_incomplete_reason(reason: RulebookIncompleteReason) -> In
             http_status,
         },
         RulebookIncompleteReason::InvalidRequest => IncompleteReason::InvalidRequest,
+        RulebookIncompleteReason::AdmissionRefused { diagnostics } => {
+            IncompleteReason::AdmissionRefused { diagnostics }
+        }
         RulebookIncompleteReason::InvalidResponse => IncompleteReason::InvalidResponse,
         RulebookIncompleteReason::RequestLimitReached => IncompleteReason::RequestLimitReached,
         RulebookIncompleteReason::Cancelled => IncompleteReason::NotStarted,

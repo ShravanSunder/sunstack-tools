@@ -106,6 +106,10 @@ pub enum SelectionIncompleteReason {
     RequestTooLarge { limit: RequestLimit },
     #[error("selection request is invalid")]
     InvalidRequest,
+    #[error("selection request admission was refused")]
+    AdmissionRefused {
+        diagnostics: sunstack_decisions::DiagnosticList,
+    },
     #[error("selection provider request failed")]
     ProviderFailure {
         failure_class: sunstack_decisions::ProviderFailureClass,

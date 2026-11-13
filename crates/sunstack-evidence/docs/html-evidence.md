@@ -71,6 +71,64 @@ Document fields are acquired after evidence selection. A selection question cann
 
 Every occurrence is checked, including overlaps: `A-A` matches the final occurrence in `XA-A-A` even though the earlier occurrence touches `X`.
 
+## Exact decoded text comparisons
+
+Use `html_text` for a matched HTML element's decoded child text, or
+`html_attribute` for one named attribute:
+
+```json
+{
+  "excerpt": {"from": "html_text"},
+  "source_name": {"from": "html_attribute", "name": "data-source"},
+  "records": {"from": "document", "path": "messages.jsonl", "rule": "message-text", "text": "json_string"}
+}
+```
+
+These are mechanical field values. HTML entities decode once, child text joins
+in source order, and whitespace, punctuation and Unicode characters stay as
+written. No spaces or attribute text are inserted into `html_text`. Attribute
+names match case-insensitively; a missing attribute is absent, while a present
+empty attribute is available empty text. Ambiguous malformed markup is unavailable.
+Spans and content digests still identify the original element/attribute bytes.
+The asking view does not decode these fields again; ordinary view cuts apply.
+
+`document.text` defaults to `raw`, preserving existing raw text-list values.
+Opt into `html_text` for HTML matches, or `json_string` for JSON string matches.
+Each selected JSON span is parsed independently as one string, decoding escapes
+such as `\"`, `\n` and `\u2019`. An object, number or malformed string is unavailable,
+not converted to text. The selector language must match the projection. For a
+JSON-lines file with a `text` string in each object, the caller can select values
+without selecting the property names:
+
+```yaml
+id: message-text
+language: Json
+rule:
+  kind: string
+  inside:
+    kind: pair
+    field: value
+    has: {field: key, regex: '^"text"$'}
+```
+
+Record selection remains caller-owned. Every output item retains its own raw
+span and source digest; records are never concatenated. Acquisition, containment,
+missing files and scan limits use the existing `document` path and shared budgets.
+
+For exact contiguous membership, use:
+
+```json
+{ "mechanical_check": { "tool": "exact_contains_field", "field": "records", "needle": "excerpt" }, "yes": "pass", "no": { "finding": "No exact source span." } }
+```
+
+This check allows a substring inside a longer token, unlike `contains_field`.
+It compares the stored strings without normalizing whitespace, punctuation,
+Unicode or JSON escape syntax. Each text-list item is checked separately. A
+nonempty available uncut scalar needle and complete source are required; empty
+source lists cannot pass, and unavailable or cut fields end incomplete. A
+successful membership check establishes text membership only, not authorship,
+acceptance or relevance. Existing `contains_field` token boundaries are unchanged.
+
 ## Native heading fields
 
 Native `html_units` sections and `markdown_units` kinds selecting exactly

@@ -51,7 +51,7 @@ async fn sdk_callers_propagate_dispatch_and_selection_errors_with_question_mark(
     let selection_error = assess(&dispatch, &request).unwrap_err();
     assert!(matches!(
         selection_error.downcast_ref::<SelectionIncompleteReason>(),
-        Some(SelectionIncompleteReason::InvalidRequest)
+        Some(SelectionIncompleteReason::AdmissionRefused { diagnostics }) if diagnostics.items[0].code == DecisionDiagnosticCode::InvalidQuestion
     ));
     let dispatch_error = submit(&mut dispatch, request).await.unwrap_err();
     assert!(matches!(
@@ -134,10 +134,17 @@ fn selection_byte_limit_names_the_backend_encoded_measure_that_exceeded_the_budg
     );
     assert!(control.assess_selection(&request).is_ok());
     let dispatcher = ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
-    assert!(matches!(
-        dispatcher.assess_selection(&request),
-        Err(SelectionIncompleteReason::RequestTooLarge {
-            limit: RequestLimit::RequestBytes
-        })
-    ));
+    let refusal = serde_json::to_value(dispatcher.assess_selection(&request).unwrap_err()).unwrap();
+    assert_eq!(
+        refusal["diagnostics"]["items"][0]["admission"]["dimension"],
+        "request_bytes"
+    );
+    assert_eq!(
+        refusal["diagnostics"]["items"][0]["admission"]["cap"],
+        judgment.len() + 1
+    );
+    assert_eq!(
+        refusal["diagnostics"]["items"][0]["admission"]["measurement"]["observed"],
+        encoded_bytes
+    );
 }

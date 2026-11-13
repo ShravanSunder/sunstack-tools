@@ -13,6 +13,8 @@ use tokio::process::Command;
 mod checked_root;
 #[path = "lint_commands/document_conventions.rs"]
 mod document_conventions;
+#[path = "lint_commands/exact_text_fields.rs"]
+mod exact_text_fields;
 #[path = "lint_commands/filter_admission.rs"]
 mod filter_admission;
 #[path = "lint_commands/filter_runtime.rs"]
@@ -21,6 +23,8 @@ mod filter_runtime;
 mod html_evidence;
 #[path = "lint_commands/html_sections.rs"]
 mod html_sections;
+#[path = "lint_commands/incomplete_diagnostics.rs"]
+mod incomplete_diagnostics;
 #[path = "lint_commands/section_prefix.rs"]
 mod section_prefix;
 #[path = "../support/mod.rs"]
@@ -54,6 +58,23 @@ async fn invoke(root: &Path, arguments: &[&str], exit: i32) -> Output {
         String::from_utf8_lossy(&result.stderr)
     );
     result
+}
+fn assert_no_application_stderr(output: &Output) {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stderr.is_empty() {
+        return;
+    }
+    // The signing wrapper warns on hosts without a Developer ID identity.
+    // Permit that one bounded wrapper line, never application diagnostics.
+    assert!(stderr.len() <= 256, "{stderr}");
+    let mut lines = stderr.lines();
+    let warning = lines.next().unwrap();
+    assert!(
+        warning.starts_with("cargo debug runner: sunstack runs unsigned (")
+            && warning.ends_with("); LuLu may prompt after rebuilding"),
+        "{stderr}"
+    );
+    assert!(lines.next().is_none(), "{stderr}");
 }
 async fn report(root: &Path, arguments: &[&str], exit: i32) -> Value {
     let mut arguments = arguments.to_vec();

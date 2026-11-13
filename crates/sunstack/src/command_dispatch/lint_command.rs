@@ -24,6 +24,10 @@ fn output(text: &str, exit: u8) -> ExitCode {
     ExitCode::from(exit)
 }
 fn diagnostics(diagnostics: &[LintDiagnostic]) -> ExitCode {
+    write_diagnostics(diagnostics);
+    ExitCode::from(2)
+}
+fn write_diagnostics(diagnostics: &[LintDiagnostic]) {
     let mut stderr = io::stderr().lock();
     for diagnostic in diagnostics {
         let _ = writeln!(
@@ -38,7 +42,6 @@ fn diagnostics(diagnostics: &[LintDiagnostic]) -> ExitCode {
             diagnostic.message
         );
     }
-    ExitCode::from(2)
 }
 fn invalid(error: LintInvalid) -> ExitCode {
     diagnostics(&[error.into()])
@@ -245,6 +248,11 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
             let _ = writeln!(io::stderr().lock(), "sunstack: cannot save report: {error}");
             return ExitCode::from(3);
         }
+    }
+    if matches!(report.status, sunstack_lint::LintStatus::Incomplete)
+        && (arguments.prepare.is_some() || report.evidence_listing.is_some())
+    {
+        write_diagnostics(&report.diagnostics);
     }
     if let Some(listing) = &report.evidence_listing {
         return match serde_json::to_string_pretty(listing) {

@@ -32,12 +32,30 @@ fn push_request(
         } => Some(receipt.resolved_model.clone()),
         _ => None,
     };
+    let input_sha256 = matches!(
+        &outcome,
+        SavedRequestOutcome::NotSent {
+            reason: RequestNotSentReason::Rule {
+                reason: sunstack_rules::RulebookIncompleteReason::AdmissionRefused { .. }
+            } | RequestNotSentReason::Filter {
+                reason: sunstack_rules::FilterIncomplete::Request {
+                    reason: sunstack_rules::RulebookIncompleteReason::AdmissionRefused { .. }
+                }
+            }
+        }
+    )
+    .then(|| {
+        serde_json::to_vec(&request)
+            .ok()
+            .map(|bytes| sunstack_evidence::content_digest(&bytes))
+    })
+    .flatten();
     report.requests.push(SavedRequest {
         id,
         owner,
         requested_model: model.clone(),
         resolved_model,
-        input_sha256: None,
+        input_sha256,
         selection_evidence: None,
         request,
         outcome,
@@ -266,7 +284,7 @@ pub(crate) fn capture_requests(
                 record.request.clone(),
                 SavedRequestOutcome::NotSent {
                     reason: RequestNotSentReason::Rule {
-                        reason: record.reason,
+                        reason: record.reason.clone(),
                     },
                 },
             )

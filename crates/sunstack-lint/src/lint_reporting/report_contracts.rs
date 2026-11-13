@@ -159,6 +159,9 @@ pub enum IncompleteReason {
         http_status: Option<u16>,
     },
     InvalidRequest,
+    AdmissionRefused {
+        diagnostics: sunstack_decisions::DiagnosticList,
+    },
     InvalidResponse,
     RequestLimitReached,
     EvidenceUnavailable,

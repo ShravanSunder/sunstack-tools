@@ -266,9 +266,13 @@ async fn filters_send_only_the_projected_field_and_preserve_cut_metadata_and_enc
         assert_eq!(bodies.len(), usize::from(sends));
         if !sends {
             let value = serde_json::to_value(report).unwrap();
+            assert_eq!(value["filter_answers"][0]["reason"]["kind"], "request");
+            let diagnostic = &value["filter_answers"][0]["reason"]["reason"]["admission_refused"]["diagnostics"]
+                ["items"][0];
+            assert_eq!(diagnostic["code"], "request_too_large");
             assert_eq!(
-                value["filter_answers"][0]["reason"]["kind"],
-                "reads_too_large"
+                diagnostic["admission"],
+                json!({"kind":"limit","dimension":"request_chars","measurement":{"basis":"exact","observed":chars},"cap":cap})
             );
             assert_eq!(value["status"]["kind"], "incomplete");
         }

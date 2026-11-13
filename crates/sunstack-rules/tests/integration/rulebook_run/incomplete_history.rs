@@ -32,7 +32,18 @@ async fn request_refusal_keeps_the_mechanical_prefix_and_reached_question_withou
     for pair in run.results {
         assert_eq!(pair.result.basis(), None);
         let result = serde_json::to_value(pair.result).unwrap();
-        assert_eq!(result["reason"], "request_too_large");
+        assert_eq!(
+            result["reason"]["admission_refused"]["diagnostics"]["items"][0]["code"],
+            "request_too_large"
+        );
+        assert_eq!(
+            result["reason"]["admission_refused"]["diagnostics"]["items"][0]["admission"]["dimension"],
+            "request_chars"
+        );
+        assert_eq!(
+            result["reason"]["admission_refused"]["diagnostics"]["items"][0]["admission"]["cap"],
+            1
+        );
         assert_eq!(result["step"], "q");
         assert_eq!(result["path_taken"], json!(["local_guard", "q"]));
         assert_eq!(result["answers_read"], json!({}));

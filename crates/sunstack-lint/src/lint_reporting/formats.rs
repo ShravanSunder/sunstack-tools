@@ -70,6 +70,14 @@ pub(crate) fn incomplete_text(reason: &IncompleteReason) -> String {
             };
         }
         IncompleteReason::InvalidRequest => "invalid request",
+        IncompleteReason::AdmissionRefused { diagnostics } => {
+            return diagnostics
+                .items
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ");
+        }
         IncompleteReason::InvalidResponse => "invalid response",
         IncompleteReason::RequestLimitReached => "request limit reached",
         IncompleteReason::EvidenceUnavailable => "evidence unavailable",
@@ -91,6 +99,11 @@ pub(crate) fn selection_incomplete_text(entry: &SelectionEntry) -> Option<String
         SelectionIncompleteReason::EvidenceTooLarge => IncompleteReason::EvidenceTooLarge,
         SelectionIncompleteReason::RequestTooLarge { .. } => IncompleteReason::RequestTooLarge,
         SelectionIncompleteReason::InvalidRequest => IncompleteReason::InvalidRequest,
+        SelectionIncompleteReason::AdmissionRefused { diagnostics } => {
+            IncompleteReason::AdmissionRefused {
+                diagnostics: diagnostics.clone(),
+            }
+        }
         SelectionIncompleteReason::ProviderFailure {
             failure_class,
             http_status,
@@ -304,7 +317,7 @@ fn human(report: &LintReport, prepare_file: Option<&Path>) -> String {
     for result in &report.results {
         if let Some(gap) = &result.gap {
             let reason = incomplete_text(
-                &crate::lint_reporting::outcome::rulebook_incomplete_reason(*gap),
+                &crate::lint_reporting::outcome::rulebook_incomplete_reason(gap.clone()),
             );
             let _ = writeln!(
                 output,

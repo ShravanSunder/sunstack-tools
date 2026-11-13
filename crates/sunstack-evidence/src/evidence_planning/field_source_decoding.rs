@@ -1,4 +1,5 @@
 use super::evidence_kind_contracts::*;
+use crate::DocumentText;
 use serde::Deserialize;
 
 // Decode the closed field envelope before resolving its exclusive rule/kind source.
@@ -7,6 +8,10 @@ use serde::Deserialize;
 #[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]
 enum FieldSourceWire {
     FirstLine {},
+    HtmlText {},
+    HtmlAttribute {
+        name: crate::HtmlAttributeName,
+    },
     Section {
         text: SectionText,
     },
@@ -57,6 +62,8 @@ enum FieldSourceWire {
     Document {
         path: std::path::PathBuf,
         rule: EvidenceRuleId,
+        #[serde(default)]
+        text: DocumentText,
     },
     Target {
         regex: String,
@@ -94,6 +101,8 @@ impl<'de> Deserialize<'de> for FieldSource {
         };
         Ok(match FieldSourceWire::deserialize(deserializer)? {
             FieldSourceWire::FirstLine {} => Self::FirstLine {},
+            FieldSourceWire::HtmlText {} => Self::HtmlText {},
+            FieldSourceWire::HtmlAttribute { name } => Self::HtmlAttribute { name },
             FieldSourceWire::Section { text } => Self::Section { text },
             FieldSourceWire::SectionPrefix { kind } => Self::SectionPrefix { kind },
             FieldSourceWire::Capture { regex } => Self::Capture { regex },
@@ -112,7 +121,7 @@ impl<'de> Deserialize<'de> for FieldSource {
             FieldSourceWire::Previous { rule, count } => Self::Previous { rule, count },
             FieldSourceWire::Yaml { key } => Self::Yaml { key },
             FieldSourceWire::Remainder { exclude } => Self::Remainder { exclude },
-            FieldSourceWire::Document { path, rule } => Self::Document { path, rule },
+            FieldSourceWire::Document { path, rule, text } => Self::Document { path, rule, text },
             FieldSourceWire::Target {
                 regex,
                 resolve,

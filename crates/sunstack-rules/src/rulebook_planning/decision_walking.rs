@@ -9,7 +9,7 @@ use sunstack_evidence::{
     EvidencePiece, FieldName, FieldValue, FileMatchIndex, MatchRange, ModelView, match_within,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RulebookIncompleteReason {
     ChoiceOptionsExceeded {
@@ -25,6 +25,9 @@ pub enum RulebookIncompleteReason {
         http_status: Option<u16>,
     },
     InvalidRequest,
+    AdmissionRefused {
+        diagnostics: sunstack_decisions::DiagnosticList,
+    },
     InvalidResponse,
     RequestLimitReached,
     Cancelled,
@@ -449,6 +452,7 @@ pub(super) fn mechanical_check(
         | DecisionMechanicalTool::FileExists { field }
         | DecisionMechanicalTool::AnchorExists { field }
         | DecisionMechanicalTool::ContainsField { field, .. }
+        | DecisionMechanicalTool::ExactContainsField { field, .. }
         | DecisionMechanicalTool::Complete { field } => field,
     };
     if matches!(tool, DecisionMechanicalTool::Complete { .. })
@@ -457,12 +461,22 @@ pub(super) fn mechanical_check(
         return Err(field.clone());
     }
     let value = piece.fields.get(field);
+    if let DecisionMechanicalTool::ExactContainsField { needle, .. } = tool {
+        for required in [field, needle] {
+            if !matches!(&piece.model_view, ModelView::Bounded { cut, .. } if !cut.contains(required))
+            {
+                return Err(required.clone());
+            }
+        }
+    }
     if matches!(value, Some(FieldValue::Unavailable { .. })) {
         return Err(field.clone());
     }
     if matches!(
         tool,
-        DecisionMechanicalTool::AnchorExists { .. } | DecisionMechanicalTool::ContainsField { .. }
+        DecisionMechanicalTool::AnchorExists { .. }
+            | DecisionMechanicalTool::ContainsField { .. }
+            | DecisionMechanicalTool::ExactContainsField { .. }
     ) && matches!(value, None | Some(FieldValue::Absent))
     {
         return Err(field.clone());
@@ -486,6 +500,13 @@ pub(super) fn mechanical_check(
             texts
                 .iter()
                 .any(|text| contains_whole_token(text, needle_value))
+        }
+        DecisionMechanicalTool::ExactContainsField { needle, .. } => {
+            let needle_value = match piece.fields.get(needle) {
+                Some(FieldValue::Text { value, .. }) if !value.is_empty() => value,
+                _ => return Err(needle.clone()),
+            };
+            texts.iter().any(|text| text.contains(needle_value))
         }
         DecisionMechanicalTool::AnchorExists { .. } => {
             let Some(FieldValue::Targets { values }) = value else {

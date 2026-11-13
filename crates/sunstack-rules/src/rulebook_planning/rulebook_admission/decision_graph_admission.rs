@@ -316,7 +316,8 @@ fn validate_tool(
         DecisionMechanicalTool::Contains { field, .. } => {
             (field, &[FieldShape::Text, FieldShape::Texts])
         }
-        DecisionMechanicalTool::ContainsField { field, needle } => {
+        DecisionMechanicalTool::ContainsField { field, needle }
+        | DecisionMechanicalTool::ExactContainsField { field, needle } => {
             if !kind
                 .fields
                 .get(needle)
@@ -324,7 +325,10 @@ fn validate_tool(
             {
                 errors.push(refusal(
                     path,
-                    "mechanical tool names an undefined or incompatible field",
+                    format!(
+                        "mechanical tool names an undefined or incompatible field {}",
+                        needle.as_str()
+                    ),
                 ));
             }
             (field, &[FieldShape::Text, FieldShape::Texts])
@@ -344,7 +348,10 @@ fn validate_tool(
     {
         errors.push(refusal(
             path,
-            "mechanical tool names an undefined or incompatible field",
+            format!(
+                "mechanical tool names an undefined or incompatible field {}",
+                field.as_str()
+            ),
         ));
     }
 }

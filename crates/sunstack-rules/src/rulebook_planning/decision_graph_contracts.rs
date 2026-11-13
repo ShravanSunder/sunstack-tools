@@ -102,6 +102,7 @@ pub enum DecisionMechanicalTool {
     FileExists { field: FieldName },
     AnchorExists { field: FieldName },
     ContainsField { field: FieldName, needle: FieldName },
+    ExactContainsField { field: FieldName, needle: FieldName },
     Complete { field: FieldName },
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

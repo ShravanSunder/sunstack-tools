@@ -261,14 +261,15 @@ async fn unavailable_referenced_fields_block_only_their_candidate_and_input_toke
     let mut dispatch = dispatcher(limited);
     let outcomes = select_candidates(&input, &mut dispatch).await;
     assert!(dispatch.records.is_empty());
-    assert!(outcomes.values().all(|outcome| matches!(
-        outcome,
-        SelectionOutcome::Incomplete {
-            reason: SelectionIncompleteReason::RequestTooLarge {
-                limit: RequestLimit::InputTokens
-            }
-        }
-    )));
+    for outcome in outcomes.values() {
+        let refusal = serde_json::to_value(outcome).unwrap();
+        assert_eq!(refusal["kind"], "incomplete");
+        let diagnostic = &refusal["reason"]["diagnostics"]["items"][0];
+        assert_eq!(diagnostic["code"], "context_budget_exceeded");
+        assert_eq!(diagnostic["admission"]["dimension"], "input_tokens");
+        assert_eq!(diagnostic["admission"]["cap"], 1);
+        assert_eq!(diagnostic["admission"]["measurement"]["basis"], "estimated");
+    }
 }
 fn input_for_token_limit() -> SelectionInput {
     input("practices-research")
@@ -405,14 +406,18 @@ async fn encoded_character_packing_keeps_consecutive_groups_and_names_singleton_
     };
     let mut dispatch = dispatcher(settings("http://127.0.0.1:1/v1/systemone"));
     let outcomes = select_candidates(&input, &mut dispatch).await;
-    assert!(matches!(
-        outcomes.values().next().unwrap(),
-        SelectionOutcome::Incomplete {
-            reason: SelectionIncompleteReason::RequestTooLarge {
-                limit: RequestLimit::RequestMaxChars
-            }
-        }
-    ));
+    let refusal = serde_json::to_value(outcomes.values().next().unwrap()).unwrap();
+    assert_eq!(refusal["kind"], "incomplete");
+    let diagnostic = &refusal["reason"]["diagnostics"]["items"][0];
+    assert_eq!(diagnostic["code"], "request_too_large");
+    assert_eq!(diagnostic["admission"]["dimension"], "request_chars");
+    assert_eq!(diagnostic["admission"]["cap"], 20000);
+    assert!(
+        diagnostic["admission"]["measurement"]["observed"]
+            .as_u64()
+            .unwrap()
+            > 21000
+    );
     assert!(dispatch.records.is_empty());
 }
 #[tokio::test]
