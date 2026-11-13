@@ -10,6 +10,10 @@ import { z } from 'zod';
 import { SdkControlledBackend, boundedSdkWait } from './sdk-controlled-backend.ts';
 import { requireSdkFileCountParity } from './sdk-counter-parity.ts';
 import {
+	observeSdkInlineDocumentSettings,
+	observeSdkSnapshotDocumentSettings,
+} from './sdk-document-settings.ts';
+import {
 	createCheckedSdkInputs,
 	createBlockedSdkInput,
 	createSdkFileDefinitions,
@@ -264,8 +268,13 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 		deniedDependency,
 		inaccessibleSnapshot,
 	});
+	const documentSettings = await observeSdkSnapshotDocumentSettings(
+		context,
+		requireDeepFrozenSdkValue,
+	);
 	return {
 		observed: [
+			...documentSettings,
 			'held A, edited typed A, explicit reload B with distinct real requests',
 			'file/edited content hashes',
 			'missing/malformed config distinction',
@@ -321,9 +330,11 @@ export async function observeSdkInline(context: JourneyContext): Promise<Journey
 		'SDK wrote a definition project in checked root',
 	);
 	saveSdkEvidence(path.join(context.evidence, 'inline-report.json'), report);
-	if (!context.target.cli)
+	if (!context.target.cli) {
+		const documentSettings = await observeSdkInlineDocumentSettings(context);
 		return {
 			observed: [
+				...documentSettings,
 				'inline eligible/blocked filters and asking execution with referenced utility and separate definition base',
 			],
 			gaps: [
@@ -331,6 +342,7 @@ export async function observeSdkInline(context: JourneyContext): Promise<Journey
 				'per-source ID inventory, temporary writes outside checked root and deletion-before-return',
 			],
 		};
+	}
 	const cliRoot = path.join(context.evidence, 'cli-root');
 	createCheckedSdkInputs(cliRoot);
 	createBlockedSdkInput(cliRoot);
@@ -385,8 +397,12 @@ export async function observeSdkInline(context: JourneyContext): Promise<Journey
 			await new Promise<void>((resolve) => child.once('close', () => resolve()));
 		}
 	}
+	const documentSettings = await observeSdkInlineDocumentSettings(context);
 	return {
-		observed: ['inline/native filter/rule execution and exact CLI encoded request equality'],
+		observed: [
+			...documentSettings,
+			'inline/native filter/rule execution and exact CLI encoded request equality',
+		],
 		gaps: [
 			'full semantic report comparison and all CLI root/scope/report/ContextCapture joins',
 			'complete source ID inventory and temporary-write observation',
