@@ -139,6 +139,9 @@ await test('selection requests name cut candidate and shared fields, omit uncut 
 	// One selection request per file; no rule asks the model.
 	assert.equal(answered, 2);
 	assert.equal(report.status.kind, 'clean');
+	// Exactly one sent and one saved request per file: the maps below cannot hide a duplicate.
+	assert.equal(requests.length, 2);
+	assert.equal(report.requests.length, 2);
 	const sent = new Map(
 		requests.map((request) => {
 			const state = record(request.body['state']);
@@ -200,6 +203,7 @@ await test('selection requests name cut candidate and shared fields, omit uncut 
 			})}`,
 		);
 		assert.deepEqual(savedRequest.request.state, body['state'], `${file} state`);
+		assert.deepEqual(savedRequest.request.questions, body['questions'], `${file} questions`);
 		assert.equal(
 			savedRequest.input_sha256,
 			requestDigest(body['state'], body['questions']),
