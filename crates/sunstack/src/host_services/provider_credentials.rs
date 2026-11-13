@@ -22,21 +22,19 @@ fn native_entry() -> keyring_core::Result<Arc<Entry>> {
     Err(keyring_core::Error::NoDefaultStore)
 }
 
-// Only this binary accesses Keychain, once per command. Scope its process-wide
-// UI setting to the blocking store access, leaving interactive terminals alone.
+// Sunstack's own Keychain lookups, from the CLI or any SDK call routed through here,
+// share one noninteractive hold over the process-wide UI setting (see
+// `keychain_interaction`): overlapping lookups keep it off until the last one leaves, and
+// a setting the host already turned off stays off. Other code in the host process that
+// changes the setting is not coordinated. Interactive terminals keep the Keychain prompt.
 fn with_native_access<Output>(operation: impl FnOnce() -> Output) -> Option<Output> {
     #[cfg(target_os = "macos")]
-    let _interaction_guard = {
+    {
         use std::io::IsTerminal;
-        if io::stdin().is_terminal() {
-            None
-        } else {
-            Some(
-                security_framework::os::macos::keychain::SecKeychain::disable_user_interaction()
-                    .ok()?,
-            )
+        if !io::stdin().is_terminal() {
+            return super::keychain_interaction::KEYCHAIN_NONINTERACTIVE.run(operation);
         }
-    };
+    }
     Some(operation())
 }
 

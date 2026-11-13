@@ -4,7 +4,10 @@
 use serde_json::{Map, Value, json};
 use specta::{
     Format, Types,
-    datatype::{DataType, Fields, NamedDataType, NamedReferenceType, Primitive, Reference},
+    datatype::{
+        DataType, Enum, Field, Fields, NamedDataType, NamedReferenceType, Primitive, Reference,
+        Variant,
+    },
 };
 use std::{borrow::Cow, error::Error};
 use sunstack::sdk_host::{
@@ -296,6 +299,86 @@ fn select_question_shape(types: &mut Types) -> Result<(), Box<dyn Error>> {
     }
 }
 
+/// The exclusive matcher keys of an evidence kind, as `EvidenceKindWire` names them.
+const MATCHER_KEYS: [(&str, &str); 4] = [
+    ("rule", "Rule"),
+    ("inline_rule", "InlineRule"),
+    ("html_units", "HtmlUnits"),
+    ("markdown_units", "MarkdownUnits"),
+];
+
+/// Declare an evidence kind's matcher as exactly one of its four keys.
+///
+/// `EvidenceKindWire` keeps the four matcher keys as separate optional fields so serde can
+/// decode each with its own decoder; its JSON Schema and `TryFrom` then admit exactly one.
+/// The SDK declares that admitted shape: the kind's other fields, intersected with an
+/// untagged union whose variants each require one matcher key with its Rust field type.
+/// TypeScript marks the other keys of each variant `never`, so a kind with no matcher key
+/// or with two is refused.
+fn exclusive_matcher_shape(types: &mut Types) -> Result<(), Box<dyn Error>> {
+    let mut outcome: Result<bool, String> = Ok(false);
+    types.iter_mut(|named| {
+        if named.name != "EvidenceKindWire" || !named.module_path.ends_with("kind_matcher_decoding")
+        {
+            return;
+        }
+        outcome = exclusive_matcher(named.ty.take()).map(|declared| {
+            named.ty = Some(declared);
+            true
+        });
+    });
+    match outcome? {
+        true => Ok(()),
+        false => Err("EvidenceKindWire is not registered".into()),
+    }
+}
+
+fn exclusive_matcher(wire: Option<DataType>) -> Result<DataType, String> {
+    let Some(DataType::Struct(mut shared)) = wire else {
+        return Err("EvidenceKindWire is not a struct".into());
+    };
+    let Fields::Named(fields) = &mut shared.fields else {
+        return Err("EvidenceKindWire has no named fields".into());
+    };
+    let mut matchers = Vec::new();
+    fields.fields.retain(|(name, field)| {
+        let is_matcher = MATCHER_KEYS.iter().any(|(key, _)| name == key);
+        if is_matcher {
+            matchers.push((name.to_string(), field.clone()));
+        }
+        !is_matcher
+    });
+    let mut choice = Enum::default();
+    for (key, variant) in MATCHER_KEYS {
+        let Some((_, field)) = matchers.iter().find(|(name, _)| name == key) else {
+            return Err(format!("EvidenceKindWire has no `{key}` matcher field"));
+        };
+        if !field.optional {
+            return Err(format!(
+                "EvidenceKindWire `{key}` is not optional; its exclusivity is no longer a choice"
+            ));
+        }
+        let ty = field
+            .ty
+            .clone()
+            .ok_or_else(|| format!("EvidenceKindWire `{key}` is skipped"))?;
+        choice.variants.push((
+            Cow::Borrowed(variant),
+            Variant::named().field(key, Field::new(ty)).build(),
+        ));
+    }
+    if matchers.len() != MATCHER_KEYS.len() {
+        return Err("EvidenceKindWire matcher fields do not match the four matcher keys".into());
+    }
+    choice
+        .attributes
+        .insert(specta::markers::SERDE_CONTAINER_UNTAGGED, true);
+    Ok(DataType::Intersection(vec![
+        DataType::Struct(shared),
+        DataType::Enum(choice),
+    ]))
+}
+
 pub fn export() -> Result<Exported, Box<dyn Error>> {
     let mut types = Types::default()
         .register::<Configuration>()
@@ -308,6 +391,7 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
         .register::<RunOutcome>()
         .register::<sunstack_evidence::EvidenceLanguage>();
     select_question_shape(&mut types)?;
+    exclusive_matcher_shape(&mut types)?;
     let declarations = specta_typescript::Typescript::default().export(&types, SdkFormat)?;
     let mut serde_types = specta_serde::Format
         .map_types(&types)

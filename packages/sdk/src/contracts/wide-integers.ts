@@ -723,34 +723,54 @@ export const wideIntegerDefinitions = {
 	EvidenceKindWire: {
 		generics: [],
 		shape: {
-			object: {
-				fields: {
-					map: {
-						arguments: {},
-						ref: 'FieldSource',
+			all: [
+				{
+					object: {
+						fields: {
+							map: {
+								arguments: {},
+								ref: 'FieldSource',
+							},
+						},
+						select: {
+							arguments: {},
+							ref: 'SelectionWire',
+						},
+						within: {
+							arguments: {},
+							ref: 'ContainingKinds',
+						},
 					},
 				},
-				html_units: {
-					arguments: {},
-					ref: 'HtmlUnitSelection',
+				{
+					union: [
+						{
+							object: {
+								rule: {
+									arguments: {},
+									ref: 'EvidenceRuleId',
+								},
+							},
+						},
+						{
+							object: {
+								html_units: {
+									arguments: {},
+									ref: 'HtmlUnitSelection',
+								},
+							},
+						},
+						{
+							object: {
+								markdown_units: {
+									arguments: {},
+									ref: 'MarkdownUnitsKindWire',
+								},
+							},
+						},
+					],
 				},
-				markdown_units: {
-					arguments: {},
-					ref: 'MarkdownUnitsKindWire',
-				},
-				rule: {
-					arguments: {},
-					ref: 'EvidenceRuleId',
-				},
-				select: {
-					arguments: {},
-					ref: 'SelectionWire',
-				},
-				within: {
-					arguments: {},
-					ref: 'ContainingKinds',
-				},
-			},
+			],
 		},
 	},
 	EvidencePiece: {

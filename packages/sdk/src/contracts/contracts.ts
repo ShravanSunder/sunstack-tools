@@ -372,15 +372,24 @@ export type EvidenceKindDefinition = EvidenceKindWire;
 export type EvidenceKindName = string;
 
 export type EvidenceKindWire = {
-	rule?: EvidenceRuleId;
-	inline_rule?: string;
-	html_units?: HtmlUnitSelection;
-	markdown_units?: MarkdownUnitsKindWire;
 	fields: { [key in FieldName]: FieldSource };
 	max_chars?: number | null;
 	select?: SelectionWire | null;
 	within?: ContainingKinds;
-};
+} & (
+	| ({ rule: EvidenceRuleId } & { html_units?: never; inline_rule?: never; markdown_units?: never })
+	| ({ inline_rule: string } & { html_units?: never; markdown_units?: never; rule?: never })
+	| ({ html_units: HtmlUnitSelection } & {
+			inline_rule?: never;
+			markdown_units?: never;
+			rule?: never;
+	  })
+	| ({ markdown_units: MarkdownUnitsKindWire } & {
+			html_units?: never;
+			inline_rule?: never;
+			rule?: never;
+	  })
+);
 
 /**  Result-side language names (snake_case), distinct from authored matcher spellings. */
 export type EvidenceLanguage =

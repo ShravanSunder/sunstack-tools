@@ -255,3 +255,24 @@ export const markdownItemKind = {
 	markdown_units: { mode: 'unit', units: ['paragraph', 'list_item'], pattern: '^-' },
 	fields: { body: { from: 'remainder' } },
 } satisfies EvidenceKindDefinition;
+
+// An evidence kind names exactly one matcher; each of the four is a complete kind.
+export const ruleKind = {
+	rule: 'paragraph',
+	fields: { body: { from: 'remainder' } },
+} satisfies EvidenceKindDefinition;
+export const inlineRuleKind = {
+	inline_rule: 'kind: paragraph',
+	fields: { body: { from: 'remainder' } },
+} satisfies EvidenceKindDefinition;
+export const htmlUnitsKind = {
+	html_units: { mode: 'unit', units: ['section'] },
+	fields: { body: { from: 'remainder' } },
+} satisfies EvidenceKindDefinition;
+export const markdownUnitsKind = {
+	markdown_units: { mode: 'unit', units: ['section'] },
+	fields: { body: { from: 'remainder' } },
+} satisfies EvidenceKindDefinition;
+// A kind built elsewhere and passed by reference is checked the same way.
+const ruleKindValue = { rule: 'paragraph', fields: {} };
+export const ruleKindByReference: EvidenceKindDefinition = ruleKindValue;

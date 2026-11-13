@@ -154,12 +154,10 @@ export const nullMatcherSeverity = {
 export const nullKindRule = {
 	// expect TS2322
 	rule: null,
-	inline_rule: 'kind: paragraph',
 	fields: {},
 } satisfies EvidenceKindDefinition;
 
 export const nullKindHtmlUnits = {
-	rule: 'paragraph',
 	// expect TS2322
 	html_units: null,
 	fields: {},
@@ -290,3 +288,25 @@ export const markdownTwoFilters = {
 	},
 	fields: {},
 } satisfies EvidenceKindDefinition;
+
+// An evidence kind names exactly one matcher: not none, and not two.
+export const noMatcherKind = {
+	fields: { body: { from: 'remainder' } },
+	// expect TS1360
+} satisfies EvidenceKindDefinition;
+
+export const twoMatcherKind = {
+	rule: 'paragraph',
+	inline_rule: 'kind: paragraph',
+	fields: { body: { from: 'remainder' } },
+	// expect TS1360
+} satisfies EvidenceKindDefinition;
+
+// A kind passed by reference, without a fresh literal's excess-property check.
+const noMatcherValue = { fields: {} };
+// expect TS2322
+export const noMatcherByReference: EvidenceKindDefinition = noMatcherValue;
+
+const twoMatcherValue = { rule: 'paragraph', inline_rule: 'kind: paragraph', fields: {} };
+// expect TS2322
+export const twoMatcherByReference: EvidenceKindDefinition = twoMatcherValue;
