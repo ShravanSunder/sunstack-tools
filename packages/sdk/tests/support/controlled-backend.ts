@@ -4,6 +4,8 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
+import { ownedDirectory } from './sdk-fixtures.ts';
+
 export interface CapturedRequest {
 	readonly body: Readonly<Record<string, unknown>>;
 	/** Send the answer for this request. */
@@ -124,4 +126,81 @@ export function answerChoice(
 		answers,
 		usage: { input_tokens: 30, output_tokens: 4 },
 	});
+}
+
+/** Answers each model request "yes" until stopped. */
+export interface Responder {
+	/** Stop waiting and settle; resolves with the number answered, or rejects with its failure. */
+	stop(): Promise<number>;
+}
+
+export function answerEveryRequest(backend: ControlledBackend, responseLimit: number): Responder {
+	let release: ((value: 'stopped') => void) | undefined;
+	const stopped = new Promise<'stopped'>((resolve) => {
+		release = resolve;
+	});
+	// Every request is answered so no run waits on the responder; a request beyond the
+	// limit is recorded as this responder's failure and reported when it stops.
+	let overLimit = false;
+	const answerFrom = async (answered: number): Promise<number> => {
+		const next = await Promise.race([backend.nextRequest(), stopped]);
+		if (next === 'stopped') return answered;
+		overLimit ||= answered >= responseLimit;
+		answerNoul(next, 0.9);
+		return answerFrom(answered + 1);
+	};
+	const settled = answerFrom(0);
+	// A failure is reported by `stop`, never left unhandled.
+	settled.catch(() => undefined);
+	return {
+		async stop() {
+			release?.('stopped');
+			const answered = await settled;
+			if (overLimit)
+				throw new Error(`${answered} model requests; at most ${responseLimit} expected`);
+			return answered;
+		},
+	};
+}
+
+/** What a body run against an answering backend returned, and how many requests it answered. */
+export interface AnsweredRun<TValue> {
+	readonly value: TValue;
+	readonly answered: number;
+}
+
+/**
+ * Run `body` against a fresh checked repository and a backend that answers at most
+ * `responseLimit` requests. The responder is always stopped, the backend always closed and
+ * the repository always removed, whatever the body or the responder did; afterwards a body
+ * failure, a responder failure, or both, reject.
+ */
+export async function withAnsweringBackend<TValue>(
+	prefix: string,
+	responseLimit: number,
+	body: (backend: ControlledBackend, root: string) => Promise<TValue>,
+): Promise<AnsweredRun<TValue>> {
+	const repository = ownedDirectory(prefix);
+	const backend = await startControlledBackend();
+	const responder = answerEveryRequest(backend, responseLimit);
+	process.env['OPENROUTER_API_KEY'] = 'synthetic-controlled-key';
+	const ran = await body(backend, repository.path).then(
+		(value) => ({ status: 'fulfilled', value }) as const,
+		(error: unknown) => ({ status: 'rejected', error }) as const,
+	);
+	const stopped = await responder.stop().then(
+		(answered) => ({ status: 'fulfilled', answered }) as const,
+		(error: unknown) => ({ status: 'rejected', error }) as const,
+	);
+	delete process.env['OPENROUTER_API_KEY'];
+	try {
+		await backend.close();
+	} finally {
+		repository.remove();
+	}
+	if (ran.status === 'rejected' && stopped.status === 'rejected')
+		throw new AggregateError([ran.error, stopped.error], 'the body and its responder failed');
+	if (ran.status === 'rejected') throw ran.error;
+	if (stopped.status === 'rejected') throw stopped.error;
+	return { value: ran.value, answered: stopped.answered };
 }
