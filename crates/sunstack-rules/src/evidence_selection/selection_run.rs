@@ -9,6 +9,14 @@ use sunstack_decisions::{
 };
 use sunstack_evidence::{CandidateId, FieldName, ModelView, SelectionCandidate, SharedView};
 
+#[derive(serde::Serialize)]
+struct SelectionViewState<'a> {
+    #[serde(flatten)]
+    fields: &'a BTreeMap<FieldName, sunstack_evidence::ModelFieldValue>,
+    #[serde(rename = "cut-fields", skip_serializing_if = "<[FieldName]>::is_empty")]
+    cut_fields: &'a [FieldName],
+}
+
 fn incomplete(reason: SelectionIncompleteReason) -> SelectionOutcome {
     SelectionOutcome::Incomplete { reason }
 }
@@ -58,19 +66,27 @@ fn request_for(
         let name = QuestionName::new(candidate.key.as_str())
             .map_err(|_| SelectionIncompleteReason::InvalidRequest)?;
         questions.insert(name, question);
-        let ModelView::Bounded { fields, .. } = &candidate.selection_view else {
+        let ModelView::Bounded { fields, cut } = &candidate.selection_view else {
             return Err(SelectionIncompleteReason::EvidenceTooLarge);
         };
         views.insert(
             candidate.key.as_str().into(),
-            serde_json::to_value(fields).map_err(|_| SelectionIncompleteReason::InvalidRequest)?,
+            serde_json::to_value(SelectionViewState {
+                fields,
+                cut_fields: cut,
+            })
+            .map_err(|_| SelectionIncompleteReason::InvalidRequest)?,
         );
     }
-    let ModelView::Bounded { fields, .. } = &shared.view else {
+    let ModelView::Bounded { fields, cut } = &shared.view else {
         return Err(SelectionIncompleteReason::EvidenceTooLarge);
     };
+    let shared_state = SelectionViewState {
+        fields,
+        cut_fields: cut,
+    };
     let state: SharedEvidenceState = serde_json::from_value(
-        serde_json::json!({"where":{"file":shared.file},"candidates":views,"shared":fields}),
+        serde_json::json!({"where":{"file":shared.file},"candidates":views,"shared":shared_state}),
     )
     .map_err(|_| SelectionIncompleteReason::InvalidRequest)?;
     Ok(StructuredJudgmentRequest { questions, state })
@@ -301,3 +317,7 @@ fn outcome_for(
         }),
     }
 }
+
+#[cfg(test)]
+#[path = "selection_run_test.rs"]
+mod tests;

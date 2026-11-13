@@ -57,6 +57,7 @@ fn field_source_is_closed_and_field_names_exclude_reserved_names() {
         "text",
         "where",
         "standard",
+        "cut-fields",
         "Upper",
         "bad__name",
         "",

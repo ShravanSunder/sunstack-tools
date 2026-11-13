@@ -1,0 +1,28 @@
+{
+	"source_manifest": "../heading-text/real-corpus.json",
+	"source_basis": "Exact headed P3/current0.15.1 input, frozen13HTML+10Markdown pages; J1/ai-tools original scope",
+	"expected": {
+		"html": {
+			"requests": 74,
+			"candidates": 354,
+			"cut": 18,
+			"uncut": 336,
+			"shared_cut": 0,
+			"shared_uncut": 74
+		},
+		"markdown": {
+			"requests": 49,
+			"candidates": 236,
+			"cut": 12,
+			"uncut": 224,
+			"shared_cut": 0,
+			"shared_uncut": 49
+		},
+		"j1": {
+			"requests": 177
+		},
+		"ai-tools": {
+			"requests": 499
+		}
+	}
+}

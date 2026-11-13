@@ -472,7 +472,15 @@ async fn unequal_candidates_share_one_independently_bounded_shared_view_in_each_
     input.shared[0].fields = BTreeMap::from([(FieldName::new("outline").unwrap(), outline)]);
     input.shared[0].view = selection_model_view(&input.shared[0].fields, 1000);
     let expected = match &input.shared[0].view {
-        ModelView::Bounded { fields, .. } => serde_json::to_value(fields).unwrap(),
+        ModelView::Bounded { fields, cut } => {
+            assert_eq!(cut, &[FieldName::new("outline").unwrap()]);
+            let mut expected = serde_json::to_value(fields).unwrap();
+            expected
+                .as_object_mut()
+                .unwrap()
+                .insert("cut-fields".into(), serde_json::json!(["outline"]));
+            expected
+        }
         _ => panic!(),
     };
     for (candidate, length) in input.candidates.iter_mut().zip([2000, 700]) {
