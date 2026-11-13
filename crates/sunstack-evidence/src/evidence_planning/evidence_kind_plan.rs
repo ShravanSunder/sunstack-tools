@@ -33,7 +33,8 @@ impl EvidenceKindPlan {
                             dependencies.insert(kind.clone());
                         }
                     }
-                    FieldSource::Target {
+                    FieldSource::SectionPrefix { kind }
+                    | FieldSource::Target {
                         as_kind: Some(kind),
                         ..
                     } => {

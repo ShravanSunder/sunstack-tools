@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.17.0
+
+Release date: 2026-11-13.
+
+- Add opt-in `{"from":"section_prefix","kind":"configured_kind"}` fields:
+  exact source bytes before each subject in its nearest configured containing
+  section, with original provenance, available empty text, ordinary projection,
+  cut accounting and selection dependencies. Existing field modes are unchanged.
+  Public Rust `FieldSource` adds `SectionPrefix { kind }`; exhaustive consumers
+  must handle it. The field retains its span but does not add an AST-to-field join.
+- `lint --report FILE cases ...` now saves the complete existing case report,
+  preserving stdout and result exits; a failed save uses ordinary report error
+  handling (exit 3). No additional model work is dispatched.
+
 ## 0.16.0
 
 Release date: 2026-11-13.

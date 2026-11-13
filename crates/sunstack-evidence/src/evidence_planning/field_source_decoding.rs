@@ -10,6 +10,9 @@ enum FieldSourceWire {
     Section {
         text: SectionText,
     },
+    SectionPrefix {
+        kind: EvidenceKindName,
+    },
     Capture {
         regex: String,
     },
@@ -92,6 +95,7 @@ impl<'de> Deserialize<'de> for FieldSource {
         Ok(match FieldSourceWire::deserialize(deserializer)? {
             FieldSourceWire::FirstLine {} => Self::FirstLine {},
             FieldSourceWire::Section { text } => Self::Section { text },
+            FieldSourceWire::SectionPrefix { kind } => Self::SectionPrefix { kind },
             FieldSourceWire::Capture { regex } => Self::Capture { regex },
             FieldSourceWire::Inside { rule, kind } => Self::Inside {
                 of: source(rule, kind)?,

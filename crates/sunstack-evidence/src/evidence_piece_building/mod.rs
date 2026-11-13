@@ -442,6 +442,7 @@ fn target_names(
 }
 
 mod field_composition;
+mod section_prefix_fields;
 use field_composition::{local_fields, source_span};
 
 mod document_fields;

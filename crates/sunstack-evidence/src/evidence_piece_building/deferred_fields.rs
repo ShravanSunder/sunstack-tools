@@ -74,15 +74,16 @@ impl EvidenceBuild {
         }
         let mut pending_inside = false;
         for (name, source) in &definition.fields {
-            let of = match source {
+            let kind = match source {
+                FieldSource::SectionPrefix { kind } => kind,
                 FieldSource::SameFile { of, .. }
                 | FieldSource::Inside { of }
                 | FieldSource::Remainder { exclude: Some(of) }
-                | FieldSource::Enclosing { of, .. } => of,
+                | FieldSource::Enclosing { of, .. } => match of {
+                    MatchSource::Kind { kind } => kind,
+                    MatchSource::Rule { .. } => continue,
+                },
                 _ => continue,
-            };
-            let MatchSource::Kind { kind } = of else {
-                continue;
             };
             if self
                 .unresolved_ranges(kind, file)
@@ -91,7 +92,9 @@ impl EvidenceBuild {
                     FieldSource::Inside { .. } | FieldSource::Remainder { .. } => {
                         match_within(unknown, range)
                     }
-                    FieldSource::Enclosing { .. } => match_within(range, unknown),
+                    FieldSource::Enclosing { .. } | FieldSource::SectionPrefix { .. } => {
+                        match_within(range, unknown)
+                    }
                     _ => true,
                 })
             {

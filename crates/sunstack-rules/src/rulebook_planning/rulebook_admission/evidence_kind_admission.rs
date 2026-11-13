@@ -157,6 +157,9 @@ pub fn admit_evidence_kinds(
                     ));
                 }
                 let referenced = match source {
+                    FieldSource::SectionPrefix { kind } => kinds.get(kind).and_then(|definition| {
+                        sunstack_evidence::evidence_kind_language(project, kind, definition)
+                    }),
                     FieldSource::Inside { of }
                     | FieldSource::Enclosing { of, .. }
                     | FieldSource::SameFile { of, .. }
@@ -202,6 +205,11 @@ pub fn admit_evidence_kinds(
                 }
             }
             match source {
+                FieldSource::SectionPrefix { kind } => {
+                    if !kinds.contains_key(kind) {
+                        errors.push(refusal(&path, "undefined evidence kind"));
+                    }
+                }
                 FieldSource::Inside { of }
                 | FieldSource::Enclosing { of, .. }
                 | FieldSource::SameFile { of, .. }

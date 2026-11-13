@@ -21,6 +21,8 @@ mod filter_runtime;
 mod html_evidence;
 #[path = "lint_commands/html_sections.rs"]
 mod html_sections;
+#[path = "lint_commands/section_prefix.rs"]
+mod section_prefix;
 #[path = "../support/mod.rs"]
 mod support;
 #[path = "lint_commands/usability.rs"]
